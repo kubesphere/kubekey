@@ -23,7 +23,7 @@ func NewConnector() *Dialer {
 }
 
 // Tunnel returns established SSH tunnel
-func (dialer *Dialer) Tunnel(host kubekeyapi.HostConfig) (Tunneler, error) {
+func (dialer *Dialer) Tunnel(host kubekeyapi.HostCfg) (Tunneler, error) {
 	conn, err := dialer.Connect(host)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (dialer *Dialer) Tunnel(host kubekeyapi.HostConfig) (Tunneler, error) {
 }
 
 // Connect to the node
-func (dialer *Dialer) Connect(host kubekeyapi.HostConfig) (Connection, error) {
+func (dialer *Dialer) Connect(host kubekeyapi.HostCfg) (Connection, error) {
 	var err error
 
 	dialer.lock.Lock()
