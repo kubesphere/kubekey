@@ -46,7 +46,7 @@ func (dialer *Dialer) Connect(host kubekeyapi.HostConfig) (Connection, error) {
 
 	conn, found := dialer.connections[host.ID]
 	if !found {
-		opts := Opts{
+		opts := SSHCfg{
 			Username:    host.SSHUsername,
 			Port:        host.SSHPort,
 			Hostname:    host.PublicAddress,
