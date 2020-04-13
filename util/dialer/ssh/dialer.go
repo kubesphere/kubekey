@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
@@ -44,18 +45,21 @@ func (dialer *Dialer) Connect(host kubekeyapi.HostCfg) (Connection, error) {
 	dialer.lock.Lock()
 	defer dialer.lock.Unlock()
 
+	found := false
 	conn, found := dialer.connections[host.ID]
 	if !found {
+		port, _ := strconv.Atoi(host.Port)
 		opts := SSHCfg{
-			Username:    host.SSHUsername,
-			Port:        host.SSHPort,
-			Hostname:    host.PublicAddress,
-			KeyFile:     host.SSHPrivateKeyFile,
-			AgentSocket: host.SSHAgentSocket,
-			Timeout:     10 * time.Second,
-			Bastion:     host.Bastion,
-			BastionPort: host.BastionPort,
-			BastionUser: host.BastionUser,
+			Username: host.User,
+			Port:     port,
+			Hostname: host.HostName,
+			Password: host.Password,
+			KeyFile:  host.SSHKeyPath,
+			//AgentSocket: host.SSHAgentSocket,
+			Timeout: 10 * time.Second,
+			//Bastion:     host.Bastion,
+			//BastionPort: host.BastionPort,
+			//BastionUser: host.BastionUser,
 		}
 
 		conn, err = NewConnection(opts)

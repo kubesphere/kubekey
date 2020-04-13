@@ -1,11 +1,10 @@
 package task
 
 import (
-	"time"
-
+	//"kubekey/util/state"
 	"github.com/pixiake/kubekey/util/state"
-
 	"k8s.io/apimachinery/pkg/util/wait"
+	"time"
 )
 
 // defaultRetryBackoff is backoff with with duration of 5 seconds and factor of 2.0

@@ -25,6 +25,7 @@ type HostCfg struct {
 	//SSHCertPath      string            `yaml:"ssh_cert_path" json:"sshCertPath,omitempty"`
 	//Labels map[string]string `yaml:"labels" json:"labels,omitempty"`
 	//Taints []Taint           `yaml:"taints" json:"taints,omitempty"`
+	ID int `json:"-"`
 }
 
 type Taint struct {

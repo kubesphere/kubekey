@@ -32,15 +32,15 @@ type State struct {
 	JoinToken   string
 	//RESTConfig                *rest.Config
 	//DynamicClient             dynclient.Client
-	Verbose                   bool
-	BackupFile                string
-	DestroyWorkers            bool
-	RemoveBinaries            bool
-	ForceUpgrade              bool
-	UpgradeMachineDeployments bool
-	PatchCNI                  bool
-	CredentialsFilePath       string
-	ManifestFilePath          string
+	Verbose bool
+	//BackupFile                string
+	//DestroyWorkers            bool
+	//RemoveBinaries            bool
+	//ForceUpgrade              bool
+	//UpgradeMachineDeployments bool
+	//PatchCNI                  bool
+	//CredentialsFilePath       string
+	//ManifestFilePath          string
 }
 
 func (s *State) KubeadmVerboseFlag() string {

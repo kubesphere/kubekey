@@ -34,7 +34,7 @@ func (r *Runner) RunRaw(cmd string) (string, string, error) {
 
 		return stdout, stderr, err
 	}
-
+	fmt.Println(r.Prefix)
 	stdout := NewTee(New(os.Stdout, r.Prefix))
 	defer stdout.Close()
 
@@ -43,7 +43,8 @@ func (r *Runner) RunRaw(cmd string) (string, string, error) {
 
 	// run the command
 	_, err := r.Conn.Stream(cmd, stdout, stderr)
-
+	fmt.Println(stdout.String())
+	fmt.Println(stderr.String())
 	return stdout.String(), stderr.String(), err
 }
 

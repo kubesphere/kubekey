@@ -256,10 +256,9 @@ func (c *connection) Stream(cmd string, stdout io.Writer, stderr io.Writer) (int
 		return 0, errors.Wrap(err, "failed to get SSH session")
 	}
 	defer sess.Close()
-
 	sess.Stdout = stdout
 	sess.Stderr = stderr
-
+	sess.Stdin = os.Stdin
 	exitCode := 0
 	err = sess.Run(strings.TrimSpace(cmd))
 	if err != nil {

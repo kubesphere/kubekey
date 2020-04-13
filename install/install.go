@@ -2,87 +2,28 @@ package install
 
 import (
 	kubekeyapi "github.com/pixiake/kubekey/apis/v1alpha1"
+	"github.com/pixiake/kubekey/cluster/container-engine/docker"
+	"github.com/pixiake/kubekey/util/state"
+	"github.com/pixiake/kubekey/util/task"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"kubeone/pkg/configupload"
-	"kubeone/pkg/credentials"
-	"kubeone/pkg/installer"
-	"kubeone/pkg/installer/installation"
-	"kubeone/pkg/state"
-	//"kubeone/pkg/credentials"
-	//"kubeone/pkg/installer"
-	//"kubeone/pkg/installer/installation"
 )
 
-type Installer struct {
-	cluster *kubekeyapi.ClusterCfg
-	logger  *log.Logger
+func CreateCluster(logger *log.Logger, clusterCfgFile string, addons string, pkg string) error {
+	cfg := kubekeyapi.GetClusterCfg(clusterCfgFile)
+	//installer.NewInstaller(cluster, logger)
+	return NewInstaller(cfg, logger).Install()
 }
 
-type Options struct {
-	Verbose         bool
-	Manifest        string
-	CredentialsFile string
-	BackupFile      string
-	DestroyWorkers  bool
-	RemoveBinaries  bool
-}
-
-func NewInstaller(cluster *kubekeyapi.ClusterCfg, logger *log.Logger) *Installer {
-	return &Installer{
-		cluster: cluster,
-		logger:  logger,
-	}
-}
-
-func (i *Installer) Install(options *Options) error {
-	s, err := i.createState(options)
-	if err != nil {
-		return err
-	}
-	return installation.Install(s)
-}
-
-func (i *Installer) createState(options *Options) (*state.State, error) {
-	s, err := state.New()
-	if err != nil {
-		return nil, err
+func ExecTasks(s *state.State) error {
+	createTasks := []task.Task{
+		{Fn: docker.InstallerDocker, ErrMsg: "failed to download kube binaries"},
 	}
 
-	s.Cluster = i.cluster
-	s.Connector = ssh.NewConnector()
-	s.Configuration = configupload.NewConfiguration()
-	s.WorkDir = "kubeone"
-	s.Logger = i.logger
-	s.Verbose = options.Verbose
-	s.ManifestFilePath = options.Manifest
-	s.CredentialsFilePath = options.CredentialsFile
-	s.BackupFile = options.BackupFile
-	s.DestroyWorkers = options.DestroyWorkers
-	s.RemoveBinaries = options.RemoveBinaries
-	return s, nil
-}
-
-func CreateCluster(clusterCfgFile string, addons string, pkg string) {
-	cluster := kubekeyapi.GetClusterCfg(clusterCfgFile)
-}
-
-func runInstall(logger *log.Logger) error {
-	cluster, err := loadClusterConfig(installOptions.Manifest, installOptions.TerraformState, installOptions.CredentialsFilePath, logger)
-	if err != nil {
-		return errors.Wrap(err, "failed to load cluster")
+	for _, step := range createTasks {
+		if err := step.Run(s); err != nil {
+			return errors.Wrap(err, step.ErrMsg)
+		}
 	}
-
-	options, err := createInstallerOptions(installOptions.Manifest, cluster, installOptions)
-	if err != nil {
-		return errors.Wrap(err, "failed to create installer options")
-	}
-
-	// Validate credentials
-	_, err = credentials.ProviderCredentials(cluster.CloudProvider.Name, installOptions.CredentialsFilePath)
-	if err != nil {
-		return errors.Wrap(err, "failed to validate credentials")
-	}
-
-	return installer.NewInstaller(cluster, logger).Install(options)
+	return nil
 }
