@@ -1,8 +1,10 @@
 package ssh
 
 import (
-	"bytes"
+	"bufio"
 	"context"
+	"fmt"
+	"github.com/pixiake/kubekey/apis/v1alpha1"
 	"io"
 	"io/ioutil"
 	"net"
@@ -27,9 +29,9 @@ var (
 
 // Connection represents an established connection to an SSH server.
 type Connection interface {
-	Exec(cmd string) (stdout string, stderr string, exitCode int, err error)
+	Exec(cmd string, host *v1alpha1.HostCfg) (stdout string, exitCode int, err error)
 	File(filename string, flags int) (io.ReadWriteCloser, error)
-	Stream(cmd string, stdout io.Writer, stderr io.Writer) (exitCode int, err error)
+	Scp(src, dst string) error
 	io.Closer
 }
 
@@ -45,7 +47,7 @@ type Tunneler interface {
 type SSHCfg struct {
 	Username    string
 	Password    string
-	Hostname    string
+	Address     string
 	Port        int
 	PrivateKey  string
 	KeyFile     string
@@ -61,8 +63,8 @@ func validateOptions(cfg SSHCfg) (SSHCfg, error) {
 		return cfg, errors.New("no username specified for SSH connection")
 	}
 
-	if len(cfg.Hostname) == 0 {
-		return cfg, errors.New("no hostname specified for SSH connection")
+	if len(cfg.Address) == 0 {
+		return cfg, errors.New("no address specified for SSH connection")
 	}
 
 	if len(cfg.Password) == 0 && len(cfg.PrivateKey) == 0 && len(cfg.KeyFile) == 0 && len(cfg.AgentSocket) == 0 {
@@ -163,7 +165,7 @@ func NewConnection(cfg SSHCfg) (Connection, error) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec
 	}
 
-	targetHost := cfg.Hostname
+	targetHost := cfg.Address
 	targetPort := strconv.Itoa(cfg.Port)
 
 	if cfg.Bastion != "" {
@@ -193,7 +195,7 @@ func NewConnection(cfg SSHCfg) (Connection, error) {
 	}
 
 	// continue to setup if we are running over bastion
-	endpointBehindBastion := net.JoinHostPort(cfg.Hostname, strconv.Itoa(cfg.Port))
+	endpointBehindBastion := net.JoinHostPort(cfg.Address, strconv.Itoa(cfg.Port))
 
 	// Dial a connection to the service host, from the bastion
 	conn, err := client.Dial("tcp", endpointBehindBastion)
@@ -250,30 +252,63 @@ func (c *connection) Close() error {
 	return c.sshclient.Close()
 }
 
-func (c *connection) Stream(cmd string, stdout io.Writer, stderr io.Writer) (int, error) {
+func (c *connection) Exec(cmd string, host *v1alpha1.HostCfg) (string, int, error) {
 	sess, err := c.session()
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get SSH session")
+		return "", 0, errors.Wrap(err, "failed to get SSH session")
 	}
 	defer sess.Close()
-	sess.Stdout = stdout
-	sess.Stderr = stderr
-	sess.Stdin = os.Stdin
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          0,     // disable echoing
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
+
+	err = sess.RequestPty("xterm", 80, 40, modes)
+	if err != nil {
+		return "", 0, err
+	}
+
+	stdin, _ := sess.StdinPipe()
+	out, _ := sess.StdoutPipe()
+	var output []byte
+
+	go func(in io.WriteCloser, out io.Reader, output *[]byte) {
+		var (
+			line string
+			r    = bufio.NewReader(out)
+		)
+		for {
+			b, err := r.ReadByte()
+			if err != nil {
+				break
+			}
+
+			*output = append(*output, b)
+
+			if b == byte('\n') {
+				line = ""
+				continue
+			}
+
+			line += string(b)
+
+			if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
+				_, err = in.Write([]byte(host.Password + "\n"))
+				if err != nil {
+					break
+				}
+			}
+		}
+	}(stdin, out, &output)
+
 	exitCode := 0
-	err = sess.Run(strings.TrimSpace(cmd))
+	_, err = sess.CombinedOutput(strings.TrimSpace(cmd))
 	if err != nil {
 		exitCode = 1
 	}
-
-	return exitCode, errors.Wrapf(err, "failed to exec command: %s", cmd)
-}
-
-func (c *connection) Exec(cmd string) (string, string, int, error) {
-	var stdoutBuf, stderrBuf bytes.Buffer
-
-	exitCode, err := c.Stream(cmd, &stdoutBuf, &stderrBuf)
-
-	return strings.TrimSpace(stdoutBuf.String()), strings.TrimSpace(stderrBuf.String()), exitCode, err
+	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", host.User))
+	return strings.TrimSpace(outStr), exitCode, errors.Wrapf(err, "failed to exec command: %s", cmd)
 }
 
 func (c *connection) session() (*ssh.Session, error) {
@@ -285,23 +320,4 @@ func (c *connection) session() (*ssh.Session, error) {
 	}
 
 	return c.sshclient.NewSession()
-}
-
-func (c *connection) sftp() (*sftp.Client, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.sshclient == nil {
-		return nil, errors.New("connection closed")
-	}
-
-	if c.sftpclient == nil {
-		s, err := sftp.NewClient(c.sshclient)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get sftp.Client")
-		}
-		c.sftpclient = s
-	}
-
-	return c.sftpclient, nil
 }

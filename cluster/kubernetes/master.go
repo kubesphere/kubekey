@@ -1,0 +1,5 @@
+package kubernetes
+
+func SyncKubeFiles() {
+
+}

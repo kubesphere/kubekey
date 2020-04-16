@@ -52,7 +52,7 @@ func (dialer *Dialer) Connect(host kubekeyapi.HostCfg) (Connection, error) {
 		opts := SSHCfg{
 			Username: host.User,
 			Port:     port,
-			Hostname: host.HostName,
+			Address:  host.SSHAddress,
 			Password: host.Password,
 			KeyFile:  host.SSHKeyPath,
 			//AgentSocket: host.SSHAgentSocket,

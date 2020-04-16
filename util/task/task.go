@@ -1,8 +1,7 @@
 package task
 
 import (
-	//"kubekey/util/state"
-	"github.com/pixiake/kubekey/util/state"
+	"github.com/pixiake/kubekey/util/manager"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"time"
 )
@@ -18,13 +17,13 @@ func defaultRetryBackoff(retries int) wait.Backoff {
 
 // Task is a runnable task
 type Task struct {
-	Fn      func(*state.State) error
+	Fn      func(*manager.Manager) error
 	ErrMsg  string
 	Retries int
 }
 
 // Run runs a task
-func (t *Task) Run(ctx *state.State) error {
+func (t *Task) Run(mgrTask *manager.Manager) error {
 	if t.Retries == 0 {
 		t.Retries = 1
 	}
@@ -33,13 +32,13 @@ func (t *Task) Run(ctx *state.State) error {
 	var lastError error
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		if lastError != nil {
-			ctx.Logger.Warn("Retrying task…")
+			mgrTask.Logger.Warn("Retrying task…")
 		}
-		lastError = t.Fn(ctx)
+		lastError = t.Fn(mgrTask)
 		if lastError != nil {
-			ctx.Logger.Warn("Task failed…")
-			if ctx.Verbose {
-				ctx.Logger.Warnf("error was: %s", lastError)
+			mgrTask.Logger.Warn("Task failed…")
+			if mgrTask.Verbose {
+				mgrTask.Logger.Warnf("error was: %s", lastError)
 			}
 			return false, nil
 		}

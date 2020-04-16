@@ -1,70 +1,96 @@
-package state
+package manager
 
 import (
 	"fmt"
+	"github.com/pixiake/kubekey/util/ssh"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
 	kubekeyapi "github.com/pixiake/kubekey/apis/v1alpha1"
-	"github.com/pixiake/kubekey/util/dialer/ssh"
 	"github.com/pixiake/kubekey/util/runner"
 )
 
-// NodeTask is a task that is specifically tailored to run on a single node.
-type NodeTask func(ctx *State, node *kubekeyapi.HostCfg, conn ssh.Connection) error
+const (
+	DefaultCon = 10
+	Timeout    = 600
+)
 
-func (s *State) runTask(node *kubekeyapi.HostCfg, task NodeTask, prefixed bool) error {
+// NodeTask is a task that is specifically tailored to run on a single node.
+type NodeTask func(mgr *Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error
+
+func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, prefixed bool) error {
 	var (
 		err  error
 		conn ssh.Connection
 	)
-
 	// connect to the host (and do not close connection
 	// because we want to re-use it for future task)
-	conn, err = s.Connector.Connect(*node)
+	conn, err = mgr.Connector.Connect(*node)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to %s", node.Address)
+		return errors.Wrapf(err, "failed to connect to %s", node.SSHAddress)
 	}
 
 	prefix := ""
 	if prefixed {
-		prefix = fmt.Sprintf("[%s] ", node.Address)
+		prefix = fmt.Sprintf("[%s] ", node.HostName)
 	}
 
-	s.Runner = &runner.Runner{
+	mgr.Runner = &runner.Runner{
 		Conn:    conn,
-		Verbose: s.Verbose,
+		Verbose: mgr.Verbose,
 		//OS:      node.OS,
 		Prefix: prefix,
+		Host:   node,
 	}
 
-	return task(s, node, conn)
+	return task(mgr, node, conn)
 }
 
 // RunTaskOnNodes runs the given task on the given selection of hosts.
-func (s *State) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, parallel bool) error {
+func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, parallel bool) error {
 	var err error
-
-	wg := sync.WaitGroup{}
 	hasErrors := false
 
-	for i := range nodes {
-		ctx := s.Clone()
-		ctx.Logger = ctx.Logger.WithField("node", nodes[i].Address)
+	wg := &sync.WaitGroup{}
+	result := make(chan string)
+	ccons := make(chan struct{}, DefaultCon)
+	defer close(result)
+	defer close(ccons)
+	hostNum := len(nodes)
 
-		if parallel {
-			wg.Add(1)
-			go func(ctx *State, node *kubekeyapi.HostCfg) {
-				err = ctx.runTask(node, task, parallel)
-				if err != nil {
-					ctx.Logger.Error(err)
-					hasErrors = true
+	if parallel {
+		go func(result chan string, ccons chan struct{}) {
+			for i := 0; i < hostNum; i++ {
+				select {
+				case <-result:
+				case <-time.After(time.Second * Timeout):
+					fmt.Sprintf("getSSHClient error,SSH-Read-TimeOut,Timeout=%ds", Timeout)
 				}
 				wg.Done()
-			}(ctx, &nodes[i])
+				<-ccons
+			}
+		}(result, ccons)
+	}
+
+	for i := range nodes {
+		mgrTask := mgr.Clone()
+		mgrTask.Logger = mgrTask.Logger.WithField("node", nodes[i].SSHAddress)
+
+		if parallel {
+			ccons <- struct{}{}
+			wg.Add(1)
+			go func(mgr *Manager, node *kubekeyapi.HostCfg, result chan string) {
+				err = mgr.runTask(node, task, parallel)
+				if err != nil {
+					mgr.Logger.Error(err)
+					hasErrors = true
+				}
+				result <- "done"
+			}(mgrTask, &nodes[i], result)
 		} else {
-			err = ctx.runTask(&nodes[i], task, parallel)
+			err = mgrTask.runTask(&nodes[i], task, parallel)
 			if err != nil {
 				break
 			}
@@ -81,10 +107,10 @@ func (s *State) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, parall
 }
 
 // RunTaskOnAllNodes runs the given task on all hosts.
-func (s *State) RunTaskOnAllNodes(task NodeTask, parallel bool) error {
+func (mgr *Manager) RunTaskOnAllNodes(task NodeTask, parallel bool) error {
 	// It's not possible to concatenate host lists in this function.
 	// Some of the task(determineOS, determineHostname) write to the state and sending a copy would break that.
-	if err := s.RunTaskOnNodes(s.Cluster.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.Cluster.Hosts, task, parallel); err != nil {
 		return err
 	}
 	//if s.Cluster.StaticWorkers != nil {

@@ -1,15 +1,15 @@
-package state
+package manager
 
 import (
+	ssh2 "github.com/pixiake/kubekey/util/ssh"
 	"github.com/sirupsen/logrus"
 
 	kubekeyapi "github.com/pixiake/kubekey/apis/v1alpha1"
-	//"github.com/kubermatic/kubeone/pkg/configupload"
-	"github.com/pixiake/kubekey/util/dialer/ssh"
+
 	"github.com/pixiake/kubekey/util/runner"
 	//"k8s.io/client-go/rest"
 	//bootstraputil "k8s.io/cluster-bootstrap/token/util"
-	//dynclient "sigs.k8s.io/controller-runtime/pkg/client"
+	//dynclient "sigs.k8s.io/manager-runtime/pkg/client"
 )
 
 //func New() (*State, error) {
@@ -21,10 +21,10 @@ import (
 
 // State holds together currently test flags and parsed info, along with
 // utilities like logger
-type State struct {
+type Manager struct {
 	Cluster   *kubekeyapi.ClusterCfg
 	Logger    logrus.FieldLogger
-	Connector *ssh.Dialer
+	Connector *ssh2.Dialer
 	//Configuration             *configupload.Configuration
 	Runner      *runner.Runner
 	WorkDir     string
@@ -43,15 +43,15 @@ type State struct {
 	//ManifestFilePath          string
 }
 
-func (s *State) KubeadmVerboseFlag() string {
-	if s.Verbose {
+func (mgr *Manager) KubeadmVerboseFlag() string {
+	if mgr.Verbose {
 		return "--v=6"
 	}
 	return ""
 }
 
 // Clone returns a shallow copy of the State.
-func (s *State) Clone() *State {
-	newState := *s
+func (mgr *Manager) Clone() *Manager {
+	newState := *mgr
 	return &newState
 }
