@@ -3,29 +3,24 @@ package runner
 import (
 	"fmt"
 	kubekeyapi "github.com/pixiake/kubekey/apis/v1alpha1"
-	"github.com/pixiake/kubekey/util"
 	ssh2 "github.com/pixiake/kubekey/util/ssh"
 	"github.com/pkg/errors"
 	"strings"
-	"text/template"
 	"time"
 )
 
-// Runner bundles a connection to a host with the verbosity and
-// other options for running commands via SSH.
 type Runner struct {
 	Conn    ssh2.Connection
 	Prefix  string
 	OS      string
 	Verbose bool
 	Host    *kubekeyapi.HostCfg
-	Result  chan string
+	Index   int
 }
 
-// TemplateVariables is a render context for templates
 type TemplateVariables map[string]interface{}
 
-func (r *Runner) RunRaw(cmd string) (string, error) {
+func (r *Runner) RunCmd(cmd string) (string, error) {
 	if r.Conn == nil {
 		return "", errors.New("runner is not tied to an opened SSH connection")
 	}
@@ -37,12 +32,19 @@ func (r *Runner) RunRaw(cmd string) (string, error) {
 		return output, nil
 	}
 
-	if output != "" {
-		fmt.Printf("[%s %s] MSG:\n", r.Host.HostName, r.Host.SSHAddress)
-		fmt.Println(output)
+	if err != nil {
+		return "", err
 	}
 
-	return "", err
+	if output != "" {
+		if strings.Contains(cmd, "base64") && strings.Contains(cmd, "--wrap=0") {
+		} else {
+			fmt.Printf("[%s %s] MSG:\n", r.Host.HostName, r.Host.SSHAddress)
+			fmt.Println(output)
+		}
+	}
+
+	return output, nil
 }
 
 func (r *Runner) ScpFile(src, dst string) error {
@@ -62,18 +64,6 @@ func (r *Runner) ScpFile(src, dst string) error {
 		}
 	}
 	return nil
-}
-
-// Run executes a given command/script, optionally printing its output to
-// stdout/stderr.
-func (r *Runner) Run(cmd string, variables TemplateVariables) (string, error) {
-	tmpl, _ := template.New("base").Parse(cmd)
-	cmd, err := util.Render(tmpl, variables)
-	if err != nil {
-		return "", err
-	}
-
-	return r.RunRaw(cmd)
 }
 
 // WaitForPod waits for the availability of the given Kubernetes element.
@@ -98,7 +88,7 @@ func (r *Runner) WaitForCondition(cmd string, timeout time.Duration, validator v
 	cutoff := time.Now().Add(timeout)
 
 	for time.Now().Before(cutoff) {
-		stdout, _ := r.Run(cmd, nil)
+		stdout, _ := r.RunCmd(cmd)
 		if validator(stdout) {
 			return true
 		}

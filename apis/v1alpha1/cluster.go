@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/pixiake/kubekey/util"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -81,6 +82,13 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
 }
 
+type ExternalEtcd struct {
+	Endpoints []string
+	CaFile    string
+	CertFile  string
+	KeyFile   string
+}
+
 func RegisterDefaults(scheme *runtime.Scheme) error {
 	scheme.AddTypeDefaultingFunc(&ClusterCfg{}, func(obj interface{}) { SetDefaultClusterCfg(obj.(*ClusterCfg)) })
 	return nil
@@ -105,4 +113,29 @@ func (cfg *ClusterCfg) GenerateHosts() []string {
 
 	hostsList = append(hostsList, lbHost)
 	return hostsList
+}
+
+func (cfg *ClusterCfg) GenerateCertSANs() []string {
+	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.KubeClusterName)
+	defaultCertSANs := []string{"kubernetes", "kubernetes.default", "kubernetes.default.svc", clusterSvc, "localhost", "127.0.0.1"}
+	extraCertSANs := []string{}
+
+	extraCertSANs = append(extraCertSANs, cfg.LBKubeApiserver.Domain)
+	extraCertSANs = append(extraCertSANs, cfg.LBKubeApiserver.Address)
+
+	for _, host := range cfg.Hosts {
+		extraCertSANs = append(extraCertSANs, host.HostName)
+		extraCertSANs = append(extraCertSANs, fmt.Sprintf("%s.%s", host.HostName, cfg.KubeClusterName))
+		if host.SSHAddress != cfg.LBKubeApiserver.Address {
+			extraCertSANs = append(extraCertSANs, host.SSHAddress)
+		}
+		if host.InternalAddress != host.SSHAddress && host.InternalAddress != cfg.LBKubeApiserver.Address {
+			extraCertSANs = append(extraCertSANs, host.InternalAddress)
+		}
+	}
+
+	extraCertSANs = append(extraCertSANs, util.ParseIp(cfg.Network.KubeServiceCIDR)[0])
+
+	defaultCertSANs = append(defaultCertSANs, extraCertSANs...)
+	return defaultCertSANs
 }

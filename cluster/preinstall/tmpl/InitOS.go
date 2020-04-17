@@ -37,7 +37,7 @@ modinfo br_netfilter > /dev/null 2>&1
 if [ $? -eq 0 ]; then
    modprobe br_netfilter
    mkdir -p /etc/modules-load.d
-   echo 'br_netfilter' > /etc/modules-load.d/kubeocean-br_netfilter.conf
+   echo 'br_netfilter' > /etc/modules-load.d/kubekey-br_netfilter.conf
 fi
 
 modprobe ip_vs

@@ -20,7 +20,7 @@ const (
 // NodeTask is a task that is specifically tailored to run on a single node.
 type NodeTask func(mgr *Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error
 
-func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, prefixed bool) error {
+func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, prefixed bool, index int) error {
 	var (
 		err  error
 		conn ssh.Connection
@@ -40,9 +40,9 @@ func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, prefixed bo
 	mgr.Runner = &runner.Runner{
 		Conn:    conn,
 		Verbose: mgr.Verbose,
-		//OS:      node.OS,
-		Prefix: prefix,
-		Host:   node,
+		Prefix:  prefix,
+		Host:    node,
+		Index:   index,
 	}
 
 	return task(mgr, node, conn)
@@ -81,16 +81,16 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 		if parallel {
 			ccons <- struct{}{}
 			wg.Add(1)
-			go func(mgr *Manager, node *kubekeyapi.HostCfg, result chan string) {
-				err = mgr.runTask(node, task, parallel)
+			go func(mgr *Manager, node *kubekeyapi.HostCfg, result chan string, index int) {
+				err = mgr.runTask(node, task, parallel, index)
 				if err != nil {
 					mgr.Logger.Error(err)
 					hasErrors = true
 				}
 				result <- "done"
-			}(mgrTask, &nodes[i], result)
+			}(mgrTask, &nodes[i], result, i)
 		} else {
-			err = mgrTask.runTask(&nodes[i], task, parallel)
+			err = mgrTask.runTask(&nodes[i], task, parallel, i)
 			if err != nil {
 				break
 			}
@@ -106,38 +106,37 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 	return err
 }
 
-// RunTaskOnAllNodes runs the given task on all hosts.
 func (mgr *Manager) RunTaskOnAllNodes(task NodeTask, parallel bool) error {
-	// It's not possible to concatenate host lists in this function.
-	// Some of the task(determineOS, determineHostname) write to the state and sending a copy would break that.
-	if err := mgr.RunTaskOnNodes(mgr.Cluster.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.AllNodes.Hosts, task, parallel); err != nil {
 		return err
 	}
-	//if s.Cluster.StaticWorkers != nil {
-	//	return s.RunTaskOnNodes(s.Cluster.StaticWorkers, task, parallel)
-	//}
 	return nil
 }
 
-// RunTaskOnLeader runs the given task on the leader host.
-//func (s *State) RunTaskOnLeader(task NodeTask) error {
-//	leader, err := s.Cluster.Leader()
-//	if err != nil {
-//		return err
-//	}
-//
-//	hosts := []kubekeyapi.HostConfig{
-//		leader,
-//	}
-//
-//	return s.RunTaskOnNodes(hosts, task, false)
-//}
+func (mgr *Manager) RunTaskOnEtcdNodes(task NodeTask, parallel bool) error {
+	if err := mgr.RunTaskOnNodes(mgr.EtcdNodes.Hosts, task, parallel); err != nil {
+		return err
+	}
+	return nil
+}
 
-// RunTaskOnFollowers runs the given task on the follower hosts.
-//func (s *State) RunTaskOnFollowers(task NodeTask, parallel bool) error {
-//	return s.RunTaskOnNodes(s.Cluster.Followers(), task, parallel)
-//}
-//
-//func (s *State) RunTaskOnStaticWorkers(task NodeTask, parallel bool) error {
-//	return s.RunTaskOnNodes(s.Cluster.StaticWorkers, task, parallel)
-//}
+func (mgr *Manager) RunTaskOnMasterNodes(task NodeTask, parallel bool) error {
+	if err := mgr.RunTaskOnNodes(mgr.MasterNodes.Hosts, task, parallel); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (mgr *Manager) RunTaskOnWorkerNodes(task NodeTask, parallel bool) error {
+	if err := mgr.RunTaskOnNodes(mgr.WorkerNodes.Hosts, task, parallel); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (mgr *Manager) RunTaskOnK8sNodes(task NodeTask, parallel bool) error {
+	if err := mgr.RunTaskOnNodes(mgr.K8sNodes.Hosts, task, parallel); err != nil {
+		return err
+	}
+	return nil
+}

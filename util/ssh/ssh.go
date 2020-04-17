@@ -264,7 +264,7 @@ func (c *connection) Exec(cmd string, host *v1alpha1.HostCfg) (string, int, erro
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}
 
-	err = sess.RequestPty("xterm", 80, 40, modes)
+	err = sess.RequestPty("xterm", 100, 50, modes)
 	if err != nil {
 		return "", 0, err
 	}
@@ -273,37 +273,41 @@ func (c *connection) Exec(cmd string, host *v1alpha1.HostCfg) (string, int, erro
 	out, _ := sess.StdoutPipe()
 	var output []byte
 
-	go func(in io.WriteCloser, out io.Reader, output *[]byte) {
-		var (
-			line string
-			r    = bufio.NewReader(out)
-		)
-		for {
-			b, err := r.ReadByte()
+	err = sess.Start(strings.TrimSpace(cmd))
+	if err != nil {
+		return "", 0, err
+	}
+
+	var (
+		line = ""
+		r    = bufio.NewReader(out)
+	)
+
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			break
+		}
+
+		output = append(output, b)
+
+		if b == byte('\n') {
+			line = ""
+			continue
+		}
+
+		line += string(b)
+
+		if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
+			_, err = stdin.Write([]byte(host.Password + "\n"))
 			if err != nil {
 				break
 			}
-
-			*output = append(*output, b)
-
-			if b == byte('\n') {
-				line = ""
-				continue
-			}
-
-			line += string(b)
-
-			if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
-				_, err = in.Write([]byte(host.Password + "\n"))
-				if err != nil {
-					break
-				}
-			}
 		}
-	}(stdin, out, &output)
+	}
 
 	exitCode := 0
-	_, err = sess.CombinedOutput(strings.TrimSpace(cmd))
+	err = sess.Wait()
 	if err != nil {
 		exitCode = 1
 	}

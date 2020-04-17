@@ -16,7 +16,7 @@ import (
 func SyncKubeBinaries(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Syncing kube binaries……")
 
-	return mgr.RunTaskOnAllNodes(syncKubeBinaries, true)
+	return mgr.RunTaskOnK8sNodes(syncKubeBinaries, true)
 }
 
 func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
@@ -51,7 +51,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 		}
 	}
 	cmd := strings.Join(cmdlist, " && ")
-	_, err3 := mgr.Runner.RunRaw(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
+	_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("failed to create kubelet link"))
 	}
@@ -70,7 +70,7 @@ func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connect
 		return err1
 	}
 	kubeletServiceBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletService))
-	_, err2 := mgr.Runner.RunRaw(fmt.Sprintf("echo %s | base64 -d > %s/kubelet.service", kubeletServiceBase64, "/tmp/kubekey"))
+	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/kubelet.service && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", kubeletServiceBase64))
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "failed to generate kubelet service")
 	}
@@ -80,14 +80,9 @@ func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connect
 		return err3
 	}
 	kubeletEnvBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletEnv))
-	_, err4 := mgr.Runner.RunRaw(fmt.Sprintf("echo %s | base64 -d > %s/10-kubeadm.conf", kubeletEnvBase64, "/tmp/kubekey"))
+	_, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/systemd/system/kubelet.service.d && echo %s | base64 -d > /etc/systemd/system/kubelet.service.d/10-kubeadm.conf\"", kubeletEnvBase64))
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err2), "failed to generate kubelet env")
-	}
-
-	_, err5 := mgr.Runner.RunRaw("sudo -E /bin/sh -c \"cp -f /tmp/kubekey/kubelet.service /etc/systemd/system && mkdir -p /etc/systemd/system/kubelet.service.d && cp -f /tmp/kubekey/10-kubeadm.conf /etc/systemd/system/kubelet.service.d\"")
-	if err5 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to configure kubelet service")
 	}
 
 	return nil
