@@ -3,8 +3,8 @@ package create
 import (
 	"fmt"
 	"github.com/pixiake/kubekey/install"
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/pixiake/kubekey/pkg/cluster/preinstall"
+	"github.com/pixiake/kubekey/pkg/config"
 	"github.com/pixiake/kubekey/pkg/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -33,12 +33,12 @@ func NewCmdCreateCluster() *cobra.Command {
 }
 
 func CreateCluster(clusterCfgFile string, logger *log.Logger, addons string, pkg string) error {
-	cfg, err := kubekeyapi.LoadClusterCfg(clusterCfgFile, logger)
+	cfg, err := config.ParseK2ClusterObj(clusterCfgFile, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to download cluster config")
 	}
 	fmt.Println(cfg)
-	config := kubekeyapi.SetDefaultClusterCfg(cfg)
+	config := config.SetDefaultClusterCfg(&cfg.Spec)
 	if err := preinstall.Prepare(config, logger); err != nil {
 		return errors.Wrap(err, "failed to load kube binarys")
 	}
