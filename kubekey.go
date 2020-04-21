@@ -23,5 +23,5 @@ func main() {
 	pflag.CommandLine.MarkHidden("stderrthreshold")
 	pflag.CommandLine.MarkHidden("vmodule")
 
-	cmd.NewKubeoceanCommand().Execute()
+	cmd.NewKubekeyCommand().Execute()
 }

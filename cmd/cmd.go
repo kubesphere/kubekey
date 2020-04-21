@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewKubeoceanCommand() *cobra.Command {
+func NewKubekeyCommand() *cobra.Command {
 
 	var rootCmd = &cobra.Command{
 		Use:   "kk",
