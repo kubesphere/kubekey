@@ -1,0 +1,25 @@
+package v1alpha1
+
+const (
+	DefaultPreDir         = "kubekey"
+	DefaultSSHPort        = "22"
+	DefaultDockerSockPath = "/var/run/docker.sock"
+	DefaultLBPort         = "6443"
+	DefaultLBDomain       = "lb.kubesphere.local"
+	DefaultNetworkPlugin  = "calico"
+	DefaultPodsCIDR       = "10.233.64.0/18"
+	DefaultServiceCIDR    = "10.233.0.0/18"
+	DefaultKubeImageRepo  = "kubekey"
+	DefaultClusterName    = "cluster.local"
+	DefaultArch           = "amd64"
+	DefaultHostName       = "allinone"
+	DefaultEtcdRepo       = "kubekey/etcd"
+	DefaultEtcdVersion    = "v3.3.12"
+	DefaultEtcdPort       = "2379"
+	DefaultKubeVersion    = "v1.17.4"
+	DefaultCniVersion     = "v0.8.2"
+	DefaultHelmVersion    = "v3.1.2"
+	ETCDRole              = "etcd"
+	MasterRole            = "master"
+	WorkerRole            = "worker"
+)

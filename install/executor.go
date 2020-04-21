@@ -1,18 +1,18 @@
 package install
 
 import (
-	kubekeyapi "github.com/pixiake/kubekey/apis/v1alpha1"
-	"github.com/pixiake/kubekey/util/manager"
-	ssh "github.com/pixiake/kubekey/util/ssh"
+	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/pixiake/kubekey/pkg/util/manager"
+	ssh "github.com/pixiake/kubekey/pkg/util/ssh"
 	"github.com/sirupsen/logrus"
 )
 
 type Executor struct {
-	cluster *kubekeyapi.ClusterCfg
+	cluster *kubekeyapi.K2ClusterSpec
 	logger  *logrus.Logger
 }
 
-func NewExecutor(cluster *kubekeyapi.ClusterCfg, logger *logrus.Logger) *Executor {
+func NewExecutor(cluster *kubekeyapi.K2ClusterSpec, logger *logrus.Logger) *Executor {
 	return &Executor{
 		cluster: cluster,
 		logger:  logger,

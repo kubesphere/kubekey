@@ -1,13 +1,13 @@
 package install
 
 import (
-	"github.com/pixiake/kubekey/cluster/container-engine/docker"
-	"github.com/pixiake/kubekey/cluster/etcd"
-	"github.com/pixiake/kubekey/cluster/kubernetes"
-	"github.com/pixiake/kubekey/cluster/preinstall"
-	"github.com/pixiake/kubekey/plugins/network"
-	"github.com/pixiake/kubekey/util/manager"
-	"github.com/pixiake/kubekey/util/task"
+	"github.com/pixiake/kubekey/pkg/cluster/container-engine/docker"
+	"github.com/pixiake/kubekey/pkg/cluster/etcd"
+	"github.com/pixiake/kubekey/pkg/cluster/kubernetes"
+	"github.com/pixiake/kubekey/pkg/cluster/preinstall"
+	"github.com/pixiake/kubekey/pkg/plugins/network"
+	"github.com/pixiake/kubekey/pkg/util/manager"
+	"github.com/pixiake/kubekey/pkg/util/task"
 	"github.com/pkg/errors"
 )
 
