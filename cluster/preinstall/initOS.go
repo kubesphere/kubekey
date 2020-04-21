@@ -23,20 +23,25 @@ func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conne
 		return errors.Wrap(errors.WithStack(err), "failed to init operating system")
 	}
 
-	initOsScript, err1 := tmpl.InitOsScript(mgr.Cluster)
+	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"hostnamectl set-hostname %s && sed -i '/^127.0.1.1/s/.*/127.0.1.1      %s/g' /etc/hosts\"", node.HostName, node.HostName))
 	if err1 != nil {
-		return err1
+		return errors.Wrap(errors.WithStack(err1), "failed to override hostname")
+	}
+
+	initOsScript, err2 := tmpl.InitOsScript(mgr.Cluster)
+	if err2 != nil {
+		return err2
 	}
 
 	str := base64.StdEncoding.EncodeToString([]byte(initOsScript))
-	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("echo %s | base64 -d > %s/initOS.sh && chmod +x %s/initOS.sh", str, tmpDir, tmpDir))
-	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to init operating system")
-	}
-
-	_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo %s/initOS.sh", tmpDir))
+	_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("echo %s | base64 -d > %s/initOS.sh && chmod +x %s/initOS.sh", str, tmpDir, tmpDir))
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "failed to init operating system")
+	}
+
+	_, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo %s/initOS.sh", tmpDir))
+	if err4 != nil {
+		return errors.Wrap(errors.WithStack(err4), "failed to init operating system")
 	}
 	return nil
 }

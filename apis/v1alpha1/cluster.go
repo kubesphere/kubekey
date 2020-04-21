@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/pixiake/kubekey/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -30,6 +31,13 @@ const (
 	MasterRole            = "master"
 	WorkerRole            = "worker"
 )
+
+type K2Cluster struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              ClusterCfg `json:"spec"`
+	//Status            ClusterStatus `json:"status"`
+}
 
 type ClusterCfg struct {
 	Hosts           []HostCfg          `yaml:"hosts" json:"hosts,omitempty"`

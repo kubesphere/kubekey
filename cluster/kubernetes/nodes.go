@@ -47,7 +47,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 		if strings.Contains(binary, "cni-plugins-linux") {
 			cmdlist = append(cmdlist, fmt.Sprintf("mkdir -p /opt/cni/bin && tar -zxf %s/%s -C /opt/cni/bin", "/tmp/kubekey", binary))
 		} else {
-			cmdlist = append(cmdlist, fmt.Sprintf("cp /tmp/kubekey/%s /usr/local/bin/%s && chmod +x /usr/local/bin/%s", binary, strings.Split(binary, "-")[0], strings.Split(binary, "-")[0]))
+			cmdlist = append(cmdlist, fmt.Sprintf("cp -f /tmp/kubekey/%s /usr/local/bin/%s && chmod +x /usr/local/bin/%s", binary, strings.Split(binary, "-")[0], strings.Split(binary, "-")[0]))
 		}
 	}
 	cmd := strings.Join(cmdlist, " && ")
@@ -70,7 +70,7 @@ func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connect
 		return err1
 	}
 	kubeletServiceBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletService))
-	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/kubelet.service && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", kubeletServiceBase64))
+	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/kubelet.service && systemctl enable kubelet && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", kubeletServiceBase64))
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "failed to generate kubelet service")
 	}

@@ -1,19 +1,19 @@
 package v1alpha1
 
 type HostCfg struct {
-	HostName        string   `yaml:"hostName,omitempty" json:"hostName,omitempty"`
+	HostName        string   `yaml:"hostName" json:"hostName,omitempty"`
 	SSHAddress      string   `yaml:"sshAddress" json:"sshAddress,omitempty"`
 	InternalAddress string   `yaml:"internalAddress" json:"internalAddress,omitempty"`
 	Port            string   `yaml:"port" json:"port,omitempty"`
 	User            string   `yaml:"user" json:"user,omitempty"`
-	Password        string   `yaml:"password" json:"password,omitempty"`
-	SSHKeyPath      string   `yaml:"sshKeyPath" json:"sshKeyPath,omitempty"`
-	Role            []string `yaml:"role" json:"role,omitempty" norman:"type=array[enum],options=etcd|master|worker"`
-	ID              int      `json:"-"`
-	IsEtcd          bool
-	IsMaster        bool
-	IsWorker        bool
-	OSFamily        string
+	Password        string   `yaml:"password, omitempty" json:"password,omitempty"`
+	SSHKeyPath      string   `yaml:"sshKeyPath, omitempty" json:"sshKeyPath,omitempty"`
+	Role            []string `yaml:"role" json:"role,omitempty" norman:"type=array[enum],options=etcd|master|worker|client"`
+	ID              int      `yaml:"omitempty" json:"-"`
+	IsEtcd          bool     `yaml:"omitempty"`
+	IsMaster        bool     `yaml:"omitempty"`
+	IsWorker        bool     `yaml:"omitempty"`
+	IsClient        bool     `yaml:"omitempty"`
 }
 
 type Hosts struct {
