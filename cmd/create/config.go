@@ -36,9 +36,10 @@ spec:
     domain: lb.kubesphere.local
     address: ""
     port: "6443"
-  kubeVersion: v1.17.4
-  kubeImageRepo: kubekey
-  kubeClusterName: cluster.local
+  kubeCluster:
+    version: v1.17.4
+    imageRepo: kubekey
+    clusterName: cluster.local
   network:
     plugin: calico
     kube_pods_cidr: 10.233.64.0/18

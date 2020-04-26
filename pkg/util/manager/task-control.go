@@ -16,7 +16,7 @@ func defaultRetryBackoff(retries int) wait.Backoff {
 
 // Task is a runnable task
 type Task struct {
-	Fn      func(*Manager) error
+	Task    func(*Manager) error
 	ErrMsg  string
 	Retries int
 }
@@ -33,7 +33,7 @@ func (t *Task) Run(mgrTask *Manager) error {
 		if lastError != nil {
 			mgrTask.Logger.Warn("Retrying task…")
 		}
-		lastError = t.Fn(mgrTask)
+		lastError = t.Task(mgrTask)
 		if lastError != nil {
 			mgrTask.Logger.Warn("Task failed…")
 			if mgrTask.Verbose {

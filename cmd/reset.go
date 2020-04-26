@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var etcdFiles = []string{"/usr/local/bin/etcd", "/etc/ssl/etcd/ssl", "/var/lib/etcd", "/etc/etcd.env", "/etc/systemd/system/etcd.service"}
-
 func NewCmdResetCluster() *cobra.Command {
 	var (
 		clusterCfgFile string
@@ -22,7 +20,7 @@ func NewCmdResetCluster() *cobra.Command {
 		},
 	}
 
-	clusterCmd.Flags().StringVarP(&clusterCfgFile, "cluster-info", "", "", "")
+	clusterCmd.Flags().StringVarP(&clusterCfgFile, "config", "f", "", "")
 	return clusterCmd
 }
 

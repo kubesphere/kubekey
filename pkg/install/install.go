@@ -30,17 +30,17 @@ func CreateCluster(clusterCfgFile string, logger *log.Logger, addons string, pkg
 
 func ExecTasks(mgr *manager.Manager) error {
 	createTasks := []manager.Task{
-		{Fn: preinstall.InitOS, ErrMsg: "failed to download kube binaries"},
-		{Fn: docker.InstallerDocker, ErrMsg: "failed to install docker"},
-		{Fn: kubernetes.SyncKubeBinaries, ErrMsg: "failed to sync kube binaries"},
-		{Fn: etcd.GenerateEtcdCerts, ErrMsg: "failed to generate etcd certs"},
-		{Fn: etcd.SyncEtcdCertsToMaster, ErrMsg: "failed to sync etcd certs"},
-		{Fn: etcd.GenerateEtcdService, ErrMsg: "failed to start etcd cluster"},
-		{Fn: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
-		{Fn: kubernetes.InitKubernetesCluster, ErrMsg: "failed to init kubernetes cluster"},
-		{Fn: network.DeployNetworkPlugin, ErrMsg: "failed to deploy network plugin"},
-		{Fn: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
-		{Fn: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
+		{Task: preinstall.InitOS, ErrMsg: "failed to download kube binaries"},
+		{Task: docker.InstallerDocker, ErrMsg: "failed to install docker"},
+		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "failed to sync kube binaries"},
+		{Task: etcd.GenerateEtcdCerts, ErrMsg: "failed to generate etcd certs"},
+		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "failed to sync etcd certs"},
+		{Task: etcd.GenerateEtcdService, ErrMsg: "failed to start etcd cluster"},
+		{Task: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
+		{Task: kubernetes.InitKubernetesCluster, ErrMsg: "failed to init kubernetes cluster"},
+		{Task: network.DeployNetworkPlugin, ErrMsg: "failed to deploy network plugin"},
+		{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
+		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
 	}
 
 	for _, step := range createTasks {

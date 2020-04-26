@@ -70,7 +70,7 @@ func installDockerOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 		return err
 	}
 	dockerConfigBase64 := base64.StdEncoding.EncodeToString([]byte(dockerConfig))
-	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/docker/daemon.json && systemctl daemon-reload\"", dockerConfigBase64))
+	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker\"", dockerConfigBase64))
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), "failed to add docker config")
 	}

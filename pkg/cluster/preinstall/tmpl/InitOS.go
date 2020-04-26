@@ -26,7 +26,6 @@ sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-iptables ?= ?(0|1)@net.bridge.brid
 sed -r -i  "s@#{0,}?net.ipv4.ip_local_reserved_ports ?= ?(0|1)@net.ipv4.ip_local_reserved_ports = 30000-32767@g" /etc/sysctl.conf
 
 awk ' !x[$0]++{print > "/etc/sysctl.conf"}' /etc/sysctl.conf
-sysctl -p
 
 systemctl stop firewald 1>/dev/null 2>/dev/null
 systemctl disable firewald 1>/dev/null 2>/dev/null
@@ -59,6 +58,7 @@ else
    modprobe nf_conntrack
    echo 'nf_conntrack' > /etc/modules-load.d/kube_proxy-ipvs.conf
 fi
+sysctl -p
 
 sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
 sed -i '/^$/N;/\n$/N;//D' /etc/hosts

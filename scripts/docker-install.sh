@@ -62,7 +62,7 @@ echo_docker_as_nonroot() {
             $sh_c 'docker version'
         ) || true
     fi
-#    config_Accelerator
+    config_Accelerator
 
     your_user=your-user
     [ "$user" != 'root' ] && your_user="$user"

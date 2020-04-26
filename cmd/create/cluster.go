@@ -1,7 +1,7 @@
 package create
 
 import (
-	"github.com/pixiake/kubekey/install"
+	"github.com/pixiake/kubekey/pkg/install"
 	"github.com/pixiake/kubekey/pkg/util"
 	"github.com/spf13/cobra"
 )

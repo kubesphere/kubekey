@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/pixiake/kubekey/pkg/scale"
 	"github.com/pixiake/kubekey/pkg/util"
-	"github.com/pixiake/kubekey/scale"
 	"github.com/spf13/cobra"
 )
 

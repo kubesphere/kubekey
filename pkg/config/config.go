@@ -49,6 +49,7 @@ func SetDefaultK2ClusterSpec(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.K2Cluster
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.LBKubeApiserver = SetDefaultLBCfg(cfg)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
+	clusterCfg.KubeCluster = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
 	if cfg.KubeCluster.ImageRepo == "" {
 		clusterCfg.KubeCluster.ImageRepo = kubekeyapi.DefaultKubeImageRepo
@@ -160,4 +161,20 @@ func SetDefaultNetworkCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.NetworkConfi
 	defaultNetworkCfg := cfg.Network
 
 	return defaultNetworkCfg
+}
+
+func SetDefaultClusterCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.KubeCluster {
+	if cfg.KubeCluster.Version == "" {
+		cfg.KubeCluster.Version = kubekeyapi.DefaultKubeVersion
+	}
+	if cfg.KubeCluster.ImageRepo == "" {
+		cfg.KubeCluster.ImageRepo = kubekeyapi.DefaultKubeImageRepo
+	}
+	if cfg.KubeCluster.ClusterName == "" {
+		cfg.KubeCluster.ClusterName = kubekeyapi.DefaultClusterName
+	}
+
+	defaultClusterCfg := cfg.KubeCluster
+
+	return defaultClusterCfg
 }

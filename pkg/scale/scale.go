@@ -28,12 +28,12 @@ func ScaleCluster(clusterCfgFile string, logger *log.Logger, pkg string) error {
 
 func ExecTasks(mgr *manager.Manager) error {
 	scaleTasks := []manager.Task{
-		{Fn: preinstall.InitOS, ErrMsg: "failed to download kube binaries"},
-		{Fn: docker.InstallerDocker, ErrMsg: "failed to install docker"},
-		{Fn: kubernetes.SyncKubeBinaries, ErrMsg: "failed to sync kube binaries"},
-		{Fn: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
-		{Fn: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
-		{Fn: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
+		{Task: preinstall.InitOS, ErrMsg: "failed to download kube binaries"},
+		{Task: docker.InstallerDocker, ErrMsg: "failed to install docker"},
+		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "failed to sync kube binaries"},
+		{Task: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
+		{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
+		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
 	}
 
 	for _, task := range scaleTasks {
