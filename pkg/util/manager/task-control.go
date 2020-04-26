@@ -1,7 +1,6 @@
-package task
+package manager
 
 import (
-	"github.com/pixiake/kubekey/pkg/util/manager"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"time"
 )
@@ -17,13 +16,13 @@ func defaultRetryBackoff(retries int) wait.Backoff {
 
 // Task is a runnable task
 type Task struct {
-	Fn      func(*manager.Manager) error
+	Fn      func(*Manager) error
 	ErrMsg  string
 	Retries int
 }
 
 // Run runs a task
-func (t *Task) Run(mgrTask *manager.Manager) error {
+func (t *Task) Run(mgrTask *Manager) error {
 	if t.Retries == 0 {
 		t.Retries = 1
 	}

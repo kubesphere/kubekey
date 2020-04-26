@@ -31,7 +31,7 @@ func GenerateEtcdCerts(mgr *manager.Manager) error {
 func generateCerts(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 
 	if mgr.Runner.Index == 0 {
-		certsScript, err := tmpl.GenerateEtcdSslScript(mgr.Cluster)
+		certsScript, err := tmpl.GenerateEtcdSslScript(mgr)
 		if err != nil {
 			return err
 		}

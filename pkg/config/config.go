@@ -1,77 +1,73 @@
 package config
 
 import (
-	"github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"path/filepath"
 	"strconv"
 )
 
-var Scheme = runtime.NewScheme()
-var Codecs = serializer.NewCodecFactory(Scheme, serializer.EnableStrict)
+func ParseClusterCfg(clusterCfgPath string, logger *log.Logger) (*kubekeyapi.K2Cluster, error) {
+	clusterCfg := kubekeyapi.K2Cluster{}
 
-func ParseK2ClusterObj(clusterCfgPath string, logger *log.Logger) (*v1alpha1.K2Cluster, error) {
 	if len(clusterCfgPath) == 0 {
 		return nil, errors.New("cluster configuration path not provided")
 	}
 
-	cluster, err := ioutil.ReadFile(clusterCfgPath)
+	fp, err := filepath.Abs(clusterCfgPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to lookup current directory")
+	}
+	content, err := ioutil.ReadFile(fp)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to read the given cluster configuration file")
 	}
 
-	return ParseK2ClusterCfg(cluster)
+	if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
+		return nil, errors.Wrap(err, "unable to convert credentials file to yaml")
+	}
+
+	defaultK2Cluster := SetDefaultK2Cluster(&clusterCfg)
+	return defaultK2Cluster, nil
+
 }
 
-func ParseK2ClusterCfg(cluster []byte) (*v1alpha1.K2Cluster, error) {
-	initCfg := &v1alpha1.K2Cluster{}
-	if err := runtime.DecodeInto(Codecs.UniversalDecoder(), cluster, initCfg); err != nil {
-		return nil, err
-	}
-
-	return GetDefaultClusterCfg(initCfg)
+func SetDefaultK2Cluster(obj *kubekeyapi.K2Cluster) *kubekeyapi.K2Cluster {
+	defaultCluster := &kubekeyapi.K2Cluster{}
+	defaultCluster.APIVersion = obj.APIVersion
+	defaultCluster.Kind = obj.APIVersion
+	defaultCluster.Spec = SetDefaultK2ClusterSpec(&obj.Spec)
+	return defaultCluster
 }
 
-func GetDefaultClusterCfg(cfg *v1alpha1.K2Cluster) (*v1alpha1.K2Cluster, error) {
-	internalCfg := &v1alpha1.K2Cluster{}
+func SetDefaultK2ClusterSpec(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.K2ClusterSpec {
+	clusterCfg := kubekeyapi.K2ClusterSpec{}
 
-	// Default and convert to the internal API type
-	Scheme.Default(cfg)
-	if err := Scheme.Convert(cfg, internalCfg, nil); err != nil {
-		return nil, errors.Wrap(err, "unable to convert versioned to internal cluster object")
+	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
+	clusterCfg.LBKubeApiserver = SetDefaultLBCfg(cfg)
+	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
+	clusterCfg.Registry = cfg.Registry
+	if cfg.KubeCluster.ImageRepo == "" {
+		clusterCfg.KubeCluster.ImageRepo = kubekeyapi.DefaultKubeImageRepo
 	}
-
-	return internalCfg, nil
-}
-
-func SetDefaultClusterCfg(cfg *v1alpha1.K2ClusterSpec) *v1alpha1.K2ClusterSpec {
-	clusterCfg := &v1alpha1.K2ClusterSpec{}
-
-	cfg.Hosts = SetDefaultHostsCfg(cfg)
-	cfg.LBKubeApiserver = SetDefaultLBCfg(cfg)
-	cfg.Network = SetDefaultNetworkCfg(cfg)
-
-	if cfg.KubeImageRepo == "" {
-		cfg.KubeImageRepo = v1alpha1.DefaultKubeImageRepo
+	if cfg.KubeCluster.ClusterName == "" {
+		clusterCfg.KubeCluster.ClusterName = kubekeyapi.DefaultClusterName
 	}
-	if cfg.KubeClusterName == "" {
-		cfg.KubeClusterName = v1alpha1.DefaultClusterName
+	if cfg.KubeCluster.Version == "" {
+		clusterCfg.KubeCluster.Version = kubekeyapi.DefaultKubeVersion
 	}
-	if cfg.KubeVersion == "" {
-		cfg.KubeVersion = v1alpha1.DefaultKubeVersion
-	}
-	clusterCfg = cfg
 	return clusterCfg
 }
 
-func SetDefaultHostsCfg(cfg *v1alpha1.K2ClusterSpec) []v1alpha1.HostCfg {
-	var hostscfg []v1alpha1.HostCfg
+func SetDefaultHostsCfg(cfg *kubekeyapi.K2ClusterSpec) []kubekeyapi.HostCfg {
+	var hostscfg []kubekeyapi.HostCfg
 	if len(cfg.Hosts) == 0 {
 		return nil
 	}
+	clinetNum := 0
 	for index, host := range cfg.Hosts {
 		host.ID = index
 
@@ -98,16 +94,27 @@ func SetDefaultHostsCfg(cfg *v1alpha1.K2ClusterSpec) []v1alpha1.HostCfg {
 			if role == "worker" {
 				host.IsWorker = true
 			}
+			if role == "client" {
+				clinetNum++
+			}
 		}
-
 		hostscfg = append(hostscfg, host)
 	}
 
+	if clinetNum == 0 {
+		for index := range hostscfg {
+			if hostscfg[index].IsMaster {
+				hostscfg[index].IsClient = true
+				hostscfg[index].Role = append(hostscfg[index].Role, "client")
+				break
+			}
+		}
+	}
 	return hostscfg
 }
 
-func SetDefaultLBCfg(cfg *v1alpha1.K2ClusterSpec) v1alpha1.LBKubeApiserverCfg {
-	masterHosts := []v1alpha1.HostCfg{}
+func SetDefaultLBCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.LBKubeApiserverCfg {
+	masterHosts := []kubekeyapi.HostCfg{}
 	hosts := SetDefaultHostsCfg(cfg)
 	for _, host := range hosts {
 		for _, role := range host.Role {
@@ -130,24 +137,24 @@ func SetDefaultLBCfg(cfg *v1alpha1.K2ClusterSpec) v1alpha1.LBKubeApiserverCfg {
 		cfg.LBKubeApiserver.Address = masterHosts[0].InternalAddress
 	}
 	if cfg.LBKubeApiserver.Domain == "" {
-		cfg.LBKubeApiserver.Domain = v1alpha1.DefaultLBDomain
+		cfg.LBKubeApiserver.Domain = kubekeyapi.DefaultLBDomain
 	}
 	if cfg.LBKubeApiserver.Port == "" {
-		cfg.LBKubeApiserver.Port = v1alpha1.DefaultLBPort
+		cfg.LBKubeApiserver.Port = kubekeyapi.DefaultLBPort
 	}
 	defaultLbCfg := cfg.LBKubeApiserver
 	return defaultLbCfg
 }
 
-func SetDefaultNetworkCfg(cfg *v1alpha1.K2ClusterSpec) v1alpha1.NetworkConfig {
+func SetDefaultNetworkCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.NetworkConfig {
 	if cfg.Network.Plugin == "" {
-		cfg.Network.Plugin = v1alpha1.DefaultNetworkPlugin
+		cfg.Network.Plugin = kubekeyapi.DefaultNetworkPlugin
 	}
 	if cfg.Network.KubePodsCIDR == "" {
-		cfg.Network.KubePodsCIDR = v1alpha1.DefaultPodsCIDR
+		cfg.Network.KubePodsCIDR = kubekeyapi.DefaultPodsCIDR
 	}
 	if cfg.Network.KubeServiceCIDR == "" {
-		cfg.Network.KubeServiceCIDR = v1alpha1.DefaultServiceCIDR
+		cfg.Network.KubeServiceCIDR = kubekeyapi.DefaultServiceCIDR
 	}
 
 	defaultNetworkCfg := cfg.Network

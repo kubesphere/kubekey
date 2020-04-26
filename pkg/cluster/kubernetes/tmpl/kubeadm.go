@@ -80,6 +80,38 @@ nodePortAddresses: []
 oomScoreAdj: -999
 portRange: 
 udpIdleTimeout: 250ms
+
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+clusterDomain: {{ .ClusterName }}
+clusterDNS:
+- {{ .ClusterIP }}
+rotateCertificates: true
+kubeReserved:
+  cpu: 200m
+  memory: 250Mi
+systemReserved:
+  cpu: 200m
+  memory: 250Mi
+EvictionHard:
+  memory.available: "<5%"
+  nodefs.available: "<10%"
+  imagefs.available: "<10%"
+EvictionSoft:
+  memory.available: "10%"
+  nodefs.available: "<15%"
+  imagefs.available: "<15%"
+EvictionSoftGracePeriod: 
+  memory.available: 2m
+  nodefs.available: 2m
+  imagefs.available: 2m
+EvictionMinimumReclaim:
+  memory.available: 0Mi
+  nodefs.available: 500Mi
+  imagefs.available: 500Mi
+EvictionMaxPodGracePeriod: 120
+EvictionPressureTransitionPeriod: 30s
     `)))
 
 func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
@@ -102,13 +134,14 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	externalEtcd.KeyFile = keyFile
 
 	return util.Render(KubeadmCfgTempl, util.Data{
-		"ImageRepo":            mgr.Cluster.KubeImageRepo,
-		"Version":              mgr.Cluster.KubeVersion,
-		"ClusterName":          mgr.Cluster.KubeClusterName,
+		"ImageRepo":            mgr.Cluster.KubeCluster.ImageRepo,
+		"Version":              mgr.Cluster.KubeCluster.Version,
+		"ClusterName":          mgr.Cluster.KubeCluster.ClusterName,
 		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.LBKubeApiserver.Address, mgr.Cluster.LBKubeApiserver.Port),
 		"PodSubnet":            mgr.Cluster.Network.KubePodsCIDR,
 		"ServiceSubnet":        mgr.Cluster.Network.KubeServiceCIDR,
 		"CertSANs":             mgr.Cluster.GenerateCertSANs(),
 		"ExternalEtcd":         externalEtcd,
+		"ClusterIP":            mgr.Cluster.ClusterIP(),
 	})
 }

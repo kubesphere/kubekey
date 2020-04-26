@@ -22,6 +22,7 @@ type Manager struct {
 	MasterNodes *kubekeyapi.Hosts
 	WorkerNodes *kubekeyapi.Hosts
 	K8sNodes    *kubekeyapi.Hosts
+	ClientNode  *kubekeyapi.Hosts
 	WorkDir     string
 	JoinCommand string
 	JoinToken   string

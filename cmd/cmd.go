@@ -13,7 +13,7 @@ func NewKubekeyCommand() *cobra.Command {
 		Long:  "Deploy a Kubernetes Cluster Flexibly and Easily .",
 	}
 	rootCmd.AddCommand(create.NewCmdCreate())
-	//rootCmd.AddCommand(NewCmdScaleCluster())
+	rootCmd.AddCommand(NewCmdScaleCluster())
 	rootCmd.AddCommand(NewCmdVersion())
 	rootCmd.AddCommand(NewCmdResetCluster())
 	return rootCmd

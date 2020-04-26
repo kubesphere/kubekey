@@ -1,9 +1,9 @@
-package install
+package scale
 
 import (
 	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/pixiake/kubekey/pkg/util/manager"
-	"github.com/pixiake/kubekey/pkg/util/ssh"
+	ssh "github.com/pixiake/kubekey/pkg/util/ssh"
 	log "github.com/sirupsen/logrus"
 )
 

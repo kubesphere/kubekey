@@ -4,6 +4,7 @@ import (
 	"github.com/lithammer/dedent"
 	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/pixiake/kubekey/pkg/util"
+	"github.com/pixiake/kubekey/pkg/util/manager"
 	"strings"
 	"text/template"
 )
@@ -180,15 +181,15 @@ func GenerateEtcdSslCfg(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
 	})
 }
 
-func GenerateEtcdSslScript(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
+func GenerateEtcdSslScript(mgr *manager.Manager) (string, error) {
 	var masters []string
 	var hosts []string
-	_, etcdNodes, masterNodes, _, _ := cfg.GroupHosts()
+	//_, etcdNodes, masterNodes, _, _ , _:= cfg.GroupHosts()
 
-	for _, host := range etcdNodes.Hosts {
+	for _, host := range mgr.EtcdNodes.Hosts {
 		masters = append(masters, host.HostName)
 	}
-	for _, host := range masterNodes.Hosts {
+	for _, host := range mgr.MasterNodes.Hosts {
 		hosts = append(hosts, host.HostName)
 	}
 	return util.Render(EtcdSslTempl, util.Data{

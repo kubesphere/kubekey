@@ -1,9 +1,8 @@
 package create
 
 import (
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/pixiake/kubekey/pkg/config"
 	"github.com/pixiake/kubekey/pkg/util"
-
 	log "github.com/sirupsen/logrus"
 	//"github.com/pixiake/kubekey/cluster"
 	//"github.com/pixiake/kubekey/cluster/etcd"
@@ -28,7 +27,7 @@ func NewCmdCreateEtcd() *cobra.Command {
 }
 
 func createEtcdCluster(clusterCfgFile string, logger *log.Logger) {
-	kubekeyapi.LoadClusterCfg(clusterCfgFile, logger)
+	config.ParseClusterCfg(clusterCfgFile, logger)
 	//allNodes, etcdNodes, _, _, _ := cfg.GroupHosts()
 	//etcd.EtcdPrepare(etcdNodes)
 	//etcd.GenEtcdFiles(cfg, allNodes, etcdNodes)

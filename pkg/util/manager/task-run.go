@@ -140,3 +140,10 @@ func (mgr *Manager) RunTaskOnK8sNodes(task NodeTask, parallel bool) error {
 	}
 	return nil
 }
+
+func (mgr *Manager) RunTaskOnClientNode(task NodeTask, parallel bool) error {
+	if err := mgr.RunTaskOnNodes(mgr.ClientNode.Hosts, task, parallel); err != nil {
+		return err
+	}
+	return nil
+}

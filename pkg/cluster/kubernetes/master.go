@@ -5,6 +5,7 @@ import (
 	"fmt"
 	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/pixiake/kubekey/pkg/cluster/kubernetes/tmpl"
+	"github.com/pixiake/kubekey/pkg/plugins/dns/coredns"
 	"github.com/pixiake/kubekey/pkg/util/manager"
 	"github.com/pixiake/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
@@ -57,6 +58,10 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn 
 		if err5 != nil {
 			return err5
 		}
+		err6 := coredns.OverrideCorednsService(mgr)
+		if err6 != nil {
+			return err6
+		}
 	}
 
 	return nil
@@ -101,11 +106,13 @@ func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 func GetJoinNodesCmd(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Get join nodes cmd")
 
-	return mgr.RunTaskOnMasterNodes(getJoinNodesCmd, false)
+	return mgr.RunTaskOnClientNode(getJoinNodesCmd, false)
 }
 
 func getJoinNodesCmd(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	getJoinCmd(mgr)
+	if err := getJoinCmd(mgr); err != nil {
+		return err
+	}
 	return nil
 }
 

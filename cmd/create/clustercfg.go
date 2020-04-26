@@ -50,7 +50,7 @@ func getConfig(reader *bufio.Reader, text, def string) (string, error) {
 	}
 }
 
-func writeConfig(cluster *kubekeyapi.ClusterCfg, configFile string, print bool) error {
+func writeConfig(cluster *kubekeyapi.K2ClusterSpec, configFile string, print bool) error {
 	yamlConfig, err := yaml.Marshal(*cluster)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func writeConfig(cluster *kubekeyapi.ClusterCfg, configFile string, print bool) 
 }
 
 func clusterConfig() error {
-	clusterCfg := kubekeyapi.ClusterCfg{}
+	clusterCfg := kubekeyapi.K2ClusterSpec{}
 	reader := bufio.NewReader(os.Stdin)
 
 	// Get number of hosts
@@ -124,21 +124,21 @@ func clusterConfig() error {
 	if err != nil {
 		return err
 	}
-	clusterCfg.KubeVersion = version
+	clusterCfg.KubeCluster.Version = version
 
 	// Get Kubernetes images repo
 	repo, err := getConfig(reader, fmt.Sprintf("Kubernetes Images Repo"), kubekeyapi.DefaultKubeImageRepo)
 	if err != nil {
 		return err
 	}
-	clusterCfg.KubeImageRepo = repo
+	clusterCfg.KubeCluster.ImageRepo = repo
 
 	// Get Kubernetes cluster name
 	clusterName, err := getConfig(reader, fmt.Sprintf("Kubernetes Cluster Name"), kubekeyapi.DefaultClusterName)
 	if err != nil {
 		return err
 	}
-	clusterCfg.KubeClusterName = clusterName
+	clusterCfg.KubeCluster.ClusterName = clusterName
 
 	// Get Network config
 	networkConfig, err := getNetworkConfig(reader)
