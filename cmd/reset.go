@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/pixiake/kubekey/pkg/config"
+	"github.com/pixiake/kubekey/pkg/reset"
 	"github.com/pixiake/kubekey/pkg/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -25,5 +25,5 @@ func NewCmdResetCluster() *cobra.Command {
 }
 
 func resetCluster(clusterCfgFile string, logger *log.Logger) {
-	config.ParseClusterCfg(clusterCfgFile, logger)
+	reset.ResetCluster(clusterCfgFile, logger)
 }

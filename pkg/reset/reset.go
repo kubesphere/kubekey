@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateCluster(clusterCfgFile string, logger *log.Logger, addons string, pkg string) error {
+func ResetCluster(clusterCfgFile string, logger *log.Logger) error {
 	cfg, err := config.ParseClusterCfg(clusterCfgFile, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to download cluster config")
@@ -41,13 +41,13 @@ func ExecTasks(mgr *manager.Manager) error {
 }
 
 func ResetKubeCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Reset cluster")
+	mgr.Logger.Infoln("Reset kube cluster")
 
 	return mgr.RunTaskOnK8sNodes(resetKubeCluster, true)
 }
 
 func resetKubeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	_, err := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/user/local/bin/kubeadm reset -f\"")
+	_, err := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"")
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "failed to reset kube cluster")
 	}
@@ -57,9 +57,9 @@ func resetKubeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 var etcdFiles = []string{"/usr/local/bin/etcd", "/etc/ssl/etcd/ssl", "/var/lib/etcd", "/etc/etcd.env", "/etc/systemd/system/etcd.service"}
 
 func ResetEtcdCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Reset cluster")
+	mgr.Logger.Infoln("Clean etcd cluster")
 
-	return mgr.RunTaskOnEtcdNodes(resetKubeCluster, false)
+	return mgr.RunTaskOnEtcdNodes(resetEtcdCluster, false)
 }
 
 func resetEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {

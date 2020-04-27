@@ -196,3 +196,26 @@ func intToIP(n int32) net.IP {
 	binary.BigEndian.PutUint32(b, uint32(n))
 	return net.IP(b)
 }
+
+func GetLocalIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil && ipnet.IP.IsGlobalUnicast() {
+				return ipnet.IP.String(), nil
+			}
+		}
+	}
+	return "", errors.New("valid local IP not found !")
+}
+
+func LocalIP() string {
+	localIp, err := GetLocalIP()
+	if err != nil {
+		log.Fatalf("Failed to get Local IP: %v", err)
+	}
+	return localIp
+}

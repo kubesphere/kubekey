@@ -1,11 +1,15 @@
 package config
 
 import (
+	"fmt"
 	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/pixiake/kubekey/pkg/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strconv"
 )
@@ -14,20 +18,24 @@ func ParseClusterCfg(clusterCfgPath string, logger *log.Logger) (*kubekeyapi.K2C
 	clusterCfg := kubekeyapi.K2Cluster{}
 
 	if len(clusterCfgPath) == 0 {
-		return nil, errors.New("cluster configuration path not provided")
-	}
+		user, _ := user.Current()
+		if user.Name != "root" {
+			return nil, errors.New(fmt.Sprintf("Current user is %s, Please use root !", user.Name))
+		}
+		clusterCfg = AllinoneHost(user)
+	} else {
+		fp, err := filepath.Abs(clusterCfgPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to lookup current directory")
+		}
+		content, err := ioutil.ReadFile(fp)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to read the given cluster configuration file")
+		}
 
-	fp, err := filepath.Abs(clusterCfgPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to lookup current directory")
-	}
-	content, err := ioutil.ReadFile(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to read the given cluster configuration file")
-	}
-
-	if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
-		return nil, errors.Wrap(err, "unable to convert credentials file to yaml")
+		if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
+			return nil, errors.Wrap(err, "unable to convert file to yaml")
+		}
 	}
 
 	defaultK2Cluster := SetDefaultK2Cluster(&clusterCfg)
@@ -177,4 +185,26 @@ func SetDefaultClusterCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.KubeCluster 
 	defaultClusterCfg := cfg.KubeCluster
 
 	return defaultClusterCfg
+}
+
+func AllinoneHost(user *user.User) kubekeyapi.K2Cluster {
+	allinoneCfg := kubekeyapi.K2Cluster{}
+	if err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").Run(); err != nil {
+		log.Fatalf("Failed to generate public key: %v", err)
+	}
+	if out, err := exec.Command("/bin/sh", "-c", "echo \"$(cat $HOME/.ssh/id_rsa.pub)\" >> $HOME/.ssh/authorized_keys").CombinedOutput(); err != nil {
+		log.Fatalf("Failed to copy public key to authorized_keys: %v\n%s", err, string(out))
+	}
+
+	allinoneCfg.Spec.Hosts = append(allinoneCfg.Spec.Hosts, kubekeyapi.HostCfg{
+		HostName:        "ks-allinone",
+		SSHAddress:      "",
+		InternalAddress: util.LocalIP(),
+		Port:            "",
+		User:            user.Name,
+		Password:        "",
+		SSHKeyPath:      fmt.Sprintf("%s/.ssh/id_rsa", user.HomeDir),
+		Role:            []string{"master", "worker", "etcd"},
+	})
+	return allinoneCfg
 }

@@ -127,7 +127,6 @@ func NewConnection(cfg SSHCfg) (Connection, error) {
 		if parseErr != nil {
 			return nil, errors.Wrap(parseErr, "the given SSH key could not be parsed (note that password-protected keys are not supported)")
 		}
-
 		authMethods = append(authMethods, ssh.PublicKeys(signer))
 	}
 

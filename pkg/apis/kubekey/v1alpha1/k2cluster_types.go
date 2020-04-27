@@ -95,6 +95,7 @@ type LBKubeApiserverCfg struct {
 type RegistryConfig struct {
 	RegistryMirrors    []string `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
+	PrivateRegistry    string   `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
 }
 
 type ExternalEtcd struct {
