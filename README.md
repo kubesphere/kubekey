@@ -11,8 +11,8 @@ Please follow the list to prepare environment.
 |  3  | OS requirements (For Minimal Installation of KubeSphere only)：at least 2 vCPUs and 4GB RAM. |
 |  4  | Make sure the storage service is available if you want to deploy a cluster with KubeSphere.<br>The relevant client should be installed on all nodes in cluster, if you storage server is [nfs / ceph / glusterfs](./docs/storage-client.md).   |
 |  5  | Make sure the DNS address in /etc/resolv.conf is available. Otherwise, it may cause some issues of DNS in cluster. |
-|  6  | If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports.<br>It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](./docs/NetworkAccess.md)|
-|  7  | A container image mirror is recommended to be prepared, if you have trouble downloading images from dockerhub.io.  |            
+|  6  | If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports.<br>It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](./docs/network-access.md)|
+|  7  | A container image mirror (accelerator) is recommended to be prepared, if you have trouble downloading images from dockerhub.io.  |            
 
 ### Usage
 * Download binary
