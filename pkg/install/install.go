@@ -50,6 +50,6 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
-	fmt.Printf("\n\033[1;36;46m%s\033[0m\n", "Successful.")
+	fmt.Printf("\n\033[1;36;40m%s\033[0m\n", "Successful.")
 	return nil
 }

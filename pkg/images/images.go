@@ -54,14 +54,15 @@ func preDownloadImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.
 		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, kubekeyapi.DefaultKubeImageRepo), Repo: "kube-scheduler", Tag: mgr.Cluster.KubeCluster.Version, Group: "master", Enable: true},
 		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, kubekeyapi.DefaultKubeImageRepo), Repo: "kube-proxy", Tag: mgr.Cluster.KubeCluster.Version, Group: "k8s", Enable: true},
 		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "coredns"), Repo: "coredns", Tag: "1.6.0", Group: "k8s", Enable: true},
+		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "calico"), Repo: "kube-controllers", Tag: kubekeyapi.DefaultCalicoVersion, Group: "k8s", Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
+		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "calico"), Repo: "cni", Tag: kubekeyapi.DefaultCalicoVersion, Group: "k8s", Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "calico"), Repo: "node", Tag: kubekeyapi.DefaultCalicoVersion, Group: "k8s", Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "calico"), Repo: "pod2daemon-flexvol", Tag: kubekeyapi.DefaultCalicoVersion, Group: "k8s", Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
-		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "calico"), Repo: "cni", Tag: kubekeyapi.DefaultCalicoVersion, Group: "k8s", Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
-		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "calico"), Repo: "kube-controllers", Tag: kubekeyapi.DefaultCalicoVersion, Group: "k8s", Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		{Prefix: GetImagePrefix(mgr.Cluster.Registry.PrivateRegistry, "kubesphere"), Repo: "flannel", Tag: kubekeyapi.DefaultFlannelVersion, Group: "k8s", Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "flannel")},
 	}
 
 	for _, image := range imagesList {
+
 		if node.IsMaster && image.Group == "master" && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.HostName, image.NewImage())
 			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.NewImage()))
@@ -69,7 +70,7 @@ func preDownloadImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("failed to download image: %s", image.NewImage()))
 			}
 		}
-		if node.IsMaster && node.IsWorker && image.Group == "k8s" && image.Enable {
+		if (node.IsMaster || node.IsWorker) && image.Group == "k8s" && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.HostName, image.NewImage())
 			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.NewImage()))
 			if err != nil {
@@ -84,5 +85,6 @@ func preDownloadImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.
 			}
 		}
 	}
+
 	return nil
 }
