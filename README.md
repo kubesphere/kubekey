@@ -17,41 +17,38 @@ Please follow the list to prepare environment.
 ### Usage
 * Download binary
 ```shell script
-curl -O -k https://kubesphere-installer.pek3b.qingstor.com/kubeocean/ko
-chmod +x ko
+curl -O -k https://kubernetes.pek3b.qingstor.com/tools/kubekey/kk
+chmod +x kk
 ```
 * Deploy a Allinone cluster
 ```shell script
-./ko create cluster
-
-# Kubesphere can be installed by "--add kubesphere"
-./ko create cluster --add kubesphere
+./kk create cluster
 ```
 * Deploy a MultiNodes cluster
   
-> Create a cluster config file by following command or [example config file](docs/cluster-info.yaml)
+> Create a example configuration file by following command or [example configuration file](docs/config-example.md)
 ```shell script
-./ko create config
+./kk create config      # Only kubernetes
+./kk create config --add localVolume      # Add plugins (eg: localVolume / nfsClient / localVolume,nfsClient)
+
+# Please fill in the configuration file under the current path (k2cluster-example.yaml) according to the environmental information
 ```
 > Deploy cluster
 ```shell script
-./ko create cluster --cluster-info ./cluster-info.yaml
-
-# Kubesphere can be installed by "--add kubesphere"
-./ko create cluster --cluster-info ./cluster-info.yaml --add kubesphere
+./kk create cluster -f ./k2cluster-example.yaml
 ```
 * Add Nodes
 > Add new node's information to the cluster config file
 ```shell script
-./ko scale --cluster-info ./cluster-info.yaml
+./kk scale -f ./k2cluster-example.yaml
 ```
 * Reset Cluster
 ```shell script
 # allinone
-./ko reset
+./kk reset
 
 # multinodes
-./ko reset --cluster-info /home/ubuntu/cluster-info.yaml
+./kk reset -f ./k2cluster-example.yaml
 ```
 ### Supported
 * Deploy allinone cluster
@@ -60,9 +57,12 @@ chmod +x ko
 
 ### Build
 ```shell script
-git clone https://github.com/pixiake/kubeocean.git
-cd kubeocean
+git clone https://github.com/pixiake/kubekey.git
+cd kubekey
 ./build.sh
 ```
 > Note: Docker needs to be installed before building.
+## Quick Start
+* CaaO (Cluster as a Object)
+* Support more container runtimes: cri-o containerd
 

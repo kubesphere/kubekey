@@ -110,7 +110,7 @@ func GenerateK2ClusterObj(addons string) error {
 	if err != nil {
 		return errors.Wrap(err, "faild get current dir")
 	}
-	cmd := fmt.Sprintf("echo %s | base64 -d > %s/k2cluster-demo.yaml", K2ClusterObjStrBase64, currentDir)
+	cmd := fmt.Sprintf("echo %s | base64 -d > %s/k2cluster-example.yaml", K2ClusterObjStrBase64, currentDir)
 	err1 := exec.Command("/bin/sh", "-c", cmd).Run()
 	if err1 != nil {
 		return err1
