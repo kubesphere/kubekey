@@ -51,7 +51,7 @@ ip_vs_wrr
 ip_vs_sh
 EOF
 
-modprobe nf_conntrack_ipv4
+modprobe nf_conntrack_ipv4 1>/dev/null 2>/dev/null
 if [ $? -eq 0 ]; then
    echo 'nf_conntrack_ipv4' > /etc/modules-load.d/kube_proxy-ipvs.conf
 else
