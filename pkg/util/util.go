@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	VERSION = "KubeOcean Version v0.0.1\nKubernetes Version v1.17.4"
+	VERSION = "KubeKey Version v0.0.1\nKubernetes Version v1.17.4"
 )
 
 func InitLogger(verbose bool) *log.Logger {
