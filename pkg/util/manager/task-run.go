@@ -100,7 +100,7 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 	wg.Wait()
 
 	if hasErrors {
-		err = errors.New("at least one of the task has encountered an error")
+		err = errors.New("interrupted by error")
 	}
 
 	return err

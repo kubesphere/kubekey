@@ -1,18 +1,22 @@
 # KubeKey
 Deploy a Kubernetes Cluster flexibly and easily
 ## Quick Start
-### Check List
+### Prepare
 Please follow the list to prepare environment.
-
-|  ID   | Check Item  |
-|  :----:  | :----  |
-|  1  | Require SSH can access to all nodes.  |
-|  2  | It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  |
-|  3  | OS requirements (For Minimal Installation of KubeSphere only)：at least 2 vCPUs and 4GB RAM. |
-|  4  | Make sure the storage service is available if you want to deploy a cluster with KubeSphere.<br>The relevant client should be installed on all nodes in cluster, if you storage server is [nfs / ceph / glusterfs](./docs/storage-client.md).   |
-|  5  | Make sure the DNS address in /etc/resolv.conf is available. Otherwise, it may cause some issues of DNS in cluster. |
-|  6  | If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports.<br>It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](./docs/network-access.md)|
-|  7  | A container image mirror (accelerator) is recommended to be prepared, if you have trouble downloading images from dockerhub.io.  |            
+#### Supported Linux Distributions
+* Ubuntu  16.04, 18.04
+* Debian  Buster, Stretch
+* CentOS/RHEL  7
+#### Requirements and Recommendations
+* Require SSH can access to all nodes.
+* It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.
+* OS requirements (For Minimal Installation of KubeSphere only)：at least 2 vCPUs and 4GB RAM.
+* Make sure the storage service is available if you want to deploy a cluster with KubeSphere.<br>
+  The relevant client should be installed on all nodes in cluster, if you storage server is [nfs / ceph / glusterfs](./docs/storage-client.md).
+* Make sure the DNS address in /etc/resolv.conf is available. Otherwise, it may cause some issues of DNS in cluster.
+* If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports.<br>
+  It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](./docs/network-access.md)
+* A container image mirror (accelerator) is recommended to be prepared, if you have trouble downloading images from dockerhub.io.          
 
 ### Usage
 * Download binary
