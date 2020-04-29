@@ -7,6 +7,7 @@ apt install nfs-common
 # Centos / Redhat
 yum install nfs-utils   
 ```
+> Recommended nfs server configuration:  *(rw,insecure,sync,no_subtree_check,no_root_squash)
 ## Ceph
 ```shell script
 # Debian / Ubuntu
