@@ -1,5 +1,5 @@
 # KubeKey
-Deploy a Kubernetes Cluster flexibly and easily
+Start Kubernetes and KubeSphere flexibly and easily.
 ## Quick Start
 ### Prepare
 Please follow the list to prepare environment.
