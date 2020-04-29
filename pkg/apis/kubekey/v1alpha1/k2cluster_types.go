@@ -19,6 +19,7 @@ type K2ClusterSpec struct {
 	KubeCluster     KubeCluster        `yaml:"kubeCluster" json:"kubeCluster,omitempty"`
 	Network         NetworkConfig      `yaml:"network" json:"network,omitempty"`
 	Registry        RegistryConfig     `yaml:"registry" json:"registry,omitempty"`
+	Plugins         PluginsCfg         `yaml:"plugins" json:"plugins,omitempty"`
 }
 
 type KubeCluster struct {

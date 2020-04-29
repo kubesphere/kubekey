@@ -9,6 +9,7 @@ import (
 	"github.com/pixiake/kubekey/pkg/container-engine/docker"
 	"github.com/pixiake/kubekey/pkg/images"
 	"github.com/pixiake/kubekey/pkg/plugins/network"
+	"github.com/pixiake/kubekey/pkg/plugins/storage"
 	"github.com/pixiake/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -42,6 +43,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: network.DeployNetworkPlugin, ErrMsg: "failed to deploy network plugin"},
 		{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
+		{Task: storage.DeployStoragePlugins, ErrMsg: "failed to deploy storage plugin"},
 	}
 
 	for _, step := range createTasks {

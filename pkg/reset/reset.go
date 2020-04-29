@@ -1,7 +1,6 @@
 package reset
 
 import (
-	"encoding/json"
 	"fmt"
 	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/pixiake/kubekey/pkg/cluster/preinstall"
@@ -18,8 +17,8 @@ func ResetCluster(clusterCfgFile string, logger *log.Logger) error {
 		return errors.Wrap(err, "failed to download cluster config")
 	}
 
-	out, _ := json.MarshalIndent(cfg, "", "  ")
-	fmt.Println(string(out))
+	//out, _ := json.MarshalIndent(cfg, "", "  ")
+	//fmt.Println(string(out))
 	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
 		return errors.Wrap(err, "failed to load kube binarys")
 	}

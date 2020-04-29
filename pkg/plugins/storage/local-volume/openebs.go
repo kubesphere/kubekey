@@ -1,4 +1,4 @@
-package Local
+package local_volume
 
 import (
 	"github.com/lithammer/dedent"
@@ -282,7 +282,7 @@ spec:
             - name: OPERATOR_NAME
               value: "node-disk-operator"
             - name: CLEANUP_JOB_IMAGE
-              value: quay.azk8s.cn/openebs/linux-utils:3.9
+              value: kubesphere/linux-utils:3.9
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -325,7 +325,7 @@ spec:
             - name: OPENEBS_IO_ENABLE_ANALYTICS
               value: "true"
             - name: OPENEBS_IO_HELPER_IMAGE
-              value: quay.azk8s.cn/openebs/openebs-tools:3.8
+              value: kubesphere/openebs-tools:3.8
             - name: OPENEBS_IO_INSTALLER_TYPE
               value: "openebs-operator-lite"
           livenessProbe:
@@ -338,7 +338,5 @@ spec:
     `)))
 
 func GenerateOpenebsManifests(mgr *manager.Manager) (string, error) {
-	return util.Render(OpenebsTempl, util.Data{
-		"ClusterIP": mgr.Cluster.ClusterIP(),
-	})
+	return util.Render(OpenebsTempl, util.Data{})
 }

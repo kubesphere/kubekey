@@ -21,14 +21,17 @@ func deployNetworkPlugin(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	if mgr.Runner.Index == 0 {
 		switch mgr.Cluster.Network.Plugin {
 		case "calico":
-			err := deployCalico(mgr, node)
-			return err
+			if err := deployCalico(mgr, node); err != nil {
+				return err
+			}
 		case "flannel":
-			err := deployFlannel(mgr)
-			return err
+			if err := deployFlannel(mgr); err != nil {
+				return err
+			}
 		case "macvlan":
-			err := deployMacvlan(mgr)
-			return err
+			if err := deployMacvlan(mgr); err != nil {
+				return err
+			}
 		default:
 			return errors.New(fmt.Sprintf("This network plugin is not supported: %s", mgr.Cluster.Network.Plugin))
 		}

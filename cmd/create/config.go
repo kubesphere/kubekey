@@ -51,10 +51,12 @@ spec:
   plugins:
     {{- if .Options.LocalVolumeEnable }}
     localVolume:
+      enabled: true
       isDefaultClass: {{ .Options.LocalVolumeIsDefault }}
     {{- end }}
     {{- if .Options.NfsClientEnable }}
     nfsClient:
+      enabled: true
       isDefaultClass: {{ .Options.NfsClientIsDefault }}
       nfsServer: ""
       nfsPath: ""

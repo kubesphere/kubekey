@@ -59,6 +59,7 @@ func SetDefaultK2ClusterSpec(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.K2Cluster
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.KubeCluster = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
+	clusterCfg.Plugins = cfg.Plugins
 	if cfg.KubeCluster.ImageRepo == "" {
 		clusterCfg.KubeCluster.ImageRepo = kubekeyapi.DefaultKubeImageRepo
 	}

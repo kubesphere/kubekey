@@ -33,11 +33,13 @@ spec:
     insecureRegistries: []
   plugins:
     localVolume:
+      enabled: true
       isDefaultClass: true
     nfsClient:
+      enabled: true
       isDefaultClass: false
-      nfsServer: ""
-      nfsPath: ""
+      nfsServer: 172.16.0.2
+      nfsPath: /mnt/nfs
       nfsVrs3Enabled: false
       nfsArchiveOnDelete: false
 ```

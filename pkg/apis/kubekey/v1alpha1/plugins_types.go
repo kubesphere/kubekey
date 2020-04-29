@@ -1,10 +1,19 @@
 package v1alpha1
 
+type PluginsCfg struct {
+	LocalVolume LocalVolume `yaml:"localVolume" json:"localVolume,omitempty"`
+	NfsClient   NfsClient   `yaml:"nfsClient" json:"nfsClient,omitempty"`
+	GlusterFS   GlusterFS   `yaml:"glusterFS" json:"glusterFS,omitempty"`
+	CephRBD     CephRBD     `yaml:"cephRBD" json:"cephRBD,omitempty"`
+}
+
 type LocalVolume struct {
+	Enabled        bool `yaml:"enabled" json:"enabled,omitempty"`
 	IsDefaultClass bool `yaml:"isDefaultClass" json:"isDefaultClass,omitempty"`
 }
 
 type NfsClient struct {
+	Enabled            bool   `yaml:"enabled" json:"enabled,omitempty"`
 	IsDefaultClass     bool   `yaml:"isDefaultClass" json:"isDefaultClass,omitempty"`
 	NfsServer          string `yaml:"nfsServer" json:"nfsServer,omitempty"`
 	NfsPath            string `yaml:"nfsPath" json:"nfsPath,omitempty"`
@@ -13,6 +22,7 @@ type NfsClient struct {
 }
 
 type GlusterFS struct {
+	Enabled         bool `yaml:"enabled" json:"enabled,omitempty"`
 	IsDefaultClass  bool
 	RestAuthEnabled bool
 	RestUrl         string
@@ -26,6 +36,7 @@ type GlusterFS struct {
 }
 
 type CephRBD struct {
+	Enabled        bool `yaml:"enabled" json:"enabled,omitempty"`
 	IsDefaultClass bool
 	Monitors       []string
 	AdminID        string
