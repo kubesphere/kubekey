@@ -52,10 +52,6 @@ chmod +x kk
 # multinodes
 ./kk reset -f ./k2cluster-example.yaml
 ```
-## Supported
-* Deploy allinone cluster
-* Deploy multinodes cluster
-* Add nodes (masters and nodes)
 
 ## Build
 ```shell script
