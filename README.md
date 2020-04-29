@@ -4,9 +4,9 @@ Deploy a Kubernetes Cluster flexibly and easily
 ### Prepare
 Please follow the list to prepare environment.
 #### Supported Linux Distributions
-* Ubuntu  16.04, 18.04
-* Debian  Buster, Stretch
-* CentOS/RHEL  7
+* **Ubuntu**  *16.04, 18.04*
+* **Debian**  *Buster, Stretch*
+* **CentOS/RHEL**  *7*
 #### Requirements and Recommendations
 * Require SSH can access to all nodes and `sudo` and `curl` can be used in all nodes.
 * It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.
