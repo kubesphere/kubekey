@@ -10,12 +10,14 @@ import (
 type Executor struct {
 	cluster *kubekeyapi.K2ClusterSpec
 	logger  *log.Logger
+	Verbose bool
 }
 
-func NewExecutor(cluster *kubekeyapi.K2ClusterSpec, logger *log.Logger) *Executor {
+func NewExecutor(cluster *kubekeyapi.K2ClusterSpec, logger *log.Logger, verbose bool) *Executor {
 	return &Executor{
 		cluster: cluster,
 		logger:  logger,
+		Verbose: verbose,
 	}
 }
 
@@ -39,7 +41,7 @@ func (executor *Executor) createManager() (*manager.Manager, error) {
 	mgr.Cluster = executor.cluster
 	mgr.Connector = ssh.NewConnector()
 	mgr.Logger = executor.logger
-	mgr.Verbose = true
+	mgr.Verbose = executor.Verbose
 
 	return mgr, nil
 }

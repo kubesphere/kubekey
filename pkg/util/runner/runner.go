@@ -37,7 +37,7 @@ func (r *Runner) RunCmd(cmd string) (string, error) {
 	}
 
 	if output != "" {
-		if strings.Contains(cmd, "base64") && strings.Contains(cmd, "--wrap=0") || strings.Contains(cmd, "make-ssl-etcd.sh") || strings.Contains(cmd, "docker-install.sh") {
+		if strings.Contains(cmd, "base64") && strings.Contains(cmd, "--wrap=0") || strings.Contains(cmd, "make-ssl-etcd.sh") || strings.Contains(cmd, "docker-install.sh") || strings.Contains(cmd, "docker pull") {
 		} else {
 			fmt.Printf("[%s %s] MSG:\n", r.Host.HostName, r.Host.SSHAddress)
 			fmt.Println(output)

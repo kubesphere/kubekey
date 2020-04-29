@@ -15,11 +15,12 @@ import (
 )
 
 func NewCmdCreateCfg() *cobra.Command {
-	var culsterCfgCmd = &cobra.Command{
+	var addons string
+	var clusterCfgCmd = &cobra.Command{
 		Use:   "config",
 		Short: "Create Cluster-Info Config",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := GenerateK2ClusterObj()
+			err := GenerateK2ClusterObj(addons)
 			if err != nil {
 				return err
 			}
@@ -27,7 +28,9 @@ func NewCmdCreateCfg() *cobra.Command {
 			//clusterConfig()
 		},
 	}
-	return culsterCfgCmd
+
+	clusterCfgCmd.Flags().StringVarP(&addons, "add", "", "", "add plugins")
+	return clusterCfgCmd
 }
 
 func getConfig(reader *bufio.Reader, text, def string) (string, error) {

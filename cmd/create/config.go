@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"github.com/lithammer/dedent"
 	"github.com/pixiake/kubekey/pkg/util"
-	"github.com/pixiake/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
 var (
-	K2ClusterObjTempl = template.Must(template.New("etcdSslCfg").Parse(
+	K2ClusterObjTempl = template.Must(template.New("K2Cluster").Parse(
 		dedent.Dedent(`apiVersion: kubekey.io/v1alpha1
 kind: K2Cluster
 metadata:
@@ -44,15 +44,66 @@ spec:
     plugin: calico
     kube_pods_cidr: 10.233.64.0/18
     kube_service_cidr: 10.233.0.0/18
+  registry:
+    registryMirrors: []
+    insecureRegistries: []
+{{- if ne .PluginsNum 0 }}
+  plugins:
+    {{- if .Options.LocalVolumeEnable }}
+    localVolume:
+      isDefaultClass: {{ .Options.LocalVolumeIsDefault }}
+    {{- end }}
+    {{- if .Options.NfsClientEnable }}
+    nfsClient:
+      isDefaultClass: {{ .Options.NfsClientIsDefault }}
+      nfsServer: ""
+      nfsPath: ""
+      nfsVrs3Enabled: false
+      nfsArchiveOnDelete: false
+    {{- end }}
+{{- end }}
     `)))
 )
 
-func GenerateK2ClusterObjStr(mgr *manager.Manager, index int) (string, error) {
-	return util.Render(K2ClusterObjTempl, util.Data{})
+type PluginOptions struct {
+	LocalVolumeEnable    bool
+	LocalVolumeIsDefault bool
+	NfsClientEnable      bool
+	NfsClientIsDefault   bool
 }
 
-func GenerateK2ClusterObj() error {
-	K2ClusterObjStr, _ := GenerateK2ClusterObjStr(nil, 0)
+func GenerateK2ClusterObjStr(opt *PluginOptions, plugins []string) (string, error) {
+	return util.Render(K2ClusterObjTempl, util.Data{
+		"PluginsNum": len(plugins),
+		"Options":    opt,
+	})
+}
+
+func GenerateK2ClusterObj(addons string) error {
+	opt := PluginOptions{}
+	addonsList := strings.Split(addons, ",")
+	for index, addon := range addonsList {
+		switch strings.TrimSpace(addon) {
+		case "localVolume":
+			opt.LocalVolumeEnable = true
+			if index == 0 {
+				opt.LocalVolumeIsDefault = true
+			}
+		case "nfsClient":
+			opt.NfsClientEnable = true
+			if index == 0 {
+				opt.NfsClientIsDefault = true
+			}
+		default:
+			return errors.New(fmt.Sprintf("This plugin is not supported: %s", strings.TrimSpace(addon)))
+		}
+	}
+
+	K2ClusterObjStr, err := GenerateK2ClusterObjStr(&opt, addonsList)
+	if err != nil {
+		return errors.Wrap(err, "faild to generate k2cluster config")
+	}
+	fmt.Println(K2ClusterObjStr)
 	K2ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(K2ClusterObjStr))
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))

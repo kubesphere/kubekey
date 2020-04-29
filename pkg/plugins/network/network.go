@@ -21,7 +21,7 @@ func deployNetworkPlugin(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	if mgr.Runner.Index == 0 {
 		switch mgr.Cluster.Network.Plugin {
 		case "calico":
-			err := deployCalico(mgr)
+			err := deployCalico(mgr, node)
 			return err
 		case "flannel":
 			err := deployFlannel(mgr)
@@ -36,7 +36,7 @@ func deployNetworkPlugin(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	return nil
 }
 
-func deployCalico(mgr *manager.Manager) error {
+func deployCalico(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	calicoFile, err := calico.GenerateCalicoFiles(mgr.Cluster)
 	if err != nil {
 		return err

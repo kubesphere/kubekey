@@ -1,7 +1,6 @@
 package scale
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/pixiake/kubekey/pkg/cluster/kubernetes"
 	"github.com/pixiake/kubekey/pkg/cluster/preinstall"
@@ -12,18 +11,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ScaleCluster(clusterCfgFile string, logger *log.Logger, pkg string) error {
+func ScaleCluster(clusterCfgFile string, logger *log.Logger, pkg string, verbose bool) error {
 	cfg, err := config.ParseClusterCfg(clusterCfgFile, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to download cluster config")
 	}
 
-	out, _ := json.MarshalIndent(cfg, "", "  ")
-	fmt.Println(string(out))
+	//out, _ := json.MarshalIndent(cfg, "", "  ")
+	//fmt.Println(string(out))
 	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
 		return errors.Wrap(err, "failed to load kube binarys")
 	}
-	return NewExecutor(&cfg.Spec, logger).Execute()
+	return NewExecutor(&cfg.Spec, logger, verbose).Execute()
 }
 
 func ExecTasks(mgr *manager.Manager) error {
@@ -41,5 +40,7 @@ func ExecTasks(mgr *manager.Manager) error {
 			return errors.Wrap(err, task.ErrMsg)
 		}
 	}
+
+	fmt.Printf("\n\033[1;36;40m%s\033[0m\n", "Successful.")
 	return nil
 }

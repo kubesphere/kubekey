@@ -5,13 +5,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewKubekeyCommand() *cobra.Command {
+var Verbose bool
 
+func NewKubekeyCommand() *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use:   "kk",
 		Short: "Kubernetes Deploy Tool",
 		Long:  "Deploy a Kubernetes Cluster Flexibly and Easily .",
 	}
+
 	rootCmd.AddCommand(create.NewCmdCreate())
 	rootCmd.AddCommand(NewCmdScaleCluster())
 	rootCmd.AddCommand(NewCmdVersion())

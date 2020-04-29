@@ -14,7 +14,7 @@ import (
 )
 
 func SyncKubeBinaries(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Syncing kube binaries……")
+	mgr.Logger.Infoln("Syncing kube binaries")
 
 	return mgr.RunTaskOnK8sNodes(syncKubeBinaries, true)
 }
@@ -59,7 +59,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 }
 
 func ConfigureKubeletService(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Configure kubelet service……")
+	mgr.Logger.Infoln("Configure kubelet service")
 
 	return mgr.RunTaskOnAllNodes(setKubelet, true)
 }

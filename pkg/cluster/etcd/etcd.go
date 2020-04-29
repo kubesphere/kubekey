@@ -128,7 +128,6 @@ func GenerateEtcdService(mgr *manager.Manager) error {
 }
 
 func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	PreDownloadEtcdImages(mgr, node)
 	etcdService, err := tmpl.GenerateEtcdService(mgr, mgr.Runner.Index)
 	if err != nil {
 		return err
