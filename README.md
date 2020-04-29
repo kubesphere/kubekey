@@ -50,19 +50,19 @@ chmod +x kk
 # multinodes
 ./kk reset -f ./k2cluster-example.yaml
 ```
-### Supported
+## Supported
 * Deploy allinone cluster
 * Deploy multinodes cluster
 * Add nodes (masters and nodes)
 
-### Build
+## Build
 ```shell script
 git clone https://github.com/pixiake/kubekey.git
 cd kubekey
 ./build.sh
 ```
 > Note: Docker needs to be installed before building.
-## Quick Start
+## Road Map
 * CaaO (Cluster as a Object)
 * Support more container runtimes: cri-o containerd
 
