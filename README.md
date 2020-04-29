@@ -20,21 +20,19 @@ Please follow the list to prepare environment.
 curl -O -k https://kubernetes.pek3b.qingstor.com/tools/kubekey/kk
 chmod +x kk
 ```
-* Deploy a Allinone cluster
+* Deploy a cluster
 ```shell script
+# allinone
 ./kk create cluster
-```
-* Deploy a MultiNodes cluster
-  
-> Create a example configuration file by following command or [example configuration file](docs/config-example.md)
-```shell script
+
+# multiNodes
+# 1. Create a example configuration file by following command or reference docs/config-example.md
 ./kk create config      # Only kubernetes
 ./kk create config --add localVolume      # Add plugins (eg: localVolume / nfsClient / localVolume,nfsClient)
 
-# Please fill in the configuration file under the current path (k2cluster-example.yaml) according to the environmental information
-```
-> Deploy cluster
-```shell script
+# 2. Please fill in the configuration file under the current path (k2cluster-example.yaml) according to the environmental information.
+
+# 3. Deploy cluster
 ./kk create cluster -f ./k2cluster-example.yaml
 ```
 * Add Nodes
