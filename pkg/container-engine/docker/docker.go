@@ -60,7 +60,7 @@ func InstallerDocker(mgr *manager.Manager) error {
 }
 
 func installDockerOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	cmd := "sudo sh -c \"[ -z $(which docker) ] && curl https://raw.githubusercontent.com/pixiake/kubekey/master/scripts/docker-install.sh | sh ; systemctl enable docker\""
+	cmd := "sudo sh -c \"[ -z $(which docker) ] && curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh ; systemctl enable docker\""
 	_, err := mgr.Runner.RunCmd(cmd)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "failed to install docker")
