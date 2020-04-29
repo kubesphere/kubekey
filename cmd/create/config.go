@@ -96,6 +96,7 @@ func GenerateK2ClusterObj(addons string) error {
 			if index == 0 {
 				opt.NfsClientIsDefault = true
 			}
+		case "":
 		default:
 			return errors.New(fmt.Sprintf("This plugin is not supported: %s", strings.TrimSpace(addon)))
 		}
