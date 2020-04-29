@@ -8,7 +8,7 @@ Please follow the list to prepare environment.
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
 #### Requirements and Recommendations
-* Require SSH can access to all nodes and `sudo` and `curl` can be used in all nodes.
+* Require SSH can access to all nodes, `sudo` and `curl` can be used in all nodes.
 * It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.
 * OS requirements (For Minimal Installation of KubeSphere only)：at least 2 vCPUs and 4GB RAM.
 * Make sure the storage service is available if you want to deploy a cluster with KubeSphere.<br>
