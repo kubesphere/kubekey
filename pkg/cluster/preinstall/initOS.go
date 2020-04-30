@@ -18,7 +18,7 @@ func InitOS(mgr *manager.Manager) error {
 
 func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	tmpDir := "/tmp/kubekey"
-	_, err := mgr.Runner.RunCmd(fmt.Sprintf("mkdir -p %s", tmpDir))
+	_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -d %s ]; then rm -rf %s ;fi\" && mkdir -p %s", tmpDir, tmpDir, tmpDir))
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "failed to init operating system")
 	}

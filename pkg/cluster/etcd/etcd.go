@@ -173,7 +173,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	for _, host := range mgr.EtcdNodes.Hosts {
 		addrList = append(addrList, fmt.Sprintf("https://%s:2379", host.InternalAddress))
 	}
-	checkHealthCmd := fmt.Sprintf("export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s cluster-health | grep -q 'cluster is healthy'", node.HostName, node.HostName, etcdBinDir, strings.Join(addrList, ","))
+	checkHealthCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s cluster-health | grep -q 'cluster is healthy'\"", node.HostName, node.HostName, etcdBinDir, strings.Join(addrList, ","))
 	if mgr.Runner.Index == 0 {
 		for i := 20; i > 0; i-- {
 			_, err := mgr.Runner.RunCmd(checkHealthCmd)

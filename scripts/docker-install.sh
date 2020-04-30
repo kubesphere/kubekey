@@ -39,9 +39,9 @@ command_exists() {
     command -v "$@" > /dev/null 2>&1
 }
 
-config_Accelerator(){
+config_daemon(){
     sudo mkdir -p /etc/docker
-    sudo tee /etc/docker/daemon.json <<EOF
+    sudo cat > /etc/docker/daemon.json <<EOF
 {
   "log-opts": {
     "max-size": "5m",
@@ -62,7 +62,7 @@ echo_docker_as_nonroot() {
             $sh_c 'docker version'
         ) || true
     fi
-    config_Accelerator
+    config_daemon
 
     your_user=your-user
     [ "$user" != 'root' ] && your_user="$user"
@@ -316,7 +316,7 @@ EOF
                 $sh_c 'apt-get update'
                 $sh_c "apt-get install -y -q docker-ce=$(apt-cache madison docker-ce | grep ${docker_version} | head -n 1 | cut -d ' ' -f 4)"
             )
-            echo_docker_as_nonroot
+            config_daemon
             exit 0
             ;;
         centos|fedora|redhat|oraclelinux)
@@ -357,7 +357,7 @@ EOF
                         $sh_c 'systemctl start docker'
                     fi
             )
-            echo_docker_as_nonroot
+            config_daemon
             exit 0
             ;;      
     esac

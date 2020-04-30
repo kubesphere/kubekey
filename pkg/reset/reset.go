@@ -53,7 +53,7 @@ func resetKubeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 	return nil
 }
 
-var etcdFiles = []string{"/usr/local/bin/etcd", "/etc/ssl/etcd/ssl", "/var/lib/etcd", "/etc/etcd.env", "/etc/systemd/system/etcd.service"}
+var etcdFiles = []string{"/usr/local/bin/etcd", "/etc/ssl/etcd", "/var/lib/etcd", "/etc/etcd.env", "/etc/systemd/system/etcd.service"}
 
 func ResetEtcdCluster(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Clean etcd cluster")
