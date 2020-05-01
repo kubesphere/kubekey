@@ -2,11 +2,11 @@ package scale
 
 import (
 	"fmt"
-	"github.com/pixiake/kubekey/pkg/cluster/kubernetes"
-	"github.com/pixiake/kubekey/pkg/cluster/preinstall"
-	"github.com/pixiake/kubekey/pkg/config"
-	"github.com/pixiake/kubekey/pkg/container-engine/docker"
-	"github.com/pixiake/kubekey/pkg/util/manager"
+	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
+	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

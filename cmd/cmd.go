@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/pixiake/kubekey/cmd/create"
+	"github.com/kubesphere/kubekey/cmd/create"
 	"github.com/spf13/cobra"
 )
 

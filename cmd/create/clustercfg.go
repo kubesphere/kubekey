@@ -3,7 +3,7 @@ package create
 import (
 	"bufio"
 	"fmt"
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"

@@ -2,11 +2,11 @@ package reset
 
 import (
 	"fmt"
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/pixiake/kubekey/pkg/cluster/preinstall"
-	"github.com/pixiake/kubekey/pkg/config"
-	"github.com/pixiake/kubekey/pkg/util/manager"
-	"github.com/pixiake/kubekey/pkg/util/ssh"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
+	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
+	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

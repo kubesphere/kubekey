@@ -2,14 +2,14 @@ package manager
 
 import (
 	"fmt"
-	"github.com/pixiake/kubekey/pkg/util/ssh"
+	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/pixiake/kubekey/pkg/util/runner"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/util/runner"
 )
 
 const (

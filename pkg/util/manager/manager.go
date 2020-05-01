@@ -1,12 +1,12 @@
 package manager
 
 import (
-	ssh2 "github.com/pixiake/kubekey/pkg/util/ssh"
+	ssh2 "github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/sirupsen/logrus"
 
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 
-	"github.com/pixiake/kubekey/pkg/util/runner"
+	"github.com/kubesphere/kubekey/pkg/util/runner"
 	//"k8s.io/client-go/rest"
 	//bootstraputil "k8s.io/cluster-bootstrap/token/util"
 	//dynclient "sigs.k8s.io/manager-runtime/pkg/client"

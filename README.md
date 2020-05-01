@@ -55,7 +55,7 @@ chmod +x kk
 
 ## Build
 ```shell script
-git clone https://github.com/pixiake/kubekey.git
+git clone https://github.com/kubesphere/kubekey.git
 cd kubekey
 ./build.sh
 ```

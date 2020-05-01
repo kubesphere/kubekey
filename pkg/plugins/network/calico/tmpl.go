@@ -1,9 +1,9 @@
 package calico
 
 import (
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/pixiake/kubekey/pkg/util"
 	"text/template"
 )
 

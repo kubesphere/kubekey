@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/pixiake/kubekey/pkg/reset"
-	"github.com/pixiake/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/reset"
+	"github.com/kubesphere/kubekey/pkg/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

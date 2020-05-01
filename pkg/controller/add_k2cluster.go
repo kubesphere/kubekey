@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/pixiake/kubekey/pkg/controller/k2cluster"
+	"github.com/kubesphere/kubekey/pkg/controller/k2cluster"
 )
 
 func init() {

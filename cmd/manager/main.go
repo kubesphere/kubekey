@@ -13,9 +13,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 
-	"github.com/pixiake/kubekey/pkg/apis"
-	"github.com/pixiake/kubekey/pkg/controller"
-	"github.com/pixiake/kubekey/version"
+	"github.com/kubesphere/kubekey/pkg/apis"
+	"github.com/kubesphere/kubekey/pkg/controller"
+	"github.com/kubesphere/kubekey/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"

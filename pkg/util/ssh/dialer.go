@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 )
 
 // Connector holds a map of Connections

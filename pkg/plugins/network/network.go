@@ -3,11 +3,11 @@ package network
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/pixiake/kubekey/pkg/plugins/network/calico"
-	"github.com/pixiake/kubekey/pkg/plugins/network/flannel"
-	"github.com/pixiake/kubekey/pkg/util/manager"
-	"github.com/pixiake/kubekey/pkg/util/ssh"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/plugins/network/calico"
+	"github.com/kubesphere/kubekey/pkg/plugins/network/flannel"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
+	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 )
 

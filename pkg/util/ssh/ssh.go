@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"io"
 	"io/ioutil"
 	"net"

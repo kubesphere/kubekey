@@ -1,9 +1,9 @@
 package scale
 
 import (
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/pixiake/kubekey/pkg/util/manager"
-	ssh "github.com/pixiake/kubekey/pkg/util/ssh"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
+	ssh "github.com/kubesphere/kubekey/pkg/util/ssh"
 	log "github.com/sirupsen/logrus"
 )
 

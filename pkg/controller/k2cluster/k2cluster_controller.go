@@ -3,7 +3,7 @@ package k2cluster
 import (
 	"context"
 
-	kubekeyv1alpha1 "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyv1alpha1 "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/pixiake/kubekey/cmd"
+	"github.com/kubesphere/kubekey/cmd"
 	"github.com/spf13/pflag"
 )
 

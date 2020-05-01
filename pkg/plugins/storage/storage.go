@@ -3,11 +3,11 @@ package storage
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
-	local_volume "github.com/pixiake/kubekey/pkg/plugins/storage/local-volume"
-	nfs_client "github.com/pixiake/kubekey/pkg/plugins/storage/nfs-client"
-	"github.com/pixiake/kubekey/pkg/util/manager"
-	"github.com/pixiake/kubekey/pkg/util/ssh"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	local_volume "github.com/kubesphere/kubekey/pkg/plugins/storage/local-volume"
+	nfs_client "github.com/kubesphere/kubekey/pkg/plugins/storage/nfs-client"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
+	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 )
 

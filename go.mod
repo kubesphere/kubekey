@@ -1,4 +1,4 @@
-module github.com/pixiake/kubekey
+module github.com/kubesphere/kubekey
 
 go 1.13
 

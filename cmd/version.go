@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/pixiake/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/spf13/cobra"
 )
 

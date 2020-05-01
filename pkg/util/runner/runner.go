@@ -2,8 +2,8 @@ package runner
 
 import (
 	"fmt"
-	kubekeyapi "github.com/pixiake/kubekey/pkg/apis/kubekey/v1alpha1"
-	ssh2 "github.com/pixiake/kubekey/pkg/util/ssh"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	ssh2 "github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"strings"
 	"time"

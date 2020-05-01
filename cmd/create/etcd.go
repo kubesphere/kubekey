@@ -1,11 +1,11 @@
 package create
 
 import (
-	"github.com/pixiake/kubekey/pkg/config"
-	"github.com/pixiake/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/util"
 	log "github.com/sirupsen/logrus"
-	//"github.com/pixiake/kubekey/cluster"
-	//"github.com/pixiake/kubekey/cluster/etcd"
+	//"github.com/kubesphere/kubekey/cluster"
+	//"github.com/kubesphere/kubekey/cluster/etcd"
 	"github.com/spf13/cobra"
 )
 
