@@ -83,7 +83,7 @@ func GetKubeConfig(mgr *manager.Manager) error {
 
 func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if node.IsWorker {
-		removeMasterTaintCmd := fmt.Sprintf("/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=:NoSchedule-", node.HostName)
+		removeMasterTaintCmd := fmt.Sprintf("/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=:NoSchedule-", node.Name)
 		_, err := mgr.Runner.RunCmd(removeMasterTaintCmd)
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "failed to remove master taint")
@@ -94,7 +94,7 @@ func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
 func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if node.IsWorker {
-		addWorkerLabelCmd := fmt.Sprintf("/usr/local/bin/kubectl label node %s node-role.kubernetes.io/worker=", node.HostName)
+		addWorkerLabelCmd := fmt.Sprintf("/usr/local/bin/kubectl label node %s node-role.kubernetes.io/worker=", node.Name)
 		out, err := mgr.Runner.RunCmd(addWorkerLabelCmd)
 		if err != nil && !strings.Contains(out, "already") {
 			return errors.Wrap(errors.WithStack(err), "failed to add worker label")
@@ -184,7 +184,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 }
 
 func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	if !strings.Contains(clusterInfo, node.HostName) && !strings.Contains(clusterInfo, node.InternalAddress) {
+	if !strings.Contains(clusterInfo, node.Name) && !strings.Contains(clusterInfo, node.InternalAddress) {
 		if node.IsMaster {
 			err := addMaster(mgr)
 			if err != nil {

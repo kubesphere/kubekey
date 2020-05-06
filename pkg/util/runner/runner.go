@@ -39,7 +39,7 @@ func (r *Runner) RunCmd(cmd string) (string, error) {
 	if output != "" {
 		if strings.Contains(cmd, "base64") && strings.Contains(cmd, "--wrap=0") || strings.Contains(cmd, "make-ssl-etcd.sh") || strings.Contains(cmd, "docker-install.sh") || strings.Contains(cmd, "docker pull") {
 		} else {
-			fmt.Printf("[%s %s] MSG:\n", r.Host.HostName, r.Host.SSHAddress)
+			fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
 			fmt.Println(output)
 		}
 	}
@@ -55,12 +55,12 @@ func (r *Runner) ScpFile(src, dst string) error {
 	err := r.Conn.Scp(src, dst)
 	if err != nil {
 		if r.Verbose {
-			fmt.Printf("push %s to %s:%s   Failed\n", src, r.Host.SSHAddress, dst)
+			fmt.Printf("push %s to %s:%s   Failed\n", src, r.Host.Address, dst)
 			return err
 		}
 	} else {
 		if r.Verbose {
-			fmt.Printf("push %s to %s:%s   Done\n", src, r.Host.SSHAddress, dst)
+			fmt.Printf("push %s to %s:%s   Done\n", src, r.Host.Address, dst)
 		}
 	}
 	return nil

@@ -102,7 +102,7 @@ func GenerateEtcdService(mgr *manager.Manager, index int) (string, error) {
 
 func GenerateEtcdEnv(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int) (string, error) {
 	endpoints := []string{}
-	for index, host := range mgr.EtcdNodes.Hosts {
+	for index, host := range mgr.EtcdNodes {
 		endpoints = append(endpoints, fmt.Sprintf("etcd%d=https://%s:2380", index+1, host.InternalAddress))
 	}
 
@@ -110,7 +110,7 @@ func GenerateEtcdEnv(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int) 
 		"Tag":       kubekeyapi.DefaultEtcdVersion,
 		"Name":      fmt.Sprintf("etcd%d", index+1),
 		"Ip":        node.InternalAddress,
-		"Hostname":  node.HostName,
+		"Hostname":  node.Name,
 		"Endpoints": strings.Join(endpoints, ","),
 	})
 }

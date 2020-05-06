@@ -119,25 +119,25 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	var endpointsList []string
 	var caFile, certFile, keyFile string
 
-	for _, host := range mgr.EtcdNodes.Hosts {
+	for _, host := range mgr.EtcdNodes {
 		endpoint := fmt.Sprintf("https://%s:%s", host.InternalAddress, kubekeyapi.DefaultEtcdPort)
 		endpointsList = append(endpointsList, endpoint)
 	}
 	externalEtcd.Endpoints = endpointsList
 
 	caFile = "/etc/ssl/etcd/ssl/ca.pem"
-	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/admin-%s.pem", mgr.EtcdNodes.Hosts[0].HostName)
-	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/admin-%s-key.pem", mgr.EtcdNodes.Hosts[0].HostName)
+	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/admin-%s.pem", mgr.EtcdNodes[0].Name)
+	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/admin-%s-key.pem", mgr.EtcdNodes[0].Name)
 
 	externalEtcd.CaFile = caFile
 	externalEtcd.CertFile = certFile
 	externalEtcd.KeyFile = keyFile
 
 	return util.Render(KubeadmCfgTempl, util.Data{
-		"ImageRepo":            mgr.Cluster.KubeCluster.ImageRepo,
-		"Version":              mgr.Cluster.KubeCluster.Version,
-		"ClusterName":          mgr.Cluster.KubeCluster.ClusterName,
-		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.LBKubeApiserver.Address, mgr.Cluster.LBKubeApiserver.Port),
+		"ImageRepo":            mgr.Cluster.Kubernetes.ImageRepo,
+		"Version":              mgr.Cluster.Kubernetes.Version,
+		"ClusterName":          mgr.Cluster.Kubernetes.ClusterName,
+		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.ControlPlaneEndpoint.Address, mgr.Cluster.ControlPlaneEndpoint.Port),
 		"PodSubnet":            mgr.Cluster.Network.KubePodsCIDR,
 		"ServiceSubnet":        mgr.Cluster.Network.KubeServiceCIDR,
 		"CertSANs":             mgr.Cluster.GenerateCertSANs(),

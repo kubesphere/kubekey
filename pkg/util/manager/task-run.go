@@ -29,12 +29,12 @@ func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, prefixed bo
 	// because we want to re-use it for future task)
 	conn, err = mgr.Connector.Connect(*node)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to %s", node.SSHAddress)
+		return errors.Wrapf(err, "failed to connect to %s", node.Address)
 	}
 
 	prefix := ""
 	if prefixed {
-		prefix = fmt.Sprintf("[%s] ", node.HostName)
+		prefix = fmt.Sprintf("[%s] ", node.Name)
 	}
 
 	mgr.Runner = &runner.Runner{
@@ -76,7 +76,7 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 
 	for i := range nodes {
 		mgrTask := mgr.Clone()
-		mgrTask.Logger = mgrTask.Logger.WithField("node", nodes[i].SSHAddress)
+		mgrTask.Logger = mgrTask.Logger.WithField("node", nodes[i].Address)
 
 		if parallel {
 			ccons <- struct{}{}
@@ -107,42 +107,42 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 }
 
 func (mgr *Manager) RunTaskOnAllNodes(task NodeTask, parallel bool) error {
-	if err := mgr.RunTaskOnNodes(mgr.AllNodes.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.AllNodes, task, parallel); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (mgr *Manager) RunTaskOnEtcdNodes(task NodeTask, parallel bool) error {
-	if err := mgr.RunTaskOnNodes(mgr.EtcdNodes.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.EtcdNodes, task, parallel); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (mgr *Manager) RunTaskOnMasterNodes(task NodeTask, parallel bool) error {
-	if err := mgr.RunTaskOnNodes(mgr.MasterNodes.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.MasterNodes, task, parallel); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (mgr *Manager) RunTaskOnWorkerNodes(task NodeTask, parallel bool) error {
-	if err := mgr.RunTaskOnNodes(mgr.WorkerNodes.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.WorkerNodes, task, parallel); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (mgr *Manager) RunTaskOnK8sNodes(task NodeTask, parallel bool) error {
-	if err := mgr.RunTaskOnNodes(mgr.K8sNodes.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.K8sNodes, task, parallel); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (mgr *Manager) RunTaskOnClientNode(task NodeTask, parallel bool) error {
-	if err := mgr.RunTaskOnNodes(mgr.ClientNode.Hosts, task, parallel); err != nil {
+	if err := mgr.RunTaskOnNodes(mgr.ClientNode, task, parallel); err != nil {
 		return err
 	}
 	return nil

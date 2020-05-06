@@ -27,9 +27,9 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 
 	filepath := fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
 
-	kubeadm := fmt.Sprintf("kubeadm-%s", mgr.Cluster.KubeCluster.Version)
-	kubelet := fmt.Sprintf("kubelet-%s", mgr.Cluster.KubeCluster.Version)
-	kubectl := fmt.Sprintf("kubectl-%s", mgr.Cluster.KubeCluster.Version)
+	kubeadm := fmt.Sprintf("kubeadm-%s", mgr.Cluster.Kubernetes.Version)
+	kubelet := fmt.Sprintf("kubelet-%s", mgr.Cluster.Kubernetes.Version)
+	kubectl := fmt.Sprintf("kubectl-%s", mgr.Cluster.Kubernetes.Version)
 	helm := fmt.Sprintf("helm-%s", kubekeyapi.DefaultHelmVersion)
 	kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
 	binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}

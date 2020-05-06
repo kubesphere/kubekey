@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ResetCluster(clusterCfgFile string, logger *log.Logger) error {
+func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
 	cfg, err := config.ParseClusterCfg(clusterCfgFile, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to download cluster config")
@@ -22,7 +22,7 @@ func ResetCluster(clusterCfgFile string, logger *log.Logger) error {
 	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
 		return errors.Wrap(err, "failed to load kube binarys")
 	}
-	return NewExecutor(&cfg.Spec, logger).Execute()
+	return NewExecutor(&cfg.Spec, logger, verbose).Execute()
 }
 
 func ExecTasks(mgr *manager.Manager) error {

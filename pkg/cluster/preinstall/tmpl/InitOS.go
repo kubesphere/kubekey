@@ -1,8 +1,8 @@
 package tmpl
 
 import (
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
 	"text/template"
 )
@@ -72,9 +72,8 @@ cat >>/etc/hosts<<EOF
 EOF
     `)))
 
-func InitOsScript(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
-	hostlist := cfg.GenerateHosts()
+func InitOsScript(mgr *manager.Manager) (string, error) {
 	return util.Render(initOsScriptTmpl, util.Data{
-		"Hosts": hostlist,
+		"Hosts": mgr.ClusterHosts,
 	})
 }

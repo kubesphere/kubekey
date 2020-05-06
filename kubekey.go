@@ -7,8 +7,6 @@ import (
 )
 
 func main() {
-	//klog.InitFlags(nil)
-	//pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	pflag.Set("logtostderr", "true")

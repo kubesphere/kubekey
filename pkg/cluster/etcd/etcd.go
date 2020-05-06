@@ -66,7 +66,7 @@ func generateCerts(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conn
 			certsContent[cert] = certsBase64
 		}
 
-		for i := 1; i <= len(mgr.EtcdNodes.Hosts)-1; i++ {
+		for i := 1; i <= len(mgr.EtcdNodes)-1; i++ {
 			certsStr <- certsContent
 		}
 
@@ -88,15 +88,15 @@ func generateCertsFiles(mgr *manager.Manager) []string {
 	var certsList []string
 	certsList = append(certsList, "ca.pem")
 	certsList = append(certsList, "ca-key.pem")
-	for _, host := range mgr.EtcdNodes.Hosts {
-		certsList = append(certsList, fmt.Sprintf("admin-%s.pem", host.HostName))
-		certsList = append(certsList, fmt.Sprintf("admin-%s-key.pem", host.HostName))
-		certsList = append(certsList, fmt.Sprintf("member-%s.pem", host.HostName))
-		certsList = append(certsList, fmt.Sprintf("member-%s-key.pem", host.HostName))
+	for _, host := range mgr.EtcdNodes {
+		certsList = append(certsList, fmt.Sprintf("admin-%s.pem", host.Name))
+		certsList = append(certsList, fmt.Sprintf("admin-%s-key.pem", host.Name))
+		certsList = append(certsList, fmt.Sprintf("member-%s.pem", host.Name))
+		certsList = append(certsList, fmt.Sprintf("member-%s-key.pem", host.Name))
 	}
-	for _, host := range mgr.MasterNodes.Hosts {
-		certsList = append(certsList, fmt.Sprintf("node-%s.pem", host.HostName))
-		certsList = append(certsList, fmt.Sprintf("node-%s-key.pem", host.HostName))
+	for _, host := range mgr.MasterNodes {
+		certsList = append(certsList, fmt.Sprintf("node-%s.pem", host.Name))
+		certsList = append(certsList, fmt.Sprintf("node-%s-key.pem", host.Name))
 	}
 	return certsList
 }
@@ -170,10 +170,10 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	}
 
 	addrList := []string{}
-	for _, host := range mgr.EtcdNodes.Hosts {
+	for _, host := range mgr.EtcdNodes {
 		addrList = append(addrList, fmt.Sprintf("https://%s:2379", host.InternalAddress))
 	}
-	checkHealthCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s cluster-health | grep -q 'cluster is healthy'\"", node.HostName, node.HostName, etcdBinDir, strings.Join(addrList, ","))
+	checkHealthCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s cluster-health | grep -q 'cluster is healthy'\"", node.Name, node.Name, etcdBinDir, strings.Join(addrList, ","))
 	if mgr.Runner.Index == 0 {
 		for i := 20; i > 0; i-- {
 			_, err := mgr.Runner.RunCmd(checkHealthCmd)

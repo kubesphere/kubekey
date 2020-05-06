@@ -55,19 +55,19 @@ func SetDefaultK2ClusterSpec(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.K2Cluster
 	clusterCfg := kubekeyapi.K2ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
-	clusterCfg.LBKubeApiserver = SetDefaultLBCfg(cfg)
+	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
-	clusterCfg.KubeCluster = SetDefaultClusterCfg(cfg)
+	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Plugins = cfg.Plugins
-	if cfg.KubeCluster.ImageRepo == "" {
-		clusterCfg.KubeCluster.ImageRepo = kubekeyapi.DefaultKubeImageRepo
+	if cfg.Kubernetes.ImageRepo == "" {
+		clusterCfg.Kubernetes.ImageRepo = kubekeyapi.DefaultKubeImageRepo
 	}
-	if cfg.KubeCluster.ClusterName == "" {
-		clusterCfg.KubeCluster.ClusterName = kubekeyapi.DefaultClusterName
+	if cfg.Kubernetes.ClusterName == "" {
+		clusterCfg.Kubernetes.ClusterName = kubekeyapi.DefaultClusterName
 	}
-	if cfg.KubeCluster.Version == "" {
-		clusterCfg.KubeCluster.Version = kubekeyapi.DefaultKubeVersion
+	if cfg.Kubernetes.Version == "" {
+		clusterCfg.Kubernetes.Version = kubekeyapi.DefaultKubeVersion
 	}
 	return clusterCfg
 }
@@ -77,15 +77,14 @@ func SetDefaultHostsCfg(cfg *kubekeyapi.K2ClusterSpec) []kubekeyapi.HostCfg {
 	if len(cfg.Hosts) == 0 {
 		return nil
 	}
-	clinetNum := 0
 	for index, host := range cfg.Hosts {
 		host.ID = index
 
-		if len(host.SSHAddress) == 0 && len(host.InternalAddress) > 0 {
-			host.SSHAddress = host.InternalAddress
+		if len(host.Address) == 0 && len(host.InternalAddress) > 0 {
+			host.Address = host.InternalAddress
 		}
-		if len(host.InternalAddress) == 0 && len(host.SSHAddress) > 0 {
-			host.InternalAddress = host.SSHAddress
+		if len(host.InternalAddress) == 0 && len(host.Address) > 0 {
+			host.InternalAddress = host.Address
 		}
 		if host.User == "" {
 			host.User = "root"
@@ -94,65 +93,31 @@ func SetDefaultHostsCfg(cfg *kubekeyapi.K2ClusterSpec) []kubekeyapi.HostCfg {
 			host.Port = strconv.Itoa(22)
 		}
 
-		for _, role := range host.Role {
-			if role == "etcd" {
-				host.IsEtcd = true
-			}
-			if role == "master" {
-				host.IsMaster = true
-			}
-			if role == "worker" {
-				host.IsWorker = true
-			}
-			if role == "client" {
-				clinetNum++
-			}
-		}
 		hostscfg = append(hostscfg, host)
 	}
 
-	if clinetNum == 0 {
-		for index := range hostscfg {
-			if hostscfg[index].IsMaster {
-				hostscfg[index].IsClient = true
-				hostscfg[index].Role = append(hostscfg[index].Role, "client")
-				break
-			}
-		}
-	}
 	return hostscfg
 }
 
-func SetDefaultLBCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.LBKubeApiserverCfg {
+func SetDefaultLBCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.ControlPlaneEndpoint {
 	masterHosts := []kubekeyapi.HostCfg{}
 	hosts := SetDefaultHostsCfg(cfg)
 	for _, host := range hosts {
-		for _, role := range host.Role {
-			if role == "etcd" {
-				host.IsEtcd = true
-			}
-			if role == "master" {
-				host.IsMaster = true
-			}
-			if role == "worker" {
-				host.IsWorker = true
-			}
-		}
 		if host.IsMaster {
 			masterHosts = append(masterHosts, host)
 		}
 	}
 
-	if cfg.LBKubeApiserver.Address == "" {
-		cfg.LBKubeApiserver.Address = masterHosts[0].InternalAddress
+	if cfg.ControlPlaneEndpoint.Address == "" {
+		cfg.ControlPlaneEndpoint.Address = masterHosts[0].InternalAddress
 	}
-	if cfg.LBKubeApiserver.Domain == "" {
-		cfg.LBKubeApiserver.Domain = kubekeyapi.DefaultLBDomain
+	if cfg.ControlPlaneEndpoint.Domain == "" {
+		cfg.ControlPlaneEndpoint.Domain = kubekeyapi.DefaultLBDomain
 	}
-	if cfg.LBKubeApiserver.Port == "" {
-		cfg.LBKubeApiserver.Port = kubekeyapi.DefaultLBPort
+	if cfg.ControlPlaneEndpoint.Port == "" {
+		cfg.ControlPlaneEndpoint.Port = kubekeyapi.DefaultLBPort
 	}
-	defaultLbCfg := cfg.LBKubeApiserver
+	defaultLbCfg := cfg.ControlPlaneEndpoint
 	return defaultLbCfg
 }
 
@@ -172,18 +137,18 @@ func SetDefaultNetworkCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.NetworkConfi
 	return defaultNetworkCfg
 }
 
-func SetDefaultClusterCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.KubeCluster {
-	if cfg.KubeCluster.Version == "" {
-		cfg.KubeCluster.Version = kubekeyapi.DefaultKubeVersion
+func SetDefaultClusterCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.Kubernetes {
+	if cfg.Kubernetes.Version == "" {
+		cfg.Kubernetes.Version = kubekeyapi.DefaultKubeVersion
 	}
-	if cfg.KubeCluster.ImageRepo == "" {
-		cfg.KubeCluster.ImageRepo = kubekeyapi.DefaultKubeImageRepo
+	if cfg.Kubernetes.ImageRepo == "" {
+		cfg.Kubernetes.ImageRepo = kubekeyapi.DefaultKubeImageRepo
 	}
-	if cfg.KubeCluster.ClusterName == "" {
-		cfg.KubeCluster.ClusterName = kubekeyapi.DefaultClusterName
+	if cfg.Kubernetes.ClusterName == "" {
+		cfg.Kubernetes.ClusterName = kubekeyapi.DefaultClusterName
 	}
 
-	defaultClusterCfg := cfg.KubeCluster
+	defaultClusterCfg := cfg.Kubernetes
 
 	return defaultClusterCfg
 }
@@ -198,14 +163,13 @@ func AllinoneHost(user *user.User) kubekeyapi.K2Cluster {
 	}
 
 	allinoneCfg.Spec.Hosts = append(allinoneCfg.Spec.Hosts, kubekeyapi.HostCfg{
-		HostName:        "ks-allinone",
-		SSHAddress:      "",
+		Name:            "ks-allinone",
+		Address:         "",
 		InternalAddress: util.LocalIP(),
 		Port:            "",
 		User:            user.Name,
 		Password:        "",
-		SSHKeyPath:      fmt.Sprintf("%s/.ssh/id_rsa", user.HomeDir),
-		Role:            []string{"master", "worker", "etcd"},
+		PrivateKeyPath:  fmt.Sprintf("%s/.ssh/id_rsa", user.HomeDir),
 	})
 	return allinoneCfg
 }

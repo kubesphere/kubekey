@@ -164,14 +164,14 @@ func GenerateEtcdSslCfg(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
 	dnsList := []string{"localhost", "etcd.kube-system.svc.cluster.local", "etcd.kube-system.svc", "etcd.kube-system", "etcd"}
 	ipList := []string{"127.0.0.1"}
 
-	if cfg.LBKubeApiserver.Domain == "" {
+	if cfg.ControlPlaneEndpoint.Domain == "" {
 		dnsList = append(dnsList, kubekeyapi.DefaultLBDomain)
 	} else {
-		dnsList = append(dnsList, cfg.LBKubeApiserver.Domain)
+		dnsList = append(dnsList, cfg.ControlPlaneEndpoint.Domain)
 	}
 
 	for _, host := range cfg.Hosts {
-		dnsList = append(dnsList, host.HostName)
+		dnsList = append(dnsList, host.Name)
 		ipList = append(ipList, host.InternalAddress)
 	}
 
@@ -186,11 +186,11 @@ func GenerateEtcdSslScript(mgr *manager.Manager) (string, error) {
 	var hosts []string
 	//_, etcdNodes, masterNodes, _, _ , _:= cfg.GroupHosts()
 
-	for _, host := range mgr.EtcdNodes.Hosts {
-		masters = append(masters, host.HostName)
+	for _, host := range mgr.EtcdNodes {
+		masters = append(masters, host.Name)
 	}
-	for _, host := range mgr.MasterNodes.Hosts {
-		hosts = append(hosts, host.HostName)
+	for _, host := range mgr.MasterNodes {
+		hosts = append(hosts, host.Name)
 	}
 	return util.Render(EtcdSslTempl, util.Data{
 		"Masters": strings.Join(masters, " "),
