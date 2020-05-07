@@ -1,10 +1,9 @@
 # KubeKey
 Start Kubernetes and KubeSphere flexibly and easily.
 ## Motivation
-* The Kubernetes installation script in Kubekey is developed by go language, which was previously developed in python language. It greatly reduces the dependence on the OS environment and enhances the robustness of successful installation. 
-* Kubekey integrates the mainstream Kubeadm method to install Kubernetes, which greatly reduces the installation time, and makes it easier for developers to understand the installation process. 
-* In contrast to previous installation methods, the allinone environment offers capacity augmentation from a stand-alone to a multi-machine environment. 
-* In a multi-node installation, the configuration parameters take the customary prompt and enter values.
+* To reduce software dependency issues, kubekey is developed with golang.
+* kubekey uses kubeadm to concurrently install k8s cluster to reduce installation complexity and improve installation efficiency.
+* Support for scaling cluster from allinone to multi-node.
 ## Quick Start
 ### Prepare
 Please follow the list to prepare environment.
