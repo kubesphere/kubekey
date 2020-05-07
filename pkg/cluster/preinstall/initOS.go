@@ -13,7 +13,7 @@ import (
 func InitOS(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Initialize operating system")
 
-	return mgr.RunTaskOnAllNodes(initOsOnNode, false)
+	return mgr.RunTaskOnAllNodes(initOsOnNode, true)
 }
 
 func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {

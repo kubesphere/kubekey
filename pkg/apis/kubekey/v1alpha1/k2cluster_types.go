@@ -66,13 +66,13 @@ type K2ClusterList struct {
 //}
 
 type HostCfg struct {
-	Name            string `json:"name,omitempty"`
-	Address         string `json:"address,omitempty"`
-	InternalAddress string `json:"internalAddress,omitempty"`
-	Port            string `json:"port,omitempty"`
-	User            string `json:"user,omitempty"`
-	Password        string `json:"password,omitempty"`
-	PrivateKeyPath  string `json:"privateKeyPath,omitempty"`
+	Name            string `yaml:"name,omitempty" json:"name,omitempty"`
+	Address         string `yaml:"address,omitempty" json:"address,omitempty"`
+	InternalAddress string `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
+	Port            string `yaml:"port,omitempty" json:"port,omitempty"`
+	User            string `yaml:"user,omitempty" json:"user,omitempty"`
+	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
+	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 	ID              int    `json:"-"`
 	IsEtcd          bool   `json:"-"`
 	IsMaster        bool   `json:"-"`
@@ -92,6 +92,7 @@ type HostGroups struct {
 	Master []HostCfg
 	Worker []HostCfg
 	K8s    []HostCfg
+	Client []HostCfg
 }
 
 type NetworkConfig struct {
@@ -147,7 +148,8 @@ func (cfg *K2ClusterSpec) GenerateCertSANs() []string {
 func (cfg *K2ClusterSpec) GroupHosts() *HostGroups {
 	clusterHostsGroups := HostGroups{}
 	etcdGroup, masterGroup, workerGroup := cfg.ParseRolesList()
-	for _, host := range cfg.Hosts {
+	for index, host := range cfg.Hosts {
+		host.ID = index
 		for _, hostName := range etcdGroup {
 			if host.Name == hostName {
 				host.IsEtcd = true
@@ -175,12 +177,13 @@ func (cfg *K2ClusterSpec) GroupHosts() *HostGroups {
 		clusterHostsGroups.All = append(clusterHostsGroups.All, host)
 	}
 
-	for _, host := range cfg.Hosts {
+	for _, host := range clusterHostsGroups.All {
 		if host.IsMaster || host.IsWorker {
 			clusterHostsGroups.K8s = append(clusterHostsGroups.K8s, host)
 		}
 	}
 
+	clusterHostsGroups.Client = append(clusterHostsGroups.Client, clusterHostsGroups.Master[0])
 	return &clusterHostsGroups
 }
 

@@ -38,24 +38,27 @@ func ParseClusterCfg(clusterCfgPath string, logger *log.Logger) (*kubekeyapi.K2C
 		}
 	}
 
-	defaultK2Cluster := SetDefaultK2Cluster(&clusterCfg)
-	return defaultK2Cluster, nil
-
+	//defaultK2Cluster := SetDefaultK2Cluster(&clusterCfg)
+	//return defaultK2Cluster, nil
+	return &clusterCfg, nil
 }
 
-func SetDefaultK2Cluster(obj *kubekeyapi.K2Cluster) *kubekeyapi.K2Cluster {
-	defaultCluster := &kubekeyapi.K2Cluster{}
-	defaultCluster.APIVersion = obj.APIVersion
-	defaultCluster.Kind = obj.APIVersion
-	defaultCluster.Spec = SetDefaultK2ClusterSpec(&obj.Spec)
-	return defaultCluster
-}
+//func SetDefaultK2Cluster(obj *kubekeyapi.K2Cluster) *kubekeyapi.K2Cluster {
+//	//fmt.Println(obj)
+//	out, _ := json.MarshalIndent(obj, "", "  ")
+//	fmt.Println(string(out))
+//	defaultCluster := &kubekeyapi.K2Cluster{}
+//	defaultCluster.APIVersion = obj.APIVersion
+//	defaultCluster.Kind = obj.APIVersion
+//	defaultCluster.Spec = SetDefaultK2ClusterSpec(&obj.Spec)
+//	return defaultCluster
+//}
 
-func SetDefaultK2ClusterSpec(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.K2ClusterSpec {
+func SetDefaultK2ClusterSpec(cfg *kubekeyapi.K2ClusterSpec, masterGroup []kubekeyapi.HostCfg) *kubekeyapi.K2ClusterSpec {
 	clusterCfg := kubekeyapi.K2ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
-	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg)
+	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, masterGroup)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
@@ -69,7 +72,7 @@ func SetDefaultK2ClusterSpec(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.K2Cluster
 	if cfg.Kubernetes.Version == "" {
 		clusterCfg.Kubernetes.Version = kubekeyapi.DefaultKubeVersion
 	}
-	return clusterCfg
+	return &clusterCfg
 }
 
 func SetDefaultHostsCfg(cfg *kubekeyapi.K2ClusterSpec) []kubekeyapi.HostCfg {
@@ -77,8 +80,7 @@ func SetDefaultHostsCfg(cfg *kubekeyapi.K2ClusterSpec) []kubekeyapi.HostCfg {
 	if len(cfg.Hosts) == 0 {
 		return nil
 	}
-	for index, host := range cfg.Hosts {
-		host.ID = index
+	for _, host := range cfg.Hosts {
 
 		if len(host.Address) == 0 && len(host.InternalAddress) > 0 {
 			host.Address = host.InternalAddress
@@ -95,21 +97,14 @@ func SetDefaultHostsCfg(cfg *kubekeyapi.K2ClusterSpec) []kubekeyapi.HostCfg {
 
 		hostscfg = append(hostscfg, host)
 	}
-
+	fmt.Sprintln(hostscfg)
 	return hostscfg
 }
 
-func SetDefaultLBCfg(cfg *kubekeyapi.K2ClusterSpec) kubekeyapi.ControlPlaneEndpoint {
-	masterHosts := []kubekeyapi.HostCfg{}
-	hosts := SetDefaultHostsCfg(cfg)
-	for _, host := range hosts {
-		if host.IsMaster {
-			masterHosts = append(masterHosts, host)
-		}
-	}
+func SetDefaultLBCfg(cfg *kubekeyapi.K2ClusterSpec, masterGroup []kubekeyapi.HostCfg) kubekeyapi.ControlPlaneEndpoint {
 
 	if cfg.ControlPlaneEndpoint.Address == "" {
-		cfg.ControlPlaneEndpoint.Address = masterHosts[0].InternalAddress
+		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
 	}
 	if cfg.ControlPlaneEndpoint.Domain == "" {
 		cfg.ControlPlaneEndpoint.Domain = kubekeyapi.DefaultLBDomain

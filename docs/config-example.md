@@ -21,7 +21,7 @@ spec:
     domain: lb.kubesphere.local
     address: ""
     port: "6443"
-  kubeCluster:
+  kubernetes:
     version: v1.17.4
     imageRepo: kubekey
     clusterName: cluster.local
@@ -32,13 +32,9 @@ spec:
   registry:
     registryMirrors: []
     insecureRegistries: []
-  plugins:
-    localVolume:
-      enabled: true
-      isDefaultClass: true
+  storage:
+    defaultStorageClass: localVolume
     nfsClient:
-      enabled: true
-      isDefaultClass: false
       nfsServer: 172.16.0.2
       nfsPath: /mnt/nfs
       nfsVrs3Enabled: false

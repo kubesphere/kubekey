@@ -15,28 +15,27 @@ import (
 
 var (
 	K2ClusterObjTempl = template.Must(template.New("K2Cluster").Parse(
-		dedent.Dedent(`apiVersion: kubekey.io/v1alpha1
+		dedent.Dedent(`apiVersion: kubekey.kubesphere.io/v1alpha1
 kind: K2Cluster
 metadata:
   name: demo
 spec:
   hosts:
-  - hostName: node1
-    sshAddress: 172.16.0.2
-    internalAddress: 172.16.0.2
-    port: "22"
-    user: ubuntu
-    password: Qcloud@123
-    sshKeyPath: ""
-    role:
-    - etcd
-    - master
-    - worker
-  lbKubeapiserver:
+  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
+  - {name: node2, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
+  roleGroups:
+    etcd:
+    - node1
+    master: 
+    - node1
+    worker:
+    - node1
+    - node2
+  controlPlaneEndpoint:
     domain: lb.kubesphere.local
     address: ""
     port: "6443"
-  kubeCluster:
+  kubernetes:
     version: v1.17.4
     imageRepo: kubekey
     clusterName: cluster.local

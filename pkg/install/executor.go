@@ -3,6 +3,7 @@ package install
 import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	log "github.com/sirupsen/logrus"
@@ -33,12 +34,14 @@ func (executor *Executor) Execute() error {
 func (executor *Executor) createManager() (*manager.Manager, error) {
 	mgr := &manager.Manager{}
 	hostGroups := executor.cluster.GroupHosts()
+	fmt.Println(hostGroups)
 	mgr.AllNodes = hostGroups.All
 	mgr.EtcdNodes = hostGroups.Etcd
 	mgr.MasterNodes = hostGroups.Master
 	mgr.WorkerNodes = hostGroups.Worker
 	mgr.K8sNodes = hostGroups.K8s
-	mgr.Cluster = executor.cluster
+	mgr.ClientNode = hostGroups.Client
+	mgr.Cluster = config.SetDefaultK2ClusterSpec(executor.cluster, hostGroups.Master)
 	mgr.ClusterHosts = GenerateHosts(hostGroups, executor.cluster)
 	mgr.Connector = ssh.NewConnector()
 	mgr.Logger = executor.logger

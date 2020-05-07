@@ -15,7 +15,6 @@ import (
 
 func SyncKubeBinaries(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Syncing kube binaries")
-
 	return mgr.RunTaskOnK8sNodes(syncKubeBinaries, true)
 }
 
@@ -35,6 +34,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 	binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}
 
 	for _, binary := range binaryList {
+		fmt.Println(binary)
 		err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filepath, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
 		if err2 != nil {
 			return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("failed to sync binarys"))
@@ -61,7 +61,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 func ConfigureKubeletService(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Configure kubelet service")
 
-	return mgr.RunTaskOnAllNodes(setKubelet, true)
+	return mgr.RunTaskOnK8sNodes(setKubelet, true)
 }
 
 func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
