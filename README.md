@@ -1,7 +1,7 @@
 # KubeKey
 Start Kubernetes and KubeSphere flexibly and easily.
 ## Motivation
-* To reduce software dependency issues, kubekey is developed with golang.
+* kubekey is developed with golang to reduce software dependency issues.
 * kubekey uses kubeadm to concurrently install k8s cluster to reduce installation complexity and improve installation efficiency.
 * Support for scaling cluster from allinone to multi-node.
 ## Quick Start
