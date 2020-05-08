@@ -1,16 +1,17 @@
 package create
 
 import (
+	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/spf13/cobra"
 )
 
 func NewCmdCreateCfg() *cobra.Command {
-	var addons string
+	var addons, name string
 	var clusterCfgCmd = &cobra.Command{
 		Use:   "config",
 		Short: "Create Cluster-Info Config",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := GenerateK2ClusterObj(addons)
+			err := config.GenerateK2ClusterObj(addons, name)
 			if err != nil {
 				return err
 			}
@@ -19,7 +20,8 @@ func NewCmdCreateCfg() *cobra.Command {
 		},
 	}
 
-	clusterCfgCmd.Flags().StringVarP(&addons, "add", "", "", "add plugins")
+	clusterCfgCmd.Flags().StringVarP(&addons, "add", "", "", "Add plugins")
+	clusterCfgCmd.Flags().StringVarP(&name, "name", "", "", "Name of config file")
 	return clusterCfgCmd
 }
 

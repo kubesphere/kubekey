@@ -30,8 +30,8 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: preinstall.InitOS, ErrMsg: "failed to download kube binaries"},
 		{Task: docker.InstallerDocker, ErrMsg: "failed to install docker"},
 		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "failed to sync kube binaries"},
-		{Task: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
-		{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
+		//{Task: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
+		//{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
 	}
 

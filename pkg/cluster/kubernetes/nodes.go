@@ -19,52 +19,53 @@ func SyncKubeBinaries(mgr *manager.Manager) error {
 }
 
 func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	currentDir, err1 := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err1 != nil {
-		return errors.Wrap(err1, "faild get current dir")
-	}
+	output, _ := mgr.Runner.RunCmd("/usr/local/bin/kubelet --version")
+	if !strings.Contains(output, mgr.Cluster.Kubernetes.Version) {
 
-	filepath := fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
-
-	kubeadm := fmt.Sprintf("kubeadm-%s", mgr.Cluster.Kubernetes.Version)
-	kubelet := fmt.Sprintf("kubelet-%s", mgr.Cluster.Kubernetes.Version)
-	kubectl := fmt.Sprintf("kubectl-%s", mgr.Cluster.Kubernetes.Version)
-	helm := fmt.Sprintf("helm-%s", kubekeyapi.DefaultHelmVersion)
-	kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
-	binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}
-
-	for _, binary := range binaryList {
-		fmt.Println(binary)
-		err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filepath, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
-		if err2 != nil {
-			return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("failed to sync binarys"))
+		currentDir, err1 := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err1 != nil {
+			return errors.Wrap(err1, "faild get current dir")
 		}
-	}
 
-	cmdlist := []string{}
+		filepath := fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
 
-	for _, binary := range binaryList {
-		if strings.Contains(binary, "cni-plugins-linux") {
-			cmdlist = append(cmdlist, fmt.Sprintf("mkdir -p /opt/cni/bin && tar -zxf %s/%s -C /opt/cni/bin", "/tmp/kubekey", binary))
-		} else {
-			cmdlist = append(cmdlist, fmt.Sprintf("cp -f /tmp/kubekey/%s /usr/local/bin/%s && chmod +x /usr/local/bin/%s", binary, strings.Split(binary, "-")[0], strings.Split(binary, "-")[0]))
+		kubeadm := fmt.Sprintf("kubeadm-%s", mgr.Cluster.Kubernetes.Version)
+		kubelet := fmt.Sprintf("kubelet-%s", mgr.Cluster.Kubernetes.Version)
+		kubectl := fmt.Sprintf("kubectl-%s", mgr.Cluster.Kubernetes.Version)
+		helm := fmt.Sprintf("helm-%s", kubekeyapi.DefaultHelmVersion)
+		kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
+		binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}
+
+		for _, binary := range binaryList {
+			err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filepath, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
+			if err2 != nil {
+				return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("failed to sync binarys"))
+			}
 		}
-	}
-	cmd := strings.Join(cmdlist, " && ")
-	_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
-	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("failed to create kubelet link"))
+
+		cmdlist := []string{}
+
+		for _, binary := range binaryList {
+			if strings.Contains(binary, "cni-plugins-linux") {
+				cmdlist = append(cmdlist, fmt.Sprintf("mkdir -p /opt/cni/bin && tar -zxf %s/%s -C /opt/cni/bin", "/tmp/kubekey", binary))
+			} else {
+				cmdlist = append(cmdlist, fmt.Sprintf("cp -f /tmp/kubekey/%s /usr/local/bin/%s && chmod +x /usr/local/bin/%s", binary, strings.Split(binary, "-")[0], strings.Split(binary, "-")[0]))
+			}
+		}
+		cmd := strings.Join(cmdlist, " && ")
+		_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
+		if err3 != nil {
+			return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("failed to create kubelet link"))
+		}
+
+		if err := setKubelet(mgr); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func ConfigureKubeletService(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Configure kubelet service")
-
-	return mgr.RunTaskOnK8sNodes(setKubelet, true)
-}
-
-func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
+func setKubelet(mgr *manager.Manager) error {
 	kubeletService, err1 := tmpl.GenerateKubeletService(mgr.Cluster)
 	if err1 != nil {
 		return err1

@@ -41,7 +41,7 @@ storageClass:
 
   # Set a StorageClass name
   # Ignored if storageClass.create is false
-  name: nfs-client
+  name: {{ .NfsClient.StorageClassName }}
 
   # Allow volume to be expanded dynamically
   allowVolumeExpansion: true
@@ -91,6 +91,6 @@ affinity: {}
 
 func GenerateNfsClientValuesFile(mgr *manager.Manager) (string, error) {
 	return util.Render(NfsClientTempl, util.Data{
-		"NfsClient": mgr.Cluster.Plugins.NfsClient,
+		"NfsClient": mgr.Cluster.Storage.NfsClient,
 	})
 }

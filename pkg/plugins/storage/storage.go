@@ -20,12 +20,12 @@ func DeployStoragePlugins(mgr *manager.Manager) error {
 func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
 		mgr.Runner.RunCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
-		if mgr.Cluster.Plugins.LocalVolume.Enabled {
+		if mgr.Cluster.Storage.LocalVolume.StorageClassName != "" {
 			if err := DeployLocalVolume(mgr); err != nil {
 				return err
 			}
 		}
-		if mgr.Cluster.Plugins.NfsClient.Enabled {
+		if mgr.Cluster.Storage.NfsClient.StorageClassName != "" {
 			if err := DeployNfsClient(mgr); err != nil {
 				return err
 			}

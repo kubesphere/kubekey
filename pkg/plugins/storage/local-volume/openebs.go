@@ -13,7 +13,7 @@ var OpenebsTempl = template.Must(template.New("openebs").Parse(
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: local
+  name: {{ .LocalVolume.StorageClassName }}
   annotations:
     storageclass.kubesphere.io/supported_access_modes: '["ReadWriteOnce"]'
     storageclass.beta.kubernetes.io/is-default-class: "true"
@@ -338,5 +338,7 @@ spec:
     `)))
 
 func GenerateOpenebsManifests(mgr *manager.Manager) (string, error) {
-	return util.Render(OpenebsTempl, util.Data{})
+	return util.Render(OpenebsTempl, util.Data{
+		"LocalVolume": mgr.Cluster.Storage.LocalVolume,
+	})
 }

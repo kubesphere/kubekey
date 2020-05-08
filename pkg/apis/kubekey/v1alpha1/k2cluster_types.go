@@ -23,7 +23,8 @@ type K2ClusterSpec struct {
 	Kubernetes           Kubernetes           `yaml:"kubernetes" json:"kubernetes,omitempty"`
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
-	Plugins              PluginsCfg           `yaml:"plugins" json:"plugins,omitempty"`
+	Storage              Storage              `yaml:"stroage" json:"stroage,omitempty"`
+	KubeSphere           KubeSphere           `yaml:"kubesphere" json:"kubephere,omitempty"`
 }
 
 type Kubernetes struct {

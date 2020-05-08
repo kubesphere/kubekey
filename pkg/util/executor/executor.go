@@ -1,4 +1,4 @@
-package install
+package executor
 
 import (
 	"fmt"
@@ -23,18 +23,18 @@ func NewExecutor(cluster *kubekeyapi.K2ClusterSpec, logger *log.Logger, verbose 
 	}
 }
 
-func (executor *Executor) Execute() error {
-	mgr, err := executor.createManager()
-	if err != nil {
-		return err
-	}
-	return ExecTasks(mgr)
-}
+//func (executor *Executor) Execute() error {
+//	mgr, err := executor.createManager()
+//	if err != nil {
+//		return err
+//	}
+//	return install.ExecTasks(mgr)
+//}
 
-func (executor *Executor) createManager() (*manager.Manager, error) {
+func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr := &manager.Manager{}
 	hostGroups := executor.cluster.GroupHosts()
-	fmt.Println(hostGroups)
+	//fmt.Println(hostGroups)
 	mgr.AllNodes = hostGroups.All
 	mgr.EtcdNodes = hostGroups.Etcd
 	mgr.MasterNodes = hostGroups.Master
