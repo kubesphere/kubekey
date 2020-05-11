@@ -5,7 +5,7 @@ import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
-	"github.com/kubesphere/kubekey/pkg/plugins/dns/coredns"
+	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
@@ -87,23 +87,21 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn 
 			fmt.Println(output)
 			return errors.Wrap(errors.WithStack(err2), "failed to init kubernetes cluster")
 		}
-		err3 := GetKubeConfig(mgr)
-		if err3 != nil {
+		if err3 := GetKubeConfig(mgr); err3 != nil {
 			return err3
 		}
-		err4 := removeMasterTaint(mgr, node)
-		if err4 != nil {
-			return err4
+		if err := removeMasterTaint(mgr, node); err != nil {
+			return err
 		}
-		err5 := addWorkerLabel(mgr, node)
-		if err5 != nil {
-			return err5
+		if err := addWorkerLabel(mgr, node); err != nil {
+			return err
 		}
-		err6 := coredns.OverrideCorednsService(mgr)
-		if err6 != nil {
-			return err6
+		if err := dns.OverrideCorednsService(mgr); err != nil {
+			return err
 		}
-
+		if err := dns.DeployNodelocaldns(mgr); err != nil {
+			return err
+		}
 		clusterIsExist = true
 		if err := getJoinNodesCmd(mgr); err != nil {
 			return err

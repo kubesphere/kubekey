@@ -142,6 +142,6 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		"ServiceSubnet":        mgr.Cluster.Network.KubeServiceCIDR,
 		"CertSANs":             mgr.Cluster.GenerateCertSANs(),
 		"ExternalEtcd":         externalEtcd,
-		"ClusterIP":            mgr.Cluster.ClusterIP(),
+		"ClusterIP":            "169.254.25.10",
 	})
 }

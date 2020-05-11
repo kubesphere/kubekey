@@ -12,7 +12,7 @@ import (
 )
 
 func DeployNetworkPlugin(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Generate etcd certs")
+	mgr.Logger.Infoln("Deploy network plugin")
 
 	return mgr.RunTaskOnMasterNodes(deployNetworkPlugin, true)
 }

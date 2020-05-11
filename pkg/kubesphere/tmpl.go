@@ -9,7 +9,13 @@ import (
 
 var (
 	KubeSphereTempl = template.Must(template.New("KubeSphere").Parse(
-		dedent.Dedent(`---
+		dedent.Dedent(`
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubesphere-system
+---
 apiVersion: v1
 data:
   ks-config.yaml: |
@@ -225,7 +231,7 @@ spec:
       serviceAccountName: ks-installer
       containers:
       - name: installer
-        image: kubespheredev/ks-installer:helm3-dev
+        image: kubespheredev/ks-installer:dev-helm3
         imagePullPolicy: IfNotPresent
     `)))
 )
