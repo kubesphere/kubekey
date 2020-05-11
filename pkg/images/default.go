@@ -7,15 +7,10 @@ import (
 )
 
 const (
-	Etcd                  = "etcd"
-	Master                = "master"
-	Worker                = "worker"
-	K8s                   = "k8s"
-	Pause                 = "pause"
-	KubeApiserver         = "kube-apiserver"
-	KubeControllerManager = "kube-controller-manager"
-	KubeScheduler         = "kube-scheduler"
-	KubeProxy             = "kube-proxy"
+	Etcd   = "etcd"
+	Master = "master"
+	Worker = "worker"
+	K8s    = "k8s"
 )
 
 func GetImage(mgr *manager.Manager, name string) *Image {
