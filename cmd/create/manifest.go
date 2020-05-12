@@ -8,8 +8,8 @@ import (
 func NewCmdCreateCfg() *cobra.Command {
 	var addons, name string
 	var clusterCfgCmd = &cobra.Command{
-		Use:   "config",
-		Short: "Create Cluster-Info Config",
+		Use:   "manifest",
+		Short: "Create Cluster Info Manifest",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			err := config.GenerateK2ClusterObj(addons, name)
 			if err != nil {

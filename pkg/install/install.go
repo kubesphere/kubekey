@@ -18,7 +18,7 @@ import (
 )
 
 func CreateCluster(clusterCfgFile string, logger *log.Logger, addons, pkg string, verbose bool) error {
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, logger)
+	cfg, err := config.ParseClusterCfg(clusterCfgFile, addons, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to download cluster config")
 	}

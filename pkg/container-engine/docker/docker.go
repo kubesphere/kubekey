@@ -60,20 +60,20 @@ func InstallerDocker(mgr *manager.Manager) error {
 }
 
 func installDockerOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	cmd := "sudo sh -c \"[ -z $(which docker) ] && curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh ; systemctl enable docker\""
-	out, err := mgr.Runner.RunCmd(cmd)
-	if err != nil {
-		fmt.Println(out)
-		return errors.Wrap(errors.WithStack(err), "failed to install docker")
-	}
+	//cmd := "sudo sh -c \"if [ -z $(which docker) ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker; fi\""
+	//out, err := mgr.Runner.RunCmd(cmd)
+	//if err != nil {
+	//	fmt.Println(out)
+	//	return errors.Wrap(errors.WithStack(err), "failed to install docker")
+	//}
 	dockerConfig, err := GenerateDockerConfig(mgr)
 	if err != nil {
 		return err
 	}
 	dockerConfigBase64 := base64.StdEncoding.EncodeToString([]byte(dockerConfig))
-	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker\"", dockerConfigBase64))
+	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker; fi\"", dockerConfigBase64))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to add docker config")
+		return errors.Wrap(errors.WithStack(err1), "failed to install docker")
 	}
 
 	return nil

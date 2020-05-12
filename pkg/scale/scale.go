@@ -12,7 +12,7 @@ import (
 )
 
 func ScaleCluster(clusterCfgFile string, logger *log.Logger, pkg string, verbose bool) error {
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, logger)
+	cfg, err := config.ParseClusterCfg(clusterCfgFile, "", logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to download cluster config")
 	}

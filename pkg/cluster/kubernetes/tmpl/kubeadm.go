@@ -133,8 +133,14 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	externalEtcd.CertFile = certFile
 	externalEtcd.KeyFile = keyFile
 
+	var imageRepo string
+	if mgr.Cluster.Registry.PrivateRegistry != "" {
+		imageRepo = fmt.Sprintf("%s/%s", mgr.Cluster.Registry.PrivateRegistry, mgr.Cluster.Kubernetes.ImageRepo)
+	} else {
+		imageRepo = mgr.Cluster.Kubernetes.ImageRepo
+	}
 	return util.Render(KubeadmCfgTempl, util.Data{
-		"ImageRepo":            mgr.Cluster.Kubernetes.ImageRepo,
+		"ImageRepo":            imageRepo,
 		"Version":              mgr.Cluster.Kubernetes.Version,
 		"ClusterName":          mgr.Cluster.Kubernetes.ClusterName,
 		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.ControlPlaneEndpoint.Address, mgr.Cluster.ControlPlaneEndpoint.Port),

@@ -27,11 +27,10 @@ func NewCmdCreateEtcd() *cobra.Command {
 }
 
 func createEtcdCluster(clusterCfgFile string, logger *log.Logger) {
-	config.ParseClusterCfg(clusterCfgFile, logger)
+	config.ParseClusterCfg(clusterCfgFile, "", logger)
 	//allNodes, etcdNodes, _, _, _ := cfg.GroupHosts()
 	//etcd.EtcdPrepare(etcdNodes)
 	//etcd.GenEtcdFiles(cfg, allNodes, etcdNodes)
 	//etcd.GetEtcdCtl(etcdNodes, "amd64")
 	//etcd.SetupEtcd(etcdNodes)
-
 }

@@ -63,21 +63,21 @@ func preDownloadImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.
 	for _, image := range imagesList {
 
 		if node.IsMaster && image.Group == "master" && image.Enable {
-			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
+			fmt.Printf("[%s] Download image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()))
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("failed to download image: %s", image.ImageName()))
 			}
 		}
 		if (node.IsMaster || node.IsWorker) && image.Group == "k8s" && image.Enable {
-			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
+			fmt.Printf("[%s] Download image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()))
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("failed to download image: %s", image.ImageName()))
 			}
 		}
 		if node.IsEtcd && image.Group == "etcd" && image.Enable {
-			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
+			fmt.Printf("[%s] Download image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()))
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("failed to download image: %s", image.ImageName()))
