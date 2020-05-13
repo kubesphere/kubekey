@@ -37,7 +37,7 @@ spec:
     port: "6443"
   kubernetes:
     version: v1.17.4
-    imageRepo: kubekey
+    imageRepo: kubesphere
     clusterName: cluster.local
   network:
     plugin: calico
@@ -135,7 +135,8 @@ func GenerateK2ClusterObjStr(opt *Options, storageNum int) (string, error) {
 func GenerateK2ClusterObj(addons, name string) error {
 	opt := Options{}
 	if name != "" {
-		opt.Name = name
+		out := strings.Split(name, ".")
+		opt.Name = out[0]
 	} else {
 		opt.Name = "demo"
 	}

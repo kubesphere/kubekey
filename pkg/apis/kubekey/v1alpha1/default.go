@@ -1,5 +1,9 @@
 package v1alpha1
 
+import (
+	"strconv"
+)
+
 const (
 	DefaultPreDir         = "kubekey"
 	DefaultSSHPort        = "22"
@@ -25,3 +29,100 @@ const (
 	MasterRole            = "master"
 	WorkerRole            = "worker"
 )
+
+func (cfg *K2ClusterSpec) SetDefaultK2ClusterSpec() (*K2ClusterSpec, *HostGroups) {
+	clusterCfg := K2ClusterSpec{}
+
+	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
+	clusterCfg.RoleGroups = cfg.RoleGroups
+	hostGroups := clusterCfg.GroupHosts()
+
+	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, hostGroups.Master)
+	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
+	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
+	clusterCfg.Registry = cfg.Registry
+	clusterCfg.Storage = cfg.Storage
+	clusterCfg.KubeSphere = cfg.KubeSphere
+	if cfg.Kubernetes.ImageRepo == "" {
+		clusterCfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
+	}
+	if cfg.Kubernetes.ClusterName == "" {
+		clusterCfg.Kubernetes.ClusterName = DefaultClusterName
+	}
+	if cfg.Kubernetes.Version == "" {
+		clusterCfg.Kubernetes.Version = DefaultKubeVersion
+	}
+
+	return &clusterCfg, hostGroups
+}
+
+func SetDefaultHostsCfg(cfg *K2ClusterSpec) []HostCfg {
+	var hostscfg []HostCfg
+	if len(cfg.Hosts) == 0 {
+		return nil
+	}
+	for _, host := range cfg.Hosts {
+		if len(host.Address) == 0 && len(host.InternalAddress) > 0 {
+			host.Address = host.InternalAddress
+		}
+		if len(host.InternalAddress) == 0 && len(host.Address) > 0 {
+			host.InternalAddress = host.Address
+		}
+		if host.User == "" {
+			host.User = "root"
+		}
+		if host.Port == "" {
+			host.Port = strconv.Itoa(22)
+		}
+
+		hostscfg = append(hostscfg, host)
+	}
+	return hostscfg
+}
+
+func SetDefaultLBCfg(cfg *K2ClusterSpec, masterGroup []HostCfg) ControlPlaneEndpoint {
+
+	if cfg.ControlPlaneEndpoint.Address == "" {
+		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
+	}
+	if cfg.ControlPlaneEndpoint.Domain == "" {
+		cfg.ControlPlaneEndpoint.Domain = DefaultLBDomain
+	}
+	if cfg.ControlPlaneEndpoint.Port == "" {
+		cfg.ControlPlaneEndpoint.Port = DefaultLBPort
+	}
+	defaultLbCfg := cfg.ControlPlaneEndpoint
+	return defaultLbCfg
+}
+
+func SetDefaultNetworkCfg(cfg *K2ClusterSpec) NetworkConfig {
+	if cfg.Network.Plugin == "" {
+		cfg.Network.Plugin = DefaultNetworkPlugin
+	}
+	if cfg.Network.KubePodsCIDR == "" {
+		cfg.Network.KubePodsCIDR = DefaultPodsCIDR
+	}
+	if cfg.Network.KubeServiceCIDR == "" {
+		cfg.Network.KubeServiceCIDR = DefaultServiceCIDR
+	}
+
+	defaultNetworkCfg := cfg.Network
+
+	return defaultNetworkCfg
+}
+
+func SetDefaultClusterCfg(cfg *K2ClusterSpec) Kubernetes {
+	if cfg.Kubernetes.Version == "" {
+		cfg.Kubernetes.Version = DefaultKubeVersion
+	}
+	if cfg.Kubernetes.ImageRepo == "" {
+		cfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
+	}
+	if cfg.Kubernetes.ClusterName == "" {
+		cfg.Kubernetes.ClusterName = DefaultClusterName
+	}
+
+	defaultClusterCfg := cfg.Kubernetes
+
+	return defaultClusterCfg
+}

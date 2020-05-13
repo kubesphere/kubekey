@@ -3,12 +3,13 @@ package reset
 import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
@@ -17,18 +18,20 @@ func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error
 		return errors.Wrap(err, "failed to download cluster config")
 	}
 
-	//out, _ := json.MarshalIndent(cfg, "", "  ")
-	//fmt.Println(string(out))
-	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
-		return errors.Wrap(err, "failed to load kube binarys")
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose))
+}
+
+func Execute(executor *executor.Executor) error {
+	mgr, err := executor.CreateManager()
+	if err != nil {
+		return err
 	}
-	return NewExecutor(&cfg.Spec, logger, verbose).Execute()
+	return ExecTasks(mgr)
 }
 
 func ExecTasks(mgr *manager.Manager) error {
 	resetTasks := []manager.Task{
 		{Task: ResetKubeCluster, ErrMsg: "failed to reset kube cluster"},
-		{Task: ResetEtcdCluster, ErrMsg: "failed to clean etcd files"},
 	}
 
 	for _, step := range resetTasks {
@@ -36,13 +39,40 @@ func ExecTasks(mgr *manager.Manager) error {
 			return errors.Wrap(err, step.ErrMsg)
 		}
 	}
+
+	fmt.Printf("\n\033[1;36;40m%s\033[0m\n", "Successful.")
 	return nil
 }
 
 func ResetKubeCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Reset kube cluster")
+	mgr.Logger.Infoln("Reset kubernetes cluster")
 
 	return mgr.RunTaskOnK8sNodes(resetKubeCluster, true)
+}
+
+var clusterFiles = []string{
+	"/usr/local/bin/etcd",
+	"/etc/ssl/etcd",
+	"/var/lib/etcd",
+	"/etc/etcd.env",
+	"/etc/systemd/system/etcd.service",
+	"/var/log/calico",
+	"/etc/cni",
+	"/var/log/pods/",
+	"/var/lib/cni",
+	"/var/lib/calico",
+	"/run/calico",
+	"/run/flannel",
+	"/etc/flannel",
+}
+
+var cmdsList = []string{
+	"iptables -F",
+	"iptables -X",
+	"iptables -F -t nat",
+	"iptables -X -t nat",
+	"ip link del kube-ipvs0",
+	"ip link del nodelocaldns",
 }
 
 func resetKubeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
@@ -50,28 +80,16 @@ func resetKubeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "failed to reset kube cluster")
 	}
+	fmt.Println(strings.Join(cmdsList, " && "))
+	mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")))
+	deleteFiles(mgr)
 	return nil
 }
 
-var etcdFiles = []string{"/usr/local/bin/etcd", "/etc/ssl/etcd", "/var/lib/etcd", "/etc/etcd.env", "/etc/systemd/system/etcd.service"}
-
-func ResetEtcdCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Clean etcd cluster")
-
-	return mgr.RunTaskOnEtcdNodes(resetEtcdCluster, false)
-}
-
-func resetEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	_, err := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"systemctl stop etcd\"")
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "failed to reset etcd cluster")
-	}
-
-	for _, file := range etcdFiles {
-		_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"rm -rf %s\"", file))
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("failed to clean etcd files: %s", file))
-		}
+func deleteFiles(mgr *manager.Manager) error {
+	mgr.Runner.RunCmd("sudo -E /bin/sh -c \"systemctl stop etcd && exit 0\"")
+	for _, file := range clusterFiles {
+		mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"rm -rf %s\"", file))
 	}
 	return nil
 }

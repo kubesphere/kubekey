@@ -32,7 +32,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 	getKubeCniCmd := fmt.Sprintf("curl -o %s  %s", kubeCni, kubeCniUrl)
 	getHelmCmd := fmt.Sprintf("curl -o %s  %s", helm, HelmUrl)
 
-	logger.Info("Kubeadm being download ...")
+	logger.Info("Downloading Kubeadm ...")
 	if util.IsExist(kubeadm) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubeadmCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
@@ -40,7 +40,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 		}
 	}
 
-	logger.Info("Kubelet being download ...")
+	logger.Info("Downloading Kubelet ...")
 	if util.IsExist(kubelet) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubeletCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
@@ -48,7 +48,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 		}
 	}
 
-	logger.Info("Kubectl being download ...")
+	logger.Info("Downloading Kubectl ...")
 	if util.IsExist(kubectl) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubectlCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
@@ -56,7 +56,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 		}
 	}
 
-	logger.Info("KubeCni being download ...")
+	logger.Info("Downloading KubeCni ...")
 	if util.IsExist(kubeCni) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubeCniCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
@@ -64,7 +64,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 		}
 	}
 
-	logger.Info("Helm being download ...")
+	logger.Info("Downloading Helm ...")
 	if util.IsExist(helm) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getHelmCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
@@ -76,7 +76,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 }
 
 func Prepare(cfg *kubekeyapi.K2ClusterSpec, logger *log.Logger) error {
-	logger.Info("Install Files Download")
+	logger.Info("Downloading Install Files")
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {

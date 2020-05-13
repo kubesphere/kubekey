@@ -154,7 +154,6 @@ func (cfg *K2ClusterSpec) GroupHosts() *HostGroups {
 		for _, hostName := range etcdGroup {
 			if host.Name == hostName {
 				host.IsEtcd = true
-				clusterHostsGroups.Etcd = append(clusterHostsGroups.Etcd, host)
 				break
 			}
 		}
@@ -162,7 +161,6 @@ func (cfg *K2ClusterSpec) GroupHosts() *HostGroups {
 		for _, hostName := range masterGroup {
 			if host.Name == hostName {
 				host.IsMaster = true
-				clusterHostsGroups.Master = append(clusterHostsGroups.Master, host)
 				break
 			}
 		}
@@ -170,21 +168,25 @@ func (cfg *K2ClusterSpec) GroupHosts() *HostGroups {
 		for _, hostName := range workerGroup {
 			if host.Name == hostName {
 				host.IsWorker = true
-				clusterHostsGroups.Worker = append(clusterHostsGroups.Worker, host)
 				break
 			}
 		}
-
-		clusterHostsGroups.All = append(clusterHostsGroups.All, host)
-	}
-
-	for _, host := range clusterHostsGroups.All {
+		if host.IsEtcd {
+			clusterHostsGroups.Etcd = append(clusterHostsGroups.Etcd, host)
+		}
+		if host.IsMaster {
+			clusterHostsGroups.Master = append(clusterHostsGroups.Master, host)
+		}
+		if host.IsWorker {
+			clusterHostsGroups.Worker = append(clusterHostsGroups.Worker, host)
+		}
 		if host.IsMaster || host.IsWorker {
 			clusterHostsGroups.K8s = append(clusterHostsGroups.K8s, host)
 		}
+		clusterHostsGroups.All = append(clusterHostsGroups.All, host)
 	}
-
 	clusterHostsGroups.Client = append(clusterHostsGroups.Client, clusterHostsGroups.Master[0])
+
 	return &clusterHostsGroups
 }
 

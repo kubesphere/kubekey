@@ -3,7 +3,6 @@ package executor
 import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	log "github.com/sirupsen/logrus"
@@ -23,26 +22,17 @@ func NewExecutor(cluster *kubekeyapi.K2ClusterSpec, logger *log.Logger, verbose 
 	}
 }
 
-//func (executor *Executor) Execute() error {
-//	mgr, err := executor.createManager()
-//	if err != nil {
-//		return err
-//	}
-//	return install.ExecTasks(mgr)
-//}
-
 func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr := &manager.Manager{}
-	hostGroups := executor.cluster.GroupHosts()
-	//fmt.Println(hostGroups)
+	defaultCluster, hostGroups := executor.cluster.SetDefaultK2ClusterSpec()
 	mgr.AllNodes = hostGroups.All
 	mgr.EtcdNodes = hostGroups.Etcd
 	mgr.MasterNodes = hostGroups.Master
 	mgr.WorkerNodes = hostGroups.Worker
 	mgr.K8sNodes = hostGroups.K8s
 	mgr.ClientNode = hostGroups.Client
-	mgr.Cluster = config.SetDefaultK2ClusterSpec(executor.cluster, hostGroups.Master)
-	mgr.ClusterHosts = GenerateHosts(hostGroups, executor.cluster)
+	mgr.Cluster = defaultCluster
+	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
 	mgr.Connector = ssh.NewConnector()
 	mgr.Logger = executor.logger
 	mgr.Verbose = executor.Verbose
