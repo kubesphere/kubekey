@@ -14,7 +14,7 @@ import (
 )
 
 func SyncKubeBinaries(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Syncing kube binaries")
+	mgr.Logger.Infoln("Synchronizing kube binaries")
 	return mgr.RunTaskOnK8sNodes(syncKubeBinaries, true)
 }
 
