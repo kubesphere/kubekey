@@ -15,7 +15,7 @@ import (
 func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
 	cfg, err := config.ParseClusterCfg(clusterCfgFile, "", logger)
 	if err != nil {
-		return errors.Wrap(err, "failed to download cluster config")
+		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
 	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose))
@@ -31,7 +31,7 @@ func Execute(executor *executor.Executor) error {
 
 func ExecTasks(mgr *manager.Manager) error {
 	resetTasks := []manager.Task{
-		{Task: ResetKubeCluster, ErrMsg: "failed to reset kube cluster"},
+		{Task: ResetKubeCluster, ErrMsg: "Failed to reset kube cluster"},
 	}
 
 	for _, step := range resetTasks {
@@ -45,7 +45,7 @@ func ExecTasks(mgr *manager.Manager) error {
 }
 
 func ResetKubeCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Reset kubernetes cluster")
+	mgr.Logger.Infoln("Resetting kubernetes cluster ...")
 
 	return mgr.RunTaskOnK8sNodes(resetKubeCluster, true)
 }
@@ -78,7 +78,7 @@ var cmdsList = []string{
 func resetKubeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	_, err := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"")
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "failed to reset kube cluster")
+		return errors.Wrap(errors.WithStack(err), "Failed to reset kube cluster")
 	}
 	fmt.Println(strings.Join(cmdsList, " && "))
 	mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")))

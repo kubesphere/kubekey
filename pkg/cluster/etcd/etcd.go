@@ -23,7 +23,7 @@ var (
 )
 
 func GenerateEtcdCerts(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Generate etcd certs")
+	mgr.Logger.Infoln("Generating etcd certs")
 
 	return mgr.RunTaskOnEtcdNodes(generateCerts, true)
 }
@@ -38,7 +38,7 @@ func generateCerts(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conn
 		certsScriptBase64 := base64.StdEncoding.EncodeToString([]byte(certsScript))
 		_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("echo %s | base64 -d > /tmp/kubekey/make-ssl-etcd.sh && chmod +x /tmp/kubekey/make-ssl-etcd.sh", certsScriptBase64))
 		if err1 != nil {
-			return errors.Wrap(errors.WithStack(err1), "failed to generate etcd certs script")
+			return errors.Wrap(errors.WithStack(err1), "Failed to generate etcd certs script")
 		}
 		certsOpensslCfg, err := tmpl.GenerateEtcdSslCfg(mgr.Cluster)
 		if err != nil {
@@ -47,21 +47,21 @@ func generateCerts(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conn
 		certsOpensslCfgBase64 := base64.StdEncoding.EncodeToString([]byte(certsOpensslCfg))
 		_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("echo %s | base64 -d > /tmp/kubekey/openssl.conf", certsOpensslCfgBase64))
 		if err2 != nil {
-			return errors.Wrap(errors.WithStack(err2), "failed to generate etcd certs script")
+			return errors.Wrap(errors.WithStack(err2), "Failed to generate etcd certs script")
 		}
 
 		cmd := fmt.Sprintf("mkdir -p %s && /bin/bash -x %s/make-ssl-etcd.sh -f %s/openssl.conf -d %s", etcdCertDir, "/tmp/kubekey", "/tmp/kubekey", etcdCertDir)
 
 		_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
 		if err3 != nil {
-			return errors.Wrap(errors.WithStack(err3), "failed to generate etcd certs")
+			return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd certs")
 		}
 
 		for _, cert := range generateCertsFiles(mgr) {
 			certsBase64Cmd := fmt.Sprintf("cat %s/%s | base64 --wrap=0", etcdCertDir, cert)
 			certsBase64, err4 := mgr.Runner.RunCmd(certsBase64Cmd)
 			if err4 != nil {
-				return errors.Wrap(errors.WithStack(err4), "failed to get etcd certs content")
+				return errors.Wrap(errors.WithStack(err4), "Failed to get etcd certs content")
 			}
 			certsContent[cert] = certsBase64
 		}
@@ -76,7 +76,7 @@ func generateCerts(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conn
 			writeCertCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s/%s\"", cert, etcdCertDir, file)
 			_, err4 := mgr.Runner.RunCmd(writeCertCmd)
 			if err4 != nil {
-				return errors.Wrap(errors.WithStack(err4), "failed to write etcd certs content")
+				return errors.Wrap(errors.WithStack(err4), "Failed to write etcd certs content")
 			}
 		}
 	}
@@ -102,7 +102,7 @@ func generateCertsFiles(mgr *manager.Manager) []string {
 }
 
 func SyncEtcdCertsToMaster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Sync etcd certs")
+	mgr.Logger.Infoln("Synchronizing etcd certs")
 
 	return mgr.RunTaskOnMasterNodes(syncEtcdCertsToMaster, true)
 }
@@ -114,7 +114,7 @@ func syncEtcdCertsToMaster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn 
 			writeCertCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s/%s\"", cert, etcdCertDir, file)
 			_, err := mgr.Runner.RunCmd(writeCertCmd)
 			if err != nil {
-				return errors.Wrap(errors.WithStack(err), "failed to sync etcd certs to master")
+				return errors.Wrap(errors.WithStack(err), "Failed to sync etcd certs to master")
 			}
 		}
 	}
@@ -122,7 +122,7 @@ func syncEtcdCertsToMaster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn 
 }
 
 func GenerateEtcdService(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Start etcd cluster")
+	mgr.Logger.Infoln("Starting etcd cluster")
 
 	return mgr.RunTaskOnEtcdNodes(generateEtcdService, true)
 }
@@ -135,7 +135,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	etcdServiceBase64 := base64.StdEncoding.EncodeToString([]byte(etcdService))
 	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/etcd.service\"", etcdServiceBase64))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to generate etcd service")
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate etcd service")
 	}
 
 	etcdEnv, err := tmpl.GenerateEtcdEnv(mgr, node, mgr.Runner.Index)
@@ -145,7 +145,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	etcdEnvBase64 := base64.StdEncoding.EncodeToString([]byte(etcdEnv))
 	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/etcd.env\"", etcdEnvBase64))
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to generate etcd env")
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate etcd env")
 	}
 
 	etcdBin, err := tmpl.GenerateEtcdBinary(mgr, mgr.Runner.Index)
@@ -155,18 +155,18 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	etcdBinBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBin))
 	_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /usr/local/bin/etcd && chmod +x /usr/local/bin/etcd\"", etcdBinBase64))
 	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "failed to generate etcd bin")
+		return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd bin")
 	}
 
 	getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s:%s /bin/cp /usr/local/bin/etcdctl /systembindir/etcdctl", kubekeyapi.DefaultEtcdRepo, kubekeyapi.DefaultEtcdVersion)
 	_, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", getEtcdCtlCmd))
 	if err4 != nil {
-		return errors.Wrap(errors.WithStack(err4), "failed to get etcdctl")
+		return errors.Wrap(errors.WithStack(err4), "Failed to get etcdctl")
 	}
 
 	_, err5 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart etcd\"")
 	if err5 != nil {
-		return errors.Wrap(errors.WithStack(err5), "failed to start etcd")
+		return errors.Wrap(errors.WithStack(err5), "Failed to start etcd")
 	}
 
 	addrList := []string{}
@@ -180,7 +180,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 			if err != nil {
 				fmt.Println("Waiting for etcd to start")
 				if i == 1 {
-					return errors.Wrap(errors.WithStack(err), "failed to start etcd")
+					return errors.Wrap(errors.WithStack(err), "Failed to start etcd cluster")
 				}
 			} else {
 				break
@@ -195,7 +195,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	//		joinMemberCmd := fmt.Sprintf("export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s member add %s %s", node.HostName, node.HostName, etcdBinDir, strings.Join(addrList, ","), fmt.Sprintf("etcd%d", mgr.Runner.Index+1), fmt.Sprintf("https://%s:2380", node.InternalAddress))
 	//		_, err := mgr.Runner.RunCmd(joinMemberCmd)
 	//		if err != nil {
-	//			fmt.Println("failed to add etcd member")
+	//			fmt.Println("Failed to add etcd member")
 	//		}
 	//	}
 	//}
@@ -205,7 +205,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 		if err != nil {
 			fmt.Println("Waiting for etcd to start")
 			if i == 1 {
-				return errors.Wrap(errors.WithStack(err), "failed to start etcd")
+				return errors.Wrap(errors.WithStack(err), "Failed to start etcd")
 			}
 		} else {
 			break
@@ -216,7 +216,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	reloadEtcdEnvCmd := "sed -i '/ETCD_INITIAL_CLUSTER_STATE/s/\\:.*/\\: existing/g' /etc/etcd.env && systemctl daemon-reload && systemctl restart etcd"
 	_, err6 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", reloadEtcdEnvCmd))
 	if err6 != nil {
-		return errors.Wrap(errors.WithStack(err6), "failed to reload etcd env")
+		return errors.Wrap(errors.WithStack(err6), "Failed to reload etcd env")
 	}
 
 	for i := 20; i > 0; i-- {
@@ -224,7 +224,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 		if err != nil {
 			fmt.Println("Waiting for etcd to start")
 			if i == 1 {
-				return errors.Wrap(errors.WithStack(err), "failed to start etcd")
+				return errors.Wrap(errors.WithStack(err), "Failed to start etcd")
 			}
 		} else {
 			break

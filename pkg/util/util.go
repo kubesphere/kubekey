@@ -65,7 +65,7 @@ func Render(tmpl *template.Template, variables map[string]interface{}) (string, 
 	//buf.WriteString("\n\n")
 
 	if err := tmpl.Execute(&buf, variables); err != nil {
-		return "", errors.Wrap(err, "failed to render cmd or script template")
+		return "", errors.Wrap(err, "Failed to render cmd or script template")
 	}
 	return buf.String(), nil
 }
@@ -209,7 +209,7 @@ func GetLocalIP() (string, error) {
 			}
 		}
 	}
-	return "", errors.New("valid local IP not found !")
+	return "", errors.New("valid local IP not found!")
 }
 
 func LocalIP() string {

@@ -60,21 +60,21 @@ type SSHCfg struct {
 
 func validateOptions(cfg SSHCfg) (SSHCfg, error) {
 	if len(cfg.Username) == 0 {
-		return cfg, errors.New("no username specified for SSH connection")
+		return cfg, errors.New("No username specified for SSH connection")
 	}
 
 	if len(cfg.Address) == 0 {
-		return cfg, errors.New("no address specified for SSH connection")
+		return cfg, errors.New("No address specified for SSH connection")
 	}
 
 	if len(cfg.Password) == 0 && len(cfg.PrivateKey) == 0 && len(cfg.KeyFile) == 0 && len(cfg.AgentSocket) == 0 {
-		return cfg, errors.New("must specify at least one of password, private key, keyfile or agent socket")
+		return cfg, errors.New("Must specify at least one of password, private key, keyfile or agent socket")
 	}
 
 	if len(cfg.KeyFile) > 0 {
 		content, err := ioutil.ReadFile(cfg.KeyFile)
 		if err != nil {
-			return cfg, errors.Wrapf(err, "failed to read keyfile %q", cfg.KeyFile)
+			return cfg, errors.Wrapf(err, "Failed to read keyfile %q", cfg.KeyFile)
 		}
 
 		cfg.PrivateKey = string(content)
@@ -113,7 +113,7 @@ type connection struct {
 func NewConnection(cfg SSHCfg) (Connection, error) {
 	cfg, err := validateOptions(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to validate ssh connection options")
+		return nil, errors.Wrap(err, "Failed to validate ssh connection options")
 	}
 
 	authMethods := make([]ssh.AuthMethod, 0)
@@ -125,7 +125,7 @@ func NewConnection(cfg SSHCfg) (Connection, error) {
 	if len(cfg.PrivateKey) > 0 {
 		signer, parseErr := ssh.ParsePrivateKey([]byte(cfg.PrivateKey))
 		if parseErr != nil {
-			return nil, errors.Wrap(parseErr, "the given SSH key could not be parsed (note that password-protected keys are not supported)")
+			return nil, errors.Wrap(parseErr, "The given SSH key could not be parsed (note that password-protected keys are not supported)")
 		}
 		authMethods = append(authMethods, ssh.PublicKeys(signer))
 	}
@@ -219,7 +219,7 @@ func NewConnection(cfg SSHCfg) (Connection, error) {
 func (c *connection) File(filename string, flags int) (io.ReadWriteCloser, error) {
 	sftpClient, err := c.sftp()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to open SFTP")
+		return nil, errors.Wrap(err, "Failed to open SFTP")
 	}
 
 	return sftpClient.OpenFile(filename, flags)
@@ -254,7 +254,7 @@ func (c *connection) Close() error {
 func (c *connection) Exec(cmd string, host *v1alpha1.HostCfg) (string, int, error) {
 	sess, err := c.session()
 	if err != nil {
-		return "", 0, errors.Wrap(err, "failed to get SSH session")
+		return "", 0, errors.Wrap(err, "Failed to get SSH session")
 	}
 	defer sess.Close()
 	modes := ssh.TerminalModes{
@@ -311,7 +311,7 @@ func (c *connection) Exec(cmd string, host *v1alpha1.HostCfg) (string, int, erro
 		exitCode = 1
 	}
 	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", host.User))
-	return strings.TrimSpace(outStr), exitCode, errors.Wrapf(err, "failed to exec command: %s", cmd)
+	return strings.TrimSpace(outStr), exitCode, errors.Wrapf(err, "Failed to exec command: %s", cmd)
 }
 
 func (c *connection) session() (*ssh.Session, error) {

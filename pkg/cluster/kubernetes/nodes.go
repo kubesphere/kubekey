@@ -24,7 +24,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 
 		currentDir, err1 := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err1 != nil {
-			return errors.Wrap(err1, "faild get current dir")
+			return errors.Wrap(err1, "Failed to get current dir")
 		}
 
 		filepath := fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
@@ -39,7 +39,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 		for _, binary := range binaryList {
 			err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filepath, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
 			if err2 != nil {
-				return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("failed to sync binarys"))
+				return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("Failed to sync binaries"))
 			}
 		}
 
@@ -55,7 +55,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 		cmd := strings.Join(cmdlist, " && ")
 		_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
 		if err3 != nil {
-			return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("failed to create kubelet link"))
+			return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to create kubelet link"))
 		}
 
 		if err := setKubelet(mgr); err != nil {
@@ -73,7 +73,7 @@ func setKubelet(mgr *manager.Manager) error {
 	kubeletServiceBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletService))
 	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/kubelet.service && systemctl enable kubelet && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", kubeletServiceBase64))
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to generate kubelet service")
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate kubelet service")
 	}
 
 	kubeletEnv, err3 := tmpl.GenerateKubeletEnv(mgr.Cluster)
@@ -83,7 +83,7 @@ func setKubelet(mgr *manager.Manager) error {
 	kubeletEnvBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletEnv))
 	_, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/systemd/system/kubelet.service.d && echo %s | base64 -d > /etc/systemd/system/kubelet.service.d/10-kubeadm.conf\"", kubeletEnvBase64))
 	if err4 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to generate kubelet env")
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate kubelet env")
 	}
 
 	return nil
