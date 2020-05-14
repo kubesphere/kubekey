@@ -20,32 +20,32 @@ import (
 func CreateCluster(clusterCfgFile string, logger *log.Logger, addons, pkg string, verbose bool) error {
 	cfg, err := config.ParseClusterCfg(clusterCfgFile, addons, logger)
 	if err != nil {
-		return errors.Wrap(err, "failed to download cluster config")
+		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
 	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
-		return errors.Wrap(err, "failed to load kube binarys")
+		return errors.Wrap(err, "Failed to load kube binaries")
 	}
 	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose))
 }
 
 func ExecTasks(mgr *manager.Manager) error {
 	createTasks := []manager.Task{
-		{Task: preinstall.InitOS, ErrMsg: "failed to download kube binaries"},
-		{Task: docker.InstallerDocker, ErrMsg: "failed to install docker"},
-		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "failed to sync kube binaries"},
-		{Task: images.PreDownloadImages, ErrMsg: "failed to pre-download images"},
-		{Task: etcd.GenerateEtcdCerts, ErrMsg: "failed to generate etcd certs"},
-		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "failed to sync etcd certs"},
-		{Task: etcd.GenerateEtcdService, ErrMsg: "failed to start etcd cluster"},
-		{Task: kubernetes.GetClusterStatus, ErrMsg: "failed to get cluster status"},
-		//{Task: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
-		{Task: kubernetes.InitKubernetesCluster, ErrMsg: "failed to init kubernetes cluster"},
-		{Task: network.DeployNetworkPlugin, ErrMsg: "failed to deploy network plugin"},
-		//{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
-		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
-		{Task: storage.DeployStoragePlugins, ErrMsg: "failed to deploy storage plugin"},
-		{Task: kubesphere.DeployKubeSphere, ErrMsg: "failed to deploy kubesphere"},
+		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
+		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
+		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "Failed to sync kube binaries"},
+		{Task: images.PreDownloadImages, ErrMsg: "Failed to pre-download images"},
+		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},
+		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "Failed to sync etcd certs"},
+		{Task: etcd.GenerateEtcdService, ErrMsg: "Failed to start etcd cluster"},
+		{Task: kubernetes.GetClusterStatus, ErrMsg: "Failed to get cluster status"},
+		//{Task: kubernetes.ConfigureKubeletService, ErrMsg: "Failed to sync kube binaries"},
+		{Task: kubernetes.InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
+		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
+		//{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "Failed to get join cmd"},
+		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
+		{Task: storage.DeployStoragePlugins, ErrMsg: "Failed to deploy storage plugin"},
+		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere"},
 	}
 
 	for _, step := range createTasks {

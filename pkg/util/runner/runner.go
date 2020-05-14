@@ -22,7 +22,7 @@ type TemplateVariables map[string]interface{}
 
 func (r *Runner) RunCmd(cmd string) (string, error) {
 	if r.Conn == nil {
-		return "", errors.New("runner is not tied to an opened SSH connection")
+		return "", errors.New("Runner is not tied to an opened SSH connection")
 	}
 	output, _, err := r.Conn.Exec(cmd, r.Host)
 	if !r.Verbose {
@@ -49,18 +49,18 @@ func (r *Runner) RunCmd(cmd string) (string, error) {
 
 func (r *Runner) ScpFile(src, dst string) error {
 	if r.Conn == nil {
-		return errors.New("runner is not tied to an opened SSH connection")
+		return errors.New("Runner is not tied to an opened SSH connection")
 	}
 
 	err := r.Conn.Scp(src, dst)
 	if err != nil {
 		if r.Verbose {
-			fmt.Printf("push %s to %s:%s   Failed\n", src, r.Host.Address, dst)
+			fmt.Printf("Push %s to %s:%s   Failed\n", src, r.Host.Address, dst)
 			return err
 		}
 	} else {
 		if r.Verbose {
-			fmt.Printf("push %s to %s:%s   Done\n", src, r.Host.Address, dst)
+			fmt.Printf("Push %s to %s:%s   Done\n", src, r.Host.Address, dst)
 		}
 	}
 	return nil
@@ -70,7 +70,7 @@ func (r *Runner) ScpFile(src, dst string) error {
 func (r *Runner) WaitForPod(namespace string, name string, timeout time.Duration) error {
 	cmd := fmt.Sprintf(`sudo kubectl --kubeconfig=/etc/kubernetes/admin.conf -n "%s" get pod "%s" -o jsonpath='{.status.phase}' --ignore-not-found`, namespace, name)
 	if !r.WaitForCondition(cmd, timeout, IsRunning) {
-		return errors.Errorf("timed out while waiting for %s/%s to come up for %v", namespace, name, timeout)
+		return errors.Errorf("Timed out while waiting for %s/%s to come up for %v", namespace, name, timeout)
 	}
 
 	return nil

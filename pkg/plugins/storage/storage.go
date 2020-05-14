@@ -12,7 +12,7 @@ import (
 )
 
 func DeployStoragePlugins(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Deploy storage plugin")
+	mgr.Logger.Infoln("Deploying storage plugin ...")
 
 	return mgr.RunTaskOnMasterNodes(deployStoragePlugins, true)
 }
@@ -42,12 +42,12 @@ func DeployLocalVolume(mgr *manager.Manager) error {
 	localVolumeFileBase64 := base64.StdEncoding.EncodeToString([]byte(localVolumeFile))
 	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/local-volume.yaml\"", localVolumeFileBase64))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to generate local-volume file")
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate local-volume file")
 	}
 
 	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/local-volume.yaml")
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to deploy local-volume.yaml")
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy local-volume.yaml")
 	}
 	return nil
 }
@@ -56,7 +56,7 @@ func DeployNfsClient(mgr *manager.Manager) error {
 
 	_, err1 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"rm -rf /etc/kubernetes/addons/nfs-client-provisioner && /usr/local/bin/helm fetch kubesphere/nfs-client-provisioner -d /etc/kubernetes/addons --untar\"")
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to fetch nfs-client-provisioner chart")
+		return errors.Wrap(errors.WithStack(err1), "Failed to fetch nfs-client-provisioner chart")
 	}
 
 	nfsClientValuesFile, err := nfs_client.GenerateNfsClientValuesFile(mgr)
@@ -66,12 +66,12 @@ func DeployNfsClient(mgr *manager.Manager) error {
 	nfsClientValuesFileBase64 := base64.StdEncoding.EncodeToString([]byte(nfsClientValuesFile))
 	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/custom-values-nfs-client.yaml\"", nfsClientValuesFileBase64))
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to generate nfs-client values file")
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate nfs-client values file")
 	}
 
 	_, err3 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/usr/local/bin/helm upgrade -i nfs-client /etc/kubernetes/addons/nfs-client-provisioner -f /etc/kubernetes/addons/custom-values-nfs-client.yaml -n kube-system\"")
 	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "failed to deploy nfs-client-provisioner")
+		return errors.Wrap(errors.WithStack(err3), "Failed to deploy nfs-client-provisioner")
 	}
 	return nil
 }

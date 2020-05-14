@@ -17,7 +17,7 @@ func (c *connection) sftp() (*sftp.Client, error) {
 	if c.sftpclient == nil {
 		s, err := sftp.NewClient(c.sshclient)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get sftp.Client")
+			return nil, errors.Wrap(err, "Failed to get sftp.Client")
 		}
 		c.sftpclient = s
 	}

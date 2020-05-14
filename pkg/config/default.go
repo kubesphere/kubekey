@@ -20,21 +20,21 @@ func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubeke
 	if len(clusterCfgPath) == 0 {
 		user, _ := user.Current()
 		if user.Name != "root" {
-			return nil, errors.New(fmt.Sprintf("Current user is %s, Please use root !", user.Name))
+			return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
 		}
 		clusterCfg = AllinoneCfg(user, addons)
 	} else {
 		fp, err := filepath.Abs(clusterCfgPath)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to lookup current directory")
+			return nil, errors.Wrap(err, "Failed to look up current directory")
 		}
 		content, err := ioutil.ReadFile(fp)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to read the given cluster configuration file")
+			return nil, errors.Wrap(err, "Unable to read the given cluster configuration file")
 		}
 
 		if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
-			return nil, errors.Wrap(err, "unable to convert file to yaml")
+			return nil, errors.Wrap(err, "Unable to convert file to yaml")
 		}
 	}
 

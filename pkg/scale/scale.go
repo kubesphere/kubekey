@@ -14,25 +14,25 @@ import (
 func ScaleCluster(clusterCfgFile string, logger *log.Logger, pkg string, verbose bool) error {
 	cfg, err := config.ParseClusterCfg(clusterCfgFile, "", logger)
 	if err != nil {
-		return errors.Wrap(err, "failed to download cluster config")
+		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
 	//out, _ := json.MarshalIndent(cfg, "", "  ")
 	//fmt.Println(string(out))
 	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
-		return errors.Wrap(err, "failed to load kube binarys")
+		return errors.Wrap(err, "Failed to load kube binarys")
 	}
 	return NewExecutor(&cfg.Spec, logger, verbose).Execute()
 }
 
 func ExecTasks(mgr *manager.Manager) error {
 	scaleTasks := []manager.Task{
-		{Task: preinstall.InitOS, ErrMsg: "failed to download kube binaries"},
-		{Task: docker.InstallerDocker, ErrMsg: "failed to install docker"},
-		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "failed to sync kube binaries"},
-		//{Task: kubernetes.ConfigureKubeletService, ErrMsg: "failed to sync kube binaries"},
-		//{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "failed to get join cmd"},
-		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "failed to join node"},
+		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
+		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
+		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "Failed to sync kube binaries"},
+		//{Task: kubernetes.ConfigureKubeletService, ErrMsg: "Failed to sync kube binaries"},
+		//{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "Failed to get join cmd"},
+		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
 	}
 
 	for _, task := range scaleTasks {

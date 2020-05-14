@@ -32,7 +32,7 @@ func (dialer *Dialer) Tunnel(host kubekeyapi.HostCfg) (Tunneler, error) {
 
 	tunn, ok := conn.(Tunneler)
 	if !ok {
-		err = errors.New("unable to assert Tunneler")
+		err = errors.New("Unable to assert Tunneler")
 	}
 
 	return tunn, err

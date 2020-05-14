@@ -29,7 +29,7 @@ func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, prefixed bo
 	// because we want to re-use it for future task)
 	conn, err = mgr.Connector.Connect(*node)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to %s", node.Address)
+		return errors.Wrapf(err, "Failed to connect to %s", node.Address)
 	}
 
 	prefix := ""
