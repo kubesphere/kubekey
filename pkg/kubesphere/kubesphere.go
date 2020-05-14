@@ -2,12 +2,12 @@ package kubesphere
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
+	"time"
 )
 
 func DeployKubeSphere(mgr *manager.Manager) error {
@@ -19,8 +19,8 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
 		//mgr.Runner.RunCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
-		out, _ := json.MarshalIndent(mgr.Cluster, "", "  ")
-		fmt.Println(string(out))
+		//out, _ := json.MarshalIndent(mgr.Cluster, "", "  ")
+		//fmt.Println(string(out))
 		if mgr.Cluster.KubeSphere.Console.Port != 0 {
 			if err := DeployKubeSphereStep(mgr); err != nil {
 				return err
@@ -46,5 +46,20 @@ func DeployKubeSphereStep(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err2), "failed to deploy kubesphere.yaml")
 	}
 
+	CheckKubeSphereStatus(mgr)
 	return nil
+}
+
+func CheckKubeSphereStatus(mgr *manager.Manager) {
+	for i := 30; i > 0; i-- {
+		time.Sleep(10 * time.Second)
+		_, err := mgr.Runner.RunCmd("/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') ls kubesphere/playbooks/kubesphere_running")
+		if err == nil {
+			out, err := mgr.Runner.RunCmd("/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') cat kubesphere/playbooks/kubesphere_running")
+			if err == nil {
+				fmt.Println(out)
+				break
+			}
+		}
+	}
 }

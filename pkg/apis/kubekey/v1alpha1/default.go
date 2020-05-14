@@ -17,7 +17,7 @@ const (
 	DefaultClusterName    = "cluster.local"
 	DefaultArch           = "amd64"
 	DefaultHostName       = "allinone"
-	DefaultEtcdRepo       = "kubekey/etcd"
+	DefaultEtcdRepo       = "kubesphere"
 	DefaultEtcdVersion    = "v3.3.12"
 	DefaultEtcdPort       = "2379"
 	DefaultKubeVersion    = "v1.17.4"

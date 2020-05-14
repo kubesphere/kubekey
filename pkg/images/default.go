@@ -21,7 +21,7 @@ func GetImage(mgr *manager.Manager, name string) *Image {
 		"kube-controller-manager": {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-controller-manager", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true},
 		"kube-scheduler":          {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-scheduler", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true},
 		"kube-proxy":              {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-proxy", Tag: mgr.Cluster.Kubernetes.Version, Group: K8s, Enable: true},
-		"etcd":                    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "etcd", Tag: kubekeyapi.DefaultEtcdVersion, Group: Etcd, Enable: true},
+		"etcd":                    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "etcd", Tag: kubekeyapi.DefaultEtcdVersion, Group: Etcd, Enable: true},
 		"coredns":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: "1.6.0", Group: K8s, Enable: true},
 		"k8s-dns-node-cache":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "k8s-dns-node-cache", Tag: "1.15.12", Group: K8s, Enable: true},
 		"calico-kube-controllers": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "kube-controllers", Tag: kubekeyapi.DefaultCalicoVersion, Group: K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},

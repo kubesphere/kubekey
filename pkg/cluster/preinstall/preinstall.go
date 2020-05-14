@@ -12,7 +12,12 @@ import (
 )
 
 func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *log.Logger) error {
-	kubeVersion := cfg.Kubernetes.Version
+	var kubeVersion string
+	if cfg.Kubernetes.Version == "" {
+		kubeVersion = kubekeyapi.DefaultKubeVersion
+	} else {
+		kubeVersion = cfg.Kubernetes.Version
+	}
 
 	kubeadmUrl := fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeVersion, kubekeyapi.DefaultArch)
 	kubeletUrl := fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", kubeVersion, kubekeyapi.DefaultArch)

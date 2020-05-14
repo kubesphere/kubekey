@@ -143,7 +143,7 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		"ImageRepo":            imageRepo,
 		"Version":              mgr.Cluster.Kubernetes.Version,
 		"ClusterName":          mgr.Cluster.Kubernetes.ClusterName,
-		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.ControlPlaneEndpoint.Address, mgr.Cluster.ControlPlaneEndpoint.Port),
+		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port),
 		"PodSubnet":            mgr.Cluster.Network.KubePodsCIDR,
 		"ServiceSubnet":        mgr.Cluster.Network.KubeServiceCIDR,
 		"CertSANs":             mgr.Cluster.GenerateCertSANs(),

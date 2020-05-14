@@ -3,6 +3,7 @@ package tmpl
 import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -80,7 +81,7 @@ ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
   --memory=512M \
   --blkio-weight=1000 \
   --name={{ .Name }} \
-  {{ .Repo }}:{{ .Tag }} \
+  {{ .EtcdImage }} \
   /usr/local/bin/etcd \
   "$@"
     `)))
@@ -88,9 +89,8 @@ ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
 
 func GenerateEtcdBinary(mgr *manager.Manager, index int) (string, error) {
 	return util.Render(EtcdTempl, util.Data{
-		"Name": fmt.Sprintf("etcd%d", index+1),
-		"Repo": kubekeyapi.DefaultEtcdRepo,
-		"Tag":  kubekeyapi.DefaultEtcdVersion,
+		"Name":      fmt.Sprintf("etcd%d", index+1),
+		"EtcdImage": images.GetImage(mgr, "etcd").ImageName(),
 	})
 }
 
