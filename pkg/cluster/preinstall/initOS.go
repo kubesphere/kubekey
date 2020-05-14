@@ -11,7 +11,7 @@ import (
 )
 
 func InitOS(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Configuration operating system")
+	mgr.Logger.Infoln("Configurating operating system ...")
 
 	return mgr.RunTaskOnAllNodes(initOsOnNode, true)
 }
