@@ -44,12 +44,12 @@ func getClusterStatus(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 			clusterIsExist = false
 		} else {
 			if err != nil {
-				return errors.Wrap(errors.WithStack(err), "failed to find /etc/kubernetes/admin.conf")
+				return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/admin.conf")
 			} else {
 				clusterIsExist = true
 				output, err := mgr.Runner.RunCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'")
 				if err != nil {
-					return errors.Wrap(errors.WithStack(err), "failed to find current version")
+					return errors.Wrap(errors.WithStack(err), "Failed to find current version")
 				} else {
 					if !strings.Contains(output, "No such file or directory") {
 						clusterStatus["version"] = output
@@ -65,7 +65,7 @@ func getClusterStatus(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 }
 
 func InitKubernetesCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Init kubernetes cluster")
+	mgr.Logger.Infoln("Initializing kubernetes cluster")
 
 	return mgr.RunTaskOnMasterNodes(initKubernetesCluster, true)
 }
@@ -79,13 +79,13 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn 
 		kubeadmCfgBase64 := base64.StdEncoding.EncodeToString([]byte(kubeadmCfg))
 		_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes && echo %s | base64 -d > /etc/kubernetes/kubeadm-config.yaml\"", kubeadmCfgBase64))
 		if err1 != nil {
-			return errors.Wrap(errors.WithStack(err1), "failed to generate kubeadm config")
+			return errors.Wrap(errors.WithStack(err1), "Failed to generate kubeadm config")
 		}
 
 		output, err2 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml\"")
 		if err2 != nil {
 			fmt.Println(output)
-			return errors.Wrap(errors.WithStack(err2), "failed to init kubernetes cluster")
+			return errors.Wrap(errors.WithStack(err2), "Failed to init kubernetes cluster")
 		}
 		if err3 := GetKubeConfig(mgr); err3 != nil {
 			return err3
@@ -120,7 +120,7 @@ func GetKubeConfig(mgr *manager.Manager) error {
 	cmd := strings.Join([]string{createConfigDirCmd, getKubeConfigCmd, getKubeConfigCmdUsr, chownKubeConfig}, " && ")
 	_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "failed to init kubernetes cluster")
+		return errors.Wrap(errors.WithStack(err), "Failed to init kubernetes cluster")
 	}
 	return nil
 }
@@ -130,7 +130,7 @@ func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		removeMasterTaintCmd := fmt.Sprintf("/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=:NoSchedule-", node.Name)
 		_, err := mgr.Runner.RunCmd(removeMasterTaintCmd)
 		if err != nil {
-			return errors.Wrap(errors.WithStack(err), "failed to remove master taint")
+			return errors.Wrap(errors.WithStack(err), "Failed to remove master taint")
 		}
 	}
 	return nil
@@ -141,7 +141,7 @@ func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		addWorkerLabelCmd := fmt.Sprintf("/usr/local/bin/kubectl label node %s node-role.kubernetes.io/worker=", node.Name)
 		out, err := mgr.Runner.RunCmd(addWorkerLabelCmd)
 		if err != nil && !strings.Contains(out, "already") {
-			return errors.Wrap(errors.WithStack(err), "failed to add worker label")
+			return errors.Wrap(errors.WithStack(err), "Failed to add worker label")
 		}
 	}
 	return nil
@@ -164,7 +164,7 @@ func getJoinCmd(mgr *manager.Manager) error {
 	uploadCertsCmd := "/usr/local/bin/kubeadm init phase upload-certs --upload-certs"
 	out, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", uploadCertsCmd))
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "failed to upload kubeadm certs")
+		return errors.Wrap(errors.WithStack(err), "Failed to upload kubeadm certs")
 	}
 	reg := regexp.MustCompile("[0-9|a-z]{64}")
 	certificateKey := reg.FindAllString(out, -1)[0]
@@ -177,7 +177,7 @@ func getJoinCmd(mgr *manager.Manager) error {
 
 	out, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", tokenCreateMasterCmd))
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to get join node cmd")
+		return errors.Wrap(errors.WithStack(err2), "Failed to get join node cmd")
 	}
 
 	joinMasterStrList := strings.Split(out, "kubeadm join")
@@ -189,20 +189,20 @@ func getJoinCmd(mgr *manager.Manager) error {
 
 	out, err3 := mgr.Runner.RunCmd("/usr/local/bin/kubectl get nodes -o wide")
 	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "failed to get cluster info")
+		return errors.Wrap(errors.WithStack(err3), "Failed to get cluster info")
 	}
 	clusterStatus["clusterInfo"] = out
 
 	kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
 	out, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd))
 	if err4 != nil {
-		return errors.Wrap(errors.WithStack(err4), "failed to get cluster kubeconfig")
+		return errors.Wrap(errors.WithStack(err4), "Failed to get cluster kubeconfig")
 	}
 	clusterStatus["kubeConfig"] = out
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		return errors.Wrap(err, "faild get current dir")
+		return errors.Wrap(err, "Faild to get current dir")
 	}
 	exec.Command(fmt.Sprintf("mkdir -p %s/kubekey", currentDir))
 	exec.Command(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s/kubekey/kubeconfig.yaml\"", clusterStatus["kubeConfig"], currentDir)).Run()
@@ -215,14 +215,14 @@ func PatchKubeadmSecret(mgr *manager.Manager) error {
 	for _, cert := range externalEtcdCerts {
 		_, err := mgr.Runner.RunCmd(fmt.Sprintf("/usr/local/bin/kubectl patch -n kube-system secret kubeadm-certs -p '{\"data\": {\"%s\": \"\"}}'", cert))
 		if err != nil {
-			return errors.Wrap(errors.WithStack(err), "failed to patch kubeadm secret")
+			return errors.Wrap(errors.WithStack(err), "Failed to patch kubeadm secret")
 		}
 	}
 	return nil
 }
 
 func JoinNodesToCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Join nodes to cluster")
+	mgr.Logger.Infoln("Joining nodes to cluster")
 
 	return mgr.RunTaskOnK8sNodes(joinNodesToCluster, true)
 }
@@ -260,7 +260,7 @@ func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh
 func addMaster(mgr *manager.Manager) error {
 	_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]))
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "failed to add master to cluster")
+		return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
 	}
 	err1 := GetKubeConfig(mgr)
 	if err1 != nil {
@@ -272,18 +272,18 @@ func addMaster(mgr *manager.Manager) error {
 func addWorker(mgr *manager.Manager) error {
 	_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]))
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "failed to add worker to cluster")
+		return errors.Wrap(errors.WithStack(err), "Failed to add worker to cluster")
 	}
 	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
 	chownKubeConfig := "chown $(id -u):$(id -g) $HOME/.kube/config"
 	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to create kube dir")
+		return errors.Wrap(errors.WithStack(err1), "Failed to create kube dir")
 	}
 	syncKubeconfigCmd := fmt.Sprintf("echo %s | base64 -d > %s && echo %s | base64 -d > %s && %s", clusterStatus["kubeConfig"], "/root/.kube/config", clusterStatus["kubeConfig"], "$HOME/.kube/config", chownKubeConfig)
 	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigCmd))
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to sync kube config")
+		return errors.Wrap(errors.WithStack(err2), "Failed to sync kube config")
 	}
 	return nil
 }

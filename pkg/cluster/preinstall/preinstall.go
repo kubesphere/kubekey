@@ -41,7 +41,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 	if util.IsExist(kubeadm) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubeadmCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
-			return errors.Wrap(err, "faild download kubeadm binary")
+			return errors.Wrap(err, "Failed to download kubeadm binary")
 		}
 	}
 
@@ -49,7 +49,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 	if util.IsExist(kubelet) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubeletCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
-			return errors.Wrap(err, "faild download kubelet binary")
+			return errors.Wrap(err, "Failed to download kubelet binary")
 		}
 	}
 
@@ -57,7 +57,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 	if util.IsExist(kubectl) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubectlCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
-			return errors.Wrap(err, "faild download kubectl binary")
+			return errors.Wrap(err, "Failed to download kubectl binary")
 		}
 	}
 
@@ -65,7 +65,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 	if util.IsExist(kubeCni) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getKubeCniCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
-			return errors.Wrap(err, "faild download kubecni")
+			return errors.Wrap(err, "Faild to download kubecni")
 		}
 	}
 
@@ -73,7 +73,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 	if util.IsExist(helm) == false {
 		if out, err := exec.Command("/bin/sh", "-c", getHelmCmd).CombinedOutput(); err != nil {
 			fmt.Println(string(out))
-			return errors.Wrap(err, "faild download helm binary")
+			return errors.Wrap(err, "Failed to download helm binary")
 		}
 	}
 
@@ -81,16 +81,16 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *l
 }
 
 func Prepare(cfg *kubekeyapi.K2ClusterSpec, logger *log.Logger) error {
-	logger.Info("Downloading Install Files")
+	logger.Info("Downloading Installation Files")
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		return errors.Wrap(err, "faild get current dir")
+		return errors.Wrap(err, "Faild to get current dir")
 	}
 
 	filepath := fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
 	if err := util.CreateDir(filepath); err != nil {
-		return errors.Wrap(err, "faild create download target dir")
+		return errors.Wrap(err, "Failed to create download target dir")
 	}
 
 	if err := FilesDownloadHttp(cfg, filepath, logger); err != nil {

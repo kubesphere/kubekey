@@ -11,7 +11,7 @@ import (
 )
 
 func DeployKubeSphere(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Deploy KubeSphere")
+	mgr.Logger.Infoln("Deploying KubeSphere ...")
 
 	return mgr.RunTaskOnMasterNodes(deployKubeSphere, true)
 }
@@ -39,11 +39,11 @@ func DeployKubeSphereStep(mgr *manager.Manager) error {
 	kubesphereYamlBase64 := base64.StdEncoding.EncodeToString([]byte(kubesphereYaml))
 	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/kubesphere.yaml\"", kubesphereYamlBase64))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to generate KubeSphere manifests")
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate KubeSphere manifests")
 	}
 	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/kubesphere.yaml")
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to deploy kubesphere.yaml")
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy kubesphere.yaml")
 	}
 
 	CheckKubeSphereStatus(mgr)

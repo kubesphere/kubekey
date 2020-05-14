@@ -165,13 +165,13 @@ func GenerateK2ClusterObj(addons, name string) error {
 
 	K2ClusterObjStr, err := GenerateK2ClusterObjStr(&opt, opt.StorageNum)
 	if err != nil {
-		return errors.Wrap(err, "faild to generate k2cluster config")
+		return errors.Wrap(err, "Faild to generate k2cluster config")
 	}
 	K2ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(K2ClusterObjStr))
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		return errors.Wrap(err, "faild get current dir")
+		return errors.Wrap(err, "Failed to get current dir")
 	}
 	cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", K2ClusterObjStrBase64, currentDir, opt.Name)
 	err1 := exec.Command("/bin/sh", "-c", cmd).Run()

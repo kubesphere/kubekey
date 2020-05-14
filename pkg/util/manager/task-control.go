@@ -31,13 +31,13 @@ func (t *Task) Run(mgrTask *Manager) error {
 	var lastError error
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		if lastError != nil {
-			mgrTask.Logger.Warn("Retrying task…")
+			mgrTask.Logger.Warn("Retrying task ...")
 		}
 		lastError = t.Task(mgrTask)
 		if lastError != nil {
-			mgrTask.Logger.Warn("Task failed…")
+			mgrTask.Logger.Warn("Task failed ...")
 			if mgrTask.Verbose {
-				mgrTask.Logger.Warnf("error was: %s", lastError)
+				mgrTask.Logger.Warnf("error: %s", lastError)
 			}
 			return false, nil
 		}

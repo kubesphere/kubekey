@@ -12,7 +12,7 @@ import (
 )
 
 func DeployNetworkPlugin(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Deploy network plugin")
+	mgr.Logger.Infoln("Deploying network plugin ...")
 
 	return mgr.RunTaskOnMasterNodes(deployNetworkPlugin, true)
 }
@@ -47,12 +47,12 @@ func deployCalico(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	calicoFileBase64 := base64.StdEncoding.EncodeToString([]byte(calicoFile))
 	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/calico.yaml\"", calicoFileBase64))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to generate calico file")
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate calico file")
 	}
 
 	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/calico.yaml")
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to deploy calico")
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy calico")
 	}
 	return nil
 }
@@ -65,12 +65,12 @@ func deployFlannel(mgr *manager.Manager) error {
 	flannelFileBase64 := base64.StdEncoding.EncodeToString([]byte(flannelFile))
 	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/flannel.yaml\"", flannelFileBase64))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "failed to generate flannel file")
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate flannel file")
 	}
 
 	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/flannel.yaml")
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "failed to deploy flannel")
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy flannel")
 	}
 	return nil
 }
