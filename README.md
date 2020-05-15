@@ -92,7 +92,10 @@ cd kubekey
 ./build.sh
 ```
 
-> Note: Docker needs to be installed before building.
+**Note:**
+
+* Docker needs to be installed before building.
+* If you have problem to access `https://proxy.golang.org/` in China mainland, please open the build.sh to use the Go module proxy in China.
 
 ## Road Map
 
