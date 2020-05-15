@@ -19,33 +19,30 @@ func SyncKubeBinaries(mgr *manager.Manager) error {
 }
 
 func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	output, _ := mgr.Runner.RunCmd("/usr/local/bin/kubelet --version")
-	if !strings.Contains(output, mgr.Cluster.Kubernetes.Version) {
+	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
 
 		currentDir, err1 := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err1 != nil {
 			return errors.Wrap(err1, "Failed to get current dir")
 		}
 
-		filepath := fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
+		filepath := fmt.Sprintf("%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, mgr.Cluster.Kubernetes.Version)
 
-		kubeadm := fmt.Sprintf("kubeadm-%s", mgr.Cluster.Kubernetes.Version)
-		kubelet := fmt.Sprintf("kubelet-%s", mgr.Cluster.Kubernetes.Version)
-		kubectl := fmt.Sprintf("kubectl-%s", mgr.Cluster.Kubernetes.Version)
-		helm := fmt.Sprintf("helm-%s", kubekeyapi.DefaultHelmVersion)
+		kubeadm := fmt.Sprintf("kubeadm")
+		kubelet := fmt.Sprintf("kubelet")
+		kubectl := fmt.Sprintf("kubectl")
+		helm := fmt.Sprintf("helm")
 		kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
 		binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}
+
+		cmdlist := []string{}
 
 		for _, binary := range binaryList {
 			err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filepath, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
 			if err2 != nil {
 				return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("Failed to sync binaries"))
 			}
-		}
 
-		cmdlist := []string{}
-
-		for _, binary := range binaryList {
 			if strings.Contains(binary, "cni-plugins-linux") {
 				cmdlist = append(cmdlist, fmt.Sprintf("mkdir -p /opt/cni/bin && tar -zxf %s/%s -C /opt/cni/bin", "/tmp/kubekey", binary))
 			} else {
@@ -66,6 +63,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 }
 
 func setKubelet(mgr *manager.Manager) error {
+
 	kubeletService, err1 := tmpl.GenerateKubeletService(mgr.Cluster)
 	if err1 != nil {
 		return err1

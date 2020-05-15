@@ -17,10 +17,6 @@ import (
 )
 
 var (
-	//joinMasterCmd = ""
-	//joinWorkerCmd = ""
-	//clusterInfo   = ""
-	//kubeConfig    = ""
 	clusterIsExist = false
 	clusterStatus  = map[string]string{
 		"version":       "",
@@ -146,12 +142,6 @@ func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	}
 	return nil
 }
-
-//func GetJoinNodesCmd(mgr *manager.Manager) error {
-//	mgr.Logger.Infoln("Get join nodes cmd")
-//
-//	return mgr.RunTaskOnClientNode(getJoinNodesCmd, false)
-//}
 
 func getJoinNodesCmd(mgr *manager.Manager) error {
 	if err := getJoinCmd(mgr); err != nil {

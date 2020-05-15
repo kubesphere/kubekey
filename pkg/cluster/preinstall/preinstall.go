@@ -3,77 +3,59 @@ package preinstall
 import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
-func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath string, logger *log.Logger) error {
-	var kubeVersion string
-	if cfg.Kubernetes.Version == "" {
-		kubeVersion = kubekeyapi.DefaultKubeVersion
-	} else {
-		kubeVersion = cfg.Kubernetes.Version
-	}
+func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath, version string, logger *log.Logger) error {
 
-	kubeadmUrl := fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeVersion, kubekeyapi.DefaultArch)
-	kubeletUrl := fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", kubeVersion, kubekeyapi.DefaultArch)
-	kubectlUrl := fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", kubeVersion, kubekeyapi.DefaultArch)
-	kubeCniUrl := fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubekeyapi.DefaultCniVersion, kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
-	HelmUrl := fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-amd64/%s/helm", kubekeyapi.DefaultHelmVersion)
+	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: kubekeyapi.DefaultArch, Version: version}
+	kubelet := files.KubeBinary{Name: "kubelet", Arch: kubekeyapi.DefaultArch, Version: version}
+	kubectl := files.KubeBinary{Name: "kubectl", Arch: kubekeyapi.DefaultArch, Version: version}
+	kubecni := files.KubeBinary{Name: "kubecni", Arch: kubekeyapi.DefaultArch, Version: kubekeyapi.DefaultCniVersion}
+	helm := files.KubeBinary{Name: "helm", Arch: kubekeyapi.DefaultArch, Version: kubekeyapi.DefaultHelmVersion}
 
-	kubeadm := fmt.Sprintf("%s/kubeadm-%s", filepath, kubeVersion)
-	kubelet := fmt.Sprintf("%s/kubelet-%s", filepath, kubeVersion)
-	kubectl := fmt.Sprintf("%s/kubectl-%s", filepath, kubeVersion)
-	kubeCni := fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
-	helm := fmt.Sprintf("%s/helm-%s", filepath, kubekeyapi.DefaultHelmVersion)
+	kubeadm.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
+	kubelet.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", kubelet.Version, kubelet.Arch)
+	kubectl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
+	kubecni.Url = fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
+	helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
 
-	getKubeadmCmd := fmt.Sprintf("curl -o %s  %s", kubeadm, kubeadmUrl)
-	getKubeletCmd := fmt.Sprintf("curl -o %s  %s", kubelet, kubeletUrl)
-	getKubectlCmd := fmt.Sprintf("curl -o %s  %s", kubectl, kubectlUrl)
-	getKubeCniCmd := fmt.Sprintf("curl -o %s  %s", kubeCni, kubeCniUrl)
-	getHelmCmd := fmt.Sprintf("curl -o %s  %s", helm, HelmUrl)
+	kubeadm.Path = fmt.Sprintf("%s/kubeadm", filepath)
+	kubelet.Path = fmt.Sprintf("%s/kubelet", filepath)
+	kubectl.Path = fmt.Sprintf("%s/kubectl", filepath)
+	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
+	helm.Path = fmt.Sprintf("%s/helm", filepath)
 
-	logger.Info("Downloading Kubeadm ...")
-	if util.IsExist(kubeadm) == false {
-		if out, err := exec.Command("/bin/sh", "-c", getKubeadmCmd).CombinedOutput(); err != nil {
-			fmt.Println(string(out))
-			return errors.Wrap(err, "Failed to download kubeadm binary")
-		}
-	}
+	kubeadm.GetCmd = fmt.Sprintf("curl -o %s  %s", kubeadm.Path, kubeadm.Url)
+	kubelet.GetCmd = fmt.Sprintf("curl -o %s  %s", kubelet.Path, kubelet.Url)
+	kubectl.GetCmd = fmt.Sprintf("curl -o %s  %s", kubectl.Path, kubectl.Url)
+	kubecni.GetCmd = fmt.Sprintf("curl -o %s  %s", kubecni.Path, kubecni.Url)
+	helm.GetCmd = fmt.Sprintf("curl -o %s  %s", helm.Path, helm.Url)
 
-	logger.Info("Downloading Kubelet ...")
-	if util.IsExist(kubelet) == false {
-		if out, err := exec.Command("/bin/sh", "-c", getKubeletCmd).CombinedOutput(); err != nil {
-			fmt.Println(string(out))
-			return errors.Wrap(err, "Failed to download kubelet binary")
-		}
-	}
+	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, kubecni, helm}
 
-	logger.Info("Downloading Kubectl ...")
-	if util.IsExist(kubectl) == false {
-		if out, err := exec.Command("/bin/sh", "-c", getKubectlCmd).CombinedOutput(); err != nil {
-			fmt.Println(string(out))
-			return errors.Wrap(err, "Failed to download kubectl binary")
-		}
-	}
+	for _, binary := range binaries {
+		logger.Info(fmt.Sprintf("Downloading %s ...", binary.Name))
+		if util.IsExist(binary.Path) == false {
+			if out, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
+				fmt.Println(string(out))
+				return errors.Wrap(err, "Failed to download kubeadm binary")
+			}
 
-	logger.Info("Downloading KubeCni ...")
-	if util.IsExist(kubeCni) == false {
-		if out, err := exec.Command("/bin/sh", "-c", getKubeCniCmd).CombinedOutput(); err != nil {
-			fmt.Println(string(out))
-			return errors.Wrap(err, "Faild to download kubecni")
-		}
-	}
-
-	logger.Info("Downloading Helm ...")
-	if util.IsExist(helm) == false {
-		if out, err := exec.Command("/bin/sh", "-c", getHelmCmd).CombinedOutput(); err != nil {
-			fmt.Println(string(out))
-			return errors.Wrap(err, "Failed to download helm binary")
+			out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
+			}
+			if !strings.Contains(strings.TrimSpace(string(out)), binary.GetSha256()) {
+				return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(out))))
+			}
 		}
 	}
 
@@ -88,12 +70,19 @@ func Prepare(cfg *kubekeyapi.K2ClusterSpec, logger *log.Logger) error {
 		return errors.Wrap(err, "Faild to get current dir")
 	}
 
-	filepath := fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
+	var kubeVersion string
+	if cfg.Kubernetes.Version == "" {
+		kubeVersion = kubekeyapi.DefaultKubeVersion
+	} else {
+		kubeVersion = cfg.Kubernetes.Version
+	}
+
+	filepath := fmt.Sprintf("%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, kubeVersion)
 	if err := util.CreateDir(filepath); err != nil {
 		return errors.Wrap(err, "Failed to create download target dir")
 	}
 
-	if err := FilesDownloadHttp(cfg, filepath, logger); err != nil {
+	if err := FilesDownloadHttp(cfg, filepath, kubeVersion, logger); err != nil {
 		return err
 	}
 	return nil

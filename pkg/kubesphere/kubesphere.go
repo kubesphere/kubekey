@@ -55,9 +55,8 @@ func CheckKubeSphereStatus(mgr *manager.Manager) {
 		time.Sleep(10 * time.Second)
 		_, err := mgr.Runner.RunCmd("/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') ls kubesphere/playbooks/kubesphere_running")
 		if err == nil {
-			out, err := mgr.Runner.RunCmd("/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') cat kubesphere/playbooks/kubesphere_running")
+			_, err := mgr.Runner.RunCmd("/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') cat kubesphere/playbooks/kubesphere_running")
 			if err == nil {
-				fmt.Println(out)
 				break
 			}
 		}
