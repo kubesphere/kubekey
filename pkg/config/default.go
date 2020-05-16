@@ -62,7 +62,7 @@ func AllinoneCfg(user *user.User, addons string) kubekeyapi.Cluster {
 	if err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").Run(); err != nil {
 		log.Fatalf("Failed to generate public key: %v", err)
 	}
-	if out, err := exec.Command("/bin/sh", "-c", "echo \"$(cat $HOME/.ssh/id_rsa.pub)\" >> $HOME/.ssh/authorized_keys").CombinedOutput(); err != nil {
+	if out, err := exec.Command("/bin/sh", "-c", "echo \"\n$(cat $HOME/.ssh/id_rsa.pub)\" >> $HOME/.ssh/authorized_keys && awk ' !x[$0]++{print > \"'$HOME'/.ssh/authorized_keys\"}' $HOME/.ssh/authorized_keys").CombinedOutput(); err != nil {
 		log.Fatalf("Failed to copy public key to authorized_keys: %v\n%s", err, string(out))
 	}
 
