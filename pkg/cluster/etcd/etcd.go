@@ -59,7 +59,7 @@ func generateCerts(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conn
 		}
 
 		for _, cert := range generateCertsFiles(mgr) {
-			certsBase64Cmd := fmt.Sprintf("cat %s/%s | base64 --wrap=0", etcdCertDir, cert)
+			certsBase64Cmd := fmt.Sprintf("sudo -E /bin/sh -c \"cat %s/%s | base64 --wrap=0\"", etcdCertDir, cert)
 			certsBase64, err4 := mgr.Runner.RunCmd(certsBase64Cmd)
 			if err4 != nil {
 				return errors.Wrap(errors.WithStack(err4), "Failed to get etcd certs content")
