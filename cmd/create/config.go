@@ -11,7 +11,7 @@ func NewCmdCreateCfg() *cobra.Command {
 		Use:   "config",
 		Short: "Create cluster info configuration file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := config.GenerateK2ClusterObj(addons, name)
+			err := config.GenerateClusterObj(addons, name)
 			if err != nil {
 				return err
 			}
@@ -45,7 +45,7 @@ func NewCmdCreateCfg() *cobra.Command {
 //	}
 //}
 //
-//func writeConfig(cluster *kubekeyapi.K2ClusterSpec, configFile string, print bool) error {
+//func writeConfig(cluster *kubekeyapi.ClusterSpec, configFile string, print bool) error {
 //	yamlConfig, err := yaml.Marshal(*cluster)
 //	if err != nil {
 //		return err
@@ -61,7 +61,7 @@ func NewCmdCreateCfg() *cobra.Command {
 //}
 //
 //func clusterConfig() error {
-//	clusterCfg := kubekeyapi.K2ClusterSpec{}
+//	clusterCfg := kubekeyapi.ClusterSpec{}
 //	reader := bufio.NewReader(os.Stdin)
 //
 //	// Get number of hosts

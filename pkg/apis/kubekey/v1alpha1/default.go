@@ -30,8 +30,8 @@ const (
 	WorkerRole            = "worker"
 )
 
-func (cfg *K2ClusterSpec) SetDefaultK2ClusterSpec() (*K2ClusterSpec, *HostGroups) {
-	clusterCfg := K2ClusterSpec{}
+func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
+	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
@@ -56,7 +56,7 @@ func (cfg *K2ClusterSpec) SetDefaultK2ClusterSpec() (*K2ClusterSpec, *HostGroups
 	return &clusterCfg, hostGroups
 }
 
-func SetDefaultHostsCfg(cfg *K2ClusterSpec) []HostCfg {
+func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 	var hostscfg []HostCfg
 	if len(cfg.Hosts) == 0 {
 		return nil
@@ -80,7 +80,7 @@ func SetDefaultHostsCfg(cfg *K2ClusterSpec) []HostCfg {
 	return hostscfg
 }
 
-func SetDefaultLBCfg(cfg *K2ClusterSpec, masterGroup []HostCfg) ControlPlaneEndpoint {
+func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg) ControlPlaneEndpoint {
 
 	if cfg.ControlPlaneEndpoint.Address == "" {
 		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
@@ -95,7 +95,7 @@ func SetDefaultLBCfg(cfg *K2ClusterSpec, masterGroup []HostCfg) ControlPlaneEndp
 	return defaultLbCfg
 }
 
-func SetDefaultNetworkCfg(cfg *K2ClusterSpec) NetworkConfig {
+func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 	if cfg.Network.Plugin == "" {
 		cfg.Network.Plugin = DefaultNetworkPlugin
 	}
@@ -111,7 +111,7 @@ func SetDefaultNetworkCfg(cfg *K2ClusterSpec) NetworkConfig {
 	return defaultNetworkCfg
 }
 
-func SetDefaultClusterCfg(cfg *K2ClusterSpec) Kubernetes {
+func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.Version == "" {
 		cfg.Kubernetes.Version = DefaultKubeVersion
 	}

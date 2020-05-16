@@ -1,7 +1,7 @@
 apiVersion: kubekey.io/v1alpha1
-kind: K2Cluster
+kind: Cluster
 metadata:
-  name: example-k2cluster
+  name: example-cluster
 spec:
   # Add fields here
   size: 3

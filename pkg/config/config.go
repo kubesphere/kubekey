@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	K2ClusterObjTempl = template.Must(template.New("K2Cluster").Parse(
+	ClusterObjTempl = template.Must(template.New("Cluster").Parse(
 		dedent.Dedent(`apiVersion: kubekey.kubesphere.io/v1alpha1
 kind: Cluster
 metadata:
@@ -125,14 +125,14 @@ type Options struct {
 	KubeSphereEnabled       bool
 }
 
-func GenerateK2ClusterObjStr(opt *Options, storageNum int) (string, error) {
-	return util.Render(K2ClusterObjTempl, util.Data{
+func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
+	return util.Render(ClusterObjTempl, util.Data{
 		"StorageNum": storageNum,
 		"Options":    opt,
 	})
 }
 
-func GenerateK2ClusterObj(addons, name string) error {
+func GenerateClusterObj(addons, name string) error {
 	opt := Options{}
 	if name != "" {
 		out := strings.Split(name, ".")
@@ -163,17 +163,17 @@ func GenerateK2ClusterObj(addons, name string) error {
 		}
 	}
 
-	K2ClusterObjStr, err := GenerateK2ClusterObjStr(&opt, opt.StorageNum)
+	ClusterObjStr, err := GenerateClusterObjStr(&opt, opt.StorageNum)
 	if err != nil {
-		return errors.Wrap(err, "Faild to generate k2cluster config")
+		return errors.Wrap(err, "Faild to generate cluster config")
 	}
-	K2ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(K2ClusterObjStr))
+	ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterObjStr))
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current dir")
 	}
-	cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", K2ClusterObjStrBase64, currentDir, opt.Name)
+	cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", ClusterObjStrBase64, currentDir, opt.Name)
 	err1 := exec.Command("/bin/sh", "-c", cmd).Run()
 	if err1 != nil {
 		return err1

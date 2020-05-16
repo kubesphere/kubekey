@@ -9,12 +9,12 @@ import (
 )
 
 type Executor struct {
-	cluster *kubekeyapi.K2ClusterSpec
+	cluster *kubekeyapi.ClusterSpec
 	logger  *log.Logger
 	Verbose bool
 }
 
-func NewExecutor(cluster *kubekeyapi.K2ClusterSpec, logger *log.Logger, verbose bool) *Executor {
+func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, verbose bool) *Executor {
 	return &Executor{
 		cluster: cluster,
 		logger:  logger,
@@ -24,7 +24,7 @@ func NewExecutor(cluster *kubekeyapi.K2ClusterSpec, logger *log.Logger, verbose 
 
 func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr := &manager.Manager{}
-	defaultCluster, hostGroups := executor.cluster.SetDefaultK2ClusterSpec()
+	defaultCluster, hostGroups := executor.cluster.SetDefaultClusterSpec()
 	mgr.AllNodes = hostGroups.All
 	mgr.EtcdNodes = hostGroups.Etcd
 	mgr.MasterNodes = hostGroups.Master
@@ -40,7 +40,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	return mgr, nil
 }
 
-func GenerateHosts(hostGroups *kubekeyapi.HostGroups, cfg *kubekeyapi.K2ClusterSpec) []string {
+func GenerateHosts(hostGroups *kubekeyapi.HostGroups, cfg *kubekeyapi.ClusterSpec) []string {
 	var lbHost string
 	hostsList := []string{}
 

@@ -811,7 +811,7 @@ metadata:
 # Source: calico/templates/configure-canal.yaml
     `)))
 
-func GenerateCalicoFiles(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
+func GenerateCalicoFiles(cfg *kubekeyapi.ClusterSpec) (string, error) {
 	return util.Render(calicoTempl, util.Data{
 		"KubePodsCIDR": cfg.Network.KubePodsCIDR,
 	})

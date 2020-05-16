@@ -14,8 +14,8 @@ import (
 	"strings"
 )
 
-func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubekeyapi.K2Cluster, error) {
-	clusterCfg := kubekeyapi.K2Cluster{}
+func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubekeyapi.Cluster, error) {
+	clusterCfg := kubekeyapi.Cluster{}
 
 	if len(clusterCfgPath) == 0 {
 		user, _ := user.Current()
@@ -38,27 +38,27 @@ func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubeke
 		}
 	}
 
-	//defaultK2Cluster := SetDefaultK2Cluster(&clusterCfg)
-	//return defaultK2Cluster, nil
+	//defaultCluster := SetDefaultCluster(&clusterCfg)
+	//return defaultCluster, nil
 
 	//out, _ := json.MarshalIndent(&clusterCfg, "", "  ")
 	//fmt.Println(string(out))
 	return &clusterCfg, nil
 }
 
-//func SetDefaultK2Cluster(obj *kubekeyapi.K2Cluster) *kubekeyapi.K2Cluster {
+//func SetDefaultCluster(obj *kubekeyapi.Cluster) *kubekeyapi.Cluster {
 //	//fmt.Println(obj)
 //	out, _ := json.MarshalIndent(obj, "", "  ")
 //	fmt.Println(string(out))
-//	defaultCluster := &kubekeyapi.K2Cluster{}
+//	defaultCluster := &kubekeyapi.Cluster{}
 //	defaultCluster.APIVersion = obj.APIVersion
 //	defaultCluster.Kind = obj.APIVersion
-//	defaultCluster.Spec = SetDefaultK2ClusterSpec(&obj.Spec)
+//	defaultCluster.Spec = SetDefaultClusterSpec(&obj.Spec)
 //	return defaultCluster
 //}
 
-func AllinoneCfg(user *user.User, addons string) kubekeyapi.K2Cluster {
-	allinoneCfg := kubekeyapi.K2Cluster{}
+func AllinoneCfg(user *user.User, addons string) kubekeyapi.Cluster {
+	allinoneCfg := kubekeyapi.Cluster{}
 	if err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").Run(); err != nil {
 		log.Fatalf("Failed to generate public key: %v", err)
 	}

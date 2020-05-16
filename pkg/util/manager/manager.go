@@ -13,7 +13,7 @@ import (
 )
 
 type Manager struct {
-	Cluster      *kubekeyapi.K2ClusterSpec
+	Cluster      *kubekeyapi.ClusterSpec
 	Logger       logrus.FieldLogger
 	Connector    *ssh2.Dialer
 	Runner       *runner.Runner

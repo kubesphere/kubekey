@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath, version string, logger *log.Logger) error {
+func FilesDownloadHttp(cfg *kubekeyapi.ClusterSpec, filepath, version string, logger *log.Logger) error {
 
 	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: kubekeyapi.DefaultArch, Version: version}
 	kubelet := files.KubeBinary{Name: "kubelet", Arch: kubekeyapi.DefaultArch, Version: version}
@@ -62,7 +62,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.K2ClusterSpec, filepath, version string, 
 	return nil
 }
 
-func Prepare(cfg *kubekeyapi.K2ClusterSpec, logger *log.Logger) error {
+func Prepare(cfg *kubekeyapi.ClusterSpec, logger *log.Logger) error {
 	logger.Info("Downloading Installation Files")
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))

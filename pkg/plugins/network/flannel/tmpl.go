@@ -613,7 +613,7 @@ spec:
 
     `)))
 
-func GenerateFlannelFiles(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
+func GenerateFlannelFiles(cfg *kubekeyapi.ClusterSpec) (string, error) {
 	return util.Render(flannelTempl, util.Data{
 		"KubePodsCIDR": cfg.Network.KubePodsCIDR,
 	})

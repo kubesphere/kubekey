@@ -12,8 +12,8 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// K2ClusterSpec defines the desired state of K2Cluster
-type K2ClusterSpec struct {
+// ClusterSpec defines the desired state of Cluster
+type ClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -33,8 +33,8 @@ type Kubernetes struct {
 	ClusterName string `yaml:"clusterName" json:"clusterName,omitempty"`
 }
 
-// K2ClusterStatus defines the observed state of K2Cluster
-type K2ClusterStatus struct {
+// ClusterStatus defines the observed state of Cluster
+type ClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -42,28 +42,28 @@ type K2ClusterStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// K2Cluster is the Schema for the k2clusters API
+// Cluster is the Schema for the clusters API
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=k2clusters,scope=Namespaced
-type K2Cluster struct {
+// +kubebuilder:resource:path=clusters,scope=Namespaced
+type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   K2ClusterSpec   `json:"spec,omitempty"`
-	Status K2ClusterStatus `json:"status,omitempty"`
+	Spec   ClusterSpec   `json:"spec,omitempty"`
+	Status ClusterStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// K2ClusterList contains a list of K2Cluster
-type K2ClusterList struct {
+// ClusterList contains a list of Cluster
+type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []K2Cluster `json:"items"`
+	Items           []Cluster `json:"items"`
 }
 
 //func init() {
-//	SchemeBuilder.Register(&K2Cluster{}, &K2ClusterList{})
+//	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
 //}
 
 type HostCfg struct {
@@ -121,7 +121,7 @@ type ExternalEtcd struct {
 	KeyFile   string
 }
 
-func (cfg *K2ClusterSpec) GenerateCertSANs() []string {
+func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.Kubernetes.ClusterName)
 	defaultCertSANs := []string{"kubernetes", "kubernetes.default", "kubernetes.default.svc", clusterSvc, "localhost", "127.0.0.1"}
 	extraCertSANs := []string{}
@@ -146,7 +146,7 @@ func (cfg *K2ClusterSpec) GenerateCertSANs() []string {
 	return defaultCertSANs
 }
 
-func (cfg *K2ClusterSpec) GroupHosts() *HostGroups {
+func (cfg *ClusterSpec) GroupHosts() *HostGroups {
 	clusterHostsGroups := HostGroups{}
 	etcdGroup, masterGroup, workerGroup := cfg.ParseRolesList()
 	for index, host := range cfg.Hosts {
@@ -190,11 +190,11 @@ func (cfg *K2ClusterSpec) GroupHosts() *HostGroups {
 	return &clusterHostsGroups
 }
 
-func (cfg *K2ClusterSpec) ClusterIP() string {
+func (cfg *ClusterSpec) ClusterIP() string {
 	return util.ParseIp(cfg.Network.KubeServiceCIDR)[2]
 }
 
-func (cfg *K2ClusterSpec) ParseRolesList() ([]string, []string, []string) {
+func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
 	etcdGroupList := []string{}
 	masterGroupList := []string{}
 	workerGroupList := []string{}

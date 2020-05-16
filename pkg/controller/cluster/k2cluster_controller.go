@@ -1,4 +1,4 @@
-package k2cluster
+package cluster
 
 import (
 	"context"
@@ -19,14 +19,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_k2cluster")
+var log = logf.Log.WithName("controller_cluster")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new K2Cluster Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new Cluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -34,28 +34,28 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileK2Cluster{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileCluster{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("k2cluster-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("cluster-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource K2Cluster
-	err = c.Watch(&source.Kind{Type: &kubekeyv1alpha1.K2Cluster{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource Cluster
+	err = c.Watch(&source.Kind{Type: &kubekeyv1alpha1.Cluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner K2Cluster
+	// Watch for changes to secondary resource Pods and requeue the owner Cluster
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &kubekeyv1alpha1.K2Cluster{},
+		OwnerType:    &kubekeyv1alpha1.Cluster{},
 	})
 	if err != nil {
 		return err
@@ -64,30 +64,30 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileK2Cluster implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileK2Cluster{}
+// blank assignment to verify that ReconcileCluster implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileCluster{}
 
-// ReconcileK2Cluster reconciles a K2Cluster object
-type ReconcileK2Cluster struct {
+// ReconcileCluster reconciles a Cluster object
+type ReconcileCluster struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a K2Cluster object and makes changes based on the state read
-// and what is in the K2Cluster.Spec
+// Reconcile reads that state of the cluster for a Cluster object and makes changes based on the state read
+// and what is in the Cluster.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
 // a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileK2Cluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling K2Cluster")
+	reqLogger.Info("Reconciling Cluster")
 
-	// Fetch the K2Cluster instance
-	instance := &kubekeyv1alpha1.K2Cluster{}
+	// Fetch the Cluster instance
+	instance := &kubekeyv1alpha1.Cluster{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -103,7 +103,7 @@ func (r *ReconcileK2Cluster) Reconcile(request reconcile.Request) (reconcile.Res
 	// Define a new Pod object
 	pod := newPodForCR(instance)
 
-	// Set K2Cluster instance as the owner and controller
+	// Set Cluster instance as the owner and controller
 	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -130,7 +130,7 @@ func (r *ReconcileK2Cluster) Reconcile(request reconcile.Request) (reconcile.Res
 }
 
 // newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *kubekeyv1alpha1.K2Cluster) *corev1.Pod {
+func newPodForCR(cr *kubekeyv1alpha1.Cluster) *corev1.Pod {
 	labels := map[string]string{
 		"app": cr.Name,
 	}

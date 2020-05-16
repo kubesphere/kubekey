@@ -38,10 +38,10 @@ ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $
     `)))
 )
 
-func GenerateKubeletService(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
+func GenerateKubeletService(cfg *kubekeyapi.ClusterSpec) (string, error) {
 	return util.Render(KubeletServiceTempl, util.Data{})
 }
 
-func GenerateKubeletEnv(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
+func GenerateKubeletEnv(cfg *kubekeyapi.ClusterSpec) (string, error) {
 	return util.Render(KubeletEnvTempl, util.Data{})
 }

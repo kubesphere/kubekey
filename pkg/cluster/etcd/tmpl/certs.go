@@ -160,7 +160,7 @@ mv *.pem ${SSLDIR}/
     `)))
 )
 
-func GenerateEtcdSslCfg(cfg *kubekeyapi.K2ClusterSpec) (string, error) {
+func GenerateEtcdSslCfg(cfg *kubekeyapi.ClusterSpec) (string, error) {
 	dnsList := []string{"localhost", "etcd.kube-system.svc.cluster.local", "etcd.kube-system.svc", "etcd.kube-system", "etcd"}
 	ipList := []string{"127.0.0.1"}
 
