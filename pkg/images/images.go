@@ -38,7 +38,7 @@ func (image *Image) ImageName() string {
 }
 
 func PreDownloadImages(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Pre download images")
+	mgr.Logger.Infoln("Start to download images on all nodes")
 
 	return mgr.RunTaskOnAllNodes(preDownloadImages, true)
 }

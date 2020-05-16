@@ -47,7 +47,7 @@ spec:
     registryMirrors: []
     insecureRegistries: []
 {{- if ne .StorageNum 0 }}
-  stroage:
+  storage:
     defaultStorageClass: {{ .Options.DefaultStorageClass }}
     {{- if .Options.LocalVolumeEnabled }}
     localVolume:
@@ -138,7 +138,7 @@ func GenerateK2ClusterObj(addons, name string) error {
 		out := strings.Split(name, ".")
 		opt.Name = out[0]
 	} else {
-		opt.Name = "demo"
+		opt.Name = "config-sample"
 	}
 	addonsList := strings.Split(addons, ",")
 	for index, addon := range addonsList {
