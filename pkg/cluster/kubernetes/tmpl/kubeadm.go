@@ -94,24 +94,14 @@ kubeReserved:
 systemReserved:
   cpu: 200m
   memory: 250Mi
-EvictionHard:
-  memory.available: "<5%"
-  nodefs.available: "<10%"
-  imagefs.available: "<10%"
-EvictionSoft:
-  memory.available: "10%"
-  nodefs.available: "<15%"
-  imagefs.available: "<15%"
-EvictionSoftGracePeriod: 
+evictionHard:
+  memory.available: 5%
+evictionSoft:
+  memory.available: 10%
+evictionSoftGracePeriod: 
   memory.available: 2m
-  nodefs.available: 2m
-  imagefs.available: 2m
-EvictionMinimumReclaim:
-  memory.available: 0Mi
-  nodefs.available: 500Mi
-  imagefs.available: 500Mi
-EvictionMaxPodGracePeriod: 120
-EvictionPressureTransitionPeriod: 30s
+evictionMaxPodGracePeriod: 120
+evictionPressureTransitionPeriod: 30s
     `)))
 
 func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
