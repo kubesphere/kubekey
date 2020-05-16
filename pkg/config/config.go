@@ -47,7 +47,7 @@ spec:
     registryMirrors: []
     insecureRegistries: []
 {{- if ne .StorageNum 0 }}
-  stroage:
+  storage:
     defaultStorageClass: {{ .Options.DefaultStorageClass }}
     {{- if .Options.LocalVolumeEnabled }}
     localVolume:
