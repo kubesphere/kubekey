@@ -6,6 +6,7 @@ import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
@@ -68,11 +69,23 @@ func InitKubernetesCluster(mgr *manager.Manager) error {
 
 func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if mgr.Runner.Index == 0 && !clusterIsExist {
-		kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr)
-		if err != nil {
-			return err
+
+		var kubeadmCfgBase64 string
+		if util.IsExist(fmt.Sprintf("%s/kubeadm-config.yaml", mgr.WorkDir)) {
+			output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cat %s/kubeadm-config.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
+			if err != nil {
+				fmt.Println(string(output))
+				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to read custom kubeadm config: %s/kubeadm-config.yaml", mgr.WorkDir))
+			}
+			kubeadmCfgBase64 = strings.TrimSpace(string(output))
+		} else {
+			kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr)
+			if err != nil {
+				return err
+			}
+			kubeadmCfgBase64 = base64.StdEncoding.EncodeToString([]byte(kubeadmCfg))
 		}
-		kubeadmCfgBase64 := base64.StdEncoding.EncodeToString([]byte(kubeadmCfg))
+
 		_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes && echo %s | base64 -d > /etc/kubernetes/kubeadm-config.yaml\"", kubeadmCfgBase64))
 		if err1 != nil {
 			return errors.Wrap(errors.WithStack(err1), "Failed to generate kubeadm config")
