@@ -5,7 +5,10 @@ import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
 )
 
 type Executor struct {
@@ -34,6 +37,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.Cluster = defaultCluster
 	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
 	mgr.Connector = ssh.NewConnector()
+	mgr.WorkDir = GenerateWorkDir(executor.logger)
 	mgr.Logger = executor.logger
 	mgr.Verbose = executor.Verbose
 
@@ -58,4 +62,12 @@ func GenerateHosts(hostGroups *kubekeyapi.HostGroups, cfg *kubekeyapi.ClusterSpe
 
 	hostsList = append(hostsList, lbHost)
 	return hostsList
+}
+
+func GenerateWorkDir(logger *log.Logger) string {
+	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		logger.Fatal(errors.Wrap(err, "Faild to get current dir"))
+	}
+	return fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
 }
