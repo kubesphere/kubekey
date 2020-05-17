@@ -19,8 +19,8 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
 		//mgr.Runner.RunCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
-		//out, _ := json.MarshalIndent(mgr.Cluster, "", "  ")
-		//fmt.Println(string(out))
+		//output, _ := json.MarshalIndent(mgr.Cluster, "", "  ")
+		//fmt.Println(string(output))
 		if mgr.Cluster.KubeSphere.Console.Port != 0 {
 			if err := DeployKubeSphereStep(mgr); err != nil {
 				return err

@@ -44,17 +44,17 @@ func FilesDownloadHttp(cfg *kubekeyapi.ClusterSpec, filepath, version string, lo
 	for _, binary := range binaries {
 		logger.Info(fmt.Sprintf("Downloading %s ...", binary.Name))
 		if util.IsExist(binary.Path) == false {
-			if out, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
-				fmt.Println(string(out))
+			if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
+				fmt.Println(string(output))
 				return errors.Wrap(err, "Failed to download kubeadm binary")
 			}
 
-			out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
+			output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
 			}
-			if !strings.Contains(strings.TrimSpace(string(out)), binary.GetSha256()) {
-				return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(out))))
+			if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
+				return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
 			}
 		}
 	}
