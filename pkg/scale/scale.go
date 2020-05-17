@@ -17,8 +17,8 @@ func ScaleCluster(clusterCfgFile string, logger *log.Logger, pkg string, verbose
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	//out, _ := json.MarshalIndent(cfg, "", "  ")
-	//fmt.Println(string(out))
+	//output, _ := json.MarshalIndent(cfg, "", "  ")
+	//fmt.Println(string(output))
 	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
 		return errors.Wrap(err, "Failed to load kube binarys")
 	}

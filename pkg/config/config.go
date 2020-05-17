@@ -135,8 +135,8 @@ func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
 func GenerateClusterObj(addons, name string) error {
 	opt := Options{}
 	if name != "" {
-		out := strings.Split(name, ".")
-		opt.Name = out[0]
+		output := strings.Split(name, ".")
+		opt.Name = output[0]
 	} else {
 		opt.Name = "config-sample"
 	}

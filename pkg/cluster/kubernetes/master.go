@@ -135,8 +135,8 @@ func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if node.IsWorker {
 		addWorkerLabelCmd := fmt.Sprintf("/usr/local/bin/kubectl label node %s node-role.kubernetes.io/worker=", node.Name)
-		out, err := mgr.Runner.RunCmd(addWorkerLabelCmd)
-		if err != nil && !strings.Contains(out, "already") {
+		output, err := mgr.Runner.RunCmd(addWorkerLabelCmd)
+		if err != nil && !strings.Contains(output, "already") {
 			return errors.Wrap(errors.WithStack(err), "Failed to add worker label")
 		}
 	}
@@ -152,12 +152,12 @@ func getJoinNodesCmd(mgr *manager.Manager) error {
 
 func getJoinCmd(mgr *manager.Manager) error {
 	uploadCertsCmd := "/usr/local/bin/kubeadm init phase upload-certs --upload-certs"
-	out, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", uploadCertsCmd))
+	output, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", uploadCertsCmd))
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to upload kubeadm certs")
 	}
 	reg := regexp.MustCompile("[0-9|a-z]{64}")
-	certificateKey := reg.FindAllString(out, -1)[0]
+	certificateKey := reg.FindAllString(output, -1)[0]
 	err1 := PatchKubeadmSecret(mgr)
 	if err1 != nil {
 		return err1
@@ -165,30 +165,30 @@ func getJoinCmd(mgr *manager.Manager) error {
 
 	tokenCreateMasterCmd := fmt.Sprintf("/usr/local/bin/kubeadm token create --print-join-command --certificate-key %s", certificateKey)
 
-	out, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", tokenCreateMasterCmd))
+	output, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", tokenCreateMasterCmd))
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to get join node cmd")
 	}
 
-	joinMasterStrList := strings.Split(out, "kubeadm join")
+	joinMasterStrList := strings.Split(output, "kubeadm join")
 	joinMasterStr := strings.Split(joinMasterStrList[1], certificateKey)
 	clusterStatus["joinMasterCmd"] = fmt.Sprintf("/usr/local/bin/kubeadm join %s %s", joinMasterStr[0], certificateKey)
 
 	joinWorkerStrList := strings.Split(clusterStatus["joinMasterCmd"], "--control-plane")
 	clusterStatus["joinWorkerCmd"] = joinWorkerStrList[0]
 
-	out, err3 := mgr.Runner.RunCmd("/usr/local/bin/kubectl get nodes -o wide")
+	output, err3 := mgr.Runner.RunCmd("/usr/local/bin/kubectl get nodes -o wide")
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to get cluster info")
 	}
-	clusterStatus["clusterInfo"] = out
+	clusterStatus["clusterInfo"] = output
 
 	kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
-	out, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd))
+	output, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd))
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to get cluster kubeconfig")
 	}
-	clusterStatus["kubeConfig"] = out
+	clusterStatus["kubeConfig"] = output
 
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
