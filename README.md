@@ -34,57 +34,18 @@ Please follow the list to prepare environment.
 
 ### Usage
 
-#### Download binary
+#### Get the Installer Excutable File
+
+* Download Binary
 
 ```shell script
 curl -O -k https://kubernetes.pek3b.qingstor.com/tools/kubekey/kk
 chmod +x kk
 ```
 
-#### Deploy a cluster
+or
 
-* allinone
-
-```shell script
-./kk create cluster
-```
-
-* multi-node
-
-```shell script
-# 1. Create an example configuration file by the following command or the docs/config-example.md
-$ ./kk create config      # Only for kubernetes
-$ ./kk create config --add localVolume      # Add plugins (eg: localVolume / nfsClient / localVolume,nfsClient)
-
-# 2. Please fill in the configuration file under the current path (k2cluster-example.yaml) according to the environmental information.
-
-# 3. Deploy cluster
-$ ./kk create cluster -f ./k2cluster-example.yaml
-```
-
-#### Add Nodes
-
-> Add new node's information to the cluster config file, then apply the changes.
-
-```shell script
-./kk scale -f ./k2cluster-example.yaml
-```
-
-#### Reset Cluster
-
-* allinone
-
-```shell script
-./kk reset
-```
-
-* multi-node
-
-```shell script
-./kk reset -f ./k2cluster-example.yaml
-```
-
-## Build
+* Build Binary from Source Code
 
 ```shell script
 git clone https://github.com/kubesphere/kubekey.git
@@ -92,10 +53,60 @@ cd kubekey
 ./build.sh
 ```
 
-**Note:**
+> Note:
+>
+> * Docker needs to be installed before building.
+> * If you have problem to access `https://proxy.golang.org/` in China mainland, excute `build.sh -p` instead.
 
-* Docker needs to be installed before building.
-* If you have problem to access `https://proxy.golang.org/` in China mainland, please open the build.sh to use the Go module proxy in China.
+#### Create a Cluster
+
+##### allinone
+
+* "create cluster" will use the default file config.yaml under the current folder.
+* If the file config.yaml does not exist, the command will create an allinone environemt on the machine itself.
+* You also can specify the file that could be a different filename, or in different folder, or even from a remote repo.
+  * ./kk create cluster -f ~/myfolder/abc.yaml
+  * ./kk create cluster -f https://github.com/kubesphere/kubekey/docs/config-example.md
+
+```shell script
+./kk create cluster
+```
+
+##### multi-node
+
+* Create an example configuration file by the following command. A file named config-sample.yaml with default storage class local volume will be created.
+     You also can specify the file name by adding "-f filename.yaml"
+* You also can specify the storage class by adding --add as follows.
+  * ./kk create config --add nfs    OR
+  * ./kk edit config --add nfs
+* You also can specify the default storage class by
+  * ./kk create config --default-sc localVolume    OR
+  * ./kk edit config --default-sc localVoume
+
+```shell script
+$ ./kk create config
+
+# Now modify the file config-sample.yaml according to your environment.
+
+# create cluster
+$ ./kk create cluster -f config-sample.yaml
+```
+
+#### Add Nodes
+
+Add new node's information to the cluster config file, then apply the changes.
+
+```shell script
+./kk apply -f config-sample.yaml
+```
+
+#### Reset Cluster
+
+You can delete the cluster by the following command
+
+```shell script
+./kk reset [-f cofig-sample.yaml]
+```
 
 ## Road Map
 
