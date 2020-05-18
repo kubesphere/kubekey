@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/reset"
+	"github.com/kubesphere/kubekey/pkg/delete"
 	"github.com/kubesphere/kubekey/pkg/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -13,8 +13,8 @@ func NewCmdResetCluster() *cobra.Command {
 		verbose        bool
 	)
 	var clusterCmd = &cobra.Command{
-		Use:   "reset",
-		Short: "Reset Kubernetes Cluster",
+		Use:   "delete",
+		Short: "Delete Kubernetes Cluster",
 		Run: func(cmd *cobra.Command, args []string) {
 			logger := util.InitLogger(verbose)
 			resetCluster(clusterCfgFile, logger, verbose)
@@ -27,5 +27,5 @@ func NewCmdResetCluster() *cobra.Command {
 }
 
 func resetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) {
-	reset.ResetCluster(clusterCfgFile, logger, verbose)
+	delete.ResetCluster(clusterCfgFile, logger, verbose)
 }

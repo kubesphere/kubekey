@@ -132,7 +132,7 @@ func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
 	})
 }
 
-func GenerateClusterObj(addons, name string) error {
+func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 	opt := Options{}
 	if name != "" {
 		output := strings.Split(name, ".")
@@ -149,11 +149,11 @@ func GenerateClusterObj(addons, name string) error {
 			if index == 0 {
 				opt.DefaultStorageClass = "localVolume"
 			}
-		case "nfsClient":
+		case "nfs":
 			opt.NfsClientEnabled = true
 			opt.StorageNum++
 			if index == 0 {
-				opt.DefaultStorageClass = "nfsClient"
+				opt.DefaultStorageClass = "nfs"
 			}
 		case "kubesphere":
 			opt.KubeSphereEnabled = true
@@ -169,14 +169,23 @@ func GenerateClusterObj(addons, name string) error {
 	}
 	ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterObjStr))
 
-	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return errors.Wrap(err, "Failed to get current dir")
+	if clusterCfgPath != "" {
+		cmd := fmt.Sprintf("echo %s | base64 -d > %s", ClusterObjStrBase64, clusterCfgPath)
+		output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to write config to %s: %s", clusterCfgPath, strings.TrimSpace(string(output))))
+		}
+	} else {
+		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			return errors.Wrap(err, "Failed to get current dir")
+		}
+		cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", ClusterObjStrBase64, currentDir, opt.Name)
+		err1 := exec.Command("/bin/sh", "-c", cmd).Run()
+		if err1 != nil {
+			return err1
+		}
 	}
-	cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", ClusterObjStrBase64, currentDir, opt.Name)
-	err1 := exec.Command("/bin/sh", "-c", cmd).Run()
-	if err1 != nil {
-		return err1
-	}
+
 	return nil
 }
