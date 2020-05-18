@@ -74,11 +74,9 @@ cd kubekey
 
 ##### multi-node
 
-* Create an example configuration file by the following command. A file named config-sample.yaml with default storage class local volume will be created.
-     You also can specify the file name by adding "-f filename.yaml"
+* Create an example configuration file by the following command. A file named config-sample.yaml with default storage class local volume will be created. You also can specify the file name by adding "-f filename.yaml"
 * You also can specify the storage class by adding --add as follows.
-  * ./kk create config --add nfs    OR
-  * ./kk edit config --add nfs
+  * ./kk create config --add nfs
 * The default storage class is the first one you add via command line into the config file which you can modify through editor.
 
 ```shell script
@@ -95,7 +93,7 @@ $ ./kk create cluster -f config-sample.yaml
 Add new node's information to the cluster config file, then apply the changes.
 
 ```shell script
-./kk apply -f config-sample.yaml
+./kk scale -f config-sample.yaml
 ```
 
 #### Reset Cluster
@@ -103,7 +101,7 @@ Add new node's information to the cluster config file, then apply the changes.
 You can delete the cluster by the following command
 
 ```shell script
-./kk reset [-f cofig-sample.yaml]
+./kk delete [-f cofig-sample.yaml]
 ```
 
 ## Road Map
