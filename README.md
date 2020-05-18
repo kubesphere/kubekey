@@ -64,9 +64,9 @@ cd kubekey
 
 * "create cluster" will use the default file config.yaml under the current folder.
 * If the file config.yaml does not exist, the command will create an allinone environemt on the machine itself.
-* You also can specify the file that could be a different filename, or in different folder, or even from a remote repo.
+* You also can specify the file that could be a different filename, or in different folder, or even from a remote repo (This feature currently is not supported).
   * ./kk create cluster -f ~/myfolder/abc.yaml
-  * ./kk create cluster -f https://github.com/kubesphere/kubekey/docs/config-example.md
+  * ./kk create cluster -f <https://github.com/kubesphere/kubekey/docs/config-example.md> # Will supported in next version
 
 ```shell script
 ./kk create cluster
@@ -79,9 +79,7 @@ cd kubekey
 * You also can specify the storage class by adding --add as follows.
   * ./kk create config --add nfs    OR
   * ./kk edit config --add nfs
-* You also can specify the default storage class by
-  * ./kk create config --default-sc localVolume    OR
-  * ./kk edit config --default-sc localVoume
+* The default storage class is the first one you add via command line into the config file which you can modify through editor.
 
 ```shell script
 $ ./kk create config
