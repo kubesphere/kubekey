@@ -1,6 +1,7 @@
-package reset
+package delete
 
 import (
+	"bufio"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/config"
@@ -9,6 +10,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"strings"
 )
 
@@ -45,6 +47,15 @@ func ExecTasks(mgr *manager.Manager) error {
 }
 
 func ResetKubeCluster(mgr *manager.Manager) error {
+	reader := bufio.NewReader(os.Stdin)
+	input, err := Confirm(reader)
+	if err != nil {
+		return err
+	}
+	if input == "no" {
+		os.Exit(0)
+	}
+
 	mgr.Logger.Infoln("Resetting kubernetes cluster ...")
 
 	return mgr.RunTaskOnK8sNodes(resetKubeCluster, true)
@@ -92,4 +103,19 @@ func deleteFiles(mgr *manager.Manager) error {
 		mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"rm -rf %s\"", file))
 	}
 	return nil
+}
+
+func Confirm(reader *bufio.Reader) (string, error) {
+	for {
+		fmt.Printf("Are you sure you want to delete this cluster? [yes/no]: ")
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+		input = strings.TrimSpace(input)
+
+		if input != "" && (input == "yes" || input == "no") {
+			return input, nil
+		}
+	}
 }

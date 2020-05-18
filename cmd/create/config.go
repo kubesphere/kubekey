@@ -6,12 +6,12 @@ import (
 )
 
 func NewCmdCreateCfg() *cobra.Command {
-	var addons, name string
+	var addons, name, clusterCfgPath string
 	var clusterCfgCmd = &cobra.Command{
 		Use:   "config",
 		Short: "Create cluster info configuration file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := config.GenerateClusterObj(addons, name)
+			err := config.GenerateClusterObj(addons, name, clusterCfgPath)
 			if err != nil {
 				return err
 			}
@@ -22,6 +22,7 @@ func NewCmdCreateCfg() *cobra.Command {
 
 	clusterCfgCmd.Flags().StringVarP(&addons, "add", "", "", "Add plugins")
 	clusterCfgCmd.Flags().StringVarP(&name, "name", "", "", "Name of config file")
+	clusterCfgCmd.Flags().StringVarP(&clusterCfgPath, "config", "f", "", "cluster info config")
 	return clusterCfgCmd
 }
 
