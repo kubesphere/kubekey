@@ -6,14 +6,14 @@ metadata:
 spec:
   hosts:
   - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
-  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, password: Qcloud@123}
-  - {name: node3, address: 172.16.0.4, internalAddress: 172.16.0.4, privateKeyPath: "~/.ssh/id_rsa"}
+  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, password: Qcloud@123}  # the default root user
+  - {name: node3, address: 172.16.0.4, internalAddress: 172.16.0.4, privateKeyPath: "~/.ssh/id_rsa"} # password-less login with SSH keys
   roleGroups:
     etcd:
      - node1
-    master: 
+    master:
      - node1
-     - node[2:10]
+     - node[2:10] # the nodes from node2, node3,..., to node10
     worker:
      - node1
      - node[10:100]
@@ -22,7 +22,7 @@ spec:
     address: ""
     port: "6443"
   kubernetes:
-    version: v1.17.4
+    version: v1.17.5
     imageRepo: kubekey
     clusterName: cluster.local
   network:
@@ -87,5 +87,5 @@ spec:
     serviceMesh:
       enabled: false
     metricsServer:
-      enabled: False
+      enabled: false
 ```
