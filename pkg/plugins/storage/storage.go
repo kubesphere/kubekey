@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	ceph_rbd "github.com/kubesphere/kubekey/pkg/plugins/storage/ceph-rbd"
 	local_volume "github.com/kubesphere/kubekey/pkg/plugins/storage/local-volume"
 	nfs_client "github.com/kubesphere/kubekey/pkg/plugins/storage/nfs-client"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -20,13 +21,18 @@ func DeployStoragePlugins(mgr *manager.Manager) error {
 func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
 		mgr.Runner.RunCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
-		if mgr.Cluster.Storage.LocalVolume.StorageClassName != "" {
+		if mgr.Cluster.Storage.LocalVolume.Enabled {
 			if err := DeployLocalVolume(mgr); err != nil {
 				return err
 			}
 		}
-		if mgr.Cluster.Storage.NfsClient.StorageClassName != "" {
+		if mgr.Cluster.Storage.NfsClient.Enabled {
 			if err := DeployNfsClient(mgr); err != nil {
+				return err
+			}
+		}
+		if mgr.Cluster.Storage.CephRBD.Enabled {
+			if err := DeployRBDProvisioner(mgr); err != nil {
 				return err
 			}
 		}
@@ -42,7 +48,7 @@ func DeployLocalVolume(mgr *manager.Manager) error {
 	localVolumeFileBase64 := base64.StdEncoding.EncodeToString([]byte(localVolumeFile))
 	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/local-volume.yaml\"", localVolumeFileBase64))
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to generate local-volume file")
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate local-volume manifests")
 	}
 
 	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/local-volume.yaml")
@@ -72,6 +78,24 @@ func DeployNfsClient(mgr *manager.Manager) error {
 	_, err3 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/usr/local/bin/helm upgrade -i nfs-client /etc/kubernetes/addons/nfs-client-provisioner -f /etc/kubernetes/addons/custom-values-nfs-client.yaml -n kube-system\"")
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to deploy nfs-client-provisioner")
+	}
+	return nil
+}
+
+func DeployRBDProvisioner(mgr *manager.Manager) error {
+	RBDProvisionerFile, err := ceph_rbd.GenerateRBDProvisionerManifests(mgr)
+	if err != nil {
+		return err
+	}
+	RBDProvisionerFileBase64 := base64.StdEncoding.EncodeToString([]byte(RBDProvisionerFile))
+	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/rbd-provisioner.yaml\"", RBDProvisionerFileBase64))
+	if err1 != nil {
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate rbd-provisioner manifests")
+	}
+
+	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/rbd-provisioner.yaml -n kube-system")
+	if err2 != nil {
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy rbd-provisioner.yaml")
 	}
 	return nil
 }

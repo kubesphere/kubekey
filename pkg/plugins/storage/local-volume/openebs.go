@@ -1,6 +1,7 @@
 package local_volume
 
 import (
+	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -16,7 +17,7 @@ metadata:
   name: {{ .LocalVolume.StorageClassName }}
   annotations:
     storageclass.kubesphere.io/supported_access_modes: '["ReadWriteOnce"]'
-    storageclass.beta.kubernetes.io/is-default-class: "true"
+    storageclass.beta.kubernetes.io/is-default-class: "{{ if .LocalVolume.IsDefaultClass }}true{{ else }}false{{ end }}"
     openebs.io/cas-type: local
     cas.openebs.io/config: |
       - name: StorageType
@@ -170,7 +171,7 @@ spec:
       hostNetwork: true
       containers:
         - name: node-disk-manager
-          image: kubesphere/node-disk-manager-amd64:v0.4.1
+          image: {{ .NodeDiskManagerImage }}
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
@@ -260,7 +261,7 @@ spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: node-disk-operator
-          image: kubesphere/node-disk-operator-amd64:v0.4.1
+          image: {{ .NodeDiskOperatorImage }}
           imagePullPolicy: IfNotPresent
           readinessProbe:
             exec:
@@ -282,7 +283,7 @@ spec:
             - name: OPERATOR_NAME
               value: "node-disk-operator"
             - name: CLEANUP_JOB_IMAGE
-              value: kubesphere/linux-utils:3.9
+              value: {{ .LinuxUtilsImage }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -312,7 +313,7 @@ spec:
       containers:
         - name: openebs-localpv-provisioner
           imagePullPolicy: IfNotPresent
-          image: kubesphere/provisioner-localpv:1.1.0
+          image: {{ .ProvisionerLocalPVImage }}
           env:
             - name: NODE_NAME
               valueFrom:
@@ -325,7 +326,7 @@ spec:
             - name: OPENEBS_IO_ENABLE_ANALYTICS
               value: "true"
             - name: OPENEBS_IO_HELPER_IMAGE
-              value: kubesphere/openebs-tools:3.8
+              value: {{ .OpenebsToolsImage }}
             - name: OPENEBS_IO_INSTALLER_TYPE
               value: "openebs-operator-lite"
           livenessProbe:
@@ -339,6 +340,11 @@ spec:
 
 func GenerateOpenebsManifests(mgr *manager.Manager) (string, error) {
 	return util.Render(OpenebsTempl, util.Data{
-		"LocalVolume": mgr.Cluster.Storage.LocalVolume,
+		"LocalVolume":             mgr.Cluster.Storage.LocalVolume,
+		"ProvisionerLocalPVImage": images.GetImage(mgr, "provisioner-localpv").ImageName(),
+		"OpenebsToolsImage":       images.GetImage(mgr, "openebs-tools").ImageName(),
+		"NodeDiskManagerImage":    images.GetImage(mgr, "node-disk-manager-amd64").ImageName(),
+		"NodeDiskOperatorImage":   images.GetImage(mgr, "node-disk-operator-amd64").ImageName(),
+		"LinuxUtilsImage":         images.GetImage(mgr, "linux-utils").ImageName(),
 	})
 }
