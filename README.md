@@ -2,6 +2,12 @@
 
 Since v3.0, KubeSphere changes the ansible-based installer to the new installer called KubeKey that is developed in Go language. With KubeKey, you can install Kubernetes and KubeSphere separately or as a whole easily, efficiently and flexibly.
 
+There are three scenarios to use KubeKey.
+
+* Install Kubernetes only
+* Install Kubernetes and KubeSphere together in one command
+* Install Kubernetes first, then deploy KubeSphere on it using [ks-installer](https://github.com/kubesphere/ks-installer)
+
 ## Motivation
 
 * Ansible-based installer has a bunch of software dependency such as Python. KubeKey is developed in Go language to get rid of the problem in a variety of environment so that increasing the success rate of installation.
@@ -13,7 +19,7 @@ Since v3.0, KubeSphere changes the ansible-based installer to the new installer 
 
 ### Prepare
 
-Please follow the list to prepare environment.
+Please follow the prerequisites below to prepare environment.
 
 #### Supported Linux Distributions
 
@@ -62,19 +68,19 @@ cd kubekey
 
 ##### allinone
 
-* "create cluster" will use the default file config.yaml under the current folder.
-* If the file config.yaml does not exist, the command will create an allinone environemt on the machine itself.
+* `./kk create cluster` will use the default file `config.yaml` under the current folder.
+* If the file `config.yaml` does not exist, the command will create an allinone environemt on the machine itself. In addition, `./kk create cluster` will create Kubernetes only, while `./kk create cluster -a` will create Kubernetes and KubeSphere. Please using `./kk version` to check the built-in versions of them.
 * You also can specify the file that could be a different filename, or in different folder, or even from a remote repo (This feature currently is not supported).
   * ./kk create cluster -f ~/myfolder/abc.yaml
   * ./kk create cluster -f <https://github.com/kubesphere/kubekey/docs/config-example.md> # Will supported in next version
 
 ```shell script
-./kk create cluster
+./kk create cluster -a
 ```
 
 ##### multi-node
 
-* Create an example configuration file by the following command. A file named config-sample.yaml with default storage class local volume will be created. You also can specify the file name by adding "-f filename.yaml"
+* Create an example configuration file by the following command. A file named `config-sample.yaml` with default storage class local volume will be created. You also can specify the file name by adding `-f filename.yaml`
 * You also can specify the storage class by adding --add as follows.
   * ./kk create config --add nfs
 * The default storage class is the first one you add via command line into the config file which you can modify through editor.
@@ -84,7 +90,7 @@ $ ./kk create config
 
 # Now modify the file config-sample.yaml according to your environment.
 
-# create cluster
+# create cluster. If the KubeSphere info is in the config file, the following command will create a cluster with Kubernetes and KubeSphere.
 $ ./kk create cluster -f config-sample.yaml
 ```
 
@@ -96,12 +102,12 @@ Add new node's information to the cluster config file, then apply the changes.
 ./kk scale -f config-sample.yaml
 ```
 
-#### Reset Cluster
+#### Delete Cluster
 
 You can delete the cluster by the following command
 
 ```shell script
-./kk delete [-f cofig-sample.yaml]
+./kk delete [-f config-sample.yaml]
 ```
 
 ## Road Map
