@@ -37,6 +37,26 @@ func (image *Image) ImageName() string {
 	return fmt.Sprintf("%s%s:%s", prefix, image.Repo, image.Tag)
 }
 
+func (image *Image) ImageRepo() string {
+	var prefix string
+
+	if image.RepoAddr == "" {
+		if image.Namespace == "" {
+			prefix = ""
+		} else {
+			prefix = fmt.Sprintf("%s/", image.Namespace)
+		}
+	} else {
+		if image.Namespace == "" {
+			prefix = fmt.Sprintf("%s/library/", image.RepoAddr)
+		} else {
+			prefix = fmt.Sprintf("%s/%s/", image.RepoAddr, image.Namespace)
+		}
+	}
+
+	return fmt.Sprintf("%s%s", prefix, image.Repo)
+}
+
 func PreDownloadImages(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Start to download images on all nodes")
 

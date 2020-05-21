@@ -1,6 +1,7 @@
 package nfs_client
 
 import (
+	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -16,8 +17,8 @@ replicaCount: 1
 strategyType: Recreate
 
 image:
-  repository: kubesphere/nfs-client-provisioner
-  tag: v3.1.0-k8s1.11
+  repository: {{ .NfsClientProvisionerRepo }}
+  tag: {{ .NfsClientProvisionerTag }}
   pullPolicy: IfNotPresent
 
 nfs:
@@ -91,6 +92,8 @@ affinity: {}
 
 func GenerateNfsClientValuesFile(mgr *manager.Manager) (string, error) {
 	return util.Render(NfsClientTempl, util.Data{
-		"NfsClient": mgr.Cluster.Storage.NfsClient,
+		"NfsClient":                mgr.Cluster.Storage.NfsClient,
+		"NfsClientProvisionerRepo": images.GetImage(mgr, "nfs-client-provisioner").ImageRepo(),
+		"NfsClientProvisionerTag":  images.GetImage(mgr, "nfs-client-provisioner").Tag,
 	})
 }

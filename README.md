@@ -82,7 +82,7 @@ cd kubekey
 
 * Create an example configuration file by the following command. A file named `config-sample.yaml` with default storage class local volume will be created. You also can specify the file name by adding `-f filename.yaml`
 * You also can specify the storage class by adding --add as follows.
-  * ./kk create config --add nfs
+  * ./kk create config --add nfsClient
 * The default storage class is the first one you add via command line into the config file which you can modify through editor.
 
 ```shell script

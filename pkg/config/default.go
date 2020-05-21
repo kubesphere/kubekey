@@ -38,24 +38,10 @@ func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubeke
 		}
 	}
 
-	//defaultCluster := SetDefaultCluster(&clusterCfg)
-	//return defaultCluster, nil
-
 	//output, _ := json.MarshalIndent(&clusterCfg, "", "  ")
 	//fmt.Println(string(output))
 	return &clusterCfg, nil
 }
-
-//func SetDefaultCluster(obj *kubekeyapi.Cluster) *kubekeyapi.Cluster {
-//	//fmt.Println(obj)
-//	output, _ := json.MarshalIndent(obj, "", "  ")
-//	fmt.Println(string(output))
-//	defaultCluster := &kubekeyapi.Cluster{}
-//	defaultCluster.APIVersion = obj.APIVersion
-//	defaultCluster.Kind = obj.APIVersion
-//	defaultCluster.Spec = SetDefaultClusterSpec(&obj.Spec)
-//	return defaultCluster
-//}
 
 func AllinoneCfg(user *user.User, addons string) kubekeyapi.Cluster {
 	allinoneCfg := kubekeyapi.Cluster{}
@@ -88,7 +74,7 @@ func AllinoneCfg(user *user.User, addons string) kubekeyapi.Cluster {
 			switch strings.TrimSpace(addon) {
 			case "kubesphere":
 				allinoneCfg.Spec.Storage = kubekeyapi.Storage{
-					DefaultStorageClass: "localVolume",
+					DefaultStorageClass: "local",
 					LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
 				}
 				allinoneCfg.Spec.KubeSphere = kubekeyapi.KubeSphere{
