@@ -5,6 +5,7 @@ import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	ceph_rbd "github.com/kubesphere/kubekey/pkg/plugins/storage/ceph-rbd"
+	"github.com/kubesphere/kubekey/pkg/plugins/storage/glusterfs"
 	local_volume "github.com/kubesphere/kubekey/pkg/plugins/storage/local-volume"
 	nfs_client "github.com/kubesphere/kubekey/pkg/plugins/storage/nfs-client"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -33,6 +34,11 @@ func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn s
 		}
 		if mgr.Cluster.Storage.CephRBD.Enabled {
 			if err := DeployRBDProvisioner(mgr); err != nil {
+				return err
+			}
+		}
+		if mgr.Cluster.Storage.GlusterFS.Enabled {
+			if err := DeployGlusterFS(mgr); err != nil {
 				return err
 			}
 		}
@@ -96,6 +102,24 @@ func DeployRBDProvisioner(mgr *manager.Manager) error {
 	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/rbd-provisioner.yaml -n kube-system")
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy rbd-provisioner.yaml")
+	}
+	return nil
+}
+
+func DeployGlusterFS(mgr *manager.Manager) error {
+	glusterfsFile, err := glusterfs.GenerateGlusterFSManifests(mgr)
+	if err != nil {
+		return err
+	}
+	glusterfsFileBase64 := base64.StdEncoding.EncodeToString([]byte(glusterfsFile))
+	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/glusterfs.yaml\"", glusterfsFileBase64))
+	if err1 != nil {
+		return errors.Wrap(errors.WithStack(err1), "Failed to generate glusterfs manifests")
+	}
+
+	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/glusterfs.yaml -n kube-system")
+	if err2 != nil {
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy glusterfs.yaml")
 	}
 	return nil
 }
