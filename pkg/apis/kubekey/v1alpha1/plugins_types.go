@@ -2,8 +2,8 @@ package v1alpha1
 
 type Storage struct {
 	DefaultStorageClass string      `yaml:"defaultStorageClass" json:"defaultStorageClass,omitempty"`
-	LocalVolume         LocalVolume `yaml:"local" json:"locaVolume,omitempty"`
-	NfsClient           NfsClient   `yaml:"nfs" json:"nfs,omitempty"`
+	LocalVolume         LocalVolume `yaml:"localVolume" json:"locaVolume,omitempty"`
+	NfsClient           NfsClient   `yaml:"nfsClient" json:"nfs,omitempty"`
 	GlusterFS           GlusterFS   `yaml:"glusterfs" json:"glusterfs,omitempty"`
 	CephRBD             CephRBD     `yaml:"rbd" json:"rbd,omitempty"`
 }

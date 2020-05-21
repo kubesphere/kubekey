@@ -36,7 +36,7 @@ func GetImage(mgr *manager.Manager, name string) *Image {
 		"node-disk-manager-amd64":  {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-manager-amd64", Tag: "v0.4.1", Group: Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
 		"node-disk-operator-amd64": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-operator-amd64", Tag: "v0.4.1", Group: Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
 		"linux-utils":              {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "linux-utils", Tag: "3.9", Group: Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
-		"rbd-provisioner":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v0.1.0", Group: Worker, Enable: mgr.Cluster.Storage.CephRBD.Enabled},
+		"rbd-provisioner":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: Worker, Enable: mgr.Cluster.Storage.CephRBD.Enabled},
 		"nfs-client-provisioner":   {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: Worker, Enable: mgr.Cluster.Storage.NfsClient.Enabled},
 	}
 

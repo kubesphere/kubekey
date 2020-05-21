@@ -12,64 +12,11 @@ import (
 
 var RBDProvisionerTempl = template.Must(template.New("rbd-provisioner").Parse(
 	dedent.Dedent(`---
-kind: Secret
-apiVersion: v1
-metadata:
-  name: ceph-rbd-{{ .AdminID }}-secret
-  namespace: kube-system
-type: "kubernetes.io/rbd" 
-data:
-  secret: {{ .AdminSecret }}
-
----
-kind: Secret
-apiVersion: v1
-metadata:
-  name: ceph-rbd-user-secret
-  namespace: kube-system
-type: "kubernetes.io/rbd" 
-data:
-  secret: {{ .UserSecret }}
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: rbd-provisioner
-  namespace: kube-system
-
----
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: rbd-provisioner
-rules:
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["get"]
-- apiGroups: [""]
-  resources: ["endpoints"]
-  verbs: ["get", "list", "watch", "create", "update", "patch"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: rbd-provisioner
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: rbd-provisioner
-subjects:
-- kind: ServiceAccount
-  name: rbd-provisioner
-  namespace: kube-system
-
----
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: rbd-provisioner
+  namespace: kube-system
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -88,12 +35,16 @@ rules:
     resourceNames: ["kube-dns","coredns"]
     verbs: ["list", "get"]
   - apiGroups: [""]
-    resources: ["endpoints"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
+    resources: ["secrets"]
+    verbs: ["get", "create", "delete"]
+  - apiGroups: ["policy"]
+    resourceNames: ["rbd-provisioner"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
 
 ---
-kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
 metadata:
   name: rbd-provisioner
 subjects:
@@ -111,48 +62,163 @@ kind: Deployment
 metadata:
   name: rbd-provisioner
   namespace: kube-system
+  labels:
+    app: rbd-provisioner
+    version: v2.1.1-k8s1.11
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: rbd-provisioner
-  strategy:
-    type: Recreate
+      version: v2.1.1-k8s1.11
   template:
     metadata:
       labels:
         app: rbd-provisioner
+        version: v2.1.1-k8s1.11
     spec:
-      containers:
-      - name: rbd-provisioner
-        image: {{ .RBDProvisionerImage }}
-        env:
-        - name: PROVISIONER_NAME
-          value: ceph.com/rbd
+      priorityClassName: system-cluster-critical
       serviceAccount: rbd-provisioner
+      containers:
+        - name: rbd-provisioner
+          image: {{ .RBDProvisionerImage }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PROVISIONER_NAME
+              value: ceph.com/rbd
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command:
+            - "/usr/local/bin/rbd-provisioner"
+          args:
+            - "-id=${POD_NAME}"
 
 ---
-kind: StorageClass
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: rbd-provisioner
+  annotations:
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+    #apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+    #apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: rbd-provisioner
+    namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rbd-provisioner
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+
+---
 apiVersion: storage.k8s.io/v1
+kind: StorageClass
 metadata:
   name: {{ .StorageClassName }}
   annotations:
     storageclass.kubesphere.io/supported_access_modes: '["ReadWriteOnce","ReadOnlyMany"]'
     storageclass.beta.kubernetes.io/is-default-class: "{{ if .IsDefaultClass }}true{{ else }}false{{ end }}"
 provisioner: ceph.com/rbd
+reclaimPolicy: Delete
 parameters:
   monitors: {{ .Monitors}}
   adminId: {{ .AdminID }}
-  adminSecretName: ceph-rbd-{{ .AdminID }}-secret
   adminSecretNamespace: kube-system
+  adminSecretName: ceph-secret-admin
   pool: {{ .Pool }}
   userId: {{ .UserID }}
-  userSecretName: ceph-rbd-user-secret
   userSecretNamespace: kube-system
+  userSecretName: ceph-secret-user
   fsType: {{ .FsType }}
   imageFormat: "{{ .ImageFormat }}"
-  {{- if eq .ImageFormat 2 }}imageFeatures: "{{ .ImageFeatures }}"{{ end }}
+  {{ if eq .ImageFormat 2 }}imageFeatures: "{{ .ImageFeatures }}"{{ end }}
 allowVolumeExpansion: true
+
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: ceph-secret-admin
+  namespace: kube-system
+type: kubernetes.io/rbd
+data:
+  secret: {{ .AdminSecret }}
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: ceph-secret-user
+  namespace: kube-system
+type: kubernetes.io/rbd
+data:
+  key: {{ .UserSecret }}
+
     `)))
 
 func GenerateRBDProvisionerManifests(mgr *manager.Manager) (string, error) {
@@ -167,7 +233,7 @@ func GenerateRBDProvisionerManifests(mgr *manager.Manager) (string, error) {
 		"FsType":              mgr.Cluster.Storage.CephRBD.FsType,
 		"ImageFormat":         mgr.Cluster.Storage.CephRBD.ImageFormat,
 		"ImageFeatures":       mgr.Cluster.Storage.CephRBD.ImageFeatures,
-		"AdminSecret":         base64.URLEncoding.EncodeToString([]byte(strings.TrimSpace(mgr.Cluster.Storage.CephRBD.AdminSecret))),
-		"UserSecret":          base64.URLEncoding.EncodeToString([]byte(strings.TrimSpace(mgr.Cluster.Storage.CephRBD.UserSecret))),
+		"AdminSecret":         base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(mgr.Cluster.Storage.CephRBD.AdminSecret))),
+		"UserSecret":          base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(mgr.Cluster.Storage.CephRBD.UserSecret))),
 	})
 }

@@ -50,11 +50,11 @@ spec:
   storage:
     defaultStorageClass: {{ .Options.DefaultStorageClass }}
     {{- if .Options.LocalVolumeEnabled }}
-    local:
+    localVolume:
       storageClassName: local
     {{- end }}
     {{- if .Options.NfsClientEnabled }}
-    nfs:
+    nfsClient:
       storageClassName: nfs-client
       # Hostname of the NFS server(ip or hostname)
       nfsServer: SHOULD_BE_REPLACED
@@ -83,7 +83,7 @@ spec:
       userSecret: TYPE_USER_SECRET_HERE
       pool: rbd
       fsType: ext4
-      imageFormat: 1
+      imageFormat: 2
       imageFeatures: layering
     {{- end }}
     {{- if .Options.GlusterFSEnabled }}
@@ -192,7 +192,7 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 			if index == 0 {
 				opt.DefaultStorageClass = "localVolume"
 			}
-		case "nfs":
+		case "nfsClient":
 			opt.NfsClientEnabled = true
 			opt.StorageNum++
 			if index == 0 {
