@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
@@ -36,7 +37,7 @@ spec:
     address: ""
     port: "6443"
   kubernetes:
-    version: v1.17.5
+    version: {{ .KubeVersion }}
     imageRepo: kubesphere
     clusterName: cluster.local
   network:
@@ -170,8 +171,9 @@ type Options struct {
 
 func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
 	return util.Render(ClusterObjTempl, util.Data{
-		"StorageNum": storageNum,
-		"Options":    opt,
+		"StorageNum":  storageNum,
+		"KubeVersion": kubekeyapi.DefaultKubeVersion,
+		"Options":     opt,
 	})
 }
 
@@ -186,7 +188,7 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 	addonsList := strings.Split(addons, ",")
 	for index, addon := range addonsList {
 		switch strings.TrimSpace(addon) {
-		case "local":
+		case "localVolume":
 			opt.LocalVolumeEnabled = true
 			opt.StorageNum++
 			if index == 0 {
@@ -196,7 +198,7 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 			opt.NfsClientEnabled = true
 			opt.StorageNum++
 			if index == 0 {
-				opt.DefaultStorageClass = "nfs"
+				opt.DefaultStorageClass = "nfsClient"
 			}
 		case "rbd":
 			opt.CephRBDEnabled = true

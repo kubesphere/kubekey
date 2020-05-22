@@ -20,7 +20,7 @@ const (
 	DefaultEtcdRepo       = "kubesphere"
 	DefaultEtcdVersion    = "v3.3.12"
 	DefaultEtcdPort       = "2379"
-	DefaultKubeVersion    = "v1.17.5"
+	DefaultKubeVersion    = "v1.17.6"
 	DefaultCalicoVersion  = "v3.13.0"
 	DefaultFlannelVersion = "v0.11.0"
 	DefaultCniVersion     = "v0.8.6"
@@ -143,9 +143,9 @@ func SetDefaultStorageCfg(cfg *ClusterSpec) Storage {
 
 	if cfg.Storage.DefaultStorageClass != "" {
 		switch cfg.Storage.DefaultStorageClass {
-		case "local":
+		case "localVolume":
 			cfg.Storage.LocalVolume.IsDefaultClass = true
-		case "nfs":
+		case "nfsClient":
 			cfg.Storage.NfsClient.IsDefaultClass = true
 		case "rbd":
 			cfg.Storage.CephRBD.IsDefaultClass = true
