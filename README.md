@@ -41,7 +41,7 @@ There are three scenarios to use KubeKey.
   > /var/lib/docker is mainly used to store the container data, and will gradually increase in size during use and operation. In the case of a production environment, it is recommended that /var/lib/docker mounts a drive separately.
 
 * OS requirements:
-  * `SSH` can access to all nodes
+  * `SSH` can access to all nodes.
   *  `sudo` and `curl` can be used in all nodes.
   * `ebtables`/`socat`/`ipset`/`conntrack` should be installed on all nodes.
   * The [relevant client](./docs/storage-client.md) should be installed on all nodes, if NFS / Ceph / GlusterFS is used as persistent storage.
