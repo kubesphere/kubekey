@@ -39,6 +39,7 @@ There are three scenarios to use KubeKey.
   * 20 GB Storage
                                                                                                                        
   > /var/lib/docker is mainly used to store the container data, and will gradually increase in size during use and operation. In the case of a production environment, it is recommended that /var/lib/docker mounts a drive separately.
+
 * OS requirements:
   * `SSH` can access to all nodes
   *  `sudo` and `curl` can be used in all nodes.
