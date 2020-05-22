@@ -17,22 +17,36 @@ apt install ceph-common
 yum install ceph-common  
 ```
 ## GlusterFS
+
+  * The following kernel modules must be loaded:
+  
+      1. dm_snapshot
+      2. dm_mirror
+      3. dm_thin_pool
+     
+      For kernel modules, `lsmod | grep <name>` will show you if a given module is present, and `modprobe <name>` will load 
+      a given  module.
+
+ * Each node requires that the `mount.glusterfs` command is available. 
+  
+ * GlusterFS client version installed on nodes should be as close as possible to the version of the server.
+ * Take `glusterfs 7.x` as an example.
 ```shell script
 # Debian
-wget -O - https://download.gluster.org/pub/gluster/glusterfs/01.old-releases/3.12/rsa.pub | apt-key add -
-DEBID=$(grep 'VERSION_ID=' /etc/os-release | cut -d '=' -f 2 | tr -d '"') &&
-DEBVER=$(grep 'VERSION=' /etc/os-release | grep -Eo '[a-z]+') &&
-DEBARCH=$(dpkg --print-architecture) &&
-echo deb https://download.gluster.org/pub/gluster/glusterfs/01.old-releases/3.12/LATEST/Debian/${DEBID}/${DEBARCH}/apt ${DEBVER} main > /etc/apt/sources.list.d/gluster.list
+wget -O - https://download.gluster.org/pub/gluster/glusterfs/7/rsa.pub | apt-key add -
+DEBID=$(grep 'VERSION_ID=' /etc/os-release | cut -d '=' -f 2 | tr -d '"')
+DEBVER=$(grep 'VERSION=' /etc/os-release | grep -Eo '[a-z]+')
+DEBARCH=$(dpkg --print-architecture)
+echo deb https://download.gluster.org/pub/gluster/glusterfs/LATEST/Debian/${DEBID}/${DEBARCH}/apt ${DEBVER} main > /etc/apt/sources.list.d/gluster.list
 apt update
 apt install glusterfs-client
 
 # Ubuntu
 apt install software-properties-common
-add-apt-repository ppa:gluster/glusterfs-3.12
+add-apt-repository ppa:gluster/glusterfs-7
 apt update
-apt install glusterfs-server
+apt install glusterfs-client
 
 # Centos / Redhat
-yum install glusterfs-client 
+yum install glusterfs-fuse
 ```
