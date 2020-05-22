@@ -69,13 +69,13 @@ cd kubekey
 ##### allinone
 
 * `./kk create cluster` will use the default file `config.yaml` under the current folder.
-* If the file `config.yaml` does not exist, the command will create an allinone environemt on the machine itself. In addition, `./kk create cluster` will create Kubernetes only, while `./kk create cluster -a` will create Kubernetes and KubeSphere. Please using `./kk version` to check the built-in versions of them.
+* If the file `config.yaml` does not exist, the command will create an allinone environemt on the machine itself. In addition, `./kk create cluster` will create Kubernetes only, while `./kk create cluster --all` will create Kubernetes and KubeSphere. Please using `./kk version` to check the built-in versions of them.
 * You also can specify the file that could be a different filename, or in different folder, or even from a remote repo (This feature currently is not supported).
   * ./kk create cluster -f ~/myfolder/abc.yaml
   * ./kk create cluster -f <https://github.com/kubesphere/kubekey/docs/config-example.md> # Will supported in next version
 
 ```shell script
-./kk create cluster -a
+./kk create cluster --all
 ```
 
 ##### multi-node

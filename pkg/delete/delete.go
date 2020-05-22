@@ -15,7 +15,7 @@ import (
 )
 
 func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, "", logger)
+	cfg, err := config.ParseClusterCfg(clusterCfgFile, false, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}

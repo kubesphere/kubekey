@@ -176,19 +176,15 @@ func getJoinCmd(mgr *manager.Manager) error {
 		return err1
 	}
 
-	tokenCreateMasterCmd := fmt.Sprintf("/usr/local/bin/kubeadm token create --print-join-command --certificate-key %s", certificateKey)
-
+	tokenCreateMasterCmd := "/usr/local/bin/kubeadm token create --print-join-command"
 	output, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", tokenCreateMasterCmd))
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to get join node cmd")
 	}
 
-	joinMasterStrList := strings.Split(output, "kubeadm join")
-	joinMasterStr := strings.Split(joinMasterStrList[1], certificateKey)
-	clusterStatus["joinMasterCmd"] = fmt.Sprintf("/usr/local/bin/kubeadm join %s %s", joinMasterStr[0], certificateKey)
-
-	joinWorkerStrList := strings.Split(clusterStatus["joinMasterCmd"], "--control-plane")
-	clusterStatus["joinWorkerCmd"] = joinWorkerStrList[0]
+	joinWorkerStrList := strings.Split(output, "kubeadm join")
+	clusterStatus["joinWorkerCmd"] = fmt.Sprintf("/usr/local/bin/kubeadm join %s", joinWorkerStrList[1])
+	clusterStatus["joinMasterCmd"] = fmt.Sprintf("%s --control-plane --certificate-key %s", clusterStatus["joinWorkerCmd"], certificateKey)
 
 	output, err3 := mgr.Runner.RunCmd("/usr/local/bin/kubectl get nodes -o wide")
 	if err3 != nil {

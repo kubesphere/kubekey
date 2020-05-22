@@ -17,8 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateCluster(clusterCfgFile string, logger *log.Logger, addons, pkg string, verbose bool) error {
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, addons, logger)
+func CreateCluster(clusterCfgFile string, logger *log.Logger, all, verbose bool) error {
+	cfg, err := config.ParseClusterCfg(clusterCfgFile, all, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}

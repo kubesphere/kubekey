@@ -9,8 +9,8 @@ import (
 func NewCmdScaleCluster() *cobra.Command {
 	var (
 		clusterCfgFile string
-		pkgDir         string
-		verbose        bool
+		//pkgDir         string
+		verbose bool
 	)
 	var clusterCmd = &cobra.Command{
 		Use:   "apply",
@@ -18,12 +18,12 @@ func NewCmdScaleCluster() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := util.InitLogger(verbose)
 			//return scale.ScaleCluster(clusterCfgFile, logger, pkgDir, Verbose)
-			return install.CreateCluster(clusterCfgFile, logger, "", pkgDir, verbose)
+			return install.CreateCluster(clusterCfgFile, logger, false, verbose)
 		},
 	}
 
-	clusterCmd.Flags().StringVarP(&clusterCfgFile, "config", "f", "", "")
-	clusterCmd.Flags().StringVarP(&pkgDir, "pkg", "", "", "release package (offline)")
+	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "configuration file name")
+	//clusterCmd.Flags().StringVarP(&pkgDir, "pkg", "", "", "release package (offline)")
 	clusterCmd.Flags().BoolVarP(&verbose, "debug", "", true, "")
 	return clusterCmd
 }
