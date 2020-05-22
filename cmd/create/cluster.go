@@ -9,22 +9,23 @@ import (
 func NewCmdCreateCluster() *cobra.Command {
 	var (
 		clusterCfgFile string
-		addons         string
-		pkgDir         string
-		verbose        bool
+		//addons         string
+		//pkgDir         string
+		verbose bool
+		all     bool
 	)
 	var clusterCmd = &cobra.Command{
 		Use:   "cluster",
 		Short: "Create Kubernetes Cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := util.InitLogger(verbose)
-			return install.CreateCluster(clusterCfgFile, logger, addons, pkgDir, verbose)
+			return install.CreateCluster(clusterCfgFile, logger, all, verbose)
 		},
 	}
 
-	clusterCmd.Flags().StringVarP(&clusterCfgFile, "config", "f", "", "cluster info config")
-	clusterCmd.Flags().StringVarP(&addons, "add", "", "", "add plugins")
-	clusterCmd.Flags().StringVarP(&pkgDir, "pkg", "", "", "release package (offline)")
+	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "configuration file name")
+	//clusterCmd.Flags().StringVarP(&pkgDir, "pkg", "", "", "release package (offline)")
 	clusterCmd.Flags().BoolVarP(&verbose, "debug", "", true, "debug info")
+	clusterCmd.Flags().BoolVarP(&all, "all", "", false, "deploy kubernetes and kubesphere")
 	return clusterCmd
 }

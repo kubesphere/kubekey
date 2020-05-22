@@ -11,10 +11,9 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"strings"
 )
 
-func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubekeyapi.Cluster, error) {
+func ParseClusterCfg(clusterCfgPath string, all bool, logger *log.Logger) (*kubekeyapi.Cluster, error) {
 	clusterCfg := kubekeyapi.Cluster{}
 
 	if len(clusterCfgPath) == 0 {
@@ -22,7 +21,7 @@ func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubeke
 		if user.Name != "root" {
 			return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
 		}
-		clusterCfg = AllinoneCfg(user, addons)
+		clusterCfg = AllinoneCfg(user, all)
 	} else {
 		fp, err := filepath.Abs(clusterCfgPath)
 		if err != nil {
@@ -43,7 +42,7 @@ func ParseClusterCfg(clusterCfgPath, addons string, logger *log.Logger) (*kubeke
 	return &clusterCfg, nil
 }
 
-func AllinoneCfg(user *user.User, addons string) kubekeyapi.Cluster {
+func AllinoneCfg(user *user.User, all bool) kubekeyapi.Cluster {
 	allinoneCfg := kubekeyapi.Cluster{}
 	if err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").Run(); err != nil {
 		log.Fatalf("Failed to generate public key: %v", err)
@@ -68,68 +67,60 @@ func AllinoneCfg(user *user.User, addons string) kubekeyapi.Cluster {
 		Worker: []string{"ks-allinone"},
 	}
 
-	addonsList := strings.Split(addons, ",")
-	if len(addonsList) != 0 {
-		for _, addon := range addonsList {
-			switch strings.TrimSpace(addon) {
-			case "kubesphere":
-				allinoneCfg.Spec.Storage = kubekeyapi.Storage{
-					DefaultStorageClass: "local",
-					LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
-				}
-				allinoneCfg.Spec.KubeSphere = kubekeyapi.KubeSphere{
-					Console: kubekeyapi.Console{
-						EnableMultiLogin: false,
-						Port:             30880,
-					},
-					Common: kubekeyapi.Common{
-						MysqlVolumeSize:    "20Gi",
-						MinioVolumeSize:    "20Gi",
-						EtcdVolumeSize:     "20Gi",
-						OpenldapVolumeSize: "2Gi",
-						RedisVolumSize:     "2Gi",
-					},
-					Openpitrix: kubekeyapi.Openpitrix{Enabled: false},
-					Monitoring: kubekeyapi.Monitoring{
-						PrometheusReplicas:      1,
-						PrometheusMemoryRequest: "400Mi",
-						PrometheusVolumeSize:    "20Gi",
-						Grafana:                 kubekeyapi.Grafana{Enabled: false},
-					},
-					Logging: kubekeyapi.Logging{
-						Enabled:                       false,
-						ElasticsearchMasterReplicas:   1,
-						ElasticsearchDataReplicas:     1,
-						LogsidecarReplicas:            2,
-						ElasticsearchMasterVolumeSize: "4Gi",
-						ElasticsearchDataVolumeSize:   "20Gi",
-						LogMaxAge:                     7,
-						ElkPrefix:                     "logstash",
-						Kibana:                        kubekeyapi.Kibana{Enabled: false},
-					},
-					Devops: kubekeyapi.Devops{
-						Enabled:               false,
-						JenkinsMemoryLim:      "2Gi",
-						JenkinsMemoryReq:      "1500Mi",
-						JenkinsVolumeSize:     "8Gi",
-						JenkinsJavaOptsXms:    "512m",
-						JenkinsJavaOptsXmx:    "512m",
-						JenkinsJavaOptsMaxRAM: "2g",
-						Sonarqube: kubekeyapi.Sonarqube{
-							Enabled:              false,
-							PostgresqlVolumeSize: "8Gi",
-						},
-					},
-					Notification:  kubekeyapi.Notification{Enabled: false},
-					Alerting:      kubekeyapi.Alerting{Enabled: false},
-					ServiceMesh:   kubekeyapi.ServiceMesh{Enabled: false},
-					MetricsServer: kubekeyapi.MetricsServer{Enabled: false},
-				}
-			case "":
-			default:
-				fmt.Println("This plugin is not supported: %s", strings.TrimSpace(addon))
-			}
+	if all {
+		allinoneCfg.Spec.Storage = kubekeyapi.Storage{
+			DefaultStorageClass: "local",
+			LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
 		}
+		allinoneCfg.Spec.KubeSphere = kubekeyapi.KubeSphere{
+			Console: kubekeyapi.Console{
+				EnableMultiLogin: false,
+				Port:             30880,
+			},
+			Common: kubekeyapi.Common{
+				MysqlVolumeSize:    "20Gi",
+				MinioVolumeSize:    "20Gi",
+				EtcdVolumeSize:     "20Gi",
+				OpenldapVolumeSize: "2Gi",
+				RedisVolumSize:     "2Gi",
+			},
+			Openpitrix: kubekeyapi.Openpitrix{Enabled: false},
+			Monitoring: kubekeyapi.Monitoring{
+				PrometheusReplicas:      1,
+				PrometheusMemoryRequest: "400Mi",
+				PrometheusVolumeSize:    "20Gi",
+				Grafana:                 kubekeyapi.Grafana{Enabled: false},
+			},
+			Logging: kubekeyapi.Logging{
+				Enabled:                       false,
+				ElasticsearchMasterReplicas:   1,
+				ElasticsearchDataReplicas:     1,
+				LogsidecarReplicas:            2,
+				ElasticsearchMasterVolumeSize: "4Gi",
+				ElasticsearchDataVolumeSize:   "20Gi",
+				LogMaxAge:                     7,
+				ElkPrefix:                     "logstash",
+				Kibana:                        kubekeyapi.Kibana{Enabled: false},
+			},
+			Devops: kubekeyapi.Devops{
+				Enabled:               false,
+				JenkinsMemoryLim:      "2Gi",
+				JenkinsMemoryReq:      "1500Mi",
+				JenkinsVolumeSize:     "8Gi",
+				JenkinsJavaOptsXms:    "512m",
+				JenkinsJavaOptsXmx:    "512m",
+				JenkinsJavaOptsMaxRAM: "2g",
+				Sonarqube: kubekeyapi.Sonarqube{
+					Enabled:              false,
+					PostgresqlVolumeSize: "8Gi",
+				},
+			},
+			Notification:  kubekeyapi.Notification{Enabled: false},
+			Alerting:      kubekeyapi.Alerting{Enabled: false},
+			ServiceMesh:   kubekeyapi.ServiceMesh{Enabled: false},
+			MetricsServer: kubekeyapi.MetricsServer{Enabled: false},
+		}
+
 	}
 	return allinoneCfg
 }

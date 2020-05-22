@@ -53,8 +53,13 @@ func FilesDownloadHttp(cfg *kubekeyapi.ClusterSpec, filepath, version string, lo
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
 			}
-			if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
-				return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
+
+			if strings.TrimSpace(binary.GetSha256()) == "" {
+				return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", version, version))
+			} else {
+				if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
+					return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
+				}
 			}
 		}
 	}

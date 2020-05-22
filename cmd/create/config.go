@@ -22,7 +22,7 @@ func NewCmdCreateCfg() *cobra.Command {
 
 	clusterCfgCmd.Flags().StringVarP(&addons, "add", "", "", "add plugins")
 	clusterCfgCmd.Flags().StringVarP(&name, "name", "", "", "cluster name")
-	clusterCfgCmd.Flags().StringVarP(&clusterCfgPath, "config", "f", "", "configuration file name")
+	clusterCfgCmd.Flags().StringVarP(&clusterCfgPath, "file", "f", "", "configuration file name")
 	return clusterCfgCmd
 }
 
