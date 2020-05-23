@@ -6,7 +6,6 @@ import (
 	ssh2 "github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"strings"
-	"time"
 )
 
 type Runner struct {
@@ -17,8 +16,6 @@ type Runner struct {
 	Host    *kubekeyapi.HostCfg
 	Index   int
 }
-
-type TemplateVariables map[string]interface{}
 
 func (r *Runner) RunCmd(cmd string) (string, error) {
 	if r.Conn == nil {
@@ -64,37 +61,4 @@ func (r *Runner) ScpFile(src, dst string) error {
 		}
 	}
 	return nil
-}
-
-// WaitForPod waits for the availability of the given Kubernetes element.
-func (r *Runner) WaitForPod(namespace string, name string, timeout time.Duration) error {
-	cmd := fmt.Sprintf(`sudo kubectl --kubeconfig=/etc/kubernetes/admin.conf -n "%s" get pod "%s" -o jsonpath='{.status.phase}' --ignore-not-found`, namespace, name)
-	if !r.WaitForCondition(cmd, timeout, IsRunning) {
-		return errors.Errorf("Timed out while waiting for %s/%s to come up for %v", namespace, name, timeout)
-	}
-
-	return nil
-}
-
-type validatorFunc func(stdout string) bool
-
-// IsRunning checks if the given output represents the "Running" status of a Kubernetes pod.
-func IsRunning(stdout string) bool {
-	return strings.ToLower(stdout) == "running"
-}
-
-// WaitForCondition waits for something to be true.
-func (r *Runner) WaitForCondition(cmd string, timeout time.Duration, validator validatorFunc) bool {
-	cutoff := time.Now().Add(timeout)
-
-	for time.Now().Before(cutoff) {
-		stdout, _ := r.RunCmd(cmd)
-		if validator(stdout) {
-			return true
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	return false
 }
