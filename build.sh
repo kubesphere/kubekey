@@ -8,5 +8,5 @@ if [ -n "$1" ]; then
         echo "The option should be '-p' or '--proxy'"
     fi
 else
-    docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.14.2-buster go build -v -o kk output/kk
+    docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.14.2-buster go build -v -o output/kk
 fi
