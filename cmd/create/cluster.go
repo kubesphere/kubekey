@@ -9,7 +9,6 @@ import (
 func NewCmdCreateCluster() *cobra.Command {
 	var (
 		clusterCfgFile string
-		//addons         string
 		//pkgDir         string
 		verbose bool
 		all     bool

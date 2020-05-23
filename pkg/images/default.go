@@ -2,6 +2,7 @@ package images
 
 import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"strings"
 )
@@ -15,8 +16,17 @@ const (
 
 func GetImage(mgr *manager.Manager, name string) *Image {
 	var image Image
+	var pauseTag string
+
+	result := util.CompareVersion(strings.TrimSpace(mgr.Cluster.Kubernetes.Version), "v1.18.0")
+	if result == 0 || result == 1 {
+		pauseTag = "3.2"
+	} else {
+		pauseTag = "3.1"
+	}
+
 	ImageList := map[string]Image{
-		"pause":                   {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "pause", Tag: "3.1", Group: K8s, Enable: true},
+		"pause":                   {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "pause", Tag: pauseTag, Group: K8s, Enable: true},
 		"kube-apiserver":          {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-apiserver", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true},
 		"kube-controller-manager": {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-controller-manager", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true},
 		"kube-scheduler":          {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-scheduler", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true},
@@ -41,7 +51,7 @@ func GetImage(mgr *manager.Manager, name string) *Image {
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		ImageList["pause"] = Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "pause", Tag: "3.1", Group: K8s, Enable: true}
+		ImageList["pause"] = Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "pause", Tag: pauseTag, Group: K8s, Enable: true}
 		ImageList["kube-apiserver"] = Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-apiserver", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true}
 		ImageList["kube-controller-manager"] = Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-controller-manager", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true}
 		ImageList["kube-scheduler"] = Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-scheduler", Tag: mgr.Cluster.Kubernetes.Version, Group: Master, Enable: true}

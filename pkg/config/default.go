@@ -8,41 +8,64 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 )
 
 func ParseClusterCfg(clusterCfgPath string, all bool, logger *log.Logger) (*kubekeyapi.Cluster, error) {
-	clusterCfg := kubekeyapi.Cluster{}
 
 	if len(clusterCfgPath) == 0 {
-		user, _ := user.Current()
-		if user.Name != "root" {
-			return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
-		}
-		clusterCfg = AllinoneCfg(user, all)
-	} else {
-		fp, err := filepath.Abs(clusterCfgPath)
+		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to look up current directory")
 		}
-		content, err := ioutil.ReadFile(fp)
+		cfgFile := fmt.Sprintf("%s/config.yaml", currentDir)
+		if util.IsExist(cfgFile) {
+			clusterCfg, err := ParseCfg(cfgFile)
+			if err != nil {
+				return nil, err
+			}
+			return clusterCfg, nil
+		} else {
+			user, _ := user.Current()
+			if user.Name != "root" {
+				return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
+			}
+			clusterCfg := AllinoneCfg(user, all)
+			return clusterCfg, nil
+		}
+	} else {
+		clusterCfg, err := ParseCfg(clusterCfgPath)
 		if err != nil {
-			return nil, errors.Wrap(err, "Unable to read the given cluster configuration file")
+			return nil, err
 		}
 
-		if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
-			return nil, errors.Wrap(err, "Unable to convert file to yaml")
-		}
+		//output, _ := json.MarshalIndent(&clusterCfg, "", "  ")
+		//fmt.Println(string(output))
+		return clusterCfg, nil
+	}
+}
+
+func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
+	clusterCfg := kubekeyapi.Cluster{}
+	fp, err := filepath.Abs(clusterCfgPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to look up current directory")
+	}
+	content, err := ioutil.ReadFile(fp)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to read the given cluster configuration file")
 	}
 
-	//output, _ := json.MarshalIndent(&clusterCfg, "", "  ")
-	//fmt.Println(string(output))
+	if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
+		return nil, errors.Wrap(err, "Unable to convert file to yaml")
+	}
 	return &clusterCfg, nil
 }
 
-func AllinoneCfg(user *user.User, all bool) kubekeyapi.Cluster {
+func AllinoneCfg(user *user.User, all bool) *kubekeyapi.Cluster {
 	allinoneCfg := kubekeyapi.Cluster{}
 	if err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").Run(); err != nil {
 		log.Fatalf("Failed to generate public key: %v", err)
@@ -122,5 +145,5 @@ func AllinoneCfg(user *user.User, all bool) kubekeyapi.Cluster {
 		}
 
 	}
-	return allinoneCfg
+	return &allinoneCfg
 }
