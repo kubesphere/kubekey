@@ -19,7 +19,7 @@ func ParseClusterCfg(clusterCfgPath string, all bool, logger *log.Logger) (*kube
 	if len(clusterCfgPath) == 0 {
 		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err != nil {
-			return nil, errors.Wrap(err, "Faild to get current dir")
+			return nil, errors.Wrap(err, "Failed to look up current directory")
 		}
 		cfgFile := fmt.Sprintf("%s/config.yaml", currentDir)
 		if util.IsExist(cfgFile) {
