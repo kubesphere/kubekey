@@ -14,7 +14,7 @@ import (
 
 const (
 	DefaultCon = 10
-	Timeout    = 600
+	Timeout    = 1800
 )
 
 // NodeTask is a task that is specifically tailored to run on a single node.
@@ -66,7 +66,7 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 				select {
 				case <-result:
 				case <-time.After(time.Second * Timeout):
-					fmt.Sprintf("getSSHClient error,SSH-Read-TimeOut,Timeout=%ds", Timeout)
+					mgr.Logger.Fatalf("Execute task timeout, Timeout=%ds", Timeout)
 				}
 				wg.Done()
 				<-ccons
