@@ -111,7 +111,7 @@ $ ./kk create config
 # Now modify the file config-sample.yaml according to your environment.
 
 # create cluster. If the KubeSphere info is in the config file, the following command will create a cluster with Kubernetes and KubeSphere.
-$ ./kk create cluster -f config-sample.yaml   # or ./kk apply -f config-sample.yaml
+$ ./kk create cluster -f config-sample.yaml
 ```
 
 #### Add Nodes
@@ -119,7 +119,7 @@ $ ./kk create cluster -f config-sample.yaml   # or ./kk apply -f config-sample.y
 Add new node's information to the cluster config file, then apply the changes.
 
 ```shell script
-$ ./kk apply -f config-sample.yaml
+$ ./kk scale -f config-sample.yaml
 ```
 
 #### Delete Cluster
