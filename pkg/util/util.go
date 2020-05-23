@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	VERSION      = "KubeKey Version v0.0.1\n"
+	VERSION = "KubeKey Version v1.0.0-dev\nKubernetes Version v1.17.6\nKubeSphere Version 3.0.0"
 	VersionBig   = 1
 	VersionSmall = 2
 	VersionEqual = 0

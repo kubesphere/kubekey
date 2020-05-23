@@ -15,7 +15,7 @@ func NewCmdCreateCluster() *cobra.Command {
 	)
 	var clusterCmd = &cobra.Command{
 		Use:   "cluster",
-		Short: "Create Kubernetes Cluster",
+		Short: "Create a Kubernetes or KubeSphere cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := util.InitLogger(verbose)
 			return install.CreateCluster(clusterCfgFile, logger, all, verbose)

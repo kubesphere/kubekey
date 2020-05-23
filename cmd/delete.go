@@ -14,7 +14,7 @@ func NewCmdResetCluster() *cobra.Command {
 	)
 	var clusterCmd = &cobra.Command{
 		Use:   "delete",
-		Short: "Delete Kubernetes Cluster",
+		Short: "Delete a cluster",
 		Run: func(cmd *cobra.Command, args []string) {
 			logger := util.InitLogger(verbose)
 			resetCluster(clusterCfgFile, logger, verbose)

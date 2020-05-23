@@ -13,8 +13,8 @@ func NewCmdScaleCluster() *cobra.Command {
 		verbose bool
 	)
 	var clusterCmd = &cobra.Command{
-		Use:   "apply",
-		Short: "Apply a configuration to a cluster by filename",
+		Use:   "scale",
+		Short: "Scale a cluster according to the new nodes information from the specified configuration file",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := util.InitLogger(verbose)
 			//return scale.ScaleCluster(clusterCfgFile, logger, pkgDir, Verbose)

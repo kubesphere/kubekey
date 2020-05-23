@@ -15,7 +15,7 @@ func NewCmdCreateEtcd() *cobra.Command {
 	)
 	var clusterCmd = &cobra.Command{
 		Use:   "etcd",
-		Short: "Manage Etcd Cluster",
+		Short: "Manage Etcd cluster",
 		Run: func(cmd *cobra.Command, args []string) {
 			logger := util.InitLogger(true)
 			createEtcdCluster(clusterCfgFile, logger)
