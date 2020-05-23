@@ -7,7 +7,7 @@ import (
 func NewCmdCreate() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create Cluster-Info Config or Kubernetes Cluster",
+		Short: "Create a cluster or a cluster configuration file",
 	}
 	cmd.AddCommand(NewCmdCreateCfg())
 	cmd.AddCommand(NewCmdCreateCluster())
