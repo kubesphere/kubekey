@@ -1,7 +1,10 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -73,6 +76,13 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 		}
 		if host.Port == "" {
 			host.Port = strconv.Itoa(22)
+		}
+		if host.Password == "" && host.PrivateKeyPath == "" {
+			host.PrivateKeyPath = "~/.ssh/id_rsa"
+		}
+		if host.PrivateKeyPath != "" && strings.HasPrefix(strings.TrimSpace(host.PrivateKeyPath), "~/") {
+			homeDir, _ := util.Home()
+			host.PrivateKeyPath = strings.Replace(host.PrivateKeyPath, "~/", fmt.Sprintf("%s/", homeDir), 1)
 		}
 
 		hostscfg = append(hostscfg, host)
