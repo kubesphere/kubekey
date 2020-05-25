@@ -130,7 +130,8 @@ You can delete the cluster by the following command
 $ ./kk delete [-f config-sample.yaml]
 ```
 
-## Road Map
-
-* CaaO (Cluster as an Object)
-* Support more container runtimes: cri-o containerd
+## Documents
+* [Configuration example](docs/config-example.md)
+* [Network access](docs/network-access.md)
+* [Storage clients](docs/storage-client.md)
+* [Roadmap](docs/roadmap.md)

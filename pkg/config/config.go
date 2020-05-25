@@ -108,7 +108,7 @@ spec:
 {{- if .Options.KubeSphereEnabled }}
   kubesphere:
     console:
-      enableMultiLogin: False  # enable/disable multi login
+      enableMultiLogin: false  # enable/disable multi login
       port: 30880
     common:
       mysqlVolumeSize: 20Gi
