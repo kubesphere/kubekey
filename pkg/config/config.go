@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
@@ -227,6 +228,7 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 	ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterObjStr))
 
 	if clusterCfgPath != "" {
+		CheckConfigFileStatus(clusterCfgPath)
 		cmd := fmt.Sprintf("echo %s | base64 -d > %s", ClusterObjStrBase64, clusterCfgPath)
 		output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
 		if err != nil {
@@ -237,6 +239,7 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 		if err != nil {
 			return errors.Wrap(err, "Failed to get current dir")
 		}
+		CheckConfigFileStatus(fmt.Sprintf("%s/%s.yaml", currentDir, opt.Name))
 		cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", ClusterObjStrBase64, currentDir, opt.Name)
 		err1 := exec.Command("/bin/sh", "-c", cmd).Run()
 		if err1 != nil {
@@ -245,4 +248,25 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 	}
 
 	return nil
+}
+
+func CheckConfigFileStatus(path string) {
+	if util.IsExist(path) {
+		reader := bufio.NewReader(os.Stdin)
+	Loop:
+		for {
+			fmt.Printf("%s already exists. Are you sure you want to overwrite this config file? [yes/no]: ", path)
+			input, _ := reader.ReadString('\n')
+			input = strings.TrimSpace(input)
+
+			if input != "" {
+				switch input {
+				case "yes":
+					break Loop
+				case "no":
+					os.Exit(0)
+				}
+			}
+		}
+	}
 }
