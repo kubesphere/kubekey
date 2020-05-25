@@ -55,11 +55,7 @@ func (dialer *Dialer) Connect(host kubekeyapi.HostCfg) (Connection, error) {
 			Address:  host.Address,
 			Password: host.Password,
 			KeyFile:  host.PrivateKeyPath,
-			//AgentSocket: host.SSHAgentSocket,
-			Timeout: 10 * time.Second,
-			//Bastion:     host.Bastion,
-			//BastionPort: host.BastionPort,
-			//BastionUser: host.BastionUser,
+			Timeout:  10 * time.Second,
 		}
 
 		conn, err = NewConnection(opts)
