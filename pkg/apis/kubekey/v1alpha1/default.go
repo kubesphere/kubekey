@@ -1,7 +1,9 @@
 package v1alpha1
 
 import (
-	"strconv"
+	"fmt"
+	"github.com/kubesphere/kubekey/pkg/util"
+	"strings"
 )
 
 const (
@@ -16,8 +18,6 @@ const (
 	DefaultKubeImageRepo  = "kubesphere"
 	DefaultClusterName    = "cluster.local"
 	DefaultArch           = "amd64"
-	DefaultHostName       = "allinone"
-	DefaultEtcdRepo       = "kubesphere"
 	DefaultEtcdVersion    = "v3.3.12"
 	DefaultEtcdPort       = "2379"
 	DefaultKubeVersion    = "v1.17.6"
@@ -72,7 +72,14 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 			host.User = "root"
 		}
 		if host.Port == "" {
-			host.Port = strconv.Itoa(22)
+			host.Port = DefaultSSHPort
+		}
+		if host.Password == "" && host.PrivateKeyPath == "" {
+			host.PrivateKeyPath = "~/.ssh/id_rsa"
+		}
+		if host.PrivateKeyPath != "" && strings.HasPrefix(strings.TrimSpace(host.PrivateKeyPath), "~/") {
+			homeDir, _ := util.Home()
+			host.PrivateKeyPath = strings.Replace(host.PrivateKeyPath, "~/", fmt.Sprintf("%s/", homeDir), 1)
 		}
 
 		hostscfg = append(hostscfg, host)
