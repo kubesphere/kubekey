@@ -1,21 +1,32 @@
+/*
+Copyright 2020 The KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package manager
 
 import (
-	ssh2 "github.com/kubesphere/kubekey/pkg/util/ssh"
-	"github.com/sirupsen/logrus"
-
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-
 	"github.com/kubesphere/kubekey/pkg/util/runner"
-	//"k8s.io/client-go/rest"
-	//bootstraputil "k8s.io/cluster-bootstrap/token/util"
-	//dynclient "sigs.k8s.io/manager-runtime/pkg/client"
+	"github.com/kubesphere/kubekey/pkg/util/ssh"
+	log "github.com/sirupsen/logrus"
 )
 
 type Manager struct {
 	Cluster      *kubekeyapi.ClusterSpec
-	Logger       logrus.FieldLogger
-	Connector    *ssh2.Dialer
+	Logger       log.FieldLogger
+	Connector    *ssh.Dialer
 	Runner       *runner.Runner
 	AllNodes     []kubekeyapi.HostCfg
 	EtcdNodes    []kubekeyapi.HostCfg
@@ -28,13 +39,6 @@ type Manager struct {
 	JoinCommand  string
 	JoinToken    string
 	Verbose      bool
-}
-
-func (mgr *Manager) KubeadmVerboseFlag() string {
-	if mgr.Verbose {
-		return "--v=6"
-	}
-	return ""
 }
 
 func (mgr *Manager) Clone() *Manager {
