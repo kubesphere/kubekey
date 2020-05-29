@@ -54,7 +54,7 @@ WantedBy=multi-user.target
 ETCD_DATA_DIR=/var/lib/etcd
 ETCD_ADVERTISE_CLIENT_URLS=https://{{ .Ip }}:2379
 ETCD_INITIAL_ADVERTISE_PEER_URLS=https://{{ .Ip }}:2380
-ETCD_INITIAL_CLUSTER_STATE=new
+ETCD_INITIAL_CLUSTER_STATE={{ .State }}
 ETCD_METRICS=basic
 ETCD_LISTEN_CLIENT_URLS=https://{{ .Ip }}:2379,https://127.0.0.1:2379
 ETCD_ELECTION_TIMEOUT=5000
@@ -63,7 +63,7 @@ ETCD_INITIAL_CLUSTER_TOKEN=k8s_etcd
 ETCD_LISTEN_PEER_URLS=https://{{ .Ip }}:2380
 ETCD_NAME={{ .Name }}
 ETCD_PROXY=off
-ETCD_INITIAL_CLUSTER={{ .Endpoints }}
+ETCD_INITIAL_CLUSTER={{ .peerAddresses }}
 ETCD_AUTO_COMPACTION_RETENTION=8
 ETCD_SNAPSHOT_COUNT=10000
 
@@ -116,17 +116,15 @@ func GenerateEtcdService(mgr *manager.Manager, index int) (string, error) {
 	})
 }
 
-func GenerateEtcdEnv(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int) (string, error) {
-	endpoints := []string{}
-	for index, host := range mgr.EtcdNodes {
-		endpoints = append(endpoints, fmt.Sprintf("etcd%d=https://%s:2380", index+1, host.InternalAddress))
-	}
+func GenerateEtcdEnv(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int, endpoints []string, state string) (string, error) {
 
 	return util.Render(EtcdEnvTempl, util.Data{
-		"Tag":       kubekeyapi.DefaultEtcdVersion,
-		"Name":      fmt.Sprintf("etcd%d", index+1),
-		"Ip":        node.InternalAddress,
-		"Hostname":  node.Name,
-		"Endpoints": strings.Join(endpoints, ","),
+		"Tag":           kubekeyapi.DefaultEtcdVersion,
+		"Name":          fmt.Sprintf("etcd%d", index+1),
+		"Ip":            node.InternalAddress,
+		"Hostname":      node.Name,
+		"State":         state,
+		"peerAddresses": strings.Join(endpoints, ","),
 	})
+
 }
