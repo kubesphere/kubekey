@@ -86,6 +86,9 @@ cat >>/etc/hosts<<EOF
 {{- end }}
 # kubekey hosts END
 EOF
+
+echo 3 > /proc/sys/vm/drop_caches
+
     `)))
 
 func InitOsScript(mgr *manager.Manager) (string, error) {
