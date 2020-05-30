@@ -42,7 +42,7 @@ There are three scenarios to use KubeKey.
 
 * OS requirements:
   * `SSH` can access to all nodes.
-  *  `sudo` and `curl` can be used in all nodes.
+  *  `sudo`/`curl`/`openssl` can be used in all nodes.
   * `ebtables`/`socat`/`ipset`/`conntrack` should be installed on all nodes.
   * The [relevant client](./docs/storage-client.md) should be installed on all nodes, if NFS / Ceph / GlusterFS is used as persistent storage.
   * `docker` can be installed by yourself or by KubeKey. 
