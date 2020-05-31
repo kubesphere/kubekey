@@ -39,14 +39,12 @@ func CreateCluster(clusterCfgFile string, logger *log.Logger, all, verbose bool)
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	if err := preinstall.Prepare(&cfg.Spec, logger); err != nil {
-		return errors.Wrap(err, "Failed to load kube binaries")
-	}
 	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose))
 }
 
 func ExecTasks(mgr *manager.Manager) error {
 	createTasks := []manager.Task{
+		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
 		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
 		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
 		{Task: images.PreDownloadImages, ErrMsg: "Failed to pre-download images"},

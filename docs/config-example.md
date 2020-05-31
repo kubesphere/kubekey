@@ -23,7 +23,7 @@ spec:
     port: "6443"
   kubernetes:
     version: v1.17.6
-    imageRepo: kubekey
+    imageRepo: kubesphere
     clusterName: cluster.local
   network:
     plugin: calico
