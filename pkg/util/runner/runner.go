@@ -50,7 +50,7 @@ func (r *Runner) RunCmd(cmd string) (string, error) {
 	}
 
 	if output != "" {
-		if strings.Contains(cmd, "base64") && strings.Contains(cmd, "--wrap=0") || strings.Contains(cmd, "make-ssl-etcd.sh") || strings.Contains(cmd, "docker-install.sh") || strings.Contains(cmd, "docker pull") {
+		if strings.Contains(cmd, "base64") && strings.Contains(cmd, "--wrap=0") || strings.Contains(cmd, "make-ssl-etcd.sh") || strings.Contains(cmd, "docker-install.sh") || strings.Contains(cmd, "docker pull") || strings.Contains(cmd, "which") || strings.Contains(cmd, "date") {
 		} else {
 			fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
 			fmt.Println(output)

@@ -27,6 +27,11 @@ import (
 )
 
 func InitOS(mgr *manager.Manager) error {
+	PrecheckConfirm(mgr)
+	if err := Prepare(mgr); err != nil {
+		return errors.Wrap(err, "Failed to load kube binaries")
+	}
+
 	mgr.Logger.Infoln("Configurating operating system ...")
 
 	return mgr.RunTaskOnAllNodes(initOsOnNode, true)

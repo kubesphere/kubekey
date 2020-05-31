@@ -21,15 +21,15 @@ import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-func FilesDownloadHttp(cfg *kubekeyapi.ClusterSpec, filepath, version string, logger *log.Logger) error {
+func FilesDownloadHttp(mgr *manager.Manager, filepath, version string) error {
 
 	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: kubekeyapi.DefaultArch, Version: version}
 	kubelet := files.KubeBinary{Name: "kubelet", Arch: kubekeyapi.DefaultArch, Version: version}
@@ -58,7 +58,7 @@ func FilesDownloadHttp(cfg *kubekeyapi.ClusterSpec, filepath, version string, lo
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, kubecni, helm}
 
 	for _, binary := range binaries {
-		logger.Info(fmt.Sprintf("Downloading %s ...", binary.Name))
+		mgr.Logger.Infoln(fmt.Sprintf("Downloading %s ...", binary.Name))
 		if util.IsExist(binary.Path) == false {
 			if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
 				fmt.Println(string(output))
@@ -83,9 +83,9 @@ func FilesDownloadHttp(cfg *kubekeyapi.ClusterSpec, filepath, version string, lo
 	return nil
 }
 
-func Prepare(cfg *kubekeyapi.ClusterSpec, logger *log.Logger) error {
-	logger.Info("Downloading Installation Files")
-
+func Prepare(mgr *manager.Manager) error {
+	mgr.Logger.Infoln("Downloading Installation Files")
+	cfg := mgr.Cluster
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -103,7 +103,7 @@ func Prepare(cfg *kubekeyapi.ClusterSpec, logger *log.Logger) error {
 		return errors.Wrap(err, "Failed to create download target dir")
 	}
 
-	if err := FilesDownloadHttp(cfg, filepath, kubeVersion, logger); err != nil {
+	if err := FilesDownloadHttp(mgr, filepath, kubeVersion); err != nil {
 		return err
 	}
 	return nil
