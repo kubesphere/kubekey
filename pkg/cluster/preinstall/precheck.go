@@ -25,7 +25,7 @@ type PrecheckResults struct {
 	Nfs       string `table:"nfs client"`
 	Ceph      string `table:"ceph client"`
 	Glusterfs string `table:"glusterfs client"`
-	Date      string `table:"date"`
+	Time      string `table:"time"`
 }
 
 var (
@@ -50,9 +50,9 @@ func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connectio
 	}
 	output, err := mgr.Runner.RunCmd("date +\"%Z %H:%M:%S\"")
 	if err != nil {
-		results["date"] = ""
+		results["time"] = ""
 	} else {
-		results["date"] = strings.TrimSpace(output)
+		results["time"] = strings.TrimSpace(output)
 	}
 
 	checkResults[node.Name] = results
