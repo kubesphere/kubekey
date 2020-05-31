@@ -108,7 +108,7 @@ func AllinoneCfg(user *user.User, all bool) *kubekeyapi.Cluster {
 
 	if all {
 		allinoneCfg.Spec.Storage = kubekeyapi.Storage{
-			DefaultStorageClass: "local",
+			DefaultStorageClass: "localVolume",
 			LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
 		}
 		allinoneCfg.Spec.KubeSphere = kubekeyapi.KubeSphere{
