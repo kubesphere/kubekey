@@ -40,7 +40,7 @@ func NewCmdCreateCluster() *cobra.Command {
 
 	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "configuration file name")
 	//clusterCmd.Flags().StringVarP(&pkgDir, "pkg", "", "", "release package (offline)")
-	clusterCmd.Flags().BoolVarP(&verbose, "debug", "", true, "debug info")
-	clusterCmd.Flags().BoolVarP(&all, "all", "", false, "deploy kubernetes and kubesphere")
+	clusterCmd.Flags().BoolVarP(&verbose, "debug", "d", true, "debug info")
+	clusterCmd.Flags().BoolVarP(&all, "all", "a", false, "deploy kubernetes and kubesphere")
 	return clusterCmd
 }
