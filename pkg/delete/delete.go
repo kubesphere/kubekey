@@ -58,7 +58,8 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
-	fmt.Printf("\n\033[1;36;40m%s\033[0m\n", "Successful.")
+	mgr.Logger.Infoln("Successful.")
+
 	return nil
 }
 
@@ -123,7 +124,7 @@ func deleteFiles(mgr *manager.Manager) error {
 
 func Confirm(reader *bufio.Reader) (string, error) {
 	for {
-		fmt.Printf("Are you sure you want to delete this cluster? [yes/no]: ")
+		fmt.Printf("Are you sure to delete this cluster? [yes/no]: ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			return "", err

@@ -70,13 +70,13 @@ func PrecheckConfirm(mgr *manager.Manager) {
 	table.OutputA(results)
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("")
-	fmt.Println("This is a simple check of your machines.")
-	fmt.Println("Before installation, you should ensure that your machines meet all requirements.")
+	fmt.Println("This is a simple check of your environment.")
+	fmt.Println("Before installation, you should ensure that your machines meet all requirements specified at")
 	fmt.Println("https://github.com/kubesphere/kubekey#requirements-and-recommendations")
 	fmt.Println("")
 Loop:
 	for {
-		fmt.Printf("Whether to continue this installation? [yes/no]: ")
+		fmt.Printf("Continue this installation? [yes/no]: ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			mgr.Logger.Fatal(err)
