@@ -17,7 +17,6 @@ limitations under the License.
 package scale
 
 import (
-	"fmt"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
@@ -41,6 +40,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
-	fmt.Printf("\n\033[1;36;40m%s\033[0m\n", "Successful.")
+	mgr.Logger.Infoln("Cluster scaling is successful.")
+
 	return nil
 }
