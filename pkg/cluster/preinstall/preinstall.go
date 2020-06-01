@@ -65,17 +65,12 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version string) error {
 				return errors.Wrap(err, "Failed to download kubeadm binary")
 			}
 
-			output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
+			if err := SHA256Check(binary, version); err != nil {
+				return err
 			}
-
-			if strings.TrimSpace(binary.GetSha256()) == "" {
-				return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", version, version))
-			} else {
-				if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
-					return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
-				}
+		} else {
+			if err := SHA256Check(binary, version); err != nil {
+				return err
 			}
 		}
 	}
@@ -105,6 +100,22 @@ func Prepare(mgr *manager.Manager) error {
 
 	if err := FilesDownloadHttp(mgr, filepath, kubeVersion); err != nil {
 		return err
+	}
+	return nil
+}
+
+func SHA256Check(binary files.KubeBinary, version string) error {
+	output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
+	}
+
+	if strings.TrimSpace(binary.GetSha256()) == "" {
+		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", version, version))
+	} else {
+		if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
+			return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
+		}
 	}
 	return nil
 }
