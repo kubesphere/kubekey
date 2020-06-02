@@ -42,6 +42,14 @@ func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connectio
 	results["name"] = node.Name
 	for _, software := range baseSoftwares {
 		_, err := mgr.Runner.RunCmd(fmt.Sprintf("which %s", software))
+		switch software {
+		case "showmount":
+			software = "nfs"
+		case "rbd":
+			software = "ceph"
+		case "glusterfs":
+			software = "glusterfs"
+		}
 		if err != nil {
 			results[software] = ""
 		} else {
