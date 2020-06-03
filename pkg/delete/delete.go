@@ -104,20 +104,20 @@ var cmdsList = []string{
 }
 
 func resetKubeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	_, err := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"")
+	_, err := mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"")
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to reset kube cluster")
 	}
 	fmt.Println(strings.Join(cmdsList, " && "))
-	mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")))
+	mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")))
 	deleteFiles(mgr)
 	return nil
 }
 
 func deleteFiles(mgr *manager.Manager) error {
-	mgr.Runner.RunCmd("sudo -E /bin/sh -c \"systemctl stop etcd && exit 0\"")
+	mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"systemctl stop etcd && exit 0\"")
 	for _, file := range clusterFiles {
-		mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"rm -rf %s\"", file))
+		mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"rm -rf %s\"", file))
 	}
 	return nil
 }

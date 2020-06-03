@@ -80,7 +80,7 @@ func deployCalico(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate calico file")
 	}
 
-	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/calico.yaml")
+	_, err2 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/calico.yaml")
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy calico")
 	}
@@ -109,7 +109,7 @@ func deployFlannel(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate flannel file")
 	}
 
-	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/flannel.yaml")
+	_, err2 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/flannel.yaml")
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy flannel")
 	}

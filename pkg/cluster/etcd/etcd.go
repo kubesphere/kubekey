@@ -91,7 +91,7 @@ func generateCerts(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conn
 		}
 
 	} else {
-		mgr.Runner.RunCmd(fmt.Sprintf("sudo mkdir -p %s", etcdCertDir))
+		mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo mkdir -p %s", etcdCertDir))
 		for file, cert := range <-certsStr {
 			writeCertCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s/%s\"", cert, etcdCertDir, file)
 			_, err4 := mgr.Runner.RunCmd(writeCertCmd)
@@ -129,7 +129,7 @@ func SyncEtcdCertsToMaster(mgr *manager.Manager) error {
 
 func syncEtcdCertsToMaster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if !node.IsEtcd {
-		mgr.Runner.RunCmd(fmt.Sprintf("sudo mkdir -p %s", etcdCertDir))
+		mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo mkdir -p %s", etcdCertDir))
 		for file, cert := range certsContent {
 			writeCertCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s/%s\"", cert, etcdCertDir, file)
 			_, err := mgr.Runner.RunCmd(writeCertCmd)
@@ -169,7 +169,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 	}
 
 	getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s /bin/cp /usr/local/bin/etcdctl /systembindir/etcdctl", images.GetImage(mgr, "etcd").ImageName())
-	_, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", getEtcdCtlCmd))
+	_, err4 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", getEtcdCtlCmd))
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to get etcdctl")
 	}
@@ -196,7 +196,7 @@ func SetupEtcdCluster(mgr *manager.Manager) error {
 
 func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	localPeerAddresses := []string{}
-	output, _ := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"")
+	output, _ := mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"")
 	if strings.TrimSpace(output) == "Configuration file already exists" {
 		if err := helthCheck(mgr, node); err != nil {
 			return err
@@ -231,7 +231,7 @@ func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 					return err
 				}
 				joinMemberCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s member add %s %s\"", node.Name, node.Name, etcdBinDir, accessAddresses, fmt.Sprintf("etcd%d", mgr.Runner.Index+1), fmt.Sprintf("https://%s:2380", node.InternalAddress))
-				_, err := mgr.Runner.RunCmd(joinMemberCmd)
+				_, err := mgr.Runner.RunCmdOutput(joinMemberCmd)
 				if err != nil {
 					return errors.Wrap(errors.WithStack(err), "Failed to add etcd member")
 				}
@@ -242,7 +242,7 @@ func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 					return err
 				}
 				checkMemberCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --no-sync --endpoints=%s member list\"", node.Name, node.Name, etcdBinDir, accessAddresses)
-				memberList, err := mgr.Runner.RunCmd(checkMemberCmd)
+				memberList, err := mgr.Runner.RunCmdOutput(checkMemberCmd)
 				if err != nil {
 					return errors.Wrap(errors.WithStack(err), "Failed to list etcd member")
 				}
@@ -321,7 +321,7 @@ func refreshConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int, en
 }
 
 func restartEtcd(mgr *manager.Manager) error {
-	_, err5 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart etcd && systemctl enable etcd\"")
+	_, err5 := mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart etcd && systemctl enable etcd\"")
 	if err5 != nil {
 		return errors.Wrap(errors.WithStack(err5), "Failed to start etcd")
 	}

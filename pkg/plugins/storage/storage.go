@@ -37,7 +37,7 @@ func DeployStoragePlugins(mgr *manager.Manager) error {
 
 func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
-		mgr.Runner.RunCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
+		mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
 		if mgr.Cluster.Storage.LocalVolume.Enabled {
 			if err := DeployLocalVolume(mgr); err != nil {
 				return err
@@ -68,12 +68,12 @@ func DeployLocalVolume(mgr *manager.Manager) error {
 		return err
 	}
 	localVolumeFileBase64 := base64.StdEncoding.EncodeToString([]byte(localVolumeFile))
-	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/local-volume.yaml\"", localVolumeFileBase64))
+	_, err1 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/local-volume.yaml\"", localVolumeFileBase64))
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate local-volume manifests")
 	}
 
-	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/local-volume.yaml")
+	_, err2 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/local-volume.yaml")
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy local-volume.yaml")
 	}
@@ -82,7 +82,7 @@ func DeployLocalVolume(mgr *manager.Manager) error {
 
 func DeployNfsClient(mgr *manager.Manager) error {
 
-	_, err1 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"rm -rf /etc/kubernetes/addons/nfs-client-provisioner && /usr/local/bin/helm fetch kubesphere/nfs-client-provisioner -d /etc/kubernetes/addons --untar\"")
+	_, err1 := mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"rm -rf /etc/kubernetes/addons/nfs-client-provisioner && /usr/local/bin/helm fetch kubesphere/nfs-client-provisioner -d /etc/kubernetes/addons --untar\"")
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), "Failed to fetch nfs-client-provisioner chart")
 	}
@@ -97,7 +97,7 @@ func DeployNfsClient(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate nfs-client values file")
 	}
 
-	_, err3 := mgr.Runner.RunCmd("sudo -E /bin/sh -c \"/usr/local/bin/helm upgrade -i nfs-client /etc/kubernetes/addons/nfs-client-provisioner -f /etc/kubernetes/addons/custom-values-nfs-client.yaml -n kube-system\"")
+	_, err3 := mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"/usr/local/bin/helm upgrade -i nfs-client /etc/kubernetes/addons/nfs-client-provisioner -f /etc/kubernetes/addons/custom-values-nfs-client.yaml -n kube-system\"")
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to deploy nfs-client-provisioner")
 	}
@@ -115,7 +115,7 @@ func DeployRBDProvisioner(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate rbd-provisioner manifests")
 	}
 
-	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/rbd-provisioner.yaml -n kube-system")
+	_, err2 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/rbd-provisioner.yaml -n kube-system")
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy rbd-provisioner.yaml")
 	}
@@ -133,7 +133,7 @@ func DeployGlusterFS(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate glusterfs manifests")
 	}
 
-	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/glusterfs.yaml -n kube-system")
+	_, err2 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/glusterfs.yaml -n kube-system")
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy glusterfs.yaml")
 	}

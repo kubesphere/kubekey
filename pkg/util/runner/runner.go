@@ -19,13 +19,12 @@ package runner
 import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	ssh2 "github.com/kubesphere/kubekey/pkg/util/ssh"
+	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 type Runner struct {
-	Conn    ssh2.Connection
+	Conn    ssh.Connection
 	Prefix  string
 	OS      string
 	Verbose bool
@@ -35,29 +34,44 @@ type Runner struct {
 
 func (r *Runner) RunCmd(cmd string) (string, error) {
 	if r.Conn == nil {
-		return "", errors.New("Runner is not tied to an opened SSH connection")
+		return "", errors.New("No ssh connection available")
+	}
+	output, _, err := r.Conn.Exec(cmd, r.Host)
+	if err != nil {
+		return output, err
+	}
+	return output, nil
+}
+
+func (r *Runner) RunCmdOutput(cmd string) (string, error) {
+	if r.Conn == nil {
+		return "", errors.New("No ssh connection available")
 	}
 	output, _, err := r.Conn.Exec(cmd, r.Host)
 	if !r.Verbose {
 		if err != nil {
-			return "", err
+			if output != "" {
+				fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
+				fmt.Println(output)
+			}
+			return output, err
 		}
 		return output, nil
-	}
-
-	if err != nil {
-		return output, err
-	}
-
-	if output != "" {
-		if strings.Contains(cmd, "base64") && strings.Contains(cmd, "--wrap=0") || strings.Contains(cmd, "make-ssl-etcd.sh") || strings.Contains(cmd, "docker-install.sh") || strings.Contains(cmd, "docker pull") || strings.Contains(cmd, "which") || strings.Contains(cmd, "date") {
+	} else {
+		if err != nil {
+			if output != "" {
+				fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
+				fmt.Println(output)
+			}
+			return output, err
 		} else {
-			fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
-			fmt.Println(output)
+			if output != "" {
+				fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
+				fmt.Println(output)
+			}
+			return output, nil
 		}
 	}
-
-	return output, nil
 }
 
 func (r *Runner) ScpFile(src, dst string) error {

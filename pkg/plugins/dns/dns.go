@@ -34,11 +34,11 @@ func OverrideCorednsService(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate kubeadm config")
 	}
 	deleteKubednsSvcCmd := "/usr/local/bin/kubectl delete -n kube-system svc kube-dns"
-	_, err2 := mgr.Runner.RunCmd(deleteKubednsSvcCmd)
+	_, err2 := mgr.Runner.RunCmdOutput(deleteKubednsSvcCmd)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to delete kubeadm Kube-DNS service")
 	}
-	_, err3 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/coredns-svc.yaml")
+	_, err3 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/coredns-svc.yaml")
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to create coredns service")
 	}
@@ -55,7 +55,7 @@ func DeployNodelocaldns(mgr *manager.Manager) error {
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate nodelocaldns manifests")
 	}
-	_, err2 := mgr.Runner.RunCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/nodelocaldns.yaml")
+	_, err2 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/nodelocaldns.yaml")
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to create nodelocaldns")
 	}
