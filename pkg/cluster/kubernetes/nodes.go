@@ -66,7 +66,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 			}
 		}
 		cmd := strings.Join(cmdlist, " && ")
-		_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
+		_, err3 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
 		if err3 != nil {
 			return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to create kubelet link"))
 		}
