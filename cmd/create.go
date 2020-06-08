@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright © 2020 NAME HERE <EMAIL ADDRESS>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,20 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-package create
+package cmd
 
 import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdCreate() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a cluster or a cluster configuration file",
-	}
-	cmd.AddCommand(NewCmdCreateCfg())
-	cmd.AddCommand(NewCmdCreateCluster())
-	cmd.AddCommand(NewCmdCreateEtcd())
-	return cmd
+// createCmd represents the create command
+var createCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Create a cluster or a cluster configuration file",
+}
+
+func init() {
+	rootCmd.AddCommand(createCmd)
 }

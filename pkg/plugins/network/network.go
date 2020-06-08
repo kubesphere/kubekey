@@ -68,7 +68,7 @@ func deployCalico(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		}
 		calicoFileBase64 = strings.TrimSpace(string(output))
 	} else {
-		calicoFile, err := calico.GenerateCalicoFiles(mgr.Cluster)
+		calicoFile, err := calico.GenerateCalicoFiles(mgr)
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,7 @@ func deployFlannel(mgr *manager.Manager) error {
 		}
 		flannelFileBase64 = strings.TrimSpace(string(output))
 	} else {
-		flannelFile, err := flannel.GenerateFlannelFiles(mgr.Cluster)
+		flannelFile, err := flannel.GenerateFlannelFiles(mgr)
 		if err != nil {
 			return err
 		}

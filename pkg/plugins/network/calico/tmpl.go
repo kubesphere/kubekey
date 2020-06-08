@@ -17,8 +17,9 @@ limitations under the License.
 package calico
 
 import (
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
 	"text/template"
 )
@@ -553,7 +554,7 @@ spec:
         # It can be deleted if this is a fresh installation, or if you have already
         # upgraded to use calico-ipam.
         - name: upgrade-ipam
-          image: calico/cni:v3.13.0
+          image: {{ .CalicoCniImage }}
           command: ["/opt/cni/bin/calico-ipam", "-upgrade"]
           env:
             - name: KUBERNETES_NODE_NAME
@@ -575,7 +576,7 @@ spec:
         # This container installs the CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: calico/cni:v3.13.0
+          image: {{ .CalicoCniImage }}
           command: ["/install-cni.sh"]
           env:
             # Name of the CNI config file to create.
@@ -611,7 +612,7 @@ spec:
         # Adds a Flex Volume Driver that creates a per-pod Unix Domain Socket to allow Dikastes
         # to communicate with Felix over the Policy Sync API.
         - name: flexvol-driver
-          image: calico/pod2daemon-flexvol:v3.13.0
+          image: {{ .CalicoFlexvolImage }}
           volumeMounts:
             - name: flexvol-driver-host
               mountPath: /host/driver
@@ -622,7 +623,7 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: calico/node:v3.13.0
+          image: {{ .CalicoNodeImage }}
           env:
             # Use Kubernetes API as the backing datastore.
             - name: DATASTORE_TYPE
@@ -797,7 +798,7 @@ spec:
       priorityClassName: system-cluster-critical
       containers:
         - name: calico-kube-controllers
-          image: calico/kube-controllers:v3.13.0
+          image: {{ .CalicoControllersImage }}
           env:
             # Choose which controllers to run.
             - name: ENABLED_CONTROLLERS
@@ -827,8 +828,12 @@ metadata:
 # Source: calico/templates/configure-canal.yaml
     `)))
 
-func GenerateCalicoFiles(cfg *kubekeyapi.ClusterSpec) (string, error) {
+func GenerateCalicoFiles(mgr *manager.Manager) (string, error) {
 	return util.Render(calicoTempl, util.Data{
-		"KubePodsCIDR": cfg.Network.KubePodsCIDR,
+		"KubePodsCIDR":           mgr.Cluster.Network.KubePodsCIDR,
+		"CalicoCniImage":         images.GetImage(mgr, "calico-cni").ImageName(),
+		"CalicoNodeImage":        images.GetImage(mgr, "calico-node").ImageName(),
+		"CalicoFlexvolImage":     images.GetImage(mgr, "calico-flexvol").ImageName(),
+		"CalicoControllersImage": images.GetImage(mgr, "calico-flexvol").ImageName(),
 	})
 }

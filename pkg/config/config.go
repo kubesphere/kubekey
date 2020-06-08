@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
@@ -54,7 +55,7 @@ spec:
     address: ""
     port: "6443"
   kubernetes:
-    version: {{ .KubeVersion }}
+    version: {{ .Options.KubeVersion }}
     imageRepo: kubesphere
     clusterName: cluster.local
   network:
@@ -121,61 +122,17 @@ spec:
       jwtAdminKey: SHOULD_BE_REPLACED
     {{- end }}
 {{- end }}
-{{- if .Options.KubeSphereEnabled }}
-  kubesphere:
-    console:
-      enableMultiLogin: false  # enable/disable multi login
-      port: 30880
-    common:
-      mysqlVolumeSize: 20Gi
-      minioVolumeSize: 20Gi
-      etcdVolumeSize: 20Gi
-      openldapVolumeSize: 2Gi
-      redisVolumSize: 2Gi
-    monitoring:
-      prometheusReplicas: 1
-      prometheusMemoryRequest: 400Mi
-      prometheusVolumeSize: 20Gi
-      grafana:
-        enabled: false
-    logging:
-      enabled: false
-      elasticsearchMasterReplicas: 1
-      elasticsearchDataReplicas: 1
-      logsidecarReplicas: 2
-      elasticsearchMasterVolumeSize: 4Gi
-      elasticsearchDataVolumeSize: 20Gi
-      logMaxAge: 7
-      elkPrefix: logstash
-      kibana:
-        enabled: false
-    openpitrix:
-      enabled: false
-    devops:
-      enabled: false
-      jenkinsMemoryLim: 2Gi
-      jenkinsMemoryReq: 1500Mi
-      jenkinsVolumeSize: 8Gi
-      jenkinsJavaOpts_Xms: 512m
-      jenkinsJavaOpts_Xmx: 512m
-      jenkinsJavaOpts_MaxRAM: 2g
-      sonarqube:
-        enabled: false
-        postgresqlVolumeSize: 8Gi
-    notification:
-      enabled: false
-    alerting:
-      enabled: false
-    serviceMesh:
-      enabled: false
-    metricsServer:
-      enabled: false
-{{- end }}
+
+
+{{ if .Options.KubeSphereEnabled }}
+{{ .Options.KubeSphereConfigMap }}
+{{ end }}
     `)))
 )
 
 type Options struct {
 	Name                    string
+	KubeVersion             string
 	StorageNum              int
 	DefaultStorageClass     string
 	DefaultStorageClassName string
@@ -184,6 +141,7 @@ type Options struct {
 	CephRBDEnabled          bool
 	GlusterFSEnabled        bool
 	KubeSphereEnabled       bool
+	KubeSphereConfigMap     string
 }
 
 func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
@@ -194,7 +152,7 @@ func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
 	})
 }
 
-func GenerateClusterObj(addons, name, clusterCfgPath string) error {
+func GenerateClusterObj(addons, k8sVersion, ksVersion, name, clusterCfgPath string, ksEnabled bool) error {
 	opt := Options{}
 	if name != "" {
 		output := strings.Split(name, ".")
@@ -202,6 +160,8 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 	} else {
 		opt.Name = "config-sample"
 	}
+	opt.KubeVersion = k8sVersion
+	opt.KubeSphereEnabled = ksEnabled
 	addonsList := strings.Split(addons, ",")
 	for index, addon := range addonsList {
 		switch strings.TrimSpace(addon) {
@@ -229,11 +189,27 @@ func GenerateClusterObj(addons, name, clusterCfgPath string) error {
 			if index == 0 {
 				opt.DefaultStorageClass = "glusterfs"
 			}
-		case "kubesphere":
-			opt.KubeSphereEnabled = true
 		case "":
 		default:
-			return errors.New(fmt.Sprintf("This plugin is not supported: %s", strings.TrimSpace(addon)))
+			return errors.New(fmt.Sprintf("This storage plugin is not supported: %s", strings.TrimSpace(addon)))
+		}
+	}
+
+	if ksEnabled {
+		if opt.StorageNum == 0 {
+			opt.LocalVolumeEnabled = true
+			opt.StorageNum++
+			opt.DefaultStorageClass = "localVolume"
+		}
+		switch strings.TrimSpace(ksVersion) {
+		case "":
+			opt.KubeSphereConfigMap = kubesphere.V3_0_0
+		case "v3.0.0":
+			opt.KubeSphereConfigMap = kubesphere.V3_0_0
+		case "v2.1.1":
+			opt.KubeSphereConfigMap = kubesphere.V2_1_1
+		default:
+			return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
 		}
 	}
 

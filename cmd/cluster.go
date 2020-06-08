@@ -21,17 +21,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// scaleCmd represents the scale command
-var scaleCmd = &cobra.Command{
-	Use:   "scale",
-	Short: "Scale a cluster according to the new nodes information from the specified configuration file",
+var (
+	clusterCfgFile string
+	kubernetes     string
+	kubesphere     bool
+)
+
+// clusterCmd represents the cluster command
+var clusterCmd = &cobra.Command{
+	Use:   "cluster",
+	Short: "Create a Kubernetes or KubeSphere cluster",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		var ksVersion string
+		if kubesphere && len(args) > 0 {
+			ksVersion = args[0]
+		} else {
+			ksVersion = ""
+		}
 		logger := util.InitLogger(verbose)
-		return install.CreateCluster(clusterCfgFile, "", "", logger, false, verbose)
+		return install.CreateCluster(clusterCfgFile, kubernetes, ksVersion, logger, kubesphere, verbose)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(scaleCmd)
-	scaleCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "configuration file name")
+	createCmd.AddCommand(clusterCmd)
+
+	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "configuration file name")
+	clusterCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.6", "kubernetes version")
+	clusterCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "person's age")
 }

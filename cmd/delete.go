@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright © 2020 NAME HERE <EMAIL ADDRESS>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,35 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package cmd
 
 import (
 	"github.com/kubesphere/kubekey/pkg/delete"
 	"github.com/kubesphere/kubekey/pkg/util"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func NewCmdResetCluster() *cobra.Command {
-	var (
-		clusterCfgFile string
-		verbose        bool
-	)
-	var clusterCmd = &cobra.Command{
-		Use:   "delete",
-		Short: "Delete a cluster",
-		Run: func(cmd *cobra.Command, args []string) {
-			logger := util.InitLogger(verbose)
-			resetCluster(clusterCfgFile, logger, verbose)
-		},
-	}
-
-	clusterCmd.Flags().StringVarP(&clusterCfgFile, "config", "f", "", "")
-	clusterCmd.Flags().BoolVarP(&verbose, "debug", "", true, "")
-	return clusterCmd
+// deleteCmd represents the delete command
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Delete a cluster",
+	Run: func(cmd *cobra.Command, args []string) {
+		logger := util.InitLogger(verbose)
+		delete.ResetCluster(clusterCfgFile, logger, verbose)
+	},
 }
 
-func resetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) {
-	delete.ResetCluster(clusterCfgFile, logger, verbose)
+func init() {
+	rootCmd.AddCommand(deleteCmd)
+
+	deleteCmd.Flags().StringVarP(&clusterCfgFile, "config", "f", "", "")
 }

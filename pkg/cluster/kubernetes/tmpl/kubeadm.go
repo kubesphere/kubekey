@@ -40,7 +40,7 @@ etcd:
     keyFile: {{ .ExternalEtcd.KeyFile }}
 dns:
   type: CoreDNS
-  imageRepository: coredns
+  imageRepository: {{ .CorednsRepo }}coredns
   imageTag: 1.6.0
 imageRepository: {{ .ImageRepo }}
 kubernetesVersion: {{ .Version }}
@@ -145,8 +145,16 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	} else {
 		imageRepo = mgr.Cluster.Kubernetes.ImageRepo
 	}
+
+	var corednsRepo string
+	if mgr.Cluster.Registry.PrivateRegistry != "" {
+		corednsRepo = fmt.Sprintf("%s/", mgr.Cluster.Registry.PrivateRegistry)
+	} else {
+		corednsRepo = ""
+	}
 	return util.Render(KubeadmCfgTempl, util.Data{
 		"ImageRepo":            imageRepo,
+		"CorednsRepo":          corednsRepo,
 		"Version":              mgr.Cluster.Kubernetes.Version,
 		"ClusterName":          mgr.Cluster.Kubernetes.ClusterName,
 		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port),
