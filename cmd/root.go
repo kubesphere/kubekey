@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,9 +31,6 @@ var rootCmd = &cobra.Command{
 1. Install Kubernetes only
 2. Install Kubernetes and KubeSphere together in one command
 3. Install Kubernetes first, then deploy KubeSphere on it using https://github.com/kubesphere/ks-installer`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -50,7 +47,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().BoolVar(&verbose, "debug", true, "")
+	rootCmd.PersistentFlags().BoolVar(&verbose, "debug", true, "Print detailed information")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

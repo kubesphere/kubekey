@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,9 +43,9 @@ var configCmd = &cobra.Command{
 
 func init() {
 	createCmd.AddCommand(configCmd)
-	configCmd.Flags().StringVarP(&addons, "with-storage", "", "", "add storage plugins")
-	configCmd.Flags().StringVarP(&name, "name", "", "", "cluster name")
-	configCmd.Flags().StringVarP(&clusterCfgPath, "file", "f", "", "configuration file name")
-	configCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.6", "kubernetes version")
-	configCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "person's age")
+	configCmd.Flags().StringVarP(&addons, "with-storage", "", "", "Add storage plugins")
+	configCmd.Flags().StringVarP(&name, "name", "", "config-sample", "Specify a name of cluster object")
+	configCmd.Flags().StringVarP(&clusterCfgPath, "file", "f", "", "Specify a configuration file path")
+	configCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.6", "Specify a supported version of kubernetes")
+	configCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 }

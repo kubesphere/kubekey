@@ -35,10 +35,10 @@ data:
     persistence:
       storageClass: ""
     etcd:
-      monitoring: False
+      monitoring: true
       endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
       port: 2379
-      tlsEnable: True
+      tlsEnable: true
     common:
       mysqlVolumeSize: 20Gi
       minioVolumeSize: 20Gi
@@ -46,7 +46,7 @@ data:
       openldapVolumeSize: 2Gi
       redisVolumSize: 2Gi
     metrics_server:
-      enabled: False
+      enabled: false
     console:
       enableMultiLogin: False  # enable/disable multi login
       port: 30880
@@ -55,9 +55,9 @@ data:
       prometheusMemoryRequest: 400Mi
       prometheusVolumeSize: 20Gi
       grafana:
-        enabled: False
+        enabled: false
     logging:
-      enabled: False
+      enabled: false
       elasticsearchMasterReplicas: 1
       elasticsearchDataReplicas: 1
       logsidecarReplicas: 2
@@ -67,11 +67,11 @@ data:
       elkPrefix: logstash
       containersLogMountedPath: ""
       kibana:
-        enabled: False
+        enabled: false
     openpitrix:
-      enabled: False
+      enabled: false
     devops:
-      enabled: False
+      enabled: false
       jenkinsMemoryLim: 2Gi
       jenkinsMemoryReq: 1500Mi
       jenkinsVolumeSize: 8Gi
@@ -79,14 +79,14 @@ data:
       jenkinsJavaOpts_Xmx: 512m
       jenkinsJavaOpts_MaxRAM: 2g
       sonarqube:
-        enabled: False
+        enabled: false
         postgresqlVolumeSize: 8Gi
     servicemesh:
-      enabled: False
+      enabled: false
     notification:
-      enabled: False
+      enabled: false
     alerting:
-      enabled: False
+      enabled: false
 
 kind: ConfigMap
 metadata:
@@ -106,10 +106,10 @@ data:
     persistence:
       storageClass: ""
     etcd:
-      monitoring: False
+      monitoring: true
       endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
       port: 2379
-      tlsEnable: True
+      tlsEnable: true
 
     common:
       mysqlVolumeSize: 20Gi
@@ -127,12 +127,12 @@ data:
       prometheusMemoryRequest: 400Mi
       prometheusVolumeSize: 20Gi
       grafana:
-        enabled: False
+        enabled: false
       notification:
-        enabled: False
+        enabled: false
 
     logging:
-      enabled: False
+      enabled: false
       elasticsearchMasterReplicas: 1
       elasticsearchDataReplicas: 1
       logsidecarReplicas: 2
@@ -142,16 +142,16 @@ data:
       elkPrefix: logstash
       containersLogMountedPath: ""
       kibana:
-        enabled: False
+        enabled: false
 
     events:
-      enabled: False
+      enabled: false
 
     openpitrix:
-      enabled: False
+      enabled: false
 
     devops:
-      enabled: False
+      enabled: false
       jenkinsMemoryLim: 2Gi
       jenkinsMemoryReq: 1500Mi
       jenkinsVolumeSize: 8Gi
@@ -159,23 +159,23 @@ data:
       jenkinsJavaOpts_Xmx: 512m
       jenkinsJavaOpts_MaxRAM: 2g
       sonarqube:
-        enabled: False
+        enabled: false
         postgresqlVolumeSize: 8Gi
 
     servicemesh:
-      enabled: False
+      enabled: false
 
     notification:
-      enabled: False
+      enabled: false
 
     alerting:
-      enabled: False
+      enabled: false
 
     metrics_server:
-      enabled: False
+      enabled: false
 
     weave_scope:
-      enabled: False
+      enabled: false
 
 kind: ConfigMap
 metadata:

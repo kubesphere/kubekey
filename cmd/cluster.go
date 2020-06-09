@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ var clusterCmd = &cobra.Command{
 func init() {
 	createCmd.AddCommand(clusterCmd)
 
-	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "configuration file name")
-	clusterCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.6", "kubernetes version")
-	clusterCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "person's age")
+	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "Path to a configuration file")
+	clusterCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.6", "Specify a supported version of kubernetes")
+	clusterCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 }

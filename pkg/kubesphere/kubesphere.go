@@ -117,9 +117,18 @@ EOF
 				if err3 != nil {
 					return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to sync helm2"))
 				}
-
 			}
 		}
+	}
+
+	var addrList []string
+	for _, host := range mgr.EtcdNodes {
+		addrList = append(addrList, host.InternalAddress)
+	}
+	etcdendpoint := strings.Join(addrList, ",")
+	_, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/endpointIps/s/\\:.*/\\: %s/g\" %s", etcdendpoint, configMap)).CombinedOutput()
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to update etcd endpoint"))
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
@@ -159,11 +168,22 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: kubesphere-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubesphere-monitoring-system
 EOF
 `)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to create namespace: kubesphere-system")
 	}
+
+	caFile := "/etc/ssl/etcd/ssl/ca.pem"
+	certFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", mgr.EtcdNodes[0].Name)
+	keyFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", mgr.EtcdNodes[0].Name)
+	mgr.Runner.RunCmdOutput(fmt.Sprintf("/usr/local/bin/kubectl -n kubesphere-monitoring-system create secret generic kube-etcd-client-certs --from-file=etcd-client-ca.crt=%s --from-file=etcd-client.crt=%s --from-file=etcd-client.key=%s", caFile, certFile, keyFile))
+
 	_, err4 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/kubesphere.yaml")
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to deploy /etc/kubernetes/addons/kubesphere.yaml")

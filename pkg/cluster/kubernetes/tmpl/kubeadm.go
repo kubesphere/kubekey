@@ -132,8 +132,8 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	externalEtcd.Endpoints = endpointsList
 
 	caFile = "/etc/ssl/etcd/ssl/ca.pem"
-	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/admin-%s.pem", mgr.EtcdNodes[0].Name)
-	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/admin-%s-key.pem", mgr.EtcdNodes[0].Name)
+	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", mgr.EtcdNodes[0].Name)
+	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", mgr.EtcdNodes[0].Name)
 
 	externalEtcd.CaFile = caFile
 	externalEtcd.CertFile = certFile
