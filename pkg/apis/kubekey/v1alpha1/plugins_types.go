@@ -22,6 +22,7 @@ type Storage struct {
 	NfsClient           NfsClient   `yaml:"nfsClient" json:"nfs,omitempty"`
 	GlusterFS           GlusterFS   `yaml:"glusterfs" json:"glusterfs,omitempty"`
 	CephRBD             CephRBD     `yaml:"rbd" json:"rbd,omitempty"`
+	NeonsanCSI          NeonsanCSI  `yaml:"neonsancsi" json:"neonsancsi"`
 }
 
 type LocalVolume struct {
@@ -68,4 +69,11 @@ type CephRBD struct {
 	FsType           string   `yaml:"fsType" json:"fsType,omitempty"`
 	ImageFormat      int      `yaml:"imageFormat" json:"imageFormat,omitempty"`
 	ImageFeatures    string   `yaml:"imageFeatures" json:"imageFeatures,omitempty"`
+}
+
+type NeonsanCSI struct {
+	Enable  bool   `json:"enable,omitempty"`
+	Pool    string `yaml:"pool" json:"pool"`
+	Replica int    `yaml:"replica" json:"replica"`
+	FsType  string `yaml:"fsType" json:"fsType"`
 }

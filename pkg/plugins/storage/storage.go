@@ -21,6 +21,7 @@ import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	ceph_rbd "github.com/kubesphere/kubekey/pkg/plugins/storage/ceph-rbd"
+	csi_neonsan "github.com/kubesphere/kubekey/pkg/plugins/storage/csi-neonsan"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage/glusterfs"
 	local_volume "github.com/kubesphere/kubekey/pkg/plugins/storage/local-volume"
 	nfs_client "github.com/kubesphere/kubekey/pkg/plugins/storage/nfs-client"
@@ -32,10 +33,18 @@ import (
 func DeployStoragePlugins(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Deploying storage plugin ...")
 
-	return mgr.RunTaskOnMasterNodes(deployStoragePlugins, true)
+	err := mgr.RunTaskOnMasterNodes(deployStoragePlugins, true)
+	if err != nil {
+		return err
+	}
+	if mgr.Cluster.Storage.NeonsanCSI.Enable {
+		return mgr.RunTaskOnK8sNodes(csi_neonsan.InstallNeonsanPlugin, true)
+	}
+	return nil
 }
 
 func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
+	_, _ = node, conn
 	if mgr.Runner.Index == 0 {
 		mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
 		if mgr.Cluster.Storage.LocalVolume.Enabled {
@@ -55,6 +64,11 @@ func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn s
 		}
 		if mgr.Cluster.Storage.GlusterFS.Enabled {
 			if err := DeployGlusterFS(mgr); err != nil {
+				return err
+			}
+		}
+		if mgr.Cluster.Storage.NeonsanCSI.Enable {
+			if err := csi_neonsan.DeployNeonsanCSI(mgr); err != nil {
 				return err
 			}
 		}
