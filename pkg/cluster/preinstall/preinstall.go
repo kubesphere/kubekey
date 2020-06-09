@@ -23,6 +23,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -71,6 +73,35 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version string) error {
 		} else {
 			if err := SHA256Check(binary, version); err != nil {
 				return err
+			}
+		}
+	}
+
+	configMap := fmt.Sprintf("%s/ks-installer-configmap.yaml", mgr.WorkDir)
+	deployment := fmt.Sprintf("%s/ks-installer-deployment.yaml", mgr.WorkDir)
+	if util.IsExist(configMap) && util.IsExist(deployment) {
+		result := make(map[string]interface{})
+		content, err := ioutil.ReadFile(configMap)
+		if err != nil {
+			return errors.Wrap(err, "Unable to read the given configmap")
+		}
+		if err := yaml.Unmarshal(content, &result); err != nil {
+			return errors.Wrap(err, "Unable to convert file to yaml")
+		}
+		metadata := result["metadata"].(map[interface{}]interface{})
+		labels := metadata["labels"].(map[interface{}]interface{})
+		_, ok := labels["version"]
+		if ok {
+			switch labels["version"] {
+			case "v2.1.1":
+				mgr.Logger.Infoln(fmt.Sprintf("Downloading %s ...", "helm2"))
+				if util.IsExist(fmt.Sprintf("%s/helm2", filepath)) == false {
+					cmd := fmt.Sprintf("curl -o %s/helm2 %s", filepath, fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.2"))
+					if output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
+						fmt.Println(string(output))
+						return errors.Wrap(err, "Failed to download helm2 binary")
+					}
+				}
 			}
 		}
 	}

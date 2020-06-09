@@ -40,7 +40,6 @@ type ClusterSpec struct {
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
 	Storage              Storage              `yaml:"storage" json:"storage,omitempty"`
-	KubeSphere           KubeSphere           `yaml:"kubesphere" json:"kubephere,omitempty"`
 }
 
 type Kubernetes struct {

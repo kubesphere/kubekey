@@ -17,8 +17,9 @@ limitations under the License.
 package flannel
 
 import (
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
 	"text/template"
 )
@@ -195,7 +196,7 @@ spec:
       serviceAccountName: flannel
       initContainers:
         - name: install-cni
-          image: quay.io/coreos/flannel:v0.11.0-amd64
+          image: {{ .FlannelImage }}
           command:
             - cp
           args:
@@ -209,7 +210,7 @@ spec:
               mountPath: /etc/kube-flannel/
       containers:
         - name: kube-flannel
-          image: quay.io/coreos/flannel:v0.11.0-amd64
+          image: {{ .FlannelImage }}
           command:
             - /opt/bin/flanneld
           args:
@@ -629,8 +630,9 @@ spec:
 
     `)))
 
-func GenerateFlannelFiles(cfg *kubekeyapi.ClusterSpec) (string, error) {
+func GenerateFlannelFiles(mgr *manager.Manager) (string, error) {
 	return util.Render(flannelTempl, util.Data{
-		"KubePodsCIDR": cfg.Network.KubePodsCIDR,
+		"KubePodsCIDR": mgr.Cluster.Network.KubePodsCIDR,
+		"FlannelImage": images.GetImage(mgr, "flannel").ImageName(),
 	})
 }

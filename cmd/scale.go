@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package cmd
 
 import (
@@ -22,24 +21,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdScaleCluster() *cobra.Command {
-	var (
-		clusterCfgFile string
-		//pkgDir         string
-		verbose bool
-	)
-	var clusterCmd = &cobra.Command{
-		Use:   "scale",
-		Short: "Scale a cluster according to the new nodes information from the specified configuration file",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			logger := util.InitLogger(verbose)
-			//return scale.ScaleCluster(clusterCfgFile, logger, pkgDir, Verbose)
-			return install.CreateCluster(clusterCfgFile, logger, false, verbose)
-		},
-	}
+// scaleCmd represents the scale command
+var scaleCmd = &cobra.Command{
+	Use:   "scale",
+	Short: "Scale a cluster according to the new nodes information from the specified configuration file",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		logger := util.InitLogger(verbose)
+		return install.CreateCluster(clusterCfgFile, "", "", logger, false, verbose)
+	},
+}
 
-	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "configuration file name")
-	//clusterCmd.Flags().StringVarP(&pkgDir, "pkg", "", "", "release package (offline)")
-	clusterCmd.Flags().BoolVarP(&verbose, "debug", "", true, "")
-	return clusterCmd
+func init() {
+	rootCmd.AddCommand(scaleCmd)
+	scaleCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "Path to a configuration file")
 }

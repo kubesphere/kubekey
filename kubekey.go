@@ -35,5 +35,5 @@ func main() {
 	pflag.CommandLine.MarkHidden("stderrthreshold")
 	pflag.CommandLine.MarkHidden("vmodule")
 
-	cmd.NewKubekeyCommand().Execute()
+	cmd.Execute()
 }

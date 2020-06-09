@@ -17,10 +17,173 @@ limitations under the License.
 package kubesphere
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
+	"strings"
 	"text/template"
+)
+
+const (
+	V2_1_1 = `---
+apiVersion: v1
+data:
+  ks-config.yaml: |
+    ---
+    local_registry: ""
+
+    persistence:
+      storageClass: ""
+    etcd:
+      monitoring: true
+      endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
+      port: 2379
+      tlsEnable: true
+    common:
+      mysqlVolumeSize: 20Gi
+      minioVolumeSize: 20Gi
+      etcdVolumeSize: 20Gi
+      openldapVolumeSize: 2Gi
+      redisVolumSize: 2Gi
+    metrics_server:
+      enabled: false
+    console:
+      enableMultiLogin: False  # enable/disable multi login
+      port: 30880
+    monitoring:
+      prometheusReplicas: 1
+      prometheusMemoryRequest: 400Mi
+      prometheusVolumeSize: 20Gi
+      grafana:
+        enabled: false
+    logging:
+      enabled: false
+      elasticsearchMasterReplicas: 1
+      elasticsearchDataReplicas: 1
+      logsidecarReplicas: 2
+      elasticsearchMasterVolumeSize: 4Gi
+      elasticsearchDataVolumeSize: 20Gi
+      logMaxAge: 7
+      elkPrefix: logstash
+      containersLogMountedPath: ""
+      kibana:
+        enabled: false
+    openpitrix:
+      enabled: false
+    devops:
+      enabled: false
+      jenkinsMemoryLim: 2Gi
+      jenkinsMemoryReq: 1500Mi
+      jenkinsVolumeSize: 8Gi
+      jenkinsJavaOpts_Xms: 512m
+      jenkinsJavaOpts_Xmx: 512m
+      jenkinsJavaOpts_MaxRAM: 2g
+      sonarqube:
+        enabled: false
+        postgresqlVolumeSize: 8Gi
+    servicemesh:
+      enabled: false
+    notification:
+      enabled: false
+    alerting:
+      enabled: false
+
+kind: ConfigMap
+metadata:
+  name: ks-installer
+  namespace: kubesphere-system
+  labels:
+    version: v2.1.1
+`
+
+	V3_0_0 = `---
+apiVersion: v1
+data:
+  ks-config.yaml: |
+    ---
+    local_registry: ""
+
+    persistence:
+      storageClass: ""
+    etcd:
+      monitoring: true
+      endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
+      port: 2379
+      tlsEnable: true
+
+    common:
+      mysqlVolumeSize: 20Gi
+      minioVolumeSize: 20Gi
+      etcdVolumeSize: 20Gi
+      openldapVolumeSize: 2Gi
+      redisVolumSize: 2Gi
+
+    console:
+      enableMultiLogin: False  # enable/disable multi login
+      port: 30880
+
+    monitoring:
+      prometheusReplicas: 1
+      prometheusMemoryRequest: 400Mi
+      prometheusVolumeSize: 20Gi
+      grafana:
+        enabled: false
+      notification:
+        enabled: false
+
+    logging:
+      enabled: false
+      elasticsearchMasterReplicas: 1
+      elasticsearchDataReplicas: 1
+      logsidecarReplicas: 2
+      elasticsearchMasterVolumeSize: 4Gi
+      elasticsearchDataVolumeSize: 20Gi
+      logMaxAge: 7
+      elkPrefix: logstash
+      containersLogMountedPath: ""
+      kibana:
+        enabled: false
+
+    events:
+      enabled: false
+
+    openpitrix:
+      enabled: false
+
+    devops:
+      enabled: false
+      jenkinsMemoryLim: 2Gi
+      jenkinsMemoryReq: 1500Mi
+      jenkinsVolumeSize: 8Gi
+      jenkinsJavaOpts_Xms: 512m
+      jenkinsJavaOpts_Xmx: 512m
+      jenkinsJavaOpts_MaxRAM: 2g
+      sonarqube:
+        enabled: false
+        postgresqlVolumeSize: 8Gi
+
+    servicemesh:
+      enabled: false
+
+    notification:
+      enabled: false
+
+    alerting:
+      enabled: false
+
+    metrics_server:
+      enabled: false
+
+    weave_scope:
+      enabled: false
+
+kind: ConfigMap
+metadata:
+  name: ks-installer
+  namespace: kubesphere-system
+  labels:
+    version: v3.0.0
+`
 )
 
 var (
@@ -31,82 +194,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: kubesphere-system
----
-apiVersion: v1
-data:
-  ks-config.yaml: |
-    ---
 
-    persistence:
-      storageClass: ""
-
-    etcd:
-      monitoring: false
-      endpointIps: ""
-      port: 2379
-      tlsEnable: true
-
-    common:
-      mysqlVolumeSize: {{ .Options.Common.MysqlVolumeSize }}
-      minioVolumeSize: {{ .Options.Common.MinioVolumeSize }}
-      etcdVolumeSize: {{ .Options.Common.EtcdVolumeSize }}
-      openldapVolumeSize: {{ .Options.Common.OpenldapVolumeSize }}
-      redisVolumSize: {{ .Options.Common.RedisVolumSize }}
-
-    metrics_server:
-      enabled: {{ .Options.MetricsServer.Enabled }}
-
-    console:
-      enableMultiLogin: {{ .Options.Console.EnableMultiLogin }}  # enable/disable multi login
-      port: {{ .Options.Console.Port }}
-
-    monitoring:
-      prometheusReplicas: {{ .Options.Monitoring.PrometheusReplicas }}
-      prometheusMemoryRequest: {{ .Options.Monitoring.PrometheusMemoryRequest }}
-      prometheusVolumeSize: {{ .Options.Monitoring.PrometheusVolumeSize }}
-      grafana:
-        enabled: {{ .Options.Monitoring.Grafana.Enabled }}
-
-    logging:
-      enabled: {{ .Options.Logging.Enabled }}
-      elasticsearchMasterReplicas: {{ .Options.Logging.ElasticsearchMasterReplicas }}
-      elasticsearchDataReplicas: {{ .Options.Logging.ElasticsearchDataReplicas }}
-      logsidecarReplicas: {{ .Options.Logging.LogsidecarReplicas }}
-      elasticsearchMasterVolumeSize: {{ .Options.Logging.ElasticsearchMasterVolumeSize }}
-      elasticsearchDataVolumeSize: {{ .Options.Logging.ElasticsearchDataVolumeSize }}
-      logMaxAge: {{ .Options.Logging.LogMaxAge }}
-      elkPrefix: {{ .Options.Logging.ElkPrefix }}
-      kibana:
-        enabled: {{ .Options.Logging.Kibana.Enabled }}
-
-    openpitrix:
-      enabled: {{ .Options.Openpitrix.Enabled }}
-
-    devops:
-      enabled: {{ .Options.Devops.Enabled }}
-      jenkinsMemoryLim: {{ .Options.Devops.JenkinsMemoryLim }}
-      jenkinsMemoryReq: {{ .Options.Devops.JenkinsMemoryReq }}
-      jenkinsVolumeSize: {{ .Options.Devops.JenkinsVolumeSize }}
-      jenkinsJavaOpts_Xms: {{ .Options.Devops.JenkinsJavaOptsXms}}
-      jenkinsJavaOpts_Xmx: {{ .Options.Devops.JenkinsJavaOptsXmx }}
-      jenkinsJavaOpts_MaxRAM: {{ .Options.Devops.JenkinsJavaOptsMaxRAM }}
-      sonarqube:
-        enabled: {{ .Options.Devops.Sonarqube.Enabled }}
-        postgresqlVolumeSize: {{ .Options.Devops.Sonarqube.PostgresqlVolumeSize }}
-
-    servicemesh:
-      enabled: {{ .Options.ServiceMesh.Enabled }}
-
-    notification:
-      enabled: {{ .Options.Notification.Enabled }}
-
-    alerting:
-      enabled: {{ .Options.Alerting.Enabled }}
-
-kind: ConfigMap
-metadata:
-  name: ks-installer
-  namespace: kubesphere-system
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -276,13 +364,24 @@ spec:
       serviceAccountName: ks-installer
       containers:
       - name: installer
-        image: kubespheredev/ks-install:v3.0.0-dev
+        image: {{ .Repo }}/ks-installer:{{ .Tag }}
         imagePullPolicy: IfNotPresent
     `)))
 )
 
-func GenerateKubeSphereYaml(mgr *manager.Manager) (string, error) {
+func GenerateKubeSphereYaml(repo, version string) (string, error) {
+	if repo == "" {
+		if strings.Contains(version, "v3.0.0") {
+			repo = "kubespheredev"
+		} else {
+			repo = "kubesphere"
+		}
+	} else {
+		repo = fmt.Sprintf("%s/kubesphere", repo)
+	}
+
 	return util.Render(KubeSphereTempl, util.Data{
-		"Options": mgr.Cluster.KubeSphere,
+		"Repo": repo,
+		"Tag":  version,
 	})
 }

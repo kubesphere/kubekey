@@ -17,6 +17,7 @@ limitations under the License.
 package install
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
@@ -26,14 +27,25 @@ import (
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
 )
 
-func CreateCluster(clusterCfgFile string, logger *log.Logger, all, verbose bool) error {
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, all, logger)
+func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, all, verbose bool) error {
+	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return errors.Wrap(err, "Faild to get current dir")
+	}
+	if err := util.CreateDir(fmt.Sprintf("%s/kubekey", currentDir)); err != nil {
+		return errors.Wrap(err, "Failed to create work dir")
+	}
+
+	cfg, err := config.ParseClusterCfg(clusterCfgFile, k8sVersion, ksVersion, all, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}

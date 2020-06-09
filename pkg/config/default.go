@@ -17,51 +17,40 @@ limitations under the License.
 package config
 
 import (
+	"bufio"
+	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 )
 
-func ParseClusterCfg(clusterCfgPath string, all bool, logger *log.Logger) (*kubekeyapi.Cluster, error) {
-
+func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapi.Cluster, error) {
+	var clusterCfg *kubekeyapi.Cluster
 	if len(clusterCfgPath) == 0 {
-		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to look up current directory")
+		user, _ := user.Current()
+		if user.Name != "root" {
+			return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
 		}
-		cfgFile := fmt.Sprintf("%s/config.yaml", currentDir)
-		if util.IsExist(cfgFile) {
-			clusterCfg, err := ParseCfg(cfgFile)
-			if err != nil {
-				return nil, err
-			}
-			return clusterCfg, nil
-		} else {
-			user, _ := user.Current()
-			if user.Name != "root" {
-				return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
-			}
-			clusterCfg := AllinoneCfg(user, all)
-			return clusterCfg, nil
-		}
+		clusterCfg = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
 	} else {
-		clusterCfg, err := ParseCfg(clusterCfgPath)
+		cfg, err := ParseCfg(clusterCfgPath)
 		if err != nil {
 			return nil, err
 		}
-
-		//output, _ := json.MarshalIndent(&clusterCfg, "", "  ")
-		//fmt.Println(string(output))
-		return clusterCfg, nil
+		clusterCfg = cfg
 	}
+
+	return clusterCfg, nil
 }
 
 func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
@@ -70,18 +59,76 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to look up current directory")
 	}
-	content, err := ioutil.ReadFile(fp)
+	file, err := os.Open(fp)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to read the given cluster configuration file")
+		return nil, errors.Wrap(err, "Unable to open the given cluster configuration file")
 	}
+	defer file.Close()
+	b1 := bufio.NewReader(file)
 
-	if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
-		return nil, errors.Wrap(err, "Unable to convert file to yaml")
+	for {
+		result := make(map[string]interface{})
+		content, err := k8syaml.NewYAMLReader(b1).Read()
+		if len(content) == 0 {
+			break
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "Unable to read the given cluster configuration file")
+		}
+		err = yaml.Unmarshal(content, &result)
+		if err != nil {
+			return nil, errors.Wrap(err, "Unable to unmarshal the given cluster configuration file")
+		}
+		if result["kind"] == "Cluster" {
+			if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
+				return nil, errors.Wrap(err, "Unable to convert file to yaml")
+			}
+		}
+
+		if result["kind"] == "ConfigMap" {
+			metadata := result["metadata"].(map[interface{}]interface{})
+			labels := metadata["labels"].(map[interface{}]interface{})
+			repo := clusterCfg.Spec.Registry.PrivateRegistry
+			var configMapBase64, kubesphereYaml string
+			_, ok := labels["version"]
+			if ok {
+				switch labels["version"] {
+				case "v3.0.0":
+					configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
+					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0-dev")
+					if err != nil {
+						return nil, err
+					}
+				case "v2.1.1":
+					configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V2_1_1))
+					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "v2.1.1")
+					if err != nil {
+						return nil, err
+					}
+				default:
+					return nil, errors.Wrap(err, fmt.Sprintf("Unsupported versions: %s", labels["version"]))
+				}
+
+				currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+				if err != nil {
+					return nil, errors.Wrap(err, "Faild to get current dir")
+				}
+				_, err1 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-configmap.yaml", configMapBase64, currentDir)).CombinedOutput()
+				if err1 != nil {
+					return nil, errors.Wrap(err, fmt.Sprintf("Failed to write to file: %s/kubekey/ks-installer-configmap.yaml", currentDir))
+				}
+				kubesphereYamlBase64 := base64.StdEncoding.EncodeToString([]byte(kubesphereYaml))
+				_, err2 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-deployment.yaml", kubesphereYamlBase64, currentDir)).CombinedOutput()
+				if err2 != nil {
+					return nil, errors.Wrap(err2, fmt.Sprintf("Failed to generate KubeSphere manifests: %s/kubekey/ks-installer-deployment.yaml", currentDir))
+				}
+			}
+		}
 	}
 	return &clusterCfg, nil
 }
 
-func AllinoneCfg(user *user.User, all bool) *kubekeyapi.Cluster {
+func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) *kubekeyapi.Cluster {
 	allinoneCfg := kubekeyapi.Cluster{}
 	if err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").Run(); err != nil {
 		log.Fatalf("Failed to generate public key: %v", err)
@@ -105,61 +152,51 @@ func AllinoneCfg(user *user.User, all bool) *kubekeyapi.Cluster {
 		Master: []string{"ks-allinone"},
 		Worker: []string{"ks-allinone"},
 	}
+	if k8sVersion != "" {
+		allinoneCfg.Spec.Kubernetes = kubekeyapi.Kubernetes{
+			Version: k8sVersion,
+		}
+	}
+	allinoneCfg.Spec.RoleGroups = kubekeyapi.RoleGroups{
+		Etcd:   []string{"ks-allinone"},
+		Master: []string{"ks-allinone"},
+		Worker: []string{"ks-allinone"},
+	}
 
-	if all {
+	if ksEnabled {
 		allinoneCfg.Spec.Storage = kubekeyapi.Storage{
 			DefaultStorageClass: "localVolume",
 			LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
 		}
-		allinoneCfg.Spec.KubeSphere = kubekeyapi.KubeSphere{
-			Console: kubekeyapi.Console{
-				EnableMultiLogin: false,
-				Port:             30880,
-			},
-			Common: kubekeyapi.Common{
-				MysqlVolumeSize:    "20Gi",
-				MinioVolumeSize:    "20Gi",
-				EtcdVolumeSize:     "20Gi",
-				OpenldapVolumeSize: "2Gi",
-				RedisVolumSize:     "2Gi",
-			},
-			Openpitrix: kubekeyapi.Openpitrix{Enabled: false},
-			Monitoring: kubekeyapi.Monitoring{
-				PrometheusReplicas:      1,
-				PrometheusMemoryRequest: "400Mi",
-				PrometheusVolumeSize:    "20Gi",
-				Grafana:                 kubekeyapi.Grafana{Enabled: false},
-			},
-			Logging: kubekeyapi.Logging{
-				Enabled:                       false,
-				ElasticsearchMasterReplicas:   1,
-				ElasticsearchDataReplicas:     1,
-				LogsidecarReplicas:            2,
-				ElasticsearchMasterVolumeSize: "4Gi",
-				ElasticsearchDataVolumeSize:   "20Gi",
-				LogMaxAge:                     7,
-				ElkPrefix:                     "logstash",
-				Kibana:                        kubekeyapi.Kibana{Enabled: false},
-			},
-			Devops: kubekeyapi.Devops{
-				Enabled:               false,
-				JenkinsMemoryLim:      "2Gi",
-				JenkinsMemoryReq:      "1500Mi",
-				JenkinsVolumeSize:     "8Gi",
-				JenkinsJavaOptsXms:    "512m",
-				JenkinsJavaOptsXmx:    "512m",
-				JenkinsJavaOptsMaxRAM: "2g",
-				Sonarqube: kubekeyapi.Sonarqube{
-					Enabled:              false,
-					PostgresqlVolumeSize: "8Gi",
-				},
-			},
-			Notification:  kubekeyapi.Notification{Enabled: false},
-			Alerting:      kubekeyapi.Alerting{Enabled: false},
-			ServiceMesh:   kubekeyapi.ServiceMesh{Enabled: false},
-			MetricsServer: kubekeyapi.MetricsServer{Enabled: false},
+
+		var configMapBase64, kubesphereYaml string
+		switch strings.TrimSpace(ksVersion) {
+		case "":
+			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
+			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+		case "v3.0.0":
+			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
+			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+		case "v2.1.1":
+			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V2_1_1))
+			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v2.1.1")
+		default:
+			logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
 		}
 
+		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			logger.Fatal(errors.Wrap(err, "Faild to get current dir"))
+		}
+		_, err1 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-configmap.yaml", configMapBase64, currentDir)).CombinedOutput()
+		if err1 != nil {
+			logger.Fatalf("Unsupported versions: %s", ksVersion)
+		}
+		kubesphereYamlBase64 := base64.StdEncoding.EncodeToString([]byte(kubesphereYaml))
+		_, err2 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-deployment.yaml", kubesphereYamlBase64, currentDir)).CombinedOutput()
+		if err2 != nil {
+			logger.Fatal(errors.Wrap(err2, fmt.Sprintf("Failed to generate KubeSphere manifests: %s/kubekey/ks-installer-deployment.yaml", currentDir)))
+		}
 	}
 	return &allinoneCfg
 }
