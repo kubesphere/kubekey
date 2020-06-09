@@ -123,10 +123,14 @@ EOF
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		configMapBase64, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/local_registry/s/\\:.*/\\: %s/g\" %s", mgr.Cluster.Registry.PrivateRegistry, configMap)).CombinedOutput()
+		_, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/local_registry/s/\\:.*/\\: %s/g\" %s", mgr.Cluster.Registry.PrivateRegistry, configMap)).CombinedOutput()
 		if err != nil {
-			fmt.Println(string(configMapBase64))
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
+		}
+	} else {
+		_, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i '/local_registry/d' %s", configMap)).CombinedOutput()
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to remove private registry"))
 		}
 	}
 

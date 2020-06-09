@@ -110,23 +110,27 @@ data:
       endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
       port: 2379
       tlsEnable: True
+
     common:
       mysqlVolumeSize: 20Gi
       minioVolumeSize: 20Gi
       etcdVolumeSize: 20Gi
       openldapVolumeSize: 2Gi
       redisVolumSize: 2Gi
-    metrics_server:
-      enabled: False
+
     console:
       enableMultiLogin: False  # enable/disable multi login
       port: 30880
+
     monitoring:
       prometheusReplicas: 1
       prometheusMemoryRequest: 400Mi
       prometheusVolumeSize: 20Gi
       grafana:
         enabled: False
+      notification:
+        enabled: False
+
     logging:
       enabled: False
       elasticsearchMasterReplicas: 1
@@ -139,8 +143,13 @@ data:
       containersLogMountedPath: ""
       kibana:
         enabled: False
+
+    events:
+      enabled: False
+
     openpitrix:
       enabled: False
+
     devops:
       enabled: False
       jenkinsMemoryLim: 2Gi
@@ -152,11 +161,20 @@ data:
       sonarqube:
         enabled: False
         postgresqlVolumeSize: 8Gi
+
     servicemesh:
       enabled: False
+
     notification:
       enabled: False
+
     alerting:
+      enabled: False
+
+    metrics_server:
+      enabled: False
+
+    weave_scope:
       enabled: False
 
 kind: ConfigMap
