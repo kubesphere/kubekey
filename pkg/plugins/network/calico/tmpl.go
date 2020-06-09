@@ -834,6 +834,6 @@ func GenerateCalicoFiles(mgr *manager.Manager) (string, error) {
 		"CalicoCniImage":         images.GetImage(mgr, "calico-cni").ImageName(),
 		"CalicoNodeImage":        images.GetImage(mgr, "calico-node").ImageName(),
 		"CalicoFlexvolImage":     images.GetImage(mgr, "calico-flexvol").ImageName(),
-		"CalicoControllersImage": images.GetImage(mgr, "calico-flexvol").ImageName(),
+		"CalicoControllersImage": images.GetImage(mgr, "calico-kube-controllers").ImageName(),
 	})
 }
