@@ -18,7 +18,7 @@ package ceph_rbd
 
 import (
 	"encoding/base64"
-	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -239,7 +239,7 @@ data:
 
 func GenerateRBDProvisionerManifests(mgr *manager.Manager) (string, error) {
 	return util.Render(RBDProvisionerTempl, util.Data{
-		"RBDProvisionerImage": images.GetImage(mgr, "rbd-provisioner").ImageName(),
+		"RBDProvisionerImage": preinstall.GetImage(mgr, "rbd-provisioner").ImageName(),
 		"IsDefaultClass":      mgr.Cluster.Storage.CephRBD.IsDefaultClass,
 		"StorageClassName":    mgr.Cluster.Storage.CephRBD.StorageClassName,
 		"Monitors":            strings.Join(mgr.Cluster.Storage.CephRBD.Monitors, ","),

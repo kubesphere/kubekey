@@ -23,7 +23,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
-	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
@@ -58,7 +57,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
 		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
 		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
-		{Task: images.PreDownloadImages, ErrMsg: "Failed to pre-download images"},
+		{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},
 		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "Failed to sync etcd certs"},
 		{Task: etcd.GenerateEtcdService, ErrMsg: "Failed to create etcd service"},
@@ -68,7 +67,6 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "Failed to sync kube binaries"},
 		{Task: kubernetes.InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
 		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
-		//{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "Failed to get join cmd"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
 		{Task: storage.DeployStoragePlugins, ErrMsg: "Failed to deploy storage plugin"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere"},

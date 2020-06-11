@@ -41,9 +41,10 @@ const (
 	DefaultFlannelVersion = "v0.11.0"
 	DefaultCniVersion     = "v0.8.6"
 	DefaultHelmVersion    = "v3.2.1"
-	ETCDRole              = "etcd"
-	MasterRole            = "master"
-	WorkerRole            = "worker"
+	Etcd                  = "etcd"
+	Master                = "master"
+	Worker                = "worker"
+	K8s                   = "k8s"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {

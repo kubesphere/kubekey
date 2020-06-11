@@ -20,24 +20,29 @@ import (
 	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	ceph_rbd "github.com/kubesphere/kubekey/pkg/plugins/storage/ceph-rbd"
+	cephrbd "github.com/kubesphere/kubekey/pkg/plugins/storage/ceph-rbd"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage/glusterfs"
-	local_volume "github.com/kubesphere/kubekey/pkg/plugins/storage/local-volume"
-	nfs_client "github.com/kubesphere/kubekey/pkg/plugins/storage/nfs-client"
+	localvolume "github.com/kubesphere/kubekey/pkg/plugins/storage/local-volume"
+	nfsclient "github.com/kubesphere/kubekey/pkg/plugins/storage/nfs-client"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 )
 
 func DeployStoragePlugins(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Deploying storage plugin ...")
 
+	mgr.Logger.Infoln("Start to download images on all nodes (storage)")
+	if err := mgr.RunTaskOnAllNodes(prePullStorageImages, true); err != nil {
+		return err
+	}
+
+	mgr.Logger.Infoln("Deploying storage plugin ...")
 	return mgr.RunTaskOnMasterNodes(deployStoragePlugins, true)
 }
 
-func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
+func deployStoragePlugins(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
-		mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
+		_, _ = mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud")
 		if mgr.Cluster.Storage.LocalVolume.Enabled {
 			if err := DeployLocalVolume(mgr); err != nil {
 				return err
@@ -63,7 +68,7 @@ func deployStoragePlugins(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn s
 }
 
 func DeployLocalVolume(mgr *manager.Manager) error {
-	localVolumeFile, err := local_volume.GenerateOpenebsManifests(mgr)
+	localVolumeFile, err := localvolume.GenerateOpenebsManifests(mgr)
 	if err != nil {
 		return err
 	}
@@ -87,7 +92,7 @@ func DeployNfsClient(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to fetch nfs-client-provisioner chart")
 	}
 
-	nfsClientValuesFile, err := nfs_client.GenerateNfsClientValuesFile(mgr)
+	nfsClientValuesFile, err := nfsclient.GenerateNfsClientValuesFile(mgr)
 	if err != nil {
 		return err
 	}
@@ -105,7 +110,7 @@ func DeployNfsClient(mgr *manager.Manager) error {
 }
 
 func DeployRBDProvisioner(mgr *manager.Manager) error {
-	RBDProvisionerFile, err := ceph_rbd.GenerateRBDProvisionerManifests(mgr)
+	RBDProvisionerFile, err := cephrbd.GenerateRBDProvisionerManifests(mgr)
 	if err != nil {
 		return err
 	}
