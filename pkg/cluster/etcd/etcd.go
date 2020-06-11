@@ -21,7 +21,7 @@ import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd/tmpl"
-	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
@@ -168,7 +168,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ss
 		return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd bin")
 	}
 
-	getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s /bin/cp /usr/local/bin/etcdctl /systembindir/etcdctl", images.GetImage(mgr, "etcd").ImageName())
+	getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s /bin/cp /usr/local/bin/etcdctl /systembindir/etcdctl", preinstall.GetImage(mgr, "etcd").ImageName())
 	_, err4 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", getEtcdCtlCmd))
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to get etcdctl")

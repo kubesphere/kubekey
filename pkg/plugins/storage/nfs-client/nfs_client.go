@@ -17,7 +17,7 @@ limitations under the License.
 package nfs_client
 
 import (
-	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -109,7 +109,7 @@ affinity: {}
 func GenerateNfsClientValuesFile(mgr *manager.Manager) (string, error) {
 	return util.Render(NfsClientTempl, util.Data{
 		"NfsClient":                mgr.Cluster.Storage.NfsClient,
-		"NfsClientProvisionerRepo": images.GetImage(mgr, "nfs-client-provisioner").ImageRepo(),
-		"NfsClientProvisionerTag":  images.GetImage(mgr, "nfs-client-provisioner").Tag,
+		"NfsClientProvisionerRepo": preinstall.GetImage(mgr, "nfs-client-provisioner").ImageRepo(),
+		"NfsClientProvisionerTag":  preinstall.GetImage(mgr, "nfs-client-provisioner").Tag,
 	})
 }

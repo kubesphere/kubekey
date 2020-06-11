@@ -17,7 +17,7 @@ limitations under the License.
 package flannel
 
 import (
-	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -633,6 +633,6 @@ spec:
 func GenerateFlannelFiles(mgr *manager.Manager) (string, error) {
 	return util.Render(flannelTempl, util.Data{
 		"KubePodsCIDR": mgr.Cluster.Network.KubePodsCIDR,
-		"FlannelImage": images.GetImage(mgr, "flannel").ImageName(),
+		"FlannelImage": preinstall.GetImage(mgr, "flannel").ImageName(),
 	})
 }

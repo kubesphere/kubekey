@@ -17,7 +17,7 @@ limitations under the License.
 package dns
 
 import (
-	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -196,6 +196,6 @@ func GenerateNodelocaldnsService(mgr *manager.Manager) (string, error) {
 	return util.Render(nodelocaldnsServiceTempl, util.Data{
 		"ForwardTarget":     mgr.Cluster.ClusterIP(),
 		"DndDomain":         mgr.Cluster.Kubernetes.ClusterName,
-		"NodelocaldnsImage": images.GetImage(mgr, "k8s-dns-node-cache").ImageName(),
+		"NodelocaldnsImage": preinstall.GetImage(mgr, "k8s-dns-node-cache").ImageName(),
 	})
 }

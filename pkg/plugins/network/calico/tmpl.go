@@ -17,7 +17,7 @@ limitations under the License.
 package calico
 
 import (
-	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -831,9 +831,9 @@ metadata:
 func GenerateCalicoFiles(mgr *manager.Manager) (string, error) {
 	return util.Render(calicoTempl, util.Data{
 		"KubePodsCIDR":           mgr.Cluster.Network.KubePodsCIDR,
-		"CalicoCniImage":         images.GetImage(mgr, "calico-cni").ImageName(),
-		"CalicoNodeImage":        images.GetImage(mgr, "calico-node").ImageName(),
-		"CalicoFlexvolImage":     images.GetImage(mgr, "calico-flexvol").ImageName(),
-		"CalicoControllersImage": images.GetImage(mgr, "calico-kube-controllers").ImageName(),
+		"CalicoCniImage":         preinstall.GetImage(mgr, "calico-cni").ImageName(),
+		"CalicoNodeImage":        preinstall.GetImage(mgr, "calico-node").ImageName(),
+		"CalicoFlexvolImage":     preinstall.GetImage(mgr, "calico-flexvol").ImageName(),
+		"CalicoControllersImage": preinstall.GetImage(mgr, "calico-kube-controllers").ImageName(),
 	})
 }
