@@ -31,7 +31,6 @@ data:
   ks-config.yaml: |
     ---
     local_registry: ""
-
     persistence:
       storageClass: ""
     etcd:
@@ -87,7 +86,6 @@ data:
       enabled: false
     alerting:
       enabled: false
-
 kind: ConfigMap
 metadata:
   name: ks-installer
@@ -102,7 +100,6 @@ data:
   ks-config.yaml: |
     ---
     local_registry: ""
-
     persistence:
       storageClass: ""
     etcd:
@@ -110,18 +107,15 @@ data:
       endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
       port: 2379
       tlsEnable: true
-
     common:
       mysqlVolumeSize: 20Gi
       minioVolumeSize: 20Gi
       etcdVolumeSize: 20Gi
       openldapVolumeSize: 2Gi
       redisVolumSize: 2Gi
-
     console:
       enableMultiLogin: False  # enable/disable multi login
       port: 30880
-
     monitoring:
       prometheusReplicas: 1
       prometheusMemoryRequest: 400Mi
@@ -130,7 +124,6 @@ data:
         enabled: false
       notification:
         enabled: false
-
     logging:
       enabled: false
       elasticsearchMasterReplicas: 1
@@ -143,16 +136,12 @@ data:
       containersLogMountedPath: ""
       kibana:
         enabled: false
-
     events:
       enabled: false
-    
     auditing:
-      enabled: false 
-
+      enabled: false
     openpitrix:
       enabled: false
-
     devops:
       enabled: false
       jenkinsMemoryLim: 2Gi
@@ -164,22 +153,16 @@ data:
       sonarqube:
         enabled: false
         postgresqlVolumeSize: 8Gi
-
     servicemesh:
       enabled: false
-
     notification:
       enabled: false
-
     alerting:
       enabled: false
-
     metrics_server:
       enabled: false
-
     weave_scope:
       enabled: false
-
 kind: ConfigMap
 metadata:
   name: ks-installer

@@ -123,7 +123,6 @@ spec:
     {{- end }}
 {{- end }}
 
-
 {{ if .Options.KubeSphereEnabled }}
 {{ .Options.KubeSphereConfigMap }}
 {{ end }}
