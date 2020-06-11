@@ -146,6 +146,9 @@ data:
 
     events:
       enabled: false
+    
+    auditing:
+      enabled: false 
 
     openpitrix:
       enabled: false
@@ -324,6 +327,24 @@ rules:
   - '*'
 - apiGroups:
   - iam.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - notification.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - auditing.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - events.kubesphere.io
   resources:
   - '*'
   verbs:
