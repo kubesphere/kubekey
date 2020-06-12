@@ -94,13 +94,13 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 			if ok {
 				switch labels["version"] {
 				case "v3.0.0":
-					configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
+					configMapBase64 = base64.StdEncoding.EncodeToString(content)
 					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0-dev")
 					if err != nil {
 						return nil, err
 					}
 				case "v2.1.1":
-					configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V2_1_1))
+					configMapBase64 = base64.StdEncoding.EncodeToString(content)
 					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "v2.1.1")
 					if err != nil {
 						return nil, err
