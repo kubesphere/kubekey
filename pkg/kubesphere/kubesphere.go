@@ -113,7 +113,7 @@ EOF
 				} else {
 					tillerRepo = "kubesphere"
 				}
-				_, err3 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/helm2 init --service-account=tiller --skip-refresh --tiller-image=%s/tiller:v2.16.2\"", tillerRepo))
+				_, err3 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/helm2 init --service-account=tiller --skip-refresh --tiller-image=%s/tiller:v2.16.2 --wait\"", tillerRepo))
 				if err3 != nil {
 					return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to sync helm2"))
 				}
