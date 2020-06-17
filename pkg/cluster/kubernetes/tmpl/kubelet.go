@@ -49,15 +49,19 @@ EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
 # This is a file that the user can use for overrides of the kubelet args as a last resort. Preferably, the user should use
 # the .NodeRegistration.KubeletExtraArgs object in the configuration files instead. KUBELET_EXTRA_ARGS should be sourced from this file.
 EnvironmentFile=-/etc/default/kubelet
+Environment="KUBELET_EXTRA_ARGS=--node-ip={{ .NodeIP }}  --hostname-override={{ .Hostname }}"
 ExecStart=
 ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
     `)))
 )
 
-func GenerateKubeletService(cfg *kubekeyapi.ClusterSpec) (string, error) {
+func GenerateKubeletService() (string, error) {
 	return util.Render(KubeletServiceTempl, util.Data{})
 }
 
-func GenerateKubeletEnv(cfg *kubekeyapi.ClusterSpec) (string, error) {
-	return util.Render(KubeletEnvTempl, util.Data{})
+func GenerateKubeletEnv(node *kubekeyapi.HostCfg) (string, error) {
+	return util.Render(KubeletEnvTempl, util.Data{
+		"NodeIP":   node.InternalAddress,
+		"Hostname": node.Name,
+	})
 }
