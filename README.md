@@ -27,7 +27,7 @@ There are three scenarios to use KubeKey.
 
 * **v1.15**: &ensp; *v1.15.12*
 * **v1.16**: &ensp; *v1.16.10*
-* **v1.17**: &ensp; *v1.17.4* (default)
+* **v1.17**: &ensp; *v1.17.6* (default)
 * **v1.18**: &ensp; *v1.18.3*
 
 ## Requirements and Recommendations
