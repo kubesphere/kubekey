@@ -107,6 +107,8 @@ data:
       endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
       port: 2379
       tlsEnable: true
+    network:
+      enableNetworkPolicy: false
     common:
       mysqlVolumeSize: 20Gi
       minioVolumeSize: 20Gi
@@ -161,7 +163,7 @@ data:
       enabled: false
     metrics_server:
       enabled: false
-    weave_scope:
+    multicluster:
       enabled: false
 kind: ConfigMap
 metadata:
@@ -328,6 +330,12 @@ rules:
   - '*'
 - apiGroups:
   - events.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - core.kubefed.io
   resources:
   - '*'
   verbs:
