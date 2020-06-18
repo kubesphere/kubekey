@@ -161,7 +161,7 @@ data:
       enabled: false
     metrics_server:
       enabled: false
-    weave_scope:
+    multicluster:
       enabled: false
 kind: ConfigMap
 metadata:
@@ -328,6 +328,12 @@ rules:
   - '*'
 - apiGroups:
   - events.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - core.kubefed.io
   resources:
   - '*'
   verbs:
