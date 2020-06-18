@@ -34,7 +34,7 @@ func SyncKubeBinaries(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(syncKubeBinaries, true)
 }
 
-func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
+func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
 	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
 
 		currentDir, err1 := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -51,7 +51,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 		kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
 		binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}
 
-		cmdlist := []string{}
+		var cmdlist []string
 
 		for _, binary := range binaryList {
 			err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filepath, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
@@ -71,16 +71,16 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 			return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to create kubelet link"))
 		}
 
-		if err := setKubelet(mgr); err != nil {
+		if err := setKubelet(mgr, node); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func setKubelet(mgr *manager.Manager) error {
+func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
-	kubeletService, err1 := tmpl.GenerateKubeletService(mgr.Cluster)
+	kubeletService, err1 := tmpl.GenerateKubeletService()
 	if err1 != nil {
 		return err1
 	}
@@ -90,7 +90,7 @@ func setKubelet(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate kubelet service")
 	}
 
-	kubeletEnv, err3 := tmpl.GenerateKubeletEnv(mgr.Cluster)
+	kubeletEnv, err3 := tmpl.GenerateKubeletEnv(node)
 	if err3 != nil {
 		return err3
 	}
