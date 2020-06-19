@@ -394,8 +394,8 @@ func GenerateOpenebsManifests(mgr *manager.Manager) (string, error) {
 		"LocalVolume":             mgr.Cluster.Storage.LocalVolume,
 		"ProvisionerLocalPVImage": preinstall.GetImage(mgr, "provisioner-localpv").ImageName(),
 		"OpenebsToolsImage":       preinstall.GetImage(mgr, "openebs-tools").ImageName(),
-		"NodeDiskManagerImage":    preinstall.GetImage(mgr, "node-disk-manager-amd64").ImageName(),
-		"NodeDiskOperatorImage":   preinstall.GetImage(mgr, "node-disk-operator-amd64").ImageName(),
+		"NodeDiskManagerImage":    preinstall.GetImage(mgr, "node-disk-manager").ImageName(),
+		"NodeDiskOperatorImage":   preinstall.GetImage(mgr, "node-disk-operator").ImageName(),
 		"LinuxUtilsImage":         preinstall.GetImage(mgr, "linux-utils").ImageName(),
 	})
 }

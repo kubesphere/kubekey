@@ -40,6 +40,7 @@ type ClusterSpec struct {
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
 	Storage              Storage              `yaml:"storage" json:"storage,omitempty"`
+	KubeSphere           KubeSphere           `json:"kubesphere,omitempty"`
 }
 
 type Kubernetes struct {
@@ -89,6 +90,7 @@ type HostCfg struct {
 	User            string `yaml:"user,omitempty" json:"user,omitempty"`
 	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
 	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
+	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
 	ID              int    `json:"-"`
 	IsEtcd          bool   `json:"-"`
 	IsMaster        bool   `json:"-"`
@@ -127,6 +129,11 @@ type RegistryConfig struct {
 	RegistryMirrors    []string `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string   `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
+}
+
+type KubeSphere struct {
+	Enabled bool
+	Version string
 }
 
 type ExternalEtcd struct {

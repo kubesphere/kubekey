@@ -36,9 +36,11 @@ type Manager struct {
 	ClientNode   []kubekeyapi.HostCfg
 	ClusterHosts []string
 	WorkDir      string
-	JoinCommand  string
-	JoinToken    string
-	Verbose      bool
+	KsEnable     bool
+	KsVersion    string
+	//JoinCommand  string
+	//JoinToken    string
+	Verbose bool
 }
 
 func (mgr *Manager) Clone() *Manager {

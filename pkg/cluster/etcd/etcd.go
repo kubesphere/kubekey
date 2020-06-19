@@ -148,7 +148,7 @@ func GenerateEtcdService(mgr *manager.Manager) error {
 }
 
 func generateEtcdService(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
-	etcdService, err := tmpl.GenerateEtcdService(mgr, mgr.Runner.Index)
+	etcdService, err := tmpl.GenerateEtcdService(mgr.Runner.Index)
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ helthCheckLoop:
 }
 
 func refreshConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int, endpoints []string, state string) error {
-	etcdEnv, err := tmpl.GenerateEtcdEnv(mgr, node, index, endpoints, state)
+	etcdEnv, err := tmpl.GenerateEtcdEnv(node, index, endpoints, state)
 	if err != nil {
 		return err
 	}

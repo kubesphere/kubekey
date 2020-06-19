@@ -48,7 +48,7 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 
 func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
-		if err := DeployKubeSphereStep(mgr); err != nil {
+		if err := DeployKubeSphereStep(mgr, node); err != nil {
 			return err
 		}
 	}
@@ -56,7 +56,7 @@ func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.C
 	return nil
 }
 
-func DeployKubeSphereStep(mgr *manager.Manager) error {
+func DeployKubeSphereStep(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	configMap := fmt.Sprintf("%s/ks-installer-configmap.yaml", mgr.WorkDir)
 	deployment := fmt.Sprintf("%s/ks-installer-deployment.yaml", mgr.WorkDir)
 
@@ -75,7 +75,7 @@ func DeployKubeSphereStep(mgr *manager.Manager) error {
 		if ok {
 			switch labels["version"] {
 			case "v2.1.1":
-				err := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s/%s", mgr.WorkDir, mgr.Cluster.Kubernetes.Version, "helm2"), fmt.Sprintf("%s/%s", "/tmp/kubekey", "helm2"))
+				err := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s/%s/%s", mgr.WorkDir, mgr.Cluster.Kubernetes.Version, node.Arch, "helm2"), fmt.Sprintf("%s/%s", "/tmp/kubekey", "helm2"))
 				if err != nil {
 					return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to sync helm2"))
 				}
@@ -113,7 +113,7 @@ EOF
 				} else {
 					tillerRepo = "kubesphere"
 				}
-				_, err3 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/helm2 init --service-account=tiller --skip-refresh --tiller-image=%s/tiller:v2.16.2 --wait\"", tillerRepo))
+				_, err3 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/helm2 init --service-account=tiller --skip-refresh --tiller-image=%s/tiller:v2.16.9 --wait\"", tillerRepo))
 				if err3 != nil {
 					return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to sync helm2"))
 				}
