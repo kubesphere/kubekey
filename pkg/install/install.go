@@ -78,7 +78,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
-	mgr.Logger.Infoln("Congradulations! Installation is successful.")
+	mgr.Logger.Infoln("Installation is complete. Please check the result using the command kubectl logs pods/ks-installer-xxxx -n kubesphere-system")
 
 	return nil
 }
