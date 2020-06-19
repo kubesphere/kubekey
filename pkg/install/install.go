@@ -89,6 +89,7 @@ Please check the result using the command:
 		mgr.Logger.Infoln("Congradulations! Installation is successful.")
 	}
 
+
 	return nil
 }
 
