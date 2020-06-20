@@ -54,6 +54,8 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
 	mgr.Connector = ssh.NewConnector()
 	mgr.WorkDir = GenerateWorkDir(executor.logger)
+	mgr.KsEnable = executor.cluster.KubeSphere.Enabled
+	mgr.KsVersion = executor.cluster.KubeSphere.Version
 	mgr.Logger = executor.logger
 	mgr.Verbose = executor.Verbose
 

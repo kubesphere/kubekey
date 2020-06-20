@@ -65,13 +65,13 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		"calico-flexvol":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "pod2daemon-flexvol", Tag: kubekeyapi.DefaultCalicoVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		"flannel":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "flannel", Tag: kubekeyapi.DefaultFlannelVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "flannel")},
 		// storage
-		"provisioner-localpv":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "1.10.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
-		"openebs-tools":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
-		"node-disk-manager-amd64":  {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-manager-amd64", Tag: "0.5.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
-		"node-disk-operator-amd64": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-operator-amd64", Tag: "0.5.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
-		"linux-utils":              {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "linux-utils", Tag: "1.10.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
-		"rbd-provisioner":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.CephRBD.Enabled},
-		"nfs-client-provisioner":   {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.NfsClient.Enabled},
+		"provisioner-localpv":    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "1.10.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
+		"openebs-tools":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
+		"node-disk-manager":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-manager", Tag: "0.5.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
+		"node-disk-operator":     {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-operator", Tag: "0.5.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
+		"linux-utils":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "linux-utils", Tag: "1.10.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
+		"rbd-provisioner":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.CephRBD.Enabled},
+		"nfs-client-provisioner": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.NfsClient.Enabled},
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {

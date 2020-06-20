@@ -66,6 +66,9 @@ ETCD_PROXY=off
 ETCD_INITIAL_CLUSTER={{ .peerAddresses }}
 ETCD_AUTO_COMPACTION_RETENTION=8
 ETCD_SNAPSHOT_COUNT=10000
+{{- if .UnsupportedArch }}
+ETCD_UNSUPPORTED_ARCH={{ .Arch }}
+{{ end }}
 
 # TLS settings
 ETCD_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
@@ -110,21 +113,25 @@ func GenerateEtcdBinary(mgr *manager.Manager, index int) (string, error) {
 	})
 }
 
-func GenerateEtcdService(mgr *manager.Manager, index int) (string, error) {
+func GenerateEtcdService(index int) (string, error) {
 	return util.Render(EtcdServiceTempl, util.Data{
 		"Name": fmt.Sprintf("etcd%d", index+1),
 	})
 }
 
-func GenerateEtcdEnv(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int, endpoints []string, state string) (string, error) {
-
+func GenerateEtcdEnv(node *kubekeyapi.HostCfg, index int, endpoints []string, state string) (string, error) {
+	UnsupportedArch := false
+	if node.Arch != "amd64" {
+		UnsupportedArch = true
+	}
 	return util.Render(EtcdEnvTempl, util.Data{
-		"Tag":           kubekeyapi.DefaultEtcdVersion,
-		"Name":          fmt.Sprintf("etcd%d", index+1),
-		"Ip":            node.InternalAddress,
-		"Hostname":      node.Name,
-		"State":         state,
-		"peerAddresses": strings.Join(endpoints, ","),
+		"Tag":             kubekeyapi.DefaultEtcdVersion,
+		"Name":            fmt.Sprintf("etcd%d", index+1),
+		"Ip":              node.InternalAddress,
+		"Hostname":        node.Name,
+		"State":           state,
+		"peerAddresses":   strings.Join(endpoints, ","),
+		"UnsupportedArch": UnsupportedArch,
+		"Arch":            node.Arch,
 	})
-
 }

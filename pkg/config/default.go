@@ -31,6 +31,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -89,6 +90,7 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 			metadata := result["metadata"].(map[interface{}]interface{})
 			labels := metadata["labels"].(map[interface{}]interface{})
 			repo := clusterCfg.Spec.Registry.PrivateRegistry
+			clusterCfg.Spec.KubeSphere.Enabled = true
 			var configMapBase64, kubesphereYaml string
 			_, ok := labels["version"]
 			if ok {
@@ -99,12 +101,14 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 					if err != nil {
 						return nil, err
 					}
+					clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
 				case "v2.1.1":
 					configMapBase64 = base64.StdEncoding.EncodeToString(content)
 					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "v2.1.1")
 					if err != nil {
 						return nil, err
 					}
+					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
 					return nil, errors.Wrap(err, fmt.Sprintf("Unsupported versions: %s", labels["version"]))
 				}
@@ -145,6 +149,7 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		User:            user.Name,
 		Password:        "",
 		PrivateKeyPath:  fmt.Sprintf("%s/.ssh/id_rsa", user.HomeDir),
+		Arch:            runtime.GOARCH,
 	})
 
 	allinoneCfg.Spec.RoleGroups = kubekeyapi.RoleGroups{
@@ -168,18 +173,21 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 			DefaultStorageClass: "localVolume",
 			LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
 		}
-
+		allinoneCfg.Spec.KubeSphere.Enabled = true
 		var configMapBase64, kubesphereYaml string
 		switch strings.TrimSpace(ksVersion) {
 		case "":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
 			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 		case "v3.0.0":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
 			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 		case "v2.1.1":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V2_1_1))
 			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v2.1.1")
+			allinoneCfg.Spec.KubeSphere.Version = "v2.1.1"
 		default:
 			logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
 		}

@@ -35,7 +35,7 @@ import (
 	"path/filepath"
 )
 
-func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, all, verbose bool) error {
+func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -44,7 +44,7 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 		return errors.Wrap(err, "Failed to create work dir")
 	}
 
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, k8sVersion, ksVersion, all, logger)
+	cfg, err := config.ParseClusterCfg(clusterCfgFile, k8sVersion, ksVersion, ksEnabled, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
@@ -77,8 +77,18 @@ func ExecTasks(mgr *manager.Manager) error {
 			return errors.Wrap(err, step.ErrMsg)
 		}
 	}
+	if mgr.KsEnable {
+		mgr.Logger.Infoln(`Installation is complete.
 
-	mgr.Logger.Infoln("Installation is complete. Please check the result using the command kubectl logs pods/ks-installer-xxxx -n kubesphere-system")
+Please check the result using the command:
+
+       kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+
+`)
+	} else {
+		mgr.Logger.Infoln("Congradulations! Installation is successful.")
+	}
+
 
 	return nil
 }

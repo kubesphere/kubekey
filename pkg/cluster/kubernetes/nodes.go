@@ -42,13 +42,13 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Conn
 			return errors.Wrap(err1, "Failed to get current dir")
 		}
 
-		filepath := fmt.Sprintf("%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, mgr.Cluster.Kubernetes.Version)
+		filepath := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, mgr.Cluster.Kubernetes.Version, node.Arch)
 
 		kubeadm := fmt.Sprintf("kubeadm")
 		kubelet := fmt.Sprintf("kubelet")
 		kubectl := fmt.Sprintf("kubectl")
 		helm := fmt.Sprintf("helm")
-		kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", kubekeyapi.DefaultArch, kubekeyapi.DefaultCniVersion)
+		kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", node.Arch, kubekeyapi.DefaultCniVersion)
 		binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}
 
 		var cmdlist []string
