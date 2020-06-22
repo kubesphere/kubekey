@@ -377,7 +377,7 @@ spec:
       containers:
       - name: installer
         image: {{ .Repo }}/ks-installer:{{ .Tag }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
     `)))
 )
 
