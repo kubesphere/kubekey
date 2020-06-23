@@ -38,8 +38,9 @@ data:
   typha_service_name: "none"
   # Configure the backend to use.
   calico_backend: "bird"
-
-  # Configure the MTU to use
+  # Configure the MTU to use for workload interfaces and the
+  # tunnels.  For IPIP, set to your network MTU - 20; for VXLAN
+  # set to your network MTU - 50.
   veth_mtu: "1440"
 
   # The CNI network configuration to install on each node.  The special
@@ -79,94 +80,6 @@ data:
 
 ---
 # Source: calico/templates/kdd-crds.yaml
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: felixconfigurations.crd.projectcalico.org
-spec:
-  scope: Cluster
-  group: crd.projectcalico.org
-  version: v1
-  names:
-    kind: FelixConfiguration
-    plural: felixconfigurations
-    singular: felixconfiguration
----
-
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: ipamblocks.crd.projectcalico.org
-spec:
-  scope: Cluster
-  group: crd.projectcalico.org
-  version: v1
-  names:
-    kind: IPAMBlock
-    plural: ipamblocks
-    singular: ipamblock
-
----
-
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: blockaffinities.crd.projectcalico.org
-spec:
-  scope: Cluster
-  group: crd.projectcalico.org
-  version: v1
-  names:
-    kind: BlockAffinity
-    plural: blockaffinities
-    singular: blockaffinity
-
----
-
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: ipamhandles.crd.projectcalico.org
-spec:
-  scope: Cluster
-  group: crd.projectcalico.org
-  version: v1
-  names:
-    kind: IPAMHandle
-    plural: ipamhandles
-    singular: ipamhandle
-
----
-
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: ipamconfigs.crd.projectcalico.org
-spec:
-  scope: Cluster
-  group: crd.projectcalico.org
-  version: v1
-  names:
-    kind: IPAMConfig
-    plural: ipamconfigs
-    singular: ipamconfig
-
----
-
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: bgppeers.crd.projectcalico.org
-spec:
-  scope: Cluster
-  group: crd.projectcalico.org
-  version: v1
-  names:
-    kind: BGPPeer
-    plural: bgppeers
-    singular: bgppeer
-
----
 
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -182,37 +95,34 @@ spec:
     singular: bgpconfiguration
 
 ---
-
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: ippools.crd.projectcalico.org
+  name: bgppeers.crd.projectcalico.org
 spec:
   scope: Cluster
   group: crd.projectcalico.org
   version: v1
   names:
-    kind: IPPool
-    plural: ippools
-    singular: ippool
+    kind: BGPPeer
+    plural: bgppeers
+    singular: bgppeer
 
 ---
-
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: hostendpoints.crd.projectcalico.org
+  name: blockaffinities.crd.projectcalico.org
 spec:
   scope: Cluster
   group: crd.projectcalico.org
   version: v1
   names:
-    kind: HostEndpoint
-    plural: hostendpoints
-    singular: hostendpoint
+    kind: BlockAffinity
+    plural: blockaffinities
+    singular: blockaffinity
 
 ---
-
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -227,7 +137,20 @@ spec:
     singular: clusterinformation
 
 ---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: felixconfigurations.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  version: v1
+  names:
+    kind: FelixConfiguration
+    plural: felixconfigurations
+    singular: felixconfiguration
 
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -240,9 +163,10 @@ spec:
     kind: GlobalNetworkPolicy
     plural: globalnetworkpolicies
     singular: globalnetworkpolicy
+    shortNames:
+    - gnp
 
 ---
-
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -257,7 +181,89 @@ spec:
     singular: globalnetworkset
 
 ---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: hostendpoints.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  version: v1
+  names:
+    kind: HostEndpoint
+    plural: hostendpoints
+    singular: hostendpoint
 
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: ipamblocks.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  version: v1
+  names:
+    kind: IPAMBlock
+    plural: ipamblocks
+    singular: ipamblock
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: ipamconfigs.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  version: v1
+  names:
+    kind: IPAMConfig
+    plural: ipamconfigs
+    singular: ipamconfig
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: ipamhandles.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  version: v1
+  names:
+    kind: IPAMHandle
+    plural: ipamhandles
+    singular: ipamhandle
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: ippools.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  version: v1
+  names:
+    kind: IPPool
+    plural: ippools
+    singular: ippool
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: kubecontrollersconfigurations.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  version: v1
+  names:
+    kind: KubeControllersConfiguration
+    plural: kubecontrollersconfigurations
+    singular: kubecontrollersconfiguration
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -272,7 +278,6 @@ spec:
     singular: networkpolicy
 
 ---
-
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -285,6 +290,8 @@ spec:
     kind: NetworkSet
     plural: networksets
     singular: networkset
+
+---
 ---
 # Source: calico/templates/rbac.yaml
 
@@ -326,6 +333,16 @@ rules:
       - create
       - update
       - delete
+  # kube-controllers manages hostendpoints.
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - hostendpoints
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
   # Needs access to update clusterinformations.
   - apiGroups: ["crd.projectcalico.org"]
     resources:
@@ -334,6 +351,19 @@ rules:
       - get
       - create
       - update
+  # KubeControllersConfiguration is where it gets its config
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - kubecontrollersconfigurations
+    verbs:
+      # read its own config
+      - get
+      # create a default if none exists
+      - create
+      # update status
+      - update
+      # watch for changes
+      - watch
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -344,9 +374,9 @@ roleRef:
   kind: ClusterRole
   name: calico-kube-controllers
 subjects:
-  - kind: ServiceAccount
-    name: calico-kube-controllers
-    namespace: kube-system
+- kind: ServiceAccount
+  name: calico-kube-controllers
+  namespace: kube-system
 ---
 # Include a clusterrole for the calico-node DaemonSet,
 # and bind it to the calico-node serviceaccount.
@@ -497,9 +527,9 @@ roleRef:
   kind: ClusterRole
   name: calico-node
 subjects:
-  - kind: ServiceAccount
-    name: calico-node
-    namespace: kube-system
+- kind: ServiceAccount
+  name: calico-node
+  namespace: kube-system
 
 ---
 # Source: calico/templates/calico-node.yaml
@@ -614,8 +644,8 @@ spec:
         - name: flexvol-driver
           image: {{ .CalicoFlexvolImage }}
           volumeMounts:
-            - name: flexvol-driver-host
-              mountPath: /host/driver
+          - name: flexvol-driver-host
+            mountPath: /host/driver
           securityContext:
             privileged: true
       containers:
@@ -651,18 +681,23 @@ spec:
             # Enable IPIP
             - name: CALICO_IPV4POOL_IPIP
               value: "Always"
+            # Enable or Disable VXLAN on the default IP pool.
+            - name: CALICO_IPV4POOL_VXLAN
+              value: "Never"
             # Set MTU for tunnel device used if ipip is enabled
             - name: FELIX_IPINIPMTU
               valueFrom:
                 configMapKeyRef:
                   name: calico-config
                   key: veth_mtu
-            # The default IPv4 pool to create on startup if none exists. Pod IPs will be
-            # chosen from this range. Changing this value after installation will have
-            # no effect. This should fall within --cluster-cidr.
+            # Set MTU for the VXLAN tunnel device.
+            - name: FELIX_VXLANMTU
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: veth_mtu
             - name: CALICO_IPV4POOL_CIDR
               value: "{{ .KubePodsCIDR }}"
-            # Disable file logging so kubectl logs works.
             - name: CALICO_DISABLE_FILE_LOGGING
               value: "true"
             # Set Felix endpoint to host default action to ACCEPT.
@@ -684,18 +719,18 @@ spec:
           livenessProbe:
             exec:
               command:
-                - /bin/calico-node
-                - -felix-live
-                - -bird-live
+              - /bin/calico-node
+              - -felix-live
+              - -bird-live
             periodSeconds: 10
             initialDelaySeconds: 10
             failureThreshold: 6
           readinessProbe:
             exec:
               command:
-                - /bin/calico-node
-                - -felix-ready
-                - -bird-ready
+              - /bin/calico-node
+              - -felix-ready
+              - -bird-ready
             periodSeconds: 10
           volumeMounts:
             - mountPath: /lib/modules
@@ -760,7 +795,6 @@ metadata:
 
 ---
 # Source: calico/templates/calico-kube-controllers.yaml
-
 # See https://github.com/projectcalico/kube-controllers
 apiVersion: apps/v1
 kind: Deployment
@@ -808,8 +842,8 @@ spec:
           readinessProbe:
             exec:
               command:
-                - /usr/bin/check-status
-                - -r
+              - /usr/bin/check-status
+              - -r
 
 ---
 
@@ -818,14 +852,7 @@ kind: ServiceAccount
 metadata:
   name: calico-kube-controllers
   namespace: kube-system
----
-# Source: calico/templates/calico-etcd-secrets.yaml
 
----
-# Source: calico/templates/calico-typha.yaml
-
----
-# Source: calico/templates/configure-canal.yaml
     `)))
 
 func GenerateCalicoFiles(mgr *manager.Manager) (string, error) {
