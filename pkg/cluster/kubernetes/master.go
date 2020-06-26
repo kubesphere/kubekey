@@ -52,8 +52,8 @@ func GetClusterStatus(mgr *manager.Manager) error {
 
 func getClusterStatus(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
 	if clusterStatus["clusterInfo"] == "" {
-		output, err := mgr.Runner.RunCmdOutput("ls /etc/kubernetes/admin.conf")
-		if strings.Contains(output, "No such file or directory") {
+		output, err := mgr.Runner.RunCmdOutput("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"")
+		if strings.Contains(output, "Cluster will be created") {
 			clusterIsExist = false
 		} else {
 			if err != nil {
@@ -218,8 +218,8 @@ func getJoinCmd(mgr *manager.Manager) error {
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
 	}
-	exec.Command(fmt.Sprintf("mkdir -p %s/kubekey", currentDir))
-	exec.Command(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s/kubekey/kubeconfig.yaml\"", clusterStatus["kubeConfig"], currentDir)).Run()
+	exec.Command("/bin/sh", "-c", fmt.Sprintf("mkdir -p %s/kubekey", currentDir)).Run()
+	exec.Command("sudo", "-E", fmt.Sprintf("/bin/sh -c \"echo %s | base64 -d > %s/kubekey/kubeconfig.yaml\"", clusterStatus["kubeConfig"], currentDir)).Run()
 
 	return nil
 }
@@ -241,7 +241,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(joinNodesToCluster, true)
 }
 
-func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
+func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
 	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
 		if node.IsMaster {
 			err := addMaster(mgr)
