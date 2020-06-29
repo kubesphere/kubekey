@@ -184,10 +184,21 @@ EOF
 	keyFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", mgr.EtcdNodes[0].Name)
 	mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl -n kubesphere-monitoring-system create secret generic kube-etcd-client-certs --from-file=etcd-client-ca.crt=%s --from-file=etcd-client.crt=%s --from-file=etcd-client.key=%s\"", caFile, certFile, keyFile))
 
-	_, err4 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/kubesphere.yaml")
-	if err4 != nil {
-		return errors.Wrap(errors.WithStack(err4), "Failed to deploy /etc/kubernetes/addons/kubesphere.yaml")
+	deployKubesphereCmd := "/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/kubesphere.yaml"
+helthCheckLoop:
+	for i := 20; i > 0; i-- {
+		output, err := mgr.Runner.RunCmd(deployKubesphereCmd)
+		if err != nil {
+			if i == 1 {
+				return errors.Wrap(errors.WithStack(err), "Failed to deploy /etc/kubernetes/addons/kubesphere.yaml")
+			}
+		} else {
+			fmt.Println(output)
+			break helthCheckLoop
+		}
+		time.Sleep(time.Second * 5)
 	}
+
 	go CheckKubeSphereStatus(mgr)
 	return nil
 }
