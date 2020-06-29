@@ -107,7 +107,7 @@ spec:
   persistence:
     storageClass: ""
   etcd:
-    monitoring: false
+    monitoring: true
     endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
     port: 2379
     tlsEnable: true
@@ -153,9 +153,10 @@ spec:
     notification:
       enabled: false
   multicluster:
+    clusterRole: member  # host or member
+    proxyPublishAddress: ""
+  networkpolicy:
     enabled: false
-  network:
-    enableNetworkPolicy: false
   notification:
     enabled: false
   openpitrix:
@@ -395,6 +396,15 @@ spec:
       - name: installer
         image: {{ .Repo }}/ks-installer:{{ .Tag }}
         imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/localtime
+          name: host-time
+      volumes:
+      - hostPath:
+          path: /etc/localtime
+          type: ""
+        name: host-time
+
     `)))
 )
 
