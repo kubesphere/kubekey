@@ -86,7 +86,7 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 			}
 		}
 
-		if result["kind"] == "ConfigMap" {
+		if result["kind"] == "ConfigMap" || result["kind"] == "ClusterConfiguration" {
 			metadata := result["metadata"].(map[interface{}]interface{})
 			labels := metadata["labels"].(map[interface{}]interface{})
 			repo := clusterCfg.Spec.Registry.PrivateRegistry

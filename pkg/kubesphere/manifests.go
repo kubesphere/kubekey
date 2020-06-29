@@ -95,82 +95,74 @@ metadata:
 `
 
 	V3_0_0 = `---
-apiVersion: v1
-data:
-  ks-config.yaml: |
-    ---
-    local_registry: ""
-    persistence:
-      storageClass: ""
-    etcd:
-      monitoring: true
-      endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
-      port: 2379
-      tlsEnable: true
-    network:
-      enableNetworkPolicy: false
-    common:
-      mysqlVolumeSize: 20Gi
-      minioVolumeSize: 20Gi
-      etcdVolumeSize: 20Gi
-      openldapVolumeSize: 2Gi
-      redisVolumSize: 2Gi
-    console:
-      enableMultiLogin: False  # enable/disable multi login
-      port: 30880
-    monitoring:
-      prometheusReplicas: 1
-      prometheusMemoryRequest: 400Mi
-      prometheusVolumeSize: 20Gi
-      grafana:
-        enabled: false
-      notification:
-        enabled: false
-    logging:
-      enabled: false
-      elasticsearchMasterReplicas: 1
-      elasticsearchDataReplicas: 1
-      logsidecarReplicas: 2
-      elasticsearchMasterVolumeSize: 4Gi
-      elasticsearchDataVolumeSize: 20Gi
-      logMaxAge: 7
-      elkPrefix: logstash
-      containersLogMountedPath: ""
-      kibana:
-        enabled: false
-    events:
-      enabled: false
-    auditing:
-      enabled: false
-    openpitrix:
-      enabled: false
-    devops:
-      enabled: false
-      jenkinsMemoryLim: 2Gi
-      jenkinsMemoryReq: 1500Mi
-      jenkinsVolumeSize: 8Gi
-      jenkinsJavaOpts_Xms: 512m
-      jenkinsJavaOpts_Xmx: 512m
-      jenkinsJavaOpts_MaxRAM: 2g
-      sonarqube:
-        enabled: false
-        postgresqlVolumeSize: 8Gi
-    servicemesh:
-      enabled: false
-    notification:
-      enabled: false
-    alerting:
-      enabled: false
-    metrics_server:
-      enabled: false
-    multicluster:
-      enabled: false
-kind: ConfigMap
+apiVersion: installer.kubesphere.io/v1alpha1
+kind: ClusterConfiguration
 metadata:
   name: ks-installer
   namespace: kubesphere-system
   labels:
     version: v3.0.0
+spec:
+  local_registry: ""
+  persistence:
+    storageClass: ""
+  etcd:
+    monitoring: false
+    endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
+    port: 2379
+    tlsEnable: true
+  common:
+    mysqlVolumeSize: 20Gi
+    minioVolumeSize: 20Gi
+    etcdVolumeSize: 20Gi
+    openldapVolumeSize: 2Gi
+    redisVolumSize: 2Gi
+  console:
+    enableMultiLogin: false  # enable/disable multi login
+    port: 30880
+  alerting:
+    enabled: false
+  auditing:
+    enabled: false
+  devops:
+    enabled: false
+    jenkinsMemoryLim: 2Gi
+    jenkinsMemoryReq: 1500Mi
+    jenkinsVolumeSize: 8Gi
+    jenkinsJavaOpts_Xms: 512m
+    jenkinsJavaOpts_Xmx: 512m
+    jenkinsJavaOpts_MaxRAM: 2g
+  events:
+    enabled: false
+  logging:
+    enabled: false
+    elasticsearchMasterReplicas: 1
+    elasticsearchDataReplicas: 1
+    logsidecarReplicas: 2
+    elasticsearchMasterVolumeSize: 4Gi
+    elasticsearchDataVolumeSize: 20Gi
+    logMaxAge: 7
+    elkPrefix: logstash
+  metrics_server:
+    enabled: false
+  monitoring:
+    prometheusReplicas: 1
+    prometheusMemoryRequest: 400Mi
+    prometheusVolumeSize: 20Gi
+    alertmanagerReplicas: 1
+    notification:
+      enabled: false
+  multicluster:
+    enabled: false
+  network:
+    enableNetworkPolicy: false
+  notification:
+    enabled: false
+  openpitrix:
+    enabled: false
+  servicemesh:
+    enabled: false
+
 `
 )
 
@@ -189,6 +181,25 @@ kind: ServiceAccount
 metadata:
   name: ks-installer
   namespace: kubesphere-system
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterconfigurations.installer.kubesphere.io
+spec:
+  group: installer.kubesphere.io
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+  scope: Namespaced
+  names:
+    plural: clusterconfigurations
+    singular: clusterconfiguration
+    kind: ClusterConfiguration
+    shortNames:
+    - cc
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -336,6 +347,12 @@ rules:
   - '*'
 - apiGroups:
   - core.kubefed.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - installer.kubesphere.io
   resources:
   - '*'
   verbs:
