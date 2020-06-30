@@ -153,8 +153,7 @@ spec:
     notification:
       enabled: false
   multicluster:
-    clusterRole: member  # host or member
-    proxyPublishAddress: ""
+    clusterRole: none  # host | member | none
   networkpolicy:
     enabled: false
   notification:
