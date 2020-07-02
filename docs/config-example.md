@@ -5,7 +5,7 @@ metadata:
   name: example
 spec:
   hosts:
-  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
+  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, port: 8022, user: ubuntu, password: Qcloud@123} # Assume that the default port for SSH is 22, otherwise add the port number after the IP address as above
   - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, password: Qcloud@123}  # the default root user
   - {name: node3, address: 172.16.0.4, internalAddress: 172.16.0.4, privateKeyPath: "~/.ssh/id_rsa"} # password-less login with SSH keys
   roleGroups:
