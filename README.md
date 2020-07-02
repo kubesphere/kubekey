@@ -26,9 +26,9 @@ There are three scenarios to use KubeKey.
 ### Kubernetes Versions
 
 * **v1.15**: &ensp; *v1.15.12*
-* **v1.16**: &ensp; *v1.16.10*
-* **v1.17**: &ensp; *v1.17.6* (default)
-* **v1.18**: &ensp; *v1.18.3*
+* **v1.16**: &ensp; *v1.16.12*
+* **v1.17**: &ensp; *v1.17.8* (default)
+* **v1.18**: &ensp; *v1.18.5*
 
 ## Requirements and Recommendations
 
