@@ -81,28 +81,28 @@ func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapi.HostCfg)
 
 		if node.IsMaster && image.Group == kubekeyapi.Master && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()))
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
 		if node.IsWorker && image.Group == kubekeyapi.Worker && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()))
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
 		if (node.IsMaster || node.IsWorker) && image.Group == kubekeyapi.K8s && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()))
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
 		if node.IsEtcd && image.Group == kubekeyapi.Etcd && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()))
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}

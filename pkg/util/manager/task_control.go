@@ -52,7 +52,7 @@ func (t *Task) Run(mgrTask *Manager) error {
 		lastError = t.Task(mgrTask)
 		if lastError != nil {
 			mgrTask.Logger.Warn("Task failed ...")
-			if mgrTask.Verbose {
+			if mgrTask.Debug {
 				mgrTask.Logger.Warnf("error: %s", lastError)
 			}
 			return false, nil

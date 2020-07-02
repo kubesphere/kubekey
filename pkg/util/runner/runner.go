@@ -21,57 +21,49 @@ import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
+	"time"
 )
 
 type Runner struct {
-	Conn    ssh.Connection
-	Prefix  string
-	OS      string
-	Verbose bool
-	Host    *kubekeyapi.HostCfg
-	Index   int
+	Conn  ssh.Connection
+	Debug bool
+	Host  *kubekeyapi.HostCfg
+	Index int
 }
 
-func (r *Runner) RunCmd(cmd string) (string, error) {
+func (r *Runner) ExecuteCmd(cmd string, retries int, printOutput bool) (string, error) {
 	if r.Conn == nil {
 		return "", errors.New("No ssh connection available")
 	}
-	output, _, err := r.Conn.Exec(cmd, r.Host)
-	if err != nil {
-		return output, err
-	}
-	return output, nil
-}
 
-func (r *Runner) RunCmdOutput(cmd string) (string, error) {
-	if r.Conn == nil {
-		return "", errors.New("No ssh connection available")
-	}
-	output, _, err := r.Conn.Exec(cmd, r.Host)
-	if !r.Verbose {
+	var lastError error
+	var lastOutput string
+
+retriesLoop:
+	for i := retries; i >= 0; i-- {
+		output, err := r.Conn.Exec(cmd, r.Host)
 		if err != nil {
-			if output != "" {
-				fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
-				fmt.Println(output)
+			if i == 0 {
+				lastError = err
+				lastOutput = output
+			} else {
+				fmt.Printf("[%s %s] Retrying ...\n", r.Host.Name, r.Host.Address)
 			}
-			return output, err
-		}
-		return output, nil
-	} else {
-		if err != nil {
-			if output != "" {
-				fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
-				fmt.Println(output)
+			if retries != 0 {
+				time.Sleep(time.Second * 5)
 			}
-			return output, err
 		} else {
-			if output != "" {
+			if printOutput && output != "" {
 				fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
 				fmt.Println(output)
 			}
-			return output, nil
+			lastError = err
+			lastOutput = output
+			break retriesLoop
 		}
 	}
+
+	return lastOutput, lastError
 }
 
 func (r *Runner) ScpFile(src, dst string) error {
@@ -81,12 +73,12 @@ func (r *Runner) ScpFile(src, dst string) error {
 
 	err := r.Conn.Scp(src, dst)
 	if err != nil {
-		if r.Verbose {
+		if r.Debug {
 			fmt.Printf("Push %s to %s:%s   Failed\n", src, r.Host.Address, dst)
 			return err
 		}
 	} else {
-		if r.Verbose {
+		if r.Debug {
 			fmt.Printf("Push %s to %s:%s   Done\n", src, r.Host.Address, dst)
 		}
 	}

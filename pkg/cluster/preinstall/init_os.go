@@ -37,14 +37,14 @@ func InitOS(mgr *manager.Manager) error {
 	return mgr.RunTaskOnAllNodes(initOsOnNode, true)
 }
 
-func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
+func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
 	tmpDir := "/tmp/kubekey"
-	_, err := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -d %s ]; then rm -rf %s ;fi\" && mkdir -p %s", tmpDir, tmpDir, tmpDir))
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -d %s ]; then rm -rf %s ;fi\" && mkdir -p %s", tmpDir, tmpDir, tmpDir), 1, false)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
 	}
 
-	_, err1 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"hostnamectl set-hostname %s && sed -i '/^127.0.1.1/s/.*/127.0.1.1      %s/g' /etc/hosts\"", node.Name, node.Name))
+	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"hostnamectl set-hostname %s && sed -i '/^127.0.1.1/s/.*/127.0.1.1      %s/g' /etc/hosts\"", node.Name, node.Name), 1, false)
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), "Failed to override hostname")
 	}
@@ -55,12 +55,12 @@ func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Conne
 	}
 
 	str := base64.StdEncoding.EncodeToString([]byte(initOsScript))
-	_, err3 := mgr.Runner.RunCmd(fmt.Sprintf("echo %s | base64 -d > %s/initOS.sh && chmod +x %s/initOS.sh", str, tmpDir, tmpDir))
+	_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("echo %s | base64 -d > %s/initOS.sh && chmod +x %s/initOS.sh", str, tmpDir, tmpDir), 1, false)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to configure operating system")
 	}
 
-	_, err4 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo %s/initOS.sh", tmpDir))
+	_, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo %s/initOS.sh", tmpDir), 1, true)
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to configure operating system")
 	}

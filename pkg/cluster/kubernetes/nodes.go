@@ -42,7 +42,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Conn
 			return errors.Wrap(err1, "Failed to get current dir")
 		}
 
-		filepath := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, mgr.Cluster.Kubernetes.Version, node.Arch)
+		filesDir := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, mgr.Cluster.Kubernetes.Version, node.Arch)
 
 		kubeadm := fmt.Sprintf("kubeadm")
 		kubelet := fmt.Sprintf("kubelet")
@@ -54,7 +54,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Conn
 		var cmdlist []string
 
 		for _, binary := range binaryList {
-			err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filepath, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
+			err2 := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filesDir, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary))
 			if err2 != nil {
 				return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("Failed to sync binaries"))
 			}
@@ -66,7 +66,7 @@ func syncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Conn
 			}
 		}
 		cmd := strings.Join(cmdlist, " && ")
-		_, err3 := mgr.Runner.RunCmdOutput(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd))
+		_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd), 2, false)
 		if err3 != nil {
 			return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to create kubelet link"))
 		}
@@ -85,7 +85,7 @@ func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		return err1
 	}
 	kubeletServiceBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletService))
-	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/kubelet.service && systemctl enable kubelet && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", kubeletServiceBase64))
+	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/kubelet.service && systemctl enable kubelet && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", kubeletServiceBase64), 5, false)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate kubelet service")
 	}
@@ -95,7 +95,7 @@ func setKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		return err3
 	}
 	kubeletEnvBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletEnv))
-	_, err4 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/systemd/system/kubelet.service.d && echo %s | base64 -d > /etc/systemd/system/kubelet.service.d/10-kubeadm.conf\"", kubeletEnvBase64))
+	_, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/systemd/system/kubelet.service.d && echo %s | base64 -d > /etc/systemd/system/kubelet.service.d/10-kubeadm.conf\"", kubeletEnvBase64), 2, false)
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate kubelet env")
 	}

@@ -37,11 +37,11 @@ func Precheck(mgr *manager.Manager) error {
 	return mgr.RunTaskOnAllNodes(precheck, true)
 }
 
-func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connection) error {
+func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
 	var results = make(map[string]interface{})
 	results["name"] = node.Name
 	for _, software := range baseSoftwares {
-		_, err := mgr.Runner.RunCmd(fmt.Sprintf("which %s", software))
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("which %s", software), 0, false)
 		switch software {
 		case "showmount":
 			software = "nfs"
@@ -56,7 +56,7 @@ func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connectio
 			results[software] = "y"
 		}
 	}
-	output, err := mgr.Runner.RunCmd("date +\"%Z %H:%M:%S\"")
+	output, err := mgr.Runner.ExecuteCmd("date +\"%Z %H:%M:%S\"", 0, false)
 	if err != nil {
 		results["time"] = ""
 	} else {
@@ -69,10 +69,10 @@ func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, conn ssh.Connectio
 
 func PrecheckConfirm(mgr *manager.Manager) {
 
-	results := []PrecheckResults{}
+	var results []PrecheckResults
 	for node := range checkResults {
 		var result PrecheckResults
-		mapstructure.Decode(checkResults[node], &result)
+		_ = mapstructure.Decode(checkResults[node], &result)
 		results = append(results, result)
 	}
 	table.OutputA(results)
