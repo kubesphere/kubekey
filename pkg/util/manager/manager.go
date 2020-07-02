@@ -38,12 +38,10 @@ type Manager struct {
 	WorkDir      string
 	KsEnable     bool
 	KsVersion    string
-	//JoinCommand  string
-	//JoinToken    string
-	Verbose bool
+	Debug        bool
 }
 
-func (mgr *Manager) Clone() *Manager {
+func (mgr *Manager) Copy() *Manager {
 	newManager := *mgr
 	return &newManager
 }

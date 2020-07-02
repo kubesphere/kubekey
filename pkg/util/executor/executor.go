@@ -30,14 +30,14 @@ import (
 type Executor struct {
 	cluster *kubekeyapi.ClusterSpec
 	logger  *log.Logger
-	Verbose bool
+	Debug   bool
 }
 
-func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, verbose bool) *Executor {
+func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, debug bool) *Executor {
 	return &Executor{
 		cluster: cluster,
 		logger:  logger,
-		Verbose: verbose,
+		Debug:   debug,
 	}
 }
 
@@ -52,12 +52,12 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.ClientNode = hostGroups.Client
 	mgr.Cluster = defaultCluster
 	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
-	mgr.Connector = ssh.NewConnector()
+	mgr.Connector = ssh.NewDialer()
 	mgr.WorkDir = GenerateWorkDir(executor.logger)
 	mgr.KsEnable = executor.cluster.KubeSphere.Enabled
 	mgr.KsVersion = executor.cluster.KubeSphere.Version
 	mgr.Logger = executor.logger
-	mgr.Verbose = executor.Verbose
+	mgr.Debug = executor.Debug
 
 	return mgr, nil
 }

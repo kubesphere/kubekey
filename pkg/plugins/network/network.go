@@ -77,12 +77,12 @@ func deployCalico(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to read calico manifests")
 	}
 
-	_, err2 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/bash -c \"base64 -d <<< '%s' | tar xz -C %s\"", strings.TrimSpace(string(calicoBase64)), "/etc/kubernetes"))
+	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/bash -c \"base64 -d <<< '%s' | tar xz -C %s\"", strings.TrimSpace(string(calicoBase64)), "/etc/kubernetes"), 2, false)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate calico manifests")
 	}
 
-	_, err3 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/calico.yaml")
+	_, err3 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/calico.yaml", 5, true)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to deploy calico")
 	}
@@ -106,12 +106,12 @@ func deployFlannel(mgr *manager.Manager) error {
 		flannelFileBase64 = base64.StdEncoding.EncodeToString([]byte(flannelFile))
 	}
 
-	_, err1 := mgr.Runner.RunCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/flannel.yaml\"", flannelFileBase64))
+	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/flannel.yaml\"", flannelFileBase64), 1, false)
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate flannel file")
 	}
 
-	_, err2 := mgr.Runner.RunCmdOutput("/usr/local/bin/kubectl apply -f /etc/kubernetes/flannel.yaml")
+	_, err2 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/flannel.yaml", 5, true)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy flannel")
 	}
