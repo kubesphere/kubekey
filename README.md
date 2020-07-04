@@ -42,16 +42,16 @@ There are three scenarios to use KubeKey.
 * OS requirements:
   * `SSH` can access to all nodes.
   * Time synchronization for all nodes.
-  * `sudo`/`curl`/`openssl` can be used in all nodes.
+  * `sudo`/`curl`/`openssl` should be used in all nodes.
   * `ebtables`/`socat`/`ipset`/`conntrack` should be installed in all nodes.
-  * The [relevant client](./docs/storage-client.md) should be installed in all nodes, if NFS / Ceph / GlusterFS is used as persistent storage.
-  * `docker` can be installed by yourself or by KubeKey. 
-  
-> It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  
-> A container image mirror (accelerator) is recommended to be prepared, if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
+  * `docker` can be installed by yourself or by KubeKey.
+
+> - It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  
+> - A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
+> - KubeKey will install [OpenEBS](https://openebs.io/) to provision LocalPV for development and testing environment by default, this is convenient for new users. For production, please use NFS / Ceph / GlusterFS as persistent storage, and install the [relevant client](./docs/storage-client.md) in all nodes.
 
 * Networking and DNS requirements:
-  * Make sure the DNS address in /etc/resolv.conf is available. Otherwise, it may cause some issues of DNS in cluster.
+  * Make sure the DNS address in `/etc/resolv.conf` is available. Otherwise, it may cause some issues of DNS in cluster.
   * If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports. It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](./docs/network-access.md).
 
 ## Usage
@@ -82,17 +82,17 @@ or
 
 ### Create a Cluster
 
-#### quick start
+#### Quick Start
 
-Quick Start is for allinone installation which is a good start to get familiar with KubeSphere.
+Quick Start is for `all-in-one` installation which is a good start to get familiar with KubeSphere.
 
-##### command
+##### Command
 
 ```shell script
 ./kk create cluster [--with-kubernetes version] [--with-kubesphere version]
 ```
 
-##### examples
+##### Examples
 
 * Create a pure Kubernetes cluster with default version.
 
@@ -159,7 +159,15 @@ Add new node's information to the cluster config file, then apply the changes.
 
 ### Delete Cluster
 
-You can delete the cluster by the following command
+You can delete the cluster by the following command:
+
+- If you started with the quick start (all-in-one):
+
+```shell script
+./kk delete cluster
+```
+
+- If you started with the advanced (created with a configuration file):
 
 ```shell script
 ./kk delete cluster [-f config-sample.yaml]
