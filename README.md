@@ -26,9 +26,9 @@ There are three scenarios to use KubeKey.
 ### Kubernetes Versions
 
 * **v1.15**: &ensp; *v1.15.12*
-* **v1.16**: &ensp; *v1.16.12*
-* **v1.17**: &ensp; *v1.17.8* (default)
-* **v1.18**: &ensp; *v1.18.5*
+* **v1.16**: &ensp; *v1.16.10* &ensp; *v1.16.12*
+* **v1.17**: &ensp; *v1.17.4* &ensp; *v1.17.5* &ensp; *v1.17.6* &ensp; *v1.17.7*  &ensp; *v1.17.8* (default)
+* **v1.18**: &ensp; *v1.18.3* &ensp; *v1.18.5*
 
 ## Requirements and Recommendations
 
@@ -47,9 +47,8 @@ There are three scenarios to use KubeKey.
   * `docker` can be installed by yourself or by KubeKey.
 
 > - It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  
-> - A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io.
+> - A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
 > - KubeKey will install [OpenEBS](https://openebs.io/) to provision LocalPV for development and testing environment by default, this is convenient for new users. For production, please use NFS / Ceph / GlusterFS as persistent storage, and install the [relevant client](./docs/storage-client.md) in all nodes.
-
 
 * Networking and DNS requirements:
   * Make sure the DNS address in `/etc/resolv.conf` is available. Otherwise, it may cause some issues of DNS in cluster.

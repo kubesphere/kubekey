@@ -17,7 +17,6 @@ limitations under the License.
 package network
 
 import (
-	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/calico"
@@ -60,60 +59,60 @@ func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Conn
 }
 
 func deployCalico(mgr *manager.Manager) error {
-	if !util.IsExist(fmt.Sprintf("%s/calico.yaml", mgr.WorkDir)) {
+	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
 		calicoContent, err := calico.GenerateCalicoFiles(mgr)
 		if err != nil {
 			return err
 		}
 
-		err1 := ioutil.WriteFile(fmt.Sprintf("%s/calico.yaml", mgr.WorkDir), []byte(calicoContent), 0644)
+		err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(calicoContent), 0644)
 		if err1 != nil {
-			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate calico manifests: %s/calico.yaml", mgr.WorkDir))
+			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
 		}
 	}
 
-	calicoBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< calico.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
+	calicoBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to read calico manifests")
+		return errors.Wrap(errors.WithStack(err1), "Failed to read network plugin manifests")
 	}
 
 	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/bash -c \"base64 -d <<< '%s' | tar xz -C %s\"", strings.TrimSpace(string(calicoBase64)), "/etc/kubernetes"), 2, false)
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "Failed to generate calico manifests")
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate network plugin manifests")
 	}
 
-	_, err3 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/calico.yaml", 5, true)
+	_, err3 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml", 5, true)
 	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "Failed to deploy calico")
+		return errors.Wrap(errors.WithStack(err3), "Failed to deploy network plugin")
 	}
 	return nil
 }
 
 func deployFlannel(mgr *manager.Manager) error {
-	var flannelFileBase64 string
-	if util.IsExist(fmt.Sprintf("%s/flannel.yaml", mgr.WorkDir)) {
-		output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cat %s/flannel.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
-		if err != nil {
-			fmt.Println(string(output))
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to read custom flannel manifests: %s/flannel.yaml", mgr.WorkDir))
-		}
-		flannelFileBase64 = strings.TrimSpace(string(output))
-	} else {
-		flannelFile, err := flannel.GenerateFlannelFiles(mgr)
+	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
+		flannelContent, err := flannel.GenerateFlannelFiles(mgr)
 		if err != nil {
 			return err
 		}
-		flannelFileBase64 = base64.StdEncoding.EncodeToString([]byte(flannelFile))
+		err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(flannelContent), 0644)
+		if err1 != nil {
+			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
+		}
 	}
 
-	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/flannel.yaml\"", flannelFileBase64), 1, false)
+	flannelBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
 	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to generate flannel file")
+		return errors.Wrap(errors.WithStack(err1), "Failed to read network plugin manifests")
 	}
 
-	_, err2 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/flannel.yaml", 5, true)
+	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/bash -c \"base64 -d <<< '%s' | tar xz -C %s\"", strings.TrimSpace(string(flannelBase64)), "/etc/kubernetes"), 2, false)
 	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "Failed to deploy flannel")
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate network plugin manifests")
+	}
+
+	_, err3 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml", 5, true)
+	if err3 != nil {
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy network plugin")
 	}
 	return nil
 }
