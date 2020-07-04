@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/install"
+	"github.com/kubesphere/kubekey/pkg/scale"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ var scaleCmd = &cobra.Command{
 	Short: "Scale a cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := util.InitLogger(verbose)
-		return install.CreateCluster(clusterCfgFile, "", "", logger, false, verbose)
+		return scale.ScaleCluster(clusterCfgFile, "", "", logger, false, verbose)
 	},
 }
 

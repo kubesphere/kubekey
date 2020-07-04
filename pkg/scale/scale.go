@@ -17,30 +17,69 @@ limitations under the License.
 package scale
 
 import (
+	"fmt"
+	"github.com/kubesphere/kubekey/pkg/cluster/etcd"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
+	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
+	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
 )
+
+func ScaleCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose bool) error {
+	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return errors.Wrap(err, "Faild to get current dir")
+	}
+	if err := util.CreateDir(fmt.Sprintf("%s/kubekey", currentDir)); err != nil {
+		return errors.Wrap(err, "Failed to create work dir")
+	}
+
+	cfg, err := config.ParseClusterCfg(clusterCfgFile, k8sVersion, ksVersion, ksEnabled, logger)
+	if err != nil {
+		return errors.Wrap(err, "Failed to download cluster config")
+	}
+
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose))
+}
 
 func ExecTasks(mgr *manager.Manager) error {
 	scaleTasks := []manager.Task{
+		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
 		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
 		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
+		{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
+		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},
+		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "Failed to sync etcd certs"},
+		{Task: etcd.GenerateEtcdService, ErrMsg: "Failed to create etcd service"},
+		{Task: etcd.SetupEtcdCluster, ErrMsg: "Failed to start etcd cluster"},
+		{Task: etcd.RefreshEtcdConfig, ErrMsg: "Failed to refresh etcd configuration"},
+		{Task: kubernetes.GetClusterStatus, ErrMsg: "Failed to get cluster status"},
 		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "Failed to sync kube binaries"},
-		//{Task: kubernetes.ConfigureKubeletService, ErrMsg: "Failed to sync kube binaries"},
-		//{Task: kubernetes.GetJoinNodesCmd, ErrMsg: "Failed to get join cmd"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
 	}
 
-	for _, task := range scaleTasks {
-		if err := task.Run(mgr); err != nil {
-			return errors.Wrap(err, task.ErrMsg)
+	for _, step := range scaleTasks {
+		if err := step.Run(mgr); err != nil {
+			return errors.Wrap(err, step.ErrMsg)
 		}
 	}
 
-	mgr.Logger.Infoln("Cluster scaling is successful.")
+	mgr.Logger.Infoln("Congradulations! Scaling cluster is successful.")
 
 	return nil
+}
+
+func Execute(executor *executor.Executor) error {
+	mgr, err := executor.CreateManager()
+	if err != nil {
+		return err
+	}
+	return ExecTasks(mgr)
 }
