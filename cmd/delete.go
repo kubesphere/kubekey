@@ -27,7 +27,7 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete a cluster",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := util.InitLogger(verbose)
-		delete.ResetCluster(clusterCfgFile, logger, verbose, skipCheck)
+		delete.ResetCluster(clusterCfgFile, logger, verbose, false)
 	},
 }
 
