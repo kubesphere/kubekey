@@ -27,7 +27,7 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete a cluster",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := util.InitLogger(verbose)
-		delete.ResetCluster(clusterCfgFile, logger, verbose, false)
+		delete.ResetCluster(clusterCfgFile, logger, verbose)
 	},
 }
 
@@ -35,5 +35,4 @@ func init() {
 	rootCmd.AddCommand(deleteCmd)
 
 	deleteCmd.Flags().StringVarP(&clusterCfgFile, "config", "f", "", "Path to a configuration file")
-	deleteCmd.Flags().BoolVarP(&skipCheck, "yes", "y", false, "Skip pre-check of the installation")
 }
