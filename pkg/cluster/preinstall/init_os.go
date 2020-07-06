@@ -27,7 +27,7 @@ import (
 )
 
 func InitOS(mgr *manager.Manager) error {
-	PrecheckConfirm(mgr)
+	//PrecheckConfirm(mgr)
 	if err := Prepare(mgr); err != nil {
 		return errors.Wrap(err, "Failed to load kube binaries")
 	}

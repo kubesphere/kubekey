@@ -25,6 +25,7 @@ var (
 	clusterCfgFile string
 	kubernetes     string
 	kubesphere     bool
+	skipCheck      bool
 )
 
 // clusterCmd represents the cluster command
@@ -39,7 +40,7 @@ var clusterCmd = &cobra.Command{
 			ksVersion = ""
 		}
 		logger := util.InitLogger(verbose)
-		return install.CreateCluster(clusterCfgFile, kubernetes, ksVersion, logger, kubesphere, verbose)
+		return install.CreateCluster(clusterCfgFile, kubernetes, ksVersion, logger, kubesphere, verbose, skipCheck)
 	},
 }
 
@@ -49,4 +50,5 @@ func init() {
 	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "Path to a configuration file")
 	clusterCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.8", "Specify a supported version of kubernetes")
 	clusterCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
+	clusterCmd.Flags().BoolVarP(&skipCheck, "yes", "y", false, "Skip pre-check of the installation")
 }

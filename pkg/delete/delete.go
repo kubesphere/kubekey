@@ -30,13 +30,13 @@ import (
 	"strings"
 )
 
-func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
+func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose,skipCheck bool) error {
 	cfg, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, skipCheck))
 }
 
 func Execute(executor *executor.Executor) error {

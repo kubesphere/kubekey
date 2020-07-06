@@ -34,7 +34,13 @@ var (
 )
 
 func Precheck(mgr *manager.Manager) error {
-	return mgr.RunTaskOnAllNodes(precheck, true)
+	if !mgr.SkipCheck {
+		if err := mgr.RunTaskOnAllNodes(precheck, true); err != nil {
+			return err
+		}
+		PrecheckConfirm(mgr)
+	}
+	return nil
 }
 
 func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {

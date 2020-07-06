@@ -28,22 +28,24 @@ import (
 )
 
 type Executor struct {
-	cluster *kubekeyapi.ClusterSpec
-	logger  *log.Logger
+	Cluster *kubekeyapi.ClusterSpec
+	Logger  *log.Logger
 	Debug   bool
+	SkipCheck bool
 }
 
-func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, debug bool) *Executor {
+func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, debug,skipCheck bool) *Executor {
 	return &Executor{
-		cluster: cluster,
-		logger:  logger,
+		Cluster: cluster,
+		Logger:  logger,
 		Debug:   debug,
+		SkipCheck: skipCheck,
 	}
 }
 
 func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr := &manager.Manager{}
-	defaultCluster, hostGroups := executor.cluster.SetDefaultClusterSpec()
+	defaultCluster, hostGroups := executor.Cluster.SetDefaultClusterSpec()
 	mgr.AllNodes = hostGroups.All
 	mgr.EtcdNodes = hostGroups.Etcd
 	mgr.MasterNodes = hostGroups.Master
@@ -53,12 +55,12 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.Cluster = defaultCluster
 	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
 	mgr.Connector = ssh.NewDialer()
-	mgr.WorkDir = GenerateWorkDir(executor.logger)
-	mgr.KsEnable = executor.cluster.KubeSphere.Enabled
-	mgr.KsVersion = executor.cluster.KubeSphere.Version
-	mgr.Logger = executor.logger
+	mgr.WorkDir = GenerateWorkDir(executor.Logger)
+	mgr.KsEnable = executor.Cluster.KubeSphere.Enabled
+	mgr.KsVersion = executor.Cluster.KubeSphere.Version
+	mgr.Logger = executor.Logger
 	mgr.Debug = executor.Debug
-
+    mgr.SkipCheck = executor.SkipCheck
 	return mgr, nil
 }
 
