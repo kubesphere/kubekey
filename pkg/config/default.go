@@ -134,8 +134,8 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 
 func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) *kubekeyapi.Cluster {
 	allinoneCfg := kubekeyapi.Cluster{}
-	if err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").Run(); err != nil {
-		log.Fatalf("Failed to generate public key: %v", err)
+	if output, err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").CombinedOutput(); err != nil {
+		log.Fatalf("Failed to generate public key: %v\n%s", err, string(output))
 	}
 	if output, err := exec.Command("/bin/sh", "-c", "echo \"\n$(cat $HOME/.ssh/id_rsa.pub)\" >> $HOME/.ssh/authorized_keys && awk ' !x[$0]++{print > \"'$HOME'/.ssh/authorized_keys\"}' $HOME/.ssh/authorized_keys").CombinedOutput(); err != nil {
 		log.Fatalf("Failed to copy public key to authorized_keys: %v\n%s", err, string(output))
