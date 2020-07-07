@@ -39,6 +39,7 @@ type Manager struct {
 	KsEnable     bool
 	KsVersion    string
 	Debug        bool
+	SkipCheck    bool
 }
 
 func (mgr *Manager) Copy() *Manager {
