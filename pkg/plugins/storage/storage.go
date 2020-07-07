@@ -42,7 +42,7 @@ func DeployStoragePlugins(mgr *manager.Manager) error {
 
 func deployStoragePlugins(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
 	if mgr.Runner.Index == 0 {
-		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/qingcloud", 1, false)
+		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/main", 1, false)
 		if mgr.Cluster.Storage.LocalVolume.Enabled {
 			if err := DeployLocalVolume(mgr); err != nil {
 				return err
