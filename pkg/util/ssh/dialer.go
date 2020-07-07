@@ -49,7 +49,7 @@ func (dialer *Dialer) Connect(host kubekeyapi.HostCfg) (Connection, error) {
 		Address:  host.Address,
 		Password: host.Password,
 		KeyFile:  host.PrivateKeyPath,
-		Timeout:  10 * time.Second,
+		Timeout:  30 * time.Second,
 	}
 	conn, err = NewConnection(opts)
 	if err != nil {
