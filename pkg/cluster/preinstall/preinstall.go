@@ -61,13 +61,21 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	for _, binary := range binaries {
 		mgr.Logger.Infoln(fmt.Sprintf("Downloading %s ...", binary.Name))
 		if util.IsExist(binary.Path) == false {
-			if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
-				fmt.Println(string(output))
-				return errors.Wrap(err, "Failed to download kubeadm binary")
-			}
+			for i := 5; i > 0; i-- {
+				if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
+					fmt.Println(string(output))
+					return errors.Wrap(err, fmt.Sprintf("Failed to download %s binary", binary.Name))
+				}
 
-			if err := SHA256Check(binary, version); err != nil {
-				return err
+				if err := SHA256Check(binary, version); err != nil {
+					if i == 1 {
+						return err
+					} else {
+						exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+						continue
+					}
+				}
+				break
 			}
 		} else {
 			if err := SHA256Check(binary, version); err != nil {
