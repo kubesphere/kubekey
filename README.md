@@ -8,6 +8,7 @@ There are three scenarios to use KubeKey.
 * Install Kubernetes and KubeSphere together in one command
 * Install Kubernetes first, then deploy KubeSphere on it using [ks-installer](https://github.com/kubesphere/ks-installer)
 
+*Other languages* : [zh_CN](docs/README_zh-CN.md)
 ## Motivation
 
 * Ansible-based installer has a bunch of software dependency such as Python. KubeKey is developed in Go language to get rid of the problem in a variety of environment so that increasing the success rate of installation.
