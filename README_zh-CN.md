@@ -1,18 +1,21 @@
 # KubeKey
 
-从v3.0开始，[KubeSphere](https://kubesphere.io) 将基于 ansible 的安装程序更改为使用Go语言开发的名为 KubeKey 的新安装程序。使用 KubeKey ，您可以轻松、高效、灵活地单独或整体安装 Kubernetes 和 KubeSphere。
+> [English](README.md) | 中文
+
+从 v3.0 开始，[KubeSphere](https://kubesphere.io) 将基于 ansible 的安装程序更改为使用 Go 语言开发的名为 KubeKey 的新安装程序。使用 KubeKey，您可以轻松、高效、灵活地单独或整体安装 Kubernetes 和 KubeSphere。
 
 有三种情况可以使用 KubeKey。
 
 * 仅安装 Kubernetes
-* 在一个命令中安装 Kubernetes 和 KubeSphere
-* 首先安装 Kubernetes ，然后使用 [ks-installer](https://github.com/kubesphere/ks-installer) 在其上部署 KubeSphere
+* 用一个命令中安装 Kubernetes 和 KubeSphere
+* 首先安装 Kubernetes，然后使用 [ks-installer](https://github.com/kubesphere/ks-installer) 在其上部署 KubeSphere
 
-## 目标
-* 基于 Ansible 的安装程序具有大量软件依赖性，例如 Python。KubeKey 是使用Go语言开发的，可以消除在各种环境中出现的问题，从而提高安装成功率。
-* KubeKey 使用 Kubeadm 在节点上尽可能多地并行安装K8s集群，以降低安装复杂性并提高效率。与较早的安装程序相比，它将大大节省安装时间。
-* KubeKey 支持将群集从 all-in-one 扩展到多节点群集。
-* KubeKey 旨在将群集安装为一个对象，即 CaaO 。
+## 动机
+
+* 基于 Ansible 的安装程序具有大量软件依赖性，例如 Python。KubeKey 是使用 Go 语言开发的，可以消除在各种环境中出现的问题，从而提高安装成功率。
+* KubeKey 使用 Kubeadm 在节点上尽可能多地并行安装 K8s 集群，以降低安装复杂性并提高效率。与较早的安装程序相比，它将大大节省安装时间。
+* KubeKey 支持将群集从 all-in-one 扩展到多节点群集甚至 HA 集群。
+* KubeKey 旨在将群集当作一个对象操作，即 CaaO。
 
 ## 支持的环境
 
@@ -32,9 +35,9 @@
 ## 要求和建议
 
 * 最低资源要求（仅对于最小安装 KubeSphere）：
-  * 2 核虚拟CPU
-  * 4 GB内存
-  * 20 GB储存空间
+  * 2 核虚拟 CPU
+  * 4 GB 内存
+  * 20 GB 储存空间
 
 > /var/lib/docker 主要用于存储容器数据，在使用和操作过程中会逐渐增大。对于生产环境，建议 /var/lib/docker 单独挂盘。
 
@@ -45,13 +48,13 @@
   * `ebtables`/`socat`/`ipset`/`conntrack` 应安装在所有节点。
   * `docker` 可以自己安装，也可以通过 KubeKey 安装。
 
-> - 建议您的操作系统环境足够干净（不安装任何其他软件），否则可能会发生冲突。
-> - 如果在从 dockerhub.io 下载镜像时遇到问题，建议准备一个容器镜像仓库（加速器）。[为 Docker 守护程序配置镜像加速](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon)。
-> - 默认情况下，KubeKey 将安装 [OpenEBS](https://openebs.io/) 来为开发和测试环境配置 LocalPV，这对新用户来说非常方便。对于生产，请使用 NFS/Ceph/GlusterFS 作为持久化存储，并在所有节点中安装[相关的客户端](./docs/storage-client.md) 。
+> * 建议您的操作系统环境足够干净 (不安装任何其他软件)，否则可能会发生冲突。
+> * 如果在从 dockerhub.io 下载镜像时遇到问题，建议准备一个容器镜像仓库 (加速器)。[为 Docker 守护程序配置镜像加速](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon)。
+> * 默认情况下，KubeKey 将安装 [OpenEBS](https://openebs.io/) 来为开发和测试环境配置 LocalPV，这对新用户来说非常方便。对于生产，请使用 NFS/Ceph/GlusterFS 或商业化存储作为持久化存储，并在所有节点中安装[相关的客户端](./docs/storage-client.md) 。
 
-* 网络和DNS要求：
-  * 确保 `/etc/resolv.conf` 中的DNS地址可用。否则，可能会导致群集中出现某些DNS问题。
-  * 如果您的网络配置使用防火墙或安全组，则必须确保基础结构组件可以通过特定端口相互通信。建议您关闭防火墙或遵循链接配置： [网络访问](./docs/network-access.md)。
+* 网络和 DNS 要求：
+  * 确保 `/etc/resolv.conf` 中的 DNS 地址可用。否则，可能会导致群集中出现某些 DNS 问题。
+  * 如果您的网络配置使用防火墙或安全组，则必须确保基础结构组件可以通过特定端口相互通信。建议您关闭防火墙或遵循链接配置：[网络访问](docs/network-access.md)。
 
 ## 用法
 
@@ -75,9 +78,9 @@
     ```
 
 > 注意：
-> 
+>
 > * 在构建之前，需要先安装 Docker。
-> * 如果无法访问 `https://proxy.golang.org/`，请执行 `build.sh -p` 代替。
+> * 如果无法访问 `https://proxy.golang.org/`，比如在大陆，请执行 `build.sh -p`。
 
 ### 创建集群
 
@@ -93,19 +96,19 @@
 
 ##### 例子
 
-* 使用默认版本创建一个纯 Kubernetes 集群。
+* 使用默认版本创建一个纯 Kubernetes 集群
 
     ```shell script
     ./kk create cluster
     ```
 
-* 创建具有指定版本（[受支持的版本](#Kubernetes版本)）的 Kubernetes 集群
+* 创建指定一个（[支持的版本](#Kubernetes版本)）的 Kubernetes 集群
 
     ```shell script
     ./kk create cluster --with-kubernetes v1.17.6
     ```
 
-* 创建一个安装了 KubeSphere 的 Kubernetes 集群
+* 创建一个部署了 KubeSphere 的 Kubernetes 集群
 
     ```shell script
     ./kk create cluster --with-kubesphere [version]
@@ -129,24 +132,24 @@
         ./kk create config [-f ~/myfolder/config-sample.yaml]
         ```
 
-   * 同时安装存储插件（支持：localVolume、nfsClient、rbd、glusterfs）。您可以指定多个插件并用逗号分隔。请注意，您添加的第一个将是默认存储类。
+   * 同时安装存储插件 (支持：localVolume、nfsClient、rbd、glusterfs)。您可以指定多个插件并用逗号分隔。请注意，您添加的第一个将是默认存储类。
 
         ```shell script
         ./kk create config --with-storage localVolume
         ```
 
-   * 同时安装 KubeSphere。
+   * 同时安装 KubeSphere
 
         ```shell script
         ./kk create config --with-kubesphere
         ```
 
-2. 根据您的环境修改配置文件 config-sample.yaml。
+2. 根据您的环境修改配置文件 config-sample.yaml
 3. 使用配置文件创建集群。
 
-        ```shell script
-        ./kk create cluster -f ~/myfolder/config-sample.yaml
-        ```
+      ```shell script
+      ./kk create cluster -f ~/myfolder/config-sample.yaml
+      ```
 
 ### 添加节点
 
@@ -160,13 +163,13 @@
 
 您可以通过以下命令删除集群：
 
-- 如果您以快速入门（all-in-one）开始：
+* 如果您以快速入门（all-in-one）开始：
 
 ```shell script
 ./kk delete cluster
 ```
 
-- 如果从高级安装开始（使用配置文件创建）：
+* 如果从高级安装开始（使用配置文件创建的集群）：
 
 ```shell script
 ./kk delete cluster [-f config-sample.yaml]
@@ -192,6 +195,7 @@ $ kubectl completion bash >/etc/bash_completion.d/kubectl
 更详细的参考可以在[这里](https://kubernetes.io/docs/tasks/tools/install-kubectl/#enabling-shell-autocompletion)找到。
 
 ## 文件资料
+
 * [配置示例](docs/config-example.md)
 * [网络访问](docs/network-access.md)
 * [存储客户端](docs/storage-client.md)

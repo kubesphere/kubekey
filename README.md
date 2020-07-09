@@ -1,5 +1,7 @@
 # KubeKey
 
+> English | [中文](README_zh-CN.md)
+
 Since v3.0, [KubeSphere](https://kubesphere.io) changes the ansible-based installer to the new installer called KubeKey that is developed in Go language. With KubeKey, you can install Kubernetes and KubeSphere separately or as a whole easily, efficiently and flexibly.
 
 There are three scenarios to use KubeKey.
@@ -8,12 +10,11 @@ There are three scenarios to use KubeKey.
 * Install Kubernetes and KubeSphere together in one command
 * Install Kubernetes first, then deploy KubeSphere on it using [ks-installer](https://github.com/kubesphere/ks-installer)
 
-*Other languages* : [zh_CN](docs/README_zh-CN.md)
 ## Motivation
 
 * Ansible-based installer has a bunch of software dependency such as Python. KubeKey is developed in Go language to get rid of the problem in a variety of environment so that increasing the success rate of installation.
 * KubeKey uses Kubeadm to install K8s cluster on nodes in parallel as much as possible in order to reduce installation complexity and improve efficiency. It will greatly save installation time compared to the older installer.
-* KubeKey supports for scaling cluster from allinone to multi-node cluster.
+* KubeKey supports for scaling cluster from allinone to multi-node cluster, even an HA cluster.
 * KubeKey aims to install cluster as an object, i.e., CaaO.
 
 ## Supported Environment
@@ -47,13 +48,13 @@ There are three scenarios to use KubeKey.
   * `ebtables`/`socat`/`ipset`/`conntrack` should be installed in all nodes.
   * `docker` can be installed by yourself or by KubeKey.
 
-> - It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  
-> - A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
-> - KubeKey will install [OpenEBS](https://openebs.io/) to provision LocalPV for development and testing environment by default, this is convenient for new users. For production, please use NFS / Ceph / GlusterFS as persistent storage, and install the [relevant client](./docs/storage-client.md) in all nodes.
+> * It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  
+> * A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
+> * KubeKey will install [OpenEBS](https://openebs.io/) to provision LocalPV for development and testing environment by default, this is convenient for new users. For production, please use NFS / Ceph / GlusterFS  or commercial products as persistent storage, and install the [relevant client](docs/storage-client.md) in all nodes.
 
 * Networking and DNS requirements:
   * Make sure the DNS address in `/etc/resolv.conf` is available. Otherwise, it may cause some issues of DNS in cluster.
-  * If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports. It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](./docs/network-access.md).
+  * If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports. It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](docs/network-access.md).
 
 ## Usage
 
@@ -162,13 +163,13 @@ Add new node's information to the cluster config file, then apply the changes.
 
 You can delete the cluster by the following command:
 
-- If you started with the quick start (all-in-one):
+* If you started with the quick start (all-in-one):
 
 ```shell script
 ./kk delete cluster
 ```
 
-- If you started with the advanced (created with a configuration file):
+* If you started with the advanced (created with a configuration file):
 
 ```shell script
 ./kk delete cluster [-f config-sample.yaml]
