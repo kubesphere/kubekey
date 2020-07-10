@@ -80,7 +80,7 @@ or
 > Note:
 >
 > * Docker needs to be installed before building.
-> * If you have problem to access `https://proxy.golang.org/` in China mainland, excute `build.sh -p` instead.
+> * If you have problem to access `https://proxy.golang.org/`, excute `build.sh -p` instead.
 
 ### Create a Cluster
 
