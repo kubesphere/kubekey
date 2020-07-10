@@ -27,7 +27,7 @@
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
 
-### Kubernetes 版本
+### <span id = "KubernetesVersions">Kubernetes 版本</span>
 
 * **v1.15**: &ensp; *v1.15.12*
 * **v1.16**: &ensp; *v1.16.12*
@@ -104,7 +104,7 @@
     ./kk create cluster
     ```
 
-* 创建指定一个（[支持的版本](#Kubernetes版本)）的 Kubernetes 集群
+* 创建指定一个（[支持的版本](#KubernetesVersions)）的 Kubernetes 集群
 
     ```shell script
     ./kk create cluster --with-kubernetes v1.17.6
@@ -185,13 +185,13 @@ KubeKey 不会启用 kubectl 自动补全功能。请参阅下面的指南并将
 
 ```shell script
 # 安装 bash-completion
-$ apt-get install bash-completion
+apt-get install bash-completion
 
 # 将 completion 脚本添加到你的 ~/.bashrc 文件
-$ echo 'source <(kubectl completion bash)' >>~/.bashrc
+echo 'source <(kubectl completion bash)' >>~/.bashrc
 
 # 将 completion 脚本添加到 /etc/bash_completion.d 目录
-$ kubectl completion bash >/etc/bash_completion.d/kubectl
+kubectl completion bash >/etc/bash_completion.d/kubectl
 ```
 
 更详细的参考可以在[这里](https://kubernetes.io/docs/tasks/tools/install-kubectl/#enabling-shell-autocompletion)找到。
