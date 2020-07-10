@@ -27,7 +27,7 @@ There are three scenarios to use KubeKey.
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
 
-### Kubernetes Versions
+### <span id = "KubernetesVersions">Kubernetes Versions</span>
 
 * **v1.15**: &ensp; *v1.15.12*
 * **v1.16**: &ensp; *v1.16.12*
@@ -104,7 +104,7 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
     ./kk create cluster
     ```
 
-* Create a Kubernetes cluster with a specified version ([supported versions](#Kubernetes Versions))
+* Create a Kubernetes cluster with a specified version ([supported versions](#KubernetesVersions))
 
     ```shell script
     ./kk create cluster --with-kubernetes v1.17.6
@@ -185,13 +185,13 @@ KubeKey doesn't enable kubectl autocompletion. Refer to the guide below and turn
 
 ```shell script
 # Install bash-completion
-$ apt-get install bash-completion
+apt-get install bash-completion
 
 # Source the completion script in your ~/.bashrc file
-$ echo 'source <(kubectl completion bash)' >>~/.bashrc
+echo 'source <(kubectl completion bash)' >>~/.bashrc
 
 # Add the completion script to the /etc/bash_completion.d directory
-$ kubectl completion bash >/etc/bash_completion.d/kubectl
+kubectl completion bash >/etc/bash_completion.d/kubectl
 ```
 
 More detail reference could be found [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/#enabling-shell-autocompletion).
