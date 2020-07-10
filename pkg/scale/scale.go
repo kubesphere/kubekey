@@ -32,7 +32,7 @@ import (
 	"path/filepath"
 )
 
-func ScaleCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose,skipCheck bool) error {
+func ScaleCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -61,7 +61,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: etcd.SetupEtcdCluster, ErrMsg: "Failed to start etcd cluster"},
 		{Task: etcd.RefreshEtcdConfig, ErrMsg: "Failed to refresh etcd configuration"},
 		{Task: kubernetes.GetClusterStatus, ErrMsg: "Failed to get cluster status"},
-		{Task: kubernetes.SyncKubeBinaries, ErrMsg: "Failed to sync kube binaries"},
+		{Task: kubernetes.InstallKubeBinaries, ErrMsg: "Failed to install kube binaries"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
 	}
 
