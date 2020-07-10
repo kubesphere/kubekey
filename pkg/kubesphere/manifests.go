@@ -144,14 +144,12 @@ spec:
     logMaxAge: 7
     elkPrefix: logstash
   metrics_server:
-    enabled: false
+    enabled: true
   monitoring:
     prometheusReplicas: 1
     prometheusMemoryRequest: 400Mi
     prometheusVolumeSize: 20Gi
     alertmanagerReplicas: 1
-    notification:
-      enabled: false
   multicluster:
     clusterRole: none  # host | member | none
   networkpolicy:
