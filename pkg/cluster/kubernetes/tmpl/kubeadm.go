@@ -54,11 +54,17 @@ networking:
 apiServer:
   extraArgs:
     authorization-mode: Node,RBAC
-  timeoutForControlPlane: 4m0s
+    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
   certSANs:
     {{- range .CertSANs }}
     - {{ . }}
     {{- end }}
+controllerManager:
+  extraArgs:
+    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
+scheduler:
+  extraArgs:
+    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
 
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
@@ -118,6 +124,12 @@ evictionSoftGracePeriod:
   memory.available: 2m
 evictionMaxPodGracePeriod: 120
 evictionPressureTransitionPeriod: 30s
+featureGates:
+  CSINodeInfo: true
+  VolumeSnapshotDataSource: true
+  ExpandCSIVolumes: true
+  RotateKubeletClientCertificate: true
+
     `)))
 
 func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
