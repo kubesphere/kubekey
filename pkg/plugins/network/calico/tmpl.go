@@ -41,7 +41,7 @@ data:
   # Configure the MTU to use for workload interfaces and the
   # tunnels.  For IPIP, set to your network MTU - 20; for VXLAN
   # set to your network MTU - 50.
-  veth_mtu: "1440"
+  veth_mtu: "{{ .VethMTU }}"
 
   # The CNI network configuration to install on each node.  The special
   # values in this config will be automatically populated.
@@ -680,10 +680,10 @@ spec:
               value: "autodetect"
             # Enable IPIP
             - name: CALICO_IPV4POOL_IPIP
-              value: "Always"
+              value: "{{ .IPIPMode }}"
             # Enable or Disable VXLAN on the default IP pool.
             - name: CALICO_IPV4POOL_VXLAN
-              value: "Never"
+              value: "{{ .VXLANMode }}"
             # Set MTU for tunnel device used if ipip is enabled
             - name: FELIX_IPINIPMTU
               valueFrom:
@@ -698,6 +698,8 @@ spec:
                   key: veth_mtu
             - name: CALICO_IPV4POOL_CIDR
               value: "{{ .KubePodsCIDR }}"
+            - name: CALICO_IPV4POOL_BLOCK_SIZE
+              value: "{{ .NodeCidrMaskSize }}"
             - name: CALICO_DISABLE_FILE_LOGGING
               value: "true"
             # Set Felix endpoint to host default action to ACCEPT.
@@ -862,5 +864,9 @@ func GenerateCalicoFiles(mgr *manager.Manager) (string, error) {
 		"CalicoNodeImage":        preinstall.GetImage(mgr, "calico-node").ImageName(),
 		"CalicoFlexvolImage":     preinstall.GetImage(mgr, "calico-flexvol").ImageName(),
 		"CalicoControllersImage": preinstall.GetImage(mgr, "calico-kube-controllers").ImageName(),
+		"VethMTU":                mgr.Cluster.Network.Calico.VethMTU,
+		"NodeCidrMaskSize":       mgr.Cluster.Kubernetes.NodeCidrMaskSize,
+		"IPIPMode":               mgr.Cluster.Network.Calico.IPIPMode,
+		"VXLANMode":              mgr.Cluster.Network.Calico.VXLANMode,
 	})
 }

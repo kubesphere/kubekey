@@ -43,12 +43,6 @@ type ClusterSpec struct {
 	KubeSphere           KubeSphere           `json:"kubesphere,omitempty"`
 }
 
-type Kubernetes struct {
-	Version     string `yaml:"version" json:"version,omitempty"`
-	ImageRepo   string `yaml:"imageRepo" json:"imageRepo,omitempty"`
-	ClusterName string `yaml:"clusterName" json:"clusterName,omitempty"`
-}
-
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -113,12 +107,6 @@ type HostGroups struct {
 	Client []HostCfg
 }
 
-type NetworkConfig struct {
-	Plugin          string `yaml:"plugin" json:"plugin,omitempty"`
-	KubePodsCIDR    string `yaml:"kube_pods_cidr" json:"kube_pods_cidr,omitempty"`
-	KubeServiceCIDR string `yaml:"kube_service_cidr" json:"kube_service_cidr,omitempty"`
-}
-
 type ControlPlaneEndpoint struct {
 	Domain  string `yaml:"domain" json:"domain,omitempty"`
 	Address string `yaml:"address" json:"address,omitempty"`
@@ -165,6 +153,11 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	extraCertSANs = append(extraCertSANs, util.ParseIp(cfg.Network.KubeServiceCIDR)[0])
 
 	defaultCertSANs = append(defaultCertSANs, extraCertSANs...)
+
+	if cfg.Kubernetes.ApiserverCertExtraSans != nil {
+		defaultCertSANs = append(defaultCertSANs, cfg.Kubernetes.ApiserverCertExtraSans...)
+	}
+
 	return defaultCertSANs
 }
 

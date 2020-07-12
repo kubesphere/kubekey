@@ -60,8 +60,8 @@ spec:
     clusterName: cluster.local
   network:
     plugin: calico
-    kube_pods_cidr: 10.233.64.0/18
-    kube_service_cidr: 10.233.0.0/18
+    kubePodsCIDR: 10.233.64.0/18
+    kubeServiceCIDR: 10.233.0.0/18
   registry:
     registryMirrors: []
     insecureRegistries: []

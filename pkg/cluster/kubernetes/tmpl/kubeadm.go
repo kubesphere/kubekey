@@ -61,6 +61,7 @@ apiServer:
     {{- end }}
 controllerManager:
   extraArgs:
+    node-cidr-mask-size: "{{ .NodeCidrMaskSize }}"
     feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
 scheduler:
   extraArgs:
@@ -86,7 +87,7 @@ conntrack:
 enableProfiling: False
 healthzBindAddress: 0.0.0.0:10256
 iptables:
- masqueradeAll: False
+ masqueradeAll: {{ .MasqueradeAll }}
  masqueradeBit: 14
  minSyncPeriod: 0s
  syncPeriod: 30s
@@ -96,12 +97,7 @@ ipvs:
  scheduler: rr
  syncPeriod: 30s
  strictARP: False
-metricsBindAddress: 127.0.0.1:10249
 mode: ipvs
-nodePortAddresses: []
-oomScoreAdj: -999
-portRange: 
-udpIdleTimeout: 250ms
 
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -109,6 +105,7 @@ kind: KubeletConfiguration
 clusterDomain: {{ .ClusterName }}
 clusterDNS:
 - {{ .ClusterIP }}
+maxPods: {{ .MaxPods }}
 rotateCertificates: true
 kubeReserved:
   cpu: 200m
@@ -175,5 +172,8 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		"CertSANs":             mgr.Cluster.GenerateCertSANs(),
 		"ExternalEtcd":         externalEtcd,
 		"ClusterIP":            "169.254.25.10",
+		"MasqueradeAll":        mgr.Cluster.Kubernetes.MasqueradeAll,
+		"NodeCidrMaskSize":     mgr.Cluster.Kubernetes.NodeCidrMaskSize,
+		"MaxPods":              mgr.Cluster.Kubernetes.MaxPods,
 	})
 }
