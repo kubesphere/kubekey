@@ -109,7 +109,7 @@
 * 创建指定一个（[支持的版本](#KubernetesVersions)）的 Kubernetes 集群
 
     ```shell script
-    ./kk create cluster --with-kubernetes v1.17.6
+    ./kk create cluster --with-kubernetes v1.17.8
     ```
 
 * 创建一个部署了 KubeSphere 的 Kubernetes 集群 （例如 `--with-kubesphere v3.0.0`）

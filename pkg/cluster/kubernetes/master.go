@@ -272,7 +272,7 @@ func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Co
 }
 
 func addMaster(mgr *manager.Manager) error {
-	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]), 5, true)
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]), 2, true)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
 	}
@@ -284,7 +284,7 @@ func addMaster(mgr *manager.Manager) error {
 }
 
 func addWorker(mgr *manager.Manager) error {
-	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]), 5, true)
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]), 2, true)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to add worker to cluster")
 	}

@@ -23,28 +23,32 @@ import (
 )
 
 const (
-	DefaultPreDir         = "kubekey"
-	DefaultSSHPort        = "22"
-	DefaultDockerSockPath = "/var/run/docker.sock"
-	DefaultLBPort         = "6443"
-	DefaultLBDomain       = "lb.kubesphere.local"
-	DefaultNetworkPlugin  = "calico"
-	DefaultPodsCIDR       = "10.233.64.0/18"
-	DefaultServiceCIDR    = "10.233.0.0/18"
-	DefaultKubeImageRepo  = "kubesphere"
-	DefaultClusterName    = "cluster.local"
-	DefaultArch           = "amd64"
-	DefaultEtcdVersion    = "v3.3.12"
-	DefaultEtcdPort       = "2379"
-	DefaultKubeVersion    = "v1.17.6"
-	DefaultCalicoVersion  = "v3.14.1"
-	DefaultFlannelVersion = "v0.11.0"
-	DefaultCniVersion     = "v0.8.6"
-	DefaultHelmVersion    = "v3.2.1"
-	Etcd                  = "etcd"
-	Master                = "master"
-	Worker                = "worker"
-	K8s                   = "k8s"
+	DefaultPreDir           = "kubekey"
+	DefaultSSHPort          = "22"
+	DefaultLBPort           = "6443"
+	DefaultLBDomain         = "lb.kubesphere.local"
+	DefaultNetworkPlugin    = "calico"
+	DefaultPodsCIDR         = "10.233.64.0/18"
+	DefaultServiceCIDR      = "10.233.0.0/18"
+	DefaultKubeImageRepo    = "kubesphere"
+	DefaultClusterName      = "cluster.local"
+	DefaultArch             = "amd64"
+	DefaultEtcdVersion      = "v3.3.12"
+	DefaultEtcdPort         = "2379"
+	DefaultKubeVersion      = "v1.17.6"
+	DefaultCalicoVersion    = "v3.14.1"
+	DefaultFlannelVersion   = "v0.11.0"
+	DefaultCniVersion       = "v0.8.6"
+	DefaultHelmVersion      = "v3.2.1"
+	DefaultMaxPods          = "110"
+	DefaultNodeCidrMaskSize = "24"
+	DefaultIPIPMode         = "Always"
+	DefaultVXLANMode        = "Never"
+	DefaultVethMTU          = "1440"
+	Etcd                    = "etcd"
+	Master                  = "master"
+	Worker                  = "worker"
+	K8s                     = "k8s"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
@@ -67,6 +71,12 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
 	}
 	if cfg.Kubernetes.Version == "" {
 		clusterCfg.Kubernetes.Version = DefaultKubeVersion
+	}
+	if cfg.Kubernetes.MaxPods == "" {
+		clusterCfg.Kubernetes.MaxPods = DefaultMaxPods
+	}
+	if cfg.Kubernetes.NodeCidrMaskSize == "" {
+		clusterCfg.Kubernetes.NodeCidrMaskSize = DefaultNodeCidrMaskSize
 	}
 
 	return &clusterCfg, hostGroups
@@ -130,7 +140,15 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 	if cfg.Network.KubeServiceCIDR == "" {
 		cfg.Network.KubeServiceCIDR = DefaultServiceCIDR
 	}
-
+	if cfg.Network.Calico.IPIPMode == "" {
+		cfg.Network.Calico.IPIPMode = DefaultIPIPMode
+	}
+	if cfg.Network.Calico.VXLANMode == "" {
+		cfg.Network.Calico.VXLANMode = DefaultVXLANMode
+	}
+	if cfg.Network.Calico.VethMTU == "" {
+		cfg.Network.Calico.VethMTU = DefaultVethMTU
+	}
 	defaultNetworkCfg := cfg.Network
 
 	return defaultNetworkCfg

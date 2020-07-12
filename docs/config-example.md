@@ -22,11 +22,18 @@ spec:
     address: ""
     port: "6443"
   kubernetes:
-    version: v1.17.6
+    version: v1.17.8
     imageRepo: kubesphere
     clusterName: cluster.local
+    masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false]
+    maxPods: 110  # maxPods is the number of pods that can run on this Kubelet. [Default: 110]
+    nodeCidrMaskSize: 24  # internal network node size allocation. This is the size allocated to each node on your network. [Default: 24]
   network:
     plugin: calico
+    calico:
+      ipipMode: Always  # IPIP Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, vxlanMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Always]
+      vxlanMode: Never  # VXLAN Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, ipipMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Never]
+      vethMTU: 1440  # The maximum transmission unit (MTU) setting determines the largest packet size that can be transmitted through your network. [Default: 1440]
     podNetworkCidr: 10.233.64.0/18
     serviceNetworkCidr: 10.233.0.0/18
   registry:
