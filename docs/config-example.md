@@ -81,4 +81,70 @@ spec:
       # e.g. jwt_admin_key: 123456
       jwtAdminKey: SHOULD_BE_REPLACED
 
+---
+apiVersion: installer.kubesphere.io/v1alpha1
+kind: ClusterConfiguration
+metadata:
+  name: ks-installer
+  namespace: kubesphere-system
+  labels:
+    version: v3.0.0
+spec:
+  local_registry: ""
+  persistence:
+    storageClass: ""
+  etcd:
+    monitoring: true        # Whether to install etcd monitoring dashboard
+    endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9  # etcd cluster endpointIps
+    port: 2379              # etcd port
+    tlsEnable: true
+  common:
+    mysqlVolumeSize: 20Gi # MySQL PVC size
+    minioVolumeSize: 20Gi # Minio PVC size
+    etcdVolumeSize: 20Gi  # etcd PVC size
+    openldapVolumeSize: 2Gi   # openldap PVC size
+    redisVolumSize: 2Gi # Redis PVC size
+  console:
+    enableMultiLogin: false  # enable/disable multiple sing on, it allows an account can be used by different users at the same time.
+    port: 30880
+  alerting:                # Whether to install KubeSphere alerting system. It enables Users to customize alerting policies to send messages to receivers in time with different time intervals and alerting levels to choose from.
+    enabled: false
+  auditing:                # Whether to install KubeSphere audit log system. It provides a security-relevant chronological set of records，recording the sequence of activities happened in platform, initiated by different tenants.
+    enabled: false         
+  devops:                  # Whether to install KubeSphere DevOps System. It provides out-of-box CI/CD system based on Jenkins, and automated workflow tools including Source-to-Image & Binary-to-Image
+    enabled: false
+    jenkinsMemoryLim: 2Gi      # Jenkins memory limit
+    jenkinsMemoryReq: 1500Mi   # Jenkins memory request
+    jenkinsVolumeSize: 8Gi     # Jenkins volume size
+    jenkinsJavaOpts_Xms: 512m  # The following three fields are JVM parameters
+    jenkinsJavaOpts_Xmx: 512m
+    jenkinsJavaOpts_MaxRAM: 2g
+  events:                  # Whether to install KubeSphere events system. It provides a graphical web console for Kubernetes Events exporting, filtering and alerting in multi-tenant Kubernetes clusters.
+    enabled: false
+  logging:                 # Whether to install KubeSphere logging system. Flexible logging functions are provided for log query, collection and management in a unified console. Additional log collectors can be added, such as Elasticsearch, Kafka and Fluentd.
+    enabled: false
+    elasticsearchMasterReplicas: 1   # total number of master nodes, it's not allowed to use even number
+    elasticsearchDataReplicas: 1     # total number of data nodes
+    logsidecarReplicas: 2
+    elasticsearchMasterVolumeSize: 4Gi   # Volume size of Elasticsearch master nodes
+    elasticsearchDataVolumeSize: 20Gi    # Volume size of Elasticsearch data nodes
+    logMaxAge: 7                     # Log retention time in built-in Elasticsearch, it is 7 days by default.
+    elkPrefix: logstash              # The string making up index names. The index name will be formatted as ks-<elk_prefix>-log
+  metrics_server:                    # Whether to install metrics-server. IT enables HPA (Horizontal Pod Autoscaler).
+  monitoring:                        #
+    prometheusReplicas: 1            # Prometheus replicas are responsible for monitoring different segments of data source and provide high availability as well.
+    prometheusMemoryRequest: 400Mi   # Prometheus request memory
+    prometheusVolumeSize: 20Gi       # Prometheus PVC size
+    alertmanagerReplicas: 1          # AlertManager Replicas
+  multicluster:
+    clusterRole: none  # host | member | none  # You can install a solo cluster, or specify it as the role of host or member cluster
+  networkpolicy:       # Network policies allow network isolation within the same cluster, which means firewalls can be set up between certain instances (Pods).
+    enabled: false     
+  notification:        # It supports notification management in multi-tenant Kubernetes clusters. It allows you to set AlertManager as its sender, and receivers include Email, Wechat Work, and Slack.
+    enabled: false
+  openpitrix:          # Whether to install KubeSphere Application Store. It provides an application store for Helm-based applications, and offer application lifecycle management
+    enabled: false
+  servicemesh:         # Whether to install KubeSphere Service Mesh (Istio-based). It provides fine-grained traffic management, observability and tracing, and offer visualization for traffic topology
+    enabled: false
+
 ```
