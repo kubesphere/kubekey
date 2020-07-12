@@ -4,13 +4,15 @@
 
 > English | [中文](README_zh-CN.md)
 
-Since v3.0, [KubeSphere](https://kubesphere.io) changes the ansible-based installer to the new installer called KubeKey that is developed in Go language. With KubeKey, you can install Kubernetes and KubeSphere separately or as a whole easily, efficiently and flexibly.
+Since v3.0.0, [KubeSphere](https://kubesphere.io) changes the ansible-based installer to the new installer called KubeKey that is developed in Go language. With KubeKey, you can install Kubernetes and KubeSphere separately or as a whole easily, efficiently and flexibly.
 
 There are three scenarios to use KubeKey.
 
 * Install Kubernetes only
 * Install Kubernetes and KubeSphere together in one command
 * Install Kubernetes first, then deploy KubeSphere on it using [ks-installer](https://github.com/kubesphere/ks-installer)
+
+> **Important:** If you have existing clusters, please refer to [ks-installer (Install KubeSphere on existing Kubernetes cluster)](https://github.com/kubesphere/ks-installer).
 
 ## Motivation
 
@@ -104,13 +106,13 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
     ./kk create cluster
     ```
 
-* Create a Kubernetes cluster with a specified version ([supported versions](#KubernetesVersions))
+* Create a Kubernetes cluster with a specified version ([supported versions](#KubernetesVersions)).
 
     ```shell script
     ./kk create cluster --with-kubernetes v1.17.6
     ```
 
-* Create a Kubernetes cluster with KubeSphere installed
+* Create a Kubernetes cluster with KubeSphere installed (e.g. `--with-kubesphere v3.0.0`)
 
     ```shell script
     ./kk create cluster --with-kubesphere [version]
@@ -152,6 +154,17 @@ You have more control to customize parameters or create a multi-node cluster usi
     ```shell script
     ./kk create cluster -f config-sample.yaml
     ```
+
+### Enable Multi-cluster Management
+
+By default, KubeKey will only install a **solo** cluster without Kubernetes federation. If you want to set up a multi-cluster control plane to centrally manage multiple clusters using KubeSphere, you need to set the `ClusterRole` in [config-example.yaml](docs/config-example.md). For multi-cluster user guide, please refer to [How to Enable the Multi-cluster Feature](https://github.com/kubesphere/community/tree/master/sig-multicluster/how-to-setup-multicluster-on-kubesphere).
+
+### Enable Pluggable Components
+
+KubeSphere has decoupled some core feature components since v2.1.0. These components are designed to be pluggable which means you can enable them either before or after installation. By default, KubeSphere will be started with a minimal installation if you do not enable them.
+
+You can enable any of them according to your demands. It is highly recommended that you install these pluggable components to discover the full-stack features and capabilities provided by KubeSphere. Please ensure your machines have sufficient CPU and memory before enabling them. See [Enable Pluggable Components](https://github.com/kubesphere/ks-installer#enable-pluggable-components) for the details.
+
 
 ### Add Nodes
 

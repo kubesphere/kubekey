@@ -4,7 +4,7 @@
 
 > [English](README.md) | 中文
 
-从 v3.0 开始，[KubeSphere](https://kubesphere.io) 将基于 ansible 的安装程序更改为使用 Go 语言开发的名为 KubeKey 的新安装程序。使用 KubeKey，您可以轻松、高效、灵活地单独或整体安装 Kubernetes 和 KubeSphere。
+从 v3.0.0 开始，[KubeSphere](https://kubesphere.io) 将基于 ansible 的安装程序更改为使用 Go 语言开发的名为 KubeKey 的新安装程序。使用 KubeKey，您可以轻松、高效、灵活地单独或整体安装 Kubernetes 和 KubeSphere。
 
 有三种情况可以使用 KubeKey。
 
@@ -12,7 +12,9 @@
 * 用一个命令中安装 Kubernetes 和 KubeSphere
 * 首先安装 Kubernetes，然后使用 [ks-installer](https://github.com/kubesphere/ks-installer) 在其上部署 KubeSphere
 
-## 动机
+> 重要提示：Kubekey 将会帮您安装 Kubernetes，若已有 Kubernetes 集群请参考 [在 Kubernetes 之上安装 KubeSphere](https://github.com/kubesphere/ks-installer/)。
+
+## 优势
 
 * 基于 Ansible 的安装程序具有大量软件依赖性，例如 Python。KubeKey 是使用 Go 语言开发的，可以消除在各种环境中出现的问题，从而提高安装成功率。
 * KubeKey 使用 Kubeadm 在节点上尽可能多地并行安装 K8s 集群，以降低安装复杂性并提高效率。与较早的安装程序相比，它将大大节省安装时间。
@@ -110,7 +112,7 @@
     ./kk create cluster --with-kubernetes v1.17.6
     ```
 
-* 创建一个部署了 KubeSphere 的 Kubernetes 集群
+* 创建一个部署了 KubeSphere 的 Kubernetes 集群 （例如 `--with-kubesphere v3.0.0`）
 
     ```shell script
     ./kk create cluster --with-kubesphere [version]
@@ -152,6 +154,16 @@
       ```shell script
       ./kk create cluster -f ~/myfolder/config-sample.yaml
       ```
+
+### 启用多集群管理
+
+默认情况下，Kubekey 将仅安装一个 Solo 模式的单集群，即未开启 Kubernetes 多集群联邦。如果您希望将 KubeSphere 作为一个支持多集群集中管理的中央面板，您需要在 [config-example.yaml](docs/config-example.md) 中设置 `ClusterRole`。关于多集群的使用文档，请参考 [如何启用多集群](https://github.com/kubesphere/community/blob/master/sig-multicluster/how-to-setup-multicluster-on-kubesphere/README_zh.md)。
+
+### 开启可插拔功能组件
+
+KubeSphere 从 2.1.0 版本开始对 Installer 的各功能组件进行了解耦，快速安装将默认仅开启最小化安装（Minimal Installation），Installer 支持在安装前或安装后自定义可插拔的功能组件的安装。使最小化安装更快速轻量且资源占用更少，也方便不同用户按需选择安装不同的功能组件。
+
+KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配置示例](docs/config-example.md)。您可以根据需求，选择开启安装 KubeSphere 的可插拔功能组件。我们非常建议您开启这些功能组件来体验 KubeSphere 完整的功能以及端到端的解决方案。请在安装前确保您的机器有足够的 CPU 与内存资源。开启可插拔功能组件可参考 [开启可选功能组件](https://github.com/kubesphere/ks-installer/blob/master/README_zh.md#%E5%AE%89%E8%A3%85%E5%8A%9F%E8%83%BD%E7%BB%84%E4%BB%B6)。
 
 ### 添加节点
 
@@ -196,7 +208,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 
 更详细的参考可以在[这里](https://kubernetes.io/docs/tasks/tools/install-kubectl/#enabling-shell-autocompletion)找到。
 
-## 文件资料
+## 相关文档
 
 * [配置示例](docs/config-example.md)
 * [网络访问](docs/network-access.md)
