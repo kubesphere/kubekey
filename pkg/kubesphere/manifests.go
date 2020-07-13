@@ -35,7 +35,7 @@ data:
       storageClass: ""
     etcd:
       monitoring: true
-      endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
+      endpointIps: localhost
       port: 2379
       tlsEnable: true
     common:
@@ -106,9 +106,11 @@ spec:
   local_registry: ""
   persistence:
     storageClass: ""
+  authentication:
+    jwtSecret: ""
   etcd:
     monitoring: true
-    endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9
+    endpointIps: localhost
     port: 2379
     tlsEnable: true
   common:
