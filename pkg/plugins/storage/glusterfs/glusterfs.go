@@ -42,7 +42,7 @@ kind: StorageClass
 metadata:
   name: {{ .StorageClassName }}
   annotations:
-    storageclass.kubesphere.io/supported_access_modes: '["ReadWriteOnce","ReadOnlyMany","ReadWriteMany"]'
+    storageclass.kubesphere.io/supported-access-modes: '["ReadWriteOnce","ReadOnlyMany","ReadWriteMany"]'
     storageclass.beta.kubernetes.io/is-default-class: "{{ if .IsDefaultClass }}true{{ else }}false{{ end }}"
 provisioner: kubernetes.io/glusterfs
 parameters:
