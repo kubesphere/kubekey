@@ -78,7 +78,7 @@ func DeployLocalVolume(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate local-volume manifests")
 	}
 
-	_, err2 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/local-volume.yaml", 5, true)
+	_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/local-volume.yaml\"", 5, true)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy local-volume.yaml")
 	}
@@ -120,7 +120,7 @@ func DeployRBDProvisioner(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate rbd-provisioner manifests")
 	}
 
-	_, err2 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/rbd-provisioner.yaml -n kube-system", 5, true)
+	_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh \"/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/rbd-provisioner.yaml -n kube-system\"", 5, true)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy rbd-provisioner.yaml")
 	}
@@ -138,7 +138,7 @@ func DeployGlusterFS(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate glusterfs manifests")
 	}
 
-	_, err2 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/glusterfs.yaml -n kube-system", 5, true)
+	_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/glusterfs.yaml -n kube-system\"", 5, true)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy glusterfs.yaml")
 	}

@@ -35,7 +35,7 @@ const (
 	DefaultArch             = "amd64"
 	DefaultEtcdVersion      = "v3.3.12"
 	DefaultEtcdPort         = "2379"
-	DefaultKubeVersion      = "v1.17.6"
+	DefaultKubeVersion      = "v1.17.9"
 	DefaultCalicoVersion    = "v3.14.1"
 	DefaultFlannelVersion   = "v0.11.0"
 	DefaultCniVersion       = "v0.8.6"

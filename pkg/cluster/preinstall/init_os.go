@@ -26,6 +26,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	binDir                       = "/usr/local/bin"
+	kubeConfigDir                = "/etc/kubernetes"
+	kubeCertDir                  = "/etc/kubernetes/pki"
+	kubeManifestDir              = "/etc/kubernetes/manifests"
+	kubeScriptDir                = "/usr/local/bin/kube-scripts"
+	kubeletFlexvolumesPluginsDir = "/usr/libexec/kubernetes/kubelet-plugins/volume/exec"
+)
+
 func InitOS(mgr *manager.Manager) error {
 	if err := Prepare(mgr); err != nil {
 		return errors.Wrap(err, "Failed to load kube binaries")
@@ -37,10 +46,17 @@ func InitOS(mgr *manager.Manager) error {
 }
 
 func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+
+	addUsers(mgr, node)
+
+	if err := createDirectories(mgr, node); err != nil {
+		return err
+	}
+
 	tmpDir := "/tmp/kubekey"
 	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -d %s ]; then rm -rf %s ;fi\" && mkdir -p %s", tmpDir, tmpDir, tmpDir), 1, false)
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+		return errors.Wrap(errors.WithStack(err), "Failed to create tmp dir")
 	}
 
 	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"hostnamectl set-hostname %s && sed -i '/^127.0.1.1/s/.*/127.0.1.1      %s/g' /etc/hosts\"", node.Name, node.Name), 1, false)
@@ -56,12 +72,64 @@ func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connecti
 	str := base64.StdEncoding.EncodeToString([]byte(initOsScript))
 	_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("echo %s | base64 -d > %s/initOS.sh && chmod +x %s/initOS.sh", str, tmpDir, tmpDir), 1, false)
 	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "Failed to configure operating system")
+		return errors.Wrap(errors.WithStack(err3), "Failed to generate init os script")
 	}
 
-	_, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo %s/initOS.sh", tmpDir), 1, true)
+	_, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo cp %s/initOS.sh %s && sudo %s/initOS.sh", tmpDir, kubeScriptDir, kubeScriptDir), 1, true)
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to configure operating system")
 	}
+	return nil
+}
+
+func addUsers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"useradd -M -c 'Kubernetes user' -s /sbin/nologin -r kube || :\"", 1, false); err != nil {
+		return err
+	}
+
+	if node.IsEtcd {
+		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd || :\"", 1, false); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createDirectories(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+	dirs := []string{binDir, kubeConfigDir, kubeCertDir, kubeManifestDir, kubeScriptDir, kubeletFlexvolumesPluginsDir}
+	for _, dir := range dirs {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s\"", dir), 1, false); err != nil {
+			return err
+		}
+		if dir == kubeletFlexvolumesPluginsDir {
+			if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"chown kube -R %s\"", "/usr/libexec/kubernetes"), 1, false); err != nil {
+				return err
+			}
+		} else {
+			if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"chown kube -R %s\"", dir), 1, false); err != nil {
+				return err
+			}
+		}
+	}
+
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s && chown kube -R %s\"", "/etc/cni/net.d", "/etc/cni"), 1, false); err != nil {
+		return err
+	}
+
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s && chown kube -R %s\"", "/opt/cni/bin", "/opt/cni"), 1, false); err != nil {
+		return err
+	}
+
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s && chown kube -R %s\"", "/var/lib/calico", "/var/lib/calico"), 1, false); err != nil {
+		return err
+	}
+
+	if node.IsEtcd {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s && chown etcd -R %s\"", "/var/lib/etcd", "/var/lib/etcd"), 1, false); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
