@@ -81,7 +81,7 @@ func deployCalico(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate network plugin manifests")
 	}
 
-	_, err3 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml", 5, true)
+	_, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml\"", 5, true)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to deploy network plugin")
 	}
@@ -110,7 +110,7 @@ func deployFlannel(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate network plugin manifests")
 	}
 
-	_, err3 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml", 5, true)
+	_, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml\"", 5, true)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy network plugin")
 	}

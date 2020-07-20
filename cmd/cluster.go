@@ -48,7 +48,7 @@ func init() {
 	createCmd.AddCommand(clusterCmd)
 
 	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "Path to a configuration file")
-	clusterCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.8", "Specify a supported version of kubernetes")
+	clusterCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.9", "Specify a supported version of kubernetes")
 	clusterCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 	clusterCmd.Flags().BoolVarP(&skipCheck, "yes", "y", false, "Skip pre-check of the installation")
 }
