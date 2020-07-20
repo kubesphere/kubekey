@@ -32,9 +32,9 @@
 ### <span id = "KubernetesVersions">Kubernetes 版本</span>
 
 * **v1.15**: &ensp; *v1.15.12*
-* **v1.16**: &ensp; *v1.16.12*
-* **v1.17**: &ensp; *v1.17.8* (默认)
-* **v1.18**: &ensp; *v1.18.5*
+* **v1.16**: &ensp; *v1.16.13*
+* **v1.17**: &ensp; *v1.17.9* (默认)
+* **v1.18**: &ensp; *v1.18.6*
 
 ## 要求和建议
 
@@ -109,7 +109,7 @@
 * 创建指定一个（[支持的版本](#KubernetesVersions)）的 Kubernetes 集群
 
     ```shell script
-    ./kk create cluster --with-kubernetes v1.17.8
+    ./kk create cluster --with-kubernetes v1.17.9
     ```
 
 * 创建一个部署了 KubeSphere 的 Kubernetes 集群 （例如 `--with-kubesphere v3.0.0`）
