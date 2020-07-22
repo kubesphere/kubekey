@@ -46,6 +46,6 @@ func init() {
 	configCmd.Flags().StringVarP(&addons, "with-storage", "", "", "Add storage plugins")
 	configCmd.Flags().StringVarP(&name, "name", "", "config-sample", "Specify a name of cluster object")
 	configCmd.Flags().StringVarP(&clusterCfgPath, "file", "f", "", "Specify a configuration file path")
-	configCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.8", "Specify a supported version of kubernetes")
+	configCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.9", "Specify a supported version of kubernetes")
 	configCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 }
