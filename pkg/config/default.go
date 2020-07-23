@@ -178,11 +178,11 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		switch strings.TrimSpace(ksVersion) {
 		case "":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
-			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "latest")
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 		case "v3.0.0":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
-			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "latest")
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 		case "v2.1.1":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V2_1_1))
