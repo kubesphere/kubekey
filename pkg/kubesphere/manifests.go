@@ -415,7 +415,7 @@ spec:
 
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
 	if repo == "" {
-		if strings.Contains(version, "v3.0.0") {
+		if strings.Contains(version, "latest") {
 			repo = "kubespheredev"
 		} else {
 			repo = "kubesphere"

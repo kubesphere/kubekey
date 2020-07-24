@@ -36,7 +36,7 @@ type KubeBinary struct {
 }
 
 var (
-	fileSha256 = map[string]map[string]map[string]string{
+	FileSha256 = map[string]map[string]map[string]string{
 		kubeadm: {
 			amd64: {
 				"v1.15.12": "e052bae41e731921a9197b4d078c30d33fac5861716dc275bfee4670addbac9b",
@@ -139,6 +139,6 @@ var (
 )
 
 func (binary *KubeBinary) GetSha256() string {
-	sha256 := fileSha256[binary.Name][binary.Arch][binary.Version]
+	sha256 := FileSha256[binary.Name][binary.Arch][binary.Version]
 	return sha256
 }

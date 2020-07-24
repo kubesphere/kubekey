@@ -26,12 +26,20 @@ var upgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Upgrade your cluster smoothly to a newer version with this command",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := util.InitLogger(verbose)
-		return upgrade.UpgradeCluster(clusterCfgFile, "", "", logger, false, verbose)
+		logger := util.InitLogger(opt.Verbose)
+		var ksVersion string
+		if opt.Kubesphere && len(args) > 0 {
+			ksVersion = args[0]
+		} else {
+			ksVersion = ""
+		}
+		return upgrade.UpgradeCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(upgradeCmd)
-	upgradeCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "Path to a configuration file")
+	upgradeCmd.Flags().StringVarP(&opt.ClusterCfgFile, "file", "f", "", "Path to a configuration file")
+	upgradeCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
+	upgradeCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 }

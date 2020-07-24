@@ -21,7 +21,22 @@ import (
 	"os"
 )
 
-var verbose bool
+type Options struct {
+	Verbose        bool
+	Addons         string
+	Name           string
+	ClusterCfgPath string
+	Kubeconfig     string
+	FromCluster    bool
+	ClusterCfgFile string
+	Kubernetes     string
+	Kubesphere     bool
+	SkipCheck      bool
+}
+
+var (
+	opt Options
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -46,8 +61,7 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-
-	rootCmd.PersistentFlags().BoolVar(&verbose, "debug", true, "Print detailed information")
+	rootCmd.PersistentFlags().BoolVar(&opt.Verbose, "debug", true, "Print detailed information")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

@@ -151,7 +151,15 @@ func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
 	})
 }
 
-func GenerateClusterObj(addons, k8sVersion, ksVersion, name, clusterCfgPath string, ksEnabled bool) error {
+func GenerateClusterObj(addons, k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath string, ksEnabled, fromCluster bool) error {
+	if fromCluster {
+		err := GenerateConfigFromCluster(clusterCfgPath, kubeconfig, name, ksVersion, ksEnabled)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	opt := Options{}
 	if name != "" {
 		output := strings.Split(name, ".")
@@ -220,8 +228,8 @@ func GenerateClusterObj(addons, k8sVersion, ksVersion, name, clusterCfgPath stri
 
 	if clusterCfgPath != "" {
 		CheckConfigFileStatus(clusterCfgPath)
-		cmd := fmt.Sprintf("echo %s | base64 -d > %s", ClusterObjStrBase64, clusterCfgPath)
-		output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
+		cmdStr := fmt.Sprintf("echo %s | base64 -d > %s", ClusterObjStrBase64, clusterCfgPath)
+		output, err := exec.Command("/bin/sh", "-c", cmdStr).CombinedOutput()
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to write config to %s: %s", clusterCfgPath, strings.TrimSpace(string(output))))
 		}

@@ -20,20 +20,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var addons, name, clusterCfgPath string
-
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Create cluster configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var ksVersion string
-		if kubesphere && len(args) > 0 {
+		if opt.Kubesphere && len(args) > 0 {
 			ksVersion = args[0]
 		} else {
 			ksVersion = ""
 		}
-		err := config.GenerateClusterObj(addons, kubernetes, ksVersion, name, clusterCfgPath, kubesphere)
+		err := config.GenerateClusterObj(opt.Addons, opt.Kubernetes, ksVersion, opt.Name, opt.Kubeconfig, opt.ClusterCfgPath, opt.Kubesphere, opt.FromCluster)
 		if err != nil {
 			return err
 		}
@@ -43,9 +41,11 @@ var configCmd = &cobra.Command{
 
 func init() {
 	createCmd.AddCommand(configCmd)
-	configCmd.Flags().StringVarP(&addons, "with-storage", "", "", "Add storage plugins")
-	configCmd.Flags().StringVarP(&name, "name", "", "config-sample", "Specify a name of cluster object")
-	configCmd.Flags().StringVarP(&clusterCfgPath, "file", "f", "", "Specify a configuration file path")
-	configCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.8", "Specify a supported version of kubernetes")
-	configCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
+	configCmd.Flags().StringVarP(&opt.Addons, "with-storage", "", "", "Add storage plugins")
+	configCmd.Flags().StringVarP(&opt.Name, "name", "", "config-sample", "Specify a name of cluster object")
+	configCmd.Flags().StringVarP(&opt.ClusterCfgPath, "file", "f", "", "Specify a configuration file path")
+	configCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
+	configCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
+	configCmd.Flags().BoolVarP(&opt.FromCluster, "from-cluster", "", false, "Create a configuration based on existing cluster")
+	configCmd.Flags().StringVarP(&opt.Kubeconfig, "kubeconfig", "", "", "Specify a kubeconfig file")
 }

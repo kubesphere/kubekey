@@ -82,13 +82,9 @@ type Data map[string]interface{}
 func Render(tmpl *template.Template, variables map[string]interface{}) (string, error) {
 
 	var buf strings.Builder
-	//buf.WriteString(`set -xeu pipefail`)
-	//buf.WriteString("\n\n")
-	//buf.WriteString(`export "PATH=$PATH:/sbin:/usr/local/bin:/opt/bin"`)
-	//buf.WriteString("\n\n")
 
 	if err := tmpl.Execute(&buf, variables); err != nil {
-		return "", errors.Wrap(err, "Failed to render cmd or script template")
+		return "", errors.Wrap(err, "Failed to render template")
 	}
 	return buf.String(), nil
 }

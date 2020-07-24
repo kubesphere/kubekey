@@ -44,7 +44,7 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 		}
 		clusterCfg = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
 	} else {
-		cfg, err := ParseCfg(clusterCfgPath)
+		cfg, err := ParseCfg(clusterCfgPath, k8sVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -54,11 +54,14 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 	return clusterCfg, nil
 }
 
-func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
+func ParseCfg(clusterCfgPath, k8sVersion string) (*kubekeyapi.Cluster, error) {
 	clusterCfg := kubekeyapi.Cluster{}
 	fp, err := filepath.Abs(clusterCfgPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to look up current directory")
+	}
+	if len(k8sVersion) != 0 {
+		_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/version/s/\\:.*/\\: %s/g\" %s", k8sVersion, fp)).Run()
 	}
 	file, err := os.Open(fp)
 	if err != nil {
@@ -66,7 +69,6 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 	}
 	defer file.Close()
 	b1 := bufio.NewReader(file)
-
 	for {
 		result := make(map[string]interface{})
 		content, err := k8syaml.NewYAMLReader(b1).Read()
@@ -97,7 +99,7 @@ func ParseCfg(clusterCfgPath string) (*kubekeyapi.Cluster, error) {
 				switch labels["version"] {
 				case "v3.0.0":
 					configMapBase64 = base64.StdEncoding.EncodeToString(content)
-					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0-dev")
+					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "latest")
 					if err != nil {
 						return nil, err
 					}
@@ -161,6 +163,10 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		allinoneCfg.Spec.Kubernetes = kubekeyapi.Kubernetes{
 			Version: k8sVersion,
 		}
+	} else {
+		allinoneCfg.Spec.Kubernetes = kubekeyapi.Kubernetes{
+			Version: kubekeyapi.DefaultKubeVersion,
+		}
 	}
 	allinoneCfg.Spec.RoleGroups = kubekeyapi.RoleGroups{
 		Etcd:   []string{"ks-allinone"},
@@ -178,11 +184,11 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		switch strings.TrimSpace(ksVersion) {
 		case "":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
-			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "latest")
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 		case "v3.0.0":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
-			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v3.0.0-dev")
+			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "latest")
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 		case "v2.1.1":
 			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V2_1_1))
