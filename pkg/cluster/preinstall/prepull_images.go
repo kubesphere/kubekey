@@ -12,10 +12,10 @@ import (
 func PrePullImages(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Start to download images on all nodes")
 
-	return mgr.RunTaskOnAllNodes(prePullImages, true)
+	return mgr.RunTaskOnAllNodes(PullImages, true)
 }
 
-func prePullImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func PullImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
 	i := images.Images{}
 	i.Images = []images.Image{
 		GetImage(mgr, "etcd"),

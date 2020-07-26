@@ -21,34 +21,27 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	clusterCfgFile string
-	kubernetes     string
-	kubesphere     bool
-	skipCheck      bool
-)
-
 // clusterCmd represents the cluster command
 var clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "Create a Kubernetes or KubeSphere cluster",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var ksVersion string
-		if kubesphere && len(args) > 0 {
+		if opt.Kubesphere && len(args) > 0 {
 			ksVersion = args[0]
 		} else {
 			ksVersion = ""
 		}
-		logger := util.InitLogger(verbose)
-		return install.CreateCluster(clusterCfgFile, kubernetes, ksVersion, logger, kubesphere, verbose, skipCheck)
+		logger := util.InitLogger(opt.Verbose)
+		return install.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose, opt.SkipCheck)
 	},
 }
 
 func init() {
 	createCmd.AddCommand(clusterCmd)
 
-	clusterCmd.Flags().StringVarP(&clusterCfgFile, "file", "f", "", "Path to a configuration file")
-	clusterCmd.Flags().StringVarP(&kubernetes, "with-kubernetes", "", "v1.17.9", "Specify a supported version of kubernetes")
-	clusterCmd.Flags().BoolVarP(&kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
-	clusterCmd.Flags().BoolVarP(&skipCheck, "yes", "y", false, "Skip pre-check of the installation")
+	clusterCmd.Flags().StringVarP(&opt.ClusterCfgFile, "file", "f", "", "Path to a configuration file")
+	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
+	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
+	clusterCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 }

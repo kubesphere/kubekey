@@ -19,8 +19,8 @@ package upgrade
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
-	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -49,11 +49,12 @@ func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Lo
 
 func ExecTasks(mgr *manager.Manager) error {
 	scaleTasks := []manager.Task{
-		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
-		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
-		{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
-		{Task: kubernetes.UpgradeKubeMasters, ErrMsg: "Failed to upgrade kube masters"},
-		{Task: kubernetes.UpgradeKubeWorkers, ErrMsg: "Failed to upgrade kube workers"},
+		{Task: GetClusterInfo, ErrMsg: "Failed to get cluster info"},
+		//{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
+		//{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
+		{Task: kubernetes.GetCurrentVersions, ErrMsg: "Failed to get current version"},
+		{Task: kubernetes.UpgradeKubeCluster, ErrMsg: "Failed to upgrade kube cluster"},
+		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to upgrade kubesphere"},
 	}
 
 	for _, step := range scaleTasks {
@@ -62,7 +63,17 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
-	mgr.Logger.Infoln("Congradulations! Upgrade cluster is successful.")
+	if mgr.KsEnable {
+		mgr.Logger.Infoln(`Upgrading is complete.
+
+Please check the result using the command:
+
+       kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+
+`)
+	} else {
+		mgr.Logger.Infoln("Congradulations! Upgrade cluster is successful.")
+	}
 
 	return nil
 }

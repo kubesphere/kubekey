@@ -13,26 +13,4 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
-
-import (
-	"github.com/kubesphere/kubekey/pkg/delete"
-	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/spf13/cobra"
-)
-
-// deleteCmd represents the delete command
-var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Delete a cluster",
-	Run: func(cmd *cobra.Command, args []string) {
-		logger := util.InitLogger(opt.Verbose)
-		delete.ResetCluster(opt.ClusterCfgFile, logger, opt.Verbose)
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(deleteCmd)
-
-	deleteCmd.Flags().StringVarP(&opt.ClusterCfgFile, "config", "f", "", "Path to a configuration file")
-}
+package upgrade
