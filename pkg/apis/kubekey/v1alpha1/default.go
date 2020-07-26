@@ -45,6 +45,7 @@ const (
 	DefaultIPIPMode         = "Always"
 	DefaultVXLANMode        = "Never"
 	DefaultVethMTU          = "1440"
+	DefaultProxyMode        = "ipvs"
 	Etcd                    = "etcd"
 	Master                  = "master"
 	Worker                  = "worker"
@@ -78,7 +79,9 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
 	if cfg.Kubernetes.NodeCidrMaskSize == "" {
 		clusterCfg.Kubernetes.NodeCidrMaskSize = DefaultNodeCidrMaskSize
 	}
-
+	if cfg.Kubernetes.ProxyMode == "" {
+		clusterCfg.Kubernetes.ProxyMode = DefaultProxyMode
+	}
 	return &clusterCfg, hostGroups
 }
 

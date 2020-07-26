@@ -28,6 +28,7 @@ spec:
     masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false]
     maxPods: 110  # maxPods is the number of pods that can run on this Kubelet. [Default: 110]
     nodeCidrMaskSize: 24  # internal network node size allocation. This is the size allocated to each node on your network. [Default: 24]
+    proxyMode: ipvs  # mode specifies which proxy mode to use. [Default: ipvs]
   network:
     plugin: calico
     calico:

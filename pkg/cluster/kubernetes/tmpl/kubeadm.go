@@ -97,7 +97,7 @@ ipvs:
  scheduler: rr
  syncPeriod: 30s
  strictARP: False
-mode: ipvs
+mode: {{ .ProxyMode }}
 
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -175,5 +175,6 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		"MasqueradeAll":        mgr.Cluster.Kubernetes.MasqueradeAll,
 		"NodeCidrMaskSize":     mgr.Cluster.Kubernetes.NodeCidrMaskSize,
 		"MaxPods":              mgr.Cluster.Kubernetes.MaxPods,
+		"ProxyMode":            mgr.Cluster.Kubernetes.ProxyMode,
 	})
 }
