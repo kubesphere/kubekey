@@ -32,7 +32,7 @@ kind: StorageClass
 metadata:
   name: {{ .LocalVolume.StorageClassName }}
   annotations:
-    storageclass.kubesphere.io/supported_access_modes: '["ReadWriteOnce"]'
+    storageclass.kubesphere.io/supported-access-modes: '["ReadWriteOnce"]'
     storageclass.beta.kubernetes.io/is-default-class: "{{ if .LocalVolume.IsDefaultClass }}true{{ else }}false{{ end }}"
     openebs.io/cas-type: local
     cas.openebs.io/config: |

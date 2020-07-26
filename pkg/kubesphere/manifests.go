@@ -114,6 +114,13 @@ spec:
     port: 2379
     tlsEnable: true
   common:
+    es:
+      elasticsearchDataReplicas: 1
+      elasticsearchDataVolumeSize: 20Gi
+      elasticsearchMasterReplicas: 1
+      elasticsearchMasterVolumeSize: 4Gi
+      elkPrefix: logstash
+      logMaxAge: 7
     mysqlVolumeSize: 20Gi
     minioVolumeSize: 20Gi
     etcdVolumeSize: 20Gi
@@ -136,15 +143,12 @@ spec:
     jenkinsJavaOpts_MaxRAM: 2g
   events:
     enabled: false
+    ruler:
+      enabled: false
+      replicas: 2
   logging:
     enabled: false
-    elasticsearchMasterReplicas: 1
-    elasticsearchDataReplicas: 1
     logsidecarReplicas: 2
-    elasticsearchMasterVolumeSize: 4Gi
-    elasticsearchDataVolumeSize: 20Gi
-    logMaxAge: 7
-    elkPrefix: logstash
   metrics_server:
     enabled: true
   monitoring:

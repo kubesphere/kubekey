@@ -41,6 +41,7 @@ var configCmd = &cobra.Command{
 
 func init() {
 	createCmd.AddCommand(configCmd)
+
 	configCmd.Flags().StringVarP(&opt.Addons, "with-storage", "", "", "Add storage plugins")
 	configCmd.Flags().StringVarP(&opt.Name, "name", "", "config-sample", "Specify a name of cluster object")
 	configCmd.Flags().StringVarP(&opt.ClusterCfgPath, "file", "f", "", "Specify a configuration file path")

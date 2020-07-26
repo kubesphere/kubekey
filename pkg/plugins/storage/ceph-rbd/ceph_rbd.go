@@ -198,7 +198,7 @@ kind: StorageClass
 metadata:
   name: {{ .StorageClassName }}
   annotations:
-    storageclass.kubesphere.io/supported_access_modes: '["ReadWriteOnce","ReadOnlyMany"]'
+    storageclass.kubesphere.io/supported-access-modes: '["ReadWriteOnce","ReadOnlyMany"]'
     storageclass.beta.kubernetes.io/is-default-class: "{{ if .IsDefaultClass }}true{{ else }}false{{ end }}"
 provisioner: ceph.com/rbd
 reclaimPolicy: Delete
