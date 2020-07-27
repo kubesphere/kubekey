@@ -151,7 +151,7 @@ func GetKubeConfig(mgr *manager.Manager) error {
 
 func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if node.IsWorker {
-		removeMasterTaintCmd := fmt.Sprintf("/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=:NoSchedule-", node.Name)
+		removeMasterTaintCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=:NoSchedule-\"", node.Name)
 		_, err := mgr.Runner.ExecuteCmd(removeMasterTaintCmd, 5, true)
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to remove master taint")
@@ -162,7 +162,7 @@ func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
 func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if node.IsWorker {
-		addWorkerLabelCmd := fmt.Sprintf("/usr/local/bin/kubectl label node %s node-role.kubernetes.io/worker=", node.Name)
+		addWorkerLabelCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl label node %s node-role.kubernetes.io/worker=\"", node.Name)
 		output, err := mgr.Runner.ExecuteCmd(addWorkerLabelCmd, 5, true)
 		if err != nil && !strings.Contains(output, "already") {
 			return errors.Wrap(errors.WithStack(err), "Failed to add worker label")
@@ -201,7 +201,7 @@ func getJoinCmd(mgr *manager.Manager) error {
 	clusterStatus["joinWorkerCmd"] = fmt.Sprintf("/usr/local/bin/kubeadm join %s", joinWorkerStrList[1])
 	clusterStatus["joinMasterCmd"] = fmt.Sprintf("%s --control-plane --certificate-key %s", clusterStatus["joinWorkerCmd"], certificateKey)
 
-	output, err3 := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl get nodes -o wide", 5, true)
+	output, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get nodes -o wide\"", 5, true)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to get cluster info")
 	}
@@ -227,7 +227,7 @@ func getJoinCmd(mgr *manager.Manager) error {
 func PatchKubeadmSecret(mgr *manager.Manager) error {
 	externalEtcdCerts := []string{"external-etcd-ca.crt", "external-etcd.crt", "external-etcd.key"}
 	for _, cert := range externalEtcdCerts {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("/usr/local/bin/kubectl patch -n kube-system secret kubeadm-certs -p '{\"data\": {\"%s\": \"\"}}'", cert), 5, true)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl patch -n kube-system secret kubeadm-certs -p '{\\\"data\\\": {\\\"%s\\\": \\\"\\\"}}'\"", cert), 5, true)
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to patch kubeadm secret")
 		}
