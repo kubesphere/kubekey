@@ -24,4 +24,5 @@ type Kubernetes struct {
 	MaxPods                string   `yaml:"maxPods" json:"maxPods,omitempty"`
 	NodeCidrMaskSize       string   `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
 	ApiserverCertExtraSans []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
+	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
 }
