@@ -47,7 +47,7 @@ func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) 
 	var results = make(map[string]interface{})
 	results["name"] = node.Name
 	for _, software := range baseSoftwares {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("which %s", software), 0, false)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"which %s\"", software), 0, false)
 		switch software {
 		case "showmount":
 			software = "nfs"
