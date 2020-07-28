@@ -109,7 +109,7 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 * Create a Kubernetes cluster with a specified version ([supported versions](#KubernetesVersions)).
 
     ```shell script
-    ./kk create cluster --with-kubernetes v1.17.8
+    ./kk create cluster --with-kubernetes v1.17.9
     ```
 
 * Create a Kubernetes cluster with KubeSphere installed (e.g. `--with-kubesphere v3.0.0`)
