@@ -53,7 +53,16 @@ networking:
   serviceSubnet: {{ .ServiceSubnet }}
 apiServer:
   extraArgs:
+    anonymous-auth: "True"
+    bind-address: 0.0.0.0
+    insecure-port: "0"
+    profiling: "False"
+    apiserver-count: "1"
+    endpoint-reconciler-type: lease
     authorization-mode: Node,RBAC
+    enable-aggregator-routing: "False"
+    allow-privileged: "true"
+    storage-backend: etcd3
     feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
   certSANs:
     {{- range .CertSANs }}
@@ -62,9 +71,20 @@ apiServer:
 controllerManager:
   extraArgs:
     node-cidr-mask-size: "{{ .NodeCidrMaskSize }}"
+    experimental-cluster-signing-duration: 87600h
+    bind-address: 0.0.0.0
+    profiling: "False"
+    port: "10252"
     feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
+  extraVolumes:
+  - name: host-time
+    hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    readOnly: true
 scheduler:
   extraArgs:
+    bind-address: 0.0.0.0
+    port: "10251"
     feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
 
 ---
