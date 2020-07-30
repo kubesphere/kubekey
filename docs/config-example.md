@@ -112,6 +112,15 @@ spec:
     etcdVolumeSize: 20Gi  # etcd PVC size
     openldapVolumeSize: 2Gi   # openldap PVC size
     redisVolumSize: 2Gi # Redis PVC size
+    es:  # Storage backend for logging, tracing, events and auditing.
+      elasticsearchMasterReplicas: 1   # total number of master nodes, it's not allowed to use even number
+      elasticsearchDataReplicas: 1     # total number of data nodes
+      elasticsearchMasterVolumeSize: 4Gi   # Volume size of Elasticsearch master nodes
+      elasticsearchDataVolumeSize: 20Gi    # Volume size of Elasticsearch data nodes
+      logMaxAge: 7                     # Log retention time in built-in Elasticsearch, it is 7 days by default.
+      elkPrefix: logstash              # The string making up index names. The index name will be formatted as ks-<elk_prefix>-log
+      # externalElasticsearchUrl:
+      # externalElasticsearchPort:
   console:
     enableMultiLogin: false  # enable/disable multiple sing on, it allows an account can be used by different users at the same time.
     port: 30880
@@ -131,13 +140,7 @@ spec:
     enabled: false
   logging:                 # Whether to install KubeSphere logging system. Flexible logging functions are provided for log query, collection and management in a unified console. Additional log collectors can be added, such as Elasticsearch, Kafka and Fluentd.
     enabled: false
-    elasticsearchMasterReplicas: 1   # total number of master nodes, it's not allowed to use even number
-    elasticsearchDataReplicas: 1     # total number of data nodes
     logsidecarReplicas: 2
-    elasticsearchMasterVolumeSize: 4Gi   # Volume size of Elasticsearch master nodes
-    elasticsearchDataVolumeSize: 20Gi    # Volume size of Elasticsearch data nodes
-    logMaxAge: 7                     # Log retention time in built-in Elasticsearch, it is 7 days by default.
-    elkPrefix: logstash              # The string making up index names. The index name will be formatted as ks-<elk_prefix>-log
   metrics_server:                    # Whether to install metrics-server. IT enables HPA (Horizontal Pod Autoscaler).
   monitoring:                        #
     prometheusReplicas: 1            # Prometheus replicas are responsible for monitoring different segments of data source and provide high availability as well.
