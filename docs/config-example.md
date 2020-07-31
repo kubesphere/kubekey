@@ -101,6 +101,8 @@ spec:
   local_registry: ""
   persistence:
     storageClass: ""
+  authentication:
+    jwtSecret: ""
   etcd:
     monitoring: true        # Whether to install etcd monitoring dashboard
     endpointIps: 192.168.0.7,192.168.0.8,192.168.0.9  # etcd cluster endpointIps
