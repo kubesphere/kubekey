@@ -35,7 +35,7 @@ import (
 	"path/filepath"
 )
 
-func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck bool) error {
+func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -49,7 +49,7 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, skipCheck))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, skipCheck, skipPullImages))
 }
 
 func ExecTasks(mgr *manager.Manager) error {

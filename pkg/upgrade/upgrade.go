@@ -30,7 +30,7 @@ import (
 	"path/filepath"
 )
 
-func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose bool) error {
+func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipPullImages bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -44,7 +44,7 @@ func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Lo
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, true))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, true, skipPullImages))
 }
 
 func ExecTasks(mgr *manager.Manager) error {

@@ -10,9 +10,15 @@ import (
 )
 
 func PrePullImages(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Start to download images on all nodes")
 
-	return mgr.RunTaskOnAllNodes(PullImages, true)
+	if !mgr.SkipPullImages {
+		mgr.Logger.Infoln("Start to download images on all nodes")
+		if err := mgr.RunTaskOnAllNodes(PullImages, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func PullImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {

@@ -107,10 +107,19 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh
 			return errors.Wrap(errors.WithStack(err1), "Failed to generate kubeadm config")
 		}
 
-		_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml\"", 3, true)
-		if err2 != nil {
-			return errors.Wrap(errors.WithStack(err2), "Failed to init kubernetes cluster")
+		for i := 0; i < 3; i++ {
+			_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml\"", 0, true)
+			if err2 != nil {
+				if i == 2 {
+					return errors.Wrap(errors.WithStack(err2), "Failed to init kubernetes cluster")
+				} else {
+					_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+				}
+			} else {
+				break
+			}
 		}
+
 		if err3 := GetKubeConfig(mgr); err3 != nil {
 			return err3
 		}

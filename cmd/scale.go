@@ -27,7 +27,7 @@ var scaleCmd = &cobra.Command{
 	Short: "Scale a cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := util.InitLogger(opt.Verbose)
-		return scale.ScaleCluster(opt.ClusterCfgFile, "", "", logger, false, opt.Verbose, opt.SkipCheck)
+		return scale.ScaleCluster(opt.ClusterCfgFile, "", "", logger, false, opt.Verbose, opt.SkipCheck, opt.SkipPullImages)
 	},
 }
 
@@ -35,4 +35,5 @@ func init() {
 	rootCmd.AddCommand(scaleCmd)
 	scaleCmd.Flags().StringVarP(&opt.ClusterCfgFile, "file", "f", "", "Path to a configuration file")
 	scaleCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
+	scaleCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 }
