@@ -83,6 +83,7 @@ var clusterFiles = []string{
 	"/etc/ssl/etcd",
 	"/var/lib/etcd",
 	"/etc/etcd.env",
+	"/etc/kubernetes",
 	"/etc/systemd/system/etcd.service",
 	"/var/log/calico",
 	"/etc/cni",
