@@ -36,7 +36,7 @@ func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, false))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, false, true))
 }
 
 func Execute(executor *executor.Executor) error {

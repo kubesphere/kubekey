@@ -24,22 +24,23 @@ import (
 )
 
 type Manager struct {
-	Cluster      *kubekeyapi.ClusterSpec
-	Logger       log.FieldLogger
-	Connector    *ssh.Dialer
-	Runner       *runner.Runner
-	AllNodes     []kubekeyapi.HostCfg
-	EtcdNodes    []kubekeyapi.HostCfg
-	MasterNodes  []kubekeyapi.HostCfg
-	WorkerNodes  []kubekeyapi.HostCfg
-	K8sNodes     []kubekeyapi.HostCfg
-	ClientNode   []kubekeyapi.HostCfg
-	ClusterHosts []string
-	WorkDir      string
-	KsEnable     bool
-	KsVersion    string
-	Debug        bool
-	SkipCheck    bool
+	Cluster        *kubekeyapi.ClusterSpec
+	Logger         log.FieldLogger
+	Connector      *ssh.Dialer
+	Runner         *runner.Runner
+	AllNodes       []kubekeyapi.HostCfg
+	EtcdNodes      []kubekeyapi.HostCfg
+	MasterNodes    []kubekeyapi.HostCfg
+	WorkerNodes    []kubekeyapi.HostCfg
+	K8sNodes       []kubekeyapi.HostCfg
+	ClientNode     []kubekeyapi.HostCfg
+	ClusterHosts   []string
+	WorkDir        string
+	KsEnable       bool
+	KsVersion      string
+	Debug          bool
+	SkipCheck      bool
+	SkipPullImages bool
 }
 
 func (mgr *Manager) Copy() *Manager {
