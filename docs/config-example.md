@@ -142,6 +142,7 @@ spec:
     enabled: false
     logsidecarReplicas: 2
   metrics_server:                    # Whether to install metrics-server. IT enables HPA (Horizontal Pod Autoscaler).
+    enabled: true
   monitoring:                        #
     prometheusReplicas: 1            # Prometheus replicas are responsible for monitoring different segments of data source and provide high availability as well.
     prometheusMemoryRequest: 400Mi   # Prometheus request memory
