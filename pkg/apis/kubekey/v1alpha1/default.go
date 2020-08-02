@@ -37,7 +37,7 @@ const (
 	DefaultEtcdPort         = "2379"
 	DefaultKubeVersion      = "v1.17.9"
 	DefaultCalicoVersion    = "v3.14.1"
-	DefaultFlannelVersion   = "v0.11.0"
+	DefaultFlannelVersion   = "v0.12.0"
 	DefaultCniVersion       = "v0.8.6"
 	DefaultHelmVersion      = "v3.2.1"
 	DefaultMaxPods          = "110"
