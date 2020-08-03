@@ -166,7 +166,7 @@ spec:
     enabled: false
   servicemesh:
     enabled: false
-  telemetry：
+  telemetry:
     enabled: true
 
 `
