@@ -69,6 +69,7 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		"calico-cni":              {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "cni", Tag: kubekeyapi.DefaultCalicoVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		"calico-node":             {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "node", Tag: kubekeyapi.DefaultCalicoVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		"calico-flexvol":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "pod2daemon-flexvol", Tag: kubekeyapi.DefaultCalicoVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
+		"calico-typha":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "typha", Tag: kubekeyapi.DefaultCalicoVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico") && len(mgr.K8sNodes) > 50},
 		"flannel":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "flannel", Tag: kubekeyapi.DefaultFlannelVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "flannel")},
 		// storage
 		"provisioner-localpv":    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "1.10.0", Group: kubekeyapi.Worker, Enable: mgr.Cluster.Storage.LocalVolume.Enabled},
