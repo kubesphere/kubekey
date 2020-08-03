@@ -160,5 +160,6 @@ spec:
     enabled: false
   servicemesh:         # Whether to install KubeSphere Service Mesh (Istio-based). It provides fine-grained traffic management, observability and tracing, and offer visualization for traffic topology
     enabled: false
-
+  telemetry:
+    enabled: true
 ```
