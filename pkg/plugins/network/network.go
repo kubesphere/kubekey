@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os/exec"
 	"strings"
 )
@@ -60,9 +61,23 @@ func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Conn
 
 func deployCalico(mgr *manager.Manager) error {
 	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
-		calicoContent, err := calico.GenerateCalicoFiles(mgr)
+		var calicoContent string
+		cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.16.0")
 		if err != nil {
 			return err
+		}
+		if cmp == -1 {
+			calicoContentStr, err := calico.GenerateCalicoFilesOld(mgr)
+			if err != nil {
+				return err
+			}
+			calicoContent = calicoContentStr
+		} else {
+			calicoContentStr, err := calico.GenerateCalicoFilesNew(mgr)
+			if err != nil {
+				return err
+			}
+			calicoContent = calicoContentStr
 		}
 
 		err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(calicoContent), 0644)
