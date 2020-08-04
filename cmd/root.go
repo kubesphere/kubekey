@@ -33,6 +33,8 @@ type Options struct {
 	Kubesphere     bool
 	SkipCheck      bool
 	SkipPullImages bool
+	KsVersion      string
+	Registry       string
 }
 
 var (
