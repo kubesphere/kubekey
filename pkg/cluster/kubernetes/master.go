@@ -60,7 +60,8 @@ func getClusterStatus(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connect
 				return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/admin.conf")
 			} else {
 				clusterIsExist = true
-				output, err := mgr.Runner.ExecuteCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, true)
+				output, err := mgr.Runner.ExecuteCmd("sudo " +
+					"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, true)
 				if err != nil {
 					return errors.Wrap(errors.WithStack(err), "Failed to find current version")
 				} else {
@@ -119,6 +120,27 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh
 				break
 			}
 		}
+		_, err4 :=mgr.Runner.ExecuteCmd("sudo " +
+			"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'limits'", 0, true)
+		if err4 != nil {
+			if err5 := UpdateKubeApiserverConfig(mgr); err5 != nil {
+				return err5
+			}
+		}
+		_, err6 :=mgr.Runner.ExecuteCmd("sudo " +
+			"cat /etc/kubernetes/manifests/kube-controller-manager.yaml | grep 'limits'", 0, true)
+		if err6 != nil {
+			if err7 := UpdateKubeControllerManagerConfig(mgr); err7 != nil {
+				return err7
+			}
+		}
+		_, err8 :=mgr.Runner.ExecuteCmd("sudo " +
+			"cat /etc/kubernetes/manifests/kube-scheduler.yaml | grep 'limits'", 0, true)
+		if err8 != nil {
+			if err9 := UpdateKubeSchudulerConfig(mgr); err9 != nil {
+				return err9
+			}
+		}
 
 		if err3 := GetKubeConfig(mgr); err3 != nil {
 			return err3
@@ -141,6 +163,43 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh
 		}
 	}
 
+	return nil
+}
+
+func UpdateKubeApiserverConfig(mgr *manager.Manager) error{
+	addLimits := "sed -i '/resources/a\\ \\ \\ \\ \\ \\ \\limits:' /etc/kubernetes/manifests/kube-apiserver.yaml"
+	addLimitsMemory := "sed -i '/limits/a\\ \\ \\ \\ \\ \\ \\ \\ \\memory: 2Gi' /etc/kubernetes/manifests/kube-apiserver.yaml"
+	addRequestMemory := "sed -i '/cpu/a\\ \\ \\ \\ \\ \\ \\ \\ \\memory: 256Mi' /etc/kubernetes/manifests/kube-apiserver.yaml"
+
+	cmd := strings.Join([]string{addLimits, addLimitsMemory, addRequestMemory}, " && ")
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd), 1, false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to update kube-apiserver resources")
+	}
+	return nil
+}
+func UpdateKubeControllerManagerConfig(mgr *manager.Manager) error{
+	addLimits := "sed -i '/resources/a\\ \\ \\ \\ \\ \\ \\limits:' /etc/kubernetes/manifests/kube-controller-manager.yaml"
+	addLimitsMemory := "sed -i '/limits/a\\ \\ \\ \\ \\ \\ \\ \\ \\memory: 2Gi' /etc/kubernetes/manifests/kube-controller-manager.yaml"
+	addRequestMemory := "sed -i '/cpu/a\\ \\ \\ \\ \\ \\ \\ \\ \\memory: 100Mi' /etc/kubernetes/manifests/kube-controller-manager.yaml"
+
+	cmd := strings.Join([]string{addLimits, addLimitsMemory, addRequestMemory}, " && ")
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd), 1, false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to update kube-controller-manager resources")
+	}
+	return nil
+}
+func UpdateKubeSchudulerConfig(mgr *manager.Manager) error{
+	addLimits := "sed -i '/resources/a\\ \\ \\ \\ \\ \\ \\limits:' /etc/kubernetes/manifests/kube-scheduler.yaml"
+	addLimitsMemory := "sed -i '/limits/a\\ \\ \\ \\ \\ \\ \\ \\ \\memory: 2Gi' /etc/kubernetes/manifests/kube-scheduler.yaml"
+	addRequestMemory := "sed -i '/cpu/a\\ \\ \\ \\ \\ \\ \\ \\ \\memory: 170Mi' /etc/kubernetes/manifests/kube-scheduler.yaml"
+
+	cmd := strings.Join([]string{addLimits, addLimitsMemory, addRequestMemory}, " && ")
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd), 1, false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to update kube-scheduler resources")
+	}
 	return nil
 }
 
