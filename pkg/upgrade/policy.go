@@ -21,7 +21,6 @@ import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"os"
 	"strings"
 )
@@ -30,7 +29,7 @@ func GetClusterInfo(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(getClusterInfo, true)
 }
 
-func getClusterInfo(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func getClusterInfo(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		componentstatus, err := mgr.Runner.ExecuteCmd("sudo -E /bin/bash -c \"/usr/local/bin/kubectl get componentstatus\"", 2, false)
 		if err != nil {

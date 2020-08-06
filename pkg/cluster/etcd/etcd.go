@@ -23,7 +23,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd/tmpl"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
@@ -48,7 +47,7 @@ func GenerateEtcdCerts(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(generateCerts, true)
 }
 
-func generateCerts(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func generateCerts(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 
 	if mgr.Runner.Index == 0 {
 		certsScript, err := tmpl.GenerateEtcdSslScript(mgr)
@@ -127,7 +126,7 @@ func SyncEtcdCertsToMaster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(syncEtcdCertsToMaster, true)
 }
 
-func syncEtcdCertsToMaster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func syncEtcdCertsToMaster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if !node.IsEtcd {
 		_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo mkdir -p %s", etcdCertDir), 1, false)
 		for file, cert := range certsContent {
@@ -147,7 +146,7 @@ func GenerateEtcdService(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(generateEtcdService, true)
 }
 
-func generateEtcdService(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func generateEtcdService(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	etcdService, err := tmpl.GenerateEtcdService(mgr.Runner.Index)
 	if err != nil {
 		return err
@@ -194,7 +193,7 @@ func SetupEtcdCluster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(setupEtcdCluster, false)
 }
 
-func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	var localPeerAddresses []string
 	output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"", 0, true)
 	if strings.TrimSpace(output) == "Configuration file already exists" {
@@ -264,7 +263,7 @@ func RefreshEtcdConfig(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(refreshEtcdConfig, true)
 }
 
-func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
 	if etcdStatus == "new" {
 		if err := refreshConfig(mgr, node, mgr.Runner.Index, peerAddresses, "new"); err != nil {

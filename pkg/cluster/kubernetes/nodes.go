@@ -22,7 +22,6 @@ import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
@@ -34,7 +33,7 @@ func InstallKubeBinaries(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(installKubeBinaries, true)
 }
 
-func installKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func installKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
 		if err := SyncKubeBinaries(mgr, node); err != nil {
 			return err

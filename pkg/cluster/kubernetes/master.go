@@ -24,7 +24,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"os"
 	"os/exec"
@@ -50,7 +49,7 @@ func GetClusterStatus(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(getClusterStatus, false)
 }
 
-func getClusterStatus(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func getClusterStatus(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	if clusterStatus["clusterInfo"] == "" {
 		output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, true)
 		if strings.Contains(output, "Cluster will be created") {
@@ -83,7 +82,7 @@ func InitKubernetesCluster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(initKubernetesCluster, true)
 }
 
-func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 && !clusterIsExist {
 
 		var kubeadmCfgBase64 string
@@ -250,7 +249,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(joinNodesToCluster, true)
 }
 
-func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
 		if node.IsMaster {
 			err := addMaster(mgr)
