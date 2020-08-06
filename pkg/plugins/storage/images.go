@@ -5,10 +5,9 @@ import (
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 )
 
-func prePullStorageImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func prePullStorageImages(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	i := images.Images{}
 	i.Images = []images.Image{
 		preinstall.GetImage(mgr, "provisioner-localpv"),

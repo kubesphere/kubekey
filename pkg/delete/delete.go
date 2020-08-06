@@ -23,7 +23,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -104,7 +103,7 @@ var cmdsList = []string{
 	"ip link del nodelocaldns",
 }
 
-func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
 	fmt.Println(strings.Join(cmdsList, " && "))
 	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true)

@@ -25,7 +25,6 @@ import (
 	localvolume "github.com/kubesphere/kubekey/pkg/plugins/storage/local-volume"
 	nfsclient "github.com/kubesphere/kubekey/pkg/plugins/storage/nfs-client"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 )
 
@@ -40,7 +39,7 @@ func DeployStoragePlugins(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(deployStoragePlugins, true)
 }
 
-func deployStoragePlugins(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func deployStoragePlugins(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\" && /usr/local/bin/helm repo add kubesphere https://charts.kubesphere.io/main", 1, false)
 		if mgr.Cluster.Storage.LocalVolume.Enabled {

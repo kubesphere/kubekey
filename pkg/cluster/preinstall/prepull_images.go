@@ -5,7 +5,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"strings"
 )
 
@@ -21,7 +20,7 @@ func PrePullImages(mgr *manager.Manager) error {
 	return nil
 }
 
-func PullImages(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func PullImages(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	i := images.Images{}
 	i.Images = []images.Image{
 		GetImage(mgr, "etcd"),

@@ -23,7 +23,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/plugins/network/flannel"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
@@ -37,7 +36,7 @@ func DeployNetworkPlugin(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(deployNetworkPlugin, true)
 }
 
-func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		switch mgr.Cluster.Network.Plugin {
 		case "calico":

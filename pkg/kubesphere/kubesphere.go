@@ -21,7 +21,6 @@ import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -46,7 +45,7 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 	return nil
 }
 
-func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		if err := DeployKubeSphereStep(mgr, node); err != nil {
 			return err

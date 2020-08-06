@@ -9,7 +9,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os"
@@ -31,7 +30,7 @@ func GetCurrentVersions(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(getCurrentVersion, true)
 }
 
-func getCurrentVersion(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func getCurrentVersion(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	kubeletVersionInfo, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubelet --version\"", 3, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current kubelet version")
@@ -237,7 +236,7 @@ Loop:
 
 }
 
-func upgradeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func upgradeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if node.IsMaster {
 		if err := upgradeKubeMasters(mgr, node); err != nil {
 			return err

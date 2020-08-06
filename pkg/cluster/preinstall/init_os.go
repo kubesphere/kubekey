@@ -22,7 +22,6 @@ import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 )
 
@@ -45,7 +44,7 @@ func InitOS(mgr *manager.Manager) error {
 	return mgr.RunTaskOnAllNodes(initOsOnNode, true)
 }
 
-func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg, _ ssh.Connection) error {
+func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
 	addUsers(mgr, node)
 
