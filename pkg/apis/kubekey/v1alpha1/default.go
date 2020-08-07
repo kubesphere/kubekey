@@ -64,6 +64,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Storage = SetDefaultStorageCfg(cfg)
+	clusterCfg.KubeSphere = cfg.KubeSphere
 	if cfg.Kubernetes.ImageRepo == "" {
 		clusterCfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
 	}

@@ -120,8 +120,9 @@ type RegistryConfig struct {
 }
 
 type KubeSphere struct {
-	Enabled bool
-	Version string
+	Enabled        bool
+	Version        string
+	Configurations string
 }
 
 type ExternalEtcd struct {

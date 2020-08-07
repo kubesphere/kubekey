@@ -18,7 +18,6 @@ package config
 
 import (
 	"bufio"
-	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
@@ -91,42 +90,18 @@ func ParseCfg(clusterCfgPath, k8sVersion string) (*kubekeyapi.Cluster, error) {
 		if result["kind"] == "ConfigMap" || result["kind"] == "ClusterConfiguration" {
 			metadata := result["metadata"].(map[interface{}]interface{})
 			labels := metadata["labels"].(map[interface{}]interface{})
-			repo := clusterCfg.Spec.Registry.PrivateRegistry
 			clusterCfg.Spec.KubeSphere.Enabled = true
-			var configMapBase64, kubesphereYaml string
 			_, ok := labels["version"]
 			if ok {
 				switch labels["version"] {
 				case "v3.0.0":
-					configMapBase64 = base64.StdEncoding.EncodeToString(content)
-					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "latest")
-					if err != nil {
-						return nil, err
-					}
+					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
 				case "v2.1.1":
-					configMapBase64 = base64.StdEncoding.EncodeToString(content)
-					kubesphereYaml, err = kubesphere.GenerateKubeSphereYaml(repo, "v2.1.1")
-					if err != nil {
-						return nil, err
-					}
+					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
 					return nil, errors.Wrap(err, fmt.Sprintf("Unsupported versions: %s", labels["version"]))
-				}
-
-				currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-				if err != nil {
-					return nil, errors.Wrap(err, "Faild to get current dir")
-				}
-				_, err1 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-configmap.yaml", configMapBase64, currentDir)).CombinedOutput()
-				if err1 != nil {
-					return nil, errors.Wrap(err, fmt.Sprintf("Failed to write to file: %s/kubekey/ks-installer-configmap.yaml", currentDir))
-				}
-				kubesphereYamlBase64 := base64.StdEncoding.EncodeToString([]byte(kubesphereYaml))
-				_, err2 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-deployment.yaml", kubesphereYamlBase64, currentDir)).CombinedOutput()
-				if err2 != nil {
-					return nil, errors.Wrap(err2, fmt.Sprintf("Failed to generate KubeSphere manifests: %s/kubekey/ks-installer-deployment.yaml", currentDir))
 				}
 			}
 		}
@@ -180,37 +155,20 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 			LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
 		}
 		allinoneCfg.Spec.KubeSphere.Enabled = true
-		var configMapBase64, kubesphereYaml string
 		switch strings.TrimSpace(ksVersion) {
 		case "":
-			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
-			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "latest")
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
+			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		case "v3.0.0":
-			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V3_0_0))
-			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "latest")
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
+			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		case "v2.1.1":
-			configMapBase64 = base64.StdEncoding.EncodeToString([]byte(kubesphere.V2_1_1))
-			kubesphereYaml, _ = kubesphere.GenerateKubeSphereYaml("", "v2.1.1")
 			allinoneCfg.Spec.KubeSphere.Version = "v2.1.1"
+			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
 			logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
 		}
-
-		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		if err != nil {
-			logger.Fatal(errors.Wrap(err, "Faild to get current dir"))
-		}
-		_, err1 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-configmap.yaml", configMapBase64, currentDir)).CombinedOutput()
-		if err1 != nil {
-			logger.Fatalf("Unsupported versions: %s", ksVersion)
-		}
-		kubesphereYamlBase64 := base64.StdEncoding.EncodeToString([]byte(kubesphereYaml))
-		_, err2 := exec.Command("/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s/kubekey/ks-installer-deployment.yaml", kubesphereYamlBase64, currentDir)).CombinedOutput()
-		if err2 != nil {
-			logger.Fatal(errors.Wrap(err2, fmt.Sprintf("Failed to generate KubeSphere manifests: %s/kubekey/ks-installer-deployment.yaml", currentDir)))
-		}
 	}
+
 	return &allinoneCfg
 }
