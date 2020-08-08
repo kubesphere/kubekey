@@ -17,14 +17,11 @@ limitations under the License.
 package kubesphere
 
 import (
+	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -32,9 +29,8 @@ import (
 var stopChan = make(chan string, 1)
 
 func DeployKubeSphere(mgr *manager.Manager) error {
-	configMap := fmt.Sprintf("%s/ks-installer-configmap.yaml", mgr.WorkDir)
-	deployment := fmt.Sprintf("%s/ks-installer-deployment.yaml", mgr.WorkDir)
-	if util.IsExist(configMap) && util.IsExist(deployment) {
+
+	if mgr.Cluster.KubeSphere.Enabled {
 		mgr.Logger.Infoln("Deploying KubeSphere ...")
 		if err := mgr.RunTaskOnMasterNodes(deployKubeSphere, true); err != nil {
 			return err
@@ -56,33 +52,18 @@ func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 }
 
 func DeployKubeSphereStep(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
-	configMap := fmt.Sprintf("%s/ks-installer-configmap.yaml", mgr.WorkDir)
-	deployment := fmt.Sprintf("%s/ks-installer-deployment.yaml", mgr.WorkDir)
-
-	if util.IsExist(configMap) && util.IsExist(deployment) {
-		result := make(map[string]interface{})
-		content, err := ioutil.ReadFile(configMap)
+	fmt.Println(mgr.Cluster.KubeSphere.Version)
+	switch mgr.Cluster.KubeSphere.Version {
+	case "v2.1.1":
+		err := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s/%s/%s", mgr.WorkDir, mgr.Cluster.Kubernetes.Version, node.Arch, "helm2"), fmt.Sprintf("%s/%s", "/tmp/kubekey", "helm2"))
 		if err != nil {
-			return errors.Wrap(err, "Unable to read the given configmap")
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to sync helm2"))
 		}
-		if err := yaml.Unmarshal(content, &result); err != nil {
-			return errors.Wrap(err, "Unable to convert file to yaml")
+		_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"cp /tmp/kubekey/helm2  /usr/local/bin/helm2  && chmod +x /usr/local/bin/helm2\""), 1, false)
+		if err1 != nil {
+			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to sync helm2"))
 		}
-		metadata := result["metadata"].(map[interface{}]interface{})
-		labels := metadata["labels"].(map[interface{}]interface{})
-		_, ok := labels["version"]
-		if ok {
-			switch labels["version"] {
-			case "v2.1.1":
-				err := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s/%s/%s", mgr.WorkDir, mgr.Cluster.Kubernetes.Version, node.Arch, "helm2"), fmt.Sprintf("%s/%s", "/tmp/kubekey", "helm2"))
-				if err != nil {
-					return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to sync helm2"))
-				}
-				_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"cp /tmp/kubekey/helm2  /usr/local/bin/helm2  && chmod +x /usr/local/bin/helm2\""), 1, false)
-				if err1 != nil {
-					return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to sync helm2"))
-				}
-				_, err2 := mgr.Runner.ExecuteCmd(`cat <<EOF | kubectl apply -f -
+		_, err2 := mgr.Runner.ExecuteCmd(`cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -103,20 +84,46 @@ subjects:
     namespace: kube-system
 EOF
 `, 5, true)
-				if err2 != nil {
-					return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("Failed to create helm rbac"))
-				}
-				var tillerRepo string
-				if mgr.Cluster.Registry.PrivateRegistry != "" {
-					tillerRepo = fmt.Sprintf("%s/kubesphere", mgr.Cluster.Registry.PrivateRegistry)
-				} else {
-					tillerRepo = "kubesphere"
-				}
-				_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/helm2 init --service-account=tiller --skip-refresh --tiller-image=%s/tiller:v2.16.9 --wait\"", tillerRepo), 3, true)
-				if err3 != nil {
-					return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to sync helm2"))
-				}
-			}
+		if err2 != nil {
+			return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("Failed to create helm rbac"))
+		}
+		var tillerRepo string
+		if mgr.Cluster.Registry.PrivateRegistry != "" {
+			tillerRepo = fmt.Sprintf("%s/kubesphere", mgr.Cluster.Registry.PrivateRegistry)
+		} else {
+			tillerRepo = "kubesphere"
+		}
+		_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/helm2 init --service-account=tiller --skip-refresh --tiller-image=%s/tiller:v2.16.9 --wait\"", tillerRepo), 3, true)
+		if err3 != nil {
+			return errors.Wrap(errors.WithStack(err3), fmt.Sprintf("Failed to sync helm2"))
+		}
+
+		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, "v2.1.1")
+		if err != nil {
+			return err
+		}
+
+		kubesphereYamlBase64 := base64.StdEncoding.EncodeToString([]byte(kubesphereYaml))
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/kubesphere.yaml\"", kubesphereYamlBase64), 2, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to generate kubesphere manifests")
+		}
+
+		ConfigurationBase64 := base64.StdEncoding.EncodeToString([]byte(mgr.Cluster.KubeSphere.Configurations))
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d >> /etc/kubernetes/addons/kubesphere.yaml\"", ConfigurationBase64), 2, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to generate kubesphere manifests")
+		}
+	case "v3.0.0":
+		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, "latest")
+		if err != nil {
+			return err
+		}
+		kubesphereYamlBase64 := base64.StdEncoding.EncodeToString([]byte(kubesphereYaml))
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/kubesphere.yaml\"", kubesphereYamlBase64), 2, false); err != nil {
+			return errors.Wrap(err, "Failed to generate kubesphere manifests")
+		}
+		ConfigurationBase64 := base64.StdEncoding.EncodeToString([]byte(mgr.Cluster.KubeSphere.Configurations))
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d >> /etc/kubernetes/addons/kubesphere.yaml\"", ConfigurationBase64), 2, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to generate kubesphere manifests")
 		}
 	}
 
@@ -125,41 +132,18 @@ EOF
 		addrList = append(addrList, host.InternalAddress)
 	}
 	etcdendpoint := strings.Join(addrList, ",")
-	_, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/endpointIps/s/\\:.*/\\: %s/g\" %s", etcdendpoint, configMap)).CombinedOutput()
-	if err != nil {
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/endpointIps/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", etcdendpoint), 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to update etcd endpoint"))
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		_, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/local_registry/s/\\:.*/\\: %s/g\" %s", mgr.Cluster.Registry.PrivateRegistry, configMap)).CombinedOutput()
-		if err != nil {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/local_registry/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", mgr.Cluster.Registry.PrivateRegistry), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
 		}
 	} else {
-		_, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i '/local_registry/d' %s", configMap)).CombinedOutput()
-		if err != nil {
+		if _, err := mgr.Runner.ExecuteCmd("sudo /bin/sh -c \"sed -i '/local_registry/d' /etc/kubernetes/addons/kubesphere.yaml\"", 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to remove private registry"))
 		}
-	}
-
-	configMapBase64, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cat %s | base64 --wrap=0", configMap)).CombinedOutput()
-	if err != nil {
-		fmt.Println(string(configMapBase64))
-		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to read kubesphere configmap: %s", configMap))
-	}
-	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/addons/kubesphere.yaml\"", strings.TrimSpace(string(configMapBase64))), 1, false)
-	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to generate kubesphere manifests")
-	}
-
-	deployBase64, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cat %s | base64 --wrap=0", deployment)).CombinedOutput()
-	if err != nil {
-		fmt.Println(string(deployBase64))
-		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to read kubesphere deployment: %s", deployment))
-	}
-	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d >> /etc/kubernetes/addons/kubesphere.yaml\"", strings.TrimSpace(string(deployBase64))), 1, false)
-	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to generate kubesphere manifests")
 	}
 
 	_, err3 := mgr.Runner.ExecuteCmd(`cat <<EOF | kubectl apply -f -
@@ -185,8 +169,7 @@ EOF
 
 	deployKubesphereCmd := "sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/kubesphere.yaml\""
 
-	_, err = mgr.Runner.ExecuteCmd(deployKubesphereCmd, 10, true)
-	if err != nil {
+	if _, err := mgr.Runner.ExecuteCmd(deployKubesphereCmd, 10, true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to deploy /etc/kubernetes/addons/kubesphere.yaml")
 	}
 
