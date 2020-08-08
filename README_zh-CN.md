@@ -28,6 +28,7 @@
 * **Ubuntu**  *16.04, 18.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
+* **SUSE Linux Enterprise Server** *15*
 
 ### <span id = "KubernetesVersions">Kubernetes 版本</span>
 
