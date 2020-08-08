@@ -28,7 +28,7 @@ There are three scenarios to use KubeKey.
 * **Ubuntu**  *16.04, 18.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
-* **SUSE Linux Enterprise Server *15*
+* **SUSE Linux Enterprise Server** *15*
 
 ### <span id = "KubernetesVersions">Kubernetes Versions</span>
 
