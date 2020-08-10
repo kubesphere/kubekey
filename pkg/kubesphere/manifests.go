@@ -115,9 +115,7 @@ spec:
     tlsEnable: true
   common:
     es:
-      elasticsearchDataReplicas: 1
       elasticsearchDataVolumeSize: 20Gi
-      elasticsearchMasterReplicas: 1
       elasticsearchMasterVolumeSize: 4Gi
       elkPrefix: logstash
       logMaxAge: 7
@@ -144,7 +142,7 @@ spec:
   events:
     enabled: false
     ruler:
-      enabled: false
+      enabled: true
       replicas: 2
   logging:
     enabled: false
@@ -152,10 +150,8 @@ spec:
   metrics_server:
     enabled: true
   monitoring:
-    prometheusReplicas: 1
     prometheusMemoryRequest: 400Mi
     prometheusVolumeSize: 20Gi
-    alertmanagerReplicas: 1
   multicluster:
     clusterRole: none  # host | member | none
   networkpolicy:
