@@ -21,7 +21,7 @@ import (
 )
 
 // clusterCmd represents the cluster command
-var ksCmd = &cobra.Command{
+var deployKsCmd = &cobra.Command{
 	Use:   "kubesphere",
 	Short: "Deploy KubeSphere on the existing K8s",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -30,9 +30,9 @@ var ksCmd = &cobra.Command{
 }
 
 func init() {
-	deployCmd.AddCommand(ksCmd)
+	deployCmd.AddCommand(deployKsCmd)
 
-	ksCmd.Flags().StringVarP(&opt.Kubeconfig, "kubeconfig", "", "", "Specify a kubeconfig file")
-	ksCmd.Flags().StringVarP(&opt.KsVersion, "version", "v", "v3.0.0", "Specify a supported version of kubesphere")
-	ksCmd.Flags().StringVarP(&opt.Registry, "registry", "", "", "Specify a image registry address")
+	deployKsCmd.Flags().StringVarP(&opt.Kubeconfig, "kubeconfig", "", "", "Specify a kubeconfig file")
+	deployKsCmd.Flags().StringVarP(&opt.KsVersion, "version", "v", "v3.0.0", "Specify a supported version of kubesphere")
+	deployKsCmd.Flags().StringVarP(&opt.Registry, "registry", "", "", "Specify a image registry address")
 }

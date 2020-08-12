@@ -153,7 +153,7 @@ func GenerateClusterObjStr(opt *Options, storageNum int) (string, error) {
 
 func GenerateClusterObj(addons, k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath string, ksEnabled, fromCluster bool) error {
 	if fromCluster {
-		err := GenerateConfigFromCluster(clusterCfgPath, kubeconfig, name, ksVersion, ksEnabled)
+		err := GenerateConfigFromCluster(clusterCfgPath, kubeconfig, name)
 		if err != nil {
 			return err
 		}

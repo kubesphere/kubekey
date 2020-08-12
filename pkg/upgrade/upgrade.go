@@ -18,7 +18,6 @@ package upgrade
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -52,8 +51,9 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: GetClusterInfo, ErrMsg: "Failed to get cluster info"},
 		//{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
 		//{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
-		{Task: kubernetes.GetCurrentVersions, ErrMsg: "Failed to get current version"},
-		{Task: kubernetes.UpgradeKubeCluster, ErrMsg: "Failed to upgrade kube cluster"},
+		{Task: GetCurrentVersions, ErrMsg: "Failed to get current version"},
+		{Task: UpgradeKubeCluster, ErrMsg: "Failed to upgrade kube cluster"},
+		{Task: SyncConfiguration, ErrMsg: "Failed to sync configuration"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to upgrade kubesphere"},
 	}
 

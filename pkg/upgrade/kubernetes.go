@@ -1,9 +1,10 @@
-package kubernetes
+package upgrade
 
 import (
 	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/files"
@@ -98,7 +99,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		return errors.Wrap(err, "Failed to get current kubelet version")
 	}
 	if strings.Split(kubeletVersion, " ")[1] != mgr.Cluster.Kubernetes.Version {
-		if err := SyncKubeBinaries(mgr, node); err != nil {
+		if err := kubernetes.SyncKubeBinaries(mgr, node); err != nil {
 			return err
 		}
 
@@ -132,7 +133,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 			return errors.Wrap(errors.WithStack(err2), fmt.Sprintf("Failed to upgrade master: %s", node.Name))
 		}
 
-		if err := SetKubelet(mgr, node); err != nil {
+		if err := kubernetes.SetKubelet(mgr, node); err != nil {
 			return err
 		}
 
@@ -151,11 +152,11 @@ func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	}
 	if strings.Split(kubeletVersion, " ")[1] != mgr.Cluster.Kubernetes.Version {
 
-		if err := SyncKubeBinaries(mgr, node); err != nil {
+		if err := kubernetes.SyncKubeBinaries(mgr, node); err != nil {
 			return err
 		}
 
-		if err := SetKubelet(mgr, node); err != nil {
+		if err := kubernetes.SetKubelet(mgr, node); err != nil {
 			return err
 		}
 

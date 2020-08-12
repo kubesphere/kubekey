@@ -24,6 +24,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/ghodss/yaml"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/pkg/errors"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -32,16 +33,21 @@ import (
 )
 
 const (
-	customResourceDefinition = "/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions"
-	namespaces               = "/api/v1/namespaces"
-	serviceAccount           = "/api/v1/namespaces/kubesphere-system/serviceaccounts"
-	clusterRole              = "/apis/rbac.authorization.k8s.io/v1/clusterroles"
-	clusterRoleBinding       = "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings"
-	deployment               = "/apis/apps/v1/namespaces/kubesphere-system/deployments"
-	clusterConfiguration     = "/apis/installer.kubesphere.io/v1alpha1/namespaces/kubesphere-system/clusterconfigurations"
+	CustomResourceDefinition = "/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions"
+	Namespaces               = "/api/v1/namespaces"
+	ServiceAccount           = "/api/v1/namespaces/kubesphere-system/serviceaccounts"
+	ClusterRole              = "/apis/rbac.authorization.k8s.io/v1/clusterroles"
+	ClusterRoleBinding       = "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings"
+	Deployment               = "/apis/apps/v1/namespaces/kubesphere-system/deployments"
+	ClusterConfiguration     = "/apis/installer.kubesphere.io/v1alpha1/namespaces/kubesphere-system/clusterconfigurations"
 )
 
 func DeployKubeSphere(version, repo, kubeconfig string) error {
+	clientset, err := util.NewClient(kubeconfig)
+	if err != nil {
+		return err
+	}
+
 	var kubesphereConfig, installerYaml string
 
 	switch version {
@@ -70,11 +76,6 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 		return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(version)))
 	}
 
-	clientset, err := newClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
 	b1 := bufio.NewReader(bytes.NewReader([]byte(installerYaml)))
 	for {
 		result := make(map[string]interface{})
@@ -98,7 +99,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 
 		switch result["kind"] {
 		case "CustomResourceDefinition":
-			if err := createObject(clientset, j2, customResourceDefinition); err != nil {
+			if err := CreateObject(clientset, j2, CustomResourceDefinition); err != nil {
 				if !kubeErr.IsAlreadyExists(err) {
 					return err
 				}
@@ -108,7 +109,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 
 			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
 		case "Namespace":
-			if err := createObject(clientset, j2, namespaces); err != nil {
+			if err := CreateObject(clientset, j2, Namespaces); err != nil {
 				if !kubeErr.IsAlreadyExists(err) {
 					return err
 				}
@@ -117,7 +118,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 			metadata := result["metadata"].(map[string]interface{})
 			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
 		case "ServiceAccount":
-			if err := createObject(clientset, j2, serviceAccount); err != nil {
+			if err := CreateObject(clientset, j2, ServiceAccount); err != nil {
 				if !kubeErr.IsAlreadyExists(err) {
 					return err
 				}
@@ -126,7 +127,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 			metadata := result["metadata"].(map[string]interface{})
 			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
 		case "ClusterRole":
-			if err := createObject(clientset, j2, clusterRole); err != nil {
+			if err := CreateObject(clientset, j2, ClusterRole); err != nil {
 				if !kubeErr.IsAlreadyExists(err) {
 					return err
 				}
@@ -135,7 +136,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 			metadata := result["metadata"].(map[string]interface{})
 			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
 		case "ClusterRoleBinding":
-			if err := createObject(clientset, j2, clusterRoleBinding); err != nil {
+			if err := CreateObject(clientset, j2, ClusterRoleBinding); err != nil {
 				if !kubeErr.IsAlreadyExists(err) {
 					return err
 				}
@@ -144,7 +145,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 			metadata := result["metadata"].(map[string]interface{})
 			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
 		case "Deployment":
-			if err := createObject(clientset, j2, deployment); err != nil {
+			if err := CreateObject(clientset, j2, Deployment); err != nil {
 				if !kubeErr.IsAlreadyExists(err) {
 					return err
 				}
@@ -173,7 +174,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 		return err
 	}
 
-	if err := createObject(clientset, modified, clusterConfiguration); err != nil {
+	if err := CreateObject(clientset, modified, ClusterConfiguration); err != nil {
 		if !kubeErr.IsAlreadyExists(err) {
 			return err
 		}
@@ -188,7 +189,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 	return nil
 }
 
-func createObject(clientset *kubernetes.Clientset, body []byte, request string) error {
+func CreateObject(clientset *kubernetes.Clientset, body []byte, request string) error {
 	if err := clientset.
 		RESTClient().Post().
 		AbsPath(request).

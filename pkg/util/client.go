@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package deploy
+package util
 
 import (
 	"github.com/pkg/errors"
@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 )
 
-func newClient(config string) (*kubernetes.Clientset, error) {
+func NewClient(config string) (*kubernetes.Clientset, error) {
 	var kubeconfig string
 	if config != "" {
 		config, err := filepath.Abs(config)

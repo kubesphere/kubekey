@@ -19,13 +19,12 @@ var (
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	// SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-    AddToScheme = SchemeBuilder.AddToScheme
+	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
 func init() {
 	SchemeBuilder.Register(addKnownTypes)
 }
-
 
 // Kind takes an unqualified kind and returns GroupKind
 func Kind(kind string) schema.GroupKind {
@@ -41,7 +40,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Cluster{},
 		&ClusterList{},
-		 )
+	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
