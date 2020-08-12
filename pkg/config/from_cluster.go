@@ -22,14 +22,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	"net"
 	"os"
 	"os/exec"
@@ -78,9 +75,6 @@ spec:
   registry:
     privateRegistry: ""
 
-{{ if .Options.KubeSphereEnabled }}
-{{ .Options.KubeSphereConfigMap }}
-{{ end }}
     `)))
 )
 
@@ -108,28 +102,10 @@ type OptionsCluster struct {
 	ControlPlaneEndpointDomain  string
 	ControlPlaneEndpointAddress string
 	ControlPlaneEndpointPort    string
-	KubeSphereConfigMap         string
-	KubeSphereEnabled           bool
 }
 
 func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
-	var kubeconfig string
-	if config != "" {
-		config, err := filepath.Abs(config)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to look up current directory")
-		}
-		kubeconfig = config
-	} else {
-		kubeconfig = filepath.Join(homeDir(), ".kube", "config")
-	}
-	// use the current context in kubeconfig
-	configCluster, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(configCluster)
+	clientset, err := util.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +189,9 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	}
 
 	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
 	for _, pod := range pods.Items {
 		if strings.Contains(pod.Name, "calico") {
 			opt.NetworkPlugin = "calico"
@@ -242,26 +221,11 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	return &opt, nil
 }
 
-func GenerateConfigFromCluster(cfgPath, kubeconfig, name, ksVersion string, ksEnabled bool) error {
+func GenerateConfigFromCluster(cfgPath, kubeconfig, name string) error {
 	opt, err := GetInfoFromCluster(kubeconfig, name)
 	if err != nil {
 		return err
 	}
-
-	if ksEnabled {
-		switch strings.TrimSpace(ksVersion) {
-		case "":
-			opt.KubeSphereConfigMap = kubesphere.V3_0_0
-		case "v3.0.0":
-			opt.KubeSphereConfigMap = kubesphere.V3_0_0
-		case "v2.1.1":
-			opt.KubeSphereConfigMap = kubesphere.V2_1_1
-		default:
-			return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
-		}
-	}
-
-	opt.KubeSphereEnabled = ksEnabled
 
 	ClusterCfgStr, err := GenerateClusterCfgStr(opt)
 	if err != nil {
@@ -290,11 +254,4 @@ func GenerateConfigFromCluster(cfgPath, kubeconfig, name, ksVersion string, ksEn
 	}
 
 	return nil
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
 }

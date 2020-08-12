@@ -89,7 +89,6 @@ type HostCfg struct {
 	IsEtcd          bool   `json:"-"`
 	IsMaster        bool   `json:"-"`
 	IsWorker        bool   `json:"-"`
-	IsClient        bool   `json:"-"`
 }
 
 type RoleGroups struct {

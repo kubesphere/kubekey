@@ -43,7 +43,7 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 		}
 		clusterCfg = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
 	} else {
-		cfg, err := ParseCfg(clusterCfgPath, k8sVersion)
+		cfg, err := ParseCfg(clusterCfgPath, k8sVersion, ksVersion, ksEnabled)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +53,7 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 	return clusterCfg, nil
 }
 
-func ParseCfg(clusterCfgPath, k8sVersion string) (*kubekeyapi.Cluster, error) {
+func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*kubekeyapi.Cluster, error) {
 	clusterCfg := kubekeyapi.Cluster{}
 	fp, err := filepath.Abs(clusterCfgPath)
 	if err != nil {
@@ -106,6 +106,24 @@ func ParseCfg(clusterCfgPath, k8sVersion string) (*kubekeyapi.Cluster, error) {
 			}
 		}
 	}
+
+	if ksEnabled {
+		clusterCfg.Spec.KubeSphere.Enabled = true
+		switch strings.TrimSpace(ksVersion) {
+		case "":
+			clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
+			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
+		case "v3.0.0":
+			clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
+			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
+		case "v2.1.1":
+			clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
+			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
+		default:
+			return nil, errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+		}
+	}
+
 	return &clusterCfg, nil
 }
 
