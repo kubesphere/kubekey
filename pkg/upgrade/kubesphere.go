@@ -257,8 +257,11 @@ func MigrateConfig2to3(v2 *ksv2.V2, v3 *ksv3.V3) (string, error) {
 }
 
 func SyncConfiguration(mgr *manager.Manager) error {
-	if err := mgr.RunTaskOnMasterNodes(syncConfiguration, true); err != nil {
-		return err
+	if mgr.Cluster.KubeSphere.Enabled {
+		mgr.Logger.Infoln("Sync configuration ...")
+		if err := mgr.RunTaskOnMasterNodes(syncConfiguration, true); err != nil {
+			return err
+		}
 	}
 	return nil
 }

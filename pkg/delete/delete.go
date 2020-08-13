@@ -92,6 +92,11 @@ var clusterFiles = []string{
 	"/run/calico",
 	"/run/flannel",
 	"/etc/flannel",
+	"/etc/systemd/system/kubelet.service.d",
+	"/usr/local/bin/kubelet",
+	"/usr/local/bin/kubeadm",
+	"/usr/local/bin/kubectl",
+	"/usr/bin/kubelet",
 }
 
 var cmdsList = []string{
