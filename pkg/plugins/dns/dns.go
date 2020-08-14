@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 func OverrideCorednsService(mgr *manager.Manager) error {
@@ -45,19 +46,60 @@ func OverrideCorednsService(mgr *manager.Manager) error {
 	return nil
 }
 
-func DeployNodelocaldns(mgr *manager.Manager) error {
+func DeployNodelocaldns(mgr *manager.Manager, clusterIP string) error {
 	nodelocaldns, err := GenerateNodelocaldnsService(mgr)
 	if err != nil {
 		return err
 	}
 	nodelocaldnsBase64 := base64.StdEncoding.EncodeToString([]byte(nodelocaldns))
-	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/nodelocaldns.yaml\"", nodelocaldnsBase64), 1, false)
-	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to generate nodelocaldns manifests")
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/nodelocaldns.yaml\"", nodelocaldnsBase64), 1, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to generate nodelocaldns manifests")
 	}
-	_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/nodelocaldns.yaml\"", 5, true)
-	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "Failed to create nodelocaldns")
+
+	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/nodelocaldns.yaml\"", 5, true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to create nodelocaldns")
 	}
+
+	configMaps, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get cm -n kube-system nodelocaldns\"", 1, false)
+	if err != nil && strings.Contains(configMaps, "NotFound") {
+		nodelocaldns, err := GenerateNodelocaldnsConfigMap(mgr, clusterIP)
+		if err != nil {
+			return err
+		}
+		nodelocaldnsConfigMapBase64 := base64.StdEncoding.EncodeToString([]byte(nodelocaldns))
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/kubernetes/nodelocaldnsConfigmap.yaml\"", nodelocaldnsConfigMapBase64), 1, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to generate nodelocaldns configmap")
+		}
+
+		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/nodelocaldnsConfigmap.yaml\"", 5, true); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to create nodelocaldns configmap")
+		}
+	}
+	return nil
+}
+
+func CreateClusterDns(mgr *manager.Manager) error {
+	var corednsClusterIP string
+	services, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get svc -n kube-system coredns\"", 1, false)
+	if err != nil {
+		if strings.Contains(services, "NotFound") {
+			if err := OverrideCorednsService(mgr); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		if clusterIP, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get svc -n kube-system coredns -o jsonpath='{.spec.clusterIP}'\"", 1, false); err != nil {
+			return err
+		} else {
+			corednsClusterIP = strings.TrimSpace(clusterIP)
+		}
+	}
+
+	if err := DeployNodelocaldns(mgr, corednsClusterIP); err != nil {
+		return err
+	}
+
 	return nil
 }
