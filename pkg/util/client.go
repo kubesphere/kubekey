@@ -19,6 +19,7 @@ package util
 import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"path/filepath"
@@ -47,6 +48,26 @@ func NewClient(config string) (*kubernetes.Clientset, error) {
 	}
 
 	return clientset, nil
+}
+
+func NewDynamicClient(config string) (*rest.Config, error) {
+	var kubeconfig string
+	if config != "" {
+		config, err := filepath.Abs(config)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to look up current directory")
+		}
+		kubeconfig = config
+	} else {
+		kubeconfig = filepath.Join(homeDir(), ".kube", "config")
+	}
+	// use the current context in kubeconfig
+	configCluster, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return configCluster, nil
 }
 
 func homeDir() string {
