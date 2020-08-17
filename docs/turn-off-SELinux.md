@@ -2,7 +2,7 @@
 ## turn off SELinux
 ```shell script
 # Edit the configuration
-sed -i ‘s/SELINUX=enforcing/SELINUX=disabled/g’ /etc/selinux/config
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 #restart the system  
 reboot
 # check SELinux
