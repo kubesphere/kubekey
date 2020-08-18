@@ -265,6 +265,7 @@ var clusterFiles = []string{
 	"/run/calico",
 	"/run/flannel",
 	"/etc/flannel",
+	"/var/openebs",
 }
 
 var cmdsList = []string{

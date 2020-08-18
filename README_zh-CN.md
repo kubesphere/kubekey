@@ -173,6 +173,13 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 ```shell script
 ./kk scale -f config-sample.yaml
 ```
+### 删除节点
+
+通过以下命令删除节点，nodename指需要删除的节点名。
+
+```shell script
+./kk delete node <nodeName> -f config-sample.yaml
+```
 
 ### 删除集群
 
