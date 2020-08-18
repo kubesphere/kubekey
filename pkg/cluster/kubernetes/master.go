@@ -128,10 +128,7 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error
 		if err := addWorkerLabel(mgr, node); err != nil {
 			return err
 		}
-		if err := dns.OverrideCorednsService(mgr); err != nil {
-			return err
-		}
-		if err := dns.DeployNodelocaldns(mgr); err != nil {
+		if err := dns.CreateClusterDns(mgr); err != nil {
 			return err
 		}
 		clusterIsExist = true

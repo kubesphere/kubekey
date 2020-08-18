@@ -29,7 +29,7 @@ import (
 
 const (
 	DefaultCon = 10
-	Timeout    = 1800
+	Timeout    = 120
 )
 
 // NodeTask is a task that is specifically tailored to run on a single node.
@@ -72,7 +72,7 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 			for i := 0; i < hostNum; i++ {
 				select {
 				case <-result:
-				case <-time.After(time.Second * Timeout):
+				case <-time.After(time.Minute * Timeout):
 					mgr.Logger.Fatalf("Execute task timeout, Timeout=%ds", Timeout)
 				}
 				wg.Done()

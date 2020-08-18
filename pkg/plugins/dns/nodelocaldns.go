@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	nodelocaldnsServiceTempl = template.Must(template.New("Nodelocaldns").Parse(
+	nodelocaldnsConfigmap = template.Must(template.New("NodelocaldnsConfigmap").Parse(
 		dedent.Dedent(`---
 apiVersion: v1
 kind: ConfigMap
@@ -84,7 +84,10 @@ data:
         prometheus :9253
     }
 
----
+`)))
+
+	nodelocaldnsServiceTempl = template.Must(template.New("Nodelocaldns").Parse(
+		dedent.Dedent(`---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -194,8 +197,20 @@ spec:
 
 func GenerateNodelocaldnsService(mgr *manager.Manager) (string, error) {
 	return util.Render(nodelocaldnsServiceTempl, util.Data{
-		"ForwardTarget":     mgr.Cluster.ClusterIP(),
-		"DndDomain":         mgr.Cluster.Kubernetes.ClusterName,
 		"NodelocaldnsImage": preinstall.GetImage(mgr, "k8s-dns-node-cache").ImageName(),
+	})
+}
+
+func GenerateNodelocaldnsConfigMap(mgr *manager.Manager, clusterIP string) (string, error) {
+	var forwardTgrget string
+	if len(clusterIP) == 0 {
+		forwardTgrget = mgr.Cluster.ClusterIP()
+	} else {
+		forwardTgrget = clusterIP
+	}
+
+	return util.Render(nodelocaldnsConfigmap, util.Data{
+		"ForwardTarget": forwardTgrget,
+		"DndDomain":     mgr.Cluster.Kubernetes.ClusterName,
 	})
 }

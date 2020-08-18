@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ghodss/yaml"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/deploy"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
@@ -31,7 +30,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	yamlV2 "gopkg.in/yaml.v2"
-	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"strings"
@@ -59,8 +57,6 @@ func KsToV3(version, repo, kubeconfig string) error {
 		return err
 	}
 
-	fmt.Println(configV3)
-
 	var kubesphereConfig, installerYaml string
 
 	switch version {
@@ -82,9 +78,13 @@ func KsToV3(version, repo, kubeconfig string) error {
 		return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(version)))
 	}
 
+	restCfg, err := util.NewDynamicClient(kubeconfig)
+	if err != nil {
+		return err
+	}
+
 	b1 := bufio.NewReader(bytes.NewReader([]byte(installerYaml)))
 	for {
-		result := make(map[string]interface{})
 		content, err := k8syaml.NewYAMLReader(b1).Read()
 		if len(content) == 0 {
 			break
@@ -93,92 +93,18 @@ func KsToV3(version, repo, kubeconfig string) error {
 			return errors.Wrap(err, "Unable to read the manifests")
 		}
 
-		err = yaml.Unmarshal(content, &result)
-		if err != nil {
-			return errors.Wrap(err, "Unable to unmarshal the manifests")
+		if len(strings.TrimSpace(string(content))) == 0 {
+			continue
 		}
 
-		j2, err1 := yaml.YAMLToJSON(content)
-		if err1 != nil {
+		if err := deploy.DoServerSideApply(context.TODO(), restCfg, content); err != nil {
 			return err
-		}
-
-		switch result["kind"] {
-		case "CustomResourceDefinition":
-			if err := deploy.CreateObject(clientset, j2, deploy.CustomResourceDefinition); err != nil {
-				if !kubeErr.IsAlreadyExists(err) {
-					return err
-				}
-			}
-
-			metadata := result["metadata"].(map[string]interface{})
-
-			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
-		case "Namespace":
-			if err := deploy.CreateObject(clientset, j2, deploy.Namespaces); err != nil {
-				if !kubeErr.IsAlreadyExists(err) {
-					return err
-				}
-			}
-
-			metadata := result["metadata"].(map[string]interface{})
-			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
-		case "ServiceAccount":
-			if err := deploy.CreateObject(clientset, j2, deploy.ServiceAccount); err != nil {
-				if !kubeErr.IsAlreadyExists(err) {
-					return err
-				}
-			}
-
-			metadata := result["metadata"].(map[string]interface{})
-			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
-		case "ClusterRole":
-			if err := deploy.CreateObject(clientset, j2, deploy.ClusterRole); err != nil {
-				if !kubeErr.IsAlreadyExists(err) {
-					return err
-				}
-			}
-
-			metadata := result["metadata"].(map[string]interface{})
-			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
-		case "ClusterRoleBinding":
-			if err := deploy.CreateObject(clientset, j2, deploy.ClusterRoleBinding); err != nil {
-				if !kubeErr.IsAlreadyExists(err) {
-					return err
-				}
-			}
-
-			metadata := result["metadata"].(map[string]interface{})
-			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
-		case "Deployment":
-			if err := deploy.CreateObject(clientset, j2, deploy.Deployment); err != nil {
-				if !kubeErr.IsAlreadyExists(err) {
-					return err
-				}
-			}
-
-			metadata := result["metadata"].(map[string]interface{})
-			fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
 		}
 	}
 
-	j2, err1 := yaml.YAMLToJSON([]byte(kubesphereConfig))
-	if err1 != nil {
+	if err := deploy.DoServerSideApply(context.TODO(), restCfg, []byte(kubesphereConfig)); err != nil {
 		return err
 	}
-
-	if err := deploy.CreateObject(clientset, j2, deploy.ClusterConfiguration); err != nil {
-		if !kubeErr.IsAlreadyExists(err) {
-			return err
-		}
-	}
-	result := make(map[string]interface{})
-	err = yaml.Unmarshal([]byte(kubesphereConfig), &result)
-	if err != nil {
-		return errors.Wrap(err, "Unable to unmarshal the manifests")
-	}
-	metadata := result["metadata"].(map[string]interface{})
-	fmt.Printf("%s/%s  created\n", result["kind"], metadata["name"])
 
 	return nil
 }
@@ -257,8 +183,11 @@ func MigrateConfig2to3(v2 *ksv2.V2, v3 *ksv3.V3) (string, error) {
 }
 
 func SyncConfiguration(mgr *manager.Manager) error {
-	if err := mgr.RunTaskOnMasterNodes(syncConfiguration, true); err != nil {
-		return err
+	if mgr.Cluster.KubeSphere.Enabled {
+		mgr.Logger.Infoln("Sync configuration ...")
+		if err := mgr.RunTaskOnMasterNodes(syncConfiguration, true); err != nil {
+			return err
+		}
 	}
 	return nil
 }
