@@ -176,6 +176,14 @@ Add new node's information to the cluster config file, then apply the changes.
 ./kk scale -f config-sample.yaml
 ```
 
+### Delete Nodes
+
+You can delete the node by the following command，the nodeName that needs to be removed.
+
+```shell script
+./kk delete node <nodeName> -f config-sample.yaml
+```
+
 ### Delete Cluster
 
 You can delete the cluster by the following command:
