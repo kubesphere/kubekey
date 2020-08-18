@@ -185,27 +185,29 @@ func ResetKubeNode(mgr *manager.Manager) error {
 }
 
 func resetKubeNode(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
-	var deletenodename string
-	var tmp []string
-	output1, _ := mgr.Runner.ExecuteCmd("sudo -E  /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master' | awk '{print $1}'", 0, true)
-	if !strings.Contains(output1,"\r\n"){
-		tmp = append(tmp,output1)
-	}else {
-		tmp = strings.Split(output1, "\r\n")
-	}
-	var tmp1 string
-	for j := 0; j < len(mgr.WorkerNodes); j++ {
-		tmp1 += mgr.WorkerNodes[j].Name + "\r\n"
-	}
-	for i := 0; i < len(tmp); i++ {
-		if strings.Contains(tmp1, tmp[i]) {
-			continue
-		} else {
-			deletenodename = tmp[i]
-			break
+	if mgr.Runner.Index == 0{
+		var deletenodename string
+		var tmp []string
+		output1, _ := mgr.Runner.ExecuteCmd("sudo -E  /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master' | awk '{print $1}'", 0, true)
+		if !strings.Contains(output1,"\r\n"){
+			tmp = append(tmp,output1)
+		}else {
+			tmp = strings.Split(output1, "\r\n")
 		}
+		var tmp1 string
+		for j := 0; j < len(mgr.WorkerNodes); j++ {
+			tmp1 += mgr.WorkerNodes[j].Name + "\r\n"
+		}
+		for i := 0; i < len(tmp); i++ {
+			if strings.Contains(tmp1, tmp[i]) {
+				continue
+			} else {
+				deletenodename = tmp[i]
+				break
+			}
+		}
+		DrainAndDeleteNode(mgr, deletenodename)
 	}
-	DrainAndDeleteNode(mgr, deletenodename)
 	return nil
 }
 func DrainAndDeleteNode(mgr *manager.Manager, deleteNodeName string) error {
