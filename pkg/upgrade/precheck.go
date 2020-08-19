@@ -36,7 +36,6 @@ var versionCheck = map[string]map[string]map[string]bool{
 			"v1.15": true,
 		},
 		"ks": {
-			"v2.1.0": true,
 			"v2.1.1": true,
 		},
 	},
@@ -65,7 +64,7 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 		ksVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get deploy -n  kubesphere-system ks-console -o jsonpath='{.metadata.labels.version}'\"", 2, false)
 		if err != nil {
 			if mgr.Cluster.KubeSphere.Enabled {
-				return err
+				return errors.New("Failed to get kubesphere version")
 			}
 		} else {
 			if mgr.Cluster.KubeSphere.Enabled {
