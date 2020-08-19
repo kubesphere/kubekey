@@ -89,6 +89,12 @@ EOF
 
 echo 3 > /proc/sys/vm/drop_caches
 
+# Make sure the iptables utility doesn't use the nftables backend.
+update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || true
+update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 || true
+update-alternatives --set arptables /usr/sbin/arptables-legacy >/dev/null 2>&1 || true
+update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || true
+
     `)))
 
 func InitOsScript(mgr *manager.Manager) (string, error) {
