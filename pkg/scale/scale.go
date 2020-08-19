@@ -52,7 +52,8 @@ func ScaleCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logg
 func ExecTasks(mgr *manager.Manager) error {
 	scaleTasks := []manager.Task{
 		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
-		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
+		{Task: preinstall.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
+		{Task: preinstall.InitOS, ErrMsg: "Failed to init OS"},
 		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
 		{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},

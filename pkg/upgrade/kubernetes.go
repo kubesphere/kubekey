@@ -105,23 +105,11 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		return errors.Wrap(err, "Failed to get current kubelet version")
 	}
 	if strings.Split(kubeletVersion, " ")[1] != mgr.Cluster.Kubernetes.Version || strings.TrimSpace(kubeApiserverVersion) != mgr.Cluster.Kubernetes.Version {
-		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl stop kubelet\"", 2, true); err != nil {
-			return err
-		}
-
+		mgr.Logger.Infof("Upgrading %s [%s]\n", node.Name, node.InternalAddress)
 		if err := kubernetes.SyncKubeBinaries(mgr, node); err != nil {
 			return err
 		}
 
-		if err := kubernetes.SetKubelet(mgr, node); err != nil {
-			return err
-		}
-
-		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart kubelet\"", 2, true); err != nil {
-			return err
-		}
-
-		time.Sleep(30 * time.Second)
 		var kubeadmCfgBase64 string
 		if util.IsExist(fmt.Sprintf("%s/kubeadm-config.yaml", mgr.WorkDir)) {
 			output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cat %s/kubeadm-config.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
@@ -163,6 +151,17 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 			}
 		}
 
+		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl stop kubelet\"", 2, true); err != nil {
+			return err
+		}
+
+		if err := kubernetes.SetKubelet(mgr, node); err != nil {
+			return err
+		}
+
+		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart kubelet\"", 2, true); err != nil {
+			return err
+		}
 	}
 
 	if mgr.Runner.Index == 0 {
@@ -170,6 +169,8 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 			return err
 		}
 	}
+
+	time.Sleep(30 * time.Second)
 	return nil
 }
 
@@ -179,7 +180,7 @@ func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		return errors.Wrap(err, "Failed to get current kubelet version")
 	}
 	if strings.Split(kubeletVersion, " ")[1] != mgr.Cluster.Kubernetes.Version {
-
+		mgr.Logger.Infof("Upgrading %s [%s]\n", node.Name, node.InternalAddress)
 		if err := kubernetes.SyncKubeBinaries(mgr, node); err != nil {
 			return err
 		}
@@ -245,7 +246,9 @@ Loop:
 
 			mgr.Logger.Infoln(fmt.Sprintf("Start Upgrade: %s -> %s", currentVersionStr, nextVersionStr))
 
-			preinstall.Prepare(mgr)
+			if err := preinstall.Prepare(mgr); err != nil {
+				return err
+			}
 
 			if err := mgr.RunTaskOnK8sNodes(preinstall.PullImages, true); err != nil {
 				return err

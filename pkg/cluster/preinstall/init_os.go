@@ -34,10 +34,14 @@ const (
 	kubeletFlexvolumesPluginsDir = "/usr/libexec/kubernetes/kubelet-plugins/volume/exec"
 )
 
-func InitOS(mgr *manager.Manager) error {
+func DownloadBinaries(mgr *manager.Manager) error {
 	if err := Prepare(mgr); err != nil {
 		return errors.Wrap(err, "Failed to load kube binaries")
 	}
+	return nil
+}
+
+func InitOS(mgr *manager.Manager) error {
 
 	mgr.Logger.Infoln("Configurating operating system ...")
 
@@ -46,7 +50,7 @@ func InitOS(mgr *manager.Manager) error {
 
 func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
-	addUsers(mgr, node)
+	_ = addUsers(mgr, node)
 
 	if err := createDirectories(mgr, node); err != nil {
 		return err

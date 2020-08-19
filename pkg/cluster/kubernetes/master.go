@@ -277,22 +277,39 @@ func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 }
 
 func addMaster(mgr *manager.Manager) error {
-	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]), 2, true)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
+	for i := 0; i < 3; i++ {
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]), 0, true)
+		if err != nil {
+			if i == 2 {
+				return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
+			} else {
+				_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+			}
+		} else {
+			break
+		}
 	}
-	err1 := GetKubeConfig(mgr)
-	if err1 != nil {
-		return err1
+
+	if err := GetKubeConfig(mgr); err != nil {
+		return err
 	}
 	return nil
 }
 
 func addWorker(mgr *manager.Manager) error {
-	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]), 2, true)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to add worker to cluster")
+	for i := 0; i < 3; i++ {
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]), 0, true)
+		if err != nil {
+			if i == 2 {
+				return errors.Wrap(errors.WithStack(err), "Failed to add worker to cluster")
+			} else {
+				_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+			}
+		} else {
+			break
+		}
 	}
+
 	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
 	chownKubeConfig := "chown $(id -u):$(id -g) $HOME/.kube/config"
 	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false)
