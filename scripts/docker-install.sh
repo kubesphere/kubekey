@@ -158,7 +158,7 @@ EOF
             exit 1
             ;;
     esac
-    if command_exists docker; then
+    if command_exists docker && [ -e /var/run/docker.sock ]; then
         version="$(docker -v | cut -d ' ' -f3 | cut -d ',' -f1)"
         echo $version
         

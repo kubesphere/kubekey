@@ -80,7 +80,7 @@ func installDockerOnNode(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 		return err
 	}
 	dockerConfigBase64 := base64.StdEncoding.EncodeToString([]byte(dockerConfig))
-	output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker; fi\"", dockerConfigBase64), 0, false)
+	output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker; fi\"", dockerConfigBase64), 0, false)
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to install docker:\n%s", output))
 	}
