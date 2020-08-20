@@ -55,7 +55,9 @@ func GetClusterInfo(mgr *manager.Manager) error {
 
 func getClusterInfo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 {
-
+		if err := getKubeConfig(mgr); err != nil {
+			return err
+		}
 		k8sVersionStr, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | cut -d ':' -f 3\"", 3, false)
 		if err != nil {
 			return errors.Wrap(err, "Failed to get current kube-apiserver version")
@@ -144,5 +146,23 @@ func getNodestatus(mgr *manager.Manager) error {
 	}
 	fmt.Println("Cluster nodes status:")
 	fmt.Println(nodestatus + "\n")
+	return nil
+}
+
+func getKubeConfig(mgr *manager.Manager) error {
+	cmd := `
+if [ -f $HOME/.kube/config ]; then
+   echo 'kubeconfig already exist'
+elif [ -f /etc/kubernetes/admin.conf ]; then
+   mkdir -p $HOME/.kube && cp /etc/kubernetes/admin.conf $HOME/.kube/config && chown $(id -u):$(id -g) -R $HOME/.kube
+else
+   echo 'not found kubeconfig'
+fi
+`
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd), 1, false)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
