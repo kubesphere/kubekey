@@ -135,17 +135,17 @@ func MigrateConfig2to3(v2 *ksv2.V2, v3 *ksv3.V3) (string, error) {
 	}
 
 	v3.Monitoring.PrometheusMemoryRequest = v2.Monitoring.PrometheusMemoryRequest
-	v3.Monitoring.PrometheusReplicas = v2.Monitoring.PrometheusReplicas
+	//v3.Monitoring.PrometheusReplicas = v2.Monitoring.PrometheusReplicas
 	v3.Monitoring.PrometheusVolumeSize = v2.Monitoring.PrometheusVolumeSize
-	v3.Monitoring.AlertmanagerReplicas = 1
+	//v3.Monitoring.AlertmanagerReplicas = 1
 
 	v3.Common.EtcdVolumeSize = v2.Common.EtcdVolumeSize
 	v3.Common.MinioVolumeSize = v2.Common.MinioVolumeSize
 	v3.Common.MysqlVolumeSize = v2.Common.MysqlVolumeSize
 	v3.Common.OpenldapVolumeSize = v2.Common.OpenldapVolumeSize
 	v3.Common.RedisVolumSize = v2.Common.RedisVolumSize
-	v3.Common.ES.ElasticsearchDataReplicas = v2.Logging.ElasticsearchDataReplicas
-	v3.Common.ES.ElasticsearchMasterReplicas = v2.Logging.ElasticsearchMasterReplicas
+	//v3.Common.ES.ElasticsearchDataReplicas = v2.Logging.ElasticsearchDataReplicas
+	//v3.Common.ES.ElasticsearchMasterReplicas = v2.Logging.ElasticsearchMasterReplicas
 	v3.Common.ES.ElkPrefix = v2.Logging.ElkPrefix
 	v3.Common.ES.LogMaxAge = v2.Logging.LogMaxAge
 	if v2.Logging.ElasticsearchVolumeSize == "" {

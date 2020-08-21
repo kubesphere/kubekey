@@ -82,8 +82,8 @@ type Common struct {
 }
 
 type ES struct {
-	ElasticsearchMasterReplicas   int    `yaml:"elasticsearchMasterReplicas"`
-	ElasticsearchDataReplicas     int    `yaml:"elasticsearchDataReplicas"`
+	//ElasticsearchMasterReplicas   int    `yaml:"elasticsearchMasterReplicas"`
+	//ElasticsearchDataReplicas     int    `yaml:"elasticsearchDataReplicas"`
 	ElasticsearchMasterVolumeSize string `yaml:"elasticsearchMasterVolumeSize"`
 	ElasticsearchDataVolumeSize   string `yaml:"elasticsearchDataVolumeSize"`
 	LogMaxAge                     int    `yaml:"logMaxAge"`
@@ -133,8 +133,8 @@ type Metrics struct {
 }
 
 type Monitoring struct {
-	AlertmanagerReplicas    int    `yaml:"alertmanagerReplicas"`
-	PrometheusReplicas      int    `yaml:"prometheusReplicas"`
+	//AlertmanagerReplicas    int    `yaml:"alertmanagerReplicas"`
+	//PrometheusReplicas      int    `yaml:"prometheusReplicas"`
 	PrometheusMemoryRequest string `yaml:"prometheusMemoryRequest"`
 	PrometheusVolumeSize    string `yaml:"prometheusVolumeSize"`
 }

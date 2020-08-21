@@ -42,12 +42,14 @@ kind: Cluster
 metadata:
   name: {{ .Options.Name }}
 spec:
-  hosts:
+  hosts: 
+  # You should complete the ssh information of the hosts
   {{- range .Options.Hosts }}
   - {{ . }}
   {{- end }}
   roleGroups:
-    etcd: []
+    etcd:
+    - SHOULD_BE_REPLACED
     master: 
     {{- range .Options.MasterGroup }}
     - {{ . }}
@@ -57,12 +59,13 @@ spec:
     - {{ . }}
     {{- end }}
   controlPlaneEndpoint:
+    # If loadbalancer was used, 'address' should be set to loadbalancer's ip.
     domain: {{ .Options.ControlPlaneEndpointDomain }}
     address: {{ .Options.ControlPlaneEndpointAddress }}
     port: {{ .Options.ControlPlaneEndpointPort }}
   kubernetes:
     version: {{ .Options.KubeVersion }}
-    imageRepo: {{ .Options.ImageRepo }}
+    imageRepo: kubesphere
     clusterName: {{ .Options.ClusterName }}
     proxyMode: {{ .Options.ProxyMode }}
     masqueradeAll: {{ .Options.MasqueradeAll }}
@@ -158,7 +161,6 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	}
 
 	viper.SetConfigType("yaml")
-	//fmt.Println(kubeadmConfig.Data["ClusterConfiguration"])
 	if err := viper.ReadConfig(bytes.NewBuffer([]byte(kubeadmConfig.Data["ClusterConfiguration"]))); err != nil {
 		return nil, err
 	}
@@ -183,7 +185,7 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 			opt.ControlPlaneEndpointAddress = address
 			opt.ControlPlaneEndpointDomain = "lb.kubesphere.local"
 		} else {
-			opt.ControlPlaneEndpointAddress = ""
+			opt.ControlPlaneEndpointAddress = "\"\""
 			opt.ControlPlaneEndpointDomain = address
 		}
 	}
@@ -232,26 +234,30 @@ func GenerateConfigFromCluster(cfgPath, kubeconfig, name string) error {
 		return errors.Wrap(err, "Faild to generate cluster config")
 	}
 	ClusterCfgStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterCfgStr))
+	var configPath string
 
 	if cfgPath != "" {
 		CheckConfigFileStatus(cfgPath)
 		cmd := fmt.Sprintf("echo %s | base64 -d > %s", ClusterCfgStrBase64, cfgPath)
-		output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
-		if err != nil {
+		if output, err := exec.Command("/bin/sh", "-c", cmd).Output(); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to write config to %s: %s", cfgPath, strings.TrimSpace(string(output))))
 		}
+		configPath = cfgPath
 	} else {
 		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err != nil {
 			return errors.Wrap(err, "Failed to get current dir")
 		}
-		CheckConfigFileStatus(fmt.Sprintf("%s/%s.yaml", currentDir, opt.Name))
+		configPath = fmt.Sprintf("%s/%s.yaml", currentDir, opt.Name)
+		CheckConfigFileStatus(configPath)
 		cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", ClusterCfgStrBase64, currentDir, opt.Name)
 		err1 := exec.Command("/bin/sh", "-c", cmd).Run()
 		if err1 != nil {
 			return err1
 		}
-	}
 
+	}
+	notice := "Notice: " + fmt.Sprintf("%s has been created. Some parameters need to be filled in by yourself, please complete it.", configPath)
+	fmt.Printf("\033[1;36m%s\033[0m\n\n", notice)
 	return nil
 }

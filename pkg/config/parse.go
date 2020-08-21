@@ -136,8 +136,13 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		log.Fatalf("Failed to copy public key to authorized_keys: %v\n%s", err, string(output))
 	}
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("Failed to get hostname: %v\n", err)
+	}
+
 	allinoneCfg.Spec.Hosts = append(allinoneCfg.Spec.Hosts, kubekeyapi.HostCfg{
-		Name:            "ks-allinone",
+		Name:            hostname,
 		Address:         util.LocalIP(),
 		InternalAddress: util.LocalIP(),
 		Port:            "",
@@ -148,9 +153,9 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 	})
 
 	allinoneCfg.Spec.RoleGroups = kubekeyapi.RoleGroups{
-		Etcd:   []string{"ks-allinone"},
-		Master: []string{"ks-allinone"},
-		Worker: []string{"ks-allinone"},
+		Etcd:   []string{hostname},
+		Master: []string{hostname},
+		Worker: []string{hostname},
 	}
 	if k8sVersion != "" {
 		allinoneCfg.Spec.Kubernetes = kubekeyapi.Kubernetes{
@@ -160,11 +165,6 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		allinoneCfg.Spec.Kubernetes = kubekeyapi.Kubernetes{
 			Version: kubekeyapi.DefaultKubeVersion,
 		}
-	}
-	allinoneCfg.Spec.RoleGroups = kubekeyapi.RoleGroups{
-		Etcd:   []string{"ks-allinone"},
-		Master: []string{"ks-allinone"},
-		Worker: []string{"ks-allinone"},
 	}
 
 	if ksEnabled {
