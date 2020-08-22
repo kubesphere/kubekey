@@ -124,7 +124,7 @@ spec:
       # externalElasticsearchUrl:
       # externalElasticsearchPort:
   console:
-    enableMultiLogin: false  # enable/disable multiple sing on, it allows an account can be used by different users at the same time.
+    enableMultiLogin: false  # enable/disable multiple sign on, it allows an account can be used by different users at the same time.
     port: 30880
   alerting:                # Whether to install KubeSphere alerting system. It enables Users to customize alerting policies to send messages to receivers in time with different time intervals and alerting levels to choose from.
     enabled: false
