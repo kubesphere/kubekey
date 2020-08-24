@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package scale
+package add
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ import (
 	"path/filepath"
 )
 
-func ScaleCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages bool) error {
+func AddNode(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -50,7 +50,7 @@ func ScaleCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logg
 }
 
 func ExecTasks(mgr *manager.Manager) error {
-	scaleTasks := []manager.Task{
+	addNodeTasks := []manager.Task{
 		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
 		{Task: preinstall.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
 		{Task: preinstall.InitOS, ErrMsg: "Failed to init OS"},
@@ -66,7 +66,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
 	}
 
-	for _, step := range scaleTasks {
+	for _, step := range addNodeTasks {
 		if err := step.Run(mgr); err != nil {
 			return errors.Wrap(err, step.ErrMsg)
 		}

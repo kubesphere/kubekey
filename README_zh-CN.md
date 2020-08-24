@@ -173,7 +173,7 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 将新节点的信息添加到群集配置文件，然后应用更改。
 
 ```shell script
-./kk scale -f config-sample.yaml
+./kk add nodes -f config-sample.yaml
 ```
 ### 删除节点
 
