@@ -48,7 +48,7 @@ func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Lo
 }
 
 func ExecTasks(mgr *manager.Manager) error {
-	scaleTasks := []manager.Task{
+	upgradeTasks := []manager.Task{
 		{Task: GetClusterInfo, ErrMsg: "Failed to get cluster info"},
 		{Task: GetCurrentVersions, ErrMsg: "Failed to get current version"},
 		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
@@ -58,7 +58,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to upgrade kubesphere"},
 	}
 
-	for _, step := range scaleTasks {
+	for _, step := range upgradeTasks {
 		if err := step.Run(mgr); err != nil {
 			return errors.Wrap(err, step.ErrMsg)
 		}

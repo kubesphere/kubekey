@@ -173,7 +173,7 @@ You can enable any of them according to your demands. It is highly recommended t
 Add new node's information to the cluster config file, then apply the changes.
 
 ```shell script
-./kk scale -f config-sample.yaml
+./kk add nodes -f config-sample.yaml
 ```
 
 ### Delete Nodes
