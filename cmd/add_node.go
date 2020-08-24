@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// addNodeCmd represents the nodes command
+// addNodesCmd represents the nodes command
 var addNodesCmd = &cobra.Command{
 	Use:   "nodes",
 	Short: "Add a cluster according to the new nodes information from the specified configuration file",
