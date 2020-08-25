@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/addons/manifests"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/pkg/errors"
@@ -76,12 +77,12 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 			continue
 		}
 
-		if err := DoServerSideApply(context.TODO(), restCfg, content); err != nil {
+		if err := manifests.DoServerSideApply(context.TODO(), restCfg, content); err != nil {
 			return err
 		}
 	}
 
-	if err := DoServerSideApply(context.TODO(), restCfg, []byte(kubesphereConfig)); err != nil {
+	if err := manifests.DoServerSideApply(context.TODO(), restCfg, []byte(kubesphereConfig)); err != nil {
 		return err
 	}
 

@@ -127,7 +127,7 @@ You have more control to customize parameters or create a multi-node cluster usi
 1. First, create an example configuration file
 
     ```shell script
-    ./kk create config [--with-kubernetes version] [--with-storage plugins] [--with-kubesphere version] [(-f | --file) path]
+    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
     ```
 
    **examples:**
@@ -138,12 +138,6 @@ You have more control to customize parameters or create a multi-node cluster usi
     ./kk create config [-f ~/myfolder/abc.yaml]
     ```
 
-   * with storage plugins (supported: localVolume, nfsClient, rbd, glusterfs). You can specify multiple plugins separated by comma. Please note the first one you add will be the default storage class.
-
-    ```shell script
-    ./kk create config --with-storage localVolume
-    ```
-
    * with KubeSphere
 
     ```shell script
@@ -151,6 +145,7 @@ You have more control to customize parameters or create a multi-node cluster usi
     ```
 
 2. Modify the file config-sample.yaml according to your environment
+> A persistent storage is required in the cluster, when kubesphere will be installed. The local volume is used default. If you want to use other persistent storage, please refer to [addons](./docs/addons.md).
 3. Create a cluster using the configuration file
 
     ```shell script

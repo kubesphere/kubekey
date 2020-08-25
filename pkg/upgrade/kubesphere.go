@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/addons/manifests"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/deploy"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	ksv2 "github.com/kubesphere/kubekey/pkg/kubesphere/v2"
 	ksv3 "github.com/kubesphere/kubekey/pkg/kubesphere/v3"
@@ -97,12 +97,12 @@ func KsToV3(version, repo, kubeconfig string) error {
 			continue
 		}
 
-		if err := deploy.DoServerSideApply(context.TODO(), restCfg, content); err != nil {
+		if err := manifests.DoServerSideApply(context.TODO(), restCfg, content); err != nil {
 			return err
 		}
 	}
 
-	if err := deploy.DoServerSideApply(context.TODO(), restCfg, []byte(kubesphereConfig)); err != nil {
+	if err := manifests.DoServerSideApply(context.TODO(), restCfg, []byte(kubesphereConfig)); err != nil {
 		return err
 	}
 

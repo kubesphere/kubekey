@@ -30,10 +30,10 @@ var OpenebsTempl = template.Must(template.New("openebs").Parse(
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: {{ .LocalVolume.StorageClassName }}
+  name: local
   annotations:
     storageclass.kubesphere.io/supported-access-modes: '["ReadWriteOnce"]'
-    storageclass.beta.kubernetes.io/is-default-class: "{{ if .LocalVolume.IsDefaultClass }}true{{ else }}false{{ end }}"
+    storageclass.beta.kubernetes.io/is-default-class: "true"
     openebs.io/cas-type: local
     cas.openebs.io/config: |
       - name: StorageType
@@ -391,7 +391,6 @@ spec:
 
 func GenerateOpenebsManifests(mgr *manager.Manager) (string, error) {
 	return util.Render(OpenebsTempl, util.Data{
-		"LocalVolume":             mgr.Cluster.Storage.LocalVolume,
 		"ProvisionerLocalPVImage": preinstall.GetImage(mgr, "provisioner-localpv").ImageName(),
 		"OpenebsToolsImage":       preinstall.GetImage(mgr, "openebs-tools").ImageName(),
 		"NodeDiskManagerImage":    preinstall.GetImage(mgr, "node-disk-manager").ImageName(),
