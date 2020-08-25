@@ -7,7 +7,7 @@ Explanation of parameters:
 ```yaml
 - name: xxx                  # the name of addon
   namespace: xxx             # namespace
-  source:                    # support both yaml and chart
+  sources:                    # support both yaml and chart
     chart:                          
       name: xxx              # the name of chart
       repo:  xxx             # the name of chart repo (url)
