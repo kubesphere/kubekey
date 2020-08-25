@@ -31,7 +31,7 @@ spec:
   addons:
   - name: nfs-client
     namespace: kube-system
-    source: 
+    sources: 
       chart: 
         name: nfs-client-provisioner
         repo: https://charts.kubesphere.io/main
@@ -44,7 +44,7 @@ spec:
     
   - name: glusterfs
     namespace: kube-system
-    source: 
+    sources: 
       yaml: 
         path: 
         - /mycluster/glusterfs/glusterfs.yaml  # or https://raw.githubusercontent.com/xxx/glusterfs.yaml
