@@ -24,7 +24,7 @@ import (
 
 var shortVersion bool
 
-// versionCmd represents the add command
+// versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "print the client version information",
