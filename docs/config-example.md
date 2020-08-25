@@ -41,53 +41,7 @@ spec:
     registryMirrors: []
     insecureRegistries: []
     privateRegistry: ""
-  storage:
-    defaultStorageClass: localVolume
-    localVolume:
-      storageClassName: local
-    nfsClient:
-      storageClassName: nfs-client
-      # Hostname of the NFS server(ip or hostname)
-      nfsServer: SHOULD_BE_REPLACED
-      # Basepath of the mount point
-      nfsPath: SHOULD_BE_REPLACED
-      nfsVrs3Enabled: false
-      nfsArchiveOnDelete: false
-    rbd:
-      storageClassName: rbd
-      # Ceph rbd monitor endpoints, for example
-      # monitors:
-      #   - 172.25.0.1:6789
-      #   - 172.25.0.2:6789
-      #   - 172.25.0.3:6789
-      monitors:
-      - SHOULD_BE_REPLACED
-      adminID: admin
-      # ceph admin secret, for example,
-      # adminSecret: AQAnwihbXo+uDxAAD0HmWziVgTaAdai90IzZ6Q==
-      adminSecret: TYPE_ADMIN_ACCOUNT_HERE
-      userID: admin
-      # ceph user secret, for example,
-      # userSecret: AQAnwihbXo+uDxAAD0HmWziVgTaAdai90IzZ6Q==
-      userSecret: TYPE_USER_SECRET_HERE
-      pool: rbd
-      fsType: ext4
-      imageFormat: 2
-      imageFeatures: layering
-    glusterfs:
-      storageClassName: glusterfs
-      restAuthEnabled: true
-      # e.g. glusterfs_provisioner_resturl: http://192.168.0.4:8080
-      restUrl: SHOULD_BE_REPLACED
-      # e.g. glusterfs_provisioner_clusterid: 6a6792ed25405eaa6302da99f2f5e24b
-      clusterID: SHOULD_BE_REPLACED
-      restUser: admin
-      secretName: heketi-secret
-      gidMin: 40000
-      gidMax: 50000
-      volumeType: replicate:2
-      # e.g. jwt_admin_key: 123456
-      jwtAdminKey: SHOULD_BE_REPLACED
+  addons: []
 
 ---
 apiVersion: installer.kubesphere.io/v1alpha1

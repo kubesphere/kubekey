@@ -63,7 +63,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
-	clusterCfg.Storage = SetDefaultStorageCfg(cfg)
+	clusterCfg.Addons = cfg.Addons
 	clusterCfg.KubeSphere = cfg.KubeSphere
 	if cfg.Kubernetes.ImageRepo == "" {
 		clusterCfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
@@ -172,36 +172,4 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	defaultClusterCfg := cfg.Kubernetes
 
 	return defaultClusterCfg
-}
-
-func SetDefaultStorageCfg(cfg *ClusterSpec) Storage {
-	if cfg.Storage.LocalVolume.StorageClassName != "" {
-		cfg.Storage.LocalVolume.Enabled = true
-	}
-	if cfg.Storage.NfsClient.StorageClassName != "" {
-		cfg.Storage.NfsClient.Enabled = true
-	}
-	if cfg.Storage.CephRBD.StorageClassName != "" {
-		cfg.Storage.CephRBD.Enabled = true
-	}
-	if cfg.Storage.GlusterFS.StorageClassName != "" {
-		cfg.Storage.GlusterFS.Enabled = true
-	}
-
-	if cfg.Storage.DefaultStorageClass != "" {
-		switch cfg.Storage.DefaultStorageClass {
-		case "localVolume":
-			cfg.Storage.LocalVolume.IsDefaultClass = true
-		case "nfsClient":
-			cfg.Storage.NfsClient.IsDefaultClass = true
-		case "rbd":
-			cfg.Storage.CephRBD.IsDefaultClass = true
-		case "glusterfs":
-			cfg.Storage.GlusterFS.IsDefaultClass = true
-		}
-	}
-
-	defaultStorageCfg := cfg.Storage
-
-	return defaultStorageCfg
 }

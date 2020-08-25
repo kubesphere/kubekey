@@ -20,8 +20,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/plugins/storage"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -43,6 +45,12 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 
 func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 {
+		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\"", 1, false)
+
+		if err := checkDefaultStorageClass(mgr); err != nil {
+			return err
+		}
+
 		if err := DeployKubeSphereStep(mgr, node); err != nil {
 			return err
 		}
@@ -243,4 +251,21 @@ Loop:
 			}
 		}
 	}
+}
+
+func checkDefaultStorageClass(mgr *manager.Manager) error {
+	output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get sc --no-headers | grep '(default)' | wc -l\"", 3, false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to check default storageClass")
+	}
+	reg := regexp.MustCompile(`([\d])`)
+	defaultStorageClassNum := reg.FindStringSubmatch(output)[0]
+	if defaultStorageClassNum == "0" {
+		if err := storage.DeployLocalVolume(mgr); err != nil {
+			return err
+		}
+	} else if defaultStorageClassNum != "1" {
+		mgr.Logger.Warningln("Default storageClass in cluster is not unique!")
+	}
+	return nil
 }

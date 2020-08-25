@@ -213,7 +213,6 @@ Loop:
 		if currentVersionStr != targetVersionStr {
 			currentVersion := versionutil.MustParseSemantic(currentVersionStr)
 			targetVersion := versionutil.MustParseSemantic(targetVersionStr)
-
 			var nextVersionMinor uint
 			if targetVersion.Minor() == currentVersion.Minor() {
 				nextVersionMinor = currentVersion.Minor()

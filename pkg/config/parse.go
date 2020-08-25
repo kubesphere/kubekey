@@ -168,10 +168,6 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 	}
 
 	if ksEnabled {
-		allinoneCfg.Spec.Storage = kubekeyapi.Storage{
-			DefaultStorageClass: "localVolume",
-			LocalVolume:         kubekeyapi.LocalVolume{StorageClassName: "local"},
-		}
 		allinoneCfg.Spec.KubeSphere.Enabled = true
 		switch strings.TrimSpace(ksVersion) {
 		case "":

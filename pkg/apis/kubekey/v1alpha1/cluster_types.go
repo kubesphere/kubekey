@@ -39,7 +39,7 @@ type ClusterSpec struct {
 	Kubernetes           Kubernetes           `yaml:"kubernetes" json:"kubernetes,omitempty"`
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
-	Storage              Storage              `yaml:"storage" json:"storage,omitempty"`
+	Addons               []Addon              `yaml:"addons" json:"addons,omitempty"`
 	KubeSphere           KubeSphere           `json:"kubesphere,omitempty"`
 }
 

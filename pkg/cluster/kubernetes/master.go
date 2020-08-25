@@ -135,6 +135,9 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error
 		if err := getJoinNodesCmd(mgr); err != nil {
 			return err
 		}
+		if err := loadKubeConfig(mgr); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -320,6 +323,19 @@ func addWorker(mgr *manager.Manager) error {
 	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigCmd), 1, false)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to sync kube config")
+	}
+	return nil
+}
+
+func loadKubeConfig(mgr *manager.Manager) error {
+	kubeConfigPath := filepath.Join(mgr.WorkDir, "config")
+	loadKubeConfigCmd := fmt.Sprintf("echo %s | base64 -d > %s", clusterStatus["kubeConfig"], kubeConfigPath)
+	if output, err := exec.Command("/bin/sh", "-c", loadKubeConfigCmd).CombinedOutput(); err != nil {
+		return errors.Wrap(err, string(output))
+	}
+	replaceApiServerAddCmd := fmt.Sprintf("sed -i '/server:/s/\\:.*/\\: %s/g' %s", fmt.Sprintf("https\\:\\/\\/%s\\:6443", mgr.MasterNodes[0].InternalAddress), kubeConfigPath)
+	if output, err := exec.Command("/bin/sh", "-c", replaceApiServerAddCmd).CombinedOutput(); err != nil {
+		return errors.Wrap(err, string(output))
 	}
 	return nil
 }

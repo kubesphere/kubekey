@@ -18,6 +18,7 @@ package install
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
@@ -25,7 +26,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
-	"github.com/kubesphere/kubekey/pkg/plugins/storage"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -69,7 +69,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: kubernetes.InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
 		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
-		{Task: storage.DeployStoragePlugins, ErrMsg: "Failed to deploy storage plugin"},
+		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere"},
 	}
 

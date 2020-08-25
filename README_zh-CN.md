@@ -128,7 +128,7 @@
 1. 首先，创建一个示例配置文件
 
     ```shell script
-    ./kk create config [--with-kubernetes version] [--with-storage plugins] [--with-kubesphere version] [(-f | --file) path]
+    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
     ```
 
    **例子：**
@@ -139,12 +139,6 @@
         ./kk create config [-f ~/myfolder/config-sample.yaml]
         ```
 
-   * 同时安装存储插件 (支持：localVolume、nfsClient、rbd、glusterfs)。您可以指定多个插件并用逗号分隔。请注意，您添加的第一个将是默认存储类。
-
-        ```shell script
-        ./kk create config --with-storage localVolume
-        ```
-
    * 同时安装 KubeSphere
 
         ```shell script
@@ -152,6 +146,7 @@
         ```
 
 2. 根据您的环境修改配置文件 config-sample.yaml
+> 当指定安装KubeSphere时，要求集群中有可用的持久化存储。默认使用localVolume，如果需要使用其他持久化存储，请参阅 [addons](./docs/addons.md) 配置。
 3. 使用配置文件创建集群。
 
       ```shell script
