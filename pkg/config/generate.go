@@ -41,7 +41,7 @@ metadata:
 spec:
   hosts:
   - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
-  - {name: node2, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
+  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, user: ubuntu, password: Qcloud@123}
   roleGroups:
     etcd:
     - node1
@@ -74,17 +74,10 @@ spec:
 )
 
 type Options struct {
-	Name                    string
-	KubeVersion             string
-	StorageNum              int
-	DefaultStorageClass     string
-	DefaultStorageClassName string
-	LocalVolumeEnabled      bool
-	NfsClientEnabled        bool
-	CephRBDEnabled          bool
-	GlusterFSEnabled        bool
-	KubeSphereEnabled       bool
-	KubeSphereConfigMap     string
+	Name                string
+	KubeVersion         string
+	KubeSphereEnabled   bool
+	KubeSphereConfigMap string
 }
 
 func GenerateClusterObjStr(opt *Options) (string, error) {
@@ -108,7 +101,7 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 		output := strings.Split(name, ".")
 		opt.Name = output[0]
 	} else {
-		opt.Name = "config-sample"
+		opt.Name = "sample"
 	}
 	if len(k8sVersion) == 0 {
 		opt.KubeVersion = kubekeyapi.DefaultKubeVersion
@@ -148,8 +141,8 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 		if err != nil {
 			return errors.Wrap(err, "Failed to get current dir")
 		}
-		CheckConfigFileStatus(fmt.Sprintf("%s/%s.yaml", currentDir, opt.Name))
-		cmd := fmt.Sprintf("echo %s | base64 -d > %s/%s.yaml", ClusterObjStrBase64, currentDir, opt.Name)
+		CheckConfigFileStatus(fmt.Sprintf("%s/config-%s.yaml", currentDir, opt.Name))
+		cmd := fmt.Sprintf("echo %s | base64 -d > %s/config-%s.yaml", ClusterObjStrBase64, currentDir, opt.Name)
 		err1 := exec.Command("/bin/sh", "-c", cmd).Run()
 		if err1 != nil {
 			return err1

@@ -42,9 +42,8 @@ var configCmd = &cobra.Command{
 func init() {
 	createCmd.AddCommand(configCmd)
 
-	//configCmd.Flags().StringVarP(&opt.Addons, "with-storage", "", "", "Add storage plugins")
-	configCmd.Flags().StringVarP(&opt.Name, "name", "", "config-sample", "Specify a name of cluster object")
-	configCmd.Flags().StringVarP(&opt.ClusterCfgPath, "file", "f", "", "Specify a configuration file path")
+	configCmd.Flags().StringVarP(&opt.Name, "name", "", "sample", "Specify a name of cluster object")
+	configCmd.Flags().StringVarP(&opt.ClusterCfgPath, "filename", "f", "", "Specify a configuration file path")
 	configCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
 	configCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 	configCmd.Flags().BoolVarP(&opt.FromCluster, "from-cluster", "", false, "Create a configuration based on existing cluster")

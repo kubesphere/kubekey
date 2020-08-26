@@ -33,7 +33,7 @@ var addNodesCmd = &cobra.Command{
 
 func init() {
 	addCmd.AddCommand(addNodesCmd)
-	addNodesCmd.Flags().StringVarP(&opt.ClusterCfgFile, "file", "f", "", "Path to a configuration file")
+	addNodesCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	addNodesCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	addNodesCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 }

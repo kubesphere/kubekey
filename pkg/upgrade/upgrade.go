@@ -53,7 +53,6 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: GetCurrentVersions, ErrMsg: "Failed to get current version"},
 		{Task: preinstall.InitOS, ErrMsg: "Failed to download kube binaries"},
 		{Task: UpgradeKubeCluster, ErrMsg: "Failed to upgrade kube cluster"},
-		//{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
 		{Task: SyncConfiguration, ErrMsg: "Failed to sync configuration"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to upgrade kubesphere"},
 	}
