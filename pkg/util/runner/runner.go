@@ -36,7 +36,7 @@ func (r *Runner) ExecuteCmd(cmd string, retries int, printOutput bool) (string, 
 		return "", errors.New("No ssh connection available")
 	}
 
-	var lastError error
+	var lastErr error
 	var lastOutput string
 
 retriesLoop:
@@ -44,7 +44,7 @@ retriesLoop:
 		output, err := r.Conn.Exec(cmd, r.Host)
 		if err != nil {
 			if i == 0 {
-				lastError = err
+				lastErr = err
 				lastOutput = output
 			}
 			if retries != 0 {
@@ -55,13 +55,13 @@ retriesLoop:
 				fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
 				fmt.Println(output)
 			}
-			lastError = err
+			lastErr = err
 			lastOutput = output
 			break retriesLoop
 		}
 	}
 
-	return lastOutput, lastError
+	return lastOutput, lastErr
 }
 
 func (r *Runner) ScpFile(src, dst string) error {

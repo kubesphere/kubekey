@@ -131,7 +131,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 			return errors.Wrap(errors.WithStack(err1), "Failed to generate kubeadm config")
 		}
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < 3; i++ {
 			if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf(
 				"sudo -E /bin/sh -c \"timeout -k 600s 600s /usr/local/bin/kubeadm upgrade apply -y %s --config=/etc/kubernetes/kubeadm-config.yaml "+
 					"--ignore-preflight-errors=all --allow-experimental-upgrades --allow-release-candidate-upgrades --etcd-upgrade=false --certificate-renewal=true --force\"",

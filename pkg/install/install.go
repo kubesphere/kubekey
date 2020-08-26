@@ -70,6 +70,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
 		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons"},
+		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere"},
 	}
 
