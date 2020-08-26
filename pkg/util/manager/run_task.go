@@ -18,6 +18,7 @@ package manager
 
 import (
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sync"
 	"time"
 
@@ -32,8 +33,37 @@ const (
 	Timeout    = 120
 )
 
-// NodeTask is a task that is specifically tailored to run on a single node.
+type Task struct {
+	Task   func(*Manager) error
+	ErrMsg string
+}
+
 type NodeTask func(mgr *Manager, node *kubekeyapi.HostCfg) error
+
+func (t *Task) Run(mgr *Manager) error {
+	backoff := wait.Backoff{
+		Steps:    1,
+		Duration: 5 * time.Second,
+		Factor:   2.0,
+	}
+
+	var lastErr error
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		lastErr = t.Task(mgr)
+		if lastErr != nil {
+			mgr.Logger.Warn("Task failed ...")
+			if mgr.Debug {
+				mgr.Logger.Warnf("error: %s", lastErr)
+			}
+			return false, nil
+		}
+		return true, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		err = lastErr
+	}
+	return err
+}
 
 func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, index int) error {
 	var (
@@ -82,8 +112,8 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 	}
 
 	for i := range nodes {
-		mgrTask := mgr.Copy()
-		mgrTask.Logger = mgrTask.Logger.WithField("node", nodes[i].Address)
+		mgr := mgr.Copy()
+		mgr.Logger = mgr.Logger.WithField("node", nodes[i].Address)
 
 		if parallel {
 			ccons <- struct{}{}
@@ -95,9 +125,9 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 					hasErrors = true
 				}
 				result <- "done"
-			}(mgrTask, &nodes[i], result, i)
+			}(mgr, &nodes[i], result, i)
 		} else {
-			err = mgrTask.runTask(&nodes[i], task, i)
+			err = mgr.runTask(&nodes[i], task, i)
 			if err != nil {
 				break
 			}

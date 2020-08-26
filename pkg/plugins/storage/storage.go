@@ -25,6 +25,8 @@ import (
 )
 
 func DeployLocalVolume(mgr *manager.Manager) error {
+
+	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\"", 1, false)
 	localVolumeFile, err := localvolume.GenerateOpenebsManifests(mgr)
 	if err != nil {
 		return err

@@ -47,10 +47,6 @@ func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\"", 1, false)
 
-		if err := checkDefaultStorageClass(mgr); err != nil {
-			return err
-		}
-
 		if err := DeployKubeSphereStep(mgr, node); err != nil {
 			return err
 		}
@@ -251,6 +247,24 @@ Loop:
 			}
 		}
 	}
+}
+
+func DeployLocalVolume(mgr *manager.Manager) error {
+
+	if err := mgr.RunTaskOnMasterNodes(deployLocalVolume, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deployLocalVolume(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+	if mgr.Runner.Index == 0 {
+		if err := checkDefaultStorageClass(mgr); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func checkDefaultStorageClass(mgr *manager.Manager) error {
