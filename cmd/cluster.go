@@ -40,7 +40,7 @@ var clusterCmd = &cobra.Command{
 func init() {
 	createCmd.AddCommand(clusterCmd)
 
-	clusterCmd.Flags().StringVarP(&opt.ClusterCfgFile, "file", "f", "", "Path to a configuration file")
+	clusterCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
 	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 	clusterCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")

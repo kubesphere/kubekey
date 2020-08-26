@@ -63,7 +63,7 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 			return errors.Wrap(err, "Failed to get current kube-apiserver version")
 		}
 
-		ksVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get deploy -n  kubesphere-system ks-console -o jsonpath='{.metadata.labels.version}'\"", 2, false)
+		ksVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get deploy -n  kubesphere-system ks-console -o jsonpath='{.metadata.labels.version}'\"", 5, false)
 		if err != nil {
 			if mgr.Cluster.KubeSphere.Enabled {
 				return errors.New("Failed to get kubesphere version")

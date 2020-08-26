@@ -18,5 +18,5 @@ var deleteNodeCmd = &cobra.Command{
 
 func init() {
 	deleteCmd.AddCommand(deleteNodeCmd)
-	deleteNodeCmd.Flags().StringVarP(&opt.ClusterCfgFile, "config", "f", "", "Path to a config")
+	deleteNodeCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 }

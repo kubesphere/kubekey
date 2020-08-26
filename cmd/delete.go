@@ -22,7 +22,7 @@ import (
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete a cluster",
+	Short: "Delete nodes or cluster",
 }
 
 func init() {
