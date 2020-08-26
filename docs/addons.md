@@ -56,4 +56,16 @@ spec:
         name: sonarqube
         repo: https://charts.kubesphere.io/main
 
+  - name: csi-qingcloud
+      namespace: kube-system
+      sources:
+        chart:
+          name: csi-qingcloud
+          repo: https://charts.kubesphere.io/test
+          values:
+          - config.qy_access_key_id=***
+          - config.qy_secret_access_key=***
+          - config.zone=***
+          - sc.isDefaultClass=true
+
 ```
