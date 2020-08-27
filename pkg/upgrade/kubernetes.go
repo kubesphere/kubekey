@@ -198,6 +198,12 @@ func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 			return err
 		}
 
+		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm upgrade node\"", 2, true)
+
+		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl stop kubelet\"", 2, true); err != nil {
+			return err
+		}
+
 		if err := kubernetes.SetKubelet(mgr, node); err != nil {
 			return err
 		}
