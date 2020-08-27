@@ -31,13 +31,6 @@ import (
 	"text/template"
 )
 
-const (
-	VERSION      = "KubeKey Version v1.0.0-dev\nKubernetes Version v1.17.6\nKubeSphere Version 3.0.0"
-	VersionBig   = 1
-	VersionSmall = 2
-	VersionEqual = 0
-)
-
 func InitLogger(verbose bool) *log.Logger {
 	logger := log.New()
 	logger.Formatter = &log.TextFormatter{
@@ -178,16 +171,6 @@ func IPMaskStringToCIDR(netmask string) string {
 	return strconv.Itoa(ones)
 }
 
-func IPMaskCIDRToString(one string) string {
-	oneInt, _ := strconv.Atoi(one)
-	mIPmask := net.CIDRMask(oneInt, 32)
-	var maskstring []string
-	for _, v := range mIPmask {
-		maskstring = append(maskstring, strconv.Itoa(int(v)))
-	}
-	return strings.Join(maskstring, ".")
-}
-
 func networkRange(network *net.IPNet) (net.IP, net.IP) {
 	netIP := network.IP.To4()
 	firstIP := netIP.Mask(network.Mask)
@@ -237,77 +220,6 @@ func LocalIP() string {
 		log.Fatalf("Failed to get Local IP: %v", err)
 	}
 	return localIp
-}
-
-// Compare Version Numbers
-func CompareVersion(versionA, versionB string) int {
-	return compareStrVer(versionA, versionB)
-}
-
-func compareStrVer(verA, verB string) int {
-
-	verStrArrA := spliteStrByNet(verA)
-	verStrArrB := spliteStrByNet(verB)
-
-	lenStrA := len(verStrArrA)
-	lenStrB := len(verStrArrB)
-
-	if lenStrA != lenStrB {
-		panic("Inconsistent version number format!")
-
-	}
-
-	return compareArrStrVers(verStrArrA, verStrArrB)
-}
-
-func spliteStrByNet(strV string) []string {
-	return strings.Split(strV, ".")
-}
-
-func compareArrStrVers(verA, verB []string) int {
-
-	for index, _ := range verA {
-
-		littleResult := compareLittleVer(verA[index], verB[index])
-
-		if littleResult != VersionEqual {
-			return littleResult
-		}
-	}
-
-	return VersionEqual
-}
-
-func compareLittleVer(verA, verB string) int {
-
-	bytesA := []byte(verA)
-	bytesB := []byte(verB)
-
-	lenA := len(bytesA)
-	lenB := len(bytesB)
-	if lenA > lenB {
-		return VersionBig
-	}
-
-	if lenA < lenB {
-		return VersionSmall
-	}
-
-	return compareByBytes(bytesA, bytesB)
-}
-
-func compareByBytes(verA, verB []byte) int {
-
-	for index, _ := range verA {
-		if verA[index] > verB[index] {
-			return VersionBig
-		}
-		if verA[index] < verB[index] {
-			return VersionSmall
-		}
-	}
-
-	return VersionEqual
 }
 
 // returns the home directory for the executing user.

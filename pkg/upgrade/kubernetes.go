@@ -164,6 +164,19 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		}
 	}
 
+	patchCorednsCmd := `sudo -E /bin/sh -c "/usr/local/bin/kubectl patch deploy -n kube-system coredns -p \" 
+spec:
+    template:
+       spec:
+           volumes:
+           - name: config-volume
+             configMap:
+                 name: coredns
+                 items:
+                 - key: Corefile
+                   path: Corefile\""`
+
+	_, _ = mgr.Runner.ExecuteCmd(patchCorednsCmd, 2, false)
 	if mgr.Runner.Index == 0 {
 		if err := dns.CreateClusterDns(mgr); err != nil {
 			return err
