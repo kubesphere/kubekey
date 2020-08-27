@@ -19,6 +19,7 @@ package tmpl
 import (
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -41,7 +42,7 @@ etcd:
 dns:
   type: CoreDNS
   imageRepository: {{ .CorednsRepo }}coredns
-  imageTag: 1.6.0
+  imageTag: {{ .CorednsTag }}
 imageRepository: {{ .ImageRepo }}
 kubernetesVersion: {{ .Version }}
 certificatesDir: /etc/kubernetes/pki
@@ -184,6 +185,7 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	return util.Render(KubeadmCfgTempl, util.Data{
 		"ImageRepo":            imageRepo,
 		"CorednsRepo":          corednsRepo,
+		"CorednsTag":           preinstall.GetImage(mgr, "coredns").Tag,
 		"Version":              mgr.Cluster.Kubernetes.Version,
 		"ClusterName":          mgr.Cluster.Kubernetes.ClusterName,
 		"ControlPlaneEndpoint": fmt.Sprintf("%s:%s", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port),

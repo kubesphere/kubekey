@@ -3,8 +3,8 @@ package preinstall
 import (
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/images"
-	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"strings"
 )
 
@@ -47,8 +47,11 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 	var image images.Image
 	var pauseTag string
 
-	result := util.CompareVersion(strings.TrimSpace(mgr.Cluster.Kubernetes.Version), "v1.18.0")
-	if result == 0 || result == 1 {
+	cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.18.0")
+	if err != nil {
+		mgr.Logger.Fatal("Failed to compare version: %v", err)
+	}
+	if cmp == 0 || cmp == 1 {
 		pauseTag = "3.2"
 	} else {
 		pauseTag = "3.1"
@@ -62,7 +65,7 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		"kube-proxy":              {RepoAddr: "", Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "kube-proxy", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapi.K8s, Enable: true},
 		"etcd":                    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: mgr.Cluster.Kubernetes.ImageRepo, Repo: "etcd", Tag: kubekeyapi.DefaultEtcdVersion, Group: kubekeyapi.Etcd, Enable: true},
 		// network
-		"coredns":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: "1.6.0", Group: kubekeyapi.K8s, Enable: true},
+		"coredns":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: "1.6.9", Group: kubekeyapi.K8s, Enable: true},
 		"k8s-dns-node-cache":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "k8s-dns-node-cache", Tag: "1.15.12", Group: kubekeyapi.K8s, Enable: true},
 		"calico-kube-controllers": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "kube-controllers", Tag: kubekeyapi.DefaultCalicoVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		"calico-cni":              {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "cni", Tag: kubekeyapi.DefaultCalicoVersion, Group: kubekeyapi.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},

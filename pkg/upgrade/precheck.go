@@ -58,12 +58,12 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 		if err := getKubeConfig(mgr); err != nil {
 			return err
 		}
-		k8sVersionStr, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | cut -d ':' -f 3\"", 3, false)
+		k8sVersionStr, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | cut -d ':' -f 3\"", 1, false)
 		if err != nil {
 			return errors.Wrap(err, "Failed to get current kube-apiserver version")
 		}
 
-		ksVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get deploy -n  kubesphere-system ks-console -o jsonpath='{.metadata.labels.version}'\"", 5, false)
+		ksVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get deploy -n  kubesphere-system ks-console -o jsonpath='{.metadata.labels.version}'\"", 1, false)
 		if err != nil {
 			if mgr.Cluster.KubeSphere.Enabled {
 				return errors.New("Failed to get kubesphere version")
