@@ -66,12 +66,12 @@ func installAddon(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig stri
 					return errors.Wrap(err, "Failed to look up current directory")
 				}
 				yamlPaths := []string{fp}
-				if err := manifests.InstallYaml(yamlPaths, addon.Namespace, "", mgr.Cluster.Kubernetes.Version); err != nil {
+				if err := manifests.InstallYaml(yamlPaths, addon.Namespace, kubeconfig, mgr.Cluster.Kubernetes.Version); err != nil {
 					return err
 				}
 			} else {
 				yamlPaths := []string{yaml}
-				if err := manifests.InstallYaml(yamlPaths, addon.Namespace, "", mgr.Cluster.Kubernetes.Version); err != nil {
+				if err := manifests.InstallYaml(yamlPaths, addon.Namespace, kubeconfig, mgr.Cluster.Kubernetes.Version); err != nil {
 					return err
 				}
 			}
