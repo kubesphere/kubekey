@@ -19,12 +19,14 @@ package manifests
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"k8s.io/apimachinery/pkg/types"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -45,11 +47,10 @@ var (
 	defaultCacheDir = filepath.Join(homedir.HomeDir(), ".kube", "cache")
 )
 
-func InstallYaml(manifests []string, namespace, kubeconfig string) error {
+func InstallYaml(manifests []string, namespace, kubeconfig, version string) error {
 
 	configFlags := NewConfigFlags(kubeconfig, namespace)
-
-	o, err := CreateApplyOptions(configFlags, manifests)
+	o, err := CreateApplyOptions(configFlags, manifests, version)
 	if err != nil {
 		return err
 	}
@@ -61,14 +62,24 @@ func InstallYaml(manifests []string, namespace, kubeconfig string) error {
 	return nil
 }
 
-func CreateApplyOptions(configFlags *genericclioptions.ConfigFlags, manifests []string) (*apply.ApplyOptions, error) {
+func CreateApplyOptions(configFlags *genericclioptions.ConfigFlags, manifests []string, version string) (*apply.ApplyOptions, error) {
 	var err error
 	matchVersionKubeConfigFlags := NewMatchVersionFlags(configFlags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 	ioStreams := genericclioptions.IOStreams{In: nil, Out: os.Stdout, ErrOut: os.Stderr}
 
 	o := apply.NewApplyOptions(ioStreams)
-	o.ServerSideApply = true
+
+	cmp, err := versionutil.MustParseSemantic(version).Compare("v1.16.0")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Failed to compare version: %v", err))
+	}
+	if cmp == 0 || cmp == 1 {
+		o.ServerSideApply = true
+	} else {
+		o.ServerSideApply = false
+	}
+
 	o.ForceConflicts = true
 	o.DryRunStrategy = cmdutil.DryRunNone
 
@@ -83,7 +94,7 @@ func CreateApplyOptions(configFlags *genericclioptions.ConfigFlags, manifests []
 	}
 
 	o.DryRunVerifier = resource.NewDryRunVerifier(o.DynamicClient, discoveryClient)
-	o.FieldManager = "kubectl-client-side-apply"
+	o.FieldManager = "client-side-apply"
 
 	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
 		o.PrintFlags.NamePrintFlags.Operation = operation

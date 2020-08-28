@@ -55,7 +55,6 @@ func installAddon(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig stri
 
 	// install yaml
 	if len(addon.Sources.Yaml.Path) != 0 {
-		var yamlPaths []string
 		var settings = cli.New()
 		p := getter.All(settings)
 		for _, yaml := range addon.Sources.Yaml.Path {
@@ -66,16 +65,17 @@ func installAddon(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig stri
 				if err != nil {
 					return errors.Wrap(err, "Failed to look up current directory")
 				}
-				yamlPaths = append(yamlPaths, fp)
+				yamlPaths := []string{fp}
+				if err := manifests.InstallYaml(yamlPaths, addon.Namespace, "", mgr.Cluster.Kubernetes.Version); err != nil {
+					return err
+				}
 			} else {
-				yamlPaths = append(yamlPaths, yaml)
+				yamlPaths := []string{yaml}
+				if err := manifests.InstallYaml(yamlPaths, addon.Namespace, "", mgr.Cluster.Kubernetes.Version); err != nil {
+					return err
+				}
 			}
 		}
-
-		if err := manifests.InstallYaml(yamlPaths, addon.Namespace, ""); err != nil {
-			return err
-		}
-
 	}
 
 	return nil
