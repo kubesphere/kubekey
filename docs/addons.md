@@ -68,4 +68,19 @@ spec:
         - config.zone=***
         - sc.isDefaultClass=true
 
+  - name: rbd-provisioner
+    namespace: kube-system
+    sources:
+      chart:
+        name: rbd-provisioner
+        repo: https://charts.kubesphere.io/test
+        values:
+        # for more values, see https://github.com/kubesphere/helm-charts/tree/master/src/test/rbd-provisioner 
+        - ceph.mon=***
+        - ceph.pool=***
+        - ceph.adminId=***
+        - ceph.adminKey=***
+        - ceph.userId=***
+        - ceph.userKey=***
+        - sc.isDefault=true
 ```
