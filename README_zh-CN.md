@@ -30,7 +30,7 @@
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
 
-### <span id = "KubernetesVersions">Kubernetes 版本</span>
+### <span id = "KubernetesVersions">Kubernetes 版本</span> [支持版本](./docs/kubernetes-versions.md)
 
 * **v1.15**: &ensp; *v1.15.12*
 * **v1.16**: &ensp; *v1.16.13*
