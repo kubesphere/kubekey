@@ -62,14 +62,14 @@ func KsToV3(version, repo, kubeconfig string) error {
 	switch version {
 	case "":
 		kubesphereConfig = configV3
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, "latest")
+		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
 		if err != nil {
 			return err
 		}
 		installerYaml = str
 	case "v3.0.0":
 		kubesphereConfig = configV3
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, "latest")
+		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
 		if err != nil {
 			return err
 		}

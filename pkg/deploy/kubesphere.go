@@ -40,14 +40,14 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 	switch version {
 	case "":
 		kubesphereConfig = kubesphere.V3_0_0
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, "latest")
+		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
 		if err != nil {
 			return err
 		}
 		installerYaml = str
 	case "v3.0.0":
 		kubesphereConfig = kubesphere.V3_0_0
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, "latest")
+		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
 		if err != nil {
 			return err
 		}

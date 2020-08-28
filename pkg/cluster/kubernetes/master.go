@@ -119,8 +119,8 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error
 			}
 		}
 
-		if err3 := GetKubeConfig(mgr); err3 != nil {
-			return err3
+		if err := GetKubeConfig(mgr); err != nil {
+			return err
 		}
 		if err := removeMasterTaint(mgr, node); err != nil {
 			return err
@@ -315,14 +315,12 @@ func addWorker(mgr *manager.Manager) error {
 
 	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
 	chownKubeConfig := "chown $(id -u):$(id -g) $HOME/.kube/config"
-	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false)
-	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to create kube dir")
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
 	}
 	syncKubeconfigCmd := fmt.Sprintf("echo %s | base64 -d > %s && echo %s | base64 -d > %s && %s", clusterStatus["kubeConfig"], "/root/.kube/config", clusterStatus["kubeConfig"], "$HOME/.kube/config", chownKubeConfig)
-	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigCmd), 1, false)
-	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "Failed to sync kube config")
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigCmd), 1, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
 	return nil
 }

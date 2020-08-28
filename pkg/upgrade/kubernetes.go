@@ -26,6 +26,7 @@ var (
 	currentVersionStr string
 	nextVersionStr    string
 	mu                sync.Mutex
+	kubeConfig        string
 )
 
 func GetCurrentVersions(mgr *manager.Manager) error {
@@ -151,6 +152,10 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 			}
 		}
 
+		if err := kubernetes.GetKubeConfig(mgr); err != nil {
+			return err
+		}
+
 		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl stop kubelet\"", 2, true); err != nil {
 			return err
 		}
@@ -162,25 +167,13 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart kubelet\"", 2, true); err != nil {
 			return err
 		}
-	}
 
-	patchCorednsCmd := `sudo -E /bin/sh -c "/usr/local/bin/kubectl patch deploy -n kube-system coredns -p \" 
-spec:
-    template:
-       spec:
-           volumes:
-           - name: config-volume
-             configMap:
-                 name: coredns
-                 items:
-                 - key: Corefile
-                   path: Corefile\""`
-
-	_, _ = mgr.Runner.ExecuteCmd(patchCorednsCmd, 2, false)
-	if mgr.Runner.Index == 0 {
-		if err := dns.CreateClusterDns(mgr); err != nil {
-			return err
+		kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
+		output, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
+		if err2 != nil {
+			return errors.Wrap(errors.WithStack(err2), "Failed to get new kubeconfig")
 		}
+		kubeConfig = output
 	}
 
 	time.Sleep(30 * time.Second)
@@ -211,6 +204,16 @@ func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart kubelet\"", 2, true); err != nil {
 			return err
 		}
+	}
+
+	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
+	chownKubeConfig := "chown $(id -u):$(id -g) $HOME/.kube/config"
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
+	}
+	syncKubeconfigCmd := fmt.Sprintf("echo %s | base64 -d > %s && echo %s | base64 -d > %s && %s", kubeConfig, "/root/.kube/config", kubeConfig, "$HOME/.kube/config", chownKubeConfig)
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigCmd), 1, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
 
 	return nil
@@ -276,6 +279,9 @@ Loop:
 				return err
 			}
 
+			if err := mgr.RunTaskOnMasterNodes(reconfigDns, false); err != nil {
+				return err
+			}
 			currentVersionStr = nextVersionStr
 		} else {
 			break Loop
@@ -297,5 +303,31 @@ func upgradeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		}
 	}
 
+	return nil
+}
+
+func reconfigDns(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+	if mgr.Runner.Index == 0 {
+		patchCorednsCmd := `sudo -E /bin/sh -c "/usr/local/bin/kubectl patch deploy -n kube-system coredns -p \" 
+spec:
+    template:
+       spec:
+           volumes:
+           - name: config-volume
+             configMap:
+                 name: coredns
+                 items:
+                 - key: Corefile
+                   path: Corefile\""`
+
+		_, _ = mgr.Runner.ExecuteCmd(patchCorednsCmd, 2, true)
+
+		if err := dns.OverrideCorednsService(mgr); err != nil {
+			return err
+		}
+		if err := dns.CreateClusterDns(mgr); err != nil {
+			return err
+		}
+	}
 	return nil
 }

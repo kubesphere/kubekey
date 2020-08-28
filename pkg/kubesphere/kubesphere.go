@@ -117,7 +117,7 @@ EOF
 			return errors.Wrap(errors.WithStack(err), "Failed to generate kubesphere manifests")
 		}
 	case "v3.0.0":
-		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, "latest")
+		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, "v3.0.0")
 		if err != nil {
 			return err
 		}
