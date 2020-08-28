@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ceph-secret
+  namespace: kube-system
+type: kubernetes.io/rbd
+data:
+  # ceph auth get-key client.admin | base64
+  key: SHOULD_BE_REPLACED
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: rbd
+provisioner: ceph.com/rbd
+parameters:
+  monitors: SHOULD_BE_REPLACED
+  adminId: SHOULD_BE_REPLACED
+  adminSecretName: ceph-secret
+  adminSecretNamespace: kube-system
+  pool: SHOULD_BE_REPLACED
+  userId: SHOULD_BE_REPLACED
+  userSecretName: ceph-secret
+  userSecretNamespace: kube-system
+  fsType: ext4
+  imageFormat: "2"
+  imageFeatures: layering
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-rbd
+spec:
+  storageClassName: rbd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-rbd
+spec:
+  storageClassName: rbd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-rbd
+spec:
+  selector:
+    matchLabels:
+      app: nginx-rbd
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-rbd
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /mnt
+              name: pvc-data
+      volumes:
+        - name: pvc-data
+          persistentVolumeClaim:
+            claimName: pvc-rbd
+            readOnly: false
