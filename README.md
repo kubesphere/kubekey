@@ -30,12 +30,14 @@ There are three scenarios to use KubeKey.
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
 
-### <span id = "KubernetesVersions">Kubernetes Versions</span>
+
+### <span id = "KubernetesVersions">Kubernetes Versions</span> 
 
 * **v1.15**: &ensp; *v1.15.12*
 * **v1.16**: &ensp; *v1.16.13*
 * **v1.17**: &ensp; *v1.17.9* (default)
 * **v1.18**: &ensp; *v1.18.6*
+> Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
 
 ## Requirements and Recommendations
 
