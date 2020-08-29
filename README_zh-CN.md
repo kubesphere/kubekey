@@ -194,6 +194,35 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 ./kk delete cluster [-f config-sample.yaml]
 ```
 
+### 集群升级
+#### 单节点集群
+升级集群到指定版本。
+```shell script
+./kk upgrade [--with-kubernetes version] [--with-kubesphere version] 
+```
+* `--with-kubernetes` 指定kubernetes目标版本。
+* `--with-kubesphere` 指定kubesphere目标版本。
+
+#### 多节点集群
+通过指定配置文件对集群进行升级。
+```shell script
+./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
+```
+* `--with-kubernetes` 指定kubernetes目标版本。
+* `--with-kubesphere` 指定kubesphere目标版本。
+* `-f` 指定集群安装时创建的配置文件。
+
+> 注意: 升级多节点集群需要指定配置文件. 如果集群非kubekey创建，或者创建集群时生成的配置文件丢失，需要重新生成配置文件，或使用以下方法生成。
+
+Getting cluster info and generating kubekey's configuration file (optional).
+```shell script
+./kk create config [--from-cluster] [(-f | --file) path] [--kubeconfig path]
+```
+* `--from-cluster` 根据已存在集群信息生成配置文件. 
+* `-f` 指定生成配置文件路径.
+* `--kubeconfig` 指定集群kubeconfig文件. 
+* 由于无法全面获取集群配置，生成配置文件后，请根据集群实际信息补全配置文件。
+
 ### 启用 kubectl 自动补全
 
 KubeKey 不会启用 kubectl 自动补全功能。请参阅下面的指南并将其打开：
@@ -216,6 +245,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 ## 相关文档
 
 * [配置示例](docs/config-example.md)
+* [自定义插件安装](docs/addons.md)
 * [网络访问](docs/network-access.md)
 * [存储客户端](docs/storage-client.md)
 * [路线图](docs/roadmap.md)

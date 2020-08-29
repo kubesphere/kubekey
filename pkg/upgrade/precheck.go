@@ -20,7 +20,10 @@ import (
 	"bufio"
 	"fmt"
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
+	"github.com/mitchellh/mapstructure"
+	"github.com/modood/table"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os"
@@ -50,6 +53,17 @@ var versionCheck = map[string]map[string]map[string]bool{
 }
 
 func GetClusterInfo(mgr *manager.Manager) error {
+	if err := mgr.RunTaskOnAllNodes(preinstall.PrecheckNodes, true); err != nil {
+		return err
+	}
+	var results []preinstall.PrecheckResults
+	for node := range preinstall.CheckResults {
+		var result preinstall.PrecheckResults
+		_ = mapstructure.Decode(preinstall.CheckResults[node], &result)
+		results = append(results, result)
+	}
+	table.OutputA(results)
+	fmt.Println()
 	return mgr.RunTaskOnMasterNodes(getClusterInfo, true)
 }
 

@@ -28,13 +28,13 @@ type PrecheckResults struct {
 }
 
 var (
-	checkResults  = make(map[string]interface{})
-	baseSoftwares = []string{"sudo", "curl", "openssl", "ebtables", "socat", "ipset", "conntrack", "docker", "showmount", "rbd", "glusterfs"}
+	CheckResults  = make(map[string]interface{})
+	BaseSoftwares = []string{"sudo", "curl", "openssl", "ebtables", "socat", "ipset", "conntrack", "docker", "showmount", "rbd", "glusterfs"}
 )
 
 func Precheck(mgr *manager.Manager) error {
 	if !mgr.SkipCheck {
-		if err := mgr.RunTaskOnAllNodes(precheck, true); err != nil {
+		if err := mgr.RunTaskOnAllNodes(PrecheckNodes, true); err != nil {
 			return err
 		}
 		PrecheckConfirm(mgr)
@@ -42,10 +42,10 @@ func Precheck(mgr *manager.Manager) error {
 	return nil
 }
 
-func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func PrecheckNodes(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	var results = make(map[string]interface{})
 	results["name"] = node.Name
-	for _, software := range baseSoftwares {
+	for _, software := range BaseSoftwares {
 		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"which %s\"", software), 0, false)
 		switch software {
 		case "showmount":
@@ -68,16 +68,16 @@ func precheck(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		results["time"] = strings.TrimSpace(output)
 	}
 
-	checkResults[node.Name] = results
+	CheckResults[node.Name] = results
 	return nil
 }
 
 func PrecheckConfirm(mgr *manager.Manager) {
 
 	var results []PrecheckResults
-	for node := range checkResults {
+	for node := range CheckResults {
 		var result PrecheckResults
-		_ = mapstructure.Decode(checkResults[node], &result)
+		_ = mapstructure.Decode(CheckResults[node], &result)
 		results = append(results, result)
 	}
 	table.OutputA(results)
