@@ -71,7 +71,7 @@
 * 下载二进制文件
 
     ```shell script
-    curl -O -k https://github.com/kubesphere/kubekey/releases/download/v1.0.0/kubekey-v1.0.0-linux-amd64.tar.gz
+    wget https://github.com/kubesphere/kubekey/releases/download/v1.0.0/kubekey-v1.0.0-linux-amd64.tar.gz
     tar -zxvf kubekey-v1.0.0-linux-amd64.tar.gz
     ```
 
