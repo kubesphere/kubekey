@@ -1,0 +1,57 @@
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+name: Build Release
+jobs:
+  release-linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+        
+      - name: Build Release Asset
+        run: |
+          ./build.sh
+          ./output/kk version
+          git branch
+          cp ./output/kk .
+          tar -zcvf kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz ./kk
+          md5sum kk > kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.md5
+        
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+     
+      - name: Upload Release Asset Binary
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+          asset_name: kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/tar.gz   
+
+      - name: Upload Release Asset MD5
+        id: upload-release-asset-md5
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.md5
+          asset_name: kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.md5
+          asset_content_type: application/tar.gz 
