@@ -250,9 +250,10 @@ Loop:
 }
 
 func DeployLocalVolume(mgr *manager.Manager) error {
-
-	if err := mgr.RunTaskOnMasterNodes(deployLocalVolume, true); err != nil {
-		return err
+	if mgr.Cluster.KubeSphere.Enabled {
+		if err := mgr.RunTaskOnMasterNodes(deployLocalVolume, true); err != nil {
+			return err
+		}
 	}
 
 	return nil

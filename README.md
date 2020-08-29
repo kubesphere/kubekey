@@ -196,29 +196,40 @@ You can delete the cluster by the following command:
 ```shell script
 ./kk delete cluster [-f config-sample.yaml]
 ```
-
-### Enable kubectl autocompletion
-
-KubeKey doesn't enable kubectl autocompletion. Refer to the guide below and turn it on:
-
-**Prerequisite**: make sure bash-autocompletion is installed and works.
-
+### Upgrade Cluster
+#### Allinone
+Upgrading cluster with a specified version.
 ```shell script
-# Install bash-completion
-apt-get install bash-completion
-
-# Source the completion script in your ~/.bashrc file
-echo 'source <(kubectl completion bash)' >>~/.bashrc
-
-# Add the completion script to the /etc/bash_completion.d directory
-kubectl completion bash >/etc/bash_completion.d/kubectl
+./kk upgrade [--with-kubernetes version] [--with-kubesphere version] 
 ```
+* Support upgrading Kubernetes only.
+* Support upgrading KubeSphere only.
+* Support upgrading Kubernetes and KubeSphere.
 
-More detail reference could be found [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/#enabling-shell-autocompletion).
+#### Multi-nodes
+Upgrading cluster with a specified configuration file.
+```shell script
+./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
+```
+* If `--with-kubernetes` or `--with-kubesphere` is specified, the configuration file will be also updated.
+* Use `-f` to specify the configuration file which was generated for cluster creation.
+
+> Note: Upgrading multi-nodes cluster need a specified configuration file. If the cluster was installed without kubekey or the configuration file for installation was not found, the configuration file needs to be created by yourself or following command.
+
+Getting cluster info and generating kubekey's configuration file (optional).
+```shell script
+./kk create config [--from-cluster] [(-f | --file) path] [--kubeconfig path]
+```
+* `--from-cluster` means fetching cluster's information from an existing cluster. 
+* `-f` refers to the path where the configuration file is generated.
+* `--kubeconfig` refers to the path where the kubeconfig. 
+* After generating the configuration file, some parameters need to be filled in, such as the ssh information of the nodes.
 
 ## Documents
 
 * [Configuration example](docs/config-example.md)
+* [Addons](docs/addons.md)
 * [Network access](docs/network-access.md)
 * [Storage clients](docs/storage-client.md)
+* [Kubectl autocompletion](docs/kubectl-autocompletion.md)
 * [Roadmap](docs/roadmap.md)

@@ -25,7 +25,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -170,11 +169,8 @@ func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
 func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	if node.IsWorker {
-		addWorkerLabelCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl label node %s node-role.kubernetes.io/worker=\"", node.Name)
-		output, err := mgr.Runner.ExecuteCmd(addWorkerLabelCmd, 5, true)
-		if err != nil && !strings.Contains(output, "already") {
-			return errors.Wrap(errors.WithStack(err), "Failed to add worker label")
-		}
+		addWorkerLabelCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl label --overwrite node %s node-role.kubernetes.io/worker=\"", node.Name)
+		_, _ = mgr.Runner.ExecuteCmd(addWorkerLabelCmd, 5, true)
 	}
 	return nil
 }
@@ -221,13 +217,6 @@ func getJoinCmd(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err4), "Failed to get cluster kubeconfig")
 	}
 	clusterStatus["kubeConfig"] = output
-
-	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return errors.Wrap(err, "Faild to get current dir")
-	}
-	_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("mkdir -p %s/kubekey", currentDir)).Run()
-	_ = exec.Command("sudo", "-E", fmt.Sprintf("/bin/sh -c \"echo %s | base64 -d > %s/kubekey/kubeconfig.yaml\"", clusterStatus["kubeConfig"], currentDir)).Run()
 
 	return nil
 }
@@ -314,12 +303,16 @@ func addWorker(mgr *manager.Manager) error {
 	}
 
 	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
-	chownKubeConfig := "chown $(id -u):$(id -g) $HOME/.kube/config"
+	chownKubeConfig := "chown $(id -u):$(id -g) -R $HOME/.kube"
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
 	}
-	syncKubeconfigCmd := fmt.Sprintf("echo %s | base64 -d > %s && echo %s | base64 -d > %s && %s", clusterStatus["kubeConfig"], "/root/.kube/config", clusterStatus["kubeConfig"], "$HOME/.kube/config", chownKubeConfig)
-	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigCmd), 1, false); err != nil {
+	syncKubeconfigForRootCmd := fmt.Sprintf("echo %s | base64 -d > %s", clusterStatus["kubeConfig"], "/root/.kube/config")
+	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", clusterStatus["kubeConfig"], "$HOME/.kube/config", chownKubeConfig)
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigForRootCmd), 1, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
+	}
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigForUserCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
 	return nil
