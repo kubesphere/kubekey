@@ -49,6 +49,9 @@ var versionCheck = map[string]map[string]map[string]bool{
 			"v1.16": true,
 			"v1.15": true,
 		},
+		"ks": {
+			"v2.1.1": true,
+		},
 	},
 }
 
