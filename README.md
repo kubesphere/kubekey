@@ -71,8 +71,8 @@ There are three scenarios to use KubeKey.
 * Download Binary
 
     ```shell script
-    curl -O -k https://kubernetes.pek3b.qingstor.com/tools/kubekey/kk
-    chmod +x kk
+    curl -O -k https://github.com/kubesphere/kubekey/releases/download/v1.0.0/kubekey-v1.0.0-linux-amd64.tar.gz
+    tar -zxvf kubekey-v1.0.0-linux-amd64.tar.gz
     ```
 
 or
