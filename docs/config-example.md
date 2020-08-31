@@ -108,7 +108,7 @@ spec:
     clusterRole: none  # host | member | none  # You can install a solo cluster, or specify it as the role of host or member cluster
   networkpolicy:       # Network policies allow network isolation within the same cluster, which means firewalls can be set up between certain instances (Pods).
     enabled: false     
-  notification:        # It supports notification management in multi-tenant Kubernetes clusters. It allows you to set AlertManager as its sender, and receivers include Email, Wechat Work, and Slack.
+  notification:        # Email Notification support for the legacy alerting system, should be enabled/disabled together with the above alerting option
     enabled: false
   openpitrix:          # Whether to install KubeSphere Application Store. It provides an application store for Helm-based applications, and offer application lifecycle management
     enabled: false
