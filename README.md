@@ -68,14 +68,8 @@ There are three scenarios to use KubeKey.
 
 ### Get the Installer Excutable File
 
-* Download Binary
-
-    ```shell script
-    curl -O -k https://kubernetes.pek3b.qingstor.com/tools/kubekey/kk
-    chmod +x kk
-    ```
-
-or
+* Binary downloads of the KubeKey can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
+  Unpack the binary and you are good to go!
 
 * Build Binary from Source Code
 

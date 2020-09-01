@@ -68,14 +68,9 @@
 
 ### 获取安装程序可执行文件
 
-* 下载二进制文件
+* 下载KubeKey可执行文件 [Releases page](https://github.com/kubesphere/kubekey/releases) 
 
-    ```shell script
-    curl -O -k https://kubernetes.pek3b.qingstor.com/tools/kubekey/kk
-    chmod +x kk
-    ```
-
-或者
+  下载解压后可直接使用。
 
 * 从源代码生成二进制文件
 
