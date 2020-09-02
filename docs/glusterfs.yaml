@@ -24,11 +24,11 @@ parameters:
   resturl: SHOULD_BE_REPLACED
   # e.g. glusterfs_provisioner_clusterid: 6a6792ed25405eaa6302da99f2f5e24b
   clusterid: SHOULD_BE_REPLACED
-  restauthenabled: true
+  restauthenabled: "true"
   restuser: admin
   secretNamespace: "kube-system"
   secretName: heketi-secret
-  gidMin: 40000
-  gidMax: 50000
-  volumetype: replicate:2
+  gidMin: "40000"
+  gidMax: "50000"
+  volumetype: "replicate:2"
 allowVolumeExpansion: true
