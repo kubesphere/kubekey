@@ -68,14 +68,8 @@ There are three scenarios to use KubeKey.
 
 ### Get the Installer Excutable File
 
-* Download Binary
-
-    ```shell script
-    wget https://github.com/kubesphere/kubekey/releases/download/v1.0.0/kubekey-v1.0.0-linux-amd64.tar.gz
-    tar -zxvf kubekey-v1.0.0-linux-amd64.tar.gz
-    ```
-
-or
+* Binary downloads of the KubeKey can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
+  Unpack the binary and you are good to go!
 
 * Build Binary from Source Code
 

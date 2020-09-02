@@ -53,6 +53,14 @@ var versionCheck = map[string]map[string]map[string]bool{
 			"v2.1.1": true,
 		},
 	},
+	"other": {
+		"k8s": {
+			"v1.18": true,
+			"v1.17": true,
+			"v1.16": true,
+			"v1.15": true,
+		},
+	},
 }
 
 func GetClusterInfo(mgr *manager.Manager) error {
@@ -75,7 +83,7 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 		if err := getKubeConfig(mgr); err != nil {
 			return err
 		}
-		k8sVersionStr, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | cut -d ':' -f 3\"", 1, false)
+		k8sVersionStr, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | rev | cut -d ':' -f1 | rev\"", 1, false)
 		if err != nil {
 			return errors.Wrap(err, "Failed to get current kube-apiserver version")
 		}
@@ -84,6 +92,11 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 		if err != nil {
 			if mgr.Cluster.KubeSphere.Enabled {
 				return errors.New("Failed to get kubesphere version")
+			} else {
+				K8sTargetVersion := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version)
+				if _, ok := versionCheck["other"]["k8s"][fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())]; !ok {
+					return errors.New(fmt.Sprintf("does not support running on Kubernetes %s", fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
+				}
 			}
 		} else {
 			if mgr.Cluster.KubeSphere.Enabled {

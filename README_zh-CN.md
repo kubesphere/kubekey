@@ -68,14 +68,9 @@
 
 ### 获取安装程序可执行文件
 
-* 下载二进制文件
+* 下载KubeKey可执行文件 [Releases page](https://github.com/kubesphere/kubekey/releases) 
 
-    ```shell script
-    wget https://github.com/kubesphere/kubekey/releases/download/v1.0.0/kubekey-v1.0.0-linux-amd64.tar.gz
-    tar -zxvf kubekey-v1.0.0-linux-amd64.tar.gz
-    ```
-
-或者
+  下载解压后可直接使用。
 
 * 从源代码生成二进制文件
 
