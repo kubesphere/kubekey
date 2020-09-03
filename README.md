@@ -39,6 +39,7 @@ There are three scenarios to use KubeKey.
 * **v1.18**: &ensp; *v1.18.6*
 > Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
 
+> Notice: KubeSphere is currently not supported running on k8s v1.19.x
 ## Requirements and Recommendations
 
 * Minimum resource requirements (For Minimal Installation of KubeSphere only)：
