@@ -52,13 +52,23 @@ There are three scenarios to use KubeKey.
   * `SSH` can access to all nodes.
   * Time synchronization for all nodes.
   * `sudo`/`curl`/`openssl` should be used in all nodes.
-  * `ebtables`/`socat`/`ipset`/`conntrack` should be installed in all nodes.
   * `docker` can be installed by yourself or by KubeKey.
   * `Red Hat` includes `SELinux` in its `Linux release`. It is recommended to close SELinux or [switch the mode of SELinux](./docs/turn-off-SELinux.md) to `Permissive`
 > * It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  
 > * A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
 > * KubeKey will install [OpenEBS](https://openebs.io/) to provision LocalPV for development and testing environment by default, this is convenient for new users. For production, please use NFS / Ceph / GlusterFS  or commercial products as persistent storage, and install the [relevant client](docs/storage-client.md) in all nodes.
 > * If you encounter `Permission denied` when copying, it is recommended to check [SELinux and turn off it](./docs/turn-off-SELinux.md) first 
+
+* Dependency requirements:
+
+KubeKey can install Kubernetes and KubeSphere together. The dependency that needs to be installed may be different based on the Kubernetes version to be installed. You can refer to the list below to see if you need to install relevant dependencies on your node in advance.
+
+|             | Kubernetes Version ≥ 1.18 | Kubernetes Version < 1.18 |
+| ----------- | ------------------------- | ------------------------- |
+| `socat`     | Required                  | Optional but recommended  |
+| `conntrack` | Required                  | Optional but recommended  |
+| `ebtables`  | Optional but recommended  | Optional but recommended  |
+| `ipset`     | Optional but recommended  | Optional but recommended  |
 
 * Networking and DNS requirements:
   * Make sure the DNS address in `/etc/resolv.conf` is available. Otherwise, it may cause some issues of DNS in cluster.
