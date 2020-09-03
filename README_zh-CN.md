@@ -38,6 +38,8 @@
 * **v1.17**: &ensp; *v1.17.9* (默认)
 * **v1.18**: &ensp; *v1.18.6*
 > 查看更多支持的版本[点击这里](./docs/kubernetes-versions.md)
+
+> 注意: KubeSphere目前暂不支持运行在k8s 1.19.x之上。
 ## 要求和建议
 
 * 最低资源要求（仅对于最小安装 KubeSphere）：
