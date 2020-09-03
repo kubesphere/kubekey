@@ -51,7 +51,6 @@
   * `SSH` 可以访问所有节点。
   * 所有节点的时间同步。
   * `sudo`/`curl`/`openssl` 应在所有节点使用。
-  * `ebtables`/`socat`/`ipset`/`conntrack` 应安装在所有节点。
   * `docker` 可以自己安装，也可以通过 KubeKey 安装。
   * `Red Hat` 在其 `Linux` 发行版本中包括了`SELinux`，建议[关闭SELinux](./docs/turn-off-SELinux_zh-CN.md)或者将[SELinux的模式切换](./docs/turn-off-SELinux_zh-CN.md)为Permissive[宽容]工作模式
 
@@ -59,6 +58,17 @@
 > * 如果在从 dockerhub.io 下载镜像时遇到问题，建议准备一个容器镜像仓库 (加速器)。[为 Docker 守护程序配置镜像加速](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon)。
 > * 默认情况下，KubeKey 将安装 [OpenEBS](https://openebs.io/) 来为开发和测试环境配置 LocalPV，这对新用户来说非常方便。对于生产，请使用 NFS/Ceph/GlusterFS 或商业化存储作为持久化存储，并在所有节点中安装[相关的客户端](./docs/storage-client.md) 。
 > * 如果遇到拷贝时报权限问题Permission denied,建议优先考虑查看[SELinux的原因](./docs/turn-off-SELinux_zh-CN.md)。
+
+* 依赖要求:
+
+KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安装版本的不同，您所需要安装的依赖可能也不同。请参考以下表格查看您是否需要提前在节点上安装有关的依赖。
+
+|             | Kubernetes 版本 ≥ 1.18 | Kubernetes 版本 < 1.18 |
+| ----------- | ---------------------- | ---------------------- |
+| `socat`     | 必须安装               | 可选，但推荐安装       |
+| `conntrack` | 必须安装               | 可选，但推荐安装       |
+| `ebtables`  | 可选，但推荐安装       | 可选，但推荐安装       |
+| `ipset`     | 可选，但推荐安装       | 可选，但推荐安装       |
 
 * 网络和 DNS 要求：
   * 确保 `/etc/resolv.conf` 中的 DNS 地址可用。否则，可能会导致群集中出现某些 DNS 问题。
