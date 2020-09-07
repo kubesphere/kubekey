@@ -345,10 +345,6 @@ EOF
                     fi
                     $sh_c "$pkg_manager install -y -q $pre_reqs"
                     $sh_c "$config_manager --add-repo $yum_repo"
-                    if [ "$CHANNEL" != "stable" ]; then
-                        echo "Info: Enabling channel '$CHANNEL' for docker-ce repo"
-                        $sh_c "$config_manager $enable_channel_flag docker-ce-$CHANNEL"
-                    fi
                     $sh_c "$pkg_manager makecache fast"
                     $sh_c "$pkg_manager install -y -q docker-ce-${docker_version}"
                     if [ -d '/run/systemd/system' ]; then
