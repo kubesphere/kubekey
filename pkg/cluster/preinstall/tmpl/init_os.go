@@ -109,6 +109,8 @@ update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 |
 update-alternatives --set arptables /usr/sbin/arptables-legacy >/dev/null 2>&1 || true
 update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || true
 
+ulimit -u 65535
+ulimit -n 65535
     `)))
 
 func InitOsScript(mgr *manager.Manager) (string, error) {
