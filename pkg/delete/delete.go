@@ -286,8 +286,7 @@ var cmdsList = []string{
 
 func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
-	fmt.Println(strings.Join(cmdsList, " && "))
-	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true)
+	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true, "printCmd")
 	_ = deleteFiles(mgr)
 	return nil
 }
