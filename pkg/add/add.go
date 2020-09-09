@@ -61,6 +61,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: etcd.GenerateEtcdService, ErrMsg: "Failed to create etcd service"},
 		{Task: etcd.SetupEtcdCluster, ErrMsg: "Failed to start etcd cluster"},
 		{Task: etcd.RefreshEtcdConfig, ErrMsg: "Failed to refresh etcd configuration"},
+		{Task: etcd.BackupEtcd, ErrMsg: "Failed to backup etcd data"},
 		{Task: kubernetes.GetClusterStatus, ErrMsg: "Failed to get cluster status"},
 		{Task: kubernetes.InstallKubeBinaries, ErrMsg: "Failed to install kube binaries"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
