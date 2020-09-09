@@ -24,7 +24,7 @@ import (
 )
 
 var initOsScriptTmpl = template.Must(template.New("initOS").Parse(
-	dedent.Dedent(`#!/bin/sh
+	dedent.Dedent(`#!/bin/bash
 
 # Copyright 2020 The KubeSphere Authors.
 #
