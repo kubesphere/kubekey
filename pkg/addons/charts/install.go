@@ -60,6 +60,7 @@ func InstallChart(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig stri
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, helmDriver, debug); err != nil {
 		mgr.Logger.Fatal(err)
 	}
+
 	valueOpts := &values.Options{}
 
 	switch addon.Sources.Chart.Values.(type) {
@@ -77,10 +78,6 @@ func InstallChart(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig stri
 	}
 
 	client := action.NewUpgrade(actionConfig)
-
-	if client.Version == "" && client.Devel {
-		client.Version = ">0.0.0-0"
-	}
 
 	var chartName string
 	if addon.Sources.Chart.Name != "" {
@@ -101,7 +98,12 @@ func InstallChart(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig stri
 	client.Timeout = 300 * time.Second
 	client.Keyring = defaultKeyring()
 	client.RepoURL = addon.Sources.Chart.Repo
+	client.Version = addon.Sources.Chart.Version
 	//client.Force = true
+
+	if client.Version == "" && client.Devel {
+		client.Version = ">0.0.0-0"
+	}
 
 	if client.Install {
 		histClient := action.NewHistory(actionConfig)
@@ -114,6 +116,7 @@ func InstallChart(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig stri
 			instClient.Timeout = client.Timeout
 			instClient.Keyring = client.Keyring
 			instClient.RepoURL = client.RepoURL
+			instClient.Version = client.Version
 
 			release, err := runInstall(mgr, args, instClient, valueOpts, settings)
 			if err != nil {
