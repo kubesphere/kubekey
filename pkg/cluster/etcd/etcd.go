@@ -263,6 +263,31 @@ func RefreshEtcdConfig(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(refreshEtcdConfig, true)
 }
 
+func BackupEtcd(mgr *manager.Manager) error {
+	mgr.Logger.Infoln("Backup etcd data regularly")
+
+	return mgr.RunTaskOnEtcdNodes(backupEtcd, true)
+}
+
+func backupEtcd(mgr *manager.Manager, node *kubekeyapi.HostCfg ) error {
+	_, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"ls /opt/etcd_back/etcd-backup.sh\"", 0, true)
+	if err !=nil{
+		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /opt/etcd_back/\"", 0, false)
+		etcdBackupScript, _ := tmpl.EtcdBackupScript(mgr, node)
+		etcdBackupScriptBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBackupScript))
+		_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("echo %s | base64 -d > /opt/etcd_back/etcd-backup.sh && chmod +x /opt/etcd_back/etcd-backup.sh", etcdBackupScriptBase64), 1, false)
+		if err2 != nil {
+			return errors.Wrap(errors.WithStack(err2), "Failed to generate etcd backup")
+		}
+		_, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"crontab -l | grep -v '#' > /tmp/file;echo '0 2 * * * sh /opt/etcd_back/etcd-backup.sh' >> /tmp/file && awk ' !x[$0]++{print > \"/tmp/file\"}' /tmp/file;crontab /tmp/file\"", 2, false)
+		if err3 != nil{
+			return errors.Wrap(errors.WithStack(err3), "Failed to crontab backup etcd data")
+		}
+		return nil
+	}
+	return nil
+}
+
 func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 
 	if etcdStatus == "new" {
