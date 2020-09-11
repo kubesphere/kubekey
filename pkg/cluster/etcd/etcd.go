@@ -267,7 +267,7 @@ func BackupEtcd(mgr *manager.Manager) error {
 }
 
 func backupEtcd(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
-	_, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -d /opt/etcd_back ]; then rm -rf /opt/etcd_back ;fi\" && mkdir -p /opt/etcd_back", 0, false)
+	_, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -d /opt/etcd_back ]; then rm -rf /opt/etcd_back ;fi && mkdir -p /opt/etcd_back\"", 0, false)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to mkdir /opt/etcd_back")
 	}
