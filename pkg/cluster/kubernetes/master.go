@@ -239,7 +239,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 }
 
 func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
-	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
+	if !ExistNodeName(node.Name) {
 		if node.IsMaster {
 			err := addMaster(mgr)
 			if err != nil {
