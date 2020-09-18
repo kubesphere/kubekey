@@ -103,6 +103,8 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 
 快速入门使用 `all-in-one` 安装，这是熟悉 KubeSphere 的良好开始。
 
+> 注意： 由于 Kubernetes 暂不支持大写 NodeName， hostname 中包含大写字母将导致后续安装过程无法正常结束
+
 ##### 命令
 
 ```shell script
@@ -154,6 +156,8 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
         ```
 
 2. 根据您的环境修改配置文件 config-sample.yaml
+> 注意： 由于 Kubernetes 暂不支持大写 NodeName， worker 节点名中包含大写字母将导致后续安装过程无法正常结束
+>
 > 当指定安装KubeSphere时，要求集群中有可用的持久化存储。默认使用localVolume，如果需要使用其他持久化存储，请参阅 [addons](./docs/addons.md) 配置。
 3. 使用配置文件创建集群。
 
