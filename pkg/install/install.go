@@ -18,6 +18,10 @@ package install
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
@@ -31,8 +35,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
 )
 
 func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages bool) error {
@@ -49,7 +51,13 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
+	for _, host := range cfg.Spec.Hosts {
+		if host.Name != strings.ToLower(host.Name) {
+			return errors.New("Please do not use uppercase letters in hostname: " + host.Name)
+		}
+	}
 	return Execute(executor.NewExecutor(&cfg.Spec, logger, "", verbose, skipCheck, skipPullImages, false))
+
 }
 
 func ExecTasks(mgr *manager.Manager) error {
