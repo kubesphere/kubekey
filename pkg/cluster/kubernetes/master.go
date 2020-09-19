@@ -309,7 +309,7 @@ func addWorker(mgr *manager.Manager) error {
 	}
 	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", clusterStatus["kubeConfig"], "/root/.kube/config")
 	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", clusterStatus["kubeConfig"], "$HOME/.kube/config", chownKubeConfig)
-	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigForRootCmd), 1, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd(syncKubeconfigForRootCmd, 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigForUserCmd), 1, false); err != nil {
