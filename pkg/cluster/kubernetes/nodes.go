@@ -34,7 +34,7 @@ func InstallKubeBinaries(mgr *manager.Manager) error {
 }
 
 func installKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
-	if !ExistNodeName(node.Name) {
+	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
 		if err := SyncKubeBinaries(mgr, node); err != nil {
 			return err
 		}
@@ -44,11 +44,6 @@ func installKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		}
 	}
 	return nil
-}
-
-func ExistNodeName(nodename string) bool {
-	_, ok := allNodesName[nodename]
-	return ok
 }
 
 func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
