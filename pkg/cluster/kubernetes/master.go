@@ -33,6 +33,7 @@ import (
 
 var (
 	clusterIsExist = false
+	allNodesName   = map[string]string{}
 	clusterStatus  = map[string]string{
 		"version":       "",
 		"joinMasterCmd": "",
@@ -210,6 +211,12 @@ func getJoinCmd(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err3), "Failed to get cluster info")
 	}
 	clusterStatus["clusterInfo"] = output
+	tmp := strings.Split(clusterStatus["clusterInfo"], "\r\n")
+	if len(tmp) > 1 {
+		for i := 0; i < len(tmp); i++ {
+			allNodesName[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[0]
+		}
+	}
 
 	kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
 	output, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
@@ -239,7 +246,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 }
 
 func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
-	if !strings.Contains(clusterStatus["clusterInfo"], node.Name) && !strings.Contains(clusterStatus["clusterInfo"], node.InternalAddress) {
+	if !ExistNodeName(node.Name) {
 		if node.IsMaster {
 			err := addMaster(mgr)
 			if err != nil {

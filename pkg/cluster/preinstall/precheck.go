@@ -94,7 +94,7 @@ Loop:
 		if err != nil {
 			mgr.Logger.Fatal(err)
 		}
-		input = strings.TrimSpace(input)
+		input = strings.TrimSpace(strings.ToLower(input))
 
 		switch input {
 		case "yes":
