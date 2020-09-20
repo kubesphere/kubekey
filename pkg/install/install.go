@@ -50,12 +50,14 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
+
 	for _, host := range cfg.Spec.Hosts {
 		if host.Name != strings.ToLower(host.Name) {
 			return errors.New("Please do not use uppercase letters in hostname: " + host.Name)
 		}
 	}
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, skipCheck, skipPullImages))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, "", verbose, skipCheck, skipPullImages, false))
+
 }
 
 func ExecTasks(mgr *manager.Manager) error {

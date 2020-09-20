@@ -41,6 +41,8 @@ type Manager struct {
 	Debug          bool
 	SkipCheck      bool
 	SkipPullImages bool
+	SourcesDir     string
+	AddImagesRepo  bool
 }
 
 func (mgr *Manager) Copy() *Manager {

@@ -36,6 +36,8 @@ type Options struct {
 	SkipPullImages bool
 	KsVersion      string
 	Registry       string
+	SourcesDir     string
+	AddImagesRepo  bool
 }
 
 var (

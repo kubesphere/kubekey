@@ -152,7 +152,7 @@ EOF
 		}
 	}
 
-	_, err3 := mgr.Runner.ExecuteCmd(`cat <<EOF | kubectl apply -f -
+	_, err3 := mgr.Runner.ExecuteCmd(`cat <<EOF | /usr/local/bin/kubectl apply -f -
 apiVersion: v1
 kind: Namespace
 metadata:

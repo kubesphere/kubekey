@@ -48,7 +48,6 @@ config_daemon(){
     "max-file":"3"
   },
   "exec-opts": ["native.cgroupdriver=systemd"],
-  "registry-mirrors": ["https://hub-mirror.c.163.com", "https://docker.mirrors.ustc.edu.cn"]
 }
 EOF
     sudo systemctl daemon-reload

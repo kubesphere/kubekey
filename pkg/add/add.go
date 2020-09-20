@@ -46,7 +46,7 @@ func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, 
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, skipCheck, skipPullImages))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, "", verbose, skipCheck, skipPullImages, false))
 }
 
 func ExecTasks(mgr *manager.Manager) error {

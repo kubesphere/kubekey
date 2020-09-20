@@ -39,7 +39,7 @@ func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, false, true))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false))
 }
 
 func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName string) error {
@@ -60,7 +60,7 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
 		cfg, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
-		return Execute1(executor.NewExecutor(&cfg.Spec, logger, verbose, false, true))
+		return Execute1(executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false))
 	}
 	if string(nodeNameNum) == "1\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
@@ -69,7 +69,7 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 		if err != nil {
 			return errors.Wrap(err, "Failed to download cluster config")
 		}
-		mgr, err1 := executor.NewExecutor(&cfg.Spec, logger, verbose, false, true).CreateManager()
+		mgr, err1 := executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false).CreateManager()
 		if err1 != nil {
 			return errors.Wrap(err1, "Failed to get cluster config")
 		}
@@ -105,7 +105,7 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 			_ = exec.Command("/bin/sh", "-c", cmd2).Run()
 		}
 		cfg1, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
-		return Execute1(executor.NewExecutor(&cfg1.Spec, logger, verbose, false, true))
+		return Execute1(executor.NewExecutor(&cfg1.Spec, logger, "", verbose, false, true, false))
 	}
 
 	return nil
