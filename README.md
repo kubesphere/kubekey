@@ -101,6 +101,8 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 
 Quick Start is for `all-in-one` installation which is a good start to get familiar with KubeSphere.
 
+> Note: Since Kubernetes temporarily does not support uppercase NodeName, contains uppercase letters in the hostname will lead to subsequent installation error
+
 ##### Command
 
 ```shell script
@@ -152,6 +154,8 @@ You have more control to customize parameters or create a multi-node cluster usi
     ```
 
 2. Modify the file config-sample.yaml according to your environment
+> Note:  Since Kubernetes temporarily does not support uppercase NodeName, contains uppercase letters in workerNode`s name will lead to subsequent installation error
+> 
 > A persistent storage is required in the cluster, when kubesphere will be installed. The local volume is used default. If you want to use other persistent storage, please refer to [addons](./docs/addons.md).
 3. Create a cluster using the configuration file
 
