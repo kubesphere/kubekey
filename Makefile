@@ -6,11 +6,14 @@ GIT_TAG    = $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
 
 VERSION_METADATA = unreleased
+VERSION = latest
 # Clear the "unreleased" string in BuildMetadata
 ifneq ($(GIT_TAG),)
 	VERSION_METADATA =
+	VERSION = ${GIT_TAG}
 endif
 
+LDFLAGS += -X github.com/kubesphere/kubekey/version.version=${VERSION}
 LDFLAGS += -X github.com/kubesphere/kubekey/version.metadata=${VERSION_METADATA}
 LDFLAGS += -X github.com/kubesphere/kubekey/version.gitCommit=${GIT_COMMIT}
 LDFLAGS += -X github.com/kubesphere/kubekey/version.gitTreeState=${GIT_DIRTY}
