@@ -50,13 +50,6 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
-
-	//The detection is not an HA environment, and the address at LB does not need input
-	if len(cfg.Spec.RoleGroups.Master) < 3 && cfg.Spec.ControlPlaneEndpoint.Address != "" {
-		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value")
-		os.Exit(0)
-	}
-
 	for _, host := range cfg.Spec.Hosts {
 		if host.Name != strings.ToLower(host.Name) {
 			return errors.New("Please do not use uppercase letters in hostname: " + host.Name)
@@ -113,6 +106,11 @@ func Execute(executor *executor.Executor) error {
 	mgr, err := executor.CreateManager()
 	if err != nil {
 		return err
+	}
+	//The detection is not an HA environment, and the address at LB does not need input
+	if len(mgr.MasterNodes) == 1 && mgr.Cluster.ControlPlaneEndpoint.Address != "" {
+		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
+		os.Exit(0)
 	}
 	return ExecTasks(mgr)
 }
