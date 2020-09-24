@@ -19,7 +19,7 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -49,7 +49,7 @@ func GetClusterStatus(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(getClusterStatus, false)
 }
 
-func getClusterStatus(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func getClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if clusterStatus["clusterInfo"] == "" {
 		output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, true)
 		if strings.Contains(output, "Cluster will be created") {
@@ -82,7 +82,7 @@ func InitKubernetesCluster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(initKubernetesCluster, true)
 }
 
-func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 && !clusterIsExist {
 
 		var kubeadmCfgBase64 string
@@ -157,7 +157,7 @@ func GetKubeConfig(mgr *manager.Manager) error {
 	return nil
 }
 
-func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func removeMasterTaint(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if node.IsWorker {
 		removeMasterTaintCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=:NoSchedule-\"", node.Name)
 		_, err := mgr.Runner.ExecuteCmd(removeMasterTaintCmd, 5, true)
@@ -168,7 +168,7 @@ func removeMasterTaint(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func addWorkerLabel(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func addWorkerLabel(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if node.IsWorker {
 		addWorkerLabelCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl label --overwrite node %s node-role.kubernetes.io/worker=\"", node.Name)
 		_, _ = mgr.Runner.ExecuteCmd(addWorkerLabelCmd, 5, true)
@@ -245,7 +245,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(joinNodesToCluster, true)
 }
 
-func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if !ExistNodeName(node.Name) {
 		if node.IsMaster {
 			err := addMaster(mgr)

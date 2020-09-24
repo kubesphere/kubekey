@@ -18,7 +18,7 @@ package executor
 
 import (
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
@@ -28,7 +28,7 @@ import (
 )
 
 type Executor struct {
-	Cluster        *kubekeyapi.ClusterSpec
+	Cluster        *kubekeyapiv1alpha1.ClusterSpec
 	Logger         *log.Logger
 	SourcesDir     string
 	Debug          bool
@@ -37,7 +37,7 @@ type Executor struct {
 	AddImagesRepo  bool
 }
 
-func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo bool) *Executor {
+func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo bool) *Executor {
 	return &Executor{
 		Cluster:        cluster,
 		Logger:         logger,
@@ -73,7 +73,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	return mgr, nil
 }
 
-func GenerateHosts(hostGroups *kubekeyapi.HostGroups, cfg *kubekeyapi.ClusterSpec) []string {
+func GenerateHosts(hostGroups *kubekeyapiv1alpha1.HostGroups, cfg *kubekeyapiv1alpha1.ClusterSpec) []string {
 	var lbHost string
 	hostsList := []string{}
 
@@ -98,5 +98,5 @@ func GenerateWorkDir(logger *log.Logger) string {
 	if err != nil {
 		logger.Fatal(errors.Wrap(err, "Faild to get current dir"))
 	}
-	return fmt.Sprintf("%s/%s", currentDir, kubekeyapi.DefaultPreDir)
+	return fmt.Sprintf("%s/%s", currentDir, kubekeyapiv1alpha1.DefaultPreDir)
 }

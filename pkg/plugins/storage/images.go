@@ -1,13 +1,13 @@
 package storage
 
 import (
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 )
 
-func prePullStorageImages(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func prePullStorageImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	i := images.Images{}
 	i.Images = []images.Image{
 		preinstall.GetImage(mgr, "provisioner-localpv"),

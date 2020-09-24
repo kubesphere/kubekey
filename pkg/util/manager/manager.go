@@ -17,23 +17,23 @@ limitations under the License.
 package manager
 
 import (
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/runner"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	log "github.com/sirupsen/logrus"
 )
 
 type Manager struct {
-	Cluster        *kubekeyapi.ClusterSpec
+	Cluster        *kubekeyapiv1alpha1.ClusterSpec
 	Logger         log.FieldLogger
 	Connector      *ssh.Dialer
 	Runner         *runner.Runner
-	AllNodes       []kubekeyapi.HostCfg
-	EtcdNodes      []kubekeyapi.HostCfg
-	MasterNodes    []kubekeyapi.HostCfg
-	WorkerNodes    []kubekeyapi.HostCfg
-	K8sNodes       []kubekeyapi.HostCfg
-	ClientNode     []kubekeyapi.HostCfg
+	AllNodes       []kubekeyapiv1alpha1.HostCfg
+	EtcdNodes      []kubekeyapiv1alpha1.HostCfg
+	MasterNodes    []kubekeyapiv1alpha1.HostCfg
+	WorkerNodes    []kubekeyapiv1alpha1.HostCfg
+	K8sNodes       []kubekeyapiv1alpha1.HostCfg
+	ClientNode     []kubekeyapiv1alpha1.HostCfg
 	ClusterHosts   []string
 	WorkDir        string
 	KsEnable       bool

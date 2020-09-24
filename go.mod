@@ -5,11 +5,11 @@ go 1.14
 require (
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-logr/logr v0.1.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/modood/table v0.0.0-20200225102042-88de94bb9876
-	github.com/operator-framework/operator-sdk v0.19.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.11.0
 	github.com/sirupsen/logrus v1.6.0

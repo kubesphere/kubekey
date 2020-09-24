@@ -17,6 +17,7 @@ limitations under the License.
 package manager
 
 import (
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sync"
@@ -24,7 +25,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/runner"
 )
 
@@ -38,7 +38,7 @@ type Task struct {
 	ErrMsg string
 }
 
-type NodeTask func(mgr *Manager, node *kubekeyapi.HostCfg) error
+type NodeTask func(mgr *Manager, node *kubekeyapiv1alpha1.HostCfg) error
 
 func (t *Task) Run(mgr *Manager) error {
 	backoff := wait.Backoff{
@@ -65,7 +65,7 @@ func (t *Task) Run(mgr *Manager) error {
 	return err
 }
 
-func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, index int) error {
+func (mgr *Manager) runTask(node *kubekeyapiv1alpha1.HostCfg, task NodeTask, index int) error {
 	var (
 		err  error
 		conn ssh.Connection
@@ -86,7 +86,7 @@ func (mgr *Manager) runTask(node *kubekeyapi.HostCfg, task NodeTask, index int) 
 	return task(mgr, node)
 }
 
-func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, parallel bool) error {
+func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapiv1alpha1.HostCfg, task NodeTask, parallel bool) error {
 	var err error
 	hasErrors := false
 
@@ -118,7 +118,7 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapi.HostCfg, task NodeTask, pa
 		if parallel {
 			ccons <- struct{}{}
 			wg.Add(1)
-			go func(mgr *Manager, node *kubekeyapi.HostCfg, result chan string, index int) {
+			go func(mgr *Manager, node *kubekeyapiv1alpha1.HostCfg, result chan string, index int) {
 				err = mgr.runTask(node, task, index)
 				if err != nil {
 					mgr.Logger.Error(err)

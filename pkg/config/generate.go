@@ -20,7 +20,7 @@ import (
 	"bufio"
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
@@ -82,7 +82,7 @@ type Options struct {
 
 func GenerateClusterObjStr(opt *Options) (string, error) {
 	return util.Render(ClusterObjTempl, util.Data{
-		"KubeVersion": kubekeyapi.DefaultKubeVersion,
+		"KubeVersion": kubekeyapiv1alpha1.DefaultKubeVersion,
 		"Options":     opt,
 	})
 }
@@ -104,7 +104,7 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 		opt.Name = "sample"
 	}
 	if len(k8sVersion) == 0 {
-		opt.KubeVersion = kubekeyapi.DefaultKubeVersion
+		opt.KubeVersion = kubekeyapiv1alpha1.DefaultKubeVersion
 	} else {
 		opt.KubeVersion = k8sVersion
 	}

@@ -17,9 +17,9 @@ limitations under the License.
 package addons
 
 import (
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/addons/charts"
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/cli"
@@ -44,7 +44,7 @@ func InstallAddons(mgr *manager.Manager) error {
 	return nil
 }
 
-func installAddon(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig string) error {
+func installAddon(mgr *manager.Manager, addon *kubekeyapiv1alpha1.Addon, kubeconfig string) error {
 	// install chart
 	if addon.Sources.Chart.Name != "" {
 		_ = os.Setenv("HELM_NAMESPACE", strings.TrimSpace(addon.Namespace))

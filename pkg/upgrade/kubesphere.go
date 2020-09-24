@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	ksv2 "github.com/kubesphere/kubekey/pkg/kubesphere/v2"
 	ksv3 "github.com/kubesphere/kubekey/pkg/kubesphere/v3"
@@ -192,7 +192,7 @@ func SyncConfiguration(mgr *manager.Manager) error {
 	return nil
 }
 
-func syncConfiguration(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func syncConfiguration(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		configV2Str, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get cm -n kubesphere-system ks-installer -o jsonpath='{.data.ks-config\\.yaml}'\"", 2, false)
 		if err != nil {

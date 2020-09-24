@@ -17,7 +17,7 @@ limitations under the License.
 package tmpl
 
 import (
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -176,12 +176,12 @@ mv *.pem ${SSLDIR}/
     `)))
 )
 
-func GenerateEtcdSslCfg(cfg *kubekeyapi.ClusterSpec) (string, error) {
+func GenerateEtcdSslCfg(cfg *kubekeyapiv1alpha1.ClusterSpec) (string, error) {
 	dnsList := []string{"localhost", "etcd.kube-system.svc.cluster.local", "etcd.kube-system.svc", "etcd.kube-system", "etcd"}
 	ipList := []string{"127.0.0.1"}
 
 	if cfg.ControlPlaneEndpoint.Domain == "" {
-		dnsList = append(dnsList, kubekeyapi.DefaultLBDomain)
+		dnsList = append(dnsList, kubekeyapiv1alpha1.DefaultLBDomain)
 	} else {
 		dnsList = append(dnsList, cfg.ControlPlaneEndpoint.Domain)
 	}

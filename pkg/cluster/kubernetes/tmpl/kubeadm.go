@@ -18,7 +18,7 @@ package tmpl
 
 import (
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -151,12 +151,12 @@ featureGates:
     `)))
 
 func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
-	var externalEtcd kubekeyapi.ExternalEtcd
+	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
 	var endpointsList []string
 	var caFile, certFile, keyFile string
 
 	for _, host := range mgr.EtcdNodes {
-		endpoint := fmt.Sprintf("https://%s:%s", host.InternalAddress, kubekeyapi.DefaultEtcdPort)
+		endpoint := fmt.Sprintf("https://%s:%s", host.InternalAddress, kubekeyapiv1alpha1.DefaultEtcdPort)
 		endpointsList = append(endpointsList, endpoint)
 	}
 	externalEtcd.Endpoints = endpointsList

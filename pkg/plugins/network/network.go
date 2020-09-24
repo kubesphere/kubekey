@@ -18,7 +18,7 @@ package network
 
 import (
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/calico"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/flannel"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -36,7 +36,7 @@ func DeployNetworkPlugin(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(deployNetworkPlugin, true)
 }
 
-func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		switch mgr.Cluster.Network.Plugin {
 		case "calico":

@@ -18,7 +18,7 @@ package preinstall
 
 import (
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -33,8 +33,8 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: arch, Version: version}
 	kubelet := files.KubeBinary{Name: "kubelet", Arch: arch, Version: version}
 	kubectl := files.KubeBinary{Name: "kubectl", Arch: arch, Version: version}
-	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapi.DefaultCniVersion}
-	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapi.DefaultHelmVersion}
+	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCniVersion}
+	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapiv1alpha1.DefaultHelmVersion}
 
 	kubeadm.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
 	kubelet.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", kubelet.Version, kubelet.Arch)
@@ -45,7 +45,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	kubeadm.Path = fmt.Sprintf("%s/kubeadm", filepath)
 	kubelet.Path = fmt.Sprintf("%s/kubelet", filepath)
 	kubectl.Path = fmt.Sprintf("%s/kubectl", filepath)
-	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, arch, kubekeyapi.DefaultCniVersion)
+	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, arch, kubekeyapiv1alpha1.DefaultCniVersion)
 	helm.Path = fmt.Sprintf("%s/helm", filepath)
 
 	kubeadm.GetCmd = fmt.Sprintf("curl -o %s  %s", kubeadm.Path, kubeadm.Url)
@@ -106,7 +106,7 @@ func Prepare(mgr *manager.Manager) error {
 
 	var kubeVersion string
 	if cfg.Kubernetes.Version == "" {
-		kubeVersion = kubekeyapi.DefaultKubeVersion
+		kubeVersion = kubekeyapiv1alpha1.DefaultKubeVersion
 	} else {
 		kubeVersion = cfg.Kubernetes.Version
 	}
@@ -124,7 +124,7 @@ func Prepare(mgr *manager.Manager) error {
 	}
 
 	for arch := range archMap {
-		binariesDir := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, kubeVersion, arch)
+		binariesDir := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapiv1alpha1.DefaultPreDir, kubeVersion, arch)
 		if err := util.CreateDir(binariesDir); err != nil {
 			return errors.Wrap(err, "Failed to create download target dir")
 		}

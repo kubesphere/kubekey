@@ -20,7 +20,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"io/ioutil"
 	"net"
 	"os"
@@ -42,7 +42,7 @@ var (
 )
 
 type Connection interface {
-	Exec(cmd string, host *v1alpha1.HostCfg) (stdout string, err error)
+	Exec(cmd string, host *kubekeyapiv1alpha1.HostCfg) (stdout string, err error)
 	Scp(src, dst string) error
 }
 
@@ -208,7 +208,7 @@ func NewConnection(cfg Cfg) (Connection, error) {
 	return sshConn, nil
 }
 
-func (c *connection) Exec(cmd string, host *v1alpha1.HostCfg) (string, error) {
+func (c *connection) Exec(cmd string, host *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	sess, err := c.session()
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get SSH session")

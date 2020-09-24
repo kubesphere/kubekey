@@ -19,7 +19,7 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
@@ -33,7 +33,7 @@ func InstallKubeBinaries(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(installKubeBinaries, true)
 }
 
-func installKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func installKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if !ExistNodeName(node.Name) {
 		if err := SyncKubeBinaries(mgr, node); err != nil {
 			return err
@@ -51,7 +51,7 @@ func ExistNodeName(nodename string) bool {
 	return ok
 }
 
-func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 	tmpDir := "/tmp/kubekey"
 	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -d %s ]; then rm -rf %s ;fi\" && mkdir -p %s", tmpDir, tmpDir, tmpDir), 1, false)
@@ -64,13 +64,13 @@ func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 		return errors.Wrap(err1, "Failed to get current dir")
 	}
 
-	filesDir := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapi.DefaultPreDir, mgr.Cluster.Kubernetes.Version, node.Arch)
+	filesDir := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapiv1alpha1.DefaultPreDir, mgr.Cluster.Kubernetes.Version, node.Arch)
 
 	kubeadm := "kubeadm"
 	kubelet := "kubelet"
 	kubectl := "kubectl"
 	helm := "helm"
-	kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", node.Arch, kubekeyapi.DefaultCniVersion)
+	kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", node.Arch, kubekeyapiv1alpha1.DefaultCniVersion)
 	binaryList := []string{kubeadm, kubelet, kubectl, helm, kubecni}
 
 	var cmdlist []string
@@ -96,7 +96,7 @@ func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func SetKubelet(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func SetKubelet(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", "cp -f /tmp/kubekey/kubelet /usr/local/bin/kubelet && chmod +x /usr/local/bin/kubelet"), 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to create kubelet link"))

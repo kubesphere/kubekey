@@ -18,7 +18,7 @@ package charts
 
 import (
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
@@ -45,7 +45,7 @@ func debug(format string, v ...interface{}) {
 	}
 }
 
-func InstallChart(mgr *manager.Manager, addon *kubekeyapi.Addon, kubeconfig string) error {
+func InstallChart(mgr *manager.Manager, addon *kubekeyapiv1alpha1.Addon, kubeconfig string) error {
 	actionConfig := new(action.Configuration)
 	var settings = cli.New()
 	helmDriver := os.Getenv("HELM_DRIVER")
