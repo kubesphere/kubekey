@@ -120,7 +120,6 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 }
 
 func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg) ControlPlaneEndpoint {
-
 	if cfg.ControlPlaneEndpoint.Address == "" {
 		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
 	}

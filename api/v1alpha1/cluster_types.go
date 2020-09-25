@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -228,6 +229,11 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
 		} else {
 			masterGroupList = append(masterGroupList, host)
 		}
+	}
+	//The detection is not an HA environment, and the address at LB does not need input
+	if len(masterGroupList) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
+		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
+		os.Exit(0)
 	}
 
 	for _, host := range cfg.RoleGroups.Worker {
