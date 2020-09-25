@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build
-        run: go build -v -o output/kk
+        run: go build -v -o output/kk ./kubekey.go
 
       - uses: actions/upload-artifact@v2
         if: github.event_name == 'push'
