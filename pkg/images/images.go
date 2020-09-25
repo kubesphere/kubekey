@@ -18,7 +18,7 @@ package images
 
 import (
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 )
@@ -76,31 +76,31 @@ func (image Image) ImageRepo() string {
 	return fmt.Sprintf("%s%s", prefix, image.Repo)
 }
 
-func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	for _, image := range images.Images {
 
-		if node.IsMaster && image.Group == kubekeyapi.Master && image.Enable {
+		if node.IsMaster && image.Group == kubekeyapiv1alpha1.Master && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
-		if node.IsWorker && image.Group == kubekeyapi.Worker && image.Enable {
+		if node.IsWorker && image.Group == kubekeyapiv1alpha1.Worker && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
-		if (node.IsMaster || node.IsWorker) && image.Group == kubekeyapi.K8s && image.Enable {
+		if (node.IsMaster || node.IsWorker) && image.Group == kubekeyapiv1alpha1.K8s && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
-		if node.IsEtcd && image.Group == kubekeyapi.Etcd && image.Enable {
+		if node.IsEtcd && image.Group == kubekeyapiv1alpha1.Etcd && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
 			if err != nil {

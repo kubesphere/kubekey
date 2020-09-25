@@ -19,11 +19,11 @@ package kubesphere
 import (
 	"encoding/base64"
 	"fmt"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"regexp"
 	"strings"
 	"time"
 
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
@@ -44,7 +44,7 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 	return nil
 }
 
-func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func deployKubeSphere(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"mkdir -p /etc/kubernetes/addons\"", 1, false)
 
@@ -56,7 +56,7 @@ func deployKubeSphere(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func DeployKubeSphereStep(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func DeployKubeSphereStep(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	fmt.Println(mgr.Cluster.KubeSphere.Version)
 	switch mgr.Cluster.KubeSphere.Version {
 	case "v2.1.1":
@@ -261,7 +261,7 @@ func DeployLocalVolume(mgr *manager.Manager) error {
 	return nil
 }
 
-func deployLocalVolume(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func deployLocalVolume(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		if err := checkDefaultStorageClass(mgr); err != nil {
 			return err

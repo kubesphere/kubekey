@@ -19,7 +19,7 @@ package docker
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
@@ -74,7 +74,7 @@ func InstallerDocker(mgr *manager.Manager) error {
 	return mgr.RunTaskOnAllNodes(installDockerOnNode, true)
 }
 
-func installDockerOnNode(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func installDockerOnNode(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	dockerConfig, err := GenerateDockerConfig(mgr)
 	if err != nil {
 		return err

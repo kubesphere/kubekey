@@ -20,7 +20,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	osrelease "github.com/dominodatalab/os-release"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -75,7 +75,7 @@ func InitOS(mgr *manager.Manager) error {
 	return nil
 }
 
-func initOS(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func initOS(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	initFlag, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then echo needToInit; fi\""), 1, false)
 	if err1 != nil {
 		return err1
@@ -160,7 +160,7 @@ func initOS(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func initImagesRepo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func initImagesRepo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	crtPath := "/etc/docker/certs.d/dockerhub.kubekey.local"
 	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s && echo %s | base64 -d > %s/ca.crt\"", crtPath, registryCrt, crtPath)
 	if _, err := mgr.Runner.ExecuteCmd(syncKubeconfigForRootCmd, 1, false); err != nil {

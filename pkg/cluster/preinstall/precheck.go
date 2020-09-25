@@ -3,7 +3,7 @@ package preinstall
 import (
 	"bufio"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
@@ -42,7 +42,7 @@ func Precheck(mgr *manager.Manager) error {
 	return nil
 }
 
-func PrecheckNodes(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func PrecheckNodes(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	var results = make(map[string]interface{})
 	results["name"] = node.Name
 	for _, software := range BaseSoftwares {

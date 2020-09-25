@@ -19,7 +19,7 @@ package delete
 import (
 	"bufio"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -184,7 +184,7 @@ func ResetKubeNode(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(resetKubeNode, true)
 }
 
-func resetKubeNode(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func resetKubeNode(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		var deletenodename string
 		var tmp []string
@@ -285,7 +285,7 @@ var cmdsList = []string{
 	"ip link del nodelocaldns",
 }
 
-func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
 	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true, "printCmd")
 	_ = deleteFiles(mgr)

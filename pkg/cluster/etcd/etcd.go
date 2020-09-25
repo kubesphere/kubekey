@@ -19,7 +19,7 @@ package etcd
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd/tmpl"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -44,7 +44,7 @@ func GenerateEtcdCerts(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(generateCerts, true)
 }
 
-func generateCerts(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func generateCerts(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 
 	if mgr.Runner.Index == 0 {
 		certsScript, err := tmpl.GenerateEtcdSslScript(mgr)
@@ -123,7 +123,7 @@ func SyncEtcdCertsToMaster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(syncEtcdCertsToMaster, true)
 }
 
-func syncEtcdCertsToMaster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func syncEtcdCertsToMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if !node.IsEtcd {
 		_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo mkdir -p %s", etcdCertDir), 1, false)
 		for file, cert := range certsContent {
@@ -143,7 +143,7 @@ func GenerateEtcdService(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(generateEtcdService, true)
 }
 
-func generateEtcdService(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func generateEtcdService(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	etcdService, err := tmpl.GenerateEtcdService(mgr.Runner.Index)
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ func SetupEtcdCluster(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(setupEtcdCluster, false)
 }
 
-func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	var localPeerAddresses []string
 	output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"", 0, true)
 	if strings.TrimSpace(output) == "Configuration file already exists" {
@@ -266,7 +266,7 @@ func BackupEtcd(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(backupEtcd, true)
 }
 
-func backupEtcd(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func backupEtcd(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	_, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -d /opt/etcd_back ]; then rm -rf /opt/etcd_back ;fi && mkdir -p /opt/etcd_back\"", 0, false)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to mkdir /opt/etcd_back")
@@ -285,7 +285,7 @@ func backupEtcd(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 	if etcdStatus == "new" {
 		if err := refreshConfig(mgr, node, mgr.Runner.Index, peerAddresses, "new"); err != nil {
@@ -310,7 +310,7 @@ func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func helthCheck(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func helthCheck(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	checkHealthCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s cluster-health | grep -q 'cluster is healthy'\"", node.Name, node.Name, etcdBinDir, accessAddresses)
 helthCheckLoop:
 	for i := 20; i > 0; i-- {
@@ -328,7 +328,7 @@ helthCheckLoop:
 	return nil
 }
 
-func refreshConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg, index int, endpoints []string, state string) error {
+func refreshConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, index int, endpoints []string, state string) error {
 	etcdEnv, err := tmpl.GenerateEtcdEnv(node, index, endpoints, state)
 	if err != nil {
 		return err

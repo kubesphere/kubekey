@@ -19,7 +19,7 @@ package preinstall
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
@@ -48,7 +48,7 @@ func InitOS(mgr *manager.Manager) error {
 	return mgr.RunTaskOnAllNodes(initOsOnNode, true)
 }
 
-func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func initOsOnNode(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 	_ = addUsers(mgr, node)
 
@@ -85,7 +85,7 @@ func initOsOnNode(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func addUsers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func addUsers(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"useradd -M -c 'Kubernetes user' -s /sbin/nologin -r kube || :\"", 1, false); err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func addUsers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func createDirectories(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func createDirectories(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	dirs := []string{binDir, kubeConfigDir, kubeCertDir, kubeManifestDir, kubeScriptDir, kubeletFlexvolumesPluginsDir}
 	for _, dir := range dirs {
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s\"", dir), 1, false); err != nil {

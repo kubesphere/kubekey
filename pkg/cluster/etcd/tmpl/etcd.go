@@ -18,7 +18,7 @@ package tmpl
 
 import (
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -119,13 +119,13 @@ func GenerateEtcdService(index int) (string, error) {
 	})
 }
 
-func GenerateEtcdEnv(node *kubekeyapi.HostCfg, index int, endpoints []string, state string) (string, error) {
+func GenerateEtcdEnv(node *kubekeyapiv1alpha1.HostCfg, index int, endpoints []string, state string) (string, error) {
 	UnsupportedArch := false
 	if node.Arch != "amd64" {
 		UnsupportedArch = true
 	}
 	return util.Render(EtcdEnvTempl, util.Data{
-		"Tag":             kubekeyapi.DefaultEtcdVersion,
+		"Tag":             kubekeyapiv1alpha1.DefaultEtcdVersion,
 		"Name":            fmt.Sprintf("etcd%d", index+1),
 		"Ip":              node.InternalAddress,
 		"Hostname":        node.Name,

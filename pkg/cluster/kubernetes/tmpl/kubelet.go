@@ -17,7 +17,7 @@ limitations under the License.
 package tmpl
 
 import (
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
 	"text/template"
@@ -59,7 +59,7 @@ func GenerateKubeletService() (string, error) {
 	return util.Render(KubeletServiceTempl, util.Data{})
 }
 
-func GenerateKubeletEnv(node *kubekeyapi.HostCfg) (string, error) {
+func GenerateKubeletEnv(node *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	return util.Render(KubeletEnvTempl, util.Data{
 		"NodeIP":   node.InternalAddress,
 		"Hostname": node.Name,

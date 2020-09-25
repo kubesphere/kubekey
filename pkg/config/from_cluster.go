@@ -21,7 +21,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
@@ -127,7 +127,7 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	}
 
 	for _, node := range nodes.Items {
-		nodeCfg := kubekeyapi.HostCfg{}
+		nodeCfg := kubekeyapiv1alpha1.HostCfg{}
 		nodeInfo, err := clientset.CoreV1().Nodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err

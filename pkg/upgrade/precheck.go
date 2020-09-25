@@ -19,7 +19,7 @@ package upgrade
 import (
 	"bufio"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/mitchellh/mapstructure"
@@ -78,7 +78,7 @@ func GetClusterInfo(mgr *manager.Manager) error {
 	return mgr.RunTaskOnMasterNodes(getClusterInfo, true)
 }
 
-func getClusterInfo(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		if err := getKubeConfig(mgr); err != nil {
 			return err

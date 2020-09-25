@@ -17,11 +17,10 @@ limitations under the License.
 package ssh
 
 import (
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"strconv"
 	"sync"
 	"time"
-
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 )
 
 type Dialer struct {
@@ -35,7 +34,7 @@ func NewDialer() *Dialer {
 	}
 }
 
-func (dialer *Dialer) Connect(host kubekeyapi.HostCfg) (Connection, error) {
+func (dialer *Dialer) Connect(host kubekeyapiv1alpha1.HostCfg) (Connection, error) {
 	var err error
 
 	dialer.lock.Lock()

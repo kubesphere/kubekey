@@ -19,7 +19,7 @@ package config
 import (
 	"bufio"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/pkg/errors"
@@ -34,8 +34,8 @@ import (
 	"strings"
 )
 
-func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapi.Cluster, error) {
-	var clusterCfg *kubekeyapi.Cluster
+func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, error) {
+	var clusterCfg *kubekeyapiv1alpha1.Cluster
 	if len(clusterCfgPath) == 0 {
 		user, _ := user.Current()
 		if user.Name != "root" {
@@ -53,8 +53,8 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 	return clusterCfg, nil
 }
 
-func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*kubekeyapi.Cluster, error) {
-	clusterCfg := kubekeyapi.Cluster{}
+func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*kubekeyapiv1alpha1.Cluster, error) {
+	clusterCfg := kubekeyapiv1alpha1.Cluster{}
 	fp, err := filepath.Abs(clusterCfgPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to look up current directory")
@@ -127,8 +127,8 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 	return &clusterCfg, nil
 }
 
-func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) *kubekeyapi.Cluster {
-	allinoneCfg := kubekeyapi.Cluster{}
+func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) *kubekeyapiv1alpha1.Cluster {
+	allinoneCfg := kubekeyapiv1alpha1.Cluster{}
 	if output, err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").CombinedOutput(); err != nil {
 		log.Fatalf("Failed to generate public key: %v\n%s", err, string(output))
 	}
@@ -141,7 +141,7 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		log.Fatalf("Failed to get hostname: %v\n", err)
 	}
 
-	allinoneCfg.Spec.Hosts = append(allinoneCfg.Spec.Hosts, kubekeyapi.HostCfg{
+	allinoneCfg.Spec.Hosts = append(allinoneCfg.Spec.Hosts, kubekeyapiv1alpha1.HostCfg{
 		Name:            hostname,
 		Address:         util.LocalIP(),
 		InternalAddress: util.LocalIP(),
@@ -152,18 +152,18 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		Arch:            runtime.GOARCH,
 	})
 
-	allinoneCfg.Spec.RoleGroups = kubekeyapi.RoleGroups{
+	allinoneCfg.Spec.RoleGroups = kubekeyapiv1alpha1.RoleGroups{
 		Etcd:   []string{hostname},
 		Master: []string{hostname},
 		Worker: []string{hostname},
 	}
 	if k8sVersion != "" {
-		allinoneCfg.Spec.Kubernetes = kubekeyapi.Kubernetes{
+		allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
 			Version: k8sVersion,
 		}
 	} else {
-		allinoneCfg.Spec.Kubernetes = kubekeyapi.Kubernetes{
-			Version: kubekeyapi.DefaultKubeVersion,
+		allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
+			Version: kubekeyapiv1alpha1.DefaultKubeVersion,
 		}
 	}
 

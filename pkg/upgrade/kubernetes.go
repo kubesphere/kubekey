@@ -3,7 +3,7 @@ package upgrade
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
@@ -34,7 +34,7 @@ func GetCurrentVersions(mgr *manager.Manager) error {
 	return mgr.RunTaskOnK8sNodes(getCurrentVersion, true)
 }
 
-func getCurrentVersion(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func getCurrentVersion(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	kubeletVersionInfo, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubelet --version\"", 3, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current kubelet version")
@@ -96,7 +96,7 @@ func getMinVersion(versionsMap map[string]string) (string, error) {
 	}
 }
 
-func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	kubeletVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubelet --version\"", 3, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current kubelet version")
@@ -180,7 +180,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	kubeletVersion, err := mgr.Runner.ExecuteCmd("/usr/local/bin/kubelet --version", 3, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current kubelet version")
@@ -292,7 +292,7 @@ Loop:
 
 }
 
-func upgradeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+func upgradeCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if node.IsMaster {
 		if err := upgradeKubeMasters(mgr, node); err != nil {
 			return err
@@ -306,7 +306,7 @@ func upgradeCluster(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
 	return nil
 }
 
-func reconfigDns(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
+func reconfigDns(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		patchCorednsCmd := `sudo -E /bin/sh -c "/usr/local/bin/kubectl patch deploy -n kube-system coredns -p \" 
 spec:
