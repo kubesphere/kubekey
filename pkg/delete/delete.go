@@ -39,7 +39,7 @@ func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, verbose, false, true))
+	return Execute(executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false))
 }
 
 func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName string) error {
@@ -50,62 +50,62 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 	cmd0 := fmt.Sprintf("cat %s | grep %s | wc -l", fp, nodeName)
 	nodeNameNum, err0 := exec.Command("/bin/sh", "-c", cmd0).CombinedOutput()
 	if err0 != nil {
-		errors.Wrap(err0,"Failed to get node num")
+		return errors.Wrap(err0, "Failed to get node num")
 	}
-	if string(nodeNameNum) == "0\n"{
-		fmt.Sprintf("Please check the node name in the config-sample.yaml")
+	if string(nodeNameNum) == "0\n" {
+		_ = fmt.Sprintf("Please check the node name in the config-sample.yaml")
 		os.Exit(0)
 	}
 	if string(nodeNameNum) == "2\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
-		cfg, _ := config.ParseClusterCfg(clusterCfgFile, "","",false,logger)
-		return Execute1(executor.NewExecutor(&cfg.Spec, logger, verbose, false,true))
+		cfg, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+		return Execute1(executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false))
 	}
 	if string(nodeNameNum) == "1\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
-		cfg, err := config.ParseClusterCfg(clusterCfgFile, "","",false, logger)
-		if err != nil{
-			errors.Wrap(err, "Failed to download cluster config")
+		cfg, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+		if err != nil {
+			return errors.Wrap(err, "Failed to download cluster config")
 		}
-		mgr, err1 := executor.NewExecutor(&cfg.Spec, logger, verbose, false, true).CreateManager()
-		if err1 != nil{
-			errors.Wrap(err1, "Failed to get cluster config")
+		mgr, err1 := executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false).CreateManager()
+		if err1 != nil {
+			return errors.Wrap(err1, "Failed to get cluster config")
 		}
 		var newNodeName []string
-		for i := 0; i<len(mgr.WorkerNodes);i++{
+		for i := 0; i < len(mgr.WorkerNodes); i++ {
 			nodename := mgr.WorkerNodes[i].Name
-			if nodeName == nodename{
+			if nodeName == nodename {
 				continue
-			}else {
+			} else {
 				newNodeName = append(newNodeName, nodename)
 			}
 		}
 		var connNodeName []string
-		for j := 0;j <len(newNodeName);j++{
+		for j := 0; j < len(newNodeName); j++ {
 			t := j
 			nodename1 := newNodeName[t]
-			for ;t+1<len(newNodeName)&& Isadjoin(newNodeName[t],newNodeName[t+1]);{
-				t ++
+			for t+1 < len(newNodeName) && Isadjoin(newNodeName[t], newNodeName[t+1]) {
+				t++
 			}
-			if t == j{
+			if t == j {
 				connNodeName = append(connNodeName, nodename1)
-			}else {
+			} else {
 				connNodeName = append(connNodeName, Merge(nodename1, newNodeName[t]))
 				j = t
 			}
 		}
-		cmd1 := fmt.Sprintf("sed -i -n '1,/worker/p;/controlPlaneEndpoint/,$p' %s",fp)
-		exec.Command("/bin/sh","-c",cmd1).Run()
-		for k := 0; k<len(connNodeName);k++{
+		cmd1 := fmt.Sprintf("sed -i -n '1,/worker/p;/controlPlaneEndpoint/,$p' %s", fp)
+		_ = exec.Command("/bin/sh", "-c", cmd1).Run()
+		for k := 0; k < len(connNodeName); k++ {
 			workPar := connNodeName[k]
-			workPar1 := fmt.Sprintf("%s",workPar)
-			cmd2 := fmt.Sprintf("sed -i '/worker/a\\ \\ \\ \\ \\- %s' %s",workPar1, fp)
-			exec.Command("/bin/sh", "-c",cmd2).Run()
+			workPar1 := fmt.Sprintf("%s", workPar)
+			cmd2 := fmt.Sprintf("sed -i '/worker/a\\ \\ \\ \\ \\- %s' %s", workPar1, fp)
+			_ = exec.Command("/bin/sh", "-c", cmd2).Run()
 		}
-		cfg1, _ := config.ParseClusterCfg(clusterCfgFile, "","",false,logger)
-		return Execute1(executor.NewExecutor(&cfg1.Spec, logger, verbose, false,true))
+		cfg1, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+		return Execute1(executor.NewExecutor(&cfg1.Spec, logger, "", verbose, false, true, false))
 	}
 
 	return nil
@@ -117,9 +117,9 @@ func Execute(executor *executor.Executor) error {
 	}
 	return ExecTasks(mgr)
 }
-func Execute1(executor * executor.Executor) error {
+func Execute1(executor *executor.Executor) error {
 	mgr, err := executor.CreateManager()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return ExecTasks1(mgr)
@@ -185,13 +185,13 @@ func ResetKubeNode(mgr *manager.Manager) error {
 }
 
 func resetKubeNode(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
-	if mgr.Runner.Index == 0{
+	if mgr.Runner.Index == 0 {
 		var deletenodename string
 		var tmp []string
 		output1, _ := mgr.Runner.ExecuteCmd("sudo -E  /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master' | awk '{print $1}'", 0, true)
-		if !strings.Contains(output1,"\r\n"){
-			tmp = append(tmp,output1)
-		}else {
+		if !strings.Contains(output1, "\r\n") {
+			tmp = append(tmp, output1)
+		} else {
 			tmp = strings.Split(output1, "\r\n")
 		}
 		var tmp1 string
@@ -206,18 +206,20 @@ func resetKubeNode(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 				break
 			}
 		}
-		DrainAndDeleteNode(mgr, deletenodename)
+		if err := DrainAndDeleteNode(mgr, deletenodename); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 func DrainAndDeleteNode(mgr *manager.Manager, deleteNodeName string) error {
 	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl drain %s --delete-local-data --ignore-daemonsets\"", deleteNodeName), 5, true)
 	if err != nil {
-		errors.Wrap(err, "Failed to drain the node")
+		return errors.Wrap(err, "Failed to drain the node")
 	}
 	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl delete node %s\"", deleteNodeName), 5, true)
 	if err1 != nil {
-		errors.Wrap(err1, "Failed to delete the node")
+		return errors.Wrap(err1, "Failed to delete the node")
 	}
 	return nil
 }
@@ -246,7 +248,6 @@ func SplitNum(nodename string) (name string, num int) {
 			num, _ := strconv.Atoi(nodename[i+1:])
 			name := nodename[:i+1]
 			return name, num
-			break
 		}
 	}
 	return "", 0
@@ -286,8 +287,7 @@ var cmdsList = []string{
 
 func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
-	fmt.Println(strings.Join(cmdsList, " && "))
-	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true)
+	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true, "printCmd")
 	_ = deleteFiles(mgr)
 	return nil
 }

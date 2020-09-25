@@ -29,16 +29,13 @@ import (
 )
 
 var (
-	certsStr         = make(chan map[string]string)
-	certsContent     = map[string]string{}
-	etcdBackupPrefix = "/var/backups"
-	etcdDataDir      = "/var/lib/etcd"
-	etcdConfigDir    = "/etc/ssl/etcd"
-	etcdCertDir      = "/etc/ssl/etcd/ssl"
-	etcdBinDir       = "/usr/local/bin"
-	accessAddresses  = ""
-	peerAddresses    = []string{}
-	etcdStatus       = ""
+	certsStr        = make(chan map[string]string)
+	certsContent    = map[string]string{}
+	etcdCertDir     = "/etc/ssl/etcd/ssl"
+	etcdBinDir      = "/usr/local/bin"
+	accessAddresses = ""
+	peerAddresses   []string
+	etcdStatus      = ""
 )
 
 func GenerateEtcdCerts(mgr *manager.Manager) error {
@@ -177,7 +174,7 @@ func generateEtcdService(mgr *manager.Manager, _ *kubekeyapi.HostCfg) error {
 		return err
 	}
 
-	addrList := []string{}
+	var addrList []string
 	for _, host := range mgr.EtcdNodes {
 		addrList = append(addrList, fmt.Sprintf("https://%s:2379", host.InternalAddress))
 	}
@@ -261,6 +258,31 @@ func RefreshEtcdConfig(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Refreshing etcd configuration")
 
 	return mgr.RunTaskOnEtcdNodes(refreshEtcdConfig, true)
+}
+
+func BackupEtcd(mgr *manager.Manager) error {
+	mgr.Logger.Infoln("Backup etcd data regularly")
+
+	return mgr.RunTaskOnEtcdNodes(backupEtcd, true)
+}
+
+func backupEtcd(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {
+	_, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -d /opt/etcd_back ]; then rm -rf /opt/etcd_back ;fi && mkdir -p /opt/etcd_back\"", 0, false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to mkdir /opt/etcd_back")
+	}
+	etcdBackupScript, _ := tmpl.EtcdBackupScript(mgr, node)
+	etcdBackupScriptBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBackupScript))
+	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /opt/etcd_back/etcd-backup.sh && chmod +x /opt/etcd_back/etcd-backup.sh\"", etcdBackupScriptBase64), 1, false)
+	if err2 != nil {
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate etcd backup")
+	}
+	_, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"crontab -l | grep -v '#' > /tmp/file;echo '0 2 * * * sh /opt/etcd_back/etcd-backup.sh' >> /tmp/file && awk ' !x[$0]++{print > \"/tmp/file\"}' /tmp/file;crontab /tmp/file\"", 2, false)
+	if err3 != nil {
+		return errors.Wrap(errors.WithStack(err3), "Failed to crontab backup etcd data")
+	}
+
+	return nil
 }
 
 func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapi.HostCfg) error {

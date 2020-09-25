@@ -30,18 +30,22 @@ import (
 type Executor struct {
 	Cluster        *kubekeyapi.ClusterSpec
 	Logger         *log.Logger
+	SourcesDir     string
 	Debug          bool
 	SkipCheck      bool
 	SkipPullImages bool
+	AddImagesRepo  bool
 }
 
-func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, debug, skipCheck, skipPullImages bool) *Executor {
+func NewExecutor(cluster *kubekeyapi.ClusterSpec, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo bool) *Executor {
 	return &Executor{
 		Cluster:        cluster,
 		Logger:         logger,
+		SourcesDir:     sourcesDir,
 		Debug:          debug,
 		SkipCheck:      skipCheck,
 		SkipPullImages: skipPullImages,
+		AddImagesRepo:  addImagesRepo,
 	}
 }
 
@@ -64,6 +68,8 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.Debug = executor.Debug
 	mgr.SkipCheck = executor.SkipCheck
 	mgr.SkipPullImages = executor.SkipPullImages
+	mgr.SourcesDir = executor.SourcesDir
+	mgr.AddImagesRepo = executor.AddImagesRepo
 	return mgr, nil
 }
 

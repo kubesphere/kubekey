@@ -19,13 +19,14 @@ package kubesphere
 import (
 	"encoding/base64"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
-	"regexp"
-	"strings"
-	"time"
 )
 
 var stopChan = make(chan string, 1)
@@ -141,7 +142,8 @@ EOF
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/local_registry/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", mgr.Cluster.Registry.PrivateRegistry), 2, false); err != nil {
+		PrivateRegistry := strings.Replace(string(mgr.Cluster.Registry.PrivateRegistry), "/", "\\/", -1)
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/local_registry/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", PrivateRegistry), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
 		}
 	} else {
@@ -150,7 +152,7 @@ EOF
 		}
 	}
 
-	_, err3 := mgr.Runner.ExecuteCmd(`cat <<EOF | kubectl apply -f -
+	_, err3 := mgr.Runner.ExecuteCmd(`cat <<EOF | /usr/local/bin/kubectl apply -f -
 apiVersion: v1
 kind: Namespace
 metadata:

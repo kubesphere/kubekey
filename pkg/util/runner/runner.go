@@ -31,13 +31,20 @@ type Runner struct {
 	Index int
 }
 
-func (r *Runner) ExecuteCmd(cmd string, retries int, printOutput bool) (string, error) {
+func (r *Runner) ExecuteCmd(cmd string, retries int, printOutput bool, args ...string) (string, error) {
 	if r.Conn == nil {
 		return "", errors.New("No ssh connection available")
 	}
 
 	var lastErr error
 	var lastOutput string
+
+	for _, i := range args {
+		if i == "printCmd" {
+			fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
+			fmt.Printf("%s\n", cmd)
+		}
+	}
 
 retriesLoop:
 	for i := retries; i >= 0; i-- {

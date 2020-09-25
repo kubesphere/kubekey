@@ -24,7 +24,7 @@ import (
 )
 
 var initOsScriptTmpl = template.Must(template.New("initOS").Parse(
-	dedent.Dedent(`#!/bin/sh
+	dedent.Dedent(`#!/usr/bin/env bash
 
 # Copyright 2020 The KubeSphere Authors.
 #
@@ -109,6 +109,12 @@ update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 |
 update-alternatives --set arptables /usr/sbin/arptables-legacy >/dev/null 2>&1 || true
 update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || true
 
+ulimit -u 65535
+ulimit -n 65535
+
+crontab -l | grep -v '#' > /tmp/file1
+echo "0 3 * * * ps -A -ostat,ppid | grep -e '^[Zz]' | awk '{print $2}' | xargs kill -HUP > /dev/null 2>&1" >> /tmp/file1 && awk ' !x[$0]++{print > "/tmp/file1"}' /tmp/file1
+crontab /tmp/file1
     `)))
 
 func InitOsScript(mgr *manager.Manager) (string, error) {
