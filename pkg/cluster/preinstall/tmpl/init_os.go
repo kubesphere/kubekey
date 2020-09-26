@@ -57,8 +57,8 @@ sed -r -i  "s@#{0,}?net.ipv4.ip_local_reserved_ports ?= ?(0|1)@net.ipv4.ip_local
 
 awk ' !x[$0]++{print > "/etc/sysctl.conf"}' /etc/sysctl.conf
 
-systemctl stop firewald 1>/dev/null 2>/dev/null
-systemctl disable firewald 1>/dev/null 2>/dev/null
+systemctl stop firewalld 1>/dev/null 2>/dev/null
+systemctl disable firewalld 1>/dev/null 2>/dev/null
 systemctl stop ufw 1>/dev/null 2>/dev/null
 systemctl disable ufw 1>/dev/null 2>/dev/null
 
