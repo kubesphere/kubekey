@@ -16,15 +16,17 @@ var EtcdBackupScriptTmpl = template.Must(template.New("etcdBackupScript").Parse(
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
 ENDPOINTS='{{ .Etcdendpoint }}'
 ETCD_DATA_DIR="/var/lib/etcd"
-BACKUP_DIR="/var/backups/kube_etcd/etcd-$(date +%Y-%m-%d_%H:%M:%S)"
+BACKUP_DIR="{{ .Backupdir }}/etcd-$(date +%Y-%m-%d_%H:%M:%S)"
+KEEPBACKUPNUMBER='{{ .KeepbackupNumber }}'
+ETCDBACKUPPERIOD='{{ .EtcdBackupPeriod }}'
+ETCDBACKUPSCIPT='{{ .EtcdBackupScript }}'
+ETCDBACKUPHOUR='{{ .EtcdBackupHour }}'
 
 ETCDCTL_CERT="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem"
 ETCDCTL_KEY="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem"
 ETCDCTL_CA_FILE="/etc/ssl/etcd/ssl/ca.pem"
 
-
 [ ! -d $BACKUP_DIR ] && mkdir -p $BACKUP_DIR
-
 
 export ETCDCTL_API=2;$ETCDCTL_PATH backup --data-dir $ETCD_DATA_DIR --backup-dir $BACKUP_DIR
 
@@ -39,7 +41,23 @@ export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ENDPOINTS" snapshot save $BACKU
 
 sleep 3
 
-cd $BACKUP_DIR/../;ls -lt |awk '{if(NR>14){print "rm -rf "$9}}'|sh
+cd $BACKUP_DIR/../;ls -lt |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$9}}'|sh
+
+if [[ ! $ETCDBACKUPHOUR ]]; then
+  time="*/$ETCDBACKUPPERIOD * * * *"
+else
+  if [[ 0 == $ETCDBACKUPPERIOD ]];then
+    time="* */$ETCDBACKUPHOUR * * *"
+  else
+    time="*/$ETCDBACKUPPERIOD */$ETCDBACKUPHOUR * * *"
+  fi
+fi
+
+crontab -l | grep -v '#' > /tmp/file
+echo "$time sh $ETCDBACKUPSCIPT/etcd-backup.sh" >> /tmp/file && awk ' !x[$0]++{print > "/tmp/file"}' /tmp/file
+crontab /tmp/file
+rm -rf /tmp/file
+
 `)))
 
 func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
@@ -48,7 +66,12 @@ func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (s
 		ips = append(ips, fmt.Sprintf("https://%s:2379", host.InternalAddress))
 	}
 	return util.Render(EtcdBackupScriptTmpl, util.Data{
-		"Hostname":     node.Name,
-		"Etcdendpoint": strings.Join(ips, ","),
+		"Hostname":         node.Name,
+		"Etcdendpoint":     strings.Join(ips, ","),
+		"Backupdir":        mgr.Cluster.Kubernetes.EtcdBackupDir,
+		"KeepbackupNumber": mgr.Cluster.Kubernetes.KeepBackupNumber,
+		"EtcdBackupPeriod": mgr.Cluster.Kubernetes.EtcdBackupPeriod,
+		"EtcdBackupScript": mgr.Cluster.Kubernetes.EtcdBackupScript,
+		"EtcdBackupHour":   mgr.Cluster.Kubernetes.EtcdBackupHour,
 	})
 }
