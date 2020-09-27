@@ -28,3 +28,10 @@ type CalicoCfg struct {
 	VXLANMode string `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
 	VethMTU   string `yaml:"vethMTU" json:"vethMTU,omitempty"`
 }
+
+type EtcdCfg struct {
+	EtcdBackupDir    string `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
+	EtcdBackupPeriod string `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
+	KeepBackupNumber string `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
+	EtcdBackupScript string `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
+}

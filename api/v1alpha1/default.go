@@ -50,6 +50,10 @@ const (
 	Master                  = "master"
 	Worker                  = "worker"
 	K8s                     = "k8s"
+	DefaultEtcdBackupDir    = "/var/backups/kube_etcd"
+	DefaultEtcdBackupPeriod = "1"
+	DefaultKeepBackNumber   = "5"
+	DefaultEtcdBackupScript = "/usr/local/bin/kube-scripts"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
@@ -61,6 +65,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
 
 	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, hostGroups.Master)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
+	clusterCfg.Etcd = SetDefaultEtcdCfg(cfg)
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
@@ -171,4 +176,21 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	defaultClusterCfg := cfg.Kubernetes
 
 	return defaultClusterCfg
+}
+
+func SetDefaultEtcdCfg(cfg *ClusterSpec) EtcdCfg {
+	if cfg.Etcd.EtcdBackupDir == "" {
+		cfg.Etcd.EtcdBackupDir = DefaultEtcdBackupDir
+	}
+	if cfg.Etcd.EtcdBackupPeriod == "" {
+		cfg.Etcd.EtcdBackupPeriod = DefaultEtcdBackupPeriod
+	}
+	if cfg.Etcd.KeepBackupNumber == "" {
+		cfg.Etcd.KeepBackupNumber = DefaultKeepBackNumber
+	}
+	if cfg.Etcd.EtcdBackupScript == "" {
+		cfg.Etcd.EtcdBackupScript = DefaultEtcdBackupScript
+	}
+	defaultEtcdCfg := cfg.Etcd
+	return defaultEtcdCfg
 }

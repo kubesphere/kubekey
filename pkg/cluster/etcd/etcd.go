@@ -267,21 +267,21 @@ func BackupEtcd(mgr *manager.Manager) error {
 }
 
 func backupEtcd(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	_, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -d /opt/etcd_back ]; then rm -rf /opt/etcd_back ;fi && mkdir -p /opt/etcd_back\"", 0, false)
+	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s\"", mgr.Cluster.Etcd.EtcdBackupScript), 0, false)
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to mkdir /opt/etcd_back")
+		return errors.Wrap(errors.WithStack(err), "Failed to create etcd backup")
 	}
+	tmpDir := "/tmp/kubekey"
 	etcdBackupScript, _ := tmpl.EtcdBackupScript(mgr, node)
 	etcdBackupScriptBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBackupScript))
-	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /opt/etcd_back/etcd-backup.sh && chmod +x /opt/etcd_back/etcd-backup.sh\"", etcdBackupScriptBase64), 1, false)
+	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s/etcd-backup.sh && chmod +x %s/etcd-backup.sh\"", etcdBackupScriptBase64, tmpDir, tmpDir), 1, false)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to generate etcd backup")
 	}
-	_, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"crontab -l | grep -v '#' > /tmp/file;echo '0 2 * * * sh /opt/etcd_back/etcd-backup.sh' >> /tmp/file && awk ' !x[$0]++{print > \"/tmp/file\"}' /tmp/file;crontab /tmp/file\"", 2, false)
+	_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo cp %s/etcd-backup.sh %s &&sudo %s/etcd-backup.sh", tmpDir, mgr.Cluster.Etcd.EtcdBackupScript, mgr.Cluster.Etcd.EtcdBackupScript), 1, false)
 	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "Failed to crontab backup etcd data")
+		return errors.Wrap(errors.WithStack(err3), "Failed to run the etcd-backup.sh")
 	}
-
 	return nil
 }
 
