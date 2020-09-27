@@ -166,26 +166,33 @@ func (cfg *ClusterSpec) GroupHosts() *HostGroups {
 	etcdGroup, masterGroup, workerGroup := cfg.ParseRolesList()
 	for index, host := range cfg.Hosts {
 		host.ID = index
-		for _, hostName := range etcdGroup {
-			if host.Name == hostName {
-				host.IsEtcd = true
-				break
+		if len(etcdGroup) > 0 {
+			for _, hostName := range etcdGroup {
+				if host.Name == hostName {
+					host.IsEtcd = true
+					break
+				}
 			}
 		}
 
-		for _, hostName := range masterGroup {
-			if host.Name == hostName {
-				host.IsMaster = true
-				break
+		if len(masterGroup) > 0 {
+			for _, hostName := range masterGroup {
+				if host.Name == hostName {
+					host.IsMaster = true
+					break
+				}
 			}
 		}
 
-		for _, hostName := range workerGroup {
-			if host.Name == hostName {
-				host.IsWorker = true
-				break
+		if len(workerGroup) > 0 {
+			for _, hostName := range workerGroup {
+				if hostName != "" && host.Name == hostName {
+					host.IsWorker = true
+					break
+				}
 			}
 		}
+
 		if host.IsEtcd {
 			clusterHostsGroups.Etcd = append(clusterHostsGroups.Etcd, host)
 		}
@@ -200,8 +207,22 @@ func (cfg *ClusterSpec) GroupHosts() *HostGroups {
 		}
 		clusterHostsGroups.All = append(clusterHostsGroups.All, host)
 	}
-	clusterHostsGroups.Client = append(clusterHostsGroups.Client, clusterHostsGroups.Master[0])
 
+	//Check that the parameters under roleGroups are incorrect
+	if len(masterGroup) != len(clusterHostsGroups.Master) {
+		fmt.Println("Incorrect nodeName under roleGroups/master in the config-sample.yaml, Please check before installing.")
+		os.Exit(0)
+	}
+	if len(etcdGroup) != len(clusterHostsGroups.Master) {
+		fmt.Println("Incorrect nodeName under roleGroups/etcd in the config-sample.yaml, Please check before installing.")
+		os.Exit(0)
+	}
+	if len(workerGroup) != len(clusterHostsGroups.Master) {
+		fmt.Println("Incorrect nodeName under roleGroups/work in the config-sample.yaml, Please check before installing.")
+		os.Exit(0)
+	}
+
+	clusterHostsGroups.Client = append(clusterHostsGroups.Client, clusterHostsGroups.Master[0])
 	return &clusterHostsGroups
 }
 
@@ -220,7 +241,12 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
 		} else {
 			etcdGroupList = append(etcdGroupList, host)
 		}
+	}
 
+	//Check that the number of ETcd is odd
+	if len(etcdGroupList)%2 == 0 {
+		fmt.Println("The number of Etcd is even. Please configure it to be odd.")
+		os.Exit(0)
 	}
 
 	for _, host := range cfg.RoleGroups.Master {
@@ -233,6 +259,12 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
 	//The detection is not an HA environment, and the address at LB does not need input
 	if len(masterGroupList) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
 		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
+		os.Exit(0)
+	}
+
+	//Check whether LB should be configured
+	if len(masterGroupList) >= 3 && cfg.ControlPlaneEndpoint.Address == "" {
+		fmt.Println("When the environment has at least three masters, You must set the value of the LB address.")
 		os.Exit(0)
 	}
 
