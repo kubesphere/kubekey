@@ -43,7 +43,6 @@ type ClusterSpec struct {
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
 	Addons               []Addon              `yaml:"addons" json:"addons,omitempty"`
 	KubeSphere           KubeSphere           `json:"kubesphere,omitempty"`
-	Etcd                 EtcdCfg              `yaml:"etcd" json:"etcd,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster
