@@ -18,7 +18,9 @@ package main
 
 import (
 	"flag"
+	"github.com/kubesphere/kubekey/cmd"
 	"os"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -45,6 +47,12 @@ func init() {
 }
 
 func main() {
+
+	if strings.Contains(os.Args[0], "kk") {
+		cmd.Execute()
+		os.Exit(0)
+	}
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")

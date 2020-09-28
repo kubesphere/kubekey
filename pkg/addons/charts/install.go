@@ -34,7 +34,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"reflect"
 	"time"
 )
 
@@ -62,19 +61,11 @@ func InstallChart(mgr *manager.Manager, addon *kubekeyapiv1alpha1.Addon, kubecon
 	}
 
 	valueOpts := &values.Options{}
-
-	switch addon.Sources.Chart.Values.(type) {
-	case string:
-		valueOpts.ValueFiles = []string{addon.Sources.Chart.Values.(string)}
-	case []interface{}:
-		var values []string
-		for _, value := range addon.Sources.Chart.Values.([]interface{}) {
-			values = append(values, fmt.Sprintf("%v", value))
-		}
-		valueOpts.Values = values
-	case nil:
-	default:
-		return errors.New(fmt.Sprintf("Unsupported type: %v", reflect.TypeOf(addon.Sources.Chart.Values)))
+	if len(addon.Sources.Chart.Values) != 0 {
+		valueOpts.Values = addon.Sources.Chart.Values
+	}
+	if len(addon.Sources.Chart.ValuesFile) != 0 {
+		valueOpts.ValueFiles = []string{addon.Sources.Chart.ValuesFile}
 	}
 
 	client := action.NewUpgrade(actionConfig)
