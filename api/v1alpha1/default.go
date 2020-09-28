@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -50,6 +52,10 @@ const (
 	Master                  = "master"
 	Worker                  = "worker"
 	K8s                     = "k8s"
+	DefaultEtcdBackupDir    = "/var/backups/kube_etcd"
+	DefaultEtcdBackupPeriod = "30"
+	DefaultKeepBackNumber   = "5"
+	DefaultEtcdBackupScript = "/usr/local/bin/kube-scripts"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
@@ -166,6 +172,29 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	}
 	if cfg.Kubernetes.ClusterName == "" {
 		cfg.Kubernetes.ClusterName = DefaultClusterName
+	}
+	if cfg.Kubernetes.EtcdBackupDir == "" {
+		cfg.Kubernetes.EtcdBackupDir = DefaultEtcdBackupDir
+	}
+	if cfg.Kubernetes.EtcdBackupPeriod == "" {
+		cfg.Kubernetes.EtcdBackupPeriod = DefaultEtcdBackupPeriod
+	} else {
+		period, _ := strconv.Atoi(cfg.Kubernetes.EtcdBackupPeriod)
+		if period > 60 && period < 1440 {
+			cfg.Kubernetes.EtcdBackupPeriod = strconv.Itoa(period % 60)
+			cfg.Kubernetes.EtcdBackupHour = strconv.Itoa(period / 60)
+		}
+		if period > 1440 {
+			fmt.Println("Etcd backup cannot last more than one day, Please change it to within one day.")
+			os.Exit(0)
+		}
+	}
+
+	if cfg.Kubernetes.KeepBackupNumber == "" {
+		cfg.Kubernetes.KeepBackupNumber = DefaultKeepBackNumber
+	}
+	if cfg.Kubernetes.EtcdBackupScript == "" {
+		cfg.Kubernetes.EtcdBackupScript = DefaultEtcdBackupScript
 	}
 
 	defaultClusterCfg := cfg.Kubernetes
