@@ -45,6 +45,7 @@ const (
 	DefaultIPIPMode            = "Always"
 	DefaultVXLANMode           = "Never"
 	DefaultVethMTU             = "1440"
+	DefaultBackendMode         = "vxlan"
 	DefaultProxyMode           = "ipvs"
 	Etcd                       = "etcd"
 	Master                     = "master"
@@ -155,6 +156,9 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 	}
 	if cfg.Network.Calico.VethMTU == "" {
 		cfg.Network.Calico.VethMTU = DefaultVethMTU
+	}
+	if cfg.Network.Flannel.BackendMode == "" {
+		cfg.Network.Flannel.BackendMode = DefaultBackendMode
 	}
 	defaultNetworkCfg := cfg.Network
 
