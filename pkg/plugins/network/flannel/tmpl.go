@@ -154,7 +154,7 @@ data:
     {
       "Network": "{{ .KubePodsCIDR }}",
       "Backend": {
-        "Type": "vxlan"
+        "Type": "{{ .BackendMode }}"
       }
     }
 ---
@@ -254,5 +254,6 @@ func GenerateFlannelFiles(mgr *manager.Manager) (string, error) {
 	return util.Render(flannelTempl, util.Data{
 		"KubePodsCIDR": mgr.Cluster.Network.KubePodsCIDR,
 		"FlannelImage": preinstall.GetImage(mgr, "flannel").ImageName(),
+		"BackendMode":  mgr.Cluster.Network.Flannel.BackendMode,
 	})
 }

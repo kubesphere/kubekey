@@ -17,14 +17,19 @@ limitations under the License.
 package v1alpha1
 
 type NetworkConfig struct {
-	Plugin          string    `yaml:"plugin" json:"plugin,omitempty"`
-	KubePodsCIDR    string    `yaml:"kubePodsCIDR" json:"kubePodsCIDR,omitempty"`
-	KubeServiceCIDR string    `yaml:"kubeServiceCIDR" json:"kubeServiceCIDR,omitempty"`
-	Calico          CalicoCfg `yaml:"calico" json:"calico,omitempty"`
+	Plugin          string     `yaml:"plugin" json:"plugin,omitempty"`
+	KubePodsCIDR    string     `yaml:"kubePodsCIDR" json:"kubePodsCIDR,omitempty"`
+	KubeServiceCIDR string     `yaml:"kubeServiceCIDR" json:"kubeServiceCIDR,omitempty"`
+	Calico          CalicoCfg  `yaml:"calico" json:"calico,omitempty"`
+	Flannel         FlannelCfg `yaml:"flannel" json:"flannel,omitempty"`
 }
 
 type CalicoCfg struct {
 	IPIPMode  string `yaml:"ipipMode" json:"ipipMode,omitempty"`
 	VXLANMode string `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
 	VethMTU   string `yaml:"vethMTU" json:"vethMTU,omitempty"`
+}
+
+type FlannelCfg struct {
+	BackendMode string `yaml:"backendMode" json:"backendMode,omitempty"`
 }
