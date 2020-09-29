@@ -49,6 +49,28 @@ type ClusterSpec struct {
 type ClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	Version       string       `json:"version,omitempty"`
+	NetworkPlugin string       `json:"networkPlugin,omitempty"`
+	NodesCount    int          `json:"nodesCount,omitempty"`
+	EtcdCount     int          `json:"etcdCount,omitempty"`
+	MasterCount   int          `json:"masterCount,omitempty"`
+	WorkerCount   int          `json:"workerCount,omitempty"`
+	Nodes         []NodeStatus `json:"nodes,omitempty"`
+	Conditions    []Condition  `json:"Conditions,omitempty"`
+}
+
+type NodeStatus struct {
+	InternalIP string          `json:"internalIP,omitempty"`
+	Hostname   string          `json:"hostname,omitempty"`
+	Roles      map[string]bool `json:"roles,omitempty"`
+}
+
+type Condition struct {
+	Step      string `json:"step,omitempty"`
+	StartTime string `json:"startTime,omitempty"`
+	EndTime   string `json:"endTime,omitempty"`
+	Status    bool   `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -195,6 +195,45 @@ spec:
           type: object
         status:
           description: ClusterStatus defines the observed state of Cluster
+          properties:
+            Conditions:
+              items:
+                properties:
+                  endTime:
+                    type: string
+                  startTime:
+                    type: string
+                  status:
+                    type: boolean
+                  step:
+                    type: string
+                type: object
+              type: array
+            etcdCount:
+              type: integer
+            masterCount:
+              type: integer
+            networkPlugin:
+              type: string
+            nodes:
+              items:
+                properties:
+                  hostname:
+                    type: string
+                  internalIP:
+                    type: string
+                  roles:
+                    additionalProperties:
+                      type: boolean
+                    type: object
+                type: object
+              type: array
+            nodesCount:
+              type: integer
+            version:
+              type: string
+            workerCount:
+              type: integer
           type: object
       type: object
   version: v1alpha1
