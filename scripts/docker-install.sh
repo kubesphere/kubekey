@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-docker_version=19.03.8
+docker_version=19.03.13
 #apt_yum_url="https://download.docker.com"
 apt_yum_url="https://mirrors.aliyun.com/docker-ce"
 
