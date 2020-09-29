@@ -55,6 +55,7 @@ type ClusterStatus struct {
 // +kubebuilder:subresource:status
 
 // Cluster is the Schema for the clusters API
+// +kubebuilder:resource:path=clusters,scope=Cluster
 type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -119,9 +120,9 @@ type RegistryConfig struct {
 }
 
 type KubeSphere struct {
-	Enabled        bool
-	Version        string
-	Configurations string
+	Enabled        bool   `json:"enabled,omitempty"`
+	Version        string `json:"version,omitempty"`
+	Configurations string `json:"configurations,omitempty"`
 }
 
 type ExternalEtcd struct {
