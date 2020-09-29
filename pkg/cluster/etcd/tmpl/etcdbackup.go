@@ -6,6 +6,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
+	"os"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -19,7 +21,7 @@ ETCD_DATA_DIR="/var/lib/etcd"
 BACKUP_DIR="{{ .Backupdir }}/etcd-$(date +%Y-%m-%d_%H:%M:%S)"
 KEEPBACKUPNUMBER='{{ .KeepbackupNumber }}'
 ETCDBACKUPPERIOD='{{ .EtcdBackupPeriod }}'
-ETCDBACKUPSCIPT='{{ .EtcdBackupScript }}'
+ETCDBACKUPSCIPT='{{ .EtcdBackupScriptDir }}'
 ETCDBACKUPHOUR='{{ .EtcdBackupHour }}'
 
 ETCDCTL_CERT="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem"
@@ -62,16 +64,29 @@ rm -rf /tmp/file
 
 func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	ips := []string{}
+	var etcdBackupHour string
 	for _, host := range mgr.EtcdNodes {
 		ips = append(ips, fmt.Sprintf("https://%s:2379", host.InternalAddress))
 	}
+	if mgr.Cluster.Kubernetes.EtcdBackupPeriod != "" {
+		period, _ := strconv.Atoi(mgr.Cluster.Kubernetes.EtcdBackupPeriod)
+		if period > 60 && period < 1440 {
+			mgr.Cluster.Kubernetes.EtcdBackupPeriod = strconv.Itoa(period % 60)
+			etcdBackupHour = strconv.Itoa(period / 60)
+		}
+		if period > 1440 {
+			fmt.Println("Etcd backup cannot last more than one day, Please change it to within one day.")
+			os.Exit(0)
+		}
+	}
+
 	return util.Render(EtcdBackupScriptTmpl, util.Data{
-		"Hostname":         node.Name,
-		"Etcdendpoint":     strings.Join(ips, ","),
-		"Backupdir":        mgr.Cluster.Kubernetes.EtcdBackupDir,
-		"KeepbackupNumber": mgr.Cluster.Kubernetes.KeepBackupNumber,
-		"EtcdBackupPeriod": mgr.Cluster.Kubernetes.EtcdBackupPeriod,
-		"EtcdBackupScript": mgr.Cluster.Kubernetes.EtcdBackupScript,
-		"EtcdBackupHour":   mgr.Cluster.Kubernetes.EtcdBackupHour,
+		"Hostname":            node.Name,
+		"Etcdendpoint":        strings.Join(ips, ","),
+		"Backupdir":           mgr.Cluster.Kubernetes.EtcdBackupDir,
+		"KeepbackupNumber":    mgr.Cluster.Kubernetes.KeepBackupNumber,
+		"EtcdBackupPeriod":    mgr.Cluster.Kubernetes.EtcdBackupPeriod,
+		"EtcdBackupScriptDir": mgr.Cluster.Kubernetes.EtcdBackupScriptDir,
+		"EtcdBackupHour":      etcdBackupHour,
 	})
 }

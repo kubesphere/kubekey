@@ -19,43 +19,41 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
-	"os"
-	"strconv"
 	"strings"
 )
 
 const (
-	DefaultPreDir           = "kubekey"
-	DefaultSSHPort          = "22"
-	DefaultLBPort           = "6443"
-	DefaultLBDomain         = "lb.kubesphere.local"
-	DefaultNetworkPlugin    = "calico"
-	DefaultPodsCIDR         = "10.233.64.0/18"
-	DefaultServiceCIDR      = "10.233.0.0/18"
-	DefaultKubeImageRepo    = "kubesphere"
-	DefaultClusterName      = "cluster.local"
-	DefaultArch             = "amd64"
-	DefaultEtcdVersion      = "v3.3.12"
-	DefaultEtcdPort         = "2379"
-	DefaultKubeVersion      = "v1.17.9"
-	DefaultCalicoVersion    = "v3.15.1"
-	DefaultFlannelVersion   = "v0.12.0"
-	DefaultCniVersion       = "v0.8.6"
-	DefaultHelmVersion      = "v3.2.1"
-	DefaultMaxPods          = "110"
-	DefaultNodeCidrMaskSize = "24"
-	DefaultIPIPMode         = "Always"
-	DefaultVXLANMode        = "Never"
-	DefaultVethMTU          = "1440"
-	DefaultProxyMode        = "ipvs"
-	Etcd                    = "etcd"
-	Master                  = "master"
-	Worker                  = "worker"
-	K8s                     = "k8s"
-	DefaultEtcdBackupDir    = "/var/backups/kube_etcd"
-	DefaultEtcdBackupPeriod = "30"
-	DefaultKeepBackNumber   = "5"
-	DefaultEtcdBackupScript = "/usr/local/bin/kube-scripts"
+	DefaultPreDir              = "kubekey"
+	DefaultSSHPort             = "22"
+	DefaultLBPort              = "6443"
+	DefaultLBDomain            = "lb.kubesphere.local"
+	DefaultNetworkPlugin       = "calico"
+	DefaultPodsCIDR            = "10.233.64.0/18"
+	DefaultServiceCIDR         = "10.233.0.0/18"
+	DefaultKubeImageRepo       = "kubesphere"
+	DefaultClusterName         = "cluster.local"
+	DefaultArch                = "amd64"
+	DefaultEtcdVersion         = "v3.3.12"
+	DefaultEtcdPort            = "2379"
+	DefaultKubeVersion         = "v1.17.9"
+	DefaultCalicoVersion       = "v3.15.1"
+	DefaultFlannelVersion      = "v0.12.0"
+	DefaultCniVersion          = "v0.8.6"
+	DefaultHelmVersion         = "v3.2.1"
+	DefaultMaxPods             = "110"
+	DefaultNodeCidrMaskSize    = "24"
+	DefaultIPIPMode            = "Always"
+	DefaultVXLANMode           = "Never"
+	DefaultVethMTU             = "1440"
+	DefaultProxyMode           = "ipvs"
+	Etcd                       = "etcd"
+	Master                     = "master"
+	Worker                     = "worker"
+	K8s                        = "k8s"
+	DefaultEtcdBackupDir       = "/var/backups/kube_etcd"
+	DefaultEtcdBackupPeriod    = "30"
+	DefaultKeepBackNumber      = "5"
+	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
@@ -178,23 +176,12 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	}
 	if cfg.Kubernetes.EtcdBackupPeriod == "" {
 		cfg.Kubernetes.EtcdBackupPeriod = DefaultEtcdBackupPeriod
-	} else {
-		period, _ := strconv.Atoi(cfg.Kubernetes.EtcdBackupPeriod)
-		if period > 60 && period < 1440 {
-			cfg.Kubernetes.EtcdBackupPeriod = strconv.Itoa(period % 60)
-			cfg.Kubernetes.EtcdBackupHour = strconv.Itoa(period / 60)
-		}
-		if period > 1440 {
-			fmt.Println("Etcd backup cannot last more than one day, Please change it to within one day.")
-			os.Exit(0)
-		}
 	}
-
 	if cfg.Kubernetes.KeepBackupNumber == "" {
 		cfg.Kubernetes.KeepBackupNumber = DefaultKeepBackNumber
 	}
-	if cfg.Kubernetes.EtcdBackupScript == "" {
-		cfg.Kubernetes.EtcdBackupScript = DefaultEtcdBackupScript
+	if cfg.Kubernetes.EtcdBackupScriptDir == "" {
+		cfg.Kubernetes.EtcdBackupScriptDir = DefaultEtcdBackupScriptDir
 	}
 
 	defaultClusterCfg := cfg.Kubernetes
