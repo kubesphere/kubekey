@@ -27,7 +27,6 @@ type Kubernetes struct {
 	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
 	EtcdBackupDir          string   `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
 	EtcdBackupPeriod       string   `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
-	EtcdBackupHour         string   `yaml:"etcdBackupHour" json:"etcdBackupHour,omitempty"`
 	KeepBackupNumber       string   `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
-	EtcdBackupScript       string   `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
+	EtcdBackupScriptDir    string   `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
 }
