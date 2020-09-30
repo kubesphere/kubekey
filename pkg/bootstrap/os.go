@@ -36,7 +36,7 @@ var registryCrt string
 func InitOS(mgr *manager.Manager) error {
 	user, _ := user.Current()
 	if user.Username != "root" {
-		return errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
+		return errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Username))
 	}
 	mgr.Logger.Infoln("Init operating system")
 
