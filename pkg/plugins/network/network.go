@@ -20,6 +20,7 @@ import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/calico"
+	"github.com/kubesphere/kubekey/pkg/plugins/network/cilium"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/flannel"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -49,6 +50,10 @@ func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 			}
 		case "macvlan":
 			if err := deployMacvlan(); err != nil {
+				return err
+			}
+		case "cilium":
+			if err := deployCilium(mgr); err != nil {
 				return err
 			}
 		default:
@@ -132,5 +137,34 @@ func deployFlannel(mgr *manager.Manager) error {
 }
 
 func deployMacvlan() error {
+	return nil
+}
+
+func deployCilium(mgr *manager.Manager) error {
+	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
+		ciliumContent, err := cilium.GenerateCiliumFiles(mgr)
+		if err != nil {
+			return err
+		}
+		err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(ciliumContent), 0644)
+		if err1 != nil {
+			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
+		}
+	}
+
+	ciliumBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
+	if err1 != nil {
+		return errors.Wrap(errors.WithStack(err1), "Failed to read network plugin manifests")
+	}
+
+	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/bash -c \"base64 -d <<< '%s' | tar xz -C %s\"", strings.TrimSpace(string(ciliumBase64)), "/etc/kubernetes"), 2, false)
+	if err2 != nil {
+		return errors.Wrap(errors.WithStack(err2), "Failed to generate network plugin manifests")
+	}
+
+	_, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml --force\"", 5, true)
+	if err3 != nil {
+		return errors.Wrap(errors.WithStack(err2), "Failed to deploy network plugin")
+	}
 	return nil
 }
