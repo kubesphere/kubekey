@@ -38,8 +38,8 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 	var clusterCfg *kubekeyapiv1alpha1.Cluster
 	if len(clusterCfgPath) == 0 {
 		user, _ := user.Current()
-		if user.Name != "root" {
-			return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Name))
+		if user.Username != "root" {
+			return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Username))
 		}
 		clusterCfg = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
 	} else {
