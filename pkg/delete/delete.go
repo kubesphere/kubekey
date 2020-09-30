@@ -52,17 +52,12 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 	if err0 != nil {
 		return errors.Wrap(err0, "Failed to get node num")
 	}
-	if string(nodeNameNum) == "0\n" {
-		_ = fmt.Sprintf("Please check the node name in the config-sample.yaml")
-		os.Exit(0)
-	}
 	if string(nodeNameNum) == "2\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
 		cfg, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
 		return Execute1(executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false))
-	}
-	if string(nodeNameNum) == "1\n" {
+	} else if string(nodeNameNum) == "1\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
 		cfg, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
@@ -106,6 +101,9 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 		}
 		cfg1, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
 		return Execute1(executor.NewExecutor(&cfg1.Spec, logger, "", verbose, false, true, false))
+	} else {
+		fmt.Println("Please check the node name in the config-sample.yaml or do not support to delete master")
+		os.Exit(0)
 	}
 
 	return nil
@@ -191,6 +189,8 @@ func resetKubeNode(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 		output1, _ := mgr.Runner.ExecuteCmd("sudo -E  /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master' | awk '{print $1}'", 0, true)
 		if !strings.Contains(output1, "\r\n") {
 			tmp = append(tmp, output1)
+			fmt.Println("")
+			os.Exit(0)
 		} else {
 			tmp = strings.Split(output1, "\r\n")
 		}
