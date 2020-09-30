@@ -39,6 +39,7 @@ const (
 	DefaultCalicoVersion       = "v3.15.1"
 	DefaultFlannelVersion      = "v0.12.0"
 	DefaultCniVersion          = "v0.8.6"
+	DefaultCiliumVersion       = "v1.8.3"
 	DefaultHelmVersion         = "v3.2.1"
 	DefaultMaxPods             = "110"
 	DefaultNodeCidrMaskSize    = "24"
