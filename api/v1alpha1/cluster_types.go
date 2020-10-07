@@ -67,10 +67,10 @@ type NodeStatus struct {
 }
 
 type Condition struct {
-	Step      string `json:"step,omitempty"`
-	StartTime string `json:"startTime,omitempty"`
-	EndTime   string `json:"endTime,omitempty"`
-	Status    bool   `json:"status,omitempty"`
+	Step      string      `json:"step,omitempty"`
+	StartTime metav1.Time `json:"startTime,omitempty"`
+	EndTime   metav1.Time `json:"endTime,omitempty"`
+	Status    bool        `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

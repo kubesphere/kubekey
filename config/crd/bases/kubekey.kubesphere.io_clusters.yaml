@@ -157,6 +157,11 @@ spec:
                     vxlanMode:
                       type: string
                   type: object
+                flannel:
+                  properties:
+                    backendMode:
+                      type: string
+                  type: object
                 kubePodsCIDR:
                   type: string
                 kubeServiceCIDR:
@@ -200,8 +205,10 @@ spec:
               items:
                 properties:
                   endTime:
+                    format: date-time
                     type: string
                   startTime:
+                    format: date-time
                     type: string
                   status:
                     type: boolean
