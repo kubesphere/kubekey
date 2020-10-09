@@ -236,11 +236,11 @@ func (cfg *ClusterSpec) GroupHosts() *HostGroups {
 		fmt.Println("Incorrect nodeName under roleGroups/master in the config-sample.yaml, Please check before installing.")
 		os.Exit(0)
 	}
-	if len(etcdGroup) != len(clusterHostsGroups.Master) {
+	if len(etcdGroup) != len(clusterHostsGroups.Etcd) {
 		fmt.Println("Incorrect nodeName under roleGroups/etcd in the config-sample.yaml, Please check before installing.")
 		os.Exit(0)
 	}
-	if len(workerGroup) != len(clusterHostsGroups.Master) {
+	if len(workerGroup) != len(clusterHostsGroups.Worker) {
 		fmt.Println("Incorrect nodeName under roleGroups/work in the config-sample.yaml, Please check before installing.")
 		os.Exit(0)
 	}
