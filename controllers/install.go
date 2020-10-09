@@ -19,16 +19,16 @@ package controllers
 import (
 	"context"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/util/executor"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func installTasks(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, executor *executor.Executor) error {
-	mgr, err := executor.CreateManager()
-	if err != nil {
+func installTasks(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, mgr *manager.Manager) error {
+	// init nodes
+	cluster.Status.Conditions = []kubekeyv1alpha1.Condition{}
+	if err := r.Status().Update(ctx, cluster); err != nil {
 		return err
 	}
-	// init nodes
 	initNodesCondition := kubekeyv1alpha1.Condition{
 		Step:      "Init nodes",
 		StartTime: metav1.Now(),
@@ -144,6 +144,11 @@ func installTasks(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1a
 	cluster.Status.WorkerCount = len(mgr.WorkerNodes)
 	cluster.Status.EtcdCount = len(mgr.EtcdNodes)
 	cluster.Status.NetworkPlugin = mgr.Cluster.Network.Plugin
+
+	cluster.Status.Nodes = []kubekeyv1alpha1.NodeStatus{}
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return err
+	}
 
 	for _, node := range mgr.AllNodes {
 		cluster.Status.Nodes = append(cluster.Status.Nodes, kubekeyv1alpha1.NodeStatus{

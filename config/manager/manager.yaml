@@ -22,10 +22,10 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
-      hostNetwork: true
+#      hostNetwork: true
       containers:
       - command:
-        - /manager
+        - /home/kubekey/manager
         args:
         - --enable-leader-election
         image: controller:latest
