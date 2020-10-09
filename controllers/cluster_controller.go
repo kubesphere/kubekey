@@ -54,10 +54,8 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	logger := util.InitLogger(true)
 
 	cluster := &kubekeyv1alpha1.Cluster{}
-	newExecutor := executor.NewExecutor(&cluster.Spec, logger, "", true, true, false, false)
 
-	err := r.Get(ctx, req.NamespacedName, cluster)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if kubeErr.IsNotFound(err) {
 			log.Info("Cluster resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
@@ -66,9 +64,23 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if len(cluster.Status.Conditions) == 0 {
+	newExecutor := executor.NewExecutor(&cluster.Spec, logger, "", true, true, false, false)
+
+	mgr, err := newExecutor.CreateManager()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if len(cluster.Status.Conditions) == 0 || len(cluster.Status.Nodes) == 0 {
 		// install
-		if err := installTasks(r, ctx, cluster, newExecutor); err != nil {
+		if err := installTasks(r, ctx, cluster, mgr); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	if len(mgr.AllNodes) > cluster.Status.NodesCount {
+		// add nodes
+		if err := installTasks(r, ctx, cluster, mgr); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
