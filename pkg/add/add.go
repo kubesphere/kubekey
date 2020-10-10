@@ -73,7 +73,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
-	mgr.Logger.Infoln("Congradulations! Scaling cluster is successful.")
+	mgr.Logger.Infoln("Congratulations! Scaling cluster is successful.")
 
 	return nil
 }

@@ -43,7 +43,7 @@ func DownloadBinaries(mgr *manager.Manager) error {
 
 func InitOS(mgr *manager.Manager) error {
 
-	mgr.Logger.Infoln("Configurating operating system ...")
+	mgr.Logger.Infoln("Configuring operating system ...")
 
 	return mgr.RunTaskOnAllNodes(initOsOnNode, true)
 }
