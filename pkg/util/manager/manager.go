@@ -24,6 +24,7 @@ import (
 )
 
 type Manager struct {
+	ObjName        string
 	Cluster        *kubekeyapiv1alpha1.ClusterSpec
 	Logger         log.FieldLogger
 	Connector      *ssh.Dialer

@@ -106,6 +106,7 @@ type HostCfg struct {
 	Port            string `yaml:"port,omitempty" json:"port,omitempty"`
 	User            string `yaml:"user,omitempty" json:"user,omitempty"`
 	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
+	PrivateKey      string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
 	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
 	ID              int    `json:"-"`

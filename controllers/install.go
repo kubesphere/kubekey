@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func installTasks(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, mgr *manager.Manager) error {
+func clusterTasksExecute(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, mgr *manager.Manager) error {
 	// init nodes
 	cluster.Status.Conditions = []kubekeyv1alpha1.Condition{}
 	if err := r.Status().Update(ctx, cluster); err != nil {
@@ -158,6 +158,32 @@ func installTasks(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1a
 		})
 	}
 
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func AddonsTasksExecute(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, mgr *manager.Manager) error {
+	// install addons
+	installAddonsCondition := kubekeyv1alpha1.Condition{
+		Step:      "Install addons",
+		StartTime: metav1.Now(),
+		EndTime:   metav1.Now(),
+		Status:    false,
+	}
+	cluster.Status.Conditions = append(cluster.Status.Conditions, installAddonsCondition)
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return err
+	}
+
+	if err := runTasks(mgr, installAddonsTasks); err != nil {
+		return err
+	}
+
+	cluster.Status.Conditions[len(cluster.Status.Conditions)-1].EndTime = metav1.Now()
+	cluster.Status.Conditions[len(cluster.Status.Conditions)-1].Status = true
 	if err := r.Status().Update(ctx, cluster); err != nil {
 		return err
 	}

@@ -34,12 +34,12 @@ import (
 )
 
 func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+	cfg, objName, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false))
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false))
 }
 
 func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName string) error {
@@ -55,16 +55,16 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 	if string(nodeNameNum) == "2\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
-		cfg, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
-		return Execute1(executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false))
+		cfg, objName, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+		return Execute1(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false))
 	} else if string(nodeNameNum) == "1\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
-		cfg, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+		cfg, objName, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
 		if err != nil {
 			return errors.Wrap(err, "Failed to download cluster config")
 		}
-		mgr, err1 := executor.NewExecutor(&cfg.Spec, logger, "", verbose, false, true, false).CreateManager()
+		mgr, err1 := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false).CreateManager()
 		if err1 != nil {
 			return errors.Wrap(err1, "Failed to get cluster config")
 		}
@@ -99,8 +99,8 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 			cmd2 := fmt.Sprintf("sed -i '/worker/a\\ \\ \\ \\ \\- %s' %s", workPar1, fp)
 			_ = exec.Command("/bin/sh", "-c", cmd2).Run()
 		}
-		cfg1, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
-		return Execute1(executor.NewExecutor(&cfg1.Spec, logger, "", verbose, false, true, false))
+		cfg1, objName, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+		return Execute1(executor.NewExecutor(&cfg1.Spec, objName, logger, "", verbose, false, true, false))
 	} else {
 		fmt.Println("Please check the node name in the config-sample.yaml or do not support to delete master")
 		os.Exit(0)
