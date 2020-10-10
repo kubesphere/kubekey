@@ -50,25 +50,36 @@ func GetClusterStatus(mgr *manager.Manager) error {
 }
 
 func getClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
-	if clusterStatus["clusterInfo"] == "" {
-		output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, true)
-		if strings.Contains(output, "Cluster will be created") {
-			clusterIsExist = false
-		} else {
-			if err != nil {
-				return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/admin.conf")
+	if mgr.Runner.Index == 0 {
+		if clusterStatus["clusterInfo"] == "" {
+			output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, true)
+			if strings.Contains(output, "Cluster will be created") {
+				clusterIsExist = false
 			} else {
-				clusterIsExist = true
-				output, err := mgr.Runner.ExecuteCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, true)
 				if err != nil {
-					return errors.Wrap(errors.WithStack(err), "Failed to find current version")
+					return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/admin.conf")
 				} else {
-					if !strings.Contains(output, "No such file or directory") {
-						clusterStatus["version"] = output
+					clusterIsExist = true
+					if output, err := mgr.Runner.ExecuteCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, true); err != nil {
+						return errors.Wrap(errors.WithStack(err), "Failed to find current version")
+					} else {
+						if !strings.Contains(output, "No such file or directory") {
+							clusterStatus["version"] = output
+						}
 					}
-				}
-				if err := getJoinNodesCmd(mgr); err != nil {
-					return err
+					kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
+					kubeConfigStr, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
+					fmt.Println(kubeConfigStr)
+					if err1 != nil {
+						return errors.Wrap(errors.WithStack(err1), "Failed to get cluster kubeconfig")
+					}
+					clusterStatus["kubeConfig"] = kubeConfigStr
+					if err := loadKubeConfig(mgr); err != nil {
+						return err
+					}
+					if err := getJoinNodesCmd(mgr); err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -272,6 +283,7 @@ func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			}
 		}
 	}
+	clusterStatus["clusterInfo"] = ""
 	return nil
 }
 
@@ -326,12 +338,12 @@ func addWorker(mgr *manager.Manager) error {
 }
 
 func loadKubeConfig(mgr *manager.Manager) error {
-	kubeConfigPath := filepath.Join(mgr.WorkDir, "config")
+	kubeConfigPath := filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))
 	loadKubeConfigCmd := fmt.Sprintf("echo %s | base64 -d > %s", clusterStatus["kubeConfig"], kubeConfigPath)
 	if output, err := exec.Command("/bin/sh", "-c", loadKubeConfigCmd).CombinedOutput(); err != nil {
 		return errors.Wrap(err, string(output))
 	}
-	replaceApiServerAddCmd := fmt.Sprintf("sed -i '/server:/s/\\:.*/\\: %s/g' %s", fmt.Sprintf("https\\:\\/\\/%s\\:6443", mgr.MasterNodes[0].InternalAddress), kubeConfigPath)
+	replaceApiServerAddCmd := fmt.Sprintf("sed -i '/server:/s/\\:.*/\\: %s/g' %s", fmt.Sprintf("https\\:\\/\\/%s\\:6443", mgr.MasterNodes[0].Address), kubeConfigPath)
 	if output, err := exec.Command("/bin/sh", "-c", replaceApiServerAddCmd).CombinedOutput(); err != nil {
 		return errors.Wrap(err, string(output))
 	}

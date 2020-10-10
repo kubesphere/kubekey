@@ -37,12 +37,12 @@ func Init(clusterCfgFile, sourcesDir string, addImagesRepo bool, logger *log.Log
 		return errors.Wrap(err, "Failed to create work dir")
 	}
 
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
+	cfg, objName, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, sourcesDir, true, true, true, addImagesRepo))
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, sourcesDir, true, true, true, addImagesRepo))
 }
 
 func Execute(executor *executor.Executor) error {

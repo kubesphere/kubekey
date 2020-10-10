@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
@@ -46,7 +47,32 @@ type ClusterReconciler struct {
 
 // +kubebuilder:rbac:groups=kubekey.kubesphere.io,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kubekey.kubesphere.io,resources=clusters/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=storage.k8s.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=*
+// +kubebuilder:rbac:groups=installer.kubesphere.io,resources=clusterconfigurations,verbs=*
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=apiregistration.k8s.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=auditing.kubesphere.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=autoscaling,resources=*,verbs=*
+// +kubebuilder:rbac:groups=certificates.k8s.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=config.istio.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=core.kubefed.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=devops.kubesphere.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=events.kubesphere.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=batch,resources=*,verbs=*
+// +kubebuilder:rbac:groups=extensions,resources=*,verbs=*
+// +kubebuilder:rbac:groups=iam.kubesphere.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=jaegertracing.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=logging.kubesphere.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=*,verbs=*
+// +kubebuilder:rbac:groups=networking.istio.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=notification.kubesphere.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=policy,resources=*,verbs=*
+// +kubebuilder:rbac:groups=storage.kubesphere.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=*,verbs=*
 
 func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -64,7 +90,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	newExecutor := executor.NewExecutor(&cluster.Spec, logger, "", true, true, false, false)
+	newExecutor := executor.NewExecutor(&cluster.Spec, cluster.Name, logger, "", true, true, false, false)
 
 	mgr, err := newExecutor.CreateManager()
 	if err != nil {
@@ -72,15 +98,19 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if len(cluster.Status.Conditions) == 0 || len(cluster.Status.Nodes) == 0 {
-		// install
-		if err := installTasks(r, ctx, cluster, mgr); err != nil {
+		// install cluster
+		if err := clusterTasksExecute(r, ctx, cluster, mgr); err != nil {
+			return ctrl.Result{}, err
+		}
+		// install addons
+		if err := AddonsTasksExecute(r, ctx, cluster, mgr); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	if len(mgr.AllNodes) > cluster.Status.NodesCount {
 		// add nodes
-		if err := installTasks(r, ctx, cluster, mgr); err != nil {
+		if err := clusterTasksExecute(r, ctx, cluster, mgr); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -132,5 +162,9 @@ var (
 
 	joinNodesTasks = []manager.Task{
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
+	}
+
+	installAddonsTasks = []manager.Task{
+		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons"},
 	}
 )

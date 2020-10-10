@@ -46,7 +46,7 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 		return errors.Wrap(err, "Failed to create work dir")
 	}
 
-	cfg, err := config.ParseClusterCfg(clusterCfgFile, k8sVersion, ksVersion, ksEnabled, logger)
+	cfg, objName, err := config.ParseClusterCfg(clusterCfgFile, k8sVersion, ksVersion, ksEnabled, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
@@ -55,7 +55,8 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 			return errors.New("Please do not use uppercase letters in hostname: " + host.Name)
 		}
 	}
-	return Execute(executor.NewExecutor(&cfg.Spec, logger, "", verbose, skipCheck, skipPullImages, false))
+	fmt.Println(objName)
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false))
 }
 
 func ExecTasks(mgr *manager.Manager) error {

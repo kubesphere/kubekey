@@ -43,12 +43,13 @@ func (dialer *Dialer) Connect(host kubekeyapiv1alpha1.HostCfg) (Connection, erro
 	conn, _ := dialer.connections[host.ID]
 	port, _ := strconv.Atoi(host.Port)
 	opts := Cfg{
-		Username: host.User,
-		Port:     port,
-		Address:  host.Address,
-		Password: host.Password,
-		KeyFile:  host.PrivateKeyPath,
-		Timeout:  30 * time.Second,
+		Username:   host.User,
+		Port:       port,
+		Address:    host.Address,
+		Password:   host.Password,
+		PrivateKey: host.PrivateKey,
+		KeyFile:    host.PrivateKeyPath,
+		Timeout:    30 * time.Second,
 	}
 	conn, err = NewConnection(opts)
 	if err != nil {

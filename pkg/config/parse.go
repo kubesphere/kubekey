@@ -34,37 +34,42 @@ import (
 	"strings"
 )
 
-func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, error) {
-	var clusterCfg *kubekeyapiv1alpha1.Cluster
+func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, string, error) {
+	var (
+		clusterCfg *kubekeyapiv1alpha1.Cluster
+		objName    string
+	)
 	if len(clusterCfgPath) == 0 {
 		user, _ := user.Current()
 		if user.Username != "root" {
-			return nil, errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Username))
+			return nil, "", errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Username))
 		}
-		clusterCfg = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
+		clusterCfg, objName = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
 	} else {
-		cfg, err := ParseCfg(clusterCfgPath, k8sVersion, ksVersion, ksEnabled)
+		cfg, name, err := ParseCfg(clusterCfgPath, k8sVersion, ksVersion, ksEnabled)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		clusterCfg = cfg
+		objName = name
 	}
 
-	return clusterCfg, nil
+	return clusterCfg, objName, nil
 }
 
-func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*kubekeyapiv1alpha1.Cluster, error) {
+func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*kubekeyapiv1alpha1.Cluster, string, error) {
+	var objName string
 	clusterCfg := kubekeyapiv1alpha1.Cluster{}
 	fp, err := filepath.Abs(clusterCfgPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to look up current directory")
+		return nil, "", errors.Wrap(err, "Failed to look up current directory")
 	}
 	if len(k8sVersion) != 0 {
 		_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/version/s/\\:.*/\\: %s/g\" %s", k8sVersion, fp)).Run()
 	}
 	file, err := os.Open(fp)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to open the given cluster configuration file")
+		return nil, "", errors.Wrap(err, "Unable to open the given cluster configuration file")
 	}
 	defer file.Close()
 	b1 := bufio.NewReader(file)
@@ -75,16 +80,18 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			break
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, "Unable to read the given cluster configuration file")
+			return nil, "", errors.Wrap(err, "Unable to read the given cluster configuration file")
 		}
 		err = yaml.Unmarshal(content, &result)
 		if err != nil {
-			return nil, errors.Wrap(err, "Unable to unmarshal the given cluster configuration file")
+			return nil, "", errors.Wrap(err, "Unable to unmarshal the given cluster configuration file")
 		}
 		if result["kind"] == "Cluster" {
 			if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
-				return nil, errors.Wrap(err, "Unable to convert file to yaml")
+				return nil, "", errors.Wrap(err, "Unable to convert file to yaml")
 			}
+			metadata := result["metadata"].(map[interface{}]interface{})
+			objName = metadata["name"].(string)
 		}
 
 		if result["kind"] == "ConfigMap" || result["kind"] == "ClusterConfiguration" {
@@ -101,7 +108,7 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
-					return nil, errors.Wrap(err, fmt.Sprintf("Unsupported versions: %s", labels["version"]))
+					return nil, "", errors.Wrap(err, fmt.Sprintf("Unsupported versions: %s", labels["version"]))
 				}
 			}
 		}
@@ -120,14 +127,14 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
-			return nil, errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+			return nil, "", errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
 		}
 	}
 
-	return &clusterCfg, nil
+	return &clusterCfg, objName, nil
 }
 
-func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) *kubekeyapiv1alpha1.Cluster {
+func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, string) {
 	allinoneCfg := kubekeyapiv1alpha1.Cluster{}
 	if output, err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").CombinedOutput(); err != nil {
 		log.Fatalf("Failed to generate public key: %v\n%s", err, string(output))
@@ -184,5 +191,5 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		}
 	}
 
-	return &allinoneCfg
+	return &allinoneCfg, hostname
 }

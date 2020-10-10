@@ -28,6 +28,7 @@ import (
 )
 
 type Executor struct {
+	ObjName        string
 	Cluster        *kubekeyapiv1alpha1.ClusterSpec
 	Logger         *log.Logger
 	SourcesDir     string
@@ -37,8 +38,9 @@ type Executor struct {
 	AddImagesRepo  bool
 }
 
-func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo bool) *Executor {
+func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo bool) *Executor {
 	return &Executor{
+		ObjName:        objName,
 		Cluster:        cluster,
 		Logger:         logger,
 		SourcesDir:     sourcesDir,
@@ -70,6 +72,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.SkipPullImages = executor.SkipPullImages
 	mgr.SourcesDir = executor.SourcesDir
 	mgr.AddImagesRepo = executor.AddImagesRepo
+	mgr.ObjName = executor.ObjName
 	return mgr, nil
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 package addons
 
 import (
+	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/addons/charts"
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
@@ -35,7 +36,7 @@ func InstallAddons(mgr *manager.Manager) error {
 	if addonsNum != 0 {
 		for index, addon := range mgr.Cluster.Addons {
 			mgr.Logger.Infof("Installing addon [%v-%v]: %s", addonsNum, index+1, addon.Name)
-			if err := installAddon(mgr, &addon, filepath.Join(mgr.WorkDir, "config")); err != nil {
+			if err := installAddon(mgr, &addon, filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))); err != nil {
 				return err
 			}
 		}
