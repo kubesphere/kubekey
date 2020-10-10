@@ -54,16 +54,20 @@ networking:
   serviceSubnet: {{ .ServiceSubnet }}
 apiServer:
   extraArgs:
-    anonymous-auth: "True"
+    anonymous-auth: "true"
     bind-address: 0.0.0.0
     insecure-port: "0"
-    profiling: "False"
+    profiling: "false"
     apiserver-count: "1"
     endpoint-reconciler-type: lease
     authorization-mode: Node,RBAC
-    enable-aggregator-routing: "False"
+    enable-aggregator-routing: "false"
     allow-privileged: "true"
     storage-backend: etcd3
+    audit-log-maxage: "30"
+    audit-log-maxbackup: "10"
+    audit-log-maxsize: "100"
+    audit-log-path: /var/log/apiserver/audit.log
     feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
   certSANs:
     {{- range .CertSANs }}
@@ -73,10 +77,11 @@ controllerManager:
   extraArgs:
     node-cidr-mask-size: "{{ .NodeCidrMaskSize }}"
     experimental-cluster-signing-duration: 87600h
-    bind-address: 0.0.0.0
-    profiling: "False"
+    bind-address: 127.0.0.1
+    profiling: "false"
     port: "10252"
-    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
+    terminated-pod-gc-threshold: "10"
+    feature-gates: RotateKubeletServerCertificate=true,CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
   extraVolumes:
   - name: host-time
     hostPath: /etc/localtime
@@ -84,7 +89,8 @@ controllerManager:
     readOnly: true
 scheduler:
   extraArgs:
-    bind-address: 0.0.0.0
+    profiling: "false"
+    bind-address: 127.0.0.1
     port: "10251"
     feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
 

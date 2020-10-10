@@ -95,7 +95,6 @@ func InitKubernetesCluster(mgr *manager.Manager) error {
 
 func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 && !clusterIsExist {
-
 		var kubeadmCfgBase64 string
 		if util.IsExist(fmt.Sprintf("%s/kubeadm-config.yaml", mgr.WorkDir)) {
 			output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cat %s/kubeadm-config.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()

@@ -99,7 +99,7 @@ func GenerateHosts(hostGroups *kubekeyapiv1alpha1.HostGroups, cfg *kubekeyapiv1a
 func GenerateWorkDir(logger *log.Logger) string {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		logger.Fatal(errors.Wrap(err, "Faild to get current dir"))
+		logger.Fatal(errors.Wrap(err, "Failed to get current dir"))
 	}
 	return fmt.Sprintf("%s/%s", currentDir, kubekeyapiv1alpha1.DefaultPreDir)
 }
