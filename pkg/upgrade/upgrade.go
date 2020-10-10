@@ -72,7 +72,7 @@ Please check the result using the command:
 
 `)
 	} else {
-		mgr.Logger.Infoln("Congradulations! Upgrade cluster is successful.")
+		mgr.Logger.Infoln("Congratulations! Upgrade cluster is successful.")
 	}
 
 	return nil

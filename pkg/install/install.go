@@ -96,7 +96,7 @@ Please check the result using the command:
 
 `)
 	} else {
-		mgr.Logger.Infoln("Congradulations! Installation is successful.")
+		mgr.Logger.Infoln("Congratulations! Installation is successful.")
 	}
 
 	return nil
