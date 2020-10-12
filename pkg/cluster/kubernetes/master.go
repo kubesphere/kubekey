@@ -69,7 +69,7 @@ func getClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 					}
 					kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
 					kubeConfigStr, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
-					fmt.Println(kubeConfigStr)
+
 					if err1 != nil {
 						return errors.Wrap(errors.WithStack(err1), "Failed to get cluster kubeconfig")
 					}

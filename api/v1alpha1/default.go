@@ -58,13 +58,15 @@ const (
 	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups, error) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
-	hostGroups := clusterCfg.GroupHosts()
-
+	hostGroups, err := clusterCfg.GroupHosts()
+	if err != nil {
+		return nil, nil, err
+	}
 	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, hostGroups.Master)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
@@ -89,7 +91,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups) {
 	if cfg.Kubernetes.ProxyMode == "" {
 		clusterCfg.Kubernetes.ProxyMode = DefaultProxyMode
 	}
-	return &clusterCfg, hostGroups
+	return &clusterCfg, hostGroups, nil
 }
 
 func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
