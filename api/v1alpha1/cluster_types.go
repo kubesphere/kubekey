@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -185,9 +186,12 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	return defaultCertSANs
 }
 
-func (cfg *ClusterSpec) GroupHosts() *HostGroups {
+func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 	clusterHostsGroups := HostGroups{}
-	etcdGroup, masterGroup, workerGroup := cfg.ParseRolesList()
+	etcdGroup, masterGroup, workerGroup, err := cfg.ParseRolesList()
+	if err != nil {
+		return nil, err
+	}
 	for index, host := range cfg.Hosts {
 		host.ID = index
 		if len(etcdGroup) > 0 {
@@ -234,27 +238,24 @@ func (cfg *ClusterSpec) GroupHosts() *HostGroups {
 
 	//Check that the parameters under roleGroups are incorrect
 	if len(masterGroup) != len(clusterHostsGroups.Master) {
-		fmt.Println("Incorrect nodeName under roleGroups/master in the config-sample.yaml, Please check before installing.")
-		os.Exit(0)
+		return nil, errors.New("Incorrect nodeName under roleGroups/master in the configuration file, Please check before installing.")
 	}
 	if len(etcdGroup) != len(clusterHostsGroups.Etcd) {
-		fmt.Println("Incorrect nodeName under roleGroups/etcd in the config-sample.yaml, Please check before installing.")
-		os.Exit(0)
+		return nil, errors.New("Incorrect nodeName under roleGroups/etcd in the configuration file, Please check before installing.")
 	}
 	if len(workerGroup) != len(clusterHostsGroups.Worker) {
-		fmt.Println("Incorrect nodeName under roleGroups/work in the config-sample.yaml, Please check before installing.")
-		os.Exit(0)
+		return nil, errors.New("Incorrect nodeName under roleGroups/work in the configuration file, Please check before installing.")
 	}
 
 	clusterHostsGroups.Client = append(clusterHostsGroups.Client, clusterHostsGroups.Master[0])
-	return &clusterHostsGroups
+	return &clusterHostsGroups, nil
 }
 
 func (cfg *ClusterSpec) ClusterIP() string {
 	return util.ParseIp(cfg.Network.KubeServiceCIDR)[2]
 }
 
-func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
+func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string, error) {
 	etcdGroupList := []string{}
 	masterGroupList := []string{}
 	workerGroupList := []string{}
@@ -267,7 +268,7 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
 		}
 	}
 
-	//Check that the number of ETcd is odd
+	//Check that the number of Etcd is odd
 	if len(etcdGroupList)%2 == 0 {
 		fmt.Println("The number of Etcd is even. Please configure it to be odd.")
 		os.Exit(0)
@@ -288,8 +289,7 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
 
 	//Check whether LB should be configured
 	if len(masterGroupList) >= 3 && cfg.ControlPlaneEndpoint.Address == "" {
-		fmt.Println("When the environment has at least three masters, You must set the value of the LB address.")
-		os.Exit(0)
+		return nil, nil, nil, errors.New("When the environment has at least three masters, You must set the value of the LB address.")
 	}
 
 	for _, host := range cfg.RoleGroups.Worker {
@@ -299,7 +299,7 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string) {
 			workerGroupList = append(workerGroupList, host)
 		}
 	}
-	return etcdGroupList, masterGroupList, workerGroupList
+	return etcdGroupList, masterGroupList, workerGroupList, nil
 }
 
 func getHostsRange(rangeStr string) []string {
