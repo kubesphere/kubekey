@@ -24,7 +24,7 @@ import (
 	"text/template"
 )
 
-var calicoTemplNew = template.Must(template.New("calico").Parse(
+var calicoTemplNew *template.Template = template.Must(template.New("calico").Parse(
 	dedent.Dedent(`---
 # Source: calico/templates/calico-config.yaml
 # This ConfigMap is used to configure a self-hosted Calico installation.
@@ -55,6 +55,7 @@ data:
         {
           "type": "calico",
           "log_level": "info",
+          "log_file_path": "/var/log/calico/cni/cni.log",
           "datastore_type": "kubernetes",
           "nodename": "__KUBERNETES_NODE_NAME__",
           "mtu": __CNI_MTU__,
@@ -126,6 +127,28 @@ spec:
                   64512]'
                 format: int32
                 type: integer
+              communities:
+                description: Communities is a list of BGP community values and their
+                  arbitrary names for tagging routes.
+                items:
+                  description: Community contains standard or large community value
+                    and its name.
+                  properties:
+                    name:
+                      description: Name given to community value.
+                      type: string
+                    value:
+                      description: Value must be of format aa:nn.
+                      pattern: ^(\d+):(\d+)$|^(\d+):(\d+):(\d+)$
+                      type: string
+                  type: object
+                type: array
+              listenPort:
+                description: ListenPort is the port where BGP protocol should listen.
+                  Defaults to 179
+                maximum: 65535
+                minimum: 1
+                type: integer
               logSeverityScreen:
                 description: 'LogSeverityScreen is the log severity above which logs
                   are sent to the stdout. [Default: INFO]'
@@ -134,13 +157,32 @@ spec:
                 description: 'NodeToNodeMeshEnabled sets whether full node to node
                   BGP mesh is enabled. [Default: true]'
                 type: boolean
+              prefixAdvertisements:
+                description: PrefixAdvertisements contains per-prefix advertisement
+                  configuration.
+                items:
+                  description: PrefixAdvertisement configures advertisement properties
+                    for the specified CIDR.
+                  properties:
+                    cidr:
+                      description: CIDR for which properties should be advertised.
+                      type: string
+                    communities:
+                      description: Communities can be list of either community names
+                        already defined in Specs.Communities or community value
+                        of format.
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
               serviceClusterIPs:
                 description: ServiceClusterIPs are the CIDR blocks from which service
                   cluster IPs are allocated. If specified, Calico will advertise these
                   blocks, as well as any cluster IPs within them.
                 items:
-                  description: ServiceClusterIPBlock represents a single whitelisted
-                    CIDR block for ClusterIPs.
+                  description: ServiceClusterIPBlock represents a single allowed ClusterIP
+                    CIDR block.
                   properties:
                     cidr:
                       type: string
@@ -151,8 +193,8 @@ spec:
                   Service External IPs. Kubernetes Service ExternalIPs will only be
                   advertised if they are within one of these blocks.
                 items:
-                  description: ServiceExternalIPBlock represents a single whitelisted
-                    CIDR External IP block.
+                  description: ServiceExternalIPBlock represents a single allowed
+                    External IP CIDR block.
                   properties:
                     cidr:
                       type: string
@@ -211,6 +253,12 @@ spec:
                 description: The AS Number of the peer.
                 format: int32
                 type: integer
+              keepOriginalNextHop:
+                description: Option to keep the original nexthop field when routes
+                  are sent to a BGP Peer. Setting "true" configures the selected BGP
+                  Peers node to use the "next hop keep;" instead of "next hop self;"(default)
+                  in the specific branch of the Node on "bird.cfg".
+                type: boolean
               node:
                 description: The node name identifying the Calico node instance that
                   is peering with this peer. If this is not set, this represents a
@@ -220,8 +268,32 @@ spec:
                 description: Selector for the nodes that should have this peering.  When
                   this is set, the Node field must be empty.
                 type: string
+              password:
+                description: Optional BGP password for the peerings generated by this
+                  BGPPeer resource.
+                properties:
+                  secretKeyRef:
+                    description: Selects a key of a secret in the node pod's namespace.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                type: object
               peerIP:
-                description: The IP address of the peer.
+                description: The IP address of the peer followed by an optional port
+                  number to peer with. If port number is given, format should be .
                 type: string
               peerSelector:
                 description: Selector for the remote nodes to peer with.  When this
@@ -420,6 +492,25 @@ spec:
           spec:
             description: FelixConfigurationSpec contains the values of the Felix configuration.
             properties:
+              allowIPIPPacketsFromWorkloads:
+                description: 'AllowIPIPPacketsFromWorkloads controls whether Felix
+                  will add a rule to drop IPIP encapsulated traffic from workloads
+                  [Default: false]'
+                type: boolean
+              allowVXLANPacketsFromWorkloads:
+                description: 'AllowVXLANPacketsFromWorkloads controls whether Felix
+                  will add a rule to drop VXLAN encapsulated traffic from workloads
+                  [Default: false]'
+                type: boolean
+              awsSrcDstCheck:
+                description: 'Set source-destination-check on AWS EC2 instances. Accepted
+                  value must be one of "DoNothing", "Enabled" or "Disabled". [Default:
+                  DoNothing]'
+                enum:
+                - DoNothing
+                - Enable
+                - Disable
+                type: string
               bpfConnectTimeLoadBalancingEnabled:
                 description: 'BPFConnectTimeLoadBalancingEnabled when in BPF mode,
                   controls whether Felix installs the connection-time load balancer.  The
@@ -475,7 +566,9 @@ spec:
                 type: string
               bpfLogLevel:
                 description: 'BPFLogLevel controls the log level of the BPF programs
-                  when in BPF dataplane mode.  One of "Off", "Info", or "Debug". [Default: Off].'
+                  when in BPF dataplane mode.  One of "Off", "Info", or "Debug".  The
+                  logs are emitted to the BPF trace pipe, accessible with the command
+                  . [Default: Off].'
                 type: string
               chainInsertMode:
                 description: 'ChainInsertMode controls whether Felix hooks the kernel鈥檚
@@ -580,6 +673,13 @@ spec:
                   - protocol
                   type: object
                 type: array
+              featureDetectOverride:
+                description: FeatureDetectOverride is used to override the feature
+                  detection. Values are specified in a comma separated list with no
+                  spaces, example; "SNATFullyRandom=true,MASQFullyRandom=false,RestoreSupportsLock=".
+                  "true" or "false" will force the feature, empty or omitted values
+                  are auto-detected.
+                type: string
               genericXDPEnabled:
                 description: 'GenericXDPEnabled enables Generic XDP so network cards
                   that don''t support XDP offload or driver modes can use XDP. This
@@ -610,6 +710,11 @@ spec:
                   configure this appropriately. For example our Kubernetes and Docker
                   integrations set the 鈥榗ali鈥� value, and our OpenStack integration
                   sets the 鈥榯ap鈥� value. [Default: cali]'
+                type: string
+              interfaceRefreshInterval:
+                description: InterfaceRefreshInterval is the period at which Felix
+                  rescans local interfaces to verify their state. The rescan can be
+                  disabled by setting the interval to 0.
                 type: string
               ipipEnabled:
                 type: boolean
@@ -882,8 +987,6 @@ spec:
                   Calico''s BPF maps or attached programs. Set to 0 to disable XDP
                   refresh. [Default: 90s]'
                 type: string
-            required:
-            - bpfLogLevel
             type: object
         type: object
     served: true
@@ -972,7 +1075,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \n For GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -1078,7 +1183,10 @@ spec:
                         paths:
                           description: 'Paths is an optional field that restricts
                             the rule to apply to HTTP requests that use one of the
-                            listed HTTP Paths. Multiple paths are OR''d together.'
+                            listed HTTP Paths. Multiple paths are OR''d together.
+                            e.g: - exact: /foo - prefix: /bar NOTE: Each entry may
+                            ONLY specify either a or a match. The
+                            validator will check for it.'
                           items:
                             description: 'HTTPPath specifies an HTTP path to match.
                               It may be either of the form: exact: <path>: which matches
@@ -1172,7 +1280,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \nFor GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -1296,7 +1406,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \n For GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -1402,7 +1514,10 @@ spec:
                         paths:
                           description: 'Paths is an optional field that restricts
                             the rule to apply to HTTP requests that use one of the
-                            listed HTTP Paths. Multiple paths are OR''d together.'
+                            listed HTTP Paths. Multiple paths are OR''d together.
+                            e.g: - exact: /foo - prefix: /bar NOTE: Each entry may
+                            ONLY specify either a  or a  match. The
+                            validator will check for it.'
                           items:
                             description: 'HTTPPath specifies an HTTP path to match.
                               It may be either of the form: exact: <path>: which matches
@@ -1496,7 +1611,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \n For GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -2100,7 +2217,7 @@ spec:
                 type: object
               ipipMode:
                 description: Contains configuration for IPIP tunneling for this pool.
-                  If not specified, then this is defaulted to "Never" (i.e. IPIP tunelling
+                  If not specified, then this is defaulted to "Never" (i.e. IPIP tunneling
                   is disabled).
                 type: string
               nat-outgoing:
@@ -2120,7 +2237,7 @@ spec:
               vxlanMode:
                 description: Contains configuration for VXLAN tunneling for this pool.
                   If not specified, then this is defaulted to "Never" (i.e. VXLAN
-                  tunelling is disabled).
+                  tunneling is disabled).
                 type: string
             required:
             - cidr
@@ -2429,7 +2546,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \n For GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -2535,7 +2654,10 @@ spec:
                         paths:
                           description: 'Paths is an optional field that restricts
                             the rule to apply to HTTP requests that use one of the
-                            listed HTTP Paths. Multiple paths are OR''d together.'
+                            listed HTTP Paths. Multiple paths are OR''d together.
+                            e.g: - exact: /foo - prefix: /bar NOTE: Each entry may
+                            ONLY specify either a  or a prefix match. The
+                            validator will check for it.'
                           items:
                             description: 'HTTPPath specifies an HTTP path to match.
                               It may be either of the form: exact: <path>: which matches
@@ -2629,7 +2751,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \n For GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -2753,7 +2877,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \n For GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -2859,7 +2985,10 @@ spec:
                         paths:
                           description: 'Paths is an optional field that restricts
                             the rule to apply to HTTP requests that use one of the
-                            listed HTTP Paths. Multiple paths are OR''d together.'
+                            listed HTTP Paths. Multiple paths are OR''d together.
+                            e.g: - exact: /foo - prefix: /bar NOTE: Each entry may
+                            ONLY specify either a exact or a prefix match. The
+                            validator will check for it.'
                           items:
                             description: 'HTTPPath specifies an HTTP path to match.
                               It may be either of the form: exact: <path>: which matches
@@ -2953,7 +3082,9 @@ spec:
                             by the rule. \n For NetworkPolicy, an empty NamespaceSelector
                             implies that the Selector is limited to selecting only
                             workload endpoints in the same namespace as the NetworkPolicy.
-                            \n For GlobalNetworkPolicy, an empty
+                            \n For NetworkPolicy,  NamespaceSelector implies
+                            that the Selector is limited to selecting only GlobalNetworkSet
+                            or HostEndpoint. \n For GlobalNetworkPolicy, an empty
                             NamespaceSelector implies the Selector applies to workload
                             endpoints across all namespaces."
                           type: string
@@ -3269,6 +3400,14 @@ rules:
       - get
   - apiGroups: [""]
     resources:
+      - secrets
+    verbs:
+      # Needed when configuring bgp password in bgppeer
+      - watch
+      - list
+      - get
+  - apiGroups: [""]
+    resources:
       - endpoints
       - services
     verbs:
@@ -3479,6 +3618,11 @@ spec:
         - containerPort: 5473
           name: calico-typha
           protocol: TCP
+        envFrom:
+        - configMapRef:
+            # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+            name: kubernetes-services-endpoint
+            optional: true
         env:
           # Enable "info" logging by default. Can be set to "debug" to increase verbosity.
           - name: TYPHA_LOGSEVERITYSCREEN
@@ -3587,6 +3731,11 @@ spec:
         - name: upgrade-ipam
           image: {{ .CalicoCniImage }}
           command: ["/opt/cni/bin/calico-ipam", "-upgrade"]
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             - name: KUBERNETES_NODE_NAME
               valueFrom:
@@ -3608,7 +3757,12 @@ spec:
         # and CNI network config file on each node.
         - name: install-cni
           image: {{ .CalicoCniImage }}
-          command: ["/install-cni.sh"]
+          command: ["/opt/cni/bin/install"]
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             # Name of the CNI config file to create.
             - name: CNI_CONF_NAME
@@ -3655,6 +3809,11 @@ spec:
         # host.
         - name: calico-node
           image: {{ .CalicoNodeImage }}
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             # Use Kubernetes API as the backing datastore.
             - name: DATASTORE_TYPE
@@ -3767,6 +3926,13 @@ spec:
               readOnly: false
             - name: policysync
               mountPath: /var/run/nodeagent
+            # For eBPF mode, we need to be able to mount the BPF filesystem at /sys/fs/bpf so we mount in the
+            # parent directory.
+            - name: sysfs
+              mountPath: /sys/fs/
+              # Bidirectional means that, if we mount the BPF filesystem at /sys/fs/bpf it will propagate to the host.
+              # If the host is known to mount that filesystem already then Bidirectional can be omitted.
+              mountPropagation: Bidirectional
       volumes:
         # Used by calico-node.
         - name: lib-modules
@@ -3782,6 +3948,10 @@ spec:
           hostPath:
             path: /run/xtables.lock
             type: FileOrCreate
+        - name: sysfs
+          hostPath:
+            path: /sys/fs/
+            type: DirectoryOrCreate
         # Used to install CNI.
         - name: cni-bin-dir
           hostPath:
@@ -3870,6 +4040,7 @@ kind: ServiceAccount
 metadata:
   name: calico-kube-controllers
   namespace: kube-system
+
 
     `)))
 
