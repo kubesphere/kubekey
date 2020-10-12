@@ -55,7 +55,7 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 			return errors.New("Please do not use uppercase letters in hostname: " + host.Name)
 		}
 	}
-	fmt.Println(objName)
+
 	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false))
 }
 

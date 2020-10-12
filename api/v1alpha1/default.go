@@ -110,13 +110,16 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 		if host.Port == "" {
 			host.Port = DefaultSSHPort
 		}
-		if host.Password == "" && host.PrivateKeyPath == "" {
-			host.PrivateKeyPath = "~/.ssh/id_rsa"
+		if host.PrivateKey == "" {
+			if host.Password == "" && host.PrivateKeyPath == "" {
+				host.PrivateKeyPath = "~/.ssh/id_rsa"
+			}
+			if host.PrivateKeyPath != "" && strings.HasPrefix(strings.TrimSpace(host.PrivateKeyPath), "~/") {
+				homeDir, _ := util.Home()
+				host.PrivateKeyPath = strings.Replace(host.PrivateKeyPath, "~/", fmt.Sprintf("%s/", homeDir), 1)
+			}
 		}
-		if host.PrivateKeyPath != "" && strings.HasPrefix(strings.TrimSpace(host.PrivateKeyPath), "~/") {
-			homeDir, _ := util.Home()
-			host.PrivateKeyPath = strings.Replace(host.PrivateKeyPath, "~/", fmt.Sprintf("%s/", homeDir), 1)
-		}
+
 		if host.Arch == "" {
 			host.Arch = DefaultArch
 		}

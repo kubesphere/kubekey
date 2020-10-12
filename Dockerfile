@@ -19,13 +19,14 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager 
 FROM debian:stable
 
 RUN useradd -m kubekey && apt-get update && apt-get install bash curl -y; apt-get autoclean; rm -rf /var/lib/apt/lists/*
-WORKDIR /home/kubekey
-#ADD addons /home/kubekey/addons
 
+#ADD addons /home/kubekey/addons
 #ADD kubekey /home/kubekey/kubekey
 #RUN chown kubekey:kubekey -R /home/kubekey/kubekey
 
-COPY --from=builder /workspace/manager /home/kubekey
 USER kubekey:kubekey
+
+WORKDIR /home/kubekey
+COPY --from=builder /workspace/manager /home/kubekey
 
 ENTRYPOINT ["/home/kubekey/manager"]
