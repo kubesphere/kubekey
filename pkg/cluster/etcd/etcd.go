@@ -164,7 +164,7 @@ func generateEtcdService(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 		return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd bin")
 	}
 
-	getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s /bin/cp /usr/local/bin/etcdctl /systembindir/etcdctl", preinstall.GetImage(mgr, "etcd").ImageName())
+	getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s /bin/cp -f /usr/local/bin/etcdctl /systembindir/etcdctl", preinstall.GetImage(mgr, "etcd").ImageName())
 	_, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", getEtcdCtlCmd), 2, false)
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to get etcdctl")

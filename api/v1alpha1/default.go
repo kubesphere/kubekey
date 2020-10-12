@@ -33,7 +33,7 @@ const (
 	DefaultKubeImageRepo       = "kubesphere"
 	DefaultClusterName         = "cluster.local"
 	DefaultArch                = "amd64"
-	DefaultEtcdVersion         = "v3.3.12"
+	DefaultEtcdVersion         = "v3.4.13"
 	DefaultEtcdPort            = "2379"
 	DefaultKubeVersion         = "v1.17.9"
 	DefaultCalicoVersion       = "v3.15.1"
