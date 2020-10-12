@@ -81,7 +81,7 @@ func validateOptions(cfg Cfg) (Cfg, error) {
 		return cfg, errors.New("Must specify at least one of password, private key, keyfile or agent socket")
 	}
 
-	if len(cfg.KeyFile) > 0 {
+	if len(cfg.PrivateKey) == 0 && len(cfg.KeyFile) > 0 {
 		content, err := ioutil.ReadFile(cfg.KeyFile)
 		if err != nil {
 			return cfg, errors.Wrapf(err, "Failed to read keyfile %q", cfg.KeyFile)
