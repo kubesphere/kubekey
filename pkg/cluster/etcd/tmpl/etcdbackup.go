@@ -1,12 +1,12 @@
 package tmpl
 
 import (
+	"errors"
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"os"
 	"strconv"
 	"strings"
 	"text/template"
@@ -68,15 +68,14 @@ func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (s
 	for _, host := range mgr.EtcdNodes {
 		ips = append(ips, fmt.Sprintf("https://%s:2379", host.InternalAddress))
 	}
-	if mgr.Cluster.Kubernetes.EtcdBackupPeriod != "" {
-		period, _ := strconv.Atoi(mgr.Cluster.Kubernetes.EtcdBackupPeriod)
+	if mgr.Cluster.Kubernetes.EtcdBackupPeriod != 0 {
+		period := mgr.Cluster.Kubernetes.EtcdBackupPeriod
 		if period > 60 && period < 1440 {
-			mgr.Cluster.Kubernetes.EtcdBackupPeriod = strconv.Itoa(period % 60)
+			mgr.Cluster.Kubernetes.EtcdBackupPeriod = period % 60
 			etcdBackupHour = strconv.Itoa(period / 60)
 		}
 		if period > 1440 {
-			fmt.Println("Etcd backup cannot last more than one day, Please change it to within one day.")
-			os.Exit(0)
+			return "", errors.New("Etcd backup cannot last more than one day, Please change it to within one day.")
 		}
 	}
 

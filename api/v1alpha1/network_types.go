@@ -27,7 +27,7 @@ type NetworkConfig struct {
 type CalicoCfg struct {
 	IPIPMode  string `yaml:"ipipMode" json:"ipipMode,omitempty"`
 	VXLANMode string `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
-	VethMTU   string `yaml:"vethMTU" json:"vethMTU,omitempty"`
+	VethMTU   int    `yaml:"vethMTU" json:"vethMTU,omitempty"`
 }
 
 type FlannelCfg struct {

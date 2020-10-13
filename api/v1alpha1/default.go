@@ -24,8 +24,8 @@ import (
 
 const (
 	DefaultPreDir              = "kubekey"
-	DefaultSSHPort             = "22"
-	DefaultLBPort              = "6443"
+	DefaultSSHPort             = 22
+	DefaultLBPort              = 6443
 	DefaultLBDomain            = "lb.kubesphere.local"
 	DefaultNetworkPlugin       = "calico"
 	DefaultPodsCIDR            = "10.233.64.0/18"
@@ -41,11 +41,11 @@ const (
 	DefaultCniVersion          = "v0.8.6"
 	DefaultCiliumVersion       = "v1.8.3"
 	DefaultHelmVersion         = "v3.2.1"
-	DefaultMaxPods             = "110"
-	DefaultNodeCidrMaskSize    = "24"
+	DefaultMaxPods             = 110
+	DefaultNodeCidrMaskSize    = 24
 	DefaultIPIPMode            = "Always"
 	DefaultVXLANMode           = "Never"
-	DefaultVethMTU             = "1440"
+	DefaultVethMTU             = 1440
 	DefaultBackendMode         = "vxlan"
 	DefaultProxyMode           = "ipvs"
 	Etcd                       = "etcd"
@@ -53,8 +53,8 @@ const (
 	Worker                     = "worker"
 	K8s                        = "k8s"
 	DefaultEtcdBackupDir       = "/var/backups/kube_etcd"
-	DefaultEtcdBackupPeriod    = "30"
-	DefaultKeepBackNumber      = "5"
+	DefaultEtcdBackupPeriod    = 30
+	DefaultKeepBackNumber      = 5
 	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
 )
 
@@ -82,10 +82,10 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups, erro
 	if cfg.Kubernetes.Version == "" {
 		clusterCfg.Kubernetes.Version = DefaultKubeVersion
 	}
-	if cfg.Kubernetes.MaxPods == "" {
+	if cfg.Kubernetes.MaxPods == 0 {
 		clusterCfg.Kubernetes.MaxPods = DefaultMaxPods
 	}
-	if cfg.Kubernetes.NodeCidrMaskSize == "" {
+	if cfg.Kubernetes.NodeCidrMaskSize == 0 {
 		clusterCfg.Kubernetes.NodeCidrMaskSize = DefaultNodeCidrMaskSize
 	}
 	if cfg.Kubernetes.ProxyMode == "" {
@@ -109,7 +109,7 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 		if host.User == "" {
 			host.User = "root"
 		}
-		if host.Port == "" {
+		if host.Port == 0 {
 			host.Port = DefaultSSHPort
 		}
 		if host.PrivateKey == "" {
@@ -137,7 +137,7 @@ func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg) ControlPlaneEndpoi
 	if cfg.ControlPlaneEndpoint.Domain == "" {
 		cfg.ControlPlaneEndpoint.Domain = DefaultLBDomain
 	}
-	if cfg.ControlPlaneEndpoint.Port == "" {
+	if cfg.ControlPlaneEndpoint.Port == 0 {
 		cfg.ControlPlaneEndpoint.Port = DefaultLBPort
 	}
 	defaultLbCfg := cfg.ControlPlaneEndpoint
@@ -160,7 +160,7 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 	if cfg.Network.Calico.VXLANMode == "" {
 		cfg.Network.Calico.VXLANMode = DefaultVXLANMode
 	}
-	if cfg.Network.Calico.VethMTU == "" {
+	if cfg.Network.Calico.VethMTU == 0 {
 		cfg.Network.Calico.VethMTU = DefaultVethMTU
 	}
 	if cfg.Network.Flannel.BackendMode == "" {
@@ -184,10 +184,10 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.EtcdBackupDir == "" {
 		cfg.Kubernetes.EtcdBackupDir = DefaultEtcdBackupDir
 	}
-	if cfg.Kubernetes.EtcdBackupPeriod == "" {
+	if cfg.Kubernetes.EtcdBackupPeriod == 0 {
 		cfg.Kubernetes.EtcdBackupPeriod = DefaultEtcdBackupPeriod
 	}
-	if cfg.Kubernetes.KeepBackupNumber == "" {
+	if cfg.Kubernetes.KeepBackupNumber == 0 {
 		cfg.Kubernetes.KeepBackupNumber = DefaultKeepBackNumber
 	}
 	if cfg.Kubernetes.EtcdBackupScriptDir == "" {
