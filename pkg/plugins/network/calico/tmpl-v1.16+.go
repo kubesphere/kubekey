@@ -24,7 +24,7 @@ import (
 	"text/template"
 )
 
-var calicoTemplNew *template.Template = template.Must(template.New("calico").Parse(
+var calicoTemplNew = template.Must(template.New("calico").Parse(
 	dedent.Dedent(`---
 # Source: calico/templates/calico-config.yaml
 # This ConfigMap is used to configure a self-hosted Calico installation.

@@ -21,12 +21,12 @@ type Kubernetes struct {
 	ImageRepo              string   `yaml:"imageRepo" json:"imageRepo,omitempty"`
 	ClusterName            string   `yaml:"clusterName" json:"clusterName,omitempty"`
 	MasqueradeAll          bool     `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`
-	MaxPods                string   `yaml:"maxPods" json:"maxPods,omitempty"`
-	NodeCidrMaskSize       string   `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
+	MaxPods                int      `yaml:"maxPods" json:"maxPods,omitempty"`
+	NodeCidrMaskSize       int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
 	ApiserverCertExtraSans []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
 	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
 	EtcdBackupDir          string   `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
-	EtcdBackupPeriod       string   `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
-	KeepBackupNumber       string   `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
+	EtcdBackupPeriod       int      `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
+	KeepBackupNumber       int      `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
 	EtcdBackupScriptDir    string   `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
 }

@@ -18,7 +18,6 @@ package ssh
 
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -41,10 +40,10 @@ func (dialer *Dialer) Connect(host kubekeyapiv1alpha1.HostCfg) (Connection, erro
 	defer dialer.lock.Unlock()
 
 	conn, _ := dialer.connections[host.ID]
-	port, _ := strconv.Atoi(host.Port)
+
 	opts := Cfg{
 		Username:   host.User,
-		Port:       port,
+		Port:       host.Port,
 		Address:    host.Address,
 		Password:   host.Password,
 		PrivateKey: host.PrivateKey,

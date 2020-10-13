@@ -104,7 +104,7 @@ type HostCfg struct {
 	Name            string `yaml:"name,omitempty" json:"name,omitempty"`
 	Address         string `yaml:"address,omitempty" json:"address,omitempty"`
 	InternalAddress string `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
-	Port            string `yaml:"port,omitempty" json:"port,omitempty"`
+	Port            int    `yaml:"port,omitempty" json:"port,omitempty"`
 	User            string `yaml:"user,omitempty" json:"user,omitempty"`
 	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
 	PrivateKey      string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
@@ -134,7 +134,7 @@ type HostGroups struct {
 type ControlPlaneEndpoint struct {
 	Domain  string `yaml:"domain" json:"domain,omitempty"`
 	Address string `yaml:"address" json:"address,omitempty"`
-	Port    string `yaml:"port" json:"port,omitempty"`
+	Port    int    `yaml:"port" json:"port,omitempty"`
 }
 
 type RegistryConfig struct {

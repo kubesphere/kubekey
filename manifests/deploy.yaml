@@ -88,7 +88,7 @@ spec:
                 domain:
                   type: string
                 port:
-                  type: string
+                  type: integer
               type: object
             hosts:
               description: Foo is an example field of Cluster. Edit Cluster_types.go
@@ -106,7 +106,7 @@ spec:
                   password:
                     type: string
                   port:
-                    type: string
+                    type: integer
                   privateKey:
                     type: string
                   privateKeyPath:
@@ -126,19 +126,19 @@ spec:
                 etcdBackupDir:
                   type: string
                 etcdBackupPeriod:
-                  type: string
+                  type: integer
                 etcdBackupScript:
                   type: string
                 imageRepo:
                   type: string
                 keepBackupNumber:
-                  type: string
+                  type: integer
                 masqueradeAll:
                   type: boolean
                 maxPods:
-                  type: string
+                  type: integer
                 nodeCidrMaskSize:
-                  type: string
+                  type: integer
                 proxyMode:
                   type: string
                 version:
@@ -160,7 +160,7 @@ spec:
                     ipipMode:
                       type: string
                     vethMTU:
-                      type: string
+                      type: integer
                     vxlanMode:
                       type: string
                   type: object
