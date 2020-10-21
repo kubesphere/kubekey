@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
+	"os"
 	"strings"
 )
 
@@ -131,6 +132,18 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 }
 
 func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg) ControlPlaneEndpoint {
+
+	//The detection is not an HA environment, and the address at LB does not need input
+	if len(masterGroup) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
+		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
+		os.Exit(0)
+	}
+
+	//Check whether LB should be configured
+	if len(masterGroup) >= 3 && cfg.ControlPlaneEndpoint.Address == "" {
+		fmt.Println("When the environment has at least three masters, You must set the value of the LB address.")
+		os.Exit(0)
+	}
 	if cfg.ControlPlaneEndpoint.Address == "" {
 		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
 	}
