@@ -1,18 +1,30 @@
 package preinstall
 
 import (
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"strings"
 )
 
 func PrePullImages(mgr *manager.Manager) error {
-
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Pull images", metav1.Now(), metav1.Now(), false, 2); err != nil {
+			return err
+		}
+	}
 	if !mgr.SkipPullImages {
 		mgr.Logger.Infoln("Start to download images on all nodes")
 		if err := mgr.RunTaskOnAllNodes(PullImages, true); err != nil {
+			return err
+		}
+	}
+
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Pull images", mgr.Conditions[1].StartTime, metav1.Now(), true, 2); err != nil {
 			return err
 		}
 	}

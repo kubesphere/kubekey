@@ -17,7 +17,8 @@ limitations under the License.
 package manager
 
 import (
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/util/runner"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	log "github.com/sirupsen/logrus"
@@ -44,6 +45,10 @@ type Manager struct {
 	SkipPullImages bool
 	SourcesDir     string
 	AddImagesRepo  bool
+	InCluster      bool
+	Kubeconfig     string
+	Conditions     []kubekeyapiv1alpha1.Condition
+	ClientSet      *kubekeyclientset.Clientset
 }
 
 func (mgr *Manager) Copy() *Manager {

@@ -61,6 +61,12 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - cluster.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
   - config.istio.io
   resources:
   - '*'

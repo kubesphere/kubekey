@@ -17,7 +17,7 @@ limitations under the License.
 package manager
 
 import (
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sync"

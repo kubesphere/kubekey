@@ -19,11 +19,13 @@ package docker
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"text/template"
 )
@@ -71,7 +73,17 @@ func GenerateDockerConfig(mgr *manager.Manager) (string, error) {
 func InstallerDocker(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Installing docker ...")
 
-	return mgr.RunTaskOnAllNodes(installDockerOnNode, true)
+	if err := mgr.RunTaskOnAllNodes(installDockerOnNode, true); err != nil {
+		return err
+	}
+
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init nodes", mgr.Conditions[0].StartTime, metav1.Now(), true, 1); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func installDockerOnNode(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {

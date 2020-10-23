@@ -42,7 +42,7 @@ func Init(clusterCfgFile, sourcesDir string, addImagesRepo bool, logger *log.Log
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, sourcesDir, true, true, true, addImagesRepo))
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, sourcesDir, true, true, true, addImagesRepo, false, nil))
 }
 
 func Execute(executor *executor.Executor) error {

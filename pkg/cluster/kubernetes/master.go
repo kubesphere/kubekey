@@ -19,12 +19,15 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -39,11 +42,16 @@ var (
 		"joinMasterCmd": "",
 		"joinWorkerCmd": "",
 		"clusterInfo":   "",
-		"kubeConfig":    "",
 	}
 )
 
 func GetClusterStatus(mgr *manager.Manager) error {
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init control plane", metav1.Now(), metav1.Now(), false, 4); err != nil {
+			return err
+		}
+	}
+
 	mgr.Logger.Infoln("Get cluster status")
 
 	return mgr.RunTaskOnMasterNodes(getClusterStatus, false)
@@ -69,11 +77,10 @@ func getClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 					}
 					kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
 					kubeConfigStr, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
-
 					if err1 != nil {
 						return errors.Wrap(errors.WithStack(err1), "Failed to get cluster kubeconfig")
 					}
-					clusterStatus["kubeConfig"] = kubeConfigStr
+					mgr.Kubeconfig = kubeConfigStr
 					if err := loadKubeConfig(mgr); err != nil {
 						return err
 					}
@@ -233,7 +240,7 @@ func getJoinCmd(mgr *manager.Manager) error {
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to get cluster kubeconfig")
 	}
-	clusterStatus["kubeConfig"] = output
+	mgr.Kubeconfig = output
 
 	return nil
 }
@@ -250,9 +257,25 @@ func PatchKubeadmSecret(mgr *manager.Manager) error {
 }
 
 func JoinNodesToCluster(mgr *manager.Manager) error {
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Join nodes", metav1.Now(), metav1.Now(), false, 5); err != nil {
+			return err
+		}
+	}
+
 	mgr.Logger.Infoln("Joining nodes to cluster")
 
-	return mgr.RunTaskOnK8sNodes(joinNodesToCluster, true)
+	if err := mgr.RunTaskOnK8sNodes(joinNodesToCluster, true); err != nil {
+		return err
+	}
+
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Join nodes", mgr.Conditions[4].StartTime, metav1.Now(), true, 5); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
@@ -282,7 +305,6 @@ func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			}
 		}
 	}
-	clusterStatus["clusterInfo"] = ""
 	return nil
 }
 
@@ -325,8 +347,8 @@ func addWorker(mgr *manager.Manager) error {
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
 	}
-	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", clusterStatus["kubeConfig"], "/root/.kube/config")
-	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", clusterStatus["kubeConfig"], "$HOME/.kube/config", chownKubeConfig)
+	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", mgr.Kubeconfig, "/root/.kube/config")
+	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", mgr.Kubeconfig, "$HOME/.kube/config", chownKubeConfig)
 	if _, err := mgr.Runner.ExecuteCmd(syncKubeconfigForRootCmd, 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
@@ -338,13 +360,25 @@ func addWorker(mgr *manager.Manager) error {
 
 func loadKubeConfig(mgr *manager.Manager) error {
 	kubeConfigPath := filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))
-	loadKubeConfigCmd := fmt.Sprintf("echo %s | base64 -d > %s", clusterStatus["kubeConfig"], kubeConfigPath)
-	if output, err := exec.Command("/bin/sh", "-c", loadKubeConfigCmd).CombinedOutput(); err != nil {
-		return errors.Wrap(err, string(output))
+	kubeconfigStr, err := base64.StdEncoding.DecodeString(mgr.Kubeconfig)
+	if err != nil {
+		return err
 	}
-	replaceApiServerAddCmd := fmt.Sprintf("sed -i '/server:/s/\\:.*/\\: %s/g' %s", fmt.Sprintf("https\\:\\/\\/%s\\:6443", mgr.MasterNodes[0].Address), kubeConfigPath)
-	if output, err := exec.Command("/bin/sh", "-c", replaceApiServerAddCmd).CombinedOutput(); err != nil {
-		return errors.Wrap(err, string(output))
+
+	oldServer := fmt.Sprintf("server: https://%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port)
+	newServer := fmt.Sprintf("server: https://%s:%d", mgr.Cluster.ControlPlaneEndpoint.Address, mgr.Cluster.ControlPlaneEndpoint.Port)
+	newKubeconfigStr := strings.Replace(string(kubeconfigStr), oldServer, newServer, -1)
+
+	if err := ioutil.WriteFile(kubeConfigPath, []byte(newKubeconfigStr), 0644); err != nil {
+		return err
 	}
+	mgr.Kubeconfig = base64.StdEncoding.EncodeToString([]byte(newKubeconfigStr))
+
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateKubeSphereCluster(mgr); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

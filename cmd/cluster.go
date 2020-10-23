@@ -33,7 +33,7 @@ var clusterCmd = &cobra.Command{
 			ksVersion = ""
 		}
 		logger := util.InitLogger(opt.Verbose)
-		return install.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose, opt.SkipCheck, opt.SkipPullImages)
+		return install.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster)
 	},
 }
 

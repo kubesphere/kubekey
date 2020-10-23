@@ -18,13 +18,15 @@ package addons
 
 import (
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons/charts"
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -32,6 +34,11 @@ import (
 )
 
 func InstallAddons(mgr *manager.Manager) error {
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Install addons", metav1.Now(), metav1.Now(), false, 6); err != nil {
+			return err
+		}
+	}
 	addonsNum := len(mgr.Cluster.Addons)
 	if addonsNum != 0 {
 		for index, addon := range mgr.Cluster.Addons {
@@ -39,6 +46,12 @@ func InstallAddons(mgr *manager.Manager) error {
 			if err := installAddon(mgr, &addon, filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))); err != nil {
 				return err
 			}
+		}
+	}
+
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Install addons", mgr.Conditions[5].StartTime, metav1.Now(), true, 6); err != nil {
+			return err
 		}
 	}
 

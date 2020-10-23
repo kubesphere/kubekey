@@ -1,6 +1,7 @@
 domain: kubesphere.io
 layout: go.kubebuilder.io/v2
 projectName: kubekey
+multigroup: true
 repo: github.com/kubesphere/kubekey
 resources:
 - group: kubekey

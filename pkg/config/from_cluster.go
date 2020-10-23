@@ -21,7 +21,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"

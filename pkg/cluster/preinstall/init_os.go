@@ -19,10 +19,12 @@ package preinstall
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -42,6 +44,11 @@ func DownloadBinaries(mgr *manager.Manager) error {
 }
 
 func InitOS(mgr *manager.Manager) error {
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init nodes", metav1.Now(), metav1.Now(), false, 1); err != nil {
+			return err
+		}
+	}
 
 	mgr.Logger.Infoln("Configuring operating system ...")
 

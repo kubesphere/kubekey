@@ -38,6 +38,7 @@ type Options struct {
 	Registry       string
 	SourcesDir     string
 	AddImagesRepo  bool
+	InCluster      bool
 }
 
 var (
@@ -69,6 +70,7 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
+	rootCmd.PersistentFlags().BoolVar(&opt.InCluster, "in-cluster", false, "Running inside the cluster")
 	rootCmd.PersistentFlags().BoolVar(&opt.Verbose, "debug", true, "Print detailed information")
 
 	// Cobra also supports local flags, which will only run

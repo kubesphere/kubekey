@@ -18,9 +18,11 @@ package main
 
 import (
 	"flag"
-	"github.com/kubesphere/kubekey/cmd"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"os"
 	"strings"
+
+	"github.com/kubesphere/kubekey/cmd"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -29,8 +31,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
-	"github.com/kubesphere/kubekey/controllers"
+	kubekeyv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -75,7 +76,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ClusterReconciler{
+	if err = (&kubekeycontroller.ClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
 		Scheme: mgr.GetScheme(),

@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	ksv2 "github.com/kubesphere/kubekey/pkg/kubesphere/v2"

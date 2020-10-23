@@ -19,11 +19,13 @@ package etcd
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd/tmpl"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"time"
 )
@@ -39,6 +41,12 @@ var (
 )
 
 func GenerateEtcdCerts(mgr *manager.Manager) error {
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init etcd cluster", metav1.Now(), metav1.Now(), false, 3); err != nil {
+			return err
+		}
+	}
+
 	mgr.Logger.Infoln("Generating etcd certs")
 
 	return mgr.RunTaskOnEtcdNodes(generateCerts, true)
@@ -263,7 +271,17 @@ func RefreshEtcdConfig(mgr *manager.Manager) error {
 func BackupEtcd(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Backup etcd data regularly")
 
-	return mgr.RunTaskOnEtcdNodes(backupEtcd, true)
+	if err := mgr.RunTaskOnEtcdNodes(backupEtcd, true); err != nil {
+		return err
+	}
+
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init etcd cluster", mgr.Conditions[2].StartTime, metav1.Now(), true, 3); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func backupEtcd(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {

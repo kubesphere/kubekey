@@ -17,7 +17,7 @@ limitations under the License.
 package ssh
 
 import (
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"sync"
 	"time"
 )

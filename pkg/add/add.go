@@ -18,6 +18,8 @@ package add
 
 import (
 	"fmt"
+	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
@@ -32,7 +34,7 @@ import (
 	"path/filepath"
 )
 
-func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages bool) error {
+func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -46,7 +48,16 @@ func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, 
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false))
+	var clientset *kubekeyclientset.Clientset
+	if inCluster {
+		c, err := kubekeycontroller.KubekeyClient()
+		if err != nil {
+			return err
+		}
+		clientset = c
+	}
+
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset))
 }
 
 func ExecTasks(mgr *manager.Manager) error {
@@ -73,6 +84,12 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateStatus(mgr); err != nil {
+			return err
+		}
+	}
+
 	mgr.Logger.Infoln("Congratulations! Scaling cluster is successful.")
 
 	return nil
@@ -83,5 +100,6 @@ func Execute(executor *executor.Executor) error {
 	if err != nil {
 		return err
 	}
+
 	return ExecTasks(mgr)
 }

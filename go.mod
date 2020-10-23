@@ -20,9 +20,11 @@ require (
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.3.0
+	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.18.8
 	k8s.io/cli-runtime v0.18.8
 	k8s.io/client-go v0.18.8
+	k8s.io/code-generator v0.18.8
 	k8s.io/kubectl v0.18.8
 	rsc.io/letsencrypt v0.0.3 // indirect
 	sigs.k8s.io/controller-runtime v0.6.2

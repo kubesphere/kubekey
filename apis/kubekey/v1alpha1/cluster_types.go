@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -51,6 +50,7 @@ type ClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	JobInfo       JobInfo      `json:"jobInfo,omitempty"`
 	Version       string       `json:"version,omitempty"`
 	NetworkPlugin string       `json:"networkPlugin,omitempty"`
 	NodesCount    int          `json:"nodesCount,omitempty"`
@@ -61,6 +61,19 @@ type ClusterStatus struct {
 	Conditions    []Condition  `json:"Conditions,omitempty"`
 }
 
+type JobInfo struct {
+	Namespace string    `json:"namespace,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	Pods      []PodInfo `json:"pods,omitempty"`
+}
+
+type PodInfo struct {
+	Name       string          `json:"name,omitempty"`
+	Containers []ContainerInfo `json:"containers,omitempty"`
+}
+type ContainerInfo struct {
+	Name string `json:"name,omitempty"`
+}
 type NodeStatus struct {
 	InternalIP string          `json:"internalIP,omitempty"`
 	Hostname   string          `json:"hostname,omitempty"`
@@ -74,6 +87,9 @@ type Condition struct {
 	Status    bool        `json:"status,omitempty"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
@@ -270,8 +286,7 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string, error) {
 
 	//Check that the number of Etcd is odd
 	if len(etcdGroupList)%2 == 0 {
-		fmt.Println("The number of Etcd is even. Please configure it to be odd.")
-		os.Exit(0)
+		return nil, nil, nil, errors.New("The number of Etcd is even. Please configure it to be odd.")
 	}
 
 	for _, host := range cfg.RoleGroups.Master {
@@ -283,8 +298,7 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string, error) {
 	}
 	//The detection is not an HA environment, and the address at LB does not need input
 	if len(masterGroupList) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
-		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
-		os.Exit(0)
+		return nil, nil, nil, errors.New("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
 	}
 
 	//Check whether LB should be configured

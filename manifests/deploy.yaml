@@ -225,6 +225,27 @@ spec:
               type: array
             etcdCount:
               type: integer
+            jobInfo:
+              properties:
+                name:
+                  type: string
+                namespace:
+                  type: string
+                pods:
+                  items:
+                    properties:
+                      containers:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                          type: object
+                        type: array
+                      name:
+                        type: string
+                    type: object
+                  type: array
+              type: object
             masterCount:
               type: integer
             networkPlugin:
@@ -352,6 +373,12 @@ rules:
   - '*'
 - apiGroups:
   - certificates.k8s.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - cluster.kubesphere.io
   resources:
   - '*'
   verbs:
