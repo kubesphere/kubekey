@@ -202,6 +202,12 @@ func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) er
 	var localPeerAddresses []string
 	output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"", 0, true)
 	if strings.TrimSpace(output) == "Configuration file already exists" {
+		outTmp, _ := mgr.Runner.ExecuteCmd("sudo cat /etc/etcd.env | awk 'NR==1{print $6}'", 0, true)
+		if outTmp != kubekeyapiv1alpha1.DefaultEtcdVersion {
+			if err := refreshConfig(mgr, node, mgr.Runner.Index, localPeerAddresses, "existing"); err != nil {
+				return err
+			}
+		}
 		if err := helthCheck(mgr, node); err != nil {
 			return err
 		}

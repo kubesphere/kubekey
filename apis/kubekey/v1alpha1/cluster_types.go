@@ -296,15 +296,6 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string, error) {
 			masterGroupList = append(masterGroupList, host)
 		}
 	}
-	//The detection is not an HA environment, and the address at LB does not need input
-	if len(masterGroupList) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
-		return nil, nil, nil, errors.New("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
-	}
-
-	//Check whether LB should be configured
-	if len(masterGroupList) >= 3 && cfg.ControlPlaneEndpoint.Address == "" {
-		return nil, nil, nil, errors.New("When the environment has at least three masters, You must set the value of the LB address.")
-	}
 
 	for _, host := range cfg.RoleGroups.Worker {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
