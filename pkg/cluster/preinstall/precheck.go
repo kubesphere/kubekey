@@ -3,7 +3,7 @@ package preinstall
 import (
 	"bufio"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"

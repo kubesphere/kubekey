@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"k8s.io/apimachinery/pkg/types"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
@@ -218,4 +219,51 @@ func DoServerSideApply(ctx context.Context, cfg *rest.Config, objectYAML []byte)
 	}
 	fmt.Println(strings.ToLower(obj.GetKind()) + "/" + obj.GetName() + "  " + "created")
 	return nil
+}
+
+func DoPatchCluster(client dynamic.Interface, name string, data []byte) error {
+	var gvr = schema.GroupVersionResource{
+		Group:    "kubekey.kubesphere.io",
+		Version:  "v1alpha1",
+		Resource: "clusters",
+	}
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	dyn, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	if _, err := dyn.Resource(gvr).Patch(context.TODO(), name, types.MergePatchType, data, metav1.PatchOptions{}); err != nil {
+		fmt.Println("error")
+		return err
+	}
+	dyn.Resource(gvr).Get(context.TODO(), "aaa", metav1.GetOptions{})
+	return nil
+}
+
+func GetCluster(name string) (*unstructured.Unstructured, error) {
+	var gvr = schema.GroupVersionResource{
+		Group:    "cluster.kubesphere.io",
+		Version:  "v1alpha1",
+		Resource: "clusters",
+	}
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	dyn, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	var cluster *unstructured.Unstructured
+	cluster, err1 := dyn.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	if err1 != nil {
+		return nil, err1
+	}
+
+	return cluster, nil
 }

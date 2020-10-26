@@ -18,7 +18,8 @@ package network
 
 import (
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/calico"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/cilium"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/flannel"
@@ -26,6 +27,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os/exec"
 	"strings"
@@ -34,7 +36,17 @@ import (
 func DeployNetworkPlugin(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Deploying network plugin ...")
 
-	return mgr.RunTaskOnMasterNodes(deployNetworkPlugin, true)
+	if err := mgr.RunTaskOnMasterNodes(deployNetworkPlugin, true); err != nil {
+		return err
+	}
+
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init control plane", mgr.Conditions[3].StartTime, metav1.Now(), true, 4); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {

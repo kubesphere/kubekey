@@ -19,7 +19,7 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"

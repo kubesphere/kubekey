@@ -27,7 +27,7 @@ var addNodesCmd = &cobra.Command{
 	Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := util.InitLogger(opt.Verbose)
-		return add.AddNodes(opt.ClusterCfgFile, "", "", logger, false, opt.Verbose, opt.SkipCheck, opt.SkipPullImages)
+		return add.AddNodes(opt.ClusterCfgFile, "", "", logger, false, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster)
 	},
 }
 

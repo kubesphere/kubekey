@@ -19,7 +19,7 @@ package delete
 import (
 	"bufio"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -39,7 +39,7 @@ func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false))
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false, false, nil))
 }
 
 func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName string) error {
@@ -56,7 +56,7 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
 		cfg, objName, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
-		return Execute1(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false))
+		return Execute1(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false, false, nil))
 	} else if string(nodeNameNum) == "1\n" {
 		cmd := fmt.Sprintf("sed -i /%s/d %s", nodeName, fp)
 		_ = exec.Command("/bin/sh", "-c", cmd).Run()
@@ -64,7 +64,7 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 		if err != nil {
 			return errors.Wrap(err, "Failed to download cluster config")
 		}
-		mgr, err1 := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false).CreateManager()
+		mgr, err1 := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false, false, nil).CreateManager()
 		if err1 != nil {
 			return errors.Wrap(err1, "Failed to get cluster config")
 		}
@@ -100,7 +100,7 @@ func ResetNode(clusterCfgFile string, logger *log.Logger, verbose bool, nodeName
 			_ = exec.Command("/bin/sh", "-c", cmd2).Run()
 		}
 		cfg1, objName, _ := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
-		return Execute1(executor.NewExecutor(&cfg1.Spec, objName, logger, "", verbose, false, true, false))
+		return Execute1(executor.NewExecutor(&cfg1.Spec, objName, logger, "", verbose, false, true, false, false, nil))
 	} else {
 		fmt.Println("Please check the node name in the config-sample.yaml or do not support to delete master")
 		os.Exit(0)

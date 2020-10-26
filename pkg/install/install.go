@@ -18,10 +18,8 @@ package install
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-
+	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/cluster/etcd"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
@@ -35,9 +33,12 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
-func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages bool) error {
+func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Faild to get current dir")
@@ -56,7 +57,16 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 		}
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false))
+	var clientset *kubekeyclientset.Clientset
+	if inCluster {
+		c, err := kubekeycontroller.KubekeyClient()
+		if err != nil {
+			return err
+		}
+		clientset = c
+	}
+
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset))
 }
 
 func ExecTasks(mgr *manager.Manager) error {
@@ -96,6 +106,11 @@ Please check the result using the command:
 
 `)
 	} else {
+		if mgr.InCluster {
+			if err := kubekeycontroller.UpdateStatus(mgr); err != nil {
+				return err
+			}
+		}
 		mgr.Logger.Infoln("Congratulations! Installation is successful.")
 	}
 
@@ -107,5 +122,6 @@ func Execute(executor *executor.Executor) error {
 	if err != nil {
 		return err
 	}
+
 	return ExecTasks(mgr)
 }

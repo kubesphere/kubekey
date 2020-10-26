@@ -44,7 +44,7 @@ func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Lo
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, true, skipPullImages, false))
+	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, true, skipPullImages, false, false, nil))
 }
 
 func ExecTasks(mgr *manager.Manager) error {

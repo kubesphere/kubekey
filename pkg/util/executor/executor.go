@@ -18,7 +18,8 @@ package executor
 
 import (
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/api/v1alpha1"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
@@ -36,9 +37,11 @@ type Executor struct {
 	SkipCheck      bool
 	SkipPullImages bool
 	AddImagesRepo  bool
+	InCluster      bool
+	ClientSet      *kubekeyclientset.Clientset
 }
 
-func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo bool) *Executor {
+func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset) *Executor {
 	return &Executor{
 		ObjName:        objName,
 		Cluster:        cluster,
@@ -48,6 +51,8 @@ func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger
 		SkipCheck:      skipCheck,
 		SkipPullImages: skipPullImages,
 		AddImagesRepo:  addImagesRepo,
+		InCluster:      inCluster,
+		ClientSet:      clientset,
 	}
 }
 
@@ -76,6 +81,8 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.SourcesDir = executor.SourcesDir
 	mgr.AddImagesRepo = executor.AddImagesRepo
 	mgr.ObjName = executor.ObjName
+	mgr.InCluster = executor.InCluster
+	mgr.ClientSet = executor.ClientSet
 	return mgr, nil
 }
 
