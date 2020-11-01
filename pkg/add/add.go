@@ -80,11 +80,20 @@ func ExecTasks(mgr *manager.Manager) error {
 
 	for _, step := range addNodeTasks {
 		if err := step.Run(mgr); err != nil {
+			if mgr.InCluster {
+				if err := kubekeycontroller.PatchNodeImportStatus(mgr, kubekeycontroller.Failed); err != nil {
+					return err
+				}
+			}
 			return errors.Wrap(err, step.ErrMsg)
 		}
 	}
 
 	if mgr.InCluster {
+		if err := kubekeycontroller.PatchNodeImportStatus(mgr, kubekeycontroller.Success); err != nil {
+			return err
+		}
+
 		if err := kubekeycontroller.UpdateStatus(mgr); err != nil {
 			return err
 		}
@@ -101,5 +110,10 @@ func Execute(executor *executor.Executor) error {
 		return err
 	}
 
+	if mgr.InCluster {
+		if err := kubekeycontroller.CreateNodeForCluster(mgr); err != nil {
+			return err
+		}
+	}
 	return ExecTasks(mgr)
 }

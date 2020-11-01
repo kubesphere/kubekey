@@ -2,6 +2,7 @@ package preinstall
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -33,6 +34,11 @@ var (
 )
 
 func Precheck(mgr *manager.Manager) error {
+	//Check that the number of Etcd is odd
+	if len(mgr.EtcdNodes)%2 == 0 {
+		return errors.New("The number of Etcd is even. Please configure it to be odd.")
+	}
+
 	if !mgr.SkipCheck {
 		if err := mgr.RunTaskOnAllNodes(PrecheckNodes, true); err != nil {
 			return err

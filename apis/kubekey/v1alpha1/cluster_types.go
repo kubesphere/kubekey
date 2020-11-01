@@ -284,11 +284,6 @@ func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string, error) {
 		}
 	}
 
-	//Check that the number of Etcd is odd
-	if len(etcdGroupList)%2 == 0 {
-		return nil, nil, nil, errors.New("The number of Etcd is even. Please configure it to be odd.")
-	}
-
 	for _, host := range cfg.RoleGroups.Master {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
 			masterGroupList = append(masterGroupList, getHostsRange(host)...)

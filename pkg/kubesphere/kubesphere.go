@@ -38,7 +38,7 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 		if err := mgr.RunTaskOnMasterNodes(deployKubeSphere, true); err != nil {
 			return err
 		}
-		ResultNotes()
+		ResultNotes(mgr.InCluster)
 	}
 
 	return nil
@@ -206,45 +206,52 @@ func CheckKubeSphereStatus(mgr *manager.Manager) {
 	stopChan <- ""
 }
 
-func ResultNotes() {
+func ResultNotes(incluster bool) {
 	var (
 		position = 1
 		notes    = "Please wait for the installation to complete: "
 	)
 	fmt.Println("\n")
+	if incluster {
+		fmt.Println("Please wait for the installation to complete ...")
+	}
 Loop:
 	for {
 		select {
 		case result := <-stopChan:
-			fmt.Printf("\033[%dA\033[K", position)
+			if !incluster {
+				fmt.Printf("\033[%dA\033[K", position)
+			}
 			fmt.Println(result)
 			break Loop
 		default:
-			for i := 0; i < 10; i++ {
-				if i < 5 {
-					fmt.Printf("\033[%dA\033[K", position)
+			if !incluster {
+				for i := 0; i < 10; i++ {
+					if i < 5 {
+						fmt.Printf("\033[%dA\033[K", position)
 
-					output := fmt.Sprintf(
-						"%s%s%s",
-						notes,
-						strings.Repeat(" ", i),
-						">>--->",
-					)
+						output := fmt.Sprintf(
+							"%s%s%s",
+							notes,
+							strings.Repeat(" ", i),
+							">>--->",
+						)
 
-					fmt.Printf("%s \033[K\n", output)
-					time.Sleep(time.Duration(200) * time.Millisecond)
-				} else {
-					fmt.Printf("\033[%dA\033[K", position)
+						fmt.Printf("%s \033[K\n", output)
+						time.Sleep(time.Duration(200) * time.Millisecond)
+					} else {
+						fmt.Printf("\033[%dA\033[K", position)
 
-					output := fmt.Sprintf(
-						"%s%s%s",
-						notes,
-						strings.Repeat(" ", 10-i),
-						"<---<<",
-					)
+						output := fmt.Sprintf(
+							"%s%s%s",
+							notes,
+							strings.Repeat(" ", 10-i),
+							"<---<<",
+						)
 
-					fmt.Printf("%s \033[K\n", output)
-					time.Sleep(time.Duration(200) * time.Millisecond)
+						fmt.Printf("%s \033[K\n", output)
+						time.Sleep(time.Duration(200) * time.Millisecond)
+					}
 				}
 			}
 		}
@@ -253,7 +260,7 @@ Loop:
 
 func DeployLocalVolume(mgr *manager.Manager) error {
 	if mgr.Cluster.KubeSphere.Enabled {
-		if err := mgr.RunTaskOnMasterNodes(deployLocalVolume, true); err != nil {
+		if err := mgr.RunTaskOnMasterNodes(DeployLocalVolumeForCluster, true); err != nil {
 			return err
 		}
 	}
@@ -261,7 +268,7 @@ func DeployLocalVolume(mgr *manager.Manager) error {
 	return nil
 }
 
-func deployLocalVolume(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
+func DeployLocalVolumeForCluster(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		if err := checkDefaultStorageClass(mgr); err != nil {
 			return err

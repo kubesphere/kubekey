@@ -34,7 +34,7 @@ func InstallKubeBinaries(mgr *manager.Manager) error {
 }
 
 func installKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if !ExistNodeName(node.Name) {
+	if !ExistNodeName(node.Name) || !ExistNodeVersion(node.Name) {
 		if err := SyncKubeBinaries(mgr, node); err != nil {
 			return err
 		}
@@ -49,6 +49,16 @@ func installKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 func ExistNodeName(nodename string) bool {
 	_, ok := allNodesName[nodename]
 	return ok
+}
+
+func ExistNodeVersion(nodename string) bool {
+	var existVersion bool
+	if _, ok := allNodesVersion[nodename]; ok {
+		if allNodesVersion[nodename] != "" {
+			existVersion = true
+		}
+	}
+	return existVersion
 }
 
 func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {

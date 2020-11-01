@@ -17,6 +17,7 @@ limitations under the License.
 package charts
 
 import (
+	"context"
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -30,6 +31,9 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/homedir"
 	"log"
 	"os"
@@ -63,6 +67,19 @@ func InstallChart(mgr *manager.Manager, addon *kubekeyapiv1alpha1.Addon, kubecon
 	valueOpts := &values.Options{}
 	if len(addon.Sources.Chart.Values) != 0 {
 		valueOpts.Values = addon.Sources.Chart.Values
+		if mgr.InCluster && addon.Sources.Chart.Name == "ks-installer" {
+			config, err := rest.InClusterConfig()
+			if err != nil {
+				return err
+			}
+			// creates the clientset
+			clientset, err := kubernetes.NewForConfig(config)
+			if err != nil {
+				return err
+			}
+			s, _ := clientset.CoreV1().Secrets("kubesphere-system").Get(context.TODO(), "kubesphere-secret", metav1.GetOptions{})
+			valueOpts.Values = append(valueOpts.Values, fmt.Sprintf("authentication.jwtSecret=%s", string(s.Data["secret"])))
+		}
 	}
 	if len(addon.Sources.Chart.ValuesFile) != 0 {
 		valueOpts.ValueFiles = []string{addon.Sources.Chart.ValuesFile}

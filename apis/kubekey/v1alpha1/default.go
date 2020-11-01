@@ -59,7 +59,7 @@ const (
 	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups, error) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *HostGroups, error) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
@@ -68,7 +68,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, *HostGroups, erro
 	if err != nil {
 		return nil, nil, err
 	}
-	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, hostGroups.Master)
+	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, hostGroups.Master, incluster)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
@@ -131,19 +131,21 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 	return hostscfg
 }
 
-func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg) ControlPlaneEndpoint {
+func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg, incluster bool) ControlPlaneEndpoint {
+	if !incluster {
+		//The detection is not an HA environment, and the address at LB does not need input
+		if len(masterGroup) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
+			fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
+			os.Exit(0)
+		}
 
-	//The detection is not an HA environment, and the address at LB does not need input
-	if len(masterGroup) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
-		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
-		os.Exit(0)
+		//Check whether LB should be configured
+		if len(masterGroup) >= 3 && cfg.ControlPlaneEndpoint.Address == "" {
+			fmt.Println("When the environment has at least three masters, You must set the value of the LB address.")
+			os.Exit(0)
+		}
 	}
 
-	//Check whether LB should be configured
-	if len(masterGroup) >= 3 && cfg.ControlPlaneEndpoint.Address == "" {
-		fmt.Println("When the environment has at least three masters, You must set the value of the LB address.")
-		os.Exit(0)
-	}
 	if cfg.ControlPlaneEndpoint.Address == "" {
 		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
 	}
