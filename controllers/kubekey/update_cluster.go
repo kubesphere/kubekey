@@ -18,6 +18,7 @@ package kubekey
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
@@ -25,15 +26,28 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
+	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"text/template"
 )
 
+const (
+	Pending = "pending"
+	Success = "success"
+	Failed  = "failed"
+)
+
 var (
+	newNodes          []string
 	clusterKubeSphere = template.Must(template.New("cluster.kubesphere.io").Parse(
 		dedent.Dedent(`apiVersion: cluster.kubesphere.io/v1alpha1
 kind: Cluster
@@ -63,7 +77,7 @@ func generateClusterKubeSphere(name string, kubeconfig string, enable, joinFedra
 		"JoinFedration": joinFedration,
 	})
 }
-func checkClusterRole() (bool, *rest.Config, error) {
+func CheckClusterRole() (bool, *rest.Config, error) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -84,7 +98,7 @@ func checkClusterRole() (bool, *rest.Config, error) {
 	return hostClusterFlag, config, nil
 }
 func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha1.Cluster) error {
-	if hostClusterFlag, config, err := checkClusterRole(); err != nil {
+	if hostClusterFlag, config, err := CheckClusterRole(); err != nil {
 		return err
 	} else if hostClusterFlag {
 		obj, err := generateClusterKubeSphere(c.Name, "Cg==", false, false)
@@ -107,8 +121,9 @@ func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha1.Cluster) e
 	}
 	return nil
 }
+
 func UpdateKubeSphereCluster(mgr *manager.Manager) error {
-	if hostClusterFlag, config, err := checkClusterRole(); err != nil {
+	if hostClusterFlag, config, err := CheckClusterRole(); err != nil {
 		return err
 	} else if hostClusterFlag {
 		obj, err := generateClusterKubeSphere(mgr.ObjName, mgr.Kubeconfig, true, true)
@@ -195,6 +210,119 @@ func UpdateStatus(mgr *manager.Manager) error {
 
 	if _, err := mgr.ClientSet.KubekeyV1alpha1().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
+	}
+	return nil
+}
+
+func getClusterClientSet(mgr *manager.Manager) (*kube.Clientset, error) {
+	// creates the in-cluster config
+	inClusterConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	// creates the clientset
+	clientset, err := kube.NewForConfig(inClusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, err := clientset.RESTClient().Get().AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").Name(mgr.ObjName).Do(context.TODO()).Raw()
+	if err != nil && !kubeErr.IsNotFound(err) {
+		return nil, err
+	} else if kubeErr.IsNotFound(err) {
+		return nil, nil
+	}
+
+	result := make(map[string]interface{})
+	_ = yaml.Unmarshal(obj, &result)
+
+	spec := result["spec"].(map[interface{}]interface{})
+	connection := spec["connection"].(map[interface{}]interface{})
+
+	kubeconfigStr, _ := base64.StdEncoding.DecodeString(connection["kubeconfig"].(string))
+
+	kubeConfigPath := filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))
+	if err := ioutil.WriteFile(kubeConfigPath, kubeconfigStr, 0644); err != nil {
+		return nil, err
+	}
+	kubeconfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	clientsetForCluster, err := kube.NewForConfig(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientsetForCluster, nil
+}
+
+func nodeForCluster(name string, labels map[string]string) *corev1.Node {
+	node := &corev1.Node{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: labels,
+		},
+		Spec:   corev1.NodeSpec{},
+		Status: corev1.NodeStatus{},
+	}
+
+	return node
+}
+
+func CreateNodeForCluster(mgr *manager.Manager) error {
+	clientsetForCluster, err := getClusterClientSet(mgr)
+	if err != nil && !kubeErr.IsNotFound(err) {
+		return err
+	} else if kubeErr.IsNotFound(err) {
+		return nil
+	}
+	nodeInfo := make(map[string]string)
+	nodeList, _ := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	for _, node := range nodeList.Items {
+		nodeInfo[node.Name] = node.Status.NodeInfo.KubeletVersion
+	}
+
+	for _, host := range mgr.K8sNodes {
+		if _, ok := nodeInfo[host.Name]; !ok {
+			labels := map[string]string{"kubekey.kubesphere.io/import-status": Pending}
+			if host.IsMaster {
+				labels["node-role.kubernetes.io/master"] = ""
+			}
+			if host.IsWorker {
+				labels["node-role.kubernetes.io/worker"] = ""
+			}
+			node := nodeForCluster(host.Name, labels)
+			if _, err = clientsetForCluster.CoreV1().Nodes().Create(context.TODO(), node, metav1.CreateOptions{}); err != nil {
+				return err
+			}
+			newNodes = append(newNodes, host.Name)
+		}
+	}
+
+	return nil
+}
+
+func PatchNodeImportStatus(mgr *manager.Manager, status string) error {
+	clientsetForCluster, err := getClusterClientSet(mgr)
+	if err != nil && !kubeErr.IsNotFound(err) {
+		return err
+	} else if kubeErr.IsNotFound(err) {
+		return nil
+	}
+
+	patchStr := fmt.Sprintf(`{"metadata": {"labels": {"kubekey.kubesphere.io/import-status": "%s"}}}`, status)
+	nodeList, _ := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	for _, node := range nodeList.Items {
+		for k, v := range node.Labels {
+			if k == "kubekey.kubesphere.io/import-status" && v != Success {
+				_, err = clientsetForCluster.CoreV1().Nodes().Patch(context.TODO(), node.Name, types.StrategicMergePatchType, []byte(patchStr), metav1.PatchOptions{})
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }

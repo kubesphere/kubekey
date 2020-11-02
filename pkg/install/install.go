@@ -17,6 +17,7 @@ limitations under the License.
 package install
 
 import (
+	"encoding/base64"
 	"fmt"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
@@ -33,6 +34,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -109,6 +111,15 @@ Please check the result using the command:
 		if mgr.InCluster {
 			if err := kubekeycontroller.UpdateStatus(mgr); err != nil {
 				return err
+			}
+			kubeConfigPath := filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))
+			if kubeconfig, err := ioutil.ReadFile(kubeConfigPath); err != nil {
+				return err
+			} else {
+				mgr.Kubeconfig = base64.StdEncoding.EncodeToString(kubeconfig)
+				if err := kubekeycontroller.UpdateKubeSphereCluster(mgr); err != nil {
+					return err
+				}
 			}
 		}
 		mgr.Logger.Infoln("Congratulations! Installation is successful.")

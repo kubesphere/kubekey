@@ -22,6 +22,7 @@ import (
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons/charts"
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
+	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/cli"
@@ -42,9 +43,20 @@ func InstallAddons(mgr *manager.Manager) error {
 	addonsNum := len(mgr.Cluster.Addons)
 	if addonsNum != 0 {
 		for index, addon := range mgr.Cluster.Addons {
+			if addon.Sources.Chart.Name == "ks-installer" {
+				if err := mgr.RunTaskOnMasterNodes(kubesphere.DeployLocalVolumeForCluster, true); err != nil {
+					return err
+				}
+			}
 			mgr.Logger.Infof("Installing addon [%v-%v]: %s", addonsNum, index+1, addon.Name)
 			if err := installAddon(mgr, &addon, filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))); err != nil {
 				return err
+			}
+			if addon.Sources.Chart.Name == "ks-installer" {
+				if err := mgr.RunTaskOnMasterNodes(checkKubeSphereStatus, true); err != nil {
+					return err
+				}
+				kubesphere.ResultNotes(mgr.InCluster)
 			}
 		}
 	}
@@ -90,6 +102,14 @@ func installAddon(mgr *manager.Manager, addon *kubekeyapiv1alpha1.Addon, kubecon
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func checkKubeSphereStatus(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if mgr.Runner.Index == 0 {
+		go kubesphere.CheckKubeSphereStatus(mgr)
 	}
 
 	return nil

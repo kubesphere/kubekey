@@ -53,7 +53,6 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 		clusterCfg = cfg
 		objName = name
 	}
-
 	return clusterCfg, objName, nil
 }
 

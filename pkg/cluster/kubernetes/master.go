@@ -35,9 +35,10 @@ import (
 )
 
 var (
-	clusterIsExist = false
-	allNodesName   = map[string]string{}
-	clusterStatus  = map[string]string{
+	clusterIsExist  = false
+	allNodesName    = map[string]string{}
+	allNodesVersion = map[string]string{}
+	clusterStatus   = map[string]string{
 		"version":       "",
 		"joinMasterCmd": "",
 		"joinWorkerCmd": "",
@@ -80,7 +81,7 @@ func getClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 					if err1 != nil {
 						return errors.Wrap(errors.WithStack(err1), "Failed to get cluster kubeconfig")
 					}
-					mgr.Kubeconfig = kubeConfigStr
+					clusterStatus["kubeconfig"] = kubeConfigStr
 					if err := loadKubeConfig(mgr); err != nil {
 						return err
 					}
@@ -223,7 +224,7 @@ func getJoinCmd(mgr *manager.Manager) error {
 	clusterStatus["joinWorkerCmd"] = fmt.Sprintf("/usr/local/bin/kubeadm join %s", joinWorkerStrList[1])
 	clusterStatus["joinMasterCmd"] = fmt.Sprintf("%s --control-plane --certificate-key %s", clusterStatus["joinWorkerCmd"], certificateKey)
 
-	output, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get nodes -o wide\"", 5, true)
+	output, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get nodes\"", 5, true)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to get cluster info")
 	}
@@ -232,6 +233,11 @@ func getJoinCmd(mgr *manager.Manager) error {
 	if len(tmp) > 1 {
 		for i := 0; i < len(tmp); i++ {
 			allNodesName[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[0]
+			if len(strings.Fields(tmp[i])) < 5 {
+				allNodesVersion[strings.Fields(tmp[i])[0]] = ""
+			} else {
+				allNodesVersion[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[4]
+			}
 		}
 	}
 
@@ -240,8 +246,7 @@ func getJoinCmd(mgr *manager.Manager) error {
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to get cluster kubeconfig")
 	}
-	mgr.Kubeconfig = output
-
+	clusterStatus["kubeconfig"] = output
 	return nil
 }
 
@@ -279,7 +284,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 }
 
 func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if !ExistNodeName(node.Name) {
+	if !ExistNodeName(node.Name) || !ExistNodeVersion(node.Name) {
 		if node.IsMaster {
 			err := addMaster(mgr)
 			if err != nil {
@@ -347,8 +352,8 @@ func addWorker(mgr *manager.Manager) error {
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
 	}
-	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", mgr.Kubeconfig, "/root/.kube/config")
-	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", mgr.Kubeconfig, "$HOME/.kube/config", chownKubeConfig)
+	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", clusterStatus["kubeconfig"], "/root/.kube/config")
+	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", clusterStatus["kubeconfig"], "$HOME/.kube/config", chownKubeConfig)
 	if _, err := mgr.Runner.ExecuteCmd(syncKubeconfigForRootCmd, 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
@@ -360,7 +365,7 @@ func addWorker(mgr *manager.Manager) error {
 
 func loadKubeConfig(mgr *manager.Manager) error {
 	kubeConfigPath := filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))
-	kubeconfigStr, err := base64.StdEncoding.DecodeString(mgr.Kubeconfig)
+	kubeconfigStr, err := base64.StdEncoding.DecodeString(clusterStatus["kubeconfig"])
 	if err != nil {
 		return err
 	}
@@ -371,13 +376,6 @@ func loadKubeConfig(mgr *manager.Manager) error {
 
 	if err := ioutil.WriteFile(kubeConfigPath, []byte(newKubeconfigStr), 0644); err != nil {
 		return err
-	}
-	mgr.Kubeconfig = base64.StdEncoding.EncodeToString([]byte(newKubeconfigStr))
-
-	if mgr.InCluster {
-		if err := kubekeycontroller.UpdateKubeSphereCluster(mgr); err != nil {
-			return err
-		}
 	}
 
 	return nil

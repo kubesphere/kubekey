@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	"github.com/kubesphere/kubekey/pkg/addons/manifests"
 	yamlV2 "gopkg.in/yaml.v2"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"time"
 
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
@@ -81,10 +83,12 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("cluster", req.NamespacedName)
-	// Fetch the Cluster object
+
 	cluster := &kubekeyv1alpha1.Cluster{}
 	cmFound := &corev1.ConfigMap{}
 	jobFound := &batchv1.Job{}
+
+	// Fetch the Cluster object
 	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if kubeErr.IsNotFound(err) {
 			log.Info("Cluster resource not found. Ignoring since object must be deleted")
@@ -94,108 +98,56 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	// init a new cluster
-	errFoundCreate := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-create-cluster", cluster.Name), Namespace: "kubekey-system"}, jobFound)
-	if errFoundCreate == nil {
-		if jobFound.Status.Failed != 0 {
-			log.Error(errors.New(fmt.Sprintf("Failed to create new Cluster: %s", cluster.Name)), fmt.Sprintf("Job failed: Job.Namespace %s, Job.Name %s", "kubekey-system", fmt.Sprintf("%s-create-cluster", cluster.Name)))
-		}
+	if kscluster, err := manifests.GetCluster(cluster.Name); err == nil {
+		ownerReferencePatch := fmt.Sprintf(`{"metadata": {"ownerReferences": [{"apiVersion": "%s", "kind": "%s", "name": "%s", "uid": "%s"}]}}`, kscluster.GetAPIVersion(), kscluster.GetKind(), kscluster.GetName(), kscluster.GetUID())
+		_ = r.Patch(context.TODO(), cluster, client.RawPatch(types.MergePatchType, []byte(ownerReferencePatch)))
 	}
-	if kubeErr.IsNotFound(errFoundCreate) && cluster.Status.NodesCount == 0 {
+
+	// create a new cluster
+	if cluster.Status.NodesCount == 0 {
 		// create kubesphere cluster
 		if err := newKubeSphereCluster(r, cluster); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		// Check if the configmap already exists, if not create a new one
-		if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: "kubekey-system"}, cmFound); err != nil && kubeErr.IsNotFound(err) {
-			// Define a new configmap
-			cmCluster := r.configMapForCluster(cluster)
-			log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
-			if err := r.Create(ctx, cmCluster); err != nil {
-				log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
-				return ctrl.Result{}, nil
-			}
-		} else if err != nil {
-			log.Error(err, "Failed to get ConfigMap")
+		if err := updateClusterConfigMap(r, ctx, cluster, cmFound, log); err != nil {
 			return ctrl.Result{}, err
-		} else {
-			_ = r.Delete(ctx, cmFound)
-			cmCluster := r.configMapForCluster(cluster)
-			log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
-			if err := r.Create(ctx, cmCluster); err != nil {
-				log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
-				return ctrl.Result{}, nil
-			}
 		}
-
-		// Check if the job already exists, if not create a new one
-		if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-create-cluster", cluster.Name), Namespace: "kubekey-system"}, jobFound); err != nil && kubeErr.IsNotFound(err) {
-			// Define a new Job
-			jobCluster := r.jobForCluster(cluster, CreateCluster)
-			log.Info("Creating a new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-			if err := r.Create(ctx, jobCluster); err != nil {
-				log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-				return ctrl.Result{}, nil
-			}
-			if err := updateStatusRunner(r, cluster, CreateCluster); err != nil {
-				return ctrl.Result{}, err
-			}
-		} else if err != nil {
-			log.Error(err, "Failed to get Job")
+		if err := updateRunJob(r, ctx, cluster, jobFound, log, CreateCluster); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	// add nodes to cluster
-	if cluster.Status.NodesCount != 0 && (len(cluster.Spec.Hosts) > cluster.Status.NodesCount) {
-		// Check if the job already exists, if not create a new one
-		if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-add-nodes", cluster.Name), Namespace: "kubekey-system"}, jobFound); err != nil && kubeErr.IsNotFound(err) {
-			if err := createClusterConfigMap(r, cluster, log); err != nil {
-				return ctrl.Result{}, err
-			}
-			// Define a new Job
-			jobCluster := r.jobForCluster(cluster, AddNodes)
-			log.Info("Creating a new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-			if err := r.Create(ctx, jobCluster); err != nil {
-				log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-				return ctrl.Result{}, nil
-			}
-			if err := updateStatusRunner(r, cluster, AddNodes); err != nil {
-				return ctrl.Result{}, nil
-			}
-		} else if err != nil {
-			log.Error(err, "Failed to get Job")
+	if cluster.Status.NodesCount != 0 && len(cluster.Spec.Hosts) > cluster.Status.NodesCount {
+		if err := updateClusterConfigMap(r, ctx, cluster, cmFound, log); err != nil {
 			return ctrl.Result{}, err
-		} else if jobFound.Status.Succeeded == 1 {
-			if err1 := r.Delete(ctx, jobFound); err1 != nil {
-				return ctrl.Result{}, nil
-			}
-			if err := createClusterConfigMap(r, cluster, log); err != nil {
-				return ctrl.Result{}, err
-			}
-			// Define a new Job
-			jobCluster := r.jobForCluster(cluster, AddNodes)
-			log.Info("Creating a new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-			if err := r.Create(ctx, jobCluster); err != nil {
-				log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-				return ctrl.Result{}, nil
-			}
-			if err := updateStatusRunner(r, cluster, AddNodes); err != nil {
-				return ctrl.Result{}, nil
-			}
-		} else if jobFound.Status.Failed != 0 {
-			log.Error(errors.New(fmt.Sprintf("Failed to add nodes to Cluster: %s", cluster.Name)), fmt.Sprintf("Job failed: Job.Namespace %s, Job.Name %s", "kubekey-system", fmt.Sprintf("%s-add-nodes", cluster.Name)))
+		}
+		if err := updateRunJob(r, ctx, cluster, jobFound, log, AddNodes); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kubekeyv1alpha1.Cluster{}).
+		WithEventFilter(ignoreDeletionPredicate()).
 		Complete(r)
+}
+
+func ignoreDeletionPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			// Ignore updates to CR status in which case metadata.Generation does not change
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			// Evaluates to false if the object has been confirmed deleted.
+			return !e.DeleteStateUnknown
+		},
+	}
 }
 
 func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha1.Cluster) *corev1.ConfigMap {
@@ -325,10 +277,10 @@ func updateStatusRunner(r *ClusterReconciler, cluster *kubekeyv1alpha1.Cluster, 
 		client.InNamespace("kubekey-system"),
 		client.MatchingLabels{"job-name": name},
 	}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		_ = r.List(context.TODO(), podlist, listOpts...)
-		if len(podlist.Items) != 0 {
-			if len(podlist.Items[0].ObjectMeta.GetName()) != 0 && len(podlist.Items[0].Status.ContainerStatuses[0].Name) != 0 {
+		if len(podlist.Items) == 1 {
+			if len(podlist.Items[0].ObjectMeta.GetName()) != 0 && len(podlist.Items[0].Status.ContainerStatuses[0].Name) != 0 && podlist.Items[0].Status.Phase != "Pending" {
 				cluster.Status.JobInfo = kubekeyv1alpha1.JobInfo{
 					Namespace: "kubekey-system",
 					Name:      name,
@@ -345,33 +297,71 @@ func updateStatusRunner(r *ClusterReconciler, cluster *kubekeyv1alpha1.Cluster, 
 				break
 			}
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(6 * time.Second)
 	}
 
 	return nil
 }
 
-func createClusterConfigMap(r *ClusterReconciler, cluster *kubekeyv1alpha1.Cluster, log logr.Logger) error {
-	cmFound := &corev1.ConfigMap{}
-	if err := r.Get(context.TODO(), types.NamespacedName{Name: cluster.Name, Namespace: "kubekey-system"}, cmFound); err != nil && kubeErr.IsNotFound(err) {
-		// Define a new configmap
-		cmCluster := r.configMapForCluster(cluster)
-		log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
-		if err := r.Create(context.TODO(), cmCluster); err != nil {
-			return errors.Wrapf(err, fmt.Sprintf("Failed to create new ConfigMap, ConfigMap.Namespace: %s, ConfigMap.Name: %s", cmCluster.Namespace, cmCluster.Name))
-		}
-	} else if err != nil {
-		return errors.Wrap(err, "Failed to get ConfigMap")
-	} else {
-		if err1 := r.Delete(context.TODO(), cmFound); err1 != nil {
+func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, cmFound *corev1.ConfigMap, log logr.Logger) error {
+	// Check if the configmap already exists, if not create a new one
+	if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: "kubekey-system"}, cmFound); err != nil && !kubeErr.IsNotFound(err) {
+		log.Error(err, "Failed to get ConfigMap", "ConfigMap.Namespace", cmFound.Namespace, "ConfigMap.Name", cmFound.Name)
+		return err
+	} else if err == nil {
+		if err := r.Delete(ctx, cmFound); err != nil {
+			log.Error(err, "Failed to delete old ConfigMap", "ConfigMap.Namespace", cmFound.Namespace, "ConfigMap.Name", cmFound.Name)
 			return err
 		}
-		cmCluster := r.configMapForCluster(cluster)
-		log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
-		if err := r.Create(context.TODO(), cmCluster); err != nil {
-			log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
-			return errors.Wrapf(err, fmt.Sprintf("Failed to create new ConfigMap, ConfigMap.Namespace: %s, ConfigMap.Name: %s", cmCluster.Namespace, cmCluster.Name))
+	}
+
+	// Define a new configmap
+	cmCluster := r.configMapForCluster(cluster)
+	log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
+	if err := r.Create(ctx, cmCluster); err != nil {
+		log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", cmCluster.Namespace, "ConfigMap.Name", cmCluster.Name)
+		return err
+	}
+	return nil
+}
+
+func updateRunJob(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, jobFound *batchv1.Job, log logr.Logger, action string) error {
+	var (
+		name string
+	)
+	if action == CreateCluster {
+		name = fmt.Sprintf("%s-create-cluster", cluster.Name)
+	} else if action == AddNodes {
+		name = fmt.Sprintf("%s-add-nodes", cluster.Name)
+	}
+	// Check if the job already exists, if not create a new one
+	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
+		return nil
+	} else if err == nil {
+		podlist := &corev1.PodList{}
+		listOpts := []client.ListOption{
+			client.InNamespace("kubekey-system"),
+			client.MatchingLabels{"job-name": name},
+		}
+		_ = r.List(context.TODO(), podlist, listOpts...)
+		for _, pod := range podlist.Items {
+			_ = r.Delete(ctx, &pod)
+		}
+		if err := r.Delete(ctx, jobFound); err != nil {
+			log.Error(err, "Failed to delete old Job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
+			return err
 		}
 	}
+
+	jobCluster := r.jobForCluster(cluster, action)
+	log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+	if err := r.Create(ctx, jobCluster); err != nil {
+		log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+		return err
+	}
+	if err := updateStatusRunner(r, cluster, action); err != nil {
+		return err
+	}
+
 	return nil
 }
