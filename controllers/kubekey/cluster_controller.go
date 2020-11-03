@@ -113,7 +113,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return ctrl.Result{}, err
 		}
 		if err := updateRunJob(r, ctx, cluster, jobFound, log, CreateCluster); err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{Requeue: true}, err
 		}
 	}
 
@@ -123,7 +123,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return ctrl.Result{}, err
 		}
 		if err := updateRunJob(r, ctx, cluster, jobFound, log, AddNodes); err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{Requeue: true}, err
 		}
 	}
 
@@ -334,34 +334,43 @@ func updateRunJob(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1a
 	} else if action == AddNodes {
 		name = fmt.Sprintf("%s-add-nodes", cluster.Name)
 	}
+
 	// Check if the job already exists, if not create a new one
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
 		return nil
-	} else if err == nil {
+	} else if err == nil && (jobFound.Status.Failed != 0 || jobFound.Status.Succeeded != 0) {
+		// delete old pods
 		podlist := &corev1.PodList{}
 		listOpts := []client.ListOption{
 			client.InNamespace("kubekey-system"),
 			client.MatchingLabels{"job-name": name},
 		}
-		_ = r.List(context.TODO(), podlist, listOpts...)
-		for _, pod := range podlist.Items {
-			_ = r.Delete(ctx, &pod)
+		if err := r.List(context.TODO(), podlist, listOpts...); err == nil && len(podlist.Items) != 0 {
+			for _, pod := range podlist.Items {
+				_ = r.Delete(ctx, &pod)
+			}
 		}
 		if err := r.Delete(ctx, jobFound); err != nil {
 			log.Error(err, "Failed to delete old Job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
 			return err
 		}
-	}
 
-	jobCluster := r.jobForCluster(cluster, action)
-	log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-	if err := r.Create(ctx, jobCluster); err != nil {
-		log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-		return err
+		jobCluster := r.jobForCluster(cluster, action)
+		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+		if err := r.Create(ctx, jobCluster); err != nil {
+			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+			return err
+		}
+	} else if kubeErr.IsNotFound(err) {
+		jobCluster := r.jobForCluster(cluster, action)
+		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+		if err := r.Create(ctx, jobCluster); err != nil {
+			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+			return err
+		}
 	}
 	if err := updateStatusRunner(r, cluster, action); err != nil {
 		return err
 	}
-
 	return nil
 }

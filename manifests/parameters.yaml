@@ -60,6 +60,11 @@ data:
       },
       "storagePlugins": [
         {
+          "name": "local",
+          "title": "Local Volume[Use only for testing]",
+          "description": "A local volume represents a mounted local storage device such as a disk, partition or directory."
+        },
+        {
           "name": "nfs",
           "title": "NFS",
           "description": "An nfs volume allows an existing NFS (Network File System) share to be mounted into your Pod.",
@@ -81,14 +86,14 @@ data:
             {
               "name": "nfs.server",
               "title": "NFS Server",
-              "description": "Hostname of the NFS server(ip or hostname).",
+              "description": "Hostname of the NFS server(ip or hostname). Required.",
               "default": "",
               "type": "string"
             },
             {
               "name": "nfs.path",
               "title": "NFS Path",
-              "description": "Basepath of the mount point.",
+              "description": "Basepath of the mount point. For example, '/mnt/kube'. Required",
               "default": "",
               "type": "string"
             }
@@ -117,7 +122,7 @@ data:
               {
                 "name": "redisVolumeSize",
                 "title": "Redis Volume Size",
-                "description": "Redis PVC size.",
+                "description": "Redis Storage size.",
                 "default": "2Gi",
                 "unit": "Gi",
                 "type": "integer"
@@ -125,7 +130,7 @@ data:
               {
                 "name": "mysqlVolumeSize",
                 "title": "MySQL Volume Size",
-                "description": "MySQL PVC size.",
+                "description": "MySQL Storage size.",
                 "default": "20Gi",
                 "unit": "Gi",
                 "type": "integer"
@@ -141,7 +146,7 @@ data:
               {
                 "name": "etcdVolumeSize",
                 "title": "etcd Volume Size",
-                "description": "etcd PVC size.",
+                "description": "etcd Storage size.",
                 "default": "20Gi",
                 "unit": "Gi",
                 "type": "integer"
@@ -149,7 +154,7 @@ data:
               {
                 "name": "openldapVolumeSize",
                 "title": "Openldap Volume Size",
-                "description": "Openldap PVC size.",
+                "description": "Openldap Storage size.",
                 "default": "2Gi",
                 "unit": "Gi",
                 "type": "integer"
@@ -331,4 +336,3 @@ metadata:
     kubesphere.io/creator: admin
   name: kubekey-parameters
   namespace: kubekey-system
-

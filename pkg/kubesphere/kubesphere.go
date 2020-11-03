@@ -38,7 +38,9 @@ func DeployKubeSphere(mgr *manager.Manager) error {
 		if err := mgr.RunTaskOnMasterNodes(deployKubeSphere, true); err != nil {
 			return err
 		}
-		ResultNotes(mgr.InCluster)
+		if err := ResultNotes(mgr.InCluster); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -142,7 +144,7 @@ EOF
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		PrivateRegistry := strings.Replace(string(mgr.Cluster.Registry.PrivateRegistry), "/", "\\/", -1)
+		PrivateRegistry := strings.Replace(mgr.Cluster.Registry.PrivateRegistry, "/", "\\/", -1)
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/local_registry/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", PrivateRegistry), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
 		}
@@ -188,7 +190,7 @@ EOF
 }
 
 func CheckKubeSphereStatus(mgr *manager.Manager) {
-	for i := 30; i > 0; i-- {
+	for i := 180; i > 0; i-- {
 		time.Sleep(10 * time.Second)
 		_, err := mgr.Runner.ExecuteCmd(
 			"/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -- ls /kubesphere/playbooks/kubesphere_running", 0, false,
@@ -206,7 +208,7 @@ func CheckKubeSphereStatus(mgr *manager.Manager) {
 	stopChan <- ""
 }
 
-func ResultNotes(incluster bool) {
+func ResultNotes(incluster bool) error {
 	var (
 		position = 1
 		notes    = "Please wait for the installation to complete: "
@@ -221,6 +223,9 @@ Loop:
 		case result := <-stopChan:
 			if !incluster {
 				fmt.Printf("\033[%dA\033[K", position)
+			}
+			if result == "" {
+				return errors.New("KubeSphere startup timeout.")
 			}
 			fmt.Println(result)
 			break Loop
@@ -256,6 +261,7 @@ Loop:
 			}
 		}
 	}
+	return nil
 }
 
 func DeployLocalVolume(mgr *manager.Manager) error {

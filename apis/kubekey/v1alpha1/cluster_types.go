@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 	"strconv"
@@ -202,9 +203,15 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	return defaultCertSANs
 }
 
-func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
+func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 	clusterHostsGroups := HostGroups{}
-	etcdGroup, masterGroup, workerGroup, err := cfg.ParseRolesList()
+
+	hostList := map[string]string{}
+	for _, host := range cfg.Hosts {
+		hostList[host.Name] = host.Name
+	}
+
+	etcdGroup, masterGroup, workerGroup, err := cfg.ParseRolesList(hostList, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -253,6 +260,13 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 	}
 
 	//Check that the parameters under roleGroups are incorrect
+	if len(masterGroup) == 0 {
+		logger.Fatal(errors.New("The number of master cannot be 0."))
+	}
+	if len(etcdGroup) == 0 {
+		logger.Fatal(errors.New("The number of etcd cannot be 0."))
+	}
+
 	if len(masterGroup) != len(clusterHostsGroups.Master) {
 		return nil, errors.New("Incorrect nodeName under roleGroups/master in the configuration file, Please check before installing.")
 	}
@@ -262,7 +276,6 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 	if len(workerGroup) != len(clusterHostsGroups.Worker) {
 		return nil, errors.New("Incorrect nodeName under roleGroups/work in the configuration file, Please check before installing.")
 	}
-
 	clusterHostsGroups.Client = append(clusterHostsGroups.Client, clusterHostsGroups.Master[0])
 	return &clusterHostsGroups, nil
 }
@@ -271,38 +284,47 @@ func (cfg *ClusterSpec) ClusterIP() string {
 	return util.ParseIp(cfg.Network.KubeServiceCIDR)[2]
 }
 
-func (cfg *ClusterSpec) ParseRolesList() ([]string, []string, []string, error) {
+func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string, logger *log.Logger) ([]string, []string, []string, error) {
 	etcdGroupList := []string{}
 	masterGroupList := []string{}
 	workerGroupList := []string{}
 
 	for _, host := range cfg.RoleGroups.Etcd {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
-			etcdGroupList = append(etcdGroupList, getHostsRange(host)...)
+			etcdGroupList = append(etcdGroupList, getHostsRange(host, hostList, "etcd", logger)...)
 		} else {
+			if err := hostVerify(hostList, host, "etcd"); err != nil {
+				logger.Fatal(err)
+			}
 			etcdGroupList = append(etcdGroupList, host)
 		}
 	}
 
 	for _, host := range cfg.RoleGroups.Master {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
-			masterGroupList = append(masterGroupList, getHostsRange(host)...)
+			masterGroupList = append(masterGroupList, getHostsRange(host, hostList, "master", logger)...)
 		} else {
+			if err := hostVerify(hostList, host, "master"); err != nil {
+				logger.Fatal(err)
+			}
 			masterGroupList = append(masterGroupList, host)
 		}
 	}
 
 	for _, host := range cfg.RoleGroups.Worker {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
-			workerGroupList = append(workerGroupList, getHostsRange(host)...)
+			workerGroupList = append(workerGroupList, getHostsRange(host, hostList, "worker", logger)...)
 		} else {
+			if err := hostVerify(hostList, host, "worker"); err != nil {
+				logger.Fatal(err)
+			}
 			workerGroupList = append(workerGroupList, host)
 		}
 	}
 	return etcdGroupList, masterGroupList, workerGroupList, nil
 }
 
-func getHostsRange(rangeStr string) []string {
+func getHostsRange(rangeStr string, hostList map[string]string, group string, logger *log.Logger) []string {
 	hostRangeList := []string{}
 	r := regexp.MustCompile(`\[(\d+)\:(\d+)\]`)
 	nameSuffix := r.FindStringSubmatch(rangeStr)
@@ -310,7 +332,17 @@ func getHostsRange(rangeStr string) []string {
 	nameSuffixStart, _ := strconv.Atoi(nameSuffix[1])
 	nameSuffixEnd, _ := strconv.Atoi(nameSuffix[2])
 	for i := nameSuffixStart; i <= nameSuffixEnd; i++ {
+		if err := hostVerify(hostList, fmt.Sprintf("%s%d", namePrefix, i), group); err != nil {
+			logger.Fatal(err)
+		}
 		hostRangeList = append(hostRangeList, fmt.Sprintf("%s%d", namePrefix, i))
 	}
 	return hostRangeList
+}
+
+func hostVerify(hostList map[string]string, hostName string, group string) error {
+	if _, ok := hostList[hostName]; !ok {
+		return errors.New(fmt.Sprintf("[%s] is in [%s] group, but not in hosts list.", hostName, group))
+	}
+	return nil
 }

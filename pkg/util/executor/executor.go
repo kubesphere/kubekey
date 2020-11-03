@@ -58,7 +58,7 @@ func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger
 
 func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr := &manager.Manager{}
-	defaultCluster, hostGroups, err := executor.Cluster.SetDefaultClusterSpec(executor.InCluster)
+	defaultCluster, hostGroups, err := executor.Cluster.SetDefaultClusterSpec(executor.InCluster, executor.Logger)
 	if err != nil {
 		return nil, err
 	}
