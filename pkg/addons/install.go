@@ -56,7 +56,9 @@ func InstallAddons(mgr *manager.Manager) error {
 				if err := mgr.RunTaskOnMasterNodes(checkKubeSphereStatus, true); err != nil {
 					return err
 				}
-				kubesphere.ResultNotes(mgr.InCluster)
+				if err := kubesphere.ResultNotes(mgr.InCluster); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -107,7 +109,7 @@ func installAddon(mgr *manager.Manager, addon *kubekeyapiv1alpha1.Addon, kubecon
 	return nil
 }
 
-func checkKubeSphereStatus(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func checkKubeSphereStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
 		go kubesphere.CheckKubeSphereStatus(mgr)
 	}

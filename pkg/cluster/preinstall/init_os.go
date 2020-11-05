@@ -37,6 +37,11 @@ const (
 )
 
 func DownloadBinaries(mgr *manager.Manager) error {
+	if mgr.InCluster {
+		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init nodes", metav1.Now(), metav1.Now(), false, 1); err != nil {
+			return err
+		}
+	}
 	if err := Prepare(mgr); err != nil {
 		return errors.Wrap(err, "Failed to load kube binaries")
 	}
@@ -44,12 +49,6 @@ func DownloadBinaries(mgr *manager.Manager) error {
 }
 
 func InitOS(mgr *manager.Manager) error {
-	if mgr.InCluster {
-		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init nodes", metav1.Now(), metav1.Now(), false, 1); err != nil {
-			return err
-		}
-	}
-
 	mgr.Logger.Infoln("Configuring operating system ...")
 
 	return mgr.RunTaskOnAllNodes(initOsOnNode, true)

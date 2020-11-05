@@ -38,6 +38,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -77,8 +78,14 @@ func InstallChart(mgr *manager.Manager, addon *kubekeyapiv1alpha1.Addon, kubecon
 			if err != nil {
 				return err
 			}
-			s, _ := clientset.CoreV1().Secrets("kubesphere-system").Get(context.TODO(), "kubesphere-secret", metav1.GetOptions{})
-			valueOpts.Values = append(valueOpts.Values, fmt.Sprintf("authentication.jwtSecret=%s", string(s.Data["secret"])))
+			for index, value := range addon.Sources.Chart.Values {
+				if strings.Contains(value, "registry=") {
+					addon.Sources.Chart.Values[index] = strings.TrimSuffix(value, "/")
+				}
+			}
+			if s, err := clientset.CoreV1().Secrets("kubesphere-system").Get(context.TODO(), "kubesphere-secret", metav1.GetOptions{}); err == nil {
+				valueOpts.Values = append(valueOpts.Values, fmt.Sprintf("authentication.jwtSecret=%s", string(s.Data["secret"])))
+			}
 		}
 	}
 	if len(addon.Sources.Chart.ValuesFile) != 0 {

@@ -35,10 +35,9 @@ import (
 )
 
 var (
-	clusterIsExist  = false
-	allNodesName    = map[string]string{}
-	allNodesVersion = map[string]string{}
-	clusterStatus   = map[string]string{
+	clusterIsExist = false
+	allNodesInfo   = map[string]string{}
+	clusterStatus  = map[string]string{
 		"version":       "",
 		"joinMasterCmd": "",
 		"joinWorkerCmd": "",
@@ -224,27 +223,39 @@ func getJoinCmd(mgr *manager.Manager) error {
 	clusterStatus["joinWorkerCmd"] = fmt.Sprintf("/usr/local/bin/kubeadm join %s", joinWorkerStrList[1])
 	clusterStatus["joinMasterCmd"] = fmt.Sprintf("%s --control-plane --certificate-key %s", clusterStatus["joinWorkerCmd"], certificateKey)
 
-	output, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get nodes\"", 5, true)
+	output, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl --no-headers=true get nodes -o custom-columns=:metadata.name,:status.nodeInfo.kubeletVersion,:status.addresses\"", 5, true)
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err3), "Failed to get cluster info")
 	}
 	clusterStatus["clusterInfo"] = output
+	ipv4Regexp, err4 := regexp.Compile("[\\d]+\\.[\\d]+\\.[\\d]+\\.[\\d]+")
+	if err4 != nil {
+		return err4
+	}
+	ipv6Regexp, err5 := regexp.Compile("[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){0,7}::[a-f0-9]{0,4}(:[a-f0-9]{1,4}){0,7}")
+	if err5 != nil {
+		return err5
+	}
 	tmp := strings.Split(clusterStatus["clusterInfo"], "\r\n")
-	if len(tmp) > 1 {
+	if len(tmp) >= 1 {
 		for i := 0; i < len(tmp); i++ {
-			allNodesName[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[0]
-			if len(strings.Fields(tmp[i])) < 5 {
-				allNodesVersion[strings.Fields(tmp[i])[0]] = ""
+			if ipv4 := ipv4Regexp.FindStringSubmatch(tmp[i]); len(ipv4) != 0 {
+				allNodesInfo[ipv4[0]] = ipv4[0]
+			}
+			if ipv6 := ipv6Regexp.FindStringSubmatch(tmp[i]); len(ipv6) != 0 {
+				allNodesInfo[ipv6[0]] = ipv6[0]
+			}
+			if len(strings.Fields(tmp[i])) > 3 {
+				allNodesInfo[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[1]
 			} else {
-				allNodesVersion[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[4]
+				allNodesInfo[strings.Fields(tmp[i])[0]] = ""
 			}
 		}
 	}
-
 	kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
-	output, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
-	if err4 != nil {
-		return errors.Wrap(errors.WithStack(err4), "Failed to get cluster kubeconfig")
+	output, err6 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
+	if err6 != nil {
+		return errors.Wrap(errors.WithStack(err6), "Failed to get cluster kubeconfig")
 	}
 	clusterStatus["kubeconfig"] = output
 	return nil
@@ -284,7 +295,7 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 }
 
 func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if !ExistNodeName(node.Name) || !ExistNodeVersion(node.Name) {
+	if !ExistNode(node) {
 		if node.IsMaster {
 			err := addMaster(mgr)
 			if err != nil {

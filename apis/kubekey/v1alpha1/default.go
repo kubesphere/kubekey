@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/util"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 )
@@ -59,12 +60,12 @@ const (
 	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *HostGroups, error) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger) (*ClusterSpec, *HostGroups, error) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
-	hostGroups, err := clusterCfg.GroupHosts()
+	hostGroups, err := clusterCfg.GroupHosts(logger)
 	if err != nil {
 		return nil, nil, err
 	}
