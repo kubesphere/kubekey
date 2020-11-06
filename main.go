@@ -48,7 +48,9 @@ func init() {
 }
 
 func main() {
-
+	// This is fork flow of kk (aka kubekey)
+	// Please see also cmd/kk/main.go as an another main entry-point of kk
+	// In order to keep compatible, just remain the following code lines
 	if strings.Contains(os.Args[0], "kk") {
 		cmd.Execute()
 		os.Exit(0)

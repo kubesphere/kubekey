@@ -77,7 +77,7 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 
 ## Usage
 
-### Get the Installer Excutable File
+### Get the Installer Executable File
 
 * Binary downloads of the KubeKey can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
   Unpack the binary and you are good to go!

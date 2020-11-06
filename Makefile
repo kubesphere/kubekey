@@ -98,6 +98,7 @@ LDFLAGS += -X github.com/kubesphere/kubekey/version.metadata=${VERSION_METADATA}
 LDFLAGS += -X github.com/kubesphere/kubekey/version.gitCommit=${GIT_COMMIT}
 LDFLAGS += -X github.com/kubesphere/kubekey/version.gitTreeState=${GIT_DIRTY}
 
+# see also kk-linux and kk-darwin
 binary:
 	docker run --rm \
 		-v $(shell pwd):/usr/src/myapp \
@@ -118,6 +119,12 @@ binary:
 		-w /usr/src/myapp golang:1.14 \
 		go build -ldflags '$(LDFLAGS)' -v -o output/linux/arm64/kk ./main.go  # linux
 	sha256sum output/linux/arm64/kk || shasum -a 256 output/linux/arm64/kk
+
+# build the binary file of kk
+kk-linux:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/linux/amd64/kk ./cmd/kk/main.go
+kk-darwin:
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/darwin/amd64/kk ./cmd/kk/main.go
 
 # find or download controller-gen
 # download controller-gen if necessary
