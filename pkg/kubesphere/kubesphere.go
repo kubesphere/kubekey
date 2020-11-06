@@ -213,7 +213,7 @@ func ResultNotes(incluster bool) error {
 		position = 1
 		notes    = "Please wait for the installation to complete: "
 	)
-	fmt.Println("\n")
+	fmt.Print("\n")
 	if incluster {
 		fmt.Println("Please wait for the installation to complete ...")
 	}

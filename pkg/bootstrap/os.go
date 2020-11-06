@@ -70,7 +70,7 @@ func InitOS(mgr *manager.Manager) error {
 			return err
 		}
 
-		fmt.Println("\nLocal images repository created successfully. Address: dockerhub.kubekey.local\n")
+		fmt.Print("\nLocal images repository created successfully. Address: dockerhub.kubekey.local\n")
 	}
 	return nil
 }

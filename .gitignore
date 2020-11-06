@@ -33,3 +33,6 @@
 *.un~
 Session.vim
 .netrwhist
+
+# Generate by makefile
+bin
