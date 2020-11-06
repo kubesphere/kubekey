@@ -5,6 +5,14 @@ docker_version=19.03.13
 #apt_yum_url="https://download.docker.com"
 apt_yum_url="https://mirrors.aliyun.com/docker-ce"
 
+VERSION=`cat /etc/os-release | grep VERSION_ID | awk -F "" '{print $13}'`
+
+if [ "$VERSION" -eq 8 ]
+then
+    apt_yum_url="https://mirror.azure.cn/docker-ce"
+fi
+
+
 rhel_repos="
 rhel-7-server-extras-rpms
 rhui-REGION-rhel-server-extras
