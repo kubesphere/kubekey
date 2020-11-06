@@ -107,10 +107,5 @@ func Execute(executor *executor.Executor) error {
 	if err != nil {
 		return err
 	}
-	//The detection is not an HA environment, and the address at LB does not need input
-	if len(mgr.MasterNodes) == 1 && mgr.Cluster.ControlPlaneEndpoint.Address != "" {
-		fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
-		os.Exit(0)
-	}
 	return ExecTasks(mgr)
 }
