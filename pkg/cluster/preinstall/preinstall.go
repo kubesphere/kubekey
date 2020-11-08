@@ -59,9 +59,9 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 		helm.GetCmd = fmt.Sprintf("curl -o %s/helm-%s-linux-%s.tar.gz  %s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", filepath, helm.Version, helm.Arch, helm.Url, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
 	}
 
-	kubeadm.GetCmd = fmt.Sprintf("curl -o %s  %s", kubeadm.Path, kubeadm.Url)
-	kubelet.GetCmd = fmt.Sprintf("curl -o %s  %s", kubelet.Path, kubelet.Url)
-	kubectl.GetCmd = fmt.Sprintf("curl -o %s  %s", kubectl.Path, kubectl.Url)
+	kubeadm.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubeadm.Path, kubeadm.Url)
+	kubelet.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubelet.Path, kubelet.Url)
+	kubectl.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubectl.Path, kubectl.Url)
 	kubecni.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubecni.Path, kubecni.Url)
 
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni}
@@ -72,7 +72,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 			for i := 5; i > 0; i-- {
 				if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
 					fmt.Println(string(output))
-					return errors.Wrap(err, fmt.Sprintf("Failed to download %s binary", binary.Name))
+					return errors.New(fmt.Sprintf("Failed to download %s binary: %s", binary.Name, binary.GetCmd))
 				}
 
 				if err := SHA256Check(binary, version); err != nil {

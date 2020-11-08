@@ -77,7 +77,7 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 
 ## Usage
 
-### Get the Installer Excutable File
+### Get the Installer Executable File
 
 * Binary downloads of the KubeKey can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
   Unpack the binary and you are good to go!
@@ -93,7 +93,7 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 > Note:
 >
 > * Docker needs to be installed before building.
-> * If you have problem to access `https://proxy.golang.org/`, excute `build.sh -p` instead.
+> * If you have problem to access `https://proxy.golang.org`, execute `build.sh -p` instead.
 
 ### Create a Cluster
 
@@ -105,6 +105,7 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 
 ##### Command
 
+> If you have problem to access `https://storage.googleapis.com`, execute first `export KKZONE=cn`.
 ```shell script
 ./kk create cluster [--with-kubernetes version] [--with-kubesphere version]
 ```
@@ -132,6 +133,8 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 #### Advanced
 
 You have more control to customize parameters or create a multi-node cluster using the advanced installation. Specifically, create a cluster by specifying a configuration file.
+
+> If you have problem to access `https://storage.googleapis.com`, execute first `export KKZONE=cn`.
 
 1. First, create an example configuration file
 

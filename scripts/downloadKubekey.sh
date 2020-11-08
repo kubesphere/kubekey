@@ -57,17 +57,20 @@ fi
 
 DOWNLOAD_URL="https://github.com/kubesphere/kubekey/releases/download/${KUBEKEY_VERSION}/kubekey-${KUBEKEY_VERSION}-${OSTYPE}-${ARCH}.tar.gz"
 if [ "x${KKZONE}" = "xcn" ]; then
-  export KKZONE=cn
   DOWNLOAD_URL="https://kubernetes.pek3b.qingstor.com/kubekey/releases/download/${KUBEKEY_VERSION}/kubekey-${KUBEKEY_VERSION}-${OSTYPE}-${ARCH}.tar.gz"
 fi
 
-echo "\nDownloading kubekey ${KUBEKEY_VERSION} from ${DOWNLOAD_URL} ...\n"
+echo ""
+echo "Downloading kubekey ${KUBEKEY_VERSION} from ${DOWNLOAD_URL} ..."
+echo ""
 
 curl -fsLO "$DOWNLOAD_URL"
 if [ $? -ne 0 ]; then
-  echo "\n\n"
-  echo "Failed to download Kubekey ${KUBEKEY_VERSION} !\n"
-  echo "Please verify the version you are trying to download.\n\n"
+  echo ""
+  echo "Failed to download Kubekey ${KUBEKEY_VERSION} !"
+  echo ""
+  echo "Please verify the version you are trying to download."
+  echo ""
   exit
 fi
 
@@ -75,4 +78,6 @@ filename="kubekey-${KUBEKEY_VERSION}-${OSTYPE}-${ARCH}.tar.gz"
 tar -xzf "${filename}"
 # rm "${filename}"
 
-echo "\nKubekey ${KUBEKEY_VERSION} Download Complete!\n"
+echo ""
+echo "Kubekey ${KUBEKEY_VERSION} Download Complete!"
+echo ""
