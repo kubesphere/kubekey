@@ -14,7 +14,7 @@ RUN git clone https://github.com/kubesphere/helm-charts.git
 ADD ./ /workspace
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
-
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o kk cmd/kk/main.go
 
 # Build the manager image
 FROM debian:stable
@@ -31,5 +31,6 @@ WORKDIR /home/kubekey
 COPY --from=builder /workspace/helm-charts/src/main/nfs-client-provisioner /home/kubekey/addons/nfs-client-provisioner
 COPY --from=builder /workspace/helm-charts/src/test/ks-installer /home/kubekey/addons/ks-installer
 COPY --from=builder /workspace/manager /home/kubekey
+COPY --from=builder /workspace/kk /home/kubekey
 
-RUN ln -snf /home/kubekey/manager /home/kubekey/kk
+

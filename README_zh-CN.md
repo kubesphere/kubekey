@@ -107,6 +107,8 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 
 ##### 命令
 
+> 如果无法访问 `https://storage.googleapis.com`, 请先执行 `export KKZONE=cn`.
+
 ```shell script
 ./kk create cluster [--with-kubernetes version] [--with-kubesphere version]
 ```
@@ -134,6 +136,8 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 #### 高级用法
 
 您可以使用高级安装来控制自定义参数或创建多节点群集。具体来说，通过指定配置文件来创建集群。
+
+> 如果无法访问 `https://storage.googleapis.com`, 请先执行 `export KKZONE=cn`.
 
 1. 首先，创建一个示例配置文件
 

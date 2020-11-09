@@ -107,17 +107,17 @@ binary:
 		-e CGO_ENABLED=0 \
 		-e GO111MODULE=on \
 		-w /usr/src/myapp golang:1.14 \
-		go build -ldflags '$(LDFLAGS)' -v -o output/linux/amd64/kk ./main.go  # linux
+		go build -ldflags '$(LDFLAGS)' -v -o output/linux/amd64/kk ./cmd/kk/main.go  # linux
 	sha256sum output/linux/amd64/kk || shasum -a 256 output/linux/amd64/kk
 
 	docker run --rm \
 		-v $(shell pwd):/usr/src/myapp \
-		-e GOOS=linux \cd out
+		-e GOOS=linux \
 		-e GOARCH=arm64 \
 		-e CGO_ENABLED=0 \
 		-e GO111MODULE=on \
 		-w /usr/src/myapp golang:1.14 \
-		go build -ldflags '$(LDFLAGS)' -v -o output/linux/arm64/kk ./main.go  # linux
+		go build -ldflags '$(LDFLAGS)' -v -o output/linux/arm64/kk ./cmd/kk/main.go  # linux
 	sha256sum output/linux/arm64/kk || shasum -a 256 output/linux/arm64/kk
 
 # build the binary file of kk
