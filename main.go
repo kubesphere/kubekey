@@ -19,15 +19,11 @@ package main
 import (
 	"flag"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
-	"os"
-	"strings"
-
-	"github.com/kubesphere/kubekey/cmd"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -48,14 +44,6 @@ func init() {
 }
 
 func main() {
-	// This is fork flow of kk (aka kubekey)
-	// Please see also cmd/kk/main.go as an another main entry-point of kk
-	// In order to keep compatible, just remain the following code lines
-	if strings.Contains(os.Args[0], "kk") {
-		cmd.Execute()
-		os.Exit(0)
-	}
-
 	var metricsAddr string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")

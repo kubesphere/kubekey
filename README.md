@@ -105,6 +105,8 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 
 ##### Command
 
+> If you have problem to access `https://storage.googleapis.com`, execute first `export KKZONE=cn`.
+
 ```shell script
 ./kk create cluster [--with-kubernetes version] [--with-kubesphere version]
 ```
@@ -132,6 +134,8 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 #### Advanced
 
 You have more control to customize parameters or create a multi-node cluster using the advanced installation. Specifically, create a cluster by specifying a configuration file.
+
+> If you have problem to access `https://storage.googleapis.com`, execute first `export KKZONE=cn`.
 
 1. First, create an example configuration file
 
