@@ -1,13 +1,14 @@
 package preinstall
 
 import (
+	"strings"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
-	"strings"
 )
 
 func PrePullImages(mgr *manager.Manager) error {
@@ -50,6 +51,7 @@ func PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 		GetImage(mgr, "cilium"),
 		GetImage(mgr, "operator-generic"),
 		GetImage(mgr, "flannel"),
+		GetImage(mgr, "kubeovn"),
 	}
 	if err := i.PullImages(mgr, node); err != nil {
 		return err
@@ -89,6 +91,7 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		"flannel":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "flannel", Tag: kubekeyapiv1alpha1.DefaultFlannelVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "flannel")},
 		"cilium":                  {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "cilium", Repo: "cilium", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
 		"operator-generic":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "cilium", Repo: "operator-generic", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
+		"kubeovn":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubeovn", Repo: "kube-ovn", Tag: kubekeyapiv1alpha1.DefaultKubeovnVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "kubeovn")},
 		// storage
 		"provisioner-localpv":    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "1.10.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 		"openebs-tools":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapiv1alpha1.Worker, Enable: false},

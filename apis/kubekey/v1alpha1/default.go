@@ -18,10 +18,11 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/util"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/util"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -42,6 +43,7 @@ const (
 	DefaultFlannelVersion      = "v0.12.0"
 	DefaultCniVersion          = "v0.8.6"
 	DefaultCiliumVersion       = "v1.8.3"
+	DefaultKubeovnVersion      = "v1.5.0"
 	DefaultHelmVersion         = "v3.2.1"
 	DefaultMaxPods             = 110
 	DefaultNodeCidrMaskSize    = 24
@@ -58,6 +60,12 @@ const (
 	DefaultEtcdBackupPeriod    = 30
 	DefaultKeepBackNumber      = 5
 	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
+	DefaultJoinCIDR            = "100.64.0.0/16"
+	DefaultNetworkType         = "geneve"
+	DefaultVlanID              = "100"
+	DefaultOvnLabel            = "node-role.kubernetes.io/master"
+	DefaultDPDKVersion         = "19.11"
+	DefaultDNSAddress          = "114.114.114.114"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger) (*ClusterSpec, *HostGroups, error) {
@@ -181,6 +189,25 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 	}
 	if cfg.Network.Flannel.BackendMode == "" {
 		cfg.Network.Flannel.BackendMode = DefaultBackendMode
+	}
+	// kube-ovn default config
+	if cfg.Network.Kubeovn.JoinCIDR == "" {
+		cfg.Network.Kubeovn.JoinCIDR = DefaultJoinCIDR
+	}
+	if cfg.Network.Kubeovn.Label == "" {
+		cfg.Network.Kubeovn.Label = DefaultOvnLabel
+	}
+	if cfg.Network.Kubeovn.VlanID == "" {
+		cfg.Network.Kubeovn.VlanID = DefaultVlanID
+	}
+	if cfg.Network.Kubeovn.NetworkType == "" {
+		cfg.Network.Kubeovn.NetworkType = DefaultNetworkType
+	}
+	if cfg.Network.Kubeovn.PingerExternalAddress == "" {
+		cfg.Network.Kubeovn.PingerExternalAddress = DefaultDNSAddress
+	}
+	if cfg.Network.Kubeovn.DpdkVersion == "" {
+		cfg.Network.Kubeovn.DpdkVersion = DefaultDPDKVersion
 	}
 	defaultNetworkCfg := cfg.Network
 
