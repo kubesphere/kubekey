@@ -19,18 +19,19 @@ package delete
 import (
 	"bufio"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/config"
-	"github.com/kubesphere/kubekey/pkg/util/executor"
-	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
+
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/util/executor"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
@@ -276,6 +277,17 @@ var clusterFiles = []string{
 	"/usr/bin/kubelet",
 }
 
+var kubeovnFiles = []string{
+	"/var/run/openvswitch",
+	"/var/run/ovn",
+	"/etc/openvswitch",
+	"/etc/ovn",
+	"/var/log/openvswitch",
+	"/var/log/ovn",
+	"/etc/cni/net.d/00-kube-ovn.conflist",
+	"/etc/cni/net.d/01-kube-ovn.conflist",
+}
+
 var cmdsList = []string{
 	"iptables -F",
 	"iptables -X",
@@ -286,6 +298,11 @@ var cmdsList = []string{
 }
 
 func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
+	// delete OVN/OVS DB and config files on every node
+	if mgr.Cluster.Network.Plugin == "kubeovn" {
+		deleteOvnFiles(mgr)
+	}
+
 	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
 	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true, "printCmd")
 	_ = deleteFiles(mgr)
@@ -299,6 +316,13 @@ func deleteFiles(mgr *manager.Manager) error {
 	}
 	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && exit 0\"", 0, true)
 	return nil
+}
+
+func deleteOvnFiles(mgr *manager.Manager) {
+	_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/share/openvswitch/scripts/ovs-ctl stop && ovs-dpctl del-dp ovs-system\"", 1, true)
+	for _, file := range kubeovnFiles {
+		_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"rm -rf %s\"", file), 1, true)
+	}
 }
 
 func Confirm(reader *bufio.Reader) (string, error) {
