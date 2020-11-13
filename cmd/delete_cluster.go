@@ -9,9 +9,9 @@ import (
 var deleteClusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "Delete a cluster",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := util.InitLogger(opt.Verbose)
-		delete.ResetCluster(opt.ClusterCfgFile, logger, opt.Verbose)
+		return delete.ResetCluster(opt.ClusterCfgFile, logger, opt.Verbose)
 	},
 }
 
