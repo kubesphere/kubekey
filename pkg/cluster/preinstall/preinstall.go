@@ -72,6 +72,10 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 			for i := 5; i > 0; i-- {
 				if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
 					fmt.Println(string(output))
+
+					if kkzone != "cn" {
+						mgr.Logger.Warningln("Having a problem with accessing https://storage.googleapis.com? You can try again after setting environment 'export KKZONE=cn'")
+					}
 					return errors.New(fmt.Sprintf("Failed to download %s binary: %s", binary.Name, binary.GetCmd))
 				}
 
@@ -111,7 +115,7 @@ func Prepare(mgr *manager.Manager) error {
 	cfg := mgr.Cluster
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		return errors.Wrap(err, "Faild to get current dir")
+		return errors.Wrap(err, "Failed to get current directory")
 	}
 
 	var kubeVersion string
