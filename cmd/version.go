@@ -20,15 +20,20 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
+	"io"
 )
 
 var shortVersion bool
+var showSupportedK8sVersionList bool
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "print the client version information",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		if showSupportedK8sVersionList {
+			return printSupportedK8sVersionList(cmd.OutOrStdout())
+		}
 		return printVersion(shortVersion)
 	},
 }
@@ -36,6 +41,8 @@ var versionCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(versionCmd)
 	versionCmd.Flags().BoolVarP(&shortVersion, "short", "", false, "print the version number")
+	versionCmd.Flags().BoolVarP(&showSupportedK8sVersionList, "show-supported-k8s", "", false,
+		`print the version of supported k8s`)
 }
 
 func printVersion(short bool) error {
@@ -49,4 +56,26 @@ func printVersion(short bool) error {
 	}
 	fmt.Printf("%#v\n", v)
 	return nil
+}
+
+func printSupportedK8sVersionList(output io.Writer) (err error) {
+	_, err = output.Write([]byte(`v1.15.12
+v1.16.8
+v1.16.10
+v1.16.12
+v1.16.13
+v1.17.0
+v1.17.4
+v1.17.5
+v1.17.6
+v1.17.7
+v1.17.8
+v1.17.9
+v1.18.3
+v1.18.5
+v1.18.6
+v1.18.8
+v1.19.0
+`))
+	return
 }
