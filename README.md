@@ -95,6 +95,7 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 > * Docker needs to be installed before building.
 > * If you have problem to access `https://proxy.golang.org/`, excute `build.sh -p` instead.
 
+<!--
 ### YUM
 
 Add YUM source repo by the following command:
@@ -124,7 +125,7 @@ sudo apt update
 ```
 
 then you can install it by: `sudo apt-get install kk`
-
+-->
 ### Create a Cluster
 
 #### Quick Start
