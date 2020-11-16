@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Unshallow
+        run: git fetch --prune --unshallow
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v1
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Publish to Bintray
+        run: |
+          kkver=$(hub tag --list | sort -V | tail -n 1)
+          echo "start to upload rpm packages"
+          curl -T bin/kk-linux-64bit.rpm -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
+            -H "X-Bintray-Package:kk" -H "X-Bintray-Version:${kkver}" \
+            https://api.bintray.com/content/kubesphere/rpm/kk/${kkver}/kk-linux-64bit.rpm
+          curl -T bin/kk-linux-arm64.rpm -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
+            -H "X-Bintray-Package:kk" -H "X-Bintray-Version:$kkver" \
+            https://api.bintray.com/content/kubesphere/rpm/kk/$kkver/kk-linux-arm64.rpm
+          curl -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} -X POST https://api.bintray.com/content/kubesphere/rpm/kk/$kkver/publish
+
+          echo "start to upload deb packages"
+          curl -T bin/kk-linux-64bit.deb -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
+            -H "X-Bintray-Debian-Distribution:wheezy" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:amd64" \
+            https://api.bintray.com/content/kubesphere/deb/kk/$kkver/kk-linux-64bit.deb
+          curl -T bin/kk-linux-arm64.deb -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
+            -H "X-Bintray-Debian-Distribution:wheezy" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:amd64" \
+            https://api.bintray.com/content/kubesphere/deb/kk/$kkver/kk-linux-arm64.deb
+          curl -X POST -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} https://api.bintray.com/content/kubesphere/deb/kk/$kkver/publish

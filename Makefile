@@ -125,6 +125,8 @@ kk-linux:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/linux/amd64/kk ./cmd/kk/main.go
 kk-darwin:
 	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/darwin/amd64/kk ./cmd/kk/main.go
+go-releaser-test:
+	goreleaser release --rm-dist --skip-publish --snapshot
 
 # find or download controller-gen
 # download controller-gen if necessary
