@@ -7,8 +7,8 @@ import (
 )
 
 var listClusterCertsCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list a cluster certs",
+	Use:   "check-expiration",
+	Short: "Check certificates expiration for a Kubernetes cluster",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := util.InitLogger(opt.Verbose)
 		cert.ListCluster(opt.ClusterCfgFile, logger, opt.Verbose)
