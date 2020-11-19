@@ -137,7 +137,7 @@ data:
         name: path filter
         state: true
         include: ""
-        exclude: "loop,/dev/fd0,/dev/sr0,/dev/ram,/dev/dm-,/dev/md"
+        exclude: "loop,/dev/fd0,/dev/sr0,/dev/ram,/dev/dm-,/dev/md,/dev/rbd,/dev/zd"
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -147,7 +147,7 @@ metadata:
   labels:
     name: openebs-ndm
     openebs.io/component-name: ndm
-    openebs.io/version: 1.10.0
+    openebs.io/version: 2.3.0
 spec:
   selector:
     matchLabels:
@@ -160,7 +160,7 @@ spec:
       labels:
         name: openebs-ndm
         openebs.io/component-name: ndm
-        openebs.io/version: 1.10.0
+        openebs.io/version: 2.3.0
     spec:
       # By default the node-disk-manager will be run on all kubernetes nodes
       # If you would like to limit this to only some nodes, say the nodes
@@ -180,7 +180,7 @@ spec:
           - -v=4
         # The feature-gate is used to enable the new UUID algorithm.
         # This is a feature currently in Alpha state
-        #  - --feature-gates="GPTBasedUUID"
+          - --feature-gates="GPTBasedUUID"
         imagePullPolicy: Always
         securityContext:
           privileged: true
@@ -194,6 +194,8 @@ spec:
         - name: procmount
           mountPath: /host/proc
           readOnly: true
+        - name: devmount
+          mountPath: /dev
         - name: basepath
           mountPath: /var/openebs/ndm
         - name: sparsepath
@@ -241,6 +243,12 @@ spec:
         hostPath:
           path: /proc
           type: Directory
+      - name: devmount
+      # the /dev directory is mounted so that we have access to the devices that
+      # are connected at runtime of the pod.
+        hostPath:
+          path: /dev
+          type: Directory
       - name: basepath
         hostPath:
           path: /var/openebs/ndm
@@ -257,7 +265,7 @@ metadata:
   labels:
     name: openebs-ndm-operator
     openebs.io/component-name: ndm-operator
-    openebs.io/version: 1.10.0
+    openebs.io/version: 2.3.0
 spec:
   selector:
     matchLabels:
@@ -271,7 +279,7 @@ spec:
       labels:
         name: openebs-ndm-operator
         openebs.io/component-name: ndm-operator
-        openebs.io/version: 1.10.0
+        openebs.io/version: 2.3.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
