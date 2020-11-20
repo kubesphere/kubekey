@@ -159,6 +159,10 @@ spec:
           value: "openebs-operator-lite"
         - name: OPENEBS_IO_HELPER_IMAGE
           value: "{{ .LinuxUtilsImage }}"
+        # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
+        # leader election is enabled.
+        #- name: LEADER_ELECTION_ENABLED
+        #  value: "true"
         livenessProbe:
           exec:
             command:
