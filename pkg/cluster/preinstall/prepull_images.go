@@ -95,8 +95,6 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		// storage
 		"provisioner-localpv":    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 		"openebs-tools":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"node-disk-manager":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-manager", Tag: "1.0.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"node-disk-operator":     {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "node-disk-operator", Tag: "1.0.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 		"linux-utils":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "linux-utils", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 		"rbd-provisioner":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 		"nfs-client-provisioner": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
