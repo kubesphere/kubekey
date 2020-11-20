@@ -177,8 +177,6 @@ func GenerateOpenebsManifests(mgr *manager.Manager) (string, error) {
 	return util.Render(OpenebsTempl, util.Data{
 		"ProvisionerLocalPVImage": preinstall.GetImage(mgr, "provisioner-localpv").ImageName(),
 		"OpenebsToolsImage":       preinstall.GetImage(mgr, "openebs-tools").ImageName(),
-		"NodeDiskManagerImage":    preinstall.GetImage(mgr, "node-disk-manager").ImageName(),
-		"NodeDiskOperatorImage":   preinstall.GetImage(mgr, "node-disk-operator").ImageName(),
 		"LinuxUtilsImage":         preinstall.GetImage(mgr, "linux-utils").ImageName(),
 	})
 }
