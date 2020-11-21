@@ -11,8 +11,6 @@ func prePullStorageImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg
 	i := images.Images{}
 	i.Images = []images.Image{
 		preinstall.GetImage(mgr, "provisioner-localpv"),
-		preinstall.GetImage(mgr, "node-disk-manager"),
-		preinstall.GetImage(mgr, "node-disk-operator"),
 		preinstall.GetImage(mgr, "linux-utils"),
 		preinstall.GetImage(mgr, "rbd-provisioner"),
 		preinstall.GetImage(mgr, "nfs-client-provisioner"),
