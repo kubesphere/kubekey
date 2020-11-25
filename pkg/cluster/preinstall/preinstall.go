@@ -31,12 +31,14 @@ import (
 
 func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) error {
 	kkzone := os.Getenv("KKZONE")
+	etcd := files.KubeBinary{Name: "etcd", Arch: arch, Version: kubekeyapiv1alpha1.DefaultEtcdVersion}
 	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: arch, Version: version}
 	kubelet := files.KubeBinary{Name: "kubelet", Arch: arch, Version: version}
 	kubectl := files.KubeBinary{Name: "kubectl", Arch: arch, Version: version}
 	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCniVersion}
 	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapiv1alpha1.DefaultHelmVersion}
 
+	etcd.Path = fmt.Sprintf("%s/etcd-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultEtcdVersion, arch)
 	kubeadm.Path = fmt.Sprintf("%s/kubeadm", filepath)
 	kubelet.Path = fmt.Sprintf("%s/kubelet", filepath)
 	kubectl.Path = fmt.Sprintf("%s/kubectl", filepath)
@@ -44,6 +46,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	helm.Path = fmt.Sprintf("%s/helm", filepath)
 
 	if kkzone == "cn" {
+		etcd.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
 		kubelet.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", kubelet.Version, kubelet.Arch)
 		kubectl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
@@ -51,6 +54,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 		helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
 		helm.GetCmd = fmt.Sprintf("curl -o %s  %s", helm.Path, helm.Url)
 	} else {
+		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
 		kubelet.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubelet", kubelet.Version, kubelet.Arch)
 		kubectl.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
@@ -63,10 +67,14 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	kubelet.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubelet.Path, kubelet.Url)
 	kubectl.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubectl.Path, kubectl.Url)
 	kubecni.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubecni.Path, kubecni.Url)
+	etcd.GetCmd = fmt.Sprintf("curl -L -o %s  %s", etcd.Path, etcd.Url)
 
-	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni}
+	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
 
 	for _, binary := range binaries {
+		if binary.Name == "etcd" && mgr.EtcdContainer {
+			continue
+		}
 		mgr.Logger.Infoln(fmt.Sprintf("Downloading %s ...", binary.Name))
 		if util.IsExist(binary.Path) == false {
 			for i := 5; i > 0; i-- {

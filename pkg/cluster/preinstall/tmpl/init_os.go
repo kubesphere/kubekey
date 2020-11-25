@@ -69,6 +69,12 @@ if [ $? -eq 0 ]; then
    echo 'br_netfilter' > /etc/modules-load.d/kubekey-br_netfilter.conf
 fi
 
+modinfo overlay > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+   modprobe overlay
+   echo 'overlay' > /etc/modules-load.d/kubekey-br_netfilter.conf
+fi
+
 modprobe ip_vs
 modprobe ip_vs_rr
 modprobe ip_vs_wrr

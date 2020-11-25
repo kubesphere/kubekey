@@ -35,7 +35,7 @@ type Manager struct {
 	MasterNodes    []kubekeyapiv1alpha1.HostCfg
 	WorkerNodes    []kubekeyapiv1alpha1.HostCfg
 	K8sNodes       []kubekeyapiv1alpha1.HostCfg
-	ClientNode     []kubekeyapiv1alpha1.HostCfg
+	EtcdContainer  bool
 	ClusterHosts   []string
 	WorkDir        string
 	KsEnable       bool

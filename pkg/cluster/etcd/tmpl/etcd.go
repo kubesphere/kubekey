@@ -30,20 +30,34 @@ import (
 var (
 	EtcdServiceTempl = template.Must(template.New("EtcdService").Parse(
 		dedent.Dedent(`[Unit]
+{{- if .EtcdContainer }}
 Description=etcd docker wrapper
 Wants=docker.socket
 After=docker.service
+{{- else }}
+Description=etcd
+After=network.target
+{{- end }}
 
 [Service]
 User=root
+{{- if .EtcdContainer }}
 PermissionsStartOnly=true
 EnvironmentFile=-/etc/etcd.env
 ExecStart=/usr/local/bin/etcd
 ExecStartPre=-/usr/bin/docker rm -f {{ .Name }}
 ExecStop=/usr/bin/docker stop {{ .Name }}
-Restart=always
 RestartSec=15s
 TimeoutStartSec=30s
+{{- else }}
+Type=notify
+EnvironmentFile=/etc/etcd.env
+ExecStart=/usr/local/bin/etcd
+NotifyAccess=all
+RestartSec=10s
+LimitNOFILE=40000
+{{- end }}
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
@@ -114,9 +128,10 @@ func GenerateEtcdBinary(mgr *manager.Manager, index int) (string, error) {
 	})
 }
 
-func GenerateEtcdService(index int) (string, error) {
+func GenerateEtcdService(index int, etcdContainer bool) (string, error) {
 	return util.Render(EtcdServiceTempl, util.Data{
-		"Name": fmt.Sprintf("etcd%d", index+1),
+		"Name":          fmt.Sprintf("etcd%d", index+1),
+		"EtcdContainer": etcdContainer,
 	})
 }
 

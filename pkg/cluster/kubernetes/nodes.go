@@ -120,7 +120,7 @@ func SetKubelet(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 		return errors.Wrap(errors.WithStack(err), "Failed to enable kubelet service")
 	}
 
-	kubeletEnv, err3 := tmpl.GenerateKubeletEnv(node)
+	kubeletEnv, err3 := tmpl.GenerateKubeletEnv(mgr, node)
 	if err3 != nil {
 		return err3
 	}

@@ -33,7 +33,7 @@ const (
 	DefaultNetworkPlugin       = "calico"
 	DefaultPodsCIDR            = "10.233.64.0/18"
 	DefaultServiceCIDR         = "10.233.0.0/18"
-	DefaultKubeImageRepo       = "kubesphere"
+	DefaultKubeImageNamespace  = "kubesphere"
 	DefaultClusterName         = "cluster.local"
 	DefaultArch                = "amd64"
 	DefaultEtcdVersion         = "v3.4.13"
@@ -52,6 +52,9 @@ const (
 	DefaultVethMTU             = 1440
 	DefaultBackendMode         = "vxlan"
 	DefaultProxyMode           = "ipvs"
+	DefaultCrioEndpoint        = "/var/run/crio/crio.sock"
+	DefaultContainerdEndpoint  = "/run/containerd/containerd.sock"
+	DefaultIsulaEndpoint       = "/var/run/isulad.sock"
 	Etcd                       = "etcd"
 	Master                     = "master"
 	Worker                     = "worker"
@@ -83,9 +86,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
 	clusterCfg.KubeSphere = cfg.KubeSphere
-	if cfg.Kubernetes.ImageRepo == "" {
-		clusterCfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
-	}
+
 	if cfg.Kubernetes.ClusterName == "" {
 		clusterCfg.Kubernetes.ClusterName = DefaultClusterName
 	}
@@ -218,9 +219,6 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.Version == "" {
 		cfg.Kubernetes.Version = DefaultKubeVersion
 	}
-	if cfg.Kubernetes.ImageRepo == "" {
-		cfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
-	}
 	if cfg.Kubernetes.ClusterName == "" {
 		cfg.Kubernetes.ClusterName = DefaultClusterName
 	}
@@ -236,7 +234,6 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.EtcdBackupScriptDir == "" {
 		cfg.Kubernetes.EtcdBackupScriptDir = DefaultEtcdBackupScriptDir
 	}
-
 	defaultClusterCfg := cfg.Kubernetes
 
 	return defaultClusterCfg

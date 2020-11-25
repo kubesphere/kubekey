@@ -124,7 +124,7 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 		}
 
 		for i := 0; i < 3; i++ {
-			_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml\"", 0, true)
+			_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl\"", 0, true)
 			if err2 != nil {
 				if i == 2 {
 					return errors.Wrap(errors.WithStack(err2), "Failed to init kubernetes cluster")
