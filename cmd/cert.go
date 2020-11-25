@@ -2,11 +2,11 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-var certCmd = &cobra.Command{
-	Use:   "cert",
-	Short: "cluster cert",
+var certsCmd = &cobra.Command{
+	Use:   "certs",
+	Short: "cluster certs",
 }
 
 func init() {
-	rootCmd.AddCommand(certCmd)
+	rootCmd.AddCommand(certsCmd)
 }

@@ -6,9 +6,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var listClusterCertCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list a cluster cert",
+var listClusterCertsCmd = &cobra.Command{
+	Use:   "check-expiration",
+	Short: "Check certificates expiration for a Kubernetes cluster",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := util.InitLogger(opt.Verbose)
 		cert.ListCluster(opt.ClusterCfgFile, logger, opt.Verbose)
@@ -16,7 +16,7 @@ var listClusterCertCmd = &cobra.Command{
 }
 
 func init() {
-	certCmd.AddCommand(listClusterCertCmd)
+	certsCmd.AddCommand(listClusterCertsCmd)
 
-	listClusterCertCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
+	listClusterCertsCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 }

@@ -93,13 +93,11 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		"operator-generic":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "cilium", Repo: "operator-generic", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
 		"kubeovn":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubeovn", Repo: "kube-ovn", Tag: kubekeyapiv1alpha1.DefaultKubeovnVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "kubeovn")},
 		// storage
-		"provisioner-localpv":    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "provisioner-localpv", Tag: "1.10.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"openebs-tools":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"node-disk-manager":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "node-disk-manager", Tag: "0.5.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"node-disk-operator":     {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "node-disk-operator", Tag: "0.5.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"linux-utils":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "linux-utils", Tag: "1.10.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"rbd-provisioner":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"nfs-client-provisioner": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"provisioner-localpv":    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"openebs-tools":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"linux-utils":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "linux-utils", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"rbd-provisioner":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"nfs-client-provisioner": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 	}
 
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
