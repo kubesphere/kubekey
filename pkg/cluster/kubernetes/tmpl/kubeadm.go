@@ -94,6 +94,13 @@ scheduler:
     port: "10251"
     feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
 
+{{- if .CriSock }}
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: {{ .CriSock }}
+{{- end }}
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
@@ -140,6 +147,7 @@ kubeReserved:
 systemReserved:
   cpu: 200m
   memory: 250Mi
+{{- if not .CriSock }}
 evictionHard:
   memory.available: 5%
 evictionSoft:
@@ -148,6 +156,7 @@ evictionSoftGracePeriod:
   memory.available: 2m
 evictionMaxPodGracePeriod: 120
 evictionPressureTransitionPeriod: 30s
+{{- end }}
 featureGates:
   CSINodeInfo: true
   VolumeSnapshotDataSource: true
@@ -157,9 +166,10 @@ featureGates:
     `)))
 
 func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
+	// generate etcd configuration
 	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
 	var endpointsList []string
-	var caFile, certFile, keyFile string
+	var caFile, certFile, keyFile, containerRuntimeEndpoint string
 
 	for _, host := range mgr.EtcdNodes {
 		endpoint := fmt.Sprintf("https://%s:%s", host.InternalAddress, kubekeyapiv1alpha1.DefaultEtcdPort)
@@ -175,11 +185,12 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	externalEtcd.CertFile = certFile
 	externalEtcd.KeyFile = keyFile
 
+	// generate images repo configuration
 	var imageRepo string
 	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		imageRepo = fmt.Sprintf("%s/%s", mgr.Cluster.Registry.PrivateRegistry, mgr.Cluster.Kubernetes.ImageRepo)
+		imageRepo = fmt.Sprintf("%s/%s", mgr.Cluster.Registry.PrivateRegistry, kubekeyapiv1alpha1.DefaultKubeImageNamespace)
 	} else {
-		imageRepo = mgr.Cluster.Kubernetes.ImageRepo
+		imageRepo = kubekeyapiv1alpha1.DefaultKubeImageNamespace
 	}
 
 	var corednsRepo string
@@ -188,6 +199,25 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	} else {
 		corednsRepo = ""
 	}
+
+	// generate cri configuration
+	switch mgr.Cluster.Kubernetes.ContainerManager {
+	case "docker":
+		containerRuntimeEndpoint = ""
+	case "crio":
+		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultCrioEndpoint
+	case "containerd":
+		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultContainerdEndpoint
+	case "isula":
+		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultIsulaEndpoint
+	default:
+		containerRuntimeEndpoint = ""
+	}
+
+	if mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
+		containerRuntimeEndpoint = mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint
+	}
+
 	return util.Render(KubeadmCfgTempl, util.Data{
 		"ImageRepo":            imageRepo,
 		"CorednsRepo":          corednsRepo,
@@ -204,5 +234,6 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		"NodeCidrMaskSize":     mgr.Cluster.Kubernetes.NodeCidrMaskSize,
 		"MaxPods":              mgr.Cluster.Kubernetes.MaxPods,
 		"ProxyMode":            mgr.Cluster.Kubernetes.ProxyMode,
+		"CriSock":              containerRuntimeEndpoint,
 	})
 }

@@ -71,10 +71,12 @@ func GenerateDockerConfig(mgr *manager.Manager) (string, error) {
 }
 
 func InstallerDocker(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Installing docker ...")
+	if mgr.EtcdContainer {
+		mgr.Logger.Infoln("Installing docker ...")
 
-	if err := mgr.RunTaskOnAllNodes(installDockerOnNode, true); err != nil {
-		return err
+		if err := mgr.RunTaskOnAllNodes(installDockerOnNode, true); err != nil {
+			return err
+		}
 	}
 
 	if mgr.InCluster {

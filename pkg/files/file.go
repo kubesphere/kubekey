@@ -21,6 +21,7 @@ const (
 	kubelet = "kubelet"
 	kubectl = "kubectl"
 	kubecni = "kubecni"
+	etcd    = "etcd"
 	helm    = "helm"
 	amd64   = "amd64"
 	arm64   = "arm64"
@@ -140,6 +141,14 @@ var (
 				"v1.18.6":  "7b3d6cc019747a7ee5f6cc2b187423daaac4e153140cb290e60d316c3f456430",
 				"v1.18.8":  "9046c4086528427462544e1a6dcbe709de4d7ae44d1a155375de330fecd067b1",
 				"v1.19.0":  "d4adf1b6b97252025cb2f7febf55daa3f42dc305822e3da133f77fd33071ec2f",
+			},
+		},
+		etcd: {
+			amd64: {
+				"v3.4.13": "2ac029e47bab752dacdb7b30032f230f49e2f457cbc32e8f555c2210bb5ff107",
+			},
+			arm64: {
+				"v3.4.13": "1934ebb9f9f6501f706111b78e5e321a7ff8d7792d3d96a76e2d01874e42a300",
 			},
 		},
 		helm: {

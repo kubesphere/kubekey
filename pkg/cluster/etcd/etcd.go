@@ -26,6 +26,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -151,8 +153,15 @@ func GenerateEtcdService(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(generateEtcdService, true)
 }
 
-func generateEtcdService(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
-	etcdService, err := tmpl.GenerateEtcdService(mgr.Runner.Index)
+// Install etcd and etcdctl.
+// Starting etcd using binary, when container manager is not docker.
+// Starting etcd using docker container, when container manager is docker.
+func generateEtcdService(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if err := installEtcdBinaries(mgr, node); err != nil {
+		return err
+	}
+
+	etcdService, err := tmpl.GenerateEtcdService(mgr.Runner.Index, mgr.EtcdContainer)
 	if err != nil {
 		return err
 	}
@@ -162,25 +171,21 @@ func generateEtcdService(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 		return errors.Wrap(errors.WithStack(err1), "Failed to generate etcd service")
 	}
 
-	etcdBin, err := tmpl.GenerateEtcdBinary(mgr, mgr.Runner.Index)
-	if err != nil {
-		return err
-	}
-	etcdBinBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBin))
-	_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /usr/local/bin/etcd && chmod +x /usr/local/bin/etcd\"", etcdBinBase64), 1, false)
-	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd bin")
-	}
-
-	getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s /bin/cp -f /usr/local/bin/etcdctl /systembindir/etcdctl", preinstall.GetImage(mgr, "etcd").ImageName())
-	_, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", getEtcdCtlCmd), 2, false)
-	if err4 != nil {
-		return errors.Wrap(errors.WithStack(err4), "Failed to get etcdctl")
+	if mgr.EtcdContainer {
+		etcdBin, err := tmpl.GenerateEtcdBinary(mgr, mgr.Runner.Index)
+		if err != nil {
+			return err
+		}
+		etcdBinBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBin))
+		_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /usr/local/bin/etcd && chmod +x /usr/local/bin/etcd\"", etcdBinBase64), 1, false)
+		if err3 != nil {
+			return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd bin")
+		}
 	}
 
-	if err := restartEtcd(mgr); err != nil {
-		return err
-	}
+	//if err := restartEtcd(mgr); err != nil {
+	//	return err
+	//}
 
 	var addrList []string
 	for _, host := range mgr.EtcdNodes {
@@ -192,12 +197,45 @@ func generateEtcdService(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 	return nil
 }
 
+func installEtcdBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if !mgr.EtcdContainer {
+		tmpDir := "/tmp/kubekey"
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -d %s ]; then rm -rf %s ;fi\" && mkdir -p %s", tmpDir, tmpDir, tmpDir), 1, false)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to create tmp dir")
+		}
+
+		currentDir, err1 := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err1 != nil {
+			return errors.Wrap(err1, "Failed to get current dir")
+		}
+		etcdFile := fmt.Sprintf("etcd-%s-linux-%s", kubekeyapiv1alpha1.DefaultEtcdVersion, node.Arch)
+		filesDir := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapiv1alpha1.DefaultPreDir, mgr.Cluster.Kubernetes.Version, node.Arch)
+		if err := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s.tar.gz", filesDir, etcdFile), fmt.Sprintf("%s/%s.tar.gz", "/tmp/kubekey", etcdFile)); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to sync etcd tar.gz"))
+		}
+
+		installCmd := fmt.Sprintf("tar -zxf %s/%s.tar.gz && cp -f %s/etcd* /usr/local/bin/ && chmod +x /usr/local/bin/etcd* && rm -rf %s", "/tmp/kubekey", etcdFile, etcdFile, etcdFile)
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", installCmd), 2, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to install etcd binaries."))
+		}
+	} else {
+		getEtcdCtlCmd := fmt.Sprintf("docker run --rm -v /usr/local/bin:/systembindir %s /bin/cp -f /usr/local/bin/etcdctl /systembindir/etcdctl", preinstall.GetImage(mgr, "etcd").ImageName())
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", getEtcdCtlCmd), 2, false)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to get etcdctl")
+		}
+	}
+	return nil
+}
+
 func SetupEtcdCluster(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Starting etcd cluster")
 
 	return mgr.RunTaskOnEtcdNodes(setupEtcdCluster, false)
 }
 
+// Configuring and starting etcd cluster.
 func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	var localPeerAddresses []string
 	output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"", 0, true)
@@ -290,6 +328,7 @@ func BackupEtcd(mgr *manager.Manager) error {
 	return nil
 }
 
+// Create etcd backup scripts.
 func backupEtcd(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s\"", mgr.Cluster.Kubernetes.EtcdBackupScriptDir), 0, false)
 	if err != nil {

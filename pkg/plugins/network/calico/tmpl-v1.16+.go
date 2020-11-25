@@ -3926,6 +3926,7 @@ spec:
               readOnly: false
             - name: policysync
               mountPath: /var/run/nodeagent
+{{- if not .ConatinerManagerIsIsula }}
             # For eBPF mode, we need to be able to mount the BPF filesystem at /sys/fs/bpf so we mount in the
             # parent directory.
             - name: sysfs
@@ -3933,6 +3934,7 @@ spec:
               # Bidirectional means that, if we mount the BPF filesystem at /sys/fs/bpf it will propagate to the host.
               # If the host is known to mount that filesystem already then Bidirectional can be omitted.
               mountPropagation: Bidirectional
+{{- end }}
       volumes:
         # Used by calico-node.
         - name: lib-modules
@@ -3948,10 +3950,12 @@ spec:
           hostPath:
             path: /run/xtables.lock
             type: FileOrCreate
+{{- if not .ConatinerManagerIsIsula }}
         - name: sysfs
           hostPath:
             path: /sys/fs/
             type: DirectoryOrCreate
+{{- end }}
         # Used to install CNI.
         - name: cni-bin-dir
           hostPath:
@@ -4046,16 +4050,17 @@ metadata:
 
 func GenerateCalicoFilesNew(mgr *manager.Manager) (string, error) {
 	return util.Render(calicoTemplNew, util.Data{
-		"KubePodsCIDR":           mgr.Cluster.Network.KubePodsCIDR,
-		"CalicoCniImage":         preinstall.GetImage(mgr, "calico-cni").ImageName(),
-		"CalicoNodeImage":        preinstall.GetImage(mgr, "calico-node").ImageName(),
-		"CalicoFlexvolImage":     preinstall.GetImage(mgr, "calico-flexvol").ImageName(),
-		"CalicoControllersImage": preinstall.GetImage(mgr, "calico-kube-controllers").ImageName(),
-		"CalicoTyphaImage":       preinstall.GetImage(mgr, "calico-typha").ImageName(),
-		"VethMTU":                mgr.Cluster.Network.Calico.VethMTU,
-		"NodeCidrMaskSize":       mgr.Cluster.Kubernetes.NodeCidrMaskSize,
-		"IPIPMode":               mgr.Cluster.Network.Calico.IPIPMode,
-		"VXLANMode":              mgr.Cluster.Network.Calico.VXLANMode,
-		"TyphaEnabled":           len(mgr.K8sNodes) > 50,
+		"KubePodsCIDR":            mgr.Cluster.Network.KubePodsCIDR,
+		"CalicoCniImage":          preinstall.GetImage(mgr, "calico-cni").ImageName(),
+		"CalicoNodeImage":         preinstall.GetImage(mgr, "calico-node").ImageName(),
+		"CalicoFlexvolImage":      preinstall.GetImage(mgr, "calico-flexvol").ImageName(),
+		"CalicoControllersImage":  preinstall.GetImage(mgr, "calico-kube-controllers").ImageName(),
+		"CalicoTyphaImage":        preinstall.GetImage(mgr, "calico-typha").ImageName(),
+		"VethMTU":                 mgr.Cluster.Network.Calico.VethMTU,
+		"NodeCidrMaskSize":        mgr.Cluster.Kubernetes.NodeCidrMaskSize,
+		"IPIPMode":                mgr.Cluster.Network.Calico.IPIPMode,
+		"VXLANMode":               mgr.Cluster.Network.Calico.VXLANMode,
+		"TyphaEnabled":            len(mgr.K8sNodes) > 50,
+		"ConatinerManagerIsIsula": mgr.Cluster.Kubernetes.ContainerManager == "isula",
 	})
 }

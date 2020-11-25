@@ -145,7 +145,6 @@ type HostGroups struct {
 	Master []HostCfg
 	Worker []HostCfg
 	K8s    []HostCfg
-	Client []HostCfg
 }
 
 type ControlPlaneEndpoint struct {
@@ -276,7 +275,7 @@ func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 	if len(workerGroup) != len(clusterHostsGroups.Worker) {
 		return nil, errors.New("Incorrect nodeName under roleGroups/work in the configuration file, Please check before installing.")
 	}
-	clusterHostsGroups.Client = append(clusterHostsGroups.Client, clusterHostsGroups.Master[0])
+
 	return &clusterHostsGroups, nil
 }
 

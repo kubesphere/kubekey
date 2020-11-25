@@ -77,32 +77,43 @@ func (image Image) ImageRepo() string {
 }
 
 func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	pullCmd := "docker"
+	switch mgr.Cluster.Kubernetes.ContainerManager {
+	case "crio":
+		pullCmd = "crictl"
+	case "containerd":
+		pullCmd = "crictl"
+	case "isula":
+		pullCmd = "isula"
+	default:
+		pullCmd = "docker"
+	}
 	for _, image := range images.Images {
 
 		if node.IsMaster && image.Group == kubekeyapiv1alpha1.Master && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
 		if node.IsWorker && image.Group == kubekeyapiv1alpha1.Worker && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
 		if (node.IsMaster || node.IsWorker) && image.Group == kubekeyapiv1alpha1.K8s && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}
 		}
-		if node.IsEtcd && image.Group == kubekeyapiv1alpha1.Etcd && image.Enable {
+		if node.IsEtcd && image.Group == kubekeyapiv1alpha1.Etcd && image.Enable && mgr.EtcdContainer {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E docker pull %s", image.ImageName()), 5, false)
+			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
 			if err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
 			}

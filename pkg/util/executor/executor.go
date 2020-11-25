@@ -67,7 +67,6 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.MasterNodes = hostGroups.Master
 	mgr.WorkerNodes = hostGroups.Worker
 	mgr.K8sNodes = hostGroups.K8s
-	mgr.ClientNode = hostGroups.Client
 	mgr.Cluster = defaultCluster
 	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
 	mgr.Connector = ssh.NewDialer()
@@ -83,6 +82,9 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.ObjName = executor.ObjName
 	mgr.InCluster = executor.InCluster
 	mgr.ClientSet = executor.ClientSet
+	if executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker" {
+		mgr.EtcdContainer = true
+	}
 	return mgr, nil
 }
 

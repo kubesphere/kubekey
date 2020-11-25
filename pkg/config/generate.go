@@ -53,7 +53,7 @@ spec:
   controlPlaneEndpoint:
     domain: lb.kubesphere.local
     address: ""
-    port: "6443"
+    port: 6443
   kubernetes:
     version: {{ .Options.KubeVersion }}
     imageRepo: kubesphere
