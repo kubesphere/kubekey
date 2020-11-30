@@ -12,6 +12,9 @@ builds:
     - linux
     # only for test purpose currently
     - darwin
+  hooks:
+    post:
+      - upx "{{ .Path }}"
   ldflags:
     - -X github.com/kubesphere/kubekey/version.version={{.Version}}
     - -X github.com/kubesphere/kubekey/version.gitCommit={{.ShortCommit}}
