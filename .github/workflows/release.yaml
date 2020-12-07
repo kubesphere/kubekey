@@ -3,43 +3,75 @@ name: Release
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
 jobs:
-  goreleaser:
+  release-binary:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Unshallow
-        run: git fetch --prune --unshallow
-      - name: Set up Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v1
-        with:
-          version: latest
-          args: release --rm-dist
+      - uses: actions/checkout@v2
+      - name: Get Version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+        
+      - name: Build Release Asset
+        run: |
+          make binary
+          tar -zcvf kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz -C ./output/linux/amd64 kk
+          md5sum ./output/linux/amd64/kk > kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.md5
+          tar -zcvf kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz -C ./output/linux/arm64 kk
+          md5sum ./output/linux/arm64/kk > kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.md5
+        
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish to Bintray
-        run: |
-          kkver=$(hub tag --list | sort -V | tail -n 1)
-          echo "start to upload rpm packages"
-          curl -T bin/kk-linux-64bit.rpm -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
-            -H "X-Bintray-Package:kk" -H "X-Bintray-Version:${kkver}" \
-            https://api.bintray.com/content/kubesphere/rpm/kk/${kkver}/kk-linux-64bit.rpm
-          curl -T bin/kk-linux-arm64.rpm -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
-            -H "X-Bintray-Package:kk" -H "X-Bintray-Version:$kkver" \
-            https://api.bintray.com/content/kubesphere/rpm/kk/$kkver/kk-linux-arm64.rpm
-          curl -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} -X POST https://api.bintray.com/content/kubesphere/rpm/kk/$kkver/publish
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+     
+      - name: Upload Release Asset Binary (amd64)
+        id: upload-release-asset-amd64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+          asset_name: kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/tar.gz   
 
-          echo "start to upload deb packages"
-          curl -T bin/kk-linux-64bit.deb -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
-            -H "X-Bintray-Debian-Distribution:wheezy" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:amd64" \
-            https://api.bintray.com/content/kubesphere/deb/kk/$kkver/kk-linux-64bit.deb
-          curl -T bin/kk-linux-arm64.deb -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} \
-            -H "X-Bintray-Debian-Distribution:wheezy" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:amd64" \
-            https://api.bintray.com/content/kubesphere/deb/kk/$kkver/kk-linux-arm64.deb
-          curl -X POST -ulinuxsuren:${{ secrets.BINTRAY_TOKEN }} https://api.bintray.com/content/kubesphere/deb/kk/$kkver/publish
+      - name: Upload Release Asset MD5 (amd64)
+        id: upload-release-asset-md5-amd64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.md5
+          asset_name: kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.md5
+          asset_content_type: application/tar.gz 
+
+      - name: Upload Release Asset Binary (arm64)
+        id: upload-release-asset-arm64 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz
+          asset_name: kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz
+          asset_content_type: application/tar.gz   
+
+      - name: Upload Release Asset MD5 (arm64)
+        id: upload-release-asset-md5-arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.md5
+          asset_name: kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.md5
+          asset_content_type: application/tar.gz 
