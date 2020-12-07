@@ -18,12 +18,15 @@ package tmpl
 
 import (
 	"fmt"
+	"strings"
+	"text/template"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"text/template"
+	"github.com/pkg/errors"
 )
 
 var KubeadmCfgTempl = template.Must(template.New("kubeadmCfg").Parse(
@@ -141,13 +144,19 @@ clusterDNS:
 - {{ .ClusterIP }}
 maxPods: {{ .MaxPods }}
 rotateCertificates: true
+{{- if .CriSock }}
+containerLogMaxSize: 5Mi
+containerLogMaxFiles: 3
+{{- if .CgroupDriver }}
+cgroupDriver: systemd
+{{- end }}
+{{- end }}
 kubeReserved:
   cpu: 200m
   memory: 250Mi
 systemReserved:
   cpu: 200m
   memory: 250Mi
-{{- if not .CriSock }}
 evictionHard:
   memory.available: 5%
 evictionSoft:
@@ -156,7 +165,6 @@ evictionSoftGracePeriod:
   memory.available: 2m
 evictionMaxPodGracePeriod: 120
 evictionPressureTransitionPeriod: 30s
-{{- end }}
 featureGates:
   CSINodeInfo: true
   VolumeSnapshotDataSource: true
@@ -218,6 +226,11 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		containerRuntimeEndpoint = mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint
 	}
 
+	cgroupDriver, err := getKubeletCgroupDriver(mgr)
+	if err != nil {
+		return "", err
+	}
+
 	return util.Render(KubeadmCfgTempl, util.Data{
 		"ImageRepo":            imageRepo,
 		"CorednsRepo":          corednsRepo,
@@ -235,5 +248,34 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		"MaxPods":              mgr.Cluster.Kubernetes.MaxPods,
 		"ProxyMode":            mgr.Cluster.Kubernetes.ProxyMode,
 		"CriSock":              containerRuntimeEndpoint,
+		"CgroupDriver":         cgroupDriver,
 	})
+}
+
+func getKubeletCgroupDriver(mgr *manager.Manager) (string, error) {
+	var cmd, kubeletCgroupDriver string
+	switch mgr.Cluster.Kubernetes.ContainerManager {
+	case "docker":
+		cmd = "docker info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
+	case "crio":
+		cmd = "crio config | grep cgroup_manager | awk -F'= ' '{ print $2; }'"
+	case "containerd":
+		cmd = "containerd config dump | grep systemd_cgroup | awk -F'= ' '{ print $2; }'"
+	case "isula":
+		cmd = "isula info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
+	default:
+		kubeletCgroupDriver = ""
+	}
+
+	checkResult, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", cmd), 3, false)
+	if err != nil {
+		return "", errors.Wrap(errors.WithStack(err), "Failed to get container runtime cgroup driver.")
+	}
+	if strings.Contains(checkResult, "systemd") && !strings.Contains(checkResult, "false") {
+		kubeletCgroupDriver = "systemd"
+	} else {
+		kubeletCgroupDriver = ""
+	}
+
+	return kubeletCgroupDriver, nil
 }

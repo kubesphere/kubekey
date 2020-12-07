@@ -19,6 +19,12 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
@@ -26,12 +32,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os/exec"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 var (
@@ -124,7 +125,7 @@ func initKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 		}
 
 		for i := 0; i < 3; i++ {
-			_, err2 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl\"", 0, true)
+			_, err2 := mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl\"", 0, true)
 			if err2 != nil {
 				if i == 2 {
 					return errors.Wrap(errors.WithStack(err2), "Failed to init kubernetes cluster")
@@ -326,12 +327,12 @@ func joinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 
 func addMaster(mgr *manager.Manager) error {
 	for i := 0; i < 3; i++ {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]), 0, true)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]), 0, true)
 		if err != nil {
 			if i == 2 {
 				return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
 			} else {
-				_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+				_, _ = mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
 			}
 		} else {
 			break
@@ -346,12 +347,12 @@ func addMaster(mgr *manager.Manager) error {
 
 func addWorker(mgr *manager.Manager) error {
 	for i := 0; i < 3; i++ {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]), 0, true)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]), 0, true)
 		if err != nil {
 			if i == 2 {
 				return errors.Wrap(errors.WithStack(err), "Failed to add worker to cluster")
 			} else {
-				_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+				_, _ = mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
 			}
 		} else {
 			break

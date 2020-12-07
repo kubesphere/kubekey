@@ -52,9 +52,9 @@ const (
 	DefaultVethMTU             = 1440
 	DefaultBackendMode         = "vxlan"
 	DefaultProxyMode           = "ipvs"
-	DefaultCrioEndpoint        = "/var/run/crio/crio.sock"
-	DefaultContainerdEndpoint  = "/run/containerd/containerd.sock"
-	DefaultIsulaEndpoint       = "/var/run/isulad.sock"
+	DefaultCrioEndpoint        = "unix:///var/run/crio/crio.sock"
+	DefaultContainerdEndpoint  = "unix:///run/containerd/containerd.sock"
+	DefaultIsulaEndpoint       = "unix:///var/run/isulad.sock"
 	Etcd                       = "etcd"
 	Master                     = "master"
 	Worker                     = "worker"
