@@ -17,11 +17,12 @@ limitations under the License.
 package tmpl
 
 import (
+	"text/template"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"text/template"
 )
 
 var (
@@ -50,7 +51,7 @@ EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
 # This is a file that the user can use for overrides of the kubelet args as a last resort. Preferably, the user should use
 # the .NodeRegistration.KubeletExtraArgs object in the configuration files instead. KUBELET_EXTRA_ARGS should be sourced from this file.
 EnvironmentFile=-/etc/default/kubelet
-Environment="KUBELET_EXTRA_ARGS=--node-ip={{ .NodeIP }} --hostname-override={{ .Hostname }} {{ if .ContainerRuntime }}--network-plugin=cni --container-runtime=remote --container-runtime-endpoint={{ .ContainerRuntimeEndpoint }} --container-log-max-files=3 --container-log-max-size=5Mi {{ end }}"
+Environment="KUBELET_EXTRA_ARGS=--node-ip={{ .NodeIP }} --hostname-override={{ .Hostname }} {{ if .ContainerRuntime }}--network-plugin=cni{{ end }}"
 ExecStart=
 ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
     `)))
@@ -62,34 +63,10 @@ func GenerateKubeletService() (string, error) {
 
 func GenerateKubeletEnv(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	var containerRuntime string
-	var containerRuntimeEndpoint string
-
-	switch mgr.Cluster.Kubernetes.ContainerManager {
-	case "docker":
-		containerRuntime = ""
-		containerRuntimeEndpoint = ""
-	case "crio":
-		containerRuntime = "remote"
-		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultCrioEndpoint
-	case "containerd":
-		containerRuntime = "remote"
-		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultContainerdEndpoint
-	case "isula":
-		containerRuntime = "remote"
-		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultIsulaEndpoint
-	default:
-		containerRuntime = ""
-		containerRuntimeEndpoint = ""
-	}
-
-	if mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
-		containerRuntimeEndpoint = mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint
-	}
 
 	return util.Render(KubeletEnvTempl, util.Data{
-		"NodeIP":                   node.InternalAddress,
-		"Hostname":                 node.Name,
-		"ContainerRuntime":         containerRuntime,
-		"ContainerRuntimeEndpoint": containerRuntimeEndpoint,
+		"NodeIP":           node.InternalAddress,
+		"Hostname":         node.Name,
+		"ContainerRuntime": containerRuntime,
 	})
 }
