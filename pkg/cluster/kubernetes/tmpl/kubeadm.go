@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// KubeadmCfgTempl define the template of kubeadm configuration file.
 var KubeadmCfgTempl = template.Must(template.New("kubeadmCfg").Parse(
 	dedent.Dedent(`---
 apiVersion: kubeadm.k8s.io/v1beta2
@@ -173,6 +174,7 @@ featureGates:
 
     `)))
 
+// GenerateKubeadmCfg create kubeadm configuration file to initialize the cluster.
 func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	// generate etcd configuration
 	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
@@ -186,8 +188,8 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	externalEtcd.Endpoints = endpointsList
 
 	caFile = "/etc/ssl/etcd/ssl/ca.pem"
-	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", mgr.EtcdNodes[0].Name)
-	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", mgr.EtcdNodes[0].Name)
+	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", mgr.MasterNodes[0].Name)
+	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", mgr.MasterNodes[0].Name)
 
 	externalEtcd.CaFile = caFile
 	externalEtcd.CertFile = certFile
