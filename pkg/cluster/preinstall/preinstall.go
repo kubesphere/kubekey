@@ -18,18 +18,20 @@ package preinstall
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
-func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) error {
+// FilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
+func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) error {
 	kkzone := os.Getenv("KKZONE")
 	etcd := files.KubeBinary{Name: "etcd", Arch: arch, Version: kubekeyapiv1alpha1.DefaultEtcdVersion}
 	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: arch, Version: version}
@@ -90,10 +92,9 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 				if err := SHA256Check(binary, version); err != nil {
 					if i == 1 {
 						return err
-					} else {
-						_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
-						continue
 					}
+					_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+					continue
 				}
 				break
 			}
@@ -118,6 +119,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	return nil
 }
 
+// Prepare is used to create work directory and download kubernetes' binaries in advance.
 func Prepare(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Downloading Installation Files")
 	cfg := mgr.Cluster
@@ -151,7 +153,7 @@ func Prepare(mgr *manager.Manager) error {
 			return errors.Wrap(err, "Failed to create download target dir")
 		}
 
-		if err := FilesDownloadHttp(mgr, binariesDir, kubeVersion, arch); err != nil {
+		if err := FilesDownloadHTTP(mgr, binariesDir, kubeVersion, arch); err != nil {
 			return err
 		}
 	}
@@ -159,6 +161,7 @@ func Prepare(mgr *manager.Manager) error {
 	return nil
 }
 
+// SHA256Check is used to hash checks on downloaded binary. (sha256)
 func SHA256Check(binary files.KubeBinary, version string) error {
 	output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
 	if err != nil {
@@ -167,10 +170,9 @@ func SHA256Check(binary files.KubeBinary, version string) error {
 
 	if strings.TrimSpace(binary.GetSha256()) == "" {
 		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", version, version))
-	} else {
-		if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
-			return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
-		}
+	}
+	if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
+		return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
 	}
 	return nil
 }

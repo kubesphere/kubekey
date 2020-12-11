@@ -11,6 +11,7 @@ import (
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 )
 
+// PrePullImages is used to perform PullImages function.
 func PrePullImages(mgr *manager.Manager) error {
 	if mgr.InCluster {
 		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Pull images", metav1.Now(), metav1.Now(), false, 2); err != nil {
@@ -33,6 +34,7 @@ func PrePullImages(mgr *manager.Manager) error {
 	return nil
 }
 
+// PullImages defines the list of images that need to be downloaded in advance and downloads them.
 func PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	i := images.Images{}
 	i.Images = []images.Image{
@@ -59,6 +61,7 @@ func PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	return nil
 }
 
+// GetImage defines the list of all images and gets image object by name.
 func GetImage(mgr *manager.Manager, name string) images.Image {
 	var image images.Image
 	var pauseTag string

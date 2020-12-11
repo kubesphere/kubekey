@@ -19,6 +19,7 @@ package preinstall
 import (
 	"encoding/base64"
 	"fmt"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall/tmpl"
@@ -36,6 +37,7 @@ const (
 	kubeletFlexvolumesPluginsDir = "/usr/libexec/kubernetes/kubelet-plugins/volume/exec"
 )
 
+// DownloadBinaries is used to download kubernetes' binaries.
 func DownloadBinaries(mgr *manager.Manager) error {
 	if mgr.InCluster {
 		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init nodes", metav1.Now(), metav1.Now(), false, 1); err != nil {
@@ -48,6 +50,7 @@ func DownloadBinaries(mgr *manager.Manager) error {
 	return nil
 }
 
+// InitOS is uesed to initialize the operating system. shuch as: override hostname, configuring kernel parameters, etc.
 func InitOS(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Configuring operating system ...")
 
