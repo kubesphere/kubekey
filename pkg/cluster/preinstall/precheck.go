@@ -13,6 +13,7 @@ import (
 	"github.com/modood/table"
 )
 
+// PrecheckResults defines the items to be checked.
 type PrecheckResults struct {
 	Name      string `table:"name"`
 	Sudo      string `table:"sudo"`
@@ -30,14 +31,18 @@ type PrecheckResults struct {
 }
 
 var (
-	CheckResults  = make(map[string]interface{})
+	// CheckResults is used to save save check results.
+	CheckResults = make(map[string]interface{})
+	// BaseSoftwares defines the software to be checked.
 	BaseSoftwares = []string{"sudo", "curl", "openssl", "ebtables", "socat", "ipset", "conntrack", "docker", "showmount", "rbd", "glusterfs"}
 )
 
+// Precheck is used to perform the check function.
 func Precheck(mgr *manager.Manager) error {
 	//Check that the number of Etcd is odd
 	if len(mgr.EtcdNodes)%2 == 0 {
-		return errors.New("The number of Etcd is even. Please configure it to be odd.")
+		mgr.Logger.Warnln("The number of etcd is even. Please configure it to be odd.")
+		return errors.New("the number of etcd is even")
 	}
 
 	if !mgr.SkipCheck {
@@ -49,6 +54,7 @@ func Precheck(mgr *manager.Manager) error {
 	return nil
 }
 
+// PrecheckNodes is used to check nodes before installation.
 func PrecheckNodes(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	var results = make(map[string]interface{})
 	results["name"] = node.Name
@@ -79,6 +85,7 @@ func PrecheckNodes(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error
 	return nil
 }
 
+// PrecheckConfirm is used to show check results and interact with user.
 func PrecheckConfirm(mgr *manager.Manager) {
 
 	var results []PrecheckResults
