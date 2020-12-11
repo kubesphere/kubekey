@@ -116,7 +116,7 @@ func SetKubelet(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet service")
 	}
 
-	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl enable kubelet && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", 5, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl disable kubelet && systemctl enable kubelet && ln -snf /usr/local/bin/kubelet /usr/bin/kubelet\"", 5, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to enable kubelet service")
 	}
 
