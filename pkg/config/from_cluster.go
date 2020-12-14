@@ -231,7 +231,7 @@ func GenerateConfigFromCluster(cfgPath, kubeconfig, name string) error {
 
 	ClusterCfgStr, err := GenerateClusterCfgStr(opt)
 	if err != nil {
-		return errors.Wrap(err, "Faild to generate cluster config")
+		return errors.Wrap(err, "Failed to generate cluster config")
 	}
 	ClusterCfgStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterCfgStr))
 	var configPath string

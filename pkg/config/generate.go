@@ -125,7 +125,7 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 
 	ClusterObjStr, err := GenerateClusterObjStr(&opt)
 	if err != nil {
-		return errors.Wrap(err, "Faild to generate cluster config")
+		return errors.Wrap(err, "Failed to generate cluster config")
 	}
 	ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterObjStr))
 
