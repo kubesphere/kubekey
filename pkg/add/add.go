@@ -37,7 +37,7 @@ import (
 func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		return errors.Wrap(err, "Faild to get current dir")
+		return errors.Wrap(err, "Failed to get current dir")
 	}
 	if err := util.CreateDir(fmt.Sprintf("%s/kubekey", currentDir)); err != nil {
 		return errors.Wrap(err, "Failed to create work dir")
