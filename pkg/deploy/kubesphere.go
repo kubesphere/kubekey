@@ -21,12 +21,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/pkg/errors"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
-	"strings"
 )
 
 func DeployKubeSphere(version, repo, kubeconfig string) error {
@@ -45,9 +46,9 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 			return err
 		}
 		installerYaml = str
-	case "v3.0.0":
+	case "v3.0.0", "latest":
 		kubesphereConfig = kubesphere.V3_0_0
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
+		str, err := kubesphere.GenerateKubeSphereYaml(repo, version)
 		if err != nil {
 			return err
 		}

@@ -18,16 +18,18 @@ package tmpl
 
 import (
 	"fmt"
+	"strings"
+	"text/template"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"strings"
-	"text/template"
 )
 
 var (
+	// EtcdServiceTempl defines the template of etcd's service for systemd.
 	EtcdServiceTempl = template.Must(template.New("EtcdService").Parse(
 		dedent.Dedent(`[Unit]
 {{- if .EtcdContainer }}
@@ -63,6 +65,7 @@ Restart=always
 WantedBy=multi-user.target
     `)))
 
+	// EtcdEnvTempl defines the template of etcd's env.
 	EtcdEnvTempl = template.Must(template.New("etcdEnv").Parse(
 		dedent.Dedent(`# Environment file for etcd {{ .Tag }}
 ETCD_DATA_DIR=/var/lib/etcd
@@ -103,6 +106,7 @@ ETCDCTL_KEY_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem
 ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
     `)))
 
+	// EtcdTempl defines the template of etcd's container binary.
 	EtcdTempl = template.Must(template.New("etcd").Parse(
 		dedent.Dedent(`#!/bin/bash
 /usr/bin/docker run \
@@ -121,6 +125,7 @@ ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
     `)))
 )
 
+// GenerateEtcdBinary is used to generate etcd's container binary content.
 func GenerateEtcdBinary(mgr *manager.Manager, index int) (string, error) {
 	return util.Render(EtcdTempl, util.Data{
 		"Name":      fmt.Sprintf("etcd%d", index+1),
@@ -128,6 +133,7 @@ func GenerateEtcdBinary(mgr *manager.Manager, index int) (string, error) {
 	})
 }
 
+// GenerateEtcdService is used to generate the etcd's service content for systemd.
 func GenerateEtcdService(index int, etcdContainer bool) (string, error) {
 	return util.Render(EtcdServiceTempl, util.Data{
 		"Name":          fmt.Sprintf("etcd%d", index+1),
@@ -135,6 +141,7 @@ func GenerateEtcdService(index int, etcdContainer bool) (string, error) {
 	})
 }
 
+// GenerateEtcdEnv is used to generate the etcd's env content.
 func GenerateEtcdEnv(node *kubekeyapiv1alpha1.HostCfg, index int, endpoints []string, state string) (string, error) {
 	UnsupportedArch := false
 	if node.Arch != "amd64" {

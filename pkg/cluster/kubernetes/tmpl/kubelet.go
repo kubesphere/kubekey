@@ -26,6 +26,7 @@ import (
 )
 
 var (
+	// KubeletServiceTempl defines the template of kubelete service for systemd.
 	KubeletServiceTempl = template.Must(template.New("kubeletService").Parse(
 		dedent.Dedent(`[Unit]
 Description=kubelet: The Kubernetes Node Agent
@@ -41,6 +42,7 @@ RestartSec=10
 WantedBy=multi-user.target
     `)))
 
+	// KubeletEnvTempl defines the template of kubelet's Env for the kubelet's systemd service.
 	KubeletEnvTempl = template.Must(template.New("kubeletEnv").Parse(
 		dedent.Dedent(`# Note: This dropin only works with kubeadm and kubelet v1.11+
 [Service]
@@ -57,10 +59,12 @@ ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $
     `)))
 )
 
+// GenerateKubeletService is used to generate kubelet's service content for systemd.
 func GenerateKubeletService() (string, error) {
 	return util.Render(KubeletServiceTempl, util.Data{})
 }
 
+// GenerateKubeletEnv is used to generate the env content of kubelet's service for systemd.
 func GenerateKubeletEnv(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	var containerRuntime string
 

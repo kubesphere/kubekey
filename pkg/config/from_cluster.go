@@ -21,21 +21,23 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/lithammer/dedent"
-	"github.com/pkg/errors"
-	"github.com/spf13/viper"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/lithammer/dedent"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
+	// ClusterCfgTempl defines the template of cluster configuration file for the existing cluster.
 	ClusterCfgTempl = template.Must(template.New("ClusterCfg").Parse(
 		dedent.Dedent(`apiVersion: kubekey.kubesphere.io/v1alpha1
 kind: Cluster
@@ -65,7 +67,6 @@ spec:
     port: {{ .Options.ControlPlaneEndpointPort }}
   kubernetes:
     version: {{ .Options.KubeVersion }}
-    imageRepo: kubesphere
     clusterName: {{ .Options.ClusterName }}
     proxyMode: {{ .Options.ProxyMode }}
     masqueradeAll: {{ .Options.MasqueradeAll }}
@@ -81,12 +82,14 @@ spec:
     `)))
 )
 
+// GenerateClusterCfgStr is used to generate cluster configuration content.
 func GenerateClusterCfgStr(opt *OptionsCluster) (string, error) {
 	return util.Render(ClusterCfgTempl, util.Data{
 		"Options": opt,
 	})
 }
 
+// OptionsCluster defineds the parameters of cluster configuration for the existing cluster.
 type OptionsCluster struct {
 	Name                        string
 	Hosts                       []string
@@ -107,6 +110,7 @@ type OptionsCluster struct {
 	ControlPlaneEndpointPort    string
 }
 
+// GetInfoFromCluster is used to fetch information from the existing cluster.
 func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	clientset, err := util.NewClient(config)
 	if err != nil {
@@ -223,6 +227,7 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	return &opt, nil
 }
 
+// GenerateConfigFromCluster is used to generate cluster configuration file from the existing cluster's information.
 func GenerateConfigFromCluster(cfgPath, kubeconfig, name string) error {
 	opt, err := GetInfoFromCluster(kubeconfig, name)
 	if err != nil {

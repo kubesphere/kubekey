@@ -17,20 +17,23 @@ limitations under the License.
 package tmpl
 
 import (
+	"strings"
+	"text/template"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"strings"
-	"text/template"
 )
 
+// Add is used in the template to implement the addition operation.
 func Add(a int, b int) int {
 	return a + b
 }
 
 var (
-	funcMap         = template.FuncMap{"Add": Add}
+	funcMap = template.FuncMap{"Add": Add}
+	// EtcdSslCfgTempl defines the template of openssl's configuration for etcd.
 	EtcdSslCfgTempl = template.Must(template.New("etcdSslCfg").Funcs(funcMap).Parse(
 		dedent.Dedent(`[req]
 req_extensions = v3_req
@@ -66,6 +69,7 @@ IP.{{ Add $i 1 }} = {{ $v }}
 
     `)))
 
+	// EtcdSslTempl defines the template of the script for generating etcd certs.
 	EtcdSslTempl = template.Must(template.New("etcdSsl").Parse(
 		dedent.Dedent(`#!/bin/bash
 
@@ -176,6 +180,7 @@ mv *.pem ${SSLDIR}/
     `)))
 )
 
+// GenerateEtcdSslCfg is used to generate openssl configuration content for etcd.
 func GenerateEtcdSslCfg(cfg *kubekeyapiv1alpha1.ClusterSpec) (string, error) {
 	dnsList := []string{"localhost", "etcd.kube-system.svc.cluster.local", "etcd.kube-system.svc", "etcd.kube-system", "etcd"}
 	ipList := []string{"127.0.0.1"}
@@ -197,10 +202,10 @@ func GenerateEtcdSslCfg(cfg *kubekeyapiv1alpha1.ClusterSpec) (string, error) {
 	})
 }
 
+// GenerateEtcdSslScript is used to generate the script content for generating etcd certs.
 func GenerateEtcdSslScript(mgr *manager.Manager) (string, error) {
 	var masters []string
 	var hosts []string
-	//_, etcdNodes, masterNodes, _, _ , _:= cfg.GroupHosts()
 
 	for _, host := range mgr.EtcdNodes {
 		masters = append(masters, host.Name)
