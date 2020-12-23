@@ -29,7 +29,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// KubeadmCfgTempl define the template of kubeadm configuration file.
+// KubeadmCfgTempl defines the template of kubeadm configuration file.
 var KubeadmCfgTempl = template.Must(template.New("kubeadmCfg").Parse(
 	dedent.Dedent(`---
 apiVersion: kubeadm.k8s.io/v1beta2
@@ -45,7 +45,7 @@ etcd:
     keyFile: {{ .ExternalEtcd.KeyFile }}
 dns:
   type: CoreDNS
-  imageRepository: {{ .CorednsRepo }}coredns
+  imageRepository: {{ .CorednsRepo }}
   imageTag: {{ .CorednsTag }}
 imageRepository: {{ .ImageRepo }}
 kubernetesVersion: {{ .Version }}
@@ -102,7 +102,7 @@ scheduler:
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
-nodeRegistration:
+nodeRegistration:ClusterCfgTempl
   criSocket: {{ .CriSock }}
 {{- end }}
 ---
@@ -195,21 +195,6 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	externalEtcd.CertFile = certFile
 	externalEtcd.KeyFile = keyFile
 
-	// generate images repo configuration
-	var imageRepo string
-	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		imageRepo = fmt.Sprintf("%s/%s", mgr.Cluster.Registry.PrivateRegistry, kubekeyapiv1alpha1.DefaultKubeImageNamespace)
-	} else {
-		imageRepo = kubekeyapiv1alpha1.DefaultKubeImageNamespace
-	}
-
-	var corednsRepo string
-	if mgr.Cluster.Registry.PrivateRegistry != "" {
-		corednsRepo = fmt.Sprintf("%s/", mgr.Cluster.Registry.PrivateRegistry)
-	} else {
-		corednsRepo = ""
-	}
-
 	// generate cri configuration
 	switch mgr.Cluster.Kubernetes.ContainerManager {
 	case "docker":
@@ -234,8 +219,8 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 	}
 
 	return util.Render(KubeadmCfgTempl, util.Data{
-		"ImageRepo":            imageRepo,
-		"CorednsRepo":          corednsRepo,
+		"ImageRepo":            strings.TrimSuffix(preinstall.GetImage(mgr, "kube-apiserver").ImageRepo(), "/kube-apiserver"),
+		"CorednsRepo":          strings.TrimSuffix(preinstall.GetImage(mgr, "coredns").ImageRepo(), "/coredns"),
 		"CorednsTag":           preinstall.GetImage(mgr, "coredns").Tag,
 		"Version":              mgr.Cluster.Kubernetes.Version,
 		"ClusterName":          mgr.Cluster.Kubernetes.ClusterName,

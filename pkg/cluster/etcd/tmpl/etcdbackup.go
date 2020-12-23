@@ -3,15 +3,17 @@ package tmpl
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"text/template"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"strconv"
-	"strings"
-	"text/template"
 )
 
+// EtcdBackupScriptTmpl defines the template of etcd backup script.
 var EtcdBackupScriptTmpl = template.Must(template.New("etcdBackupScript").Parse(
 	dedent.Dedent(`#!/bin/bash
 
@@ -62,6 +64,7 @@ rm -rf /tmp/file
 
 `)))
 
+// EtcdBackupScript is used to generate etcd backup script content.
 func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	ips := []string{}
 	var etcdBackupHour string
@@ -75,7 +78,8 @@ func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (s
 			etcdBackupHour = strconv.Itoa(period / 60)
 		}
 		if period > 1440 {
-			return "", errors.New("Etcd backup cannot last more than one day, Please change it to within one day.")
+			fmt.Println("Etcd backup cannot last more than one day, Please change it to within one day.")
+			return "", errors.New("etcd backup cannot last more than one day")
 		}
 	}
 

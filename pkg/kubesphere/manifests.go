@@ -18,10 +18,12 @@ package kubesphere
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/lithammer/dedent"
+	"os"
 	"strings"
 	"text/template"
+
+	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/lithammer/dedent"
 )
 
 const (
@@ -103,6 +105,7 @@ metadata:
   labels:
     version: v3.0.0
 spec:
+  zone: ""
   local_registry: ""
   persistence:
     storageClass: ""
@@ -413,14 +416,18 @@ spec:
 )
 
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
-	if repo == "" {
-		if strings.Contains(version, "latest") {
-			repo = "kubespheredev"
-		} else {
-			repo = "kubesphere"
-		}
+	if os.Getenv("KKZONE") == "cn" {
+		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
 	} else {
-		repo = fmt.Sprintf("%s/kubesphere", repo)
+		if repo == "" {
+			if strings.Contains(version, "latest") {
+				repo = "kubespheredev"
+			} else {
+				repo = "kubesphere"
+			}
+		} else {
+			repo = fmt.Sprintf("%s/kubesphere", repo)
+		}
 	}
 
 	return util.Render(KubeSphereTempl, util.Data{

@@ -18,47 +18,50 @@ package images
 
 import (
 	"fmt"
+	"os"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 )
 
+const (
+	cnRegistry          = "registry.cn-beijing.aliyuncs.com"
+	cnNamespaceOverride = "kubesphereio"
+)
+
+// Image defines image's info.
 type Image struct {
-	RepoAddr  string
-	Namespace string
-	Repo      string
-	Tag       string
-	Group     string
-	Enable    bool
+	RepoAddr          string
+	Namespace         string
+	NamespaceOverride string
+	Repo              string
+	Tag               string
+	Group             string
+	Enable            bool
 }
 
+// Images contains a list of Image
 type Images struct {
 	Images []Image
 }
 
+// ImageName is used to generate image's full name.
 func (image Image) ImageName() string {
-	var prefix string
-
-	if image.RepoAddr == "" {
-		if image.Namespace == "" {
-			prefix = ""
-		} else {
-			prefix = fmt.Sprintf("%s/", image.Namespace)
-		}
-	} else {
-		if image.Namespace == "" {
-			prefix = fmt.Sprintf("%s/library/", image.RepoAddr)
-		} else {
-			prefix = fmt.Sprintf("%s/%s/", image.RepoAddr, image.Namespace)
-		}
-	}
-
-	return fmt.Sprintf("%s%s:%s", prefix, image.Repo, image.Tag)
+	return fmt.Sprintf("%s:%s", image.ImageRepo(), image.Tag)
 }
 
+// ImageRepo is used to generate image's repo address.
 func (image Image) ImageRepo() string {
 	var prefix string
 
+	if os.Getenv("KKZONE") == "cn" {
+		if image.RepoAddr == "" || image.RepoAddr == cnRegistry {
+			image.RepoAddr = cnRegistry
+			image.NamespaceOverride = cnNamespaceOverride
+		}
+	}
+
 	if image.RepoAddr == "" {
 		if image.Namespace == "" {
 			prefix = ""
@@ -66,16 +69,21 @@ func (image Image) ImageRepo() string {
 			prefix = fmt.Sprintf("%s/", image.Namespace)
 		}
 	} else {
-		if image.Namespace == "" {
-			prefix = fmt.Sprintf("%s/library/", image.RepoAddr)
+		if image.NamespaceOverride == "" {
+			if image.Namespace == "" {
+				prefix = fmt.Sprintf("%s/library/", image.RepoAddr)
+			} else {
+				prefix = fmt.Sprintf("%s/%s/", image.RepoAddr, image.Namespace)
+			}
 		} else {
-			prefix = fmt.Sprintf("%s/%s/", image.RepoAddr, image.Namespace)
+			prefix = fmt.Sprintf("%s/%s/", image.RepoAddr, image.NamespaceOverride)
 		}
 	}
 
 	return fmt.Sprintf("%s%s", prefix, image.Repo)
 }
 
+// PullImages is used to pull images in the list of Image.
 func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	pullCmd := "docker"
 	switch mgr.Cluster.Kubernetes.ContainerManager {

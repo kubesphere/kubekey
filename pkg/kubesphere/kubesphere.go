@@ -19,10 +19,12 @@ package kubesphere
 import (
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -119,8 +121,8 @@ EOF
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d >> /etc/kubernetes/addons/kubesphere.yaml\"", ConfigurationBase64), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to generate kubesphere manifests")
 		}
-	case "v3.0.0":
-		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, "v3.0.0")
+	case "v3.0.0", "latest":
+		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, mgr.Cluster.KubeSphere.Version)
 		if err != nil {
 			return err
 		}
@@ -150,6 +152,16 @@ EOF
 		}
 	} else {
 		if _, err := mgr.Runner.ExecuteCmd("sudo /bin/sh -c \"sed -i '/local_registry/d' /etc/kubernetes/addons/kubesphere.yaml\"", 2, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to remove private registry"))
+		}
+	}
+
+	if mgr.Cluster.KubeSphere.Version == "latest" && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/zone/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", "cn"), 2, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
+		}
+	} else {
+		if _, err := mgr.Runner.ExecuteCmd("sudo /bin/sh -c \"sed -i '/zone/d' /etc/kubernetes/addons/kubesphere.yaml\"", 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to remove private registry"))
 		}
 	}

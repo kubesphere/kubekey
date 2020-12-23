@@ -19,6 +19,13 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"os/exec"
+	"os/user"
+	"path/filepath"
+	"runtime"
+	"strings"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -26,14 +33,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
-	"os"
-	"os/exec"
-	"os/user"
-	"path/filepath"
-	"runtime"
-	"strings"
 )
 
+// ParseClusterCfg is used to generate Cluster object and cluster's name.
 func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, string, error) {
 	var (
 		clusterCfg *kubekeyapiv1alpha1.Cluster
@@ -56,6 +58,7 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 	return clusterCfg, objName, nil
 }
 
+// ParseCfg is used to parse the specified cluster configuration file.
 func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*kubekeyapiv1alpha1.Cluster, string, error) {
 	var objName string
 	clusterCfg := kubekeyapiv1alpha1.Cluster{}
@@ -107,7 +110,7 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
-					return nil, "", errors.Wrap(err, fmt.Sprintf("Unsupported versions: %s", labels["version"]))
+					return nil, "", errors.Wrap(err, fmt.Sprintf("Unsupported version: %s", labels["version"]))
 				}
 			}
 		}
@@ -125,6 +128,9 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 		case "v2.1.1":
 			clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
+		case "latest":
+			clusterCfg.Spec.KubeSphere.Version = "latest"
+			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		default:
 			return nil, "", errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
 		}
@@ -133,6 +139,7 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 	return &clusterCfg, objName, nil
 }
 
+// AllinoneCfg is used to generate cluster object for all-in-one mode.
 func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, string) {
 	allinoneCfg := kubekeyapiv1alpha1.Cluster{}
 	if output, err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").CombinedOutput(); err != nil {
@@ -185,6 +192,9 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		case "v2.1.1":
 			allinoneCfg.Spec.KubeSphere.Version = "v2.1.1"
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
+		case "latest":
+			allinoneCfg.Spec.KubeSphere.Version = "latest"
+			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		default:
 			logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
 		}
