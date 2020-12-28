@@ -24,6 +24,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Manager defines all the parameters needed for the installation.
 type Manager struct {
 	ObjName        string
 	Cluster        *kubekeyapiv1alpha1.ClusterSpec
@@ -51,6 +52,7 @@ type Manager struct {
 	ClientSet      *kubekeyclientset.Clientset
 }
 
+// Copy is used to create a copy for Manager.
 func (mgr *Manager) Copy() *Manager {
 	newManager := *mgr
 	return &newManager
