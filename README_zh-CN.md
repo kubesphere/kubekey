@@ -14,7 +14,7 @@
 
 > 重要提示：Kubekey 将会帮您安装 Kubernetes，若已有 Kubernetes 集群请参考 [在 Kubernetes 之上安装 KubeSphere](https://github.com/kubesphere/ks-installer/)。
 
-## 
+
 
 ## 优势
 
