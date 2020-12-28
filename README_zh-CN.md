@@ -270,7 +270,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 
 ## 贡献
 
-欢迎任何形式的贡献! 感谢这些优秀的贡献者，是他们让我们的社区和产品快速成长。
+欢迎任何形式的贡献! 感谢这些优秀的贡献者，是他们让我们的项目快速成长。
 <a href="https://github.com/kubesphere/kubekey/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=kubesphere/kubekey" />
 </a>
