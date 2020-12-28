@@ -14,6 +14,8 @@
 
 > 重要提示：Kubekey 将会帮您安装 Kubernetes，若已有 Kubernetes 集群请参考 [在 Kubernetes 之上安装 KubeSphere](https://github.com/kubesphere/ks-installer/)。
 
+## 
+
 ## 优势
 
 * 基于 Ansible 的安装程序具有大量软件依赖性，例如 Python。KubeKey 是使用 Go 语言开发的，可以消除在各种环境中出现的问题，从而提高安装成功率。
@@ -265,3 +267,10 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 * [网络访问](docs/network-access.md)
 * [存储客户端](docs/storage-client.md)
 * [路线图](docs/roadmap.md)
+
+## 贡献
+
+欢迎任何形式的贡献! 感谢这些优秀的贡献者，是他们让我们的社区和产品快速成长。
+<a href="https://github.com/kubesphere/kubekey/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=kubesphere/kubekey" />
+</a>

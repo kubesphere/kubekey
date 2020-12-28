@@ -277,3 +277,10 @@ Getting cluster info and generating kubekey's configuration file (optional).
 * [Storage clients](docs/storage-client.md)
 * [Kubectl autocompletion](docs/kubectl-autocompletion.md)
 * [Roadmap](docs/roadmap.md)
+
+## Contribute
+
+Contributions of any kind are welcome! Thanks goes to these wonderful contributors, they made our community and product grow fast.
+<a href="https://github.com/kubesphere/kubekey/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=kubesphere/kubekey" />
+</a>
