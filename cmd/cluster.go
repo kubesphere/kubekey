@@ -16,9 +16,13 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/install"
 	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 // clusterCmd represents the cluster command
@@ -41,8 +45,26 @@ func init() {
 	createCmd.AddCommand(clusterCmd)
 
 	clusterCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
-	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "v1.17.9", "Specify a supported version of kubernetes")
+	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", v1alpha1.DefaultKubeVersion, "Specify a supported version of kubernetes")
 	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
 	clusterCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	clusterCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
+
+	if err := setValidArgs(clusterCmd); err != nil {
+		panic(fmt.Sprintf("Got error with the completion setting"))
+	}
+}
+
+func setValidArgs(cmd *cobra.Command) (err error) {
+	cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) (
+		strings []string, directive cobra.ShellCompDirective) {
+		versionArray := []string{"v2.1.1", "v3.0.0", time.Now().Add(-time.Hour * 24).Format("nightly-20060102")}
+		return versionArray, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	err = cmd.RegisterFlagCompletionFunc("with-kubernetes", func(cmd *cobra.Command, args []string, toComplete string) (
+		strings []string, directive cobra.ShellCompDirective) {
+		return version.SupportedK8sVersionList(), cobra.ShellCompDirectiveNoFileComp
+	})
+	return
 }
