@@ -1,4 +1,10 @@
 ### Sincere gratitude goes to the following people for their contributions to KubeKey
+
+Contributions of any kind are welcome! Thanks goes to these wonderful contributors, they made our project grow fast.
+<a href="https://github.com/kubesphere/kubekey/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=kubesphere/kubekey" />
+</a>
+
 - pixiake
 - Forest-L
 - rayzhou2017
