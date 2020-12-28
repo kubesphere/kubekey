@@ -61,8 +61,9 @@ func deployKubeSphere(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) er
 }
 
 func DeployKubeSphereStep(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	fmt.Println(mgr.Cluster.KubeSphere.Version)
-	switch mgr.Cluster.KubeSphere.Version {
+	ksVersion := mgr.Cluster.KubeSphere.Version;
+	fmt.Println(ksVersion)
+	switch ksVersion {
 	case "v2.1.1":
 		err := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s/%s/%s", mgr.WorkDir, mgr.Cluster.Kubernetes.Version, node.Arch, "helm2"), fmt.Sprintf("%s/%s", "/tmp/kubekey", "helm2"))
 		if err != nil {
@@ -121,8 +122,14 @@ EOF
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d >> /etc/kubernetes/addons/kubesphere.yaml\"", ConfigurationBase64), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to generate kubesphere manifests")
 		}
+	default:
+		// only support the latest against nightly
+		if !strings.HasPrefix(ksVersion, "nightly-") {
+			return errors.New(fmt.Sprintf("Unsupported version: %s", ksVersion))
+		}
+		fallthrough
 	case "v3.0.0", "latest":
-		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, mgr.Cluster.KubeSphere.Version)
+		kubesphereYaml, err := GenerateKubeSphereYaml(mgr.Cluster.Registry.PrivateRegistry, ksVersion)
 		if err != nil {
 			return err
 		}
@@ -156,7 +163,7 @@ EOF
 		}
 	}
 
-	if mgr.Cluster.KubeSphere.Version == "latest" && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
+	if ksVersion == "latest" && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/zone/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", "cn"), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
 		}
