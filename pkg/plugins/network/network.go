@@ -36,6 +36,7 @@ import (
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 )
 
+// DeployNetworkPlugin is used to deploy network plugin.
 func DeployNetworkPlugin(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Deploying network plugin ...")
 
@@ -63,10 +64,6 @@ func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 			if err := deployFlannel(mgr); err != nil {
 				return err
 			}
-		case "macvlan":
-			if err := deployMacvlan(); err != nil {
-				return err
-			}
 		case "cilium":
 			if err := deployCilium(mgr); err != nil {
 				return err
@@ -75,6 +72,11 @@ func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 			if err := deployKubeovn(mgr); err != nil {
 				return err
 			}
+		case "", "none":
+			mgr.Logger.Warningln("No network plugin specified, installation ends here !")
+			return nil
+		case "custom":
+			return nil
 		default:
 			return errors.New(fmt.Sprintf("This network plugin is not supported: %s", mgr.Cluster.Network.Plugin))
 		}
@@ -152,10 +154,6 @@ func deployFlannel(mgr *manager.Manager) error {
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy network plugin")
 	}
-	return nil
-}
-
-func deployMacvlan() error {
 	return nil
 }
 

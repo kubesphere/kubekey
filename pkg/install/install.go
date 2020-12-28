@@ -19,6 +19,11 @@ package install
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons"
@@ -34,12 +39,9 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
+// CreateCluster is used to create cluster based on the given parameters or configuration file.
 func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -71,7 +73,9 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset))
 }
 
+// ExecTasks is used to schedule and execute installation tasks.
 func ExecTasks(mgr *manager.Manager) error {
+	skipCondition := mgr.Cluster.Network.Plugin == "" || mgr.Cluster.Network.Plugin == "none"
 	createTasks := []manager.Task{
 		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
 		{Task: preinstall.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
@@ -87,19 +91,22 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: kubernetes.GetClusterStatus, ErrMsg: "Failed to get cluster status"},
 		{Task: kubernetes.InstallKubeBinaries, ErrMsg: "Failed to install kube binaries"},
 		{Task: kubernetes.InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
-		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
-		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons"},
-		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume"},
-		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere"},
+		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
+		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons", Skip: skipCondition},
+		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume", Skip: skipCondition},
+		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere", Skip: skipCondition},
 	}
 
 	for _, step := range createTasks {
-		if err := step.Run(mgr); err != nil {
-			return errors.Wrap(err, step.ErrMsg)
+		if !step.Skip {
+			if err := step.Run(mgr); err != nil {
+				return errors.Wrap(err, step.ErrMsg)
+			}
 		}
+
 	}
-	if mgr.KsEnable {
+	if mgr.KsEnable && !skipCondition {
 		mgr.Logger.Infoln(`Installation is complete.
 
 Please check the result using the command:
@@ -128,6 +135,7 @@ Please check the result using the command:
 	return nil
 }
 
+// Execute executes the tasks based on the parameters in the Manager.
 func Execute(executor *executor.Executor) error {
 	mgr, err := executor.CreateManager()
 	if err != nil {
