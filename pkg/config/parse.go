@@ -42,11 +42,11 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 		objName    string
 	)
 	if len(clusterCfgPath) == 0 {
-		user, _ := user.Current()
-		if user.Username != "root" {
-			return nil, "", errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Username))
+		currentUser, _ := user.Current()
+		if currentUser.Username != "root" {
+			return nil, "", errors.New(fmt.Sprintf("Current user is %s. Please use root!", currentUser.Username))
 		}
-		clusterCfg, objName = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
+		clusterCfg, objName = AllinoneCfg(currentUser, k8sVersion, ksVersion, ksEnabled, logger)
 	} else {
 		cfg, name, err := ParseCfg(clusterCfgPath, k8sVersion, ksVersion, ksEnabled)
 		if err != nil {
@@ -119,20 +119,22 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 	if ksEnabled {
 		clusterCfg.Spec.KubeSphere.Enabled = true
 		switch strings.TrimSpace(ksVersion) {
-		case "":
-			clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
-			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
-		case "v3.0.0":
+		case "v3.0.0", "", "latest":
 			clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		case "v2.1.1":
 			clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
-		case "latest":
-			clusterCfg.Spec.KubeSphere.Version = "latest"
-			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		default:
-			return nil, "", errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+			// make it be convenient to have a nightly build of KubeSphere
+			if strings.HasPrefix(ksVersion, "nightly-") {
+				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
+				// nightly build and a released. So please keep update it with the latest release here.
+				clusterCfg.Spec.KubeSphere.Version = ksVersion
+				clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
+			} else {
+				return nil, "", errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+			}
 		}
 	}
 
@@ -182,21 +184,24 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 
 	if ksEnabled {
 		allinoneCfg.Spec.KubeSphere.Enabled = true
-		switch strings.TrimSpace(ksVersion) {
-		case "":
-			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
-			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
-		case "v3.0.0":
+		ksVersion = strings.TrimSpace(ksVersion)
+		switch ksVersion {
+		case "v3.0.0", "", "latest":
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		case "v2.1.1":
 			allinoneCfg.Spec.KubeSphere.Version = "v2.1.1"
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
-		case "latest":
-			allinoneCfg.Spec.KubeSphere.Version = "latest"
-			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
 		default:
-			logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
+			// make it be convenient to have a nightly build of KubeSphere
+			if strings.HasPrefix(ksVersion, "nightly-") {
+				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
+				// nightly build and a released. So please keep update it with the latest release here.
+				allinoneCfg.Spec.KubeSphere.Version = ksVersion
+				allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
+			} else {
+				logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
+			}
 		}
 	}
 
