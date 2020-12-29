@@ -17,11 +17,12 @@ limitations under the License.
 package calico
 
 import (
+	"text/template"
+
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"text/template"
 )
 
 var calicoTemplOld = template.Must(template.New("calico").Parse(
@@ -34,8 +35,8 @@ metadata:
   name: calico-config
   namespace: kube-system
 data:
-  # Typha is disabled.
-  typha_service_name: "none"
+  # You must set a non-zero value for Typha replicas below.
+  typha_service_name: {{ if .TyphaEnabled }}"calico-typha"{{ else }}"none"{{ end }}
   # Configure the backend to use.
   calico_backend: "bird"
   # Configure the MTU to use for workload interfaces and the
@@ -531,6 +532,142 @@ subjects:
   name: calico-node
   namespace: kube-system
 
+{{ if .TyphaEnabled }}
+---
+# Source: calico/templates/calico-typha.yaml
+# This manifest creates a Service, which will be backed by Calico's Typha daemon.
+# Typha sits in between Felix and the API server, reducing Calico's load on the API server.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: calico-typha
+  namespace: kube-system
+  labels:
+    k8s-app: calico-typha
+spec:
+  ports:
+    - port: 5473
+      protocol: TCP
+      targetPort: calico-typha
+      name: calico-typha
+  selector:
+    k8s-app: calico-typha
+
+---
+
+# This manifest creates a Deployment of Typha to back the above service.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calico-typha
+  namespace: kube-system
+  labels:
+    k8s-app: calico-typha
+spec:
+  # Number of Typha replicas. To enable Typha, set this to a non-zero value *and* set the
+  # typha_service_name variable in the calico-config ConfigMap above.
+  #
+  # We recommend using Typha if you have more than 50 nodes. Above 100 nodes it is essential
+  # (when using the Kubernetes datastore). Use one replica for every 100-200 nodes. In
+  # production, we recommend running at least 3 replicas to reduce the impact of rolling upgrade.
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      k8s-app: calico-typha
+  template:
+    metadata:
+      labels:
+        k8s-app: calico-typha
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: 'true'
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      hostNetwork: true
+      tolerations:
+        # Mark the pod as a critical add-on for rescheduling.
+        - key: CriticalAddonsOnly
+          operator: Exists
+      # Since Calico can't network a pod until Typha is up, we need to run Typha itself
+      # as a host-networked pod.
+      serviceAccountName: calico-node
+      priorityClassName: system-cluster-critical
+      # fsGroup allows using projected serviceaccount tokens as described here kubernetes/kubernetes#82573
+      securityContext:
+        fsGroup: 65534
+      containers:
+      - image: {{ .CalicoTyphaImage }}
+        name: calico-typha
+        ports:
+        - containerPort: 5473
+          name: calico-typha
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+            name: kubernetes-services-endpoint
+            optional: true
+        env:
+          # Enable "info" logging by default. Can be set to "debug" to increase verbosity.
+          - name: TYPHA_LOGSEVERITYSCREEN
+            value: "info"
+          # Disable logging to file and syslog since those don't make sense in Kubernetes.
+          - name: TYPHA_LOGFILEPATH
+            value: "none"
+          - name: TYPHA_LOGSEVERITYSYS
+            value: "none"
+          # Monitor the Kubernetes API to find the number of running instances and rebalance
+          # connections.
+          - name: TYPHA_CONNECTIONREBALANCINGMODE
+            value: "kubernetes"
+          - name: TYPHA_DATASTORETYPE
+            value: "kubernetes"
+          - name: TYPHA_HEALTHENABLED
+            value: "true"
+          # Uncomment these lines to enable prometheus metrics. Since Typha is host-networked,
+          # this opens a port on the host, which may need to be secured.
+          #- name: TYPHA_PROMETHEUSMETRICSENABLED
+          #  value: "true"
+          #- name: TYPHA_PROMETHEUSMETRICSPORT
+          #  value: "9093"
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: 9098
+            host: localhost
+          periodSeconds: 30
+          initialDelaySeconds: 30
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 9098
+            host: localhost
+          periodSeconds: 10
+ 
+ ---
+ 
+ # This manifest creates a Pod Disruption Budget for Typha to allow K8s Cluster Autoscaler to evict
+ 
+ apiVersion: policy/v1beta1
+ kind: PodDisruptionBudget
+ metadata:
+   name: calico-typha
+   namespace: kube-system
+   labels:
+     k8s-app: calico-typha
+ spec:
+   maxUnavailable: 1
+   selector:
+     matchLabels:
+       k8s-app: calico-typha
+ {{ end }}
+
 ---
 # Source: calico/templates/calico-node.yaml
 # This manifest installs the calico-node container, as well
@@ -555,12 +692,6 @@ spec:
     metadata:
       labels:
         k8s-app: calico-node
-      annotations:
-        # This, along with the CriticalAddonsOnly toleration below,
-        # marks the pod as a critical add-on, ensuring it gets
-        # priority scheduling and that its resources are reserved
-        # if it ever gets evicted.
-        scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       nodeSelector:
         kubernetes.io/os: linux
@@ -586,6 +717,11 @@ spec:
         - name: upgrade-ipam
           image: {{ .CalicoCniImage }}
           command: ["/opt/cni/bin/calico-ipam", "-upgrade"]
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             - name: KUBERNETES_NODE_NAME
               valueFrom:
@@ -607,7 +743,12 @@ spec:
         # and CNI network config file on each node.
         - name: install-cni
           image: {{ .CalicoCniImage }}
-          command: ["/install-cni.sh"]
+          command: ["/opt/cni/bin/install"]
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             # Name of the CNI config file to create.
             - name: CNI_CONF_NAME
@@ -649,15 +790,28 @@ spec:
           securityContext:
             privileged: true
       containers:
-        # Runs calico-node container on each Kubernetes node.  This
+        # Runs calico-node container on each Kubernetes node. This
         # container programs network policy and routes on each
         # host.
         - name: calico-node
           image: {{ .CalicoNodeImage }}
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             # Use Kubernetes API as the backing datastore.
             - name: DATASTORE_TYPE
               value: "kubernetes"
+{{ if .TyphaEnabled }}
+            # Typha support: controlled by the ConfigMap.
+            - name: FELIX_TYPHAK8SSERVICENAME
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: typha_service_name
+{{ end }}
             # Wait for the datastore.
             - name: WAIT_FOR_DATASTORE
               value: "true"
@@ -676,6 +830,12 @@ spec:
             - name: CLUSTER_TYPE
               value: "k8s,bgp"
             # Auto-detect the BGP IP address.
+            - name: NODEIP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: IP_AUTODETECTION_METHOD
+              value: "can-reach=$(NODEIP)"
             - name: IP
               value: "autodetect"
             # Enable IPIP
@@ -696,6 +856,15 @@ spec:
                 configMapKeyRef:
                   name: calico-config
                   key: veth_mtu
+            # Set MTU for the Wireguard tunnel device.
+            - name: FELIX_WIREGUARDMTU
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: veth_mtu
+            # The default IPv4 pool to create on startup if none exists. Pod IPs will be
+            # chosen from this range. Changing this value after installation will have
+            # no effect.
             - name: CALICO_IPV4POOL_CIDR
               value: "{{ .KubePodsCIDR }}"
             - name: CALICO_IPV4POOL_BLOCK_SIZE
@@ -749,6 +918,13 @@ spec:
               readOnly: false
             - name: policysync
               mountPath: /var/run/nodeagent
+            # For eBPF mode, we need to be able to mount the BPF filesystem at /sys/fs/bpf so we mount in the
+            # parent directory.
+            - name: sysfs
+              mountPath: /sys/fs/
+              # Bidirectional means that, if we mount the BPF filesystem at /sys/fs/bpf it will propagate to the host.
+              # If the host is known to mount that filesystem already then Bidirectional can be omitted.
+              mountPropagation: Bidirectional
       volumes:
         # Used by calico-node.
         - name: lib-modules
@@ -764,6 +940,10 @@ spec:
           hostPath:
             path: /run/xtables.lock
             type: FileOrCreate
+        - name: sysfs
+          hostPath:
+            path: /sys/fs/
+            type: DirectoryOrCreate
         # Used to install CNI.
         - name: cni-bin-dir
           hostPath:
@@ -819,8 +999,6 @@ spec:
       namespace: kube-system
       labels:
         k8s-app: calico-kube-controllers
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       nodeSelector:
         kubernetes.io/os: linux
@@ -857,6 +1035,7 @@ metadata:
 
     `)))
 
+// GenerateCalicoFilesOld is used to generate calico mainfests for k8s versions before v1.16.
 func GenerateCalicoFilesOld(mgr *manager.Manager) (string, error) {
 	return util.Render(calicoTemplOld, util.Data{
 		"KubePodsCIDR":           mgr.Cluster.Network.KubePodsCIDR,
@@ -864,6 +1043,7 @@ func GenerateCalicoFilesOld(mgr *manager.Manager) (string, error) {
 		"CalicoNodeImage":        preinstall.GetImage(mgr, "calico-node").ImageName(),
 		"CalicoFlexvolImage":     preinstall.GetImage(mgr, "calico-flexvol").ImageName(),
 		"CalicoControllersImage": preinstall.GetImage(mgr, "calico-kube-controllers").ImageName(),
+		"TyphaEnabled":           len(mgr.K8sNodes) > 50,
 		"VethMTU":                mgr.Cluster.Network.Calico.VethMTU,
 		"NodeCidrMaskSize":       mgr.Cluster.Kubernetes.NodeCidrMaskSize,
 		"IPIPMode":               mgr.Cluster.Network.Calico.IPIPMode,
