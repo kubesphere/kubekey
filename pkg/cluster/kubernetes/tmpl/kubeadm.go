@@ -102,7 +102,7 @@ scheduler:
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
-nodeRegistration:ClusterCfgTempl
+nodeRegistration:
   criSocket: {{ .CriSock }}
 {{- end }}
 ---
