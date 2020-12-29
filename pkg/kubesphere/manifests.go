@@ -416,11 +416,11 @@ spec:
 )
 
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
-	if os.Getenv("KKZONE") == "cn" {
+	if strings.Contains(version, "latest") && os.Getenv("KKZONE") == "cn" {
 		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
 	} else {
 		if repo == "" {
-			if strings.Contains(version, "latest") {
+			if strings.Contains(version, "latest") || strings.HasPrefix(version, "nightly-") {
 				repo = "kubespheredev"
 			} else {
 				repo = "kubesphere"
