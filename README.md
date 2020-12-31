@@ -277,6 +277,7 @@ Getting cluster info and generating kubekey's configuration file (optional).
 * [Storage clients](docs/storage-client.md)
 * [Kubectl autocompletion](docs/kubectl-autocompletion.md)
 * [Roadmap](docs/roadmap.md)
+* [Check-Renew-Certificate](docs/check-renew-certificate.md)
 
 ## Contribute
 

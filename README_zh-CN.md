@@ -265,6 +265,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 * [网络访问](docs/network-access.md)
 * [存储客户端](docs/storage-client.md)
 * [路线图](docs/roadmap.md)
+* [查看或更新证书](docs/check-renew-certificate.md)
 
 ## 贡献
 
