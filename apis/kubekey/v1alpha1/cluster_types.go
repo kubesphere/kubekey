@@ -19,12 +19,13 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/util"
-	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/util"
+	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -118,19 +119,20 @@ func init() {
 }
 
 type HostCfg struct {
-	Name            string `yaml:"name,omitempty" json:"name,omitempty"`
-	Address         string `yaml:"address,omitempty" json:"address,omitempty"`
-	InternalAddress string `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
-	Port            int    `yaml:"port,omitempty" json:"port,omitempty"`
-	User            string `yaml:"user,omitempty" json:"user,omitempty"`
-	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
-	PrivateKey      string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
-	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
-	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
-	ID              int    `json:"-"`
-	IsEtcd          bool   `json:"-"`
-	IsMaster        bool   `json:"-"`
-	IsWorker        bool   `json:"-"`
+	Name            string            `yaml:"name,omitempty" json:"name,omitempty"`
+	Address         string            `yaml:"address,omitempty" json:"address,omitempty"`
+	InternalAddress string            `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
+	Port            int               `yaml:"port,omitempty" json:"port,omitempty"`
+	User            string            `yaml:"user,omitempty" json:"user,omitempty"`
+	Password        string            `yaml:"password,omitempty" json:"password,omitempty"`
+	PrivateKey      string            `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	PrivateKeyPath  string            `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
+	Arch            string            `yaml:"arch,omitempty" json:"arch,omitempty"`
+	Labels          map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	ID              int               `json:"-"`
+	IsEtcd          bool              `json:"-"`
+	IsMaster        bool              `json:"-"`
+	IsWorker        bool              `json:"-"`
 }
 
 type RoleGroups struct {
