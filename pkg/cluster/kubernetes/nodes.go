@@ -19,15 +19,17 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
+// InstallKubeBinaries is used to install kubernetes' binaries to os' PATH.
 func InstallKubeBinaries(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Installing kube binaries")
 	return mgr.RunTaskOnK8sNodes(installKubeBinaries, true)
@@ -46,6 +48,7 @@ func installKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 	return nil
 }
 
+// ExistNode is used determine if the node already exists.
 func ExistNode(node *kubekeyapiv1alpha1.HostCfg) bool {
 	var version bool
 	_, name := allNodesInfo[node.Name]
@@ -56,6 +59,7 @@ func ExistNode(node *kubekeyapiv1alpha1.HostCfg) bool {
 	return version || ip
 }
 
+// SyncKubeBinaries is used to sync kubernetes' binaries to each node.
 func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 	tmpDir := "/tmp/kubekey"
@@ -101,6 +105,7 @@ func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) er
 	return nil
 }
 
+// SetKubelet is used to configure the kubelet's startup parameters.
 func SetKubelet(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", "cp -f /tmp/kubekey/kubelet /usr/local/bin/kubelet && chmod +x /usr/local/bin/kubelet"), 2, false); err != nil {
