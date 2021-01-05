@@ -72,7 +72,7 @@ apiServer:
     audit-log-maxbackup: "10"
     audit-log-maxsize: "100"
     audit-log-path: /var/log/apiserver/audit.log
-    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
+    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletServerCertificate=true
   certSANs:
     {{- range .CertSANs }}
     - {{ . }}
@@ -85,7 +85,7 @@ controllerManager:
     profiling: "false"
     port: "10252"
     terminated-pod-gc-threshold: "10"
-    feature-gates: RotateKubeletServerCertificate=true,CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
+    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletServerCertificate=true
   extraVolumes:
   - name: host-time
     hostPath: /etc/localtime
@@ -96,7 +96,7 @@ scheduler:
     profiling: "false"
     bind-address: 127.0.0.1
     port: "10251"
-    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true
+    feature-gates: CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true
 
 {{- if .CriSock }}
 ---
@@ -171,7 +171,7 @@ featureGates:
   VolumeSnapshotDataSource: true
   ExpandCSIVolumes: true
   RotateKubeletClientCertificate: true
-
+  RotateKubeletServerCertificate: true
     `)))
 
 // GenerateKubeadmCfg create kubeadm configuration file to initialize the cluster.
