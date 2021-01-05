@@ -1,0 +1,230 @@
+{
+  "projectName": "kubekey",
+  "projectOwner": "kubesphere",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md",
+    "CONTRIBUTORS.md",
+    "README_zh-CN.md"
+  ],
+  "imageSize": 100,
+  "commit": true,
+  "commitConvention": "none",
+  "contributors": [
+    {
+      "login": "pixiake",
+      "name": "pixiake",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/22290449?v=4",
+      "profile": "https://github.com/pixiake",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "Forest-L",
+      "name": "Forest",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/50984129?v=4",
+      "profile": "https://github.com/Forest-L",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "rayzhou2017",
+      "name": "rayzhou2017",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/28859385?v=4",
+      "profile": "https://kubesphere.io/",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "shaowenchen",
+      "name": "shaowenchen",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/43693241?v=4",
+      "profile": "https://www.chenshaowen.com/",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "LinuxSuRen",
+      "name": "Zhao Xiaojie",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/1450685?v=4",
+      "profile": "http://surenpi.com/",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "zackzhangkai",
+      "name": "Zack Zhang",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/20178386?v=4",
+      "profile": "https://github.com/zackzhangkai",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "akhilerm",
+      "name": "Akhil Mohan",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/7610845?v=4",
+      "profile": "https://akhilerm.com/",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "FeynmanZhou",
+      "name": "pengfei",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/40452856?v=4",
+      "profile": "https://github.com/FeynmanZhou",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "min-zh",
+      "name": "min zhang",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/35321102?v=4",
+      "profile": "https://github.com/min-zh",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "zgldh",
+      "name": "zgldh",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/312404?v=4",
+      "profile": "https://github.com/zgldh",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "xrjk",
+      "name": "xrjk",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/16330256?v=4",
+      "profile": "https://github.com/xrjk",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "stoneshi-yunify",
+      "name": "yonghongshi",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/70880165?v=4",
+      "profile": "https://github.com/stoneshi-yunify",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "shenhonglei",
+      "name": "Honglei",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/20896372?v=4",
+      "profile": "https://github.com/shenhonglei",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "liucy1983",
+      "name": "liucy1983",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/2360302?v=4",
+      "profile": "https://github.com/liucy1983",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "lilien1010",
+      "name": "Lien",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/3814966?v=4",
+      "profile": "https://github.com/lilien1010",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "klj890",
+      "name": "Tony Wang",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19380605?v=4",
+      "profile": "https://github.com/klj890",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "hlwanghl",
+      "name": "Hongliang Wang",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/4861515?v=4",
+      "profile": "https://github.com/hlwanghl",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "fafucoder",
+      "name": "dawn",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/16442491?v=4",
+      "profile": "https://fafucoder.github.io/",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "duanjiong",
+      "name": "Duan Jiong",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/3678855?v=4",
+      "profile": "https://github.com/duanjiong",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "calvinyv",
+      "name": "calvinyv",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/28883416?v=4",
+      "profile": "https://github.com/calvinyv",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "benjaminhuo",
+      "name": "Benjamin Huo",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/18525465?v=4",
+      "profile": "https://github.com/benjaminhuo",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "Sherlock113",
+      "name": "Sherlock113",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/65327072?v=4",
+      "profile": "https://github.com/Sherlock113",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "Fuchange",
+      "name": "fu_changjie",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/31716848?v=4",
+      "profile": "https://github.com/Fuchange",
+      "contributions": [
+        "doc"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7
+}
