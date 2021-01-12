@@ -278,6 +278,7 @@ Getting cluster info and generating kubekey's configuration file (optional).
 * [Kubectl autocompletion](docs/kubectl-autocompletion.md)
 * [Roadmap](docs/roadmap.md)
 * [Check-Renew-Certificate](docs/check-renew-certificate.md)
+* [Developer-Guide](docs/developer-guide.md)
 
 ## Contributors ✨
 
