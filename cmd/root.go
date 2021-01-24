@@ -39,6 +39,7 @@ type Options struct {
 	SourcesDir     string
 	AddImagesRepo  bool
 	InCluster      bool
+	DownloadCmd    string
 }
 
 var (
