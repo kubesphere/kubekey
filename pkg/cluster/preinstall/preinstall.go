@@ -54,7 +54,7 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 		kubectl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
 		kubecni.Url = fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
-		helm.GetCmd = fmt.Sprintf("curl -o %s  %s", helm.Path, helm.Url)
+		helm.GetCmd = mgr.DownloadCommand(helm.Path, helm.Url)
 	} else {
 		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
@@ -62,14 +62,15 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 		kubectl.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
 		kubecni.Url = fmt.Sprintf("https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", helm.Version, helm.Arch)
-		helm.GetCmd = fmt.Sprintf("curl -o %s/helm-%s-linux-%s.tar.gz  %s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", filepath, helm.Version, helm.Arch, helm.Url, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
+		getCmd := mgr.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
+		helm.GetCmd = fmt.Sprintf("%s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", getCmd, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
 	}
 
-	kubeadm.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubeadm.Path, kubeadm.Url)
-	kubelet.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubelet.Path, kubelet.Url)
-	kubectl.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubectl.Path, kubectl.Url)
-	kubecni.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubecni.Path, kubecni.Url)
-	etcd.GetCmd = fmt.Sprintf("curl -L -o %s  %s", etcd.Path, etcd.Url)
+	kubeadm.GetCmd = mgr.DownloadCommand(kubeadm.Path, kubeadm.Url)
+	kubelet.GetCmd = mgr.DownloadCommand(kubelet.Path, kubelet.Url)
+	kubectl.GetCmd = mgr.DownloadCommand(kubectl.Path, kubectl.Url)
+	kubecni.GetCmd = mgr.DownloadCommand(kubecni.Path, kubecni.Url)
+	etcd.GetCmd = mgr.DownloadCommand(etcd.Path, etcd.Url)
 
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
 
@@ -78,37 +79,41 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 			continue
 		}
 		mgr.Logger.Infoln(fmt.Sprintf("Downloading %s ...", binary.Name))
-		if util.IsExist(binary.Path) == false {
-			for i := 5; i > 0; i-- {
-				if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
-					fmt.Println(string(output))
 
-					if kkzone != "cn" {
-						mgr.Logger.Warningln("Having a problem with accessing https://storage.googleapis.com? You can try again after setting environment 'export KKZONE=cn'")
-					}
-					return errors.New(fmt.Sprintf("Failed to download %s binary: %s", binary.Name, binary.GetCmd))
-				}
-
-				if err := SHA256Check(binary, version); err != nil {
-					if i == 1 {
-						return err
-					}
-					_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
-					continue
-				}
-				break
-			}
-		} else {
+		if util.IsExist(binary.Path) {
+			// download it again if it's incorrect
 			if err := SHA256Check(binary, version); err != nil {
-				return err
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+			} else {
+				continue
 			}
+		}
+
+		for i := 5; i > 0; i-- {
+			if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
+				fmt.Println(string(output))
+
+				if kkzone != "cn" {
+					mgr.Logger.Warningln("Having a problem with accessing https://storage.googleapis.com? You can try again after setting environment 'export KKZONE=cn'")
+				}
+				return errors.New(fmt.Sprintf("Failed to download %s binary: %s", binary.Name, binary.GetCmd))
+			}
+
+			if err := SHA256Check(binary, version); err != nil {
+				if i == 1 {
+					return err
+				}
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+				continue
+			}
+			break
 		}
 	}
 
 	if mgr.Cluster.KubeSphere.Version == "v2.1.1" {
 		mgr.Logger.Infoln(fmt.Sprintf("Downloading %s ...", "helm2"))
 		if util.IsExist(fmt.Sprintf("%s/helm2", filepath)) == false {
-			cmd := fmt.Sprintf("curl -o %s/helm2 %s", filepath, fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.9"))
+			cmd := mgr.DownloadCommand(fmt.Sprintf("%s/helm2", filepath), fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.9"))
 			if output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
 				fmt.Println(string(output))
 				return errors.Wrap(err, "Failed to download helm2 binary")
