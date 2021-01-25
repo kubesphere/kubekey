@@ -1,0 +1,68 @@
+repository:
+  name: kubekey
+  description: "The Next-gen Installer: Installing Kubernetes and KubeSphere v3.0.0 fastly, flexibly and easily"
+  homepage: https://kubesphere.io/
+  private: false
+  has_issues: true
+  has_wiki: false
+  has_downloads: false
+  default_branch: master
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+labels:
+  - name: newbie
+    color: abe7f4
+    description: These're friendly issues for new comers
+  - name: bug
+    color: d73a4a
+    description: Something isn't working
+  - name: feature
+    color: ffc6a3
+  - name: enhancement
+    color: a2eeef
+    description: New feature or request
+  - name: help wanted
+    color: 008672
+    description: Extra attention is needed
+  - name: bugfix
+    color: 0412d6
+  - name: regression
+    color: c5def5
+  - name: documentation
+    color: 5ce05e
+  - name: Hacktoberfest
+    description: More details from https://hacktoberfest.digitalocean.com/
+    color: 5ce05e
+  - name: test
+    color: c2c2fc
+  - name: chore
+    color: c2c2fc
+  - name: dependencies
+    color: 0366d6
+    description: Pull requests that update a dependency file
+  - name: no-changelog
+    color: c2c2fc
+  - name: priority-high
+    color: D93F0B
+  - name: priority-medium
+    color: FBCA04
+  - name: priority-low
+    color: 006B75
+branches:
+  - name: master
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+        dismissal_restrictions:
+          users: []
+          teams: []
+      required_status_checks:
+        strict: true
+        contexts: []
+      enforce_admins: false
+      restrictions:
+        users: []
+        teams: []
