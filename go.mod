@@ -9,7 +9,7 @@ require (
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/modood/table v0.0.0-20200225102042-88de94bb9876
-	github.com/onsi/ginkgo v1.12.1
+	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.12.0
