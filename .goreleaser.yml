@@ -43,7 +43,7 @@ changelog:
 nfpms:
   - file_name_template: "{{ .Binary }}-v{{ .Version }}-{{.Os}}-{{.Arch}}"
     homepage: https://github.com/kubesphere/kubekey
-    description: "The Next-gen Installer: Installing Kubernetes and KubeSphere v3.0.0 fastly, flexibly and easily"
+    description: "KubeKey provides a flexible, rapid and convenient way to install Kubernetes only, both Kubernetes and KubeSphere, and related cloud-native add-ons. It is also an efficient tool to scale and upgrade your cluster."
     maintainer: kubesphere authors
     license: Apache-2.0
     vendor: Kubesphere

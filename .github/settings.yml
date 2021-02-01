@@ -1,6 +1,6 @@
 repository:
   name: kubekey
-  description: "The Next-gen Installer: Installing Kubernetes and KubeSphere v3.0.0 fastly, flexibly and easily"
+  description: "KubeKey provides a flexible, rapid and convenient way to install Kubernetes only, both Kubernetes and KubeSphere, and related cloud-native add-ons. It is also an efficient tool to scale and upgrade your cluster."
   homepage: https://kubesphere.io/
   private: false
   has_issues: true
