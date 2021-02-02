@@ -34,7 +34,7 @@ import (
 	"path/filepath"
 )
 
-func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool) error {
+func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool, downloadCmd string) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current dir")
@@ -57,7 +57,15 @@ func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, 
 		clientset = c
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset))
+	//return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset))
+	executorInstance := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset)
+	executorInstance.DownloadCommand = func(path, url string) string {
+		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
+		// some poor network environment. Or users even can choose another cli, it might be wget.
+		// perhaps we should have a build-in download function instead of totally rely on the external one
+		return fmt.Sprintf(downloadCmd, path, url)
+	}
+	return Execute(executorInstance)
 }
 
 func ExecTasks(mgr *manager.Manager) error {

@@ -71,6 +71,7 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 	kubectl.GetCmd = mgr.DownloadCommand(kubectl.Path, kubectl.Url)
 	kubecni.GetCmd = mgr.DownloadCommand(kubecni.Path, kubecni.Url)
 	etcd.GetCmd = mgr.DownloadCommand(etcd.Path, etcd.Url)
+	helm.GetCmd = mgr.DownloadCommand(helm.Path, helm.Url)
 
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
 
