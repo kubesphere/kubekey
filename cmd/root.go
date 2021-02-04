@@ -58,8 +58,11 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	//设置最大进程数
 	exec.Command("/bin/bash", "-c", "ulimit -u 65535").Run()
+	//设置最大文件打开数
 	exec.Command("/bin/bash", "-c", "ulimit -n 65535").Run()
+	//执行kk文件
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

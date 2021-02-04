@@ -89,7 +89,7 @@ func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.
 		pullCmd = "docker"
 	}
 	for _, image := range images.Images {
-
+		//下面代码冗余
 		if node.IsMaster && image.Group == kubekeyapiv1alpha1.Master && image.Enable {
 			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
 			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)

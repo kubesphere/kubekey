@@ -41,10 +41,10 @@ func Precheck(mgr *manager.Manager) error {
 	}
 
 	if !mgr.SkipCheck {
-		if err := mgr.RunTaskOnAllNodes(PrecheckNodes, true); err != nil {
+		if err := mgr.RunTaskOnAllNodes(PrecheckNodes, true); err != nil { //该方法中会将校验结果保存到CheckResults
 			return err
 		}
-		PrecheckConfirm(mgr)
+		PrecheckConfirm(mgr) //拿到CheckResults数据展示，和用户交互
 	}
 	return nil
 }

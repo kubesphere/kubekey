@@ -97,7 +97,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger
 		clusterCfg.Kubernetes.MaxPods = DefaultMaxPods
 	}
 	if cfg.Kubernetes.NodeCidrMaskSize == 0 {
-		clusterCfg.Kubernetes.NodeCidrMaskSize = DefaultNodeCidrMaskSize
+		clusterCfg.Kubernetes.NodeCidrMaskSize = DefaultNodeCidrMaskSize //集群节点中节点cidr掩码长度
 	}
 	if cfg.Kubernetes.ProxyMode == "" {
 		clusterCfg.Kubernetes.ProxyMode = DefaultProxyMode

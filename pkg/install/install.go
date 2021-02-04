@@ -26,7 +26,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/config"
-	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -71,12 +70,13 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset))
 }
 
+//开始执行
 func ExecTasks(mgr *manager.Manager) error {
 	createTasks := []manager.Task{
-		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},
-		{Task: preinstall.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
-		{Task: preinstall.InitOS, ErrMsg: "Failed to init OS"},
-		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
+		//{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},    //Precheck会建立和主机的ssh链接
+		//{Task: preinstall.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
+		//{Task: preinstall.InitOS, ErrMsg: "Failed to init OS"},
+		//{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
 		{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},
 		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "Failed to sync etcd certs"},

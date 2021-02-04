@@ -37,14 +37,14 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	kubectl := files.KubeBinary{Name: "kubectl", Arch: arch, Version: version}
 	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCniVersion}
 	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapiv1alpha1.DefaultHelmVersion}
-
+	//设置报错路径
 	etcd.Path = fmt.Sprintf("%s/etcd-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultEtcdVersion, arch)
 	kubeadm.Path = fmt.Sprintf("%s/kubeadm", filepath)
 	kubelet.Path = fmt.Sprintf("%s/kubelet", filepath)
 	kubectl.Path = fmt.Sprintf("%s/kubectl", filepath)
 	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, arch, kubekeyapiv1alpha1.DefaultCniVersion)
 	helm.Path = fmt.Sprintf("%s/helm", filepath)
-
+	//封装下载链接
 	if kkzone == "cn" {
 		etcd.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
@@ -62,7 +62,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 		helm.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", helm.Version, helm.Arch)
 		helm.GetCmd = fmt.Sprintf("curl -o %s/helm-%s-linux-%s.tar.gz  %s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", filepath, helm.Version, helm.Arch, helm.Url, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
 	}
-
+	//封装下载命令
 	kubeadm.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubeadm.Path, kubeadm.Url)
 	kubelet.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubelet.Path, kubelet.Url)
 	kubectl.GetCmd = fmt.Sprintf("curl -L -o %s  %s", kubectl.Path, kubectl.Url)
@@ -70,7 +70,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 	etcd.GetCmd = fmt.Sprintf("curl -L -o %s  %s", etcd.Path, etcd.Url)
 
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
-
+	//命令下载过程
 	for _, binary := range binaries {
 		if binary.Name == "etcd" && mgr.EtcdContainer {
 			continue
@@ -86,7 +86,7 @@ func FilesDownloadHttp(mgr *manager.Manager, filepath, version, arch string) err
 					}
 					return errors.New(fmt.Sprintf("Failed to download %s binary: %s", binary.Name, binary.GetCmd))
 				}
-
+				//检测是否加密
 				if err := SHA256Check(binary, version); err != nil {
 					if i == 1 {
 						return err
@@ -134,7 +134,7 @@ func Prepare(mgr *manager.Manager) error {
 	}
 
 	archMap := make(map[string]bool)
-	for _, host := range mgr.Cluster.Hosts {
+	for _, host := range mgr.Cluster.Hosts { //！！！bug
 		switch host.Arch {
 		case "amd64":
 			archMap["amd64"] = true

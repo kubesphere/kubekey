@@ -38,7 +38,7 @@ import (
 const socketEnvPrefix = "env:"
 
 var (
-	_ Connection = &connection{}
+	_ Connection = &connection{} //接口断言，用于判断connection结构体是否实现了接口Connection，没实现则报错
 )
 
 type Connection interface {

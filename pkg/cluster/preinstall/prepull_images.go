@@ -35,7 +35,7 @@ func PrePullImages(mgr *manager.Manager) error {
 
 func PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	i := images.Images{}
-	i.Images = []images.Image{
+	i.Images = []images.Image{ //初始化镜像列表，列表中会标记是否需要该组件镜像下载enable
 		GetImage(mgr, "etcd"),
 		GetImage(mgr, "pause"),
 		GetImage(mgr, "kube-apiserver"),
