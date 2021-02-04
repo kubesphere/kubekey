@@ -1,3 +1,5 @@
+// +build tools
+
 /*
 Copyright 2020 The KubeSphere Authors.
 
@@ -14,13 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+// This package imports things required by build scripts, to force `go mod` to see them as dependencies
+package tools
 
-import (
-	"github.com/kubesphere/kubekey/cmd"
-)
-
-// Using a separate entry-point can reduce the size of the binary file
-func main() {
-	cmd.Execute()
-}
+import _ "k8s.io/code-generator"
