@@ -63,25 +63,32 @@ type ClusterStatus struct {
 	Conditions    []Condition  `json:"Conditions,omitempty"`
 }
 
+// JobInfo defines the job information to be used to create a cluster or add a node.
 type JobInfo struct {
 	Namespace string    `json:"namespace,omitempty"`
 	Name      string    `json:"name,omitempty"`
 	Pods      []PodInfo `json:"pods,omitempty"`
 }
 
+// PodInfo defines the pod information to be used to create a cluster or add a node.
 type PodInfo struct {
 	Name       string          `json:"name,omitempty"`
 	Containers []ContainerInfo `json:"containers,omitempty"`
 }
+
+// ContainerInfo defines the container information to be used to create a cluster or add a node.
 type ContainerInfo struct {
 	Name string `json:"name,omitempty"`
 }
+
+// NodeStatus defines the status information of the nodes in the cluster.
 type NodeStatus struct {
 	InternalIP string          `json:"internalIP,omitempty"`
 	Hostname   string          `json:"hostname,omitempty"`
 	Roles      map[string]bool `json:"roles,omitempty"`
 }
 
+// Condition defines the process information.
 type Condition struct {
 	Step      string      `json:"step,omitempty"`
 	StartTime metav1.Time `json:"startTime,omitempty"`
@@ -118,29 +125,34 @@ func init() {
 	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
 }
 
+// HostCfg defines host information for cluster.
 type HostCfg struct {
-	Name            string            `yaml:"name,omitempty" json:"name,omitempty"`
-	Address         string            `yaml:"address,omitempty" json:"address,omitempty"`
-	InternalAddress string            `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
-	Port            int               `yaml:"port,omitempty" json:"port,omitempty"`
-	User            string            `yaml:"user,omitempty" json:"user,omitempty"`
-	Password        string            `yaml:"password,omitempty" json:"password,omitempty"`
-	PrivateKey      string            `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
-	PrivateKeyPath  string            `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
-	Arch            string            `yaml:"arch,omitempty" json:"arch,omitempty"`
-	Labels          map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
-	ID              int               `json:"-"`
-	IsEtcd          bool              `json:"-"`
-	IsMaster        bool              `json:"-"`
-	IsWorker        bool              `json:"-"`
+	Name            string `yaml:"name,omitempty" json:"name,omitempty"`
+	Address         string `yaml:"address,omitempty" json:"address,omitempty"`
+	InternalAddress string `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
+	Port            int    `yaml:"port,omitempty" json:"port,omitempty"`
+	User            string `yaml:"user,omitempty" json:"user,omitempty"`
+	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
+	PrivateKey      string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
+	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
+
+	Labels   map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	ID       string            `yaml:"id,omitempty" json:"id,omitempty"`
+	Index    int               `json:"-"`
+	IsEtcd   bool              `json:"-"`
+	IsMaster bool              `json:"-"`
+	IsWorker bool              `json:"-"`
 }
 
+// RoleGroups defines the grouping of role for hosts (etcd / master / worker).
 type RoleGroups struct {
 	Etcd   []string `yaml:"etcd" json:"etcd,omitempty"`
 	Master []string `yaml:"master" json:"master,omitempty"`
 	Worker []string `yaml:"worker" json:"worker,omitempty"`
 }
 
+// HostGroups defines the grouping of hosts for cluster (all / etcd / master / worker / k8s).
 type HostGroups struct {
 	All    []HostCfg
 	Etcd   []HostCfg
@@ -149,24 +161,28 @@ type HostGroups struct {
 	K8s    []HostCfg
 }
 
+// ControlPlaneEndpoint defines the control plane endpoint information for cluster.
 type ControlPlaneEndpoint struct {
 	Domain  string `yaml:"domain" json:"domain,omitempty"`
 	Address string `yaml:"address" json:"address,omitempty"`
 	Port    int    `yaml:"port" json:"port,omitempty"`
 }
 
+// RegistryConfig defines the configuration information of the image's repository.
 type RegistryConfig struct {
 	RegistryMirrors    []string `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string   `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
 }
 
+// KubeSphere defines the configuration information of the KubeSphere.
 type KubeSphere struct {
 	Enabled        bool   `json:"enabled,omitempty"`
 	Version        string `json:"version,omitempty"`
 	Configurations string `json:"configurations,omitempty"`
 }
 
+// ExternalEtcd defines configuration information of external etcd.
 type ExternalEtcd struct {
 	Endpoints []string
 	CaFile    string
@@ -174,6 +190,7 @@ type ExternalEtcd struct {
 	KeyFile   string
 }
 
+// GenerateCertSANs is used to generate cert sans for cluster.
 func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.Kubernetes.ClusterName)
 	defaultCertSANs := []string{"kubernetes", "kubernetes.default", "kubernetes.default.svc", clusterSvc, "localhost", "127.0.0.1"}
@@ -204,6 +221,7 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	return defaultCertSANs
 }
 
+// GroupHosts is used to group hosts according to the configuration file.s
 func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 	clusterHostsGroups := HostGroups{}
 
@@ -217,7 +235,7 @@ func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 		return nil, err
 	}
 	for index, host := range cfg.Hosts {
-		host.ID = index
+		host.Index = index
 		if len(etcdGroup) > 0 {
 			for _, hostName := range etcdGroup {
 				if host.Name == hostName {
@@ -262,29 +280,31 @@ func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 
 	//Check that the parameters under roleGroups are incorrect
 	if len(masterGroup) == 0 {
-		logger.Fatal(errors.New("The number of master cannot be 0."))
+		logger.Fatal(errors.New("The number of master cannot be 0"))
 	}
 	if len(etcdGroup) == 0 {
-		logger.Fatal(errors.New("The number of etcd cannot be 0."))
+		logger.Fatal(errors.New("The number of etcd cannot be 0"))
 	}
 
 	if len(masterGroup) != len(clusterHostsGroups.Master) {
-		return nil, errors.New("Incorrect nodeName under roleGroups/master in the configuration file, Please check before installing.")
+		return nil, errors.New("Incorrect nodeName under roleGroups/master in the configuration file")
 	}
 	if len(etcdGroup) != len(clusterHostsGroups.Etcd) {
-		return nil, errors.New("Incorrect nodeName under roleGroups/etcd in the configuration file, Please check before installing.")
+		return nil, errors.New("Incorrect nodeName under roleGroups/etcd in the configuration file")
 	}
 	if len(workerGroup) != len(clusterHostsGroups.Worker) {
-		return nil, errors.New("Incorrect nodeName under roleGroups/work in the configuration file, Please check before installing.")
+		return nil, errors.New("Incorrect nodeName under roleGroups/work in the configuration file")
 	}
 
 	return &clusterHostsGroups, nil
 }
 
+// ClusterIP is used to get the kube-apiserver service address inside the cluster.
 func (cfg *ClusterSpec) ClusterIP() string {
 	return util.ParseIp(cfg.Network.KubeServiceCIDR)[2]
 }
 
+// ParseRolesList is used to parse the host grouping list.
 func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string, logger *log.Logger) ([]string, []string, []string, error) {
 	etcdGroupList := []string{}
 	masterGroupList := []string{}
@@ -343,7 +363,7 @@ func getHostsRange(rangeStr string, hostList map[string]string, group string, lo
 
 func hostVerify(hostList map[string]string, hostName string, group string) error {
 	if _, ok := hostList[hostName]; !ok {
-		return errors.New(fmt.Sprintf("[%s] is in [%s] group, but not in hosts list.", hostName, group))
+		return fmt.Errorf("[%s] is in [%s] group, but not in hosts list", hostName, group)
 	}
 	return nil
 }

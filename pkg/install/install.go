@@ -63,7 +63,7 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 
 	var clientset *kubekeyclientset.Clientset
 	if inCluster {
-		c, err := kubekeycontroller.KubekeyClient()
+		c, err := kubekeycontroller.NewKubekeyClient()
 		if err != nil {
 			return err
 		}
@@ -132,6 +132,9 @@ Please check the result using the command:
 			} else {
 				mgr.Kubeconfig = base64.StdEncoding.EncodeToString(kubeconfig)
 				if err := kubekeycontroller.UpdateKubeSphereCluster(mgr); err != nil {
+					return err
+				}
+				if err := kubekeycontroller.SaveKubeConfig(mgr); err != nil {
 					return err
 				}
 			}
