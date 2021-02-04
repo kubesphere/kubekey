@@ -8,18 +8,23 @@ categories:
     labels:
       - 'feature'
       - 'enhancement'
+      - 'kind/feature'
   - title: '🐛 Bug Fixes'
     labels:
       - 'fix'
       - 'bugfix'
       - 'bug'
       - 'regression'
+      - 'kind/bug'
   - title: 📝 Documentation updates
-    label: documentation
+    labels:
+      - 'documentation'
+      - 'kind/documentation'
   - title: 👻 Maintenance
     labels:
       - chore
       - dependencies
+      - 'kind/cleanup'
   - title: 🚦 Tests
     labels: 
       - test
