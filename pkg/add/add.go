@@ -50,7 +50,7 @@ func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, 
 
 	var clientset *kubekeyclientset.Clientset
 	if inCluster {
-		c, err := kubekeycontroller.KubekeyClient()
+		c, err := kubekeycontroller.NewKubekeyClient()
 		if err != nil {
 			return err
 		}
