@@ -44,6 +44,7 @@ type ClusterSpec struct {
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
 	Addons               []Addon              `yaml:"addons" json:"addons,omitempty"`
 	KubeSphere           KubeSphere           `json:"kubesphere,omitempty"`
+	HostIngress          []string             `yaml:"hostingress" json:"hostingress,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster
@@ -157,6 +158,9 @@ type RegistryConfig struct {
 	RegistryMirrors    []string `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string   `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
+	RegistryName       string   `yaml:"registryName" json:"registryName,omitempty"`
+	RegistryPassword   string   `yaml:"registryPassword" json:"registryPassword,omitempty"`
+	PrivateProject     string   `yaml:"privateProject" json:"privateProject,omitempty"`
 }
 
 type KubeSphere struct {

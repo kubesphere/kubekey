@@ -88,6 +88,17 @@ func initOsOnNode(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error 
 	if err4 != nil {
 		return errors.Wrap(errors.WithStack(err4), "Failed to configure operating system")
 	}
+	fmt.Println("start insert hosts")
+	//循环ingress，加入hosts
+
+	for _, ingress := range mgr.Cluster.HostIngress {
+		printout, _ := mgr.Runner.ExecuteCmd(fmt.Sprintf("cat /etc/hosts|grep \"%s\"", ingress), 2, false)
+		if printout == "" {
+			if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo '%s' >> /etc/hosts\"", ingress), 2, false); err != nil {
+				return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+			}
+		}
+	}
 	return nil
 }
 

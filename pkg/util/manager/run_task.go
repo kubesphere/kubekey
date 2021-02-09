@@ -49,7 +49,7 @@ func (t *Task) Run(mgr *Manager) error {
 
 	var lastErr error
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		lastErr = t.Task(mgr) //执行方法  获取Taks对象中的方法，传入mgr对象到方法进行之星
+		lastErr = t.Task(mgr) //执行方法  获取Taks对象中的方法，传入mgr对象到方法进行执行
 		if lastErr != nil {
 			mgr.Logger.Warn("Task failed ...")
 			if mgr.Debug {
@@ -119,7 +119,7 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapiv1alpha1.HostCfg, task Node
 			ccons <- struct{}{}
 			wg.Add(1)
 			go func(mgr *Manager, node *kubekeyapiv1alpha1.HostCfg, result chan string, index int) {
-				err = mgr.runTask(node, task, index) //真正执行
+				err = mgr.runTask(node, task, index) //真正执行，在此方法中建立和node的ssh链接通道
 				if err != nil {
 					mgr.Logger.Error(err)
 					hasErrors = true
