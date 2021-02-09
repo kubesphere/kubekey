@@ -86,6 +86,8 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
 	clusterCfg.KubeSphere = cfg.KubeSphere
+	//增加host列表
+	clusterCfg.HostIngress = cfg.HostIngress
 
 	if cfg.Kubernetes.ClusterName == "" {
 		clusterCfg.Kubernetes.ClusterName = DefaultClusterName

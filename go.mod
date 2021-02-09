@@ -3,6 +3,7 @@ module github.com/kubesphere/kubekey
 go 1.14
 
 require (
+	github.com/ThomasRooney/gexpect v0.0.0-20161231170123-5482f0350944 // indirect
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/go-logr/logr v0.1.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect

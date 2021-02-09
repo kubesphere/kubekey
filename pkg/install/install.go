@@ -26,8 +26,10 @@ import (
 	"github.com/kubesphere/kubekey/pkg/cluster/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
 	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
+	"github.com/kubesphere/kubekey/pkg/rook"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -47,7 +49,7 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 	if err := util.CreateDir(fmt.Sprintf("%s/kubekey", currentDir)); err != nil {
 		return errors.Wrap(err, "Failed to create work dir")
 	}
-
+	//解析yaml文件
 	cfg, objName, err := config.ParseClusterCfg(clusterCfgFile, k8sVersion, ksVersion, ksEnabled, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
@@ -73,10 +75,12 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 //开始执行
 func ExecTasks(mgr *manager.Manager) error {
 	createTasks := []manager.Task{
-		//{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"},    //Precheck会建立和主机的ssh链接
-		//{Task: preinstall.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
-		//{Task: preinstall.InitOS, ErrMsg: "Failed to init OS"},
-		//{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
+		{Task: preinstall.Precheck, ErrMsg: "Failed to precheck"}, //Precheck会建立和主机的ssh链接
+		{Task: preinstall.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
+		{Task: preinstall.InitOS, ErrMsg: "Failed to init OS"},
+		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker"},
+		//添加登录私有仓库
+		{Task: docker.LoginRegistry, ErrMsg: "Failed to login privateregistry"},
 		{Task: preinstall.PrePullImages, ErrMsg: "Failed to pre-pull images"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},
 		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "Failed to sync etcd certs"},
@@ -89,6 +93,9 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: kubernetes.InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
 		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
+		//添加rook-ceph自动化过程
+		{Task: rook.DeployRookCeph, ErrMsg: "Failed to deploy rook-ceph"},
+		//TODO 缺少验证ceph部署成功过程，后期补充
 		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons"},
 		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere"},

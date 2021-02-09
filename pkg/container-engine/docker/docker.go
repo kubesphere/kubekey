@@ -19,6 +19,7 @@ package docker
 import (
 	"encoding/base64"
 	"fmt"
+	//goex "github.com/ThomasRooney/gexpect"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -88,6 +89,13 @@ func InstallerDocker(mgr *manager.Manager) error {
 	return nil
 }
 
+func LoginRegistry(mgr *manager.Manager) error {
+	if err := mgr.RunTaskOnAllNodes(loginRegistryOnNode, true); err != nil {
+		return err
+	}
+	return nil
+}
+
 func installDockerOnNode(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	dockerConfig, err := GenerateDockerConfig(mgr)
 	if err != nil {
@@ -95,9 +103,28 @@ func installDockerOnNode(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 	}
 	dockerConfigBase64 := base64.StdEncoding.EncodeToString([]byte(dockerConfig))
 	output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker && systemctl restart docker; fi\"", dockerConfigBase64), 0, false)
+	_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("echo %s | base64 -d > /etc/docker/daemon.json && systemctl restart docker", dockerConfigBase64), 0, false)
 	if err1 != nil {
 		return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to install docker:\n%s", output))
 	}
-
 	return nil
+}
+
+func loginRegistryOnNode(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
+	output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("echo %s|docker login -u %s --password-stdin %s", mgr.Cluster.Registry.RegistryPassword, mgr.Cluster.Registry.RegistryName, mgr.Cluster.Registry.PrivateRegistry), 0, false)
+	fmt.Printf("echo %s|docker login -u %s --password-stdin %s", mgr.Cluster.Registry.RegistryPassword, mgr.Cluster.Registry.RegistryName, mgr.Cluster.Registry.PrivateRegistry)
+	if err1 != nil {
+		return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to login registry:\n%s", output))
+	}
+	fmt.Println(output)
+	return nil
+
+	//child, err := goex.Spawn(fmt.Sprintf("docker login %s", mgr.Cluster.Registry.PrivateRegistry))
+	//if err != nil {
+	//	panic(err)
+	//}
+	//child.Expect("Password")
+	//child.SendLine("123456")
+	//child.Interact()
+	//child.Close()
 }

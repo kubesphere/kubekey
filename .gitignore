@@ -39,3 +39,4 @@ Session.vim
 # Generate by makefile
 bin
 /vendor/
+/cmd/kk/

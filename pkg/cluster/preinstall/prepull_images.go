@@ -72,41 +72,41 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 	} else {
 		pauseTag = "3.1"
 	}
-
+	repoName := mgr.Cluster.Registry.PrivateRegistry + mgr.Cluster.Registry.PrivateProject
 	ImageList := map[string]images.Image{
-		"pause":                   {RepoAddr: "", Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "pause", Tag: pauseTag, Group: kubekeyapiv1alpha1.K8s, Enable: true},
-		"kube-apiserver":          {RepoAddr: "", Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-apiserver", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
-		"kube-controller-manager": {RepoAddr: "", Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-controller-manager", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
-		"kube-scheduler":          {RepoAddr: "", Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-scheduler", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
-		"kube-proxy":              {RepoAddr: "", Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-proxy", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.K8s, Enable: true},
-		"etcd":                    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "etcd", Tag: kubekeyapiv1alpha1.DefaultEtcdVersion, Group: kubekeyapiv1alpha1.Etcd, Enable: true},
+		"pause":                   {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "pause", Tag: pauseTag, Group: kubekeyapiv1alpha1.K8s, Enable: true},
+		"kube-apiserver":          {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-apiserver", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
+		"kube-controller-manager": {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-controller-manager", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
+		"kube-scheduler":          {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-scheduler", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
+		"kube-proxy":              {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-proxy", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.K8s, Enable: true},
+		"etcd":                    {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "etcd", Tag: kubekeyapiv1alpha1.DefaultEtcdVersion, Group: kubekeyapiv1alpha1.Etcd, Enable: true},
 		// network
-		"coredns":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: "1.6.9", Group: kubekeyapiv1alpha1.K8s, Enable: true},
-		"k8s-dns-node-cache":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "k8s-dns-node-cache", Tag: "1.15.12", Group: kubekeyapiv1alpha1.K8s, Enable: true},
-		"calico-kube-controllers": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "kube-controllers", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
-		"calico-cni":              {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "cni", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
-		"calico-node":             {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "node", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
-		"calico-flexvol":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "pod2daemon-flexvol", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
-		"calico-typha":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "typha", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico") && len(mgr.K8sNodes) > 50},
-		"flannel":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "flannel", Tag: kubekeyapiv1alpha1.DefaultFlannelVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "flannel")},
-		"cilium":                  {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "cilium", Repo: "cilium", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
-		"operator-generic":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "cilium", Repo: "operator-generic", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
-		"kubeovn":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubeovn", Repo: "kube-ovn", Tag: kubekeyapiv1alpha1.DefaultKubeovnVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "kubeovn")},
+		"coredns":                 {RepoAddr: repoName, Namespace: "coredns", Repo: "coredns", Tag: "1.6.9", Group: kubekeyapiv1alpha1.K8s, Enable: true},
+		"k8s-dns-node-cache":      {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "k8s-dns-node-cache", Tag: "1.15.12", Group: kubekeyapiv1alpha1.K8s, Enable: true},
+		"calico-kube-controllers": {RepoAddr: repoName, Namespace: "calico", Repo: "kube-controllers", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
+		"calico-cni":              {RepoAddr: repoName, Namespace: "calico", Repo: "cni", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
+		"calico-node":             {RepoAddr: repoName, Namespace: "calico", Repo: "node", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
+		"calico-flexvol":          {RepoAddr: repoName, Namespace: "calico", Repo: "pod2daemon-flexvol", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
+		"calico-typha":            {RepoAddr: repoName, Namespace: "calico", Repo: "typha", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico") && len(mgr.K8sNodes) > 50},
+		"flannel":                 {RepoAddr: repoName, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "flannel", Tag: kubekeyapiv1alpha1.DefaultFlannelVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "flannel")},
+		"cilium":                  {RepoAddr: repoName, Namespace: "cilium", Repo: "cilium", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
+		"operator-generic":        {RepoAddr: repoName, Namespace: "cilium", Repo: "operator-generic", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
+		"kubeovn":                 {RepoAddr: repoName, Namespace: "kubeovn", Repo: "kube-ovn", Tag: kubekeyapiv1alpha1.DefaultKubeovnVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "kubeovn")},
 		// storage
-		"provisioner-localpv":    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"openebs-tools":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"linux-utils":            {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "linux-utils", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"rbd-provisioner":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"nfs-client-provisioner": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubesphere", Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"provisioner-localpv":    {RepoAddr: repoName, Namespace: "kubesphere", Repo: "provisioner-localpv", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"openebs-tools":          {RepoAddr: repoName, Namespace: "kubesphere", Repo: "openebs-tools", Tag: "3.8", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"linux-utils":            {RepoAddr: repoName, Namespace: "kubesphere", Repo: "linux-utils", Tag: "2.3.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"rbd-provisioner":        {RepoAddr: repoName, Namespace: "kubesphere", Repo: "rbd-provisioner", Tag: "v2.1.1-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"nfs-client-provisioner": {RepoAddr: repoName, Namespace: "kubesphere", Repo: "nfs-client-provisioner", Tag: "v3.1.0-k8s1.11", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 	}
 
-	if mgr.Cluster.Registry.PrivateRegistry != "" {
+	/*	if mgr.Cluster.Registry.PrivateRegistry != "" {
 		ImageList["pause"] = images.Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "pause", Tag: pauseTag, Group: kubekeyapiv1alpha1.K8s, Enable: true}
 		ImageList["kube-apiserver"] = images.Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-apiserver", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true}
 		ImageList["kube-controller-manager"] = images.Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-controller-manager", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true}
 		ImageList["kube-scheduler"] = images.Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-scheduler", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true}
 		ImageList["kube-proxy"] = images.Image{RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-proxy", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true}
-	}
+	}*/
 
 	image = ImageList[name]
 	return image

@@ -119,7 +119,7 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapiv1alpha1.HostCfg, task Node
 			ccons <- struct{}{}
 			wg.Add(1)
 			go func(mgr *Manager, node *kubekeyapiv1alpha1.HostCfg, result chan string, index int) {
-				err = mgr.runTask(node, task, index) //真正执行
+				err = mgr.runTask(node, task, index) //真正执行，在此方法中建立和node的ssh链接通道
 				if err != nil {
 					mgr.Logger.Error(err)
 					hasErrors = true
