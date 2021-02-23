@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/add"
+	"github.com/kubesphere/kubekey/pkg/cluster/add"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/spf13/cobra"
 )

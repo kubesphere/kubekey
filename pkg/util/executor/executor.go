@@ -18,14 +18,15 @@ package executor
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
 )
 
 type Executor struct {
@@ -84,7 +85,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.InCluster = executor.InCluster
 	mgr.ClientSet = executor.ClientSet
 	mgr.DownloadCommand = executor.DownloadCommand
-	if executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker" {
+	if (executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker") && executor.Cluster.Kubernetes.Type != "k3s" {
 		mgr.EtcdContainer = true
 	}
 	return mgr, nil

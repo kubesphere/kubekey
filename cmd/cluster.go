@@ -18,7 +18,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/install"
+	"github.com/kubesphere/kubekey/pkg/cluster/install"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"

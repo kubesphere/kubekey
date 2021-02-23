@@ -17,7 +17,7 @@ limitations under the License.
 package flannel
 
 import (
-	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
+	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"

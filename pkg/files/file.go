@@ -25,6 +25,7 @@ const (
 	helm    = "helm"
 	amd64   = "amd64"
 	arm64   = "arm64"
+	k3s     = "k3s"
 )
 
 type KubeBinary struct {
@@ -166,6 +167,11 @@ var (
 			},
 			arm64: {
 				"v0.8.6": "43fbf750c5eccb10accffeeb092693c32b236fb25d919cf058c91a677822c999",
+			},
+		},
+		k3s: {
+			amd64: {
+				"v1.20.2": "ce3055783cf115ee68fc00bb8d25421d068579ece2fafa4ee1d09f3415aaeabf",
 			},
 		},
 	}
