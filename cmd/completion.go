@@ -54,17 +54,18 @@ var completionCmd = &cobra.Command{
 	Short: "Generate shell completion scripts",
 	Long: `Generate shell completion scripts
 Normally you don't need to do more extra work to have this feature if you've installed kk by brew`,
-	Example: `Installing bash completion on macOS using homebrew
-If running Bash 3.2 included with macOS
-brew install bash-completion
-or, if running Bash 4.1+
-brew install bash-completion@2
-You may need to add the completion to your completion directory by the following command
-kk completion > $(brew --prefix)/etc/bash_completion.d/kk
-If you get trouble, please visit https://github.com/jenkins-zh/jenkins-cli/issues/83.
-
-Load kk completion code for bash into the current shell
-source <(kk completion --type bash)
+	Example: `# Installing bash completion on Linux
+## If bash-completion is not installed on Linux, please install the 'bash-completion' package
+## via your distribution's package manager.
+## Load the ks completion code for bash into the current shell
+source <(ks completion bash)
+## Write bash completion code to a file and source if from .bash_profile
+mkdir -p ~/.config/kk/ && kk completion --type bash > ~/.config/kk/completion.bash.inc
+printf "
+# kk shell completion
+source '$HOME/.config/kk/completion.bash.inc'
+" >> $HOME/.bash_profile
+source $HOME/.bash_profile
 
 In order to have good experience on zsh completion, ohmyzsh is a good choice.
 Please install ohmyzsh by the following command
