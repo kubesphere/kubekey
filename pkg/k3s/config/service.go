@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
 	"strings"
 	"text/template"
 
@@ -63,9 +64,9 @@ ExecStart=/usr/local/bin/k3s server
 		dedent.Dedent(`# Note: This dropin only works with k3s
 [Service]
 {{ if .IsMaster }}
-Environment="K3S_ARGS=--datastore-endpoint={{ .DataStoreEndPoint }}  --datastore-cafile={{ .DataStoreCaFile }}  --datastore-certfile={{ .DataStoreCertFile }}  --datastore-keyfile={{ .DataStoreKeyFile }}"
+Environment="K3S_ARGS=--datastore-endpoint={{ .DataStoreEndPoint }}  --datastore-cafile={{ .DataStoreCaFile }}  --datastore-certfile={{ .DataStoreCertFile }}  --datastore-keyfile={{ .DataStoreKeyFile }}  {{ range .CertSANs }} --tls-san={{ . }}{{- end }} --cluster-cidr={{ .PodSubnet }} --service-cidr={{ .ServiceSubnet }} --cluster-dns={{ .ClusterDns }} --flannel-backend=none --disable-network-policy --disable-cloud-controller --disable=servicelb,traefik,local-storage,metrics-server"
 {{ end }}
-Environment="K3S_EXTRA_ARGS=--node-name={{ .HostName }}  --node-ip={{ .NodeIP }} {{ if .Server }}--server={{ .Server }}{{ end }} {{ if .Token }}--token={{ .Token }}{{ end }}"
+Environment="K3S_EXTRA_ARGS=--node-name={{ .HostName }}  --node-ip={{ .NodeIP }} {{ if .Server }}--server={{ .Server }}{{ end }} {{ if .Token }}--token={{ .Token }}{{ end }} --pause-image={{ .PauseImage }} --kubelet-arg=cni-conf-dir=/etc/cni/net.d --kubelet-arg=cni-bin-dir=/opt/cni/bin --kube-proxy-arg=proxy-mode=ipvs --kube-proxy-arg=masquerade-all=true"
 Environment="K3S_ROLE={{ if .IsMaster }}server{{ else }}agent{{ end }}"
 ExecStart=
 ExecStart=/usr/local/bin/k3s $K3S_ROLE $K3S_ARGS $K3S_EXTRA_ARGS
@@ -79,8 +80,6 @@ func GenerateK3sService() (string, error) {
 
 // GenerateK3sEnv is used to generate the env content of kubelet's service for systemd.
 func GenerateK3sEnv(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, token string) (string, error) {
-	// var containerRuntime string
-
 	// generate etcd configuration
 	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
 	var endpointsList []string
@@ -103,7 +102,7 @@ func GenerateK3sEnv(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, toke
 
 	var server string
 	if token != "" {
-		server = fmt.Sprintf("https://%s:6443", mgr.MasterNodes[0].InternalAddress)
+		server = fmt.Sprintf("https://%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port)
 	} else {
 		server = ""
 	}
@@ -118,6 +117,10 @@ func GenerateK3sEnv(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, toke
 		"HostName":          node.Name,
 		"Token":             token,
 		"Server":            server,
-		// "ContainerRuntime": containerRuntime,
+		"PodSubnet":         mgr.Cluster.Network.KubePodsCIDR,
+		"ServiceSubnet":     mgr.Cluster.Network.KubeServiceCIDR,
+		"ClusterDns":        mgr.Cluster.ClusterIP(),
+		"CertSANs":          mgr.Cluster.GenerateCertSANs(),
+		"PauseImage":        preinstall.GetImage(mgr, "pause").ImageName(),
 	})
 }

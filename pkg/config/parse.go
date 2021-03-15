@@ -173,8 +173,16 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		Worker: []string{hostname},
 	}
 	if k8sVersion != "" {
-		allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
-			Version: k8sVersion,
+		s := strings.Split(k8sVersion, "-")
+		if len(s) > 1 {
+			allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
+				Version: s[0],
+				Type:    s[1],
+			}
+		} else {
+			allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
+				Version: k8sVersion,
+			}
 		}
 	} else {
 		allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{

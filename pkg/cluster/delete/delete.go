@@ -19,6 +19,7 @@ package delete
 import (
 	"bufio"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -277,6 +278,7 @@ var (
 		"/usr/local/bin/kubeadm",
 		"/usr/local/bin/kubectl",
 		"/usr/bin/kubelet",
+		"/var/lib/rook",
 	}
 
 	kubeovnFiles = []string{
@@ -310,11 +312,14 @@ func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 	case "k3s":
 		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-uninstall.sh\"", 0, true)
 	default:
-		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
-		_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true, "printCmd")
-		_ = deleteFiles(mgr)
+		if util.IsExist("/usr/local/bin/k3s-uninstall.sh") {
+			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-uninstall.sh\"", 0, true)
+		} else {
+			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+			_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true, "printCmd")
+		}
 	}
-
+	_ = deleteFiles(mgr)
 	return nil
 }
 

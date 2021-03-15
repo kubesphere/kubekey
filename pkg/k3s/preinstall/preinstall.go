@@ -34,29 +34,34 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 	kkzone := os.Getenv("KKZONE")
 	etcd := files.KubeBinary{Name: "etcd", Arch: arch, Version: kubekeyapiv1alpha1.DefaultEtcdVersion}
 	k3s := files.KubeBinary{Name: "k3s", Arch: arch, Version: version}
+	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCniVersion}
 	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapiv1alpha1.DefaultHelmVersion}
 
 	etcd.Path = fmt.Sprintf("%s/etcd-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultEtcdVersion, arch)
 	k3s.Path = fmt.Sprintf("%s/k3s", filepath)
+	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, arch, kubekeyapiv1alpha1.DefaultCniVersion)
 	helm.Path = fmt.Sprintf("%s/helm", filepath)
 
 	if kkzone == "cn" {
 		etcd.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		k3s.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/k3s/releases/download/%s+k3s1/linux/%s/k3s", k3s.Version, k3s.Arch)
+		kubecni.Url = fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
 		helm.GetCmd = mgr.DownloadCommand(helm.Path, helm.Url)
 	} else {
 		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		k3s.Url = fmt.Sprintf("https://github.com/rancher/k3s/releases/download/%s+k3s1/k3s", k3s.Version)
+		kubecni.Url = fmt.Sprintf("https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", helm.Version, helm.Arch)
 		getCmd := mgr.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
 		helm.GetCmd = fmt.Sprintf("%s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", getCmd, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
 	}
 
 	k3s.GetCmd = mgr.DownloadCommand(k3s.Path, k3s.Url)
+	kubecni.GetCmd = mgr.DownloadCommand(kubecni.Path, kubecni.Url)
 	etcd.GetCmd = mgr.DownloadCommand(etcd.Path, etcd.Url)
 
-	binaries := []files.KubeBinary{k3s, helm, etcd}
+	binaries := []files.KubeBinary{k3s, helm, kubecni, etcd}
 
 	for _, binary := range binaries {
 		if binary.Name == "etcd" && mgr.EtcdContainer {

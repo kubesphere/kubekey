@@ -91,13 +91,18 @@ func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 			return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet env")
 		}
 
-		_, err1 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart k3s\"", 1, false)
+		_, err1 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl enable --now k3s\"", 1, false)
 		if err1 != nil {
 			return errors.Wrap(errors.WithStack(err1), "Failed to start k3s")
 		}
 
 		if err := GetKubeConfig(mgr); err != nil {
 			return err
+		}
+
+		if !node.IsWorker {
+			addTaintForMasterCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=effect:NoSchedule --overwrite\"", node.Name)
+			_, _ = mgr.Runner.ExecuteCmd(addTaintForMasterCmd, 5, true)
 		}
 
 		if err := addWorkerLabel(mgr, node); err != nil {
@@ -217,6 +222,10 @@ func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			if err2 != nil {
 				return err2
 			}
+			if !node.IsWorker {
+				addTaintForMasterCmd := fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=effect:NoSchedule --overwrite\"", node.Name)
+				_, _ = mgr.Runner.ExecuteCmd(addTaintForMasterCmd, 5, true)
+			}
 		}
 		if node.IsWorker && !node.IsMaster {
 			err := addWorker(mgr, node)
@@ -233,7 +242,7 @@ func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 }
 
 func addMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	kubeletEnv, err3 := config.GenerateK3sEnv(mgr, node, clusterStatus["nodeToken"])
+	kubeletEnv, err3 := config.GenerateK3sEnv(mgr, node, "")
 	if err3 != nil {
 		return err3
 	}
@@ -242,7 +251,7 @@ func addMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet env")
 	}
 
-	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart k3s\"", 2, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl enable --now k3s\"", 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to up k3s")
 	}
 
@@ -259,7 +268,7 @@ func addWorker(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet env")
 	}
 
-	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl restart k3s\"", 2, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && systemctl enable --now k3s\"", 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to up k3s")
 	}
 
@@ -272,7 +281,7 @@ func addWorker(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	}
 
 	oldServer := "server: https://127.0.0.1:6443"
-	newServer := fmt.Sprintf("server: https://%s:%d", mgr.Cluster.ControlPlaneEndpoint.Address, mgr.Cluster.ControlPlaneEndpoint.Port)
+	newServer := fmt.Sprintf("server: https://%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port)
 	newKubeconfigStr := strings.Replace(string(kubeconfigStr), oldServer, newServer, -1)
 
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {

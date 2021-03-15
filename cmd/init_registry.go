@@ -16,24 +16,22 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/bootstrap/dependencies"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/spf13/cobra"
 )
 
 // osCmd represents the os command
-var osCmd = &cobra.Command{
-	Use:   "os",
-	Short: "Init operating system",
+var registryCmd = &cobra.Command{
+	Use:   "registry",
+	Short: "Init a local image registry",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := util.InitLogger(opt.Verbose)
-		return dependencies.InitDependencies(opt.ClusterCfgFile, opt.SourcesDir, opt.AddImagesRepo, logger)
+		return registry.InitRegistry(opt.ClusterCfgFile, logger)
 	},
 }
 
 func init() {
-	initCmd.AddCommand(osCmd)
-	osCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
-	osCmd.Flags().StringVarP(&opt.SourcesDir, "sources", "s", "", "Path to the dependencies' dir")
-	osCmd.Flags().BoolVarP(&opt.AddImagesRepo, "add-images-repo", "", false, "Create a local images registry")
+	initCmd.AddCommand(registryCmd)
+	registryCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 }
