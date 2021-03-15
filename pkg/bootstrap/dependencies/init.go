@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 )
 
-func Init(clusterCfgFile, sourcesDir string, addImagesRepo bool, logger *log.Logger) error {
+func InitDependencies(clusterCfgFile, sourcesDir string, addImagesRepo bool, logger *log.Logger) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current dir")

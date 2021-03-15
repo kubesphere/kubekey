@@ -149,10 +149,10 @@ func initOS(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 				return errors.New(fmt.Sprintf("Unsupported operating system: %s", osrData.ID))
 			}
 
-			output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"systemctl start docker && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker && systemctl restart docker\"", dockerConfigBase64), 0, false)
-			if err1 != nil {
-				return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to install docker:\n%s", output))
-			}
+			_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"systemctl start docker && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker && systemctl restart docker\"", dockerConfigBase64), 0, false)
+			//if err1 != nil {
+			//	return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to install docker:\n%s", output))
+			//}
 		}
 		mgr.Logger.Info(fmt.Sprintf("Complete initialization %s [%s]\n", node.Name, node.InternalAddress))
 	}

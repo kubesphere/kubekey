@@ -36,7 +36,7 @@ func InstallKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 			return err
 		}
 
-		if err := SetKubelet(mgr, node); err != nil {
+		if err := SetKubelet(mgr); err != nil {
 			return err
 		}
 	}
@@ -72,19 +72,30 @@ func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) er
 
 	k3s := "k3s"
 	helm := "helm"
-	binaryList := []string{k3s, helm}
+	kubecni := fmt.Sprintf("cni-plugins-linux-%s-%s.tgz", node.Arch, kubekeyapiv1alpha1.DefaultCniVersion)
+	binaryList := []string{k3s, helm, kubecni}
 
+	var cmdlist []string
 	for _, binary := range binaryList {
 		if err := mgr.Runner.ScpFile(fmt.Sprintf("%s/%s", filesDir, binary), fmt.Sprintf("%s/%s", "/tmp/kubekey", binary)); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to sync binaries"))
 		}
+
+		if strings.Contains(binary, "cni-plugins-linux") {
+			cmdlist = append(cmdlist, fmt.Sprintf("mkdir -p /opt/cni/bin && tar -zxf %s/%s -C /opt/cni/bin", "/tmp/kubekey", binary))
+		}
+	}
+
+	cmd := strings.Join(cmdlist, " && ")
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd), 2, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to install kube cni"))
 	}
 
 	return nil
 }
 
 // SetKubelet is used to configure the kubelet's startup parameters.
-func SetKubelet(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func SetKubelet(mgr *manager.Manager) error {
 
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", "cp -f /tmp/kubekey/k3s /usr/local/bin/k3s && chmod +x /usr/local/bin/k3s"), 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to create kubelet link"))

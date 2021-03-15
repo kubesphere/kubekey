@@ -97,7 +97,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: InstallKubeBinaries, ErrMsg: "Failed to install kube binaries"},
 		{Task: InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
 		{Task: JoinNodesToCluster, ErrMsg: "Failed to join node"},
-		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin", Skip: skipCondition2},
+		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
 		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons", Skip: skipCondition1 && !skipCondition2},
 		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume", Skip: skipCondition1 || skipCondition2},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere", Skip: skipCondition1},

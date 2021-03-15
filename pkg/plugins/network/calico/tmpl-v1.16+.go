@@ -66,6 +66,9 @@ data:
           "policy": {
               "type": "k8s"
           },
+          "container_settings": {
+              "allow_ip_forwarding": true
+          },
           "kubernetes": {
               "kubeconfig": "__KUBECONFIG_FILEPATH__"
           }
