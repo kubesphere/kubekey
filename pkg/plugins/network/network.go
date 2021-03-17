@@ -17,26 +17,22 @@ limitations under the License.
 package network
 
 import (
-	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"os/exec"
-	"strings"
-
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/calico"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/cilium"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/flannel"
-	"github.com/kubesphere/kubekey/pkg/plugins/network/kubeovn"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
+	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"os/exec"
+	"strings"
 )
 
-// DeployNetworkPlugin is used to deploy network plugin.
 func DeployNetworkPlugin(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Deploying network plugin ...")
 
@@ -64,19 +60,14 @@ func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 			if err := deployFlannel(mgr); err != nil {
 				return err
 			}
+		case "macvlan":
+			if err := deployMacvlan(); err != nil {
+				return err
+			}
 		case "cilium":
 			if err := deployCilium(mgr); err != nil {
 				return err
 			}
-		case "kubeovn":
-			if err := deployKubeovn(mgr); err != nil {
-				return err
-			}
-		case "", "none":
-			mgr.Logger.Warningln("No network plugin specified, installation ends here !")
-			return nil
-		case "custom":
-			return nil
 		default:
 			return errors.New(fmt.Sprintf("This network plugin is not supported: %s", mgr.Cluster.Network.Plugin))
 		}
@@ -157,6 +148,10 @@ func deployFlannel(mgr *manager.Manager) error {
 	return nil
 }
 
+func deployMacvlan() error {
+	return nil
+}
+
 func deployCilium(mgr *manager.Manager) error {
 	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
 		ciliumContent, err := cilium.GenerateCiliumFiles(mgr)
@@ -183,71 +178,5 @@ func deployCilium(mgr *manager.Manager) error {
 	if err3 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to deploy network plugin")
 	}
-	return nil
-}
-
-func deployKubeovn(mgr *manager.Manager) error {
-	if mgr.Runner.Index == 0 {
-		if err := kubeovn.LabelNode(mgr); err != nil {
-			return errors.Wrap(errors.WithStack(err), err.Error())
-		}
-
-		if mgr.Cluster.Network.Kubeovn.EnableSSL {
-			if err := kubeovn.GenerateSSL(mgr); err != nil {
-				return errors.Wrap(errors.WithStack(err), err.Error())
-			}
-		}
-	}
-
-	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
-		var kubeovnContent string
-		var err error
-
-		cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.16.0")
-		if err != nil {
-			return err
-		}
-		if cmp == -1 {
-			kubeovnContent, err = kubeovn.GenerateKubeovnFilesOld(mgr)
-		} else {
-			kubeovnContent, err = kubeovn.GenerateKubeovnFilesNew(mgr)
-		}
-		if err != nil {
-			return err
-		}
-
-		err = ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(kubeovnContent), 0644)
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
-		}
-	}
-
-	kubeovnBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
-	if err1 != nil {
-		return errors.Wrap(errors.WithStack(err1), "Failed to read network plugin manifests")
-	}
-
-	_, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/bash -c \"base64 -d <<< '%s' | tar xz -C %s\"", strings.TrimSpace(string(kubeovnBase64)), "/etc/kubernetes"), 2, false)
-	if err2 != nil {
-		return errors.Wrap(errors.WithStack(err2), "Failed to generate network plugin manifests")
-	}
-
-	_, err3 := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml\"", 5, true)
-	if err3 != nil {
-		return errors.Wrap(errors.WithStack(err3), "Failed to deploy network plugin")
-	}
-
-	// deploy kubectl plugin kubectl-ko
-	kubectlKo, err := kubeovn.GenerateKubectlKo(mgr)
-	if err != nil {
-		return err
-	}
-
-	str := base64.StdEncoding.EncodeToString([]byte(kubectlKo))
-	_, err4 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /usr/local/bin/kubectl-ko && chmod +x /usr/local/bin/kubectl-ko\"", str), 1, true)
-	if err4 != nil {
-		return errors.Wrap(errors.WithStack(err4), "Failed to mv kubectl-ko to /usr/local/bin")
-	}
-
 	return nil
 }

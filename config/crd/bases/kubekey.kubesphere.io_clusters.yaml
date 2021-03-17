@@ -94,14 +94,8 @@ spec:
                     type: string
                   arch:
                     type: string
-                  id:
-                    type: string
                   internalAddress:
                     type: string
-                  labels:
-                    additionalProperties:
-                      type: string
-                    type: object
                   name:
                     type: string
                   password:
@@ -124,15 +118,13 @@ spec:
                   type: array
                 clusterName:
                   type: string
-                containerManager:
-                  type: string
-                containerRuntimeEndpoint:
-                  type: string
                 etcdBackupDir:
                   type: string
                 etcdBackupPeriod:
                   type: integer
                 etcdBackupScript:
+                  type: string
+                imageRepo:
                   type: string
                 keepBackupNumber:
                   type: integer
@@ -176,35 +168,6 @@ spec:
                   type: string
                 kubeServiceCIDR:
                   type: string
-                kubeovn:
-                  properties:
-                    dpdkMode:
-                      type: boolean
-                    dpdkVersion:
-                      type: string
-                    enableMirror:
-                      type: boolean
-                    enableSSL:
-                      type: boolean
-                    hwOffload:
-                      type: boolean
-                    iface:
-                      type: string
-                    joinCIDR:
-                      type: string
-                    label:
-                      type: string
-                    networkType:
-                      type: string
-                    pingerExternalAddress:
-                      type: string
-                    pingerExternalDomain:
-                      type: string
-                    vlanID:
-                      type: string
-                    vlanInterfaceName:
-                      type: string
-                  type: object
                 plugin:
                   type: string
               type: object

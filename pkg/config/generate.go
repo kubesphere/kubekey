@@ -20,21 +20,19 @@ import (
 	"bufio"
 	"encoding/base64"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-	"text/template"
-
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"text/template"
 )
 
 var (
-	// ClusterObjTempl defines the template of cluster configuration file default.
 	ClusterObjTempl = template.Must(template.New("Cluster").Parse(
 		dedent.Dedent(`apiVersion: kubekey.kubesphere.io/v1alpha1
 kind: Cluster
@@ -55,7 +53,7 @@ spec:
   controlPlaneEndpoint:
     domain: lb.kubesphere.local
     address: ""
-    port: 6443
+    port: "6443"
   kubernetes:
     version: {{ .Options.KubeVersion }}
     imageRepo: kubesphere
@@ -75,7 +73,6 @@ spec:
     `)))
 )
 
-// Options defineds the parameters of cluster configuration.
 type Options struct {
 	Name                string
 	KubeVersion         string
@@ -83,7 +80,6 @@ type Options struct {
 	KubeSphereConfigMap string
 }
 
-// GenerateClusterObjStr is used to generate cluster configuration content.
 func GenerateClusterObjStr(opt *Options) (string, error) {
 	return util.Render(ClusterObjTempl, util.Data{
 		"KubeVersion": kubekeyapiv1alpha1.DefaultKubeVersion,
@@ -91,7 +87,6 @@ func GenerateClusterObjStr(opt *Options) (string, error) {
 	})
 }
 
-// GenerateClusterObj is used to generate cluster configuration file
 func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath string, ksEnabled, fromCluster bool) error {
 	if fromCluster {
 		err := GenerateConfigFromCluster(clusterCfgPath, kubeconfig, name)
@@ -130,7 +125,7 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 
 	ClusterObjStr, err := GenerateClusterObjStr(&opt)
 	if err != nil {
-		return errors.Wrap(err, "Failed to generate cluster config")
+		return errors.Wrap(err, "Faild to generate cluster config")
 	}
 	ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterObjStr))
 
@@ -157,7 +152,6 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 	return nil
 }
 
-// CheckConfigFileStatus is used to check the status of cluster configuration file.
 func CheckConfigFileStatus(path string) {
 	if util.IsExist(path) {
 		reader := bufio.NewReader(os.Stdin)

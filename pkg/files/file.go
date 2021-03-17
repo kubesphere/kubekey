@@ -21,11 +21,9 @@ const (
 	kubelet = "kubelet"
 	kubectl = "kubectl"
 	kubecni = "kubecni"
-	etcd    = "etcd"
 	helm    = "helm"
 	amd64   = "amd64"
 	arm64   = "arm64"
-	k3s     = "k3s"
 )
 
 type KubeBinary struct {
@@ -58,8 +56,6 @@ var (
 				"v1.18.6":  "11b4180b9f82a8b6bb30250e3d7341b104521f3b654076b8569853ec9451b2a9",
 				"v1.18.8":  "27c8f4d4398d57762998b157d35802a36a7ea9b2b6f9a363c397a9d65b4f3c89",
 				"v1.19.0":  "88ce7dc5302d8847f6e679aab9e4fa642a819e8a33d70731fb7bc8e110d8659f",
-				"v1.19.8":  "9c6646cdf03efc3194afc178647205195da4a43f58d0b70954953f566fa15c76",
-				"v1.20.4":  "dcc5629da2c31a000b9b50db077b1cd51a6840e08233fd64b67e37f3f098c392",
 			},
 			arm64: {
 				"v1.15.12": "dfc1af35cccac89099a7e9a48dcc4b0d956a8b1d4dfcdd2be12191b6f6c384a3",
@@ -74,8 +70,6 @@ var (
 				"v1.18.6":  "df5a3d7c70c3f8221d57093c5cb17558aad6e65725d7a096c6620302fbf64730",
 				"v1.18.8":  "71f6d95f165a9e8066c6f299217af779829ab3d798f6130caf6daa4784dc0464",
 				"v1.19.0":  "db1c432646e6e6484989b6f7191f3610996ac593409f12574290bfc008ea11f5",
-				"v1.19.8":  "dfb838ffb88d79e4d881326f611ae5e5999accb54cdd666c75664da264b5d58e",
-				"v1.20.4":  "c3ff7f944826889a23a002c85e8f9f9d9a8bc95e9083fbdda59831e3e34245a7",
 			},
 		},
 		kubelet: {
@@ -97,8 +91,6 @@ var (
 				"v1.18.6":  "2eb9baf5a65a7b94c653dbd7af03a768a520961eb27ef369e43ef12711e22d4a",
 				"v1.18.8":  "a4116675ac52bf80e224fba8ff6db6f2d7aed192bf6fffd5f8e4d5efb4368f31",
 				"v1.19.0":  "3f03e5c160a8b658d30b34824a1c00abadbac96e62c4d01bf5c9271a2debc3ab",
-				"v1.19.8":  "f5cad5260c29584dd370ec13e525c945866957b1aaa719f1b871c31dc30bcb3f",
-				"v1.20.4":  "a9f28ac492b3cbf75dee284576b2e1681e67170cd36f3f5cdc31495f1bdbf809",
 			},
 			arm64: {
 				"v1.15.12": "c7f586a77acdb3c3e27a6b3bd749760538b830414575f8718f03f7ce53b138d8",
@@ -113,8 +105,6 @@ var (
 				"v1.18.6":  "257fd42be375025fb93724bda9bef23b73eb40531f22bab9e19f6d6ff1ca57cf",
 				"v1.18.8":  "d36e2d656bad232e8b48b19c948164ee3966669f4566cf5ea43ca22f6eed1aa5",
 				"v1.19.0":  "d8fa5a9739ecc387dfcc55afa91ac6f4b0ccd01f1423c423dbd312d787bbb6bf",
-				"v1.19.8":  "a00146c16266d54f961c40fc67f92c21967596c2d730fa3dc95868d4efb44559",
-				"v1.20.4":  "66bcdc7521e226e4acaa93c08e5ea7b2f57829e1a5b9decfd2b91d237e216e1d",
 			},
 		},
 		kubectl: {
@@ -136,8 +126,6 @@ var (
 				"v1.18.6":  "62fcb9922164725c7cba5747562f2ad2f4d834ad0a458c1e4c794cc203dcdfb3",
 				"v1.18.8":  "a076f5eff0710de94d1eb77bee458ea43b8f4d9572bbb3a3aec1edf0dde0a3e7",
 				"v1.19.0":  "79bb0d2f05487ff533999a639c075043c70a0a1ba25c1629eb1eef6ebe3ba70f",
-				"v1.19.8":  "a0737d3a15ca177816b6fb1fd59bdd5a3751bfdc66de4e08dffddba84e38bf3f",
-				"v1.20.4":  "98e8aea149b00f653beeb53d4bd27edda9e73b48fed156c4a0aa1dabe4b1794c",
 			},
 			arm64: {
 				"v1.15.12": "ef9a4272d556851c645d6788631a2993823260a7e1176a281620284b4c3406da",
@@ -152,16 +140,6 @@ var (
 				"v1.18.6":  "7b3d6cc019747a7ee5f6cc2b187423daaac4e153140cb290e60d316c3f456430",
 				"v1.18.8":  "9046c4086528427462544e1a6dcbe709de4d7ae44d1a155375de330fecd067b1",
 				"v1.19.0":  "d4adf1b6b97252025cb2f7febf55daa3f42dc305822e3da133f77fd33071ec2f",
-				"v1.19.8":  "8f037ab2aa798bbc66ebd1d52653f607f223b07813bcf98d9c1d0c0e136910ec",
-				"v1.20.4":  "0fd64b3e5d3fda4637c174a5aea0119b46d6cbede591a4dc9130a81481fc952f",
-			},
-		},
-		etcd: {
-			amd64: {
-				"v3.4.13": "2ac029e47bab752dacdb7b30032f230f49e2f457cbc32e8f555c2210bb5ff107",
-			},
-			arm64: {
-				"v3.4.13": "1934ebb9f9f6501f706111b78e5e321a7ff8d7792d3d96a76e2d01874e42a300",
 			},
 		},
 		helm: {
@@ -179,12 +157,6 @@ var (
 			},
 			arm64: {
 				"v0.8.6": "43fbf750c5eccb10accffeeb092693c32b236fb25d919cf058c91a677822c999",
-			},
-		},
-		k3s: {
-			amd64: {
-				"v1.20.2": "ce3055783cf115ee68fc00bb8d25421d068579ece2fafa4ee1d09f3415aaeabf",
-				"v1.20.4": "1c7b68b0b7d54f21a9c1727545a7db181668115f161a3986bc137261dd817e98",
 			},
 		},
 	}

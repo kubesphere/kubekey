@@ -20,10 +20,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"text/template"
-
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
@@ -31,6 +27,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,16 +35,15 @@ import (
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"text/template"
 )
 
 const (
-	// Pending representative the cluster is being created.
 	Pending = "pending"
-	// Success representative the cluster cluster has been created successfully.
 	Success = "success"
-	// Failed creation failure.
-	Failed = "failed"
+	Failed  = "failed"
 )
 
 var (
@@ -81,8 +77,6 @@ func generateClusterKubeSphere(name string, kubeconfig string, enable, joinFedra
 		"JoinFedration": joinFedration,
 	})
 }
-
-// CheckClusterRole is used to check the cluster's role (host or member).
 func CheckClusterRole() (bool, *rest.Config, error) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
@@ -103,7 +97,6 @@ func CheckClusterRole() (bool, *rest.Config, error) {
 	}
 	return hostClusterFlag, config, nil
 }
-
 func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha1.Cluster) error {
 	if hostClusterFlag, config, err := CheckClusterRole(); err != nil {
 		return err
@@ -129,7 +122,6 @@ func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha1.Cluster) e
 	return nil
 }
 
-// UpdateKubeSphereCluster is used to update the cluster object of KubeSphere's multicluster.
 func UpdateKubeSphereCluster(mgr *manager.Manager) error {
 	if hostClusterFlag, config, err := CheckClusterRole(); err != nil {
 		return err
@@ -145,8 +137,7 @@ func UpdateKubeSphereCluster(mgr *manager.Manager) error {
 	return nil
 }
 
-// NewKubekeyClient is used to create a kubekey cluster client.
-func NewKubekeyClient() (*kubekeyclientset.Clientset, error) {
+func KubekeyClient() (*kubekeyclientset.Clientset, error) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -159,7 +150,7 @@ func NewKubekeyClient() (*kubekeyclientset.Clientset, error) {
 }
 
 func getCluster(name string) (*kubekeyapiv1alpha1.Cluster, error) {
-	clientset, err := NewKubekeyClient()
+	clientset, err := KubekeyClient()
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +161,6 @@ func getCluster(name string) (*kubekeyapiv1alpha1.Cluster, error) {
 	return clusterObj, nil
 }
 
-// UpdateClusterConditions is used for updating cluster installation process information or adding nodes.
 func UpdateClusterConditions(mgr *manager.Manager, step string, startTime, endTime metav1.Time, status bool, index int) error {
 	condition := kubekeyapiv1alpha1.Condition{
 		Step:      step,
@@ -197,7 +187,6 @@ func UpdateClusterConditions(mgr *manager.Manager, step string, startTime, endTi
 	return nil
 }
 
-// UpdateStatus is used to update status for a new or expanded cluster.
 func UpdateStatus(mgr *manager.Manager) error {
 	cluster, err := getCluster(mgr.ObjName)
 	if err != nil {
@@ -282,7 +271,6 @@ func nodeForCluster(name string, labels map[string]string) *corev1.Node {
 	return node
 }
 
-// CreateNodeForCluster is used to create new nodes for the cluster to be add nodes.
 func CreateNodeForCluster(mgr *manager.Manager) error {
 	clientsetForCluster, err := getClusterClientSet(mgr)
 	if err != nil && !kubeErr.IsNotFound(err) {
@@ -316,7 +304,6 @@ func CreateNodeForCluster(mgr *manager.Manager) error {
 	return nil
 }
 
-// PatchNodeImportStatus is used to update new node's status.
 func PatchNodeImportStatus(mgr *manager.Manager, status string) error {
 	clientsetForCluster, err := getClusterClientSet(mgr)
 	if err != nil && !kubeErr.IsNotFound(err) {
@@ -338,46 +325,4 @@ func PatchNodeImportStatus(mgr *manager.Manager, status string) error {
 		}
 	}
 	return nil
-}
-
-// SaveKubeConfig is used to save the kubeconfig for the new cluster.
-func SaveKubeConfig(mgr *manager.Manager) error {
-	// creates the in-cluster config
-	inClusterConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return err
-	}
-	// creates the clientset
-	clientset, err := kube.NewForConfig(inClusterConfig)
-	if err != nil {
-		return err
-	}
-	cmClientset := clientset.CoreV1().ConfigMaps("kubekey-system")
-
-	if _, err := cmClientset.Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", mgr.ObjName), metav1.GetOptions{}); err != nil {
-		if kubeErr.IsNotFound(err) {
-			cmClientset.Create(context.TODO(), configMapForKubeconfig(mgr), metav1.CreateOptions{})
-		} else {
-			return err
-		}
-	} else {
-		kubeconfigStr := fmt.Sprintf(`{"kubeconfig": "%s"}`, mgr.Kubeconfig)
-		cmClientset.Patch(context.TODO(), mgr.ObjName, types.ApplyPatchType, []byte(kubeconfigStr), metav1.PatchOptions{})
-	}
-	// clientset.CoreV1().ConfigMaps("kubekey-system").Create(context.TODO(), kubeconfigConfigMap, metav1.CreateOptions{}
-	return nil
-}
-
-// configMapForKubeconfig is used to generate configmap scheme for cluster's kubeconfig.
-func configMapForKubeconfig(mgr *manager.Manager) *corev1.ConfigMap {
-	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-kubeconfig", mgr.ObjName),
-		},
-		Data: map[string]string{
-			"kubeconfig": mgr.Kubeconfig,
-		},
-	}
-
-	return cm
 }

@@ -17,12 +17,11 @@ limitations under the License.
 package manager
 
 import (
-	"sync"
-	"time"
-
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -30,23 +29,17 @@ import (
 )
 
 const (
-	// DefaultCon defineds the number of concurrent.
 	DefaultCon = 10
-	// Timeout defineds how long the task will take to timeout.
-	Timeout = 120
+	Timeout    = 120
 )
 
-// Task defineds the struct of task.
 type Task struct {
 	Task   func(*Manager) error
 	ErrMsg string
-	Skip   bool
 }
 
-// NodeTask defineds the tasks to be performed on the node.
 type NodeTask func(mgr *Manager, node *kubekeyapiv1alpha1.HostCfg) error
 
-// Run is used to control task execution logic.
 func (t *Task) Run(mgr *Manager) error {
 	backoff := wait.Backoff{
 		Steps:    1,
@@ -93,7 +86,6 @@ func (mgr *Manager) runTask(node *kubekeyapiv1alpha1.HostCfg, task NodeTask, ind
 	return task(mgr, node)
 }
 
-// RunTaskOnNodes is used to execute tasks on nodes.
 func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapiv1alpha1.HostCfg, task NodeTask, parallel bool) error {
 	var err error
 	hasErrors := false
@@ -151,7 +143,6 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapiv1alpha1.HostCfg, task Node
 	return err
 }
 
-// RunTaskOnAllNodes is used to execute tasks on all nodes.
 func (mgr *Manager) RunTaskOnAllNodes(task NodeTask, parallel bool) error {
 	if err := mgr.RunTaskOnNodes(mgr.AllNodes, task, parallel); err != nil {
 		return err
@@ -159,7 +150,6 @@ func (mgr *Manager) RunTaskOnAllNodes(task NodeTask, parallel bool) error {
 	return nil
 }
 
-// RunTaskOnEtcdNodes is used to execute tasks on all etcd nodes.
 func (mgr *Manager) RunTaskOnEtcdNodes(task NodeTask, parallel bool) error {
 	if err := mgr.RunTaskOnNodes(mgr.EtcdNodes, task, parallel); err != nil {
 		return err
@@ -167,7 +157,6 @@ func (mgr *Manager) RunTaskOnEtcdNodes(task NodeTask, parallel bool) error {
 	return nil
 }
 
-// RunTaskOnMasterNodes is used to execute tasks on all master nodes.
 func (mgr *Manager) RunTaskOnMasterNodes(task NodeTask, parallel bool) error {
 	if err := mgr.RunTaskOnNodes(mgr.MasterNodes, task, parallel); err != nil {
 		return err
@@ -175,7 +164,6 @@ func (mgr *Manager) RunTaskOnMasterNodes(task NodeTask, parallel bool) error {
 	return nil
 }
 
-// RunTaskOnWorkerNodes is used to execute tasks on all worker nodes.
 func (mgr *Manager) RunTaskOnWorkerNodes(task NodeTask, parallel bool) error {
 	if err := mgr.RunTaskOnNodes(mgr.WorkerNodes, task, parallel); err != nil {
 		return err
@@ -183,7 +171,6 @@ func (mgr *Manager) RunTaskOnWorkerNodes(task NodeTask, parallel bool) error {
 	return nil
 }
 
-// RunTaskOnK8sNodes is used to execute tasks on all nodes in k8s cluster.
 func (mgr *Manager) RunTaskOnK8sNodes(task NodeTask, parallel bool) error {
 	if err := mgr.RunTaskOnNodes(mgr.K8sNodes, task, parallel); err != nil {
 		return err

@@ -18,29 +18,27 @@ package executor
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
 )
 
 type Executor struct {
-	ObjName         string
-	Cluster         *kubekeyapiv1alpha1.ClusterSpec
-	Logger          *log.Logger
-	SourcesDir      string
-	Debug           bool
-	SkipCheck       bool
-	SkipPullImages  bool
-	AddImagesRepo   bool
-	InCluster       bool
-	ClientSet       *kubekeyclientset.Clientset
-	DownloadCommand func(path, url string) string
+	ObjName        string
+	Cluster        *kubekeyapiv1alpha1.ClusterSpec
+	Logger         *log.Logger
+	SourcesDir     string
+	Debug          bool
+	SkipCheck      bool
+	SkipPullImages bool
+	AddImagesRepo  bool
+	InCluster      bool
+	ClientSet      *kubekeyclientset.Clientset
 }
 
 func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset) *Executor {
@@ -60,7 +58,7 @@ func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger
 
 func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr := &manager.Manager{}
-	defaultCluster, hostGroups, err := executor.Cluster.SetDefaultClusterSpec(executor.InCluster, executor.Logger)
+	defaultCluster, hostGroups, err := executor.Cluster.SetDefaultClusterSpec(executor.InCluster)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +67,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.MasterNodes = hostGroups.Master
 	mgr.WorkerNodes = hostGroups.Worker
 	mgr.K8sNodes = hostGroups.K8s
+	mgr.ClientNode = hostGroups.Client
 	mgr.Cluster = defaultCluster
 	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
 	mgr.Connector = ssh.NewDialer()
@@ -84,10 +83,6 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.ObjName = executor.ObjName
 	mgr.InCluster = executor.InCluster
 	mgr.ClientSet = executor.ClientSet
-	mgr.DownloadCommand = executor.DownloadCommand
-	if (executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker") && executor.Cluster.Kubernetes.Type != "k3s" {
-		mgr.EtcdContainer = true
-	}
 	return mgr, nil
 }
 

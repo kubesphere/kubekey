@@ -21,13 +21,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/kubesphere/kubekey/pkg/addons/manifests"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/pkg/errors"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
+	"strings"
 )
 
 func DeployKubeSphere(version, repo, kubeconfig string) error {
@@ -39,10 +38,16 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 	var kubesphereConfig, installerYaml string
 
 	switch version {
-	case "v3.0.0", "latest", "":
+	case "":
 		kubesphereConfig = kubesphere.V3_0_0
-		version = "v3.0.0"
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, version)
+		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
+		if err != nil {
+			return err
+		}
+		installerYaml = str
+	case "v3.0.0":
+		kubesphereConfig = kubesphere.V3_0_0
+		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
 		if err != nil {
 			return err
 		}
@@ -55,19 +60,7 @@ func DeployKubeSphere(version, repo, kubeconfig string) error {
 		}
 		installerYaml = str
 	default:
-		// make it be convenient to have a nightly build of KubeSphere
-		if strings.HasPrefix(version, "nightly-") {
-			// this is not the perfect solution here, but it's not necessary to track down the exact version between the
-			// nightly build and a released. So please keep update it with the latest release here.
-			kubesphereConfig = kubesphere.V3_0_0
-			str, err := kubesphere.GenerateKubeSphereYaml(repo, version)
-			if err != nil {
-				return err
-			}
-			installerYaml = str
-		} else {
-			return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(version)))
-		}
+		return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(version)))
 	}
 
 	b1 := bufio.NewReader(bytes.NewReader([]byte(installerYaml)))

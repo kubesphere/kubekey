@@ -2,7 +2,7 @@
 apiVersion: kubekey.kubesphere.io/v1alpha1
 kind: Cluster
 metadata:
-  name: sample
+  name: example
 spec:
   hosts:
   - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, port: 8022, user: ubuntu, password: Qcloud@123} # Assume that the default port for SSH is 22, otherwise add the port number after the IP address as above
@@ -10,17 +10,17 @@ spec:
   - {name: node3, address: 172.16.0.4, internalAddress: 172.16.0.4, privateKeyPath: "~/.ssh/id_rsa"} # password-less login with SSH keys
   roleGroups:
     etcd:
-    - node1
+     - node1
     master:
-    - node1
-    - node[2:10] # the nodes from node2, node3,..., to node10
+     - node1
+     - node[2:10] # the nodes from node2, node3,..., to node10
     worker:
-    - node1
-    - node[10:100]
+     - node1
+     - node[10:100]
   controlPlaneEndpoint:
     domain: lb.kubesphere.local
     address: ""
-    port: 6443
+    port: "6443"
   kubernetes:
     version: v1.17.9
     imageRepo: kubesphere

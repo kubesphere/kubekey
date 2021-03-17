@@ -22,7 +22,6 @@ type NetworkConfig struct {
 	KubeServiceCIDR string     `yaml:"kubeServiceCIDR" json:"kubeServiceCIDR,omitempty"`
 	Calico          CalicoCfg  `yaml:"calico" json:"calico,omitempty"`
 	Flannel         FlannelCfg `yaml:"flannel" json:"flannel,omitempty"`
-	Kubeovn         KubeovnCfg `yaml:"kubeovn" json:"kubeovn,omitempty"`
 }
 
 type CalicoCfg struct {
@@ -33,20 +32,4 @@ type CalicoCfg struct {
 
 type FlannelCfg struct {
 	BackendMode string `yaml:"backendMode" json:"backendMode,omitempty"`
-}
-
-type KubeovnCfg struct {
-	JoinCIDR              string `yaml:"joinCIDR" json:"joinCIDR,omitempty"`
-	NetworkType           string `yaml:"networkType" json:"networkType,omitempty"`
-	Label                 string `yaml:"label" json:"label,omitempty"`
-	Iface                 string `yaml:"iface" json:"iface,omitempty"`
-	VlanInterfaceName     string `yaml:"vlanInterfaceName" json:"vlanInterfaceName,omitempty"`
-	VlanID                string `yaml:"vlanID" json:"vlanID,omitempty"`
-	DpdkMode              bool   `yaml:"dpdkMode" json:"dpdkMode,omitempty"`
-	EnableSSL             bool   `yaml:"enableSSL" json:"enableSSL,omitempty"`
-	EnableMirror          bool   `yaml:"enableMirror" json:"enableMirror,omitempty"`
-	HwOffload             bool   `yaml:"hwOffload" json:"hwOffload,omitempty"`
-	DpdkVersion           string `yaml:"dpdkVersion" json:"dpdkVersion,omitempty"`
-	PingerExternalAddress string `yaml:"pingerExternalAddress" json:"pingerExternalAddress,omitempty"`
-	PingerExternalDomain  string `yaml:"pingerExternalDomain" json:"pingerExternalDomain,omitempty"`
 }

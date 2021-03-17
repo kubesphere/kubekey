@@ -17,18 +17,16 @@ limitations under the License.
 package v1alpha1
 
 type Kubernetes struct {
-	Type                     string   `yaml:"type" json:"type,omitempty"`
-	Version                  string   `yaml:"version" json:"version,omitempty"`
-	ClusterName              string   `yaml:"clusterName" json:"clusterName,omitempty"`
-	MasqueradeAll            bool     `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`
-	MaxPods                  int      `yaml:"maxPods" json:"maxPods,omitempty"`
-	NodeCidrMaskSize         int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
-	ApiserverCertExtraSans   []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
-	ProxyMode                string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
-	EtcdBackupDir            string   `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
-	EtcdBackupPeriod         int      `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
-	KeepBackupNumber         int      `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
-	EtcdBackupScriptDir      string   `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
-	ContainerManager         string   `yaml:"containerManager" json:"containerManager,omitempty"`
-	ContainerRuntimeEndpoint string   `yaml:"containerRuntimeEndpoint" json:"containerRuntimeEndpoint,omitempty"`
+	Version                string   `yaml:"version" json:"version,omitempty"`
+	ImageRepo              string   `yaml:"imageRepo" json:"imageRepo,omitempty"`
+	ClusterName            string   `yaml:"clusterName" json:"clusterName,omitempty"`
+	MasqueradeAll          bool     `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`
+	MaxPods                int      `yaml:"maxPods" json:"maxPods,omitempty"`
+	NodeCidrMaskSize       int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
+	ApiserverCertExtraSans []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
+	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
+	EtcdBackupDir          string   `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
+	EtcdBackupPeriod       int      `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
+	KeepBackupNumber       int      `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
+	EtcdBackupScriptDir    string   `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
 }

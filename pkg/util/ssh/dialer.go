@@ -17,10 +17,9 @@ limitations under the License.
 package ssh
 
 import (
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"sync"
 	"time"
-
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 )
 
 type Dialer struct {
@@ -40,7 +39,7 @@ func (dialer *Dialer) Connect(host kubekeyapiv1alpha1.HostCfg) (Connection, erro
 	dialer.lock.Lock()
 	defer dialer.lock.Unlock()
 
-	conn, _ := dialer.connections[host.Index]
+	conn, _ := dialer.connections[host.ID]
 
 	opts := Cfg{
 		Username:   host.User,
@@ -55,7 +54,7 @@ func (dialer *Dialer) Connect(host kubekeyapiv1alpha1.HostCfg) (Connection, erro
 	if err != nil {
 		return nil, err
 	}
-	dialer.connections[host.Index] = conn
+	dialer.connections[host.ID] = conn
 
 	return conn, nil
 }

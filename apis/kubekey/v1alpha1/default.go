@@ -18,11 +18,9 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"os"
 	"strings"
-
-	"github.com/kubesphere/kubekey/pkg/util"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -33,7 +31,7 @@ const (
 	DefaultNetworkPlugin       = "calico"
 	DefaultPodsCIDR            = "10.233.64.0/18"
 	DefaultServiceCIDR         = "10.233.0.0/18"
-	DefaultKubeImageNamespace  = "kubesphere"
+	DefaultKubeImageRepo       = "kubesphere"
 	DefaultClusterName         = "cluster.local"
 	DefaultArch                = "amd64"
 	DefaultEtcdVersion         = "v3.4.13"
@@ -43,7 +41,6 @@ const (
 	DefaultFlannelVersion      = "v0.12.0"
 	DefaultCniVersion          = "v0.8.6"
 	DefaultCiliumVersion       = "v1.8.3"
-	DefaultKubeovnVersion      = "v1.5.0"
 	DefaultHelmVersion         = "v3.2.1"
 	DefaultMaxPods             = 110
 	DefaultNodeCidrMaskSize    = 24
@@ -52,9 +49,6 @@ const (
 	DefaultVethMTU             = 1440
 	DefaultBackendMode         = "vxlan"
 	DefaultProxyMode           = "ipvs"
-	DefaultCrioEndpoint        = "unix:///var/run/crio/crio.sock"
-	DefaultContainerdEndpoint  = "unix:///run/containerd/containerd.sock"
-	DefaultIsulaEndpoint       = "unix:///var/run/isulad.sock"
 	Etcd                       = "etcd"
 	Master                     = "master"
 	Worker                     = "worker"
@@ -63,20 +57,14 @@ const (
 	DefaultEtcdBackupPeriod    = 30
 	DefaultKeepBackNumber      = 5
 	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
-	DefaultJoinCIDR            = "100.64.0.0/16"
-	DefaultNetworkType         = "geneve"
-	DefaultVlanID              = "100"
-	DefaultOvnLabel            = "node-role.kubernetes.io/master"
-	DefaultDPDKVersion         = "19.11"
-	DefaultDNSAddress          = "114.114.114.114"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger) (*ClusterSpec, *HostGroups, error) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *HostGroups, error) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
-	hostGroups, err := clusterCfg.GroupHosts(logger)
+	hostGroups, err := clusterCfg.GroupHosts()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,7 +74,9 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
 	clusterCfg.KubeSphere = cfg.KubeSphere
-
+	if cfg.Kubernetes.ImageRepo == "" {
+		clusterCfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
+	}
 	if cfg.Kubernetes.ClusterName == "" {
 		clusterCfg.Kubernetes.ClusterName = DefaultClusterName
 	}
@@ -191,25 +181,6 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 	if cfg.Network.Flannel.BackendMode == "" {
 		cfg.Network.Flannel.BackendMode = DefaultBackendMode
 	}
-	// kube-ovn default config
-	if cfg.Network.Kubeovn.JoinCIDR == "" {
-		cfg.Network.Kubeovn.JoinCIDR = DefaultJoinCIDR
-	}
-	if cfg.Network.Kubeovn.Label == "" {
-		cfg.Network.Kubeovn.Label = DefaultOvnLabel
-	}
-	if cfg.Network.Kubeovn.VlanID == "" {
-		cfg.Network.Kubeovn.VlanID = DefaultVlanID
-	}
-	if cfg.Network.Kubeovn.NetworkType == "" {
-		cfg.Network.Kubeovn.NetworkType = DefaultNetworkType
-	}
-	if cfg.Network.Kubeovn.PingerExternalAddress == "" {
-		cfg.Network.Kubeovn.PingerExternalAddress = DefaultDNSAddress
-	}
-	if cfg.Network.Kubeovn.DpdkVersion == "" {
-		cfg.Network.Kubeovn.DpdkVersion = DefaultDPDKVersion
-	}
 	defaultNetworkCfg := cfg.Network
 
 	return defaultNetworkCfg
@@ -218,6 +189,9 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.Version == "" {
 		cfg.Kubernetes.Version = DefaultKubeVersion
+	}
+	if cfg.Kubernetes.ImageRepo == "" {
+		cfg.Kubernetes.ImageRepo = DefaultKubeImageRepo
 	}
 	if cfg.Kubernetes.ClusterName == "" {
 		cfg.Kubernetes.ClusterName = DefaultClusterName
@@ -234,6 +208,7 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.EtcdBackupScriptDir == "" {
 		cfg.Kubernetes.EtcdBackupScriptDir = DefaultEtcdBackupScriptDir
 	}
+
 	defaultClusterCfg := cfg.Kubernetes
 
 	return defaultClusterCfg
