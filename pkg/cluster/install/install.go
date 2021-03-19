@@ -40,7 +40,7 @@ import (
 )
 
 // CreateCluster is used to create cluster based on the given parameters or configuration file.
-func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool, downloadCmd string) error {
+func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster, deployLocalStorage bool, downloadCmd string) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current dir")
@@ -68,6 +68,9 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 		clientset = c
 	}
 	executorInstance := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset)
+
+	executorInstance.DeployLocalStorage = deployLocalStorage
+
 	executorInstance.DownloadCommand = func(path, url string) string {
 		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
 		// some poor network environment. Or users even can choose another cli, it might be wget.
@@ -79,14 +82,14 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 
 // ExecTasks is used to schedule and execute installation tasks.
 func ExecTasks(mgr *manager.Manager) error {
-	skipCondition1 := mgr.Cluster.Network.Plugin == "" || mgr.Cluster.Network.Plugin == "none"
-	skipCondition2 := mgr.Cluster.Kubernetes.Type == "k3s"
+	noNetworkPlugin := mgr.Cluster.Network.Plugin == "" || mgr.Cluster.Network.Plugin == "none"
+	isK3s := mgr.Cluster.Kubernetes.Type == "k3s"
 	createTasks := []manager.Task{
-		{Task: Precheck, ErrMsg: "Failed to precheck", Skip: skipCondition2},
+		{Task: Precheck, ErrMsg: "Failed to precheck", Skip: isK3s},
 		{Task: DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
 		{Task: InitOS, ErrMsg: "Failed to init OS"},
-		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker", Skip: skipCondition2},
-		{Task: PrePullImages, ErrMsg: "Failed to pre-pull images", Skip: skipCondition2},
+		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker", Skip: isK3s},
+		{Task: PrePullImages, ErrMsg: "Failed to pre-pull images", Skip: isK3s},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},
 		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "Failed to sync etcd certs"},
 		{Task: etcd.GenerateEtcdService, ErrMsg: "Failed to create etcd service"},
@@ -98,9 +101,9 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
 		{Task: JoinNodesToCluster, ErrMsg: "Failed to join node"},
 		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
-		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons", Skip: skipCondition1 && !skipCondition2},
-		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume", Skip: skipCondition1 || skipCondition2},
-		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere", Skip: skipCondition1},
+		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons", Skip: noNetworkPlugin},
+		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume", Skip: noNetworkPlugin || (!mgr.DeployLocalStorage && !mgr.KsEnable)},
+		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere", Skip: noNetworkPlugin},
 	}
 
 	for _, step := range createTasks {
@@ -111,7 +114,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		}
 	}
 
-	if mgr.KsEnable && !skipCondition1 {
+	if mgr.KsEnable && !noNetworkPlugin {
 		mgr.Logger.Infoln(`Installation is complete.
 
 Please check the result using the command:

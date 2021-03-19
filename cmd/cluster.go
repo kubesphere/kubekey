@@ -37,7 +37,7 @@ var clusterCmd = &cobra.Command{
 			ksVersion = ""
 		}
 		logger := util.InitLogger(opt.Verbose)
-		return install.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.DownloadCmd)
+		return install.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.LocalStorage, opt.DownloadCmd)
 	},
 }
 
@@ -46,7 +46,8 @@ func init() {
 
 	clusterCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", v1alpha1.DefaultKubeVersion, "Specify a supported version of kubernetes")
-	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
+	clusterCmd.Flags().BoolVarP(&opt.LocalStorage, "with-local-storage", "", false, "Deploy a local PV provisioner")
+	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.1.0)")
 	clusterCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	clusterCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	clusterCmd.Flags().StringVarP(&opt.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
@@ -60,7 +61,7 @@ func init() {
 func setValidArgs(cmd *cobra.Command) (err error) {
 	cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) (
 		strings []string, directive cobra.ShellCompDirective) {
-		versionArray := []string{"v2.1.1", "v3.0.0", time.Now().Add(-time.Hour * 24).Format("nightly-20060102")}
+		versionArray := []string{"v2.1.1", "v3.0.0", "v3.1.0", time.Now().Add(-time.Hour * 24).Format("nightly-20060102")}
 		return versionArray, cobra.ShellCompDirectiveNoFileComp
 	}
 
