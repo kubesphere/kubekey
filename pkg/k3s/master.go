@@ -78,8 +78,8 @@ func GetClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 	return nil
 }
 
-// InitKubernetesCluster is used to init a new cluster.
-func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+// InitK3sCluster is used to init a new cluster.
+func InitK3sCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 && !clusterIsExist {
 
 		kubeletEnv, err3 := config.GenerateK3sEnv(mgr, node, "")

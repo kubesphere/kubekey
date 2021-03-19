@@ -111,7 +111,11 @@ EOF
 		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
 			return err
 		}
-	case "v3.0.0", "latest":
+	case "v3.0.0":
+		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
+			return err
+		}
+	case "v3.1.0", "latest":
 		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
 			return err
 		}
@@ -280,10 +284,9 @@ Loop:
 }
 
 func DeployLocalVolume(mgr *manager.Manager) error {
-	if mgr.Cluster.KubeSphere.Enabled {
-		if err := mgr.RunTaskOnMasterNodes(DeployLocalVolumeForCluster, true); err != nil {
-			return err
-		}
+
+	if err := mgr.RunTaskOnMasterNodes(DeployLocalVolumeForCluster, true); err != nil {
+		return err
 	}
 
 	return nil

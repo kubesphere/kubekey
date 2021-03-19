@@ -64,7 +64,7 @@ ExecStart=/usr/local/bin/k3s server
 		dedent.Dedent(`# Note: This dropin only works with k3s
 [Service]
 {{ if .IsMaster }}
-Environment="K3S_ARGS=--datastore-endpoint={{ .DataStoreEndPoint }}  --datastore-cafile={{ .DataStoreCaFile }}  --datastore-certfile={{ .DataStoreCertFile }}  --datastore-keyfile={{ .DataStoreKeyFile }}  {{ range .CertSANs }} --tls-san={{ . }}{{- end }} --cluster-cidr={{ .PodSubnet }} --service-cidr={{ .ServiceSubnet }} --cluster-dns={{ .ClusterDns }} --flannel-backend=none --disable-network-policy --disable-cloud-controller --disable=servicelb,traefik,local-storage,metrics-server"
+Environment="K3S_ARGS=--write-kubeconfig-mode=644 --datastore-endpoint={{ .DataStoreEndPoint }}  --datastore-cafile={{ .DataStoreCaFile }}  --datastore-certfile={{ .DataStoreCertFile }}  --datastore-keyfile={{ .DataStoreKeyFile }}  {{ range .CertSANs }} --tls-san={{ . }}{{- end }} --cluster-cidr={{ .PodSubnet }} --service-cidr={{ .ServiceSubnet }} --cluster-dns={{ .ClusterDns }} --flannel-backend=none --disable-network-policy --disable-cloud-controller --disable=servicelb,traefik,metrics-server,local-storage"
 {{ end }}
 Environment="K3S_EXTRA_ARGS=--node-name={{ .HostName }}  --node-ip={{ .NodeIP }} {{ if .Server }}--server={{ .Server }}{{ end }} {{ if .Token }}--token={{ .Token }}{{ end }} --pause-image={{ .PauseImage }} --kubelet-arg=cni-conf-dir=/etc/cni/net.d --kubelet-arg=cni-bin-dir=/opt/cni/bin --kube-proxy-arg=proxy-mode=ipvs --kube-proxy-arg=masquerade-all=true"
 Environment="K3S_ROLE={{ if .IsMaster }}server{{ else }}agent{{ end }}"

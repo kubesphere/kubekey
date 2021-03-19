@@ -310,9 +310,11 @@ func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 
 	switch mgr.Cluster.Kubernetes.Type {
 	case "k3s":
+		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-killall.sh\"", 0, true)
 		_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-uninstall.sh\"", 0, true)
 	default:
 		if util.IsExist("/usr/local/bin/k3s-uninstall.sh") {
+			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-killall.sh\"", 0, true)
 			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-uninstall.sh\"", 0, true)
 		} else {
 			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)

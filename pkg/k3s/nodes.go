@@ -36,7 +36,7 @@ func InstallKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 			return err
 		}
 
-		if err := SetKubelet(mgr); err != nil {
+		if err := SetK3s(mgr); err != nil {
 			return err
 		}
 	}
@@ -94,19 +94,19 @@ func SyncKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) er
 	return nil
 }
 
-// SetKubelet is used to configure the kubelet's startup parameters.
-func SetKubelet(mgr *manager.Manager) error {
+// SetK3s is used to configure the kubelet's startup parameters.
+func SetK3s(mgr *manager.Manager) error {
 
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", "cp -f /tmp/kubekey/k3s /usr/local/bin/k3s && chmod +x /usr/local/bin/k3s"), 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to create kubelet link"))
 	}
 
-	kubeletService, err1 := config.GenerateK3sService()
+	k3sService, err1 := config.GenerateK3sService()
 	if err1 != nil {
 		return err1
 	}
-	kubeletServiceBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletService))
-	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service\"", kubeletServiceBase64), 5, false); err != nil {
+	k3sServiceBase64 := base64.StdEncoding.EncodeToString([]byte(k3sService))
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service\"", k3sServiceBase64), 5, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet service")
 	}
 

@@ -154,7 +154,7 @@ func InitKubernetesCluster(mgr *manager.Manager) error {
 
 	switch mgr.Cluster.Kubernetes.Type {
 	case "k3s":
-		return mgr.RunTaskOnMasterNodes(k3s.InitKubernetesCluster, true)
+		return mgr.RunTaskOnMasterNodes(k3s.InitK3sCluster, true)
 	default:
 		return mgr.RunTaskOnMasterNodes(kubernetes.InitKubernetesCluster, true)
 	}
