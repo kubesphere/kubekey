@@ -242,6 +242,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "lxm",
+      "name": "LXM",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1918195?v=4",
+      "profile": "http://www.luxingmin.com",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
