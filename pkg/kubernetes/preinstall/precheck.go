@@ -70,7 +70,10 @@ func PrecheckNodes(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error
 // PrecheckConfirm is used to show check results and interact with user.
 func PrecheckConfirm(mgr *manager.Manager) {
 
-	var results []PrecheckResults
+	var (
+		results  []PrecheckResults
+		stopFlag bool
+	)
 	for node := range CheckResults {
 		var result PrecheckResults
 		_ = mapstructure.Decode(CheckResults[node], &result)
@@ -78,6 +81,18 @@ func PrecheckConfirm(mgr *manager.Manager) {
 	}
 	table.OutputA(results)
 	reader := bufio.NewReader(os.Stdin)
+
+	for _, host := range results {
+		if host.Conntrack == "" {
+			fmt.Printf("%s: conntrack is required. \n", host.Name)
+			stopFlag = true
+		}
+	}
+
+	if stopFlag {
+		os.Exit(1)
+	}
+
 	fmt.Println("")
 	fmt.Println("This is a simple check of your environment.")
 	fmt.Println("Before installation, you should ensure that your machines meet all requirements specified at")
