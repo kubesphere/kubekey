@@ -251,6 +251,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "sbhnet",
+      "name": "sbhnet",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2368131?v=4",
+      "profile": "https://github.com/sbhnet",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
