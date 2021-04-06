@@ -218,6 +218,12 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.Version == "" {
 		cfg.Kubernetes.Version = DefaultKubeVersion
+	} else {
+		s := strings.Split(cfg.Kubernetes.Version, "-")
+		if len(s) > 1 {
+			cfg.Kubernetes.Version = s[0]
+			cfg.Kubernetes.Type = s[1]
+		}
 	}
 	if cfg.Kubernetes.ClusterName == "" {
 		cfg.Kubernetes.ClusterName = DefaultClusterName
