@@ -167,7 +167,6 @@ spec:
     enabled: false
 `
 	V3_1_0 = `---
----
 apiVersion: installer.kubesphere.io/v1alpha1
 kind: ClusterConfiguration
 metadata:
@@ -234,7 +233,6 @@ spec:
   multicluster:
     clusterRole: none 
   network:
-    enabled: true
     networkpolicy:
       enabled: false
     ippool:
@@ -564,7 +562,7 @@ spec:
 )
 
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
-	if strings.Contains(version, "latest") && os.Getenv("KKZONE") == "cn" {
+	if version == "v3.1.0" && os.Getenv("KKZONE") == "cn" {
 		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
 	} else {
 		if repo == "" {

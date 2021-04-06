@@ -122,7 +122,7 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 	if ksEnabled {
 		clusterCfg.Spec.KubeSphere.Enabled = true
 		switch strings.TrimSpace(ksVersion) {
-		case "v3.1.0", "", "latest":
+		case "v3.1.0", "":
 			clusterCfg.Spec.KubeSphere.Version = "v3.1.0"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
 		case "v3.0.0":
@@ -133,7 +133,7 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
 			// make it be convenient to have a nightly build of KubeSphere
-			if strings.HasPrefix(ksVersion, "nightly-") {
+			if strings.HasPrefix(ksVersion, "nightly-") || ksVersion == "latest" {
 				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
 				// nightly build and a released. So please keep update it with the latest release here.
 				clusterCfg.Spec.KubeSphere.Version = ksVersion
@@ -200,7 +200,7 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		allinoneCfg.Spec.KubeSphere.Enabled = true
 		ksVersion = strings.TrimSpace(ksVersion)
 		switch ksVersion {
-		case "v3.1.0", "", "latest":
+		case "v3.1.0", "":
 			allinoneCfg.Spec.KubeSphere.Version = "v3.1.0"
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
 		case "v3.0.0":
@@ -211,7 +211,7 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
 			// make it be convenient to have a nightly build of KubeSphere
-			if strings.HasPrefix(ksVersion, "nightly-") {
+			if strings.HasPrefix(ksVersion, "nightly-") || ksVersion == "latest" {
 				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
 				// nightly build and a released. So please keep update it with the latest release here.
 				allinoneCfg.Spec.KubeSphere.Version = ksVersion
