@@ -17,13 +17,15 @@ limitations under the License.
 package local_volume
 
 import (
-	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
+	"text/template"
+
+	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"text/template"
 )
 
+// OpenebsTempl defines the template of openebs' manifests.
 var OpenebsTempl = template.Must(template.New("openebs").Parse(
 	dedent.Dedent(`---
 #Sample storage classes for OpenEBS Local PV
@@ -173,10 +175,10 @@ spec:
           periodSeconds: 60
     `)))
 
+// GenerateOpenebsManifests is used to generate openebs' mainfests content.
 func GenerateOpenebsManifests(mgr *manager.Manager) (string, error) {
 	return util.Render(OpenebsTempl, util.Data{
 		"ProvisionerLocalPVImage": preinstall.GetImage(mgr, "provisioner-localpv").ImageName(),
-		"OpenebsToolsImage":       preinstall.GetImage(mgr, "openebs-tools").ImageName(),
 		"LinuxUtilsImage":         preinstall.GetImage(mgr, "linux-utils").ImageName(),
 	})
 }

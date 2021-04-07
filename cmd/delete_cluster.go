@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/delete"
+	"github.com/kubesphere/kubekey/pkg/cluster/delete"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/spf13/cobra"
 )

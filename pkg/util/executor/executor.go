@@ -18,27 +18,30 @@ package executor
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
 )
 
 type Executor struct {
-	ObjName        string
-	Cluster        *kubekeyapiv1alpha1.ClusterSpec
-	Logger         *log.Logger
-	SourcesDir     string
-	Debug          bool
-	SkipCheck      bool
-	SkipPullImages bool
-	AddImagesRepo  bool
-	InCluster      bool
-	ClientSet      *kubekeyclientset.Clientset
+	ObjName            string
+	Cluster            *kubekeyapiv1alpha1.ClusterSpec
+	Logger             *log.Logger
+	SourcesDir         string
+	Debug              bool
+	SkipCheck          bool
+	SkipPullImages     bool
+	DeployLocalStorage bool
+	AddImagesRepo      bool
+	InCluster          bool
+	ClientSet          *kubekeyclientset.Clientset
+	DownloadCommand    func(path, url string) string
 }
 
 func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset) *Executor {
@@ -81,8 +84,10 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.AddImagesRepo = executor.AddImagesRepo
 	mgr.ObjName = executor.ObjName
 	mgr.InCluster = executor.InCluster
+	mgr.DeployLocalStorage = executor.DeployLocalStorage
 	mgr.ClientSet = executor.ClientSet
-	if executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker" {
+	mgr.DownloadCommand = executor.DownloadCommand
+	if (executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker") && executor.Cluster.Kubernetes.Type != "k3s" {
 		mgr.EtcdContainer = true
 	}
 	return mgr, nil

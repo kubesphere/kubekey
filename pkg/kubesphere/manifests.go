@@ -18,10 +18,12 @@ package kubesphere
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/lithammer/dedent"
+	"os"
 	"strings"
 	"text/template"
+
+	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/lithammer/dedent"
 )
 
 const (
@@ -103,6 +105,7 @@ metadata:
   labels:
     version: v3.0.0
 spec:
+  zone: ""
   local_registry: ""
   persistence:
     storageClass: ""
@@ -162,6 +165,113 @@ spec:
     enabled: false
   servicemesh:
     enabled: false
+`
+	V3_1_0 = `---
+apiVersion: installer.kubesphere.io/v1alpha1
+kind: ClusterConfiguration
+metadata:
+  name: ks-installer
+  namespace: kubesphere-system
+  labels:
+    version: v3.1.0
+spec:
+  persistence:
+    storageClass: ""       
+  authentication:
+    jwtSecret: ""          
+  local_registry: ""        
+  etcd:
+    monitoring: false      
+    endpointIps: localhost  
+    port: 2379             
+    tlsEnable: true
+  common:
+    minioVolumeSize: 20Gi
+    openldapVolumeSize: 2Gi   
+    redisVolumSize: 2Gi 
+    monitoring:
+      endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090
+    es:  
+      elasticsearchMasterVolumeSize: 4Gi   
+      elasticsearchDataVolumeSize: 20Gi   
+      logMaxAge: 7          
+      elkPrefix: logstash  
+  console:
+    enableMultiLogin: true 
+    port: 30880
+  alerting:       
+    enabled: false
+    # thanosruler:
+    #   replicas: 1
+    #   resources: {}
+  auditing:    
+    enabled: false
+  devops:           
+    enabled: false
+    jenkinsMemoryLim: 2Gi     
+    jenkinsMemoryReq: 1500Mi 
+    jenkinsVolumeSize: 8Gi   
+    jenkinsJavaOpts_Xms: 512m  
+    jenkinsJavaOpts_Xmx: 512m
+    jenkinsJavaOpts_MaxRAM: 2g
+  events:          
+    enabled: false
+    ruler:
+      enabled: true
+      replicas: 2
+  logging:         
+    enabled: false
+    logsidecar:
+      enabled: true
+      replicas: 2
+  metrics_server:             
+    enabled: false
+  monitoring:
+    storageClass: ""
+    prometheusMemoryRequest: 400Mi  
+    prometheusVolumeSize: 20Gi  
+  multicluster:
+    clusterRole: none 
+  network:
+    networkpolicy:
+      enabled: false
+    ippool:
+      type: none
+    topology:
+      type: none
+  notification:   
+    enabled: false
+  openpitrix:
+    store:
+      enabled: false
+  servicemesh:    
+    enabled: false  
+  kubeedge:
+    enabled: false
+    cloudCore:
+      nodeSelector: {"node-role.kubernetes.io/worker": ""}
+      tolerations: []
+      cloudhubPort: "10000"
+      cloudhubQuicPort: "10001"
+      cloudhubHttpsPort: "10002"
+      cloudstreamPort: "10003"
+      tunnelPort: "10004"
+      cloudHub:
+        advertiseAddress: 
+          - ""           
+        nodeLimit: "100"
+      service:
+        cloudhubNodePort: "30000"
+        cloudhubQuicNodePort: "30001"
+        cloudhubHttpsNodePort: "30002"
+        cloudstreamNodePort: "30003"
+        tunnelNodePort: "30004"
+    edgeWatcher:
+      nodeSelector: {"node-role.kubernetes.io/worker": ""}
+      tolerations: []
+      edgeWatcherAgent:
+        nodeSelector: {"node-role.kubernetes.io/worker": ""}
+        tolerations: []
 `
 )
 
@@ -362,6 +472,42 @@ rules:
   - '*'
   verbs:
   - '*'
+- apiGroups:
+  - security.istio.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.kiali.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - kiali.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - kubeedge.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - types.kubefed.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
 
 ---
 kind: ClusterRoleBinding
@@ -385,15 +531,18 @@ metadata:
   namespace: kubesphere-system
   labels:
     app: ks-install
+    version: {{ .Tag }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: ks-install
+      version: {{ .Tag }}
   template:
     metadata:
       labels:
         app: ks-install
+        version: {{ .Tag }}
     spec:
       serviceAccountName: ks-installer
       containers:
@@ -413,14 +562,18 @@ spec:
 )
 
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
-	if repo == "" {
-		if strings.Contains(version, "latest") {
-			repo = "kubespheredev"
-		} else {
-			repo = "kubesphere"
-		}
+	if version == "v3.1.0" && os.Getenv("KKZONE") == "cn" {
+		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
 	} else {
-		repo = fmt.Sprintf("%s/kubesphere", repo)
+		if repo == "" {
+			if strings.Contains(version, "latest") || strings.HasPrefix(version, "nightly-") {
+				repo = "kubespheredev"
+			} else {
+				repo = "kubesphere"
+			}
+		} else {
+			repo = fmt.Sprintf("%s/kubesphere", repo)
+		}
 	}
 
 	return util.Render(KubeSphereTempl, util.Data{

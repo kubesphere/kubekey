@@ -19,6 +19,13 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"os/exec"
+	"os/user"
+	"path/filepath"
+	"runtime"
+	"strings"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -26,25 +33,20 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
-	"os"
-	"os/exec"
-	"os/user"
-	"path/filepath"
-	"runtime"
-	"strings"
 )
 
+// ParseClusterCfg is used to generate Cluster object and cluster's name.
 func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, string, error) {
 	var (
 		clusterCfg *kubekeyapiv1alpha1.Cluster
 		objName    string
 	)
 	if len(clusterCfgPath) == 0 {
-		user, _ := user.Current()
-		if user.Username != "root" {
-			return nil, "", errors.New(fmt.Sprintf("Current user is %s. Please use root!", user.Username))
+		currentUser, _ := user.Current()
+		if currentUser.Username != "root" {
+			return nil, "", errors.New(fmt.Sprintf("Current user is %s. Please use root!", currentUser.Username))
 		}
-		clusterCfg, objName = AllinoneCfg(user, k8sVersion, ksVersion, ksEnabled, logger)
+		clusterCfg, objName = AllinoneCfg(currentUser, k8sVersion, ksVersion, ksEnabled, logger)
 	} else {
 		cfg, name, err := ParseCfg(clusterCfgPath, k8sVersion, ksVersion, ksEnabled)
 		if err != nil {
@@ -56,6 +58,7 @@ func ParseClusterCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled boo
 	return clusterCfg, objName, nil
 }
 
+// ParseCfg is used to parse the specified cluster configuration file.
 func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*kubekeyapiv1alpha1.Cluster, string, error) {
 	var objName string
 	clusterCfg := kubekeyapiv1alpha1.Cluster{}
@@ -100,6 +103,9 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			_, ok := labels["version"]
 			if ok {
 				switch labels["version"] {
+				case "v3.1.0":
+					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
+					clusterCfg.Spec.KubeSphere.Version = "v3.1.0"
 				case "v3.0.0":
 					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
@@ -107,7 +113,7 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
-					return nil, "", errors.Wrap(err, fmt.Sprintf("Unsupported versions: %s", labels["version"]))
+					return nil, "", errors.Wrap(err, fmt.Sprintf("Unsupported version: %s", labels["version"]))
 				}
 			}
 		}
@@ -116,9 +122,9 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 	if ksEnabled {
 		clusterCfg.Spec.KubeSphere.Enabled = true
 		switch strings.TrimSpace(ksVersion) {
-		case "":
-			clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
-			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
+		case "v3.1.0", "":
+			clusterCfg.Spec.KubeSphere.Version = "v3.1.0"
+			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
 		case "v3.0.0":
 			clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
@@ -126,13 +132,22 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
-			return nil, "", errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+			// make it be convenient to have a nightly build of KubeSphere
+			if strings.HasPrefix(ksVersion, "nightly-") || ksVersion == "latest" {
+				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
+				// nightly build and a released. So please keep update it with the latest release here.
+				clusterCfg.Spec.KubeSphere.Version = ksVersion
+				clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
+			} else {
+				return nil, "", errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+			}
 		}
 	}
 
 	return &clusterCfg, objName, nil
 }
 
+// AllinoneCfg is used to generate cluster object for all-in-one mode.
 func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, logger *log.Logger) (*kubekeyapiv1alpha1.Cluster, string) {
 	allinoneCfg := kubekeyapiv1alpha1.Cluster{}
 	if output, err := exec.Command("/bin/sh", "-c", "if [ ! -f \"$HOME/.ssh/id_rsa\" ]; then ssh-keygen -t rsa -P \"\" -f $HOME/.ssh/id_rsa && ls $HOME/.ssh;fi;").CombinedOutput(); err != nil {
@@ -164,8 +179,16 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		Worker: []string{hostname},
 	}
 	if k8sVersion != "" {
-		allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
-			Version: k8sVersion,
+		s := strings.Split(k8sVersion, "-")
+		if len(s) > 1 {
+			allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
+				Version: s[0],
+				Type:    s[1],
+			}
+		} else {
+			allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
+				Version: k8sVersion,
+			}
 		}
 	} else {
 		allinoneCfg.Spec.Kubernetes = kubekeyapiv1alpha1.Kubernetes{
@@ -175,10 +198,11 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 
 	if ksEnabled {
 		allinoneCfg.Spec.KubeSphere.Enabled = true
-		switch strings.TrimSpace(ksVersion) {
-		case "":
-			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
-			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
+		ksVersion = strings.TrimSpace(ksVersion)
+		switch ksVersion {
+		case "v3.1.0", "":
+			allinoneCfg.Spec.KubeSphere.Version = "v3.1.0"
+			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
 		case "v3.0.0":
 			allinoneCfg.Spec.KubeSphere.Version = "v3.0.0"
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_0_0
@@ -186,7 +210,15 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 			allinoneCfg.Spec.KubeSphere.Version = "v2.1.1"
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
-			logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
+			// make it be convenient to have a nightly build of KubeSphere
+			if strings.HasPrefix(ksVersion, "nightly-") || ksVersion == "latest" {
+				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
+				// nightly build and a released. So please keep update it with the latest release here.
+				allinoneCfg.Spec.KubeSphere.Version = ksVersion
+				allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
+			} else {
+				logger.Fatalf("Unsupported version: %s", strings.TrimSpace(ksVersion))
+			}
 		}
 	}
 

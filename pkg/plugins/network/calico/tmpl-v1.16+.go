@@ -17,11 +17,12 @@ limitations under the License.
 package calico
 
 import (
-	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
+	"text/template"
+
+	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
-	"text/template"
 )
 
 var calicoTemplNew = template.Must(template.New("calico").Parse(
@@ -64,6 +65,9 @@ data:
           },
           "policy": {
               "type": "k8s"
+          },
+          "container_settings": {
+              "allow_ip_forwarding": true
           },
           "kubernetes": {
               "kubeconfig": "__KUBECONFIG_FILEPATH__"
@@ -3844,6 +3848,12 @@ spec:
             - name: CLUSTER_TYPE
               value: "k8s,bgp"
             # Auto-detect the BGP IP address.
+            - name: NODEIP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: IP_AUTODETECTION_METHOD
+              value: "can-reach=$(NODEIP)"
             - name: IP
               value: "autodetect"
             # Enable IPIP
@@ -4048,6 +4058,7 @@ metadata:
 
     `)))
 
+// GenerateCalicoFilesNew is used to generate calico mainfests.
 func GenerateCalicoFilesNew(mgr *manager.Manager) (string, error) {
 	return util.Render(calicoTemplNew, util.Data{
 		"KubePodsCIDR":            mgr.Cluster.Network.KubePodsCIDR,

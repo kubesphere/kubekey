@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 type Kubernetes struct {
+	Type                     string   `yaml:"type" json:"type,omitempty"`
 	Version                  string   `yaml:"version" json:"version,omitempty"`
 	ClusterName              string   `yaml:"clusterName" json:"clusterName,omitempty"`
 	MasqueradeAll            bool     `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`

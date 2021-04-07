@@ -21,6 +21,7 @@ import (
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
 	"io"
+	"strings"
 )
 
 var shortVersion bool
@@ -59,23 +60,6 @@ func printVersion(short bool) error {
 }
 
 func printSupportedK8sVersionList(output io.Writer) (err error) {
-	_, err = output.Write([]byte(`v1.15.12
-v1.16.8
-v1.16.10
-v1.16.12
-v1.16.13
-v1.17.0
-v1.17.4
-v1.17.5
-v1.17.6
-v1.17.7
-v1.17.8
-v1.17.9
-v1.18.3
-v1.18.5
-v1.18.6
-v1.18.8
-v1.19.0
-`))
+	_, err = output.Write([]byte(fmt.Sprintln(strings.Join(version.SupportedK8sVersionList(), "\n"))))
 	return
 }

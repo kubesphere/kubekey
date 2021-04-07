@@ -3,7 +3,7 @@ package kubeovn
 import (
 	"fmt"
 
-	"github.com/kubesphere/kubekey/pkg/cluster/preinstall"
+	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
 
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 )
