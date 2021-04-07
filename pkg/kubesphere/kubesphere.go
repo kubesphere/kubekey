@@ -147,7 +147,7 @@ EOF
 		}
 	}
 
-	if ksVersion == "latest" && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
+	if ksVersion == "v3.1.0" && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/zone/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", "cn"), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
 		}
@@ -182,7 +182,7 @@ EOF
 		}
 	}
 
-	deployKubesphereCmd := "sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/kubesphere.yaml\""
+	deployKubesphereCmd := "sudo -E /bin/sh -c \"/usr/local/bin/kubectl apply -f /etc/kubernetes/addons/kubesphere.yaml --force\""
 
 	if _, err := mgr.Runner.ExecuteCmd(deployKubesphereCmd, 10, true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to deploy /etc/kubernetes/addons/kubesphere.yaml")
