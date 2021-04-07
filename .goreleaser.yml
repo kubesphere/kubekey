@@ -4,7 +4,7 @@ builds:
 - env:
   - CGO_ENABLED=0
   main: ./cmd/kk/main.go
-  binary: kubekey
+  binary: kk
   goarch:
     - amd64
     - arm64
@@ -21,7 +21,7 @@ builds:
     - -s
 dist: bin
 archives:
-- name_template: "{{ .Binary }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+- name_template: "kubekey-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
   replacements:
     linux: linux
     amd64: amd64
@@ -41,7 +41,7 @@ changelog:
     - '^docs:'
     - '^test:'
 nfpms:
-  - file_name_template: "{{ .Binary }}-v{{ .Version }}-{{.Os}}-{{.Arch}}"
+  - file_name_template: "kubekey-{{ .Version }}-{{.Os}}-{{.Arch}}"
     homepage: https://github.com/kubesphere/kubekey
     description: "KubeKey provides a flexible, rapid and convenient way to install Kubernetes only, both Kubernetes and KubeSphere, and related cloud-native add-ons. It is also an efficient tool to scale and upgrade your cluster."
     maintainer: kubesphere authors
