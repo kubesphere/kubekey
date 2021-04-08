@@ -17,97 +17,12 @@ limitations under the License.
 package upgrade
 
 import (
-	"bufio"
-	"bytes"
-	"context"
-	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/addons/manifests"
-	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	ksv2 "github.com/kubesphere/kubekey/pkg/kubesphere/v2"
 	ksv3 "github.com/kubesphere/kubekey/pkg/kubesphere/v3"
-	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/pkg/errors"
 	yamlV2 "gopkg.in/yaml.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
-	"strings"
 )
-
-func KsToV3(version, repo, kubeconfig string) error {
-	clientset, err := util.NewClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	clusterConfigMap, err1 := clientset.CoreV1().ConfigMaps("kubesphere-system").Get(context.TODO(), "ks-installer", metav1.GetOptions{})
-	if err1 != nil {
-		return err1
-	}
-
-	clusterCfgV2 := ksv2.V2{}
-	clusterCfgV3 := ksv3.V3{}
-	if err := yamlV2.Unmarshal([]byte(clusterConfigMap.Data["ks-config.yaml"]), &clusterCfgV2); err != nil {
-		return err
-	}
-
-	configV3, err := MigrateConfig2to3(&clusterCfgV2, &clusterCfgV3)
-	if err != nil {
-		return err
-	}
-
-	var kubesphereConfig, installerYaml string
-
-	switch version {
-	case "":
-		kubesphereConfig = configV3
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
-		if err != nil {
-			return err
-		}
-		installerYaml = str
-	case "v3.0.0":
-		kubesphereConfig = configV3
-		str, err := kubesphere.GenerateKubeSphereYaml(repo, "v3.0.0")
-		if err != nil {
-			return err
-		}
-		installerYaml = str
-	default:
-		return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(version)))
-	}
-
-	restCfg, err := util.NewDynamicClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	b1 := bufio.NewReader(bytes.NewReader([]byte(installerYaml)))
-	for {
-		content, err := k8syaml.NewYAMLReader(b1).Read()
-		if len(content) == 0 {
-			break
-		}
-		if err != nil {
-			return errors.Wrap(err, "Unable to read the manifests")
-		}
-
-		if len(strings.TrimSpace(string(content))) == 0 {
-			continue
-		}
-
-		if err := manifests.DoServerSideApply(context.TODO(), restCfg, content); err != nil {
-			return err
-		}
-	}
-
-	if err := manifests.DoServerSideApply(context.TODO(), restCfg, []byte(kubesphereConfig)); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func MigrateConfig2to3(v2 *ksv2.V2, v3 *ksv3.V3) (string, error) {
 	v3.Etcd = ksv3.Etcd(v2.Etcd)
@@ -188,6 +103,8 @@ func SyncConfiguration(mgr *manager.Manager) error {
 		if err := mgr.RunTaskOnMasterNodes(syncConfiguration, true); err != nil {
 			return err
 		}
+	} else {
+		mgr.Cluster.KubeSphere.Configurations = "\n"
 	}
 	return nil
 }
