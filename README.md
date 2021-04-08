@@ -95,37 +95,6 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 > * Docker needs to be installed before building.
 > * If you have problem to access `https://proxy.golang.org/`, excute `build.sh -p` instead.
 
-<!--
-### YUM
-
-Add YUM source repo by the following command:
-
-```
-cat > bintray-kubesphere-rpm.repo <<EOF
-#bintraybintray-kubesphere-rpm - packages by kubesphere from Bintray
-[bintraybintray-kubesphere-rpm]
-name=bintray-kubesphere-rpm
-baseurl=https://dl.bintray.com/kubesphere/rpm
-gpgcheck=0
-repo_gpgcheck=0
-enabled=1
-EOF
-sudo mv bintray-kubesphere-rpm.repo /etc/yum.repos.d/ && sudo yum update
-```
-
-then you can install it by: `yum install kk`
-
-### Debian
-
-Add deb source repo by the following command:
-
-```
-echo "deb [trusted=yes] https://dl.bintray.com/kubesphere/deb wheezy main" | sudo tee -a /etc/apt/sources.list
-sudo apt update
-```
-
-then you can install it by: `sudo apt-get install kk`
--->
 ### Create a Cluster
 
 #### Quick Start
