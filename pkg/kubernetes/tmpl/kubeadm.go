@@ -58,6 +58,7 @@ networking:
   serviceSubnet: {{ .ServiceSubnet }}
 apiServer:
   extraArgs:
+    advertise-address: {{ .AdvertiseAddress }}
     anonymous-auth: "true"
     bind-address: 0.0.0.0
     insecure-port: "0"
@@ -175,7 +176,7 @@ featureGates:
     `)))
 
 // GenerateKubeadmCfg create kubeadm configuration file to initialize the cluster.
-func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
+func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	// generate etcd configuration
 	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
 	var endpointsList []string
@@ -236,6 +237,7 @@ func GenerateKubeadmCfg(mgr *manager.Manager) (string, error) {
 		"ProxyMode":            mgr.Cluster.Kubernetes.ProxyMode,
 		"CriSock":              containerRuntimeEndpoint,
 		"CgroupDriver":         cgroupDriver,
+		"AdvertiseAddress":     node.InternalAddress,
 	})
 }
 
