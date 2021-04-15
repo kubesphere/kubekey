@@ -120,7 +120,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			}
 			kubeadmCfgBase64 = strings.TrimSpace(string(output))
 		} else {
-			kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr)
+			kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr, node)
 			if err != nil {
 				return err
 			}

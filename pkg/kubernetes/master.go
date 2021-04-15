@@ -93,7 +93,7 @@ func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 			}
 			kubeadmCfgBase64 = strings.TrimSpace(string(output))
 		} else {
-			kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr)
+			kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr, node)
 			if err != nil {
 				return err
 			}
@@ -259,7 +259,7 @@ func PatchKubeadmSecret(mgr *manager.Manager) error {
 func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if !ExistNode(node) {
 		if node.IsMaster {
-			err := addMaster(mgr)
+			err := addMaster(mgr, node)
 			if err != nil {
 				return err
 			}
@@ -286,9 +286,9 @@ func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 	return nil
 }
 
-func addMaster(mgr *manager.Manager) error {
+func addMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	for i := 0; i < 3; i++ {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", clusterStatus["joinMasterCmd"]), 0, true)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", fmt.Sprintf("%s --apiserver-advertise-address %s", clusterStatus["joinMasterCmd"], node.InternalAddress)), 0, true)
 		if err != nil {
 			if i == 2 {
 				return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
