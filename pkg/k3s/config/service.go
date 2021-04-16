@@ -42,11 +42,14 @@ WantedBy=multi-user.target
 
 [Service]
 Type=notify
-# EnvironmentFile=/etc/systemd/system/k3s.service.env
+EnvironmentFile=/etc/systemd/system/k3s.service.env
+{{ if .IsMaster }}
+Environment="K3S_ARGS= {{ range .CertSANs }} --tls-san={{ . }}{{- end }} {{ range .ApiserverArgs }} --kube-apiserver-arg={{ . }}{{- end }} {{ range .ControllerManager }} --kube-controller-manager-arg={{ . }}{{- end }} {{ range .SchedulerArgs }} --kube-scheduler-arg={{ . }}{{- end }} --cluster-cidr={{ .PodSubnet }} --service-cidr={{ .ServiceSubnet }} --cluster-dns={{ .ClusterDns }} --flannel-backend=none --disable-network-policy --disable-cloud-controller --disable=servicelb,traefik,metrics-server,local-storage"
+{{ end }}
+Environment="K3S_EXTRA_ARGS=--node-name={{ .HostName }}  --node-ip={{ .NodeIP }} {{ if .Server }}--server={{ .Server }}{{ end }} --pause-image={{ .PauseImage }} {{ range .KubeletArgs }} --kubelet-arg={{ . }}{{- end }} {{ range .KubeProxyArgs }} --kube-proxy-arg={{ . }}{{- end }}"
+Environment="K3S_ROLE={{ if .IsMaster }}server{{ else }}agent{{ end }}"
 KillMode=process
 Delegate=yes
-# Having non-zero Limit*s causes performance problems due to accounting overhead
-# in the kernel. We recommend using cgroups to do container-local accounting.
 LimitNOFILE=1048576
 LimitNPROC=infinity
 LimitCORE=infinity
@@ -56,26 +59,65 @@ Restart=always
 RestartSec=5s
 ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStartPre=-/sbin/modprobe overlay
-ExecStart=/usr/local/bin/k3s server 
+ExecStart=/usr/local/bin/k3s $K3S_ROLE $K3S_ARGS $K3S_EXTRA_ARGS
     `)))
 
 	// K3sEnvTempl defines the template of kubelet's Env for the kubelet's systemd service.
 	K3sEnvTempl = template.Must(template.New("k3sEnv").Parse(
 		dedent.Dedent(`# Note: This dropin only works with k3s
-[Service]
 {{ if .IsMaster }}
-Environment="K3S_ARGS=--write-kubeconfig-mode=644 --datastore-endpoint={{ .DataStoreEndPoint }}  --datastore-cafile={{ .DataStoreCaFile }}  --datastore-certfile={{ .DataStoreCertFile }}  --datastore-keyfile={{ .DataStoreKeyFile }}  {{ range .CertSANs }} --tls-san={{ . }}{{- end }} --cluster-cidr={{ .PodSubnet }} --service-cidr={{ .ServiceSubnet }} --cluster-dns={{ .ClusterDns }} --flannel-backend=none --disable-network-policy --disable-cloud-controller --disable=servicelb,traefik,metrics-server,local-storage"
+K3S_DATASTORE_ENDPOINT={{ .DataStoreEndPoint }}
+K3S_DATASTORE_CAFILE={{ .DataStoreCaFile }}
+K3S_DATASTORE_CERTFILE={{ .DataStoreCertFile }}
+K3S_DATASTORE_KEYFILE={{ .DataStoreKeyFile }}
+K3S_KUBECONFIG_MODE=644
 {{ end }}
-Environment="K3S_EXTRA_ARGS=--node-name={{ .HostName }}  --node-ip={{ .NodeIP }} {{ if .Server }}--server={{ .Server }}{{ end }} {{ if .Token }}--token={{ .Token }}{{ end }} --pause-image={{ .PauseImage }} --kubelet-arg=cni-conf-dir=/etc/cni/net.d --kubelet-arg=cni-bin-dir=/opt/cni/bin --kube-proxy-arg=proxy-mode=ipvs --kube-proxy-arg=masquerade-all=true"
-Environment="K3S_ROLE={{ if .IsMaster }}server{{ else }}agent{{ end }}"
-ExecStart=
-ExecStart=/usr/local/bin/k3s $K3S_ROLE $K3S_ARGS $K3S_EXTRA_ARGS
+{{ if .Token }}
+K3S_TOKEN={{ .Token }}
+{{ end }}
+
     `)))
 )
 
 // GenerateK3sService is used to generate kubelet's service content for systemd.
-func GenerateK3sService() (string, error) {
-	return util.Render(K3sServiceTempl, util.Data{})
+func GenerateK3sService(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, token string) (string, error) {
+	var server string
+	if token != "" {
+		server = fmt.Sprintf("https://%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port)
+	} else {
+		server = ""
+	}
+
+	defaultKubeletArs := map[string]string{
+		"cni-conf-dir": "/etc/cni/net.d",
+		"cni-bin-dir":  "/opt/cni/bin",
+	}
+	defaultKubeProxyArgs := map[string]string{
+		"proxy-mode": "ipvs",
+	}
+
+	kubeApiserverArgs, _ := util.GetArgs(map[string]string{}, mgr.Cluster.Kubernetes.ApiServerArgs)
+	kubeControllerManager, _ := util.GetArgs(map[string]string{}, mgr.Cluster.Kubernetes.ControllerManagerArgs)
+	kubeSchedulerArgs, _ := util.GetArgs(map[string]string{}, mgr.Cluster.Kubernetes.SchedulerArgs)
+	kubeletArgs, _ := util.GetArgs(defaultKubeletArs, mgr.Cluster.Kubernetes.KubeletArgs)
+	kubeProxyArgs, _ := util.GetArgs(defaultKubeProxyArgs, mgr.Cluster.Kubernetes.KubeProxyArgs)
+
+	return util.Render(K3sServiceTempl, util.Data{
+		"Server":            server,
+		"IsMaster":          node.IsMaster,
+		"NodeIP":            node.InternalAddress,
+		"HostName":          node.Name,
+		"PodSubnet":         mgr.Cluster.Network.KubePodsCIDR,
+		"ServiceSubnet":     mgr.Cluster.Network.KubeServiceCIDR,
+		"ClusterDns":        mgr.Cluster.ClusterIP(),
+		"CertSANs":          mgr.Cluster.GenerateCertSANs(),
+		"PauseImage":        preinstall.GetImage(mgr, "pause").ImageName(),
+		"ApiserverArgs":     kubeApiserverArgs,
+		"ControllerManager": kubeControllerManager,
+		"SchedulerArgs":     kubeSchedulerArgs,
+		"KubeletArgs":       kubeletArgs,
+		"KubeProxyArgs":     kubeProxyArgs,
+	})
 }
 
 // GenerateK3sEnv is used to generate the env content of kubelet's service for systemd.
@@ -100,27 +142,12 @@ func GenerateK3sEnv(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, toke
 	externalEtcd.CertFile = certFile
 	externalEtcd.KeyFile = keyFile
 
-	var server string
-	if token != "" {
-		server = fmt.Sprintf("https://%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port)
-	} else {
-		server = ""
-	}
-
 	return util.Render(K3sEnvTempl, util.Data{
 		"DataStoreEndPoint": externalEtcdEndpoints,
 		"DataStoreCaFile":   caFile,
 		"DataStoreCertFile": certFile,
 		"DataStoreKeyFile":  keyFile,
 		"IsMaster":          node.IsMaster,
-		"NodeIP":            node.InternalAddress,
-		"HostName":          node.Name,
 		"Token":             token,
-		"Server":            server,
-		"PodSubnet":         mgr.Cluster.Network.KubePodsCIDR,
-		"ServiceSubnet":     mgr.Cluster.Network.KubeServiceCIDR,
-		"ClusterDns":        mgr.Cluster.ClusterIP(),
-		"CertSANs":          mgr.Cluster.GenerateCertSANs(),
-		"PauseImage":        preinstall.GetImage(mgr, "pause").ImageName(),
 	})
 }

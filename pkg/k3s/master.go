@@ -81,13 +81,15 @@ func GetClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 // InitK3sCluster is used to init a new cluster.
 func InitK3sCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 && !clusterIsExist {
-
+		if err := setK3sSystemdConfig(mgr, node, ""); err != nil {
+			return err
+		}
 		kubeletEnv, err3 := config.GenerateK3sEnv(mgr, node, "")
 		if err3 != nil {
 			return err3
 		}
 		kubeletEnvBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletEnv))
-		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/systemd/system/k3s.service.d && echo %s | base64 -d > /etc/systemd/system/k3s.service.d/k3s.conf\"", kubeletEnvBase64), 2, false); err != nil {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service.env\"", kubeletEnvBase64), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet env")
 		}
 
@@ -242,12 +244,15 @@ func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 }
 
 func addMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if err := setK3sSystemdConfig(mgr, node, ""); err != nil {
+		return err
+	}
 	kubeletEnv, err3 := config.GenerateK3sEnv(mgr, node, "")
 	if err3 != nil {
 		return err3
 	}
 	kubeletEnvBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletEnv))
-	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/systemd/system/k3s.service.d && echo %s | base64 -d > /etc/systemd/system/k3s.service.d/k3s.conf\"", kubeletEnvBase64), 2, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service.env\"", kubeletEnvBase64), 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet env")
 	}
 
@@ -259,12 +264,15 @@ func addMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 }
 
 func addWorker(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if err := setK3sSystemdConfig(mgr, node, clusterStatus["nodeToken"]); err != nil {
+		return err
+	}
 	kubeletEnv, err3 := config.GenerateK3sEnv(mgr, node, clusterStatus["nodeToken"])
 	if err3 != nil {
 		return err3
 	}
 	kubeletEnvBase64 := base64.StdEncoding.EncodeToString([]byte(kubeletEnv))
-	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p /etc/systemd/system/k3s.service.d && echo %s | base64 -d > /etc/systemd/system/k3s.service.d/k3s.conf\"", kubeletEnvBase64), 2, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service.env\"", kubeletEnvBase64), 2, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet env")
 	}
 

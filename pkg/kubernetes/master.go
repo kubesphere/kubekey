@@ -19,6 +19,7 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/kubernetes/config/v1beta2"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
@@ -26,7 +27,6 @@ import (
 	"strings"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -93,7 +93,7 @@ func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 			}
 			kubeadmCfgBase64 = strings.TrimSpace(string(output))
 		} else {
-			kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr, node)
+			kubeadmCfg, err := v1beta2.GenerateKubeadmCfg(mgr, node)
 			if err != nil {
 				return err
 			}

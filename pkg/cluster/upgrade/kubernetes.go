@@ -6,8 +6,8 @@ import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/kubernetes/config/v1beta2"
 	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
-	"github.com/kubesphere/kubekey/pkg/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -120,7 +120,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			}
 			kubeadmCfgBase64 = strings.TrimSpace(string(output))
 		} else {
-			kubeadmCfg, err := tmpl.GenerateKubeadmCfg(mgr, node)
+			kubeadmCfg, err := v1beta2.GenerateKubeadmCfg(mgr, node)
 			if err != nil {
 				return err
 			}

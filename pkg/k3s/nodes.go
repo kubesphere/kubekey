@@ -101,15 +101,6 @@ func SetK3s(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to create kubelet link"))
 	}
 
-	k3sService, err1 := config.GenerateK3sService()
-	if err1 != nil {
-		return err1
-	}
-	k3sServiceBase64 := base64.StdEncoding.EncodeToString([]byte(k3sService))
-	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service\"", k3sServiceBase64), 5, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet service")
-	}
-
 	binaries := []string{"kubectl", "crictl", "ctr"}
 	createLinkCmds := []string{}
 	for _, binary := range binaries {
@@ -150,5 +141,17 @@ func SetK3s(mgr *manager.Manager) error {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync k3s-uninstall")
 	}
 
+	return nil
+}
+
+func setK3sSystemdConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, token string) error {
+	k3sService, err1 := config.GenerateK3sService(mgr, node, token)
+	if err1 != nil {
+		return err1
+	}
+	k3sServiceBase64 := base64.StdEncoding.EncodeToString([]byte(k3sService))
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service\"", k3sServiceBase64), 5, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet service")
+	}
 	return nil
 }

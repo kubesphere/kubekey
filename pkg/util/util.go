@@ -19,6 +19,7 @@ package util
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"net"
@@ -26,6 +27,7 @@ import (
 	"os/exec"
 	"os/user"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -268,4 +270,21 @@ func homeWindows() (string, error) {
 	}
 
 	return home, nil
+}
+
+func GetArgs(argsMap map[string]string, args []string) ([]string, map[string]string) {
+	for _, arg := range args {
+		splitArg := strings.SplitN(arg, "=", 2)
+		if len(splitArg) < 2 {
+			continue
+		}
+		argsMap[splitArg[0]] = splitArg[1]
+	}
+
+	for arg, value := range argsMap {
+		cmd := fmt.Sprintf("%s=%s", arg, value)
+		args = append(args, cmd)
+	}
+	sort.Strings(args)
+	return args, argsMap
 }
