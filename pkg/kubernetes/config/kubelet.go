@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tmpl
+package config
 
 import (
 	"text/template"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/lithammer/dedent"
 )
 
@@ -65,7 +64,7 @@ func GenerateKubeletService() (string, error) {
 }
 
 // GenerateKubeletEnv is used to generate the env content of kubelet's service for systemd.
-func GenerateKubeletEnv(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
+func GenerateKubeletEnv(node *kubekeyapiv1alpha1.HostCfg) (string, error) {
 	var containerRuntime string
 
 	return util.Render(KubeletEnvTempl, util.Data{

@@ -19,12 +19,12 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/kubernetes/config"
 	"os"
 	"path/filepath"
 	"strings"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/kubernetes/tmpl"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 )
@@ -107,7 +107,7 @@ func SetKubelet(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to create kubelet link"))
 	}
 
-	kubeletService, err1 := tmpl.GenerateKubeletService()
+	kubeletService, err1 := config.GenerateKubeletService()
 	if err1 != nil {
 		return err1
 	}
@@ -120,7 +120,7 @@ func SetKubelet(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 		return errors.Wrap(errors.WithStack(err), "Failed to enable kubelet service")
 	}
 
-	kubeletEnv, err3 := tmpl.GenerateKubeletEnv(mgr, node)
+	kubeletEnv, err3 := config.GenerateKubeletEnv(node)
 	if err3 != nil {
 		return err3
 	}
