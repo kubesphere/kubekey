@@ -186,9 +186,13 @@ spec:
     port: 2379             
     tlsEnable: true
   common:
-    minioVolumeSize: 20Gi
-    openldapVolumeSize: 2Gi   
+    redis:
+      enabled: false
     redisVolumSize: 2Gi 
+    openldap:
+      enabled: false
+    openldapVolumeSize: 2Gi  
+    minioVolumeSize: 20Gi
     monitoring:
       endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090
     es:  
