@@ -199,7 +199,13 @@ spec:
       elasticsearchMasterVolumeSize: 4Gi   
       elasticsearchDataVolumeSize: 20Gi   
       logMaxAge: 7          
-      elkPrefix: logstash  
+      elkPrefix: logstash
+      basicAuth:
+        enabled: false
+        username: ""
+        password: ""
+      externalElasticsearchUrl: ""
+      externalElasticsearchPort: ""  
   console:
     enableMultiLogin: true 
     port: 30880
