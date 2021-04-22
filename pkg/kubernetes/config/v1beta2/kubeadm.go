@@ -103,6 +103,7 @@ kind: KubeletConfiguration
 
 var (
 	apiServerArgs = map[string]string{
+		"bind-address":        "0.0.0.0",
 		"audit-log-maxage":    "30",
 		"audit-log-maxbackup": "10",
 		"audit-log-maxsize":   "100",
@@ -110,10 +111,12 @@ var (
 		"feature-gates":       "CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
 	}
 	controllermanagerArgs = map[string]string{
+		"bind-address":                          "0.0.0.0",
 		"experimental-cluster-signing-duration": "87600h",
 		"feature-gates":                         "CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
 	}
 	schedulerArgs = map[string]string{
+		"bind-address":  "0.0.0.0",
 		"feature-gates": "CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true",
 	}
 )
