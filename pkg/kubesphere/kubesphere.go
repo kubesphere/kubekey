@@ -212,11 +212,11 @@ func CheckKubeSphereStatus(mgr *manager.Manager) {
 	for i := 180; i > 0; i-- {
 		time.Sleep(10 * time.Second)
 		_, err := mgr.Runner.ExecuteCmd(
-			"/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -- ls /kubesphere/playbooks/kubesphere_running", 0, false,
+			"sudo -E /bin/sh -c \"/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -- ls /kubesphere/playbooks/kubesphere_running\"", 0, false,
 		)
 		if err == nil {
 			output, err := mgr.Runner.ExecuteCmd(
-				"/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -- cat /kubesphere/playbooks/kubesphere_running", 2, false,
+				"sudo -E /bin/sh -c \"/usr/local/bin/kubectl exec -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -- cat /kubesphere/playbooks/kubesphere_running\"", 2, false,
 			)
 			if err == nil && output != "" {
 				stopChan <- output

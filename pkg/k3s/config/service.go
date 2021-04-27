@@ -89,15 +89,21 @@ func GenerateK3sService(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, 
 	}
 
 	defaultKubeletArs := map[string]string{
-		"cni-conf-dir": "/etc/cni/net.d",
-		"cni-bin-dir":  "/opt/cni/bin",
+		"cni-conf-dir":    "/etc/cni/net.d",
+		"cni-bin-dir":     "/opt/cni/bin",
+		"kube-reserved":   "cpu=200m,memory=250Mi,ephemeral-storage=1Gi",
+		"system-reserved": "cpu=200m,memory=250Mi,ephemeral-storage=1Gi",
+		"eviction-hard":   "memory.available<5%,nodefs.available<10%",
 	}
 	defaultKubeProxyArgs := map[string]string{
 		"proxy-mode": "ipvs",
 	}
 
 	kubeApiserverArgs, _ := util.GetArgs(map[string]string{}, mgr.Cluster.Kubernetes.ApiServerArgs)
-	kubeControllerManager, _ := util.GetArgs(map[string]string{}, mgr.Cluster.Kubernetes.ControllerManagerArgs)
+	kubeControllerManager, _ := util.GetArgs(map[string]string{
+		"pod-eviction-timeout":        "3m0s",
+		"terminated-pod-gc-threshold": "5",
+	}, mgr.Cluster.Kubernetes.ControllerManagerArgs)
 	kubeSchedulerArgs, _ := util.GetArgs(map[string]string{}, mgr.Cluster.Kubernetes.SchedulerArgs)
 	kubeletArgs, _ := util.GetArgs(defaultKubeletArs, mgr.Cluster.Kubernetes.KubeletArgs)
 	kubeProxyArgs, _ := util.GetArgs(defaultKubeProxyArgs, mgr.Cluster.Kubernetes.KubeProxyArgs)
