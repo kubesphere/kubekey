@@ -48,6 +48,9 @@ echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf
 echo 'net.bridge.bridge-nf-call-ip6tables = 1' >> /etc/sysctl.conf
 echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf
 echo 'net.ipv4.ip_local_reserved_ports = 30000-32767' >> /etc/sysctl.conf
+echo 'vm.max_map_count = 262144' >> /etc/sysctl.conf
+echo 'vm.swappiness = 1' >> /etc/sysctl.conf
+echo 'fs.inotify.max_user_instances = 524288' >> /etc/sysctl.conf
 
 #See https://imroc.io/posts/kubernetes/troubleshooting-with-kubernetes-network/
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
@@ -57,6 +60,9 @@ sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-arptables ?= ?(0|1)@net.bridge.bri
 sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-ip6tables ?= ?(0|1)@net.bridge.bridge-nf-call-ip6tables = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-iptables ?= ?(0|1)@net.bridge.bridge-nf-call-iptables = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.ipv4.ip_local_reserved_ports ?= ?(0|1)@net.ipv4.ip_local_reserved_ports = 30000-32767@g" /etc/sysctl.conf
+sed -r -i  "s@#{0,}?vm.max_map_count ?= ?(0|1)@vm.max_map_count = 262144@g" /etc/sysctl.conf
+sed -r -i  "s@#{0,}?vm.swappiness ?= ?(0|1)@vm.swappiness = 1@g" /etc/sysctl.conf
+sed -r -i  "s@#{0,}?fs.inotify.max_user_instances ?= ?(0|1)@fs.inotify.max_user_instances = 524288@g" /etc/sysctl.conf
 
 awk ' !x[$0]++{print > "/etc/sysctl.conf"}' /etc/sysctl.conf
 

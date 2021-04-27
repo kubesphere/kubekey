@@ -104,23 +104,20 @@ func initOS(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 			case "deb":
 				if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \""+
 					"apt update;"+
-					"apt install socat conntrack ipset ebtables nfs-common ceph-common software-properties-common -y;"+
-					"add-apt-repository ppa:gluster/glusterfs-7 -y;"+
-					"apt update;"+
-					"apt install glusterfs-client -y"+
+					"apt install socat conntrack ipset ebtables chrony -y;"+
 					"\"", 2, false); err != nil {
 					return err
 				}
 			case "rpm":
 				if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \""+
-					"yum install yum-utils openssl socat conntrack ipset ebtables nfs-utils ceph-common glusterfs-fuse -y\"", 2, false); err != nil {
+					"yum install yum-utils openssl socat conntrack ipset ebtables chrony -y\"", 2, false); err != nil {
 					return err
 				}
 			default:
 				return errors.New(fmt.Sprintf("Unsupported operating system: %s", osrData.ID))
 			}
 
-			output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker && systemctl restart docker; fi\"", dockerConfigBase64), 0, false)
+			output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker; if [ ! -f /etc/docker/daemon.json ]; then mkdir -p /etc/docker && echo %s | base64 -d > /etc/docker/daemon.json; fi; systemctl daemon-reload && systemctl restart docker; fi\"", dockerConfigBase64), 0, false)
 			if err1 != nil {
 				return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to install docker:\n%s", output))
 			}
@@ -149,10 +146,7 @@ func initOS(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 				return errors.New(fmt.Sprintf("Unsupported operating system: %s", osrData.ID))
 			}
 
-			_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"systemctl start docker && systemctl enable docker && echo %s | base64 -d > /etc/docker/daemon.json && systemctl reload docker && systemctl restart docker\"", dockerConfigBase64), 0, false)
-			//if err1 != nil {
-			//	return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to install docker:\n%s", output))
-			//}
+			_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"systemctl start docker && systemctl enable docker; if [ ! -f /etc/docker/daemon.json ]; then mkdir -p /etc/docker && echo %s | base64 -d > /etc/docker/daemon.json; fi; systemctl daemon-reload && systemctl restart docker\"", dockerConfigBase64), 0, false)
 		}
 		mgr.Logger.Info(fmt.Sprintf("Complete initialization %s [%s]\n", node.Name, node.InternalAddress))
 	}

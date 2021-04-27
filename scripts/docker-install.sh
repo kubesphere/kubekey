@@ -76,22 +76,6 @@ if echo "$VERSION" | grep -q '^1'; then
 	has_rootless_extras=
 fi
 
-config_daemon(){
-    sudo mkdir -p /etc/docker
-    sudo cat > /etc/docker/daemon.json <<EOF
-{
-  "log-opts": {
-    "max-size": "5m",
-    "max-file":"3"
-  },
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "live-restore": true
-}
-EOF
-    sudo systemctl daemon-reload
-    sudo systemctl restart docker
-}
-
 command_exists() {
 	command -v "$@" > /dev/null 2>&1
 }
@@ -442,7 +426,6 @@ do_install() {
 				fi
 			)
 			echo_docker_as_nonroot
-			config_daemon
 			exit 0
 			;;
 		centos|fedora|rhel)
@@ -516,8 +499,6 @@ do_install() {
 					$sh_c "$pkg_manager install -y -q docker-ce-rootless-extras$pkg_version"
 				fi
 			)
-			echo_docker_as_nonroot
-			config_daemon
 			exit 0
 			;;
 		*)
