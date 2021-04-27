@@ -29,7 +29,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/plugins/network/cilium"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/flannel"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/kubeovn"
-	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,30 +84,29 @@ func deployNetworkPlugin(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) er
 }
 
 func deployCalico(mgr *manager.Manager) error {
-	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
-		var calicoContent string
-		cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.16.0")
+
+	var calicoContent string
+	cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.16.0")
+	if err != nil {
+		return err
+	}
+	if cmp == -1 {
+		calicoContentStr, err := calico.GenerateCalicoFilesOld(mgr)
 		if err != nil {
 			return err
 		}
-		if cmp == -1 {
-			calicoContentStr, err := calico.GenerateCalicoFilesOld(mgr)
-			if err != nil {
-				return err
-			}
-			calicoContent = calicoContentStr
-		} else {
-			calicoContentStr, err := calico.GenerateCalicoFilesNew(mgr)
-			if err != nil {
-				return err
-			}
-			calicoContent = calicoContentStr
+		calicoContent = calicoContentStr
+	} else {
+		calicoContentStr, err := calico.GenerateCalicoFilesNew(mgr)
+		if err != nil {
+			return err
 		}
+		calicoContent = calicoContentStr
+	}
 
-		err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(calicoContent), 0644)
-		if err1 != nil {
-			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
-		}
+	err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(calicoContent), 0644)
+	if err1 != nil {
+		return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
 	}
 
 	calicoBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
@@ -129,15 +127,13 @@ func deployCalico(mgr *manager.Manager) error {
 }
 
 func deployFlannel(mgr *manager.Manager) error {
-	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
-		flannelContent, err := flannel.GenerateFlannelFiles(mgr)
-		if err != nil {
-			return err
-		}
-		err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(flannelContent), 0644)
-		if err1 != nil {
-			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
-		}
+	flannelContent, err := flannel.GenerateFlannelFiles(mgr)
+	if err != nil {
+		return err
+	}
+	err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(flannelContent), 0644)
+	if err1 != nil {
+		return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
 	}
 
 	flannelBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
@@ -158,15 +154,14 @@ func deployFlannel(mgr *manager.Manager) error {
 }
 
 func deployCilium(mgr *manager.Manager) error {
-	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
-		ciliumContent, err := cilium.GenerateCiliumFiles(mgr)
-		if err != nil {
-			return err
-		}
-		err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(ciliumContent), 0644)
-		if err1 != nil {
-			return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
-		}
+
+	ciliumContent, err := cilium.GenerateCiliumFiles(mgr)
+	if err != nil {
+		return err
+	}
+	err1 := ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(ciliumContent), 0644)
+	if err1 != nil {
+		return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
 	}
 
 	ciliumBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
@@ -199,27 +194,25 @@ func deployKubeovn(mgr *manager.Manager) error {
 		}
 	}
 
-	if !util.IsExist(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir)) {
-		var kubeovnContent string
-		var err error
+	var kubeovnContent string
+	var err error
 
-		cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.16.0")
-		if err != nil {
-			return err
-		}
-		if cmp == -1 {
-			kubeovnContent, err = kubeovn.GenerateKubeovnFilesOld(mgr)
-		} else {
-			kubeovnContent, err = kubeovn.GenerateKubeovnFilesNew(mgr)
-		}
-		if err != nil {
-			return err
-		}
+	cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.16.0")
+	if err != nil {
+		return err
+	}
+	if cmp == -1 {
+		kubeovnContent, err = kubeovn.GenerateKubeovnFilesOld(mgr)
+	} else {
+		kubeovnContent, err = kubeovn.GenerateKubeovnFilesNew(mgr)
+	}
+	if err != nil {
+		return err
+	}
 
-		err = ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(kubeovnContent), 0644)
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
-		}
+	err = ioutil.WriteFile(fmt.Sprintf("%s/network-plugin.yaml", mgr.WorkDir), []byte(kubeovnContent), 0644)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to generate network plugin manifests: %s/network-plugin.yaml", mgr.WorkDir))
 	}
 
 	kubeovnBase64, err1 := exec.Command("/bin/bash", "-c", fmt.Sprintf("tar cfz - -C %s -T /dev/stdin <<< network-plugin.yaml | base64 --wrap=0", mgr.WorkDir)).CombinedOutput()
