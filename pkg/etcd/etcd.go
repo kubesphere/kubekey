@@ -172,14 +172,17 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 	}
 
 	if mgr.EtcdContainer {
-		etcdBin, err := tmpl.GenerateEtcdBinary(mgr, mgr.Runner.Index)
-		if err != nil {
-			return err
-		}
-		etcdBinBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBin))
-		_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /usr/local/bin/etcd && chmod +x /usr/local/bin/etcd\"", etcdBinBase64), 1, false)
-		if err3 != nil {
-			return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd bin")
+		checkEtcd, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /usr/local/bin/etcd ] && echo 'etcd already exists' || echo 'etcd will be installed'\"", 0, true)
+		if strings.TrimSpace(checkEtcd) == "etcd will be installed" {
+			etcdBin, err := tmpl.GenerateEtcdBinary(mgr, mgr.Runner.Index)
+			if err != nil {
+				return err
+			}
+			etcdBinBase64 := base64.StdEncoding.EncodeToString([]byte(etcdBin))
+			_, err3 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /usr/local/bin/etcd && chmod +x /usr/local/bin/etcd\"", etcdBinBase64), 1, false)
+			if err3 != nil {
+				return errors.Wrap(errors.WithStack(err3), "Failed to generate etcd bin")
+			}
 		}
 	}
 
