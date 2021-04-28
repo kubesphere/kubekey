@@ -178,7 +178,8 @@ spec:
   persistence:
     storageClass: ""       
   authentication:
-    jwtSecret: ""          
+    jwtSecret: ""
+  zone: ""
   local_registry: ""        
   etcd:
     monitoring: false      
