@@ -54,6 +54,12 @@ func PrecheckNodes(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error
 			results[software] = ""
 		} else {
 			results[software] = "y"
+			if software == "docker" {
+				dockerVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"docker version --format '{{.Server.Version}}'\"", 0, false)
+				if err == nil {
+					results[software] = dockerVersion
+				}
+			}
 		}
 	}
 	output, err := mgr.Runner.ExecuteCmd("date +\"%Z %H:%M:%S\"", 0, false)
