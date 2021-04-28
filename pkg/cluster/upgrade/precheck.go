@@ -21,6 +21,7 @@ import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
+	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
@@ -90,6 +91,37 @@ func GetClusterInfo(mgr *manager.Manager) error {
 	}
 	table.OutputA(results)
 	fmt.Println()
+
+	warningFlag := false
+	cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.19.0")
+	if err != nil {
+		mgr.Logger.Fatal("Failed to compare kubernetes version: %v", err)
+	}
+	if cmp == 0 || cmp == 1 {
+		for _, result := range results {
+			dockerVersion, err := util.RefineDockerVersion(result.Docker)
+			if err != nil {
+				mgr.Logger.Fatal("Failed to get docker version: %v", err)
+			}
+			cmp, err := versionutil.MustParseSemantic(dockerVersion).Compare("20.10.0")
+			if err != nil {
+				mgr.Logger.Fatal("Failed to compare docker version: %v", err)
+			}
+			warningFlag = warningFlag || (cmp == -1)
+		}
+
+		if warningFlag {
+			fmt.Println(`
+Warning:
+
+  An old Docker version may cause the failure of upgrade. It is recommended that you upgrade Docker to 20.10+ beforehand.
+
+  Issue: https://github.com/kubernetes/kubernetes/issues/101056
+
+`)
+		}
+	}
+
 	return mgr.RunTaskOnMasterNodes(getClusterInfo, true)
 }
 
@@ -145,9 +177,6 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 		if err := getNodestatus(mgr); err != nil {
 			return err
 		}
-		if err := getComponentStatus(mgr); err != nil {
-			return err
-		}
 
 		fmt.Println("Upgrade Confirmation:")
 		fmt.Printf("kubernetes version: %s to %s\n", k8sVersionStr, mgr.Cluster.Kubernetes.Version)
@@ -177,16 +206,6 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 			}
 		}
 	}
-	return nil
-}
-
-func getComponentStatus(mgr *manager.Manager) error {
-	componentStatusStr, err := mgr.Runner.ExecuteCmd("sudo -E /bin/bash -c \"/usr/local/bin/kubectl get componentstatus -o go-template='{{range .items}}{{ printf \\\"%s: \\\" .metadata.name}}{{range .conditions}}{{ printf \\\"%v\\n\\\" .message }}{{end}}{{end}}'\"", 1, false)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Components Status:")
-	fmt.Println(componentStatusStr + "\n")
 	return nil
 }
 

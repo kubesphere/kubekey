@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -287,4 +288,20 @@ func GetArgs(argsMap map[string]string, args []string) ([]string, map[string]str
 	}
 	sort.Strings(args)
 	return args, argsMap
+}
+
+func RefineDockerVersion(version string) (string, error) {
+	var newVersionComponents []string
+	versionMatchRE := regexp.MustCompile(`^\s*v?([0-9]+(?:\.[0-9]+)*)(.*)*$`)
+	parts := versionMatchRE.FindStringSubmatch(version)
+	if parts == nil {
+		return "", fmt.Errorf("could not parse %q as version", version)
+	}
+	numbers, _ := parts[1], parts[2]
+	components := strings.Split(numbers, ".")
+
+	for _, comp := range components {
+		newVersionComponents = append(newVersionComponents, strings.TrimPrefix(comp, "0"))
+	}
+	return strings.Join(newVersionComponents, "."), nil
 }
