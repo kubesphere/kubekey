@@ -7,10 +7,10 @@ KubeKey Roadmap demonstrates a list of open source product development plans, as
 - [x] Support more container runtimes: cri-o containerd isula
 - [x] Support more cni plugins: cilium kube-ovn
 - [x] Support for deploying clusters without cni plugin.
+- [x] Support custom components parameters.  
 - [x] Support certificate expiration check and certificate update.
-- [x] Support backup of ETCD data.
+- [x] Support backup of etcd data.
 - [x] Support for adding labels to nodes when deploying cluster.
 - [ ] Support for adding taints to nodes when deploying cluster.
-- [ ] Synchronous images to aliyuncs image registry to enhance deployment experience.
 - [x] Support command auto-completion.
-- [ ] Defining clusters with CustomResourceDefinitions (experimental).
+- [x] Support for deploying k3s (experimental).

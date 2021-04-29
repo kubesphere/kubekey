@@ -25,7 +25,7 @@ There are three scenarios to use KubeKey.
 
 ### Linux Distributions
 
-* **Ubuntu**  *16.04, 18.04*
+* **Ubuntu**  *16.04, 18.04, 20.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
@@ -35,11 +35,12 @@ There are three scenarios to use KubeKey.
 
 * **v1.15**: &ensp; *v1.15.12*
 * **v1.16**: &ensp; *v1.16.13*
-* **v1.17**: &ensp; *v1.17.9* (default)
+* **v1.17**: &ensp; *v1.17.9*
 * **v1.18**: &ensp; *v1.18.6*
+* **v1.19**: &ensp; *v1.19.8*  (default)
+* **v1.20**: &ensp; *v1.20.4*
 > Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
 
-> Notice: KubeSphere is currently not supported running on k8s v1.19.x
 ## Requirements and Recommendations
 
 * Minimum resource requirements (For Minimal Installation of KubeSphere only)：

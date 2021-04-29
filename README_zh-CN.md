@@ -25,7 +25,7 @@
 
 ### Linux 发行版
 
-* **Ubuntu**  *16.04, 18.04*
+* **Ubuntu**  *16.04, 18.04, 20.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
@@ -35,11 +35,12 @@
 
 * **v1.15**: &ensp; *v1.15.12*
 * **v1.16**: &ensp; *v1.16.13*
-* **v1.17**: &ensp; *v1.17.9* (默认)
+* **v1.17**: &ensp; *v1.17.9*
 * **v1.18**: &ensp; *v1.18.6*
+* **v1.19**: &ensp; *v1.19.8*  (default)
+* **v1.20**: &ensp; *v1.20.4*
 > 查看更多支持的版本[点击这里](./docs/kubernetes-versions.md)
 
-> 注意: KubeSphere目前暂不支持运行在k8s 1.19.x之上。
 ## 要求和建议
 
 * 最低资源要求（仅对于最小安装 KubeSphere）：
