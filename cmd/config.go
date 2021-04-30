@@ -45,7 +45,7 @@ func init() {
 	configCmd.Flags().StringVarP(&opt.Name, "name", "", "sample", "Specify a name of cluster object")
 	configCmd.Flags().StringVarP(&opt.ClusterCfgPath, "filename", "f", "", "Specify a configuration file path")
 	configCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
-	configCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.0.0)")
+	configCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.1.0)")
 	configCmd.Flags().BoolVarP(&opt.FromCluster, "from-cluster", "", false, "Create a configuration based on existing cluster")
 	configCmd.Flags().StringVarP(&opt.Kubeconfig, "kubeconfig", "", "", "Specify a kubeconfig file")
 }

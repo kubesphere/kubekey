@@ -17,7 +17,7 @@ spec:
     address: ""
     port: "6443"
   kubernetes:
-    version: v1.17.9
+    version: v1.19.8
     imageRepo: kubesphere
     clusterName: cluster.local
   network:

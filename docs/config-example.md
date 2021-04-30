@@ -22,7 +22,7 @@ spec:
     address: ""
     port: 6443
   kubernetes:
-    version: v1.17.9
+    version: v1.19.8
     imageRepo: kubesphere
     clusterName: cluster.local
     masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false]
@@ -50,7 +50,7 @@ metadata:
   name: ks-installer
   namespace: kubesphere-system
   labels:
-    version: v3.0.0
+    version: v3.1.0
 spec:
   local_registry: ""
   persistence:
