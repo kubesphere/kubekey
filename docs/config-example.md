@@ -50,7 +50,7 @@ metadata:
   name: ks-installer
   namespace: kubesphere-system
   labels:
-    version: v3.0.0
+    version: v3.1.0
 spec:
   local_registry: ""
   persistence:
