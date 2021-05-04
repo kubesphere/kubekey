@@ -189,6 +189,8 @@ func sha256sum(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer file.Close()
+
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		return "", err
