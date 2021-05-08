@@ -278,6 +278,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "alimy",
+      "name": "Michael Li",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10525842?v=4",
+      "profile": "https://alimy.me",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
