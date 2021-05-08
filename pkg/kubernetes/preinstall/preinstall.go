@@ -17,7 +17,9 @@ limitations under the License.
 package preinstall
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -168,7 +170,7 @@ func Prepare(mgr *manager.Manager) error {
 
 // SHA256Check is used to hash checks on downloaded binary. (sha256)
 func SHA256Check(binary files.KubeBinary, version string) error {
-	output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
+	output, err := sha256sum(binary.Path)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
 	}
@@ -176,8 +178,22 @@ func SHA256Check(binary files.KubeBinary, version string) error {
 	if strings.TrimSpace(binary.GetSha256()) == "" {
 		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", version, version))
 	}
-	if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
-		return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))
+	if output != binary.GetSha256() {
+		return errors.New(fmt.Sprintf("SHA256 no match. %s not equal %s", binary.GetSha256(), output))
 	}
 	return nil
+}
+
+func sha256sum(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(data)), nil
 }
