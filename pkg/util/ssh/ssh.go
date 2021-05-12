@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"io/ioutil"
 	"net"
 	"os"
@@ -28,6 +27,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
@@ -44,6 +45,7 @@ var (
 type Connection interface {
 	Exec(cmd string, host *kubekeyapiv1alpha1.HostCfg) (stdout string, err error)
 	Scp(src, dst string) error
+	Close()
 }
 
 type Cfg struct {
@@ -66,6 +68,17 @@ type connection struct {
 	sshclient  *ssh.Client
 	ctx        context.Context
 	cancel     context.CancelFunc
+}
+
+func (c *connection) Close() {
+	if c.sshclient != nil {
+		c.sshclient.Close()
+		c.sshclient = nil
+	}
+	if c.sftpclient != nil {
+		c.sftpclient.Close()
+		c.sftpclient = nil
+	}
 }
 
 func validateOptions(cfg Cfg) (Cfg, error) {
