@@ -109,7 +109,7 @@ metadata:
   labels:
     name: openebs-localpv-provisioner
     openebs.io/component-name: openebs-localpv-provisioner
-    openebs.io/version: 2.3.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -123,7 +123,7 @@ spec:
       labels:
         name: openebs-localpv-provisioner
         openebs.io/component-name: openebs-localpv-provisioner
-        openebs.io/version: 2.3.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
@@ -165,6 +165,10 @@ spec:
         # leader election is enabled.
         #- name: LEADER_ELECTION_ENABLED
         #  value: "true"
+		# OPENEBS_IO_IMAGE_PULL_SECRETS environment variable is used to pass the image pull secrets
+        # to the helper pod launched by local-pv hostpath provisioner
+        #- name: OPENEBS_IO_IMAGE_PULL_SECRETS
+        #  value: ""
         livenessProbe:
           exec:
             command:
