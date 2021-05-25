@@ -165,7 +165,7 @@ spec:
         # leader election is enabled.
         #- name: LEADER_ELECTION_ENABLED
         #  value: "true"
-		# OPENEBS_IO_IMAGE_PULL_SECRETS environment variable is used to pass the image pull secrets
+        # OPENEBS_IO_IMAGE_PULL_SECRETS environment variable is used to pass the image pull secrets
         # to the helper pod launched by local-pv hostpath provisioner
         #- name: OPENEBS_IO_IMAGE_PULL_SECRETS
         #  value: ""
