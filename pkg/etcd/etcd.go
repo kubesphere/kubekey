@@ -245,7 +245,7 @@ func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) er
 				return err
 			}
 		}
-		if err := helthCheck(mgr, node); err != nil {
+		if err := healthCheck(mgr, node); err != nil {
 			return err
 		}
 		etcdStatus = "existing"
@@ -285,7 +285,7 @@ func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) er
 				if err := restartEtcd(mgr); err != nil {
 					return err
 				}
-				if err := helthCheck(mgr, node); err != nil {
+				if err := healthCheck(mgr, node); err != nil {
 					return err
 				}
 				checkMemberCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --no-sync --endpoints=%s member list\"", node.Name, node.Name, etcdBinDir, accessAddresses)
@@ -356,7 +356,7 @@ func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) e
 		if err := restartEtcd(mgr); err != nil {
 			return err
 		}
-		if err := helthCheck(mgr, node); err != nil {
+		if err := healthCheck(mgr, node); err != nil {
 			return err
 		}
 	}
@@ -365,16 +365,16 @@ func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) e
 		return err
 	}
 
-	if err := helthCheck(mgr, node); err != nil {
+	if err := healthCheck(mgr, node); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func helthCheck(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func healthCheck(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	checkHealthCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s cluster-health | grep -q 'cluster is healthy'\"", node.Name, node.Name, etcdBinDir, accessAddresses)
-helthCheckLoop:
+healthCheckLoop:
 	for i := 20; i > 0; i-- {
 		_, err := mgr.Runner.ExecuteCmd(checkHealthCmd, 0, false)
 		if err != nil {
@@ -383,7 +383,7 @@ helthCheckLoop:
 				return errors.Wrap(errors.WithStack(err), "Failed to start etcd cluster")
 			}
 		} else {
-			break helthCheckLoop
+			break healthCheckLoop
 		}
 		time.Sleep(time.Second * 5)
 	}
