@@ -18,13 +18,14 @@ package executor
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/connector/ssh"
 	"os"
 	"path/filepath"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
+	"github.com/kubesphere/kubekey/pkg/connector"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,6 +43,7 @@ type Executor struct {
 	InCluster          bool
 	ClientSet          *kubekeyclientset.Clientset
 	DownloadCommand    func(path, url string) string
+	Connector          connector.Connector
 }
 
 func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset) *Executor {
@@ -56,6 +58,7 @@ func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger
 		AddImagesRepo:  addImagesRepo,
 		InCluster:      inCluster,
 		ClientSet:      clientset,
+		Connector:      ssh.NewDialer(),
 	}
 }
 
@@ -72,7 +75,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.K8sNodes = hostGroups.K8s
 	mgr.Cluster = defaultCluster
 	mgr.ClusterHosts = GenerateHosts(hostGroups, defaultCluster)
-	mgr.Connector = ssh.NewDialer()
+	mgr.Connector = executor.Connector
 	mgr.WorkDir = GenerateWorkDir(executor.Logger)
 	mgr.KsEnable = executor.Cluster.KubeSphere.Enabled
 	mgr.KsVersion = executor.Cluster.KubeSphere.Version

@@ -19,8 +19,8 @@ package manager
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
+	"github.com/kubesphere/kubekey/pkg/connector"
 	"github.com/kubesphere/kubekey/pkg/util/runner"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ type Manager struct {
 	ObjName            string
 	Cluster            *kubekeyapiv1alpha1.ClusterSpec
 	Logger             log.FieldLogger
-	Connector          *ssh.Dialer
+	Connector          connector.Connector
 	Runner             *runner.Runner
 	AllNodes           []kubekeyapiv1alpha1.HostCfg
 	EtcdNodes          []kubekeyapiv1alpha1.HostCfg
