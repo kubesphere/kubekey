@@ -21,7 +21,7 @@ import (
 	"time"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
+	"github.com/kubesphere/kubekey/pkg/connector"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/pkg/errors"
@@ -75,7 +75,7 @@ func (t *Task) Run(mgr *Manager) error {
 func (mgr *Manager) runTask(node *kubekeyapiv1alpha1.HostCfg, task NodeTask, index int) error {
 	var (
 		err  error
-		conn ssh.Connection
+		conn connector.Connection
 	)
 
 	conn, err = mgr.Connector.Connect(*node)

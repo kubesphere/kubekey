@@ -17,6 +17,7 @@ limitations under the License.
 package ssh
 
 import (
+	"github.com/kubesphere/kubekey/pkg/connector"
 	"sync"
 	"time"
 
@@ -25,16 +26,16 @@ import (
 
 type Dialer struct {
 	lock        sync.Mutex
-	connections map[int]Connection
+	connections map[int]connector.Connection
 }
 
 func NewDialer() *Dialer {
 	return &Dialer{
-		connections: make(map[int]Connection),
+		connections: make(map[int]connector.Connection),
 	}
 }
 
-func (dialer *Dialer) Connect(host kubekeyapiv1alpha1.HostCfg) (Connection, error) {
+func (dialer *Dialer) Connect(host kubekeyapiv1alpha1.HostCfg) (connector.Connection, error) {
 	var err error
 
 	dialer.lock.Lock()

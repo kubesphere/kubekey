@@ -19,13 +19,13 @@ package runner
 import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/util/ssh"
+	"github.com/kubesphere/kubekey/pkg/connector"
 	"github.com/pkg/errors"
 	"time"
 )
 
 type Runner struct {
-	Conn  ssh.Connection
+	Conn  connector.Connection
 	Debug bool
 	Host  *kubekeyapiv1alpha1.HostCfg
 	Index int
