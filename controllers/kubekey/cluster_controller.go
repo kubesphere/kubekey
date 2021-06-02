@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -341,6 +342,9 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 			image = container.Image
 		}
 	}
+
+	imageRepoList := strings.Split(image, "/")
+
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -360,7 +364,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 				ObjectMeta: metav1.ObjectMeta{},
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
-						corev1.Volume{
+						{
 							Name: "config",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -374,7 +378,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 								},
 							},
 						},
-						corev1.Volume{
+						{
 							Name: "kube-binaries",
 							VolumeSource: corev1.VolumeSource{
 								EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -382,16 +386,16 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 						},
 					},
 					InitContainers: []corev1.Container{
-						corev1.Container{
+						{
 							Name:  "kube-binaries",
-							Image: fmt.Sprintf("pixiake/kube-binaries:%s", c.Spec.Kubernetes.Version),
+							Image: fmt.Sprintf("%s/kube-binaries:%s", strings.Join(imageRepoList[:len(imageRepoList)-1], "/"), c.Spec.Kubernetes.Version),
 							Command: []string{
 								"sh",
 								"-c",
 								"cp -r -f /kubekey/* /home/kubekey/kubekey/",
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								corev1.VolumeMount{
+								{
 									Name:      "kube-binaries",
 									MountPath: "/home/kubekey/kubekey",
 								},
@@ -405,11 +409,11 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 						Command:         []string{"/home/kubekey/kk"},
 						Args:            args,
 						VolumeMounts: []corev1.VolumeMount{
-							corev1.VolumeMount{
+							{
 								Name:      "config",
 								MountPath: "/home/kubekey/config",
 							},
-							corev1.VolumeMount{
+							{
 								Name:      "kube-binaries",
 								MountPath: "/home/kubekey/kubekey",
 							},
@@ -422,7 +426,6 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 			},
 		},
 	}
-
 	return job
 }
 
