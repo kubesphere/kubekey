@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"text/template"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
@@ -20,7 +19,7 @@ var EtcdBackupScriptTmpl = template.Must(template.New("etcdBackupScript").Parse(
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
 ENDPOINTS='{{ .Etcdendpoint }}'
 ETCD_DATA_DIR="/var/lib/etcd"
-BACKUP_DIR="{{ .Backupdir }}/etcd-$(date +%Y-%m-%d_%H:%M:%S)"
+BACKUP_DIR="{{ .Backupdir }}/etcd-$(date +%Y-%m-%d-%H-%M-%S)"
 KEEPBACKUPNUMBER='{{ .KeepbackupNumber }}'
 ETCDBACKUPPERIOD='{{ .EtcdBackupPeriod }}'
 ETCDBACKUPSCIPT='{{ .EtcdBackupScriptDir }}'
@@ -66,11 +65,7 @@ rm -rf /tmp/file
 
 // EtcdBackupScript is used to generate etcd backup script content.
 func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
-	ips := []string{}
 	var etcdBackupHour string
-	for _, host := range mgr.EtcdNodes {
-		ips = append(ips, fmt.Sprintf("https://%s:2379", host.InternalAddress))
-	}
 	if mgr.Cluster.Kubernetes.EtcdBackupPeriod != 0 {
 		period := mgr.Cluster.Kubernetes.EtcdBackupPeriod
 		if period > 60 && period < 1440 {
@@ -85,7 +80,7 @@ func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (s
 
 	return util.Render(EtcdBackupScriptTmpl, util.Data{
 		"Hostname":            node.Name,
-		"Etcdendpoint":        strings.Join(ips, ","),
+		"Etcdendpoint":        fmt.Sprintf("https://%s:2379", node.InternalAddress),
 		"Backupdir":           mgr.Cluster.Kubernetes.EtcdBackupDir,
 		"KeepbackupNumber":    mgr.Cluster.Kubernetes.KeepBackupNumber,
 		"EtcdBackupPeriod":    mgr.Cluster.Kubernetes.EtcdBackupPeriod,
