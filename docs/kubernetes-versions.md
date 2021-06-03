@@ -40,3 +40,4 @@
 | v1.19.8   | :white_check_mark: |
 | v1.19.9   | :white_check_mark: |
 | v1.20.4   | :white_check_mark: |
+| v1.20.6   | :white_check_mark: |
