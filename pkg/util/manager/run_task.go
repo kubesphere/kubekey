@@ -99,25 +99,8 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapiv1alpha1.HostCfg, task Node
 	hasErrors := false
 
 	wg := &sync.WaitGroup{}
-	result := make(chan string)
 	ccons := make(chan struct{}, DefaultCon)
-	defer close(result)
 	defer close(ccons)
-	hostNum := len(nodes)
-
-	if parallel {
-		go func(result chan string, ccons chan struct{}) {
-			for i := 0; i < hostNum; i++ {
-				select {
-				case <-result:
-				case <-time.After(time.Minute * Timeout):
-					mgr.Logger.Fatalf("Execute task timeout, Timeout=%ds", Timeout)
-				}
-				wg.Done()
-				<-ccons
-			}
-		}(result, ccons)
-	}
 
 	for i := range nodes {
 		mgr := mgr.Copy()
@@ -126,14 +109,27 @@ func (mgr *Manager) RunTaskOnNodes(nodes []kubekeyapiv1alpha1.HostCfg, task Node
 		if parallel {
 			ccons <- struct{}{}
 			wg.Add(1)
-			go func(mgr *Manager, node *kubekeyapiv1alpha1.HostCfg, result chan string, index int) {
+			go func(mgr *Manager, node *kubekeyapiv1alpha1.HostCfg, index int) {
+				result := make(chan string)
+				defer close(result)
+				// generate a timer
+				go func(result chan string, ccons chan struct{}) {
+					select {
+					case <-result:
+					case <-time.After(time.Minute * Timeout):
+						mgr.Logger.Fatalf("Execute task timeout, Timeout=%ds", Timeout)
+					}
+					wg.Done()
+					<-ccons
+				}(result, ccons)
+
 				err = mgr.runTask(node, task, index)
 				if err != nil {
 					mgr.Logger.Error(err)
 					hasErrors = true
 				}
 				result <- "done"
-			}(mgr, &nodes[i], result, i)
+			}(mgr, &nodes[i], i)
 		} else {
 			err = mgr.runTask(&nodes[i], task, i)
 			if err != nil {
