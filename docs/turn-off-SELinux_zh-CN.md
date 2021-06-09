@@ -2,7 +2,7 @@
 ## 永久关闭SELinux
 ```shell script
 # 永久关闭SELinux
-sed -i ‘s/SELINUX=enforcing/SELINUX=disabled/g’ /etc/selinux/config
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 #关闭后需要重启系统
 reboot
 # 查看SELinux的状态
