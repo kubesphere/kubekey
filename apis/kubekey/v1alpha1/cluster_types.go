@@ -163,9 +163,10 @@ type HostGroups struct {
 
 // ControlPlaneEndpoint defines the control plane endpoint information for cluster.
 type ControlPlaneEndpoint struct {
-	Domain  string `yaml:"domain" json:"domain,omitempty"`
-	Address string `yaml:"address" json:"address,omitempty"`
-	Port    int    `yaml:"port" json:"port,omitempty"`
+	InternalLoadBalancerEnabled bool   `yaml:"internalLoadBalancerEnabled" json:"internalLoadBalancerEnabled,omitempty"`
+	Domain                      string `yaml:"domain" json:"domain,omitempty"`
+	Address                     string `yaml:"address" json:"address,omitempty"`
+	Port                        int    `yaml:"port" json:"port,omitempty"`
 }
 
 // RegistryConfig defines the configuration information of the image's repository.

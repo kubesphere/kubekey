@@ -62,6 +62,7 @@ spec:
     {{- end }}
   controlPlaneEndpoint:
     # If loadbalancer was used, 'address' should be set to loadbalancer's ip.
+    internalLoadBalancerEnabled: {{ .Options.InternalLBEnabled }}
     domain: {{ .Options.ControlPlaneEndpointDomain }}
     address: {{ .Options.ControlPlaneEndpointAddress }}
     port: {{ .Options.ControlPlaneEndpointPort }}
@@ -108,6 +109,7 @@ type OptionsCluster struct {
 	ControlPlaneEndpointDomain  string
 	ControlPlaneEndpointAddress string
 	ControlPlaneEndpointPort    string
+	InternalLBEnabled           bool
 }
 
 // GetInfoFromCluster is used to fetch information from the existing cluster.
@@ -198,12 +200,31 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	if err != nil {
 		return nil, err
 	}
+	internalLBEnabled := [2]byte{0, 0}
 	for _, pod := range pods.Items {
 		if strings.Contains(pod.Name, "calico") {
 			opt.NetworkPlugin = "calico"
 		}
 		if strings.Contains(pod.Name, "flannel") {
 			opt.NetworkPlugin = "flannel"
+		}
+		if strings.Contains(pod.Name, "kubevip") {
+			if internalLBEnabled[0]+internalLBEnabled[1] >= 2 {
+				opt.InternalLBEnabled = true
+				continue
+			} else {
+				opt.InternalLBEnabled = false
+			}
+			for _, container := range pod.Spec.Containers {
+				for _, env := range container.Env {
+					if env.Name == "vip_interface" {
+						internalLBEnabled[0] += 1
+					}
+					if env.Name == "vip_address" {
+						internalLBEnabled[1] += 1
+					}
+				}
+			}
 		}
 	}
 

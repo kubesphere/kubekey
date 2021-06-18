@@ -9,6 +9,7 @@ import (
 	k3spreinstall "github.com/kubesphere/kubekey/pkg/k3s/preinstall"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	k8spreinstall "github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
+	"github.com/kubesphere/kubekey/pkg/loadblalancer/kubevip"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
@@ -145,6 +146,35 @@ func InstallKubeBinaries(mgr *manager.Manager) error {
 		return mgr.RunTaskOnK8sNodes(k3s.InstallKubeBinaries, true)
 	default:
 		return mgr.RunTaskOnK8sNodes(kubernetes.InstallKubeBinaries, true)
+	}
+}
+
+// InstallLoadBalancer is used to install a load balancer for creating highly available clusters
+func InstallLoadBalancer(mgr *manager.Manager) error {
+	if !mgr.Cluster.ControlPlaneEndpoint.InternalLoadBalancerEnabled {
+		return nil
+	}
+	mgr.Logger.Infoln("Installing load balancer")
+
+	switch mgr.Cluster.Kubernetes.Type {
+	default:
+		return mgr.RunTaskOnMasterNodes(kubevip.InstallKubevip, true)
+	}
+}
+
+// CheckLoadBalancer is used to check a internal load balancer for creating highly available clusters
+// When kk create the cluster, init master node after the first one may be failed because of the environment is not clear.
+// Then kk will reset the kubeadm config, and all manifests wile be delete.
+// So this function will ensure the internal load balancer manifests is complete.
+func CheckLoadBalancer(mgr *manager.Manager) error {
+	if !mgr.Cluster.ControlPlaneEndpoint.InternalLoadBalancerEnabled {
+		return nil
+	}
+	mgr.Logger.Infoln("Checking internal load balancer")
+
+	switch mgr.Cluster.Kubernetes.Type {
+	default:
+		return mgr.RunTaskOnMasterNodes(kubevip.CheckKubevip, true)
 	}
 }
 
