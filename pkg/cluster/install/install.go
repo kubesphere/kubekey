@@ -100,6 +100,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: InstallKubeBinaries, ErrMsg: "Failed to install kube binaries"},
 		{Task: InitKubernetesCluster, ErrMsg: "Failed to init kubernetes cluster"},
 		{Task: JoinNodesToCluster, ErrMsg: "Failed to join node"},
+		{Task: InstallInternalLoadbalancer, ErrMsg: "Failed to install internal load balancer", Skip: !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		{Task: network.DeployNetworkPlugin, ErrMsg: "Failed to deploy network plugin"},
 		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons", Skip: noNetworkPlugin},
 		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume", Skip: noNetworkPlugin || (!mgr.DeployLocalStorage && !mgr.KsEnable)},

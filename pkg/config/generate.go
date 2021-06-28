@@ -53,6 +53,9 @@ spec:
     - node1
     - node2
   controlPlaneEndpoint:
+    ##Internal loadbalancer for apiservers 
+    #internalLoadbalancer: haproxy
+
     domain: lb.kubesphere.local
     address: ""
     port: 6443

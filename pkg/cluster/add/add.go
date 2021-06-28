@@ -87,6 +87,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: install.GetClusterStatus, ErrMsg: "Failed to get cluster status"},
 		{Task: install.InstallKubeBinaries, ErrMsg: "Failed to install kube binaries"},
 		{Task: install.JoinNodesToCluster, ErrMsg: "Failed to join node"},
+		{Task: install.InstallInternalLoadbalancer, ErrMsg: "Failed to install internal load balancer", Skip: !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 	}
 
 	for _, step := range addNodeTasks {

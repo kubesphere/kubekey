@@ -63,6 +63,9 @@ networking:
   serviceSubnet: {{ .ServiceSubnet }}
 apiServer:
   extraArgs:
+    {{- if .InternalLBDisabled }}
+    advertise-address: {{ .AdvertiseAddress }}
+    {{- end }}
 {{ toYaml .ApiServerArgs | indent 4}}
   certSANs:
     {{- range .CertSANs }}
@@ -85,7 +88,8 @@ scheduler:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{ .AdvertiseAddress }}
+  advertiseAddress: {{ .ControlPlanAddr }}
+  bindPort: {{ .ControlPlanPort }}
 {{- if .CriSock }}
 nodeRegistration:
   criSocket: {{ .CriSock }}
@@ -171,6 +175,8 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 		"CorednsTag":             preinstall.GetImage(mgr, "coredns").Tag,
 		"Version":                mgr.Cluster.Kubernetes.Version,
 		"ClusterName":            mgr.Cluster.Kubernetes.ClusterName,
+		"ControlPlanAddr":        mgr.Cluster.ControlPlaneEndpoint.Address,
+		"ControlPlanPort":        mgr.Cluster.ControlPlaneEndpoint.Port,
 		"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port),
 		"PodSubnet":              mgr.Cluster.Network.KubePodsCIDR,
 		"ServiceSubnet":          mgr.Cluster.Network.KubeServiceCIDR,
@@ -178,6 +184,7 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 		"ExternalEtcd":           externalEtcd,
 		"NodeCidrMaskSize":       mgr.Cluster.Kubernetes.NodeCidrMaskSize,
 		"CriSock":                containerRuntimeEndpoint,
+		"InternalLBDisabled":     !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled(),
 		"AdvertiseAddress":       node.InternalAddress,
 		"ApiServerArgs":          ApiServerArgs,
 		"ControllerManagerArgs":  ControllerManagerArgs,

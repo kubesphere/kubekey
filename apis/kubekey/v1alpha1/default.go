@@ -150,13 +150,13 @@ func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg, incluster bool) Co
 		}
 
 		//Check whether LB should be configured
-		if len(masterGroup) >= 3 && cfg.ControlPlaneEndpoint.Address == "" {
-			fmt.Println("When the environment has at least three masters, You must set the value of the LB address.")
+		if len(masterGroup) >= 3 && !cfg.ControlPlaneEndpoint.IsInternalLBEnabled() && cfg.ControlPlaneEndpoint.Address == "" {
+			fmt.Println("When the environment has at least three masters, You must set the value of the LB address or enable the internal loadbalancer.")
 			os.Exit(0)
 		}
 	}
 
-	if cfg.ControlPlaneEndpoint.Address == "" {
+	if cfg.ControlPlaneEndpoint.Address == "" || cfg.ControlPlaneEndpoint.Address == "127.0.0.1" {
 		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
 	}
 	if cfg.ControlPlaneEndpoint.Domain == "" {
