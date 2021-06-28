@@ -77,7 +77,17 @@ fi
 
 if [ ${ISLINUX} = true ]; then
   filename="kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
-  tar -xzf "${filename}"
+  ret='0'
+  command -v tar >/dev/null 2>&1 || { ret='1'; }
+  if [ "$ret" -eq 0 ]; then
+    tar -xzf "${filename}"
+  else
+    echo "Kubekey ${VERSION} Download Complete!"
+    echo ""
+    echo "Try to unpack the ${filename} failed."
+    echo "tar: command not found, please unpack the ${filename} manually."
+    exit
+  fi
 fi
 
 echo ""
