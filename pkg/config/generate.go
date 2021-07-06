@@ -117,7 +117,9 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 
 	if ksEnabled {
 		switch strings.TrimSpace(ksVersion) {
-		case "v3.1.0", "latest":
+		case "v3.1.1", "latest":
+			opt.KubeSphereConfigMap = kubesphere.V3_1_1
+		case "v3.1.0":
 			opt.KubeSphereConfigMap = kubesphere.V3_1_0
 		case "v3.0.0":
 			opt.KubeSphereConfigMap = kubesphere.V3_0_0

@@ -61,7 +61,7 @@ func init() {
 func setValidArgs(cmd *cobra.Command) (err error) {
 	cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) (
 		strings []string, directive cobra.ShellCompDirective) {
-		versionArray := []string{"v2.1.1", "v3.0.0", "v3.1.0", time.Now().Add(-time.Hour * 24).Format("nightly-20060102")}
+		versionArray := []string{"v2.1.1", "v3.0.0", "v3.1.0", "v3.1.1", time.Now().Add(-time.Hour * 24).Format("nightly-20060102")}
 		return versionArray, cobra.ShellCompDirectiveNoFileComp
 	}
 
