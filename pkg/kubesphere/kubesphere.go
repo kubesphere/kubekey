@@ -115,7 +115,11 @@ EOF
 		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
 			return err
 		}
-	case "v3.1.0", "latest":
+	case "v3.1.0":
+		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
+			return err
+		}
+	case "v3.1.1", "latest":
 		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
 			return err
 		}
@@ -147,7 +151,8 @@ EOF
 		}
 	}
 
-	if ksVersion == "v3.1.0" && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
+	_, ok := mirrorVersionList[ksVersion]
+	if ok && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/zone/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", "cn"), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
 		}

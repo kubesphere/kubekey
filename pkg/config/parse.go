@@ -103,6 +103,9 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			_, ok := labels["version"]
 			if ok {
 				switch labels["version"] {
+				case "v3.1.1":
+					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
+					clusterCfg.Spec.KubeSphere.Version = "v3.1.1"
 				case "v3.1.0":
 					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v3.1.0"
@@ -122,7 +125,10 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 	if ksEnabled {
 		clusterCfg.Spec.KubeSphere.Enabled = true
 		switch strings.TrimSpace(ksVersion) {
-		case "v3.1.0", "":
+		case "v3.1.1", "":
+			clusterCfg.Spec.KubeSphere.Version = "v3.1.1"
+			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_1
+		case "v3.1.0":
 			clusterCfg.Spec.KubeSphere.Version = "v3.1.0"
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
 		case "v3.0.0":
@@ -200,7 +206,10 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 		allinoneCfg.Spec.KubeSphere.Enabled = true
 		ksVersion = strings.TrimSpace(ksVersion)
 		switch ksVersion {
-		case "v3.1.0", "":
+		case "v3.1.1", "":
+			allinoneCfg.Spec.KubeSphere.Version = "v3.1.1"
+			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_1
+		case "v3.1.0":
 			allinoneCfg.Spec.KubeSphere.Version = "v3.1.0"
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V3_1_0
 		case "v3.0.0":

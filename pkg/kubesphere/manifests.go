@@ -250,8 +250,123 @@ spec:
       type: none
     topology:
       type: none
-  notification:   
+  openpitrix:
+    store:
+      enabled: false
+  servicemesh:    
+    enabled: false  
+  kubeedge:
     enabled: false
+    cloudCore:
+      nodeSelector: {"node-role.kubernetes.io/worker": ""}
+      tolerations: []
+      cloudhubPort: "10000"
+      cloudhubQuicPort: "10001"
+      cloudhubHttpsPort: "10002"
+      cloudstreamPort: "10003"
+      tunnelPort: "10004"
+      cloudHub:
+        advertiseAddress: 
+          - ""           
+        nodeLimit: "100"
+      service:
+        cloudhubNodePort: "30000"
+        cloudhubQuicNodePort: "30001"
+        cloudhubHttpsNodePort: "30002"
+        cloudstreamNodePort: "30003"
+        tunnelNodePort: "30004"
+    edgeWatcher:
+      nodeSelector: {"node-role.kubernetes.io/worker": ""}
+      tolerations: []
+      edgeWatcherAgent:
+        nodeSelector: {"node-role.kubernetes.io/worker": ""}
+        tolerations: []
+`
+
+	V3_1_1 = `---
+apiVersion: installer.kubesphere.io/v1alpha1
+kind: ClusterConfiguration
+metadata:
+  name: ks-installer
+  namespace: kubesphere-system
+  labels:
+    version: v3.1.1
+spec:
+  persistence:
+    storageClass: ""       
+  authentication:
+    jwtSecret: ""
+  zone: ""
+  local_registry: ""        
+  etcd:
+    monitoring: false      
+    endpointIps: localhost  
+    port: 2379             
+    tlsEnable: true
+  common:
+    redis:
+      enabled: false
+    redisVolumSize: 2Gi 
+    openldap:
+      enabled: false
+    openldapVolumeSize: 2Gi  
+    minioVolumeSize: 20Gi
+    monitoring:
+      endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090
+    es:  
+      elasticsearchMasterVolumeSize: 4Gi   
+      elasticsearchDataVolumeSize: 20Gi   
+      logMaxAge: 7          
+      elkPrefix: logstash
+      basicAuth:
+        enabled: false
+        username: ""
+        password: ""
+      externalElasticsearchUrl: ""
+      externalElasticsearchPort: ""  
+  console:
+    enableMultiLogin: true 
+    port: 30880
+  alerting:       
+    enabled: false
+    # thanosruler:
+    #   replicas: 1
+    #   resources: {}
+  auditing:    
+    enabled: false
+  devops:           
+    enabled: false
+    jenkinsMemoryLim: 2Gi     
+    jenkinsMemoryReq: 1500Mi 
+    jenkinsVolumeSize: 8Gi   
+    jenkinsJavaOpts_Xms: 512m  
+    jenkinsJavaOpts_Xmx: 512m
+    jenkinsJavaOpts_MaxRAM: 2g
+  events:          
+    enabled: false
+    ruler:
+      enabled: true
+      replicas: 2
+  logging:         
+    enabled: false
+    logsidecar:
+      enabled: true
+      replicas: 2
+  metrics_server:             
+    enabled: false
+  monitoring:
+    storageClass: ""
+    prometheusMemoryRequest: 400Mi  
+    prometheusVolumeSize: 20Gi  
+  multicluster:
+    clusterRole: none 
+  network:
+    networkpolicy:
+      enabled: false
+    ippool:
+      type: none
+    topology:
+      type: none
   openpitrix:
     store:
       enabled: false
@@ -303,23 +418,33 @@ metadata:
   namespace: kubesphere-system
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: clusterconfigurations.installer.kubesphere.io
 spec:
   group: installer.kubesphere.io
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
   scope: Namespaced
   names:
     plural: clusterconfigurations
     singular: clusterconfiguration
     kind: ClusterConfiguration
     shortNames:
-    - cc
+      - cc
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -570,10 +695,16 @@ spec:
         name: host-time
 
     `)))
+
+	mirrorVersionList = map[string]bool{
+		"v3.1.0": true,
+		"v3.1.1": true,
+	}
 )
 
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
-	if version == "v3.1.0" && os.Getenv("KKZONE") == "cn" {
+	_, ok := mirrorVersionList[version]
+	if ok && os.Getenv("KKZONE") == "cn" {
 		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
 	} else {
 		if repo == "" {
