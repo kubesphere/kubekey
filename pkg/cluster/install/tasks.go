@@ -203,6 +203,16 @@ func InstallInternalLoadbalancer(mgr *manager.Manager) error {
 
 	switch mgr.Cluster.Kubernetes.Type {
 	case "k3s":
+		if err := mgr.RunTaskOnWorkerNodes(loadbalancer.DeployHaproxy, true); err != nil {
+			return err
+		}
+		if err := mgr.RunTaskOnWorkerNodes(k3s.UpdateK3sConfig, true); err != nil {
+			return err
+		}
+		if err := mgr.RunTaskOnK8sNodes(k3s.UpdateKubectlConfig, true); err != nil {
+			return err
+		}
+
 	default:
 		if err := mgr.RunTaskOnWorkerNodes(loadbalancer.DeployHaproxy, true); err != nil {
 			return err

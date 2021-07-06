@@ -46,8 +46,9 @@ EnvironmentFile=/etc/systemd/system/k3s.service.env
 {{ if .IsMaster }}
 Environment="K3S_ARGS= {{ range .CertSANs }} --tls-san={{ . }}{{- end }} {{ range .ApiserverArgs }} --kube-apiserver-arg={{ . }}{{- end }} {{ range .ControllerManager }} --kube-controller-manager-arg={{ . }}{{- end }} {{ range .SchedulerArgs }} --kube-scheduler-arg={{ . }}{{- end }} --cluster-cidr={{ .PodSubnet }} --service-cidr={{ .ServiceSubnet }} --cluster-dns={{ .ClusterDns }} --flannel-backend=none --disable-network-policy --disable-cloud-controller --disable=servicelb,traefik,metrics-server,local-storage"
 {{ end }}
-Environment="K3S_EXTRA_ARGS=--node-name={{ .HostName }}  --node-ip={{ .NodeIP }} {{ if .Server }}--server={{ .Server }}{{ end }} --pause-image={{ .PauseImage }} {{ range .KubeletArgs }} --kubelet-arg={{ . }}{{- end }} {{ range .KubeProxyArgs }} --kube-proxy-arg={{ . }}{{- end }}"
+Environment="K3S_EXTRA_ARGS=--node-name={{ .HostName }}  --node-ip={{ .NodeIP }}  --pause-image={{ .PauseImage }} {{ range .KubeletArgs }} --kubelet-arg={{ . }}{{- end }} {{ range .KubeProxyArgs }} --kube-proxy-arg={{ . }}{{- end }}"
 Environment="K3S_ROLE={{ if .IsMaster }}server{{ else }}agent{{ end }}"
+Environment="K3S_SERVER_ARGS={{ if .Server }}--server={{ .Server }}{{ end }}"
 KillMode=process
 Delegate=yes
 LimitNOFILE=1048576
@@ -59,7 +60,7 @@ Restart=always
 RestartSec=5s
 ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStartPre=-/sbin/modprobe overlay
-ExecStart=/usr/local/bin/k3s $K3S_ROLE $K3S_ARGS $K3S_EXTRA_ARGS
+ExecStart=/usr/local/bin/k3s $K3S_ROLE $K3S_ARGS $K3S_EXTRA_ARGS $K3S_SERVER_ARGS
     `)))
 
 	// K3sEnvTempl defines the template of kubelet's Env for the kubelet's systemd service.

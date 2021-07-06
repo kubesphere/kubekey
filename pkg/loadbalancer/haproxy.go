@@ -99,7 +99,7 @@ backend kube_api_backend
   mode tcp
   balance leastconn
   default-server inter 15s downinter 15s rise 2 fall 2 slowstart 60s maxconn 1000 maxqueue 256 weight 100
-  {{- if eq .KubernetesType "kubernetes"}}
+  {{- if ne .KubernetesType "k3s"}}
   option httpchk GET /healthz
   {{- end }}
   http-check expect status 200
