@@ -71,8 +71,8 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		"operator-generic":        {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "cilium", Repo: "operator-generic", Tag: kubekeyapiv1alpha1.DefaultCiliumVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "cilium")},
 		"kubeovn":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "kubeovn", Repo: "kube-ovn", Tag: kubekeyapiv1alpha1.DefaultKubeovnVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "kubeovn")},
 		// storage
-		"provisioner-localpv": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "openebs", Repo: "provisioner-localpv", Tag: "2.9.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
-		"linux-utils":         {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "openebs", Repo: "linux-utils", Tag: "2.9.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"provisioner-localpv": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "openebs", Repo: "provisioner-localpv", Tag: "2.10.1", Group: kubekeyapiv1alpha1.Worker, Enable: false},
+		"linux-utils":         {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "openebs", Repo: "linux-utils", Tag: "2.10.0", Group: kubekeyapiv1alpha1.Worker, Enable: false},
 	}
 
 	image = ImageList[name]
