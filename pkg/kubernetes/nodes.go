@@ -143,7 +143,7 @@ func UpdateKubeletConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 	output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/kubelet.conf ] && echo 'kubelet.conf is exists.' || echo 'kubelet.conf is not exists.'\"", 0, true)
 	if strings.Contains(output, "kubelet.conf is exists.") {
 		// If the value is 'server: "https://127.0.0.1:6443"', return the function to avoid restart the kubelet.
-		if out, err := mgr.Runner.ExecuteCmd("sed -n '/server:.*/p' /etc/kubernetes/kubelet.conf", 1, false); err != nil {
+		if out, err := mgr.Runner.ExecuteCmd("sudo sed -n '/server:.*/p' /etc/kubernetes/kubelet.conf", 1, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to get /etc/kubernetes/kubelet.conf")
 		} else {
 			if strings.Contains(strings.TrimSpace(out), LocalServer) {
@@ -151,7 +151,7 @@ func UpdateKubeletConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 			}
 		}
 
-		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sed -i 's#server:.*#server: https://127.0.0.1:%s#g' /etc/kubernetes/kubelet.conf", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo sed -i 's#server:.*#server: https://127.0.0.1:%s#g' /etc/kubernetes/kubelet.conf", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to update /etc/kubernetes/kubelet.conf")
 		}
 	} else {
@@ -169,8 +169,8 @@ func UpdateKubeletConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 // UpdateKubeproxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
 func UpdateKubeproxyConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
-		if out, err := mgr.Runner.ExecuteCmd("set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
-			"| sed -n '/server:.*/p' ", 1, false); err != nil {
+		if out, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
+			"| sed -n '/server:.*/p' \"", 1, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to get kube-proxy config")
 		} else {
 			if strings.Contains(strings.TrimSpace(out), LocalServer) {
@@ -178,15 +178,15 @@ func UpdateKubeproxyConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 			}
 		}
 
-		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
 			"| sed 's#server:.*#server: https://127.0.0.1:%s#g' "+
-			"| /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 3, false); err != nil {
+			"| /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -\"", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 3, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to update kube-proxy config")
 		}
 	}
 
 	// Restart all kube-proxy pods to ensure that they load the new configmap.
-	if _, err := mgr.Runner.ExecuteCmd("/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0", 3, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0\"", 3, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to restart kube-proxy pod")
 	}
 	return nil
@@ -198,7 +198,7 @@ func UpdateKubectlConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 	if node.IsMaster {
 		output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'admin.conf is exists.' || echo 'admin.conf is not exists.'\"", 0, false)
 		if strings.Contains(output, "admin.conf is exists.") {
-			if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sed -i 's#server:.*#server: https://%s:%s#g' /etc/kubernetes/admin.conf", node.InternalAddress, strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
+			if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo sed -i 's#server:.*#server: https://%s:%s#g' /etc/kubernetes/admin.conf", node.InternalAddress, strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
 				return errors.Wrap(errors.WithStack(err), "Failed to update /etc/kubernetes/kubelet.conf")
 			}
 		} else {
@@ -211,7 +211,7 @@ func UpdateKubectlConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 
 	output2, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f ~/.kube/config ] && echo 'kubectl config is exists.' || echo 'kubectl config is not exists.'\"", 0, false)
 	if strings.Contains(output2, "kubectl config is exists.") {
-		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sed -i 's#server:.*#server: https://127.0.0.1:%s#g' ~/.kube/config", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo sed -i 's#server:.*#server: https://127.0.0.1:%s#g' ~/.kube/config", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to update ~/.kube/config")
 		}
 	} else {

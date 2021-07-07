@@ -131,6 +131,9 @@ func GenerateHaproxyConf(mgr *manager.Manager) (string, error) {
 }
 
 func DeployHaproxy(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if node.IsMaster {
+		return nil
+	}
 	fmt.Printf("[%s] generate haproxy manifest.\n", node.Name)
 
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"mkdir -p %s\"", "/etc/kubekey/haproxy"),
