@@ -63,7 +63,6 @@ networking:
   serviceSubnet: {{ .ServiceSubnet }}
 apiServer:
   extraArgs:
-    advertise-address: {{ .AdvertiseAddress }}
 {{ toYaml .ApiServerArgs | indent 4}}
   certSANs:
     {{- range .CertSANs }}
@@ -82,10 +81,12 @@ scheduler:
   extraArgs:
 {{ toYaml .SchedulerArgs | indent 4 }}
 
-{{- if .CriSock }}
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: {{ .AdvertiseAddress }}
+{{- if .CriSock }}
 nodeRegistration:
   criSocket: {{ .CriSock }}
 {{- end }}
