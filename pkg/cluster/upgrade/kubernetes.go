@@ -132,6 +132,12 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			return errors.Wrap(errors.WithStack(err1), "Failed to generate kubeadm config")
 		}
 
+		// Modify the value of 'advertiseAddress' to the current node's address.
+		// Make sure the current master node's address will be registered in kubernetes endpoint.
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo sed -i 's#advertiseAddress:.*#advertiseAddress: %s#g' /etc/kubernetes/kubeadm-config.yaml", node.InternalAddress), 0, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to modify kubeadm config")
+		}
+
 		for i := 0; i < 3; i++ {
 			if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf(
 				"sudo -E /bin/sh -c \"timeout -k 600s 600s /usr/local/bin/kubeadm upgrade apply -y %s --config=/etc/kubernetes/kubeadm-config.yaml "+
