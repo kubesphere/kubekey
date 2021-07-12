@@ -209,7 +209,7 @@ func InstallInternalLoadbalancer(mgr *manager.Manager) error {
 		if err := mgr.RunTaskOnWorkerNodes(k3s.UpdateK3sConfig, true); err != nil {
 			return err
 		}
-		if err := mgr.RunTaskOnK8sNodes(k3s.UpdateKubectlConfig, true); err != nil {
+		if err := mgr.RunTaskOnK8sNodes(kubernetes.UpdateHostsFile, true); err != nil {
 			return err
 		}
 
@@ -223,7 +223,7 @@ func InstallInternalLoadbalancer(mgr *manager.Manager) error {
 		if err := mgr.RunTaskOnMasterNodes(kubernetes.UpdateKubeproxyConfig, true); err != nil {
 			return err
 		}
-		if err := mgr.RunTaskOnK8sNodes(kubernetes.UpdateKubectlConfig, true); err != nil {
+		if err := mgr.RunTaskOnK8sNodes(kubernetes.UpdateHostsFile, true); err != nil {
 			return err
 		}
 	}

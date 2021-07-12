@@ -63,9 +63,6 @@ networking:
   serviceSubnet: {{ .ServiceSubnet }}
 apiServer:
   extraArgs:
-    {{- if .InternalLBDisabled }}
-    advertise-address: {{ .AdvertiseAddress }}
-    {{- end }}
 {{ toYaml .ApiServerArgs | indent 4}}
   certSANs:
     {{- range .CertSANs }}
