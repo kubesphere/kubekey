@@ -226,7 +226,7 @@ func UpdateKubectlConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 // UpdateHostsFile is used to update the '/etc/hosts'. Make the 'lb.kubesphere.local' address to set as 127.0.0.1.
 // All of the 'admin.conf' and '/.kube/config' will connect to 127.0.0.1:6443.
 func UpdateHostsFile(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if _, err := mgr.Runner.ExecuteCmd("sudo sed -i 's#.* lb.kubesphere.local#127.0.0.1 lb.kubesphere.local#g' /etc/hosts", 0, false); err != nil {
+	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo sed -i 's#.* %s#127.0.0.1 %s#g' /etc/hosts", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Domain), 0, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to update /etc/hosts")
 	}
 	return nil
