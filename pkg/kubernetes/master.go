@@ -202,6 +202,10 @@ func getJoinCmd(mgr *manager.Manager) error {
 	}
 
 	joinWorkerStrList := strings.Split(output, "kubeadm join")
+	// if "127.0.0.1" in the join command, replace it with the cluster config file's first internal address in master group
+	if strings.Contains(joinWorkerStrList[1], "127.0.0.1") {
+		joinWorkerStrList[1] = strings.Replace(joinWorkerStrList[1], "127.0.0.1", mgr.MasterNodes[0].InternalAddress, 1)
+	}
 	clusterStatus["joinWorkerCmd"] = fmt.Sprintf("/usr/local/bin/kubeadm join %s", joinWorkerStrList[1])
 	clusterStatus["joinMasterCmd"] = fmt.Sprintf("%s --control-plane --certificate-key %s", clusterStatus["joinWorkerCmd"], certificateKey)
 

@@ -9,6 +9,7 @@ import (
 	k3spreinstall "github.com/kubesphere/kubekey/pkg/k3s/preinstall"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	k8spreinstall "github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
+	"github.com/kubesphere/kubekey/pkg/loadbalancer"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
@@ -193,5 +194,38 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 		}
 	}
 
+	return nil
+}
+
+// InstallInternalLoadbalancer is used to install a internal load balancer to cluster.
+func InstallInternalLoadbalancer(mgr *manager.Manager) error {
+	mgr.Logger.Infoln("Install internal load balancer to cluster")
+
+	switch mgr.Cluster.Kubernetes.Type {
+	case "k3s":
+		if err := mgr.RunTaskOnWorkerNodes(loadbalancer.DeployHaproxy, true); err != nil {
+			return err
+		}
+		if err := mgr.RunTaskOnWorkerNodes(k3s.UpdateK3sConfig, true); err != nil {
+			return err
+		}
+		if err := mgr.RunTaskOnK8sNodes(kubernetes.UpdateHostsFile, true); err != nil {
+			return err
+		}
+
+	default:
+		if err := mgr.RunTaskOnWorkerNodes(loadbalancer.DeployHaproxy, true); err != nil {
+			return err
+		}
+		if err := mgr.RunTaskOnK8sNodes(kubernetes.UpdateKubeletConfig, true); err != nil {
+			return err
+		}
+		if err := mgr.RunTaskOnMasterNodes(kubernetes.UpdateKubeproxyConfig, true); err != nil {
+			return err
+		}
+		if err := mgr.RunTaskOnK8sNodes(kubernetes.UpdateHostsFile, true); err != nil {
+			return err
+		}
+	}
 	return nil
 }

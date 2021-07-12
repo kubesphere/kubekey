@@ -61,6 +61,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: GetCurrentVersions, ErrMsg: "Failed to get current version"},
 		{Task: install.InitOS, ErrMsg: "Failed to download kube binaries"},
 		{Task: UpgradeKubeCluster, ErrMsg: "Failed to upgrade kube cluster"},
+		{Task: install.InstallInternalLoadbalancer, ErrMsg: "Failed to install internal load balancer", Skip: !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		{Task: SyncConfiguration, ErrMsg: "Failed to sync configuration"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to upgrade kubesphere"},
 	}

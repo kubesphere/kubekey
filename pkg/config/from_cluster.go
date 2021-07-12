@@ -45,7 +45,7 @@ metadata:
   name: {{ .Options.Name }}
 spec:
   hosts: 
-  # You should complete the ssh information of the hosts
+  ##You should complete the ssh information of the hosts
   {{- range .Options.Hosts }}
   - {{ . }}
   {{- end }}
@@ -61,7 +61,14 @@ spec:
     - {{ . }}
     {{- end }}
   controlPlaneEndpoint:
-    # If loadbalancer was used, 'address' should be set to loadbalancer's ip.
+    ##Internal loadbalancer for apiservers 
+    {{- if .Options.InternalLoadbalancer }}
+    internalLoadbalancer: {{ .Options.InternalLoadbalancer }}
+    {{- else }}
+    #internalLoadbalancer: haproxy
+    {{- end }}
+
+    ##If the external loadbalancer was used, 'address' should be set to loadbalancer's ip.
     domain: {{ .Options.ControlPlaneEndpointDomain }}
     address: {{ .Options.ControlPlaneEndpointAddress }}
     port: {{ .Options.ControlPlaneEndpointPort }}
@@ -108,6 +115,7 @@ type OptionsCluster struct {
 	ControlPlaneEndpointDomain  string
 	ControlPlaneEndpointAddress string
 	ControlPlaneEndpointPort    string
+	InternalLoadbalancer        string
 }
 
 // GetInfoFromCluster is used to fetch information from the existing cluster.
@@ -204,6 +212,9 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 		}
 		if strings.Contains(pod.Name, "flannel") {
 			opt.NetworkPlugin = "flannel"
+		}
+		if strings.Contains(pod.Name, "haproxy-node") {
+			opt.InternalLoadbalancer = "haproxy"
 		}
 	}
 

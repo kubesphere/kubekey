@@ -163,9 +163,10 @@ type HostGroups struct {
 
 // ControlPlaneEndpoint defines the control plane endpoint information for cluster.
 type ControlPlaneEndpoint struct {
-	Domain  string `yaml:"domain" json:"domain,omitempty"`
-	Address string `yaml:"address" json:"address,omitempty"`
-	Port    int    `yaml:"port" json:"port,omitempty"`
+	InternalLoadbalancer string `yaml:"internalLoadbalancer" json:"internalLoadbalancer,omitempty"`
+	Domain               string `yaml:"domain" json:"domain,omitempty"`
+	Address              string `yaml:"address" json:"address,omitempty"`
+	Port                 int    `yaml:"port" json:"port,omitempty"`
 }
 
 // RegistryConfig defines the configuration information of the image's repository.
@@ -366,4 +367,15 @@ func hostVerify(hostList map[string]string, hostName string, group string) error
 		return fmt.Errorf("[%s] is in [%s] group, but not in hosts list", hostName, group)
 	}
 	return nil
+}
+
+const (
+	Haproxy = "haproxy"
+)
+
+func (c ControlPlaneEndpoint) IsInternalLBEnabled() bool {
+	if c.InternalLoadbalancer == Haproxy {
+		return true
+	}
+	return false
 }

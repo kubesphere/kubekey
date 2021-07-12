@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
@@ -152,6 +153,53 @@ func setK3sSystemdConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg,
 	k3sServiceBase64 := base64.StdEncoding.EncodeToString([]byte(k3sService))
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > /etc/systemd/system/k3s.service\"", k3sServiceBase64), 5, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to generate kubelet service")
+	}
+	return nil
+}
+
+const LocalServer = "https://127.0.0.1"
+
+func UpdateK3sConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if node.IsMaster {
+		return nil
+	}
+	output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/systemd/system/k3s.service ] && echo 'k3s.service is exists.' || echo 'k3s.service is not exists.'\"", 0, true)
+	if strings.Contains(output, "k3s.service is exists.") {
+		// If the value is 'server: "https://127.0.0.1:6443"', return the function to avoid restart the kubelet.
+		if out, err := mgr.Runner.ExecuteCmd("sudo sed -n '/--server=.*/p' /etc/systemd/system/k3s.service", 1, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to get /etc/systemd/system/k3s.service")
+		} else {
+			if strings.Contains(strings.TrimSpace(out), LocalServer) {
+				return nil
+			}
+		}
+
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo sed -i 's#--server=.*\"#--server=https://127.0.0.1:%s\"#g' /etc/systemd/system/k3s.service", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to update /etc/systemd/system/k3s.service")
+		}
+	} else {
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to find /etc/systemd/system/k3s.service")
+		}
+		return errors.New("Failed to find /etc/systemd/system/k3s.service")
+	}
+	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl restart k3s\"", 3, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to restart k3s after update k3s.service")
+	}
+	return nil
+}
+
+func UpdateKubectlConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	output2, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f ~/.kube/config ] && echo 'kubectl config is exists.' || echo 'kubectl config is not exists.'\"", 0, false)
+	if strings.Contains(output2, "kubectl config is exists.") {
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo sed -i 's#server:.*#server: https://127.0.0.1:%s#g' ~/.kube/config", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 0, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to update ~/.kube/config")
+		}
+	} else {
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to find ~/.kube/config")
+		}
+		return errors.New("Failed to find ~/.kube/config")
 	}
 	return nil
 }
