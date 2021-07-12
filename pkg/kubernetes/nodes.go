@@ -183,11 +183,11 @@ func UpdateKubeproxyConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 			"| /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -\"", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 3, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to update kube-proxy config")
 		}
-	}
 
-	// Restart all kube-proxy pods to ensure that they load the new configmap.
-	if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0\"", 3, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to restart kube-proxy pod")
+		// Restart all kube-proxy pods to ensure that they load the new configmap.
+		if _, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0\"", 3, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to restart kube-proxy pod")
+		}
 	}
 	return nil
 }
