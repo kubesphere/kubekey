@@ -323,6 +323,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "vinsonzou",
+      "name": "Vinson Zou",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2347587?v=4",
+      "profile": "https://ops.m114.org",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
