@@ -17,7 +17,6 @@ limitations under the License.
 package tmpl
 
 import (
-	"fmt"
 	"strings"
 	"text/template"
 
@@ -126,30 +125,30 @@ ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
 )
 
 // GenerateEtcdBinary is used to generate etcd's container binary content.
-func GenerateEtcdBinary(mgr *manager.Manager, index int) (string, error) {
+func GenerateEtcdBinary(mgr *manager.Manager, name string) (string, error) {
 	return util.Render(EtcdTempl, util.Data{
-		"Name":      fmt.Sprintf("etcd%d", index+1),
+		"Name":      name,
 		"EtcdImage": preinstall.GetImage(mgr, "etcd").ImageName(),
 	})
 }
 
 // GenerateEtcdService is used to generate the etcd's service content for systemd.
-func GenerateEtcdService(index int, etcdContainer bool) (string, error) {
+func GenerateEtcdService(name string, etcdContainer bool) (string, error) {
 	return util.Render(EtcdServiceTempl, util.Data{
-		"Name":          fmt.Sprintf("etcd%d", index+1),
+		"Name":          name,
 		"EtcdContainer": etcdContainer,
 	})
 }
 
 // GenerateEtcdEnv is used to generate the etcd's env content.
-func GenerateEtcdEnv(node *kubekeyapiv1alpha1.HostCfg, index int, endpoints []string, state string) (string, error) {
+func GenerateEtcdEnv(node *kubekeyapiv1alpha1.HostCfg, endpoints []string, state string) (string, error) {
 	UnsupportedArch := false
 	if node.Arch != "amd64" {
 		UnsupportedArch = true
 	}
 	return util.Render(EtcdEnvTempl, util.Data{
 		"Tag":             kubekeyapiv1alpha1.DefaultEtcdVersion,
-		"Name":            fmt.Sprintf("etcd%d", index+1),
+		"Name":            node.EtcdName,
 		"Ip":              node.InternalAddress,
 		"Hostname":        node.Name,
 		"State":           state,
