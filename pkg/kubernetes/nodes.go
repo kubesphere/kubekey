@@ -169,7 +169,7 @@ func UpdateKubeletConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 // UpdateKubeproxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
 func UpdateKubeproxyConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if mgr.Runner.Index == 0 {
-		if out, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
+		if out, err := mgr.Runner.ExecuteCmd("sudo -E /bin/bash -c \"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
 			"| sed -n '/server:.*/p' \"", 1, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to get kube-proxy config")
 		} else {
@@ -178,7 +178,7 @@ func UpdateKubeproxyConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 			}
 		}
 
-		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/bash -c \"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
 			"| sed 's#server:.*#server: https://127.0.0.1:%s#g' "+
 			"| /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -\"", strconv.Itoa(mgr.Cluster.ControlPlaneEndpoint.Port)), 3, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to update kube-proxy config")
