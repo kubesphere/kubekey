@@ -143,6 +143,9 @@ type HostCfg struct {
 	IsEtcd   bool              `json:"-"`
 	IsMaster bool              `json:"-"`
 	IsWorker bool              `json:"-"`
+
+	EtcdExist bool   `json:"-"`
+	EtcdName  string `json:"-"`
 }
 
 // RoleGroups defines the grouping of role for hosts (etcd / master / worker).

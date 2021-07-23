@@ -78,6 +78,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: install.InitOS, ErrMsg: "Failed to init OS"},
 		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker", Skip: skipCondition1},
 		{Task: install.PrePullImages, ErrMsg: "Failed to pre-pull images", Skip: skipCondition1},
+		{Task: etcd.GetEtcdStatus, ErrMsg: "Failed to get etcd status"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},
 		{Task: etcd.SyncEtcdCertsToMaster, ErrMsg: "Failed to sync etcd certs"},
 		{Task: etcd.GenerateEtcdService, ErrMsg: "Failed to create etcd service"},

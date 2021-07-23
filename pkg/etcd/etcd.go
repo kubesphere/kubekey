@@ -42,6 +42,37 @@ var (
 	etcdStatus      = ""
 )
 
+const (
+	NEWETCDCLUSTER   = "new"
+	EXISTETCDCLUSTER = "existing"
+)
+
+// GetEtcdStatus Get the status of the ETCD cluster and determine the ETCD information for the current node.
+func GetEtcdStatus(mgr *manager.Manager) error {
+	mgr.Logger.Infoln("Getting etcd status")
+
+	return mgr.RunTaskOnEtcdNodes(getEtcdStatus, false)
+}
+
+func getEtcdStatus(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"", 0, true)
+	if strings.TrimSpace(output) == "Configuration file already exists" {
+		etcdEnv, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/etcd.env | grep ETCD_NAME\"", 0, true)
+		node.EtcdName = etcdEnv[strings.Index(etcdEnv, "=")+1:]
+		node.EtcdExist = true
+		peerAddresses = append(peerAddresses, fmt.Sprintf("%s=https://%s:2380", node.EtcdName, node.InternalAddress))
+		etcdStatus = EXISTETCDCLUSTER
+	} else {
+		node.EtcdName = fmt.Sprintf("etcd-%s", node.Name)
+		node.EtcdExist = false
+	}
+
+	if len(peerAddresses) == 0 {
+		etcdStatus = NEWETCDCLUSTER
+	}
+	return nil
+}
+
 func GenerateEtcdCerts(mgr *manager.Manager) error {
 	if mgr.InCluster {
 		if err := kubekeycontroller.UpdateClusterConditions(mgr, "Init etcd cluster", metav1.Now(), metav1.Now(), false, 3); err != nil {
@@ -54,9 +85,9 @@ func GenerateEtcdCerts(mgr *manager.Manager) error {
 	return mgr.RunTaskOnEtcdNodes(generateCerts, true)
 }
 
-func generateCerts(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
+func generateCerts(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
-	if mgr.Runner.Index == 0 {
+	if (etcdStatus == NEWETCDCLUSTER && mgr.Runner.Index == 0) || (etcdStatus == EXISTETCDCLUSTER && strings.Contains(peerAddresses[0], node.InternalAddress)) {
 		certsScript, err := tmpl.GenerateEtcdSslScript(mgr)
 		if err != nil {
 			return err
@@ -161,7 +192,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 		return err
 	}
 
-	etcdService, err := tmpl.GenerateEtcdService(mgr.Runner.Index, mgr.EtcdContainer)
+	etcdService, err := tmpl.GenerateEtcdService(node.EtcdName, mgr.EtcdContainer)
 	if err != nil {
 		return err
 	}
@@ -174,7 +205,7 @@ func generateEtcdService(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 	if mgr.EtcdContainer {
 		checkEtcd, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /usr/local/bin/etcd ] && echo 'etcd already exists' || echo 'etcd will be installed'\"", 0, true)
 		if strings.TrimSpace(checkEtcd) == "etcd will be installed" {
-			etcdBin, err := tmpl.GenerateEtcdBinary(mgr, mgr.Runner.Index)
+			etcdBin, err := tmpl.GenerateEtcdBinary(mgr, node.EtcdName)
 			if err != nil {
 				return err
 			}
@@ -231,77 +262,57 @@ func installEtcdBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg)
 func SetupEtcdCluster(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Starting etcd cluster")
 
-	return mgr.RunTaskOnEtcdNodes(setupEtcdCluster, false)
+	if err := mgr.RunTaskOnEtcdNodes(setupEtcdCluster, false); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Configuring and starting etcd cluster.
 func setupEtcdCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	var localPeerAddresses []string
-	output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/etcd.env ] && echo 'Configuration file already exists' || echo 'Configuration file will be created'\"", 0, true)
-	if strings.TrimSpace(output) == "Configuration file already exists" {
-		outTmp, _ := mgr.Runner.ExecuteCmd("sudo cat /etc/etcd.env | awk 'NR==1{print $6}'", 0, true)
-		if outTmp != kubekeyapiv1alpha1.DefaultEtcdVersion {
-			if err := refreshConfig(mgr, node, mgr.Runner.Index, localPeerAddresses, "existing"); err != nil {
-				return err
-			}
+	if node.EtcdExist {
+		if err := healthCheck(mgr, node); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	peerAddresses = append(peerAddresses, fmt.Sprintf("%s=https://%s:2380", node.EtcdName, node.InternalAddress))
+
+	switch etcdStatus {
+	case NEWETCDCLUSTER:
+		if err := refreshConfig(mgr, node, peerAddresses, NEWETCDCLUSTER); err != nil {
+			return err
+		}
+	case EXISTETCDCLUSTER:
+		if err := refreshConfig(mgr, node, peerAddresses, EXISTETCDCLUSTER); err != nil {
+			return err
+		}
+		joinMemberCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s member add %s %s\"", node.Name, node.Name, etcdBinDir, accessAddresses, node.EtcdName, fmt.Sprintf("https://%s:2380", node.InternalAddress))
+		fmt.Println(joinMemberCmd)
+		_, err := mgr.Runner.ExecuteCmd(joinMemberCmd, 2, true)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to add etcd member")
+		}
+		if err := restartEtcd(mgr); err != nil {
+			return err
 		}
 		if err := healthCheck(mgr, node); err != nil {
 			return err
 		}
-		etcdStatus = "existing"
-		for i := 0; i <= mgr.Runner.Index; i++ {
-			localPeerAddresses = append(localPeerAddresses, fmt.Sprintf("etcd%d=https://%s:2380", i+1, mgr.EtcdNodes[i].InternalAddress))
+		checkMemberCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --no-sync --endpoints=%s member list\"", node.Name, node.Name, etcdBinDir, accessAddresses)
+		memberList, err := mgr.Runner.ExecuteCmd(checkMemberCmd, 2, true)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to list etcd member")
 		}
-		if mgr.Runner.Index == len(mgr.EtcdNodes)-1 {
-			peerAddresses = localPeerAddresses
+		if !strings.Contains(memberList, fmt.Sprintf("https://%s:2379", node.InternalAddress)) {
+			return errors.Wrap(errors.WithStack(err), "Failed to add etcd member")
 		}
-	} else {
-		for i := 0; i <= mgr.Runner.Index; i++ {
-			localPeerAddresses = append(localPeerAddresses, fmt.Sprintf("etcd%d=https://%s:2380", i+1, mgr.EtcdNodes[i].InternalAddress))
-		}
-		if mgr.Runner.Index == len(mgr.EtcdNodes)-1 {
-			peerAddresses = localPeerAddresses
-		}
-		if mgr.Runner.Index == 0 {
-			if err := refreshConfig(mgr, node, mgr.Runner.Index, localPeerAddresses, "new"); err != nil {
-				return err
-			}
-			etcdStatus = "new"
-		} else {
-			switch etcdStatus {
-			case "new":
-				if err := refreshConfig(mgr, node, mgr.Runner.Index, localPeerAddresses, "new"); err != nil {
-					return err
-				}
-			case "existing":
-				if err := refreshConfig(mgr, node, mgr.Runner.Index, localPeerAddresses, "existing"); err != nil {
-					return err
-				}
-				joinMemberCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --endpoints=%s member add %s %s\"", node.Name, node.Name, etcdBinDir, accessAddresses, fmt.Sprintf("etcd%d", mgr.Runner.Index+1), fmt.Sprintf("https://%s:2380", node.InternalAddress))
-				_, err := mgr.Runner.ExecuteCmd(joinMemberCmd, 2, true)
-				if err != nil {
-					return errors.Wrap(errors.WithStack(err), "Failed to add etcd member")
-				}
-				if err := restartEtcd(mgr); err != nil {
-					return err
-				}
-				if err := healthCheck(mgr, node); err != nil {
-					return err
-				}
-				checkMemberCmd := fmt.Sprintf("sudo -E /bin/sh -c \"export ETCDCTL_API=2;export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';%s/etcdctl --no-sync --endpoints=%s member list\"", node.Name, node.Name, etcdBinDir, accessAddresses)
-				memberList, err := mgr.Runner.ExecuteCmd(checkMemberCmd, 2, true)
-				if err != nil {
-					return errors.Wrap(errors.WithStack(err), "Failed to list etcd member")
-				}
-				if !strings.Contains(memberList, fmt.Sprintf("https://%s:2379", node.InternalAddress)) {
-					return errors.Wrap(errors.WithStack(err), "Failed to add etcd member")
-				}
-			default:
-				return errors.New("Failed to get etcd cluster status")
-			}
-		}
-
+	default:
+		return errors.New("Failed to get etcd cluster status")
 	}
+
 	return nil
 }
 
@@ -349,8 +360,8 @@ func backupEtcd(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
-	if etcdStatus == "new" {
-		if err := refreshConfig(mgr, node, mgr.Runner.Index, peerAddresses, "new"); err != nil {
+	if etcdStatus == NEWETCDCLUSTER {
+		if err := refreshConfig(mgr, node, peerAddresses, NEWETCDCLUSTER); err != nil {
 			return err
 		}
 		if err := restartEtcd(mgr); err != nil {
@@ -361,7 +372,7 @@ func refreshEtcdConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) e
 		}
 	}
 
-	if err := refreshConfig(mgr, node, mgr.Runner.Index, peerAddresses, "existing"); err != nil {
+	if err := refreshConfig(mgr, node, peerAddresses, EXISTETCDCLUSTER); err != nil {
 		return err
 	}
 
@@ -390,8 +401,8 @@ healthCheckLoop:
 	return nil
 }
 
-func refreshConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, index int, endpoints []string, state string) error {
-	etcdEnv, err := tmpl.GenerateEtcdEnv(node, index, endpoints, state)
+func refreshConfig(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, endpoints []string, state string) error {
+	etcdEnv, err := tmpl.GenerateEtcdEnv(node, endpoints, state)
 	if err != nil {
 		return err
 	}
