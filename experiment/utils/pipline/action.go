@@ -1,12 +1,13 @@
 package pipline
 
 import (
-	"errors"
 	"fmt"
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/experiment/utils/render"
 )
 
 type Action interface {
-	Execute(vars *Vars) (result *Result, err error)
+	Execute(node kubekeyapiv1alpha1.HostCfg, vars *Vars) (result *Result)
 }
 
 type Command struct {
@@ -32,29 +33,38 @@ type WebServer struct {
 }
 
 type Func struct {
-	function func(vars *Vars) (*Result, error)
+	function func(vars *Vars) *Result
 }
 
-func (f *Func) Execute(vars *Vars) (*Result, error) {
+func (f *Func) Execute(node kubekeyapiv1alpha1.HostCfg, vars *Vars) *Result {
 	return f.function(vars)
 }
 
-func (a *Command) Execute(vars *Vars) (*Result, error) {
-	fmt.Println(a.Cmd)
-	return &Result{}, errors.New("123")
+func (a *Command) Execute(node kubekeyapiv1alpha1.HostCfg, vars *Vars) *Result {
+	res := NewResult()
+	defer res.SetEndTime()
+
+	cmd, err := render.Render(a.Cmd, *vars)
+	if err != nil {
+		res.Err = err
+		return res
+	}
+
+	fmt.Println(cmd)
+	return res
 }
 
-func (c *Copy) Execute(vars *Vars) (*Result, error) {
+func (c *Copy) Execute(node kubekeyapiv1alpha1.HostCfg, vars *Vars) *Result {
 	fmt.Println(c.Dst, c.Src)
-	return &Result{}, errors.New("123")
+	return &Result{}
 }
 
-func (t *Template) Execute(vars *Vars) (*Result, error) {
+func (t *Template) Execute(node kubekeyapiv1alpha1.HostCfg, vars *Vars) *Result {
 	fmt.Println(t.Data)
-	return &Result{}, errors.New("123")
+	return &Result{}
 }
 
-func (w *WebServer) Execute(vars *Vars) (*Result, error) {
+func (w *WebServer) Execute(node kubekeyapiv1alpha1.HostCfg, vars *Vars) *Result {
 	fmt.Println(w.ListenPort)
-	return &Result{}, errors.New("123")
+	return &Result{}
 }

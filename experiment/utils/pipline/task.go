@@ -5,42 +5,49 @@ import (
 	"time"
 )
 
+type Vars map[string]string
+
 type Task struct {
 	Name        string
 	Hosts       []kubekeyapiv1alpha1.HostCfg
 	Action      Action
 	Env         []map[string]string
-	Vars        []map[string]interface{}
-	Result      Result
+	Vars        Vars
 	tag         string
 	Parallel    bool
-	Condition   bool
+	Prepare     Prepare
 	IgnoreError bool
 	Retry       int
 	Delay       time.Time
 	Serial      string
+	Ending      Ending
 }
 
-type Result struct {
-	ResultCode int    // 0 or 1
-	Status     string // success or failed
-	Stdout     string
-	Stderr     string
-	StartTime  time.Time
-	EndTime    time.Time
-}
-
-func (t *Task) Execute(vars *Vars) (Result, error) {
-	if t.Parallel {
-		go func() {}()
-	} else {
-
+func (t *Task) Execute(vars *Vars) error {
+	if t.Ending.GetErr() != nil {
+		return t.Ending.GetErr()
 	}
-	return Result{}, nil
+	for i := range t.Hosts {
+		if t.Parallel {
+			go func() {}()
+		} else {
+			t.Action.Execute(t.Hosts[i], vars)
+		}
+	}
+
+	return nil
 }
 
-
-
-func (t *Task) Prepare() () {
-
+func (t *Task) When() (bool, error) {
+	if t.Prepare == nil {
+		return true, nil
+	}
+	if ok, err := t.Prepare.PreCheck(); err != nil {
+		t.Ending = NewResultWithErr(err)
+		return false, err
+	} else if !ok {
+		return false, nil
+	} else {
+		return true, nil
+	}
 }

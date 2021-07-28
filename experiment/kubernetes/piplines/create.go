@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	CreateClusterPipline = pipline.Pipline{TaskList: []pipline.Task{
-       tasks.InitCluster,
-       tasks.GetKubeConfig,
+	CreateClusterPipeline = pipline.Pipeline{TaskList: []pipline.Task{
+		tasks.InitCluster,
+		tasks.GetKubeConfig,
 	}}
 )
