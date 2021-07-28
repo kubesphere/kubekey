@@ -5,9 +5,9 @@ import (
 	"github.com/kubesphere/kubekey/experiment/utils/pipline"
 )
 
-func main()  {
+func main() {
 	groupVars := pipline.Vars{}
-	err := k8spipline.CreateClusterPipline.Start(&groupVars)
+	err := k8spipline.CreateClusterPipeline.Start(&groupVars)
 	if err != nil {
 		return
 	}
