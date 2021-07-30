@@ -1,6 +1,10 @@
 package render
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+	"text/template"
+)
 
 func TestRender(t *testing.T) {
 	type args struct {
@@ -46,4 +50,34 @@ func TestRender(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestKubeKeyTemplate_PauseRender(t *testing.T) {
+	addNodeCmdTmpl := template.Must(template.New("").Parse(
+		"kubeadm join {{ .ApiServer }} --token {{ .Token }} --discovery-token-ca-cert-hash {{ .Hash }}",
+	))
+
+	kkTmpl := NewKebeKeyTemplate(addNodeCmdTmpl)
+	v1 := map[string]interface{}{
+		"ApiServer": "127.0.0.1",
+	}
+
+	v2 := map[string]interface{}{
+		"Token": "tokentokentoken",
+	}
+
+	v3 := map[string]interface{}{
+		"Hash": "hashhashhash",
+	}
+
+	//kkTmpl = kkTmpl.PauseRender(v1)
+	//fmt.Println(kkTmpl.String())
+
+	kkTmpl.PauseRender(v1)
+
+	fmt.Println(kkTmpl.String())
+
+	kkTmpl.PauseRender(v2)
+	kkTmpl.PauseRender(v3)
+	fmt.Println(kkTmpl.String())
 }

@@ -1,4 +1,4 @@
-package pipline
+package pipeline
 
 type ResultStatus int
 

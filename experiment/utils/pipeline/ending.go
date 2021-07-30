@@ -1,4 +1,4 @@
-package pipline
+package pipeline
 
 import "time"
 
@@ -7,7 +7,9 @@ type Ending interface {
 	GetStatus() ResultStatus
 	GetStartTime() time.Time
 	GetEndTime() time.Time
+	SetEndTime()
 	GetErr() error
+	ErrResult(err error)
 }
 
 type Result struct {
@@ -56,4 +58,11 @@ func (r *Result) GetStdOutString() string {
 
 func (r *Result) GetStatus() ResultStatus {
 	return GetByCode(r.ResultCode)
+}
+
+func (r *Result) ErrResult(err error) {
+	r.Err = err
+	r.Stdout = err.Error()
+	r.Stderr = err.Error()
+	r.ResultCode = int(FAILED)
 }
