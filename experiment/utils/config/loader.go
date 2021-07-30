@@ -6,7 +6,7 @@ const (
 )
 
 type Loader interface {
-	Load(config *GlobalConfig) error
+	Load(config *Manager) error
 }
 
 func NewLoader(flag string) Loader {
@@ -23,13 +23,13 @@ func NewLoader(flag string) Loader {
 type YamlFileLoader struct {
 }
 
-func (y YamlFileLoader) Load(config *GlobalConfig) error {
+func (y YamlFileLoader) Load(config *Manager) error {
 	return nil
 }
 
 type ConfigMapLoader struct {
 }
 
-func (c ConfigMapLoader) Load(config *GlobalConfig) error {
+func (c ConfigMapLoader) Load(config *Manager) error {
 	return nil
 }
