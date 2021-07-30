@@ -33,34 +33,67 @@ const (
 	NodePrivateKey     = "NodePrivateKey"
 	NodePrivateKeyPath = "NodePrivateKeyPath"
 	NodeArch           = "NodeArch"
+
+	IsMaster = "IsMaster"
+	IsETCD   = "IsETCD"
+	IsWorker = "IsWorker"
 )
 
+type NodeSyncMap struct {
+	sync.Map
+}
+
 var (
-	nodeConfigMap       = sync.Map{}
+	nodeConfigMap       = make(map[string]*NodeSyncMap)
 	nodeConfigSingleton sync.Once
 )
 
 //GetNodeMap kk will make a cache to store the node config map
-func GetNodeMap(nodeName string) (map[string]interface{}, error) {
+func GetNodeMap(nodeName string) (*NodeSyncMap, error) {
 	nodeConfigSingleton.Do(func() {
-		for _, node := range GetConfig().K8sNodes {
-			// make struct to map, and the sync.map store the map
-			m := map[string]interface{}{
-				NodeHostName:       node.Name,
-				NodeIpAddress:      node.InternalAddress,
-				NodePort:           node.Port,
-				NodeUser:           node.User,
-				NodePassword:       node.Password,
-				NodePrivateKey:     node.PrivateKey,
-				NodePrivateKeyPath: node.PrivateKeyPath,
-				NodeArch:           node.Arch,
-			}
-			nodeConfigMap.Store(node.Name, m)
+		for _, node := range GetManager().K8sNodes {
+			m := new(NodeSyncMap)
+			m.Store(NodeHostName, node.Name)
+			m.Store(NodeIpAddress, node.InternalAddress)
+			m.Store(NodePort, node.Port)
+			m.Store(NodeUser, node.User)
+			m.Store(NodePassword, node.Password)
+			m.Store(NodePrivateKey, node.PrivateKey)
+			m.Store(NodePrivateKeyPath, node.PrivateKeyPath)
+			m.Store(NodeArch, node.Arch)
+			m.Store(IsMaster, false)
+			m.Store(IsETCD, false)
+
+			nodeConfigMap[node.Name] = m
 		}
 	})
-	m, ok := nodeConfigMap.Load(nodeName)
+	m, ok := nodeConfigMap[nodeName]
 	if !ok {
 		return nil, fmt.Errorf("node [%s] get config failed", nodeName)
 	}
-	return m.(map[string]interface{}), nil
+	return m, nil
+}
+
+func (n *NodeSyncMap) TagMaster() {
+	n.Store(IsMaster, true)
+}
+
+func (n *NodeSyncMap) TagETCD() {
+	n.Store(IsETCD, true)
+}
+
+func (n *NodeSyncMap) IsMaster() bool {
+	if v, ok := n.Load(IsMaster); ok {
+		return v.(bool)
+	} else {
+		return false
+	}
+}
+
+func (n *NodeSyncMap) IsETCD() bool {
+	if v, ok := n.Load(IsETCD); ok {
+		return v.(bool)
+	} else {
+		return false
+	}
 }

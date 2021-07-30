@@ -1,4 +1,4 @@
-package pipline
+package pipeline
 
 type Module struct {
 	Tasks []Task
