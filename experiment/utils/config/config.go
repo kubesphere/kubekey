@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-type GlobalConfig struct {
+type Manager struct {
 	ObjName            string
 	Cluster            *kubekeyapiv1alpha1.ClusterSpec
 	Logger             log.FieldLogger
@@ -40,16 +40,16 @@ type GlobalConfig struct {
 }
 
 var (
-	globalConfig          *GlobalConfig
+	manager               *Manager
 	globalConfigSingleton sync.Once
 )
 
-func GetConfig() *GlobalConfig {
+func GetManager() *Manager {
 	globalConfigSingleton.Do(func() {
 		loader := NewLoader(os.Args[0])
-		if err := loader.Load(globalConfig); err != nil {
+		if err := loader.Load(manager); err != nil {
 			os.Exit(1)
 		}
 	})
-	return globalConfig
+	return manager
 }

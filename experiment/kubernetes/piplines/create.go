@@ -2,11 +2,11 @@ package piplines
 
 import (
 	"github.com/kubesphere/kubekey/experiment/kubernetes/control-plane/tasks"
-	"github.com/kubesphere/kubekey/experiment/utils/pipline"
+	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
 )
 
 var (
-	CreateClusterPipeline = pipline.Pipeline{TaskList: []pipline.Task{
+	CreateClusterPipeline = pipeline.Pipeline{TaskList: []pipeline.Task{
 		tasks.InitCluster,
 		tasks.GetKubeConfig,
 	}}
