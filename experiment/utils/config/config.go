@@ -7,6 +7,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/util/runner"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"sync"
 )
 
 type GlobalConfig struct {
@@ -38,16 +39,17 @@ type GlobalConfig struct {
 	DownloadCommand    func(path, url string) string
 }
 
-var globalConfig *GlobalConfig
-
-func init() {
-	// todo: up to a flag or a config field
-	loader := NewLoader(os.Args[0])
-	if err := loader.Load(); err != nil {
-		os.Exit(1)
-	}
-}
+var (
+	globalConfig          *GlobalConfig
+	globalConfigSingleton sync.Once
+)
 
 func GetConfig() *GlobalConfig {
+	globalConfigSingleton.Do(func() {
+		loader := NewLoader(os.Args[0])
+		if err := loader.Load(globalConfig); err != nil {
+			os.Exit(1)
+		}
+	})
 	return globalConfig
 }
