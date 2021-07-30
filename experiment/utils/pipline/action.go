@@ -3,7 +3,9 @@ package pipline
 import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/experiment/utils/render"
+	"github.com/kubesphere/kubekey/experiment/utils/config"
+	"github.com/kubesphere/kubekey/pkg/util"
+	"text/template"
 )
 
 type Action interface {
@@ -44,9 +46,17 @@ func (a *Command) Execute(node kubekeyapiv1alpha1.HostCfg, vars *Vars) *Result {
 	res := NewResult()
 	defer res.SetEndTime()
 
-	cmd, err := render.Render(a.Cmd, *vars)
+	nodeMap, err := config.GetNodeMap(node.Name)
 	if err != nil {
-		res.Err = err
+		res.ErrResult(err)
+		return res
+	}
+
+	// todo: merge the nodeMap and the vars map
+	cmdTmpl := template.Must(template.New("").Parse(a.Cmd))
+	cmd, err := util.Render(cmdTmpl, nodeMap)
+	if err != nil {
+		res.ErrResult(err)
 		return res
 	}
 

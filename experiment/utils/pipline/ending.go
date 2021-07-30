@@ -57,3 +57,10 @@ func (r *Result) GetStdOutString() string {
 func (r *Result) GetStatus() ResultStatus {
 	return GetByCode(r.ResultCode)
 }
+
+func (r *Result) ErrResult(err error) {
+	r.Err = err
+	r.Stdout = err.Error()
+	r.Stderr = err.Error()
+	r.ResultCode = int(FAILED)
+}

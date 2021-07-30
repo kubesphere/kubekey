@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Vars map[string]string
+type Vars map[string]interface{}
 
 type Task struct {
 	Name        string
@@ -21,6 +21,8 @@ type Task struct {
 	Delay       time.Time
 	Serial      string
 	Ending      Ending
+
+	CurrentNode kubekeyapiv1alpha1.HostCfg
 }
 
 func (t *Task) Execute(vars *Vars) error {
