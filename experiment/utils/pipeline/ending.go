@@ -1,4 +1,4 @@
-package pipline
+package pipeline
 
 import "time"
 
@@ -7,7 +7,9 @@ type Ending interface {
 	GetStatus() ResultStatus
 	GetStartTime() time.Time
 	GetEndTime() time.Time
+	SetEndTime()
 	GetErr() error
+	ErrResult(err error)
 }
 
 type Result struct {
