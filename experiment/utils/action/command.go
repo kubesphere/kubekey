@@ -1,8 +1,6 @@
 package action
 
 import (
-	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/utils/config"
 	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
 	"github.com/kubesphere/kubekey/pkg/util"
@@ -10,21 +8,17 @@ import (
 )
 
 type Command struct {
-	mgr    *config.Manager
+	BaseAction
 	Cmd    string
-	Retry  int
+	Print  bool
 	Result pipeline.Result
 }
 
-func (c *Command) Init(mgr *config.Manager) {
-	c.mgr = mgr
-}
-
-func (c *Command) Execute(node *kubekeyapiv1alpha1.HostCfg, vars pipeline.Vars) *pipeline.Result {
+func (c *Command) Execute(vars pipeline.Vars) *pipeline.Result {
 	res := pipeline.NewResult()
 	defer res.SetEndTime()
 
-	nodeMap, err := config.GetNodeMap(node.Name)
+	nodeMap, err := config.GetNodeMap(c.Manager.Runner.Host.Name)
 	if err != nil {
 		res.ErrResult(err)
 		return res
@@ -45,7 +39,12 @@ func (c *Command) Execute(node *kubekeyapiv1alpha1.HostCfg, vars pipeline.Vars) 
 		return res
 	}
 
-	fmt.Println(cmd)
-	// todo: run cmd. maybe need rewrite the runner
+	stdout, stderr, code, err := c.Manager.Runner.Cmd(cmd, c.Print)
+	if err != nil {
+		res.ErrResult(err)
+		return res
+	}
+
+	res.NormalResult(code, stdout, stderr)
 	return res
 }
