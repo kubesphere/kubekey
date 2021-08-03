@@ -3,8 +3,8 @@ package config
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
-	"github.com/kubesphere/kubekey/pkg/connector"
-	"github.com/kubesphere/kubekey/pkg/util/runner"
+	"github.com/kubesphere/kubekey/experiment/utils/connector"
+	"github.com/kubesphere/kubekey/experiment/utils/runner"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"sync"
@@ -40,16 +40,22 @@ type Manager struct {
 }
 
 var (
-	manager               *Manager
-	globalConfigSingleton sync.Once
+	manager          *Manager
+	managerSingleton sync.Once
 )
 
 func GetManager() *Manager {
-	globalConfigSingleton.Do(func() {
+	managerSingleton.Do(func() {
 		loader := NewLoader(os.Args[0])
 		if err := loader.Load(manager); err != nil {
 			os.Exit(1)
 		}
 	})
 	return manager
+}
+
+// Copy is used to create a copy for Manager.
+func (mgr *Manager) Copy() *Manager {
+	newManager := *mgr
+	return &newManager
 }

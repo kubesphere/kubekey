@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	CreateClusterPipeline = pipeline.Pipeline{TaskList: []pipeline.Task{
-		tasks.InitCluster,
-		tasks.GetKubeConfig,
-	}}
+	CreateClusterPipeline = pipeline.Pipeline{Modules: []pipeline.Module{
+		{Tasks: []pipeline.Task{
+			tasks.InitCluster,
+			tasks.GetKubeConfig,
+		}}}}
 )
