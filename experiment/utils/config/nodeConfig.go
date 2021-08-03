@@ -78,12 +78,24 @@ func (n *NodeSyncMap) TagMaster() {
 	n.Store(IsMaster, true)
 }
 
+func (n *NodeSyncMap) TagWorker() {
+	n.Store(IsWorker, true)
+}
+
 func (n *NodeSyncMap) TagETCD() {
 	n.Store(IsETCD, true)
 }
 
 func (n *NodeSyncMap) IsMaster() bool {
 	if v, ok := n.Load(IsMaster); ok {
+		return v.(bool)
+	} else {
+		return false
+	}
+}
+
+func (n *NodeSyncMap) IsWorker() bool {
+	if v, ok := n.Load(IsWorker); ok {
 		return v.(bool)
 	} else {
 		return false
