@@ -3,7 +3,7 @@ package pipeline
 import "time"
 
 type Ending interface {
-	GetStdOutString() string
+	GetContent() string
 	GetStatus() ResultStatus
 	GetStartTime() time.Time
 	GetEndTime() time.Time
@@ -14,8 +14,8 @@ type Ending interface {
 
 type Result struct {
 	Err        error
-	ResultCode int    // 0 or 1
-	Status     string // success or failed
+	ResultCode int          // 0 or 1
+	Status     ResultStatus // success or failed
 	Stdout     string
 	Stderr     string
 	StartTime  time.Time
@@ -52,7 +52,7 @@ func (r *Result) GetErr() error {
 	return r.Err
 }
 
-func (r *Result) GetStdOutString() string {
+func (r *Result) GetContent() string {
 	return r.Stdout
 }
 
@@ -65,4 +65,12 @@ func (r *Result) ErrResult(err error) {
 	r.Stdout = err.Error()
 	r.Stderr = err.Error()
 	r.ResultCode = int(FAILED)
+	r.Status = FAILED
+}
+
+func (r *Result) NormalResult(code int, stdout, stderr string) {
+	r.ResultCode = code
+	r.Stdout = stdout
+	r.Stderr = stderr
+	r.Status = GetByCode(code)
 }

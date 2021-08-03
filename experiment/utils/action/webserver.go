@@ -2,7 +2,6 @@ package action
 
 import (
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
 )
 
@@ -12,7 +11,7 @@ type WebServer struct {
 	Status        string // start, restart, stop
 }
 
-func (w *WebServer) Execute(node *kubekeyapiv1alpha1.HostCfg, vars pipeline.Vars) *pipeline.Result {
+func (w *WebServer) Execute(vars pipeline.Vars) *pipeline.Result {
 	fmt.Println(w.ListenPort)
 	return &pipeline.Result{}
 }
