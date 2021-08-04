@@ -4,7 +4,9 @@ import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/utils/action"
 	"github.com/kubesphere/kubekey/experiment/utils/config"
+	"github.com/kubesphere/kubekey/experiment/utils/ending"
 	"github.com/kubesphere/kubekey/experiment/utils/runner"
+	"github.com/kubesphere/kubekey/experiment/utils/vars"
 	"github.com/pkg/errors"
 	"sync"
 	"time"
@@ -15,15 +17,13 @@ const (
 	DefaultCon     = 10
 )
 
-type Vars map[string]interface{}
-
 type Task struct {
 	Name        string
 	Manager     *config.Manager
 	Hosts       []kubekeyapiv1alpha1.HostCfg
 	Action      action.Action
 	Env         []map[string]string
-	Vars        Vars
+	Vars        vars.Vars
 	tag         string
 	Parallel    bool
 	Prepare     Prepare
@@ -31,12 +31,12 @@ type Task struct {
 	Retry       int
 	Delay       time.Duration
 	Serial      string
-	TaskResult  *TaskResult
+	TaskResult  *ending.TaskResult
 }
 
 func (t *Task) Execute() error {
 	if t.TaskResult != nil {
-		t.TaskResult = NewTaskResult()
+		t.TaskResult = ending.NewTaskResult()
 	}
 
 	wg := &sync.WaitGroup{}
@@ -130,7 +130,7 @@ func (t *Task) SetupManager(mgr *config.Manager, host *kubekeyapiv1alpha1.HostCf
 	return nil
 }
 
-func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan chan string, mgr *config.Manager) Ending {
+func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan chan string, mgr *config.Manager) ending.Ending {
 	// generate a timer
 	go func(result chan string, pool chan struct{}) {
 		select {
@@ -153,7 +153,7 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, mgr *con
 	if t.Retry < 1 {
 		t.Retry = 1
 	}
-	var ending Ending
+	var ending ending.Ending
 	for i := 0; i < t.Retry; i++ {
 		ending = t.ExecuteWithTimer(wg, pool, resChan, mgr)
 		if ending.GetErr() != nil {

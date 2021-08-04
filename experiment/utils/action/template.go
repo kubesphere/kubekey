@@ -2,7 +2,8 @@ package action
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
+	"github.com/kubesphere/kubekey/experiment/utils/ending"
+	"github.com/kubesphere/kubekey/experiment/utils/vars"
 )
 
 type Template struct {
@@ -11,7 +12,7 @@ type Template struct {
 	Data map[string]interface{}
 }
 
-func (t *Template) Execute(vars pipeline.Vars) *pipeline.Result {
+func (t *Template) Execute(vars vars.Vars) *ending.Result {
 	fmt.Println(t.Data)
-	return &pipeline.Result{}
+	return &ending.Result{}
 }
