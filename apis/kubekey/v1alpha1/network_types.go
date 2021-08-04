@@ -32,7 +32,12 @@ type CalicoCfg struct {
 }
 
 type FlannelCfg struct {
-	BackendMode string `yaml:"backendMode" json:"backendMode,omitempty"`
+	BackendMode string     `yaml:"backendMode" json:"backendMode,omitempty"`
+	Backend     BackendCfg `yaml:"backend" json:"backend,omitempty"`
+}
+type BackendCfg struct {
+	Type          string `yaml:"type" json:"type,omitempty"`
+	Directrouting bool   `yaml:"directRouting" json:"directRouting,omitempty"`
 }
 
 type KubeovnCfg struct {

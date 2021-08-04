@@ -154,7 +154,8 @@ data:
     {
       "Network": "{{ .KubePodsCIDR }}",
       "Backend": {
-        "Type": "{{ .BackendMode }}"
+        "Type": "{{ .BackendMode }}",
+		"Directrouting": {{ .Directrouting}}
       }
     }
 ---
@@ -252,8 +253,9 @@ spec:
 
 func GenerateFlannelFiles(mgr *manager.Manager) (string, error) {
 	return util.Render(flannelTempl, util.Data{
-		"KubePodsCIDR": mgr.Cluster.Network.KubePodsCIDR,
-		"FlannelImage": preinstall.GetImage(mgr, "flannel").ImageName(),
-		"BackendMode":  mgr.Cluster.Network.Flannel.BackendMode,
+		"KubePodsCIDR":  mgr.Cluster.Network.KubePodsCIDR,
+		"FlannelImage":  preinstall.GetImage(mgr, "flannel").ImageName(),
+		"BackendMode":   mgr.Cluster.Network.Flannel.BackendMode,
+		"Directrouting": mgr.Cluster.Network.Flannel.Backend.Directrouting,
 	})
 }
