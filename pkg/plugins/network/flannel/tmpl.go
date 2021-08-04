@@ -155,7 +155,7 @@ data:
       "Network": "{{ .KubePodsCIDR }}",
       "Backend": {
         "Type": "{{ .BackendMode }}",
-		"Directrouting": {{ .Directrouting}}
+        "Directrouting": {{ .Directrouting}}
       }
     }
 ---
