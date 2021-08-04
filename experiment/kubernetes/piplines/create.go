@@ -7,8 +7,6 @@ import (
 
 var (
 	CreateClusterPipeline = pipeline.Pipeline{Modules: []pipeline.Module{
-		{Tasks: []pipeline.Task{
-			tasks.InitCluster,
-			tasks.GetKubeConfig,
-		}}}}
+		tasks.NewGetClusterStatusModule(),
+	}}
 )
