@@ -1,4 +1,4 @@
-package pipeline
+package ending
 
 import (
 	"github.com/pkg/errors"

@@ -2,7 +2,8 @@ package action
 
 import (
 	"github.com/kubesphere/kubekey/experiment/utils/config"
-	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
+	"github.com/kubesphere/kubekey/experiment/utils/ending"
+	"github.com/kubesphere/kubekey/experiment/utils/vars"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"text/template"
 )
@@ -11,11 +12,11 @@ type Command struct {
 	BaseAction
 	Cmd    string
 	Print  bool
-	Result pipeline.Result
+	Result ending.Result
 }
 
-func (c *Command) Execute(vars pipeline.Vars) *pipeline.Result {
-	res := pipeline.NewResult()
+func (c *Command) Execute(vars vars.Vars) *ending.Result {
+	res := ending.NewResult()
 	defer res.SetEndTime()
 
 	nodeMap, err := config.GetNodeMap(c.Manager.Runner.Host.Name)
