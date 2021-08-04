@@ -2,10 +2,11 @@ package action
 
 import (
 	"github.com/kubesphere/kubekey/experiment/utils/config"
-	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
+	"github.com/kubesphere/kubekey/experiment/utils/ending"
+	"github.com/kubesphere/kubekey/experiment/utils/vars"
 )
 
 type Action interface {
-	Execute(vars pipeline.Vars) (result *pipeline.Result)
+	Execute(vars vars.Vars) (result *ending.Result)
 	Init(mgr *config.Manager)
 }

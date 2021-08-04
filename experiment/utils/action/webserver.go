@@ -2,7 +2,8 @@ package action
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
+	"github.com/kubesphere/kubekey/experiment/utils/ending"
+	"github.com/kubesphere/kubekey/experiment/utils/vars"
 )
 
 type WebServer struct {
@@ -11,7 +12,7 @@ type WebServer struct {
 	Status        string // start, restart, stop
 }
 
-func (w *WebServer) Execute(vars pipeline.Vars) *pipeline.Result {
+func (w *WebServer) Execute(vars vars.Vars) *ending.Result {
 	fmt.Println(w.ListenPort)
-	return &pipeline.Result{}
+	return &ending.Result{}
 }

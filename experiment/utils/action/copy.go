@@ -2,17 +2,18 @@ package action
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
+	"github.com/kubesphere/kubekey/experiment/utils/ending"
+	"github.com/kubesphere/kubekey/experiment/utils/vars"
 )
 
 type Copy struct {
 	BaseAction
 	Src    string
 	Dst    string
-	Result pipeline.Result
+	Result ending.Result
 }
 
-func (c *Copy) Execute(vars pipeline.Vars) *pipeline.Result {
+func (c *Copy) Execute(vars vars.Vars) *ending.Result {
 	fmt.Println(c.Dst, c.Src)
-	return &pipeline.Result{}
+	return &ending.Result{}
 }
