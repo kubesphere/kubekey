@@ -5,6 +5,7 @@ import (
 	"github.com/kubesphere/kubekey/experiment/utils/action"
 	"github.com/kubesphere/kubekey/experiment/utils/config"
 	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
+	"github.com/kubesphere/kubekey/experiment/utils/vars"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 			Cmd: initClusterCmd,
 		},
 		Env: nil,
-		Vars: pipeline.Vars{
+		Vars: vars.Vars{
 			"kubernetes": config.GetManager().Cluster.Kubernetes.ClusterName,
 			"ipaddr":     host.InternalAddress,
 		},
@@ -35,6 +36,5 @@ var (
 		Hosts:   mgr.MasterNodes,
 		Action:  &action.Command{Cmd: getKubeConfigCmd},
 		Prepare: &pipeline.Condition{Cond: true},
-		// todo 放指针
 	}
 )
