@@ -3,8 +3,10 @@ package pipeline
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/utils/action"
+	"github.com/kubesphere/kubekey/experiment/utils/cache"
 	"github.com/kubesphere/kubekey/experiment/utils/config"
 	"github.com/kubesphere/kubekey/experiment/utils/ending"
+	"github.com/kubesphere/kubekey/experiment/utils/prepare"
 	"github.com/kubesphere/kubekey/experiment/utils/runner"
 	"github.com/kubesphere/kubekey/experiment/utils/vars"
 	"github.com/pkg/errors"
@@ -22,11 +24,12 @@ type Task struct {
 	Manager     *config.Manager
 	Hosts       []kubekeyapiv1alpha1.HostCfg
 	Action      action.Action
-	Env         []map[string]string
+	Pool        *cache.Cache
+	Env         map[string]string
 	Vars        vars.Vars
 	tag         string
 	Parallel    bool
-	Prepare     Prepare
+	Prepare     prepare.Prepare
 	IgnoreError bool
 	Retry       int
 	Delay       time.Duration
@@ -41,8 +44,8 @@ func (t *Task) Execute() error {
 
 	wg := &sync.WaitGroup{}
 	// todo: user can customize the pool size
-	pool := make(chan struct{}, DefaultCon)
-	defer close(pool)
+	routinePool := make(chan struct{}, DefaultCon)
+	defer close(routinePool)
 
 	for i := range t.Hosts {
 		mgr := config.GetManager()
@@ -51,6 +54,7 @@ func (t *Task) Execute() error {
 
 		_ = t.SetupManager(selfMgr, &t.Hosts[i], i)
 
+		t.Prepare.Init(mgr, t.Pool)
 		if ok := t.WhenWithRetry(); !ok {
 			continue
 		}
@@ -59,14 +63,13 @@ func (t *Task) Execute() error {
 			return t.TaskResult.CombineErr()
 		}
 
-		t.Action.Init(selfMgr)
-
-		pool <- struct{}{}
+		t.Action.Init(selfMgr, t.Pool)
+		routinePool <- struct{}{}
 		wg.Add(1)
 		if t.Parallel {
-			go t.ExecuteWithRetry(wg, pool, mgr)
+			go t.ExecuteWithRetry(wg, routinePool, mgr)
 		} else {
-			t.ExecuteWithRetry(wg, pool, mgr)
+			t.ExecuteWithRetry(wg, routinePool, mgr)
 		}
 	}
 	wg.Wait()
@@ -81,7 +84,7 @@ func (t *Task) When() (bool, error) {
 	if t.Prepare == nil {
 		return true, nil
 	}
-	if ok, err := t.Prepare.PreCheck(t.Manager.Runner.Host); err != nil {
+	if ok, err := t.Prepare.PreCheck(); err != nil {
 		t.Manager.Logger.Error(err)
 		t.TaskResult.AppendErr(err)
 		t.TaskResult.ErrResult()
@@ -153,11 +156,11 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, mgr *con
 	if t.Retry < 1 {
 		t.Retry = 1
 	}
-	var ending ending.Ending
+	var end ending.Ending
 	for i := 0; i < t.Retry; i++ {
-		ending = t.ExecuteWithTimer(wg, pool, resChan, mgr)
-		if ending.GetErr() != nil {
-			mgr.Logger.Error(ending.GetErr())
+		end = t.ExecuteWithTimer(wg, pool, resChan, mgr)
+		if end.GetErr() != nil {
+			mgr.Logger.Error(end.GetErr())
 			time.Sleep(t.Delay)
 			continue
 		} else {
@@ -165,10 +168,10 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, mgr *con
 		}
 	}
 
-	if ending != nil {
-		t.TaskResult.AppendEnding(ending, mgr.Runner.Host.Name)
-		if ending.GetErr() != nil {
-			t.TaskResult.AppendErr(ending.GetErr())
+	if end != nil {
+		t.TaskResult.AppendEnding(end, mgr.Runner.Host.Name)
+		if end.GetErr() != nil {
+			t.TaskResult.AppendErr(end.GetErr())
 		}
 	}
 	resChan <- "done"
