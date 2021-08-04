@@ -5,6 +5,7 @@ import (
 	"github.com/kubesphere/kubekey/experiment/utils/action"
 	"github.com/kubesphere/kubekey/experiment/utils/config"
 	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
+	"github.com/kubesphere/kubekey/experiment/utils/prepare"
 	"github.com/kubesphere/kubekey/experiment/utils/vars"
 )
 
@@ -27,7 +28,7 @@ var (
 			"ipaddr":     host.InternalAddress,
 		},
 		Parallel:    false,
-		Prepare:     &pipeline.Condition{Cond: true},
+		Prepare:     &prepare.Condition{Cond: true},
 		IgnoreError: false,
 	}
 
@@ -35,6 +36,6 @@ var (
 		Name:    "Get KubeConfig",
 		Hosts:   mgr.MasterNodes,
 		Action:  &action.Command{Cmd: getKubeConfigCmd},
-		Prepare: &pipeline.Condition{Cond: true},
+		Prepare: &prepare.Condition{Cond: true},
 	}
 )
