@@ -1,16 +1,23 @@
 package pipeline
 
+import "github.com/pkg/errors"
+
 type Pipeline struct {
 	Modules []Module
 }
 
 func (p *Pipeline) Start() error {
 	for i := range p.Modules {
-		for j := range p.Modules[i].Tasks {
-			task := p.Modules[i].Tasks[j]
-			if err := task.Execute(); err != nil {
+		m := p.Modules[i]
+		switch m.Is() {
+		case "task":
+			if err := m.Run(); err != nil {
 				return err
 			}
+		case "webserver":
+			go m.Run()
+		default:
+			return errors.New("invalid module")
 		}
 	}
 	return nil
