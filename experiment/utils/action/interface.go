@@ -8,6 +8,7 @@ import (
 )
 
 type Action interface {
-	Execute(vars vars.Vars) (result *ending.Result)
+	Execute(vars vars.Vars) (err error)
 	Init(mgr *config.Manager, pool *cache.Cache)
+	WrapResult(err error) *ending.Result
 }

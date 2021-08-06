@@ -4,8 +4,8 @@ import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/experiment/utils/connector"
+	"github.com/kubesphere/kubekey/experiment/utils/logger"
 	"github.com/kubesphere/kubekey/experiment/utils/runner"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"sync"
 )
@@ -13,7 +13,7 @@ import (
 type Manager struct {
 	ObjName            string
 	Cluster            *kubekeyapiv1alpha1.ClusterSpec
-	Logger             log.FieldLogger
+	Logger             *logger.KubeKeyLog
 	Connector          connector.Connector
 	Runner             *runner.Runner
 	AllNodes           []kubekeyapiv1alpha1.HostCfg
