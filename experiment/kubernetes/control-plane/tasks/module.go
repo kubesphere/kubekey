@@ -3,7 +3,6 @@ package tasks
 import (
 	"github.com/kubesphere/kubekey/experiment/utils/action"
 	"github.com/kubesphere/kubekey/experiment/utils/config"
-	"github.com/kubesphere/kubekey/experiment/utils/ending"
 	"github.com/kubesphere/kubekey/experiment/utils/pipeline"
 	"github.com/kubesphere/kubekey/experiment/utils/prepare"
 	"github.com/kubesphere/kubekey/experiment/utils/vars"
@@ -15,7 +14,7 @@ type getClusterAction struct {
 	action.BaseAction
 }
 
-func (g *getClusterAction) Execute(vars vars.Vars) *ending.Result {
+func (g *getClusterAction) Execute(vars vars.Vars) error {
 	var clusterIsExist bool
 	output, _, _, _ := g.Manager.Runner.Cmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", true)
 	if strings.Contains(output, "Cluster will be created") {
@@ -23,23 +22,23 @@ func (g *getClusterAction) Execute(vars vars.Vars) *ending.Result {
 	} else {
 		clusterIsExist = true
 	}
-	g.Pool.Set("IsExist", clusterIsExist)
-	return ending.NewResult()
+	g.Cache.Set("IsExist", clusterIsExist)
+	return nil
 }
 
 type generateCfgAction struct {
 	action.BaseAction
 }
 
-func (g *generateCfgAction) Execute(vars vars.Vars) *ending.Result {
-	exist, ok := g.Pool.GetMustBool("IsExist")
+func (g *generateCfgAction) Execute(vars vars.Vars) error {
+	exist, ok := g.Cache.GetMustBool("IsExist")
 	if !ok {
-		return ending.NewResultWithErr(errors.New("failed to get var that in the Pool"))
+		return errors.New("failed to get var that in the Pool")
 	}
 	if exist {
 
 	}
-	return ending.NewResult()
+	return nil
 }
 
 func NewGetClusterStatusModule() *pipeline.TaskModule {
@@ -63,5 +62,5 @@ func NewGetClusterStatusModule() *pipeline.TaskModule {
 		generateTask,
 	}
 
-	return pipeline.NewTaskModule(tasks)
+	return pipeline.NewTaskModule("GetCluster", tasks)
 }
