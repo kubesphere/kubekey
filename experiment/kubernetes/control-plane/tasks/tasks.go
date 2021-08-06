@@ -22,7 +22,6 @@ var (
 		Action: &action.Command{
 			Cmd: initClusterCmd,
 		},
-		Env: nil,
 		Vars: vars.Vars{
 			"kubernetes": config.GetManager().Cluster.Kubernetes.ClusterName,
 			"ipaddr":     host.InternalAddress,

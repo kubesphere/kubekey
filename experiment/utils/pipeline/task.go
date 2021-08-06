@@ -6,6 +6,7 @@ import (
 	"github.com/kubesphere/kubekey/experiment/utils/cache"
 	"github.com/kubesphere/kubekey/experiment/utils/config"
 	"github.com/kubesphere/kubekey/experiment/utils/ending"
+	"github.com/kubesphere/kubekey/experiment/utils/logger"
 	"github.com/kubesphere/kubekey/experiment/utils/prepare"
 	"github.com/kubesphere/kubekey/experiment/utils/runner"
 	"github.com/kubesphere/kubekey/experiment/utils/vars"
@@ -24,8 +25,8 @@ type Task struct {
 	Manager     *config.Manager
 	Hosts       []kubekeyapiv1alpha1.HostCfg
 	Action      action.Action
-	Pool        *cache.Cache
-	Env         map[string]string
+	Cache       *cache.Cache
+	Log         *logger.KubeKeyLog
 	Vars        vars.Vars
 	tag         string
 	Parallel    bool
@@ -37,7 +38,14 @@ type Task struct {
 	TaskResult  *ending.TaskResult
 }
 
+func (t *Task) Init(log *logger.KubeKeyLog, cache *cache.Cache) {
+	t.Log = log
+	t.Log.SetTask(t.Name)
+	t.Cache = cache
+}
+
 func (t *Task) Execute() error {
+	t.Log.Info("Begin Run")
 	if t.TaskResult != nil {
 		t.TaskResult = ending.NewTaskResult()
 	}
@@ -50,11 +58,12 @@ func (t *Task) Execute() error {
 	for i := range t.Hosts {
 		mgr := config.GetManager()
 		selfMgr := mgr.Copy()
-		selfMgr.Logger = selfMgr.Logger.WithField("node", t.Hosts[i].Address)
+		t.Log.SetNode(t.Hosts[i].Name)
+		selfMgr.Logger = t.Log
 
 		_ = t.SetupManager(selfMgr, &t.Hosts[i], i)
 
-		t.Prepare.Init(mgr, t.Pool)
+		t.Prepare.Init(mgr, t.Cache)
 		if ok := t.WhenWithRetry(); !ok {
 			continue
 		}
@@ -63,7 +72,7 @@ func (t *Task) Execute() error {
 			return t.TaskResult.CombineErr()
 		}
 
-		t.Action.Init(selfMgr, t.Pool)
+		t.Action.Init(selfMgr, t.Cache)
 		routinePool <- struct{}{}
 		wg.Add(1)
 		if t.Parallel {
@@ -77,6 +86,23 @@ func (t *Task) Execute() error {
 	if t.TaskResult.IsFailed() {
 		return t.TaskResult.CombineErr()
 	}
+	t.TaskResult.NormalResult()
+	return nil
+}
+
+func (t *Task) SetupManager(mgr *config.Manager, host *kubekeyapiv1alpha1.HostCfg, index int) error {
+	conn, err := mgr.Connector.Connect(*host)
+	if err != nil {
+		t.TaskResult.AppendErr(errors.Wrapf(err, "Failed to connect to %s", host.Address))
+		return errors.Wrapf(err, "Failed to connect to %s", host.Address)
+	}
+
+	t.Manager.Runner = &runner.Runner{
+		Conn:  conn,
+		Debug: mgr.Debug,
+		Host:  host,
+		Index: index,
+	}
 	return nil
 }
 
@@ -87,7 +113,6 @@ func (t *Task) When() (bool, error) {
 	if ok, err := t.Prepare.PreCheck(); err != nil {
 		t.Manager.Logger.Error(err)
 		t.TaskResult.AppendErr(err)
-		t.TaskResult.ErrResult()
 		return false, err
 	} else if !ok {
 		return false, nil
@@ -116,23 +141,6 @@ func (t *Task) WhenWithRetry() bool {
 	return pass
 }
 
-func (t *Task) SetupManager(mgr *config.Manager, host *kubekeyapiv1alpha1.HostCfg, index int) error {
-	conn, err := mgr.Connector.Connect(*host)
-	if err != nil {
-		t.TaskResult.AppendErr(errors.Wrapf(err, "Failed to connect to %s", host.Address))
-		t.TaskResult.ErrResult()
-		return errors.Wrapf(err, "Failed to connect to %s", host.Address)
-	}
-
-	t.Manager.Runner = &runner.Runner{
-		Conn:  conn,
-		Debug: mgr.Debug,
-		Host:  host,
-		Index: index,
-	}
-	return nil
-}
-
 func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan chan string, mgr *config.Manager) ending.Ending {
 	// generate a timer
 	go func(result chan string, pool chan struct{}) {
@@ -145,7 +153,7 @@ func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan 
 		wg.Done()
 	}(resChan, pool)
 
-	res := t.Action.Execute(t.Vars)
+	res := t.Action.WrapResult(t.Action.Execute(t.Vars))
 	return res
 }
 
