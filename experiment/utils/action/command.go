@@ -2,7 +2,6 @@ package action
 
 import (
 	"github.com/kubesphere/kubekey/experiment/utils/config"
-	"github.com/kubesphere/kubekey/experiment/utils/ending"
 	"github.com/kubesphere/kubekey/experiment/utils/vars"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"text/template"
@@ -10,19 +9,15 @@ import (
 
 type Command struct {
 	BaseAction
-	Cmd    string
-	Print  bool
-	Result ending.Result
+	Cmd   string
+	Print bool
 }
 
-func (c *Command) Execute(vars vars.Vars) *ending.Result {
-	res := ending.NewResult()
-	defer res.SetEndTime()
+func (c *Command) Execute(vars vars.Vars) error {
 
 	nodeMap, err := config.GetNodeMap(c.Manager.Runner.Host.Name)
 	if err != nil {
-		res.ErrResult(err)
-		return res
+		return err
 	}
 
 	// todo: best way to merge the nodeMap and the vars map
@@ -36,16 +31,13 @@ func (c *Command) Execute(vars vars.Vars) *ending.Result {
 	cmdTmpl := template.Must(template.New("").Parse(c.Cmd))
 	cmd, err := util.Render(cmdTmpl, vars)
 	if err != nil {
-		res.ErrResult(err)
-		return res
+		return err
 	}
 
-	stdout, stderr, code, err := c.Manager.Runner.Cmd(cmd, c.Print)
+	_, _, _, err = c.Manager.Runner.Cmd(cmd, c.Print)
 	if err != nil {
-		res.ErrResult(err)
-		return res
+		return err
 	}
 
-	res.NormalResult(code, stdout, stderr)
-	return res
+	return nil
 }

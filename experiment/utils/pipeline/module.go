@@ -1,21 +1,34 @@
 package pipeline
 
-import "github.com/kubesphere/kubekey/experiment/utils/cache"
+import (
+	"github.com/kubesphere/kubekey/experiment/utils/cache"
+	"github.com/kubesphere/kubekey/experiment/utils/logger"
+)
 
 type Module interface {
 	Is() string
 	Run() error
+	Init(log *logger.KubeKeyLog)
 }
 
 type TaskModule struct {
+	Name  string
 	Tasks []Task
-	Pool  *cache.Cache
+	Cache *cache.Cache
+	Log   *logger.KubeKeyLog
 }
 
-func NewTaskModule(tasks []Task) *TaskModule {
+func NewTaskModule(name string, tasks []Task) *TaskModule {
 	return &TaskModule{
+		Name:  name,
 		Tasks: tasks,
 	}
+}
+
+func (t *TaskModule) Init(log *logger.KubeKeyLog) {
+	t.Log = log
+	t.Log.SetModule(t.Name)
+	t.Cache = cache.NewCache()
 }
 
 func (t *TaskModule) Is() string {
@@ -23,17 +36,13 @@ func (t *TaskModule) Is() string {
 }
 
 func (t *TaskModule) Run() error {
-	modulePool := t.InitPool()
+	t.Log.Info("Begin Run")
 	for i := range t.Tasks {
 		task := t.Tasks[i]
-		task.Pool = modulePool
+		task.Init(t.Log, t.Cache)
 		if err := task.Execute(); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (t *TaskModule) InitPool() *cache.Cache {
-	return cache.NewPool()
 }

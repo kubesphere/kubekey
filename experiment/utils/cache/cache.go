@@ -7,7 +7,7 @@ type Cache struct {
 	store map[string]interface{}
 }
 
-func NewPool() *Cache {
+func NewCache() *Cache {
 	return &Cache{store: make(map[string]interface{})}
 }
 
