@@ -47,6 +47,8 @@ func (t *TaskResult) AppendErr(err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.Errors = append(t.Errors, err)
+	t.EndTime = time.Now()
+	t.Status = FAILED
 }
 
 func (t *TaskResult) AppendEnding(ending Ending, nodeName string) {
