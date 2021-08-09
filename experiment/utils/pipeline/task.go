@@ -15,18 +15,12 @@ import (
 	"time"
 )
 
-const (
-	DefaultTimeout = 120
-	DefaultCon     = 10
-)
-
 type Task struct {
 	Name        string
-	Manager     *config.Manager
 	Hosts       []kubekeyapiv1alpha1.HostCfg
 	Action      action.Action
 	Cache       *cache.Cache
-	Log         *logger.KubeKeyLog
+	Log         logger.KubeKeyLog
 	Vars        vars.Vars
 	tag         string
 	Parallel    bool
@@ -39,15 +33,16 @@ type Task struct {
 }
 
 func (t *Task) Init(log *logger.KubeKeyLog, cache *cache.Cache) {
-	t.Log = log
+	t.Log = *log
 	t.Log.SetTask(t.Name)
 	t.Cache = cache
+	t.Default()
 }
 
 func (t *Task) Execute() error {
 	t.Log.Info("Begin Run")
-	if t.TaskResult != nil {
-		t.TaskResult = ending.NewTaskResult()
+	if t.TaskResult.IsFailed() {
+		return t.TaskResult.CombineErr()
 	}
 
 	wg := &sync.WaitGroup{}
@@ -55,30 +50,15 @@ func (t *Task) Execute() error {
 	routinePool := make(chan struct{}, DefaultCon)
 	defer close(routinePool)
 
+	mgr := config.GetManager()
 	for i := range t.Hosts {
-		mgr := config.GetManager()
 		selfMgr := mgr.Copy()
-		t.Log.SetNode(t.Hosts[i].Name)
-		selfMgr.Logger = t.Log
+		_ = t.ConfigureSelfManager(selfMgr, &t.Hosts[i], i)
 
-		_ = t.SetupManager(selfMgr, &t.Hosts[i], i)
-
-		t.Prepare.Init(mgr, t.Cache)
-		if ok := t.WhenWithRetry(); !ok {
-			continue
-		}
-
-		if t.TaskResult.IsFailed() {
-			return t.TaskResult.CombineErr()
-		}
-
-		t.Action.Init(selfMgr, t.Cache)
-		routinePool <- struct{}{}
-		wg.Add(1)
 		if t.Parallel {
-			go t.ExecuteWithRetry(wg, routinePool, mgr)
+			go t.Run(selfMgr, wg, routinePool)
 		} else {
-			t.ExecuteWithRetry(wg, routinePool, mgr)
+			t.Run(selfMgr, wg, routinePool)
 		}
 	}
 	wg.Wait()
@@ -90,14 +70,17 @@ func (t *Task) Execute() error {
 	return nil
 }
 
-func (t *Task) SetupManager(mgr *config.Manager, host *kubekeyapiv1alpha1.HostCfg, index int) error {
+func (t *Task) ConfigureSelfManager(mgr *config.Manager, host *kubekeyapiv1alpha1.HostCfg, index int) error {
+	t.Log.SetNode(host.Name)
+	mgr.Logger = t.Log
+
 	conn, err := mgr.Connector.Connect(*host)
 	if err != nil {
 		t.TaskResult.AppendErr(errors.Wrapf(err, "Failed to connect to %s", host.Address))
 		return errors.Wrapf(err, "Failed to connect to %s", host.Address)
 	}
 
-	t.Manager.Runner = &runner.Runner{
+	mgr.Runner = &runner.Runner{
 		Conn:  conn,
 		Debug: mgr.Debug,
 		Host:  host,
@@ -106,12 +89,25 @@ func (t *Task) SetupManager(mgr *config.Manager, host *kubekeyapiv1alpha1.HostCf
 	return nil
 }
 
-func (t *Task) When() (bool, error) {
+func (t *Task) Run(mgr *config.Manager, wg *sync.WaitGroup, pool chan struct{}) {
+	pool <- struct{}{}
+	wg.Add(1)
+
+	t.Prepare.Init(mgr, t.Cache)
+	if ok := t.WhenWithRetry(mgr); !ok {
+		return
+	}
+
+	t.Action.Init(mgr, t.Cache)
+	t.ExecuteWithRetry(wg, pool, mgr)
+}
+
+func (t *Task) When(mgr *config.Manager) (bool, error) {
 	if t.Prepare == nil {
 		return true, nil
 	}
 	if ok, err := t.Prepare.PreCheck(); err != nil {
-		t.Manager.Logger.Error(err)
+		mgr.Logger.Error(err)
 		t.TaskResult.AppendErr(err)
 		return false, err
 	} else if !ok {
@@ -121,11 +117,11 @@ func (t *Task) When() (bool, error) {
 	}
 }
 
-func (t *Task) WhenWithRetry() bool {
+func (t *Task) WhenWithRetry(mgr *config.Manager) bool {
 	pass := false
 	timeout := true
 	for i := 0; i < t.Retry; i++ {
-		if res, err := t.When(); err != nil {
+		if res, err := t.When(mgr); err != nil {
 			time.Sleep(t.Delay)
 			continue
 		} else {
@@ -136,7 +132,7 @@ func (t *Task) WhenWithRetry() bool {
 	}
 
 	if timeout {
-		t.Manager.Logger.Errorf("Execute task pre-check timeout, Timeout=%fs, after %d retries", t.Delay.Seconds(), t.Retry)
+		mgr.Logger.Errorf("Execute task pre-check timeout, Timeout=%fs, after %d retries", t.Delay.Seconds(), t.Retry)
 	}
 	return pass
 }
@@ -161,9 +157,6 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, mgr *con
 	resChan := make(chan string)
 	defer close(resChan)
 
-	if t.Retry < 1 {
-		t.Retry = 1
-	}
 	var end ending.Ending
 	for i := 0; i < t.Retry; i++ {
 		end = t.ExecuteWithTimer(wg, pool, resChan, mgr)
@@ -183,4 +176,30 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, mgr *con
 		}
 	}
 	resChan <- "done"
+}
+
+func (t *Task) Default() {
+	t.TaskResult = ending.NewTaskResult()
+	if t.Name == "" {
+		t.Name = DefaultTaskName
+	}
+
+	if len(t.Hosts) < 1 {
+		t.Hosts = []kubekeyapiv1alpha1.HostCfg{}
+		t.TaskResult.AppendErr(errors.New("the length of task hosts is 0"))
+		return
+	}
+
+	if t.Action == nil {
+		t.TaskResult.AppendErr(errors.New("the action is nil"))
+		return
+	}
+
+	if t.Retry < 1 {
+		t.Retry = 1
+	}
+
+	if t.Delay <= 0 {
+		t.Delay = 3
+	}
 }
