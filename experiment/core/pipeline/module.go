@@ -7,36 +7,37 @@ import (
 )
 
 type Module interface {
+	Default(runtime *config.Runtime)
+	Init()
 	Is() string
 	Run() error
-	Init()
 }
 
-type TaskModule struct {
+type DefaultTaskModule struct {
 	Name    string
 	Tasks   []Task
 	Cache   *cache.Cache
 	Runtime *config.Runtime
 }
 
-func NewTaskModule(name string, runtime *config.Runtime, tasks []Task) *TaskModule {
-	return &TaskModule{
-		Name:    name,
-		Runtime: runtime,
-		Tasks:   tasks,
+func (t *DefaultTaskModule) Default(runtime *config.Runtime) {
+	if t.Name == "" {
+		t.Name = DefaultModuleName
 	}
-}
 
-func (t *TaskModule) Init() {
 	logger.Log.SetModule(t.Name)
+	t.Runtime = runtime
 	t.Cache = cache.NewCache()
 }
 
-func (t *TaskModule) Is() string {
-	return "task"
+func (t *DefaultTaskModule) Init() {
 }
 
-func (t *TaskModule) Run() error {
+func (t *DefaultTaskModule) Is() string {
+	return TaskModule
+}
+
+func (t *DefaultTaskModule) Run() error {
 	logger.Log.Info("Begin Run")
 	for i := range t.Tasks {
 		task := t.Tasks[i]
