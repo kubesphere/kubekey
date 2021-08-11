@@ -3,7 +3,6 @@ package control_plane
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/core/action"
-	"github.com/kubesphere/kubekey/experiment/core/config"
 	"github.com/kubesphere/kubekey/experiment/core/pipeline"
 	"github.com/kubesphere/kubekey/experiment/core/prepare"
 	"github.com/kubesphere/kubekey/experiment/core/vars"
@@ -42,26 +41,28 @@ func (g *generateCfgAction) Execute(vars vars.Vars) error {
 	return nil
 }
 
-func NewGetClusterStatusModule(runtime *config.Runtime) *pipeline.TaskModule {
-	m := pipeline.NewTaskModule("GetCluster", runtime, nil)
+type GetClusterStatusModule struct {
+	pipeline.DefaultTaskModule
+}
+
+func (g *GetClusterStatusModule) Init() {
+	g.Name = "GetClusterStatus"
 
 	getClusterTask := pipeline.Task{
 		Name:    "getClusterTask",
-		Hosts:   []kubekeyapiv1alpha1.HostCfg{m.Runtime.MasterNodes[0]},
+		Hosts:   []kubekeyapiv1alpha1.HostCfg{g.Runtime.MasterNodes[0]},
 		Prepare: new(prepare.OnlyFirstMaster),
 		Action:  new(getClusterAction),
 	}
 
 	generateTask := pipeline.Task{
 		Name:   "GenerateConfigTask",
-		Hosts:  m.Runtime.MasterNodes,
+		Hosts:  g.Runtime.MasterNodes,
 		Action: new(generateCfgAction),
 	}
 
-	m.Tasks = []pipeline.Task{
+	g.Tasks = []pipeline.Task{
 		getClusterTask,
 		generateTask,
 	}
-
-	return m
 }

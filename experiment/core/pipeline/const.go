@@ -4,5 +4,9 @@ const (
 	DefaultTimeout = 120
 	DefaultCon     = 10
 
-	DefaultTaskName = "DefaultTask"
+	DefaultModuleName = "DefaultModule"
+	DefaultTaskName   = "DefaultTask"
+
+	TaskModule   = "TaskModule"
+	ServerModule = "ServerModule"
 )
