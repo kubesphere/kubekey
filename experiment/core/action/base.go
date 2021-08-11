@@ -8,13 +8,13 @@ import (
 )
 
 type BaseAction struct {
-	Runtime *config.Runtime
+	Manager *config.Runtime
 	Cache   *cache.Cache
 	Result  *ending.Result
 }
 
-func (b *BaseAction) Init(runtime *config.Runtime, cache *cache.Cache) {
-	b.Runtime = runtime
+func (b *BaseAction) Init(mgr *config.Runtime, cache *cache.Cache) {
+	b.Manager = mgr
 	b.Cache = cache
 	b.Result = ending.NewResult()
 }

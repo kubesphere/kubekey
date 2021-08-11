@@ -16,20 +16,19 @@ import (
 )
 
 type Task struct {
-	Name     string
-	Hosts    []kubekeyapiv1alpha1.HostCfg
-	Prepare  prepare.Prepare
-	Action   action.Action
-	Vars     vars.Vars
-	Parallel bool
-	Retry    int
-	Delay    time.Duration
-	Serial   string
-
+	Name        string
+	Hosts       []kubekeyapiv1alpha1.HostCfg
+	Action      action.Action
 	Cache       *cache.Cache
 	Runtime     *config.Runtime
+	Vars        vars.Vars
 	tag         string
+	Parallel    bool
+	Prepare     prepare.Prepare
 	IgnoreError bool
+	Retry       int
+	Delay       time.Duration
+	Serial      string
 	TaskResult  *ending.TaskResult
 }
 
@@ -200,6 +199,6 @@ func (t *Task) Default() {
 	}
 
 	if t.Delay <= 0 {
-		t.Delay = 3 * time.Second
+		t.Delay = 3
 	}
 }

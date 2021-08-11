@@ -15,14 +15,13 @@ func (p *Pipeline) Start() error {
 	logger.Log.Info("Begin Run")
 	for i := range p.Modules {
 		m := p.Modules[i]
-		m.Default(p.Runtime)
 		m.Init()
 		switch m.Is() {
-		case TaskModule:
+		case "task":
 			if err := m.Run(); err != nil {
 				return err
 			}
-		case ServerModule:
+		case "webserver":
 			go m.Run()
 		default:
 			return errors.New("invalid module")

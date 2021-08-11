@@ -2,20 +2,16 @@ package ssh
 
 import (
 	"context"
-	"fmt"
 	"github.com/kubesphere/kubekey/experiment/core/connector"
-	"github.com/kubesphere/kubekey/experiment/core/logger"
-	"github.com/kubesphere/kubekey/experiment/core/util"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
+	"github.com/tmc/scp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"io"
 	"io/ioutil"
 	"net"
 	"os"
-	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -143,11 +139,6 @@ func NewConnection(dialer *Dialer, cfg Cfg) (connector.Connection, error) {
 	}
 
 	sshConn.sshclient = ssh.NewClient(ncc, chans, reqs)
-	sftpClient, err := sftp.NewClient(sshConn.sshclient)
-	if err != nil {
-		return nil, errors.Wrapf(err, "new sftp client failed: %v", err)
-	}
-	sshConn.sftpclient = sftpClient
 	return sshConn, nil
 }
 
@@ -213,33 +204,6 @@ func (c *connection) Close() {
 	}
 }
 
-func (c *connection) session() (*ssh.Session, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.sshclient == nil {
-		return nil, errors.New("connection closed")
-	}
-
-	sess, err := c.sshclient.NewSession()
-	if err != nil {
-		return nil, err
-	}
-
-	modes := ssh.TerminalModes{
-		ssh.ECHO:          0,     // disable echoing
-		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-	}
-
-	err = sess.RequestPty("xterm", 100, 50, modes)
-	if err != nil {
-		return nil, err
-	}
-
-	return sess, nil
-}
-
 func (c *connection) PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr io.Writer) (int, error) {
 	sess, err := c.session()
 	if err != nil {
@@ -271,202 +235,40 @@ func (c *connection) Exec(cmd string) (stdout string, stderr string, code int, e
 	return strings.TrimSpace(stdoutBuf.String()), stderrBuf.String(), exitCode, err
 }
 
-func (c *connection) Fetch(local, remote string) error {
-	srcFile, err := c.sftpclient.Open(remote)
-	if err != nil {
-		return fmt.Errorf("open remote file failed %v, remote path: %s", err, remote)
-	}
-	defer srcFile.Close()
-
-	err = util.MkFileFullPathDir(local)
-	if err != nil {
-		return err
-	}
-	// open local Destination file
-	dstFile, err := os.Create(local)
-	if err != nil {
-		return fmt.Errorf("create local file failed %v", err)
-	}
-	defer dstFile.Close()
-	// copy to local file
-	_, err = srcFile.WriteTo(dstFile)
-	return err
-}
-
-type scpErr struct {
-	err error
-}
-
 func (c *connection) Scp(src, dst string) error {
-	baseRemotePath := filepath.Dir(dst)
-	//mkDstDir := fmt.Sprintf("mkdir -p %s || true", baseRemotePath)
-	//if _, _, _, err := c.Exec(mkDstDir); err != nil {
-	//	return err
-	//}
-	if err := c.MkDirAll(baseRemotePath); err != nil {
-		return err
-	}
-	f, err := os.Stat(src)
+	session, err := c.session()
+
+	err = scp.CopyPath(src, dst, session)
 	if err != nil {
-		return fmt.Errorf("get file stat failed: %s", err)
-	}
-
-	number := 1
-	if f.IsDir() {
-		number = util.CountDirFiles(src)
-	}
-	// empty dir
-	if number == 0 {
-		return nil
-	}
-
-	scpErr := new(scpErr)
-	if f.IsDir() {
-		c.copyDirToRemote(src, dst, scpErr)
-		if scpErr.err != nil {
-			return scpErr.err
-		}
-	} else {
-		if err := c.copyFileToRemote(src, dst); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (c *connection) copyDirToRemote(src, dst string, scrErr *scpErr) {
-	localFiles, err := ioutil.ReadDir(src)
-	if err != nil {
-		logger.Log.Errorf("read local path dir %s failed %v", src, err)
-		scrErr.err = err
-		return
-	}
-	if err = c.sftpclient.MkdirAll(dst); err != nil {
-		logger.Log.Errorf("failed to create remote path %s:%v", dst, err)
-		scrErr.err = err
-		return
-	}
-	for _, file := range localFiles {
-		lfp := path.Join(src, file.Name())
-		rfp := path.Join(dst, file.Name())
-		if file.IsDir() {
-			if err = c.sftpclient.MkdirAll(rfp); err != nil {
-				logger.Log.Errorf("failed to create remote path %s:%v", rfp, err)
-				scrErr.err = err
-				return
-			}
-			c.copyDirToRemote(lfp, rfp, scrErr)
-		} else {
-			err := c.copyFileToRemote(lfp, rfp)
-			if err != nil {
-				logger.Log.Errorf("copy local file %s to remote file %s failed %v ", lfp, rfp, err)
-				scrErr.err = err
-				return
-			}
-		}
-	}
-}
-
-func (c *connection) copyFileToRemote(src, dst string) error {
-	// check remote file md5 first
-	var (
-		srcMd5, dstMd5 string
-	)
-	srcMd5 = util.LocalMd5Sum(src)
-	if c.RemoteFileExist(dst) {
-		dstMd5 = c.RemoteMd5Sum(dst)
-		if srcMd5 == dstMd5 {
-			logger.Log.Debug("remote file %s md5 value is the same as local file, skip scp", dst)
-			return nil
-		}
-	}
-
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-	// the dst file mod will be 0666
-	dstFile, err := c.sftpclient.Create(dst)
-	if err != nil {
-		return err
-	}
-	fileStat, err := srcFile.Stat()
-	if err != nil {
-		return fmt.Errorf("get file stat failed %v", err)
-	}
-	// TODO seems not work
-	if err := dstFile.Chmod(fileStat.Mode()); err != nil {
-		return fmt.Errorf("chmod remote file failed %v", err)
-	}
-	defer dstFile.Close()
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		return err
-	}
-	dstMd5 = c.RemoteMd5Sum(dst)
-	if srcMd5 != dstMd5 {
-		return fmt.Errorf("validate md5sum failed %s != %s", srcMd5, dstMd5)
-	}
-	return nil
-}
-
-func (c *connection) RemoteMd5Sum(dst string) string {
-	cmd := fmt.Sprintf("md5sum %s | cut -d\" \" -f1", dst)
-	remoteMd5, _, _, err := c.Exec(cmd)
-	if err != nil {
-		logger.Log.Errorf("exec countRemoteMd5Command %s failed: %v", cmd, err)
-	}
-	return remoteMd5
-}
-
-func (c *connection) RemoteFileExist(dst string) bool {
-	remoteFileName := path.Base(dst)
-	remoteFileDirName := path.Dir(dst)
-
-	remoteFileCommand := fmt.Sprintf("ls -l %s/%s 2>/dev/null |wc -l", remoteFileDirName, remoteFileName)
-
-	out, _, _, err := c.Exec(remoteFileCommand)
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Log.Errorf("exec remoteFileCommand %s err: %v", remoteFileCommand, err)
-		}
-	}()
-	if err != nil {
-		panic(1)
-	}
-	count, err := strconv.Atoi(strings.TrimSpace(out))
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Log.Errorf("check remote file exist err: %v", err)
-		}
-	}()
-	if err != nil {
-		panic(1)
-	}
-	return count != 0
-}
-
-func (c *connection) RemoteDirExist(dst string) (bool, error) {
-	if _, err := c.sftpclient.ReadDir(dst); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-func (c *connection) MkDirAll(path string) error {
-	remotePath := filepath.Dir(path)
-	if err := c.sftpclient.MkdirAll(remotePath); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *connection) Chmod(path string, mode os.FileMode) error {
-	remotePath := filepath.Dir(path)
-	if err := c.sftpclient.Chmod(remotePath, mode); err != nil {
-		return err
+func (c *connection) session() (*ssh.Session, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.sshclient == nil {
+		return nil, errors.New("connection closed")
 	}
-	return nil
+
+	sess, err := c.sshclient.NewSession()
+	if err != nil {
+		return nil, err
+	}
+
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          0,     // disable echoing
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
+
+	err = sess.RequestPty("xterm", 100, 50, modes)
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
 }

@@ -6,10 +6,11 @@ import (
 	"github.com/kubesphere/kubekey/experiment/pipeline/kubernetes/module/control_plane"
 )
 
+// todo: 有个缺点，会在第一时间初始化所有的module对象，然后才进行执行。考虑是否修改为责任链模式
 func NewGetClusterInfoPipeline(runtime *config.Runtime) error {
 
 	modules := []pipeline.Module{
-		&control_plane.GetClusterStatusModule{},
+		control_plane.NewGetClusterStatusModule(runtime),
 	}
 
 	p := pipeline.Pipeline{

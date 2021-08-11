@@ -3,6 +3,7 @@ package control_plane
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/core/action"
+	"github.com/kubesphere/kubekey/experiment/core/config"
 	"github.com/kubesphere/kubekey/experiment/core/pipeline"
 	"github.com/kubesphere/kubekey/experiment/core/prepare"
 	"github.com/kubesphere/kubekey/experiment/core/vars"
@@ -16,7 +17,7 @@ type getClusterAction struct {
 
 func (g *getClusterAction) Execute(vars vars.Vars) error {
 	var clusterIsExist bool
-	output, _, _, _ := g.Runtime.Runner.Cmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", true)
+	output, _, _, _ := g.Manager.Runner.Cmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", true)
 	if strings.Contains(output, "Cluster will be created") {
 		clusterIsExist = false
 	} else {
@@ -41,28 +42,26 @@ func (g *generateCfgAction) Execute(vars vars.Vars) error {
 	return nil
 }
 
-type GetClusterStatusModule struct {
-	pipeline.BaseTaskModule
-}
-
-func (g *GetClusterStatusModule) Init() {
-	g.Name = "GetClusterStatus"
+func NewGetClusterStatusModule(runtime *config.Runtime) *pipeline.TaskModule {
+	m := pipeline.NewTaskModule("GetCluster", runtime, nil)
 
 	getClusterTask := pipeline.Task{
 		Name:    "getClusterTask",
-		Hosts:   []kubekeyapiv1alpha1.HostCfg{g.Runtime.MasterNodes[0]},
+		Hosts:   []kubekeyapiv1alpha1.HostCfg{m.Runtime.MasterNodes[0]},
 		Prepare: new(prepare.OnlyFirstMaster),
 		Action:  new(getClusterAction),
 	}
 
 	generateTask := pipeline.Task{
 		Name:   "GenerateConfigTask",
-		Hosts:  g.Runtime.MasterNodes,
+		Hosts:  m.Runtime.MasterNodes,
 		Action: new(generateCfgAction),
 	}
 
-	g.Tasks = []pipeline.Task{
+	m.Tasks = []pipeline.Task{
 		getClusterTask,
 		generateTask,
 	}
+
+	return m
 }

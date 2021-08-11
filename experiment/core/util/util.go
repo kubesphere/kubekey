@@ -34,6 +34,20 @@ import (
 	"text/template"
 )
 
+func InitLogger(verbose bool) *log.Logger {
+	logger := log.New()
+	logger.Formatter = &log.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: "15:04:05 MST",
+	}
+
+	if verbose {
+		logger.SetLevel(log.DebugLevel)
+	}
+
+	return logger
+}
+
 func IsExist(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
