@@ -8,7 +8,10 @@ import (
 type Connection interface {
 	Exec(cmd string) (stdout string, stderr string, code int, err error)
 	PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr io.Writer) (code int, err error)
-	Scp(src, dst string) error
+	Fetch(local, remote string) error
+	Scp(local, remote string) error
+	RemoteFileExist(remote string) bool
+	RemoteDirExist(remote string) (bool, error)
 	Close()
 }
 

@@ -16,7 +16,7 @@ type getClusterAction struct {
 
 func (g *getClusterAction) Execute(vars vars.Vars) error {
 	var clusterIsExist bool
-	output, _, _, _ := g.Manager.Runner.Cmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", true)
+	output, _, _, _ := g.Runtime.Runner.Cmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", true)
 	if strings.Contains(output, "Cluster will be created") {
 		clusterIsExist = false
 	} else {
