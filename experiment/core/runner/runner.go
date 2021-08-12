@@ -2,11 +2,10 @@ package runner
 
 import (
 	"errors"
-	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/core/connector"
+	"github.com/kubesphere/kubekey/experiment/core/logger"
 	"os"
-	"time"
 )
 
 type Runner struct {
@@ -16,8 +15,7 @@ type Runner struct {
 	Index int
 }
 
-const retryTime = 5 * time.Second
-
+// todo: return value may be too much
 func (r *Runner) Cmd(cmd string, printOutput bool) (string, string, int, error) {
 	if r.Conn == nil {
 		return "", "", 1, errors.New("no ssh connection available")
@@ -29,37 +27,68 @@ func (r *Runner) Cmd(cmd string, printOutput bool) (string, string, int, error) 
 	stderr := NewTee(os.Stderr)
 	defer stderr.Close()
 
-	var exitCode int
-
 	code, err := r.Conn.PExec(cmd, nil, stdout, stderr)
-	exitCode = code
+	if printOutput {
+		if stdout.String() != "" {
+			logger.Log.Infof("[stdout]: %s", stdout.String())
+		}
+		if stderr.String() != "" {
+			logger.Log.Infof("[stderr]: %s", stderr.String())
+		}
+	}
 	if err != nil {
-		return "", err.Error(), exitCode, err
+		return "", err.Error(), code, err
 	}
 
-	if printOutput && stdout.String() != "" {
-		fmt.Printf("[%s %s] MSG:\n", r.Host.Name, r.Host.Address)
-		fmt.Println(stdout.String())
-	}
-
-	return stdout.String(), stderr.String(), exitCode, nil
+	return stdout.String(), stderr.String(), code, nil
 }
 
-func (r *Runner) ScpFile(src, dst string) error {
+func (r *Runner) Fetch(local, remote string) error {
 	if r.Conn == nil {
-		return errors.New("runner is not tied to an opened SSH connection")
+		return errors.New("no ssh connection available")
 	}
 
-	err := r.Conn.Scp(src, dst)
-	if err != nil {
-		if r.Debug {
-			fmt.Printf("Push %s to %s:%s   Failed\n", src, r.Host.Address, dst)
-			return err
-		}
-	} else {
-		if r.Debug {
-			fmt.Printf("Push %s to %s:%s   Done\n", src, r.Host.Address, dst)
-		}
+	if err := r.Conn.Fetch(local, remote); err != nil {
+		logger.Log.Errorf("fetch remote file %s to local %s failed: %v", remote, local, err)
+		return err
 	}
+	logger.Log.Debugf("fetch remote file %s to local %s success", remote, local)
 	return nil
+}
+
+func (r *Runner) Scp(remote, local string) error {
+	if r.Conn == nil {
+		return errors.New("no ssh connection available")
+	}
+
+	if err := r.Conn.Scp(remote, local); err != nil {
+		logger.Log.Errorf("scp local file %s to remote %s failed: %v", remote, local, err)
+		return err
+	}
+	logger.Log.Debugf("scp local file %s to remote %s success", remote, local)
+	return nil
+}
+
+func (r *Runner) FileExist(remote string) (bool, error) {
+	if r.Conn == nil {
+		return false, errors.New("no ssh connection available")
+	}
+
+	ok := r.Conn.RemoteFileExist(remote)
+	logger.Log.Debugf("check remote file exist: %v", ok)
+	return ok, nil
+}
+
+func (r *Runner) DirExist(remote string) (bool, error) {
+	if r.Conn == nil {
+		return false, errors.New("no ssh connection available")
+	}
+
+	ok, err := r.Conn.RemoteDirExist(remote)
+	if err != nil {
+		logger.Log.Errorf("check remote dir exist failed: %v", err)
+		return false, err
+	}
+	logger.Log.Debugf("check remote dir exist: %v", ok)
+	return ok, nil
 }
