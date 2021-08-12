@@ -3,10 +3,8 @@ package util
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/kubesphere/kubekey/experiment/core/common"
 	"github.com/kubesphere/kubekey/experiment/core/logger"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -54,15 +52,6 @@ func FileMD5(path string) (string, error) {
 	return fileMd5, nil
 }
 
-func LocalMd5Sum(src string) string {
-	md5Str, err := FileMD5(src)
-	if err != nil {
-		logger.Log.Errorf("get file md5 failed %v", err)
-		return ""
-	}
-	return md5Str
-}
-
 // MkFileFullPathDir is used to file create the full path.
 // eg. there is a file "./aa/bb/xxx.txt", and dir ./aa/bb is not exist, and will create the full path dir.
 func MkFileFullPathDir(fileName string) error {
@@ -76,18 +65,4 @@ func MkFileFullPathDir(fileName string) error {
 
 func Mkdir(dirName string) error {
 	return os.MkdirAll(dirName, os.ModePerm)
-}
-
-func WriteFile(fileName string, content []byte) error {
-	dir := filepath.Dir(fileName)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, common.FileMode0755); err != nil {
-			return err
-		}
-	}
-
-	if err := ioutil.WriteFile(fileName, content, common.FileMode0644); err != nil {
-		return err
-	}
-	return nil
 }
