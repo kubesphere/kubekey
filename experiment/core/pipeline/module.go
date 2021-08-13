@@ -13,14 +13,14 @@ type Module interface {
 	Run() error
 }
 
-type DefaultTaskModule struct {
+type BaseTaskModule struct {
 	Name    string
 	Tasks   []Task
 	Cache   *cache.Cache
 	Runtime *config.Runtime
 }
 
-func (t *DefaultTaskModule) Default(runtime *config.Runtime) {
+func (t *BaseTaskModule) Default(runtime *config.Runtime) {
 	if t.Name == "" {
 		t.Name = DefaultModuleName
 	}
@@ -30,14 +30,14 @@ func (t *DefaultTaskModule) Default(runtime *config.Runtime) {
 	t.Cache = cache.NewCache()
 }
 
-func (t *DefaultTaskModule) Init() {
+func (t *BaseTaskModule) Init() {
 }
 
-func (t *DefaultTaskModule) Is() string {
+func (t *BaseTaskModule) Is() string {
 	return TaskModule
 }
 
-func (t *DefaultTaskModule) Run() error {
+func (t *BaseTaskModule) Run() error {
 	logger.Log.Info("Begin Run")
 	for i := range t.Tasks {
 		task := t.Tasks[i]
