@@ -143,6 +143,11 @@ func NewConnection(dialer *Dialer, cfg Cfg) (connector.Connection, error) {
 	}
 
 	sshConn.sshclient = ssh.NewClient(ncc, chans, reqs)
+	sftpClient, err := sftp.NewClient(sshConn.sshclient)
+	if err != nil {
+		return nil, errors.Wrapf(err, "new sftp client failed: %v", err)
+	}
+	sshConn.sftpclient = sftpClient
 	return sshConn, nil
 }
 
@@ -294,8 +299,11 @@ type scpErr struct {
 
 func (c *connection) Scp(src, dst string) error {
 	baseRemotePath := filepath.Dir(dst)
-	mkDstDir := fmt.Sprintf("mkdir -p %s || true", baseRemotePath)
-	if _, _, _, err := c.Exec(mkDstDir); err != nil {
+	//mkDstDir := fmt.Sprintf("mkdir -p %s || true", baseRemotePath)
+	//if _, _, _, err := c.Exec(mkDstDir); err != nil {
+	//	return err
+	//}
+	if err := c.MkDirAll(baseRemotePath); err != nil {
 		return err
 	}
 	f, err := os.Stat(src)
@@ -364,7 +372,7 @@ func (c *connection) copyFileToRemote(src, dst string) error {
 	var (
 		srcMd5, dstMd5 string
 	)
-	srcMd5 = LocalMd5Sum(src)
+	srcMd5 = util.LocalMd5Sum(src)
 	if c.RemoteFileExist(dst) {
 		dstMd5 = c.RemoteMd5Sum(dst)
 		if srcMd5 == dstMd5 {
@@ -403,26 +411,17 @@ func (c *connection) copyFileToRemote(src, dst string) error {
 	return nil
 }
 
-func LocalMd5Sum(src string) string {
-	md5, err := util.FileMD5(src)
-	if err != nil {
-		logger.Log.Errorf("get file md5 failed %v", err)
-		return ""
-	}
-	return md5
-}
-
 func (c *connection) RemoteMd5Sum(dst string) string {
 	cmd := fmt.Sprintf("md5sum %s | cut -d\" \" -f1", dst)
 	remoteMd5, _, _, err := c.Exec(cmd)
 	if err != nil {
-		logger.Log.Errorf("exec countRemoteMd5Command %s failed: %s", cmd, err)
+		logger.Log.Errorf("exec countRemoteMd5Command %s failed: %v", cmd, err)
 	}
 	return remoteMd5
 }
 
 func (c *connection) RemoteFileExist(dst string) bool {
-	remoteFileName := path.Base(dst) // aa
+	remoteFileName := path.Base(dst)
 	remoteFileDirName := path.Dir(dst)
 
 	remoteFileCommand := fmt.Sprintf("ls -l %s/%s 2>/dev/null |wc -l", remoteFileDirName, remoteFileName)
@@ -453,4 +452,21 @@ func (c *connection) RemoteDirExist(dst string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (c *connection) MkDirAll(path string) error {
+	remotePath := filepath.Dir(path)
+	if err := c.sftpclient.MkdirAll(remotePath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *connection) Chmod(path string, mode os.FileMode) error {
+	remotePath := filepath.Dir(path)
+	if err := c.sftpclient.Chmod(remotePath, mode); err != nil {
+		return err
+	}
+	return nil
 }

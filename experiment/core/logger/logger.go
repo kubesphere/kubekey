@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-// todo: 日志考虑修改为全局变量形式，主要需要考虑解决并发情况下日志打印问题
-
 var Log *KubeKeyLog
 
 func init() {

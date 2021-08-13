@@ -3,6 +3,7 @@ package connector
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
 	"io"
+	"os"
 )
 
 type Connection interface {
@@ -12,6 +13,8 @@ type Connection interface {
 	Scp(local, remote string) error
 	RemoteFileExist(remote string) bool
 	RemoteDirExist(remote string) (bool, error)
+	MkDirAll(path string) error
+	Chmod(path string, mode os.FileMode) error
 	Close()
 }
 
