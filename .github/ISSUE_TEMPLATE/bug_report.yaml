@@ -19,7 +19,7 @@ body:
       label: What is version of KubeKey has the issue?
       description: "You can use the command to get `./kk version`"
   - type: input
-    id: version
+    id: os
     validations:
       required: true
     attributes:
