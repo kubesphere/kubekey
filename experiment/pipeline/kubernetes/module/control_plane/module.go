@@ -42,7 +42,7 @@ func (g *generateCfgAction) Execute(vars vars.Vars) error {
 }
 
 type GetClusterStatusModule struct {
-	pipeline.DefaultTaskModule
+	pipeline.BaseTaskModule
 }
 
 func (g *GetClusterStatusModule) Init() {
