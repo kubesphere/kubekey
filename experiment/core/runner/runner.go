@@ -2,6 +2,7 @@ package runner
 
 import (
 	"errors"
+	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/core/connector"
 	"github.com/kubesphere/kubekey/experiment/core/logger"
@@ -91,4 +92,42 @@ func (r *Runner) DirExist(remote string) (bool, error) {
 	}
 	logger.Log.Debugf("check remote dir exist: %v", ok)
 	return ok, nil
+}
+
+func (r *Runner) MkDir(path string) error {
+	if r.Conn == nil {
+		return errors.New("no ssh connection available")
+	}
+
+	if err := r.Conn.MkDirAll(path); err != nil {
+		logger.Log.Errorf("make remote dir %s failed: %v", path, err)
+		return err
+	}
+	return nil
+}
+
+func (r *Runner) Chmod(path string, mode os.FileMode) error {
+	if r.Conn == nil {
+		return errors.New("no ssh connection available")
+	}
+
+	if err := r.Conn.Chmod(path, mode); err != nil {
+		logger.Log.Errorf("chmod remote path %s failed: %v", path, err)
+		return err
+	}
+	return nil
+}
+
+func (r *Runner) FileMd5(path string) (string, error) {
+	if r.Conn == nil {
+		return "", errors.New("no ssh connection available")
+	}
+
+	cmd := fmt.Sprintf("md5sum %s | cut -d\" \" -f1", path)
+	out, _, _, err := r.Conn.Exec(cmd)
+	if err != nil {
+		logger.Log.Errorf("count remote %s md5 failed: %v", path, err)
+		return "", err
+	}
+	return out, nil
 }
