@@ -6,12 +6,12 @@ import (
 )
 
 type BasePrepare struct {
-	runtime *config.Runtime
+	Runtime *config.Runtime
 	Cache   *cache.Cache
 }
 
 func (b *BasePrepare) Init(runtime *config.Runtime, cache *cache.Cache) {
-	b.runtime = runtime
+	b.Runtime = runtime
 	b.Cache = cache
 }
 

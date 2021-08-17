@@ -271,6 +271,10 @@ func (c *connection) Exec(cmd string) (stdout string, stderr string, code int, e
 	return strings.TrimSpace(stdoutBuf.String()), stderrBuf.String(), exitCode, err
 }
 
+func SudoPrefix(cmd string) string {
+	return fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd)
+}
+
 func (c *connection) Fetch(local, remote string) error {
 	srcFile, err := c.sftpclient.Open(remote)
 	if err != nil {
@@ -299,10 +303,7 @@ type scpErr struct {
 
 func (c *connection) Scp(src, dst string) error {
 	baseRemotePath := filepath.Dir(dst)
-	//mkDstDir := fmt.Sprintf("mkdir -p %s || true", baseRemotePath)
-	//if _, _, _, err := c.Exec(mkDstDir); err != nil {
-	//	return err
-	//}
+
 	if err := c.MkDirAll(baseRemotePath); err != nil {
 		return err
 	}
@@ -341,25 +342,25 @@ func (c *connection) copyDirToRemote(src, dst string, scrErr *scpErr) {
 		scrErr.err = err
 		return
 	}
-	if err = c.sftpclient.MkdirAll(dst); err != nil {
+	if err = c.MkDirAll(dst); err != nil {
 		logger.Log.Errorf("failed to create remote path %s:%v", dst, err)
 		scrErr.err = err
 		return
 	}
 	for _, file := range localFiles {
-		lfp := path.Join(src, file.Name())
-		rfp := path.Join(dst, file.Name())
+		local := path.Join(src, file.Name())
+		remote := path.Join(dst, file.Name())
 		if file.IsDir() {
-			if err = c.sftpclient.MkdirAll(rfp); err != nil {
-				logger.Log.Errorf("failed to create remote path %s:%v", rfp, err)
+			if err = c.MkDirAll(remote); err != nil {
+				logger.Log.Errorf("failed to create remote path %s:%v", remote, err)
 				scrErr.err = err
 				return
 			}
-			c.copyDirToRemote(lfp, rfp, scrErr)
+			c.copyDirToRemote(local, remote, scrErr)
 		} else {
-			err := c.copyFileToRemote(lfp, rfp)
+			err := c.copyFileToRemote(local, remote)
 			if err != nil {
-				logger.Log.Errorf("copy local file %s to remote file %s failed %v ", lfp, rfp, err)
+				logger.Log.Errorf("copy local file %s to remote file %s failed %v ", local, remote, err)
 				scrErr.err = err
 				return
 			}
@@ -395,7 +396,6 @@ func (c *connection) copyFileToRemote(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("get file stat failed %v", err)
 	}
-	// TODO seems not work
 	if err := dstFile.Chmod(fileStat.Mode()); err != nil {
 		return fmt.Errorf("chmod remote file failed %v", err)
 	}
@@ -456,7 +456,8 @@ func (c *connection) RemoteDirExist(dst string) (bool, error) {
 
 func (c *connection) MkDirAll(path string) error {
 	remotePath := filepath.Dir(path)
-	if err := c.sftpclient.MkdirAll(remotePath); err != nil {
+	mkDstDir := fmt.Sprintf("mkdir -p %s || true", remotePath)
+	if _, _, _, err := c.Exec(SudoPrefix(mkDstDir)); err != nil {
 		return err
 	}
 
