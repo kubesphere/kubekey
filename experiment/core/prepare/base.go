@@ -23,19 +23,17 @@ func (b *BasePrepare) Not(x bool) (bool, error) {
 	return !x, nil
 }
 
-type PrepareCollection struct {
-	Prepares []Prepare
-}
+type PrepareCollection []Prepare
 
 func (p *PrepareCollection) Init(runtime *config.Runtime, cache *cache.Cache) {
-	for i := range p.Prepares {
-		p.Prepares[i].Init(runtime, cache)
+	for _, v := range *p {
+		v.Init(runtime, cache)
 	}
 }
 
 func (p *PrepareCollection) PreCheck() (bool, error) {
-	for i := range p.Prepares {
-		res, err := p.Prepares[i].PreCheck()
+	for _, v := range *p {
+		res, err := v.PreCheck()
 		if err != nil {
 			return false, err
 		}
