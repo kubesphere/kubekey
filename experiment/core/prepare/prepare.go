@@ -18,7 +18,7 @@ type OnlyFirstMaster struct {
 }
 
 func (o *OnlyFirstMaster) PreCheck() (bool, error) {
-	if o.runtime.Runner.Host.IsMaster && o.runtime.Runner.Host.Name == o.runtime.MasterNodes[0].Name {
+	if o.Runtime.Runner.Host.IsMaster && o.Runtime.Runner.Host.Name == o.Runtime.MasterNodes[0].Name {
 		return true, nil
 	}
 	return false, nil
@@ -29,7 +29,7 @@ type OnlyWorker struct {
 }
 
 func (o *OnlyWorker) PreCheck() (bool, error) {
-	if o.runtime.Runner.Host.IsWorker && !o.runtime.Runner.Host.IsMaster {
+	if o.Runtime.Runner.Host.IsWorker && !o.Runtime.Runner.Host.IsMaster {
 		return true, nil
 	}
 	return false, nil
@@ -40,7 +40,7 @@ type OnlyK3s struct {
 }
 
 func (o *OnlyK3s) PreCheck() (bool, error) {
-	if o.runtime.Cluster.Kubernetes.Type == "k3s" {
+	if o.Runtime.Cluster.Kubernetes.Type == "k3s" {
 		return true, nil
 	}
 	return false, nil
@@ -51,7 +51,7 @@ type OnlyKubernetes struct {
 }
 
 func (o *OnlyKubernetes) PreCheck() (bool, error) {
-	if o.runtime.Cluster.Kubernetes.Type != "k3s" {
+	if o.Runtime.Cluster.Kubernetes.Type != "k3s" {
 		return true, nil
 	}
 	return false, nil

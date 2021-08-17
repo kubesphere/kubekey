@@ -1,6 +1,7 @@
 package module
 
 import (
+	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/core/action"
 	"github.com/kubesphere/kubekey/experiment/core/config"
 	"github.com/kubesphere/kubekey/experiment/core/pipeline"
@@ -56,10 +57,9 @@ func (h *HaproxyModule) Init() {
 		Name:  "GenerateHaproxyManifestK3s",
 		Hosts: h.Runtime.WorkerNodes,
 		Prepare: &prepare.PrepareCollection{
-			Prepares: []prepare.Prepare{
-				new(prepare.OnlyWorker),
-				new(prepare.OnlyK3s),
-			}},
+			new(prepare.OnlyWorker),
+			new(prepare.OnlyK3s),
+		},
 		Action: &action.Template{
 			Template: templates.HaproxyManifest,
 			Dst:      "/etc/kubernetes/manifests",
@@ -77,10 +77,9 @@ func (h *HaproxyModule) Init() {
 		Name:  "GenerateHaproxyManifest",
 		Hosts: h.Runtime.WorkerNodes,
 		Prepare: &prepare.PrepareCollection{
-			Prepares: []prepare.Prepare{
-				new(prepare.OnlyWorker),
-				new(prepare.OnlyKubernetes),
-			}},
+			new(prepare.OnlyWorker),
+			new(prepare.OnlyKubernetes),
+		},
 		Action: &action.Template{
 			Template: templates.HaproxyManifest,
 			Dst:      "/etc/kubernetes/manifests",
@@ -94,16 +93,57 @@ func (h *HaproxyModule) Init() {
 		Parallel: true,
 	}
 
+	updateK3sConfig := pipeline.Task{
+		Name:  "UpdateK3sConfig",
+		Hosts: h.Runtime.WorkerNodes,
+		Prepare: &prepare.PrepareCollection{
+			new(prepare.OnlyK3s),
+			new(updateK3sPrepare),
+		},
+		Action:   new(updateK3s),
+		Parallel: true,
+		Retry:    3,
+	}
+
 	// UpdateKubeletConfig Update server field in kubelet.conf
 	// When create a HA cluster by internal LB, we will set the server filed to 127.0.0.1:6443 (default) which in kubelet.conf.
 	// Because of that, the control plone node's kubelet connect the local api-server.
 	// And the work node's kubelet connect 127.0.0.1:6443 (default) that is proxy by the node's local nginx.
 	updateKubeletConfig := pipeline.Task{
-		Name:     "UpdateKubeletConfig",
-		Hosts:    h.Runtime.K8sNodes,
-		Prepare:  new(updateKubeletPrapre),
+		Name:  "UpdateKubeletConfig",
+		Hosts: h.Runtime.K8sNodes,
+		Prepare: &prepare.PrepareCollection{
+			new(prepare.OnlyKubernetes),
+			new(updateKubeletPrepare),
+		},
 		Action:   new(updateKubelet),
 		Parallel: true,
+		Retry:    3,
+	}
+
+	// updateKubeproxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
+	updateKubeproxyConfig := pipeline.Task{
+		Name:  "UpdateKubeproxyConfig",
+		Hosts: []kubekeyapiv1alpha1.HostCfg{h.Runtime.MasterNodes[0]},
+		Prepare: &prepare.PrepareCollection{
+			new(prepare.OnlyKubernetes),
+			new(prepare.OnlyFirstMaster),
+			new(updateKubeproxyPrapre),
+		},
+		Action:   new(updateKubeproxy),
+		Parallel: true,
+		Retry:    3,
+	}
+
+	// UpdateHostsFile is used to update the '/etc/hosts'. Make the 'lb.kubesphere.local' address to set as 127.0.0.1.
+	// All of the 'admin.conf' and '/.kube/config' will connect to 127.0.0.1:6443.
+	updateHostsFile := pipeline.Task{
+		Name:     "UpdateHostsFile",
+		Hosts:    h.Runtime.K8sNodes,
+		Prepare:  nil,
+		Action:   new(updateHosts),
+		Parallel: true,
+		Retry:    3,
 	}
 
 	h.Tasks = []pipeline.Task{
@@ -112,7 +152,10 @@ func (h *HaproxyModule) Init() {
 		getMd5Sum,
 		haproxyManifestK3s,
 		haproxyManifestK8s,
+		updateK3sConfig,
 		updateKubeletConfig,
+		updateKubeproxyConfig,
+		updateHostsFile,
 	}
 }
 
