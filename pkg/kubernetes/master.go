@@ -46,36 +46,41 @@ var (
 
 // GetClusterStatus is used to fetch status and info from cluster.
 func GetClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
-	if mgr.Runner.Index == 0 {
-		if clusterStatus["clusterInfo"] == "" {
-			output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, true)
-			if strings.Contains(output, "Cluster will be created") {
-				clusterIsExist = false
-			} else {
-				if err != nil {
-					return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/admin.conf")
-				}
-				clusterIsExist = true
-				if output, err := mgr.Runner.ExecuteCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, true); err != nil {
-					return errors.Wrap(errors.WithStack(err), "Failed to find current version")
-				} else {
-					if !strings.Contains(output, "No such file or directory") {
-						clusterStatus["version"] = output
-					}
-				}
-				kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
-				kubeConfigStr, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
-				if err1 != nil {
-					return errors.Wrap(errors.WithStack(err1), "Failed to get cluster kubeconfig")
-				}
-				clusterStatus["kubeconfig"] = kubeConfigStr
-				if err := loadKubeConfig(mgr); err != nil {
-					return err
-				}
-				if err := getJoinNodesCmd(mgr); err != nil {
-					return err
-				}
+	if clusterStatus["clusterInfo"] != "" {
+		return nil
+	}
+
+	output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, true)
+	if strings.Contains(output, "Cluster will be created") {
+		clusterIsExist = false
+		return nil
+	} else {
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/admin.conf")
+		}
+
+		clusterIsExist = true
+		if output, err := mgr.Runner.ExecuteCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, true); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to find current version")
+		} else {
+			if !strings.Contains(output, "No such file or directory") {
+				clusterStatus["version"] = output
 			}
+		}
+
+		kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
+		kubeConfigStr, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
+		if err1 != nil {
+			return errors.Wrap(errors.WithStack(err1), "Failed to get cluster kubeconfig")
+		}
+
+		clusterStatus["kubeconfig"] = kubeConfigStr
+
+		if err := loadKubeConfig(mgr); err != nil {
+			return err
+		}
+		if err := getJoinNodesCmd(mgr); err != nil {
+			return err
 		}
 	}
 	return nil

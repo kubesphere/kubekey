@@ -2,40 +2,27 @@ package action
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/experiment/core/common"
 	"github.com/kubesphere/kubekey/experiment/core/util"
 	"github.com/kubesphere/kubekey/experiment/core/vars"
 	"github.com/pkg/errors"
-	"os"
 	"path/filepath"
 	"text/template"
 )
 
 type Template struct {
 	BaseAction
-	TemplateName string
-	Dst          string
-	Data         map[string]interface{}
+	Template *template.Template
+	Dst      string
+	Data     util.Data
 }
 
 func (t *Template) Execute(vars vars.Vars) error {
-	pwd, err := os.Getwd()
+	templateStr, err := util.Render(t.Template, t.Data)
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("template %s get pwd failed", t.TemplateName))
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("render template %s failed", t.Template.Name()))
 	}
 
-	path := filepath.Join(pwd, common.ModuleTemplateDir, t.TemplateName)
-	tmpl, err := template.New(t.TemplateName).ParseFiles(path)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("template %s parse failed", path))
-	}
-
-	templateStr, err := util.Render(tmpl, t.Data)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("render template %s failed", t.TemplateName))
-	}
-
-	fileName := filepath.Join(t.Runtime.WorkDir, t.TemplateName)
+	fileName := filepath.Join(t.Runtime.WorkDir, t.Template.Name())
 	if err := util.WriteFile(fileName, []byte(templateStr)); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("write file %s failed", fileName))
 	}

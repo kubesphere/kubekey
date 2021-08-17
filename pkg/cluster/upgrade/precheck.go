@@ -130,9 +130,8 @@ Warning:
 
   An old Docker version may cause the failure of upgrade. It is recommended that you upgrade Docker to 20.10+ beforehand.
 
-  Issue: https://github.com/kubernetes/kubernetes/issues/101056
-
-`)
+  Issue: https://github.com/kubernetes/kubernetes/issues/101056`)
+			fmt.Print("\n")
 		}
 	}
 

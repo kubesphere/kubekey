@@ -94,7 +94,7 @@ func (t *Task) Run(runtime *config.Runtime, wg *sync.WaitGroup, pool chan struct
 	wg.Add(1)
 
 	t.Prepare.Init(runtime, t.Cache)
-	if ok := t.WhenWithRetry(runtime); !ok {
+	if ok := t.WhenWithRetry(); !ok {
 		return
 	}
 
@@ -102,13 +102,13 @@ func (t *Task) Run(runtime *config.Runtime, wg *sync.WaitGroup, pool chan struct
 	t.ExecuteWithRetry(wg, pool, runtime)
 }
 
-func (t *Task) When(runtime *config.Runtime) (bool, error) {
+func (t *Task) When() (bool, error) {
 	if t.Prepare == nil {
 		return true, nil
 	}
 	if ok, err := t.Prepare.PreCheck(); err != nil {
 		logger.Log.Error(err)
-		t.TaskResult.AppendErr(err)
+		t.TaskResult.AppendErr(errors.Wrapf(err, "task %s precheck failed", t.Name))
 		return false, err
 	} else if !ok {
 		return false, nil
@@ -117,11 +117,11 @@ func (t *Task) When(runtime *config.Runtime) (bool, error) {
 	}
 }
 
-func (t *Task) WhenWithRetry(runtime *config.Runtime) bool {
+func (t *Task) WhenWithRetry() bool {
 	pass := false
 	timeout := true
 	for i := 0; i < t.Retry; i++ {
-		if res, err := t.When(runtime); err != nil {
+		if res, err := t.When(); err != nil {
 			time.Sleep(t.Delay)
 			continue
 		} else {
@@ -172,7 +172,7 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, runtime 
 	if end != nil {
 		t.TaskResult.AppendEnding(end, runtime.Runner.Host.Name)
 		if end.GetErr() != nil {
-			t.TaskResult.AppendErr(end.GetErr())
+			t.TaskResult.AppendErr(errors.Wrapf(end.GetErr(), "task %s exec failed", t.Name))
 		}
 	}
 	resChan <- "done"

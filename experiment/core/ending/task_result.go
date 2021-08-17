@@ -92,7 +92,7 @@ func (t *TaskResult) CombineErr() error {
 	}
 	var err error
 	for i, v := range t.Errors {
-		err = errors.Wrapf(v, "err stack[%d]: ", i)
+		err = errors.Wrapf(v, "Error[%d]:", i)
 	}
 	return err
 }
