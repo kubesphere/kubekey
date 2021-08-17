@@ -5,6 +5,7 @@ import (
 	"github.com/kubesphere/kubekey/experiment/core/config"
 	"github.com/kubesphere/kubekey/experiment/core/ending"
 	"github.com/kubesphere/kubekey/experiment/core/vars"
+	"github.com/pkg/errors"
 )
 
 type BaseAction struct {
@@ -28,7 +29,7 @@ func (b *BaseAction) Execute(vars vars.Vars) error {
 func (b *BaseAction) WrapResult(err error) *ending.Result {
 	defer b.Result.SetEndTime()
 	if err != nil {
-		b.Result.ErrResult(err)
+		b.Result.ErrResult(errors.WithStack(err))
 		return b.Result
 	}
 	b.Result.NormalResult(int(ending.SUCCESS), "", "")

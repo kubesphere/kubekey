@@ -16,21 +16,22 @@ import (
 
 // todo: 原来inCluster的处理方式如何更加优雅，runtime中是否需要存operator有关的控制变量。普通创建集群，operator，webserver可以实现不同的runtime？
 type Runtime struct {
-	ObjName      string
-	Cluster      *kubekeyapiv1alpha1.ClusterSpec
-	Connector    connector.Connector
-	Runner       *runner.Runner
-	AllNodes     []kubekeyapiv1alpha1.HostCfg
-	EtcdNodes    []kubekeyapiv1alpha1.HostCfg
-	MasterNodes  []kubekeyapiv1alpha1.HostCfg
-	WorkerNodes  []kubekeyapiv1alpha1.HostCfg
-	K8sNodes     []kubekeyapiv1alpha1.HostCfg
-	ClusterHosts []string
-	WorkDir      string
-	Kubeconfig   string
-	Conditions   []kubekeyapiv1alpha1.Condition
-	ClientSet    *kubekeyclientset.Clientset
-	Arg          Argument
+	ObjName         string
+	Cluster         *kubekeyapiv1alpha1.ClusterSpec
+	Connector       connector.Connector
+	Runner          *runner.Runner
+	DownloadCommand func(path, url string) string
+	AllNodes        []kubekeyapiv1alpha1.HostCfg
+	EtcdNodes       []kubekeyapiv1alpha1.HostCfg
+	MasterNodes     []kubekeyapiv1alpha1.HostCfg
+	WorkerNodes     []kubekeyapiv1alpha1.HostCfg
+	K8sNodes        []kubekeyapiv1alpha1.HostCfg
+	ClusterHosts    []string
+	WorkDir         string
+	Kubeconfig      string
+	Conditions      []kubekeyapiv1alpha1.Condition
+	ClientSet       *kubekeyclientset.Clientset
+	Arg             Argument
 }
 
 type Argument struct {

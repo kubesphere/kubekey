@@ -1,3 +1,12 @@
+package templates
+
+import (
+	"github.com/lithammer/dedent"
+	"text/template"
+)
+
+var HaproxyConfig = template.Must(template.New("haproxy.cfg").Parse(
+	dedent.Dedent(`
 global
     maxconn                 4000
     log                     127.0.0.1 local0
@@ -41,3 +50,4 @@ backend kube_api_backend
   {{- range .MasterNodes }}
   server {{ . }} check check-ssl verify none
   {{- end }}
+`)))

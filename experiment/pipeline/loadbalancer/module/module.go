@@ -5,8 +5,8 @@ import (
 	"github.com/kubesphere/kubekey/experiment/core/config"
 	"github.com/kubesphere/kubekey/experiment/core/pipeline"
 	"github.com/kubesphere/kubekey/experiment/core/prepare"
-	"github.com/kubesphere/kubekey/experiment/core/vars"
-	"os"
+	"github.com/kubesphere/kubekey/experiment/core/util"
+	"github.com/kubesphere/kubekey/experiment/pipeline/loadbalancer/module/templates"
 	"strconv"
 )
 
@@ -30,9 +30,9 @@ func (h *HaproxyModule) Init() {
 		Hosts:   h.Runtime.WorkerNodes,
 		Prepare: new(prepare.OnlyWorker),
 		Action: &action.Template{
-			TemplateName: "haproxy.cfg",
-			Dst:          "/etc/kubekey/haproxy/haproxy.cfg",
-			Data: map[string]interface{}{
+			Template: templates.HaproxyConfig,
+			Dst:      "/etc/kubekey/haproxy/haproxy.cfg",
+			Data: util.Data{
 				"MasterNodes":                          masterNodeStr(h.Runtime),
 				"LoadbalancerApiserverPort":            h.Runtime.Cluster.ControlPlaneEndpoint.Port,
 				"LoadbalancerApiserverHealthcheckPort": 8081,
@@ -61,15 +61,16 @@ func (h *HaproxyModule) Init() {
 				new(prepare.OnlyK3s),
 			}},
 		Action: &action.Template{
-			TemplateName: "haproxy.yaml",
-			Dst:          "/etc/kubernetes/manifests",
-			Data: map[string]interface{}{
+			Template: templates.HaproxyManifest,
+			Dst:      "/etc/kubernetes/manifests",
+			Data: util.Data{
 				// todo: implement image module
 				"HaproxyImage":                         "haproxy:2.3",
 				"LoadbalancerApiserverHealthcheckPort": 8081,
 				"Checksum":                             h.Cache.GetMustString("md5"),
 			},
 		},
+		Parallel: true,
 	}
 
 	haproxyManifestK8s := pipeline.Task{
@@ -81,15 +82,28 @@ func (h *HaproxyModule) Init() {
 				new(prepare.OnlyKubernetes),
 			}},
 		Action: &action.Template{
-			TemplateName: "haproxy.yaml",
-			Dst:          "/etc/kubernetes/manifests",
-			Data: map[string]interface{}{
+			Template: templates.HaproxyManifest,
+			Dst:      "/etc/kubernetes/manifests",
+			Data: util.Data{
 				// todo: implement image module
 				"HaproxyImage":                         "haproxy:2.3",
 				"LoadbalancerApiserverHealthcheckPort": 8081,
 				"Checksum":                             h.Cache.GetMustString("md5"),
 			},
 		},
+		Parallel: true,
+	}
+
+	// UpdateKubeletConfig Update server field in kubelet.conf
+	// When create a HA cluster by internal LB, we will set the server filed to 127.0.0.1:6443 (default) which in kubelet.conf.
+	// Because of that, the control plone node's kubelet connect the local api-server.
+	// And the work node's kubelet connect 127.0.0.1:6443 (default) that is proxy by the node's local nginx.
+	updateKubeletConfig := pipeline.Task{
+		Name:     "UpdateKubeletConfig",
+		Hosts:    h.Runtime.K8sNodes,
+		Prepare:  new(updateKubeletPrapre),
+		Action:   new(updateKubelet),
+		Parallel: true,
 	}
 
 	h.Tasks = []pipeline.Task{
@@ -98,34 +112,8 @@ func (h *HaproxyModule) Init() {
 		getMd5Sum,
 		haproxyManifestK3s,
 		haproxyManifestK8s,
+		updateKubeletConfig,
 	}
-}
-
-type haproxyPreparatoryWork struct {
-	action.BaseAction
-}
-
-func (h *haproxyPreparatoryWork) Execute(vars vars.Vars) error {
-	if err := h.Runtime.Runner.MkDir("/etc/kubekey/haproxy"); err != nil {
-		return err
-	}
-	if err := h.Runtime.Runner.Chmod("/etc/kubekey/haproxy", os.FileMode(0777)); err != nil {
-		return err
-	}
-	return nil
-}
-
-type getChecksum struct {
-	action.BaseAction
-}
-
-func (g *getChecksum) Execute(vars vars.Vars) error {
-	md5Str, err := g.Runtime.Runner.FileMd5("/etc/kubekey/haproxy/haproxy.cfg")
-	if err != nil {
-		return err
-	}
-	g.Cache.Set("md5", md5Str)
-	return nil
 }
 
 func masterNodeStr(runtime *config.Runtime) []string {
