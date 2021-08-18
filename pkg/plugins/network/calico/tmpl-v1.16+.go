@@ -308,9 +308,6 @@ spec:
                   remote AS number comes from the remote node鈥檚 NodeBGPSpec.ASNumber,
                   or the global default if that is not set.
                 type: string
-            required:
-            - asNumber
-            - peerIP
             type: object
         type: object
     served: true
