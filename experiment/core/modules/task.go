@@ -1,4 +1,4 @@
-package pipeline
+package modules
 
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
@@ -26,6 +26,7 @@ type Task struct {
 	Delay    time.Duration
 	Serial   string
 
+	RootCache   *cache.Cache
 	Cache       *cache.Cache
 	Runtime     *config.Runtime
 	tag         string
@@ -33,13 +34,15 @@ type Task struct {
 	TaskResult  *ending.TaskResult
 }
 
-func (t *Task) Init(runtime *config.Runtime, cache *cache.Cache) {
+func (t *Task) Init(runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
 	logger.Log.SetTask(t.Name)
 	t.Cache = cache
+	t.RootCache = rootCache
 	t.Runtime = runtime
 	t.Default()
 }
 
+// todo: maybe should redesign the ending
 func (t *Task) Execute() error {
 	logger.Log.Info("Begin Run")
 	if t.TaskResult.IsFailed() {
@@ -56,8 +59,10 @@ func (t *Task) Execute() error {
 		_ = t.ConfigureSelfRuntime(selfRuntime, &t.Hosts[i], i)
 
 		if t.Parallel {
+			wg.Add(1)
 			go t.Run(selfRuntime, wg, routinePool)
 		} else {
+			wg.Add(1)
 			t.Run(selfRuntime, wg, routinePool)
 		}
 	}
@@ -91,14 +96,13 @@ func (t *Task) Run(runtime *config.Runtime, wg *sync.WaitGroup, pool chan struct
 	// todo: check if it's ok when parallel.
 	logger.Log.SetNode(runtime.Runner.Host.Name)
 	pool <- struct{}{}
-	wg.Add(1)
 
-	t.Prepare.Init(runtime, t.Cache)
+	t.Prepare.Init(runtime, t.Cache, t.RootCache)
 	if ok := t.WhenWithRetry(); !ok {
 		return
 	}
 
-	t.Action.Init(runtime, t.Cache)
+	t.Action.Init(runtime, t.Cache, t.RootCache)
 	t.ExecuteWithRetry(wg, pool, runtime)
 }
 
@@ -137,7 +141,7 @@ func (t *Task) WhenWithRetry() bool {
 	return pass
 }
 
-func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan chan string, runtime *config.Runtime) ending.Ending {
+func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan chan string) ending.Ending {
 	// generate a timer
 	go func(result chan string, pool chan struct{}) {
 		select {
@@ -145,21 +149,33 @@ func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan 
 		case <-time.After(time.Minute * DefaultTimeout):
 			logger.Log.Fatalf("Execute task timeout, Timeout=%ds", DefaultTimeout)
 		}
-		<-pool
 		wg.Done()
+		<-pool
 	}(resChan, pool)
 
 	res := t.Action.WrapResult(t.Action.Execute(t.Vars))
-	return res
+	var e ending.Ending = res
+	return e
 }
 
 func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, runtime *config.Runtime) {
 	resChan := make(chan string)
 	defer close(resChan)
 
+	go func(result chan string, pool chan struct{}) {
+		select {
+		case <-result:
+		case <-time.After(time.Minute * DefaultTimeout):
+			logger.Log.Fatalf("Execute task timeout, Timeout=%ds", DefaultTimeout)
+		}
+		wg.Done()
+		<-pool
+	}(resChan, pool)
+
 	var end ending.Ending
 	for i := 0; i < t.Retry; i++ {
-		end = t.ExecuteWithTimer(wg, pool, resChan, runtime)
+		res := t.Action.WrapResult(t.Action.Execute(t.Vars))
+		end = res
 		if end.GetErr() != nil {
 			logger.Log.Error(end.GetErr())
 			time.Sleep(t.Delay)
@@ -174,6 +190,8 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, runtime 
 		if end.GetErr() != nil {
 			t.TaskResult.AppendErr(errors.Wrapf(end.GetErr(), "task %s exec failed", t.Name))
 		}
+	} else {
+		t.TaskResult.ErrResult()
 	}
 	resChan <- "done"
 }

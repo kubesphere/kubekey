@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/kubesphere/kubekey/cmd"
+	"github.com/kubesphere/kubekey/experiment/cmd"
 )
 
 // Using a separate entry-point can reduce the size of the binary file
