@@ -16,6 +16,7 @@ func init() {
 
 type KubeKeyLog struct {
 	logrus.FieldLogger
+	RootEntry logrus.FieldLogger
 }
 
 func NewLogger() *KubeKeyLog {
@@ -25,6 +26,7 @@ func NewLogger() *KubeKeyLog {
 		HideKeys:        true,
 		TimestampFormat: "15:04:05 MST",
 		NoColors:        true,
+		FieldsOrder:     []string{"Pipeline", "Module", "Task", "Node"},
 	}
 
 	logger.SetFormatter(formatter)
@@ -45,7 +47,18 @@ func NewLogger() *KubeKeyLog {
 		logrus.PanicLevel: writer,
 	}, formatter))
 
-	return &KubeKeyLog{logger}
+	return &KubeKeyLog{logger, logger}
+}
+
+func (l *KubeKeyLog) Flush() {
+	l.FieldLogger = l.RootEntry
+}
+
+func (l *KubeKeyLog) SetPipeline(pipeline string) {
+	l.FieldLogger = l.WithFields(logrus.Fields{
+		"Pipeline": pipeline,
+	})
+	l.RootEntry = l.FieldLogger
 }
 
 func (l *KubeKeyLog) SetModule(module string) {
@@ -62,6 +75,6 @@ func (l *KubeKeyLog) SetTask(task string) {
 
 func (l *KubeKeyLog) SetNode(node string) {
 	l.FieldLogger = l.WithFields(logrus.Fields{
-		"node": node,
+		"Node": node,
 	})
 }

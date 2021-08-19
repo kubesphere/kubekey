@@ -9,14 +9,16 @@ import (
 )
 
 type BaseAction struct {
-	Runtime *config.Runtime
-	Cache   *cache.Cache
-	Result  *ending.Result
+	Runtime   *config.Runtime
+	Cache     *cache.Cache
+	RootCache *cache.Cache
+	Result    *ending.Result
 }
 
-func (b *BaseAction) Init(runtime *config.Runtime, cache *cache.Cache) {
+func (b *BaseAction) Init(runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
 	b.Runtime = runtime
 	b.Cache = cache
+	b.RootCache = rootCache
 	b.Result = ending.NewResult()
 }
 

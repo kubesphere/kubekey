@@ -3,25 +3,31 @@ package cache
 import "sync"
 
 type Cache struct {
-	lock  sync.RWMutex
-	store map[string]interface{}
+	store sync.Map
 }
 
 func NewCache() *Cache {
-	return &Cache{store: make(map[string]interface{})}
+	var m Cache
+	return &m
 }
 
 func (c *Cache) Set(k string, v interface{}) {
-	c.lock.Lock()
-	c.store[k] = v
-	c.lock.Unlock()
+	c.store.Store(k, v)
+}
+
+// GetOrSet returns the existing value for the key if present.
+// Otherwise, it stores and returns the given value.
+// The loaded result is true if the value was loaded, false if stored.
+func (c *Cache) GetOrSet(k string, v interface{}) (interface{}, bool) {
+	return c.store.LoadOrStore(k, v)
 }
 
 func (c *Cache) Get(k string) (interface{}, bool) {
-	c.lock.RLock()
-	v, ok := c.store[k]
-	c.lock.RUnlock()
-	return v, ok
+	return c.store.Load(k)
+}
+
+func (c *Cache) Range(f func(key, value interface{}) bool) {
+	c.store.Range(f)
 }
 
 func (c *Cache) GetMustInt(k string) (int, bool) {

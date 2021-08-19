@@ -16,7 +16,7 @@ type TaskResult struct {
 }
 
 func NewTaskResult() *TaskResult {
-	return &TaskResult{Endings: nil, Status: NULL, StartTime: time.Now()}
+	return &TaskResult{Endings: make(map[string]Ending), Errors: make([]error, 0), Status: NULL, StartTime: time.Now()}
 }
 
 func (t *TaskResult) ErrResult() {

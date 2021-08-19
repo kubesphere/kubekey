@@ -4,7 +4,7 @@ type ResultStatus int
 
 const (
 	NULL    ResultStatus = -99
-	SKIPPED ResultStatus = iota - 1
+	SKIPPED ResultStatus = iota - 2
 	SUCCESS
 	FAILED
 )

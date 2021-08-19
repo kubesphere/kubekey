@@ -1,32 +1,24 @@
-package pipeline
+package modules
 
 import (
 	"github.com/kubesphere/kubekey/experiment/core/cache"
 	"github.com/kubesphere/kubekey/experiment/core/config"
 	"github.com/kubesphere/kubekey/experiment/core/logger"
+	"github.com/pkg/errors"
 )
 
-type Module interface {
-	Default(runtime *config.Runtime)
-	Init()
-	Is() string
-	Run() error
-}
-
 type BaseTaskModule struct {
-	Name    string
-	Tasks   []Task
-	Cache   *cache.Cache
-	Runtime *config.Runtime
+	BaseModule
+	Tasks []Task
 }
 
-func (t *BaseTaskModule) Default(runtime *config.Runtime) {
+func (t *BaseTaskModule) Default(runtime *config.Runtime, rootCache *cache.Cache) {
 	if t.Name == "" {
-		t.Name = DefaultModuleName
+		t.Name = DefaultTaskModuleName
 	}
 
-	logger.Log.SetModule(t.Name)
 	t.Runtime = runtime
+	t.RootCache = rootCache
 	t.Cache = cache.NewCache()
 }
 
@@ -34,16 +26,17 @@ func (t *BaseTaskModule) Init() {
 }
 
 func (t *BaseTaskModule) Is() string {
-	return TaskModule
+	return TaskModuleType
 }
 
 func (t *BaseTaskModule) Run() error {
+	logger.Log.SetModule(t.Name)
 	logger.Log.Info("Begin Run")
 	for i := range t.Tasks {
 		task := t.Tasks[i]
-		task.Init(t.Runtime, t.Cache)
+		task.Init(t.Runtime, t.Cache, t.RootCache)
 		if err := task.Execute(); err != nil {
-			return err
+			return errors.Wrapf(err, "Module %s exec failed", t.Name)
 		}
 	}
 	return nil
