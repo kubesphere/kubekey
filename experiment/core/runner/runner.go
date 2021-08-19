@@ -22,26 +22,28 @@ func (r *Runner) Exec(cmd string, printOutput bool) (string, string, int, error)
 		return "", "", 1, errors.New("no ssh connection available")
 	}
 
-	stdout := NewTee(os.Stdout)
-	defer stdout.Close()
+	//stdout := NewTee(os.Stdout)
+	//defer stdout.Close()
+	//
+	//stderr := NewTee(os.Stderr)
+	//defer stderr.Close()
+	//
+	//code, err := r.Conn.PExec(cmd, nil, stdout, stderr)
 
-	stderr := NewTee(os.Stderr)
-	defer stderr.Close()
-
-	code, err := r.Conn.PExec(cmd, nil, stdout, stderr)
-	if printOutput {
-		if stdout.String() != "" {
-			logger.Log.Infof("[stdout]: %s", stdout.String())
-		}
-		if stderr.String() != "" {
-			logger.Log.Infof("[stderr]: %s", stderr.String())
-		}
-	}
-	if err != nil {
-		return "", err.Error(), code, err
-	}
-
-	return stdout.String(), stderr.String(), code, nil
+	//if printOutput {
+	//	if stdout.String() != "" {
+	//		logger.Log.Infof("[stdout]: %s", stdout.String())
+	//	}
+	//	if stderr.String() != "" {
+	//		logger.Log.Infof("[stderr]: %s", stderr.String())
+	//	}
+	//}
+	//if err != nil {
+	//	return "", err.Error(), code, err
+	//}
+	//
+	//return stdout.String(), stderr.String(), code, nil
+	return r.Conn.Exec(cmd)
 }
 
 func (r *Runner) Cmd(cmd string, printOutput bool) (string, error) {
@@ -58,7 +60,7 @@ func (r *Runner) SudoExec(cmd string, printOutput bool) (string, string, int, er
 
 func (r *Runner) SudoCmd(cmd string, printOutput bool) (string, error) {
 	stdout, _, code, err := r.SudoExec(cmd, printOutput)
-	if code != 0 {
+	if code != 0 || err != nil {
 		return "", err
 	}
 	return stdout, nil

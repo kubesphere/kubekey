@@ -1,24 +1,24 @@
-package module
+package loadbalancer
 
 import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/experiment/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/experiment/core/action"
 	"github.com/kubesphere/kubekey/experiment/core/config"
-	"github.com/kubesphere/kubekey/experiment/core/pipeline"
+	"github.com/kubesphere/kubekey/experiment/core/modules"
 	"github.com/kubesphere/kubekey/experiment/core/prepare"
 	"github.com/kubesphere/kubekey/experiment/core/util"
-	"github.com/kubesphere/kubekey/experiment/pipeline/loadbalancer/module/templates"
+	"github.com/kubesphere/kubekey/experiment/pipelines/loadbalancer/templates"
 	"strconv"
 )
 
 type HaproxyModule struct {
-	pipeline.BaseTaskModule
+	modules.BaseTaskModule
 }
 
 func (h *HaproxyModule) Init() {
 	h.Name = "InternalLoadbalancer"
 
-	makeConfigDir := pipeline.Task{
+	makeConfigDir := modules.Task{
 		Name:     "MakeHaproxyConfigDir",
 		Hosts:    h.Runtime.WorkerNodes,
 		Prepare:  new(prepare.OnlyWorker),
@@ -26,7 +26,7 @@ func (h *HaproxyModule) Init() {
 		Parallel: true,
 	}
 
-	haproxyCfg := pipeline.Task{
+	haproxyCfg := modules.Task{
 		Name:    "GenerateHaproxyConfig",
 		Hosts:   h.Runtime.WorkerNodes,
 		Prepare: new(prepare.OnlyWorker),
@@ -45,7 +45,7 @@ func (h *HaproxyModule) Init() {
 
 	// Calculation config md5 as the checksum.
 	// It will make load balancer reload when config changes.
-	getMd5Sum := pipeline.Task{
+	getMd5Sum := modules.Task{
 		Name:     "GetChecksumFromConfig",
 		Hosts:    h.Runtime.WorkerNodes,
 		Prepare:  new(prepare.OnlyWorker),
@@ -53,7 +53,7 @@ func (h *HaproxyModule) Init() {
 		Parallel: true,
 	}
 
-	haproxyManifestK3s := pipeline.Task{
+	haproxyManifestK3s := modules.Task{
 		Name:  "GenerateHaproxyManifestK3s",
 		Hosts: h.Runtime.WorkerNodes,
 		Prepare: &prepare.PrepareCollection{
@@ -73,7 +73,7 @@ func (h *HaproxyModule) Init() {
 		Parallel: true,
 	}
 
-	haproxyManifestK8s := pipeline.Task{
+	haproxyManifestK8s := modules.Task{
 		Name:  "GenerateHaproxyManifest",
 		Hosts: h.Runtime.WorkerNodes,
 		Prepare: &prepare.PrepareCollection{
@@ -93,7 +93,7 @@ func (h *HaproxyModule) Init() {
 		Parallel: true,
 	}
 
-	updateK3sConfig := pipeline.Task{
+	updateK3sConfig := modules.Task{
 		Name:  "UpdateK3sConfig",
 		Hosts: h.Runtime.WorkerNodes,
 		Prepare: &prepare.PrepareCollection{
@@ -109,7 +109,7 @@ func (h *HaproxyModule) Init() {
 	// When create a HA cluster by internal LB, we will set the server filed to 127.0.0.1:6443 (default) which in kubelet.conf.
 	// Because of that, the control plone node's kubelet connect the local api-server.
 	// And the work node's kubelet connect 127.0.0.1:6443 (default) that is proxy by the node's local nginx.
-	updateKubeletConfig := pipeline.Task{
+	updateKubeletConfig := modules.Task{
 		Name:  "UpdateKubeletConfig",
 		Hosts: h.Runtime.K8sNodes,
 		Prepare: &prepare.PrepareCollection{
@@ -122,7 +122,7 @@ func (h *HaproxyModule) Init() {
 	}
 
 	// updateKubeproxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
-	updateKubeproxyConfig := pipeline.Task{
+	updateKubeproxyConfig := modules.Task{
 		Name:  "UpdateKubeproxyConfig",
 		Hosts: []kubekeyapiv1alpha1.HostCfg{h.Runtime.MasterNodes[0]},
 		Prepare: &prepare.PrepareCollection{
@@ -137,7 +137,7 @@ func (h *HaproxyModule) Init() {
 
 	// UpdateHostsFile is used to update the '/etc/hosts'. Make the 'lb.kubesphere.local' address to set as 127.0.0.1.
 	// All of the 'admin.conf' and '/.kube/config' will connect to 127.0.0.1:6443.
-	updateHostsFile := pipeline.Task{
+	updateHostsFile := modules.Task{
 		Name:     "UpdateHostsFile",
 		Hosts:    h.Runtime.K8sNodes,
 		Prepare:  nil,
@@ -146,7 +146,7 @@ func (h *HaproxyModule) Init() {
 		Retry:    3,
 	}
 
-	h.Tasks = []pipeline.Task{
+	h.Tasks = []modules.Task{
 		makeConfigDir,
 		haproxyCfg,
 		getMd5Sum,

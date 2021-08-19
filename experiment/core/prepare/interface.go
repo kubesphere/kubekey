@@ -7,5 +7,5 @@ import (
 
 type Prepare interface {
 	PreCheck() (bool, error)
-	Init(mgr *config.Runtime, pool *cache.Cache)
+	Init(mgr *config.Runtime, cache *cache.Cache, rootCache *cache.Cache)
 }
