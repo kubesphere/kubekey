@@ -18,26 +18,38 @@ package cmd
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/cluster/install"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/pipelines"
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
 	"time"
 )
+
+var logo = `
+
+ _   __      _          _   __           
+| | / /     | |        | | / /           
+| |/ / _   _| |__   ___| |/ /  ___ _   _ 
+|    \| | | | '_ \ / _ \    \ / _ \ | | |
+| |\  \ |_| | |_) |  __/ |\  \  __/ |_| |
+\_| \_/\__,_|_.__/ \___\_| \_/\___|\__, |
+                                    __/ |
+                                   |___/ 
+
+`
 
 // clusterCmd represents the cluster command
 var clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "Create a Kubernetes or KubeSphere cluster",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println(logo)
 		var ksVersion string
 		if opt.Kubesphere && len(args) > 0 {
 			ksVersion = args[0]
 		} else {
 			ksVersion = ""
 		}
-		logger := util.InitLogger(opt.Verbose)
-		return install.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.LocalStorage, opt.DownloadCmd)
+		return pipelines.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, opt.Kubesphere, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.LocalStorage)
 	},
 }
 
