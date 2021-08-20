@@ -5,7 +5,6 @@ import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"os"
 )
@@ -43,12 +42,24 @@ func (r *Runner) Exec(cmd string, printOutput bool) (string, string, int, error)
 	//}
 	//
 	//return stdout.String(), stderr.String(), code, nil
-	return r.Conn.Exec(cmd)
+	stdout, stderr, code, err := r.Conn.Exec(cmd)
+	if printOutput {
+		if stdout != "" {
+			logger.Log.Infof("[stdout]: %s", stdout)
+		}
+		if stderr != "" {
+			logger.Log.Infof("[stderr]: %s", stderr)
+		}
+	}
+	if err != nil {
+		return "", stderr, code, err
+	}
+	return stdout, stderr, code, nil
 }
 
 func (r *Runner) Cmd(cmd string, printOutput bool) (string, error) {
 	stdout, _, code, err := r.Exec(cmd, printOutput)
-	if code != 0 {
+	if code != 0 || err != nil {
 		return "", err
 	}
 	return stdout, nil
@@ -59,11 +70,7 @@ func (r *Runner) SudoExec(cmd string, printOutput bool) (string, string, int, er
 }
 
 func (r *Runner) SudoCmd(cmd string, printOutput bool) (string, error) {
-	stdout, _, code, err := r.SudoExec(cmd, printOutput)
-	if code != 0 || err != nil {
-		return "", err
-	}
-	return stdout, nil
+	return r.Cmd(ssh.SudoPrefix(cmd), printOutput)
 }
 
 func (r *Runner) Fetch(local, remote string) error {
@@ -152,4 +159,8 @@ func (r *Runner) FileMd5(path string) (string, error) {
 		return "", err
 	}
 	return out, nil
+}
+
+func SudoPrefix(cmd string) string {
+	return fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd)
 }
