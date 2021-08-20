@@ -57,10 +57,5 @@ func (n *NodePreCheck) Execute(vars vars.Vars) error {
 	} else {
 		n.RootCache.Set("nodePreCheck", checkResults)
 	}
-	//n.RootCache.Set(n.Runtime.Runner.Host.Name, results)
 	return nil
-}
-
-type NodePreCheckConfirm struct {
-	action.BaseAction
 }
