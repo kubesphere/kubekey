@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/kubesphere/kubekey/pkg/util"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -74,12 +73,12 @@ const (
 	DefaultDNSAddress          = "114.114.114.114"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool, logger *log.Logger) (*ClusterSpec, *HostGroups, error) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *HostGroups, error) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
-	hostGroups, err := clusterCfg.GroupHosts(logger)
+	hostGroups, err := clusterCfg.GroupHosts()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -146,9 +145,15 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 
 func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg, incluster bool) ControlPlaneEndpoint {
 	if !incluster {
+		//The detection is not an HA environment, and the address at LB does not need input
+		if len(masterGroup) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
+			fmt.Println("When the environment is not HA, the LB address does not need to be entered, so delete the corresponding value.")
+			os.Exit(0)
+		}
+
 		//Check whether LB should be configured
-		if len(masterGroup) >= 2 && !cfg.ControlPlaneEndpoint.IsInternalLBEnabled() && cfg.ControlPlaneEndpoint.Address == "" {
-			fmt.Println("The number of nodes in the ControlPlane is above 1, You must set the value of the LB address or enable the internal loadbalancer.")
+		if len(masterGroup) >= 3 && !cfg.ControlPlaneEndpoint.IsInternalLBEnabled() && cfg.ControlPlaneEndpoint.Address == "" {
+			fmt.Println("When the environment has at least three masters, You must set the value of the LB address or enable the internal loadbalancer.")
 			os.Exit(0)
 		}
 
