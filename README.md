@@ -30,6 +30,8 @@ There are three scenarios to use KubeKey.
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
 
+> Recommended Linux Kernel Version: `4.15 or later` \
+> You can run the `uname -srm` command to check the Linux Kernel Version.
 
 ### <span id = "KubernetesVersions">Kubernetes Versions</span> 
 
