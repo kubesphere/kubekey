@@ -30,6 +30,8 @@
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
 
+> 建议使用 Linux Kernel 版本: `4.15 or later` \
+> 可以通过命令 `uname -srm` 查看 Linux Kernel 版本。
 
 ### <span id = "KubernetesVersions">Kubernetes 版本</span> 
 
