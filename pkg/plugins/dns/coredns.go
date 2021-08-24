@@ -53,11 +53,42 @@ spec:
     - name: metrics
       port: 9153
       protocol: TCP
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:coredns
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - services
+  - pods
+  - namespaces
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - watch
+  - list
+
     `)))
 )
 
 func GenerateCorednsService(mgr *manager.Manager) (string, error) {
 	return util.Render(CorednsServiceTempl, util.Data{
-		"ClusterIP": mgr.Cluster.ClusterIP(),
+		"ClusterIP": mgr.Cluster.ClusterDNS(),
 	})
 }
