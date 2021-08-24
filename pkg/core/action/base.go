@@ -9,20 +9,18 @@ import (
 )
 
 type BaseAction struct {
-	Runtime   *config.Runtime
 	Cache     *cache.Cache
 	RootCache *cache.Cache
 	Result    *ending.Result
 }
 
-func (b *BaseAction) Init(runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
-	b.Runtime = runtime
+func (b *BaseAction) Init(cache *cache.Cache, rootCache *cache.Cache) {
 	b.Cache = cache
 	b.RootCache = rootCache
 	b.Result = ending.NewResult()
 }
 
-func (b *BaseAction) Execute(vars vars.Vars) error {
+func (b *BaseAction) Execute(runtime *config.Runtime, vars vars.Vars) error {
 	return nil
 }
 

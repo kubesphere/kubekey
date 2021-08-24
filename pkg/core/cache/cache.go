@@ -30,6 +30,10 @@ func (c *Cache) Range(f func(key, value interface{}) bool) {
 	c.store.Range(f)
 }
 
+func (c *Cache) Clean() {
+	c.store = sync.Map{}
+}
+
 func (c *Cache) GetMustInt(k string) (int, bool) {
 	v, ok := c.Get(k)
 	return v.(int), ok

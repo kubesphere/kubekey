@@ -194,6 +194,12 @@ type ExternalEtcd struct {
 	KeyFile   string
 }
 
+// Copy is used to create a copy for Runtime.
+func (h *HostCfg) Copy() *HostCfg {
+	host := *h
+	return &host
+}
+
 // GenerateCertSANs is used to generate cert sans for cluster.
 func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.Kubernetes.ClusterName)

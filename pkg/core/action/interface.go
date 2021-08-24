@@ -8,7 +8,7 @@ import (
 )
 
 type Action interface {
-	Execute(vars vars.Vars) (err error)
-	Init(mgr *config.Runtime, cache *cache.Cache, rootCache *cache.Cache)
+	Execute(runtime *config.Runtime, vars vars.Vars) (err error)
+	Init(cache *cache.Cache, rootCache *cache.Cache)
 	WrapResult(err error) *ending.Result
 }

@@ -6,6 +6,6 @@ import (
 )
 
 type Prepare interface {
-	PreCheck() (bool, error)
-	Init(mgr *config.Runtime, cache *cache.Cache, rootCache *cache.Cache)
+	PreCheck(runtime *config.Runtime) (bool, error)
+	Init(cache *cache.Cache, rootCache *cache.Cache)
 }

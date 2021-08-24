@@ -3,16 +3,17 @@ package pipeline
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/config"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/pkg/errors"
+	"sync"
 )
 
 type Pipeline struct {
-	Name          string
-	Modules       []modules.Module
-	Runtime       *config.Runtime
-	PipelineCache *cache.Cache
+	Name            string
+	Modules         []modules.Module
+	Runtime         *config.Runtime
+	PipelineCache   *cache.Cache
+	ModuleCachePool sync.Pool
 }
 
 func (p *Pipeline) Init() {
@@ -20,27 +21,45 @@ func (p *Pipeline) Init() {
 }
 
 func (p *Pipeline) Start() error {
-	logger.Log.SetPipeline(p.Name)
-	logger.Log.Info("Begin Run")
 	p.Init()
 	for i := range p.Modules {
 		m := p.Modules[i]
-		m.Default(p.Runtime, p.PipelineCache)
-		m.Init()
-		switch m.Is() {
-		case modules.TaskModuleType:
-			if err := m.Run(); err != nil {
-				return errors.Wrapf(err, "Pipeline %s exec failed", p.Name)
-			}
-		case modules.ServerModuleType:
-			go m.Run()
-		default:
-			if err := m.Run(); err != nil {
-				return errors.Wrapf(err, "Pipeline %s exec failed", p.Name)
-			}
+		if err := p.RunModule(m); err != nil {
+			return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
 		}
-		logger.Log.Info("Success")
-		logger.Log.Flush()
 	}
 	return nil
+}
+
+func (p *Pipeline) RunModule(m modules.Module) error {
+	moduleCache := p.newModuleCache()
+	defer p.releaseModuleCache(moduleCache)
+	m.Default(p.Runtime, p.PipelineCache, moduleCache)
+	m.Init()
+	switch m.Is() {
+	case modules.TaskModuleType:
+		if err := m.Run(); err != nil {
+			return err
+		}
+	case modules.ServerModuleType:
+		go m.Run()
+	default:
+		if err := m.Run(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Pipeline) newModuleCache() *cache.Cache {
+	moduleCache, ok := p.ModuleCachePool.Get().(*cache.Cache)
+	if ok {
+		return moduleCache
+	}
+	return cache.NewCache()
+}
+
+func (p *Pipeline) releaseModuleCache(c *cache.Cache) {
+	c.Clean()
+	p.ModuleCachePool.Put(c)
 }
