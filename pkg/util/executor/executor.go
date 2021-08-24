@@ -91,6 +91,7 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.ClientSet = executor.ClientSet
 	mgr.DownloadCommand = executor.DownloadCommand
 	mgr.EtcdContainer = false
+	// Description: Since docker is no the default container runtime of kubernetes, kubekey no longer uses docker to start etcd.
 	//if (executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker") && executor.Cluster.Kubernetes.Type != "k3s" {
 	//	mgr.EtcdContainer = true
 	//}
