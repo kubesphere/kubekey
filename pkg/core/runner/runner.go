@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/core/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"os"
+	"path/filepath"
 )
 
 type Runner struct {
@@ -99,6 +102,25 @@ func (r *Runner) Scp(local, remote string) error {
 	return nil
 }
 
+func (r *Runner) SudoScp(local, remote string) error {
+	if r.Conn == nil {
+		return errors.New("no ssh connection available")
+	}
+
+	// scp to tmp dir
+	remoteTmp := filepath.Join(common.TmpDir, remote)
+	if err := r.Scp(local, remoteTmp); err != nil {
+		return err
+	}
+
+	if _, err := r.SudoCmd(fmt.Sprintf(common.CopyCmd, remoteTmp, remote), false); err != nil {
+		return err
+	}
+
+	// todo: whether need to remove the tmp file
+	return nil
+}
+
 func (r *Runner) FileExist(remote string) (bool, error) {
 	if r.Conn == nil {
 		return false, errors.New("no ssh connection available")
@@ -159,8 +181,4 @@ func (r *Runner) FileMd5(path string) (string, error) {
 		return "", err
 	}
 	return out, nil
-}
-
-func SudoPrefix(cmd string) string {
-	return fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd)
 }

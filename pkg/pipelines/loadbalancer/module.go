@@ -124,7 +124,7 @@ func (h *HaproxyModule) Init() {
 	// updateKubeproxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
 	updateKubeproxyConfig := modules.Task{
 		Name:  "UpdateKubeproxyConfig",
-		Hosts: []kubekeyapiv1alpha1.HostCfg{h.Runtime.MasterNodes[0]},
+		Hosts: []*kubekeyapiv1alpha1.HostCfg{h.Runtime.MasterNodes[0]},
 		Prepare: &prepare.PrepareCollection{
 			new(prepare.OnlyKubernetes),
 			new(prepare.OnlyFirstMaster),

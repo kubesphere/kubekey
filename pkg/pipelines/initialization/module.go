@@ -3,6 +3,7 @@ package initialization
 import (
 	"bufio"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/common"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
@@ -13,20 +14,21 @@ import (
 	"strings"
 )
 
-type InitializationModule struct {
+type NodeInitializationModule struct {
 	modules.BaseTaskModule
 }
 
-func (i *InitializationModule) Init() {
+func (i *NodeInitializationModule) Init() {
 	i.Name = "NodeInitializationModule"
 
 	preCheck := modules.Task{
 		Name:  "NodePreCheck",
+		Desc:  "a pre-check on nodes",
 		Hosts: i.Runtime.AllNodes,
 		Prepare: &prepare.FastPrepare{
 			Inject: func() (bool, error) {
 				if len(i.Runtime.EtcdNodes)%2 == 0 {
-					logger.Log.Warnln("The number of etcd is even. Please configure it to be odd.")
+					logger.Log.Error("The number of etcd is even. Please configure it to be odd.")
 					return false, errors.New("the number of etcd is even")
 				}
 				return true, nil
@@ -63,11 +65,10 @@ type ConfirmModule struct {
 
 func (c *ConfirmModule) Init() {
 	c.Name = "ConfirmModule"
-	logger.Log.SetModule(c.Name)
 }
 
 func (c *ConfirmModule) Run() error {
-	logger.Log.Info("Begin Run")
+	logger.Log.WithField(common.Module, c.Name).Infoln()
 	var (
 		results  []PreCheckResults
 		stopFlag bool
@@ -78,7 +79,7 @@ func (c *ConfirmModule) Run() error {
 		return errors.New("get node check result failed")
 	}
 
-	pre := nodePreChecks.(map[string]interface{})
+	pre := nodePreChecks.(map[string]map[string]string)
 	for node := range pre {
 		var result PreCheckResults
 		_ = mapstructure.Decode(pre[node], &result)

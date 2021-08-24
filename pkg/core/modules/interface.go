@@ -6,7 +6,7 @@ import (
 )
 
 type Module interface {
-	Default(runtime *config.Runtime, rootCache *cache.Cache)
+	Default(runtime *config.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache)
 	Init()
 	Is() string
 	Run() error

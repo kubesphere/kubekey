@@ -17,7 +17,8 @@ import (
 
 type Task struct {
 	Name     string
-	Hosts    []kubekeyapiv1alpha1.HostCfg
+	Desc     string
+	Hosts    []*kubekeyapiv1alpha1.HostCfg
 	Prepare  prepare.Prepare
 	Action   action.Action
 	Vars     vars.Vars
@@ -34,17 +35,17 @@ type Task struct {
 	TaskResult  *ending.TaskResult
 }
 
-func (t *Task) Init(runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
-	logger.Log.SetTask(t.Name)
+func (t *Task) Init(moduleName string, runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
 	t.Cache = cache
 	t.RootCache = rootCache
 	t.Runtime = runtime
 	t.Default()
+
+	logger.Log.Infof("[%s] %s", moduleName, t.Desc)
 }
 
 // todo: maybe should redesign the ending
 func (t *Task) Execute() error {
-	logger.Log.Info("Begin Run")
 	if t.TaskResult.IsFailed() {
 		return t.TaskResult.CombineErr()
 	}
@@ -56,7 +57,12 @@ func (t *Task) Execute() error {
 
 	for i := range t.Hosts {
 		selfRuntime := t.Runtime.Copy()
-		_ = t.ConfigureSelfRuntime(selfRuntime, &t.Hosts[i], i)
+		selfHost := t.Hosts[i].Copy()
+		_ = t.ConfigureSelfRuntime(selfRuntime, selfHost, i)
+		if t.TaskResult.IsFailed() {
+			logger.Log.Errorf("failed: [%s]", selfHost.Name)
+			return t.TaskResult.CombineErr()
+		}
 
 		if t.Parallel {
 			wg.Add(1)
@@ -94,25 +100,28 @@ func (t *Task) ConfigureSelfRuntime(runtime *config.Runtime, host *kubekeyapiv1a
 
 func (t *Task) Run(runtime *config.Runtime, wg *sync.WaitGroup, pool chan struct{}) {
 	// todo: check if it's ok when parallel.
-	logger.Log.SetNode(runtime.Runner.Host.Name)
 	pool <- struct{}{}
 
-	t.Prepare.Init(runtime, t.Cache, t.RootCache)
-	if ok := t.WhenWithRetry(); !ok {
+	t.Prepare.Init(t.Cache, t.RootCache)
+	if ok := t.WhenWithRetry(runtime); !ok {
 		return
 	}
 
-	t.Action.Init(runtime, t.Cache, t.RootCache)
+	t.Action.Init(t.Cache, t.RootCache)
 	t.ExecuteWithRetry(wg, pool, runtime)
+	if t.TaskResult.IsFailed() {
+		logger.Log.Errorf("failed: [%s]", runtime.Runner.Host.Name)
+	} else {
+		logger.Log.Infof("success: [%s]", runtime.Runner.Host.Name)
+	}
 }
 
-func (t *Task) When() (bool, error) {
+func (t *Task) When(runtime *config.Runtime) (bool, error) {
 	if t.Prepare == nil {
 		return true, nil
 	}
-	if ok, err := t.Prepare.PreCheck(); err != nil {
-		logger.Log.Error(err)
-		t.TaskResult.AppendErr(errors.Wrapf(err, "task %s precheck failed", t.Name))
+	if ok, err := t.Prepare.PreCheck(runtime); err != nil {
+		t.TaskResult.AppendErr(err)
 		return false, err
 	} else if !ok {
 		return false, nil
@@ -121,11 +130,11 @@ func (t *Task) When() (bool, error) {
 	}
 }
 
-func (t *Task) WhenWithRetry() bool {
+func (t *Task) WhenWithRetry(runtime *config.Runtime) bool {
 	pass := false
 	timeout := true
 	for i := 0; i < t.Retry; i++ {
-		if res, err := t.When(); err != nil {
+		if res, err := t.When(runtime); err != nil {
 			time.Sleep(t.Delay)
 			continue
 		} else {
@@ -139,23 +148,6 @@ func (t *Task) WhenWithRetry() bool {
 		logger.Log.Errorf("Execute task pre-check timeout, Timeout=%fs, after %d retries", t.Delay.Seconds(), t.Retry)
 	}
 	return pass
-}
-
-func (t *Task) ExecuteWithTimer(wg *sync.WaitGroup, pool chan struct{}, resChan chan string) ending.Ending {
-	// generate a timer
-	go func(result chan string, pool chan struct{}) {
-		select {
-		case <-result:
-		case <-time.After(time.Minute * DefaultTimeout):
-			logger.Log.Fatalf("Execute task timeout, Timeout=%ds", DefaultTimeout)
-		}
-		wg.Done()
-		<-pool
-	}(resChan, pool)
-
-	res := t.Action.WrapResult(t.Action.Execute(t.Vars))
-	var e ending.Ending = res
-	return e
 }
 
 func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, runtime *config.Runtime) {
@@ -174,7 +166,7 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, runtime 
 
 	var end ending.Ending
 	for i := 0; i < t.Retry; i++ {
-		res := t.Action.WrapResult(t.Action.Execute(t.Vars))
+		res := t.Action.WrapResult(t.Action.Execute(runtime, t.Vars))
 		end = res
 		if end.GetErr() != nil {
 			logger.Log.Error(end.GetErr())
@@ -188,7 +180,7 @@ func (t *Task) ExecuteWithRetry(wg *sync.WaitGroup, pool chan struct{}, runtime 
 	if end != nil {
 		t.TaskResult.AppendEnding(end, runtime.Runner.Host.Name)
 		if end.GetErr() != nil {
-			t.TaskResult.AppendErr(errors.Wrapf(end.GetErr(), "task %s exec failed", t.Name))
+			t.TaskResult.AppendErr(end.GetErr())
 		}
 	} else {
 		t.TaskResult.ErrResult()
@@ -203,7 +195,7 @@ func (t *Task) Default() {
 	}
 
 	if len(t.Hosts) < 1 {
-		t.Hosts = []kubekeyapiv1alpha1.HostCfg{}
+		t.Hosts = []*kubekeyapiv1alpha1.HostCfg{}
 		t.TaskResult.AppendErr(errors.New("the length of task hosts is 0"))
 		return
 	}
