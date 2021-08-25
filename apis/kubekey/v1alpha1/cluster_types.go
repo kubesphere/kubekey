@@ -305,7 +305,16 @@ func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 
 // ClusterIP is used to get the kube-apiserver service address inside the cluster.
 func (cfg *ClusterSpec) ClusterIP() string {
-	return util.ParseIp(cfg.Network.KubeServiceCIDR)[2]
+	return util.ParseIp(cfg.Network.KubeServiceCIDR)[0]
+}
+
+// ClusterDNS is used to get the dns service address inside the cluster.
+func (cfg *ClusterSpec) ClusterDNS() string {
+	if cfg.Kubernetes.Nodelocaldns {
+		return "169.254.25.10"
+	} else {
+		return util.ParseIp(cfg.Network.KubeServiceCIDR)[2]
+	}
 }
 
 // ParseRolesList is used to parse the host grouping list.

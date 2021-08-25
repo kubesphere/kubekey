@@ -42,14 +42,22 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 	var image images.Image
 	var pauseTag string
 
-	cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.18.0")
+	cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.21.0")
 	if err != nil {
 		mgr.Logger.Fatal("Failed to compare version: %v", err)
 	}
 	if (cmp == 0 || cmp == 1) || (mgr.Cluster.Kubernetes.ContainerManager != "" && mgr.Cluster.Kubernetes.ContainerManager != "docker") {
-		pauseTag = "3.2"
+		cmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.22.0")
+		if err != nil {
+			mgr.Logger.Fatal("Failed to compare version: %v", err)
+		}
+		if cmp == 0 || cmp == 1 {
+			pauseTag = "3.5"
+		} else {
+			pauseTag = "3.4.1"
+		}
 	} else {
-		pauseTag = "3.1"
+		pauseTag = "3.2"
 	}
 
 	ImageList := map[string]images.Image{
@@ -58,10 +66,10 @@ func GetImage(mgr *manager.Manager, name string) images.Image {
 		"kube-controller-manager": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-controller-manager", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
 		"kube-scheduler":          {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-scheduler", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
 		"kube-proxy":              {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-proxy", Tag: mgr.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.K8s, Enable: true},
-		"etcd":                    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "etcd", Tag: kubekeyapiv1alpha1.DefaultEtcdVersion, Group: kubekeyapiv1alpha1.Etcd, Enable: true},
+		"etcd":                    {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "etcd", Tag: kubekeyapiv1alpha1.DefaultEtcdVersion, Group: kubekeyapiv1alpha1.Etcd, Enable: mgr.EtcdContainer},
 		// network
-		"coredns":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: "1.6.9", Group: kubekeyapiv1alpha1.K8s, Enable: true},
-		"k8s-dns-node-cache":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "k8s-dns-node-cache", Tag: "1.15.12", Group: kubekeyapiv1alpha1.K8s, Enable: true},
+		"coredns":                 {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: "1.8.4", Group: kubekeyapiv1alpha1.K8s, Enable: true},
+		"k8s-dns-node-cache":      {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "k8s-dns-node-cache", Tag: "1.15.12", Group: kubekeyapiv1alpha1.K8s, Enable: mgr.Cluster.Kubernetes.Nodelocaldns},
 		"calico-kube-controllers": {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "kube-controllers", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		"calico-cni":              {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "cni", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},
 		"calico-node":             {RepoAddr: mgr.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "node", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(mgr.Cluster.Network.Plugin, "calico")},

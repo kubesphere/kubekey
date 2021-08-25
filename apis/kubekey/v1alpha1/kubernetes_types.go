@@ -27,6 +27,7 @@ type Kubernetes struct {
 	NodeCidrMaskSize         int                  `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
 	ApiserverCertExtraSans   []string             `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
 	ProxyMode                string               `yaml:"proxyMode" json:"proxyMode,omitempty"`
+	Nodelocaldns             bool                 `yaml:"nodelocaldns" json:"nodelocaldns,omitempty"`
 	EtcdBackupDir            string               `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
 	EtcdBackupPeriod         int                  `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
 	KeepBackupNumber         int                  `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
