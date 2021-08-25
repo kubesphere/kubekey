@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
@@ -64,7 +63,7 @@ func Execute() {
 	_ = exec.Command("/bin/bash", "-c", "ulimit -u 65535").Run()
 	_ = exec.Command("/bin/bash", "-c", "ulimit -n 65535").Run()
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		os.Exit(1)
 	}
 }
