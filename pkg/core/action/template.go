@@ -2,6 +2,7 @@ package action
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/config"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/core/vars"
 	"github.com/pkg/errors"
@@ -16,18 +17,18 @@ type Template struct {
 	Data     util.Data
 }
 
-func (t *Template) Execute(vars vars.Vars) error {
+func (t *Template) Execute(runtime *config.Runtime, vars vars.Vars) error {
 	templateStr, err := util.Render(t.Template, t.Data)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("render template %s failed", t.Template.Name()))
 	}
 
-	fileName := filepath.Join(t.Runtime.WorkDir, t.Template.Name())
+	fileName := filepath.Join(runtime.WorkDir, t.Template.Name())
 	if err := util.WriteFile(fileName, []byte(templateStr)); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("write file %s failed", fileName))
 	}
 
-	if err := t.Runtime.Runner.Scp(fileName, t.Dst); err != nil {
+	if err := runtime.Runner.SudoScp(fileName, t.Dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("scp file %s to remote %s failed", fileName, t.Dst))
 	}
 

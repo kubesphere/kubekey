@@ -9,14 +9,14 @@ import (
 
 func NewCreateClusterPipeline(runtime *config.Runtime) error {
 
-	modules := []modules.Module{
-		&initialization.InitializationModule{},
+	m := []modules.Module{
+		&initialization.NodeInitializationModule{},
 		&initialization.ConfirmModule{},
 	}
 
 	p := pipeline.Pipeline{
 		Name:    "CreateClusterPipeline",
-		Modules: modules,
+		Modules: m,
 		Runtime: runtime,
 	}
 	if err := p.Start(); err != nil {

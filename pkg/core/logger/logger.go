@@ -1,7 +1,7 @@
 package logger
 
 import (
-	nested "github.com/antonfisher/nested-logrus-formatter"
+	"github.com/kubesphere/kubekey/pkg/core/common"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
@@ -22,15 +22,16 @@ type KubeKeyLog struct {
 func NewLogger() *KubeKeyLog {
 	logger := logrus.New()
 
-	formatter := &nested.Formatter{
-		HideKeys:        true,
-		TimestampFormat: "15:04:05 MST",
-		NoColors:        true,
-		FieldsOrder:     []string{"Pipeline", "Module", "Task", "Node"},
+	formatter := &Formatter{
+		HideKeys:               true,
+		TimestampFormat:        "15:04:05 MST",
+		NoColors:               true,
+		ShowLevel:              logrus.FatalLevel,
+		FieldsDisplayWithOrder: []string{common.Pipeline, common.Module, common.Task, common.Node},
 	}
 
 	logger.SetFormatter(formatter)
-	logger.SetLevel(logrus.DebugLevel)
+	logger.SetLevel(logrus.InfoLevel)
 
 	path := "./kubekey.log"
 	writer, _ := rotatelogs.New(
@@ -48,33 +49,4 @@ func NewLogger() *KubeKeyLog {
 	}, formatter))
 
 	return &KubeKeyLog{logger, logger}
-}
-
-func (l *KubeKeyLog) Flush() {
-	l.FieldLogger = l.RootEntry
-}
-
-func (l *KubeKeyLog) SetPipeline(pipeline string) {
-	l.FieldLogger = l.WithFields(logrus.Fields{
-		"Pipeline": pipeline,
-	})
-	l.RootEntry = l.FieldLogger
-}
-
-func (l *KubeKeyLog) SetModule(module string) {
-	l.FieldLogger = l.WithFields(logrus.Fields{
-		"Module": module,
-	})
-}
-
-func (l *KubeKeyLog) SetTask(task string) {
-	l.FieldLogger = l.WithFields(logrus.Fields{
-		"Task": task,
-	})
-}
-
-func (l *KubeKeyLog) SetNode(node string) {
-	l.FieldLogger = l.WithFields(logrus.Fields{
-		"Node": node,
-	})
 }

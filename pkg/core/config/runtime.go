@@ -21,11 +21,11 @@ type Runtime struct {
 	Connector       connector.Connector
 	Runner          *runner.Runner
 	DownloadCommand func(path, url string) string
-	AllNodes        []kubekeyapiv1alpha1.HostCfg
-	EtcdNodes       []kubekeyapiv1alpha1.HostCfg
-	MasterNodes     []kubekeyapiv1alpha1.HostCfg
-	WorkerNodes     []kubekeyapiv1alpha1.HostCfg
-	K8sNodes        []kubekeyapiv1alpha1.HostCfg
+	AllNodes        []*kubekeyapiv1alpha1.HostCfg
+	EtcdNodes       []*kubekeyapiv1alpha1.HostCfg
+	MasterNodes     []*kubekeyapiv1alpha1.HostCfg
+	WorkerNodes     []*kubekeyapiv1alpha1.HostCfg
+	K8sNodes        []*kubekeyapiv1alpha1.HostCfg
 	ClusterHosts    []string
 	WorkDir         string
 	Kubeconfig      string
@@ -74,17 +74,25 @@ func NewRuntime(flag string, arg Argument) (*Runtime, error) {
 		ObjName:      cluster.Name,
 		Cluster:      defaultCluster,
 		Connector:    ssh.NewDialer(),
-		AllNodes:     hostGroups.All,
-		EtcdNodes:    hostGroups.Etcd,
-		MasterNodes:  hostGroups.Master,
-		WorkerNodes:  hostGroups.Worker,
-		K8sNodes:     hostGroups.K8s,
+		AllNodes:     hostGroupsPoint(hostGroups.All),
+		EtcdNodes:    hostGroupsPoint(hostGroups.Etcd),
+		MasterNodes:  hostGroupsPoint(hostGroups.Master),
+		WorkerNodes:  hostGroupsPoint(hostGroups.Worker),
+		K8sNodes:     hostGroupsPoint(hostGroups.K8s),
 		ClusterHosts: generateHosts(hostGroups, defaultCluster),
 		WorkDir:      generateWorkDir(),
 		ClientSet:    clientset,
 		Arg:          arg,
 	}
 	return r, nil
+}
+
+func hostGroupsPoint(hosts []kubekeyapiv1alpha1.HostCfg) []*kubekeyapiv1alpha1.HostCfg {
+	arr := make([]*kubekeyapiv1alpha1.HostCfg, 0, len(hosts))
+	for i := range hosts {
+		arr = append(arr, &hosts[i])
+	}
+	return arr
 }
 
 // Copy is used to create a copy for Runtime.

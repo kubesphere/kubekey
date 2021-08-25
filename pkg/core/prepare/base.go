@@ -6,32 +6,30 @@ import (
 )
 
 type BasePrepare struct {
-	Runtime   *config.Runtime
 	Cache     *cache.Cache
 	RootCache *cache.Cache
 }
 
-func (b *BasePrepare) Init(runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
-	b.Runtime = runtime
+func (b *BasePrepare) Init(cache *cache.Cache, rootCache *cache.Cache) {
 	b.Cache = cache
 	b.RootCache = rootCache
 }
 
-func (b *BasePrepare) PreCheck() (bool, error) {
+func (b *BasePrepare) PreCheck(runtime *config.Runtime) (bool, error) {
 	return true, nil
 }
 
 type PrepareCollection []Prepare
 
-func (p *PrepareCollection) Init(runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
+func (p *PrepareCollection) Init(cache *cache.Cache, rootCache *cache.Cache) {
 	for _, v := range *p {
-		v.Init(runtime, cache, rootCache)
+		v.Init(cache, rootCache)
 	}
 }
 
-func (p *PrepareCollection) PreCheck() (bool, error) {
+func (p *PrepareCollection) PreCheck(runtime *config.Runtime) (bool, error) {
 	for _, v := range *p {
-		res, err := v.PreCheck()
+		res, err := v.PreCheck(runtime)
 		if err != nil {
 			return false, err
 		}

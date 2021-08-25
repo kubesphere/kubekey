@@ -1,9 +1,8 @@
 package modules
 
 import (
-	cache2 "github.com/kubesphere/kubekey/pkg/core/cache"
-	config2 "github.com/kubesphere/kubekey/pkg/core/config"
-	logger2 "github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/cache"
+	"github.com/kubesphere/kubekey/pkg/core/config"
 	"github.com/pkg/errors"
 )
 
@@ -12,31 +11,29 @@ type BaseTaskModule struct {
 	Tasks []Task
 }
 
-func (t *BaseTaskModule) Default(runtime *config2.Runtime, rootCache *cache2.Cache) {
-	if t.Name == "" {
-		t.Name = DefaultTaskModuleName
+func (b *BaseTaskModule) Default(runtime *config.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
+	if b.Name == "" {
+		b.Name = DefaultTaskModuleName
 	}
 
-	t.Runtime = runtime
-	t.RootCache = rootCache
-	t.Cache = cache2.NewCache()
+	b.Runtime = runtime
+	b.RootCache = rootCache
+	b.Cache = moduleCache
 }
 
-func (t *BaseTaskModule) Init() {
+func (b *BaseTaskModule) Init() {
 }
 
-func (t *BaseTaskModule) Is() string {
+func (b *BaseTaskModule) Is() string {
 	return TaskModuleType
 }
 
-func (t *BaseTaskModule) Run() error {
-	logger2.Log.SetModule(t.Name)
-	logger2.Log.Info("Begin Run")
-	for i := range t.Tasks {
-		task := t.Tasks[i]
-		task.Init(t.Runtime, t.Cache, t.RootCache)
-		if err := task.Execute(); err != nil {
-			return errors.Wrapf(err, "Module %s exec failed", t.Name)
+func (b *BaseTaskModule) Run() error {
+	for i := range b.Tasks {
+		task := b.Tasks[i]
+		task.Init(b.Name, b.Runtime, b.Cache, b.RootCache)
+		if res := task.Execute(); res.IsFailed() {
+			return errors.Wrapf(res.Error, "Module[%s] exec failed", b.Name)
 		}
 	}
 	return nil

@@ -424,7 +424,7 @@ func (c *connection) RemoteFileExist(dst string) bool {
 	remoteFileName := path.Base(dst)
 	remoteFileDirName := path.Dir(dst)
 
-	remoteFileCommand := fmt.Sprintf("ls -l %s/%s 2>/dev/null |wc -l", remoteFileDirName, remoteFileName)
+	remoteFileCommand := fmt.Sprintf(SudoPrefix("ls -l %s/%s 2>/dev/null |wc -l"), remoteFileDirName, remoteFileName)
 
 	out, _, _, err := c.Exec(remoteFileCommand)
 	defer func() {

@@ -3,7 +3,6 @@ package modules
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/config"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 )
 
 type BaseModule struct {
@@ -13,15 +12,14 @@ type BaseModule struct {
 	Runtime   *config.Runtime
 }
 
-func (t *BaseModule) Default(runtime *config.Runtime, rootCache *cache.Cache) {
+func (t *BaseModule) Default(runtime *config.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
 	if t.Name == "" {
 		t.Name = DefaultModuleName
 	}
 
-	logger.Log.SetModule(t.Name)
 	t.Runtime = runtime
 	t.RootCache = rootCache
-	t.Cache = cache.NewCache()
+	t.Cache = moduleCache
 }
 
 func (t *BaseModule) Init() {
@@ -32,6 +30,5 @@ func (t *BaseModule) Is() string {
 }
 
 func (t *BaseModule) Run() error {
-	logger.Log.Info("Begin Run")
 	return nil
 }
