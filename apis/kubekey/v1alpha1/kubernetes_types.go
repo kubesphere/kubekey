@@ -19,15 +19,16 @@ package v1alpha1
 import "k8s.io/apimachinery/pkg/runtime"
 
 type Kubernetes struct {
-	Type                     string               `yaml:"type" json:"type,omitempty"`
-	Version                  string               `yaml:"version" json:"version,omitempty"`
-	ClusterName              string               `yaml:"clusterName" json:"clusterName,omitempty"`
-	MasqueradeAll            bool                 `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`
-	MaxPods                  int                  `yaml:"maxPods" json:"maxPods,omitempty"`
-	NodeCidrMaskSize         int                  `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
-	ApiserverCertExtraSans   []string             `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
-	ProxyMode                string               `yaml:"proxyMode" json:"proxyMode,omitempty"`
-	Nodelocaldns             bool                 `yaml:"nodelocaldns" json:"nodelocaldns,omitempty"`
+	Type                   string   `yaml:"type" json:"type,omitempty"`
+	Version                string   `yaml:"version" json:"version,omitempty"`
+	ClusterName            string   `yaml:"clusterName" json:"clusterName,omitempty"`
+	MasqueradeAll          bool     `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`
+	MaxPods                int      `yaml:"maxPods" json:"maxPods,omitempty"`
+	NodeCidrMaskSize       int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
+	ApiserverCertExtraSans []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
+	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
+	// +optional
+	Nodelocaldns             *bool                `yaml:"nodelocaldns" json:"nodelocaldns,omitempty"`
 	EtcdBackupDir            string               `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
 	EtcdBackupPeriod         int                  `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
 	KeepBackupNumber         int                  `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
@@ -41,4 +42,13 @@ type Kubernetes struct {
 	KubeProxyArgs            []string             `yaml:"kubeProxyArgs" json:"kubeProxyArgs,omitempty"`
 	KubeletConfiguration     runtime.RawExtension `yaml:"kubeletConfiguration" json:"kubeletConfiguration,omitempty"`
 	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration" json:"kubeProxyConfiguration,omitempty"`
+}
+
+// EnableNodelocaldns is used to determine whether to deploy nodelocaldns.
+func (k *Kubernetes) EnableNodelocaldns() bool {
+	if k.Nodelocaldns == nil {
+		return true
+	} else {
+		return *k.Nodelocaldns
+	}
 }

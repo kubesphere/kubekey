@@ -92,7 +92,7 @@ func CreateClusterDns(mgr *manager.Manager) error {
 		}
 	}
 
-	if mgr.Cluster.Kubernetes.Nodelocaldns {
+	if mgr.Cluster.Kubernetes.EnableNodelocaldns() {
 		if err := DeployNodelocaldns(mgr, corednsClusterIP); err != nil {
 			return err
 		}

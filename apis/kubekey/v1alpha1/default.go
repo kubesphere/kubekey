@@ -216,7 +216,6 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 }
 
 func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
-	cfg.Kubernetes.Nodelocaldns = true
 	if cfg.Kubernetes.Version == "" {
 		cfg.Kubernetes.Version = DefaultKubeVersion
 	} else {
