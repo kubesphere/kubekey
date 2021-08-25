@@ -32,8 +32,8 @@ func (b *BaseTaskModule) Run() error {
 	for i := range b.Tasks {
 		task := b.Tasks[i]
 		task.Init(b.Name, b.Runtime, b.Cache, b.RootCache)
-		if err := task.Execute(); err != nil {
-			return errors.Wrapf(err, "Module[%s] exec failed", b.Name)
+		if res := task.Execute(); res.IsFailed() {
+			return errors.Wrapf(res.Error, "Module[%s] exec failed", b.Name)
 		}
 	}
 	return nil
