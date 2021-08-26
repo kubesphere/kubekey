@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/pkg/errors"
+	"math"
 	"net"
 	"os"
 	"os/exec"
@@ -290,4 +291,11 @@ func RefineDockerVersion(version string) (string, error) {
 		newVersionComponents = append(newVersionComponents, strings.TrimPrefix(comp, "0"))
 	}
 	return strings.Join(newVersionComponents, "."), nil
+}
+
+// Round returns the result of rounding 'val' according to the specified 'precision' precision (the number of digits after the decimal point)。
+// and precision can be negative number or zero
+func Round(val float64, precision int) float64 {
+	p := math.Pow10(precision)
+	return math.Floor(val*p+0.5) / p
 }
