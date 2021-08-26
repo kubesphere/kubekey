@@ -11,6 +11,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/runner"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/core/vars"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -18,16 +19,16 @@ import (
 )
 
 type Task struct {
-	Name     string
-	Desc     string
-	Hosts    []*kubekeyapiv1alpha1.HostCfg
-	Prepare  prepare.Prepare
-	Action   action.Action
-	Vars     vars.Vars
-	Parallel bool
-	Retry    int
-	Delay    time.Duration
-	Serial   string
+	Name        string
+	Desc        string
+	Hosts       []*kubekeyapiv1alpha1.HostCfg
+	Prepare     prepare.Prepare
+	Action      action.Action
+	Vars        vars.Vars
+	Parallel    bool
+	Retry       int
+	Delay       time.Duration
+	Concurrency float64
 
 	RootCache   *cache.Cache
 	Cache       *cache.Cache
@@ -51,8 +52,7 @@ func (t *Task) Execute() *ending.TaskResult {
 		return t.TaskResult
 	}
 
-	// todo: user can customize the pool size
-	routinePool := make(chan struct{}, DefaultCon)
+	routinePool := make(chan struct{}, t.calculateConcurrency())
 	defer close(routinePool)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*DefaultTimeout)
@@ -225,4 +225,17 @@ func (t *Task) Default() {
 	if t.Delay <= 0 {
 		t.Delay = 3 * time.Second
 	}
+
+	if t.Concurrency <= 0 || t.Concurrency > 1 {
+		t.Concurrency = 1
+	}
+}
+
+func (t *Task) calculateConcurrency() int {
+	num := t.Concurrency * float64(len(t.Hosts))
+	res := int(util.Round(num, 0))
+	if res < 1 {
+		res = 1
+	}
+	return res
 }
