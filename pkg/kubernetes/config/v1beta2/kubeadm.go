@@ -109,17 +109,16 @@ var (
 		"audit-log-maxage":    "30",
 		"audit-log-maxbackup": "10",
 		"audit-log-maxsize":   "100",
-		"audit-log-path":      "/var/log/apiserver/audit.log",
-		"feature-gates":       "CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
+		"feature-gates":       "ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
 	}
 	controllermanagerArgs = map[string]string{
 		"bind-address":                          "0.0.0.0",
 		"experimental-cluster-signing-duration": "87600h",
-		"feature-gates":                         "CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
+		"feature-gates":                         "ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
 	}
 	schedulerArgs = map[string]string{
 		"bind-address":  "0.0.0.0",
-		"feature-gates": "CSINodeInfo=true,VolumeSnapshotDataSource=true,ExpandCSIVolumes=true,RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true",
+		"feature-gates": "ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
 	}
 )
 
@@ -222,7 +221,7 @@ func getKubeletCgroupDriver(mgr *manager.Manager) (string, error) {
 func GetKubeletConfiguration(mgr *manager.Manager, criSock string) map[string]interface{} {
 	defaultKubeletConfiguration := map[string]interface{}{
 		"clusterDomain":      mgr.Cluster.Kubernetes.ClusterName,
-		"clusterDNS":         []string{"169.254.25.10"},
+		"clusterDNS":         []string{mgr.Cluster.ClusterDNS()},
 		"maxPods":            mgr.Cluster.Kubernetes.MaxPods,
 		"rotateCertificates": true,
 		"kubeReserved": map[string]string{
@@ -245,10 +244,7 @@ func GetKubeletConfiguration(mgr *manager.Manager, criSock string) map[string]in
 		"evictionMaxPodGracePeriod":        120,
 		"evictionPressureTransitionPeriod": "30s",
 		"featureGates": map[string]bool{
-			"CSINodeInfo":                    true,
-			"VolumeSnapshotDataSource":       true,
 			"ExpandCSIVolumes":               true,
-			"RotateKubeletClientCertificate": true,
 			"RotateKubeletServerCertificate": true,
 		},
 	}

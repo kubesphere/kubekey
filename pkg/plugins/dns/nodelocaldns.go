@@ -204,7 +204,7 @@ func GenerateNodelocaldnsService(mgr *manager.Manager) (string, error) {
 func GenerateNodelocaldnsConfigMap(mgr *manager.Manager, clusterIP string) (string, error) {
 	var forwardTgrget string
 	if len(clusterIP) == 0 {
-		forwardTgrget = mgr.Cluster.ClusterIP()
+		forwardTgrget = mgr.Cluster.CorednsClusterIP()
 	} else {
 		forwardTgrget = clusterIP
 	}

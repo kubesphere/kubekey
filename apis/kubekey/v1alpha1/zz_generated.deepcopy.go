@@ -413,6 +413,11 @@ func (in *Kubernetes) DeepCopyInto(out *Kubernetes) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Nodelocaldns != nil {
+		in, out := &in.Nodelocaldns, &out.Nodelocaldns
+		*out = new(bool)
+		**out = **in
+	}
 	if in.ApiServerArgs != nil {
 		in, out := &in.ApiServerArgs, &out.ApiServerArgs
 		*out = make([]string, len(*in))

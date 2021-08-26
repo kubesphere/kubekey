@@ -38,12 +38,12 @@ const (
 	DefaultEtcdVersion         = "v3.4.13"
 	DefaultEtcdPort            = "2379"
 	DefaultKubeVersion         = "v1.19.8"
-	DefaultCalicoVersion       = "v3.16.3"
+	DefaultCalicoVersion       = "v3.20.0"
 	DefaultFlannelVersion      = "v0.12.0"
-	DefaultCniVersion          = "v0.8.6"
+	DefaultCniVersion          = "v0.9.1"
 	DefaultCiliumVersion       = "v1.8.3"
 	DefaultKubeovnVersion      = "v1.5.0"
-	DefaultHelmVersion         = "v3.2.1"
+	DefaultHelmVersion         = "v3.6.3"
 	DefaultMaxPods             = 110
 	DefaultNodeCidrMaskSize    = 24
 	DefaultIPIPMode            = "Always"
