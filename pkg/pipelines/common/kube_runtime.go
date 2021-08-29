@@ -1,4 +1,4 @@
-package config
+package common
 
 import (
 	"fmt"
@@ -12,24 +12,13 @@ import (
 	"path/filepath"
 )
 
-// todo: 原来inCluster的处理方式如何更加优雅，runtime中是否需要存operator有关的控制变量。普通创建集群，operator，webserver可以实现不同的runtime？
-type Runtime struct {
-	ObjName         string
-	Cluster         *kubekeyapiv1alpha1.ClusterSpec
-	Connector       connector.Connector
-	Runner          *connector.Runner
-	DownloadCommand func(path, url string) string
-	AllNodes        []*kubekeyapiv1alpha1.HostCfg
-	EtcdNodes       []*kubekeyapiv1alpha1.HostCfg
-	MasterNodes     []*kubekeyapiv1alpha1.HostCfg
-	WorkerNodes     []*kubekeyapiv1alpha1.HostCfg
-	K8sNodes        []*kubekeyapiv1alpha1.HostCfg
-	ClusterHosts    []string
-	WorkDir         string
-	Kubeconfig      string
-	Conditions      []kubekeyapiv1alpha1.Condition
-	ClientSet       *kubekeyclientset.Clientset
-	Arg             Argument
+type KubeRuntime struct {
+	connector.BaseRuntime
+	Cluster    *kubekeyapiv1alpha1.ClusterSpec
+	Kubeconfig string
+	Conditions []kubekeyapiv1alpha1.Condition
+	ClientSet  *kubekeyclientset.Clientset
+	Arg        Argument
 }
 
 type Argument struct {
@@ -46,7 +35,7 @@ type Argument struct {
 	InCluster          bool
 }
 
-func NewRuntime(flag string, arg Argument) (*Runtime, error) {
+func NewKubeRuntime(flag string, arg Argument) (connector.Runtime, error) {
 	loader := NewLoader(flag, arg)
 	cluster, err := loader.Load()
 	if err != nil {
@@ -68,35 +57,62 @@ func NewRuntime(flag string, arg Argument) (*Runtime, error) {
 		clientset = c
 	}
 
-	r := &Runtime{
+	base := connector.BaseRuntime{
 		ObjName:      cluster.Name,
-		Cluster:      defaultCluster,
-		Connector:    connector.NewDialer(),
-		AllNodes:     hostGroupsPoint(hostGroups.All),
-		EtcdNodes:    hostGroupsPoint(hostGroups.Etcd),
-		MasterNodes:  hostGroupsPoint(hostGroups.Master),
-		WorkerNodes:  hostGroupsPoint(hostGroups.Worker),
-		K8sNodes:     hostGroupsPoint(hostGroups.K8s),
 		ClusterHosts: generateHosts(hostGroups, defaultCluster),
 		WorkDir:      generateWorkDir(),
-		ClientSet:    clientset,
-		Arg:          arg,
+		AllHosts:     make([]connector.Host, 0, 0),
+		RoleHosts:    make(map[string][]connector.Host),
 	}
-	return r, nil
-}
+	base.SetConnector(connector.NewDialer())
+	for _, v := range hostGroups.All {
+		host := ToHosts(v)
+		if v.IsMaster {
+			host.SetRole(Master)
+		}
+		if v.IsWorker {
+			host.SetRole(Worker)
+		}
+		if v.IsEtcd {
+			host.SetRole(Etcd)
+		}
+		host.SetRole(K8s)
+		base.AppendHost(host)
+		base.AppendRoleMap(host)
+	}
 
-func hostGroupsPoint(hosts []kubekeyapiv1alpha1.HostCfg) []*kubekeyapiv1alpha1.HostCfg {
-	arr := make([]*kubekeyapiv1alpha1.HostCfg, 0, len(hosts))
-	for i := range hosts {
-		arr = append(arr, &hosts[i])
+	r := &KubeRuntime{
+		Cluster:   defaultCluster,
+		ClientSet: clientset,
+		Arg:       arg,
 	}
-	return arr
+	r.BaseRuntime = base
+
+	var runtime connector.Runtime
+	runtime = r
+	return runtime, nil
 }
 
 // Copy is used to create a copy for Runtime.
-func (r *Runtime) Copy() *Runtime {
-	runtime := *r
+func (k *KubeRuntime) Copy() connector.Runtime {
+	runtime := *k
 	return &runtime
+}
+
+func ToHosts(cfg kubekeyapiv1alpha1.HostCfg) *connector.BaseHost {
+	host := &connector.BaseHost{
+		Name:           cfg.Name,
+		Address:        cfg.InternalAddress,
+		Port:           cfg.Port,
+		User:           cfg.User,
+		Password:       cfg.Password,
+		PrivateKey:     cfg.PrivateKey,
+		PrivateKeyPath: cfg.PrivateKeyPath,
+		Arch:           cfg.Arch,
+		Roles:          make([]string, 0, 0),
+		RoleTable:      make(map[string]bool),
+	}
+	return host
 }
 
 func generateHosts(hostGroups *kubekeyapiv1alpha1.HostGroups, cfg *kubekeyapiv1alpha1.ClusterSpec) []string {

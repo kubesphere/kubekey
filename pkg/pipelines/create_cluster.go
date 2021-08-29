@@ -1,13 +1,14 @@
 package pipelines
 
 import (
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/initialization"
 )
 
-func NewCreateClusterPipeline(runtime *config.Runtime) error {
+func NewCreateClusterPipeline(runtime connector.Runtime) error {
 
 	m := []modules.Module{
 		&initialization.NodeInitializationModule{},
@@ -26,7 +27,7 @@ func NewCreateClusterPipeline(runtime *config.Runtime) error {
 }
 
 func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, ksEnabled, verbose, skipCheck, skipPullImages, inCluster, deployLocalStorage bool) error {
-	arg := config.Argument{
+	arg := common.Argument{
 		FilePath:           clusterCfgFile,
 		KubernetesVersion:  k8sVersion,
 		KsEnable:           ksEnabled,
@@ -40,12 +41,12 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, ksEnabled, verb
 
 	var loaderType string
 	if clusterCfgFile != "" {
-		loaderType = config.File
+		loaderType = common.File
 	} else {
-		loaderType = config.AllInOne
+		loaderType = common.AllInOne
 	}
 
-	runtime, err := config.NewRuntime(loaderType, arg)
+	runtime, err := common.NewKubeRuntime(loaderType, arg)
 	if err != nil {
 		return err
 	}

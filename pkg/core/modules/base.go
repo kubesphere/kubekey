@@ -2,33 +2,36 @@ package modules
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
 
 type BaseModule struct {
 	Name      string
 	Cache     *cache.Cache
 	RootCache *cache.Cache
-	Runtime   *config.Runtime
+	Runtime   connector.Runtime
 }
 
-func (t *BaseModule) Default(runtime *config.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
-	if t.Name == "" {
-		t.Name = DefaultModuleName
+func (b *BaseModule) Default(runtime connector.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
+	if b.Name == "" {
+		b.Name = DefaultModuleName
 	}
 
-	t.Runtime = runtime
-	t.RootCache = rootCache
-	t.Cache = moduleCache
+	b.Runtime = runtime
+	b.RootCache = rootCache
+	b.Cache = moduleCache
 }
 
-func (t *BaseModule) Init() {
+func (b *BaseModule) Init() {
 }
 
-func (t *BaseModule) Is() string {
+func (b *BaseModule) Is() string {
 	return BaseModuleType
 }
 
-func (t *BaseModule) Run() error {
+func (b *BaseModule) Run() error {
 	return nil
+}
+
+func (b *BaseModule) AutoAssert() {
 }
