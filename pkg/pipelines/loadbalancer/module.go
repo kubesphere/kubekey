@@ -1,18 +1,18 @@
 package loadbalancer
 
 import (
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer/templates"
 	"strconv"
 )
 
 type HaproxyModule struct {
-	modules.BaseTaskModule
+	common.KubeModule
 }
 
 func (h *HaproxyModule) Init() {
@@ -20,24 +20,24 @@ func (h *HaproxyModule) Init() {
 
 	makeConfigDir := modules.Task{
 		Name:     "MakeHaproxyConfigDir",
-		Hosts:    h.Runtime.WorkerNodes,
-		Prepare:  new(prepare.OnlyWorker),
+		Hosts:    h.Runtime.GetHostsByRole(common.Worker),
+		Prepare:  new(common.OnlyWorker),
 		Action:   new(haproxyPreparatoryWork),
 		Parallel: true,
 	}
 
 	haproxyCfg := modules.Task{
 		Name:    "GenerateHaproxyConfig",
-		Hosts:   h.Runtime.WorkerNodes,
-		Prepare: new(prepare.OnlyWorker),
+		Hosts:   h.Runtime.GetHostsByRole(common.Worker),
+		Prepare: new(common.OnlyWorker),
 		Action: &action.Template{
 			Template: templates.HaproxyConfig,
 			Dst:      "/etc/kubekey/haproxy/haproxy.cfg",
 			Data: util.Data{
-				"MasterNodes":                          masterNodeStr(h.Runtime),
-				"LoadbalancerApiserverPort":            h.Runtime.Cluster.ControlPlaneEndpoint.Port,
+				"MasterNodes":                          masterNodeStr(h.KubeConf),
+				"LoadbalancerApiserverPort":            h.KubeConf.Cluster.ControlPlaneEndpoint.Port,
 				"LoadbalancerApiserverHealthcheckPort": 8081,
-				"KubernetesType":                       h.Runtime.Cluster.Kubernetes.Type,
+				"KubernetesType":                       h.KubeConf.Cluster.Kubernetes.Type,
 			},
 		},
 		Parallel: true,
@@ -47,18 +47,18 @@ func (h *HaproxyModule) Init() {
 	// It will make load balancer reload when config changes.
 	getMd5Sum := modules.Task{
 		Name:     "GetChecksumFromConfig",
-		Hosts:    h.Runtime.WorkerNodes,
-		Prepare:  new(prepare.OnlyWorker),
+		Hosts:    h.Runtime.GetHostsByRole(common.Worker),
+		Prepare:  new(common.OnlyWorker),
 		Action:   new(getChecksum),
 		Parallel: true,
 	}
 
 	haproxyManifestK3s := modules.Task{
 		Name:  "GenerateHaproxyManifestK3s",
-		Hosts: h.Runtime.WorkerNodes,
+		Hosts: h.Runtime.GetHostsByRole(common.Worker),
 		Prepare: &prepare.PrepareCollection{
-			new(prepare.OnlyWorker),
-			new(prepare.OnlyK3s),
+			new(common.OnlyWorker),
+			new(common.OnlyK3s),
 		},
 		Action: &action.Template{
 			Template: templates.HaproxyManifest,
@@ -75,10 +75,10 @@ func (h *HaproxyModule) Init() {
 
 	haproxyManifestK8s := modules.Task{
 		Name:  "GenerateHaproxyManifest",
-		Hosts: h.Runtime.WorkerNodes,
+		Hosts: h.Runtime.GetHostsByRole(common.Worker),
 		Prepare: &prepare.PrepareCollection{
-			new(prepare.OnlyWorker),
-			new(prepare.OnlyKubernetes),
+			new(common.OnlyWorker),
+			new(common.OnlyKubernetes),
 		},
 		Action: &action.Template{
 			Template: templates.HaproxyManifest,
@@ -95,9 +95,9 @@ func (h *HaproxyModule) Init() {
 
 	updateK3sConfig := modules.Task{
 		Name:  "UpdateK3sConfig",
-		Hosts: h.Runtime.WorkerNodes,
+		Hosts: h.Runtime.GetHostsByRole(common.Worker),
 		Prepare: &prepare.PrepareCollection{
-			new(prepare.OnlyK3s),
+			new(common.OnlyK3s),
 			new(updateK3sPrepare),
 		},
 		Action:   new(updateK3s),
@@ -111,9 +111,9 @@ func (h *HaproxyModule) Init() {
 	// And the work node's kubelet connect 127.0.0.1:6443 (default) that is proxy by the node's local nginx.
 	updateKubeletConfig := modules.Task{
 		Name:  "UpdateKubeletConfig",
-		Hosts: h.Runtime.K8sNodes,
+		Hosts: h.Runtime.GetHostsByRole(common.K8s),
 		Prepare: &prepare.PrepareCollection{
-			new(prepare.OnlyKubernetes),
+			new(common.OnlyKubernetes),
 			new(updateKubeletPrepare),
 		},
 		Action:   new(updateKubelet),
@@ -124,10 +124,10 @@ func (h *HaproxyModule) Init() {
 	// updateKubeproxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
 	updateKubeproxyConfig := modules.Task{
 		Name:  "UpdateKubeproxyConfig",
-		Hosts: []*kubekeyapiv1alpha1.HostCfg{h.Runtime.MasterNodes[0]},
+		Hosts: []connector.Host{h.Runtime.GetHostsByRole(common.Master)[0]},
 		Prepare: &prepare.PrepareCollection{
-			new(prepare.OnlyKubernetes),
-			new(prepare.OnlyFirstMaster),
+			new(common.OnlyKubernetes),
+			new(common.OnlyFirstMaster),
 			new(updateKubeproxyPrapre),
 		},
 		Action:   new(updateKubeproxy),
@@ -139,7 +139,7 @@ func (h *HaproxyModule) Init() {
 	// All of the 'admin.conf' and '/.kube/config' will connect to 127.0.0.1:6443.
 	updateHostsFile := modules.Task{
 		Name:     "UpdateHostsFile",
-		Hosts:    h.Runtime.K8sNodes,
+		Hosts:    h.Runtime.GetHostsByRole(common.K8s),
 		Prepare:  nil,
 		Action:   new(updateHosts),
 		Parallel: true,
@@ -159,10 +159,10 @@ func (h *HaproxyModule) Init() {
 	}
 }
 
-func masterNodeStr(runtime *config.Runtime) []string {
-	masterNodes := make([]string, len(runtime.MasterNodes))
-	for i, node := range runtime.MasterNodes {
-		masterNodes[i] = node.Name + " " + node.InternalAddress + ":" + strconv.Itoa(runtime.Cluster.ControlPlaneEndpoint.Port)
+func masterNodeStr(conf *common.KubeRuntime) []string {
+	masterNodes := make([]string, len(conf.MasterNodes))
+	for i, node := range conf.MasterNodes {
+		masterNodes[i] = node.Name + " " + node.InternalAddress + ":" + strconv.Itoa(conf.Cluster.ControlPlaneEndpoint.Port)
 	}
 	return masterNodes
 }

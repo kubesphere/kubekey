@@ -2,11 +2,9 @@ package loadbalancer
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/vars"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/pkg/errors"
 	"os"
 	"strconv"
@@ -14,25 +12,25 @@ import (
 )
 
 type haproxyPreparatoryWork struct {
-	action.BaseAction
+	common.KubeAction
 }
 
-func (h *haproxyPreparatoryWork) Execute(runtime *config.Runtime, vars vars.Vars) error {
-	if err := runtime.Runner.MkDir("/etc/kubekey/haproxy"); err != nil {
+func (h *haproxyPreparatoryWork) Execute(runtime connector.Runtime) error {
+	if err := runtime.GetRunner().MkDir("/etc/kubekey/haproxy"); err != nil {
 		return err
 	}
-	if err := runtime.Runner.Chmod("/etc/kubekey/haproxy", os.FileMode(0777)); err != nil {
+	if err := runtime.GetRunner().Chmod("/etc/kubekey/haproxy", os.FileMode(0777)); err != nil {
 		return err
 	}
 	return nil
 }
 
 type getChecksum struct {
-	action.BaseAction
+	common.KubeAction
 }
 
-func (g *getChecksum) Execute(runtime *config.Runtime, vars vars.Vars) error {
-	md5Str, err := runtime.Runner.FileMd5("/etc/kubekey/haproxy/haproxy.cfg")
+func (g *getChecksum) Execute(runtime connector.Runtime) error {
+	md5Str, err := runtime.GetRunner().FileMd5("/etc/kubekey/haproxy/haproxy.cfg")
 	if err != nil {
 		return err
 	}
@@ -41,17 +39,17 @@ func (g *getChecksum) Execute(runtime *config.Runtime, vars vars.Vars) error {
 }
 
 type updateK3sPrepare struct {
-	prepare.BasePrepare
+	common.KubePrepare
 }
 
-func (u *updateK3sPrepare) PreCheck(runtime *config.Runtime) (bool, error) {
-	exist, err := runtime.Runner.FileExist("/etc/systemd/system/k3s.service")
+func (u *updateK3sPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
+	exist, err := runtime.GetRunner().FileExist("/etc/systemd/system/k3s.service")
 	if err != nil {
 		return false, err
 	}
 
 	if exist {
-		if out, err := runtime.Runner.SudoCmd("sed -n '/--server=.*/p' /etc/systemd/system/k3s.service", false); err != nil {
+		if out, err := runtime.GetRunner().SudoCmd("sed -n '/--server=.*/p' /etc/systemd/system/k3s.service", false); err != nil {
 			return false, err
 		} else {
 			if strings.Contains(strings.TrimSpace(out), LocalServer) {
@@ -66,31 +64,31 @@ func (u *updateK3sPrepare) PreCheck(runtime *config.Runtime) (bool, error) {
 }
 
 type updateK3s struct {
-	action.BaseAction
+	common.KubeAction
 }
 
-func (u *updateK3s) Execute(runtime *config.Runtime, vars vars.Vars) error {
-	if _, err := runtime.Runner.SudoCmd("sed -i 's#--server=.*\"#--server=https://127.0.0.1:%s\"#g' /etc/systemd/system/k3s.service", false); err != nil {
+func (u *updateK3s) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("sed -i 's#--server=.*\"#--server=https://127.0.0.1:%s\"#g' /etc/systemd/system/k3s.service", false); err != nil {
 		return err
 	}
-	if _, err := runtime.Runner.SudoCmd("systemctl restart k3s", false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd("systemctl restart k3s", false); err != nil {
 		return err
 	}
 	return nil
 }
 
 type updateKubeletPrepare struct {
-	prepare.BasePrepare
+	common.KubePrepare
 }
 
-func (u *updateKubeletPrepare) PreCheck(runtime *config.Runtime) (bool, error) {
-	exist, err := runtime.Runner.FileExist("/etc/kubernetes/kubelet.conf")
+func (u *updateKubeletPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
+	exist, err := runtime.GetRunner().FileExist("/etc/kubernetes/kubelet.conf")
 	if err != nil {
 		return false, err
 	}
 
 	if exist {
-		if out, err := runtime.Runner.SudoCmd("sed -n '/server:.*/p' /etc/kubernetes/kubelet.conf", true); err != nil {
+		if out, err := runtime.GetRunner().SudoCmd("sed -n '/server:.*/p' /etc/kubernetes/kubelet.conf", true); err != nil {
 			return false, err
 		} else {
 			if strings.Contains(strings.TrimSpace(out), LocalServer) {
@@ -105,27 +103,27 @@ func (u *updateKubeletPrepare) PreCheck(runtime *config.Runtime) (bool, error) {
 }
 
 type updateKubelet struct {
-	action.BaseAction
+	common.KubeAction
 }
 
-func (u *updateKubelet) Execute(runtime *config.Runtime, vars vars.Vars) error {
-	if _, err := runtime.Runner.SudoCmd(fmt.Sprintf(
+func (u *updateKubelet) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 		"sed -i 's#server:.*#server: https://127.0.0.1:%s#g' /etc/kubernetes/kubelet.conf",
-		strconv.Itoa(runtime.Cluster.ControlPlaneEndpoint.Port)), false); err != nil {
+		strconv.Itoa(u.KubeConf.Cluster.ControlPlaneEndpoint.Port)), false); err != nil {
 		return err
 	}
-	if _, err := runtime.Runner.SudoCmd("systemctl daemon-reload && systemctl restart kubelet", false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart kubelet", false); err != nil {
 		return err
 	}
 	return nil
 }
 
 type updateKubeproxyPrapre struct {
-	prepare.BasePrepare
+	common.KubePrepare
 }
 
-func (u *updateKubeproxyPrapre) PreCheck(runtime *config.Runtime) (bool, error) {
-	if out, err := runtime.Runner.SudoCmd(
+func (u *updateKubeproxyPrapre) PreCheck(runtime connector.Runtime) (bool, error) {
+	if out, err := runtime.GetRunner().SudoCmd(
 		"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
 			"| sed -n '/server:.*/p'", false); err != nil {
 		return false, err
@@ -139,28 +137,28 @@ func (u *updateKubeproxyPrapre) PreCheck(runtime *config.Runtime) (bool, error) 
 }
 
 type updateKubeproxy struct {
-	action.BaseAction
+	common.KubeAction
 }
 
-func (u *updateKubeproxy) Execute(runtime *config.Runtime, vars vars.Vars) error {
-	if _, err := runtime.Runner.SudoCmd("set -o pipefail "+
+func (u *updateKubeproxy) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("set -o pipefail "+
 		"&& /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
 		"| sed 's#server:.*#server: https://127.0.0.1:%s#g' "+
 		"| /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -", false); err != nil {
 		return err
 	}
-	if _, err := runtime.Runner.SudoCmd("/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0", false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0", false); err != nil {
 		return err
 	}
 	return nil
 }
 
 type updateHosts struct {
-	action.BaseAction
+	common.KubeAction
 }
 
-func (u *updateHosts) Execute(runtime *config.Runtime, vars vars.Vars) error {
-	if _, err := runtime.Runner.SudoCmd("sed -i 's#.* %s#127.0.0.1 %s#g' /etc/hosts", false); err != nil {
+func (u *updateHosts) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("sed -i 's#.* %s#127.0.0.1 %s#g' /etc/hosts", false); err != nil {
 		return err
 	}
 	return nil

@@ -2,10 +2,11 @@ package prepare
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
 
 type Prepare interface {
-	PreCheck(runtime *config.Runtime) (bool, error)
-	Init(cache *cache.Cache, rootCache *cache.Cache)
+	PreCheck(runtime connector.Runtime) (bool, error)
+	Init(cache *cache.Cache, rootCache *cache.Cache, runtimeConf connector.Runtime)
+	AutoAssert()
 }

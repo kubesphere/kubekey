@@ -2,7 +2,7 @@ package pipeline
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/pkg/errors"
 	"sync"
@@ -11,7 +11,7 @@ import (
 type Pipeline struct {
 	Name            string
 	Modules         []modules.Module
-	Runtime         *config.Runtime
+	Runtime         connector.Runtime
 	PipelineCache   *cache.Cache
 	ModuleCachePool sync.Pool
 }
@@ -36,6 +36,7 @@ func (p *Pipeline) RunModule(m modules.Module) error {
 	defer p.releaseModuleCache(moduleCache)
 	m.Default(p.Runtime, p.PipelineCache, moduleCache)
 	m.Init()
+	m.AutoAssert()
 	switch m.Is() {
 	case modules.TaskModuleType:
 		if err := m.Run(); err != nil {

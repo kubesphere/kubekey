@@ -1,21 +1,18 @@
-package runner
+package connector
 
 import (
 	"errors"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/core/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"os"
 	"path/filepath"
 )
 
 type Runner struct {
-	Conn  connector.Connection
+	Conn  Connection
 	Debug bool
-	Host  *kubekeyapiv1alpha1.HostCfg
+	Host  Host
 	Index int
 }
 
@@ -69,11 +66,11 @@ func (r *Runner) Cmd(cmd string, printOutput bool) (string, error) {
 }
 
 func (r *Runner) SudoExec(cmd string, printOutput bool) (string, string, int, error) {
-	return r.Exec(ssh.SudoPrefix(cmd), printOutput)
+	return r.Exec(SudoPrefix(cmd), printOutput)
 }
 
 func (r *Runner) SudoCmd(cmd string, printOutput bool) (string, error) {
-	return r.Cmd(ssh.SudoPrefix(cmd), printOutput)
+	return r.Cmd(SudoPrefix(cmd), printOutput)
 }
 
 func (r *Runner) Fetch(local, remote string) error {
