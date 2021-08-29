@@ -3,16 +3,13 @@ package modules
 import (
 	"context"
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/runner"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/core/vars"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"time"
@@ -21,10 +18,9 @@ import (
 type Task struct {
 	Name        string
 	Desc        string
-	Hosts       []*kubekeyapiv1alpha1.HostCfg
+	Hosts       []connector.Host
 	Prepare     prepare.Prepare
 	Action      action.Action
-	Vars        vars.Vars
 	Parallel    bool
 	Retry       int
 	Delay       time.Duration
@@ -32,13 +28,13 @@ type Task struct {
 
 	RootCache   *cache.Cache
 	Cache       *cache.Cache
-	Runtime     *config.Runtime
+	Runtime     connector.Runtime
 	tag         string
 	IgnoreError bool
 	TaskResult  *ending.TaskResult
 }
 
-func (t *Task) Init(moduleName string, runtime *config.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
+func (t *Task) Init(moduleName string, runtime connector.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
 	t.Cache = cache
 	t.RootCache = rootCache
 	t.Runtime = runtime
@@ -91,7 +87,7 @@ func (t *Task) Execute() *ending.TaskResult {
 	return t.TaskResult
 }
 
-func (t *Task) RunWithTimeout(ctx context.Context, runtime *config.Runtime, host *kubekeyapiv1alpha1.HostCfg, index int, pool chan struct{}) error {
+func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, host connector.Host, index int, pool chan struct{}) error {
 	pool <- struct{}{}
 
 	errCh := make(chan error)
@@ -107,52 +103,55 @@ func (t *Task) RunWithTimeout(ctx context.Context, runtime *config.Runtime, host
 	}
 }
 
-func (t *Task) Run(runtime *config.Runtime, host *kubekeyapiv1alpha1.HostCfg, index int, errCh chan error) {
+func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, errCh chan error) {
 	if err := t.ConfigureSelfRuntime(runtime, host, index); err != nil {
-		logger.Log.Errorf("failed: [%s]", host.Name)
+		logger.Log.Errorf("failed: [%s]", host.GetName())
 		errCh <- err
 		return
 	}
 
-	t.Prepare.Init(t.Cache, t.RootCache)
+	t.Prepare.Init(t.Cache, t.RootCache, runtime)
+	t.Prepare.AutoAssert()
 	if ok, e := t.WhenWithRetry(runtime); !ok {
 		if e != nil {
-			logger.Log.Errorf("failed: [%s]", host.Name)
+			logger.Log.Errorf("failed: [%s]", host.GetName())
 			errCh <- e
 			return
 		} else {
-			logger.Log.Errorf("skipped: [%s]", host.Name)
+			logger.Log.Errorf("skipped: [%s]", host.GetName())
 			errCh <- nil
 			return
 		}
 	}
 
-	t.Action.Init(t.Cache, t.RootCache)
+	t.Action.Init(t.Cache, t.RootCache, runtime)
+	t.Action.AutoAssert()
 	if err := t.ExecuteWithRetry(runtime); err != nil {
-		logger.Log.Errorf("failed: [%s]", host.Name)
+		logger.Log.Errorf("failed: [%s]", host.GetName())
 		errCh <- err
 		return
 	}
-	logger.Log.Errorf("success: [%s]", runtime.Runner.Host.Name)
+	logger.Log.Errorf("success: [%s]", host.GetName())
 	errCh <- nil
 }
 
-func (t *Task) ConfigureSelfRuntime(runtime *config.Runtime, host *kubekeyapiv1alpha1.HostCfg, index int) error {
-	conn, err := runtime.Connector.Connect(*host)
+func (t *Task) ConfigureSelfRuntime(runtime connector.Runtime, host connector.Host, index int) error {
+	conn, err := runtime.GetConnector().Connect(host)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to %s", host.Address)
+		return errors.Wrapf(err, "failed to connect to %s", host.GetAddress())
 	}
 
-	runtime.Runner = &runner.Runner{
-		Conn:  conn,
-		Debug: runtime.Arg.Debug,
+	r := &connector.Runner{
+		Conn: conn,
+		//Debug: runtime.Arg.Debug,
 		Host:  host,
 		Index: index,
 	}
+	runtime.SetRunner(r)
 	return nil
 }
 
-func (t *Task) When(runtime *config.Runtime) (bool, error) {
+func (t *Task) When(runtime connector.Runtime) (bool, error) {
 	if t.Prepare == nil {
 		return true, nil
 	}
@@ -165,12 +164,12 @@ func (t *Task) When(runtime *config.Runtime) (bool, error) {
 	}
 }
 
-func (t *Task) WhenWithRetry(runtime *config.Runtime) (bool, error) {
+func (t *Task) WhenWithRetry(runtime connector.Runtime) (bool, error) {
 	pass := false
 	err := fmt.Errorf("pre-check exec failed after %d retires", t.Retry)
 	for i := 0; i < t.Retry; i++ {
 		if res, e := t.When(runtime); e != nil {
-			logger.Log.Infof("retry: [%s]", runtime.Runner.Host.Name)
+			logger.Log.Infof("retry: [%s]", runtime.GetRunner().Host.GetName())
 			logger.Log.Error(e)
 			time.Sleep(t.Delay)
 			continue
@@ -184,12 +183,12 @@ func (t *Task) WhenWithRetry(runtime *config.Runtime) (bool, error) {
 	return pass, err
 }
 
-func (t *Task) ExecuteWithRetry(runtime *config.Runtime) error {
+func (t *Task) ExecuteWithRetry(runtime connector.Runtime) error {
 	err := fmt.Errorf("action exec failed after %d retires", t.Retry)
 	for i := 0; i < t.Retry; i++ {
-		e := t.Action.Execute(runtime, t.Vars)
+		e := t.Action.Execute(runtime)
 		if e != nil {
-			logger.Log.Infof("retry: [%s]", runtime.Runner.Host.Name)
+			logger.Log.Infof("retry: [%s]", runtime.GetRunner().Host.GetName())
 			logger.Log.Error(e)
 			time.Sleep(t.Delay)
 			continue
@@ -208,7 +207,7 @@ func (t *Task) Default() {
 	}
 
 	if len(t.Hosts) < 1 {
-		t.Hosts = []*kubekeyapiv1alpha1.HostCfg{}
+		t.Hosts = []connector.Host{}
 		t.TaskResult.AppendErr(errors.New("the length of task hosts is 0"))
 		return
 	}

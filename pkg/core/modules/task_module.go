@@ -2,7 +2,7 @@ package modules
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
-	"github.com/kubesphere/kubekey/pkg/core/config"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/pkg/errors"
 )
 
@@ -11,7 +11,7 @@ type BaseTaskModule struct {
 	Tasks []Task
 }
 
-func (b *BaseTaskModule) Default(runtime *config.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
+func (b *BaseTaskModule) Default(runtime connector.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
 	if b.Name == "" {
 		b.Name = DefaultTaskModuleName
 	}

@@ -1,13 +1,13 @@
 package modules
 
 import (
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"testing"
 )
 
 func TestTask_calculateConcurrency(t1 *testing.T) {
 	type fields struct {
-		Hosts       []*kubekeyapiv1alpha1.HostCfg
+		Hosts       []connector.BaseHost
 		Concurrency float64
 	}
 	tests := []struct {
@@ -19,7 +19,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 			name: "test1",
 			fields: fields{
 				Concurrency: 0.5,
-				Hosts: []*kubekeyapiv1alpha1.HostCfg{
+				Hosts: []connector.BaseHost{
 					{Name: "node1"},
 					{Name: "node2"},
 					{Name: "node3"},
@@ -31,7 +31,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 			name: "test2",
 			fields: fields{
 				Concurrency: 0.5,
-				Hosts: []*kubekeyapiv1alpha1.HostCfg{
+				Hosts: []connector.BaseHost{
 					{Name: "node1"},
 					{Name: "node2"},
 					{Name: "node3"},
@@ -44,7 +44,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 			name: "test3",
 			fields: fields{
 				Concurrency: 0.4,
-				Hosts: []*kubekeyapiv1alpha1.HostCfg{
+				Hosts: []connector.BaseHost{
 					{Name: "node1"},
 					{Name: "node2"},
 					{Name: "node3"},
@@ -56,7 +56,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 			name: "test4",
 			fields: fields{
 				Concurrency: 0.4,
-				Hosts: []*kubekeyapiv1alpha1.HostCfg{
+				Hosts: []connector.BaseHost{
 					{Name: "node1"},
 					{Name: "node2"},
 					{Name: "node3"},
@@ -69,7 +69,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 			name: "test5",
 			fields: fields{
 				Concurrency: 0.1,
-				Hosts: []*kubekeyapiv1alpha1.HostCfg{
+				Hosts: []connector.BaseHost{
 					{Name: "node1"},
 					{Name: "node2"},
 					{Name: "node3"},
@@ -82,7 +82,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 			name: "test6",
 			fields: fields{
 				Concurrency: 0.222222222222222,
-				Hosts: []*kubekeyapiv1alpha1.HostCfg{
+				Hosts: []connector.BaseHost{
 					{Name: "node1"},
 					{Name: "node2"},
 					{Name: "node3"},
@@ -95,7 +95,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 			name: "test7",
 			fields: fields{
 				Concurrency: 1,
-				Hosts: []*kubekeyapiv1alpha1.HostCfg{
+				Hosts: []connector.BaseHost{
 					{Name: "node1"},
 					{Name: "node2"},
 					{Name: "node3"},
@@ -109,7 +109,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 		t1.Run(tt.name, func(t1 *testing.T) {
 			t := &Task{
 				Concurrency: tt.fields.Concurrency,
-				Hosts:       tt.fields.Hosts,
+				//Hosts:       []runtimes.Host(tt.fields.Hosts),
 			}
 			if got := t.calculateConcurrency(); got != tt.want {
 				t1.Errorf("calculateConcurrency() = %v, want %v", got, tt.want)

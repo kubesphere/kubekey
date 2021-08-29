@@ -1,9 +1,8 @@
-package ssh
+package connector
 
 import (
 	"context"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
@@ -47,7 +46,7 @@ type connection struct {
 	cancel     context.CancelFunc
 }
 
-func NewConnection(dialer *Dialer, cfg Cfg) (connector.Connection, error) {
+func NewConnection(dialer *Dialer, cfg Cfg) (Connection, error) {
 	cfg, err := validateOptions(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to validate ssh connection parameters")
