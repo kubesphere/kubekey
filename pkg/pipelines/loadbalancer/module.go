@@ -62,7 +62,7 @@ func (h *HaproxyModule) Init() {
 		},
 		Action: &action.Template{
 			Template: templates.HaproxyManifest,
-			Dst:      "/etc/kubernetes/manifests",
+			Dst:      "/etc/kubernetes/manifests/haproxy.yaml",
 			Data: util.Data{
 				// todo: implement image module
 				"HaproxyImage":                         "haproxy:2.3",
@@ -82,7 +82,7 @@ func (h *HaproxyModule) Init() {
 		},
 		Action: &action.Template{
 			Template: templates.HaproxyManifest,
-			Dst:      "/etc/kubernetes/manifests",
+			Dst:      "/etc/kubernetes/manifests/haproxy.yaml",
 			Data: util.Data{
 				// todo: implement image module
 				"HaproxyImage":                         "haproxy:2.3",
@@ -160,9 +160,9 @@ func (h *HaproxyModule) Init() {
 }
 
 func masterNodeStr(conf *common.KubeRuntime) []string {
-	masterNodes := make([]string, len(conf.MasterNodes))
-	for i, node := range conf.MasterNodes {
-		masterNodes[i] = node.Name + " " + node.InternalAddress + ":" + strconv.Itoa(conf.Cluster.ControlPlaneEndpoint.Port)
+	masterNodes := make([]string, len(conf.GetHostsByRole(common.Master)))
+	for i, node := range conf.GetHostsByRole(common.Master) {
+		masterNodes[i] = node.GetName() + " " + node.GetAddress() + ":" + strconv.Itoa(conf.Cluster.ControlPlaneEndpoint.Port)
 	}
 	return masterNodes
 }

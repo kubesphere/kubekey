@@ -20,8 +20,8 @@ type OnlyFirstMaster struct {
 }
 
 func (o *OnlyFirstMaster) PreCheck(runtime connector.Runtime) (bool, error) {
-	if runtime.CurrentHost().IsRole(Master) &&
-		runtime.CurrentHost().GetName() == runtime.GetHostsByRole(Master)[0].GetName() {
+	if runtime.RemoteHost().IsRole(Master) &&
+		runtime.RemoteHost().GetName() == runtime.GetHostsByRole(Master)[0].GetName() {
 		return true, nil
 	}
 	return false, nil
@@ -32,7 +32,7 @@ type OnlyWorker struct {
 }
 
 func (o *OnlyWorker) PreCheck(runtime connector.Runtime) (bool, error) {
-	if runtime.CurrentHost().IsRole(Worker) && !runtime.CurrentHost().IsRole(Master) {
+	if runtime.RemoteHost().IsRole(Worker) && !runtime.RemoteHost().IsRole(Master) {
 		return true, nil
 	}
 	return false, nil

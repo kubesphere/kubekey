@@ -47,7 +47,7 @@ func (b *BaseRuntime) GetHostsByRole(role string) []Host {
 	return b.RoleHosts[role]
 }
 
-func (b *BaseRuntime) CurrentHost() Host {
+func (b *BaseRuntime) RemoteHost() Host {
 	return b.GetRunner().Host
 }
 

@@ -32,10 +32,11 @@ type Argument struct {
 	AddImagesRepo      bool
 	DeployLocalStorage bool
 	SourcesDir         string
+	DownloadCommand    func(path, url string) string
 	InCluster          bool
 }
 
-func NewKubeRuntime(flag string, arg Argument) (connector.Runtime, error) {
+func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 	loader := NewLoader(flag, arg)
 	cluster, err := loader.Load()
 	if err != nil {
@@ -88,9 +89,7 @@ func NewKubeRuntime(flag string, arg Argument) (connector.Runtime, error) {
 	}
 	r.BaseRuntime = base
 
-	var runtime connector.Runtime
-	runtime = r
-	return runtime, nil
+	return r, nil
 }
 
 // Copy is used to create a copy for Runtime.

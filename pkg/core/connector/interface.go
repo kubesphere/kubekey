@@ -31,7 +31,7 @@ type Runtime interface {
 	GetAllHosts() []Host
 	SetAllHosts([]Host)
 	GetHostsByRole(role string) []Host
-	CurrentHost() Host
+	RemoteHost() Host
 	Copy() Runtime
 }
 

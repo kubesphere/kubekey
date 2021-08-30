@@ -4,6 +4,12 @@ type CustomModule struct {
 	BaseModule
 }
 
-func (t *CustomModule) Is() string {
+func (c *CustomModule) Init() {
+	if c.Name == "" {
+		c.Name = DefaultCustomModuleName
+	}
+}
+
+func (c *CustomModule) Is() string {
 	return CustomModuleType
 }
