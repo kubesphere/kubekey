@@ -1,7 +1,9 @@
 package ending
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/pkg/errors"
 	"sync"
 	"time"
 )
@@ -67,4 +69,17 @@ func (t *TaskResult) IsFailed() bool {
 		return true
 	}
 	return false
+}
+
+func (t *TaskResult) CombineErr() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.Errors) != 0 {
+		var str string
+		for i := range t.Errors {
+			str += fmt.Sprintf("\nfailed: [%s] %s", t.Errors[i].Host.GetName(), t.Errors[i].Error.Error())
+		}
+		return errors.New(str)
+	}
+	return nil
 }
