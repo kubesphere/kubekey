@@ -59,6 +59,7 @@ func (t *Task) Execute() *ending.TaskResult {
 		selfRuntime := t.Runtime.Copy()
 		selfHost := t.Hosts[i].Copy()
 
+		wg.Add(1)
 		if t.Parallel {
 			go t.RunWithTimeout(ctx, selfRuntime, selfHost, i, wg, routinePool)
 		} else {
@@ -81,7 +82,6 @@ func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, ho
 	wg *sync.WaitGroup, pool chan struct{}) {
 
 	pool <- struct{}{}
-	wg.Add(1)
 
 	errCh := make(chan error)
 	defer close(errCh)
@@ -92,7 +92,9 @@ func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, ho
 		<-pool
 		wg.Done()
 	case e := <-errCh:
-		t.TaskResult.AppendErr(host, e)
+		if e != nil {
+			t.TaskResult.AppendErr(host, e)
+		}
 		<-pool
 		wg.Done()
 	}
