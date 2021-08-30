@@ -3,10 +3,13 @@ package initialization
 import (
 	"bufio"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
+	"github.com/kubesphere/kubekey/pkg/pipelines/initialization/templates"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
 	"github.com/pkg/errors"
@@ -16,18 +19,23 @@ import (
 
 type NodeInitializationModule struct {
 	common.KubeModule
+	Skip bool
 }
 
-func (i *NodeInitializationModule) Init() {
-	i.Name = "NodeInitializationModule"
+func (n *NodeInitializationModule) IsSkip() bool {
+	return n.Skip
+}
+
+func (n *NodeInitializationModule) Init() {
+	n.Name = "NodeInitializationModule"
 
 	preCheck := modules.Task{
 		Name:  "NodePreCheck",
 		Desc:  "a pre-check on nodes",
-		Hosts: i.Runtime.GetAllHosts(),
+		Hosts: n.Runtime.GetAllHosts(),
 		Prepare: &prepare.FastPrepare{
 			Inject: func() (bool, error) {
-				if len(i.Runtime.GetHostsByRole(common.Etcd))%2 == 0 {
+				if len(n.Runtime.GetHostsByRole(common.Etcd))%2 == 0 {
 					logger.Log.Error("The number of etcd is even. Please configure it to be odd.")
 					return false, errors.New("the number of etcd is even")
 				}
@@ -37,7 +45,7 @@ func (i *NodeInitializationModule) Init() {
 		Parallel: true,
 	}
 
-	i.Tasks = []modules.Task{
+	n.Tasks = []modules.Task{
 		preCheck,
 	}
 }
@@ -61,10 +69,16 @@ type PreCheckResults struct {
 
 type ConfirmModule struct {
 	common.KubeCustomModule
+	Skip bool
+}
+
+func (c *ConfirmModule) IsSkip() bool {
+	return c.Skip
 }
 
 func (c *ConfirmModule) Init() {
 	c.Name = "ConfirmModule"
+	c.Desc = "display confirmation form"
 }
 
 func (c *ConfirmModule) Run() error {
@@ -123,4 +137,48 @@ Loop:
 		}
 	}
 	return nil
+}
+
+type ConfigureOSModule struct {
+	common.KubeModule
+}
+
+func (c *ConfigureOSModule) Init() {
+	c.Name = "ConfigureOSModule"
+
+	initOS := modules.Task{
+		Name:     "InitOS",
+		Desc:     "prepare to init OS",
+		Hosts:    c.Runtime.GetAllHosts(),
+		Action:   new(NodeConfigureOS),
+		Parallel: true,
+	}
+
+	GenerateScript := modules.Task{
+		Name:  "GenerateScript",
+		Desc:  "generate init os script",
+		Hosts: c.Runtime.GetAllHosts(),
+		Action: &action.Template{
+			Template: templates.InitOsScriptTmpl,
+			Dst:      "/tmp/kubekey/initOS.sh",
+			Data: util.Data{
+				"Hosts": c.KubeConf.ClusterHosts,
+			},
+		},
+		Parallel: true,
+	}
+
+	ExecScript := modules.Task{
+		Name:     "ExecScript",
+		Desc:     "exec init os script",
+		Hosts:    c.Runtime.GetAllHosts(),
+		Action:   new(NodeExecScript),
+		Parallel: true,
+	}
+
+	c.Tasks = []modules.Task{
+		initOS,
+		GenerateScript,
+		ExecScript,
+	}
 }

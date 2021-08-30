@@ -5,7 +5,7 @@ import (
 	"text/template"
 )
 
-var HaproxyManifest = template.Must(template.New("haproxy").Parse(
+var HaproxyManifest = template.Must(template.New("haproxy.yaml").Parse(
 	dedent.Dedent(`
 apiVersion: v1
 kind: Pod

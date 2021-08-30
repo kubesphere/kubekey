@@ -24,6 +24,9 @@ func (p *Pipeline) Start() error {
 	p.Init()
 	for i := range p.Modules {
 		m := p.Modules[i]
+		if m.IsSkip() {
+			continue
+		}
 		if err := p.RunModule(m); err != nil {
 			return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
 		}
@@ -37,6 +40,7 @@ func (p *Pipeline) RunModule(m modules.Module) error {
 	m.Default(p.Runtime, p.PipelineCache, moduleCache)
 	m.Init()
 	m.AutoAssert()
+	m.Slogan()
 	switch m.Is() {
 	case modules.TaskModuleType:
 		if err := m.Run(); err != nil {
