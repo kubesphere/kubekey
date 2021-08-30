@@ -11,7 +11,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
+	"sync"
 	"time"
 )
 
@@ -52,33 +52,23 @@ func (t *Task) Execute() *ending.TaskResult {
 	defer close(routinePool)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*DefaultTimeout)
-	g, ctx := errgroup.WithContext(ctx)
 	defer cancel()
+	wg := &sync.WaitGroup{}
 
-	var err error
 	for i := range t.Hosts {
 		selfRuntime := t.Runtime.Copy()
 		selfHost := t.Hosts[i].Copy()
 
+		wg.Add(1)
 		if t.Parallel {
-			g.Go(func() error {
-				if err := t.RunWithTimeout(ctx, selfRuntime, selfHost, i, routinePool); err != nil {
-					return err
-				}
-				return nil
-			})
+			go t.RunWithTimeout(ctx, selfRuntime, selfHost, i, wg, routinePool)
 		} else {
-			if err = t.RunWithTimeout(ctx, selfRuntime, selfHost, i, routinePool); err != nil {
-				break
-			}
+			t.RunWithTimeout(ctx, selfRuntime, selfHost, i, wg, routinePool)
 		}
 	}
-	if e := g.Wait(); e != nil {
-		err = e
-	}
+	wg.Wait()
 
-	if err != nil {
-		t.TaskResult.AppendErr(err)
+	if t.TaskResult.IsFailed() {
 		t.TaskResult.ErrResult()
 		return t.TaskResult
 	}
@@ -87,7 +77,10 @@ func (t *Task) Execute() *ending.TaskResult {
 	return t.TaskResult
 }
 
-func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, host connector.Host, index int, pool chan struct{}) error {
+// todo: 待上环境测试，多节点报错的情况
+func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, host connector.Host, index int,
+	wg *sync.WaitGroup, pool chan struct{}) {
+
 	pool <- struct{}{}
 
 	errCh := make(chan error)
@@ -95,11 +88,15 @@ func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, ho
 	go t.Run(runtime, host, index, errCh)
 	select {
 	case <-ctx.Done():
+		t.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%dm", DefaultTimeout))
 		<-pool
-		return fmt.Errorf("execute task timeout, Timeout=%dm", DefaultTimeout)
+		wg.Done()
 	case e := <-errCh:
+		if e != nil {
+			t.TaskResult.AppendErr(host, e)
+		}
 		<-pool
-		return e
+		wg.Done()
 	}
 }
 
@@ -208,12 +205,12 @@ func (t *Task) Default() {
 
 	if len(t.Hosts) < 1 {
 		t.Hosts = []connector.Host{}
-		t.TaskResult.AppendErr(errors.New("the length of task hosts is 0"))
+		t.TaskResult.AppendErr(nil, errors.New("the length of task hosts is 0"))
 		return
 	}
 
 	if t.Action == nil {
-		t.TaskResult.AppendErr(errors.New("the action is nil"))
+		t.TaskResult.AppendErr(nil, errors.New("the action is nil"))
 		return
 	}
 

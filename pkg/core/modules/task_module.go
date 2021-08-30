@@ -33,7 +33,7 @@ func (b *BaseTaskModule) Run() error {
 		task := b.Tasks[i]
 		task.Init(b.Name, b.Runtime, b.Cache, b.RootCache)
 		if res := task.Execute(); res.IsFailed() {
-			return errors.Wrapf(res.Error, "Module[%s] exec failed", b.Name)
+			return errors.Wrapf(res.CombineErr(), "Module[%s] exec failed", b.Name)
 		}
 	}
 	return nil
