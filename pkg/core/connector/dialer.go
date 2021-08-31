@@ -7,12 +7,12 @@ import (
 
 type Dialer struct {
 	lock        sync.Mutex
-	connections map[int]Connection
+	connections map[string]Connection
 }
 
 func NewDialer() *Dialer {
 	return &Dialer{
-		connections: make(map[int]Connection),
+		connections: make(map[string]Connection),
 	}
 }
 
@@ -22,7 +22,7 @@ func (d *Dialer) Connect(host Host) (Connection, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	conn, ok := d.connections[host.GetIndex()]
+	conn, ok := d.connections[host.GetName()]
 	if !ok {
 		opts := Cfg{
 			Username:   host.GetUser(),
@@ -37,7 +37,7 @@ func (d *Dialer) Connect(host Host) (Connection, error) {
 		if err != nil {
 			return nil, err
 		}
-		d.connections[host.GetIndex()] = conn
+		d.connections[host.GetName()] = conn
 	}
 
 	return conn, nil

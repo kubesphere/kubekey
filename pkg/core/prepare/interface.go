@@ -7,6 +7,6 @@ import (
 
 type Prepare interface {
 	PreCheck(runtime connector.Runtime) (bool, error)
-	Init(cache *cache.Cache, rootCache *cache.Cache, runtimeConf connector.Runtime)
+	Init(cache *cache.Cache, rootCache *cache.Cache, runtime connector.Runtime)
 	AutoAssert()
 }

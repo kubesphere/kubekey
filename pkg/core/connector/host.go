@@ -10,7 +10,6 @@ type BaseHost struct {
 	PrivateKey      string          `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
 	PrivateKeyPath  string          `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 	Arch            string          `yaml:"arch,omitempty" json:"arch,omitempty"`
-	Index           int             `json:"-"`
 	Roles           []string        `json:"-"`
 	RoleTable       map[string]bool `json:"-"`
 }
@@ -77,14 +76,6 @@ func (b *BaseHost) GetArch() string {
 
 func (b *BaseHost) SetArch(arch string) {
 	b.Arch = arch
-}
-
-func (b *BaseHost) GetIndex() int {
-	return b.Index
-}
-
-func (b *BaseHost) SetIndex(i int) {
-	b.Index = i
 }
 
 func (b *BaseHost) GetRoles() []string {

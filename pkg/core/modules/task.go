@@ -77,7 +77,6 @@ func (t *Task) Execute() *ending.TaskResult {
 	return t.TaskResult
 }
 
-// todo: 待上环境测试，多节点报错的情况
 func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, host connector.Host, index int,
 	wg *sync.WaitGroup, pool chan struct{}) {
 
@@ -166,8 +165,8 @@ func (t *Task) WhenWithRetry(runtime connector.Runtime) (bool, error) {
 	err := fmt.Errorf("pre-check exec failed after %d retires", t.Retry)
 	for i := 0; i < t.Retry; i++ {
 		if res, e := t.When(runtime); e != nil {
+			logger.Log.Errorf("message: [%s]\n%s", runtime.RemoteHost().GetName(), e.Error())
 			logger.Log.Infof("retry: [%s]", runtime.GetRunner().Host.GetName())
-			logger.Log.Error(e)
 			time.Sleep(t.Delay)
 			continue
 		} else {
@@ -181,12 +180,12 @@ func (t *Task) WhenWithRetry(runtime connector.Runtime) (bool, error) {
 }
 
 func (t *Task) ExecuteWithRetry(runtime connector.Runtime) error {
-	err := fmt.Errorf("action exec failed after %d retires", t.Retry)
+	err := fmt.Errorf("[%s] exec failed after %d retires", t.Name, t.Retry)
 	for i := 0; i < t.Retry; i++ {
 		e := t.Action.Execute(runtime)
 		if e != nil {
+			logger.Log.Errorf("message: [%s]\n%s", runtime.RemoteHost().GetName(), e.Error())
 			logger.Log.Infof("retry: [%s]", runtime.GetRunner().Host.GetName())
-			logger.Log.Error(e)
 			time.Sleep(t.Delay)
 			continue
 		} else {
@@ -209,17 +208,21 @@ func (t *Task) Default() {
 		return
 	}
 
+	if t.Prepare == nil {
+		t.Prepare = new(prepare.BasePrepare)
+	}
+
 	if t.Action == nil {
 		t.TaskResult.AppendErr(nil, errors.New("the action is nil"))
 		return
 	}
 
 	if t.Retry < 1 {
-		t.Retry = 1
+		t.Retry = 3
 	}
 
 	if t.Delay <= 0 {
-		t.Delay = 3 * time.Second
+		t.Delay = 5 * time.Second
 	}
 
 	if t.Concurrency <= 0 || t.Concurrency > 1 {

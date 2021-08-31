@@ -6,15 +6,15 @@ import (
 )
 
 type BaseAction struct {
-	Cache       *cache.Cache
-	RootCache   *cache.Cache
-	RuntimeConf connector.Runtime
+	Cache     *cache.Cache
+	RootCache *cache.Cache
+	Runtime   connector.Runtime
 }
 
-func (b *BaseAction) Init(cache *cache.Cache, rootCache *cache.Cache, runtimeConf connector.Runtime) {
+func (b *BaseAction) Init(cache *cache.Cache, rootCache *cache.Cache, runtime connector.Runtime) {
 	b.Cache = cache
 	b.RootCache = rootCache
-	b.RuntimeConf = runtimeConf
+	b.Runtime = runtime
 }
 
 func (b *BaseAction) Execute(runtime connector.Runtime) error {

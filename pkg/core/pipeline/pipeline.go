@@ -38,8 +38,8 @@ func (p *Pipeline) RunModule(m modules.Module) error {
 	moduleCache := p.newModuleCache()
 	defer p.releaseModuleCache(moduleCache)
 	m.Default(p.Runtime, p.PipelineCache, moduleCache)
-	m.Init()
 	m.AutoAssert()
+	m.Init()
 	m.Slogan()
 	switch m.Is() {
 	case modules.TaskModuleType:

@@ -14,6 +14,7 @@ import (
 	"github.com/modood/table"
 	"github.com/pkg/errors"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -160,7 +161,7 @@ func (c *ConfigureOSModule) Init() {
 		Hosts: c.Runtime.GetAllHosts(),
 		Action: &action.Template{
 			Template: templates.InitOsScriptTmpl,
-			Dst:      "/tmp/kubekey/initOS.sh",
+			Dst:      filepath.Join(common.KubeScriptDir, "initOS.sh"),
 			Data: util.Data{
 				"Hosts": c.KubeConf.ClusterHosts,
 			},

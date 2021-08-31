@@ -153,11 +153,11 @@ type NodeExecScript struct {
 }
 
 func (n *NodeExecScript) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/initOS.sh", "/tmp/kubekey"), false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/initOS.sh", common.KubeScriptDir), false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to chmod +x init os script")
 	}
 
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("cp %s/initOS.sh %s && sudo %s/initOS.sh", "/tmp/kubekey", common.KubeScriptDir, common.KubeScriptDir), true); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initOS.sh", common.KubeScriptDir), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
 	}
 	return nil

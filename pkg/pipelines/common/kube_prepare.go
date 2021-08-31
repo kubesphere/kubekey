@@ -7,11 +7,20 @@ import (
 
 type KubePrepare struct {
 	prepare.BasePrepare
-	KubeConf *KubeRuntime
+	KubeConf *KubeConf
 }
 
 func (k *KubePrepare) AutoAssert() {
-	conf := k.RuntimeConf.(*KubeRuntime)
+	kubeRuntime := k.Runtime.(*KubeRuntime)
+	conf := &KubeConf{
+		ClusterHosts: kubeRuntime.ClusterHosts,
+		Cluster:      kubeRuntime.Cluster,
+		Kubeconfig:   kubeRuntime.Kubeconfig,
+		Conditions:   kubeRuntime.Conditions,
+		ClientSet:    kubeRuntime.ClientSet,
+		Arg:          kubeRuntime.Arg,
+	}
+
 	k.KubeConf = conf
 }
 
