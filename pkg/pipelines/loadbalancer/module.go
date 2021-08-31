@@ -34,7 +34,7 @@ func (h *HaproxyModule) Init() {
 			Template: templates.HaproxyConfig,
 			Dst:      "/etc/kubekey/haproxy/haproxy.cfg",
 			Data: util.Data{
-				"MasterNodes":                          masterNodeStr(h.KubeConf),
+				"MasterNodes":                          masterNodeStr(h.Runtime, h.KubeConf),
 				"LoadbalancerApiserverPort":            h.KubeConf.Cluster.ControlPlaneEndpoint.Port,
 				"LoadbalancerApiserverHealthcheckPort": 8081,
 				"KubernetesType":                       h.KubeConf.Cluster.Kubernetes.Type,
@@ -159,9 +159,9 @@ func (h *HaproxyModule) Init() {
 	}
 }
 
-func masterNodeStr(conf *common.KubeRuntime) []string {
-	masterNodes := make([]string, len(conf.GetHostsByRole(common.Master)))
-	for i, node := range conf.GetHostsByRole(common.Master) {
+func masterNodeStr(runtime connector.Runtime, conf *common.KubeConf) []string {
+	masterNodes := make([]string, len(runtime.GetHostsByRole(common.Master)))
+	for i, node := range runtime.GetHostsByRole(common.Master) {
 		masterNodes[i] = node.GetName() + " " + node.GetAddress() + ":" + strconv.Itoa(conf.Cluster.ControlPlaneEndpoint.Port)
 	}
 	return masterNodes

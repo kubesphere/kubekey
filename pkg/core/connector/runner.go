@@ -45,10 +45,10 @@ func (r *Runner) Exec(cmd string, printOutput bool) (string, string, int, error)
 	stdout, stderr, code, err := r.Conn.Exec(cmd)
 	if printOutput {
 		if stdout != "" {
-			logger.Log.Infof("[stdout]: %s", stdout)
+			logger.Log.Infof("stdout: [%s]\n%s", r.Host.GetName(), stdout)
 		}
 		if stderr != "" {
-			logger.Log.Infof("[stderr]: %s", stderr)
+			logger.Log.Infof("stderr: [%s]\n%s", r.Host.GetName(), stderr)
 		}
 	}
 	if err != nil {
@@ -79,7 +79,7 @@ func (r *Runner) Fetch(local, remote string) error {
 	}
 
 	if err := r.Conn.Fetch(local, remote); err != nil {
-		logger.Log.Errorf("fetch remote file %s to local %s failed: %v", remote, local, err)
+		logger.Log.Debugf("fetch remote file %s to local %s failed: %v", remote, local, err)
 		return err
 	}
 	logger.Log.Debugf("fetch remote file %s to local %s success", remote, local)
@@ -92,7 +92,7 @@ func (r *Runner) Scp(local, remote string) error {
 	}
 
 	if err := r.Conn.Scp(local, remote); err != nil {
-		logger.Log.Errorf("scp local file %s to remote %s failed: %v", local, remote, err)
+		logger.Log.Debugf("scp local file %s to remote %s failed: %v", local, remote, err)
 		return err
 	}
 	logger.Log.Debugf("scp local file %s to remote %s success", local, remote)
@@ -106,6 +106,7 @@ func (r *Runner) SudoScp(local, remote string) error {
 
 	// scp to tmp dir
 	remoteTmp := filepath.Join(common.TmpDir, remote)
+	//remoteTmp := remote
 	if err := r.Scp(local, remoteTmp); err != nil {
 		return err
 	}
@@ -135,7 +136,7 @@ func (r *Runner) DirExist(remote string) (bool, error) {
 
 	ok, err := r.Conn.RemoteDirExist(remote)
 	if err != nil {
-		logger.Log.Errorf("check remote dir exist failed: %v", err)
+		logger.Log.Debugf("check remote dir exist failed: %v", err)
 		return false, err
 	}
 	logger.Log.Debugf("check remote dir exist: %v", ok)

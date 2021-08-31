@@ -4,10 +4,19 @@ import "github.com/kubesphere/kubekey/pkg/core/action"
 
 type KubeAction struct {
 	action.BaseAction
-	KubeConf *KubeRuntime
+	KubeConf *KubeConf
 }
 
 func (k *KubeAction) AutoAssert() {
-	conf := k.RuntimeConf.(*KubeRuntime)
+	kubeRuntime := k.Runtime.(*KubeRuntime)
+	conf := &KubeConf{
+		ClusterHosts: kubeRuntime.ClusterHosts,
+		Cluster:      kubeRuntime.Cluster,
+		Kubeconfig:   kubeRuntime.Kubeconfig,
+		Conditions:   kubeRuntime.Conditions,
+		ClientSet:    kubeRuntime.ClientSet,
+		Arg:          kubeRuntime.Arg,
+	}
+
 	k.KubeConf = conf
 }

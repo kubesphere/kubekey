@@ -5,7 +5,7 @@ import (
 	"text/template"
 )
 
-var InitOsScriptTmpl = template.Must(template.New("initOS").Parse(
+var InitOsScriptTmpl = template.Must(template.New("initOS.sh").Parse(
 	dedent.Dedent(`#!/usr/bin/env bash
 
 # Copyright 2020 The KubeSphere Authors.

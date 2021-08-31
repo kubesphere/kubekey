@@ -6,15 +6,15 @@ import (
 )
 
 type BasePrepare struct {
-	Cache       *cache.Cache
-	RootCache   *cache.Cache
-	RuntimeConf connector.Runtime
+	Cache     *cache.Cache
+	RootCache *cache.Cache
+	Runtime   connector.Runtime
 }
 
-func (b *BasePrepare) Init(cache *cache.Cache, rootCache *cache.Cache, runtimeConf connector.Runtime) {
+func (b *BasePrepare) Init(cache *cache.Cache, rootCache *cache.Cache, runtime connector.Runtime) {
 	b.Cache = cache
 	b.RootCache = rootCache
-	b.RuntimeConf = runtimeConf
+	b.Runtime = runtime
 }
 
 func (b *BasePrepare) PreCheck(runtime connector.Runtime) (bool, error) {

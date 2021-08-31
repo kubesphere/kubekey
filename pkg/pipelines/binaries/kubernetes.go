@@ -16,7 +16,7 @@ import (
 )
 
 // K8sFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
-func K8sFilesDownloadHTTP(kubeConf *common.KubeRuntime, filepath, version, arch string) error {
+func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch string) error {
 	kkzone := os.Getenv("KKZONE")
 	etcd := files.KubeBinary{Name: "etcd", Arch: arch, Version: kubekeyapiv1alpha1.DefaultEtcdVersion}
 	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: arch, Version: version}
@@ -39,7 +39,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeRuntime, filepath, version, arch 
 		kubectl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
 		kubecni.Url = fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
-		helm.GetCmd = kubeConf.DownloadCommand(helm.Path, helm.Url)
+		helm.GetCmd = kubeConf.Arg.DownloadCommand(helm.Path, helm.Url)
 	} else {
 		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
@@ -47,15 +47,15 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeRuntime, filepath, version, arch 
 		kubectl.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
 		kubecni.Url = fmt.Sprintf("https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", helm.Version, helm.Arch)
-		getCmd := kubeConf.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
+		getCmd := kubeConf.Arg.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
 		helm.GetCmd = fmt.Sprintf("%s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", getCmd, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
 	}
 
-	kubeadm.GetCmd = kubeConf.DownloadCommand(kubeadm.Path, kubeadm.Url)
-	kubelet.GetCmd = kubeConf.DownloadCommand(kubelet.Path, kubelet.Url)
-	kubectl.GetCmd = kubeConf.DownloadCommand(kubectl.Path, kubectl.Url)
-	kubecni.GetCmd = kubeConf.DownloadCommand(kubecni.Path, kubecni.Url)
-	etcd.GetCmd = kubeConf.DownloadCommand(etcd.Path, etcd.Url)
+	kubeadm.GetCmd = kubeConf.Arg.DownloadCommand(kubeadm.Path, kubeadm.Url)
+	kubelet.GetCmd = kubeConf.Arg.DownloadCommand(kubelet.Path, kubelet.Url)
+	kubectl.GetCmd = kubeConf.Arg.DownloadCommand(kubectl.Path, kubectl.Url)
+	kubecni.GetCmd = kubeConf.Arg.DownloadCommand(kubecni.Path, kubecni.Url)
+	etcd.GetCmd = kubeConf.Arg.DownloadCommand(etcd.Path, etcd.Url)
 
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
 
@@ -95,7 +95,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeRuntime, filepath, version, arch 
 	if kubeConf.Cluster.KubeSphere.Version == "v2.1.1" {
 		logger.Log.Infoln(fmt.Sprintf("Downloading %s ...", "helm2"))
 		if util.IsExist(fmt.Sprintf("%s/helm2", filepath)) == false {
-			cmd := kubeConf.DownloadCommand(fmt.Sprintf("%s/helm2", filepath), fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.9"))
+			cmd := kubeConf.Arg.DownloadCommand(fmt.Sprintf("%s/helm2", filepath), fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.9"))
 			if output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
 				fmt.Println(string(output))
 				return errors.Wrap(err, "Failed to download helm2 binary")

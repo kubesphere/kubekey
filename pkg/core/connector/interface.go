@@ -52,8 +52,6 @@ type Host interface {
 	SetPrivateKeyPath(path string)
 	GetArch() string
 	SetArch(arch string)
-	GetIndex() int
-	SetIndex(i int)
 	GetRoles() []string
 	SetRoles(roles []string)
 	IsRole(role string) bool
