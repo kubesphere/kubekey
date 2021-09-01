@@ -165,8 +165,13 @@ func (t *Task) WhenWithRetry(runtime connector.Runtime) (bool, error) {
 	err := fmt.Errorf("pre-check exec failed after %d retires", t.Retry)
 	for i := 0; i < t.Retry; i++ {
 		if res, e := t.When(runtime); e != nil {
-			logger.Log.Errorf("message: [%s]\n%s", runtime.RemoteHost().GetName(), e.Error())
+			logger.Log.Messagef(runtime.RemoteHost().GetName(), e.Error())
 			logger.Log.Infof("retry: [%s]", runtime.GetRunner().Host.GetName())
+
+			if i == t.Retry-1 {
+				err = errors.New(err.Error() + e.Error())
+				continue
+			}
 			time.Sleep(t.Delay)
 			continue
 		} else {
@@ -180,12 +185,17 @@ func (t *Task) WhenWithRetry(runtime connector.Runtime) (bool, error) {
 }
 
 func (t *Task) ExecuteWithRetry(runtime connector.Runtime) error {
-	err := fmt.Errorf("[%s] exec failed after %d retires", t.Name, t.Retry)
+	err := fmt.Errorf("[%s] exec failed after %d retires: ", t.Name, t.Retry)
 	for i := 0; i < t.Retry; i++ {
 		e := t.Action.Execute(runtime)
 		if e != nil {
-			logger.Log.Errorf("message: [%s]\n%s", runtime.RemoteHost().GetName(), e.Error())
+			logger.Log.Messagef(runtime.RemoteHost().GetName(), e.Error())
 			logger.Log.Infof("retry: [%s]", runtime.GetRunner().Host.GetName())
+
+			if i == t.Retry-1 {
+				err = errors.New(err.Error() + e.Error())
+				continue
+			}
 			time.Sleep(t.Delay)
 			continue
 		} else {

@@ -6,6 +6,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
+	"github.com/kubesphere/kubekey/pkg/pipelines/continer/docker"
+	"github.com/kubesphere/kubekey/pkg/pipelines/images"
 	"github.com/kubesphere/kubekey/pkg/pipelines/initialization"
 )
 
@@ -18,6 +20,8 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&initialization.ConfirmModule{Skip: isK3s},
 		&binaries.NodeBinariesModule{},
 		&initialization.ConfigureOSModule{},
+		&docker.DockerModule{Skip: isK3s},
+		&images.ImageModule{Skip: isK3s || runtime.Arg.SkipPullImages},
 	}
 
 	p := pipeline.Pipeline{

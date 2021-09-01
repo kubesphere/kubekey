@@ -51,16 +51,13 @@ func (r *Runner) Exec(cmd string, printOutput bool) (string, string, int, error)
 			logger.Log.Infof("stderr: [%s]\n%s", r.Host.GetName(), stderr)
 		}
 	}
-	if err != nil {
-		return "", stderr, code, err
-	}
-	return stdout, stderr, code, nil
+	return stdout, stderr, code, err
 }
 
 func (r *Runner) Cmd(cmd string, printOutput bool) (string, error) {
 	stdout, _, code, err := r.Exec(cmd, printOutput)
 	if code != 0 || err != nil {
-		return "", err
+		return stdout, err
 	}
 	return stdout, nil
 }

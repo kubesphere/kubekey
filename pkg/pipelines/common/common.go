@@ -1,6 +1,8 @@
 package common
 
 const (
+	LocalHost = "localhost"
+
 	AllInOne = "allInOne"
 	File     = "file"
 	Operator = "operator"
