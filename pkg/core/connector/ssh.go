@@ -125,6 +125,11 @@ func NewConnection(dialer *Dialer, cfg Cfg) (Connection, error) {
 
 	if cfg.Bastion == "" {
 		sshConn.sshclient = client
+		sftpClient, err := sftp.NewClient(sshConn.sshclient)
+		if err != nil {
+			return nil, errors.Wrapf(err, "new sftp client failed: %v", err)
+		}
+		sshConn.sftpclient = sftpClient
 		return sshConn, nil
 	}
 
@@ -387,7 +392,7 @@ func (c *connection) copyFileToRemote(src, dst string) error {
 	}
 	defer srcFile.Close()
 	// the dst file mod will be 0666
-	dstFile, err := c.sftpclient.Create(dst)
+	dstFile, err := c.sftpclient.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 	if err != nil {
 		return err
 	}
@@ -454,8 +459,7 @@ func (c *connection) RemoteDirExist(dst string) (bool, error) {
 }
 
 func (c *connection) MkDirAll(path string) error {
-	remotePath := filepath.Dir(path)
-	mkDstDir := fmt.Sprintf("mkdir -p %s || true", remotePath)
+	mkDstDir := fmt.Sprintf("mkdir -p %s || true", path)
 	if _, _, _, err := c.Exec(SudoPrefix(mkDstDir)); err != nil {
 		return err
 	}

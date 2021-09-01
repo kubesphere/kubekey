@@ -1,14 +1,22 @@
 package connector
 
 type BaseRuntime struct {
-	ObjName         string
-	connector       Connector
-	runner          *Runner
-	DownloadCommand func(path, url string) string
-	WorkDir         string
-	ClusterHosts    []string
-	AllHosts        []Host
-	RoleHosts       map[string][]Host
+	ObjName   string
+	connector Connector
+	runner    *Runner
+	workDir   string
+	allHosts  []Host
+	roleHosts map[string][]Host
+}
+
+func NewBaseRuntime(name string, connector Connector, workDir string) BaseRuntime {
+	return BaseRuntime{
+		ObjName:   name,
+		connector: connector,
+		workDir:   workDir,
+		allHosts:  make([]Host, 0, 0),
+		roleHosts: make(map[string][]Host),
+	}
 }
 
 func (b *BaseRuntime) GetRunner() *Runner {
@@ -28,26 +36,26 @@ func (b *BaseRuntime) SetConnector(c Connector) {
 }
 
 func (b *BaseRuntime) GetWorkDir() string {
-	return b.WorkDir
+	return b.workDir
 }
 
 func (b *BaseRuntime) SetWorkDir(str string) {
-	b.WorkDir = str
+	b.workDir = str
 }
 
 func (b *BaseRuntime) GetAllHosts() []Host {
-	return b.AllHosts
+	return b.allHosts
 }
 
 func (b *BaseRuntime) SetAllHosts(hosts []Host) {
-	b.AllHosts = hosts
+	b.allHosts = hosts
 }
 
 func (b *BaseRuntime) GetHostsByRole(role string) []Host {
-	return b.RoleHosts[role]
+	return b.roleHosts[role]
 }
 
-func (b *BaseRuntime) CurrentHost() Host {
+func (b *BaseRuntime) RemoteHost() Host {
 	return b.GetRunner().Host
 }
 
@@ -57,24 +65,24 @@ func (b *BaseRuntime) Copy() Runtime {
 }
 
 func (b *BaseRuntime) GenerateRoleMap() {
-	for i := range b.AllHosts {
-		b.AppendRoleMap(b.AllHosts[i])
+	for i := range b.allHosts {
+		b.AppendRoleMap(b.allHosts[i])
 	}
 }
 
 func (b *BaseRuntime) AppendHost(host Host) {
-	b.AllHosts = append(b.AllHosts, host)
+	b.allHosts = append(b.allHosts, host)
 }
 
 func (b *BaseRuntime) AppendRoleMap(host Host) {
 	for _, r := range host.GetRoles() {
-		if hosts, ok := b.RoleHosts[r]; ok {
+		if hosts, ok := b.roleHosts[r]; ok {
 			hosts = append(hosts, host)
-			b.RoleHosts[r] = hosts
+			b.roleHosts[r] = hosts
 		} else {
 			first := make([]Host, 0, 0)
 			first = append(first, host)
-			b.RoleHosts[r] = first
+			b.roleHosts[r] = first
 		}
 	}
 }

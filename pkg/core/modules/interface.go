@@ -6,9 +6,11 @@ import (
 )
 
 type Module interface {
+	IsSkip() bool
 	Default(runtime connector.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache)
 	Init()
 	Is() string
 	Run() error
+	Slogan()
 	AutoAssert()
 }

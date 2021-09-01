@@ -14,11 +14,12 @@ import (
 
 type KubeRuntime struct {
 	connector.BaseRuntime
-	Cluster    *kubekeyapiv1alpha1.ClusterSpec
-	Kubeconfig string
-	Conditions []kubekeyapiv1alpha1.Condition
-	ClientSet  *kubekeyclientset.Clientset
-	Arg        Argument
+	ClusterHosts []string
+	Cluster      *kubekeyapiv1alpha1.ClusterSpec
+	Kubeconfig   string
+	Conditions   []kubekeyapiv1alpha1.Condition
+	ClientSet    *kubekeyclientset.Clientset
+	Arg          Argument
 }
 
 type Argument struct {
@@ -32,10 +33,11 @@ type Argument struct {
 	AddImagesRepo      bool
 	DeployLocalStorage bool
 	SourcesDir         string
+	DownloadCommand    func(path, url string) string
 	InCluster          bool
 }
 
-func NewKubeRuntime(flag string, arg Argument) (connector.Runtime, error) {
+func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 	loader := NewLoader(flag, arg)
 	cluster, err := loader.Load()
 	if err != nil {
@@ -57,14 +59,7 @@ func NewKubeRuntime(flag string, arg Argument) (connector.Runtime, error) {
 		clientset = c
 	}
 
-	base := connector.BaseRuntime{
-		ObjName:      cluster.Name,
-		ClusterHosts: generateHosts(hostGroups, defaultCluster),
-		WorkDir:      generateWorkDir(),
-		AllHosts:     make([]connector.Host, 0, 0),
-		RoleHosts:    make(map[string][]connector.Host),
-	}
-	base.SetConnector(connector.NewDialer())
+	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), generateWorkDir())
 	for _, v := range hostGroups.All {
 		host := ToHosts(v)
 		if v.IsMaster {
@@ -82,15 +77,14 @@ func NewKubeRuntime(flag string, arg Argument) (connector.Runtime, error) {
 	}
 
 	r := &KubeRuntime{
-		Cluster:   defaultCluster,
-		ClientSet: clientset,
-		Arg:       arg,
+		ClusterHosts: generateHosts(hostGroups, defaultCluster),
+		Cluster:      defaultCluster,
+		ClientSet:    clientset,
+		Arg:          arg,
 	}
 	r.BaseRuntime = base
 
-	var runtime connector.Runtime
-	runtime = r
-	return runtime, nil
+	return r, nil
 }
 
 // Copy is used to create a copy for Runtime.

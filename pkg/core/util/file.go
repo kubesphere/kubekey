@@ -11,6 +11,30 @@ import (
 	"path/filepath"
 )
 
+func IsExist(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		if os.IsNotExist(err) {
+			return false
+		}
+		return false
+	}
+	return true
+}
+
+func CreateDir(path string) error {
+	if IsExist(path) == false {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func IsDir(path string) bool {
 	s, err := os.Stat(path)
 	if err != nil {

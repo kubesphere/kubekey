@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/common"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
@@ -49,4 +50,12 @@ func NewLogger() *KubeKeyLog {
 	}, formatter))
 
 	return &KubeKeyLog{logger, logger}
+}
+
+func (k *KubeKeyLog) Message(node, str string) {
+	Log.Infof("message: [%s]\n%s", node, str)
+}
+
+func (k *KubeKeyLog) Messagef(node, format string, args ...interface{}) {
+	Log.Infof("message: [%s]\n%s", node, fmt.Sprintf(format, args...))
 }
