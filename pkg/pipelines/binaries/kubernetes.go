@@ -60,7 +60,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
 
 	for _, binary := range binaries {
-		logger.Log.Infoln(fmt.Sprintf("Downloading %s ...", binary.Name))
+		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
 
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
