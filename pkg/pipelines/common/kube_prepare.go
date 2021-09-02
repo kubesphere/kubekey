@@ -47,6 +47,18 @@ func (o *OnlyWorker) PreCheck(runtime connector.Runtime) (bool, error) {
 	return false, nil
 }
 
+type OnlyETCD struct {
+	KubePrepare
+	Not bool
+}
+
+func (o *OnlyETCD) PreCheck(runtime connector.Runtime) (bool, error) {
+	if runtime.RemoteHost().IsRole(ETCD) {
+		return !o.Not, nil
+	}
+	return o.Not, nil
+}
+
 type OnlyK3s struct {
 	KubePrepare
 }

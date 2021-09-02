@@ -21,6 +21,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
+	"github.com/pkg/errors"
 	"os"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
@@ -105,11 +106,11 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 		case host.IsRole(common.Master) && image.Group == kubekeyapiv1alpha1.Master && image.Enable,
 			host.IsRole(common.Worker) && image.Group == kubekeyapiv1alpha1.Worker && image.Enable,
 			(host.IsRole(common.Master) || host.IsRole(common.Worker)) && image.Group == kubekeyapiv1alpha1.K8s && image.Enable,
-			host.IsRole(common.Etcd) && image.Group == kubekeyapiv1alpha1.Etcd && image.Enable:
+			host.IsRole(common.ETCD) && image.Group == kubekeyapiv1alpha1.Etcd && image.Enable:
 
 			logger.Log.Messagef(host.GetName(), "downloading image: %s", image.ImageName())
-			if out, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), false); err != nil {
-				return fmt.Errorf("failed to download image: %s", out)
+			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), false); err != nil {
+				return errors.Wrap(err, "pull image failed")
 			}
 		default:
 			continue

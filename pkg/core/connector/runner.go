@@ -55,9 +55,9 @@ func (r *Runner) Exec(cmd string, printOutput bool) (string, string, int, error)
 }
 
 func (r *Runner) Cmd(cmd string, printOutput bool) (string, error) {
-	stdout, _, code, err := r.Exec(cmd, printOutput)
-	if code != 0 || err != nil {
-		return stdout, err
+	stdout, _, _, err := r.Exec(cmd, printOutput)
+	if err != nil {
+		return stdout, errors.New(err.Error() + " " + stdout)
 	}
 	return stdout, nil
 }
