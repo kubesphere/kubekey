@@ -276,7 +276,7 @@ func (c *connection) Exec(cmd string) (stdout string, stderr string, code int, e
 }
 
 func SudoPrefix(cmd string) string {
-	return fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", cmd)
+	return fmt.Sprintf("sudo -E /bin/bash -c \"%s\"", cmd)
 }
 
 func (c *connection) Fetch(local, remote string) error {

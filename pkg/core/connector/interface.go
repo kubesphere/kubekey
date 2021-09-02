@@ -40,6 +40,8 @@ type Host interface {
 	SetName(name string)
 	GetAddress() string
 	SetAddress(str string)
+	GetInternalAddress() string
+	SetInternalAddress(str string)
 	GetPort() int
 	SetPort(port int)
 	GetUser() string

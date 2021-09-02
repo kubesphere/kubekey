@@ -30,6 +30,14 @@ func (b *BaseHost) SetAddress(str string) {
 	b.Address = str
 }
 
+func (b *BaseHost) GetInternalAddress() string {
+	return b.InternalAddress
+}
+
+func (b *BaseHost) SetInternalAddress(str string) {
+	b.InternalAddress = str
+}
+
 func (b *BaseHost) GetPort() int {
 	return b.Port
 }

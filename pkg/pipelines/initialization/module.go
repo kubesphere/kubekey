@@ -36,7 +36,7 @@ func (n *NodeInitializationModule) Init() {
 		Hosts: n.Runtime.GetAllHosts(),
 		Prepare: &prepare.FastPrepare{
 			Inject: func() (bool, error) {
-				if len(n.Runtime.GetHostsByRole(common.Etcd))%2 == 0 {
+				if len(n.Runtime.GetHostsByRole(common.ETCD))%2 == 0 {
 					logger.Log.Error("The number of etcd is even. Please configure it to be odd.")
 					return false, errors.New("the number of etcd is even")
 				}
