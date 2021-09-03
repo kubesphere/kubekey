@@ -23,7 +23,7 @@ func (d *DockerModule) IsSkip() bool {
 func (d *DockerModule) Init() {
 	d.Name = "DockerModule"
 
-	install := modules.Task{
+	install := &modules.Task{
 		Name:     "InstallDocker",
 		Desc:     "install docker",
 		Hosts:    d.Runtime.GetAllHosts(),
@@ -31,7 +31,7 @@ func (d *DockerModule) Init() {
 		Parallel: true,
 	}
 
-	generateConfig := modules.Task{
+	generateConfig := &modules.Task{
 		Name:  "GenerateDockerConfig",
 		Desc:  "generate docker config",
 		Hosts: d.Runtime.GetAllHosts(),
@@ -50,7 +50,7 @@ func (d *DockerModule) Init() {
 		Parallel: true,
 	}
 
-	reload := modules.Task{
+	reload := &modules.Task{
 		Name:     "ReloadDockerConfig",
 		Desc:     "reload docker config",
 		Hosts:    d.Runtime.GetAllHosts(),
@@ -58,7 +58,7 @@ func (d *DockerModule) Init() {
 		Parallel: true,
 	}
 
-	d.Tasks = []modules.Task{
+	d.Tasks = []*modules.Task{
 		install,
 		generateConfig,
 		reload,

@@ -106,6 +106,7 @@ func ToHosts(cfg kubekeyapiv1alpha1.HostCfg) *connector.BaseHost {
 		Arch:            cfg.Arch,
 		Roles:           make([]string, 0, 0),
 		RoleTable:       make(map[string]bool),
+		Labels:          make(map[string]string),
 	}
 	return host
 }

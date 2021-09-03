@@ -7,6 +7,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/continer/docker"
+	"github.com/kubesphere/kubekey/pkg/pipelines/etcd"
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
 	"github.com/kubesphere/kubekey/pkg/pipelines/initialization"
 )
@@ -22,6 +23,8 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&initialization.ConfigureOSModule{},
 		&docker.DockerModule{Skip: isK3s},
 		&images.ImageModule{Skip: isK3s || runtime.Arg.SkipPullImages},
+		&etcd.ETCDPreCheckModule{},
+		&etcd.ETCDModule{},
 	}
 
 	p := pipeline.Pipeline{

@@ -107,9 +107,14 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
+			var hosts []connector.Host
+			for _, v := range tt.fields.Hosts {
+				hosts = append(hosts, &v)
+			}
+
 			t := &Task{
 				Concurrency: tt.fields.Concurrency,
-				//Hosts:       []runtimes.Host(tt.fields.Hosts),
+				Hosts:       hosts,
 			}
 			if got := t.calculateConcurrency(); got != tt.want {
 				t1.Errorf("calculateConcurrency() = %v, want %v", got, tt.want)

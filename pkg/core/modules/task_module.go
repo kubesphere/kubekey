@@ -6,7 +6,7 @@ import (
 
 type BaseTaskModule struct {
 	BaseModule
-	Tasks []Task
+	Tasks []*Task
 }
 
 func (b *BaseTaskModule) Init() {
