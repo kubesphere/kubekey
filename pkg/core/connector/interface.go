@@ -57,5 +57,7 @@ type Host interface {
 	GetRoles() []string
 	SetRoles(roles []string)
 	IsRole(role string) bool
+	SetLabel(k, v string)
+	GetLabel(k string) (string, bool)
 	Copy() Host
 }

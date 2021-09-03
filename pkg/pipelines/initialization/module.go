@@ -30,7 +30,7 @@ func (n *NodeInitializationModule) IsSkip() bool {
 func (n *NodeInitializationModule) Init() {
 	n.Name = "NodeInitializationModule"
 
-	preCheck := modules.Task{
+	preCheck := &modules.Task{
 		Name:  "NodePreCheck",
 		Desc:  "a pre-check on nodes",
 		Hosts: n.Runtime.GetAllHosts(),
@@ -46,7 +46,7 @@ func (n *NodeInitializationModule) Init() {
 		Parallel: true,
 	}
 
-	n.Tasks = []modules.Task{
+	n.Tasks = []*modules.Task{
 		preCheck,
 	}
 }
@@ -147,7 +147,7 @@ type ConfigureOSModule struct {
 func (c *ConfigureOSModule) Init() {
 	c.Name = "ConfigureOSModule"
 
-	initOS := modules.Task{
+	initOS := &modules.Task{
 		Name:     "InitOS",
 		Desc:     "prepare to init OS",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -155,7 +155,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	GenerateScript := modules.Task{
+	GenerateScript := &modules.Task{
 		Name:  "GenerateScript",
 		Desc:  "generate init os script",
 		Hosts: c.Runtime.GetAllHosts(),
@@ -169,7 +169,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	ExecScript := modules.Task{
+	ExecScript := &modules.Task{
 		Name:     "ExecScript",
 		Desc:     "exec init os script",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -177,7 +177,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []modules.Task{
+	c.Tasks = []*modules.Task{
 		initOS,
 		GenerateScript,
 		ExecScript,

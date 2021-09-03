@@ -1,17 +1,18 @@
 package connector
 
 type BaseHost struct {
-	Name            string          `yaml:"name,omitempty" json:"name,omitempty"`
-	Address         string          `yaml:"address,omitempty" json:"address,omitempty"`
-	InternalAddress string          `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
-	Port            int             `yaml:"port,omitempty" json:"port,omitempty"`
-	User            string          `yaml:"user,omitempty" json:"user,omitempty"`
-	Password        string          `yaml:"password,omitempty" json:"password,omitempty"`
-	PrivateKey      string          `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
-	PrivateKeyPath  string          `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
-	Arch            string          `yaml:"arch,omitempty" json:"arch,omitempty"`
-	Roles           []string        `json:"-"`
-	RoleTable       map[string]bool `json:"-"`
+	Name            string            `yaml:"name,omitempty" json:"name,omitempty"`
+	Address         string            `yaml:"address,omitempty" json:"address,omitempty"`
+	InternalAddress string            `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
+	Port            int               `yaml:"port,omitempty" json:"port,omitempty"`
+	User            string            `yaml:"user,omitempty" json:"user,omitempty"`
+	Password        string            `yaml:"password,omitempty" json:"password,omitempty"`
+	PrivateKey      string            `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	PrivateKeyPath  string            `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
+	Arch            string            `yaml:"arch,omitempty" json:"arch,omitempty"`
+	Roles           []string          `json:"-"`
+	RoleTable       map[string]bool   `json:"-"`
+	Labels          map[string]string `json:"-"`
 }
 
 func (b *BaseHost) GetName() string {
@@ -105,6 +106,15 @@ func (b *BaseHost) IsRole(role string) bool {
 	} else {
 		return false
 	}
+}
+
+func (b *BaseHost) SetLabel(k, v string) {
+	b.Labels[k] = v
+}
+
+func (b *BaseHost) GetLabel(k string) (string, bool) {
+	v, ok := b.Labels[k]
+	return v, ok
 }
 
 func (b *BaseHost) Copy() Host {
