@@ -21,18 +21,22 @@ type Connector interface {
 	Connect(host Host) (Connection, error)
 }
 
-type Runtime interface {
-	GetRunner() *Runner
-	SetRunner(r *Runner)
-	GetConnector() Connector
-	SetConnector(c Connector)
+type ModuleRuntime interface {
 	GetWorkDir() string
 	SetWorkDir(str string)
 	GetAllHosts() []Host
 	SetAllHosts([]Host)
 	GetHostsByRole(role string) []Host
+}
+
+type Runtime interface {
+	GetRunner() *Runner
+	SetRunner(r *Runner)
+	GetConnector() Connector
+	SetConnector(c Connector)
 	RemoteHost() Host
 	Copy() Runtime
+	ModuleRuntime
 }
 
 type Host interface {

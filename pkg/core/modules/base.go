@@ -12,7 +12,7 @@ type BaseModule struct {
 	Skip      bool
 	Cache     *cache.Cache
 	RootCache *cache.Cache
-	Runtime   connector.Runtime
+	Runtime   connector.ModuleRuntime
 }
 
 func (b *BaseModule) IsSkip() bool {
