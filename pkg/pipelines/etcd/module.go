@@ -35,15 +35,6 @@ type ETCDModule struct {
 func (e *ETCDModule) Init() {
 	e.Name = "ETCDModule"
 
-	//getStatus := &modules.Task{
-	//	Name:     "GetETCDStatus",
-	//	Desc:     "get etcd status",
-	//	Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
-	//	Action:   new(GetStatus),
-	//	Parallel: false,
-	//	Retry:    0,
-	//}
-
 	generateCertsScript := &modules.Task{
 		Name:    "GenerateCertsScript",
 		Desc:    "generate certs script",
@@ -150,12 +141,12 @@ func (e *ETCDModule) Init() {
 		Retry:    20,
 	}
 
-	newRefreshETCDConfig := &modules.Task{
-		Name:     "NewRefreshETCDConfig",
-		Desc:     "refresh config on new etcd",
+	generateETCDConfig := &modules.Task{
+		Name:     "GenerateETCDConfig",
+		Desc:     "generate etcd.env config on new etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
 		Prepare:  &NodeETCDExist{Not: true},
-		Action:   &RefreshConfig{New: true},
+		Action:   &GenerateConfig{},
 		Parallel: false,
 	}
 
@@ -198,17 +189,17 @@ func (e *ETCDModule) Init() {
 
 	allRefreshETCDConfig := &modules.Task{
 		Name:     "AllRefreshETCDConfig",
-		Desc:     "refresh config on all etcd",
+		Desc:     "refresh etcd.env config on all etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
-		Action:   &RefreshConfig{New: false},
+		Action:   new(RefreshConfig),
 		Parallel: false,
 	}
 
 	refreshETCDConfigToExist := &modules.Task{
 		Name:     "RefreshETCDConfigToExist",
-		Desc:     "refresh config to exist mode on all etcd",
+		Desc:     "refresh etcd.env config to exist mode on all etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
-		Action:   &RefreshConfig{New: false, ToExisting: true},
+		Action:   &RefreshConfig{ToExisting: true},
 		Parallel: false,
 	}
 
@@ -219,6 +210,14 @@ func (e *ETCDModule) Init() {
 		Action:   new(HealthCheck),
 		Parallel: true,
 		Retry:    20,
+	}
+
+	backupETCD := &modules.Task{
+		Name:     "BackupETCD",
+		Desc:     "backup etcd data regularly",
+		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Action:   new(BackupETCD),
+		Parallel: true,
 	}
 
 	if v, ok := e.RootCache.Get(ETCDCluster); ok {
@@ -234,13 +233,14 @@ func (e *ETCDModule) Init() {
 				generateETCDService,
 				accessAddress,
 				existETCDHealthCheck,
-				newRefreshETCDConfig,
+				generateETCDConfig,
 				joinMember,
 				restart,
 				newETCDNodeHealthCheck,
 				checkMember,
 				allRefreshETCDConfig,
 				allETCDNodeHealthCheck,
+				backupETCD,
 			}
 		} else {
 			e.Tasks = []*modules.Task{
@@ -253,12 +253,13 @@ func (e *ETCDModule) Init() {
 				generateETCDService,
 				accessAddress,
 				existETCDHealthCheck,
-				newRefreshETCDConfig,
+				generateETCDConfig,
 				allRefreshETCDConfig,
 				restart,
 				allETCDNodeHealthCheck,
 				refreshETCDConfigToExist,
 				allETCDNodeHealthCheck,
+				backupETCD,
 			}
 		}
 	}
