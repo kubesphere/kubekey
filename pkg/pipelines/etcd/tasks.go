@@ -60,12 +60,6 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 			return err
 		}
 
-		//n := EtcdNode{
-		//	NodeName:  host.GetName(),
-		//	EtcdName:  etcdEnv[strings.Index(etcdEnv, "=")+1:],
-		//	EtcdExist: true,
-		//}
-		//g.Cache.Set(host.GetName(), n)
 		etcdName := etcdEnv[strings.Index(etcdEnv, "=")+1:]
 		host.SetLabel(ETCDName, etcdName)
 		host.SetLabel(ETCDExist, "true")
@@ -81,12 +75,6 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 			g.RootCache.Set(ETCDCluster, cluster)
 		}
 	} else {
-		//n := EtcdNode{
-		//	NodeName:  host.GetName(),
-		//	EtcdName:  fmt.Sprintf("etcd-%s", host.GetName()),
-		//	EtcdExist: false,
-		//}
-		//g.Cache.Set(host.GetName(), n)
 		host.SetLabel(ETCDName, fmt.Sprintf("etcd-%s", host.GetName()))
 		host.SetLabel(ETCDExist, "false")
 
@@ -246,16 +234,6 @@ type NodeETCDExist struct {
 }
 
 func (n *NodeETCDExist) PreCheck(runtime connector.Runtime) (bool, error) {
-	//if v, ok := n.Cache.Get(runtime.RemoteHost().GetName()); ok {
-	//	node := v.(EtcdNode)
-	//	if node.EtcdExist {
-	//		return !n.Not, nil
-	//	} else {
-	//		return n.Not, nil
-	//	}
-	//} else {
-	//	return false, errors.New("get etcd node status by module cache failed")
-	//}
 	host := runtime.RemoteHost()
 	if v, ok := host.GetLabel(ETCDExist); ok {
 		if v == "true" {
@@ -298,72 +276,40 @@ func healthCheck(runtime connector.Runtime, cluster EtcdCluster) error {
 	return nil
 }
 
-//type SetupETCDCluster struct {
-//	common.KubeAction
-//}
-//
-//func (s *SetupETCDCluster) Execute(runtime connector.Runtime) error {
-//	host := runtime.RemoteHost()
-//	etcdName, ok := host.GetLabel(ETCDName)
-//	if !ok {
-//		return errors.New("get etcd node status by host label failed")
-//	}
-//
-//	if v, ok := s.Cache.Get(ETCDCluster); ok {
-//		cluster := v.(EtcdCluster)
-//		cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
-//		s.Cache.Set(ETCDCluster, cluster)
-//		if !cluster.clusterExist {
-//			if err := refreshConfig(runtime, cluster.peerAddresses, NewCluster, etcdName); err != nil {
-//				return err
-//			}
-//		} else {
-//			if err := refreshConfig(runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
-//				return err
-//			}
-//			joinMemberCmd := fmt.Sprintf("export ETCDCTL_API=2;"+
-//				"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';"+
-//				"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';"+
-//				"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';"+
-//				"%s/etcdctl --endpoints=%s member add %s %s",
-//				host.GetName(), host.GetName(), common.BinDir, cluster.accessAddresses, etcdName,
-//				fmt.Sprintf("https://%s:2380", host.GetInternalAddress()))
-//
-//			if _, err := runtime.GetRunner().SudoCmd(joinMemberCmd, true); err != nil {
-//				return errors.Wrap(errors.WithStack(err), "add etcd member failed")
-//			}
-//			if err := restartEtcd(runtime); err != nil {
-//				return err
-//			}
-//
-//		}
-//	} else {
-//		return errors.New("get etcd cluster status by module cache failed")
-//	}
-//	return nil
-//}
+type GenerateConfig struct {
+	common.KubeAction
+}
 
-//type NewETCDCluster struct {
-//	common.KubePrepare
-//	Not bool
-//}
-//
-//func (n *NewETCDCluster) PreCheck(runtime connector.Runtime) (bool, error) {
-//	if v, ok := n.Cache.Get(ETCDCluster); ok {
-//		node := v.(EtcdCluster)
-//		if node.clusterExist {
-//			return !n.Not, nil
-//		} else {
-//			return n.Not, nil
-//		}
-//	} else {
-//		return false, errors.New("get etcd cluster status by module cache failed")
-//	}
-//}
+func (g *GenerateConfig) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	etcdName, ok := host.GetLabel(ETCDName)
+	if !ok {
+		return errors.New("get etcd node status by host label failed")
+	}
+
+	if v, ok := g.RootCache.Get(ETCDCluster); ok {
+		cluster := v.(EtcdCluster)
+
+		cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
+		g.RootCache.Set(ETCDCluster, cluster)
+
+		if !cluster.clusterExist {
+			if err := refreshConfig(runtime, cluster.peerAddresses, NewCluster, etcdName); err != nil {
+				return err
+			}
+		} else {
+			if err := refreshConfig(runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
+				return err
+			}
+		}
+		return nil
+	} else {
+		return errors.New("get etcd cluster status by pipeline cache failed")
+	}
+}
 
 type RefreshConfig struct {
 	common.KubeAction
-	New        bool
 	ToExisting bool
 }
 
@@ -376,10 +322,6 @@ func (r *RefreshConfig) Execute(runtime connector.Runtime) error {
 
 	if v, ok := r.RootCache.Get(ETCDCluster); ok {
 		cluster := v.(EtcdCluster)
-		if r.New {
-			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
-			r.RootCache.Set(ETCDCluster, cluster)
-		}
 
 		if r.ToExisting {
 			if err := refreshConfig(runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
@@ -496,6 +438,40 @@ type RestartETCD struct {
 func (r *RestartETCD) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart etcd && systemctl enable etcd", true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "start etcd failed")
+	}
+	return nil
+}
+
+type BackupETCD struct {
+	common.KubeAction
+}
+
+func (b *BackupETCD) Execute(runtime connector.Runtime) error {
+	templateAction := action.Template{
+		Template: templates.EtcdBackupScript,
+		Dst:      filepath.Join(b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir, "etcd-backup.sh"),
+		Data: util.Data{
+			"Hostname":            runtime.RemoteHost().GetName(),
+			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalAddress()),
+			"Backupdir":           b.KubeConf.Cluster.Kubernetes.EtcdBackupDir,
+			"KeepbackupNumber":    b.KubeConf.Cluster.Kubernetes.KeepBackupNumber,
+			"EtcdBackupPeriod":    b.KubeConf.Cluster.Kubernetes.EtcdBackupPeriod,
+			"EtcdBackupScriptDir": b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir,
+			"EtcdBackupHour":      templates.BackupTimeInterval(runtime, b.KubeConf),
+		},
+	}
+
+	templateAction.Init(nil, nil, runtime)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/etcd-backup.sh", b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir), false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "chmod etcd backup script failed")
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("sh %s/etcd-backup.sh", b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir), false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to run the etcd-backup.sh")
 	}
 	return nil
 }
