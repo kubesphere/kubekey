@@ -19,6 +19,14 @@ func NewBaseRuntime(name string, connector Connector, workDir string) BaseRuntim
 	}
 }
 
+func (b *BaseRuntime) GetObjName() string {
+	return b.ObjName
+}
+
+func (b *BaseRuntime) SetObjName(name string) {
+	b.ObjName = name
+}
+
 func (b *BaseRuntime) GetRunner() *Runner {
 	return b.runner
 }

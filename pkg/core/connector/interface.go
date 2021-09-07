@@ -21,18 +21,24 @@ type Connector interface {
 	Connect(host Host) (Connection, error)
 }
 
-type Runtime interface {
-	GetRunner() *Runner
-	SetRunner(r *Runner)
-	GetConnector() Connector
-	SetConnector(c Connector)
+type ModuleRuntime interface {
 	GetWorkDir() string
 	SetWorkDir(str string)
 	GetAllHosts() []Host
 	SetAllHosts([]Host)
 	GetHostsByRole(role string) []Host
+}
+
+type Runtime interface {
+	GetObjName() string
+	SetObjName(name string)
+	GetRunner() *Runner
+	SetRunner(r *Runner)
+	GetConnector() Connector
+	SetConnector(c Connector)
 	RemoteHost() Host
 	Copy() Runtime
+	ModuleRuntime
 }
 
 type Host interface {
@@ -40,6 +46,8 @@ type Host interface {
 	SetName(name string)
 	GetAddress() string
 	SetAddress(str string)
+	GetInternalAddress() string
+	SetInternalAddress(str string)
 	GetPort() int
 	SetPort(port int)
 	GetUser() string
@@ -55,5 +63,7 @@ type Host interface {
 	GetRoles() []string
 	SetRoles(roles []string)
 	IsRole(role string) bool
+	SetLabel(k, v string)
+	GetLabel(k string) (string, bool)
 	Copy() Host
 }

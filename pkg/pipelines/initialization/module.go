@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/action"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
@@ -30,13 +31,13 @@ func (n *NodeInitializationModule) IsSkip() bool {
 func (n *NodeInitializationModule) Init() {
 	n.Name = "NodeInitializationModule"
 
-	preCheck := modules.Task{
+	preCheck := &modules.Task{
 		Name:  "NodePreCheck",
 		Desc:  "a pre-check on nodes",
 		Hosts: n.Runtime.GetAllHosts(),
 		Prepare: &prepare.FastPrepare{
-			Inject: func() (bool, error) {
-				if len(n.Runtime.GetHostsByRole(common.Etcd))%2 == 0 {
+			Inject: func(runtime connector.Runtime) (bool, error) {
+				if len(n.Runtime.GetHostsByRole(common.ETCD))%2 == 0 {
 					logger.Log.Error("The number of etcd is even. Please configure it to be odd.")
 					return false, errors.New("the number of etcd is even")
 				}
@@ -46,7 +47,7 @@ func (n *NodeInitializationModule) Init() {
 		Parallel: true,
 	}
 
-	n.Tasks = []modules.Task{
+	n.Tasks = []*modules.Task{
 		preCheck,
 	}
 }
@@ -147,7 +148,7 @@ type ConfigureOSModule struct {
 func (c *ConfigureOSModule) Init() {
 	c.Name = "ConfigureOSModule"
 
-	initOS := modules.Task{
+	initOS := &modules.Task{
 		Name:     "InitOS",
 		Desc:     "prepare to init OS",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -155,7 +156,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	GenerateScript := modules.Task{
+	GenerateScript := &modules.Task{
 		Name:  "GenerateScript",
 		Desc:  "generate init os script",
 		Hosts: c.Runtime.GetAllHosts(),
@@ -169,7 +170,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	ExecScript := modules.Task{
+	ExecScript := &modules.Task{
 		Name:     "ExecScript",
 		Desc:     "exec init os script",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -177,7 +178,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []modules.Task{
+	c.Tasks = []*modules.Task{
 		initOS,
 		GenerateScript,
 		ExecScript,

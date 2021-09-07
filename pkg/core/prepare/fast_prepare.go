@@ -6,9 +6,9 @@ import (
 
 type FastPrepare struct {
 	BasePrepare
-	Inject func() (bool, error)
+	Inject func(runtime connector.Runtime) (bool, error)
 }
 
 func (b *FastPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
-	return b.Inject()
+	return b.Inject(runtime)
 }

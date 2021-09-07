@@ -34,11 +34,11 @@ spec:
     livenessProbe:
       httpGet:
         path: /healthz
-        port: {{ .LoadbalancerApiserverHealthcheckPort }}
+        port: {{ .HealthCheckPort }}
     readinessProbe:
       httpGet:
         path: /healthz
-        port: {{ .LoadbalancerApiserverHealthcheckPort }}
+        port: {{ .HealthCheckPort }}
     volumeMounts:
     - mountPath: /usr/local/etc/haproxy/
       name: etc-haproxy

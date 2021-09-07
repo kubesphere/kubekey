@@ -69,7 +69,7 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 			host.SetRole(Worker)
 		}
 		if v.IsEtcd {
-			host.SetRole(Etcd)
+			host.SetRole(ETCD)
 		}
 		host.SetRole(K8s)
 		base.AppendHost(host)
@@ -95,16 +95,18 @@ func (k *KubeRuntime) Copy() connector.Runtime {
 
 func ToHosts(cfg kubekeyapiv1alpha1.HostCfg) *connector.BaseHost {
 	host := &connector.BaseHost{
-		Name:           cfg.Name,
-		Address:        cfg.InternalAddress,
-		Port:           cfg.Port,
-		User:           cfg.User,
-		Password:       cfg.Password,
-		PrivateKey:     cfg.PrivateKey,
-		PrivateKeyPath: cfg.PrivateKeyPath,
-		Arch:           cfg.Arch,
-		Roles:          make([]string, 0, 0),
-		RoleTable:      make(map[string]bool),
+		Name:            cfg.Name,
+		Address:         cfg.Address,
+		InternalAddress: cfg.InternalAddress,
+		Port:            cfg.Port,
+		User:            cfg.User,
+		Password:        cfg.Password,
+		PrivateKey:      cfg.PrivateKey,
+		PrivateKeyPath:  cfg.PrivateKeyPath,
+		Arch:            cfg.Arch,
+		Roles:           make([]string, 0, 0),
+		RoleTable:       make(map[string]bool),
+		Labels:          make(map[string]string),
 	}
 	return host
 }

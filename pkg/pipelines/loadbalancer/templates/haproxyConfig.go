@@ -1,7 +1,10 @@
 package templates
 
 import (
+	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/lithammer/dedent"
+	"strconv"
 	"text/template"
 )
 
@@ -51,3 +54,11 @@ backend kube_api_backend
   server {{ . }} check check-ssl verify none
   {{- end }}
 `)))
+
+func MasterNodeStr(runtime connector.ModuleRuntime, conf *common.KubeConf) []string {
+	masterNodes := make([]string, len(runtime.GetHostsByRole(common.Master)))
+	for i, node := range runtime.GetHostsByRole(common.Master) {
+		masterNodes[i] = node.GetName() + " " + node.GetAddress() + ":" + strconv.Itoa(conf.Cluster.ControlPlaneEndpoint.Port)
+	}
+	return masterNodes
+}

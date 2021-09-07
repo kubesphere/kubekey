@@ -36,6 +36,28 @@ func (o *OnlyFirstMaster) PreCheck(runtime connector.Runtime) (bool, error) {
 	return false, nil
 }
 
+type IsMaster struct {
+	KubePrepare
+}
+
+func (i *IsMaster) PreCheck(runtime connector.Runtime) (bool, error) {
+	if runtime.RemoteHost().IsRole(Master) {
+		return true, nil
+	}
+	return false, nil
+}
+
+type IsWorker struct {
+	KubePrepare
+}
+
+func (i *IsWorker) PreCheck(runtime connector.Runtime) (bool, error) {
+	if runtime.RemoteHost().IsRole(Worker) {
+		return true, nil
+	}
+	return false, nil
+}
+
 type OnlyWorker struct {
 	KubePrepare
 }
@@ -45,6 +67,18 @@ func (o *OnlyWorker) PreCheck(runtime connector.Runtime) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+type OnlyETCD struct {
+	KubePrepare
+	Not bool
+}
+
+func (o *OnlyETCD) PreCheck(runtime connector.Runtime) (bool, error) {
+	if runtime.RemoteHost().IsRole(ETCD) {
+		return !o.Not, nil
+	}
+	return o.Not, nil
 }
 
 type OnlyK3s struct {

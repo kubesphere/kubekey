@@ -7,8 +7,12 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/continer/docker"
+	"github.com/kubesphere/kubekey/pkg/pipelines/etcd"
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
 	"github.com/kubesphere/kubekey/pkg/pipelines/initialization"
+	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
+	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns"
 )
 
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
@@ -22,6 +26,14 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&initialization.ConfigureOSModule{},
 		&docker.DockerModule{Skip: isK3s},
 		&images.ImageModule{Skip: isK3s || runtime.Arg.SkipPullImages},
+		&etcd.ETCDPreCheckModule{},
+		&etcd.ETCDModule{},
+		&kubernetes.KubernetesStatusModule{},
+		&kubernetes.InstallKubeBinariesModule{},
+		&kubernetes.InitKubernetesModule{},
+		&dns.ClusterDNSModule{},
+		&kubernetes.JoinNodesModule{},
+		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 	}
 
 	p := pipeline.Pipeline{

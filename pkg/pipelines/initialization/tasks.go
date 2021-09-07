@@ -93,7 +93,7 @@ func addUsers(runtime connector.Runtime, node connector.Host) error {
 		return err
 	}
 
-	if node.IsRole(common.Etcd) {
+	if node.IsRole(common.ETCD) {
 		if _, err := runtime.GetRunner().SudoCmd("useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd || :", false); err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func createDirectories(runtime connector.Runtime, node connector.Host) error {
 		return err
 	}
 
-	if node.IsRole(common.Etcd) {
+	if node.IsRole(common.ETCD) {
 		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("mkdir -p %s && chown etcd -R %s", "/var/lib/etcd", "/var/lib/etcd"), false); err != nil {
 			return err
 		}

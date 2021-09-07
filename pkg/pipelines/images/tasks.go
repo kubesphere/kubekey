@@ -41,7 +41,7 @@ func (p *PullImage) Execute(runtime connector.Runtime) error {
 }
 
 // GetImage defines the list of all images and gets image object by name.
-func GetImage(runtime connector.Runtime, kubeConf *common.KubeConf, name string) Image {
+func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name string) Image {
 	var image Image
 	var pauseTag string
 

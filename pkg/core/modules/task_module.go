@@ -1,12 +1,13 @@
 package modules
 
 import (
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/pkg/errors"
 )
 
 type BaseTaskModule struct {
 	BaseModule
-	Tasks []Task
+	Tasks []*Task
 }
 
 func (b *BaseTaskModule) Init() {
@@ -22,7 +23,7 @@ func (b *BaseTaskModule) Is() string {
 func (b *BaseTaskModule) Run() error {
 	for i := range b.Tasks {
 		task := b.Tasks[i]
-		task.Init(b.Name, b.Runtime, b.Cache, b.RootCache)
+		task.Init(b.Name, b.Runtime.(connector.Runtime), b.Cache, b.RootCache)
 		if res := task.Execute(); res.IsFailed() {
 			return errors.Wrapf(res.CombineErr(), "Module[%s] exec failed", b.Name)
 		}

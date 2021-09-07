@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/common"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"path/filepath"
 )
@@ -55,9 +56,9 @@ func (r *Runner) Exec(cmd string, printOutput bool) (string, string, int, error)
 }
 
 func (r *Runner) Cmd(cmd string, printOutput bool) (string, error) {
-	stdout, _, code, err := r.Exec(cmd, printOutput)
-	if code != 0 || err != nil {
-		return stdout, err
+	stdout, _, _, err := r.Exec(cmd, printOutput)
+	if err != nil {
+		return stdout, errors.New(err.Error() + " " + stdout)
 	}
 	return stdout, nil
 }
@@ -105,6 +106,14 @@ func (r *Runner) SudoScp(local, remote string) error {
 	remoteTmp := filepath.Join(common.TmpDir, remote)
 	//remoteTmp := remote
 	if err := r.Scp(local, remoteTmp); err != nil {
+		return err
+	}
+
+	baseRemotePath := remote
+	if !util.IsDir(local) {
+		baseRemotePath = filepath.Dir(remote)
+	}
+	if err := r.Conn.MkDirAll(baseRemotePath); err != nil {
 		return err
 	}
 
