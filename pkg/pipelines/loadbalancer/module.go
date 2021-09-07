@@ -8,11 +8,16 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer/templates"
-	"strconv"
+	"path/filepath"
 )
 
 type HaproxyModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (h *HaproxyModule) IsSkip() bool {
+	return h.Skip
 }
 
 func (h *HaproxyModule) Init() {
@@ -32,9 +37,9 @@ func (h *HaproxyModule) Init() {
 		Prepare: new(common.OnlyWorker),
 		Action: &action.Template{
 			Template: templates.HaproxyConfig,
-			Dst:      "/etc/kubekey/haproxy/haproxy.cfg",
+			Dst:      filepath.Join(HaproxyDir, templates.HaproxyConfig.Name()),
 			Data: util.Data{
-				"MasterNodes":                          masterNodeStr(h.Runtime, h.KubeConf),
+				"MasterNodes":                          templates.MasterNodeStr(h.Runtime, h.KubeConf),
 				"LoadbalancerApiserverPort":            h.KubeConf.Cluster.ControlPlaneEndpoint.Port,
 				"LoadbalancerApiserverHealthcheckPort": 8081,
 				"KubernetesType":                       h.KubeConf.Cluster.Kubernetes.Type,
@@ -53,6 +58,7 @@ func (h *HaproxyModule) Init() {
 		Parallel: true,
 	}
 
+	// todo: 拆分k3s和k8s的module，分别为不太的task数组
 	haproxyManifestK3s := &modules.Task{
 		Name:  "GenerateHaproxyManifestK3s",
 		Hosts: h.Runtime.GetHostsByRole(common.Worker),
@@ -60,16 +66,7 @@ func (h *HaproxyModule) Init() {
 			new(common.OnlyWorker),
 			new(common.OnlyK3s),
 		},
-		Action: &action.Template{
-			Template: templates.HaproxyManifest,
-			Dst:      "/etc/kubernetes/manifests/haproxy.yaml",
-			Data: util.Data{
-				// todo: implement image module
-				"HaproxyImage":                         "haproxy:2.3",
-				"LoadbalancerApiserverHealthcheckPort": 8081,
-				"Checksum":                             h.Cache.GetMustString("md5"),
-			},
-		},
+		Action:   new(GenerateHaproxyManifest),
 		Parallel: true,
 	}
 
@@ -80,16 +77,7 @@ func (h *HaproxyModule) Init() {
 			new(common.OnlyWorker),
 			new(common.OnlyKubernetes),
 		},
-		Action: &action.Template{
-			Template: templates.HaproxyManifest,
-			Dst:      "/etc/kubernetes/manifests/haproxy.yaml",
-			Data: util.Data{
-				// todo: implement image module
-				"HaproxyImage":                         "haproxy:2.3",
-				"LoadbalancerApiserverHealthcheckPort": 8081,
-				"Checksum":                             h.Cache.GetMustString("md5"),
-			},
-		},
+		Action:   new(GenerateHaproxyManifest),
 		Parallel: true,
 	}
 
@@ -121,14 +109,14 @@ func (h *HaproxyModule) Init() {
 		Retry:    3,
 	}
 
-	// updateKubeproxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
-	updateKubeproxyConfig := &modules.Task{
-		Name:  "UpdateKubeproxyConfig",
+	// updateKubeProxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
+	updateKubeProxyConfig := &modules.Task{
+		Name:  "UpdateKubeProxyConfig",
 		Hosts: []connector.Host{h.Runtime.GetHostsByRole(common.Master)[0]},
 		Prepare: &prepare.PrepareCollection{
 			new(common.OnlyKubernetes),
 			new(common.OnlyFirstMaster),
-			new(updateKubeproxyPrapre),
+			new(updateKubeProxyPrapre),
 		},
 		Action:   new(updateKubeproxy),
 		Parallel: true,
@@ -140,7 +128,6 @@ func (h *HaproxyModule) Init() {
 	updateHostsFile := &modules.Task{
 		Name:     "UpdateHostsFile",
 		Hosts:    h.Runtime.GetHostsByRole(common.K8s),
-		Prepare:  nil,
 		Action:   new(updateHosts),
 		Parallel: true,
 		Retry:    3,
@@ -154,15 +141,7 @@ func (h *HaproxyModule) Init() {
 		haproxyManifestK8s,
 		updateK3sConfig,
 		updateKubeletConfig,
-		updateKubeproxyConfig,
+		updateKubeProxyConfig,
 		updateHostsFile,
 	}
-}
-
-func masterNodeStr(runtime connector.Runtime, conf *common.KubeConf) []string {
-	masterNodes := make([]string, len(runtime.GetHostsByRole(common.Master)))
-	for i, node := range runtime.GetHostsByRole(common.Master) {
-		masterNodes[i] = node.GetName() + " " + node.GetAddress() + ":" + strconv.Itoa(conf.Cluster.ControlPlaneEndpoint.Port)
-	}
-	return masterNodes
 }

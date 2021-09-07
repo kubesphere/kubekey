@@ -2,13 +2,16 @@ package loadbalancer
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
+	"github.com/kubesphere/kubekey/pkg/pipelines/images"
+	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer/templates"
 	"github.com/pkg/errors"
 	"os"
+	"path/filepath"
 	"strconv"
-	"strings"
 )
 
 type haproxyPreparatoryWork struct {
@@ -16,10 +19,10 @@ type haproxyPreparatoryWork struct {
 }
 
 func (h *haproxyPreparatoryWork) Execute(runtime connector.Runtime) error {
-	if err := runtime.GetRunner().MkDir("/etc/kubekey/haproxy"); err != nil {
+	if err := runtime.GetRunner().MkDir(HaproxyDir); err != nil {
 		return err
 	}
-	if err := runtime.GetRunner().Chmod("/etc/kubekey/haproxy", os.FileMode(0777)); err != nil {
+	if err := runtime.GetRunner().Chmod(HaproxyDir, os.FileMode(0777)); err != nil {
 		return err
 	}
 	return nil
@@ -30,7 +33,7 @@ type getChecksum struct {
 }
 
 func (g *getChecksum) Execute(runtime connector.Runtime) error {
-	md5Str, err := runtime.GetRunner().FileMd5("/etc/kubekey/haproxy/haproxy.cfg")
+	md5Str, err := runtime.GetRunner().FileMd5(filepath.Join(HaproxyDir, "haproxy.cfg"))
 	if err != nil {
 		return err
 	}
@@ -38,29 +41,31 @@ func (g *getChecksum) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type updateK3sPrepare struct {
-	common.KubePrepare
+type GenerateHaproxyManifest struct {
+	common.KubeAction
 }
 
-func (u *updateK3sPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
-	exist, err := runtime.GetRunner().FileExist("/etc/systemd/system/k3s.service")
-	if err != nil {
-		return false, err
+func (g *GenerateHaproxyManifest) Execute(runtime connector.Runtime) error {
+	md5Str, ok := g.Cache.GetMustString("md5")
+	if !ok {
+		return errors.New("get haproxy config md5 sum by module cache failed")
 	}
 
-	if exist {
-		if out, err := runtime.GetRunner().SudoCmd("sed -n '/--server=.*/p' /etc/systemd/system/k3s.service", false); err != nil {
-			return false, err
-		} else {
-			if strings.Contains(strings.TrimSpace(out), LocalServer) {
-				logger.Log.Debugf("do not restart kubelet, /etc/systemd/system/k3s.service content is %s", out)
-				return false, nil
-			}
-		}
-	} else {
-		return false, errors.New("Failed to find /etc/systemd/system/k3s.service")
+	templateAction := action.Template{
+		Template: templates.HaproxyManifest,
+		Dst:      filepath.Join(common.KubeManifestDir, templates.HaproxyManifest.Name()),
+		Data: util.Data{
+			"HaproxyImage":    images.GetImage(g.Runtime, g.KubeConf, "haproxy").ImageName(),
+			"HealthCheckPort": 8081,
+			"Checksum":        md5Str,
+		},
 	}
-	return true, nil
+
+	templateAction.Init(nil, nil, runtime)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+	return nil
 }
 
 type updateK3s struct {
@@ -75,31 +80,6 @@ func (u *updateK3s) Execute(runtime connector.Runtime) error {
 		return err
 	}
 	return nil
-}
-
-type updateKubeletPrepare struct {
-	common.KubePrepare
-}
-
-func (u *updateKubeletPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
-	exist, err := runtime.GetRunner().FileExist("/etc/kubernetes/kubelet.conf")
-	if err != nil {
-		return false, err
-	}
-
-	if exist {
-		if out, err := runtime.GetRunner().SudoCmd("sed -n '/server:.*/p' /etc/kubernetes/kubelet.conf", true); err != nil {
-			return false, err
-		} else {
-			if strings.Contains(strings.TrimSpace(out), LocalServer) {
-				logger.Log.Debugf("do not restart kubelet, /etc/kubernetes/kubelet.conf content is %s", out)
-				return false, nil
-			}
-		}
-	} else {
-		return false, errors.New("Failed to find /etc/kubernetes/kubelet.conf")
-	}
-	return true, nil
 }
 
 type updateKubelet struct {
@@ -118,36 +98,25 @@ func (u *updateKubelet) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type updateKubeproxyPrapre struct {
-	common.KubePrepare
-}
-
-func (u *updateKubeproxyPrapre) PreCheck(runtime connector.Runtime) (bool, error) {
-	if out, err := runtime.GetRunner().SudoCmd(
-		"set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
-			"| sed -n '/server:.*/p'", false); err != nil {
-		return false, err
-	} else {
-		if strings.Contains(strings.TrimSpace(out), LocalServer) {
-			logger.Log.Debugf("do not restart kube-proxy, configmap kube-proxy content is %s", out)
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 type updateKubeproxy struct {
 	common.KubeAction
 }
 
 func (u *updateKubeproxy) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd("set -o pipefail "+
-		"&& /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
-		"| sed 's#server:.*#server: https://127.0.0.1:%s#g' "+
-		"| /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -", false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+		"set -o pipefail "+
+			"&& /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
+			"| sed 's#server:.*#server: https://127.0.0.1:%s#g' "+
+			"| /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -",
+		strconv.Itoa(u.KubeConf.Cluster.ControlPlaneEndpoint.Port)), false); err != nil {
 		return err
 	}
-	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0", false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl "+
+		"--kubeconfig /etc/kubernetes/admin.conf delete pod "+
+		"-n kube-system "+
+		"-l k8s-app=kube-proxy "+
+		"--force "+
+		"--grace-period=0", false); err != nil {
 		return err
 	}
 	return nil
@@ -158,7 +127,8 @@ type updateHosts struct {
 }
 
 func (u *updateHosts) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd("sed -i 's#.* %s#127.0.0.1 %s#g' /etc/hosts", false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("sed -i 's#.* %s#127.0.0.1 %s#g' /etc/hosts",
+		u.KubeConf.Cluster.ControlPlaneEndpoint.Domain, u.KubeConf.Cluster.ControlPlaneEndpoint.Domain), false); err != nil {
 		return err
 	}
 	return nil

@@ -42,7 +42,7 @@ func (e *ETCDModule) Init() {
 		Prepare: new(FirstETCDNode),
 		Action: &action.Template{
 			Template: templates.EtcdSslScript,
-			Dst:      filepath.Join(common.ETCDCertDir, "make-ssl-etcd.sh"),
+			Dst:      filepath.Join(common.ETCDCertDir, templates.EtcdSslScript.Name()),
 			Data: util.Data{
 				"Masters": templates.GenerateHosts(e.Runtime.GetHostsByRole(common.ETCD)),
 				"Hosts":   templates.GenerateHosts(e.Runtime.GetHostsByRole(common.Master)),
@@ -60,7 +60,7 @@ func (e *ETCDModule) Init() {
 		Prepare: new(FirstETCDNode),
 		Action: &action.Template{
 			Template: templates.ETCDOpenSSLConf,
-			Dst:      filepath.Join(common.ETCDCertDir, "openssl.conf"),
+			Dst:      filepath.Join(common.ETCDCertDir, templates.ETCDOpenSSLConf.Name()),
 			Data: util.Data{
 				"Dns": dnsList,
 				"Ips": ipList,
@@ -146,7 +146,7 @@ func (e *ETCDModule) Init() {
 		Desc:     "generate etcd.env config on new etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
 		Prepare:  &NodeETCDExist{Not: true},
-		Action:   &GenerateConfig{},
+		Action:   new(GenerateConfig),
 		Parallel: false,
 	}
 

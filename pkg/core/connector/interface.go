@@ -30,6 +30,8 @@ type ModuleRuntime interface {
 }
 
 type Runtime interface {
+	GetObjName() string
+	SetObjName(name string)
 	GetRunner() *Runner
 	SetRunner(r *Runner)
 	GetConnector() Connector

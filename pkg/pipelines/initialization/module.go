@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/action"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
@@ -35,7 +36,7 @@ func (n *NodeInitializationModule) Init() {
 		Desc:  "a pre-check on nodes",
 		Hosts: n.Runtime.GetAllHosts(),
 		Prepare: &prepare.FastPrepare{
-			Inject: func() (bool, error) {
+			Inject: func(runtime connector.Runtime) (bool, error) {
 				if len(n.Runtime.GetHostsByRole(common.ETCD))%2 == 0 {
 					logger.Log.Error("The number of etcd is even. Please configure it to be odd.")
 					return false, errors.New("the number of etcd is even")
