@@ -19,13 +19,13 @@ package add
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/cluster/install"
+	"github.com/kubesphere/kubekey/pkg/container-engine"
 	"os"
 	"path/filepath"
 
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/config"
-	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
 	"github.com/kubesphere/kubekey/pkg/etcd"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
@@ -76,7 +76,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: install.Precheck, ErrMsg: "Failed to precheck", Skip: skipCondition1},
 		{Task: install.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
 		{Task: install.InitOS, ErrMsg: "Failed to init OS"},
-		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker", Skip: skipCondition1},
+		{Task: container_engine.InstallerContainerRuntime, ErrMsg: "Failed to install container runtime", Skip: skipCondition1},
 		{Task: install.PrePullImages, ErrMsg: "Failed to pre-pull images", Skip: skipCondition1},
 		{Task: etcd.GetEtcdStatus, ErrMsg: "Failed to get etcd status"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},

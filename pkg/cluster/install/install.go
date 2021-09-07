@@ -19,6 +19,7 @@ package install
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/container-engine"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,7 +29,6 @@ import (
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/config"
-	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
 	"github.com/kubesphere/kubekey/pkg/etcd"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
@@ -88,7 +88,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: Precheck, ErrMsg: "Failed to precheck", Skip: isK3s},
 		{Task: DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
 		{Task: InitOS, ErrMsg: "Failed to init OS"},
-		{Task: docker.InstallerDocker, ErrMsg: "Failed to install docker", Skip: isK3s},
+		{Task: container_engine.InstallerContainerRuntime, ErrMsg: "Failed to install container runtime", Skip: isK3s},
 		{Task: PrePullImages, ErrMsg: "Failed to pre-pull images", Skip: isK3s},
 		{Task: etcd.GetEtcdStatus, ErrMsg: "Failed to get etcd status"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},

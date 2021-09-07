@@ -26,6 +26,7 @@ const (
 	amd64   = "amd64"
 	arm64   = "arm64"
 	k3s     = "k3s"
+	docker  = "docker"
 )
 
 type KubeBinary struct {
@@ -217,6 +218,14 @@ var (
 			},
 			arm64: {
 				"v1.21.4": "b7f8c026c5346b3e894d731f1dc2490cd7281687549f34c28a849f58c62e3e48",
+			},
+		},
+		docker: {
+			amd64: {
+				"20.10.8": "7ea11ecb100fdc085dbfd9ab1ff380e7f99733c890ed815510a5952e5d6dd7e0",
+			},
+			arm64: {
+				"20.10.8": "4eb9d5e2adf718cd7ee59f6951715f3113c9c4ee49c75c9efb9747f2c3457b2b",
 			},
 		},
 	}
