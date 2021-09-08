@@ -21,7 +21,7 @@ type KubernetesStatus struct {
 	NodesInfo     map[string]string
 }
 
-func NewKubernetesStats() *KubernetesStatus {
+func NewKubernetesStatus() *KubernetesStatus {
 	return &KubernetesStatus{NodesInfo: make(map[string]string)}
 }
 
@@ -88,7 +88,7 @@ func (k *KubernetesStatus) SearchInfo(runtime connector.Runtime) error {
 	return nil
 }
 
-func (k *KubernetesStatus) SearchNodesInfo(runtime connector.Runtime) error {
+func (k *KubernetesStatus) SearchNodesInfo(_ connector.Runtime) error {
 	ipv4Regexp, err := regexp.Compile(common.IPv4Regexp)
 	if err != nil {
 		return err

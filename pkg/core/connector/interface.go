@@ -22,6 +22,8 @@ type Connector interface {
 }
 
 type ModuleRuntime interface {
+	GenerateWorkDir() error
+	GetHostWorkDir() string
 	GetWorkDir() string
 	SetWorkDir(str string)
 	GetAllHosts() []Host

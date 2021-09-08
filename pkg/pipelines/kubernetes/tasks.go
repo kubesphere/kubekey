@@ -336,6 +336,23 @@ func (g *GetJoinCmd) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type GetKubeConfig struct {
+	common.KubeAction
+}
+
+func (g *GetKubeConfig) Execute(runtime connector.Runtime) error {
+	if v, ok := g.RootCache.Get(ClusterStatus); ok {
+		cluster := v.(*KubernetesStatus)
+		if err := cluster.SearchKubeConfig(runtime); err != nil {
+			return err
+		}
+		g.RootCache.Set(ClusterStatus, cluster)
+	} else {
+		return errors.New("get kubernetes cluster status by pipeline cache failed")
+	}
+	return nil
+}
+
 type LoadKubeConfig struct {
 	common.KubeAction
 }

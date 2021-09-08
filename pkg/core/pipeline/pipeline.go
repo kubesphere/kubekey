@@ -16,12 +16,18 @@ type Pipeline struct {
 	ModuleCachePool sync.Pool
 }
 
-func (p *Pipeline) Init() {
+func (p *Pipeline) Init() error {
 	p.PipelineCache = cache.NewCache()
+	if err := p.Runtime.GenerateWorkDir(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Pipeline) Start() error {
-	p.Init()
+	if err := p.Init(); err != nil {
+		return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
+	}
 	for i := range p.Modules {
 		m := p.Modules[i]
 		if m.IsSkip() {

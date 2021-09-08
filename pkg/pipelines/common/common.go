@@ -26,4 +26,9 @@ const (
 
 	IPv4Regexp = "[\\d]+\\.[\\d]+\\.[\\d]+\\.[\\d]+"
 	IPv6Regexp = "[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){0,7}::[a-f0-9]{0,4}(:[a-f0-9]{1,4}){0,7}"
+
+	Calico  = "calico"
+	Flannel = "flannel"
+	Cilium  = "cilium"
+	Kubeovn = "kubeovn"
 )

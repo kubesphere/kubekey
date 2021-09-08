@@ -6,10 +6,6 @@ import (
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
 )
 
 type KubeRuntime struct {
@@ -59,7 +55,7 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		clientset = c
 	}
 
-	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), generateWorkDir())
+	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer())
 	for _, v := range hostGroups.All {
 		host := ToHosts(v)
 		if v.IsMaster {
@@ -129,12 +125,4 @@ func generateHosts(hostGroups *kubekeyapiv1alpha1.HostGroups, cfg *kubekeyapiv1a
 
 	hostsList = append(hostsList, lbHost)
 	return hostsList
-}
-
-func generateWorkDir() string {
-	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		logger.Log.Fatal(errors.Wrap(err, "Failed to get current dir"))
-	}
-	return fmt.Sprintf("%s/%s", currentDir, kubekeyapiv1alpha1.DefaultPreDir)
 }
