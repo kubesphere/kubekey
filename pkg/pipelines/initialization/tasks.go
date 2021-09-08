@@ -74,7 +74,7 @@ func (n *NodeConfigureOS) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	tmpDir := "/tmp/kubekey"
+	tmpDir := common.TmpDir
 	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("if [ -d %s ]; then rm -rf %s ;fi && mkdir -p %s", tmpDir, tmpDir, tmpDir), false)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to create tmp dir")

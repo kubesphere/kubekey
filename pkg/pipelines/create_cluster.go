@@ -13,6 +13,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
 	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns"
+	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/network"
 )
 
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
@@ -27,13 +28,17 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&docker.DockerModule{Skip: isK3s},
 		&images.ImageModule{Skip: isK3s || runtime.Arg.SkipPullImages},
 		&etcd.ETCDPreCheckModule{},
+		&etcd.ETCDCertsModule{},
+		&etcd.InstallETCDBinaryModule{},
 		&etcd.ETCDModule{},
+		&etcd.BackupETCDModule{},
 		&kubernetes.KubernetesStatusModule{},
 		&kubernetes.InstallKubeBinariesModule{},
 		&kubernetes.InitKubernetesModule{},
 		&dns.ClusterDNSModule{},
 		&kubernetes.JoinNodesModule{},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&network.DeployNetworkPluginModule{},
 	}
 
 	p := pipeline.Pipeline{

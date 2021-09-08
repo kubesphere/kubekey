@@ -10,9 +10,9 @@ type NoClusterInfo struct {
 	common.KubePrepare
 }
 
-func (n *NoClusterInfo) PreCheck(runtime connector.Runtime) (bool, error) {
+func (n *NoClusterInfo) PreCheck(_ connector.Runtime) (bool, error) {
 	if v, ok := n.RootCache.Get(ClusterStatus); ok {
-		cluster := v.(KubernetesStatus)
+		cluster := v.(*KubernetesStatus)
 		if cluster.Info == "" {
 			return true, nil
 		}
@@ -50,7 +50,7 @@ type ClusterIsExist struct {
 	Not bool
 }
 
-func (c *ClusterIsExist) PreCheck(runtime connector.Runtime) (bool, error) {
+func (c *ClusterIsExist) PreCheck(_ connector.Runtime) (bool, error) {
 	if exist, ok := c.RootCache.GetMustBool(ClusterExist); ok {
 		if c.Not {
 			return !exist, nil
