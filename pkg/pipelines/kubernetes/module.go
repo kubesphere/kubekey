@@ -16,7 +16,7 @@ type KubernetesStatusModule struct {
 func (k *KubernetesStatusModule) Init() {
 	k.Name = "KubernetesStatusModule"
 
-	cluster := NewKubernetesStats()
+	cluster := NewKubernetesStatus()
 	k.RootCache.Set(ClusterStatus, cluster)
 
 	clusterStatus := &modules.Task{
@@ -188,6 +188,19 @@ func (i *InitKubernetesModule) Init() {
 		Retry:    5,
 	}
 
+	getKubeConfig := &modules.Task{
+		Name:  "GetKubeConfig",
+		Desc:  "get kube config",
+		Hosts: i.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			&ClusterIsExist{Not: true},
+		},
+		Action:   new(GetKubeConfig),
+		Parallel: true,
+		Retry:    5,
+	}
+
 	loadKubeConfig := &modules.Task{
 		Name:  "LoadKubeConfig",
 		Desc:  "load kube config",
@@ -208,6 +221,7 @@ func (i *InitKubernetesModule) Init() {
 		removeMasterTaint,
 		addWorkerLabel,
 		getJoinCmd,
+		getKubeConfig,
 		loadKubeConfig,
 	}
 }
@@ -222,20 +236,26 @@ func (j *JoinNodesModule) Init() {
 	j.RootCache.Set(ClusterExist, true)
 
 	addMaster := &modules.Task{
-		Name:     "AddMasterNode",
-		Desc:     "add master nodes",
-		Hosts:    j.Runtime.GetHostsByRole(common.Master),
-		Prepare:  &NodeInCluster{Not: true},
+		Name:  "AddMasterNode",
+		Desc:  "add master nodes",
+		Hosts: j.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			&common.OnlyFirstMaster{Not: true},
+			&NodeInCluster{Not: true},
+		},
 		Action:   new(AddMasterNode),
 		Parallel: true,
 		Retry:    3,
 	}
 
 	copyKubeConfig := &modules.Task{
-		Name:     "copyKubeConfig",
-		Desc:     "copy admin.conf to ~/.kube/config",
-		Hosts:    j.Runtime.GetHostsByRole(common.Master),
-		Prepare:  &NodeInCluster{Not: true},
+		Name:  "copyKubeConfig",
+		Desc:  "copy admin.conf to ~/.kube/config",
+		Hosts: j.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			&common.OnlyFirstMaster{Not: true},
+			&NodeInCluster{Not: true},
+		},
 		Action:   new(CopyKubeConfig),
 		Parallel: true,
 		Retry:    2,
@@ -246,6 +266,7 @@ func (j *JoinNodesModule) Init() {
 		Desc:  "remove master taint",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
+			&common.OnlyFirstMaster{Not: true},
 			&NodeInCluster{Not: true},
 			new(common.IsWorker),
 		},

@@ -28,12 +28,12 @@ func (e *ETCDPreCheckModule) Init() {
 	}
 }
 
-type ETCDModule struct {
+type ETCDCertsModule struct {
 	common.KubeModule
 }
 
-func (e *ETCDModule) Init() {
-	e.Name = "ETCDModule"
+func (e *ETCDCertsModule) Init() {
+	e.Name = "ETCDCertsModule"
 
 	generateCertsScript := &modules.Task{
 		Name:    "GenerateCertsScript",
@@ -100,10 +100,26 @@ func (e *ETCDModule) Init() {
 		Retry:    1,
 	}
 
+	e.Tasks = []*modules.Task{
+		generateCertsScript,
+		generateOpenSSLConf,
+		execCertsScript,
+		syncCertsFile,
+		syncCertsToMaster,
+	}
+}
+
+type InstallETCDBinaryModule struct {
+	common.KubeModule
+}
+
+func (i *InstallETCDBinaryModule) Init() {
+	i.Name = "InstallETCDBinaryModule"
+
 	installETCDBinary := &modules.Task{
 		Name:     "InstallETCDBinary",
 		Desc:     "install etcd using binary",
-		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Hosts:    i.Runtime.GetHostsByRole(common.ETCD),
 		Action:   new(InstallETCDBinary),
 		Parallel: true,
 		Retry:    1,
@@ -112,7 +128,7 @@ func (e *ETCDModule) Init() {
 	generateETCDService := &modules.Task{
 		Name:  "GenerateETCDService",
 		Desc:  "generate etcd service",
-		Hosts: e.Runtime.GetHostsByRole(common.ETCD),
+		Hosts: i.Runtime.GetHostsByRole(common.ETCD),
 		Action: &action.Template{
 			Template: templates.ETCDService,
 			Dst:      "/etc/systemd/system/etcd.service",
@@ -124,12 +140,105 @@ func (e *ETCDModule) Init() {
 	accessAddress := &modules.Task{
 		Name:     "GenerateAccessAddress",
 		Desc:     "generate access address",
-		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Hosts:    i.Runtime.GetHostsByRole(common.ETCD),
 		Prepare:  new(FirstETCDNode),
 		Action:   new(GenerateAccessAddress),
 		Parallel: true,
 		Retry:    1,
 	}
+
+	i.Tasks = []*modules.Task{
+		installETCDBinary,
+		generateETCDService,
+		accessAddress,
+	}
+}
+
+type ETCDModule struct {
+	common.KubeModule
+}
+
+func (e *ETCDModule) Init() {
+	e.Name = "ETCDModule"
+
+	if v, ok := e.RootCache.Get(ETCDCluster); ok {
+		cluster := v.(EtcdCluster)
+		if !cluster.clusterExist {
+			e.Tasks = handleNewCluster(e)
+		} else {
+			e.Tasks = handleExistCluster(e)
+		}
+	}
+}
+
+func handleNewCluster(e *ETCDModule) []*modules.Task {
+
+	existETCDHealthCheck := &modules.Task{
+		Name:     "ExistETCDHealthCheck",
+		Desc:     "health check on exist etcd",
+		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Prepare:  new(NodeETCDExist),
+		Action:   new(HealthCheck),
+		Parallel: true,
+		Retry:    20,
+	}
+
+	generateETCDConfig := &modules.Task{
+		Name:     "GenerateETCDConfig",
+		Desc:     "generate etcd.env config on new etcd",
+		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Prepare:  &NodeETCDExist{Not: true},
+		Action:   new(GenerateConfig),
+		Parallel: false,
+	}
+
+	allRefreshETCDConfig := &modules.Task{
+		Name:     "AllRefreshETCDConfig",
+		Desc:     "refresh etcd.env config on all etcd",
+		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Action:   new(RefreshConfig),
+		Parallel: false,
+	}
+
+	restart := &modules.Task{
+		Name:     "RestartETCD",
+		Desc:     "restart etcd",
+		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Prepare:  &NodeETCDExist{Not: true},
+		Action:   new(RestartETCD),
+		Parallel: true,
+	}
+
+	allETCDNodeHealthCheck := &modules.Task{
+		Name:     "AllETCDNodeHealthCheck",
+		Desc:     "health check on all etcd",
+		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Action:   new(HealthCheck),
+		Parallel: true,
+		Retry:    20,
+	}
+
+	refreshETCDConfigToExist := &modules.Task{
+		Name:     "RefreshETCDConfigToExist",
+		Desc:     "refresh etcd.env config to exist mode on all etcd",
+		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
+		Action:   &RefreshConfig{ToExisting: true},
+		Parallel: false,
+	}
+
+	tasks := []*modules.Task{
+		existETCDHealthCheck,
+		generateETCDConfig,
+		allRefreshETCDConfig,
+		restart,
+		allETCDNodeHealthCheck,
+		refreshETCDConfigToExist,
+		allETCDNodeHealthCheck,
+	}
+	return tasks
+}
+
+func handleExistCluster(e *ETCDModule) []*modules.Task {
 
 	existETCDHealthCheck := &modules.Task{
 		Name:     "ExistETCDHealthCheck",
@@ -195,14 +304,6 @@ func (e *ETCDModule) Init() {
 		Parallel: false,
 	}
 
-	refreshETCDConfigToExist := &modules.Task{
-		Name:     "RefreshETCDConfigToExist",
-		Desc:     "refresh etcd.env config to exist mode on all etcd",
-		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
-		Action:   &RefreshConfig{ToExisting: true},
-		Parallel: false,
-	}
-
 	allETCDNodeHealthCheck := &modules.Task{
 		Name:     "AllETCDNodeHealthCheck",
 		Desc:     "health check on all etcd",
@@ -212,6 +313,26 @@ func (e *ETCDModule) Init() {
 		Retry:    20,
 	}
 
+	tasks := []*modules.Task{
+		existETCDHealthCheck,
+		generateETCDConfig,
+		joinMember,
+		restart,
+		newETCDNodeHealthCheck,
+		checkMember,
+		allRefreshETCDConfig,
+		allETCDNodeHealthCheck,
+	}
+	return tasks
+}
+
+type BackupETCDModule struct {
+	common.KubeModule
+}
+
+func (e *BackupETCDModule) Init() {
+	e.Name = "BackupETCDModule"
+
 	backupETCD := &modules.Task{
 		Name:     "BackupETCD",
 		Desc:     "backup etcd data regularly",
@@ -220,47 +341,7 @@ func (e *ETCDModule) Init() {
 		Parallel: true,
 	}
 
-	if v, ok := e.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
-		if cluster.clusterExist {
-			e.Tasks = []*modules.Task{
-				generateCertsScript,
-				generateOpenSSLConf,
-				execCertsScript,
-				syncCertsFile,
-				syncCertsToMaster,
-				installETCDBinary,
-				generateETCDService,
-				accessAddress,
-				existETCDHealthCheck,
-				generateETCDConfig,
-				joinMember,
-				restart,
-				newETCDNodeHealthCheck,
-				checkMember,
-				allRefreshETCDConfig,
-				allETCDNodeHealthCheck,
-				backupETCD,
-			}
-		} else {
-			e.Tasks = []*modules.Task{
-				generateCertsScript,
-				generateOpenSSLConf,
-				execCertsScript,
-				syncCertsFile,
-				syncCertsToMaster,
-				installETCDBinary,
-				generateETCDService,
-				accessAddress,
-				existETCDHealthCheck,
-				generateETCDConfig,
-				allRefreshETCDConfig,
-				restart,
-				allETCDNodeHealthCheck,
-				refreshETCDConfigToExist,
-				allETCDNodeHealthCheck,
-				backupETCD,
-			}
-		}
+	e.Tasks = []*modules.Task{
+		backupETCD,
 	}
 }

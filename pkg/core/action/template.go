@@ -22,7 +22,7 @@ func (t *Template) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("render template %s failed", t.Template.Name()))
 	}
 
-	fileName := filepath.Join(runtime.GetWorkDir(), t.Template.Name())
+	fileName := filepath.Join(runtime.GetHostWorkDir(), t.Template.Name())
 	if err := util.WriteFile(fileName, []byte(templateStr)); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("write file %s failed", fileName))
 	}

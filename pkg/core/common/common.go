@@ -1,6 +1,8 @@
 package common
 
 const (
+	KubeKey = "KubeKey"
+
 	Pipeline = "Pipeline"
 	Module   = "Module"
 	Task     = "Task"

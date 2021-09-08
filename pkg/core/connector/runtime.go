@@ -1,5 +1,13 @@
 package connector
 
+import (
+	"github.com/kubesphere/kubekey/pkg/core/common"
+	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/pkg/errors"
+	"os"
+	"path/filepath"
+)
+
 type BaseRuntime struct {
 	ObjName   string
 	connector Connector
@@ -9,11 +17,10 @@ type BaseRuntime struct {
 	roleHosts map[string][]Host
 }
 
-func NewBaseRuntime(name string, connector Connector, workDir string) BaseRuntime {
+func NewBaseRuntime(name string, connector Connector) BaseRuntime {
 	return BaseRuntime{
 		ObjName:   name,
 		connector: connector,
-		workDir:   workDir,
 		allHosts:  make([]Host, 0, 0),
 		roleHosts: make(map[string][]Host),
 	}
@@ -41,6 +48,31 @@ func (b *BaseRuntime) GetConnector() Connector {
 
 func (b *BaseRuntime) SetConnector(c Connector) {
 	b.connector = c
+}
+
+func (b *BaseRuntime) GenerateWorkDir() error {
+	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return errors.Wrap(err, "get current dir failed")
+	}
+
+	rootPath := filepath.Join(currentDir, common.KubeKey)
+	if err := util.CreateDir(rootPath); err != nil {
+		return errors.Wrap(err, "create work dir failed")
+	}
+	b.SetWorkDir(rootPath)
+
+	for i := range b.allHosts {
+		subPath := filepath.Join(rootPath, b.allHosts[i].GetName())
+		if err := util.CreateDir(subPath); err != nil {
+			return errors.Wrap(err, "create work dir failed")
+		}
+	}
+	return nil
+}
+
+func (b *BaseRuntime) GetHostWorkDir() string {
+	return filepath.Join(b.workDir, b.RemoteHost().GetName())
 }
 
 func (b *BaseRuntime) GetWorkDir() string {
