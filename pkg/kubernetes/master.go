@@ -19,12 +19,13 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/kubernetes/config/v1beta2"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/kubernetes/config/v1beta2"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
@@ -188,7 +189,7 @@ func getJoinNodesCmd(mgr *manager.Manager) error {
 }
 
 func getJoinCmd(mgr *manager.Manager) error {
-	uploadCertsCmd := "/usr/local/bin/kubeadm init phase upload-certs --upload-certs"
+	uploadCertsCmd := "/usr/local/bin/kubeadm init phase upload-certs --config=/etc/kubernetes/kubeadm-config.yaml --upload-certs"
 	output, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", uploadCertsCmd), 5, true)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to upload kubeadm certs")
