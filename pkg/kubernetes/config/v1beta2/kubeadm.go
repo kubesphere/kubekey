@@ -36,7 +36,9 @@ var (
 	funcMap = template.FuncMap{"toYaml": toYAML, "indent": Indent}
 	// KubeadmCfgTempl defines the template of kubeadm configuration file.
 	KubeadmCfgTempl = template.Must(template.New("kubeadmCfg").Funcs(funcMap).Parse(
-		dedent.Dedent(`---
+		dedent.Dedent(`
+{{- if .IsInitCluster }}
+---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 etcd:
@@ -100,6 +102,31 @@ apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 {{ toYaml .KubeletConfiguration }}
 
+{{ else }}
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: {{ .ControlPlaneEndpoint }}
+    token: "{{ .BootstrapToken }}"
+    unsafeSkipCAVerification: true
+  tlsBootstrapToken: "{{ .BootstrapToken }}"
+{{- if .IsControlPlane }}
+controlPlane:
+  localAPIEndpoint:
+    advertiseAddress: {{ .ControlPlanAddr }}
+    bindPort: {{ .ControlPlanPort }}
+  certificateKey: {{ .CertificateKey }}
+{{- end }}
+nodeRegistration:
+{{- if .CriSock }}
+  criSocket: {{ .CriSock }}
+{{- end }}
+  kubeletExtraArgs:
+    cgroupDriver: {{ .CgroupDriver }}
+
+{{- end }}
     `)))
 )
 
@@ -123,7 +150,7 @@ var (
 )
 
 // GenerateKubeadmCfg create kubeadm configuration file to initialize the cluster.
-func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
+func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, isInitCluster bool, bootstrapToken, certificateKey string) (string, error) {
 	// generate etcd configuration
 	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
 	var endpointsList []string
@@ -166,6 +193,7 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 	}
 
 	return util.Render(KubeadmCfgTempl, util.Data{
+		"IsInitCluster":          isInitCluster,
 		"ImageRepo":              strings.TrimSuffix(preinstall.GetImage(mgr, "kube-apiserver").ImageRepo(), "/kube-apiserver"),
 		"CorednsRepo":            strings.TrimSuffix(preinstall.GetImage(mgr, "coredns").ImageRepo(), "/coredns"),
 		"CorednsTag":             preinstall.GetImage(mgr, "coredns").Tag,
@@ -187,6 +215,10 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 		"SchedulerArgs":          SchedulerArgs,
 		"KubeletConfiguration":   GetKubeletConfiguration(mgr, containerRuntimeEndpoint),
 		"KubeProxyConfiguration": getKubeProxyConfiguration(mgr),
+		"IsControlPlane":         node.IsMaster,
+		"CgroupDriver":           GetKubeletConfiguration(mgr, containerRuntimeEndpoint)["cgroupDriver"],
+		"BootstrapToken":         bootstrapToken,
+		"CertificateKey":         certificateKey,
 	})
 }
 
@@ -255,6 +287,8 @@ func GetKubeletConfiguration(mgr *manager.Manager, criSock string) map[string]in
 	}
 	if len(cgroupDriver) != 0 {
 		defaultKubeletConfiguration["cgroupDriver"] = "systemd"
+	} else {
+		defaultKubeletConfiguration["cgroupDriver"] = "cgroup"
 	}
 
 	if len(criSock) != 0 {

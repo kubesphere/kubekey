@@ -47,6 +47,7 @@ type Manager struct {
 	SourcesDir         string
 	AddImagesRepo      bool
 	InCluster          bool
+	ContainerManager   string
 	DeployLocalStorage bool
 	Kubeconfig         string
 	Conditions         []kubekeyapiv1alpha1.Condition

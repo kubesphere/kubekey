@@ -23,24 +23,25 @@ import (
 )
 
 type Options struct {
-	Verbose        bool
-	Addons         string
-	Name           string
-	ClusterCfgPath string
-	Kubeconfig     string
-	FromCluster    bool
-	ClusterCfgFile string
-	Kubernetes     string
-	Kubesphere     bool
-	LocalStorage   bool
-	SkipCheck      bool
-	SkipPullImages bool
-	KsVersion      string
-	Registry       string
-	SourcesDir     string
-	AddImagesRepo  bool
-	InCluster      bool
-	DownloadCmd    string
+	Verbose          bool
+	Addons           string
+	Name             string
+	ClusterCfgPath   string
+	Kubeconfig       string
+	FromCluster      bool
+	ClusterCfgFile   string
+	Kubernetes       string
+	Kubesphere       bool
+	LocalStorage     bool
+	SkipCheck        bool
+	SkipPullImages   bool
+	KsVersion        string
+	Registry         string
+	SourcesDir       string
+	AddImagesRepo    bool
+	ContainerManager string
+	InCluster        bool
+	DownloadCmd      string
 }
 
 var (

@@ -19,6 +19,7 @@ package executor
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/connector/ssh"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"os"
 	"path/filepath"
 
@@ -40,25 +41,27 @@ type Executor struct {
 	SkipPullImages     bool
 	DeployLocalStorage bool
 	AddImagesRepo      bool
+	ContainerManager   string
 	InCluster          bool
 	ClientSet          *kubekeyclientset.Clientset
 	DownloadCommand    func(path, url string) string
 	Connector          connector.Connector
 }
 
-func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset) *Executor {
+func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset, containerManager string) *Executor {
 	return &Executor{
-		ObjName:        objName,
-		Cluster:        cluster,
-		Logger:         logger,
-		SourcesDir:     sourcesDir,
-		Debug:          debug,
-		SkipCheck:      skipCheck,
-		SkipPullImages: skipPullImages,
-		AddImagesRepo:  addImagesRepo,
-		InCluster:      inCluster,
-		ClientSet:      clientset,
-		Connector:      ssh.NewDialer(),
+		ObjName:          objName,
+		Cluster:          cluster,
+		Logger:           logger,
+		SourcesDir:       sourcesDir,
+		Debug:            debug,
+		SkipCheck:        skipCheck,
+		SkipPullImages:   skipPullImages,
+		AddImagesRepo:    addImagesRepo,
+		ContainerManager: containerManager,
+		InCluster:        inCluster,
+		ClientSet:        clientset,
+		Connector:        ssh.NewDialer(),
 	}
 }
 
@@ -87,6 +90,10 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.AddImagesRepo = executor.AddImagesRepo
 	mgr.ObjName = executor.ObjName
 	mgr.InCluster = executor.InCluster
+	if executor.ContainerManager != kubernetes.Docker && executor.ContainerManager != "" {
+		mgr.Cluster.Kubernetes.ContainerManager = executor.ContainerManager
+	}
+	mgr.ContainerManager = executor.ContainerManager
 	mgr.DeployLocalStorage = executor.DeployLocalStorage
 	mgr.ClientSet = executor.ClientSet
 	mgr.DownloadCommand = executor.DownloadCommand

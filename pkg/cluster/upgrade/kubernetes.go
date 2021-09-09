@@ -21,51 +21,57 @@ import (
 	"time"
 )
 
-var (
-	currentVersions   = make(map[string]string)
+type UpgradeStatus struct {
+	currentVersions   map[string]string
 	currentVersionStr string
 	nextVersionStr    string
 	mu                sync.Mutex
 	kubeConfig        string
-)
-
-func GetCurrentVersions(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Get current version")
-	return mgr.RunTaskOnK8sNodes(getCurrentVersion, true)
 }
 
-func getCurrentVersion(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func UpgradeKubeCluster(mgr *manager.Manager) error {
+	var currentClusterUpgradeStatus *UpgradeStatus
+
+	mgr.Logger.Infoln("Get current version")
+	if err := mgr.RunTaskOnK8sNodes(currentClusterUpgradeStatus.getCurrentVersion, true); err != nil {
+		return err
+	}
+
+	return currentClusterUpgradeStatus.UpgradeCurrentKubeCluster(mgr)
+}
+
+func (s *UpgradeStatus) getCurrentVersion(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	kubeletVersionInfo, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubelet --version\"", 3, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current kubelet version")
 	}
 	kubeletVersionStr := strings.Split(kubeletVersionInfo, " ")[1]
-	mu.Lock()
-	currentVersions[kubeletVersionStr] = kubeletVersionStr
-	if minVersion, err := getMinVersion(currentVersions); err != nil {
+	s.mu.Lock()
+	s.currentVersions[kubeletVersionStr] = kubeletVersionStr
+	if minVersion, err := getMinVersion(s.currentVersions); err != nil {
 		return err
 	} else {
-		currentVersions = make(map[string]string)
-		currentVersions[minVersion] = minVersion
-		currentVersionStr = fmt.Sprintf("v%s", minVersion)
+		s.currentVersions = make(map[string]string)
+		s.currentVersions[minVersion] = minVersion
+		s.currentVersionStr = fmt.Sprintf("v%s", minVersion)
 	}
-	mu.Unlock()
+	s.mu.Unlock()
 
 	if node.IsMaster {
 		apiserverVersionStr, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | rev | cut -d ':' -f1 | rev\"", 3, false)
 		if err != nil {
 			return errors.Wrap(err, "Failed to get current kube-apiserver version")
 		}
-		mu.Lock()
-		currentVersions[apiserverVersionStr] = apiserverVersionStr
-		if minVersion, err := getMinVersion(currentVersions); err != nil {
+		s.mu.Lock()
+		s.currentVersions[apiserverVersionStr] = apiserverVersionStr
+		if minVersion, err := getMinVersion(s.currentVersions); err != nil {
 			return err
 		} else {
-			currentVersions = make(map[string]string)
-			currentVersions[minVersion] = minVersion
-			currentVersionStr = fmt.Sprintf("v%s", minVersion)
+			s.currentVersions = make(map[string]string)
+			s.currentVersions[minVersion] = minVersion
+			s.currentVersionStr = fmt.Sprintf("v%s", minVersion)
 		}
-		mu.Unlock()
+		s.mu.Unlock()
 	}
 
 	return nil
@@ -96,7 +102,7 @@ func getMinVersion(versionsMap map[string]string) (string, error) {
 	}
 }
 
-func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func (s *UpgradeStatus) upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	kubeletVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubelet --version\"", 3, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current kubelet version")
@@ -120,7 +126,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			}
 			kubeadmCfgBase64 = strings.TrimSpace(string(output))
 		} else {
-			kubeadmCfg, err := v1beta2.GenerateKubeadmCfg(mgr, node)
+			kubeadmCfg, err := v1beta2.GenerateKubeadmCfg(mgr, node, kubernetes.IsInitCluster, "", "")
 			if err != nil {
 				return err
 			}
@@ -158,7 +164,7 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			}
 		}
 
-		if err := kubernetes.GetKubeConfig(mgr); err != nil {
+		if err := kubernetes.GetKubeConfigForControlPlane(mgr); err != nil {
 			return err
 		}
 
@@ -179,14 +185,14 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 		if err2 != nil {
 			return errors.Wrap(errors.WithStack(err2), "Failed to get new kubeconfig")
 		}
-		kubeConfig = output
+		s.kubeConfig = output
 	}
 
 	time.Sleep(30 * time.Second)
 	return nil
 }
 
-func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func (s *UpgradeStatus) upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	kubeletVersion, err := mgr.Runner.ExecuteCmd("/usr/local/bin/kubelet --version", 3, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current kubelet version")
@@ -217,7 +223,7 @@ func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
 	}
-	syncKubeconfigCmd := fmt.Sprintf("echo %s | base64 -d > %s && echo %s | base64 -d > %s && %s", kubeConfig, "/root/.kube/config", kubeConfig, "$HOME/.kube/config", chownKubeConfig)
+	syncKubeconfigCmd := fmt.Sprintf("echo %s | base64 -d > %s && echo %s | base64 -d > %s && %s", s.kubeConfig, "/root/.kube/config", s.kubeConfig, "$HOME/.kube/config", chownKubeConfig)
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", syncKubeconfigCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
@@ -225,21 +231,21 @@ func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 	return nil
 }
 
-func UpgradeKubeCluster(mgr *manager.Manager) error {
+func (s *UpgradeStatus) UpgradeCurrentKubeCluster(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Upgrading kube cluster")
 	targetVersionStr := mgr.Cluster.Kubernetes.Version
-	cmp, err := versionutil.MustParseSemantic(currentVersionStr).Compare(mgr.Cluster.Kubernetes.Version)
+	cmp, err := versionutil.MustParseSemantic(s.currentVersionStr).Compare(mgr.Cluster.Kubernetes.Version)
 	if err != nil {
 		return err
 	}
 	if cmp == 1 {
-		mgr.Logger.Warningln(fmt.Sprintf("The current version (%s) is greater than the target version (%s)", currentVersionStr, targetVersionStr))
+		mgr.Logger.Warningln(fmt.Sprintf("The current version (%s) is greater than the target version (%s)", s.currentVersionStr, targetVersionStr))
 		os.Exit(0)
 	}
 Loop:
 	for {
-		if currentVersionStr != targetVersionStr {
-			currentVersion := versionutil.MustParseSemantic(currentVersionStr)
+		if s.currentVersionStr != targetVersionStr {
+			currentVersion := versionutil.MustParseSemantic(s.currentVersionStr)
 			targetVersion := versionutil.MustParseSemantic(targetVersionStr)
 			var nextVersionMinor uint
 			if targetVersion.Minor() == currentVersion.Minor() {
@@ -249,7 +255,7 @@ Loop:
 			}
 
 			if nextVersionMinor == versionutil.MustParseSemantic(targetVersionStr).Minor() {
-				nextVersionStr = targetVersionStr
+				s.nextVersionStr = targetVersionStr
 			} else {
 				nextVersionPatchList := []int{}
 				for supportVersionStr := range files.FileSha256["kubeadm"]["amd64"] {
@@ -266,12 +272,12 @@ Loop:
 				nextVersion := currentVersion.WithMinor(nextVersionMinor)
 				nextVersion = nextVersion.WithPatch(uint(nextVersionPatchList[len(nextVersionPatchList)-1]))
 
-				nextVersionStr = fmt.Sprintf("v%s", nextVersion.String())
+				s.nextVersionStr = fmt.Sprintf("v%s", nextVersion.String())
 			}
 
-			mgr.Cluster.Kubernetes.Version = nextVersionStr
+			mgr.Cluster.Kubernetes.Version = s.nextVersionStr
 
-			mgr.Logger.Infoln(fmt.Sprintf("Start Upgrade: %s -> %s", currentVersionStr, nextVersionStr))
+			mgr.Logger.Infoln(fmt.Sprintf("Start Upgrade: %s -> %s", s.currentVersionStr, s.nextVersionStr))
 
 			if err := preinstall.Prepare(mgr); err != nil {
 				return err
@@ -281,14 +287,14 @@ Loop:
 				return err
 			}
 
-			if err := mgr.RunTaskOnK8sNodes(upgradeCluster, false); err != nil {
+			if err := mgr.RunTaskOnK8sNodes(s.upgradeNodes, false); err != nil {
 				return err
 			}
 
 			if err := mgr.RunTaskOnMasterNodes(reconfigDns, false); err != nil {
 				return err
 			}
-			currentVersionStr = nextVersionStr
+			s.currentVersionStr = s.nextVersionStr
 		} else {
 			break Loop
 		}
@@ -298,13 +304,14 @@ Loop:
 
 }
 
-func upgradeCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func (s *UpgradeStatus) upgradeNodes(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+
 	if node.IsMaster {
-		if err := upgradeKubeMasters(mgr, node); err != nil {
+		if err := s.upgradeKubeMasters(mgr, node); err != nil {
 			return err
 		}
 	} else {
-		if err := upgradeKubeWorkers(mgr, node); err != nil {
+		if err := s.upgradeKubeWorkers(mgr, node); err != nil {
 			return nil
 		}
 	}

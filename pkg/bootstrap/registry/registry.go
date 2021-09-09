@@ -21,6 +21,7 @@ import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -49,7 +50,16 @@ func InitRegistry(clusterCfgFile string, logger *log.Logger) error {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", true, true, true, false, false, nil))
+	return Execute(&executor.Executor{
+		ObjName:        objName,
+		Cluster:        &cfg.Spec,
+		Logger:         logger,
+		SourcesDir:     "",
+		Debug:          true,
+		SkipCheck:      true,
+		SkipPullImages: true,
+		Connector:      ssh.NewDialer(),
+	})
 }
 
 func Execute(executor *executor.Executor) error {

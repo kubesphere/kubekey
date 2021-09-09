@@ -19,6 +19,7 @@ package install
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/container-engine"
 	"io/ioutil"
 	"os"
@@ -40,7 +41,7 @@ import (
 )
 
 // CreateCluster is used to create cluster based on the given parameters or configuration file.
-func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster, deployLocalStorage bool, downloadCmd string) error {
+func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster, deployLocalStorage bool, downloadCmd, containerManager string) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current dir")
@@ -67,7 +68,21 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Log
 		}
 		clientset = c
 	}
-	executorInstance := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset)
+
+	executorInstance := &executor.Executor{
+		ObjName:            objName,
+		Cluster:            &cfg.Spec,
+		Logger:             logger,
+		SourcesDir:         "",
+		Debug:              verbose,
+		SkipCheck:          skipCheck,
+		SkipPullImages:     skipPullImages,
+		DeployLocalStorage: deployLocalStorage,
+		InCluster:          inCluster,
+		ClientSet:          clientset,
+		ContainerManager:   containerManager,
+		Connector:          ssh.NewDialer(),
+	}
 
 	executorInstance.DeployLocalStorage = deployLocalStorage
 
@@ -88,7 +103,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: Precheck, ErrMsg: "Failed to precheck", Skip: isK3s},
 		{Task: DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
 		{Task: InitOS, ErrMsg: "Failed to init OS"},
-		{Task: container_engine.InstallerContainerRuntime, ErrMsg: "Failed to install container runtime", Skip: isK3s},
+		{Task: container_engine.InstallContainerRuntime, ErrMsg: "Failed to install container runtime", Skip: isK3s},
 		{Task: PrePullImages, ErrMsg: "Failed to pre-pull images", Skip: isK3s},
 		{Task: etcd.GetEtcdStatus, ErrMsg: "Failed to get etcd status"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},

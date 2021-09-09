@@ -19,6 +19,7 @@ package add
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/cluster/install"
+	"github.com/kubesphere/kubekey/pkg/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/container-engine"
 	"os"
 	"path/filepath"
@@ -34,7 +35,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool, downloadCmd string) error {
+func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, ksEnabled, verbose, skipCheck, skipPullImages, inCluster bool, downloadCmd, containerManager string) error {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return errors.Wrap(err, "Failed to get current dir")
@@ -57,8 +58,20 @@ func AddNodes(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Logger, 
 		clientset = c
 	}
 
-	//return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset))
-	executorInstance := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, skipCheck, skipPullImages, false, inCluster, clientset)
+	executorInstance := &executor.Executor{
+		ObjName:          objName,
+		Cluster:          &cfg.Spec,
+		Logger:           logger,
+		SourcesDir:       "",
+		Debug:            verbose,
+		SkipCheck:        skipCheck,
+		SkipPullImages:   skipPullImages,
+		ContainerManager: containerManager,
+		InCluster:        inCluster,
+		ClientSet:        clientset,
+		Connector:        ssh.NewDialer(),
+	}
+
 	executorInstance.DownloadCommand = func(path, url string) string {
 		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
 		// some poor network environment. Or users even can choose another cli, it might be wget.
@@ -76,7 +89,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: install.Precheck, ErrMsg: "Failed to precheck", Skip: skipCondition1},
 		{Task: install.DownloadBinaries, ErrMsg: "Failed to download kube binaries"},
 		{Task: install.InitOS, ErrMsg: "Failed to init OS"},
-		{Task: container_engine.InstallerContainerRuntime, ErrMsg: "Failed to install container runtime", Skip: skipCondition1},
+		{Task: container_engine.InstallContainerRuntime, ErrMsg: "Failed to install container runtime", Skip: skipCondition1},
 		{Task: install.PrePullImages, ErrMsg: "Failed to pre-pull images", Skip: skipCondition1},
 		{Task: etcd.GetEtcdStatus, ErrMsg: "Failed to get etcd status"},
 		{Task: etcd.GenerateEtcdCerts, ErrMsg: "Failed to generate etcd certs"},

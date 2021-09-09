@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/cluster/install"
 	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
@@ -44,7 +45,17 @@ func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Lo
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
 
-	executorInstance := executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, true, skipPullImages, false, false, nil)
+	executorInstance := &executor.Executor{
+		ObjName:        objName,
+		Cluster:        &cfg.Spec,
+		Logger:         logger,
+		SourcesDir:     "",
+		Debug:          verbose,
+		SkipCheck:      true,
+		SkipPullImages: skipPullImages,
+		Connector:      ssh.NewDialer(),
+	}
+
 	executorInstance.DownloadCommand = func(path, url string) string {
 		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
 		// some poor network environment. Or users even can choose another cli, it might be wget.
@@ -58,7 +69,6 @@ func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Lo
 func ExecTasks(mgr *manager.Manager) error {
 	upgradeTasks := []manager.Task{
 		{Task: GetClusterInfo, ErrMsg: "Failed to get cluster info"},
-		{Task: GetCurrentVersions, ErrMsg: "Failed to get current version"},
 		{Task: install.InitOS, ErrMsg: "Failed to download kube binaries"},
 		{Task: UpgradeKubeCluster, ErrMsg: "Failed to upgrade kube cluster"},
 		{Task: install.InstallInternalLoadbalancer, ErrMsg: "Failed to install internal load balancer", Skip: !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},

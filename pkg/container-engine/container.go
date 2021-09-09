@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func InstallerContainerRuntime(mgr *manager.Manager) error {
+func InstallContainerRuntime(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Installing Container Runtime ...")
 	switch strings.TrimSpace(mgr.Cluster.Kubernetes.ContainerManager) {
 	case "docker", "":

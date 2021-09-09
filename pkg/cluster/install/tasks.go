@@ -125,39 +125,44 @@ func GetClusterStatus(mgr *manager.Manager) error {
 			return err
 		}
 	}
-
-	mgr.Logger.Infoln("Get cluster status")
-
 	switch mgr.Cluster.Kubernetes.Type {
 	case "k3s":
+		mgr.Logger.Infoln("Get cluster status")
 		return mgr.RunTaskOnMasterNodes(k3s.GetClusterStatus, false)
 	default:
-		return mgr.RunTaskOnMasterNodes(kubernetes.GetClusterStatus, false)
+		return nil
 	}
-
 }
 
 // InstallKubeBinaries is used to install kubernetes' binaries to os' PATH.
 func InstallKubeBinaries(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Installing kube binaries")
-
 	switch mgr.Cluster.Kubernetes.Type {
 	case "k3s":
+		mgr.Logger.Infoln("Installing kube binaries")
 		return mgr.RunTaskOnK8sNodes(k3s.InstallKubeBinaries, true)
 	default:
-		return mgr.RunTaskOnK8sNodes(kubernetes.InstallKubeBinaries, true)
+		return nil
 	}
 }
 
 // InitKubernetesCluster is used to init a new cluster.
 func InitKubernetesCluster(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Initializing kubernetes cluster")
-
+	var currentClusterStatus *kubernetes.ClusterStatus
 	switch mgr.Cluster.Kubernetes.Type {
 	case "k3s":
+		mgr.Logger.Infoln("Initializing kubernetes cluster")
 		return mgr.RunTaskOnMasterNodes(k3s.InitK3sCluster, true)
 	default:
-		return mgr.RunTaskOnMasterNodes(kubernetes.InitKubernetesCluster, true)
+		mgr.Logger.Infoln("Get cluster status")
+		if err := mgr.RunTaskOnMasterNodes(currentClusterStatus.GetClusterStatus, false); err != nil {
+			return err
+		}
+		mgr.Logger.Infoln("Installing kube binaries")
+		if err := mgr.RunTaskOnMasterNodes(currentClusterStatus.InstallKubeBinaries, true); err != nil {
+			return err
+		}
+		mgr.Logger.Infoln("Initializing kubernetes cluster")
+		return mgr.RunTaskOnMasterNodes(currentClusterStatus.InitKubernetesCluster, true)
 	}
 }
 
@@ -168,11 +173,11 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 			return err
 		}
 	}
-
-	mgr.Logger.Infoln("Joining nodes to cluster")
+	var currentClusterStatus *kubernetes.ClusterStatus
 
 	switch mgr.Cluster.Kubernetes.Type {
 	case "k3s":
+		mgr.Logger.Infoln("Joining nodes to cluster")
 		if err := mgr.RunTaskOnK8sNodes(k3s.JoinNodesToCluster, true); err != nil {
 			return err
 		}
@@ -180,7 +185,16 @@ func JoinNodesToCluster(mgr *manager.Manager) error {
 			return err
 		}
 	default:
-		if err := mgr.RunTaskOnK8sNodes(kubernetes.JoinNodesToCluster, true); err != nil {
+		mgr.Logger.Infoln("Get cluster status")
+		if err := mgr.RunTaskOnMasterNodes(currentClusterStatus.GetClusterStatus, false); err != nil {
+			return err
+		}
+		mgr.Logger.Infoln("Installing kube binaries")
+		if err := mgr.RunTaskOnMasterNodes(currentClusterStatus.InstallKubeBinaries, true); err != nil {
+			return err
+		}
+		mgr.Logger.Infoln("Joining nodes to cluster")
+		if err := mgr.RunTaskOnK8sNodes(currentClusterStatus.JoinNodesToCluster, true); err != nil {
 			return err
 		}
 		if err := mgr.RunTaskOnK8sNodes(kubernetes.AddLabelsForNodes, true); err != nil {
