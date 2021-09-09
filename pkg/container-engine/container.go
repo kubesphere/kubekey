@@ -10,7 +10,7 @@ import (
 )
 
 func InstallerContainerRuntime(mgr *manager.Manager) error {
-	mgr.Logger.Infoln("Installing Container Runtime...")
+	mgr.Logger.Infoln("Installing Container Runtime ...")
 	switch strings.TrimSpace(mgr.Cluster.Kubernetes.ContainerManager) {
 	case "docker", "":
 		if err := mgr.RunTaskOnAllNodes(installDockerOnNode, true); err != nil {

@@ -42,6 +42,7 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCniVersion}
 	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapiv1alpha1.DefaultHelmVersion}
 	docker := files.KubeBinary{Name: "docker", Arch: arch, Version: kubekeyapiv1alpha1.DefaultDockerVersion}
+	crictl := files.KubeBinary{Name: "crictl", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCrictlVersion}
 
 	etcd.Path = fmt.Sprintf("%s/etcd-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultEtcdVersion, arch)
 	kubeadm.Path = fmt.Sprintf("%s/kubeadm", filepath)
@@ -50,6 +51,7 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, arch, kubekeyapiv1alpha1.DefaultCniVersion)
 	helm.Path = fmt.Sprintf("%s/helm", filepath)
 	docker.Path = fmt.Sprintf("%s/docker-%s.tgz", filepath, kubekeyapiv1alpha1.DefaultDockerVersion)
+	crictl.Path = fmt.Sprintf("%s/crictl-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultCrictlVersion, arch)
 
 	if kkzone == "cn" {
 		etcd.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
@@ -60,6 +62,7 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 		helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
 		helm.GetCmd = mgr.DownloadCommand(helm.Path, helm.Url)
 		docker.Url = fmt.Sprintf("https://mirrors.aliyun.com/docker-ce/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(docker.Arch), docker.Version)
+		crictl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", kubekeyapiv1alpha1.DefaultCrictlVersion, kubekeyapiv1alpha1.DefaultCrictlVersion, arch)
 	} else {
 		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
@@ -70,6 +73,7 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 		getCmd := mgr.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
 		helm.GetCmd = fmt.Sprintf("%s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", getCmd, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
 		docker.Url = fmt.Sprintf("https://download.docker.com/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(docker.Arch), docker.Version)
+		crictl.Url = fmt.Sprintf("https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", kubekeyapiv1alpha1.DefaultCrictlVersion, kubekeyapiv1alpha1.DefaultCrictlVersion, arch)
 	}
 
 	kubeadm.GetCmd = mgr.DownloadCommand(kubeadm.Path, kubeadm.Url)
@@ -78,8 +82,9 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 	kubecni.GetCmd = mgr.DownloadCommand(kubecni.Path, kubecni.Url)
 	etcd.GetCmd = mgr.DownloadCommand(etcd.Path, etcd.Url)
 	docker.GetCmd = mgr.DownloadCommand(docker.Path, docker.Url)
+	crictl.GetCmd = mgr.DownloadCommand(crictl.Path, crictl.Url)
 
-	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd, docker}
+	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd, docker, crictl}
 
 	for _, binary := range binaries {
 		if binary.Name == "etcd" && mgr.EtcdContainer {

@@ -27,6 +27,7 @@ const (
 	arm64   = "arm64"
 	k3s     = "k3s"
 	docker  = "docker"
+	crictl  = "crictl"
 )
 
 type KubeBinary struct {
@@ -226,6 +227,14 @@ var (
 			},
 			arm64: {
 				"20.10.8": "4eb9d5e2adf718cd7ee59f6951715f3113c9c4ee49c75c9efb9747f2c3457b2b",
+			},
+		},
+		crictl: {
+			amd64: {
+				"v1.22.0": "45e0556c42616af60ebe93bf4691056338b3ea0001c0201a6a8ff8b1dbc0652a",
+			},
+			arm64: {
+				"v1.22.0": "a713c37fade0d96a989bc15ebe906e08ef5c8fe5e107c2161b0665e9963b770e",
 			},
 		},
 	}

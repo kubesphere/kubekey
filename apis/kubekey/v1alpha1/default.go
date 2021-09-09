@@ -40,6 +40,7 @@ const (
 	DefaultEtcdVersion         = "v3.4.13"
 	DefaultEtcdPort            = "2379"
 	DefaultDockerVersion       = "20.10.8"
+	DefaultCrictlVersion       = "v1.22.0"
 	DefaultKubeVersion         = "v1.19.8"
 	DefaultCalicoVersion       = "v3.20.0"
 	DefaultFlannelVersion      = "v0.12.0"
