@@ -24,7 +24,9 @@ func (d *DeployNetworkPluginModule) Init() {
 	case common.Calico:
 		d.Tasks = deployCalico(d)
 	case common.Flannel:
+		d.Tasks = deployFlannel(d)
 	case common.Cilium:
+		d.Tasks = deployCilium(d)
 	case common.Kubeovn:
 	default:
 		return
@@ -93,7 +95,7 @@ func deployCalico(d *DeployNetworkPluginModule) []*modules.Task {
 		Desc:     "deploy calico",
 		Hosts:    d.Runtime.GetHostsByRole(common.Master),
 		Prepare:  new(common.OnlyFirstMaster),
-		Action:   new(DeployCalico),
+		Action:   new(DeployNetworkPlugin),
 		Parallel: true,
 		Retry:    5,
 	}
@@ -108,6 +110,81 @@ func deployCalico(d *DeployNetworkPluginModule) []*modules.Task {
 			generateCalicoOld,
 			deploy,
 		}
+	}
+}
+
+func deployFlannel(d *DeployNetworkPluginModule) []*modules.Task {
+	generateFlannel := &modules.Task{
+		Name:  "GenerateFlannel",
+		Desc:  "generate flannel",
+		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(OldK8sVersion),
+		},
+		Action: &action.Template{
+			Template: templates.Flannel,
+			Dst:      filepath.Join(common.KubeConfigDir, templates.Flannel.Name()),
+			Data: util.Data{
+				"KubePodsCIDR": d.KubeConf.Cluster.Network.KubePodsCIDR,
+				"FlannelImage": images.GetImage(d.Runtime, d.KubeConf, "flannel").ImageName(),
+				"BackendMode":  d.KubeConf.Cluster.Network.Flannel.BackendMode,
+			},
+		},
+		Parallel: true,
+	}
+
+	deploy := &modules.Task{
+		Name:     "DeployFlannel",
+		Desc:     "deploy flannel",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(DeployNetworkPlugin),
+		Parallel: true,
+		Retry:    5,
+	}
+
+	return []*modules.Task{
+		generateFlannel,
+		deploy,
+	}
+}
+
+func deployCilium(d *DeployNetworkPluginModule) []*modules.Task {
+	generateCilium := &modules.Task{
+		Name:  "GenerateCilium",
+		Desc:  "generate cilium",
+		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(OldK8sVersion),
+		},
+		Action: &action.Template{
+			Template: templates.Cilium,
+			Dst:      filepath.Join(common.KubeConfigDir, templates.Cilium.Name()),
+			Data: util.Data{
+				"KubePodsCIDR":         d.KubeConf.Cluster.Network.KubePodsCIDR,
+				"NodeCidrMaskSize":     d.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
+				"CiliumImage":          images.GetImage(d.Runtime, d.KubeConf, "cilium").ImageName(),
+				"OperatorGenericImage": images.GetImage(d.Runtime, d.KubeConf, "operator-generic").ImageName(),
+			},
+		},
+		Parallel: true,
+	}
+
+	deploy := &modules.Task{
+		Name:     "DeployCilium",
+		Desc:     "deploy cilium",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(DeployNetworkPlugin),
+		Parallel: true,
+		Retry:    5,
+	}
+
+	return []*modules.Task{
+		generateCilium,
+		deploy,
 	}
 }
 
