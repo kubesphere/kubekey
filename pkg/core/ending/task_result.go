@@ -9,20 +9,21 @@ import (
 )
 
 type TaskResult struct {
-	mu        sync.Mutex
-	Errors    []HostError
-	Status    ResultStatus
-	StartTime time.Time
-	EndTime   time.Time
+	mu            sync.Mutex
+	ActionResults []ActionResult
+	Status        ResultStatus
+	StartTime     time.Time
+	EndTime       time.Time
 }
 
-type HostError struct {
-	Host  connector.Host
-	Error error
+type ActionResult struct {
+	Host   connector.Host
+	Status ResultStatus
+	Error  error
 }
 
 func NewTaskResult() *TaskResult {
-	return &TaskResult{Errors: make([]HostError, 0, 0), Status: NULL, StartTime: time.Now()}
+	return &TaskResult{ActionResults: make([]ActionResult, 0, 0), Status: NULL, StartTime: time.Now()}
 }
 
 func (t *TaskResult) ErrResult() {
@@ -49,15 +50,42 @@ func (t *TaskResult) SkippedResult() {
 	t.Status = SKIPPED
 }
 
+func (t *TaskResult) AppendSkip(host connector.Host) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	e := ActionResult{
+		Host:   host,
+		Status: SKIPPED,
+		Error:  nil,
+	}
+
+	t.ActionResults = append(t.ActionResults, e)
+	t.EndTime = time.Now()
+}
+
+func (t *TaskResult) AppendSuccess(host connector.Host) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	e := ActionResult{
+		Host:   host,
+		Status: SUCCESS,
+		Error:  nil,
+	}
+
+	t.ActionResults = append(t.ActionResults, e)
+	t.EndTime = time.Now()
+}
+
 func (t *TaskResult) AppendErr(host connector.Host, err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	e := HostError{
-		Host:  host,
-		Error: err,
+	e := ActionResult{
+		Host:   host,
+		Status: FAILED,
+		Error:  err,
 	}
 
-	t.Errors = append(t.Errors, e)
+	t.ActionResults = append(t.ActionResults, e)
 	t.EndTime = time.Now()
 	t.Status = FAILED
 }
@@ -74,10 +102,13 @@ func (t *TaskResult) IsFailed() bool {
 func (t *TaskResult) CombineErr() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if len(t.Errors) != 0 {
+	if len(t.ActionResults) != 0 {
 		var str string
-		for i := range t.Errors {
-			str += fmt.Sprintf("\nfailed: [%s] %s", t.Errors[i].Host.GetName(), t.Errors[i].Error.Error())
+		for i := range t.ActionResults {
+			if t.ActionResults[i].Status != FAILED {
+				continue
+			}
+			str += fmt.Sprintf("\nfailed: [%s] %s", t.ActionResults[i].Host.GetName(), t.ActionResults[i].Error.Error())
 		}
 		return errors.New(str)
 	}

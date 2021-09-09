@@ -6,14 +6,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-type DeployCalico struct {
+type DeployNetworkPlugin struct {
 	common.KubeAction
 }
 
-func (d *DeployCalico) Execute(runtime connector.Runtime) error {
+func (d *DeployNetworkPlugin) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(
 		"/usr/local/bin/kubectl apply -f /etc/kubernetes/network-plugin.yaml --force", true); err != nil {
-		return errors.Wrap(errors.WithStack(err), "deploy calico network plugin failed")
+		return errors.Wrap(errors.WithStack(err), "deploy network plugin failed")
 	}
 	return nil
 }

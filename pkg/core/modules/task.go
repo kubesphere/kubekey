@@ -68,6 +68,10 @@ func (t *Task) Execute() *ending.TaskResult {
 	}
 	wg.Wait()
 
+	for _, res := range t.TaskResult.ActionResults {
+		logger.Log.Infof("%s: [%s]", res.Status.String(), res.Host.GetName())
+	}
+
 	if t.TaskResult.IsFailed() {
 		t.TaskResult.ErrResult()
 		return t.TaskResult
@@ -101,7 +105,6 @@ func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, ho
 
 func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, errCh chan error) {
 	if err := t.ConfigureSelfRuntime(runtime, host, index); err != nil {
-		logger.Log.Errorf("failed: [%s]", host.GetName())
 		errCh <- err
 		return
 	}
@@ -110,11 +113,10 @@ func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, er
 	t.Prepare.AutoAssert()
 	if ok, e := t.WhenWithRetry(runtime); !ok {
 		if e != nil {
-			logger.Log.Errorf("failed: [%s]", host.GetName())
 			errCh <- e
 			return
 		} else {
-			logger.Log.Errorf("skipped: [%s]", host.GetName())
+			t.TaskResult.AppendSkip(host)
 			errCh <- nil
 			return
 		}
@@ -123,11 +125,10 @@ func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, er
 	t.Action.Init(t.Cache, t.RootCache, runtime)
 	t.Action.AutoAssert()
 	if err := t.ExecuteWithRetry(runtime); err != nil {
-		logger.Log.Errorf("failed: [%s]", host.GetName())
 		errCh <- err
 		return
 	}
-	logger.Log.Errorf("success: [%s]", host.GetName())
+	t.TaskResult.AppendSuccess(host)
 	errCh <- nil
 }
 
