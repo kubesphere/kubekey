@@ -1,7 +1,7 @@
 package common
 
 const (
-	KubeKey = "KubeKey"
+	KubeKey = "kubekey"
 
 	Pipeline = "Pipeline"
 	Module   = "Module"
