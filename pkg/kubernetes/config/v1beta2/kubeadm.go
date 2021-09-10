@@ -18,11 +18,12 @@ package v1beta2
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
@@ -205,7 +206,7 @@ func getKubeletCgroupDriver(mgr *manager.Manager) (string, error) {
 		kubeletCgroupDriver = ""
 	}
 
-	checkResult, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", cmd), 3, false)
+	checkResult, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"%s\"", cmd), 3, false)
 	if err != nil {
 		return "", errors.Wrap(errors.WithStack(err), "Failed to get container runtime cgroup driver.")
 	}

@@ -112,7 +112,7 @@ func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 		}
 
 		for i := 0; i < 3; i++ {
-			_, err2 := mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl\"", 0, true)
+			_, err2 := mgr.Runner.ExecuteCmd("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl --v=5\"", 0, true)
 			if err2 != nil {
 				if i == 2 {
 					return errors.Wrap(errors.WithStack(err2), "Failed to init kubernetes cluster")
@@ -298,12 +298,12 @@ func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 
 func addMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	for i := 0; i < 3; i++ {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", fmt.Sprintf("%s --apiserver-advertise-address %s", clusterStatus["joinMasterCmd"], node.InternalAddress)), 0, true)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"%s --v=5\"", fmt.Sprintf("%s --apiserver-advertise-address %s", clusterStatus["joinMasterCmd"], node.InternalAddress)), 0, true)
 		if err != nil {
 			if i == 2 {
 				return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
 			}
-			_, _ = mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+			_, _ = mgr.Runner.ExecuteCmd("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
 		} else {
 			break
 		}
@@ -317,12 +317,12 @@ func addMaster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 
 func addWorker(mgr *manager.Manager) error {
 	for i := 0; i < 3; i++ {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", clusterStatus["joinWorkerCmd"]), 0, true)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"%s --v=5\"", clusterStatus["joinWorkerCmd"]), 0, true)
 		if err != nil {
 			if i == 2 {
 				return errors.Wrap(errors.WithStack(err), "Failed to add worker to cluster")
 			}
-			_, _ = mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+			_, _ = mgr.Runner.ExecuteCmd("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
 		} else {
 			break
 		}
