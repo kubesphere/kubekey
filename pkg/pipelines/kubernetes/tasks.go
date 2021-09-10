@@ -428,3 +428,12 @@ func (s *SyncKubeConfig) Execute(runtime connector.Runtime) error {
 	}
 	return nil
 }
+
+type KubeadmReset struct {
+	common.KubeAction
+}
+
+func (k *KubeadmReset) Execute(runtime connector.Runtime) error {
+	_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
+	return nil
+}

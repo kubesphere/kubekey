@@ -275,10 +275,6 @@ func (c *connection) Exec(cmd string) (stdout string, stderr string, code int, e
 	return strings.TrimSpace(stdoutBuf.String()), stderrBuf.String(), exitCode, err
 }
 
-func SudoPrefix(cmd string) string {
-	return fmt.Sprintf("sudo -E /bin/bash -c \"%s\"", cmd)
-}
-
 func (c *connection) Fetch(local, remote string) error {
 	srcFile, err := c.sftpclient.Open(remote)
 	if err != nil {
@@ -473,4 +469,8 @@ func (c *connection) Chmod(path string, mode os.FileMode) error {
 		return err
 	}
 	return nil
+}
+
+func SudoPrefix(cmd string) string {
+	return fmt.Sprintf("sudo -E /bin/bash -c \"%s\"", cmd)
 }

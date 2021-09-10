@@ -6,11 +6,13 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/pipelines/addons"
 	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
+	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/initialization"
+	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/continer/docker"
 	"github.com/kubesphere/kubekey/pkg/pipelines/etcd"
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
-	"github.com/kubesphere/kubekey/pkg/pipelines/initialization"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
 	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns"
@@ -23,9 +25,9 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 
 	m := []modules.Module{
 		&initialization.NodeInitializationModule{Skip: isK3s},
-		&initialization.ConfirmModule{Skip: isK3s},
+		&confirm.InstallConfirmModule{Skip: isK3s},
 		&binaries.NodeBinariesModule{},
-		&initialization.ConfigureOSModule{},
+		&os.ConfigureOSModule{},
 		&docker.DockerModule{Skip: isK3s},
 		&images.ImageModule{Skip: isK3s || runtime.Arg.SkipPullImages},
 		&etcd.ETCDPreCheckModule{},

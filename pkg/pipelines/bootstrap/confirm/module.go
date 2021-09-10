@@ -1,56 +1,16 @@
-package initialization
+package confirm
 
 import (
 	"bufio"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
-	"github.com/kubesphere/kubekey/pkg/pipelines/initialization/templates"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
 	"github.com/pkg/errors"
 	"os"
-	"path/filepath"
 	"strings"
 )
-
-type NodeInitializationModule struct {
-	common.KubeModule
-	Skip bool
-}
-
-func (n *NodeInitializationModule) IsSkip() bool {
-	return n.Skip
-}
-
-func (n *NodeInitializationModule) Init() {
-	n.Name = "NodeInitializationModule"
-
-	preCheck := &modules.Task{
-		Name:  "NodePreCheck",
-		Desc:  "a pre-check on nodes",
-		Hosts: n.Runtime.GetAllHosts(),
-		Prepare: &prepare.FastPrepare{
-			Inject: func(runtime connector.Runtime) (bool, error) {
-				if len(n.Runtime.GetHostsByRole(common.ETCD))%2 == 0 {
-					logger.Log.Error("The number of etcd is even. Please configure it to be odd.")
-					return false, errors.New("the number of etcd is even")
-				}
-				return true, nil
-			}},
-		Action:   new(NodePreCheck),
-		Parallel: true,
-	}
-
-	n.Tasks = []*modules.Task{
-		preCheck,
-	}
-}
 
 // PreCheckResults defines the items to be checked.
 type PreCheckResults struct {
@@ -69,21 +29,21 @@ type PreCheckResults struct {
 	Time      string `table:"time"`
 }
 
-type ConfirmModule struct {
+type InstallConfirmModule struct {
 	common.KubeCustomModule
 	Skip bool
 }
 
-func (c *ConfirmModule) IsSkip() bool {
+func (c *InstallConfirmModule) IsSkip() bool {
 	return c.Skip
 }
 
-func (c *ConfirmModule) Init() {
+func (c *InstallConfirmModule) Init() {
 	c.Name = "ConfirmModule"
 	c.Desc = "display confirmation form"
 }
 
-func (c *ConfirmModule) Run() error {
+func (c *InstallConfirmModule) Run() error {
 	var (
 		results  []PreCheckResults
 		stopFlag bool
@@ -141,46 +101,35 @@ Loop:
 	return nil
 }
 
-type ConfigureOSModule struct {
+type DeleteClusterConfirmModule struct {
 	common.KubeModule
 }
 
-func (c *ConfigureOSModule) Init() {
-	c.Name = "ConfigureOSModule"
+func (d *DeleteClusterConfirmModule) Init() {
+	d.Name = "DeleteClusterConfirmModule"
+	d.Desc = "display delete confirmation form"
+}
 
-	initOS := &modules.Task{
-		Name:     "InitOS",
-		Desc:     "prepare to init OS",
-		Hosts:    c.Runtime.GetAllHosts(),
-		Action:   new(NodeConfigureOS),
-		Parallel: true,
+func (d *DeleteClusterConfirmModule) Run() error {
+	reader := bufio.NewReader(os.Stdin)
+
+	var res string
+	for {
+		fmt.Printf("Are you sure to delete this cluster? [yes/no]: ")
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		input = strings.TrimSpace(input)
+
+		if input != "" && (input == "yes" || input == "no") {
+			res = input
+			break
+		}
 	}
 
-	GenerateScript := &modules.Task{
-		Name:  "GenerateScript",
-		Desc:  "generate init os script",
-		Hosts: c.Runtime.GetAllHosts(),
-		Action: &action.Template{
-			Template: templates.InitOsScriptTmpl,
-			Dst:      filepath.Join(common.KubeScriptDir, "initOS.sh"),
-			Data: util.Data{
-				"Hosts": c.KubeConf.ClusterHosts,
-			},
-		},
-		Parallel: true,
+	if res == "no" {
+		os.Exit(0)
 	}
-
-	ExecScript := &modules.Task{
-		Name:     "ExecScript",
-		Desc:     "exec init os script",
-		Hosts:    c.Runtime.GetAllHosts(),
-		Action:   new(NodeExecScript),
-		Parallel: true,
-	}
-
-	c.Tasks = []*modules.Task{
-		initOS,
-		GenerateScript,
-		ExecScript,
-	}
+	return nil
 }
