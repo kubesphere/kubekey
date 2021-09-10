@@ -2,6 +2,7 @@ package connector
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/common"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
 	"os"
@@ -13,14 +14,16 @@ type BaseRuntime struct {
 	connector Connector
 	runner    *Runner
 	workDir   string
+	verbose   bool
 	allHosts  []Host
 	roleHosts map[string][]Host
 }
 
-func NewBaseRuntime(name string, connector Connector) BaseRuntime {
+func NewBaseRuntime(name string, connector Connector, verbose bool) BaseRuntime {
 	return BaseRuntime{
 		ObjName:   name,
 		connector: connector,
+		verbose:   verbose,
 		allHosts:  make([]Host, 0, 0),
 		roleHosts: make(map[string][]Host),
 	}
@@ -60,7 +63,12 @@ func (b *BaseRuntime) GenerateWorkDir() error {
 	if err := util.CreateDir(rootPath); err != nil {
 		return errors.Wrap(err, "create work dir failed")
 	}
-	b.SetWorkDir(rootPath)
+	b.workDir = rootPath
+
+	logDir := filepath.Join(rootPath, "logs")
+	if err := util.CreateDir(logDir); err != nil {
+		return errors.Wrap(err, "create logs dir failed")
+	}
 
 	for i := range b.allHosts {
 		subPath := filepath.Join(rootPath, b.allHosts[i].GetName())
@@ -79,10 +87,6 @@ func (b *BaseRuntime) GetWorkDir() string {
 	return b.workDir
 }
 
-func (b *BaseRuntime) SetWorkDir(str string) {
-	b.workDir = str
-}
-
 func (b *BaseRuntime) GetAllHosts() []Host {
 	return b.allHosts
 }
@@ -97,6 +101,17 @@ func (b *BaseRuntime) GetHostsByRole(role string) []Host {
 
 func (b *BaseRuntime) RemoteHost() Host {
 	return b.GetRunner().Host
+}
+
+func (b *BaseRuntime) InitLogger() error {
+	if b.GetWorkDir() == "" {
+		if err := b.GenerateWorkDir(); err != nil {
+			return err
+		}
+	}
+	logDir := filepath.Join(b.GetWorkDir(), "logs")
+	logger.Log = logger.NewLogger(logDir, b.verbose)
+	return nil
 }
 
 func (b *BaseRuntime) Copy() Runtime {

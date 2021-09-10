@@ -3,6 +3,7 @@ package pipeline
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/pkg/errors"
 	"sync"
@@ -21,6 +22,9 @@ func (p *Pipeline) Init() error {
 	if err := p.Runtime.GenerateWorkDir(); err != nil {
 		return err
 	}
+	if err := p.Runtime.InitLogger(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -37,6 +41,7 @@ func (p *Pipeline) Start() error {
 			return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
 		}
 	}
+	logger.Log.Infof("Pipeline[%s] execute successful", p.Name)
 	return nil
 }
 

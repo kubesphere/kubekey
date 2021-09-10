@@ -56,7 +56,7 @@ func CountDirFiles(dirName string) int {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Warn("count dir files failed %v", err)
+		logger.Log.Fatalln("count dir files failed %v", err)
 		return 0
 	}
 	return count
@@ -81,7 +81,7 @@ func FileMD5(path string) (string, error) {
 func LocalMd5Sum(src string) string {
 	md5Str, err := FileMD5(src)
 	if err != nil {
-		logger.Log.Errorf("get file md5 failed %v", err)
+		logger.Log.Fatalf("get file md5 failed %v", err)
 		return ""
 	}
 	return md5Str
