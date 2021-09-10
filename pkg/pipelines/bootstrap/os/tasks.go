@@ -1,65 +1,12 @@
-package initialization
+package os
 
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/pkg/errors"
 	"strings"
 )
-
-type NodePreCheck struct {
-	common.KubeAction
-}
-
-func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
-	var results = make(map[string]string)
-	results["name"] = runtime.RemoteHost().GetName()
-	for _, software := range baseSoftware {
-		_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("which %s", software), false)
-		switch software {
-		case showmount:
-			software = nfs
-		case rbd:
-			software = ceph
-		case glusterfs:
-			software = glusterfs
-		}
-		if err != nil {
-			results[software] = ""
-			logger.Log.Debugf("exec cmd 'which %s' got err return: %v", software, err)
-		} else {
-			results[software] = "y"
-			if software == docker {
-				dockerVersion, err := runtime.GetRunner().SudoCmd("docker version --format '{{.Server.Version}}'", false)
-				if err != nil {
-					results[software] = UnknownVersion
-				} else {
-					results[software] = dockerVersion
-				}
-			}
-		}
-	}
-
-	output, err := runtime.GetRunner().Cmd("date +\"%Z %H:%M:%S\"", false)
-	if err != nil {
-		results["time"] = ""
-	} else {
-		results["time"] = strings.TrimSpace(output)
-	}
-
-	if res, ok := n.RootCache.Get("nodePreCheck"); ok {
-		m := res.(map[string]map[string]string)
-		m[runtime.RemoteHost().GetName()] = results
-		n.RootCache.Set("nodePreCheck", m)
-	} else {
-		checkResults := make(map[string]map[string]string)
-		checkResults[runtime.RemoteHost().GetName()] = results
-		n.RootCache.Set("nodePreCheck", checkResults)
-	}
-	return nil
-}
 
 type NodeConfigureOS struct {
 	common.KubeAction
@@ -159,6 +106,83 @@ func (n *NodeExecScript) Execute(runtime connector.Runtime) error {
 
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initOS.sh", common.KubeScriptDir), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+	}
+	return nil
+}
+
+var (
+	clusterFiles = []string{
+		"/usr/local/bin/etcd",
+		"/etc/ssl/etcd",
+		"/var/lib/etcd",
+		"/etc/etcd.env",
+		"/etc/kubernetes",
+		"/etc/systemd/system/etcd.service",
+		"/var/log/calico",
+		"/etc/cni",
+		"/var/log/pods/",
+		"/var/lib/cni",
+		"/var/lib/calico",
+		"/var/lib/kubelet",
+		"/run/calico",
+		"/run/flannel",
+		"/etc/flannel",
+		"/var/openebs",
+		"/etc/systemd/system/kubelet.service",
+		"/etc/systemd/system/kubelet.service.d",
+		"/usr/local/bin/kubelet",
+		"/usr/local/bin/kubeadm",
+		"/usr/bin/kubelet",
+		"/var/lib/rook",
+		"/tmp/kubekey",
+	}
+
+	networkResetCmds = []string{
+		"iptables -F",
+		"iptables -X",
+		"iptables -F -t nat",
+		"iptables -X -t nat",
+		"ip link del kube-ipvs0",
+		"ip link del nodelocaldns",
+	}
+)
+
+type ResetNetworkConfig struct {
+	common.KubeAction
+}
+
+func (r *ResetNetworkConfig) Execute(runtime connector.Runtime) error {
+	_, _ = runtime.GetRunner().SudoCmd(strings.Join(networkResetCmds, " && "), true)
+	return nil
+}
+
+type StopETCDService struct {
+	common.KubeAction
+}
+
+func (s *StopETCDService) Execute(runtime connector.Runtime) error {
+	_, _ = runtime.GetRunner().SudoCmd("systemctl stop etcd && exit 0", false)
+	return nil
+}
+
+type RemoveFiles struct {
+	common.KubeAction
+}
+
+func (r *RemoveFiles) Execute(runtime connector.Runtime) error {
+	for _, file := range clusterFiles {
+		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
+	}
+	return nil
+}
+
+type DaemonReload struct {
+	common.KubeAction
+}
+
+func (d *DaemonReload) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && exit 0", false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "systemctl daemon-reload failed")
 	}
 	return nil
 }
