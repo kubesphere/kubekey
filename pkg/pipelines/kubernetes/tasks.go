@@ -265,12 +265,11 @@ type KubeadmInit struct {
 }
 
 func (k *KubeadmInit) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().Cmd("sudo env PATH=$PATH /bin/sh -c \""+
-		"/usr/local/bin/kubeadm init "+
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm init "+
 		"--config=/etc/kubernetes/kubeadm-config.yaml "+
-		"--ignore-preflight-errors=FileExisting-crictl\"", true); err != nil {
+		"--ignore-preflight-errors=FileExisting-crictl", true); err != nil {
 		// kubeadm reset and then retry
-		_, _ = runtime.GetRunner().Cmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", true)
+		_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
 		return errors.Wrap(errors.WithStack(err), "init kubernetes cluster failed")
 	}
 	return nil
@@ -378,10 +377,10 @@ func (a *AddMasterNode) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
 	if v, ok := a.RootCache.Get(ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
-		if _, err := runtime.GetRunner().Cmd(fmt.Sprintf(
-			"sudo env PATH=$PATH /bin/sh -c \"%s\"", fmt.Sprintf("%s --apiserver-advertise-address %s", cluster.JoinMasterCmd, host.GetInternalAddress())),
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+			fmt.Sprintf("%s --apiserver-advertise-address %s", cluster.JoinMasterCmd, host.GetInternalAddress())),
 			true); err != nil {
-			_, _ = runtime.GetRunner().Cmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", true)
+			_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
 			return errors.Wrap(errors.WithStack(err), "join master failed")
 		}
 	}
@@ -395,8 +394,8 @@ type AddWorkerNode struct {
 func (a *AddWorkerNode) Execute(runtime connector.Runtime) error {
 	if v, ok := a.RootCache.Get(ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
-		if _, err := runtime.GetRunner().Cmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", cluster.JoinWorkerCmd), true); err != nil {
-			_, _ = runtime.GetRunner().Cmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", true)
+		if _, err := runtime.GetRunner().SudoCmd(cluster.JoinWorkerCmd, true); err != nil {
+			_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
 			return errors.Wrap(errors.WithStack(err), "join master failed")
 		}
 	}
