@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/pipelines/addons"
 	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/continer/docker"
@@ -39,6 +40,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.JoinNodesModule{},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
+		&addons.AddonsModule{},
 	}
 
 	p := pipeline.Pipeline{
@@ -52,20 +54,8 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
-func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, ksEnabled, verbose, skipCheck, skipPullImages, inCluster, deployLocalStorage bool, downloadCmd string) error {
-	arg := common.Argument{
-		FilePath:           clusterCfgFile,
-		KubernetesVersion:  k8sVersion,
-		KsEnable:           ksEnabled,
-		KsVersion:          ksVersion,
-		SkipCheck:          skipCheck,
-		SkipPullImages:     skipPullImages,
-		InCluster:          inCluster,
-		DeployLocalStorage: deployLocalStorage,
-		Debug:              verbose,
-	}
-
-	arg.DownloadCommand = func(path, url string) string {
+func CreateCluster(args common.Argument, downloadCmd string) error {
+	args.DownloadCommand = func(path, url string) string {
 		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
 		// some poor network environment. Or users even can choose another cli, it might be wget.
 		// perhaps we should have a build-in download function instead of totally rely on the external one
@@ -73,13 +63,13 @@ func CreateCluster(clusterCfgFile, k8sVersion, ksVersion string, ksEnabled, verb
 	}
 
 	var loaderType string
-	if clusterCfgFile != "" {
+	if args.FilePath != "" {
 		loaderType = common.File
 	} else {
 		loaderType = common.AllInOne
 	}
 
-	runtime, err := common.NewKubeRuntime(loaderType, arg)
+	runtime, err := common.NewKubeRuntime(loaderType, args)
 	if err != nil {
 		return err
 	}

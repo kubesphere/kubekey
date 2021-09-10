@@ -132,6 +132,8 @@ func NewFileLoader(arg Argument) *FileLoader {
 }
 
 func (f FileLoader) Load() (*kubekeyapiv1alpha1.Cluster, error) {
+	var objName string
+
 	clusterCfg := kubekeyapiv1alpha1.Cluster{}
 	fp, err := filepath.Abs(f.FilePath)
 	if err != nil {
@@ -159,12 +161,13 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha1.Cluster, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "Unable to unmarshal the given cluster configuration file")
 		}
+
 		if result["kind"] == "Cluster" {
 			if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
 				return nil, errors.Wrap(err, "Unable to convert file to yaml")
 			}
-			//metadata := result["metadata"].(map[interface{}]interface{})
-			//objName = metadata["name"].(string)
+			metadata := result["metadata"].(map[interface{}]interface{})
+			objName = metadata["name"].(string)
 		}
 
 		if result["kind"] == "ConfigMap" || result["kind"] == "ClusterConfiguration" {
@@ -198,6 +201,7 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha1.Cluster, error) {
 			return nil, err
 		}
 	}
+	clusterCfg.Name = objName
 	return &clusterCfg, nil
 }
 
