@@ -22,18 +22,18 @@ type Connector interface {
 }
 
 type ModuleRuntime interface {
+	GetObjName() string
+	SetObjName(name string)
 	GenerateWorkDir() error
 	GetHostWorkDir() string
 	GetWorkDir() string
-	SetWorkDir(str string)
 	GetAllHosts() []Host
 	SetAllHosts([]Host)
 	GetHostsByRole(role string) []Host
+	InitLogger() error
 }
 
 type Runtime interface {
-	GetObjName() string
-	SetObjName(name string)
 	GetRunner() *Runner
 	SetRunner(r *Runner)
 	GetConnector() Connector

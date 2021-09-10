@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
 	"time"
@@ -49,8 +50,20 @@ var clusterCmd = &cobra.Command{
 		} else {
 			ksVersion = ""
 		}
-		return pipelines.CreateCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, opt.Kubesphere, opt.Verbose,
-			opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.LocalStorage, opt.DownloadCmd)
+
+		arg := common.Argument{
+			FilePath:           opt.ClusterCfgFile,
+			KubernetesVersion:  opt.Kubernetes,
+			KsEnable:           opt.Kubesphere,
+			KsVersion:          ksVersion,
+			SkipCheck:          opt.SkipCheck,
+			SkipPullImages:     opt.SkipPullImages,
+			InCluster:          opt.InCluster,
+			DeployLocalStorage: opt.LocalStorage,
+			Debug:              opt.Verbose,
+		}
+
+		return pipelines.CreateCluster(arg, opt.DownloadCmd)
 	},
 }
 

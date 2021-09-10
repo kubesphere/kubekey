@@ -337,3 +337,23 @@ func (j *JoinNodesModule) Init() {
 		addWorkerLabelToWorker,
 	}
 }
+
+type ResetClusterModule struct {
+	common.KubeModule
+}
+
+func (r *ResetClusterModule) Init() {
+	r.Name = "ResetClusterModule"
+
+	kubeadmReset := &modules.Task{
+		Name:     "KubeadmReset",
+		Desc:     "Reset the cluster using kubeadm",
+		Hosts:    r.Runtime.GetHostsByRole(common.K8s),
+		Action:   new(KubeadmReset),
+		Parallel: true,
+	}
+
+	r.Tasks = []*modules.Task{
+		kubeadmReset,
+	}
+}
