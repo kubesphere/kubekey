@@ -6,21 +6,19 @@ import (
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
+	"path/filepath"
 	"time"
 )
 
 var Log *KubeKeyLog
 
-func init() {
-	Log = NewLogger()
-}
-
 type KubeKeyLog struct {
 	logrus.FieldLogger
-	RootEntry logrus.FieldLogger
+	OutputPath string
+	Verbose    bool
 }
 
-func NewLogger() *KubeKeyLog {
+func NewLogger(outputPath string, verbose bool) *KubeKeyLog {
 	logger := logrus.New()
 
 	formatter := &Formatter{
@@ -34,7 +32,7 @@ func NewLogger() *KubeKeyLog {
 	logger.SetFormatter(formatter)
 	logger.SetLevel(logrus.InfoLevel)
 
-	path := "./kubekey.log"
+	path := filepath.Join(outputPath, "./kubekey.log")
 	writer, _ := rotatelogs.New(
 		path+".%Y%m%d",
 		rotatelogs.WithLinkName(path),
@@ -49,7 +47,7 @@ func NewLogger() *KubeKeyLog {
 		logrus.PanicLevel: writer,
 	}, formatter))
 
-	return &KubeKeyLog{logger, logger}
+	return &KubeKeyLog{logger, outputPath, verbose}
 }
 
 func (k *KubeKeyLog) Message(node, str string) {

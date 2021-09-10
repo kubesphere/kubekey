@@ -55,7 +55,7 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		clientset = c
 	}
 
-	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer())
+	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), arg.Debug)
 	for _, v := range hostGroups.All {
 		host := ToHosts(v)
 		if v.IsMaster {
