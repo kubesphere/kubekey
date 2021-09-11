@@ -126,19 +126,21 @@ func generateDockerService() (string, error) {
 }
 
 func installDockerOnNode(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then echo 'Container Runtime will be installed'; fi\"", 0, false)
-	if strings.Contains(strings.TrimSpace(output), "Container Runtime will be installed") {
-		err := syncDockerBinaries(mgr, node)
-		if err != nil {
-			return err
-		}
-		err = setContainerd(mgr)
-		if err != nil {
-			return err
-		}
-		err = setDocker(mgr)
-		if err != nil {
-			return err
+	if !manager.ExistNode(mgr, node) {
+		output, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then echo 'Container Runtime will be installed'; fi\"", 0, false)
+		if strings.Contains(strings.TrimSpace(output), "Container Runtime will be installed") {
+			err := syncDockerBinaries(mgr, node)
+			if err != nil {
+				return err
+			}
+			err = setContainerd(mgr)
+			if err != nil {
+				return err
+			}
+			err = setDocker(mgr)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

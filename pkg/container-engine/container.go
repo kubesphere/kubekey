@@ -13,11 +13,11 @@ func InstallContainerRuntime(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Installing Container Runtime ...")
 	switch strings.TrimSpace(mgr.Cluster.Kubernetes.ContainerManager) {
 	case "docker", "":
-		if err := mgr.RunTaskOnAllNodes(installDockerOnNode, true); err != nil {
+		if err := mgr.RunTaskOnK8sNodes(installDockerOnNode, true); err != nil {
 			return err
 		}
 	case "containerd":
-		if err := mgr.RunTaskOnAllNodes(installContainerdOnNode, true); err != nil {
+		if err := mgr.RunTaskOnK8sNodes(installContainerdOnNode, true); err != nil {
 			return err
 		}
 	case "crio":

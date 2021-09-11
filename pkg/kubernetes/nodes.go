@@ -31,8 +31,8 @@ import (
 )
 
 // InstallKubeBinaries is used to install kubernetes' binaries to os' PATH.
-func (s *ClusterStatus) InstallKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if !s.existNode(node) {
+func InstallKubeBinaries(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if !manager.ExistNode(mgr, node) {
 		if err := SyncKubeBinaries(mgr, node); err != nil {
 			return err
 		}
@@ -42,17 +42,6 @@ func (s *ClusterStatus) InstallKubeBinaries(mgr *manager.Manager, node *kubekeya
 		}
 	}
 	return nil
-}
-
-// ExistNode is used determine if the node already exists.
-func (s *ClusterStatus) existNode(node *kubekeyapiv1alpha1.HostCfg) bool {
-	var version bool
-	_, name := s.allNodesInfo[node.Name]
-	if name && s.allNodesInfo[node.Name] != "" {
-		version = true
-	}
-	_, ip := s.allNodesInfo[node.InternalAddress]
-	return version || ip
 }
 
 // SyncKubeBinaries is used to sync kubernetes' binaries to each node.

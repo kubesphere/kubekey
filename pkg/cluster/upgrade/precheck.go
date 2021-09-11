@@ -83,6 +83,8 @@ var versionCheck = map[string]map[string]map[string]bool{
 	},
 	"other": {
 		"k8s": {
+			"v1.22": true,
+			"v1.21": true,
 			"v1.20": true,
 			"v1.19": true,
 			"v1.18": true,

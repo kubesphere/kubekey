@@ -69,6 +69,7 @@ func UpgradeCluster(clusterCfgFile, k8sVersion, ksVersion string, logger *log.Lo
 func ExecTasks(mgr *manager.Manager) error {
 	upgradeTasks := []manager.Task{
 		{Task: GetClusterInfo, ErrMsg: "Failed to get cluster info"},
+		{Task: GetCurrentVersions, ErrMsg: "Failed to get current version"},
 		{Task: install.InitOS, ErrMsg: "Failed to download kube binaries"},
 		{Task: UpgradeKubeCluster, ErrMsg: "Failed to upgrade kube cluster"},
 		{Task: install.InstallInternalLoadbalancer, ErrMsg: "Failed to install internal load balancer", Skip: !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},

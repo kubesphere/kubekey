@@ -84,11 +84,6 @@ state = "/run/containerd"
 [plugins]
   [plugins."io.containerd.grpc.v1.cri"]
     sandbox_image = "{{ .SandBoxImage }}"
-    [plugins."io.containerd.grpc.v1.cri".containerd]
-      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
-        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
-          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
-            SystemdCgroup = true
     [plugins."io.containerd.grpc.v1.cri".cni]
       bin_dir = "/opt/cni/bin"
       conf_dir = "/etc/cni/net.d"
@@ -148,28 +143,30 @@ func generateCrictlConfig() (string, error) {
 }
 
 func installContainerdOnNode(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	checkCrictl, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -z $(which crictl) ]; then echo 'Crictl will be installed'; fi\"", 0, false)
-	if strings.Contains(strings.TrimSpace(checkCrictl), "Crictl will be installed") {
-		err := syncCrictlBinarie(mgr, node)
-		if err != nil {
-			return err
+	if !manager.ExistNode(mgr, node) {
+		checkCrictl, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -z $(which crictl) ]; then echo 'Crictl will be installed'; fi\"", 0, false)
+		if strings.Contains(strings.TrimSpace(checkCrictl), "Crictl will be installed") {
+			err := syncCrictlBinarie(mgr, node)
+			if err != nil {
+				return err
+			}
 		}
-	}
 
-	checkContainerd, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -z $(which containerd) ] || [ ! -e /run/containerd/containerd.sock ]; then echo 'Container Runtime will be installed'; fi\"", 0, false)
-	if strings.Contains(strings.TrimSpace(checkContainerd), "Container Runtime will be installed") {
-		// Installation and configuration of Containerd multiplex Docker.
-		err := syncDockerBinaries(mgr, node)
-		if err != nil {
-			return err
-		}
-		err = setContainerd(mgr)
-		if err != nil {
-			return err
-		}
-		err = setDocker(mgr)
-		if err != nil {
-			return err
+		checkContainerd, _ := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"if [ -z $(which containerd) ] || [ ! -e /run/containerd/containerd.sock ]; then echo 'Container Runtime will be installed'; fi\"", 0, false)
+		if strings.Contains(strings.TrimSpace(checkContainerd), "Container Runtime will be installed") {
+			// Installation and configuration of Containerd multiplex Docker.
+			err := syncDockerBinaries(mgr, node)
+			if err != nil {
+				return err
+			}
+			err = setContainerd(mgr)
+			if err != nil {
+				return err
+			}
+			err = setDocker(mgr)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

@@ -355,7 +355,11 @@ func resetKubeCluster(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error
 			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-killall.sh\"", 0, true)
 			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"systemctl daemon-reload && /usr/local/bin/k3s-uninstall.sh\"", 0, true)
 		} else {
-			_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+			resetCmd := "/usr/local/bin/kubeadm reset -f"
+			if mgr.ContainerRuntimeEndpoint != "" {
+				resetCmd = resetCmd + " --cri-socket " + mgr.ContainerRuntimeEndpoint
+			}
+			_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", resetCmd), 0, true)
 			_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(cmdsList, " && ")), 0, true, "printCmd")
 		}
 	}

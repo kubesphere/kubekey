@@ -19,13 +19,12 @@ package kubernetes
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/kubernetes/config/v1beta2"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/kubesphere/kubekey/pkg/kubernetes/config/v1beta2"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
@@ -34,54 +33,42 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	IsInitCluster = true
-	Docker        = "docker"
-	Conatinerd    = "containerd"
-	Crio          = "crio"
-	Isula         = "isula"
-)
-
-// ClusterStatus is used to store cluster status
-type ClusterStatus struct {
-	isExist        bool
-	version        string
-	allNodesInfo   map[string]string
-	kubeconfig     string
-	bootstrapToken string
-	certificateKey string
-}
-
 // GetClusterStatus is used to fetch status and info from cluster.
-func (s *ClusterStatus) GetClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
-	output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, true)
+func GetClusterStatus(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, false)
 	if strings.Contains(output, "Cluster will be created") {
-		s.isExist = false
 		return nil
 	} else {
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/admin.conf")
 		}
 
-		s.isExist = true
-		if output, err := mgr.Runner.ExecuteCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, true); err != nil {
+		mgr.ClusterStatus.IsExist = true
+
+		if output, err := mgr.Runner.ExecuteCmd("sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | awk -F '[:]' '{print $(NF-0)}'", 0, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to find current version")
 		} else {
 			if !strings.Contains(output, "No such file or directory") {
-				s.version = output
+				mgr.ClusterStatus.Version = output
 			}
 		}
 
-		if err := s.loadKubeConfig(mgr); err != nil {
+		if err := loadKubeConfig(mgr); err != nil {
 			return err
 		}
 
-		if err := s.getClusterInfo(mgr); err != nil {
+		if err := getClusterInfo(mgr); err != nil {
 			return err
 		}
 
-		if err := s.getJoinInfo(mgr); err != nil {
-			return err
+		checkKubeadmConfig, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"cat /etc/kubernetes/kubeadm-config.yaml\"", 0, false)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to find /etc/kubernetes/kubeadm-config.yaml")
+		}
+		if (mgr.ClusterStatus.BootstrapToken == "" || mgr.ClusterStatus.CertificateKey == "") && (strings.Contains(checkKubeadmConfig, "InitConfiguration") || strings.Contains(checkKubeadmConfig, "ClusterConfiguration")) {
+			if err := getJoinInfo(mgr); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -89,19 +76,24 @@ func (s *ClusterStatus) GetClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1al
 }
 
 // InitKubernetesCluster is used to init a new cluster.
-func (s *ClusterStatus) InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if mgr.Runner.Index == 0 && !s.isExist {
-		if err := generateKubeadmConfig(mgr, node, IsInitCluster, "", ""); err != nil {
+func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if mgr.Runner.Index == 0 && !mgr.ClusterStatus.IsExist {
+		if err := generateKubeadmConfig(mgr, node, manager.IsInitCluster, "", ""); err != nil {
 			return err
 		}
 
+		resetCmd := "/usr/local/bin/kubeadm reset -f"
+		if mgr.ContainerRuntimeEndpoint != "" {
+			resetCmd = resetCmd + " --cri-socket " + mgr.ContainerRuntimeEndpoint
+		}
+
 		for i := 0; i < 3; i++ {
-			_, err2 := mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl\"", 0, true)
+			_, err2 := mgr.Runner.ExecuteCmd("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl\"", 0, true)
 			if err2 != nil {
 				if i == 2 {
 					return errors.Wrap(errors.WithStack(err2), "Failed to init kubernetes cluster")
 				}
-				_, _ = mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+				_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"%s\"", resetCmd), 0, true)
 			} else {
 				break
 			}
@@ -124,19 +116,24 @@ func (s *ClusterStatus) InitKubernetesCluster(mgr *manager.Manager, node *kubeke
 }
 
 // JoinNodesToCluster is used to join node to Cluster.
-func (s *ClusterStatus) JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if !s.existNode(node) {
-		if err := generateKubeadmConfig(mgr, node, !IsInitCluster, s.bootstrapToken, s.certificateKey); err != nil {
+func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+	if !manager.ExistNode(mgr, node) {
+		if err := generateKubeadmConfig(mgr, node, !manager.IsInitCluster, mgr.ClusterStatus.BootstrapToken, mgr.ClusterStatus.CertificateKey); err != nil {
 			return err
 		}
 
+		resetCmd := "/usr/local/bin/kubeadm reset -f"
+		if mgr.ContainerRuntimeEndpoint != "" {
+			resetCmd = resetCmd + " --cri-socket " + mgr.ContainerRuntimeEndpoint
+		}
+
 		for i := 0; i < 3; i++ {
-			_, err := mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml\"", 0, true)
+			_, err := mgr.Runner.ExecuteCmd("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"/usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml\"", 0, true)
 			if err != nil {
 				if i == 2 {
 					return errors.Wrap(errors.WithStack(err), "Failed to add master to cluster")
 				}
-				_, _ = mgr.Runner.ExecuteCmd("sudo env PATH=$PATH /bin/sh -c \"/usr/local/bin/kubeadm reset -f\"", 0, true)
+				_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"%s\"", resetCmd), 0, true)
 			} else {
 				break
 			}
@@ -150,14 +147,10 @@ func (s *ClusterStatus) JoinNodesToCluster(mgr *manager.Manager, node *kubekeyap
 			if err1 != nil {
 				return err1
 			}
-			err2 := addWorkerLabel(mgr, node)
-			if err2 != nil {
-				return err2
-			}
 		}
 
 		if node.IsWorker && !node.IsMaster {
-			if err := s.getKubeConfigForWorker(mgr); err != nil {
+			if err := getKubeConfigForWorker(mgr); err != nil {
 				return err
 			}
 		}
@@ -171,7 +164,7 @@ func (s *ClusterStatus) JoinNodesToCluster(mgr *manager.Manager, node *kubekeyap
 }
 
 // loadKubeConfig is used to download the kubeconfig to local and store it in the states.
-func (s *ClusterStatus) loadKubeConfig(mgr *manager.Manager) error {
+func loadKubeConfig(mgr *manager.Manager) error {
 	kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
 	kubeConfigStr, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", kubeCfgBase64Cmd), 1, false)
 	if err1 != nil {
@@ -191,14 +184,14 @@ func (s *ClusterStatus) loadKubeConfig(mgr *manager.Manager) error {
 	if err := ioutil.WriteFile(kubeConfigPath, []byte(newKubeconfigStr), 0644); err != nil {
 		return err
 	}
-	s.kubeconfig = newKubeconfigStr
+	mgr.ClusterStatus.Kubeconfig = newKubeconfigStr
 	return nil
 }
 
 // getClusterInfo is used to fetch cluster's nodes info.
-func (s *ClusterStatus) getClusterInfo(mgr *manager.Manager) error {
-	var allNodesInfo map[string]string
-	clusterInfo, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl --no-headers=true get nodes -o custom-columns=:metadata.name,:status.nodeInfo.kubeletVersion,:status.addresses\"", 5, true)
+func getClusterInfo(mgr *manager.Manager) error {
+	allNodesInfo := map[string]string{}
+	clusterInfo, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl --no-headers=true get nodes -o custom-columns=:metadata.name,:status.nodeInfo.kubeletVersion,:status.addresses\"", 5, false)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to get cluster info")
 	}
@@ -226,44 +219,46 @@ func (s *ClusterStatus) getClusterInfo(mgr *manager.Manager) error {
 			}
 		}
 	}
-	s.allNodesInfo = allNodesInfo
+
+	mgr.ClusterStatus.AllNodesInfo = allNodesInfo
+
 	return nil
 }
 
 // getJoinInfo is used to fetch parameters (bootstrapToken and certificateKey) information when adding nodes.
-func (s *ClusterStatus) getJoinInfo(mgr *manager.Manager) error {
+func getJoinInfo(mgr *manager.Manager) error {
 	uploadCertsCmd := "/usr/local/bin/kubeadm init phase upload-certs --config=/etc/kubernetes/kubeadm-config.yaml --upload-certs"
-	output, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", uploadCertsCmd), 5, true)
+	output, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", uploadCertsCmd), 5, false)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to upload kubeadm certs")
 	}
 	reg := regexp.MustCompile("[0-9|a-z]{64}")
-	s.certificateKey = reg.FindAllString(output, -1)[0]
+	mgr.ClusterStatus.CertificateKey = reg.FindAllString(output, -1)[0]
 	err1 := patchKubeadmSecret(mgr)
 	if err1 != nil {
 		return err1
 	}
 
 	tokenCreateMasterCmd := "/usr/local/bin/kubeadm token create"
-	output, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", tokenCreateMasterCmd), 5, true)
+	output, err2 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", tokenCreateMasterCmd), 5, false)
 	if err2 != nil {
 		return errors.Wrap(errors.WithStack(err2), "Failed to create kubeadm token")
 	}
 	reg = regexp.MustCompile("[0-9|a-z]{6}.[0-9|a-z]{16}")
-	s.bootstrapToken = reg.FindAllString(output, -1)[0]
+	mgr.ClusterStatus.BootstrapToken = reg.FindAllString(output, -1)[0]
 
 	return nil
 }
 
 // getKubeConfigForWorker is used to sync kubeconfig to workers' ~/.kube/config .
-func (s *ClusterStatus) getKubeConfigForWorker(mgr *manager.Manager) error {
+func getKubeConfigForWorker(mgr *manager.Manager) error {
 	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
 	chownKubeConfig := "chown $(id -u):$(id -g) -R $HOME/.kube"
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
 	}
-	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", s.kubeconfig, "/root/.kube/config")
-	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", s.kubeconfig, "$HOME/.kube/config", chownKubeConfig)
+	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", base64.StdEncoding.EncodeToString([]byte(mgr.ClusterStatus.Kubeconfig)), "/root/.kube/config")
+	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", base64.StdEncoding.EncodeToString([]byte(mgr.ClusterStatus.Kubeconfig)), "$HOME/.kube/config", chownKubeConfig)
 	if _, err := mgr.Runner.ExecuteCmd(syncKubeconfigForRootCmd, 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}
@@ -313,7 +308,7 @@ func addWorkerLabel(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) erro
 func patchKubeadmSecret(mgr *manager.Manager) error {
 	externalEtcdCerts := []string{"external-etcd-ca.crt", "external-etcd.crt", "external-etcd.key"}
 	for _, cert := range externalEtcdCerts {
-		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl patch -n kube-system secret kubeadm-certs -p '{\\\"data\\\": {\\\"%s\\\": \\\"\\\"}}'\"", cert), 5, true)
+		_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl patch -n kube-system secret kubeadm-certs -p '{\\\"data\\\": {\\\"%s\\\": \\\"\\\"}}'\"", cert), 5, false)
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "Failed to patch kubeadm secret")
 		}
