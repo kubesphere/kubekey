@@ -36,8 +36,7 @@ type FlannelCfg struct {
 	Backend     BackendCfg `yaml:"backend" json:"backend,omitempty"`
 }
 type BackendCfg struct {
-	Type          string `yaml:"type" json:"type,omitempty"`
-	Directrouting bool   `yaml:"directRouting" json:"directRouting,omitempty"`
+	Directrouting bool `yaml:"directRouting" json:"directRouting,omitempty"`
 }
 
 type KubeovnCfg struct {
