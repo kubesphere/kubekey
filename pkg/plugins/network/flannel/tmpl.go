@@ -256,6 +256,6 @@ func GenerateFlannelFiles(mgr *manager.Manager) (string, error) {
 		"KubePodsCIDR":  mgr.Cluster.Network.KubePodsCIDR,
 		"FlannelImage":  preinstall.GetImage(mgr, "flannel").ImageName(),
 		"BackendMode":   mgr.Cluster.Network.Flannel.BackendMode,
-		"Directrouting": mgr.Cluster.Network.Flannel.Backend.Directrouting,
+		"Directrouting": mgr.Cluster.Network.Flannel.Directrouting,
 	})
 }
