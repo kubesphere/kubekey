@@ -16,11 +16,6 @@ import (
 	"strings"
 )
 
-const (
-	ClusterStatus = "ClusterStatus"
-	ClusterExist  = "clusterExist"
-)
-
 type GetClusterStatus struct {
 	common.KubeAction
 }
@@ -32,12 +27,12 @@ func (g *GetClusterStatus) Execute(runtime connector.Runtime) error {
 	}
 
 	if !exist {
-		g.RootCache.Set(ClusterExist, false)
+		g.PipelineCache.Set(common.ClusterExist, false)
 		return nil
 	} else {
-		g.RootCache.Set(ClusterExist, true)
+		g.PipelineCache.Set(common.ClusterExist, true)
 
-		if v, ok := g.RootCache.Get(ClusterStatus); ok {
+		if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
 			cluster := v.(*KubernetesStatus)
 			if err := cluster.SearchVersion(runtime); err != nil {
 				return err
@@ -57,7 +52,7 @@ func (g *GetClusterStatus) Execute(runtime connector.Runtime) error {
 			if err := cluster.SearchNodesInfo(runtime); err != nil {
 				return err
 			}
-			g.RootCache.Set(ClusterStatus, cluster)
+			g.PipelineCache.Set(common.ClusterStatus, cluster)
 		} else {
 			return errors.New("get kubernetes cluster status by pipeline cache failed")
 		}
@@ -70,7 +65,7 @@ type SyncKubeBinary struct {
 }
 
 func (i *SyncKubeBinary) Execute(runtime connector.Runtime) error {
-	binariesMapObj, ok := i.RootCache.Get(common.KubeBinaries)
+	binariesMapObj, ok := i.PipelineCache.Get(common.KubeBinaries)
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}
@@ -323,12 +318,12 @@ type GetJoinCmd struct {
 }
 
 func (g *GetJoinCmd) Execute(runtime connector.Runtime) error {
-	if v, ok := g.RootCache.Get(ClusterStatus); ok {
+	if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 		if err := cluster.SearchJoinCmd(runtime); err != nil {
 			return err
 		}
-		g.RootCache.Set(ClusterStatus, cluster)
+		g.PipelineCache.Set(common.ClusterStatus, cluster)
 	} else {
 		return errors.New("get kubernetes cluster status by pipeline cache failed")
 	}
@@ -340,12 +335,12 @@ type GetKubeConfig struct {
 }
 
 func (g *GetKubeConfig) Execute(runtime connector.Runtime) error {
-	if v, ok := g.RootCache.Get(ClusterStatus); ok {
+	if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 		if err := cluster.SearchKubeConfig(runtime); err != nil {
 			return err
 		}
-		g.RootCache.Set(ClusterStatus, cluster)
+		g.PipelineCache.Set(common.ClusterStatus, cluster)
 	} else {
 		return errors.New("get kubernetes cluster status by pipeline cache failed")
 	}
@@ -357,12 +352,12 @@ type LoadKubeConfig struct {
 }
 
 func (l *LoadKubeConfig) Execute(runtime connector.Runtime) error {
-	if v, ok := l.RootCache.Get(ClusterStatus); ok {
+	if v, ok := l.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 		if err := cluster.LoadKubeConfig(runtime, l.KubeConf); err != nil {
 			return err
 		}
-		l.RootCache.Set(ClusterStatus, cluster)
+		l.PipelineCache.Set(common.ClusterStatus, cluster)
 	} else {
 		return errors.New("get kubernetes cluster status by pipeline cache failed")
 	}
@@ -375,7 +370,7 @@ type AddMasterNode struct {
 
 func (a *AddMasterNode) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
-	if v, ok := a.RootCache.Get(ClusterStatus); ok {
+	if v, ok := a.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 			fmt.Sprintf("%s --apiserver-advertise-address %s", cluster.JoinMasterCmd, host.GetInternalAddress())),
@@ -392,7 +387,7 @@ type AddWorkerNode struct {
 }
 
 func (a *AddWorkerNode) Execute(runtime connector.Runtime) error {
-	if v, ok := a.RootCache.Get(ClusterStatus); ok {
+	if v, ok := a.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 		if _, err := runtime.GetRunner().SudoCmd(cluster.JoinWorkerCmd, true); err != nil {
 			_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
@@ -407,7 +402,7 @@ type SyncKubeConfig struct {
 }
 
 func (s *SyncKubeConfig) Execute(runtime connector.Runtime) error {
-	if v, ok := s.RootCache.Get(ClusterStatus); ok {
+	if v, ok := s.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 
 		createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"

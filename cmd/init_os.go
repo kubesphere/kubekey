@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/bootstrap/dependencies"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +26,13 @@ var osCmd = &cobra.Command{
 	Use:   "os",
 	Short: "Init operating system",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := util.InitLogger(opt.Verbose)
-		return dependencies.InitDependencies(opt.ClusterCfgFile, opt.SourcesDir, opt.AddImagesRepo, logger)
+		arg := common.Argument{
+			FilePath:      opt.ClusterCfgFile,
+			SourcesDir:    opt.SourcesDir,
+			AddImagesRepo: opt.AddImagesRepo,
+			Debug:         opt.Verbose,
+		}
+		return pipelines.InitDependencies(arg)
 	},
 }
 

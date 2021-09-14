@@ -7,22 +7,22 @@ import (
 )
 
 type BaseModule struct {
-	Name      string
-	Desc      string
-	Skip      bool
-	Cache     *cache.Cache
-	RootCache *cache.Cache
-	Runtime   connector.ModuleRuntime
+	Name          string
+	Desc          string
+	Skip          bool
+	ModuleCache   *cache.Cache
+	PipelineCache *cache.Cache
+	Runtime       connector.ModuleRuntime
 }
 
 func (b *BaseModule) IsSkip() bool {
 	return b.Skip
 }
 
-func (b *BaseModule) Default(runtime connector.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
+func (b *BaseModule) Default(runtime connector.Runtime, pipelineCache *cache.Cache, moduleCache *cache.Cache) {
 	b.Runtime = runtime
-	b.RootCache = rootCache
-	b.Cache = moduleCache
+	b.PipelineCache = pipelineCache
+	b.ModuleCache = moduleCache
 }
 
 func (b *BaseModule) Init() {

@@ -20,10 +20,6 @@ func (n *NodeBinariesModule) Init() {
 
 func (n *NodeBinariesModule) Run() error {
 	cfg := n.KubeConf.Cluster
-	//currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	//if err != nil {
-	//	return errors.Wrap(err, "Failed to get current directory")
-	//}
 
 	var kubeVersion string
 	if cfg.Kubernetes.Version == "" {
@@ -46,7 +42,6 @@ func (n *NodeBinariesModule) Run() error {
 
 	for arch := range archMap {
 		binariesDir := filepath.Join(n.Runtime.GetWorkDir(), kubeVersion, arch)
-		//binariesDir := fmt.Sprintf("%s/%s/%s/%s", currentDir, kubekeyapiv1alpha1.DefaultPreDir, kubeVersion, arch)
 		if err := util.CreateDir(binariesDir); err != nil {
 			return errors.Wrap(err, "Failed to create download target dir")
 		}
@@ -57,7 +52,7 @@ func (n *NodeBinariesModule) Run() error {
 				return err
 			}
 		default:
-			if err := K8sFilesDownloadHTTP(n.KubeConf, binariesDir, kubeVersion, arch, n.RootCache); err != nil {
+			if err := K8sFilesDownloadHTTP(n.KubeConf, binariesDir, kubeVersion, arch, n.PipelineCache); err != nil {
 				return err
 			}
 		}

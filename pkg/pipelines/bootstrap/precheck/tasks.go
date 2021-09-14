@@ -1,4 +1,4 @@
-package initialization
+package precheck
 
 import (
 	"fmt"
@@ -48,14 +48,13 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		results["time"] = strings.TrimSpace(output)
 	}
 
-	if res, ok := n.RootCache.Get("nodePreCheck"); ok {
-		m := res.(map[string]map[string]string)
-		m[runtime.RemoteHost().GetName()] = results
-		n.RootCache.Set("nodePreCheck", m)
+	host := runtime.RemoteHost()
+	if res, ok := host.GetCache().Get(common.NodePreCheck); ok {
+		m := res.(map[string]string)
+		m = results
+		host.GetCache().Set(common.NodePreCheck, m)
 	} else {
-		checkResults := make(map[string]map[string]string)
-		checkResults[runtime.RemoteHost().GetName()] = results
-		n.RootCache.Set("nodePreCheck", checkResults)
+		host.GetCache().Set(common.NodePreCheck, results)
 	}
 	return nil
 }

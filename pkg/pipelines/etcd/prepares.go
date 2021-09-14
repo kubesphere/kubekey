@@ -13,11 +13,11 @@ type FirstETCDNode struct {
 }
 
 func (f *FirstETCDNode) PreCheck(runtime connector.Runtime) (bool, error) {
-	v, ok := f.RootCache.Get(ETCDCluster)
+	v, ok := f.PipelineCache.Get(common.ETCDCluster)
 	if !ok {
 		return false, errors.New("get etcd cluster status by pipeline cache failed")
 	}
-	cluster := v.(EtcdCluster)
+	cluster := v.(*EtcdCluster)
 
 	if (!cluster.clusterExist && runtime.GetHostsByRole(common.ETCD)[0].GetName() == runtime.RemoteHost().GetName()) ||
 		(cluster.clusterExist && strings.Contains(cluster.peerAddresses[0], runtime.RemoteHost().GetInternalAddress())) {
@@ -33,8 +33,8 @@ type NodeETCDExist struct {
 
 func (n *NodeETCDExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	host := runtime.RemoteHost()
-	if v, ok := host.GetLabel(ETCDExist); ok {
-		if v == "true" {
+	if v, ok := host.GetCache().GetMustBool(common.ETCDExist); ok {
+		if v {
 			return !n.Not, nil
 		} else {
 			return n.Not, nil

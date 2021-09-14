@@ -7,8 +7,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/addons"
 	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
 	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/initialization"
 	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/os"
+	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/continer/docker"
 	"github.com/kubesphere/kubekey/pkg/pipelines/etcd"
@@ -24,7 +24,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	isK3s := runtime.Cluster.Kubernetes.Type == "k3s"
 
 	m := []modules.Module{
-		&initialization.NodeInitializationModule{Skip: isK3s},
+		&precheck.NodePreCheckModule{Skip: isK3s},
 		&confirm.InstallConfirmModule{Skip: isK3s},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},

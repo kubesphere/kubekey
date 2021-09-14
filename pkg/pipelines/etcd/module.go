@@ -161,8 +161,8 @@ type ETCDModule struct {
 func (e *ETCDModule) Init() {
 	e.Name = "ETCDModule"
 
-	if v, ok := e.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
+	if v, ok := e.PipelineCache.Get(common.ETCDCluster); ok {
+		cluster := v.(*EtcdCluster)
 		if !cluster.clusterExist {
 			e.Tasks = handleNewCluster(e)
 		} else {

@@ -99,3 +99,47 @@ func (c *ClearOSEnvironmentModule) Init() {
 		daemonReload,
 	}
 }
+
+type InitDependenciesModule struct {
+	common.KubeModule
+}
+
+func (i *InitDependenciesModule) Init() {
+	i.Name = "InitDependenciesModule"
+
+	getOSData := &modules.Task{
+		Name:     "GetOSData",
+		Desc:     "Get OS release",
+		Hosts:    i.Runtime.GetAllHosts(),
+		Action:   new(GetOSData),
+		Parallel: true,
+	}
+
+	onlineInstall := &modules.Task{
+		Name:     "OnlineInstallDependencies",
+		Desc:     "Online install dependencies",
+		Hosts:    i.Runtime.GetAllHosts(),
+		Action:   new(OnlineInstallDependencies),
+		Parallel: true,
+	}
+
+	offlineInstall := &modules.Task{
+		Name:     "OnlineInstallDependencies",
+		Desc:     "Online install dependencies",
+		Hosts:    i.Runtime.GetAllHosts(),
+		Action:   new(OfflineInstallDependencies),
+		Parallel: true,
+	}
+
+	if i.KubeConf.Arg.SourcesDir == "" {
+		i.Tasks = []*modules.Task{
+			getOSData,
+			onlineInstall,
+		}
+	} else {
+		i.Tasks = []*modules.Task{
+			getOSData,
+			offlineInstall,
+		}
+	}
+}
