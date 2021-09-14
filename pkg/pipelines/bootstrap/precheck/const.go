@@ -1,4 +1,4 @@
-package initialization
+package precheck
 
 const (
 	// command software

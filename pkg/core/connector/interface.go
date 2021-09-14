@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"io"
 	"os"
 )
@@ -65,7 +66,7 @@ type Host interface {
 	GetRoles() []string
 	SetRoles(roles []string)
 	IsRole(role string) bool
-	SetLabel(k, v string)
-	GetLabel(k string) (string, bool)
+	GetCache() *cache.Cache
+	SetCache(c *cache.Cache)
 	Copy() Host
 }

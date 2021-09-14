@@ -19,10 +19,10 @@ type haproxyPreparatoryWork struct {
 }
 
 func (h *haproxyPreparatoryWork) Execute(runtime connector.Runtime) error {
-	if err := runtime.GetRunner().MkDir(HaproxyDir); err != nil {
+	if err := runtime.GetRunner().MkDir(common.HaproxyDir); err != nil {
 		return err
 	}
-	if err := runtime.GetRunner().Chmod(HaproxyDir, os.FileMode(0777)); err != nil {
+	if err := runtime.GetRunner().Chmod(common.HaproxyDir, os.FileMode(0777)); err != nil {
 		return err
 	}
 	return nil
@@ -33,11 +33,13 @@ type getChecksum struct {
 }
 
 func (g *getChecksum) Execute(runtime connector.Runtime) error {
-	md5Str, err := runtime.GetRunner().FileMd5(filepath.Join(HaproxyDir, "haproxy.cfg"))
+	md5Str, err := runtime.GetRunner().FileMd5(filepath.Join(common.HaproxyDir, "haproxy.cfg"))
 	if err != nil {
 		return err
 	}
-	g.Cache.Set("md5", md5Str)
+	host := runtime.RemoteHost()
+	// type: string
+	host.GetCache().Set("md5", md5Str)
 	return nil
 }
 
@@ -46,9 +48,10 @@ type GenerateHaproxyManifest struct {
 }
 
 func (g *GenerateHaproxyManifest) Execute(runtime connector.Runtime) error {
-	md5Str, ok := g.Cache.GetMustString("md5")
+	host := runtime.RemoteHost()
+	md5Str, ok := host.GetCache().GetMustString("md5")
 	if !ok {
-		return errors.New("get haproxy config md5 sum by module cache failed")
+		return errors.New("get haproxy config md5 sum by host label failed")
 	}
 
 	templateAction := action.Template{

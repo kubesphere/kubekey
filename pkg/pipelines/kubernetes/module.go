@@ -17,7 +17,7 @@ func (k *KubernetesStatusModule) Init() {
 	k.Name = "KubernetesStatusModule"
 
 	cluster := NewKubernetesStatus()
-	k.RootCache.Set(ClusterStatus, cluster)
+	k.RootCache.Set(common.ClusterStatus, cluster)
 
 	clusterStatus := &modules.Task{
 		Name:     "GetClusterStatus",
@@ -68,7 +68,6 @@ func (i *InstallKubeBinariesModule) Init() {
 		Action: &action.Template{
 			Template: templates.KubeletService,
 			Dst:      filepath.Join("/etc/systemd/system/", templates.KubeletService.Name()),
-			// todo: maybe need to transfer util.data{}
 		},
 		Parallel: true,
 		Retry:    2,
@@ -233,7 +232,7 @@ type JoinNodesModule struct {
 func (j *JoinNodesModule) Init() {
 	j.Name = "JoinNodesModule"
 
-	j.RootCache.Set(ClusterExist, true)
+	j.RootCache.Set(common.ClusterExist, true)
 
 	addMaster := &modules.Task{
 		Name:  "AddMasterNode",

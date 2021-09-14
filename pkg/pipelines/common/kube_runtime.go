@@ -5,6 +5,7 @@ import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
+	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
 
@@ -102,7 +103,7 @@ func ToHosts(cfg kubekeyapiv1alpha1.HostCfg) *connector.BaseHost {
 		Arch:            cfg.Arch,
 		Roles:           make([]string, 0, 0),
 		RoleTable:       make(map[string]bool),
-		Labels:          make(map[string]string),
+		Cache:           cache.NewCache(),
 	}
 	return host
 }
