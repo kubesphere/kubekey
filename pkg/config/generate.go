@@ -61,7 +61,6 @@ spec:
     port: 6443
   kubernetes:
     version: {{ .Options.KubeVersion }}
-    imageRepo: kubesphere
     clusterName: cluster.local
   network:
     plugin: calico

@@ -17,11 +17,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"encoding/base64"
 	"fmt"
 	osrelease "github.com/dominodatalab/os-release"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/container-engine/docker"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
 	"github.com/pkg/errors"
@@ -93,11 +91,6 @@ func initOS(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 			return err
 		}
 
-		dockerConfig, err := docker.GenerateDockerConfig(mgr)
-		if err != nil {
-			return err
-		}
-		dockerConfigBase64 := base64.StdEncoding.EncodeToString([]byte(dockerConfig))
 		mgr.Logger.Info(fmt.Sprintf("Start initializing %s [%s]\n", node.Name, node.InternalAddress))
 		if mgr.SourcesDir == "" {
 			switch strings.TrimSpace(pkgToolStr) {
@@ -115,11 +108,6 @@ func initOS(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 				}
 			default:
 				return errors.New(fmt.Sprintf("Unsupported operating system: %s", osrData.ID))
-			}
-
-			output, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; then curl https://kubernetes.pek3b.qingstor.com/tools/kubekey/docker-install.sh | sh && systemctl enable docker; if [ ! -f /etc/docker/daemon.json ]; then mkdir -p /etc/docker && echo %s | base64 -d > /etc/docker/daemon.json; fi; systemctl daemon-reload && systemctl restart docker; fi\"", dockerConfigBase64), 0, false)
-			if err1 != nil {
-				return errors.Wrap(errors.WithStack(err1), fmt.Sprintf("Failed to install docker:\n%s", output))
 			}
 		} else {
 			fp, err := filepath.Abs(mgr.SourcesDir)
@@ -145,8 +133,6 @@ func initOS(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 			default:
 				return errors.New(fmt.Sprintf("Unsupported operating system: %s", osrData.ID))
 			}
-
-			_, _ = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"systemctl start docker && systemctl enable docker; if [ ! -f /etc/docker/daemon.json ]; then mkdir -p /etc/docker && echo %s | base64 -d > /etc/docker/daemon.json; fi; systemctl daemon-reload && systemctl restart docker\"", dockerConfigBase64), 0, false)
 		}
 		mgr.Logger.Info(fmt.Sprintf("Complete initialization %s [%s]\n", node.Name, node.InternalAddress))
 	}
