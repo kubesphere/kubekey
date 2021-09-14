@@ -43,15 +43,16 @@ func (g *GetClusterStatus) Execute(runtime connector.Runtime) error {
 			if err := cluster.LoadKubeConfig(runtime, g.KubeConf); err != nil {
 				return err
 			}
-			if err := cluster.SearchJoinCmd(runtime); err != nil {
-				return err
-			}
-			if err := cluster.SearchInfo(runtime); err != nil {
+			if err := cluster.SearchClusterInfo(runtime); err != nil {
 				return err
 			}
 			if err := cluster.SearchNodesInfo(runtime); err != nil {
 				return err
 			}
+			if err := cluster.SearchJoinInfo(runtime); err != nil {
+				return err
+			}
+
 			g.PipelineCache.Set(common.ClusterStatus, cluster)
 		} else {
 			return errors.New("get kubernetes cluster status by pipeline cache failed")
@@ -167,6 +168,7 @@ func (g *GenerateKubeletEnv) Execute(runtime connector.Runtime) error {
 
 type GenerateKubeadmConfig struct {
 	common.KubeAction
+	IsInitConfiguration bool
 }
 
 func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
@@ -219,16 +221,40 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 			containerRuntimeEndpoint = g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint
 		}
 
+		checkCgroupDriver, err := v1beta2.GetKubeletCgroupDriver(runtime, g.KubeConf)
+		if err != nil {
+			return err
+		}
+
+		var (
+			bootstrapToken, certificateKey string
+			controlPlaneAddr               string
+			// todo: if port needed
+		)
+		if !g.IsInitConfiguration {
+			if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
+				cluster := v.(*KubernetesStatus)
+				bootstrapToken = cluster.BootstrapToken
+				certificateKey = cluster.CertificateKey
+				controlPlaneAddr = host.GetInternalAddress()
+			} else {
+				return errors.New("get kubernetes cluster status by pipeline cache failed")
+			}
+		} else {
+			controlPlaneAddr = g.KubeConf.Cluster.ControlPlaneEndpoint.Address
+		}
+
 		templateAction := action.Template{
 			Template: v1beta2.KubeadmConfig,
 			Dst:      filepath.Join(common.KubeConfigDir, v1beta2.KubeadmConfig.Name()),
 			Data: util.Data{
+				"IsInitCluster":          g.IsInitConfiguration,
 				"ImageRepo":              strings.TrimSuffix(images.GetImage(runtime, g.KubeConf, "kube-apiserver").ImageRepo(), "/kube-apiserver"),
 				"CorednsRepo":            strings.TrimSuffix(images.GetImage(runtime, g.KubeConf, "coredns").ImageRepo(), "/coredns"),
 				"CorednsTag":             images.GetImage(runtime, g.KubeConf, "coredns").Tag,
 				"Version":                g.KubeConf.Cluster.Kubernetes.Version,
 				"ClusterName":            g.KubeConf.Cluster.Kubernetes.ClusterName,
-				"ControlPlanAddr":        g.KubeConf.Cluster.ControlPlaneEndpoint.Address,
+				"ControlPlanAddr":        controlPlaneAddr,
 				"ControlPlanPort":        g.KubeConf.Cluster.ControlPlaneEndpoint.Port,
 				"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", g.KubeConf.Cluster.ControlPlaneEndpoint.Domain, g.KubeConf.Cluster.ControlPlaneEndpoint.Port),
 				"PodSubnet":              g.KubeConf.Cluster.Network.KubePodsCIDR,
@@ -244,6 +270,10 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"SchedulerArgs":          SchedulerArgs,
 				"KubeletConfiguration":   v1beta2.GetKubeletConfiguration(runtime, g.KubeConf, containerRuntimeEndpoint),
 				"KubeProxyConfiguration": v1beta2.GetKubeProxyConfiguration(g.KubeConf),
+				"IsControlPlane":         host.IsRole(common.Master),
+				"CgroupDriver":           checkCgroupDriver,
+				"BootstrapToken":         bootstrapToken,
+				"CertificateKey":         certificateKey,
 			},
 		}
 
@@ -270,11 +300,11 @@ func (k *KubeadmInit) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type CopyKubeConfig struct {
+type CopyKubeConfigForControlPlane struct {
 	common.KubeAction
 }
 
-func (c *CopyKubeConfig) Execute(runtime connector.Runtime) error {
+func (c *CopyKubeConfigForControlPlane) Execute(runtime connector.Runtime) error {
 	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
 	getKubeConfigCmd := "cp -f /etc/kubernetes/admin.conf /root/.kube/config"
 	getKubeConfigCmdUsr := "cp -f /etc/kubernetes/admin.conf $HOME/.kube/config"
@@ -313,95 +343,24 @@ func (a *AddWorkerLabel) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type GetJoinCmd struct {
+type JoinNode struct {
 	common.KubeAction
 }
 
-func (g *GetJoinCmd) Execute(runtime connector.Runtime) error {
-	if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
-		cluster := v.(*KubernetesStatus)
-		if err := cluster.SearchJoinCmd(runtime); err != nil {
-			return err
-		}
-		g.PipelineCache.Set(common.ClusterStatus, cluster)
-	} else {
-		return errors.New("get kubernetes cluster status by pipeline cache failed")
+func (j *JoinNode) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml",
+		true); err != nil {
+		_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
+		return errors.Wrap(errors.WithStack(err), "join node failed")
 	}
 	return nil
 }
 
-type GetKubeConfig struct {
+type SyncKubeConfigToWorker struct {
 	common.KubeAction
 }
 
-func (g *GetKubeConfig) Execute(runtime connector.Runtime) error {
-	if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
-		cluster := v.(*KubernetesStatus)
-		if err := cluster.SearchKubeConfig(runtime); err != nil {
-			return err
-		}
-		g.PipelineCache.Set(common.ClusterStatus, cluster)
-	} else {
-		return errors.New("get kubernetes cluster status by pipeline cache failed")
-	}
-	return nil
-}
-
-type LoadKubeConfig struct {
-	common.KubeAction
-}
-
-func (l *LoadKubeConfig) Execute(runtime connector.Runtime) error {
-	if v, ok := l.PipelineCache.Get(common.ClusterStatus); ok {
-		cluster := v.(*KubernetesStatus)
-		if err := cluster.LoadKubeConfig(runtime, l.KubeConf); err != nil {
-			return err
-		}
-		l.PipelineCache.Set(common.ClusterStatus, cluster)
-	} else {
-		return errors.New("get kubernetes cluster status by pipeline cache failed")
-	}
-	return nil
-}
-
-type AddMasterNode struct {
-	common.KubeAction
-}
-
-func (a *AddMasterNode) Execute(runtime connector.Runtime) error {
-	host := runtime.RemoteHost()
-	if v, ok := a.PipelineCache.Get(common.ClusterStatus); ok {
-		cluster := v.(*KubernetesStatus)
-		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
-			fmt.Sprintf("%s --apiserver-advertise-address %s", cluster.JoinMasterCmd, host.GetInternalAddress())),
-			true); err != nil {
-			_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
-			return errors.Wrap(errors.WithStack(err), "join master failed")
-		}
-	}
-	return nil
-}
-
-type AddWorkerNode struct {
-	common.KubeAction
-}
-
-func (a *AddWorkerNode) Execute(runtime connector.Runtime) error {
-	if v, ok := a.PipelineCache.Get(common.ClusterStatus); ok {
-		cluster := v.(*KubernetesStatus)
-		if _, err := runtime.GetRunner().SudoCmd(cluster.JoinWorkerCmd, true); err != nil {
-			_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
-			return errors.Wrap(errors.WithStack(err), "join master failed")
-		}
-	}
-	return nil
-}
-
-type SyncKubeConfig struct {
-	common.KubeAction
-}
-
-func (s *SyncKubeConfig) Execute(runtime connector.Runtime) error {
+func (s *SyncKubeConfigToWorker) Execute(runtime connector.Runtime) error {
 	if v, ok := s.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 

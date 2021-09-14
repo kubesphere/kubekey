@@ -25,6 +25,8 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	kubectl := files.KubeBinary{Name: "kubectl", Arch: arch, Version: version}
 	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCniVersion}
 	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapiv1alpha1.DefaultHelmVersion}
+	docker := files.KubeBinary{Name: "docker", Arch: arch, Version: kubekeyapiv1alpha1.DefaultDockerVersion}
+	crictl := files.KubeBinary{Name: "crictl", Arch: arch, Version: kubekeyapiv1alpha1.DefaultCrictlVersion}
 
 	etcd.Path = fmt.Sprintf("%s/etcd-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultEtcdVersion, arch)
 	kubeadm.Path = fmt.Sprintf("%s/kubeadm", filepath)
@@ -32,6 +34,8 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	kubectl.Path = fmt.Sprintf("%s/kubectl", filepath)
 	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, arch, kubekeyapiv1alpha1.DefaultCniVersion)
 	helm.Path = fmt.Sprintf("%s/helm", filepath)
+	docker.Path = fmt.Sprintf("%s/docker-%s.tgz", filepath, kubekeyapiv1alpha1.DefaultDockerVersion)
+	crictl.Path = fmt.Sprintf("%s/crictl-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultCrictlVersion, arch)
 
 	if kkzone == "cn" {
 		etcd.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
@@ -41,6 +45,8 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		kubecni.Url = fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
 		helm.GetCmd = kubeConf.Arg.DownloadCommand(helm.Path, helm.Url)
+		docker.Url = fmt.Sprintf("https://mirrors.aliyun.com/docker-ce/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(docker.Arch), docker.Version)
+		crictl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", kubekeyapiv1alpha1.DefaultCrictlVersion, kubekeyapiv1alpha1.DefaultCrictlVersion, arch)
 	} else {
 		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
@@ -50,6 +56,8 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		helm.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", helm.Version, helm.Arch)
 		getCmd := kubeConf.Arg.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
 		helm.GetCmd = fmt.Sprintf("%s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", getCmd, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
+		docker.Url = fmt.Sprintf("https://download.docker.com/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(docker.Arch), docker.Version)
+		crictl.Url = fmt.Sprintf("https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", kubekeyapiv1alpha1.DefaultCrictlVersion, kubekeyapiv1alpha1.DefaultCrictlVersion, arch)
 	}
 
 	kubeadm.GetCmd = kubeConf.Arg.DownloadCommand(kubeadm.Path, kubeadm.Url)
@@ -57,8 +65,10 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	kubectl.GetCmd = kubeConf.Arg.DownloadCommand(kubectl.Path, kubectl.Url)
 	kubecni.GetCmd = kubeConf.Arg.DownloadCommand(kubecni.Path, kubecni.Url)
 	etcd.GetCmd = kubeConf.Arg.DownloadCommand(etcd.Path, etcd.Url)
+	docker.GetCmd = kubeConf.Arg.DownloadCommand(docker.Path, docker.Url)
+	crictl.GetCmd = kubeConf.Arg.DownloadCommand(crictl.Path, crictl.Url)
 
-	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
+	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd, docker, crictl}
 	binariesMap := make(map[string]files.KubeBinary)
 	for _, binary := range binaries {
 		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
@@ -66,7 +76,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		binariesMap[binary.Name] = binary
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
-			if err := K8sSHA256Check(binary, version); err != nil {
+			if err := SHA256Check(binary); err != nil {
 				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
 			} else {
 				continue
@@ -83,7 +93,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 				return errors.New(fmt.Sprintf("Failed to download %s binary: %s", binary.Name, binary.GetCmd))
 			}
 
-			if err := K8sSHA256Check(binary, version); err != nil {
+			if err := SHA256Check(binary); err != nil {
 				if i == 1 {
 					return err
 				}
@@ -109,15 +119,15 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	return nil
 }
 
-// K8sSHA256Check is used to hash checks on downloaded binary. (sha256)
-func K8sSHA256Check(binary files.KubeBinary, version string) error {
+// SHA256Check is used to hash checks on downloaded binary. (sha256)
+func SHA256Check(binary files.KubeBinary) error {
 	output, err := sha256sum(binary.Path)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
 	}
 
 	if strings.TrimSpace(binary.GetSha256()) == "" {
-		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", version, version))
+		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", binary.Version, binary.Version))
 	}
 	if output != binary.GetSha256() {
 		return errors.New(fmt.Sprintf("SHA256 no match. %s not equal %s", binary.GetSha256(), output))
