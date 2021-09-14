@@ -181,13 +181,6 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, 
 		return "", err
 	}
 
-	var controlPlaneAddr string
-	if isInitCluster {
-		controlPlaneAddr = mgr.Cluster.ControlPlaneEndpoint.Address
-	} else {
-		controlPlaneAddr = node.InternalAddress
-	}
-
 	return util.Render(KubeadmCfgTempl, util.Data{
 		"IsInitCluster":          isInitCluster,
 		"ImageRepo":              strings.TrimSuffix(preinstall.GetImage(mgr, "kube-apiserver").ImageRepo(), "/kube-apiserver"),
@@ -195,7 +188,7 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, 
 		"CorednsTag":             preinstall.GetImage(mgr, "coredns").Tag,
 		"Version":                mgr.Cluster.Kubernetes.Version,
 		"ClusterName":            mgr.Cluster.Kubernetes.ClusterName,
-		"ControlPlanAddr":        controlPlaneAddr,
+		"ControlPlanAddr":        node.InternalAddress,
 		"ControlPlanPort":        mgr.Cluster.ControlPlaneEndpoint.Port,
 		"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port),
 		"PodSubnet":              mgr.Cluster.Network.KubePodsCIDR,
@@ -205,7 +198,6 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, 
 		"NodeCidrMaskSize":       mgr.Cluster.Kubernetes.NodeCidrMaskSize,
 		"CriSock":                mgr.ContainerRuntimeEndpoint,
 		"InternalLBDisabled":     !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled(),
-		"AdvertiseAddress":       node.InternalAddress,
 		"ApiServerArgs":          ApiServerArgs,
 		"ControllerManagerArgs":  ControllerManagerArgs,
 		"SchedulerArgs":          SchedulerArgs,
