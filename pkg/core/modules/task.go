@@ -26,17 +26,17 @@ type Task struct {
 	Delay       time.Duration
 	Concurrency float64
 
-	RootCache   *cache.Cache
-	Cache       *cache.Cache
-	Runtime     connector.Runtime
-	tag         string
-	IgnoreError bool
-	TaskResult  *ending.TaskResult
+	PipelineCache *cache.Cache
+	ModuleCache   *cache.Cache
+	Runtime       connector.Runtime
+	tag           string
+	IgnoreError   bool
+	TaskResult    *ending.TaskResult
 }
 
-func (t *Task) Init(moduleName string, runtime connector.Runtime, cache *cache.Cache, rootCache *cache.Cache) {
-	t.Cache = cache
-	t.RootCache = rootCache
+func (t *Task) Init(moduleName string, runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache) {
+	t.ModuleCache = moduleCache
+	t.PipelineCache = pipelineCache
 	t.Runtime = runtime
 	t.Default()
 
@@ -109,7 +109,7 @@ func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, er
 		return
 	}
 
-	t.Prepare.Init(t.Cache, t.RootCache, runtime)
+	t.Prepare.Init(t.ModuleCache, t.PipelineCache, runtime)
 	t.Prepare.AutoAssert()
 	if ok, e := t.WhenWithRetry(runtime); !ok {
 		if e != nil {
@@ -122,7 +122,7 @@ func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, er
 		}
 	}
 
-	t.Action.Init(t.Cache, t.RootCache, runtime)
+	t.Action.Init(t.ModuleCache, t.PipelineCache, runtime)
 	t.Action.AutoAssert()
 	if err := t.ExecuteWithRetry(runtime); err != nil {
 		errCh <- err

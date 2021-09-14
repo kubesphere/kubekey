@@ -13,7 +13,7 @@ type FirstETCDNode struct {
 }
 
 func (f *FirstETCDNode) PreCheck(runtime connector.Runtime) (bool, error) {
-	v, ok := f.RootCache.Get(common.ETCDCluster)
+	v, ok := f.PipelineCache.Get(common.ETCDCluster)
 	if !ok {
 		return false, errors.New("get etcd cluster status by pipeline cache failed")
 	}

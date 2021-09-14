@@ -52,7 +52,7 @@ func (n *NodeBinariesModule) Run() error {
 				return err
 			}
 		default:
-			if err := K8sFilesDownloadHTTP(n.KubeConf, binariesDir, kubeVersion, arch, n.RootCache); err != nil {
+			if err := K8sFilesDownloadHTTP(n.KubeConf, binariesDir, kubeVersion, arch, n.PipelineCache); err != nil {
 				return err
 			}
 		}
