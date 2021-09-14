@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
@@ -8,6 +9,19 @@ import (
 	"github.com/pkg/errors"
 	"sync"
 )
+
+var logo = `
+
+ _   __      _          _   __           
+| | / /     | |        | | / /           
+| |/ / _   _| |__   ___| |/ /  ___ _   _ 
+|    \| | | | '_ \ / _ \    \ / _ \ | | |
+| |\  \ |_| | |_) |  __/ |\  \  __/ |_| |
+\_| \_/\__,_|_.__/ \___\_| \_/\___|\__, |
+                                    __/ |
+                                   |___/
+
+`
 
 type Pipeline struct {
 	Name            string
@@ -18,6 +32,7 @@ type Pipeline struct {
 }
 
 func (p *Pipeline) Init() error {
+	fmt.Print(logo)
 	p.PipelineCache = cache.NewCache()
 	if err := p.Runtime.GenerateWorkDir(); err != nil {
 		return err

@@ -25,25 +25,11 @@ import (
 	"time"
 )
 
-var logo = `
-
- _   __      _          _   __           
-| | / /     | |        | | / /           
-| |/ / _   _| |__   ___| |/ /  ___ _   _ 
-|    \| | | | '_ \ / _ \    \ / _ \ | | |
-| |\  \ |_| | |_) |  __/ |\  \  __/ |_| |
-\_| \_/\__,_|_.__/ \___\_| \_/\___|\__, |
-                                    __/ |
-                                   |___/ 
-
-`
-
 // clusterCmd represents the cluster command
 var clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "Create a Kubernetes or KubeSphere cluster",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println(logo)
 		var ksVersion string
 		if opt.Kubesphere && len(args) > 0 {
 			ksVersion = args[0]
