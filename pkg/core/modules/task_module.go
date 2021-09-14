@@ -23,7 +23,7 @@ func (b *BaseTaskModule) Is() string {
 func (b *BaseTaskModule) Run() error {
 	for i := range b.Tasks {
 		task := b.Tasks[i]
-		task.Init(b.Name, b.Runtime.(connector.Runtime), b.Cache, b.RootCache)
+		task.Init(b.Name, b.Runtime.(connector.Runtime), b.ModuleCache, b.PipelineCache)
 		if res := task.Execute(); res.IsFailed() {
 			return errors.Wrapf(res.CombineErr(), "Module[%s] exec failed", b.Name)
 		}

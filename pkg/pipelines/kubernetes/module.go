@@ -17,7 +17,7 @@ func (k *KubernetesStatusModule) Init() {
 	k.Name = "KubernetesStatusModule"
 
 	cluster := NewKubernetesStatus()
-	k.RootCache.Set(common.ClusterStatus, cluster)
+	k.PipelineCache.Set(common.ClusterStatus, cluster)
 
 	clusterStatus := &modules.Task{
 		Name:     "GetClusterStatus",
@@ -232,7 +232,7 @@ type JoinNodesModule struct {
 func (j *JoinNodesModule) Init() {
 	j.Name = "JoinNodesModule"
 
-	j.RootCache.Set(common.ClusterExist, true)
+	j.PipelineCache.Set(common.ClusterExist, true)
 
 	addMaster := &modules.Task{
 		Name:  "AddMasterNode",

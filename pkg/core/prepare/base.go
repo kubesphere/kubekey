@@ -6,14 +6,14 @@ import (
 )
 
 type BasePrepare struct {
-	Cache     *cache.Cache
-	RootCache *cache.Cache
-	Runtime   connector.Runtime
+	ModuleCache   *cache.Cache
+	PipelineCache *cache.Cache
+	Runtime       connector.Runtime
 }
 
-func (b *BasePrepare) Init(cache *cache.Cache, rootCache *cache.Cache, runtime connector.Runtime) {
-	b.Cache = cache
-	b.RootCache = rootCache
+func (b *BasePrepare) Init(moduleCache *cache.Cache, pipelineCache *cache.Cache, runtime connector.Runtime) {
+	b.ModuleCache = moduleCache
+	b.PipelineCache = pipelineCache
 	b.Runtime = runtime
 }
 
