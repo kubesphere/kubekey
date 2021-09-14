@@ -1,4 +1,4 @@
-package initialization
+package precheck
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -9,17 +9,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-type NodeInitializationModule struct {
+type NodePreCheckModule struct {
 	common.KubeModule
 	Skip bool
 }
 
-func (n *NodeInitializationModule) IsSkip() bool {
+func (n *NodePreCheckModule) IsSkip() bool {
 	return n.Skip
 }
 
-func (n *NodeInitializationModule) Init() {
-	n.Name = "NodeInitializationModule"
+func (n *NodePreCheckModule) Init() {
+	n.Name = "NodePreCheckModule"
 
 	preCheck := &modules.Task{
 		Name:  "NodePreCheck",

@@ -19,9 +19,9 @@ func (b *BaseModule) IsSkip() bool {
 	return b.Skip
 }
 
-func (b *BaseModule) Default(runtime connector.Runtime, rootCache *cache.Cache, moduleCache *cache.Cache) {
+func (b *BaseModule) Default(runtime connector.Runtime, pipelineCache *cache.Cache, moduleCache *cache.Cache) {
 	b.Runtime = runtime
-	b.RootCache = rootCache
+	b.RootCache = pipelineCache
 	b.Cache = moduleCache
 }
 

@@ -49,12 +49,15 @@ func (c *InstallConfirmModule) Run() error {
 		stopFlag bool
 	)
 
-	nodePreChecks, ok := c.RootCache.Get("nodePreCheck")
-	if !ok {
-		return errors.New("get node check result failed")
+	pre := make([]map[string]string, 0, len(c.Runtime.GetAllHosts()))
+	for _, host := range c.Runtime.GetAllHosts() {
+		if v, ok := host.GetCache().Get(common.NodePreCheck); ok {
+			pre = append(pre, v.(map[string]string))
+		} else {
+			return errors.New("get node check result failed")
+		}
 	}
 
-	pre := nodePreChecks.(map[string]map[string]string)
 	for node := range pre {
 		var result PreCheckResults
 		_ = mapstructure.Decode(pre[node], &result)

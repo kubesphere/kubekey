@@ -24,6 +24,8 @@ const (
 
 	ETCDCertDir = "/etc/ssl/etcd/ssl"
 
+	HaproxyDir = "/etc/kubekey/haproxy"
+
 	IPv4Regexp = "[\\d]+\\.[\\d]+\\.[\\d]+\\.[\\d]+"
 	IPv6Regexp = "[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){0,7}::[a-f0-9]{0,4}(:[a-f0-9]{1,4}){0,7}"
 
@@ -31,4 +33,18 @@ const (
 	Flannel = "flannel"
 	Cilium  = "cilium"
 	Kubeovn = "kubeovn"
+
+	// global cache key
+
+	// PreCheckModule
+	NodePreCheck = "nodePreCheck"
+
+	// ETCDModule
+	ETCDCluster = "etcdCluster"
+	ETCDName    = "etcdName"
+	ETCDExist   = "etcdExist"
+
+	// KubernetesModule
+	ClusterStatus = "ClusterStatus"
+	ClusterExist  = "clusterExist"
 )

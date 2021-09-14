@@ -26,10 +26,6 @@ type EtcdCluster struct {
 }
 
 const (
-	ETCDName  = "etcdName"
-	ETCDExist = "etcdExist"
-
-	ETCDCluster   = "etcdCluster"
 	LocalCertsDir = "localCertsDir"
 	CertsFileList = "certsFileList"
 
@@ -48,7 +44,7 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 	}
 
 	host := g.Runtime.RemoteHost()
-	cluster := EtcdCluster{
+	cluster := &EtcdCluster{
 		clusterExist:    true,
 		accessAddresses: "",
 		peerAddresses:   []string{},
@@ -61,26 +57,29 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 		}
 
 		etcdName := etcdEnv[strings.Index(etcdEnv, "=")+1:]
-		host.SetLabel(ETCDName, etcdName)
-		host.SetLabel(ETCDExist, "true")
+		// type: string
+		host.GetCache().Set(common.ETCDName, etcdName)
+		// type: bool
+		host.GetCache().Set(common.ETCDExist, true)
 
-		if v, ok := g.RootCache.Get(ETCDCluster); ok {
-			c := v.(EtcdCluster)
+		if v, ok := g.RootCache.Get(common.ETCDCluster); ok {
+			c := v.(*EtcdCluster)
 			c.peerAddresses = append(c.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetAddress()))
 			c.clusterExist = true
-			g.RootCache.Set(ETCDCluster, c)
+			// type: *EtcdCluster
+			g.RootCache.Set(common.ETCDCluster, c)
 		} else {
 			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetAddress()))
 			cluster.clusterExist = true
-			g.RootCache.Set(ETCDCluster, cluster)
+			g.RootCache.Set(common.ETCDCluster, cluster)
 		}
 	} else {
-		host.SetLabel(ETCDName, fmt.Sprintf("etcd-%s", host.GetName()))
-		host.SetLabel(ETCDExist, "false")
+		host.GetCache().Set(common.ETCDName, fmt.Sprintf("etcd-%s", host.GetName()))
+		host.GetCache().Set(common.ETCDExist, false)
 
-		if _, ok := g.RootCache.Get(ETCDCluster); !ok {
+		if _, ok := g.RootCache.Get(common.ETCDCluster); !ok {
 			cluster.clusterExist = false
-			g.RootCache.Set(ETCDCluster, cluster)
+			g.RootCache.Set(common.ETCDCluster, cluster)
 		}
 	}
 	return nil
@@ -199,10 +198,10 @@ func (g *GenerateAccessAddress) Execute(runtime connector.Runtime) error {
 	}
 
 	accessAddresses := strings.Join(addrList, ",")
-	if v, ok := g.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
+	if v, ok := g.RootCache.Get(common.ETCDCluster); ok {
+		cluster := v.(*EtcdCluster)
 		cluster.accessAddresses = accessAddresses
-		g.RootCache.Set(ETCDCluster, cluster)
+		g.RootCache.Set(common.ETCDCluster, cluster)
 	} else {
 		return errors.New("get etcd cluster status by pipeline cache failed")
 	}
@@ -214,8 +213,8 @@ type HealthCheck struct {
 }
 
 func (h *HealthCheck) Execute(runtime connector.Runtime) error {
-	if v, ok := h.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
+	if v, ok := h.RootCache.Get(common.ETCDCluster); ok {
+		cluster := v.(*EtcdCluster)
 		if err := healthCheck(runtime, cluster); err != nil {
 			return err
 		}
@@ -225,7 +224,7 @@ func (h *HealthCheck) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-func healthCheck(runtime connector.Runtime, cluster EtcdCluster) error {
+func healthCheck(runtime connector.Runtime, cluster *EtcdCluster) error {
 	host := runtime.RemoteHost()
 	checkHealthCmd := fmt.Sprintf("export ETCDCTL_API=2;"+
 		"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';"+
@@ -245,16 +244,16 @@ type GenerateConfig struct {
 
 func (g *GenerateConfig) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
-	etcdName, ok := host.GetLabel(ETCDName)
+	etcdName, ok := host.GetCache().GetMustString(common.ETCDName)
 	if !ok {
 		return errors.New("get etcd node status by host label failed")
 	}
 
-	if v, ok := g.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
+	if v, ok := g.RootCache.Get(common.ETCDCluster); ok {
+		cluster := v.(*EtcdCluster)
 
 		cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
-		g.RootCache.Set(ETCDCluster, cluster)
+		g.RootCache.Set(common.ETCDCluster, cluster)
 
 		if !cluster.clusterExist {
 			if err := refreshConfig(runtime, cluster.peerAddresses, NewCluster, etcdName); err != nil {
@@ -278,13 +277,13 @@ type RefreshConfig struct {
 
 func (r *RefreshConfig) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
-	etcdName, ok := host.GetLabel(ETCDName)
+	etcdName, ok := host.GetCache().GetMustString(common.ETCDName)
 	if !ok {
 		return errors.New("get etcd node status by host label failed")
 	}
 
-	if v, ok := r.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
+	if v, ok := r.RootCache.Get(common.ETCDCluster); ok {
+		cluster := v.(*EtcdCluster)
 
 		if r.ToExisting {
 			if err := refreshConfig(runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
@@ -344,13 +343,13 @@ type JoinMember struct {
 
 func (j *JoinMember) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
-	etcdName, ok := host.GetLabel(ETCDName)
+	etcdName, ok := host.GetCache().GetMustString(common.ETCDName)
 	if !ok {
 		return errors.New("get etcd node status by host label failed")
 	}
 
-	if v, ok := j.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
+	if v, ok := j.RootCache.Get(common.ETCDCluster); ok {
+		cluster := v.(*EtcdCluster)
 		joinMemberCmd := fmt.Sprintf("export ETCDCTL_API=2;"+
 			"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';"+
 			"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';"+
@@ -374,8 +373,8 @@ type CheckMember struct {
 
 func (c *CheckMember) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
-	if v, ok := c.RootCache.Get(ETCDCluster); ok {
-		cluster := v.(EtcdCluster)
+	if v, ok := c.RootCache.Get(common.ETCDCluster); ok {
+		cluster := v.(*EtcdCluster)
 		checkMemberCmd := fmt.Sprintf("export ETCDCTL_API=2;"+
 			"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';"+
 			"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';"+
