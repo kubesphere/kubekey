@@ -26,6 +26,7 @@ import (
 
 const (
 	DefaultPreDir              = "kubekey"
+	DefaultTmpDir              = "/tmp/kubekey"
 	DefaultSSHPort             = 22
 	DefaultLBPort              = 6443
 	DefaultLBDomain            = "lb.kubesphere.local"
@@ -37,7 +38,9 @@ const (
 	DefaultArch                = "amd64"
 	DefaultEtcdVersion         = "v3.4.13"
 	DefaultEtcdPort            = "2379"
-	DefaultKubeVersion         = "v1.19.8"
+	DefaultDockerVersion       = "20.10.8"
+	DefaultCrictlVersion       = "v1.22.0"
+	DefaultKubeVersion         = "v1.20.10"
 	DefaultCalicoVersion       = "v3.20.0"
 	DefaultFlannelVersion      = "v0.12.0"
 	DefaultCniVersion          = "v0.9.1"

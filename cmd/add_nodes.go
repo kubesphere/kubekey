@@ -27,7 +27,7 @@ var addNodesCmd = &cobra.Command{
 	Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logger := util.InitLogger(opt.Verbose)
-		return add.AddNodes(opt.ClusterCfgFile, "", "", logger, false, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.DownloadCmd)
+		return add.AddNodes(opt.ClusterCfgFile, "", "", logger, false, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.DownloadCmd, opt.ContainerManager)
 	},
 }
 
@@ -36,6 +36,7 @@ func init() {
 	addNodesCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	addNodesCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	addNodesCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
+	addNodesCmd.Flags().StringVarP(&opt.ContainerManager, "container-manager", "", "docker", "Container manager: docker, crio, containerd and isula.")
 	addNodesCmd.Flags().StringVarP(&opt.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 }
