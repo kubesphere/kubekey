@@ -13,7 +13,7 @@ type NoClusterInfo struct {
 func (n *NoClusterInfo) PreCheck(_ connector.Runtime) (bool, error) {
 	if v, ok := n.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
-		if cluster.Info == "" {
+		if cluster.ClusterInfo == "" {
 			return true, nil
 		}
 	} else {

@@ -131,3 +131,17 @@ func Round(val float64, precision int) float64 {
 	p := math.Pow10(precision)
 	return math.Floor(val*p+0.5) / p
 }
+
+// ArchAlias returns the alias of cpu's architecture.
+// amd64: x86_64
+// arm64: aarch64
+func ArchAlias(arch string) string {
+	switch arch {
+	case "amd64":
+		return "x86_64"
+	case "arm64":
+		return "aarch64"
+	default:
+		return ""
+	}
+}
