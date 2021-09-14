@@ -87,7 +87,7 @@ scheduler:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{ .ControlPlanAddr }}
+  advertiseAddress: {{ .AdvertiseAddress }}
   bindPort: {{ .ControlPlanPort }}
 nodeRegistration:
 {{- if .CriSock }}
@@ -117,7 +117,7 @@ discovery:
 {{- if .IsControlPlane }}
 controlPlane:
   localAPIEndpoint:
-    advertiseAddress: {{ .ControlPlanAddr }}
+    advertiseAddress: {{ .AdvertiseAddress }}
     bindPort: {{ .ControlPlanPort }}
   certificateKey: {{ .CertificateKey }}
 {{- end }}
@@ -188,7 +188,7 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, 
 		"CorednsTag":             preinstall.GetImage(mgr, "coredns").Tag,
 		"Version":                mgr.Cluster.Kubernetes.Version,
 		"ClusterName":            mgr.Cluster.Kubernetes.ClusterName,
-		"ControlPlanAddr":        node.InternalAddress,
+		"AdvertiseAddress":       node.InternalAddress,
 		"ControlPlanPort":        mgr.Cluster.ControlPlaneEndpoint.Port,
 		"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port),
 		"PodSubnet":              mgr.Cluster.Network.KubePodsCIDR,
@@ -197,7 +197,6 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, 
 		"ExternalEtcd":           externalEtcd,
 		"NodeCidrMaskSize":       mgr.Cluster.Kubernetes.NodeCidrMaskSize,
 		"CriSock":                mgr.ContainerRuntimeEndpoint,
-		"InternalLBDisabled":     !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled(),
 		"ApiServerArgs":          ApiServerArgs,
 		"ControllerManagerArgs":  ControllerManagerArgs,
 		"SchedulerArgs":          SchedulerArgs,
