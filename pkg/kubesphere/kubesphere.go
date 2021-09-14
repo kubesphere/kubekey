@@ -152,7 +152,7 @@ EOF
 	}
 
 	_, ok := mirrorVersionList[ksVersion]
-	if ok && (os.Getenv("KKZONE") == "cn" || mgr.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
+	if ok && (os.Getenv("KKZONE") == "cn" || os.Getenv("KKZONE") == "" || mgr.Cluster.Registry.PrivateRegistry == "hub.oepkgs.net") {
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/zone/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", "cn"), 2, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to add private registry: %s", mgr.Cluster.Registry.PrivateRegistry))
 		}

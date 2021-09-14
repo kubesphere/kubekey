@@ -704,8 +704,8 @@ spec:
 
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
 	_, ok := mirrorVersionList[version]
-	if ok && os.Getenv("KKZONE") == "cn" {
-		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
+	if ok && (os.Getenv("KKZONE") == "cn" || os.Getenv("KKZONE") == "") {
+		repo = "hub.oepkgs.net/kubesphere"
 	} else {
 		if repo == "" {
 			if strings.Contains(version, "latest") || strings.HasPrefix(version, "nightly-") {

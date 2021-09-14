@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	cnRegistry          = "registry.cn-beijing.aliyuncs.com"
-	cnNamespaceOverride = "kubesphereio"
+	cnRegistry          = "hub.oepkgs.net"
+	cnNamespaceOverride = "kubesphere"
 )
 
 // Image defines image's info.
@@ -55,7 +55,7 @@ func (image Image) ImageName() string {
 func (image Image) ImageRepo() string {
 	var prefix string
 
-	if os.Getenv("KKZONE") == "cn" {
+	if os.Getenv("KKZONE") == "cn" || os.Getenv("KKZONE") == "" {
 		if image.RepoAddr == "" || image.RepoAddr == cnRegistry {
 			image.RepoAddr = cnRegistry
 			image.NamespaceOverride = cnNamespaceOverride

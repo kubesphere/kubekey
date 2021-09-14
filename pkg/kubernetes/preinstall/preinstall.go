@@ -53,7 +53,7 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 	docker.Path = fmt.Sprintf("%s/docker-%s.tgz", filepath, kubekeyapiv1alpha1.DefaultDockerVersion)
 	crictl.Path = fmt.Sprintf("%s/crictl-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha1.DefaultCrictlVersion, arch)
 
-	if kkzone == "cn" {
+	if kkzone == "cn" || kkzone == "" {
 		etcd.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
 		kubeadm.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
 		kubelet.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", kubelet.Version, kubelet.Arch)
