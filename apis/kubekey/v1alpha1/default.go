@@ -253,6 +253,9 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.EtcdBackupScriptDir == "" {
 		cfg.Kubernetes.EtcdBackupScriptDir = DefaultEtcdBackupScriptDir
 	}
+	if cfg.Kubernetes.ContainerManager == "" {
+		cfg.Kubernetes.ContainerManager = Docker
+	}
 	if cfg.Kubernetes.ContainerRuntimeEndpoint == "" {
 		switch cfg.Kubernetes.ContainerManager {
 		case Docker:
