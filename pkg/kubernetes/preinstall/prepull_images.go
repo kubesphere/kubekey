@@ -11,31 +11,30 @@ import (
 
 // PullImages defines the list of images that need to be downloaded in advance and downloads them.
 func PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
-	if !manager.ExistNode(mgr, node) {
-		i := images.Images{}
-		i.Images = []images.Image{
-			GetImage(mgr, "etcd"),
-			GetImage(mgr, "pause"),
-			GetImage(mgr, "kube-apiserver"),
-			GetImage(mgr, "kube-controller-manager"),
-			GetImage(mgr, "kube-scheduler"),
-			GetImage(mgr, "kube-proxy"),
-			GetImage(mgr, "coredns"),
-			GetImage(mgr, "k8s-dns-node-cache"),
-			GetImage(mgr, "calico-kube-controllers"),
-			GetImage(mgr, "calico-cni"),
-			GetImage(mgr, "calico-node"),
-			GetImage(mgr, "calico-flexvol"),
-			GetImage(mgr, "cilium"),
-			GetImage(mgr, "operator-generic"),
-			GetImage(mgr, "flannel"),
-			GetImage(mgr, "kubeovn"),
-			GetImage(mgr, "haproxy"),
-		}
-		if err := i.PullImages(mgr, node); err != nil {
-			return err
-		}
+	i := images.Images{}
+	i.Images = []images.Image{
+		GetImage(mgr, "etcd"),
+		GetImage(mgr, "pause"),
+		GetImage(mgr, "kube-apiserver"),
+		GetImage(mgr, "kube-controller-manager"),
+		GetImage(mgr, "kube-scheduler"),
+		GetImage(mgr, "kube-proxy"),
+		GetImage(mgr, "coredns"),
+		GetImage(mgr, "k8s-dns-node-cache"),
+		GetImage(mgr, "calico-kube-controllers"),
+		GetImage(mgr, "calico-cni"),
+		GetImage(mgr, "calico-node"),
+		GetImage(mgr, "calico-flexvol"),
+		GetImage(mgr, "cilium"),
+		GetImage(mgr, "operator-generic"),
+		GetImage(mgr, "flannel"),
+		GetImage(mgr, "kubeovn"),
+		GetImage(mgr, "haproxy"),
 	}
+	if err := i.PullImages(mgr, node); err != nil {
+		return err
+	}
+
 	return nil
 }
 
