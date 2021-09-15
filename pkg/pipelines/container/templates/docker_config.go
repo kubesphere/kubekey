@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-var DockerConfigTempl = template.Must(template.New("daemon.json").Parse(
+var DockerConfig = template.Must(template.New("daemon.json").Parse(
 	dedent.Dedent(`{
   "log-opts": {
     "max-size": "5m",
