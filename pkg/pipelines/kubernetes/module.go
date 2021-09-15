@@ -17,13 +17,13 @@ func (k *KubernetesStatusModule) Init() {
 	k.Name = "KubernetesStatusModule"
 
 	cluster := NewKubernetesStatus()
-	k.PipelineCache.Set(common.ClusterStatus, cluster)
+	k.PipelineCache.GetOrSet(common.ClusterStatus, cluster)
 
 	clusterStatus := &modules.Task{
-		Name:     "GetClusterStatus",
-		Desc:     "get kubernetes cluster status",
-		Hosts:    k.Runtime.GetHostsByRole(common.Master),
-		Prepare:  new(NoClusterInfo),
+		Name:  "GetClusterStatus",
+		Desc:  "get kubernetes cluster status",
+		Hosts: k.Runtime.GetHostsByRole(common.Master),
+		//Prepare:  new(NoClusterInfo),
 		Action:   new(GetClusterStatus),
 		Parallel: false,
 	}
@@ -117,7 +117,7 @@ func (i *InitKubernetesModule) Init() {
 			new(common.OnlyFirstMaster),
 			&ClusterIsExist{Not: true},
 		},
-		Action:   new(GenerateKubeadmConfig),
+		Action:   &GenerateKubeadmConfig{IsInitConfiguration: true},
 		Parallel: true,
 	}
 
@@ -142,7 +142,7 @@ func (i *InitKubernetesModule) Init() {
 			new(common.OnlyFirstMaster),
 			&ClusterIsExist{Not: true},
 		},
-		Action:   new(CopyKubeConfig),
+		Action:   new(CopyKubeConfigForControlPlane),
 		Parallel: true,
 	}
 
@@ -174,54 +174,12 @@ func (i *InitKubernetesModule) Init() {
 		Retry:    5,
 	}
 
-	getJoinCmd := &modules.Task{
-		Name:  "GetJoinCmd",
-		Desc:  "get join cmd",
-		Hosts: i.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			&ClusterIsExist{Not: true},
-		},
-		Action:   new(GetJoinCmd),
-		Parallel: true,
-		Retry:    5,
-	}
-
-	getKubeConfig := &modules.Task{
-		Name:  "GetKubeConfig",
-		Desc:  "get kube config",
-		Hosts: i.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			&ClusterIsExist{Not: true},
-		},
-		Action:   new(GetKubeConfig),
-		Parallel: true,
-		Retry:    5,
-	}
-
-	loadKubeConfig := &modules.Task{
-		Name:  "LoadKubeConfig",
-		Desc:  "load kube config",
-		Hosts: i.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			&ClusterIsExist{Not: true},
-		},
-		Action:   new(LoadKubeConfig),
-		Parallel: true,
-		Retry:    2,
-	}
-
 	i.Tasks = []*modules.Task{
 		generateKubeadmConfig,
 		kubeadmInit,
 		copyKubeConfig,
 		removeMasterTaint,
 		addWorkerLabel,
-		getJoinCmd,
-		getKubeConfig,
-		loadKubeConfig,
 	}
 }
 
@@ -234,15 +192,25 @@ func (j *JoinNodesModule) Init() {
 
 	j.PipelineCache.Set(common.ClusterExist, true)
 
-	addMaster := &modules.Task{
-		Name:  "AddMasterNode",
-		Desc:  "add master nodes",
-		Hosts: j.Runtime.GetHostsByRole(common.Master),
+	generateKubeadmConfig := &modules.Task{
+		Name:  "GenerateKubeadmConfig",
+		Desc:  "generate kubeadm config",
+		Hosts: j.Runtime.GetHostsByRole(common.K8s),
 		Prepare: &prepare.PrepareCollection{
-			&common.OnlyFirstMaster{Not: true},
 			&NodeInCluster{Not: true},
 		},
-		Action:   new(AddMasterNode),
+		Action:   &GenerateKubeadmConfig{IsInitConfiguration: false},
+		Parallel: true,
+	}
+
+	joinNode := &modules.Task{
+		Name:  "JoinNode",
+		Desc:  "Join node",
+		Hosts: j.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&NodeInCluster{Not: true},
+		},
+		Action:   new(JoinNode),
 		Parallel: true,
 		Retry:    3,
 	}
@@ -252,10 +220,9 @@ func (j *JoinNodesModule) Init() {
 		Desc:  "copy admin.conf to ~/.kube/config",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
-			&common.OnlyFirstMaster{Not: true},
 			&NodeInCluster{Not: true},
 		},
-		Action:   new(CopyKubeConfig),
+		Action:   new(CopyKubeConfigForControlPlane),
 		Parallel: true,
 		Retry:    2,
 	}
@@ -265,7 +232,6 @@ func (j *JoinNodesModule) Init() {
 		Desc:  "remove master taint",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
-			&common.OnlyFirstMaster{Not: true},
 			&NodeInCluster{Not: true},
 			new(common.IsWorker),
 		},
@@ -287,19 +253,6 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	addWorker := &modules.Task{
-		Name:  "AddWorkerNode",
-		Desc:  "add worker nodes",
-		Hosts: j.Runtime.GetHostsByRole(common.Worker),
-		Prepare: &prepare.PrepareCollection{
-			&NodeInCluster{Not: true},
-			new(common.OnlyWorker),
-		},
-		Action:   new(AddWorkerNode),
-		Parallel: true,
-		Retry:    3,
-	}
-
 	syncKubeConfig := &modules.Task{
 		Name:  "SyncKubeConfig",
 		Desc:  "synchronize kube config to worker",
@@ -308,7 +261,7 @@ func (j *JoinNodesModule) Init() {
 			&NodeInCluster{Not: true},
 			new(common.OnlyWorker),
 		},
-		Action:   new(SyncKubeConfig),
+		Action:   new(SyncKubeConfigToWorker),
 		Parallel: true,
 		Retry:    3,
 	}
@@ -327,11 +280,11 @@ func (j *JoinNodesModule) Init() {
 	}
 
 	j.Tasks = []*modules.Task{
-		addMaster,
+		generateKubeadmConfig,
+		joinNode,
 		copyKubeConfig,
 		removeMasterTaint,
 		addWorkerLabelToMaster,
-		addWorker,
 		syncKubeConfig,
 		addWorkerLabelToWorker,
 	}
