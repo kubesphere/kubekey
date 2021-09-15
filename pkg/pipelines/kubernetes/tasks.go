@@ -184,7 +184,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		// generate etcd configuration
 		var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
 		var endpointsList []string
-		var caFile, certFile, keyFile, containerRuntimeEndpoint string
+		var caFile, certFile, keyFile string
 
 		for _, host := range runtime.GetHostsByRole(common.ETCD) {
 			endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalAddress(), kubekeyapiv1alpha1.DefaultEtcdPort)
@@ -203,24 +203,6 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		_, ApiServerArgs := util.GetArgs(v1beta2.ApiServerArgs, g.KubeConf.Cluster.Kubernetes.ApiServerArgs)
 		_, ControllerManagerArgs := util.GetArgs(v1beta2.ControllermanagerArgs, g.KubeConf.Cluster.Kubernetes.ControllerManagerArgs)
 		_, SchedulerArgs := util.GetArgs(v1beta2.SchedulerArgs, g.KubeConf.Cluster.Kubernetes.SchedulerArgs)
-
-		// generate cri configuration
-		switch g.KubeConf.Cluster.Kubernetes.ContainerManager {
-		case "docker":
-			containerRuntimeEndpoint = ""
-		case "crio":
-			containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultCrioEndpoint
-		case "containerd":
-			containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultContainerdEndpoint
-		case "isula":
-			containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultIsulaEndpoint
-		default:
-			containerRuntimeEndpoint = ""
-		}
-
-		if g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
-			containerRuntimeEndpoint = g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint
-		}
 
 		checkCgroupDriver, err := v1beta2.GetKubeletCgroupDriver(runtime, g.KubeConf)
 		if err != nil {
@@ -259,11 +241,11 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"CertSANs":               g.KubeConf.Cluster.GenerateCertSANs(),
 				"ExternalEtcd":           externalEtcd,
 				"NodeCidrMaskSize":       g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
-				"CriSock":                containerRuntimeEndpoint,
+				"CriSock":                g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint,
 				"ApiServerArgs":          ApiServerArgs,
 				"ControllerManagerArgs":  ControllerManagerArgs,
 				"SchedulerArgs":          SchedulerArgs,
-				"KubeletConfiguration":   v1beta2.GetKubeletConfiguration(runtime, g.KubeConf, containerRuntimeEndpoint),
+				"KubeletConfiguration":   v1beta2.GetKubeletConfiguration(runtime, g.KubeConf, g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint),
 				"KubeProxyConfiguration": v1beta2.GetKubeProxyConfiguration(g.KubeConf),
 				"IsControlPlane":         host.IsRole(common.Master),
 				"CgroupDriver":           checkCgroupDriver,
@@ -289,7 +271,11 @@ func (k *KubeadmInit) Execute(runtime connector.Runtime) error {
 		"--config=/etc/kubernetes/kubeadm-config.yaml "+
 		"--ignore-preflight-errors=FileExisting-crictl", true); err != nil {
 		// kubeadm reset and then retry
-		_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
+		resetCmd := "/usr/local/bin/kubeadm reset -f"
+		if k.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
+			resetCmd = resetCmd + " --cri-socket " + k.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint
+		}
+		_, _ = runtime.GetRunner().SudoCmd(resetCmd, true)
 		return errors.Wrap(errors.WithStack(err), "init kubernetes cluster failed")
 	}
 	return nil
@@ -345,7 +331,11 @@ type JoinNode struct {
 func (j *JoinNode) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml",
 		true); err != nil {
-		_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
+		resetCmd := "/usr/local/bin/kubeadm reset -f"
+		if j.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
+			resetCmd = resetCmd + " --cri-socket " + j.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint
+		}
+		_, _ = runtime.GetRunner().SudoCmd(resetCmd, true)
 		return errors.Wrap(errors.WithStack(err), "join node failed")
 	}
 	return nil
@@ -383,6 +373,10 @@ type KubeadmReset struct {
 }
 
 func (k *KubeadmReset) Execute(runtime connector.Runtime) error {
-	_, _ = runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm reset -f", true)
+	resetCmd := "/usr/local/bin/kubeadm reset -f"
+	if k.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
+		resetCmd = resetCmd + " --cri-socket " + k.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint
+	}
+	_, _ = runtime.GetRunner().SudoCmd(resetCmd, true)
 	return nil
 }
