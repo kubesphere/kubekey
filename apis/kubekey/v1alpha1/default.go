@@ -71,6 +71,11 @@ const (
 	DefaultOvnLabel            = "node-role.kubernetes.io/master"
 	DefaultDPDKVersion         = "19.11"
 	DefaultDNSAddress          = "114.114.114.114"
+
+	Docker     = "docker"
+	Conatinerd = "containerd"
+	Crio       = "crio"
+	Isula      = "isula"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *HostGroups, error) {
@@ -247,6 +252,20 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	}
 	if cfg.Kubernetes.EtcdBackupScriptDir == "" {
 		cfg.Kubernetes.EtcdBackupScriptDir = DefaultEtcdBackupScriptDir
+	}
+	if cfg.Kubernetes.ContainerRuntimeEndpoint == "" {
+		switch cfg.Kubernetes.ContainerManager {
+		case Docker:
+			cfg.Kubernetes.ContainerRuntimeEndpoint = ""
+		case Crio:
+			cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultCrioEndpoint
+		case Conatinerd:
+			cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultContainerdEndpoint
+		case Isula:
+			cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultIsulaEndpoint
+		default:
+			cfg.Kubernetes.ContainerRuntimeEndpoint = ""
+		}
 	}
 	defaultClusterCfg := cfg.Kubernetes
 

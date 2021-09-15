@@ -43,7 +43,7 @@ func (p *PullImage) Execute(runtime connector.Runtime) error {
 // GetImage defines the list of all images and gets image object by name.
 func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name string) Image {
 	var image Image
-	var pauseTag string
+	var pauseTag, corednsTag string
 
 	cmp, err := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.21.0")
 	if err != nil {
@@ -63,6 +63,13 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 		pauseTag = "3.2"
 	}
 
+	// get coredns image tag
+	if cmp == -1 {
+		corednsTag = "1.6.9"
+	} else {
+		corednsTag = "1.8.0"
+	}
+
 	ImageList := map[string]Image{
 		"pause":                   {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "pause", Tag: pauseTag, Group: kubekeyapiv1alpha1.K8s, Enable: true},
 		"kube-apiserver":          {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-apiserver", Tag: kubeConf.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.Master, Enable: true},
@@ -71,7 +78,7 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 		"kube-proxy":              {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "kube-proxy", Tag: kubeConf.Cluster.Kubernetes.Version, Group: kubekeyapiv1alpha1.K8s, Enable: true},
 
 		// network
-		"coredns":                 {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: "1.8.4", Group: kubekeyapiv1alpha1.K8s, Enable: true},
+		"coredns":                 {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "coredns", Repo: "coredns", Tag: corednsTag, Group: kubekeyapiv1alpha1.K8s, Enable: true},
 		"k8s-dns-node-cache":      {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyapiv1alpha1.DefaultKubeImageNamespace, Repo: "k8s-dns-node-cache", Tag: "1.15.12", Group: kubekeyapiv1alpha1.K8s, Enable: kubeConf.Cluster.Kubernetes.EnableNodelocaldns()},
 		"calico-kube-controllers": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "kube-controllers", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(kubeConf.Cluster.Network.Plugin, "calico")},
 		"calico-cni":              {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "calico", Repo: "cni", Tag: kubekeyapiv1alpha1.DefaultCalicoVersion, Group: kubekeyapiv1alpha1.K8s, Enable: strings.EqualFold(kubeConf.Cluster.Network.Plugin, "calico")},

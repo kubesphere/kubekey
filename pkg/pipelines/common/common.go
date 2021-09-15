@@ -34,11 +34,10 @@ const (
 	Cilium  = "cilium"
 	Kubeovn = "kubeovn"
 
-	IsInitCluster = true
-	Docker        = "docker"
-	Conatinerd    = "containerd"
-	Crio          = "crio"
-	Isula         = "isula"
+	Docker     = "docker"
+	Conatinerd = "containerd"
+	Crio       = "crio"
+	Isula      = "isula"
 
 	// global cache key
 	// PreCheckModule
