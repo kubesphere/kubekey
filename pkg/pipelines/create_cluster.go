@@ -10,7 +10,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
-	"github.com/kubesphere/kubekey/pkg/pipelines/continer/docker"
+	"github.com/kubesphere/kubekey/pkg/pipelines/container"
 	"github.com/kubesphere/kubekey/pkg/pipelines/etcd"
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
@@ -29,7 +29,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&kubernetes.KubernetesStatusModule{},
-		&docker.DockerModule{Skip: isK3s},
+		&container.InstallContainerModule{Skip: isK3s},
 		&images.ImageModule{Skip: isK3s || runtime.Arg.SkipPullImages},
 		&etcd.ETCDPreCheckModule{},
 		&etcd.ETCDCertsModule{},
