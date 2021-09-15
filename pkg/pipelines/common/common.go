@@ -35,6 +35,7 @@ const (
 	Kubeovn = "kubeovn"
 
 	Docker     = "docker"
+	Crictl     = "crictl"
 	Conatinerd = "containerd"
 	Crio       = "crio"
 	Isula      = "isula"
