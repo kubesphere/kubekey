@@ -67,7 +67,7 @@ scheduler:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{ .ControlPlanAddr }}
+  advertiseAddress: {{ .AdvertiseAddress }}
   bindPort: {{ .ControlPlanPort }}
 nodeRegistration:
 {{- if .CriSock }}
@@ -97,7 +97,7 @@ discovery:
 {{- if .IsControlPlane }}
 controlPlane:
   localAPIEndpoint:
-    advertiseAddress: {{ .ControlPlanAddr }}
+    advertiseAddress: {{ .AdvertiseAddress }}
     bindPort: {{ .ControlPlanPort }}
   certificateKey: {{ .CertificateKey }}
 {{- end }}

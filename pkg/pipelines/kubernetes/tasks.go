@@ -176,6 +176,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 
 	localConfig := filepath.Join(runtime.GetWorkDir(), "kubeadm-config.yaml")
 	if util.IsExist(localConfig) {
+		// todo: if it is necessary?
 		if err := runtime.GetRunner().SudoScp(localConfig, "/etc/kubernetes/kubeadm-config.yaml"); err != nil {
 			return errors.Wrap(errors.WithStack(err), "scp local kubeadm config failed")
 		}
@@ -228,7 +229,6 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 
 		var (
 			bootstrapToken, certificateKey string
-			controlPlaneAddr               string
 			// todo: if port needed
 		)
 		if !g.IsInitConfiguration {
@@ -236,12 +236,9 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				cluster := v.(*KubernetesStatus)
 				bootstrapToken = cluster.BootstrapToken
 				certificateKey = cluster.CertificateKey
-				controlPlaneAddr = host.GetInternalAddress()
 			} else {
 				return errors.New("get kubernetes cluster status by pipeline cache failed")
 			}
-		} else {
-			controlPlaneAddr = g.KubeConf.Cluster.ControlPlaneEndpoint.Address
 		}
 
 		templateAction := action.Template{
@@ -254,7 +251,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"CorednsTag":             images.GetImage(runtime, g.KubeConf, "coredns").Tag,
 				"Version":                g.KubeConf.Cluster.Kubernetes.Version,
 				"ClusterName":            g.KubeConf.Cluster.Kubernetes.ClusterName,
-				"ControlPlanAddr":        controlPlaneAddr,
+				"AdvertiseAddress":       host.GetInternalAddress(),
 				"ControlPlanPort":        g.KubeConf.Cluster.ControlPlaneEndpoint.Port,
 				"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", g.KubeConf.Cluster.ControlPlaneEndpoint.Domain, g.KubeConf.Cluster.ControlPlaneEndpoint.Port),
 				"PodSubnet":              g.KubeConf.Cluster.Network.KubePodsCIDR,
@@ -263,8 +260,6 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"ExternalEtcd":           externalEtcd,
 				"NodeCidrMaskSize":       g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
 				"CriSock":                containerRuntimeEndpoint,
-				"InternalLBDisabled":     !g.KubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled(),
-				"AdvertiseAddress":       host.GetInternalAddress(),
 				"ApiServerArgs":          ApiServerArgs,
 				"ControllerManagerArgs":  ControllerManagerArgs,
 				"SchedulerArgs":          SchedulerArgs,
