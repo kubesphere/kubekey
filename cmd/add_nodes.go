@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/cluster/add"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +26,15 @@ var addNodesCmd = &cobra.Command{
 	Use:   "nodes",
 	Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := util.InitLogger(opt.Verbose)
-		return add.AddNodes(opt.ClusterCfgFile, "", "", logger, false, opt.Verbose, opt.SkipCheck, opt.SkipPullImages, opt.InCluster, opt.DownloadCmd, opt.ContainerManager)
+		arg := common.Argument{
+			FilePath:       opt.ClusterCfgFile,
+			KsEnable:       false,
+			Debug:          opt.Verbose,
+			SkipCheck:      opt.SkipCheck,
+			SkipPullImages: opt.SkipPullImages,
+			InCluster:      opt.InCluster,
+		}
+		return pipelines.AddNodes(arg, opt.DownloadCmd)
 	},
 }
 
