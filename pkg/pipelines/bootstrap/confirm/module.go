@@ -136,3 +136,36 @@ func (d *DeleteClusterConfirmModule) Run() error {
 	}
 	return nil
 }
+
+type DeleteNodeConfirmModule struct {
+	common.KubeModule
+}
+
+func (d *DeleteNodeConfirmModule) Init() {
+	d.Name = "DeleteNodeConfirmModule"
+	d.Desc = "display delete node confirmation form"
+}
+
+func (d *DeleteNodeConfirmModule) Run() error {
+	reader := bufio.NewReader(os.Stdin)
+
+	var res string
+	for {
+		fmt.Printf("Are you sure to delete this node? [yes/no]: ")
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		input = strings.TrimSpace(input)
+
+		if input != "" && (input == "yes" || input == "no") {
+			res = input
+			break
+		}
+	}
+
+	if res == "no" {
+		os.Exit(0)
+	}
+	return nil
+}

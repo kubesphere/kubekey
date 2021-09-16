@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/cluster/delete"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"strings"
 )
@@ -10,9 +11,19 @@ import (
 var deleteNodeCmd = &cobra.Command{
 	Use:   "node",
 	Short: "delete a node",
-	Run: func(cmd *cobra.Command, args []string) {
-		logger := util.InitLogger(opt.Verbose)
-		_ = delete.ResetNode(opt.ClusterCfgFile, logger, opt.Verbose, strings.Join(args, ""))
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return errors.New("node can not be empty")
+		}
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		arg := common.Argument{
+			FilePath: opt.ClusterCfgFile,
+			Debug:    opt.Verbose,
+			NodeName: strings.Join(args, ""),
+		}
+		return pipelines.DeleteNode(arg)
 	},
 }
 

@@ -212,7 +212,7 @@ func (j *JoinNodesModule) Init() {
 		},
 		Action:   new(JoinNode),
 		Parallel: true,
-		Retry:    3,
+		Retry:    5,
 	}
 
 	copyKubeConfig := &modules.Task{
@@ -307,5 +307,56 @@ func (r *ResetClusterModule) Init() {
 
 	r.Tasks = []*modules.Task{
 		kubeadmReset,
+	}
+}
+
+type CompareConfigAndClusterInfoModule struct {
+	common.KubeModule
+}
+
+func (c *CompareConfigAndClusterInfoModule) Init() {
+	c.Name = "CompareConfigAndClusterInfoModule"
+
+	check := &modules.Task{
+		Name:    "FindDifferences",
+		Desc:    "Find the differences between config and cluster node info",
+		Hosts:   c.Runtime.GetHostsByRole(common.Master),
+		Prepare: new(common.OnlyFirstMaster),
+		Action:  new(FindDifferences),
+	}
+
+	c.Tasks = []*modules.Task{
+		check,
+	}
+}
+
+type DeleteKubeNodeModule struct {
+	common.KubeModule
+}
+
+func (r *DeleteKubeNodeModule) Init() {
+	r.Name = "DeleteKubeNodeModule"
+
+	drain := &modules.Task{
+		Name:    "DrainNode",
+		Desc:    "Node safely evict all pods",
+		Hosts:   r.Runtime.GetHostsByRole(common.Master),
+		Prepare: new(common.OnlyFirstMaster),
+		Action:  new(DrainNode),
+		Retry:   5,
+	}
+
+	deleteNode := &modules.Task{
+		Name:    "DeleteNode",
+		Desc:    "Delete the node using kubectl",
+		Hosts:   r.Runtime.GetHostsByRole(common.Master),
+		Prepare: new(common.OnlyFirstMaster),
+		Action:  new(KubectlDeleteNode),
+		Retry:   5,
+	}
+
+	r.Tasks = []*modules.Task{
+		drain,
+		deleteNode,
 	}
 }
