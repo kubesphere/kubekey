@@ -380,3 +380,74 @@ func (k *KubeadmReset) Execute(runtime connector.Runtime) error {
 	_, _ = runtime.GetRunner().SudoCmd(resetCmd, true)
 	return nil
 }
+
+type FindDifferences struct {
+	common.KubeAction
+}
+
+func (f *FindDifferences) Execute(runtime connector.Runtime) error {
+	var node string
+	var resArr []string
+	res, err := runtime.GetRunner().Cmd(
+		"sudo -E /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master' | awk '{print $1}'",
+		true)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "kubectl get nodes failed")
+	}
+
+	if !strings.Contains(res, "\r\n") {
+		resArr = append(resArr, res)
+	} else {
+		resArr = strings.Split(res, "\r\n")
+	}
+
+	var workerNameStr string
+	for j := 0; j < len(runtime.GetHostsByRole(common.Worker)); j++ {
+		workerNameStr += runtime.GetHostsByRole(common.Worker)[j].GetName()
+	}
+	for i := 0; i < len(resArr); i++ {
+		if strings.Contains(workerNameStr, resArr[i]) {
+			continue
+		} else {
+			node = resArr[i]
+			break
+		}
+	}
+
+	f.PipelineCache.Set("dstNode", node)
+	return nil
+}
+
+type DrainNode struct {
+	common.KubeAction
+}
+
+func (d *DrainNode) Execute(runtime connector.Runtime) error {
+	nodeName, ok := d.PipelineCache.Get("dstNode")
+	if !ok {
+		return errors.New("get dstNode failed by pipeline cache")
+	}
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+		"/usr/local/bin/kubectl drain %s --delete-emptydir-data --ignore-daemonsets", nodeName),
+		true); err != nil {
+		return errors.Wrap(err, "drain the node failed")
+	}
+	return nil
+}
+
+type KubectlDeleteNode struct {
+	common.KubeAction
+}
+
+func (k *KubectlDeleteNode) Execute(runtime connector.Runtime) error {
+	nodeName, ok := k.PipelineCache.Get("dstNode")
+	if !ok {
+		return errors.New("get dstNode failed by pipeline cache")
+	}
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+		"/usr/local/bin/kubectl delete node %s", nodeName),
+		true); err != nil {
+		return errors.Wrap(err, "delete the node failed")
+	}
+	return nil
+}

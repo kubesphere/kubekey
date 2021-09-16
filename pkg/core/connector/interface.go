@@ -31,6 +31,7 @@ type ModuleRuntime interface {
 	GetAllHosts() []Host
 	SetAllHosts([]Host)
 	GetHostsByRole(role string) []Host
+	DeleteHost(host Host)
 	InitLogger() error
 }
 
