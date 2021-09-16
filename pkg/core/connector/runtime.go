@@ -103,6 +103,17 @@ func (b *BaseRuntime) RemoteHost() Host {
 	return b.GetRunner().Host
 }
 
+func (b *BaseRuntime) DeleteHost(host Host) {
+	i := 0
+	for i = range b.allHosts {
+		if b.GetAllHosts()[i].GetName() == host.GetName() {
+			break
+		}
+	}
+	b.allHosts = append(b.allHosts[:i], b.allHosts[i+1:]...)
+	b.RoleMapDelete(host)
+}
+
 func (b *BaseRuntime) InitLogger() error {
 	if b.GetWorkDir() == "" {
 		if err := b.GenerateWorkDir(); err != nil {
@@ -139,5 +150,17 @@ func (b *BaseRuntime) AppendRoleMap(host Host) {
 			first = append(first, host)
 			b.roleHosts[r] = first
 		}
+	}
+}
+
+func (b *BaseRuntime) RoleMapDelete(host Host) {
+	for k, role := range b.roleHosts {
+		i := 0
+		for i = range role {
+			if role[i].GetName() == host.GetName() {
+				role = append(role[:i], role[i+1:]...)
+			}
+		}
+		b.roleHosts[k] = role
 	}
 }

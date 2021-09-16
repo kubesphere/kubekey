@@ -20,6 +20,7 @@ type KubeRuntime struct {
 }
 
 type Argument struct {
+	NodeName           string
 	FilePath           string
 	KubernetesVersion  string
 	KsEnable           bool
