@@ -37,9 +37,9 @@ There are three scenarios to use KubeKey.
 
 * **v1.17**: &ensp; *v1.17.9*
 * **v1.18**: &ensp; *v1.18.6*
-* **v1.19**: &ensp; *v1.19.8*  (default)
+* **v1.19**: &ensp; *v1.19.8*  
 * **v1.20**: &ensp; *v1.20.6*
-* **v1.21**: &ensp; *v1.21.4*
+* **v1.21**: &ensp; *v1.21.5*  (default)
 * **v1.22**: &ensp; *v1.22.1*
 > Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
 
