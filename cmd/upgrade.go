@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/cluster/upgrade"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/spf13/cobra"
@@ -45,4 +46,8 @@ func init() {
 	upgradeCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	upgradeCmd.Flags().StringVarP(&opt.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
+
+	if err := setValidArgs(upgradeCmd); err != nil {
+		panic(fmt.Sprintf("Got error with the completion setting"))
+	}
 }
