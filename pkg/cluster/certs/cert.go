@@ -5,6 +5,7 @@ import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/connector/ssh"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/util/executor"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
@@ -55,9 +56,8 @@ var (
 		"controller-manager.conf",
 		"scheduler.conf",
 	}
-	certificates    []*Certificate
-	caCertificates  []*CaCertificate
-	kubeConfigValue = map[string]string{}
+	certificates   []*Certificate
+	caCertificates []*CaCertificate
 )
 
 var kubeadmList = []string{
@@ -82,16 +82,30 @@ func ListCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error 
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
-	return Execute(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false, false, nil))
-
+	return Execute(&executor.Executor{
+		ObjName:        objName,
+		Cluster:        &cfg.Spec,
+		Logger:         logger,
+		SourcesDir:     "",
+		Debug:          verbose,
+		SkipPullImages: true,
+		Connector:      ssh.NewDialer(),
+	})
 }
 func RenewClusterCerts(clusterCfgFile string, logger *log.Logger, verbose bool) error {
 	cfg, objName, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
 	if err != nil {
 		return errors.Wrap(err, "Failed to download cluster config")
 	}
-	return ExecuteRenew(executor.NewExecutor(&cfg.Spec, objName, logger, "", verbose, false, true, false, false, nil))
-
+	return ExecuteRenew(&executor.Executor{
+		ObjName:        objName,
+		Cluster:        &cfg.Spec,
+		Logger:         logger,
+		SourcesDir:     "",
+		Debug:          verbose,
+		SkipPullImages: true,
+		Connector:      ssh.NewDialer(),
+	})
 }
 
 func Execute(executor *executor.Executor) error {
@@ -124,7 +138,6 @@ func ExecTasks(mgr *manager.Manager) error {
 func ExecRenewTasks(mgr *manager.Manager) error {
 	renewTasks := []manager.Task{
 		{Task: RenewClusterCert, ErrMsg: "Failed to renew cluster certs."},
-		{Task: SyncKubeConfig, ErrMsg: "Failed to sync kubeConfig"},
 		{Task: ListClusterCerts, ErrMsg: "Failed to list cluster certs."},
 	}
 	for _, step := range renewTasks {
@@ -285,16 +298,17 @@ func ResidualTime(t time.Time) string {
 	}
 	return fmt.Sprintf("%dy", int(d.Hours()/24/365))
 }
+
 func RenewClusterCert(m *manager.Manager) error {
 	m.Logger.Infoln("Renewing cluster certs ...")
-	return m.RunTaskOnMasterNodes(renewClusterCerts, false)
-}
-func SyncKubeConfig(m *manager.Manager) error {
+	if err := m.RunTaskOnMasterNodes(renewControlPlaneCerts, false); err != nil {
+		return err
+	}
 	m.Logger.Infoln("Syncing cluster kubeConfig ...")
 	return m.RunTaskOnWorkerNodes(syncKubeConfig, true)
 }
 
-func renewClusterCerts(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
+func renewControlPlaneCerts(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(kubeadmList, " && ")), 5, false)
 	if err != nil {
 		return errors.Wrap(err, "Failed to kubeadm alpha certs renew...")
@@ -304,7 +318,7 @@ func renewClusterCerts(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) erro
 		return errors.Wrap(err1, "Failed to restart kube-apiserver or kube-schedule or kube-controller-manager")
 	}
 
-	if err := kubernetes.GetKubeConfig(mgr); err != nil {
+	if err := kubernetes.GetKubeConfigForControlPlane(mgr); err != nil {
 		return err
 	}
 	if mgr.Runner.Index == 0 {
@@ -313,18 +327,19 @@ func renewClusterCerts(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) erro
 		if err1 != nil {
 			return errors.Wrap(errors.WithStack(err1), "Failed to get cluster kubeconfig")
 		}
-		kubeConfigValue["kubeConfig"] = kubeConfigStr
+		mgr.ClusterStatus.Kubeconfig = kubeConfigStr
 	}
 	return nil
 }
+
 func syncKubeConfig(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
 	chownKubeConfig := "chown $(id -u):$(id -g) -R $HOME/.kube"
 	if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", createConfigDirCmd), 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to create kube dir")
 	}
-	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", kubeConfigValue["kubeConfig"], "/root/.kube/config")
-	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", kubeConfigValue["kubeConfig"], "$HOME/.kube/config", chownKubeConfig)
+	syncKubeconfigForRootCmd := fmt.Sprintf("sudo -E /bin/sh -c \"echo %s | base64 -d > %s\"", mgr.ClusterStatus.Kubeconfig, "/root/.kube/config")
+	syncKubeconfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", mgr.ClusterStatus.Kubeconfig, "$HOME/.kube/config", chownKubeConfig)
 	if _, err := mgr.Runner.ExecuteCmd(syncKubeconfigForRootCmd, 1, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to sync kube config")
 	}

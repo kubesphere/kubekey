@@ -19,6 +19,7 @@ package kubesphere
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -399,6 +400,181 @@ spec:
         nodeSelector: {"node-role.kubernetes.io/worker": ""}
         tolerations: []
 `
+
+	V3_2_0 = `
+---
+apiVersion: installer.kubesphere.io/v1alpha1
+kind: ClusterConfiguration
+metadata:
+  name: ks-installer
+  namespace: kubesphere-system
+  labels:
+    version: v3.2.0
+spec:
+  persistence:
+    storageClass: ""
+  authentication:
+    jwtSecret: ""
+  local_registry: ""
+  # dev_tag: ""
+  etcd:
+    monitoring: false
+    endpointIps: localhost
+    port: 2379
+    tlsEnable: true
+  common:
+    core:
+      console:
+        enableMultiLogin: true
+        port: 30880
+        type: NodePort
+    # apiserver:
+    #  resources: {}
+    # controllerManager:
+    #  resources: {}
+    redis:
+      enabled: false
+      volumeSize: 2Gi
+    openldap:
+      enabled: false
+      volumeSize: 2Gi
+    minio:
+      volumeSize: 20Gi
+    monitoring:
+      # type: external
+      endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090
+      GPUMonitoring:
+        enabled: false
+    gpu:
+      kinds:         
+      - resourceName: "nvidia.com/gpu"
+        resourceType: "GPU"
+        default: true
+    es:
+      # master:
+      #   volumeSize: 4Gi
+      #   replicas: 1
+      #   resources: {}
+      # data:
+      #   volumeSize: 20Gi
+      #   replicas: 1
+      #   resources: {}
+      logMaxAge: 7
+      elkPrefix: logstash
+      basicAuth:
+        enabled: false
+        username: ""
+        password: ""
+      externalElasticsearchUrl: ""
+      externalElasticsearchPort: ""
+  alerting:
+    enabled: false
+    # thanosruler:
+    #   replicas: 1
+    #   resources: {}
+  auditing:
+    enabled: false
+    # operator:
+    #   resources: {}
+    # webhook:
+    #   resources: {}
+  devops:
+    enabled: false
+    jenkinsMemoryLim: 2Gi
+    jenkinsMemoryReq: 1500Mi
+    jenkinsVolumeSize: 8Gi
+    jenkinsJavaOpts_Xms: 512m
+    jenkinsJavaOpts_Xmx: 512m
+    jenkinsJavaOpts_MaxRAM: 2g
+  events:
+    enabled: false
+    # operator:
+    #   resources: {}
+    # exporter:
+    #   resources: {}
+    # ruler:
+    #   enabled: true
+    #   replicas: 2
+    #   resources: {}
+  logging:
+    enabled: false
+    containerruntime: docker
+    logsidecar:
+      enabled: true
+      replicas: 2
+      # resources: {}
+  metrics_server:
+    enabled: false
+  monitoring:
+    storageClass: ""
+    # kube_rbac_proxy:
+    #   resources: {}
+    # kube_state_metrics:
+    #   resources: {}
+    # prometheus:
+    #   replicas: 1
+    #   volumeSize: 20Gi
+    #   resources: {}
+    #   operator:
+    #     resources: {}
+    #   adapter:
+    #     resources: {}
+    # node_exporter:
+    #   resources: {}
+    # alertmanager:
+    #   replicas: 1
+    #   resources: {}
+    # notification_manager:
+    #   resources: {}
+    #   operator:
+    #     resources: {}
+    #   proxy:
+    #     resources: {}
+    gpu:
+      nvidia_dcgm_exporter:
+        enabled: false
+        # resources: {}
+  multicluster:
+    clusterRole: none 
+  network:
+    networkpolicy:
+      enabled: false
+    ippool:
+      type: none
+    topology:
+      type: none
+  openpitrix:
+    store:
+      enabled: false
+  servicemesh:
+    enabled: false
+  kubeedge:
+    enabled: false   
+    cloudCore:
+      nodeSelector: {"node-role.kubernetes.io/worker": ""}
+      tolerations: []
+      cloudhubPort: "10000"
+      cloudhubQuicPort: "10001"
+      cloudhubHttpsPort: "10002"
+      cloudstreamPort: "10003"
+      tunnelPort: "10004"
+      cloudHub:
+        advertiseAddress:
+          - ""
+        nodeLimit: "100"
+      service:
+        cloudhubNodePort: "30000"
+        cloudhubQuicNodePort: "30001"
+        cloudhubHttpsNodePort: "30002"
+        cloudstreamNodePort: "30003"
+        tunnelNodePort: "30004"
+    edgeWatcher:
+      nodeSelector: {"node-role.kubernetes.io/worker": ""}
+      tolerations: []
+      edgeWatcherAgent:
+        nodeSelector: {"node-role.kubernetes.io/worker": ""}
+        tolerations: []
+`
 )
 
 var (
@@ -699,6 +875,7 @@ spec:
 	mirrorVersionList = map[string]bool{
 		"v3.1.0": true,
 		"v3.1.1": true,
+		"v3.2.0": true,
 	}
 )
 
@@ -708,7 +885,9 @@ func GenerateKubeSphereYaml(repo, version string) (string, error) {
 		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
 	} else {
 		if repo == "" {
-			if strings.Contains(version, "latest") || strings.HasPrefix(version, "nightly-") {
+			if strings.Contains(version, "latest") ||
+				strings.HasPrefix(version, "nightly-") ||
+				strings.Contains(version, "alpha") {
 				repo = "kubespheredev"
 			} else {
 				repo = "kubesphere"
@@ -722,4 +901,61 @@ func GenerateKubeSphereYaml(repo, version string) (string, error) {
 		"Repo": repo,
 		"Tag":  version,
 	})
+}
+
+func GenerateAlphaYaml(version string) string {
+
+	r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
+	v := r.FindString(version)
+
+	switch v {
+	case "v3.2.0":
+		str, err := util.Render(V320, util.Data{
+			"Tag": version,
+		})
+		if err != nil {
+			os.Exit(0)
+		}
+		return str
+	case "v3.1.1":
+		str, err := util.Render(V311, util.Data{
+			"Tag": version,
+		})
+		if err != nil {
+			os.Exit(0)
+		}
+		return str
+	case "v3.1.0":
+		str, err := util.Render(V310, util.Data{
+			"Tag": version,
+		})
+		if err != nil {
+			os.Exit(0)
+		}
+		return str
+	case "v3.0.0":
+		str, err := util.Render(V300, util.Data{
+			"Tag": version,
+		})
+		if err != nil {
+			os.Exit(0)
+		}
+		return str
+	case "v2.1.1":
+		str, err := util.Render(V211, util.Data{
+			"Tag": version,
+		})
+		if err != nil {
+			os.Exit(0)
+		}
+		return str
+	default:
+		str, err := util.Render(V320, util.Data{
+			"Tag": version,
+		})
+		if err != nil {
+			os.Exit(0)
+		}
+		return str
+	}
 }

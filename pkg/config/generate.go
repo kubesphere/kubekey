@@ -61,7 +61,6 @@ spec:
     port: 6443
   kubernetes:
     version: {{ .Options.KubeVersion }}
-    imageRepo: kubesphere
     clusterName: cluster.local
   network:
     plugin: calico
@@ -120,7 +119,9 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 
 	if ksEnabled {
 		switch strings.TrimSpace(ksVersion) {
-		case "v3.1.1", "latest":
+		case "v3.2.0", "latest":
+			opt.KubeSphereConfigMap = kubesphere.V3_2_0
+		case "v3.1.1":
 			opt.KubeSphereConfigMap = kubesphere.V3_1_1
 		case "v3.1.0":
 			opt.KubeSphereConfigMap = kubesphere.V3_1_0
@@ -129,7 +130,11 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 		case "v2.1.1":
 			opt.KubeSphereConfigMap = kubesphere.V2_1_1
 		default:
-			return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+			if strings.Contains(ksVersion, "alpha") {
+				opt.KubeSphereConfigMap = kubesphere.GenerateAlphaYaml(ksVersion)
+			} else {
+				return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+			}
 		}
 	}
 

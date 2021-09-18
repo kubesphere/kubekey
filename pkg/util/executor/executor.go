@@ -40,25 +40,27 @@ type Executor struct {
 	SkipPullImages     bool
 	DeployLocalStorage bool
 	AddImagesRepo      bool
+	ContainerManager   string
 	InCluster          bool
 	ClientSet          *kubekeyclientset.Clientset
 	DownloadCommand    func(path, url string) string
 	Connector          connector.Connector
 }
 
-func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset) *Executor {
+func NewExecutor(cluster *kubekeyapiv1alpha1.ClusterSpec, objName string, logger *log.Logger, sourcesDir string, debug, skipCheck, skipPullImages, addImagesRepo, inCluster bool, clientset *kubekeyclientset.Clientset, containerManager string) *Executor {
 	return &Executor{
-		ObjName:        objName,
-		Cluster:        cluster,
-		Logger:         logger,
-		SourcesDir:     sourcesDir,
-		Debug:          debug,
-		SkipCheck:      skipCheck,
-		SkipPullImages: skipPullImages,
-		AddImagesRepo:  addImagesRepo,
-		InCluster:      inCluster,
-		ClientSet:      clientset,
-		Connector:      ssh.NewDialer(),
+		ObjName:          objName,
+		Cluster:          cluster,
+		Logger:           logger,
+		SourcesDir:       sourcesDir,
+		Debug:            debug,
+		SkipCheck:        skipCheck,
+		SkipPullImages:   skipPullImages,
+		AddImagesRepo:    addImagesRepo,
+		ContainerManager: containerManager,
+		InCluster:        inCluster,
+		ClientSet:        clientset,
+		Connector:        ssh.NewDialer(),
 	}
 }
 
@@ -87,14 +89,35 @@ func (executor *Executor) CreateManager() (*manager.Manager, error) {
 	mgr.AddImagesRepo = executor.AddImagesRepo
 	mgr.ObjName = executor.ObjName
 	mgr.InCluster = executor.InCluster
+	if executor.ContainerManager != manager.Docker && executor.ContainerManager != "" {
+		mgr.Cluster.Kubernetes.ContainerManager = executor.ContainerManager
+	}
+	mgr.ContainerManager = executor.ContainerManager
 	mgr.DeployLocalStorage = executor.DeployLocalStorage
 	mgr.ClientSet = executor.ClientSet
 	mgr.DownloadCommand = executor.DownloadCommand
 	mgr.EtcdContainer = false
-	// Description: Since docker is no the default container runtime of kubernetes, kubekey no longer uses docker to start etcd.
-	//if (executor.Cluster.Kubernetes.ContainerManager == "" || executor.Cluster.Kubernetes.ContainerManager == "docker") && executor.Cluster.Kubernetes.Type != "k3s" {
-	//	mgr.EtcdContainer = true
-	//}
+	mgr.ClusterStatus = &manager.ClusterStatus{}
+	mgr.UpgradeStatus = &manager.UpgradeStatus{CurrentVersions: map[string]string{}}
+
+	// store cri configuration
+	switch mgr.Cluster.Kubernetes.ContainerManager {
+	case manager.Docker:
+		mgr.ContainerRuntimeEndpoint = ""
+	case manager.Crio:
+		mgr.ContainerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultCrioEndpoint
+	case manager.Conatinerd:
+		mgr.ContainerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultContainerdEndpoint
+	case manager.Isula:
+		mgr.ContainerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultIsulaEndpoint
+	default:
+		mgr.ContainerRuntimeEndpoint = ""
+	}
+
+	if mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
+		mgr.ContainerRuntimeEndpoint = mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint
+	}
+
 	return mgr, nil
 }
 

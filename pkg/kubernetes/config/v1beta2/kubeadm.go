@@ -18,11 +18,12 @@ package v1beta2
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/kubernetes/preinstall"
@@ -36,7 +37,8 @@ var (
 	funcMap = template.FuncMap{"toYaml": toYAML, "indent": Indent}
 	// KubeadmCfgTempl defines the template of kubeadm configuration file.
 	KubeadmCfgTempl = template.Must(template.New("kubeadmCfg").Funcs(funcMap).Parse(
-		dedent.Dedent(`---
+		dedent.Dedent(`{{- if .IsInitCluster -}}
+---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 etcd:
@@ -85,12 +87,14 @@ scheduler:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{ .ControlPlanAddr }}
+  advertiseAddress: {{ .AdvertiseAddress }}
   bindPort: {{ .ControlPlanPort }}
-{{- if .CriSock }}
 nodeRegistration:
+{{- if .CriSock }}
   criSocket: {{ .CriSock }}
 {{- end }}
+  kubeletExtraArgs:
+    cgroup-driver: {{ .CgroupDriver }}
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
@@ -100,6 +104,31 @@ apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 {{ toYaml .KubeletConfiguration }}
 
+{{- else -}}
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: {{ .ControlPlaneEndpoint }}
+    token: "{{ .BootstrapToken }}"
+    unsafeSkipCAVerification: true
+  tlsBootstrapToken: "{{ .BootstrapToken }}"
+{{- if .IsControlPlane }}
+controlPlane:
+  localAPIEndpoint:
+    advertiseAddress: {{ .AdvertiseAddress }}
+    bindPort: {{ .ControlPlanPort }}
+  certificateKey: {{ .CertificateKey }}
+{{- end }}
+nodeRegistration:
+{{- if .CriSock }}
+  criSocket: {{ .CriSock }}
+{{- end }}
+  kubeletExtraArgs:
+    cgroup-driver: {{ .CgroupDriver }}
+
+{{- end }}
     `)))
 )
 
@@ -123,11 +152,11 @@ var (
 )
 
 // GenerateKubeadmCfg create kubeadm configuration file to initialize the cluster.
-func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (string, error) {
+func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg, isInitCluster bool, bootstrapToken, certificateKey string) (string, error) {
 	// generate etcd configuration
 	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
 	var endpointsList []string
-	var caFile, certFile, keyFile, containerRuntimeEndpoint string
+	var caFile, certFile, keyFile string
 
 	for _, host := range mgr.EtcdNodes {
 		endpoint := fmt.Sprintf("https://%s:%s", host.InternalAddress, kubekeyapiv1alpha1.DefaultEtcdPort)
@@ -147,31 +176,19 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 	_, ControllerManagerArgs := util.GetArgs(controllermanagerArgs, mgr.Cluster.Kubernetes.ControllerManagerArgs)
 	_, SchedulerArgs := util.GetArgs(schedulerArgs, mgr.Cluster.Kubernetes.SchedulerArgs)
 
-	// generate cri configuration
-	switch mgr.Cluster.Kubernetes.ContainerManager {
-	case "docker":
-		containerRuntimeEndpoint = ""
-	case "crio":
-		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultCrioEndpoint
-	case "containerd":
-		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultContainerdEndpoint
-	case "isula":
-		containerRuntimeEndpoint = kubekeyapiv1alpha1.DefaultIsulaEndpoint
-	default:
-		containerRuntimeEndpoint = ""
-	}
-
-	if mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
-		containerRuntimeEndpoint = mgr.Cluster.Kubernetes.ContainerRuntimeEndpoint
+	checkCgroupDriver, err := getKubeletCgroupDriver(mgr)
+	if err != nil {
+		return "", err
 	}
 
 	return util.Render(KubeadmCfgTempl, util.Data{
+		"IsInitCluster":          isInitCluster,
 		"ImageRepo":              strings.TrimSuffix(preinstall.GetImage(mgr, "kube-apiserver").ImageRepo(), "/kube-apiserver"),
 		"CorednsRepo":            strings.TrimSuffix(preinstall.GetImage(mgr, "coredns").ImageRepo(), "/coredns"),
 		"CorednsTag":             preinstall.GetImage(mgr, "coredns").Tag,
 		"Version":                mgr.Cluster.Kubernetes.Version,
 		"ClusterName":            mgr.Cluster.Kubernetes.ClusterName,
-		"ControlPlanAddr":        mgr.Cluster.ControlPlaneEndpoint.Address,
+		"AdvertiseAddress":       node.InternalAddress,
 		"ControlPlanPort":        mgr.Cluster.ControlPlaneEndpoint.Port,
 		"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", mgr.Cluster.ControlPlaneEndpoint.Domain, mgr.Cluster.ControlPlaneEndpoint.Port),
 		"PodSubnet":              mgr.Cluster.Network.KubePodsCIDR,
@@ -179,42 +196,43 @@ func GenerateKubeadmCfg(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 		"CertSANs":               mgr.Cluster.GenerateCertSANs(),
 		"ExternalEtcd":           externalEtcd,
 		"NodeCidrMaskSize":       mgr.Cluster.Kubernetes.NodeCidrMaskSize,
-		"CriSock":                containerRuntimeEndpoint,
-		"InternalLBDisabled":     !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled(),
-		"AdvertiseAddress":       node.InternalAddress,
+		"CriSock":                mgr.ContainerRuntimeEndpoint,
 		"ApiServerArgs":          ApiServerArgs,
 		"ControllerManagerArgs":  ControllerManagerArgs,
 		"SchedulerArgs":          SchedulerArgs,
-		"KubeletConfiguration":   GetKubeletConfiguration(mgr, containerRuntimeEndpoint),
+		"KubeletConfiguration":   GetKubeletConfiguration(mgr, mgr.ContainerRuntimeEndpoint),
 		"KubeProxyConfiguration": getKubeProxyConfiguration(mgr),
+		"IsControlPlane":         node.IsMaster,
+		"CgroupDriver":           checkCgroupDriver,
+		"BootstrapToken":         bootstrapToken,
+		"CertificateKey":         certificateKey,
 	})
 }
 
 func getKubeletCgroupDriver(mgr *manager.Manager) (string, error) {
 	var cmd, kubeletCgroupDriver string
 	switch mgr.Cluster.Kubernetes.ContainerManager {
-	case "docker":
+	case manager.Docker, "":
 		cmd = "docker info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
-	case "crio":
+	case manager.Crio:
 		cmd = "crio config | grep cgroup_manager | awk -F'= ' '{ print $2; }'"
-	case "containerd":
+	case manager.Conatinerd:
 		cmd = "containerd config dump | grep systemd_cgroup | awk -F'= ' '{ print $2; }'"
-	case "isula":
+	case manager.Isula:
 		cmd = "isula info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
 	default:
 		kubeletCgroupDriver = ""
 	}
 
-	checkResult, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH /bin/sh -c \"%s\"", cmd), 3, false)
+	checkResult, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH:/sbin:/usr/sbin /bin/sh -c \"%s\"", cmd), 3, false)
 	if err != nil {
 		return "", errors.Wrap(errors.WithStack(err), "Failed to get container runtime cgroup driver.")
 	}
 	if strings.Contains(checkResult, "systemd") && !strings.Contains(checkResult, "false") {
 		kubeletCgroupDriver = "systemd"
 	} else {
-		kubeletCgroupDriver = ""
+		kubeletCgroupDriver = "cgroupfs"
 	}
-
 	return kubeletCgroupDriver, nil
 }
 
@@ -247,14 +265,6 @@ func GetKubeletConfiguration(mgr *manager.Manager, criSock string) map[string]in
 			"ExpandCSIVolumes":               true,
 			"RotateKubeletServerCertificate": true,
 		},
-	}
-
-	cgroupDriver, err := getKubeletCgroupDriver(mgr)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	if len(cgroupDriver) != 0 {
-		defaultKubeletConfiguration["cgroupDriver"] = "systemd"
 	}
 
 	if len(criSock) != 0 {
