@@ -54,6 +54,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
   <tr>
     <td align="center"><a href="https://github.com/tagGeeY"><img src="https://avatars.githubusercontent.com/u/35259969?v=4?s=100" width="100px;" alt=""/><br /><sub><b>tag_gee_y</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=tagGeeY" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/liulangwa"><img src="https://avatars.githubusercontent.com/u/25916792?v=4?s=100" width="100px;" alt=""/><br /><sub><b>codebee</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=liulangwa" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/TheApeMachine"><img src="https://avatars.githubusercontent.com/u/9572060?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Daniel Owen van Dommelen</b></sub></a><br /><a href="#ideas-TheApeMachine" title="Ideas, Planning, & Feedback">🤔</a></td>
   </tr>
 </table>
 
