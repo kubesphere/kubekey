@@ -350,6 +350,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "TheApeMachine",
+      "name": "Daniel Owen van Dommelen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9572060?v=4",
+      "profile": "https://github.com/TheApeMachine",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7,
