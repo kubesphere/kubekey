@@ -28,10 +28,22 @@ import (
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os"
+	"regexp"
 	"strings"
 )
 
 var versionCheck = map[string]map[string]map[string]bool{
+	"v3.2.0": {
+		"k8s": {
+			"v1.22": true,
+			"v1.21": true,
+		},
+		"ks": {
+			"v3.1.1": true,
+			"v3.1.0": true,
+			"v3.0.0": true,
+		},
+	},
 	"v3.1.1": {
 		"k8s": {
 			"v1.20": true,
@@ -164,9 +176,10 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 			if mgr.Cluster.KubeSphere.Enabled {
 				var version string
 				if strings.Contains(mgr.Cluster.KubeSphere.Version, "latest") || strings.Contains(mgr.Cluster.KubeSphere.Version, "nightly") {
-					version = "v3.1.0"
+					version = "v3.2.0"
 				} else {
-					version = mgr.Cluster.KubeSphere.Version
+					r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
+					version = r.FindString(mgr.Cluster.KubeSphere.Version)
 				}
 				if _, ok := versionCheck[version]; !ok {
 					return errors.New(fmt.Sprintf("Unsupported version: %s", mgr.Cluster.KubeSphere.Version))
@@ -176,7 +189,7 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 				}
 				K8sTargetVersion := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version)
 				if _, ok := versionCheck[version]["k8s"][fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())]; !ok {
-					return errors.New(fmt.Sprintf("KubeSphere %s does not support running on Kubernetes %s", mgr.Cluster.KubeSphere.Version, fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
+					return errors.New(fmt.Sprintf("KubeSphere %s does not support running on Kubernetes %s", version, fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
 				}
 			} else {
 				if _, ok := versionCheck[ksVersion]; !ok {

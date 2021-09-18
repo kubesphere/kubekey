@@ -219,6 +219,92 @@ func upgradeKubeWorkers(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 
 func UpgradeKubeCluster(mgr *manager.Manager) error {
 	mgr.Logger.Infoln("Upgrading kube cluster")
+	originalTarget := mgr.Cluster.Kubernetes.Version
+	targetVersionStr := originalTarget
+	cmp, err := versionutil.MustParseSemantic(mgr.UpgradeStatus.CurrentVersionStr).Compare(mgr.Cluster.Kubernetes.Version)
+	if err != nil {
+		return err
+	}
+	if cmp == 1 {
+		mgr.Logger.Warningln(fmt.Sprintf("The current version (%s) is greater than the target version (%s)", mgr.UpgradeStatus.CurrentVersionStr, targetVersionStr))
+		os.Exit(0)
+	}
+	currentCmp, err := versionutil.MustParseSemantic(mgr.UpgradeStatus.CurrentVersionStr).Compare("v1.21.5")
+	if err != nil {
+		return err
+	}
+	targetCmp, err := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version).Compare("v1.22.0")
+	if err != nil {
+		return err
+	}
+	if strings.Contains(mgr.KsVersion, "v3.2.0") && targetCmp != -1 && (currentCmp <= 0) {
+		targetVersionStr = "v1.21.5"
+	}
+Loop:
+	for {
+		if mgr.UpgradeStatus.CurrentVersionStr != targetVersionStr {
+			currentVersion := versionutil.MustParseSemantic(mgr.UpgradeStatus.CurrentVersionStr)
+			targetVersion := versionutil.MustParseSemantic(targetVersionStr)
+			var nextVersionMinor uint
+			if targetVersion.Minor() == currentVersion.Minor() {
+				nextVersionMinor = currentVersion.Minor()
+			} else {
+				nextVersionMinor = currentVersion.Minor() + 1
+			}
+
+			if nextVersionMinor == versionutil.MustParseSemantic(targetVersionStr).Minor() {
+				mgr.UpgradeStatus.NextVersionStr = targetVersionStr
+			} else {
+				nextVersionPatchList := []int{}
+				for supportVersionStr := range files.FileSha256["kubeadm"]["amd64"] {
+					supportVersion, err := versionutil.ParseSemantic(supportVersionStr)
+					if err != nil {
+						return err
+					}
+					if supportVersion.Minor() == nextVersionMinor {
+						nextVersionPatchList = append(nextVersionPatchList, int(supportVersion.Patch()))
+					}
+				}
+				sort.Ints(nextVersionPatchList)
+
+				nextVersion := currentVersion.WithMinor(nextVersionMinor)
+				nextVersion = nextVersion.WithPatch(uint(nextVersionPatchList[len(nextVersionPatchList)-1]))
+
+				mgr.UpgradeStatus.NextVersionStr = fmt.Sprintf("v%s", nextVersion.String())
+			}
+
+			mgr.Cluster.Kubernetes.Version = mgr.UpgradeStatus.NextVersionStr
+
+			mgr.Logger.Infoln(fmt.Sprintf("Start Upgrade: %s -> %s", mgr.UpgradeStatus.CurrentVersionStr, mgr.UpgradeStatus.NextVersionStr))
+
+			if err := preinstall.Prepare(mgr); err != nil {
+				return err
+			}
+
+			if err := mgr.RunTaskOnK8sNodes(preinstall.PullImages, true); err != nil {
+				return err
+			}
+
+			if err := mgr.RunTaskOnK8sNodes(upgradeNodes, false); err != nil {
+				return err
+			}
+
+			if err := mgr.RunTaskOnMasterNodes(reconfigDns, false); err != nil {
+				return err
+			}
+			mgr.UpgradeStatus.CurrentVersionStr = mgr.UpgradeStatus.NextVersionStr
+		} else {
+			mgr.Cluster.Kubernetes.Version = originalTarget
+			break Loop
+		}
+	}
+
+	return nil
+
+}
+
+func UpgradeKubeClusterAfterKS(mgr *manager.Manager) error {
+	mgr.Logger.Infoln("Upgrading kube cluster after update kubesphere")
 	targetVersionStr := mgr.Cluster.Kubernetes.Version
 	cmp, err := versionutil.MustParseSemantic(mgr.UpgradeStatus.CurrentVersionStr).Compare(mgr.Cluster.Kubernetes.Version)
 	if err != nil {
