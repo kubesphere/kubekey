@@ -94,7 +94,7 @@ func assertEqual(t *testing.T, actual interface{}, expected interface{}) {
 
 func Test_install(t *testing.T) {
 	cfg, objName := GenTestClusterCfg("Test_install")
-	executor := executor.NewExecutor(&cfg.Spec, objName, logger, "", true, true, true, false, false, nil)
+	executor := executor.NewExecutor(&cfg.Spec, objName, logger, "", true, true, true, false, false, nil, "")
 
 	connections := make(map[string]*MockConnection)
 	executor.Connector = &MockConnector{connections: connections}

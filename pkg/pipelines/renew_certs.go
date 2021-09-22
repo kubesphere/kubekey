@@ -7,8 +7,9 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 )
 
-func CheckCertsPipeline(runtime *common.KubeRuntime) error {
+func RenewCertsPipeline(runtime *common.KubeRuntime) error {
 	m := []modules.Module{
+		&certs.RenewCertsModule{},
 		&certs.CheckCertsModule{},
 		&certs.PrintClusterCertsModule{},
 	}
@@ -24,7 +25,7 @@ func CheckCertsPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
-func CheckCerts(args common.Argument) error {
+func RenewCerts(args common.Argument) error {
 	var loaderType string
 	if args.FilePath != "" {
 		loaderType = common.File
@@ -37,7 +38,7 @@ func CheckCerts(args common.Argument) error {
 		return err
 	}
 
-	if err := CheckCertsPipeline(runtime); err != nil {
+	if err := RenewCertsPipeline(runtime); err != nil {
 		return err
 	}
 	return nil
