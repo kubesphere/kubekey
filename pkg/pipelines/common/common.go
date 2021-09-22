@@ -50,6 +50,10 @@ const (
 	ETCDExist   = "etcdExist"
 
 	// KubernetesModule
-	ClusterStatus = "ClusterStatus"
+	ClusterStatus = "clusterStatus"
 	ClusterExist  = "clusterExist"
+
+	// CertsModule
+	Certificate   = "certificate"
+	CaCertificate = "caCertificate"
 )

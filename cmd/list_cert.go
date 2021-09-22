@@ -1,17 +1,20 @@
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/cluster/certs"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/spf13/cobra"
 )
 
 var listClusterCertsCmd = &cobra.Command{
 	Use:   "check-expiration",
 	Short: "Check certificates expiration for a Kubernetes cluster",
-	Run: func(cmd *cobra.Command, args []string) {
-		logger := util.InitLogger(opt.Verbose)
-		_ = certs.ListCluster(opt.ClusterCfgFile, logger, opt.Verbose)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		arg := common.Argument{
+			FilePath: opt.ClusterCfgFile,
+			Debug:    opt.Verbose,
+		}
+		return pipelines.CheckCerts(arg)
 	},
 }
 
