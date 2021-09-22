@@ -139,9 +139,10 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha1.Cluster, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to look up current directory")
 	}
-	if len(f.KubernetesVersion) != 0 {
-		_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/version/s/\\:.*/\\: %s/g\" %s", f.KubernetesVersion, fp)).Run()
-	}
+	// It will lead to nil pointer err
+	//if len(f.KubernetesVersion) != 0 {
+	//	_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("sed -i \"/version/s/\\:.*/\\: %s/g\" %s", f.KubernetesVersion, fp)).Run()
+	//}
 	file, err := os.Open(fp)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to open the given cluster configuration file")
@@ -190,7 +191,7 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha1.Cluster, error) {
 					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
-					return nil, errors.Wrap(err, fmt.Sprintf("Unsupported version: %s", labels["version"]))
+					return nil, errors.New(fmt.Sprintf("Unsupported version: %s", labels["version"]))
 				}
 			}
 		}
