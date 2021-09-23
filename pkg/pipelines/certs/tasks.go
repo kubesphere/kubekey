@@ -7,6 +7,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdlatest "k8s.io/client-go/tools/clientcmd/api/latest"
 	certutil "k8s.io/client-go/util/cert"
@@ -174,14 +175,22 @@ type RenewCerts struct {
 }
 
 func (r *RenewCerts) Execute(runtime connector.Runtime) error {
-	var kubeadmList = []string{
-		"cd /etc/kubernetes",
+	var kubeadmAlphaList = []string{
 		"/usr/local/bin/kubeadm alpha certs renew apiserver",
 		"/usr/local/bin/kubeadm alpha certs renew apiserver-kubelet-client",
 		"/usr/local/bin/kubeadm alpha certs renew front-proxy-client",
 		"/usr/local/bin/kubeadm alpha certs renew admin.conf",
 		"/usr/local/bin/kubeadm alpha certs renew controller-manager.conf",
 		"/usr/local/bin/kubeadm alpha certs renew scheduler.conf",
+	}
+
+	var kubeadmList = []string{
+		"/usr/local/bin/kubeadm certs renew apiserver",
+		"/usr/local/bin/kubeadm certs renew apiserver-kubelet-client",
+		"/usr/local/bin/kubeadm certs renew front-proxy-client",
+		"/usr/local/bin/kubeadm certs renew admin.conf",
+		"/usr/local/bin/kubeadm certs renew controller-manager.conf",
+		"/usr/local/bin/kubeadm certs renew scheduler.conf",
 	}
 
 	var restartList = []string{
@@ -191,10 +200,26 @@ func (r *RenewCerts) Execute(runtime connector.Runtime) error {
 		"systemctl restart kubelet",
 	}
 
-	_, err := runtime.GetRunner().SudoCmd(strings.Join(kubeadmList, " && "), false)
+	version, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm version -o short", true)
 	if err != nil {
-		return errors.Wrap(err, "kubeadm alpha certs renew failed")
+		return errors.Wrap(errors.WithStack(err), "kubeadm get version failed")
 	}
+	cmp, err := versionutil.MustParseSemantic(version).Compare("v1.20.0")
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "parse kubeadm version failed")
+	}
+	if cmp == -1 {
+		_, err := runtime.GetRunner().SudoCmd(strings.Join(kubeadmAlphaList, " && "), false)
+		if err != nil {
+			return errors.Wrap(err, "kubeadm alpha certs renew failed")
+		}
+	} else {
+		_, err := runtime.GetRunner().SudoCmd(strings.Join(kubeadmList, " && "), false)
+		if err != nil {
+			return errors.Wrap(err, "kubeadm alpha certs renew failed")
+		}
+	}
+
 	_, err = runtime.GetRunner().SudoCmd(strings.Join(restartList, " && "), false)
 	if err != nil {
 		return errors.Wrap(err, "kube-apiserver, kube-schedule, kube-controller-manager or kubelet restart failed")
@@ -207,6 +232,13 @@ type FetchKubeConfig struct {
 }
 
 func (f *FetchKubeConfig) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+		"if [ -d %s ]; "+
+			"then rm -rf %s ;"+
+			"fi && mkdir -p %s", common.TmpDir, common.TmpDir, common.TmpDir), false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
+	}
+
 	tmpConfigFile := filepath.Join(common.TmpDir, "admin.conf")
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("cp /etc/kubernetes/admin.conf %s", tmpConfigFile), false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "copy kube config to /tmp/ failed")
