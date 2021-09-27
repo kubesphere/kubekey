@@ -75,6 +75,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: install.InstallInternalLoadbalancer, ErrMsg: "Failed to install internal load balancer", Skip: !mgr.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		{Task: SyncConfiguration, ErrMsg: "Failed to sync configuration"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to upgrade kubesphere"},
+		{Task: UpgradeKubeClusterAfterKS, ErrMsg: "Failed to upgrade kube cluster", Skip: mgr.UpgradeStatus.CurrentVersionStr == mgr.Cluster.Kubernetes.Version},
 	}
 
 	for _, step := range upgradeTasks {

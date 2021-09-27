@@ -37,9 +37,9 @@
 
 * **v1.17**: &ensp; *v1.17.9*
 * **v1.18**: &ensp; *v1.18.6*
-* **v1.19**: &ensp; *v1.19.8*  (default)
+* **v1.19**: &ensp; *v1.19.8*  
 * **v1.20**: &ensp; *v1.20.6*
-* **v1.21**: &ensp; *v1.21.4*
+* **v1.21**: &ensp; *v1.21.5*  (default)
 * **v1.22**: &ensp; *v1.22.1*
 > 查看更多支持的版本[点击这里](./docs/kubernetes-versions.md)
 
@@ -326,6 +326,8 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
   </tr>
   <tr>
     <td align="center"><a href="https://github.com/tagGeeY"><img src="https://avatars.githubusercontent.com/u/35259969?v=4?s=100" width="100px;" alt=""/><br /><sub><b>tag_gee_y</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=tagGeeY" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/liulangwa"><img src="https://avatars.githubusercontent.com/u/25916792?v=4?s=100" width="100px;" alt=""/><br /><sub><b>codebee</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=liulangwa" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/TheApeMachine"><img src="https://avatars.githubusercontent.com/u/9572060?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Daniel Owen van Dommelen</b></sub></a><br /><a href="#ideas-TheApeMachine" title="Ideas, Planning, & Feedback">🤔</a></td>
   </tr>
 </table>
 

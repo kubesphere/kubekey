@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdlatest "k8s.io/client-go/tools/clientcmd/api/latest"
 	certutil "k8s.io/client-go/util/cert"
@@ -59,23 +60,6 @@ var (
 	certificates   []*Certificate
 	caCertificates []*CaCertificate
 )
-
-var kubeadmList = []string{
-	"cd /etc/kubernetes",
-	"/usr/local/bin/kubeadm alpha certs renew apiserver",
-	"/usr/local/bin/kubeadm alpha certs renew apiserver-kubelet-client",
-	"/usr/local/bin/kubeadm alpha certs renew front-proxy-client",
-	"/usr/local/bin/kubeadm alpha certs renew admin.conf",
-	"/usr/local/bin/kubeadm alpha certs renew controller-manager.conf",
-	"/usr/local/bin/kubeadm alpha certs renew scheduler.conf",
-}
-
-var restartList = []string{
-	"docker ps -af name=k8s_kube-apiserver* -q | xargs --no-run-if-empty docker rm -f",
-	"docker ps -af name=k8s_kube-scheduler* -q | xargs --no-run-if-empty docker rm -f",
-	"docker ps -af name=k8s_kube-controller-manager* -q | xargs --no-run-if-empty docker rm -f",
-	"systemctl restart kubelet",
-}
 
 func ListCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
 	cfg, objName, err := config.ParseClusterCfg(clusterCfgFile, "", "", false, logger)
@@ -309,13 +293,54 @@ func RenewClusterCert(m *manager.Manager) error {
 }
 
 func renewControlPlaneCerts(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
-	_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(kubeadmList, " && ")), 5, false)
-	if err != nil {
-		return errors.Wrap(err, "Failed to kubeadm alpha certs renew...")
+	var kubeadmAlphaList = []string{
+		"/usr/local/bin/kubeadm alpha certs renew apiserver",
+		"/usr/local/bin/kubeadm alpha certs renew apiserver-kubelet-client",
+		"/usr/local/bin/kubeadm alpha certs renew front-proxy-client",
+		"/usr/local/bin/kubeadm alpha certs renew admin.conf",
+		"/usr/local/bin/kubeadm alpha certs renew controller-manager.conf",
+		"/usr/local/bin/kubeadm alpha certs renew scheduler.conf",
 	}
-	_, err1 := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(restartList, " && ")), 5, false)
-	if err1 != nil {
-		return errors.Wrap(err1, "Failed to restart kube-apiserver or kube-schedule or kube-controller-manager")
+
+	var kubeadmList = []string{
+		"/usr/local/bin/kubeadm certs renew apiserver",
+		"/usr/local/bin/kubeadm certs renew apiserver-kubelet-client",
+		"/usr/local/bin/kubeadm certs renew front-proxy-client",
+		"/usr/local/bin/kubeadm certs renew admin.conf",
+		"/usr/local/bin/kubeadm certs renew controller-manager.conf",
+		"/usr/local/bin/kubeadm certs renew scheduler.conf",
+	}
+
+	var restartList = []string{
+		"docker ps -af name=k8s_kube-apiserver* -q | xargs --no-run-if-empty docker rm -f",
+		"docker ps -af name=k8s_kube-scheduler* -q | xargs --no-run-if-empty docker rm -f",
+		"docker ps -af name=k8s_kube-controller-manager* -q | xargs --no-run-if-empty docker rm -f",
+		"systemctl restart kubelet",
+	}
+
+	version, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", "/usr/local/bin/kubeadm version -o short"), 3, true)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "kubeadm get version failed")
+	}
+	cmp, err := versionutil.MustParseSemantic(version).Compare("v1.20.0")
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "parse kubeadm version failed")
+	}
+	if cmp == -1 {
+		_, err := mgr.Runner.ExecuteCmd(strings.Join(kubeadmAlphaList, " && "), 5, false)
+		if err != nil {
+			return errors.Wrap(err, "kubeadm alpha certs renew failed")
+		}
+	} else {
+		_, err := mgr.Runner.ExecuteCmd(strings.Join(kubeadmList, " && "), 5, false)
+		if err != nil {
+			return errors.Wrap(err, "kubeadm alpha certs renew failed")
+		}
+	}
+
+	_, err = mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"%s\"", strings.Join(restartList, " && ")), 5, false)
+	if err != nil {
+		return errors.Wrap(err, "Failed to restart kube-apiserver or kube-schedule or kube-controller-manager")
 	}
 
 	if err := kubernetes.GetKubeConfigForControlPlane(mgr); err != nil {
