@@ -5,15 +5,20 @@ import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes/templates"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes/templates/v1beta2"
+	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns"
+	dnsTemplates "github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns/templates"
 	"github.com/pkg/errors"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type GetClusterStatus struct {
@@ -448,6 +453,358 @@ func (k *KubectlDeleteNode) Execute(runtime connector.Runtime) error {
 		"/usr/local/bin/kubectl delete node %s", nodeName),
 		true); err != nil {
 		return errors.Wrap(err, "delete the node failed")
+	}
+	return nil
+}
+
+type UpgradeKubeMaster struct {
+	common.KubeAction
+	ModuleName string
+}
+
+func (u *UpgradeKubeMaster) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	if err := KubeadmUpgradeTasks(runtime, u); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("upgrade cluster using kubeadm failed: %s", host.GetName()))
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd("systemctl stop kubelet", false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
+	}
+
+	if err := SetKubeletTasks(runtime, u.ModuleName, u.KubeAction); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set kubelet failed: %s", host.GetName()))
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart kubelet", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("restart kubelet failed: %s", host.GetName()))
+	}
+
+	time.Sleep(30 * time.Second)
+	return nil
+}
+
+type UpgradeKubeWorker struct {
+	common.KubeAction
+	ModuleName string
+}
+
+func (u *UpgradeKubeWorker) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm upgrade node", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("upgrade node using kubeadm failed: %s", host.GetName()))
+	}
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl stop kubelet", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
+	}
+	if err := SetKubeletTasks(runtime, u.ModuleName, u.KubeAction); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set kubelet failed: %s", host.GetName()))
+	}
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart kubelet", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("restart kubelet failed: %s", host.GetName()))
+	}
+	if err := SyncKubeConfigTask(runtime, u.ModuleName, u.KubeAction); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube config to worker failed: %s", host.GetName()))
+	}
+	return nil
+}
+
+func KubeadmUpgradeTasks(runtime connector.Runtime, u *UpgradeKubeMaster) error {
+	host := runtime.RemoteHost()
+	generateKubeadmConfig := &modules.RemoteTask{
+		Name:     "GenerateKubeadmConfig",
+		Desc:     "Generate kubeadm config",
+		Hosts:    []connector.Host{host},
+		Prepare:  new(NotEqualDesiredVersion),
+		Action:   &GenerateKubeadmConfig{IsInitConfiguration: true},
+		Parallel: false,
+	}
+
+	kubeadmUpgrade := &modules.RemoteTask{
+		Name:     "KubeadmUpgrade",
+		Desc:     "Upgrade cluster using kubeadm",
+		Hosts:    []connector.Host{host},
+		Prepare:  new(NotEqualDesiredVersion),
+		Action:   new(KubeadmUpgrade),
+		Parallel: false,
+		Retry:    3,
+	}
+
+	copyKubeConfig := &modules.RemoteTask{
+		Name:     "CopyKubeConfig",
+		Desc:     "Copy admin.conf to ~/.kube/config",
+		Hosts:    []connector.Host{host},
+		Prepare:  new(NotEqualDesiredVersion),
+		Action:   new(CopyKubeConfigForControlPlane),
+		Parallel: false,
+		Retry:    2,
+	}
+
+	tasks := []modules.Task{
+		generateKubeadmConfig,
+		kubeadmUpgrade,
+		copyKubeConfig,
+	}
+
+	for i := range tasks {
+		task := tasks[i]
+		task.Init(u.ModuleName, runtime, u.ModuleCache, u.PipelineCache)
+		if res := task.Execute(); res.IsFailed() {
+			return res.CombineErr()
+		}
+	}
+	return nil
+}
+
+type KubeadmUpgrade struct {
+	common.KubeAction
+}
+
+func (k *KubeadmUpgrade) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+		"timeout -k 600s 600s /usr/local/bin/kubeadm upgrade apply -y %s --config=/etc/kubernetes/kubeadm-config.yaml "+
+			"--ignore-preflight-errors=all "+
+			"--allow-experimental-upgrades "+
+			"--allow-release-candidate-upgrades "+
+			"--etcd-upgrade=false "+
+			"--certificate-renewal=true "+
+			"--force",
+		k.KubeConf.Cluster.Kubernetes.Version), false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("upgrade master failed: %s", host.GetName()))
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart kubelet", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("restart kubelet failed: %s", host.GetName()))
+	}
+
+	time.Sleep(30 * time.Second)
+	return nil
+}
+
+func SetKubeletTasks(runtime connector.Runtime, moduleName string, kubeAction common.KubeAction) error {
+	host := runtime.RemoteHost()
+	syncKubelet := &modules.RemoteTask{
+		Name:     "SyncKubelet",
+		Desc:     "synchronize kubelet",
+		Hosts:    []connector.Host{host},
+		Prepare:  new(NotEqualDesiredVersion),
+		Action:   new(SyncKubelet),
+		Parallel: false,
+		Retry:    2,
+	}
+
+	generateKubeletService := &modules.RemoteTask{
+		Name:    "GenerateKubeletService",
+		Desc:    "generate kubelet service",
+		Hosts:   []connector.Host{host},
+		Prepare: new(NotEqualDesiredVersion),
+		Action: &action.Template{
+			Template: templates.KubeletService,
+			Dst:      filepath.Join("/etc/systemd/system/", templates.KubeletService.Name()),
+		},
+		Parallel: false,
+		Retry:    2,
+	}
+
+	enableKubelet := &modules.RemoteTask{
+		Name:     "EnableKubelet",
+		Desc:     "enable kubelet service",
+		Hosts:    []connector.Host{host},
+		Prepare:  new(NotEqualDesiredVersion),
+		Action:   new(EnableKubelet),
+		Parallel: false,
+		Retry:    5,
+	}
+
+	generateKubeletEnv := &modules.RemoteTask{
+		Name:     "GenerateKubeletEnv",
+		Desc:     "generate kubelet env",
+		Hosts:    []connector.Host{host},
+		Prepare:  new(NotEqualDesiredVersion),
+		Action:   new(GenerateKubeletEnv),
+		Parallel: false,
+		Retry:    2,
+	}
+
+	tasks := []modules.Task{
+		syncKubelet,
+		generateKubeletService,
+		enableKubelet,
+		generateKubeletEnv,
+	}
+
+	for i := range tasks {
+		task := tasks[i]
+		task.Init(moduleName, runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
+		if res := task.Execute(); res.IsFailed() {
+			return res.CombineErr()
+		}
+	}
+	return nil
+}
+
+func SyncKubeConfigTask(runtime connector.Runtime, moduleName string, kubeAction common.KubeAction) error {
+	host := runtime.RemoteHost()
+	syncKubeConfig := &modules.RemoteTask{
+		Name:  "SyncKubeConfig",
+		Desc:  "synchronize kube config to worker",
+		Hosts: []connector.Host{host},
+		Prepare: &prepare.PrepareCollection{
+			new(NotEqualDesiredVersion),
+			new(common.OnlyWorker),
+		},
+		Action:   new(SyncKubeConfigToWorker),
+		Parallel: true,
+		Retry:    3,
+	}
+
+	tasks := []modules.Task{
+		syncKubeConfig,
+	}
+
+	for i := range tasks {
+		task := tasks[i]
+		task.Init(moduleName, runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
+		if res := task.Execute(); res.IsFailed() {
+			return res.CombineErr()
+		}
+	}
+	return nil
+}
+
+type ReconfigureDNS struct {
+	common.KubeAction
+	ModuleName string
+}
+
+func (r *ReconfigureDNS) Execute(runtime connector.Runtime) error {
+	patchCorednsCmd := `/usr/local/bin/kubectl patch deploy -n kube-system coredns -p \" 
+spec:
+    template:
+       spec:
+           volumes:
+           - name: config-volume
+             configMap:
+                 name: coredns
+                 items:
+                 - key: Corefile
+                   path: Corefile\"`
+	if _, err := runtime.GetRunner().SudoCmd(patchCorednsCmd, true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "patch the coredns failed")
+	}
+	if err := OverrideCoreDNSService(runtime, r.ModuleName, r.KubeAction); err != nil {
+		return errors.Wrap(errors.WithStack(err), "reconfig coredns failed")
+	}
+	return nil
+}
+
+func OverrideCoreDNSService(runtime connector.Runtime, moduleName string, kubeAction common.KubeAction) error {
+	host := runtime.RemoteHost()
+
+	generateCoreDNDSvc := &modules.RemoteTask{
+		Name:  "GenerateCoreDNSSvc",
+		Desc:  "generate coredns service",
+		Hosts: []connector.Host{host},
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+		},
+		Action: &action.Template{
+			Template: dnsTemplates.CorednsService,
+			Dst:      filepath.Join(common.KubeConfigDir, dnsTemplates.CorednsService.Name()),
+			Data: util.Data{
+				"ClusterIP": kubeAction.KubeConf.Cluster.CorednsClusterIP(),
+			},
+		},
+		Parallel: true,
+	}
+
+	override := &modules.RemoteTask{
+		Name:  "OverrideCoreDNSService",
+		Desc:  "override coredns service",
+		Hosts: []connector.Host{host},
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+		},
+		Action:   new(dns.OverrideCoreDNS),
+		Parallel: false,
+	}
+
+	generateNodeLocalDNS := &modules.RemoteTask{
+		Name:  "GenerateNodeLocalDNS",
+		Desc:  "generate nodelocaldns",
+		Hosts: []connector.Host{host},
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(dns.EnableNodeLocalDNS),
+		},
+		Action: &action.Template{
+			Template: dnsTemplates.NodeLocalDNSService,
+			Dst:      filepath.Join(common.KubeConfigDir, dnsTemplates.NodeLocalDNSService.Name()),
+			Data: util.Data{
+				"NodelocaldnsImage": images.GetImage(runtime, kubeAction.KubeConf, "k8s-dns-node-cache").ImageName(),
+			},
+		},
+		Parallel: true,
+	}
+
+	applyNodeLocalDNS := &modules.RemoteTask{
+		Name:  "DeployNodeLocalDNS",
+		Desc:  "deploy nodelocaldns",
+		Hosts: []connector.Host{host},
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(dns.EnableNodeLocalDNS),
+		},
+		Action:   new(dns.DeployNodeLocalDNS),
+		Parallel: true,
+		Retry:    5,
+	}
+
+	generateNodeLocalDNSConfigMap := &modules.RemoteTask{
+		Name:  "GenerateNodeLocalDNSConfigMap",
+		Desc:  "generate nodelocaldns configmap",
+		Hosts: []connector.Host{host},
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(dns.EnableNodeLocalDNS),
+			new(dns.NodeLocalDNSConfigMapNotExist),
+		},
+		Action:   new(dns.GenerateNodeLocalDNSConfigMap),
+		Parallel: true,
+	}
+
+	applyNodeLocalDNSConfigMap := &modules.RemoteTask{
+		Name:  "ApplyNodeLocalDNSConfigMap",
+		Desc:  "apply nodelocaldns configmap",
+		Hosts: []connector.Host{host},
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(dns.EnableNodeLocalDNS),
+			new(dns.NodeLocalDNSConfigMapNotExist),
+		},
+		Action:   new(dns.ApplyNodeLocalDNSConfigMap),
+		Parallel: true,
+		Retry:    5,
+	}
+
+	tasks := []modules.Task{
+		override,
+		generateCoreDNDSvc,
+		override,
+		generateNodeLocalDNS,
+		applyNodeLocalDNS,
+		generateNodeLocalDNSConfigMap,
+		applyNodeLocalDNSConfigMap,
+	}
+
+	for i := range tasks {
+		task := tasks[i]
+		task.Init(moduleName, runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
+		if res := task.Execute(); res.IsFailed() {
+			return res.CombineErr()
+		}
 	}
 	return nil
 }

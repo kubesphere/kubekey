@@ -16,7 +16,7 @@ type ConfigureOSModule struct {
 func (c *ConfigureOSModule) Init() {
 	c.Name = "ConfigureOSModule"
 
-	initOS := &modules.Task{
+	initOS := &modules.RemoteTask{
 		Name:     "InitOS",
 		Desc:     "prepare to init OS",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -24,7 +24,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	GenerateScript := &modules.Task{
+	GenerateScript := &modules.RemoteTask{
 		Name:  "GenerateScript",
 		Desc:  "generate init os script",
 		Hosts: c.Runtime.GetAllHosts(),
@@ -38,7 +38,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	ExecScript := &modules.Task{
+	ExecScript := &modules.RemoteTask{
 		Name:     "ExecScript",
 		Desc:     "exec init os script",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -46,7 +46,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []*modules.Task{
+	c.Tasks = []modules.Task{
 		initOS,
 		GenerateScript,
 		ExecScript,
@@ -60,7 +60,7 @@ type ClearOSEnvironmentModule struct {
 func (c *ClearOSEnvironmentModule) Init() {
 	c.Name = "ClearOSModule"
 
-	resetNetworkConfig := &modules.Task{
+	resetNetworkConfig := &modules.RemoteTask{
 		Name:     "ResetNetworkConfig",
 		Desc:     "Reset os network config",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
@@ -68,7 +68,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	stopETCD := &modules.Task{
+	stopETCD := &modules.RemoteTask{
 		Name:     "StopETCDService",
 		Desc:     "Stop etcd service",
 		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
@@ -76,7 +76,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	removeFiles := &modules.Task{
+	removeFiles := &modules.RemoteTask{
 		Name:     "RemoveFiles",
 		Desc:     "Remove cluster files",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
@@ -84,7 +84,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	daemonReload := &modules.Task{
+	daemonReload := &modules.RemoteTask{
 		Name:     "DaemonReload",
 		Desc:     "Systemd daemon reload",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
@@ -92,7 +92,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []*modules.Task{
+	c.Tasks = []modules.Task{
 		resetNetworkConfig,
 		stopETCD,
 		removeFiles,
@@ -107,7 +107,7 @@ type InitDependenciesModule struct {
 func (i *InitDependenciesModule) Init() {
 	i.Name = "InitDependenciesModule"
 
-	getOSData := &modules.Task{
+	getOSData := &modules.RemoteTask{
 		Name:     "GetOSData",
 		Desc:     "Get OS release",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -115,7 +115,7 @@ func (i *InitDependenciesModule) Init() {
 		Parallel: true,
 	}
 
-	onlineInstall := &modules.Task{
+	onlineInstall := &modules.RemoteTask{
 		Name:     "OnlineInstallDependencies",
 		Desc:     "Online install dependencies",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -123,7 +123,7 @@ func (i *InitDependenciesModule) Init() {
 		Parallel: true,
 	}
 
-	offlineInstall := &modules.Task{
+	offlineInstall := &modules.RemoteTask{
 		Name:     "OnlineInstallDependencies",
 		Desc:     "Online install dependencies",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -132,12 +132,12 @@ func (i *InitDependenciesModule) Init() {
 	}
 
 	if i.KubeConf.Arg.SourcesDir == "" {
-		i.Tasks = []*modules.Task{
+		i.Tasks = []modules.Task{
 			getOSData,
 			onlineInstall,
 		}
 	} else {
-		i.Tasks = []*modules.Task{
+		i.Tasks = []modules.Task{
 			getOSData,
 			offlineInstall,
 		}

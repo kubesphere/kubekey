@@ -21,7 +21,7 @@ func (n *NodePreCheckModule) IsSkip() bool {
 func (n *NodePreCheckModule) Init() {
 	n.Name = "NodePreCheckModule"
 
-	preCheck := &modules.Task{
+	preCheck := &modules.RemoteTask{
 		Name:  "NodePreCheck",
 		Desc:  "a pre-check on nodes",
 		Hosts: n.Runtime.GetAllHosts(),
@@ -37,7 +37,90 @@ func (n *NodePreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	n.Tasks = []*modules.Task{
+	n.Tasks = []modules.Task{
 		preCheck,
+	}
+}
+
+type ClusterPreCheckModule struct {
+	common.KubeModule
+}
+
+func (c *ClusterPreCheckModule) Init() {
+	c.Name = "ClusterPreCheckModule"
+
+	getKubeConfig := &modules.RemoteTask{
+		Name:     "GetKubeConfig",
+		Desc:     "Get KubeConfig file",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(GetKubeConfig),
+		Parallel: true,
+	}
+
+	getAllNodesK8sVersion := &modules.RemoteTask{
+		Name:     "GetAllNodesK8sVersion",
+		Desc:     "Get all nodes Kubernetes version",
+		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
+		Action:   new(GetAllNodesK8sVersion),
+		Parallel: true,
+	}
+
+	calculateMinK8sVersion := &modules.RemoteTask{
+		Name:     "CalculateMinK8sVersion",
+		Desc:     "Calculate min Kubernetes version",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(CalculateMinK8sVersion),
+		Parallel: true,
+	}
+
+	checkDesiredK8sVersion := &modules.RemoteTask{
+		Name:     "CheckDesiredK8sVersion",
+		Desc:     "Check desired Kubernetes version",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(CheckDesiredK8sVersion),
+		Parallel: true,
+	}
+
+	ksVersionCheck := &modules.RemoteTask{
+		Name:     "KsVersionCheck",
+		Desc:     "Check KubeSphere version",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(KsVersionCheck),
+		Parallel: true,
+	}
+
+	dependencyCheck := &modules.RemoteTask{
+		Name:  "DependencyCheck",
+		Desc:  "Check dependency matrix for KubeSphere and Kubernetes",
+		Hosts: c.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(KubeSphereExist),
+		},
+		Action:   new(DependencyCheck),
+		Parallel: true,
+	}
+
+	getKubernetesNodesStatus := &modules.RemoteTask{
+		Name:     "GetKubernetesNodesStatus",
+		Desc:     "Get kubernetes nodes status",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(GetKubernetesNodesStatus),
+		Parallel: true,
+	}
+
+	c.Tasks = []modules.Task{
+		getKubeConfig,
+		getAllNodesK8sVersion,
+		calculateMinK8sVersion,
+		checkDesiredK8sVersion,
+		ksVersionCheck,
+		dependencyCheck,
+		getKubernetesNodesStatus,
 	}
 }
