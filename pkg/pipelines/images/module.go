@@ -17,7 +17,7 @@ func (i *ImageModule) IsSkip() bool {
 func (i *ImageModule) Init() {
 	i.Name = "ImageModule"
 
-	pull := &modules.Task{
+	pull := &modules.RemoteTask{
 		Name:     "PullImages",
 		Desc:     "start to pull images on all nodes",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -25,7 +25,7 @@ func (i *ImageModule) Init() {
 		Parallel: true,
 	}
 
-	i.Tasks = []*modules.Task{
+	i.Tasks = []modules.Task{
 		pull,
 	}
 }

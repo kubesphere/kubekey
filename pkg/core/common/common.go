@@ -8,6 +8,8 @@ const (
 	Task     = "Task"
 	Node     = "Node"
 
+	LocalHost = "localhost"
+
 	FileMode0755 = 0755
 	FileMode0644 = 0644
 

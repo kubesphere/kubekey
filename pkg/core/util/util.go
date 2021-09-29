@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -107,26 +106,6 @@ func GetArgs(argsMap map[string]string, args []string) ([]string, map[string]str
 	}
 	sort.Strings(args)
 	return args, argsMap
-}
-
-func RefineDockerVersion(version string) (string, error) {
-	var newVersionComponents []string
-	versionMatchRE := regexp.MustCompile(`^\s*v?([0-9]+(?:\.[0-9]+)*)(.*)*$`)
-	parts := versionMatchRE.FindStringSubmatch(version)
-	if parts == nil {
-		return "", fmt.Errorf("could not parse %q as version", version)
-	}
-	numbers, _ := parts[1], parts[2]
-	components := strings.Split(numbers, ".")
-
-	for index, c := range components {
-		newStr := strings.TrimPrefix(c, "0")
-		if index == len(components)-1 && newStr == "" {
-			newStr = "0"
-		}
-		newVersionComponents = append(newVersionComponents, newStr)
-	}
-	return strings.Join(newVersionComponents, "."), nil
 }
 
 // Round returns the result of rounding 'val' according to the specified 'precision' precision (the number of digits after the decimal point)。

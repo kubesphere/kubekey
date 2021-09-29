@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-type Task struct {
+type RemoteTask struct {
 	Name        string
 	Desc        string
 	Hosts       []connector.Host
@@ -34,7 +34,7 @@ type Task struct {
 	TaskResult    *ending.TaskResult
 }
 
-func (t *Task) Init(moduleName string, runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache) {
+func (t *RemoteTask) Init(moduleName string, runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache) {
 	t.ModuleCache = moduleCache
 	t.PipelineCache = pipelineCache
 	t.Runtime = runtime
@@ -43,7 +43,7 @@ func (t *Task) Init(moduleName string, runtime connector.Runtime, moduleCache *c
 	logger.Log.Infof("[%s] %s", moduleName, t.Desc)
 }
 
-func (t *Task) Execute() *ending.TaskResult {
+func (t *RemoteTask) Execute() *ending.TaskResult {
 	if t.TaskResult.IsFailed() {
 		return t.TaskResult
 	}
@@ -81,7 +81,7 @@ func (t *Task) Execute() *ending.TaskResult {
 	return t.TaskResult
 }
 
-func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, host connector.Host, index int,
+func (t *RemoteTask) RunWithTimeout(ctx context.Context, runtime connector.Runtime, host connector.Host, index int,
 	wg *sync.WaitGroup, pool chan struct{}) {
 
 	pool <- struct{}{}
@@ -103,7 +103,7 @@ func (t *Task) RunWithTimeout(ctx context.Context, runtime connector.Runtime, ho
 	}
 }
 
-func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, errCh chan error) {
+func (t *RemoteTask) Run(runtime connector.Runtime, host connector.Host, index int, errCh chan error) {
 	if err := t.ConfigureSelfRuntime(runtime, host, index); err != nil {
 		errCh <- err
 		return
@@ -132,7 +132,7 @@ func (t *Task) Run(runtime connector.Runtime, host connector.Host, index int, er
 	errCh <- nil
 }
 
-func (t *Task) ConfigureSelfRuntime(runtime connector.Runtime, host connector.Host, index int) error {
+func (t *RemoteTask) ConfigureSelfRuntime(runtime connector.Runtime, host connector.Host, index int) error {
 	conn, err := runtime.GetConnector().Connect(host)
 	if err != nil {
 		return errors.Wrapf(err, "failed to connect to %s", host.GetAddress())
@@ -148,7 +148,7 @@ func (t *Task) ConfigureSelfRuntime(runtime connector.Runtime, host connector.Ho
 	return nil
 }
 
-func (t *Task) When(runtime connector.Runtime) (bool, error) {
+func (t *RemoteTask) When(runtime connector.Runtime) (bool, error) {
 	if t.Prepare == nil {
 		return true, nil
 	}
@@ -161,7 +161,7 @@ func (t *Task) When(runtime connector.Runtime) (bool, error) {
 	}
 }
 
-func (t *Task) WhenWithRetry(runtime connector.Runtime) (bool, error) {
+func (t *RemoteTask) WhenWithRetry(runtime connector.Runtime) (bool, error) {
 	pass := false
 	err := fmt.Errorf("pre-check exec failed after %d retires", t.Retry)
 	for i := 0; i < t.Retry; i++ {
@@ -185,7 +185,7 @@ func (t *Task) WhenWithRetry(runtime connector.Runtime) (bool, error) {
 	return pass, err
 }
 
-func (t *Task) ExecuteWithRetry(runtime connector.Runtime) error {
+func (t *RemoteTask) ExecuteWithRetry(runtime connector.Runtime) error {
 	err := fmt.Errorf("[%s] exec failed after %d retires: ", t.Name, t.Retry)
 	for i := 0; i < t.Retry; i++ {
 		e := t.Action.Execute(runtime)
@@ -207,7 +207,7 @@ func (t *Task) ExecuteWithRetry(runtime connector.Runtime) error {
 	return err
 }
 
-func (t *Task) Default() {
+func (t *RemoteTask) Default() {
 	t.TaskResult = ending.NewTaskResult()
 	if t.Name == "" {
 		t.Name = DefaultTaskName
@@ -241,7 +241,7 @@ func (t *Task) Default() {
 	}
 }
 
-func (t *Task) calculateConcurrency() int {
+func (t *RemoteTask) calculateConcurrency() int {
 	num := t.Concurrency * float64(len(t.Hosts))
 	res := int(util.Round(num, 0))
 	if res < 1 {

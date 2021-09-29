@@ -18,7 +18,7 @@ type ClusterDNSModule struct {
 func (c *ClusterDNSModule) Init() {
 	c.Name = "ClusterDNSModule"
 
-	generateCoreDNDSvc := &modules.Task{
+	generateCoreDNDSvc := &modules.RemoteTask{
 		Name:  "GenerateCoreDNSSvc",
 		Desc:  "generate coredns service",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -36,7 +36,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	override := &modules.Task{
+	override := &modules.RemoteTask{
 		Name:  "OverrideCoreDNSService",
 		Desc:  "override coredns service",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -48,7 +48,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	generateNodeLocalDNS := &modules.Task{
+	generateNodeLocalDNS := &modules.RemoteTask{
 		Name:  "GenerateNodeLocalDNS",
 		Desc:  "generate nodelocaldns",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -66,7 +66,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	applyNodeLocalDNS := &modules.Task{
+	applyNodeLocalDNS := &modules.RemoteTask{
 		Name:  "DeployNodeLocalDNS",
 		Desc:  "deploy nodelocaldns",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -79,7 +79,7 @@ func (c *ClusterDNSModule) Init() {
 		Retry:    5,
 	}
 
-	generateNodeLocalDNSConfigMap := &modules.Task{
+	generateNodeLocalDNSConfigMap := &modules.RemoteTask{
 		Name:  "GenerateNodeLocalDNSConfigMap",
 		Desc:  "generate nodelocaldns configmap",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -92,7 +92,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	applyNodeLocalDNSConfigMap := &modules.Task{
+	applyNodeLocalDNSConfigMap := &modules.RemoteTask{
 		Name:  "ApplyNodeLocalDNSConfigMap",
 		Desc:  "apply nodelocaldns configmap",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -106,7 +106,7 @@ func (c *ClusterDNSModule) Init() {
 		Retry:    5,
 	}
 
-	c.Tasks = []*modules.Task{
+	c.Tasks = []modules.Task{
 		generateCoreDNDSvc,
 		override,
 		generateNodeLocalDNS,

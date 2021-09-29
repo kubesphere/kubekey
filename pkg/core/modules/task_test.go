@@ -112,7 +112,7 @@ func TestTask_calculateConcurrency(t1 *testing.T) {
 				hosts = append(hosts, &v)
 			}
 
-			t := &Task{
+			t := &RemoteTask{
 				Concurrency: tt.fields.Concurrency,
 				Hosts:       hosts,
 			}

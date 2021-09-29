@@ -42,7 +42,12 @@ const (
 
 	// global cache key
 	// PreCheckModule
-	NodePreCheck = "nodePreCheck"
+	NodePreCheck      = "nodePreCheck"
+	K8sVersion        = "k8sVersion"        // current k8s version
+	KubeSphereVersion = "kubeSphereVersion" // current KubeSphere version
+	ClusterNodeStatus = "clusterNodeStatus"
+	DesiredK8sVersion = "desiredK8sVersion"
+	NodeK8sVersion    = "NodeK8sVersion"
 
 	// ETCDModule
 	ETCDCluster = "etcdCluster"

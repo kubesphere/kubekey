@@ -60,3 +60,21 @@ func (c *ClusterIsExist) PreCheck(_ connector.Runtime) (bool, error) {
 		return false, errors.New("get kubernetes cluster status by pipeline cache failed")
 	}
 }
+
+type NotEqualDesiredVersion struct {
+	common.KubePrepare
+}
+
+func (n *NotEqualDesiredVersion) PreCheck(runtime connector.Runtime) (bool, error) {
+	host := runtime.RemoteHost()
+
+	nodeK8sVersion, ok := host.GetCache().GetMustString(common.NodeK8sVersion)
+	if !ok {
+		return false, errors.New("get node Kubernetes version failed by host cache")
+	}
+
+	if n.KubeConf.Cluster.Kubernetes.Version == nodeK8sVersion {
+		return false, nil
+	}
+	return true, nil
+}
