@@ -18,7 +18,7 @@ type CheckCertsModule struct {
 func (c *CheckCertsModule) Init() {
 	c.Name = "CheckCertsModule"
 
-	check := &modules.Task{
+	check := &modules.RemoteTask{
 		Name:     "CheckClusterCerts",
 		Desc:     "check cluster certs",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -26,7 +26,7 @@ func (c *CheckCertsModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []*modules.Task{
+	c.Tasks = []modules.Task{
 		check,
 	}
 }
@@ -98,7 +98,7 @@ type RenewCertsModule struct {
 func (r *RenewCertsModule) Init() {
 	r.Name = "RenewCertsModule"
 
-	renew := &modules.Task{
+	renew := &modules.RemoteTask{
 		Name:     "RenewCerts",
 		Desc:     "Renew control-plane certs",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -107,7 +107,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    5,
 	}
 
-	copyKubeConfig := &modules.Task{
+	copyKubeConfig := &modules.RemoteTask{
 		Name:     "CopyKubeConfig",
 		Desc:     "Copy admin.conf to ~/.kube/config",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -116,7 +116,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    2,
 	}
 
-	fetchKubeConfig := &modules.Task{
+	fetchKubeConfig := &modules.RemoteTask{
 		Name:     "FetchKubeConfig",
 		Desc:     "Fetch kube config file from control-plane",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -125,7 +125,7 @@ func (r *RenewCertsModule) Init() {
 		Parallel: true,
 	}
 
-	syncKubeConfig := &modules.Task{
+	syncKubeConfig := &modules.RemoteTask{
 		Name:  "SyncKubeConfig",
 		Desc:  "synchronize kube config to worker",
 		Hosts: r.Runtime.GetHostsByRole(common.Worker),
@@ -137,7 +137,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    3,
 	}
 
-	r.Tasks = []*modules.Task{
+	r.Tasks = []modules.Task{
 		renew,
 		copyKubeConfig,
 		fetchKubeConfig,

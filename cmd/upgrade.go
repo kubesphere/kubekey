@@ -17,8 +17,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/cluster/upgrade"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/spf13/cobra"
 )
 
@@ -27,14 +27,25 @@ var upgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Upgrade your cluster smoothly to a newer version with this command",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := util.InitLogger(opt.Verbose)
 		var ksVersion string
 		if opt.Kubesphere && len(args) > 0 {
 			ksVersion = args[0]
 		} else {
 			ksVersion = ""
 		}
-		return upgrade.UpgradeCluster(opt.ClusterCfgFile, opt.Kubernetes, ksVersion, logger, opt.Kubesphere, opt.Verbose, opt.SkipPullImages, opt.DownloadCmd)
+
+		arg := common.Argument{
+			FilePath:           opt.ClusterCfgFile,
+			KubernetesVersion:  opt.Kubernetes,
+			KsEnable:           opt.Kubesphere,
+			KsVersion:          ksVersion,
+			SkipCheck:          opt.SkipCheck,
+			SkipPullImages:     opt.SkipPullImages,
+			InCluster:          opt.InCluster,
+			DeployLocalStorage: opt.LocalStorage,
+			Debug:              opt.Verbose,
+		}
+		return pipelines.UpgradeCluster(arg, opt.DownloadCmd)
 	},
 }
 

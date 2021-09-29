@@ -36,15 +36,27 @@ func (c *Cache) Clean() {
 
 func (c *Cache) GetMustInt(k string) (int, bool) {
 	v, ok := c.Get(k)
-	return v.(int), ok
+	res, assert := v.(int)
+	if !assert {
+		return res, false
+	}
+	return res, ok
 }
 
 func (c *Cache) GetMustString(k string) (string, bool) {
 	v, ok := c.Get(k)
-	return v.(string), ok
+	res, assert := v.(string)
+	if !assert {
+		return res, false
+	}
+	return res, ok
 }
 
 func (c *Cache) GetMustBool(k string) (bool, bool) {
 	v, ok := c.Get(k)
-	return v.(bool), ok
+	res, assert := v.(bool)
+	if !assert {
+		return res, false
+	}
+	return res, ok
 }
