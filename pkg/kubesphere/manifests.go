@@ -820,6 +820,18 @@ rules:
   - '*'
   verbs:
   - '*'
+- apiGroups:
+  - monitoring.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - application.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
 
 ---
 kind: ClusterRoleBinding
