@@ -213,12 +213,25 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	joinNode := &modules.RemoteTask{
-		Name:  "JoinNode",
-		Desc:  "Join node",
-		Hosts: j.Runtime.GetHostsByRole(common.K8s),
+	joinMasterNode := &modules.RemoteTask{
+		Name:  "JoinMasterNode",
+		Desc:  "Join master node",
+		Hosts: j.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
 			&NodeInCluster{Not: true},
+		},
+		Action:   new(JoinNode),
+		Parallel: true,
+		Retry:    5,
+	}
+
+	joinWorkerNode := &modules.RemoteTask{
+		Name:  "JoinWorkerNode",
+		Desc:  "Join worker node",
+		Hosts: j.Runtime.GetHostsByRole(common.Worker),
+		Prepare: &prepare.PrepareCollection{
+			&NodeInCluster{Not: true},
+			new(common.OnlyWorker),
 		},
 		Action:   new(JoinNode),
 		Parallel: true,
@@ -291,7 +304,8 @@ func (j *JoinNodesModule) Init() {
 
 	j.Tasks = []modules.Task{
 		generateKubeadmConfig,
-		joinNode,
+		joinMasterNode,
+		joinWorkerNode,
 		copyKubeConfig,
 		removeMasterTaint,
 		addWorkerLabelToMaster,
