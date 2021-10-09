@@ -22,7 +22,7 @@ spec:
     address: ""      # The IP address of your load balancer.
     port: 6443
   kubernetes:
-    version: v1.19.8
+    version: v1.21.5
     imageRepo: kubesphere
     clusterName: cluster.local
     masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false].
