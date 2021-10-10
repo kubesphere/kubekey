@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var log = NewLogger()
+var log = NewLogger("", true)
 
 func TestKubeKey_Print(t *testing.T) {
 	wg := &sync.WaitGroup{}

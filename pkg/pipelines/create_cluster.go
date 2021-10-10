@@ -13,6 +13,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/container"
 	"github.com/kubesphere/kubekey/pkg/pipelines/etcd"
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
+	"github.com/kubesphere/kubekey/pkg/pipelines/k3s"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
 	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns"
@@ -20,17 +21,14 @@ import (
 )
 
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
-
-	isK3s := runtime.Cluster.Kubernetes.Type == "k3s"
-
 	m := []modules.Module{
-		&precheck.NodePreCheckModule{Skip: isK3s},
-		&confirm.InstallConfirmModule{Skip: isK3s},
+		&precheck.NodePreCheckModule{},
+		&confirm.InstallConfirmModule{},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&kubernetes.KubernetesStatusModule{},
-		&container.InstallContainerModule{Skip: isK3s},
-		&images.ImageModule{Skip: isK3s || runtime.Arg.SkipPullImages},
+		&container.InstallContainerModule{},
+		&images.ImageModule{Skip: runtime.Arg.SkipPullImages},
 		&etcd.ETCDPreCheckModule{},
 		&etcd.ETCDCertsModule{},
 		&etcd.InstallETCDBinaryModule{},
@@ -48,6 +46,36 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 
 	p := pipeline.Pipeline{
 		Name:    "CreateClusterPipeline",
+		Modules: m,
+		Runtime: runtime,
+	}
+	if err := p.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
+	m := []modules.Module{
+		&binaries.K3sNodeBinariesModule{},
+		&os.ConfigureOSModule{},
+		&k3s.StatusModule{},
+		&etcd.ETCDPreCheckModule{},
+		&etcd.ETCDCertsModule{},
+		&etcd.InstallETCDBinaryModule{},
+		&etcd.ETCDModule{},
+		&etcd.BackupETCDModule{},
+		&k3s.InstallKubeBinariesModule{},
+		&k3s.InitClusterModule{},
+		&k3s.StatusModule{},
+		&k3s.JoinNodesModule{},
+		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&network.DeployNetworkPluginModule{},
+		&addons.AddonsModule{},
+	}
+
+	p := pipeline.Pipeline{
+		Name:    "K3sCreateClusterPipeline",
 		Modules: m,
 		Runtime: runtime,
 	}
@@ -77,8 +105,19 @@ func CreateCluster(args common.Argument, downloadCmd string) error {
 		return err
 	}
 
-	if err := NewCreateClusterPipeline(runtime); err != nil {
-		return err
+	switch runtime.Cluster.Kubernetes.Type {
+	case common.K3s:
+		if err := NewK3sCreateClusterPipeline(runtime); err != nil {
+			return err
+		}
+	case common.Kubernetes:
+		if err := NewCreateClusterPipeline(runtime); err != nil {
+			return err
+		}
+	default:
+		if err := NewCreateClusterPipeline(runtime); err != nil {
+			return err
+		}
 	}
 	return nil
 }

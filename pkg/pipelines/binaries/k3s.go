@@ -3,6 +3,7 @@ package binaries
 import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
@@ -14,7 +15,7 @@ import (
 )
 
 // K3sFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
-func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch string) error {
+func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch string, pipelineCache *cache.Cache) error {
 	kkzone := os.Getenv("KKZONE")
 	etcd := files.KubeBinary{Name: "etcd", Arch: arch, Version: kubekeyapiv1alpha1.DefaultEtcdVersion}
 	k3s := files.KubeBinary{Name: "k3s", Arch: arch, Version: version}
@@ -46,10 +47,11 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	etcd.GetCmd = kubeConf.Arg.DownloadCommand(etcd.Path, etcd.Url)
 
 	binaries := []files.KubeBinary{k3s, helm, kubecni, etcd}
-
+	binariesMap := make(map[string]files.KubeBinary)
 	for _, binary := range binaries {
 		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
 
+		binariesMap[binary.Name] = binary
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
 			if err := K3sSHA256Check(binary, version); err != nil {
@@ -80,6 +82,7 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		}
 	}
 
+	pipelineCache.Set(common.KubeBinaries, binariesMap)
 	return nil
 }
 
