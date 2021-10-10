@@ -20,6 +20,10 @@ type KubeModule struct {
 	KubeConf *KubeConf
 }
 
+func (k *KubeModule) IsSkip() bool {
+	return k.Skip
+}
+
 func (k *KubeModule) AutoAssert() {
 	kubeRuntime := k.Runtime.(*KubeRuntime)
 	conf := &KubeConf{

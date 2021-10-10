@@ -1,6 +1,9 @@
 package common
 
 const (
+	K3s        = "k3s"
+	Kubernetes = "Kubernetes"
+
 	LocalHost = "localhost"
 
 	AllInOne = "allInOne"
