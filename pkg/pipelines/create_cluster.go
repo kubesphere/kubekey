@@ -18,9 +18,12 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
 	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/network"
+	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/storage"
 )
 
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
+	noNetworkPlugin := runtime.Cluster.Network.Plugin == "" || runtime.Cluster.Network.Plugin == "none"
+
 	m := []modules.Module{
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{},
@@ -41,7 +44,8 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.JoinNodesModule{},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
-		&addons.AddonsModule{},
+		&addons.AddonsModule{Skip: noNetworkPlugin},
+		&storage.DeployLocalVolumeModule{Skip: noNetworkPlugin || (!runtime.Arg.DeployLocalStorage && !runtime.Arg.KsEnable)},
 	}
 
 	p := pipeline.Pipeline{
@@ -56,6 +60,8 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 }
 
 func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
+	noNetworkPlugin := runtime.Cluster.Network.Plugin == "" || runtime.Cluster.Network.Plugin == "none"
+
 	m := []modules.Module{
 		&binaries.K3sNodeBinariesModule{},
 		&os.ConfigureOSModule{},
@@ -71,7 +77,8 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&k3s.JoinNodesModule{},
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
-		&addons.AddonsModule{},
+		&addons.AddonsModule{Skip: noNetworkPlugin},
+		&storage.DeployLocalVolumeModule{Skip: noNetworkPlugin || (!runtime.Arg.DeployLocalStorage && !runtime.Arg.KsEnable)},
 	}
 
 	p := pipeline.Pipeline{
