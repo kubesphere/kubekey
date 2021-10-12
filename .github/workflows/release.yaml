@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Set up Go 1.16
