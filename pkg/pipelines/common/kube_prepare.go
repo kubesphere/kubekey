@@ -50,13 +50,14 @@ func (i *IsMaster) PreCheck(runtime connector.Runtime) (bool, error) {
 
 type IsWorker struct {
 	KubePrepare
+	Not bool
 }
 
 func (i *IsWorker) PreCheck(runtime connector.Runtime) (bool, error) {
 	if runtime.RemoteHost().IsRole(Worker) {
-		return true, nil
+		return !i.Not, nil
 	}
-	return false, nil
+	return i.Not, nil
 }
 
 type OnlyWorker struct {

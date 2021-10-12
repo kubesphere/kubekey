@@ -9,30 +9,15 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer/templates"
 	"github.com/pkg/errors"
-	"os"
 	"path/filepath"
 	"strconv"
 )
 
-type haproxyPreparatoryWork struct {
+type GetChecksum struct {
 	common.KubeAction
 }
 
-func (h *haproxyPreparatoryWork) Execute(runtime connector.Runtime) error {
-	if err := runtime.GetRunner().MkDir(common.HaproxyDir); err != nil {
-		return err
-	}
-	if err := runtime.GetRunner().Chmod(common.HaproxyDir, os.FileMode(0777)); err != nil {
-		return err
-	}
-	return nil
-}
-
-type getChecksum struct {
-	common.KubeAction
-}
-
-func (g *getChecksum) Execute(runtime connector.Runtime) error {
+func (g *GetChecksum) Execute(runtime connector.Runtime) error {
 	md5Str, err := runtime.GetRunner().FileMd5(filepath.Join(common.HaproxyDir, "haproxy.cfg"))
 	if err != nil {
 		return err
@@ -71,11 +56,11 @@ func (g *GenerateHaproxyManifest) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type updateK3s struct {
+type UpdateK3s struct {
 	common.KubeAction
 }
 
-func (u *updateK3s) Execute(runtime connector.Runtime) error {
+func (u *UpdateK3s) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("sed -i 's#--server=.*\"#--server=https://127.0.0.1:%s\"#g' /etc/systemd/system/k3s.service", false); err != nil {
 		return err
 	}
@@ -85,11 +70,11 @@ func (u *updateK3s) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type updateKubelet struct {
+type UpdateKubelet struct {
 	common.KubeAction
 }
 
-func (u *updateKubelet) Execute(runtime connector.Runtime) error {
+func (u *UpdateKubelet) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 		"sed -i 's#server:.*#server: https://127.0.0.1:%s#g' /etc/kubernetes/kubelet.conf",
 		strconv.Itoa(u.KubeConf.Cluster.ControlPlaneEndpoint.Port)), false); err != nil {
@@ -101,11 +86,11 @@ func (u *updateKubelet) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type updateKubeproxy struct {
+type UpdateKubeProxy struct {
 	common.KubeAction
 }
 
-func (u *updateKubeproxy) Execute(runtime connector.Runtime) error {
+func (u *UpdateKubeProxy) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 		"set -o pipefail "+
 			"&& /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml "+
@@ -125,13 +110,41 @@ func (u *updateKubeproxy) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type updateHosts struct {
+type UpdateHosts struct {
 	common.KubeAction
 }
 
-func (u *updateHosts) Execute(runtime connector.Runtime) error {
+func (u *UpdateHosts) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("sed -i 's#.* %s#127.0.0.1 %s#g' /etc/hosts",
 		u.KubeConf.Cluster.ControlPlaneEndpoint.Domain, u.KubeConf.Cluster.ControlPlaneEndpoint.Domain), false); err != nil {
+		return err
+	}
+	return nil
+}
+
+type GenerateK3sHaproxyManifest struct {
+	common.KubeAction
+}
+
+func (g *GenerateK3sHaproxyManifest) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	md5Str, ok := host.GetCache().GetMustString("md5")
+	if !ok {
+		return errors.New("get haproxy config md5 sum by host label failed")
+	}
+
+	templateAction := action.Template{
+		Template: templates.HaproxyManifest,
+		Dst:      filepath.Join("/var/lib/rancher/k3s/agent/pod-manifests", templates.HaproxyManifest.Name()),
+		Data: util.Data{
+			"HaproxyImage":    images.GetImage(g.Runtime, g.KubeConf, "haproxy").ImageName(),
+			"HealthCheckPort": 8081,
+			"Checksum":        md5Str,
+		},
+	}
+
+	templateAction.Init(nil, nil, runtime)
+	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
 	return nil

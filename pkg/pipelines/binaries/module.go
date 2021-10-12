@@ -22,3 +22,21 @@ func (n *NodeBinariesModule) Init() {
 		download,
 	}
 }
+
+type K3sNodeBinariesModule struct {
+	common.KubeModule
+}
+
+func (k *K3sNodeBinariesModule) Init() {
+	k.Name = "K3sNodeBinariesModule"
+
+	download := &modules.LocalTask{
+		Name:   "DownloadBinaries",
+		Desc:   "Download installation binaries",
+		Action: new(K3sDownload),
+	}
+
+	k.Tasks = []modules.Task{
+		download,
+	}
+}
