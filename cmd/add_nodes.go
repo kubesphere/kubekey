@@ -27,12 +27,13 @@ var addNodesCmd = &cobra.Command{
 	Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		arg := common.Argument{
-			FilePath:       opt.ClusterCfgFile,
-			KsEnable:       false,
-			Debug:          opt.Verbose,
-			SkipCheck:      opt.SkipCheck,
-			SkipPullImages: opt.SkipPullImages,
-			InCluster:      opt.InCluster,
+			FilePath:         opt.ClusterCfgFile,
+			KsEnable:         false,
+			Debug:            opt.Verbose,
+			SkipCheck:        opt.SkipCheck,
+			SkipPullImages:   opt.SkipPullImages,
+			InCluster:        opt.InCluster,
+			ContainerManager: opt.ContainerManager,
 		}
 		return pipelines.AddNodes(arg, opt.DownloadCmd)
 	},

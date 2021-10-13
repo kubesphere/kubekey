@@ -47,6 +47,7 @@ var clusterCmd = &cobra.Command{
 			InCluster:          opt.InCluster,
 			DeployLocalStorage: opt.LocalStorage,
 			Debug:              opt.Verbose,
+			ContainerManager:   opt.ContainerManager,
 		}
 
 		return pipelines.CreateCluster(arg, opt.DownloadCmd)
@@ -62,6 +63,7 @@ func init() {
 	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.1.0)")
 	clusterCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	clusterCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
+	clusterCmd.Flags().StringVarP(&opt.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")
 	clusterCmd.Flags().StringVarP(&opt.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 
