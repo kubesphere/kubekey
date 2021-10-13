@@ -17,9 +17,10 @@ const (
 
 	KubeBinaries = "KubeBinaries"
 
-	TmpDir                       = "/tmp/kubekey/"
+	TmpDir                       = "/tmp/kubekey"
 	BinDir                       = "/usr/local/bin"
 	KubeConfigDir                = "/etc/kubernetes"
+	KubeAddonsDir                = "/etc/kubernetes/addons"
 	KubeCertDir                  = "/etc/kubernetes/pki"
 	KubeManifestDir              = "/etc/kubernetes/manifests"
 	KubeScriptDir                = "/usr/local/bin/kube-scripts"

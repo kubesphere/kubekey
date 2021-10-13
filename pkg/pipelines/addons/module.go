@@ -9,6 +9,11 @@ import (
 
 type AddonsModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (a *AddonsModule) IsSkip() bool {
+	return a.Skip
 }
 
 func (a *AddonsModule) Init() {

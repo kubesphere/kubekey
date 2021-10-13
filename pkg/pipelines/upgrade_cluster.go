@@ -9,6 +9,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
 )
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
@@ -21,6 +22,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&os.ConfigureOSModule{},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV122},
+		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 	}
 
 	p := pipeline.Pipeline{
