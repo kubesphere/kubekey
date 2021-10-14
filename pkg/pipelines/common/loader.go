@@ -5,7 +5,7 @@ import (
 	"fmt"
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/kubesphere"
+	"github.com/kubesphere/kubekey/pkg/pipelines/version/kubesphere"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -175,24 +175,17 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha1.Cluster, error) {
 			metadata := result["metadata"].(map[interface{}]interface{})
 			labels := metadata["labels"].(map[interface{}]interface{})
 			clusterCfg.Spec.KubeSphere.Enabled = true
-			_, ok := labels["version"]
-			if ok {
-				switch labels["version"] {
-				case "v3.1.1":
-					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
-					clusterCfg.Spec.KubeSphere.Version = "v3.1.1"
-				case "v3.1.0":
-					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
-					clusterCfg.Spec.KubeSphere.Version = "v3.1.0"
-				case "v3.0.0":
-					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
-					clusterCfg.Spec.KubeSphere.Version = "v3.0.0"
-				case "v2.1.1":
-					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
-					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
-				default:
-					return nil, errors.New(fmt.Sprintf("Unsupported version: %s", labels["version"]))
-				}
+
+			v, ok := labels["version"]
+			if !ok {
+				return nil, errors.New("Unknown version")
+			}
+			version := v.(string)
+			if kubesphere.VersionSupport(version) || kubesphere.PreRelease(version) {
+				clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
+				clusterCfg.Spec.KubeSphere.Version = version
+			} else {
+				return nil, errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
 			}
 		}
 	}
@@ -216,28 +209,16 @@ func (c ConfigMapLoader) Load() (*kubekeyapiv1alpha1.Cluster, error) {
 func defaultKSConfig(ks *kubekeyapiv1alpha1.KubeSphere, version string) error {
 	ks.Enabled = true
 	version = strings.TrimSpace(version)
-	switch version {
-	case "v3.1.1", "":
-		ks.Version = "v3.1.1"
-		ks.Configurations = kubesphere.V3_1_1
-	case "v3.1.0":
-		ks.Version = "v3.1.0"
-		ks.Configurations = kubesphere.V3_1_0
-	case "v3.0.0":
-		ks.Version = "v3.0.0"
-		ks.Configurations = kubesphere.V3_0_0
-	case "v2.1.1":
-		ks.Version = "v2.1.1"
-		ks.Configurations = kubesphere.V2_1_1
-	default:
-		// make it be convenient to have a nightly build of KubeSphere
-		if strings.HasPrefix(version, "nightly-") || version == "latest" {
-			// this is not the perfect solution here, but it's not necessary to track down the exact version between the
-			// nightly build and a released. So please keep update it with the latest release here.
+	ksInstaller, ok := kubesphere.VersionMap[version]
+	if ok {
+		ks.Version = ksInstaller.Version
+		ks.Configurations = ksInstaller.CCToString()
+	} else {
+		if kubesphere.PreRelease(version) {
 			ks.Version = version
-			ks.Configurations = kubesphere.V3_1_0
+			ks.Configurations = kubesphere.Latest().CCToString()
 		} else {
-			return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(version)))
+			return errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
 		}
 	}
 	return nil

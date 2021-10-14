@@ -75,6 +75,8 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		base.AppendRoleMap(host)
 	}
 
+	arg.KsEnable = defaultCluster.KubeSphere.Enabled
+	arg.KsVersion = defaultCluster.KubeSphere.Version
 	r := &KubeRuntime{
 		ClusterHosts: generateHosts(hostGroups, defaultCluster),
 		Cluster:      defaultCluster,
