@@ -56,6 +56,7 @@ func (p *Pipeline) Start() error {
 			return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
 		}
 	}
+	p.releasePipelineCache()
 	logger.Log.Infof("Pipeline[%s] execute successful", p.Name)
 	return nil
 }
@@ -72,7 +73,7 @@ func (p *Pipeline) RunModule(m modules.Module) error {
 		if err := m.Run(); err != nil {
 			return err
 		}
-	case modules.ServerModuleType:
+	case modules.GoroutineModuleType:
 		go m.Run()
 	default:
 		if err := m.Run(); err != nil {
@@ -88,6 +89,10 @@ func (p *Pipeline) newModuleCache() *cache.Cache {
 		return moduleCache
 	}
 	return cache.NewCache()
+}
+
+func (p *Pipeline) releasePipelineCache() {
+	p.PipelineCache.Clean()
 }
 
 func (p *Pipeline) releaseModuleCache(c *cache.Cache) {

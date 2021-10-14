@@ -1,14 +1,15 @@
 package modules
 
 const (
-	DefaultModuleName       = "DefaultBaseModule"
-	DefaultTaskModuleName   = "DefaultTaskModule"
-	DefaultCustomModuleName = "DefaultCustomModule"
+	DefaultModuleName          = "DefaultBaseModule"
+	DefaultTaskModuleName      = "DefaultTaskModule"
+	DefaultGoroutineModuleName = "DefaultGoroutineModuleName"
+	DefaultCustomModuleName    = "DefaultCustomModule"
 
-	BaseModuleType   = "BaseModuleType"
-	TaskModuleType   = "TaskModuleType"
-	ServerModuleType = "ServerModuleType"
-	CustomModuleType = "CustomModuleType"
+	BaseModuleType      = "BaseModuleType"
+	TaskModuleType      = "TaskModuleType"
+	GoroutineModuleType = "GoroutineModuleType"
+	CustomModuleType    = "CustomModuleType"
 
 	DefaultTimeout = 120
 	DefaultCon     = 10
