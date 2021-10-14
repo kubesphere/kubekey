@@ -125,7 +125,7 @@ func (i *InitDependenciesModule) Init() {
 
 	offlineInstall := &modules.RemoteTask{
 		Name:     "OnlineInstallDependencies",
-		Desc:     "Online install dependencies",
+		Desc:     "Offline install dependencies",
 		Hosts:    i.Runtime.GetAllHosts(),
 		Action:   new(OfflineInstallDependencies),
 		Parallel: true,

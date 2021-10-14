@@ -33,6 +33,7 @@ type Argument struct {
 	SourcesDir         string
 	DownloadCommand    func(path, url string) string
 	InCluster          bool
+	ContainerManager   string
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
