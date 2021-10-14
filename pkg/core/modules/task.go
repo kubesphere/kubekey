@@ -24,6 +24,7 @@ type RemoteTask struct {
 	Parallel    bool
 	Retry       int
 	Delay       time.Duration
+	Timeout     time.Duration
 	Concurrency float64
 
 	PipelineCache *cache.Cache
@@ -48,10 +49,10 @@ func (t *RemoteTask) Execute() *ending.TaskResult {
 		return t.TaskResult
 	}
 
-	routinePool := make(chan struct{}, t.calculateConcurrency())
+	routinePool := make(chan struct{}, DefaultCon)
 	defer close(routinePool)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*DefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), t.Timeout)
 	defer cancel()
 	wg := &sync.WaitGroup{}
 
@@ -88,10 +89,11 @@ func (t *RemoteTask) RunWithTimeout(ctx context.Context, runtime connector.Runti
 
 	errCh := make(chan error)
 	defer close(errCh)
-	go t.Run(runtime, host, index, errCh)
+
+	go t.Run(ctx, runtime, host, index, errCh)
 	select {
 	case <-ctx.Done():
-		t.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%dm", DefaultTimeout))
+		t.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%d", t.Timeout))
 		<-pool
 		wg.Done()
 	case e := <-errCh:
@@ -103,33 +105,42 @@ func (t *RemoteTask) RunWithTimeout(ctx context.Context, runtime connector.Runti
 	}
 }
 
-func (t *RemoteTask) Run(runtime connector.Runtime, host connector.Host, index int, errCh chan error) {
-	if err := t.ConfigureSelfRuntime(runtime, host, index); err != nil {
-		errCh <- err
-		return
-	}
-
-	t.Prepare.Init(t.ModuleCache, t.PipelineCache, runtime)
-	t.Prepare.AutoAssert()
-	if ok, e := t.WhenWithRetry(runtime); !ok {
-		if e != nil {
-			errCh <- e
+func (t *RemoteTask) Run(ctx context.Context, runtime connector.Runtime, host connector.Host, index int, errCh chan error) {
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		} else {
-			t.TaskResult.AppendSkip(host)
-			errCh <- nil
+		default:
+		}
+
+		if err := t.ConfigureSelfRuntime(runtime, host, index); err != nil {
+			errCh <- err
 			return
 		}
-	}
 
-	t.Action.Init(t.ModuleCache, t.PipelineCache, runtime)
-	t.Action.AutoAssert()
-	if err := t.ExecuteWithRetry(runtime); err != nil {
-		errCh <- err
+		t.Prepare.Init(t.ModuleCache, t.PipelineCache, runtime)
+		t.Prepare.AutoAssert()
+		if ok, e := t.WhenWithRetry(runtime); !ok {
+			if e != nil {
+				errCh <- e
+				return
+			} else {
+				t.TaskResult.AppendSkip(host)
+				errCh <- nil
+				return
+			}
+		}
+
+		t.Action.Init(t.ModuleCache, t.PipelineCache, runtime)
+		t.Action.AutoAssert()
+		if err := t.ExecuteWithRetry(runtime); err != nil {
+			errCh <- err
+			return
+		}
+		t.TaskResult.AppendSuccess(host)
+		errCh <- nil
 		return
 	}
-	t.TaskResult.AppendSuccess(host)
-	errCh <- nil
 }
 
 func (t *RemoteTask) ConfigureSelfRuntime(runtime connector.Runtime, host connector.Host, index int) error {
@@ -234,6 +245,10 @@ func (t *RemoteTask) Default() {
 
 	if t.Delay <= 0 {
 		t.Delay = 5 * time.Second
+	}
+
+	if t.Timeout <= 0 {
+		t.Timeout = DefaultTimeout * time.Minute
 	}
 
 	if t.Concurrency <= 0 || t.Concurrency > 1 {
