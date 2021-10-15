@@ -396,7 +396,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 	download := &modules.LocalTask{
 		Name:    "DownloadBinaries",
 		Desc:    "Download installation binaries",
-		Prepare: new(NotEqualDesiredVersion),
+		Prepare: new(ClusterNotEqualDesiredVersion),
 		Action:  new(binaries.Download),
 	}
 
