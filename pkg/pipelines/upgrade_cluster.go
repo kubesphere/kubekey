@@ -9,20 +9,22 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/pipelines/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
 )
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
-	isK3s := runtime.Cluster.Kubernetes.Type == "k3s"
-
 	m := []modules.Module{
-		&precheck.NodePreCheckModule{Skip: isK3s},
+		&precheck.NodePreCheckModule{},
 		&precheck.ClusterPreCheckModule{},
 		&confirm.UpgradeConfirmModule{},
 		&os.ConfigureOSModule{},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
-		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV122},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&kubesphere.ConvertModule{},
+		&kubesphere.DeployModule{},
+		&kubesphere.CheckResultModule{},
+		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV122},
 	}
 
 	p := pipeline.Pipeline{

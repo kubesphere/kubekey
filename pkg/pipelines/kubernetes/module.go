@@ -394,15 +394,17 @@ func (p *ProgressiveUpgradeModule) Init() {
 	p.Name = fmt.Sprintf("ProgressiveUpgradeModule %d/%d", p.Step, len(UpgradeStepList))
 
 	download := &modules.LocalTask{
-		Name:   "DownloadBinaries",
-		Desc:   "Download installation binaries",
-		Action: new(binaries.Download),
+		Name:    "DownloadBinaries",
+		Desc:    "Download installation binaries",
+		Prepare: new(ClusterNotEqualDesiredVersion),
+		Action:  new(binaries.Download),
 	}
 
 	pull := &modules.RemoteTask{
 		Name:     "PullImages",
 		Desc:     "Start to pull images on all nodes",
 		Hosts:    p.Runtime.GetHostsByRole(common.K8s),
+		Prepare:  new(NotEqualDesiredVersion),
 		Action:   new(images.PullImage),
 		Parallel: true,
 	}

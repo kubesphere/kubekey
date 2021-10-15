@@ -61,6 +61,22 @@ func (c *ClusterIsExist) PreCheck(_ connector.Runtime) (bool, error) {
 	}
 }
 
+type ClusterNotEqualDesiredVersion struct {
+	common.KubePrepare
+}
+
+func (c *ClusterNotEqualDesiredVersion) PreCheck(runtime connector.Runtime) (bool, error) {
+	clusterK8sVersion, ok := c.PipelineCache.GetMustString(common.K8sVersion)
+	if !ok {
+		return false, errors.New("get cluster Kubernetes version failed by pipeline cache")
+	}
+
+	if c.KubeConf.Cluster.Kubernetes.Version == clusterK8sVersion {
+		return false, nil
+	}
+	return true, nil
+}
+
 type NotEqualDesiredVersion struct {
 	common.KubePrepare
 }

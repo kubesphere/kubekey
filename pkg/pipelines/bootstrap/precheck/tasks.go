@@ -5,6 +5,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
+	"github.com/kubesphere/kubekey/pkg/pipelines/version/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/pipelines/version/kubesphere"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"regexp"
@@ -163,11 +165,10 @@ type CheckDesiredK8sVersion struct {
 	common.KubeAction
 }
 
-func (k *CheckDesiredK8sVersion) Execute(runtime connector.Runtime) error {
-	K8sTargetVersion := versionutil.MustParseSemantic(k.KubeConf.Cluster.Kubernetes.Version)
-	if _, ok := matrix["other"]["k8s"][fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())]; !ok {
+func (k *CheckDesiredK8sVersion) Execute(_ connector.Runtime) error {
+	if ok := kubernetes.VersionSupport(k.KubeConf.Cluster.Kubernetes.Version); !ok {
 		return errors.New(fmt.Sprintf("does not support upgrade to Kubernetes %s",
-			fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
+			k.KubeConf.Cluster.Kubernetes.Version))
 	}
 	return nil
 }
@@ -181,7 +182,7 @@ func (k *KsVersionCheck) Execute(runtime connector.Runtime) error {
 		"/usr/local/bin/kubectl get deploy -n  kubesphere-system ks-console -o jsonpath='{.metadata.labels.version}'",
 		false)
 	if err != nil {
-		if k.KubeConf.Arg.KsEnable {
+		if k.KubeConf.Cluster.KubeSphere.Enabled {
 			return errors.Wrap(err, "get kubeSphere version failed")
 		} else {
 			ksVersionStr = ""
@@ -195,39 +196,44 @@ type DependencyCheck struct {
 	common.KubeAction
 }
 
-func (d *DependencyCheck) Execute(runtime connector.Runtime) error {
+func (d *DependencyCheck) Execute(_ connector.Runtime) error {
 	currentKsVersion, ok := d.PipelineCache.GetMustString(common.KubeSphereVersion)
 	if !ok {
 		return errors.New("get current KubeSphere version failed by pipeline cache")
 	}
 	desiredVersion := d.KubeConf.Cluster.KubeSphere.Version
 
-	if d.KubeConf.Arg.KsEnable {
+	if d.KubeConf.Cluster.KubeSphere.Enabled {
 		var version string
-		if strings.Contains(desiredVersion, "latest") ||
-			strings.Contains(desiredVersion, "nightly") {
-			version = Latest
+		if kubesphere.PreRelease(desiredVersion) {
+			version = kubesphere.Latest().Version
 		} else {
 			r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
 			version = r.FindString(desiredVersion)
 		}
 
-		if _, ok := matrix[version]; !ok {
+		ksInstaller, ok := kubesphere.VersionMap[version]
+		if !ok {
 			return errors.New(fmt.Sprintf("Unsupported version: %s", desiredVersion))
 		}
-		if _, ok := matrix[version]["ks"][currentKsVersion]; !ok {
+
+		if ok := ksInstaller.UpgradeSupport(currentKsVersion); !ok {
 			return errors.New(fmt.Sprintf("Unsupported upgrade plan: %s to %s", currentKsVersion, desiredVersion))
 		}
-		K8sTargetVersion := versionutil.MustParseSemantic(d.KubeConf.Cluster.Kubernetes.Version)
-		if _, ok := matrix[version]["k8s"][fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())]; !ok {
+
+		if ok := ksInstaller.K8sSupport(d.KubeConf.Cluster.Kubernetes.Version); !ok {
 			return errors.New(fmt.Sprintf("KubeSphere %s does not support running on Kubernetes %s",
-				version, fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
+				version, d.KubeConf.Cluster.Kubernetes.Version))
 		}
 	} else {
-		K8sTargetVersion := versionutil.MustParseSemantic(d.KubeConf.Cluster.Kubernetes.Version)
-		if _, ok := matrix[currentKsVersion]["k8s"][fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())]; !ok {
+		ksInstaller, ok := kubesphere.VersionMap[currentKsVersion]
+		if !ok {
+			return errors.New(fmt.Sprintf("Unsupported version: %s", desiredVersion))
+		}
+
+		if ok := ksInstaller.K8sSupport(d.KubeConf.Cluster.Kubernetes.Version); !ok {
 			return errors.New(fmt.Sprintf("KubeSphere %s does not support running on Kubernetes %s",
-				currentKsVersion, fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
+				currentKsVersion, d.KubeConf.Cluster.Kubernetes.Version))
 		}
 	}
 	return nil
