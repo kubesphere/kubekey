@@ -172,6 +172,9 @@ func upgradeKubeMasters(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			return errors.Wrap(errors.WithStack(err2), "Failed to get new kubeconfig")
 		}
 		mgr.UpgradeStatus.Kubeconfig = output
+		if err := kubernetes.InstallK8sCertsRenew(mgr); err != nil {
+			return err
+		}
 	}
 
 	time.Sleep(30 * time.Second)

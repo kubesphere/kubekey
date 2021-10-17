@@ -34,7 +34,7 @@ import (
 )
 
 // GetClusterStatus is used to fetch status and info from cluster.
-func GetClusterStatus(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func GetClusterStatus(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 	output, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"[ -f /etc/kubernetes/admin.conf ] && echo 'Cluster already exists.' || echo 'Cluster will be created.'\"", 0, false)
 	if strings.Contains(output, "Cluster will be created") {
 		return nil
@@ -110,6 +110,9 @@ func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 		if err := dns.CreateClusterDns(mgr); err != nil {
 			return err
 		}
+		if err := InstallK8sCertsRenew(mgr); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -118,7 +121,7 @@ func InitKubernetesCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCf
 // JoinNodesToCluster is used to join node to Cluster.
 func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
 	if !manager.ExistNode(mgr, node) {
-		if err := generateKubeadmConfig(mgr, node, !manager.IsInitCluster, mgr.ClusterStatus.BootstrapToken, mgr.ClusterStatus.CertificateKey); err != nil {
+		if err := generateKubeadmConfig(mgr, node, false, mgr.ClusterStatus.BootstrapToken, mgr.ClusterStatus.CertificateKey); err != nil {
 			return err
 		}
 
@@ -143,9 +146,11 @@ func JoinNodesToCluster(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) 
 			if err := GetKubeConfigForControlPlane(mgr); err != nil {
 				return err
 			}
-			err1 := removeMasterTaint(mgr, node)
-			if err1 != nil {
-				return err1
+			if err := removeMasterTaint(mgr, node); err != nil {
+				return err
+			}
+			if err := InstallK8sCertsRenew(mgr); err != nil {
+				return err
 			}
 		}
 
