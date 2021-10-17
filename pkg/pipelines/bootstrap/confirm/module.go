@@ -108,7 +108,7 @@ func (c *InstallConfirmModule) Run() error {
 }
 
 type DeleteClusterConfirmModule struct {
-	common.KubeModule
+	common.KubeCustomModule
 }
 
 func (d *DeleteClusterConfirmModule) Init() {
@@ -141,7 +141,7 @@ func (d *DeleteClusterConfirmModule) Run() error {
 }
 
 type DeleteNodeConfirmModule struct {
-	common.KubeModule
+	common.KubeCustomModule
 }
 
 func (d *DeleteNodeConfirmModule) Init() {

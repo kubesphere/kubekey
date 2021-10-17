@@ -35,13 +35,15 @@ type RemoteTask struct {
 	TaskResult    *ending.TaskResult
 }
 
-func (t *RemoteTask) Init(moduleName string, runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache) {
+func (t *RemoteTask) GetDesc() string {
+	return t.Desc
+}
+
+func (t *RemoteTask) Init(runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache) {
 	t.ModuleCache = moduleCache
 	t.PipelineCache = pipelineCache
 	t.Runtime = runtime
 	t.Default()
-
-	logger.Log.Infof("[%s] %s", moduleName, t.Desc)
 }
 
 func (t *RemoteTask) Execute() *ending.TaskResult {
@@ -68,10 +70,6 @@ func (t *RemoteTask) Execute() *ending.TaskResult {
 		}
 	}
 	wg.Wait()
-
-	for _, res := range t.TaskResult.ActionResults {
-		logger.Log.Infof("%s: [%s]", res.Status.String(), res.Host.GetName())
-	}
 
 	if t.TaskResult.IsFailed() {
 		t.TaskResult.ErrResult()

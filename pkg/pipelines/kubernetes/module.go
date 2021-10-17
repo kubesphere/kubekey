@@ -3,20 +3,14 @@ package kubernetes
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
 	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines/images"
 	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes/templates"
 	"github.com/pkg/errors"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
-	"os"
 	"path/filepath"
-	"sort"
 )
 
 type KubernetesStatusModule struct {
@@ -385,6 +379,25 @@ func (r *DeleteKubeNodeModule) Init() {
 	}
 }
 
+type SetUpgradePlanModule struct {
+	common.KubeModule
+	Step UpgradeStep
+}
+
+func (s *SetUpgradePlanModule) Init() {
+	s.Name = fmt.Sprintf("SetUpgradePlanModule %d/%d", s.Step, len(UpgradeStepList))
+
+	plan := &modules.LocalTask{
+		Name:   "SetUpgradePlan",
+		Desc:   "Set upgrade plan",
+		Action: &SetUpgradePlan{Step: s.Step},
+	}
+
+	s.Tasks = []modules.Task{
+		plan,
+	}
+}
+
 type ProgressiveUpgradeModule struct {
 	common.KubeModule
 	Step UpgradeStep
@@ -392,6 +405,13 @@ type ProgressiveUpgradeModule struct {
 
 func (p *ProgressiveUpgradeModule) Init() {
 	p.Name = fmt.Sprintf("ProgressiveUpgradeModule %d/%d", p.Step, len(UpgradeStepList))
+
+	nextVersion := &modules.LocalTask{
+		Name:    "CalculateNextVersion",
+		Desc:    "Calculate next upgrade version",
+		Prepare: new(ClusterNotEqualDesiredVersion),
+		Action:  new(CalculateNextVersion),
+	}
 
 	download := &modules.LocalTask{
 		Name:    "DownloadBinaries",
@@ -404,7 +424,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Name:     "PullImages",
 		Desc:     "Start to pull images on all nodes",
 		Hosts:    p.Runtime.GetHostsByRole(common.K8s),
-		Prepare:  new(NotEqualDesiredVersion),
+		Prepare:  new(ClusterNotEqualDesiredVersion),
 		Action:   new(images.PullImage),
 		Parallel: true,
 	}
@@ -413,7 +433,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Name:     "SyncKubeBinary",
 		Desc:     "Synchronize kubernetes binaries",
 		Hosts:    p.Runtime.GetHostsByRole(common.K8s),
-		Prepare:  new(NotEqualDesiredVersion),
+		Prepare:  new(ClusterNotEqualDesiredVersion),
 		Action:   new(SyncKubeBinary),
 		Parallel: true,
 		Retry:    2,
@@ -423,7 +443,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Name:     "UpgradeClusterOnMaster",
 		Desc:     "Upgrade cluster on master",
 		Hosts:    p.Runtime.GetHostsByRole(common.Master),
-		Prepare:  new(NotEqualDesiredVersion),
+		Prepare:  new(ClusterNotEqualDesiredVersion),
 		Action:   &UpgradeKubeMaster{ModuleName: p.Name},
 		Parallel: false,
 	}
@@ -435,7 +455,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Name:     "GetClusterStatus",
 		Desc:     "get kubernetes cluster status",
 		Hosts:    p.Runtime.GetHostsByRole(common.Master),
-		Prepare:  new(NotEqualDesiredVersion),
+		Prepare:  new(ClusterNotEqualDesiredVersion),
 		Action:   new(GetClusterStatus),
 		Parallel: false,
 	}
@@ -445,7 +465,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Desc:  "Upgrade cluster on worker",
 		Hosts: p.Runtime.GetHostsByRole(common.Worker),
 		Prepare: &prepare.PrepareCollection{
-			new(NotEqualDesiredVersion),
+			new(ClusterNotEqualDesiredVersion),
 			new(common.OnlyWorker),
 		},
 		Action:   &UpgradeKubeWorker{ModuleName: p.Name},
@@ -458,13 +478,21 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Hosts: p.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
 			new(common.OnlyFirstMaster),
-			new(NotEqualDesiredVersion),
+			new(ClusterNotEqualDesiredVersion),
 		},
 		Action:   &ReconfigureDNS{ModuleName: p.Name},
 		Parallel: false,
 	}
 
+	currentVersion := &modules.LocalTask{
+		Name:    "SetCurrentK8sVersion",
+		Desc:    "Set current k8s version",
+		Prepare: new(ClusterNotEqualDesiredVersion),
+		Action:  new(SetCurrentK8sVersion),
+	}
+
 	p.Tasks = []modules.Task{
+		nextVersion,
 		download,
 		pull,
 		syncBinary,
@@ -472,92 +500,30 @@ func (p *ProgressiveUpgradeModule) Init() {
 		clusterStatus,
 		upgradeKubeWorker,
 		reconfigureDNS,
+		currentVersion,
 	}
 }
 
-func (p *ProgressiveUpgradeModule) Run() error {
+func (p *ProgressiveUpgradeModule) Until() (*bool, error) {
+	f := false
+	t := true
 	currentVersion, ok := p.PipelineCache.GetMustString(common.K8sVersion)
 	if !ok {
-		return errors.New("get current Kubernetes version failed by pipeline cache")
+		return &f, errors.New("get current Kubernetes version failed by pipeline cache")
 	}
-	desiredVersion := p.KubeConf.Cluster.Kubernetes.Version
-	originalDesired := desiredVersion
-
-	if cmp, err := versionutil.MustParseSemantic(currentVersion).Compare(desiredVersion); err != nil {
-		return err
-	} else if cmp == 1 {
-		logger.Log.Messagef(
-			common.LocalHost,
-			"The current version (%s) is greater than the target version (%s)",
-			currentVersion, desiredVersion)
-		os.Exit(0)
+	planVersion, ok := p.PipelineCache.GetMustString(common.PlanK8sVersion)
+	if !ok {
+		return &f, errors.New("get upgrade plan Kubernetes version failed by pipeline cache")
 	}
 
-	if p.Step == ToV121 {
-		v122 := versionutil.MustParseSemantic("v1.22.0")
-		atLeast := versionutil.MustParseSemantic(desiredVersion).AtLeast(v122)
-		cmp, err := versionutil.MustParseSemantic(currentVersion).Compare("v1.22.0")
-		if err != nil {
-			return err
-		}
-		if atLeast && cmp <= 0 {
-			desiredVersion = "v1.21.5"
-		}
-	}
-
-	end := false
-	for !end {
-		var nextVersionStr string
-		if currentVersion != desiredVersion {
-			nextVersionStr = calculateNextStr(currentVersion, desiredVersion)
-			//u.PipelineCache.Set(common.DesiredK8sVersion, nextVersionStr)
-			p.KubeConf.Cluster.Kubernetes.Version = nextVersionStr
-
-			for i := range p.Tasks {
-				task := p.Tasks[i]
-				task.Init(p.Name, p.Runtime.(connector.Runtime), p.ModuleCache, p.PipelineCache)
-				if res := task.Execute(); res.IsFailed() {
-					return errors.Wrapf(res.CombineErr(), "Module[%s] exec failed", p.Name)
-				}
-			}
-
-			currentVersion = nextVersionStr
-			p.PipelineCache.Set(common.K8sVersion, nextVersionStr)
-		} else {
-			//u.PipelineCache.Set(common.DesiredK8sVersion, desiredVersion)
-			p.KubeConf.Cluster.Kubernetes.Version = originalDesired
-			end = true
-		}
-	}
-
-	return nil
-}
-
-func calculateNextStr(currentVersion, desiredVersion string) string {
-	current := versionutil.MustParseSemantic(currentVersion)
-	target := versionutil.MustParseSemantic(desiredVersion)
-	var nextVersionMinor uint
-	if target.Minor() == current.Minor() {
-		nextVersionMinor = current.Minor()
+	if currentVersion != planVersion {
+		return &f, nil
 	} else {
-		nextVersionMinor = current.Minor() + 1
-	}
-
-	if nextVersionMinor == target.Minor() {
-		return desiredVersion
-	} else {
-		nextVersionPatchList := make([]int, 0)
-		for supportVersionStr := range files.FileSha256["kubeadm"]["amd64"] {
-			supportVersion := versionutil.MustParseSemantic(supportVersionStr)
-			if supportVersion.Minor() == nextVersionMinor {
-				nextVersionPatchList = append(nextVersionPatchList, int(supportVersion.Patch()))
-			}
+		originalDesired, ok := p.PipelineCache.GetMustString(common.DesiredK8sVersion)
+		if !ok {
+			return &f, errors.New("get original desired Kubernetes version failed by pipeline cache")
 		}
-		sort.Ints(nextVersionPatchList)
-
-		nextVersion := current.WithMinor(nextVersionMinor)
-		nextVersion = nextVersion.WithPatch(uint(nextVersionPatchList[len(nextVersionPatchList)-1]))
-
-		return fmt.Sprintf("v%s", nextVersion.String())
+		p.KubeConf.Cluster.Kubernetes.Version = originalDesired
+		return &t, nil
 	}
 }
