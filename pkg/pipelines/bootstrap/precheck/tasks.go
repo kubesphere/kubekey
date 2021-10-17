@@ -92,21 +92,6 @@ func (g *GetKubeConfig) Execute(runtime connector.Runtime) error {
 	return errors.New("kube config not found")
 }
 
-type K8sVersionCheck struct {
-	common.KubeAction
-}
-
-func (k *K8sVersionCheck) Execute(runtime connector.Runtime) error {
-	k8sVersionStr, err := runtime.GetRunner().SudoCmd(
-		"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | rev | cut -d ':' -f1 | rev",
-		false)
-	if err != nil {
-		return errors.Wrap(err, "get current kube-apiserver version failed")
-	}
-	k.PipelineCache.Set(common.K8sVersion, k8sVersionStr)
-	return nil
-}
-
 type GetAllNodesK8sVersion struct {
 	common.KubeAction
 }
@@ -170,6 +155,7 @@ func (k *CheckDesiredK8sVersion) Execute(_ connector.Runtime) error {
 		return errors.New(fmt.Sprintf("does not support upgrade to Kubernetes %s",
 			k.KubeConf.Cluster.Kubernetes.Version))
 	}
+	k.PipelineCache.Set(common.DesiredK8sVersion, k.KubeConf.Cluster.Kubernetes.Version)
 	return nil
 }
 

@@ -32,7 +32,7 @@ func (c *CheckCertsModule) Init() {
 }
 
 type PrintClusterCertsModule struct {
-	common.KubeModule
+	common.KubeCustomModule
 }
 
 func (p *PrintClusterCertsModule) Init() {

@@ -39,6 +39,10 @@ func (b *BaseModule) Run() error {
 	return nil
 }
 
+func (b *BaseModule) Until() (*bool, error) {
+	return nil, nil
+}
+
 func (b *BaseModule) Slogan() {
 	if b.Desc != "" {
 		logger.Log.Infof("[%s] %s", b.Name, b.Desc)
