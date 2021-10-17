@@ -21,6 +21,7 @@ type LocalTask struct {
 	Action  action.Action
 	Retry   int
 	Delay   time.Duration
+	Timeout time.Duration
 
 	PipelineCache *cache.Cache
 	ModuleCache   *cache.Cache
@@ -30,13 +31,15 @@ type LocalTask struct {
 	TaskResult    *ending.TaskResult
 }
 
-func (l *LocalTask) Init(moduleName string, runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache) {
+func (l *LocalTask) GetDesc() string {
+	return l.Desc
+}
+
+func (l *LocalTask) Init(runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache) {
 	l.ModuleCache = moduleCache
 	l.PipelineCache = pipelineCache
 	l.Runtime = runtime
 	l.Default()
-
-	logger.Log.Infof("[%s] %s", moduleName, l.Desc)
 }
 
 func (l *LocalTask) Default() {
@@ -61,6 +64,10 @@ func (l *LocalTask) Default() {
 	if l.Delay <= 0 {
 		l.Delay = 5 * time.Second
 	}
+
+	if l.Timeout <= 0 {
+		l.Timeout = DefaultTimeout * time.Minute
+	}
 }
 
 func (l *LocalTask) Execute() *ending.TaskResult {
@@ -75,10 +82,6 @@ func (l *LocalTask) Execute() *ending.TaskResult {
 	selfRuntime := l.Runtime.Copy()
 	l.RunWithTimeout(selfRuntime, host)
 
-	for _, res := range l.TaskResult.ActionResults {
-		logger.Log.Infof("%s: [%s]", res.Status.String(), res.Host.GetName())
-	}
-
 	if l.TaskResult.IsFailed() {
 		l.TaskResult.ErrResult()
 		return l.TaskResult
@@ -89,7 +92,7 @@ func (l *LocalTask) Execute() *ending.TaskResult {
 }
 
 func (l *LocalTask) RunWithTimeout(runtime connector.Runtime, host connector.Host) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*DefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), l.Timeout)
 	defer cancel()
 
 	errCh := make(chan error)
@@ -98,7 +101,7 @@ func (l *LocalTask) RunWithTimeout(runtime connector.Runtime, host connector.Hos
 	go l.Run(runtime, host, errCh)
 	select {
 	case <-ctx.Done():
-		l.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%dm", DefaultTimeout))
+		l.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%d", l.Timeout))
 	case e := <-errCh:
 		if e != nil {
 			l.TaskResult.AppendErr(host, e)

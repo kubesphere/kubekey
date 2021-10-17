@@ -12,11 +12,13 @@ type Module interface {
 	Init()
 	Is() string
 	Run() error
+	Until() (*bool, error)
 	Slogan()
 	AutoAssert()
 }
 
 type Task interface {
-	Init(moduleName string, runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache)
+	GetDesc() string
+	Init(runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache)
 	Execute() *ending.TaskResult
 }

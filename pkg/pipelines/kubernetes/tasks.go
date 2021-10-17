@@ -5,6 +5,7 @@ import (
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
@@ -16,7 +17,10 @@ import (
 	"github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns"
 	dnsTemplates "github.com/kubesphere/kubekey/pkg/pipelines/plugins/dns/templates"
 	"github.com/pkg/errors"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -457,6 +461,94 @@ func (k *KubectlDeleteNode) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type SetUpgradePlan struct {
+	common.KubeAction
+	Step UpgradeStep
+}
+
+func (s *SetUpgradePlan) Execute(_ connector.Runtime) error {
+	currentVersion, ok := s.PipelineCache.GetMustString(common.K8sVersion)
+	if !ok {
+		return errors.New("get current Kubernetes version failed by pipeline cache")
+	}
+
+	desiredVersion, ok := s.PipelineCache.GetMustString(common.DesiredK8sVersion)
+	if !ok {
+		return errors.New("get desired Kubernetes version failed by pipeline cache")
+	}
+	if cmp, err := versionutil.MustParseSemantic(currentVersion).Compare(desiredVersion); err != nil {
+		return err
+	} else if cmp == 1 {
+		logger.Log.Messagef(
+			common.LocalHost,
+			"The current version (%s) is greater than the target version (%s)",
+			currentVersion, desiredVersion)
+		os.Exit(0)
+	}
+
+	if s.Step == ToV121 {
+		v122 := versionutil.MustParseSemantic("v1.22.0")
+		atLeast := versionutil.MustParseSemantic(desiredVersion).AtLeast(v122)
+		cmp, err := versionutil.MustParseSemantic(currentVersion).Compare("v1.21.5")
+		if err != nil {
+			return err
+		}
+		if atLeast && cmp <= 0 {
+			desiredVersion = "v1.21.5"
+		}
+	}
+
+	s.PipelineCache.Set(common.PlanK8sVersion, desiredVersion)
+	return nil
+}
+
+type CalculateNextVersion struct {
+	common.KubeAction
+}
+
+func (c *CalculateNextVersion) Execute(_ connector.Runtime) error {
+	currentVersion, ok := c.PipelineCache.GetMustString(common.K8sVersion)
+	if !ok {
+		return errors.New("get current Kubernetes version failed by pipeline cache")
+	}
+	planVersion, ok := c.PipelineCache.GetMustString(common.PlanK8sVersion)
+	if !ok {
+		return errors.New("get upgrade plan Kubernetes version failed by pipeline cache")
+	}
+	nextVersionStr := calculateNextStr(currentVersion, planVersion)
+	c.KubeConf.Cluster.Kubernetes.Version = nextVersionStr
+	return nil
+}
+
+func calculateNextStr(currentVersion, desiredVersion string) string {
+	current := versionutil.MustParseSemantic(currentVersion)
+	target := versionutil.MustParseSemantic(desiredVersion)
+	var nextVersionMinor uint
+	if target.Minor() == current.Minor() {
+		nextVersionMinor = current.Minor()
+	} else {
+		nextVersionMinor = current.Minor() + 1
+	}
+
+	if nextVersionMinor == target.Minor() {
+		return desiredVersion
+	} else {
+		nextVersionPatchList := make([]int, 0)
+		for supportVersionStr := range files.FileSha256["kubeadm"]["amd64"] {
+			supportVersion := versionutil.MustParseSemantic(supportVersionStr)
+			if supportVersion.Minor() == nextVersionMinor {
+				nextVersionPatchList = append(nextVersionPatchList, int(supportVersion.Patch()))
+			}
+		}
+		sort.Ints(nextVersionPatchList)
+
+		nextVersion := current.WithMinor(nextVersionMinor)
+		nextVersion = nextVersion.WithPatch(uint(nextVersionPatchList[len(nextVersionPatchList)-1]))
+
+		return fmt.Sprintf("v%s", nextVersion.String())
+	}
+}
+
 type UpgradeKubeMaster struct {
 	common.KubeAction
 	ModuleName string
@@ -472,7 +564,7 @@ func (u *UpgradeKubeMaster) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
 
-	if err := SetKubeletTasks(runtime, u.ModuleName, u.KubeAction); err != nil {
+	if err := SetKubeletTasks(runtime, u.KubeAction); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set kubelet failed: %s", host.GetName()))
 	}
 
@@ -498,13 +590,13 @@ func (u *UpgradeKubeWorker) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl stop kubelet", true); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
-	if err := SetKubeletTasks(runtime, u.ModuleName, u.KubeAction); err != nil {
+	if err := SetKubeletTasks(runtime, u.KubeAction); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set kubelet failed: %s", host.GetName()))
 	}
 	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart kubelet", true); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("restart kubelet failed: %s", host.GetName()))
 	}
-	if err := SyncKubeConfigTask(runtime, u.ModuleName, u.KubeAction); err != nil {
+	if err := SyncKubeConfigTask(runtime, u.KubeAction); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube config to worker failed: %s", host.GetName()))
 	}
 	return nil
@@ -549,7 +641,7 @@ func KubeadmUpgradeTasks(runtime connector.Runtime, u *UpgradeKubeMaster) error 
 
 	for i := range tasks {
 		task := tasks[i]
-		task.Init(u.ModuleName, runtime, u.ModuleCache, u.PipelineCache)
+		task.Init(runtime, u.ModuleCache, u.PipelineCache)
 		if res := task.Execute(); res.IsFailed() {
 			return res.CombineErr()
 		}
@@ -583,7 +675,7 @@ func (k *KubeadmUpgrade) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-func SetKubeletTasks(runtime connector.Runtime, moduleName string, kubeAction common.KubeAction) error {
+func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
 	syncKubelet := &modules.RemoteTask{
 		Name:     "SyncKubelet",
@@ -637,7 +729,7 @@ func SetKubeletTasks(runtime connector.Runtime, moduleName string, kubeAction co
 
 	for i := range tasks {
 		task := tasks[i]
-		task.Init(moduleName, runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
+		task.Init(runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
 		if res := task.Execute(); res.IsFailed() {
 			return res.CombineErr()
 		}
@@ -645,7 +737,7 @@ func SetKubeletTasks(runtime connector.Runtime, moduleName string, kubeAction co
 	return nil
 }
 
-func SyncKubeConfigTask(runtime connector.Runtime, moduleName string, kubeAction common.KubeAction) error {
+func SyncKubeConfigTask(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
 	syncKubeConfig := &modules.RemoteTask{
 		Name:  "SyncKubeConfig",
@@ -666,7 +758,7 @@ func SyncKubeConfigTask(runtime connector.Runtime, moduleName string, kubeAction
 
 	for i := range tasks {
 		task := tasks[i]
-		task.Init(moduleName, runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
+		task.Init(runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
 		if res := task.Execute(); res.IsFailed() {
 			return res.CombineErr()
 		}
@@ -694,13 +786,13 @@ spec:
 	if _, err := runtime.GetRunner().SudoCmd(patchCorednsCmd, true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "patch the coredns failed")
 	}
-	if err := OverrideCoreDNSService(runtime, r.ModuleName, r.KubeAction); err != nil {
-		return errors.Wrap(errors.WithStack(err), "reconfig coredns failed")
+	if err := OverrideCoreDNSService(runtime, r.KubeAction); err != nil {
+		return errors.Wrap(errors.WithStack(err), "re-config coredns failed")
 	}
 	return nil
 }
 
-func OverrideCoreDNSService(runtime connector.Runtime, moduleName string, kubeAction common.KubeAction) error {
+func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
 
 	generateCoreDNDSvc := &modules.RemoteTask{
@@ -801,10 +893,19 @@ func OverrideCoreDNSService(runtime connector.Runtime, moduleName string, kubeAc
 
 	for i := range tasks {
 		task := tasks[i]
-		task.Init(moduleName, runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
+		task.Init(runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
 		if res := task.Execute(); res.IsFailed() {
 			return res.CombineErr()
 		}
 	}
+	return nil
+}
+
+type SetCurrentK8sVersion struct {
+	common.KubeAction
+}
+
+func (s *SetCurrentK8sVersion) Execute(_ connector.Runtime) error {
+	s.PipelineCache.Set(common.K8sVersion, s.KubeConf.Cluster.Kubernetes.Version)
 	return nil
 }

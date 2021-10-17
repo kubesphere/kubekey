@@ -7,6 +7,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/pkg/errors"
+	"os"
 	"sync"
 )
 
@@ -68,16 +69,33 @@ func (p *Pipeline) RunModule(m modules.Module) error {
 	m.AutoAssert()
 	m.Init()
 	m.Slogan()
-	switch m.Is() {
-	case modules.TaskModuleType:
-		if err := m.Run(); err != nil {
+
+	for {
+		switch m.Is() {
+		case modules.TaskModuleType:
+			if err := m.Run(); err != nil {
+				return err
+			}
+		case modules.GoroutineModuleType:
+			go func() {
+				err := m.Run()
+				if err != nil {
+					// todo: handle err
+					os.Exit(1)
+				}
+			}()
+		default:
+			if err := m.Run(); err != nil {
+				return err
+			}
+		}
+
+		stop, err := m.Until()
+		if err != nil {
 			return err
 		}
-	case modules.GoroutineModuleType:
-		go m.Run()
-	default:
-		if err := m.Run(); err != nil {
-			return err
+		if stop == nil || *stop == true {
+			break
 		}
 	}
 	return nil

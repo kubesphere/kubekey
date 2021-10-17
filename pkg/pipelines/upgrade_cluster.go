@@ -19,11 +19,13 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&precheck.ClusterPreCheckModule{},
 		&confirm.UpgradeConfirmModule{},
 		&os.ConfigureOSModule{},
+		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV121},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&kubesphere.ConvertModule{},
 		&kubesphere.DeployModule{},
 		&kubesphere.CheckResultModule{},
+		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV122},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV122},
 	}
 
