@@ -48,6 +48,9 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 	if err != nil {
 		return nil, err
 	}
+	if arg.ContainerManager != Docker && arg.ContainerManager != "" {
+		defaultCluster.Kubernetes.ContainerManager = arg.ContainerManager
+	}
 
 	var clientset *kubekeyclientset.Clientset
 	if arg.InCluster {
