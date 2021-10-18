@@ -16,7 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/pipelines/common"
+	"github.com/kubesphere/kubekey/pkg/pipelines/config"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +32,15 @@ var configCmd = &cobra.Command{
 		} else {
 			ksVersion = ""
 		}
-		err := config.GenerateClusterObj(opt.Kubernetes, ksVersion, opt.Name, opt.Kubeconfig, opt.ClusterCfgPath, opt.Kubesphere, opt.FromCluster)
+
+		arg := common.Argument{
+			FilePath:          opt.ClusterCfgFile,
+			KubernetesVersion: opt.Kubernetes,
+			KsEnable:          opt.Kubesphere,
+			KsVersion:         ksVersion,
+		}
+
+		err := config.GenerateKubeKeyConfig(arg, opt.Name)
 		if err != nil {
 			return err
 		}
@@ -43,7 +52,7 @@ func init() {
 	createCmd.AddCommand(configCmd)
 
 	configCmd.Flags().StringVarP(&opt.Name, "name", "", "sample", "Specify a name of cluster object")
-	configCmd.Flags().StringVarP(&opt.ClusterCfgPath, "filename", "f", "", "Specify a configuration file path")
+	configCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Specify a configuration file path")
 	configCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
 	configCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.1.0)")
 	configCmd.Flags().BoolVarP(&opt.FromCluster, "from-cluster", "", false, "Create a configuration based on existing cluster")
