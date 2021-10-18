@@ -313,6 +313,8 @@ var (
 		"/var/openebs",
 		"/etc/systemd/system/kubelet.service",
 		"/etc/systemd/system/kubelet.service.d",
+		"/etc/systemd/system/k8s-certs-renew.service",
+		"/etc/systemd/system/k8s-certs-renew.timer",
 		"/usr/local/bin/kubelet",
 		"/usr/local/bin/kubeadm",
 		"/usr/bin/kubelet",
