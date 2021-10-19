@@ -119,7 +119,8 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 					clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
-					if strings.Contains(labels["version"].(string), "alpha") {
+					if strings.Contains(labels["version"].(string), "alpha") ||
+						strings.Contains(labels["version"].(string), "rc") {
 						clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 						clusterCfg.Spec.KubeSphere.Version = labels["version"].(string)
 					} else {
@@ -150,7 +151,10 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			clusterCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
 			// make it be convenient to have a nightly build of KubeSphere
-			if strings.HasPrefix(ksVersion, "nightly-") || ksVersion == "latest" || strings.Contains(ksVersion, "alpha") {
+			if strings.HasPrefix(ksVersion, "nightly-") ||
+				ksVersion == "latest" ||
+				strings.Contains(ksVersion, "alpha") ||
+				strings.Contains(ksVersion, "rc") {
 				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
 				// nightly build and a released. So please keep update it with the latest release here.
 				clusterCfg.Spec.KubeSphere.Version = ksVersion
@@ -239,7 +243,10 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 			allinoneCfg.Spec.KubeSphere.Configurations = kubesphere.V2_1_1
 		default:
 			// make it be convenient to have a nightly build of KubeSphere
-			if strings.HasPrefix(ksVersion, "nightly-") || ksVersion == "latest" || strings.Contains(ksVersion, "alpha") {
+			if strings.HasPrefix(ksVersion, "nightly-") ||
+				ksVersion == "latest" ||
+				strings.Contains(ksVersion, "alpha") ||
+				strings.Contains(ksVersion, "rc") {
 				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
 				// nightly build and a released. So please keep update it with the latest release here.
 				allinoneCfg.Spec.KubeSphere.Version = ksVersion

@@ -899,7 +899,8 @@ func GenerateKubeSphereYaml(repo, version string) (string, error) {
 		if repo == "" {
 			if strings.Contains(version, "latest") ||
 				strings.HasPrefix(version, "nightly-") ||
-				strings.Contains(version, "alpha") {
+				strings.Contains(version, "alpha") ||
+				strings.Contains(version, "rc") {
 				repo = "kubespheredev"
 			} else {
 				repo = "kubesphere"
