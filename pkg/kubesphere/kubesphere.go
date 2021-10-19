@@ -116,7 +116,9 @@ EOF
 			return err
 		}
 	default:
-		if strings.HasPrefix(ksVersion, "nightly-") || strings.Contains(ksVersion, "alpha") {
+		if strings.HasPrefix(ksVersion, "nightly-") ||
+			strings.Contains(ksVersion, "alpha") ||
+			strings.Contains(ksVersion, "rc") {
 			if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
 				return err
 			}
