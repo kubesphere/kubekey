@@ -112,7 +112,7 @@ func CreateApplyOptions(configFlags *genericclioptions.ConfigFlags, manifests []
 	filenames := manifests
 	o.DeleteFlags.FileNameFlags.Filenames = &filenames
 
-	o.DeleteOptions = o.DeleteFlags.ToOptions(o.DynamicClient, o.IOStreams)
+	o.DeleteOptions, err = o.DeleteFlags.ToOptions(o.DynamicClient, o.IOStreams)
 	err = o.DeleteOptions.FilenameOptions.RequireFilenameOrKustomize()
 	if err != nil {
 		return nil, err

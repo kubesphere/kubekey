@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains API Schema definitions for the kubekey v1alpha1 API group
-// +kubebuilder:object:generate=true
-// +groupName=kubekey.kubesphere.io
+//+kubebuilder:object:generate=true
+//+groupName=kubekey.kubesphere.io
 package v1alpha1
 
 import (
@@ -34,3 +34,7 @@ var (
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+func Resource(resource string) schema.GroupResource {
+	return GroupVersion.WithResource(resource).GroupResource()
+}

@@ -1,12 +1,20 @@
 domain: kubesphere.io
-layout: go.kubebuilder.io/v2
-projectName: kubekey
+layout:
+- go.kubebuilder.io/v3
 multigroup: true
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: kubekey
 repo: github.com/kubesphere/kubekey
 resources:
-- group: kubekey
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
   kind: Cluster
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha1
   version: v1alpha1
-version: 3-alpha
-plugins:
-  go.sdk.operatorframework.io/v2-alpha: {}
+version: "3"
