@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ type KubekeyV1alpha1Interface interface {
 	ClustersGetter
 }
 
-// KubekeyV1alpha1Client is used to interact with features provided by the kubekey.kubesphere.io group.
+// KubekeyV1alpha1Client is used to interact with features provided by the kubekey group.
 type KubekeyV1alpha1Client struct {
 	restClient rest.Interface
 }

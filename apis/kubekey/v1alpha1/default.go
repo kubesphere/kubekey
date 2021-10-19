@@ -18,10 +18,9 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"strings"
-
-	"github.com/kubesphere/kubekey/pkg/util"
 )
 
 const (
