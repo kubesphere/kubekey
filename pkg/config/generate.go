@@ -1,155 +1,72 @@
-/*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package config
 
 import (
 	"bufio"
 	"encoding/base64"
 	"fmt"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/config/templates"
+	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
+	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"text/template"
-
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/kubesphere"
-	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/lithammer/dedent"
-	"github.com/pkg/errors"
 )
 
-var (
-	// ClusterObjTempl defines the template of cluster configuration file default.
-	ClusterObjTempl = template.Must(template.New("Cluster").Parse(
-		dedent.Dedent(`apiVersion: kubekey.kubesphere.io/v1alpha1
-kind: Cluster
-metadata:
-  name: {{ .Options.Name }}
-spec:
-  hosts:
-  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
-  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, user: ubuntu, password: Qcloud@123}
-  roleGroups:
-    etcd:
-    - node1
-    master: 
-    - node1
-    worker:
-    - node1
-    - node2
-  controlPlaneEndpoint:
-    ##Internal loadbalancer for apiservers 
-    #internalLoadbalancer: haproxy
-
-    domain: lb.kubesphere.local
-    address: ""
-    port: 6443
-  kubernetes:
-    version: {{ .Options.KubeVersion }}
-    clusterName: cluster.local
-  network:
-    plugin: calico
-    kubePodsCIDR: 10.233.64.0/18
-    kubeServiceCIDR: 10.233.0.0/18
-  registry:
-    registryMirrors: []
-    insecureRegistries: []
-  addons: []
-
-{{ if .Options.KubeSphereEnabled }}
-{{ .Options.KubeSphereConfigMap }}
-{{ end }}
-    `)))
-)
-
-// Options defineds the parameters of cluster configuration.
-type Options struct {
-	Name                string
-	KubeVersion         string
-	KubeSphereEnabled   bool
-	KubeSphereConfigMap string
-}
-
-// GenerateClusterObjStr is used to generate cluster configuration content.
-func GenerateClusterObjStr(opt *Options) (string, error) {
-	return util.Render(ClusterObjTempl, util.Data{
-		"KubeVersion": kubekeyapiv1alpha1.DefaultKubeVersion,
-		"Options":     opt,
-	})
-}
-
-// GenerateClusterObj is used to generate cluster configuration file
-func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath string, ksEnabled, fromCluster bool) error {
-	if fromCluster {
-		err := GenerateConfigFromCluster(clusterCfgPath, kubeconfig, name)
+// GenerateKubeKeyConfig is used to generate cluster configuration file
+func GenerateKubeKeyConfig(arg common.Argument, name string) error {
+	if arg.FromCluster {
+		err := GenerateConfigFromCluster(arg.FilePath, arg.KubeConfig, name)
 		if err != nil {
 			return err
 		}
 		return nil
 	}
 
-	opt := Options{}
+	opt := new(templates.Options)
+
 	if name != "" {
 		output := strings.Split(name, ".")
 		opt.Name = output[0]
 	} else {
 		opt.Name = "sample"
 	}
-	if len(k8sVersion) == 0 {
-		opt.KubeVersion = kubekeyapiv1alpha1.DefaultKubeVersion
+	if len(arg.KubernetesVersion) == 0 {
+		opt.KubeVersion = kubekeyapiv1alpha2.DefaultKubeVersion
 	} else {
-		opt.KubeVersion = k8sVersion
+		opt.KubeVersion = arg.KubernetesVersion
 	}
-	opt.KubeSphereEnabled = ksEnabled
+	opt.KubeSphereEnabled = arg.KsEnable
 
-	if ksEnabled {
-		switch strings.TrimSpace(ksVersion) {
-		case "v3.2.0", "latest":
-			opt.KubeSphereConfigMap = kubesphere.V3_2_0
-		case "v3.1.1":
-			opt.KubeSphereConfigMap = kubesphere.V3_1_1
-		case "v3.1.0":
-			opt.KubeSphereConfigMap = kubesphere.V3_1_0
-		case "v3.0.0":
-			opt.KubeSphereConfigMap = kubesphere.V3_0_0
-		case "v2.1.1":
-			opt.KubeSphereConfigMap = kubesphere.V2_1_1
-		default:
-			if strings.Contains(ksVersion, "alpha") || strings.Contains(ksVersion, "rc") || strings.Contains(ksVersion, "release") {
-				opt.KubeSphereConfigMap = kubesphere.GenerateAlphaYaml(ksVersion)
+	if arg.KsEnable {
+		version := strings.TrimSpace(arg.KsVersion)
+		ksInstaller, ok := kubesphere.VersionMap[version]
+		if ok {
+			opt.KubeSphereConfigMap = ksInstaller.CCToString()
+		} else {
+			if kubesphere.PreRelease(version) {
+				opt.KubeSphereConfigMap = kubesphere.Latest().CCToString()
 			} else {
-				return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))
+				return errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
 			}
 		}
 	}
 
-	ClusterObjStr, err := GenerateClusterObjStr(&opt)
+	ClusterObjStr, err := templates.GenerateCluster(opt)
 	if err != nil {
 		return errors.Wrap(err, "Failed to generate cluster config")
 	}
 	ClusterObjStrBase64 := base64.StdEncoding.EncodeToString([]byte(ClusterObjStr))
 
-	if clusterCfgPath != "" {
-		CheckConfigFileStatus(clusterCfgPath)
-		cmdStr := fmt.Sprintf("echo %s | base64 -d > %s", ClusterObjStrBase64, clusterCfgPath)
+	if arg.FilePath != "" {
+		CheckConfigFileStatus(arg.FilePath)
+		cmdStr := fmt.Sprintf("echo %s | base64 -d > %s", ClusterObjStrBase64, arg.FilePath)
 		output, err := exec.Command("/bin/sh", "-c", cmdStr).CombinedOutput()
 		if err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to write config to %s: %s", clusterCfgPath, strings.TrimSpace(string(output))))
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to write config to %s: %s", arg.FilePath, strings.TrimSpace(string(output))))
 		}
 	} else {
 		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))

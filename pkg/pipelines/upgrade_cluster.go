@@ -2,15 +2,15 @@ package pipelines
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/os"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/pkg/pipelines/common"
-	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
-	"github.com/kubesphere/kubekey/pkg/pipelines/kubesphere"
-	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/kubesphere"
+	"github.com/kubesphere/kubekey/pkg/loadbalancer"
 )
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {

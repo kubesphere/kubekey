@@ -1,10 +1,10 @@
 package pipelines
 
 import (
+	"github.com/kubesphere/kubekey/pkg/certs"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/pipelines/certs"
-	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 )
 
 func RenewCertsPipeline(runtime *common.KubeRuntime) error {

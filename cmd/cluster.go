@@ -18,8 +18,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	common2 "github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
-	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
 	"time"
@@ -37,7 +37,7 @@ var clusterCmd = &cobra.Command{
 			ksVersion = ""
 		}
 
-		arg := common.Argument{
+		arg := common2.Argument{
 			FilePath:           opt.ClusterCfgFile,
 			KubernetesVersion:  opt.Kubernetes,
 			KsEnable:           opt.Kubesphere,

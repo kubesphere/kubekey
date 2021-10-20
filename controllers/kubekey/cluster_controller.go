@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"net/http"
 	"os"
 	"strings"
@@ -39,8 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -91,12 +90,12 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("cluster", req.NamespacedName)
 
-	cluster := &kubekeyv1alpha1.Cluster{}
+	cluster := &kubekeyv1alpha2.Cluster{}
 	cmFound := &corev1.ConfigMap{}
 	jobFound := &batchv1.Job{}
 	var (
 		clusterAlreadyExist   bool
-		addHosts, removeHosts []kubekeyv1alpha1.HostCfg
+		addHosts, removeHosts []kubekeyv1alpha2.HostCfg
 	)
 	// Fetch the Cluster object
 	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
@@ -198,7 +197,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		nodes := cluster.Status.Nodes
-		newNodes := []kubekeyv1alpha1.NodeStatus{}
+		newNodes := []kubekeyv1alpha2.NodeStatus{}
 
 		for _, node := range nodes {
 			if _, ok := currentNodes[node.Hostname]; ok {
@@ -207,7 +206,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		hosts := cluster.Spec.Hosts
-		newHosts := []kubekeyv1alpha1.HostCfg{}
+		newHosts := []kubekeyv1alpha2.HostCfg{}
 		for _, host := range hosts {
 			if _, ok := currentNodes[host.Name]; ok {
 				newHosts = append(newHosts, host)
@@ -232,7 +231,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		cluster.Spec.Hosts = newHosts
-		cluster.Spec.RoleGroups = kubekeyv1alpha1.RoleGroups{
+		cluster.Spec.RoleGroups = kubekeyv1alpha2.RoleGroups{
 			Etcd:   newEtcd,
 			Master: newMaster,
 			Worker: newWorker,
@@ -265,7 +264,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kubekeyv1alpha1.Cluster{}).
+		For(&kubekeyv1alpha2.Cluster{}).
 		WithEventFilter(ignoreDeletionPredicate()).
 		Complete(r)
 }
@@ -283,7 +282,7 @@ func ignoreDeletionPredicate() predicate.Predicate {
 	}
 }
 
-func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha1.Cluster) *corev1.ConfigMap {
+func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha2.Cluster) *corev1.ConfigMap {
 	type Metadata struct {
 		Name string `yaml:"name" json:"name,omitempty"`
 	}
@@ -291,7 +290,7 @@ func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha1.Cluster) *cor
 		ApiVersion string                      `yaml:"apiVersion" json:"apiVersion,omitempty"`
 		Kind       string                      `yaml:"kind" json:"kind,omitempty"`
 		Metadata   Metadata                    `yaml:"metadata" json:"metadata,omitempty"`
-		Spec       kubekeyv1alpha1.ClusterSpec `yaml:"spec" json:"spec,omitempty"`
+		Spec       kubekeyv1alpha2.ClusterSpec `yaml:"spec" json:"spec,omitempty"`
 	}{ApiVersion: c.APIVersion, Kind: c.Kind, Metadata: Metadata{Name: c.Name}, Spec: c.Spec}
 
 	clusterStr, _ := yamlV2.Marshal(clusterConfiguration)
@@ -314,7 +313,7 @@ func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha1.Cluster) *cor
 	return cm
 }
 
-func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action string) *batchv1.Job {
+func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action string) *batchv1.Job {
 	var (
 		backoffLimit int32 = 0
 		name         string
@@ -428,7 +427,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 	return job
 }
 
-func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekeyv1alpha1.Cluster, action string) error {
+func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekeyv1alpha2.Cluster, action string) error {
 	var (
 		name string
 	)
@@ -455,12 +454,12 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 			}
 
 			if len(podlist.Items[0].ObjectMeta.GetName()) != 0 && len(podlist.Items[0].Status.ContainerStatuses[0].Name) != 0 && podlist.Items[0].Status.Phase != "Pending" {
-				cluster.Status.JobInfo = kubekeyv1alpha1.JobInfo{
+				cluster.Status.JobInfo = kubekeyv1alpha2.JobInfo{
 					Namespace: "kubekey-system",
 					Name:      name,
-					Pods: []kubekeyv1alpha1.PodInfo{{
+					Pods: []kubekeyv1alpha2.PodInfo{{
 						Name:       podlist.Items[0].ObjectMeta.GetName(),
-						Containers: []kubekeyv1alpha1.ContainerInfo{{Name: podlist.Items[0].Status.ContainerStatuses[0].Name}},
+						Containers: []kubekeyv1alpha2.ContainerInfo{{Name: podlist.Items[0].Status.ContainerStatuses[0].Name}},
 					}},
 				}
 
@@ -477,7 +476,7 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 	return nil
 }
 
-func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, cmFound *corev1.ConfigMap, log logr.Logger) error {
+func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha2.Cluster, cmFound *corev1.ConfigMap, log logr.Logger) error {
 	// Check if the configmap already exists, if not create a new one
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: "kubekey-system"}, cmFound); err != nil && !kubeErr.IsNotFound(err) {
 		log.Error(err, "Failed to get ConfigMap", "ConfigMap.Namespace", cmFound.Namespace, "ConfigMap.Name", cmFound.Name)
@@ -499,7 +498,7 @@ func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *
 	return nil
 }
 
-func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, jobFound *batchv1.Job, log logr.Logger, action string) error {
+func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, cluster *kubekeyv1alpha2.Cluster, jobFound *batchv1.Job, log logr.Logger, action string) error {
 	var (
 		name string
 	)
@@ -549,10 +548,10 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 	return nil
 }
 
-func sendHostsAction(action int, hosts []kubekeyv1alpha1.HostCfg, log logr.Logger) {
+func sendHostsAction(action int, hosts []kubekeyv1alpha2.HostCfg, log logr.Logger) {
 	if os.Getenv("HOSTS_MANAGER") == "true" {
 		type HostsAction struct {
-			Hosts  []kubekeyv1alpha1.HostCfg `json:"hosts,omitempty"`
+			Hosts  []kubekeyv1alpha2.HostCfg `json:"hosts,omitempty"`
 			Action int                       `json:"action,omitempty"`
 		}
 		newHostsAction := HostsAction{
