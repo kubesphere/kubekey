@@ -1,4 +1,5 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - kubekey_v1alpha1_cluster.yaml
+- kubekey_v1alpha2_cluster.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

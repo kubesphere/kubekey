@@ -1,5 +1,5 @@
 /*
-Copyright 2021.
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	v1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -54,6 +55,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=kubekey, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("clusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Kubekey().V1alpha1().Clusters().Informer()}, nil
+
+		// Group=kubekey, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("clusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Kubekey().V1alpha2().Clusters().Informer()}, nil
 
 	}
 

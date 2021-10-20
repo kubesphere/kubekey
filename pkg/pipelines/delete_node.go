@@ -1,12 +1,12 @@
 package pipelines
 
 import (
+	"github.com/kubesphere/kubekey/pkg/bootstrap/config"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/config"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/pkg/pipelines/common"
-	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
 func DeleteNodePipeline(runtime *common.KubeRuntime) error {

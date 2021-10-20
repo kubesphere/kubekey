@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/utils"
 	"net"
 	"os"
 	"os/exec"
@@ -28,8 +29,8 @@ import (
 	"strings"
 	"text/template"
 
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/util"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -39,7 +40,7 @@ import (
 var (
 	// ClusterCfgTempl defines the template of cluster configuration file for the existing cluster.
 	ClusterCfgTempl = template.Must(template.New("ClusterCfg").Parse(
-		dedent.Dedent(`apiVersion: kubekey.kubesphere.io/v1alpha1
+		dedent.Dedent(`apiVersion: kubekey.kubesphere.io/v1alpha2
 kind: Cluster
 metadata:
   name: {{ .Options.Name }}
@@ -120,7 +121,7 @@ type OptionsCluster struct {
 
 // GetInfoFromCluster is used to fetch information from the existing cluster.
 func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
-	clientset, err := util.NewClient(config)
+	clientset, err := utils.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +140,7 @@ func GetInfoFromCluster(config, name string) (*OptionsCluster, error) {
 	}
 
 	for _, node := range nodes.Items {
-		nodeCfg := kubekeyapiv1alpha1.HostCfg{}
+		nodeCfg := kubekeyapiv1alpha2.HostCfg{}
 		nodeInfo, err := clientset.CoreV1().Nodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err

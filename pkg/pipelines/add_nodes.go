@@ -2,19 +2,20 @@ package pipelines
 
 import (
 	"fmt"
+	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
+	"github.com/kubesphere/kubekey/pkg/binaries"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/pipelines/binaries"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/os"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/pkg/pipelines/common"
-	"github.com/kubesphere/kubekey/pkg/pipelines/container"
-	"github.com/kubesphere/kubekey/pkg/pipelines/etcd"
-	"github.com/kubesphere/kubekey/pkg/pipelines/images"
-	"github.com/kubesphere/kubekey/pkg/pipelines/k3s"
-	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
-	"github.com/kubesphere/kubekey/pkg/pipelines/loadbalancer"
+	"github.com/kubesphere/kubekey/pkg/etcd"
+	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/k3s"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/loadbalancer"
 )
 
 func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
@@ -91,6 +92,13 @@ func AddNodes(args common.Argument, downloadCmd string) error {
 	runtime, err := common.NewKubeRuntime(loaderType, args)
 	if err != nil {
 		return err
+	}
+	if args.InCluster {
+		c, err := kubekeycontroller.NewKubekeyClient()
+		if err != nil {
+			return err
+		}
+		runtime.ClientSet = c
 	}
 
 	switch runtime.Cluster.Kubernetes.Type {

@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
+	common2 "github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
-	"github.com/kubesphere/kubekey/pkg/pipelines/common"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ var addNodesCmd = &cobra.Command{
 	Use:   "nodes",
 	Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		arg := common.Argument{
+		arg := common2.Argument{
 			FilePath:         opt.ClusterCfgFile,
 			KsEnable:         false,
 			Debug:            opt.Verbose,

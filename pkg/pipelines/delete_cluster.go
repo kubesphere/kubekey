@@ -1,13 +1,13 @@
 package pipelines
 
 import (
+	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/modules"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/pkg/pipelines/bootstrap/os"
-	"github.com/kubesphere/kubekey/pkg/pipelines/common"
-	"github.com/kubesphere/kubekey/pkg/pipelines/k3s"
-	"github.com/kubesphere/kubekey/pkg/pipelines/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/k3s"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
 func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {

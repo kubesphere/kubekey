@@ -16,8 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
-	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +24,7 @@ var registryCmd = &cobra.Command{
 	Use:   "registry",
 	Short: "Init a local image registry",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logger := util.InitLogger(opt.Verbose)
-		return registry.InitRegistry(opt.ClusterCfgFile, logger)
+		return nil
 	},
 }
 

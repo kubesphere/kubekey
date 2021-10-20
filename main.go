@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/controllers/kubekey"
 	//+kubebuilder:scaffold:imports
 )
@@ -45,6 +46,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(kubekeyv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(kubekeyv1alpha2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
