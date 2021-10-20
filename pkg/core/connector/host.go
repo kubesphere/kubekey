@@ -17,6 +17,14 @@ type BaseHost struct {
 	Cache           *cache.Cache    `json:"-"`
 }
 
+func NewHost() *BaseHost {
+	return &BaseHost{
+		Roles:           make([]string, 0, 0),
+		RoleTable:       make(map[string]bool),
+		Cache:           cache.NewCache(),
+	}
+}
+
 func (b *BaseHost) GetName() string {
 	return b.Name
 }

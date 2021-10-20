@@ -17,4 +17,12 @@ resources:
   kind: Cluster
   path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: Cluster
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha2
+  version: v1alpha2
 version: "3"

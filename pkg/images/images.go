@@ -18,11 +18,13 @@ package images
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/pkg/errors"
 	"os"
 
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/pkg/errors"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 )
 
 const (
@@ -84,9 +86,9 @@ func (image Image) ImageRepo() string {
 }
 
 // PullImages is used to pull images in the list of Image.
-func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) error {
+func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.KubeConf) error {
 	pullCmd := "docker"
-	switch mgr.Cluster.Kubernetes.ContainerManager {
+	switch kubeConf.Cluster.Kubernetes.ContainerManager {
 	case "crio":
 		pullCmd = "crictl"
 	case "containerd":
@@ -96,36 +98,24 @@ func (images *Images) PullImages(mgr *manager.Manager, node *kubekeyapiv1alpha1.
 	default:
 		pullCmd = "docker"
 	}
-	for _, image := range images.Images {
 
-		if node.IsMaster && image.Group == kubekeyapiv1alpha1.Master && image.Enable {
-			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
-			if err != nil {
-				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
+	host := runtime.RemoteHost()
+
+	for _, image := range images.Images {
+		switch {
+		case host.IsRole(common.Master) && image.Group == kubekeyapiv1alpha2.Master && image.Enable,
+			host.IsRole(common.Worker) && image.Group == kubekeyapiv1alpha2.Worker && image.Enable,
+			(host.IsRole(common.Master) || host.IsRole(common.Worker)) && image.Group == kubekeyapiv1alpha2.K8s && image.Enable,
+			host.IsRole(common.ETCD) && image.Group == kubekeyapiv1alpha2.Etcd && image.Enable:
+
+			logger.Log.Messagef(host.GetName(), "downloading image: %s", image.ImageName())
+			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), false); err != nil {
+				return errors.Wrap(err, "pull image failed")
 			}
+		default:
+			continue
 		}
-		if node.IsWorker && image.Group == kubekeyapiv1alpha1.Worker && image.Enable {
-			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
-			if err != nil {
-				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
-			}
-		}
-		if (node.IsMaster || node.IsWorker) && image.Group == kubekeyapiv1alpha1.K8s && image.Enable {
-			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
-			if err != nil {
-				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
-			}
-		}
-		if node.IsEtcd && image.Group == kubekeyapiv1alpha1.Etcd && image.Enable && mgr.EtcdContainer {
-			fmt.Printf("[%s] Downloading image: %s\n", node.Name, image.ImageName())
-			_, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), 5, false)
-			if err != nil {
-				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to download image: %s", image.ImageName()))
-			}
-		}
+
 	}
 	return nil
 }
