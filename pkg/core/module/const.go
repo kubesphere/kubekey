@@ -1,4 +1,4 @@
-package modules
+package module
 
 const (
 	DefaultModuleName          = "DefaultBaseModule"

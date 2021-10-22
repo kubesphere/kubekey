@@ -1,4 +1,4 @@
-package modules
+package module
 
 import (
 	"context"
@@ -116,8 +116,8 @@ func (t *RemoteTask) Run(ctx context.Context, runtime connector.Runtime, host co
 			return
 		}
 
-		t.Prepare.Init(t.ModuleCache, t.PipelineCache, runtime)
-		t.Prepare.AutoAssert()
+		t.Prepare.Init(t.ModuleCache, t.PipelineCache)
+		t.Prepare.AutoAssert(runtime)
 		if ok, e := t.WhenWithRetry(runtime); !ok {
 			if e != nil {
 				errCh <- e
@@ -129,8 +129,8 @@ func (t *RemoteTask) Run(ctx context.Context, runtime connector.Runtime, host co
 			}
 		}
 
-		t.Action.Init(t.ModuleCache, t.PipelineCache, runtime)
-		t.Action.AutoAssert()
+		t.Action.Init(t.ModuleCache, t.PipelineCache)
+		t.Action.AutoAssert(runtime)
 		if err := t.ExecuteWithRetry(runtime); err != nil {
 			errCh <- err
 			return

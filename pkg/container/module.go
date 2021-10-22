@@ -5,7 +5,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/container/templates"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/images"
@@ -40,8 +40,8 @@ func (i *InstallContainerModule) Init() {
 	}
 }
 
-func InstallDocker(m *InstallContainerModule) []modules.Task {
-	syncBinaries := &modules.RemoteTask{
+func InstallDocker(m *InstallContainerModule) []module.Task {
+	syncBinaries := &module.RemoteTask{
 		Name:  "SyncDockerBinaries",
 		Desc:  "Sync docker binaries",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -54,7 +54,7 @@ func InstallDocker(m *InstallContainerModule) []modules.Task {
 		Retry:    2,
 	}
 
-	generateContainerdService := &modules.RemoteTask{
+	generateContainerdService := &module.RemoteTask{
 		Name:  "GenerateContainerdService",
 		Desc:  "Generate containerd service",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -69,7 +69,7 @@ func InstallDocker(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	enableContainerd := &modules.RemoteTask{
+	enableContainerd := &module.RemoteTask{
 		Name:  "EnableContainerd",
 		Desc:  "Enable containerd",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -81,7 +81,7 @@ func InstallDocker(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	generateDockerService := &modules.RemoteTask{
+	generateDockerService := &module.RemoteTask{
 		Name:  "GenerateDockerService",
 		Desc:  "Generate docker service",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -96,7 +96,7 @@ func InstallDocker(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	generateDOckerConfig := &modules.RemoteTask{
+	generateDOckerConfig := &module.RemoteTask{
 		Name:  "GenerateDockerConfig",
 		Desc:  "Generate docker config",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -115,7 +115,7 @@ func InstallDocker(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	enableDocker := &modules.RemoteTask{
+	enableDocker := &module.RemoteTask{
 		Name:  "EnableDocker",
 		Desc:  "Enable docker",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -127,7 +127,7 @@ func InstallDocker(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	return []modules.Task{
+	return []module.Task{
 		syncBinaries,
 		generateContainerdService,
 		enableContainerd,
@@ -137,8 +137,8 @@ func InstallDocker(m *InstallContainerModule) []modules.Task {
 	}
 }
 
-func InstallContainerd(m *InstallContainerModule) []modules.Task {
-	syncCrictlBinaries := &modules.RemoteTask{
+func InstallContainerd(m *InstallContainerModule) []module.Task {
+	syncCrictlBinaries := &module.RemoteTask{
 		Name:  "SyncCrictlBinaries",
 		Desc:  "Sync crictl binaries",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -151,7 +151,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Retry:    2,
 	}
 
-	syncDockerBinaries := &modules.RemoteTask{
+	syncDockerBinaries := &module.RemoteTask{
 		Name:  "SyncDockerBinaries",
 		Desc:  "Sync docker binaries",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -164,7 +164,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Retry:    2,
 	}
 
-	generateContainerdService := &modules.RemoteTask{
+	generateContainerdService := &module.RemoteTask{
 		Name:  "GenerateContainerdService",
 		Desc:  "Generate containerd service",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -179,7 +179,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	generateContainerdConfig := &modules.RemoteTask{
+	generateContainerdConfig := &module.RemoteTask{
 		Name:  "GenerateContainerdConfig",
 		Desc:  "Generate containerd config",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -199,7 +199,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	generateCrictlConfig := &modules.RemoteTask{
+	generateCrictlConfig := &module.RemoteTask{
 		Name:  "GenerateCrictlConfig",
 		Desc:  "Generate crictl config",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -217,7 +217,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	enableContainerd := &modules.RemoteTask{
+	enableContainerd := &module.RemoteTask{
 		Name:  "EnableContainerd",
 		Desc:  "Enable containerd",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -229,7 +229,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	generateDockerService := &modules.RemoteTask{
+	generateDockerService := &module.RemoteTask{
 		Name:  "GenerateDockerService",
 		Desc:  "Generate docker service",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -244,7 +244,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	generateDockerConfig := &modules.RemoteTask{
+	generateDockerConfig := &module.RemoteTask{
 		Name:  "GenerateDockerConfig",
 		Desc:  "Generate docker config",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -263,7 +263,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	enableDocker := &modules.RemoteTask{
+	enableDocker := &module.RemoteTask{
 		Name:  "EnableDocker",
 		Desc:  "Enable docker",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -275,7 +275,7 @@ func InstallContainerd(m *InstallContainerModule) []modules.Task {
 		Parallel: true,
 	}
 
-	return []modules.Task{
+	return []module.Task{
 		syncCrictlBinaries,
 		syncDockerBinaries,
 		generateContainerdService,

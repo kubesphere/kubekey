@@ -3,12 +3,12 @@ package pipelines
 import (
 	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 )
 
 func CheckCertsPipeline(runtime *common.KubeRuntime) error {
-	m := []modules.Module{
+	m := []module.Module{
 		&certs.CheckCertsModule{},
 		&certs.PrintClusterCertsModule{},
 	}

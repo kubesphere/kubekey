@@ -1,10 +1,8 @@
 package addons
 
 import (
-	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"path/filepath"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 )
 
 type AddonsModule struct {
@@ -18,16 +16,15 @@ func (a *AddonsModule) IsSkip() bool {
 
 func (a *AddonsModule) Init() {
 	a.Name = "AddonsModule"
-	a.Desc = "install addons"
-}
+	a.Desc = "Install addons"
 
-func (a *AddonsModule) Run() error {
-	nums := len(a.KubeConf.Cluster.Addons)
-	for index, addon := range a.KubeConf.Cluster.Addons {
-		logger.Log.Messagef(common.LocalHost, "Install addon [%v-%v]: %s", nums, index, addon.Name)
-		if err := InstallAddons(a.KubeConf, &addon, filepath.Join(a.Runtime.GetWorkDir(), fmt.Sprintf("config-%s", a.Runtime.GetObjName()))); err != nil {
-			return err
-		}
+	install := &module.LocalTask{
+		Name:   "InstallAddons",
+		Desc:   "Install addons",
+		Action: new(Install),
 	}
-	return nil
+
+	a.Tasks = []module.Task{
+		install,
+	}
 }

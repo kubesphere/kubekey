@@ -7,7 +7,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
@@ -168,7 +168,7 @@ func (g *GenerateKubeletEnv) Execute(runtime connector.Runtime) error {
 		},
 	}
 
-	templateAction.Init(nil, nil, runtime)
+	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 			},
 		}
 
-		templateAction.Init(nil, nil, runtime)
+		templateAction.Init(nil, nil)
 		if err := templateAction.Execute(runtime); err != nil {
 			return err
 		}
@@ -604,7 +604,7 @@ func (u *UpgradeKubeWorker) Execute(runtime connector.Runtime) error {
 
 func KubeadmUpgradeTasks(runtime connector.Runtime, u *UpgradeKubeMaster) error {
 	host := runtime.RemoteHost()
-	generateKubeadmConfig := &modules.RemoteTask{
+	generateKubeadmConfig := &module.RemoteTask{
 		Name:     "GenerateKubeadmConfig",
 		Desc:     "Generate kubeadm config",
 		Hosts:    []connector.Host{host},
@@ -613,7 +613,7 @@ func KubeadmUpgradeTasks(runtime connector.Runtime, u *UpgradeKubeMaster) error 
 		Parallel: false,
 	}
 
-	kubeadmUpgrade := &modules.RemoteTask{
+	kubeadmUpgrade := &module.RemoteTask{
 		Name:     "KubeadmUpgrade",
 		Desc:     "Upgrade cluster using kubeadm",
 		Hosts:    []connector.Host{host},
@@ -623,7 +623,7 @@ func KubeadmUpgradeTasks(runtime connector.Runtime, u *UpgradeKubeMaster) error 
 		Retry:    3,
 	}
 
-	copyKubeConfig := &modules.RemoteTask{
+	copyKubeConfig := &module.RemoteTask{
 		Name:     "CopyKubeConfig",
 		Desc:     "Copy admin.conf to ~/.kube/config",
 		Hosts:    []connector.Host{host},
@@ -633,7 +633,7 @@ func KubeadmUpgradeTasks(runtime connector.Runtime, u *UpgradeKubeMaster) error 
 		Retry:    2,
 	}
 
-	tasks := []modules.Task{
+	tasks := []module.Task{
 		generateKubeadmConfig,
 		kubeadmUpgrade,
 		copyKubeConfig,
@@ -677,7 +677,7 @@ func (k *KubeadmUpgrade) Execute(runtime connector.Runtime) error {
 
 func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
-	syncKubelet := &modules.RemoteTask{
+	syncKubelet := &module.RemoteTask{
 		Name:     "SyncKubelet",
 		Desc:     "synchronize kubelet",
 		Hosts:    []connector.Host{host},
@@ -687,7 +687,7 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 		Retry:    2,
 	}
 
-	generateKubeletService := &modules.RemoteTask{
+	generateKubeletService := &module.RemoteTask{
 		Name:    "GenerateKubeletService",
 		Desc:    "generate kubelet service",
 		Hosts:   []connector.Host{host},
@@ -700,7 +700,7 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 		Retry:    2,
 	}
 
-	enableKubelet := &modules.RemoteTask{
+	enableKubelet := &module.RemoteTask{
 		Name:     "EnableKubelet",
 		Desc:     "enable kubelet service",
 		Hosts:    []connector.Host{host},
@@ -710,7 +710,7 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 		Retry:    5,
 	}
 
-	generateKubeletEnv := &modules.RemoteTask{
+	generateKubeletEnv := &module.RemoteTask{
 		Name:     "GenerateKubeletEnv",
 		Desc:     "generate kubelet env",
 		Hosts:    []connector.Host{host},
@@ -720,7 +720,7 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 		Retry:    2,
 	}
 
-	tasks := []modules.Task{
+	tasks := []module.Task{
 		syncKubelet,
 		generateKubeletService,
 		enableKubelet,
@@ -739,7 +739,7 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 
 func SyncKubeConfigTask(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
-	syncKubeConfig := &modules.RemoteTask{
+	syncKubeConfig := &module.RemoteTask{
 		Name:  "SyncKubeConfig",
 		Desc:  "synchronize kube config to worker",
 		Hosts: []connector.Host{host},
@@ -752,7 +752,7 @@ func SyncKubeConfigTask(runtime connector.Runtime, kubeAction common.KubeAction)
 		Retry:    3,
 	}
 
-	tasks := []modules.Task{
+	tasks := []module.Task{
 		syncKubeConfig,
 	}
 
@@ -795,7 +795,7 @@ spec:
 func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
 
-	generateCoreDNDSvc := &modules.RemoteTask{
+	generateCoreDNDSvc := &module.RemoteTask{
 		Name:  "GenerateCoreDNSSvc",
 		Desc:  "generate coredns service",
 		Hosts: []connector.Host{host},
@@ -812,7 +812,7 @@ func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAct
 		Parallel: true,
 	}
 
-	override := &modules.RemoteTask{
+	override := &module.RemoteTask{
 		Name:  "OverrideCoreDNSService",
 		Desc:  "override coredns service",
 		Hosts: []connector.Host{host},
@@ -823,7 +823,7 @@ func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAct
 		Parallel: false,
 	}
 
-	generateNodeLocalDNS := &modules.RemoteTask{
+	generateNodeLocalDNS := &module.RemoteTask{
 		Name:  "GenerateNodeLocalDNS",
 		Desc:  "generate nodelocaldns",
 		Hosts: []connector.Host{host},
@@ -841,7 +841,7 @@ func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAct
 		Parallel: true,
 	}
 
-	applyNodeLocalDNS := &modules.RemoteTask{
+	applyNodeLocalDNS := &module.RemoteTask{
 		Name:  "DeployNodeLocalDNS",
 		Desc:  "deploy nodelocaldns",
 		Hosts: []connector.Host{host},
@@ -854,7 +854,7 @@ func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAct
 		Retry:    5,
 	}
 
-	generateNodeLocalDNSConfigMap := &modules.RemoteTask{
+	generateNodeLocalDNSConfigMap := &module.RemoteTask{
 		Name:  "GenerateNodeLocalDNSConfigMap",
 		Desc:  "generate nodelocaldns configmap",
 		Hosts: []connector.Host{host},
@@ -867,7 +867,7 @@ func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAct
 		Parallel: true,
 	}
 
-	applyNodeLocalDNSConfigMap := &modules.RemoteTask{
+	applyNodeLocalDNSConfigMap := &module.RemoteTask{
 		Name:  "ApplyNodeLocalDNSConfigMap",
 		Desc:  "apply nodelocaldns configmap",
 		Hosts: []connector.Host{host},
@@ -881,7 +881,7 @@ func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAct
 		Retry:    5,
 	}
 
-	tasks := []modules.Task{
+	tasks := []module.Task{
 		override,
 		generateCoreDNDSvc,
 		override,

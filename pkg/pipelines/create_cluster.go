@@ -10,7 +10,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/etcd"
 	"github.com/kubesphere/kubekey/pkg/images"
@@ -26,7 +26,7 @@ import (
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	noNetworkPlugin := runtime.Cluster.Network.Plugin == "" || runtime.Cluster.Network.Plugin == "none"
 
-	m := []modules.Module{
+	m := []module.Module{
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{},
 		&binaries.NodeBinariesModule{},
@@ -66,7 +66,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	noNetworkPlugin := runtime.Cluster.Network.Plugin == "" || runtime.Cluster.Network.Plugin == "none"
 
-	m := []modules.Module{
+	m := []module.Module{
 		&binaries.K3sNodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&k3s.StatusModule{},

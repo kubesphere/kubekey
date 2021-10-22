@@ -8,19 +8,17 @@ import (
 type BaseAction struct {
 	ModuleCache   *cache.Cache
 	PipelineCache *cache.Cache
-	Runtime       connector.Runtime
 }
 
-func (b *BaseAction) Init(moduleCache *cache.Cache, pipelineCache *cache.Cache, runtime connector.Runtime) {
+func (b *BaseAction) Init(moduleCache *cache.Cache, pipelineCache *cache.Cache) {
 	b.ModuleCache = moduleCache
 	b.PipelineCache = pipelineCache
-	b.Runtime = runtime
 }
 
 func (b *BaseAction) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-func (b *BaseAction) AutoAssert() {
+func (b *BaseAction) AutoAssert(runtime connector.Runtime) {
 
 }

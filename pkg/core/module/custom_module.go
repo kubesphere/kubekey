@@ -1,4 +1,4 @@
-package modules
+package module
 
 type CustomModule struct {
 	BaseModule

@@ -4,14 +4,14 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/k3s"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
 func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
-	m := []modules.Module{
+	m := []module.Module{
 		&confirm.DeleteClusterConfirmModule{},
 		&kubernetes.ResetClusterModule{},
 		&os.ClearOSEnvironmentModule{},
@@ -29,7 +29,7 @@ func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 }
 
 func NewK3sDeleteClusterPipeline(runtime *common.KubeRuntime) error {
-	m := []modules.Module{
+	m := []module.Module{
 		&confirm.DeleteClusterConfirmModule{},
 		&k3s.DeleteClusterModule{},
 		&os.ClearOSEnvironmentModule{},

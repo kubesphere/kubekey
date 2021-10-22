@@ -10,20 +10,14 @@ import (
 
 type TaskResult struct {
 	mu            sync.Mutex
-	ActionResults []ActionResult
+	ActionResults []*ActionResult
 	Status        ResultStatus
 	StartTime     time.Time
 	EndTime       time.Time
 }
 
-type ActionResult struct {
-	Host   connector.Host
-	Status ResultStatus
-	Error  error
-}
-
 func NewTaskResult() *TaskResult {
-	return &TaskResult{ActionResults: make([]ActionResult, 0, 0), Status: NULL, StartTime: time.Now()}
+	return &TaskResult{ActionResults: make([]*ActionResult, 0, 0), Status: NULL, StartTime: time.Now()}
 }
 
 func (t *TaskResult) ErrResult() {
@@ -53,40 +47,49 @@ func (t *TaskResult) SkippedResult() {
 func (t *TaskResult) AppendSkip(host connector.Host) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	e := ActionResult{
-		Host:   host,
-		Status: SKIPPED,
-		Error:  nil,
+	now := time.Now()
+	e := &ActionResult{
+		Host:      host,
+		Status:    SKIPPED,
+		Error:     nil,
+		StartTime: t.StartTime,
+		EndTime:   now,
 	}
 
 	t.ActionResults = append(t.ActionResults, e)
-	t.EndTime = time.Now()
+	t.EndTime = now
 }
 
 func (t *TaskResult) AppendSuccess(host connector.Host) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	e := ActionResult{
-		Host:   host,
-		Status: SUCCESS,
-		Error:  nil,
+	now := time.Now()
+	e := &ActionResult{
+		Host:      host,
+		Status:    SUCCESS,
+		Error:     nil,
+		StartTime: t.StartTime,
+		EndTime:   now,
 	}
 
 	t.ActionResults = append(t.ActionResults, e)
-	t.EndTime = time.Now()
+	t.EndTime = now
 }
 
 func (t *TaskResult) AppendErr(host connector.Host, err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	e := ActionResult{
-		Host:   host,
-		Status: FAILED,
-		Error:  err,
+	now := time.Now()
+	e := &ActionResult{
+		Host:      host,
+		Status:    FAILED,
+		Error:     err,
+		StartTime: t.StartTime,
+		EndTime:   now,
 	}
 
 	t.ActionResults = append(t.ActionResults, e)
-	t.EndTime = time.Now()
+	t.EndTime = now
 	t.Status = FAILED
 }
 

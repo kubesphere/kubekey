@@ -43,7 +43,7 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	host := g.Runtime.RemoteHost()
+	host := runtime.RemoteHost()
 	cluster := &EtcdCluster{
 		clusterExist:    true,
 		accessAddresses: "",
@@ -330,7 +330,7 @@ func refreshConfig(runtime connector.Runtime, endpoints []string, state, etcdNam
 		},
 	}
 
-	templateAction.Init(nil, nil, runtime)
+	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
@@ -423,7 +423,7 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 		},
 	}
 
-	templateAction.Init(nil, nil, runtime)
+	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}

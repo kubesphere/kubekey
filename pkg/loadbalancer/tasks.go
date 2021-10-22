@@ -43,13 +43,13 @@ func (g *GenerateHaproxyManifest) Execute(runtime connector.Runtime) error {
 		Template: templates.HaproxyManifest,
 		Dst:      filepath.Join(common.KubeManifestDir, templates.HaproxyManifest.Name()),
 		Data: util.Data{
-			"HaproxyImage":    images.GetImage(g.Runtime, g.KubeConf, "haproxy").ImageName(),
+			"HaproxyImage":    images.GetImage(runtime, g.KubeConf, "haproxy").ImageName(),
 			"HealthCheckPort": 8081,
 			"Checksum":        md5Str,
 		},
 	}
 
-	templateAction.Init(nil, nil, runtime)
+	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
@@ -137,13 +137,13 @@ func (g *GenerateK3sHaproxyManifest) Execute(runtime connector.Runtime) error {
 		Template: templates.HaproxyManifest,
 		Dst:      filepath.Join("/var/lib/rancher/k3s/agent/pod-manifests", templates.HaproxyManifest.Name()),
 		Data: util.Data{
-			"HaproxyImage":    images.GetImage(g.Runtime, g.KubeConf, "haproxy").ImageName(),
+			"HaproxyImage":    images.GetImage(runtime, g.KubeConf, "haproxy").ImageName(),
 			"HealthCheckPort": 8081,
 			"Checksum":        md5Str,
 		},
 	}
 
-	templateAction.Init(nil, nil, runtime)
+	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
