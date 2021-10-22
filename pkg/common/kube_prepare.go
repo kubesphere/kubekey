@@ -10,8 +10,8 @@ type KubePrepare struct {
 	KubeConf *KubeConf
 }
 
-func (k *KubePrepare) AutoAssert() {
-	kubeRuntime := k.Runtime.(*KubeRuntime)
+func (k *KubePrepare) AutoAssert(runtime connector.Runtime) {
+	kubeRuntime := runtime.(*KubeRuntime)
 	conf := &KubeConf{
 		ClusterHosts: kubeRuntime.ClusterHosts,
 		Cluster:      kubeRuntime.Cluster,

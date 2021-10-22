@@ -11,8 +11,10 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdlatest "k8s.io/client-go/tools/clientcmd/api/latest"
 	certutil "k8s.io/client-go/util/cert"
+	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 	"time"
 )
 
@@ -168,6 +170,61 @@ func ResidualTime(t time.Time) string {
 		return fmt.Sprintf("%dd", hours/24)
 	}
 	return fmt.Sprintf("%dy", int(d.Hours()/24/365))
+}
+
+type DisplayForm struct {
+	common.KubeAction
+}
+
+func (d *DisplayForm) Execute(runtime connector.Runtime) error {
+	certificates := make([]*Certificate, 0)
+	caCertificates := make([]*CaCertificate, 0)
+
+	for _, host := range runtime.GetHostsByRole(common.Master) {
+		certs, ok := host.GetCache().Get(common.Certificate)
+		if !ok {
+			return errors.New("get certificate failed by pipeline cache")
+		}
+		ca, ok := host.GetCache().Get(common.CaCertificate)
+		if !ok {
+			return errors.New("get ca certificate failed by pipeline cache")
+		}
+		hostCertificates := certs.([]*Certificate)
+		hostCaCertificates := ca.([]*CaCertificate)
+		certificates = append(certificates, hostCertificates...)
+		caCertificates = append(caCertificates, hostCaCertificates...)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
+	_, _ = fmt.Fprintln(w, "CERTIFICATE\tEXPIRES\tRESIDUAL TIME\tCERTIFICATE AUTHORITY\tNODE")
+	for _, cert := range certificates {
+		s := fmt.Sprintf("%s\t%s\t%s\t%s\t%-8v",
+			cert.Name,
+			cert.Expires,
+			cert.Residual,
+			cert.AuthorityName,
+			cert.NodeName,
+		)
+
+		_, _ = fmt.Fprintln(w, s)
+		continue
+	}
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, "CERTIFICATE AUTHORITY\tEXPIRES\tRESIDUAL TIME\tNODE")
+	for _, caCert := range caCertificates {
+		c := fmt.Sprintf("%s\t%s\t%s\t%-8v",
+			caCert.AuthorityName,
+			caCert.Expires,
+			caCert.Residual,
+			caCert.NodeName,
+		)
+
+		_, _ = fmt.Fprintln(w, c)
+		continue
+	}
+
+	_ = w.Flush()
+	return nil
 }
 
 type RenewCerts struct {

@@ -1,4 +1,4 @@
-package modules
+package module
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"

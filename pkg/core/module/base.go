@@ -1,9 +1,11 @@
-package modules
+package module
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/ending"
+	"github.com/kubesphere/kubekey/pkg/core/hook"
+	"github.com/pkg/errors"
 )
 
 type BaseModule struct {
@@ -13,6 +15,7 @@ type BaseModule struct {
 	ModuleCache   *cache.Cache
 	PipelineCache *cache.Cache
 	Runtime       connector.ModuleRuntime
+	PostHook      []hook.PostHook
 }
 
 func (b *BaseModule) IsSkip() bool {
@@ -35,8 +38,8 @@ func (b *BaseModule) Is() string {
 	return BaseModuleType
 }
 
-func (b *BaseModule) Run() error {
-	return nil
+func (b *BaseModule) Run(result *ending.ModuleResult) {
+	panic("implement me")
 }
 
 func (b *BaseModule) Until() (*bool, error) {
@@ -44,10 +47,22 @@ func (b *BaseModule) Until() (*bool, error) {
 }
 
 func (b *BaseModule) Slogan() {
-	if b.Desc != "" {
-		logger.Log.Infof("[%s] %s", b.Name, b.Desc)
-	}
 }
 
 func (b *BaseModule) AutoAssert() {
+}
+
+func (b *BaseModule) RegisterHooks() {
+
+}
+
+func (b *BaseModule) CallPostHook(result *ending.ModuleResult) error {
+	for i := range b.PostHook {
+		h := b.PostHook[i]
+		h.Init(b.Runtime.(connector.Runtime), b.Name, result)
+		if err := hook.Call(h); err != nil {
+			return errors.Wrapf(err, "Module[%s] call post hook failed", b.Name)
+		}
+	}
+	return nil
 }

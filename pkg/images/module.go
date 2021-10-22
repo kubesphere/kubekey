@@ -2,7 +2,7 @@ package images
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 )
 
 type ImageModule struct {
@@ -17,7 +17,7 @@ func (i *ImageModule) IsSkip() bool {
 func (i *ImageModule) Init() {
 	i.Name = "ImageModule"
 
-	pull := &modules.RemoteTask{
+	pull := &module.RemoteTask{
 		Name:     "PullImages",
 		Desc:     "Start to pull images on all nodes",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -25,7 +25,7 @@ func (i *ImageModule) Init() {
 		Parallel: true,
 	}
 
-	i.Tasks = []modules.Task{
+	i.Tasks = []module.Task{
 		pull,
 	}
 }

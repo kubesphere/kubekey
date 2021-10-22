@@ -4,13 +4,13 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/config"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
 func DeleteNodePipeline(runtime *common.KubeRuntime) error {
-	m := []modules.Module{
+	m := []module.Module{
 		&confirm.DeleteNodeConfirmModule{},
 		&config.ModifyConfigModule{},
 		&kubernetes.CompareConfigAndClusterInfoModule{},

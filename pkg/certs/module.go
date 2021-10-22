@@ -1,14 +1,10 @@
 package certs
 
 import (
-	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
-	"github.com/pkg/errors"
-	"os"
-	"text/tabwriter"
 )
 
 type CheckCertsModule struct {
@@ -18,7 +14,7 @@ type CheckCertsModule struct {
 func (c *CheckCertsModule) Init() {
 	c.Name = "CheckCertsModule"
 
-	check := &modules.RemoteTask{
+	check := &module.RemoteTask{
 		Name:     "CheckClusterCerts",
 		Desc:     "Check cluster certs",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -26,69 +22,28 @@ func (c *CheckCertsModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []modules.Task{
+	c.Tasks = []module.Task{
 		check,
 	}
 }
 
 type PrintClusterCertsModule struct {
-	common.KubeCustomModule
+	common.KubeModule
 }
 
 func (p *PrintClusterCertsModule) Init() {
 	p.Name = "PrintClusterCertsModule"
 	p.Desc = "Display cluster certs form"
-}
 
-func (p *PrintClusterCertsModule) Run() error {
-	certificates := make([]*Certificate, 0)
-	caCertificates := make([]*CaCertificate, 0)
-
-	for _, host := range p.Runtime.GetHostsByRole(common.Master) {
-		certs, ok := host.GetCache().Get(common.Certificate)
-		if !ok {
-			return errors.New("get certificate failed by pipeline cache")
-		}
-		ca, ok := host.GetCache().Get(common.CaCertificate)
-		if !ok {
-			return errors.New("get ca certificate failed by pipeline cache")
-		}
-		hostCertificates := certs.([]*Certificate)
-		hostCaCertificates := ca.([]*CaCertificate)
-		certificates = append(certificates, hostCertificates...)
-		caCertificates = append(caCertificates, hostCaCertificates...)
+	display := &module.LocalTask{
+		Name:   "DisplayCertsForm",
+		Desc:   "Display cluster certs form",
+		Action: new(DisplayForm),
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
-	_, _ = fmt.Fprintln(w, "CERTIFICATE\tEXPIRES\tRESIDUAL TIME\tCERTIFICATE AUTHORITY\tNODE")
-	for _, cert := range certificates {
-		s := fmt.Sprintf("%s\t%s\t%s\t%s\t%-8v",
-			cert.Name,
-			cert.Expires,
-			cert.Residual,
-			cert.AuthorityName,
-			cert.NodeName,
-		)
-
-		_, _ = fmt.Fprintln(w, s)
-		continue
+	p.Tasks = []module.Task{
+		display,
 	}
-	_, _ = fmt.Fprintln(w)
-	_, _ = fmt.Fprintln(w, "CERTIFICATE AUTHORITY\tEXPIRES\tRESIDUAL TIME\tNODE")
-	for _, caCert := range caCertificates {
-		c := fmt.Sprintf("%s\t%s\t%s\t%-8v",
-			caCert.AuthorityName,
-			caCert.Expires,
-			caCert.Residual,
-			caCert.NodeName,
-		)
-
-		_, _ = fmt.Fprintln(w, c)
-		continue
-	}
-
-	_ = w.Flush()
-	return nil
 }
 
 type RenewCertsModule struct {
@@ -98,7 +53,7 @@ type RenewCertsModule struct {
 func (r *RenewCertsModule) Init() {
 	r.Name = "RenewCertsModule"
 
-	renew := &modules.RemoteTask{
+	renew := &module.RemoteTask{
 		Name:     "RenewCerts",
 		Desc:     "Renew control-plane certs",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -107,7 +62,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    5,
 	}
 
-	copyKubeConfig := &modules.RemoteTask{
+	copyKubeConfig := &module.RemoteTask{
 		Name:     "CopyKubeConfig",
 		Desc:     "Copy admin.conf to ~/.kube/config",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -116,7 +71,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    2,
 	}
 
-	fetchKubeConfig := &modules.RemoteTask{
+	fetchKubeConfig := &module.RemoteTask{
 		Name:     "FetchKubeConfig",
 		Desc:     "Fetch kube config file from control-plane",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -125,7 +80,7 @@ func (r *RenewCertsModule) Init() {
 		Parallel: true,
 	}
 
-	syncKubeConfig := &modules.RemoteTask{
+	syncKubeConfig := &module.RemoteTask{
 		Name:  "SyncKubeConfig",
 		Desc:  "Synchronize kube config to worker",
 		Hosts: r.Runtime.GetHostsByRole(common.Worker),
@@ -137,7 +92,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    3,
 	}
 
-	r.Tasks = []modules.Task{
+	r.Tasks = []module.Task{
 		renew,
 		copyKubeConfig,
 		fetchKubeConfig,

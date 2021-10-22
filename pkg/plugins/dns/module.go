@@ -3,7 +3,7 @@ package dns
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/images"
@@ -18,7 +18,7 @@ type ClusterDNSModule struct {
 func (c *ClusterDNSModule) Init() {
 	c.Name = "ClusterDNSModule"
 
-	generateCoreDNDSvc := &modules.RemoteTask{
+	generateCoreDNDSvc := &module.RemoteTask{
 		Name:  "GenerateCoreDNSSvc",
 		Desc:  "Generate coredns service",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -36,7 +36,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	override := &modules.RemoteTask{
+	override := &module.RemoteTask{
 		Name:  "OverrideCoreDNSService",
 		Desc:  "Override coredns service",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -48,7 +48,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	generateNodeLocalDNS := &modules.RemoteTask{
+	generateNodeLocalDNS := &module.RemoteTask{
 		Name:  "GenerateNodeLocalDNS",
 		Desc:  "Generate nodelocaldns",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -66,7 +66,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	applyNodeLocalDNS := &modules.RemoteTask{
+	applyNodeLocalDNS := &module.RemoteTask{
 		Name:  "DeployNodeLocalDNS",
 		Desc:  "Deploy nodelocaldns",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -79,7 +79,7 @@ func (c *ClusterDNSModule) Init() {
 		Retry:    5,
 	}
 
-	generateNodeLocalDNSConfigMap := &modules.RemoteTask{
+	generateNodeLocalDNSConfigMap := &module.RemoteTask{
 		Name:  "GenerateNodeLocalDNSConfigMap",
 		Desc:  "Generate nodelocaldns configmap",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -92,7 +92,7 @@ func (c *ClusterDNSModule) Init() {
 		Parallel: true,
 	}
 
-	applyNodeLocalDNSConfigMap := &modules.RemoteTask{
+	applyNodeLocalDNSConfigMap := &module.RemoteTask{
 		Name:  "ApplyNodeLocalDNSConfigMap",
 		Desc:  "Apply nodelocaldns configmap",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -106,7 +106,7 @@ func (c *ClusterDNSModule) Init() {
 		Retry:    5,
 	}
 
-	c.Tasks = []modules.Task{
+	c.Tasks = []module.Task{
 		generateCoreDNDSvc,
 		override,
 		generateNodeLocalDNS,
