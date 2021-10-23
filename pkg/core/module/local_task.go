@@ -1,4 +1,4 @@
-package modules
+package module
 
 import (
 	"context"
@@ -116,8 +116,8 @@ func (l *LocalTask) Run(runtime connector.Runtime, host connector.Host, errCh ch
 		Host: host,
 	})
 
-	l.Prepare.Init(l.ModuleCache, l.PipelineCache, runtime)
-	l.Prepare.AutoAssert()
+	l.Prepare.Init(l.ModuleCache, l.PipelineCache)
+	l.Prepare.AutoAssert(runtime)
 	if ok, e := l.WhenWithRetry(runtime, host); !ok {
 		if e != nil {
 			errCh <- e
@@ -129,8 +129,8 @@ func (l *LocalTask) Run(runtime connector.Runtime, host connector.Host, errCh ch
 		}
 	}
 
-	l.Action.Init(l.ModuleCache, l.PipelineCache, runtime)
-	l.Action.AutoAssert()
+	l.Action.Init(l.ModuleCache, l.PipelineCache)
+	l.Action.AutoAssert(runtime)
 	if err := l.ExecuteWithRetry(runtime, host); err != nil {
 		errCh <- err
 		return

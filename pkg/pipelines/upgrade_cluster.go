@@ -6,7 +6,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
@@ -14,7 +14,7 @@ import (
 )
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
-	m := []modules.Module{
+	m := []module.Module{
 		&precheck.NodePreCheckModule{},
 		&precheck.ClusterPreCheckModule{},
 		&confirm.UpgradeConfirmModule{},

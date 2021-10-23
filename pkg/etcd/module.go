@@ -3,7 +3,7 @@ package etcd
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/etcd/templates"
 	"path/filepath"
@@ -15,7 +15,7 @@ type ETCDPreCheckModule struct {
 
 func (e *ETCDPreCheckModule) Init() {
 	e.Name = "ETCDPreCheckModule"
-	getStatus := &modules.RemoteTask{
+	getStatus := &module.RemoteTask{
 		Name:     "GetETCDStatus",
 		Desc:     "Get etcd status",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -23,7 +23,7 @@ func (e *ETCDPreCheckModule) Init() {
 		Parallel: false,
 		Retry:    0,
 	}
-	e.Tasks = []modules.Task{
+	e.Tasks = []module.Task{
 		getStatus,
 	}
 }
@@ -35,7 +35,7 @@ type ETCDCertsModule struct {
 func (e *ETCDCertsModule) Init() {
 	e.Name = "ETCDCertsModule"
 
-	generateCertsScript := &modules.RemoteTask{
+	generateCertsScript := &module.RemoteTask{
 		Name:    "GenerateCertsScript",
 		Desc:    "Generate certs script",
 		Hosts:   e.Runtime.GetHostsByRole(common.ETCD),
@@ -53,7 +53,7 @@ func (e *ETCDCertsModule) Init() {
 	}
 
 	dnsList, ipList := templates.DNSAndIp(e.KubeConf)
-	generateOpenSSLConf := &modules.RemoteTask{
+	generateOpenSSLConf := &module.RemoteTask{
 		Name:    "GenerateOpenSSLConf",
 		Desc:    "Generate OpenSSL config",
 		Hosts:   e.Runtime.GetHostsByRole(common.ETCD),
@@ -70,7 +70,7 @@ func (e *ETCDCertsModule) Init() {
 		Retry:    1,
 	}
 
-	execCertsScript := &modules.RemoteTask{
+	execCertsScript := &module.RemoteTask{
 		Name:     "ExecCertsScript",
 		Desc:     "Exec certs script",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -80,7 +80,7 @@ func (e *ETCDCertsModule) Init() {
 		Retry:    1,
 	}
 
-	syncCertsFile := &modules.RemoteTask{
+	syncCertsFile := &module.RemoteTask{
 		Name:     "SyncCertsFile",
 		Desc:     "Synchronize certs file",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -90,7 +90,7 @@ func (e *ETCDCertsModule) Init() {
 		Retry:    1,
 	}
 
-	syncCertsToMaster := &modules.RemoteTask{
+	syncCertsToMaster := &module.RemoteTask{
 		Name:     "SyncCertsFileToMaster",
 		Desc:     "Synchronize certs file to master",
 		Hosts:    e.Runtime.GetHostsByRole(common.Master),
@@ -100,7 +100,7 @@ func (e *ETCDCertsModule) Init() {
 		Retry:    1,
 	}
 
-	e.Tasks = []modules.Task{
+	e.Tasks = []module.Task{
 		generateCertsScript,
 		generateOpenSSLConf,
 		execCertsScript,
@@ -116,7 +116,7 @@ type InstallETCDBinaryModule struct {
 func (i *InstallETCDBinaryModule) Init() {
 	i.Name = "InstallETCDBinaryModule"
 
-	installETCDBinary := &modules.RemoteTask{
+	installETCDBinary := &module.RemoteTask{
 		Name:     "InstallETCDBinary",
 		Desc:     "Install etcd using binary",
 		Hosts:    i.Runtime.GetHostsByRole(common.ETCD),
@@ -125,7 +125,7 @@ func (i *InstallETCDBinaryModule) Init() {
 		Retry:    1,
 	}
 
-	generateETCDService := &modules.RemoteTask{
+	generateETCDService := &module.RemoteTask{
 		Name:  "GenerateETCDService",
 		Desc:  "Generate etcd service",
 		Hosts: i.Runtime.GetHostsByRole(common.ETCD),
@@ -137,7 +137,7 @@ func (i *InstallETCDBinaryModule) Init() {
 		Retry:    1,
 	}
 
-	accessAddress := &modules.RemoteTask{
+	accessAddress := &module.RemoteTask{
 		Name:     "GenerateAccessAddress",
 		Desc:     "Generate access address",
 		Hosts:    i.Runtime.GetHostsByRole(common.ETCD),
@@ -147,7 +147,7 @@ func (i *InstallETCDBinaryModule) Init() {
 		Retry:    1,
 	}
 
-	i.Tasks = []modules.Task{
+	i.Tasks = []module.Task{
 		installETCDBinary,
 		generateETCDService,
 		accessAddress,
@@ -171,9 +171,9 @@ func (e *ETCDModule) Init() {
 	}
 }
 
-func handleNewCluster(e *ETCDModule) []modules.Task {
+func handleNewCluster(e *ETCDModule) []module.Task {
 
-	existETCDHealthCheck := &modules.RemoteTask{
+	existETCDHealthCheck := &module.RemoteTask{
 		Name:     "ExistETCDHealthCheck",
 		Desc:     "Health check on exist etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -183,7 +183,7 @@ func handleNewCluster(e *ETCDModule) []modules.Task {
 		Retry:    20,
 	}
 
-	generateETCDConfig := &modules.RemoteTask{
+	generateETCDConfig := &module.RemoteTask{
 		Name:     "GenerateETCDConfig",
 		Desc:     "Generate etcd.env config on new etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -192,7 +192,7 @@ func handleNewCluster(e *ETCDModule) []modules.Task {
 		Parallel: false,
 	}
 
-	allRefreshETCDConfig := &modules.RemoteTask{
+	allRefreshETCDConfig := &module.RemoteTask{
 		Name:     "AllRefreshETCDConfig",
 		Desc:     "Refresh etcd.env config on all etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -200,7 +200,7 @@ func handleNewCluster(e *ETCDModule) []modules.Task {
 		Parallel: false,
 	}
 
-	restart := &modules.RemoteTask{
+	restart := &module.RemoteTask{
 		Name:     "RestartETCD",
 		Desc:     "Restart etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -209,7 +209,7 @@ func handleNewCluster(e *ETCDModule) []modules.Task {
 		Parallel: true,
 	}
 
-	allETCDNodeHealthCheck := &modules.RemoteTask{
+	allETCDNodeHealthCheck := &module.RemoteTask{
 		Name:     "AllETCDNodeHealthCheck",
 		Desc:     "Health check on all etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -218,7 +218,7 @@ func handleNewCluster(e *ETCDModule) []modules.Task {
 		Retry:    20,
 	}
 
-	refreshETCDConfigToExist := &modules.RemoteTask{
+	refreshETCDConfigToExist := &module.RemoteTask{
 		Name:     "RefreshETCDConfigToExist",
 		Desc:     "Refresh etcd.env config to exist mode on all etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -226,7 +226,7 @@ func handleNewCluster(e *ETCDModule) []modules.Task {
 		Parallel: false,
 	}
 
-	tasks := []modules.Task{
+	tasks := []module.Task{
 		existETCDHealthCheck,
 		generateETCDConfig,
 		allRefreshETCDConfig,
@@ -238,9 +238,9 @@ func handleNewCluster(e *ETCDModule) []modules.Task {
 	return tasks
 }
 
-func handleExistCluster(e *ETCDModule) []modules.Task {
+func handleExistCluster(e *ETCDModule) []module.Task {
 
-	existETCDHealthCheck := &modules.RemoteTask{
+	existETCDHealthCheck := &module.RemoteTask{
 		Name:     "ExistETCDHealthCheck",
 		Desc:     "Health check on exist etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -250,7 +250,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Retry:    20,
 	}
 
-	generateETCDConfig := &modules.RemoteTask{
+	generateETCDConfig := &module.RemoteTask{
 		Name:     "GenerateETCDConfig",
 		Desc:     "Generate etcd.env config on new etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -259,7 +259,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Parallel: false,
 	}
 
-	joinMember := &modules.RemoteTask{
+	joinMember := &module.RemoteTask{
 		Name:     "JoinETCDMember",
 		Desc:     "Join etcd member",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -268,7 +268,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Parallel: false,
 	}
 
-	restart := &modules.RemoteTask{
+	restart := &module.RemoteTask{
 		Name:     "RestartETCD",
 		Desc:     "Restart etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -277,7 +277,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Parallel: true,
 	}
 
-	newETCDNodeHealthCheck := &modules.RemoteTask{
+	newETCDNodeHealthCheck := &module.RemoteTask{
 		Name:     "NewETCDNodeHealthCheck",
 		Desc:     "Health check on new etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -287,7 +287,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Retry:    20,
 	}
 
-	checkMember := &modules.RemoteTask{
+	checkMember := &module.RemoteTask{
 		Name:     "CheckETCDMember",
 		Desc:     "Check etcd member",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -296,7 +296,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Parallel: true,
 	}
 
-	allRefreshETCDConfig := &modules.RemoteTask{
+	allRefreshETCDConfig := &module.RemoteTask{
 		Name:     "AllRefreshETCDConfig",
 		Desc:     "Refresh etcd.env config on all etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -304,7 +304,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Parallel: false,
 	}
 
-	allETCDNodeHealthCheck := &modules.RemoteTask{
+	allETCDNodeHealthCheck := &module.RemoteTask{
 		Name:     "AllETCDNodeHealthCheck",
 		Desc:     "Health check on all etcd",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -313,7 +313,7 @@ func handleExistCluster(e *ETCDModule) []modules.Task {
 		Retry:    20,
 	}
 
-	tasks := []modules.Task{
+	tasks := []module.Task{
 		existETCDHealthCheck,
 		generateETCDConfig,
 		joinMember,
@@ -333,7 +333,7 @@ type BackupETCDModule struct {
 func (e *BackupETCDModule) Init() {
 	e.Name = "BackupETCDModule"
 
-	backupETCD := &modules.RemoteTask{
+	backupETCD := &module.RemoteTask{
 		Name:     "BackupETCD",
 		Desc:     "Backup etcd data regularly",
 		Hosts:    e.Runtime.GetHostsByRole(common.ETCD),
@@ -341,7 +341,7 @@ func (e *BackupETCDModule) Init() {
 		Parallel: true,
 	}
 
-	e.Tasks = []modules.Task{
+	e.Tasks = []module.Task{
 		backupETCD,
 	}
 }

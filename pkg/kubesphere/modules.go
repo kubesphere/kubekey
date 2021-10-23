@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
@@ -25,7 +25,7 @@ func (d *DeployModule) IsSkip() bool {
 func (d *DeployModule) Init() {
 	d.Name = "DeployKubeSphereModule"
 
-	generateManifests := &modules.RemoteTask{
+	generateManifests := &module.RemoteTask{
 		Name:  "GenerateKsInstallerCRD",
 		Desc:  "Generate KubeSphere ks-installer crd manifests",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -44,7 +44,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	addConfig := &modules.RemoteTask{
+	addConfig := &module.RemoteTask{
 		Name:  "AddKsInstallerConfig",
 		Desc:  "Add config to ks-installer manifests",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -56,7 +56,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	createNamespace := &modules.RemoteTask{
+	createNamespace := &module.RemoteTask{
 		Name:  "CreateKubeSphereNamespace",
 		Desc:  "Create the kubesphere namespace",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -68,7 +68,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	setup := &modules.RemoteTask{
+	setup := &module.RemoteTask{
 		Name:  "SetupKsInstallerConfig",
 		Desc:  "Setup ks-installer config",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -80,7 +80,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	apply := &modules.RemoteTask{
+	apply := &module.RemoteTask{
 		Name:  "ApplyKsInstaller",
 		Desc:  "Apply ks-installer",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -92,7 +92,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	d.Tasks = []modules.Task{
+	d.Tasks = []module.Task{
 		generateManifests,
 		addConfig,
 		createNamespace,
@@ -133,7 +133,7 @@ func (c *CheckResultModule) IsSkip() bool {
 func (c *CheckResultModule) Init() {
 	c.Name = "CheckResultModule"
 
-	check := &modules.RemoteTask{
+	check := &module.RemoteTask{
 		Name:  "CheckKsInstallerResult",
 		Desc:  "Check ks-installer result",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -145,7 +145,7 @@ func (c *CheckResultModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []modules.Task{
+	c.Tasks = []module.Task{
 		check,
 	}
 }
@@ -157,7 +157,7 @@ type ConvertModule struct {
 func (c *ConvertModule) Init() {
 	c.Name = "ConvertModule"
 
-	convert := &modules.RemoteTask{
+	convert := &module.RemoteTask{
 		Name:  "ConvertV2ToV3",
 		Desc:  "Convert ks-installer config v2 to v3",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -170,7 +170,7 @@ func (c *ConvertModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []modules.Task{
+	c.Tasks = []module.Task{
 		convert,
 	}
 }

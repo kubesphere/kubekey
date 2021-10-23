@@ -3,12 +3,12 @@ package pipelines
 import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 )
 
 func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
-	m := []modules.Module{
+	m := []module.Module{
 		&os.InitDependenciesModule{},
 	}
 

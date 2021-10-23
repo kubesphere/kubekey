@@ -195,7 +195,7 @@ func (g *GenerateK3sService) Execute(runtime connector.Runtime) error {
 		},
 	}
 
-	templateAction.Init(nil, nil, runtime)
+	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (g *GenerateK3sServiceEnv) Execute(runtime connector.Runtime) error {
 		},
 	}
 
-	templateAction.Init(nil, nil, runtime)
+	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}

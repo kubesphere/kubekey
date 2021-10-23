@@ -4,7 +4,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer/templates"
@@ -23,7 +23,7 @@ func (h *HaproxyModule) IsSkip() bool {
 func (h *HaproxyModule) Init() {
 	h.Name = "InternalLoadbalancer"
 
-	haproxyCfg := &modules.RemoteTask{
+	haproxyCfg := &module.RemoteTask{
 		Name:    "GenerateHaproxyConfig",
 		Desc:    "Generate haproxy.cfg",
 		Hosts:   h.Runtime.GetHostsByRole(common.Worker),
@@ -43,7 +43,7 @@ func (h *HaproxyModule) Init() {
 
 	// Calculation config md5 as the checksum.
 	// It will make load balancer reload when config changes.
-	getMd5Sum := &modules.RemoteTask{
+	getMd5Sum := &module.RemoteTask{
 		Name:     "GetChecksumFromConfig",
 		Desc:     "Calculate the MD5 value according to haproxy.cfg",
 		Hosts:    h.Runtime.GetHostsByRole(common.Worker),
@@ -52,7 +52,7 @@ func (h *HaproxyModule) Init() {
 		Parallel: true,
 	}
 
-	haproxyManifestK8s := &modules.RemoteTask{
+	haproxyManifestK8s := &module.RemoteTask{
 		Name:  "GenerateHaproxyManifest",
 		Desc:  "Generate haproxy manifest",
 		Hosts: h.Runtime.GetHostsByRole(common.Worker),
@@ -68,7 +68,7 @@ func (h *HaproxyModule) Init() {
 	// When create a HA cluster by internal LB, we will set the server filed to 127.0.0.1:6443 (default) which in kubelet.conf.
 	// Because of that, the control plone node's kubelet connect the local api-server.
 	// And the work node's kubelet connect 127.0.0.1:6443 (default) that is proxy by the node's local nginx.
-	updateKubeletConfig := &modules.RemoteTask{
+	updateKubeletConfig := &module.RemoteTask{
 		Name:  "UpdateKubeletConfig",
 		Desc:  "Update kubelet config",
 		Hosts: h.Runtime.GetHostsByRole(common.K8s),
@@ -82,7 +82,7 @@ func (h *HaproxyModule) Init() {
 	}
 
 	// updateKubeProxyConfig is used to update kube-proxy configmap and restart tge kube-proxy pod.
-	updateKubeProxyConfig := &modules.RemoteTask{
+	updateKubeProxyConfig := &module.RemoteTask{
 		Name:  "UpdateKubeProxyConfig",
 		Desc:  "Update kube-proxy configmap",
 		Hosts: []connector.Host{h.Runtime.GetHostsByRole(common.Master)[0]},
@@ -98,7 +98,7 @@ func (h *HaproxyModule) Init() {
 
 	// UpdateHostsFile is used to update the '/etc/hosts'. Make the 'lb.kubesphere.local' address to set as 127.0.0.1.
 	// All of the 'admin.conf' and '/.kube/config' will connect to 127.0.0.1:6443.
-	updateHostsFile := &modules.RemoteTask{
+	updateHostsFile := &module.RemoteTask{
 		Name:     "UpdateHostsFile",
 		Desc:     "Update /etc/hosts",
 		Hosts:    h.Runtime.GetHostsByRole(common.K8s),
@@ -107,7 +107,7 @@ func (h *HaproxyModule) Init() {
 		Retry:    3,
 	}
 
-	h.Tasks = []modules.Task{
+	h.Tasks = []module.Task{
 		haproxyCfg,
 		getMd5Sum,
 		haproxyManifestK8s,
@@ -129,7 +129,7 @@ func (k *K3sHaproxyModule) IsSkip() bool {
 func (k *K3sHaproxyModule) Init() {
 	k.Name = "InternalLoadbalancer"
 
-	haproxyCfg := &modules.RemoteTask{
+	haproxyCfg := &module.RemoteTask{
 		Name:    "GenerateHaproxyConfig",
 		Desc:    "Generate haproxy.cfg",
 		Hosts:   k.Runtime.GetHostsByRole(common.Worker),
@@ -149,7 +149,7 @@ func (k *K3sHaproxyModule) Init() {
 
 	// Calculation config md5 as the checksum.
 	// It will make load balancer reload when config changes.
-	getMd5Sum := &modules.RemoteTask{
+	getMd5Sum := &module.RemoteTask{
 		Name:     "GetChecksumFromConfig",
 		Desc:     "Calculate the MD5 value according to haproxy.cfg",
 		Hosts:    k.Runtime.GetHostsByRole(common.Worker),
@@ -158,7 +158,7 @@ func (k *K3sHaproxyModule) Init() {
 		Parallel: true,
 	}
 
-	haproxyManifestK3s := &modules.RemoteTask{
+	haproxyManifestK3s := &module.RemoteTask{
 		Name:  "GenerateHaproxyManifestK3s",
 		Desc:  "Generate haproxy manifest",
 		Hosts: k.Runtime.GetHostsByRole(common.Worker),
@@ -170,7 +170,7 @@ func (k *K3sHaproxyModule) Init() {
 		Parallel: true,
 	}
 
-	updateK3sConfig := &modules.RemoteTask{
+	updateK3sConfig := &module.RemoteTask{
 		Name:  "UpdateK3sConfig",
 		Desc:  "Update k3s config",
 		Hosts: k.Runtime.GetHostsByRole(common.Worker),
@@ -185,7 +185,7 @@ func (k *K3sHaproxyModule) Init() {
 
 	// UpdateHostsFile is used to update the '/etc/hosts'. Make the 'lb.kubesphere.local' address to set as 127.0.0.1.
 	// All of the 'admin.conf' and '/.kube/config' will connect to 127.0.0.1:6443.
-	updateHostsFile := &modules.RemoteTask{
+	updateHostsFile := &module.RemoteTask{
 		Name:     "UpdateHostsFile",
 		Desc:     "Update /etc/hosts",
 		Hosts:    k.Runtime.GetHostsByRole(common.K8s),
@@ -194,7 +194,7 @@ func (k *K3sHaproxyModule) Init() {
 		Retry:    3,
 	}
 
-	k.Tasks = []modules.Task{
+	k.Tasks = []module.Task{
 		haproxyCfg,
 		getMd5Sum,
 		haproxyManifestK3s,

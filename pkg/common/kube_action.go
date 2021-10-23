@@ -1,14 +1,17 @@
 package common
 
-import "github.com/kubesphere/kubekey/pkg/core/action"
+import (
+	"github.com/kubesphere/kubekey/pkg/core/action"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
+)
 
 type KubeAction struct {
 	action.BaseAction
 	KubeConf *KubeConf
 }
 
-func (k *KubeAction) AutoAssert() {
-	kubeRuntime := k.Runtime.(*KubeRuntime)
+func (k *KubeAction) AutoAssert(runtime connector.Runtime) {
+	kubeRuntime := runtime.(*KubeRuntime)
 	conf := &KubeConf{
 		ClusterHosts: kubeRuntime.ClusterHosts,
 		Cluster:      kubeRuntime.Cluster,

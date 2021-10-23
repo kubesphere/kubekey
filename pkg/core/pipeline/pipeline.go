@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/pkg/errors"
 	"os"
 	"sync"
@@ -26,7 +27,7 @@ var logo = `
 
 type Pipeline struct {
 	Name            string
-	Modules         []modules.Module
+	Modules         []module.Module
 	Runtime         connector.Runtime
 	PipelineCache   *cache.Cache
 	ModuleCachePool sync.Pool
@@ -53,7 +54,14 @@ func (p *Pipeline) Start() error {
 		if m.IsSkip() {
 			continue
 		}
-		if err := p.RunModule(m); err != nil {
+
+		p.InitModule(m)
+		res := p.RunModule(m)
+		err := m.CallPostHook(res)
+		if res.IsFailed() {
+			return errors.Wrapf(res.CombineResult, "Pipeline[%s] exec failed", p.Name)
+		}
+		if err != nil {
 			return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
 		}
 	}
@@ -62,43 +70,51 @@ func (p *Pipeline) Start() error {
 	return nil
 }
 
-func (p *Pipeline) RunModule(m modules.Module) error {
+func (p *Pipeline) InitModule(m module.Module) {
 	moduleCache := p.newModuleCache()
 	defer p.releaseModuleCache(moduleCache)
 	m.Default(p.Runtime, p.PipelineCache, moduleCache)
 	m.AutoAssert()
 	m.Init()
+	m.RegisterHooks()
+}
+
+func (p *Pipeline) RunModule(m module.Module) *ending.ModuleResult {
 	m.Slogan()
 
+	result := ending.NewModuleResult()
 	for {
 		switch m.Is() {
-		case modules.TaskModuleType:
-			if err := m.Run(); err != nil {
-				return err
+		case module.TaskModuleType:
+			m.Run(result)
+			if result.IsFailed() {
+				return result
 			}
-		case modules.GoroutineModuleType:
+
+		case module.GoroutineModuleType:
 			go func() {
-				err := m.Run()
-				if err != nil {
-					// todo: handle err
+				m.Run(result)
+				if result.IsFailed() {
 					os.Exit(1)
 				}
 			}()
 		default:
-			if err := m.Run(); err != nil {
-				return err
+			m.Run(result)
+			if result.IsFailed() {
+				return result
 			}
 		}
 
 		stop, err := m.Until()
 		if err != nil {
-			return err
+			result.LocalErrResult(err)
+			return result
 		}
 		if stop == nil || *stop == true {
 			break
 		}
 	}
-	return nil
+	return result
 }
 
 func (p *Pipeline) newModuleCache() *cache.Cache {

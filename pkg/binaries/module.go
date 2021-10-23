@@ -2,7 +2,7 @@ package binaries
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/modules"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 )
 
 type NodeBinariesModule struct {
@@ -12,13 +12,13 @@ type NodeBinariesModule struct {
 func (n *NodeBinariesModule) Init() {
 	n.Name = "NodeBinariesModule"
 
-	download := &modules.LocalTask{
+	download := &module.LocalTask{
 		Name:   "DownloadBinaries",
 		Desc:   "Download installation binaries",
 		Action: new(Download),
 	}
 
-	n.Tasks = []modules.Task{
+	n.Tasks = []module.Task{
 		download,
 	}
 }
@@ -30,13 +30,13 @@ type K3sNodeBinariesModule struct {
 func (k *K3sNodeBinariesModule) Init() {
 	k.Name = "K3sNodeBinariesModule"
 
-	download := &modules.LocalTask{
+	download := &module.LocalTask{
 		Name:   "DownloadBinaries",
 		Desc:   "Download installation binaries",
 		Action: new(K3sDownload),
 	}
 
-	k.Tasks = []modules.Task{
+	k.Tasks = []module.Task{
 		download,
 	}
 }

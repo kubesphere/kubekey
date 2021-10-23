@@ -1,4 +1,4 @@
-package modules
+package module
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
@@ -11,10 +11,12 @@ type Module interface {
 	Default(runtime connector.Runtime, pipelineCache *cache.Cache, moduleCache *cache.Cache)
 	Init()
 	Is() string
-	Run() error
+	Run(result *ending.ModuleResult)
 	Until() (*bool, error)
 	Slogan()
 	AutoAssert()
+	RegisterHooks()
+	CallPostHook(result *ending.ModuleResult) error
 }
 
 type Task interface {

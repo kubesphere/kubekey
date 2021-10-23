@@ -8,27 +8,25 @@ import (
 type BasePrepare struct {
 	ModuleCache   *cache.Cache
 	PipelineCache *cache.Cache
-	Runtime       connector.Runtime
 }
 
-func (b *BasePrepare) Init(moduleCache *cache.Cache, pipelineCache *cache.Cache, runtime connector.Runtime) {
+func (b *BasePrepare) Init(moduleCache *cache.Cache, pipelineCache *cache.Cache) {
 	b.ModuleCache = moduleCache
 	b.PipelineCache = pipelineCache
-	b.Runtime = runtime
 }
 
 func (b *BasePrepare) PreCheck(runtime connector.Runtime) (bool, error) {
 	return true, nil
 }
 
-func (b *BasePrepare) AutoAssert() {
+func (b *BasePrepare) AutoAssert(runtime connector.Runtime) {
 }
 
 type PrepareCollection []Prepare
 
-func (p *PrepareCollection) Init(cache *cache.Cache, rootCache *cache.Cache, runtimeConf connector.Runtime) {
+func (p *PrepareCollection) Init(cache *cache.Cache, rootCache *cache.Cache) {
 	for _, v := range *p {
-		v.Init(cache, rootCache, runtimeConf)
+		v.Init(cache, rootCache)
 	}
 }
 
@@ -45,8 +43,8 @@ func (p *PrepareCollection) PreCheck(runtime connector.Runtime) (bool, error) {
 	return true, nil
 }
 
-func (p *PrepareCollection) AutoAssert() {
+func (p *PrepareCollection) AutoAssert(runtime connector.Runtime) {
 	for _, v := range *p {
-		v.AutoAssert()
+		v.AutoAssert(runtime)
 	}
 }
