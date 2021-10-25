@@ -3,7 +3,6 @@ package common
 import (
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
-	"github.com/kubesphere/kubekey/pkg/core/hook"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 )
 
@@ -39,11 +38,6 @@ func (k *KubeModule) AutoAssert() {
 	}
 
 	k.KubeConf = conf
-}
-
-func (k *KubeModule) RegisterHooks() {
-	h := new(UpdateCRStatusHook)
-	k.PostHook = []hook.PostHook{h}
 }
 
 type KubeCustomModule struct {

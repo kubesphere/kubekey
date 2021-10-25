@@ -4,6 +4,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/ending"
+	"github.com/kubesphere/kubekey/pkg/core/hook"
 )
 
 type Module interface {
@@ -15,7 +16,7 @@ type Module interface {
 	Until() (*bool, error)
 	Slogan()
 	AutoAssert()
-	RegisterHooks()
+	AppendPostHook(h hook.PostHook)
 	CallPostHook(result *ending.ModuleResult) error
 }
 
