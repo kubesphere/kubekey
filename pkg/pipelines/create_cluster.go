@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"encoding/base64"
 	"fmt"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons"
@@ -21,6 +22,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
+	"io/ioutil"
+	"path/filepath"
 )
 
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
@@ -48,8 +51,8 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&network.DeployNetworkPluginModule{},
 		&addons.AddonsModule{Skip: noNetworkPlugin},
 		&storage.DeployLocalVolumeModule{Skip: noNetworkPlugin || (!runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled)},
-		&kubesphere.DeployModule{Skip: noNetworkPlugin},
-		&kubesphere.CheckResultModule{Skip: noNetworkPlugin},
+		&kubesphere.DeployModule{Skip: noNetworkPlugin || !runtime.Cluster.KubeSphere.Enabled},
+		&kubesphere.CheckResultModule{Skip: noNetworkPlugin || !runtime.Cluster.KubeSphere.Enabled},
 	}
 
 	p := pipeline.Pipeline{
@@ -60,6 +63,35 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	if err := p.Start(); err != nil {
 		return err
 	}
+
+	if runtime.Cluster.KubeSphere.Enabled && !noNetworkPlugin {
+		fmt.Print(`Installation is complete.
+
+Please check the result using the command:
+
+       kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+
+`)
+	} else {
+		if runtime.Arg.InCluster {
+			if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+				return err
+			}
+			kkConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.ObjName))
+			if config, err := ioutil.ReadFile(kkConfigPath); err != nil {
+				return err
+			} else {
+				runtime.Kubeconfig = base64.StdEncoding.EncodeToString(config)
+				if err := kubekeycontroller.UpdateKubeSphereCluster(runtime); err != nil {
+					return err
+				}
+				if err := kubekeycontroller.SaveKubeConfig(runtime); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -83,8 +115,8 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&network.DeployNetworkPluginModule{},
 		&addons.AddonsModule{Skip: noNetworkPlugin},
 		&storage.DeployLocalVolumeModule{Skip: noNetworkPlugin || (!runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled)},
-		&kubesphere.DeployModule{Skip: noNetworkPlugin},
-		&kubesphere.CheckResultModule{Skip: noNetworkPlugin},
+		&kubesphere.DeployModule{Skip: noNetworkPlugin || !runtime.Cluster.KubeSphere.Enabled},
+		&kubesphere.CheckResultModule{Skip: noNetworkPlugin || !runtime.Cluster.KubeSphere.Enabled},
 	}
 
 	p := pipeline.Pipeline{
@@ -95,6 +127,35 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	if err := p.Start(); err != nil {
 		return err
 	}
+
+	if runtime.Cluster.KubeSphere.Enabled && !noNetworkPlugin {
+		fmt.Print(`Installation is complete.
+
+Please check the result using the command:
+
+       kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+
+`)
+	} else {
+		if runtime.Arg.InCluster {
+			if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+				return err
+			}
+			kkConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.ObjName))
+			if config, err := ioutil.ReadFile(kkConfigPath); err != nil {
+				return err
+			} else {
+				runtime.Kubeconfig = base64.StdEncoding.EncodeToString(config)
+				if err := kubekeycontroller.UpdateKubeSphereCluster(runtime); err != nil {
+					return err
+				}
+				if err := kubekeycontroller.SaveKubeConfig(runtime); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

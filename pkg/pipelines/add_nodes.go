@@ -43,8 +43,23 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		Runtime: runtime,
 	}
 	if err := p.Start(); err != nil {
+		if runtime.Arg.InCluster {
+			if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Failed); err != nil {
+				return err
+			}
+		}
 		return err
 	}
+
+	if runtime.Arg.InCluster {
+		if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Success); err != nil {
+			return err
+		}
+		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -69,8 +84,23 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		Runtime: runtime,
 	}
 	if err := p.Start(); err != nil {
+		if runtime.Arg.InCluster {
+			if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Failed); err != nil {
+				return err
+			}
+		}
 		return err
 	}
+
+	if runtime.Arg.InCluster {
+		if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Success); err != nil {
+			return err
+		}
+		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -99,6 +129,12 @@ func AddNodes(args common.Argument, downloadCmd string) error {
 			return err
 		}
 		runtime.ClientSet = c
+	}
+
+	if runtime.Arg.InCluster {
+		if err := kubekeycontroller.CreateNodeForCluster(runtime); err != nil {
+			return err
+		}
 	}
 
 	switch runtime.Cluster.Kubernetes.Type {

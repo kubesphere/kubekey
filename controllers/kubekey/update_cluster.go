@@ -23,7 +23,7 @@ import (
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"io/ioutil"
 	"path/filepath"
 	"text/template"
@@ -131,11 +131,11 @@ func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha2.Cluster) e
 }
 
 // UpdateKubeSphereCluster is used to update the cluster object of KubeSphere's multicluster.
-func UpdateKubeSphereCluster(kubeConf *common.KubeConf) error {
+func UpdateKubeSphereCluster(runtime *common.KubeRuntime) error {
 	if hostClusterFlag, config, err := CheckClusterRole(); err != nil {
 		return err
 	} else if hostClusterFlag {
-		obj, err := generateClusterKubeSphere(kubeConf.ClusterName, kubeConf.Kubeconfig, true, true)
+		obj, err := generateClusterKubeSphere(runtime.ClusterName, runtime.Kubeconfig, true, true)
 		if err != nil {
 			return err
 		}
@@ -172,25 +172,35 @@ func getCluster(name string) (*kubekeyapiv1alpha2.Cluster, error) {
 }
 
 // UpdateClusterConditions is used for updating cluster installation process information or adding nodes.
-func UpdateClusterConditions(kubeConf *common.KubeConf, step string, startTime, endTime metav1.Time, status bool, index int) error {
+func UpdateClusterConditions(kubeConf *common.KubeConf, step string, result *ending.ModuleResult) error {
+	m := make(map[string]kubekeyapiv1alpha2.Event)
+	allStatus := true
+	for k, v := range result.HostResults {
+		if v.GetStatus() == ending.FAILED {
+			allStatus = false
+		}
+		e := kubekeyapiv1alpha2.Event{
+			Step:    step,
+			Status:  v.GetStatus().String(),
+			Message: v.GetErr().Error(),
+		}
+		m[k] = e
+	}
 	condition := kubekeyapiv1alpha2.Condition{
 		Step:      step,
-		StartTime: startTime,
-		EndTime:   endTime,
-		Status:    status,
+		StartTime: metav1.Time{Time: result.StartTime},
+		EndTime:   metav1.Time{Time: result.EndTime},
+		Status:    allStatus,
+		Events:    m,
 	}
-	if len(kubeConf.Conditions) < index {
-		kubeConf.Conditions = append(kubeConf.Conditions, condition)
-	} else if len(kubeConf.Conditions) == index {
-		kubeConf.Conditions[index-1] = condition
-	}
+	//kubeConf.Conditions = append(kubeConf.Conditions, condition)
 
 	cluster, err := getCluster(kubeConf.ClusterName)
 	if err != nil {
 		return err
 	}
 
-	cluster.Status.Conditions = kubeConf.Conditions
+	cluster.Status.Conditions = append(cluster.Status.Conditions, condition)
 
 	if _, err := kubeConf.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
@@ -199,17 +209,17 @@ func UpdateClusterConditions(kubeConf *common.KubeConf, step string, startTime, 
 }
 
 // UpdateStatus is used to update status for a new or expanded cluster.
-func UpdateStatus(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) error {
-	cluster, err := getCluster(kubeConf.ClusterName)
+func UpdateStatus(runtime *common.KubeRuntime) error {
+	cluster, err := getCluster(runtime.ClusterName)
 	if err != nil {
 		return err
 	}
-	cluster.Status.Version = kubeConf.Cluster.Kubernetes.Version
+	cluster.Status.Version = runtime.Cluster.Kubernetes.Version
 	cluster.Status.NodesCount = len(runtime.GetAllHosts())
 	cluster.Status.MasterCount = len(runtime.GetHostsByRole(common.Master))
 	cluster.Status.WorkerCount = len(runtime.GetHostsByRole(common.Worker))
 	cluster.Status.EtcdCount = len(runtime.GetHostsByRole(common.ETCD))
-	cluster.Status.NetworkPlugin = kubeConf.Cluster.Network.Plugin
+	cluster.Status.NetworkPlugin = runtime.Cluster.Network.Plugin
 	cluster.Status.Nodes = []kubekeyapiv1alpha2.NodeStatus{}
 
 	for _, node := range runtime.GetAllHosts() {
@@ -220,13 +230,13 @@ func UpdateStatus(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) er
 		})
 	}
 
-	if _, err := kubeConf.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func getClusterClientSet(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) (*kube.Clientset, error) {
+func getClusterClientSet(runtime *common.KubeRuntime) (*kube.Clientset, error) {
 	// creates the in-cluster config
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -238,7 +248,7 @@ func getClusterClientSet(runtime connector.ModuleRuntime, kubeConf *common.KubeC
 		return nil, err
 	}
 
-	obj, err := clientset.RESTClient().Get().AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").Name(kubeConf.ClusterName).Do(context.TODO()).Raw()
+	obj, err := clientset.RESTClient().Get().AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").Name(runtime.ClusterName).Do(context.TODO()).Raw()
 	if err != nil && !kubeErr.IsNotFound(err) {
 		return nil, err
 	} else if kubeErr.IsNotFound(err) {
@@ -253,7 +263,7 @@ func getClusterClientSet(runtime connector.ModuleRuntime, kubeConf *common.KubeC
 
 	kubeconfigStr, _ := base64.StdEncoding.DecodeString(connection["kubeconfig"].(string))
 
-	kubeConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", kubeConf.ClusterName))
+	kubeConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.ClusterName))
 	if err := ioutil.WriteFile(kubeConfigPath, kubeconfigStr, 0644); err != nil {
 		return nil, err
 	}
@@ -284,8 +294,8 @@ func nodeForCluster(name string, labels map[string]string) *corev1.Node {
 }
 
 // CreateNodeForCluster is used to create new nodes for the cluster to be add nodes.
-func CreateNodeForCluster(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) error {
-	clientsetForCluster, err := getClusterClientSet(runtime, kubeConf)
+func CreateNodeForCluster(runtime *common.KubeRuntime) error {
+	clientsetForCluster, err := getClusterClientSet(runtime)
 	if err != nil && !kubeErr.IsNotFound(err) {
 		return err
 	} else if kubeErr.IsNotFound(err) {
@@ -318,8 +328,8 @@ func CreateNodeForCluster(runtime connector.ModuleRuntime, kubeConf *common.Kube
 }
 
 // PatchNodeImportStatus is used to update new node's status.
-func PatchNodeImportStatus(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, status string) error {
-	clientsetForCluster, err := getClusterClientSet(runtime, kubeConf)
+func PatchNodeImportStatus(runtime *common.KubeRuntime, status string) error {
+	clientsetForCluster, err := getClusterClientSet(runtime)
 	if err != nil && !kubeErr.IsNotFound(err) {
 		return err
 	} else if kubeErr.IsNotFound(err) {
@@ -342,7 +352,7 @@ func PatchNodeImportStatus(runtime connector.ModuleRuntime, kubeConf *common.Kub
 }
 
 // SaveKubeConfig is used to save the kubeconfig for the new cluster.
-func SaveKubeConfig(kubeConf *common.KubeConf) error {
+func SaveKubeConfig(runtime *common.KubeRuntime) error {
 	// creates the in-cluster config
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -355,28 +365,28 @@ func SaveKubeConfig(kubeConf *common.KubeConf) error {
 	}
 	cmClientset := clientset.CoreV1().ConfigMaps("kubekey-system")
 
-	if _, err := cmClientset.Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", kubeConf.ClusterName), metav1.GetOptions{}); err != nil {
+	if _, err := cmClientset.Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", runtime.ClusterName), metav1.GetOptions{}); err != nil {
 		if kubeErr.IsNotFound(err) {
-			cmClientset.Create(context.TODO(), configMapForKubeconfig(kubeConf), metav1.CreateOptions{})
+			cmClientset.Create(context.TODO(), configMapForKubeconfig(runtime), metav1.CreateOptions{})
 		} else {
 			return err
 		}
 	} else {
-		kubeconfigStr := fmt.Sprintf(`{"kubeconfig": "%s"}`, kubeConf.Kubeconfig)
-		cmClientset.Patch(context.TODO(), kubeConf.ClusterName, types.ApplyPatchType, []byte(kubeconfigStr), metav1.PatchOptions{})
+		kubeconfigStr := fmt.Sprintf(`{"kubeconfig": "%s"}`, runtime.Kubeconfig)
+		cmClientset.Patch(context.TODO(), runtime.ClusterName, types.ApplyPatchType, []byte(kubeconfigStr), metav1.PatchOptions{})
 	}
 	// clientset.CoreV1().ConfigMaps("kubekey-system").Create(context.TODO(), kubeconfigConfigMap, metav1.CreateOptions{}
 	return nil
 }
 
 // configMapForKubeconfig is used to generate configmap scheme for cluster's kubeconfig.
-func configMapForKubeconfig(kubeConf *common.KubeConf) *corev1.ConfigMap {
+func configMapForKubeconfig(runtime *common.KubeRuntime) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-kubeconfig", kubeConf.ClusterName),
+			Name: fmt.Sprintf("%s-kubeconfig", runtime.ClusterName),
 		},
 		Data: map[string]string{
-			"kubeconfig": kubeConf.Kubeconfig,
+			"kubeconfig": runtime.Kubeconfig,
 		},
 	}
 
