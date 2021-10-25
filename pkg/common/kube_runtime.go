@@ -25,12 +25,12 @@ type Argument struct {
 	KsEnable           bool
 	KsVersion          string
 	Debug              bool
-	SkipCheck          bool
 	SkipPullImages     bool
 	AddImagesRepo      bool
 	DeployLocalStorage bool
 	SourcesDir         string
 	DownloadCommand    func(path, url string) string
+	SkipConfirmCheck   bool
 	InCluster          bool
 	ContainerManager   string
 	FromCluster        bool
@@ -86,6 +86,7 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 	r := &KubeRuntime{
 		ClusterHosts: generateHosts(hostGroups, defaultCluster),
 		Cluster:      defaultCluster,
+		ClusterName:  cluster.Name,
 		//ClientSet:    clientset,
 		Arg: arg,
 	}

@@ -39,7 +39,7 @@ var upgradeCmd = &cobra.Command{
 			KubernetesVersion:  opt.Kubernetes,
 			KsEnable:           opt.Kubesphere,
 			KsVersion:          ksVersion,
-			SkipCheck:          opt.SkipCheck,
+			SkipConfirmCheck:   opt.SkipConfirmCheck,
 			SkipPullImages:     opt.SkipPullImages,
 			InCluster:          opt.InCluster,
 			DeployLocalStorage: opt.LocalStorage,

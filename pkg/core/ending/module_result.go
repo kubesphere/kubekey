@@ -15,7 +15,7 @@ type ModuleResult struct {
 }
 
 func NewModuleResult() *ModuleResult {
-	return &ModuleResult{HostResults: make(map[string]Interface), Status: NULL}
+	return &ModuleResult{HostResults: make(map[string]Interface), StartTime: time.Now(), Status: NULL}
 }
 
 func (m *ModuleResult) IsFailed() bool {

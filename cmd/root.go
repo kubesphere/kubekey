@@ -32,7 +32,6 @@ type Options struct {
 	Kubernetes       string
 	Kubesphere       bool
 	LocalStorage     bool
-	SkipCheck        bool
 	SkipPullImages   bool
 	KsVersion        string
 	Registry         string
@@ -41,6 +40,7 @@ type Options struct {
 	ContainerManager string
 	InCluster        bool
 	DownloadCmd      string
+	SkipConfirmCheck bool
 }
 
 var (
@@ -74,7 +74,7 @@ func init() {
 	// will be global for your application.
 	rootCmd.PersistentFlags().BoolVar(&opt.InCluster, "in-cluster", false, "Running inside the cluster")
 	rootCmd.PersistentFlags().BoolVar(&opt.Verbose, "debug", true, "Print detailed information")
-
+	rootCmd.PersistentFlags().BoolVarP(&opt.SkipConfirmCheck, "yes", "y", false, "Skip confirm check")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 }
