@@ -1,7 +1,8 @@
-package common
+package hooks
 
 import (
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/hook"
 )
 
@@ -10,13 +11,13 @@ type UpdateCRStatusHook struct {
 }
 
 func (u *UpdateCRStatusHook) Try() error {
-	kubeRuntime := u.Runtime.(*KubeRuntime)
+	kubeRuntime := u.Runtime.(*common.KubeRuntime)
 
 	if !kubeRuntime.Arg.InCluster {
 		return nil
 	}
 
-	conf := &KubeConf{
+	conf := &common.KubeConf{
 		ClusterHosts: kubeRuntime.ClusterHosts,
 		Cluster:      kubeRuntime.Cluster,
 		Kubeconfig:   kubeRuntime.Kubeconfig,

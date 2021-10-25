@@ -42,23 +42,3 @@ func (b *BaseTaskModule) Run(result *ending.ModuleResult) {
 	}
 	result.NormalResult()
 }
-
-func (b *BaseTaskModule) LoopRun() *ending.ModuleResult {
-	result := ending.NewModuleResult()
-	for {
-		b.Run(result)
-		if result.IsFailed() {
-			break
-		}
-
-		stop, err := b.Until()
-		if err != nil {
-			result.LocalErrResult(err)
-			break
-		}
-		if stop == nil || *stop == true {
-			break
-		}
-	}
-	return result
-}

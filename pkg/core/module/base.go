@@ -52,8 +52,8 @@ func (b *BaseModule) Slogan() {
 func (b *BaseModule) AutoAssert() {
 }
 
-func (b *BaseModule) RegisterHooks() {
-
+func (b *BaseModule) AppendPostHook(h hook.PostHook) {
+	b.PostHook = append(b.PostHook, h)
 }
 
 func (b *BaseModule) CallPostHook(result *ending.ModuleResult) error {
