@@ -69,7 +69,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	docker.GetCmd = kubeConf.Arg.DownloadCommand(docker.Path, docker.Url)
 	crictl.GetCmd = kubeConf.Arg.DownloadCommand(crictl.Path, crictl.Url)
 
-	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd, docker, crictl}
+	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, docker, crictl, etcd}
 	binariesMap := make(map[string]files.KubeBinary)
 	for _, binary := range binaries {
 		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)

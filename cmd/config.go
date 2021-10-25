@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	common2 "github.com/kubesphere/kubekey/pkg/common"
-	config2 "github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +33,7 @@ var configCmd = &cobra.Command{
 			ksVersion = ""
 		}
 
-		arg := common2.Argument{
+		arg := common.Argument{
 			FilePath:          opt.ClusterCfgFile,
 			KubernetesVersion: opt.Kubernetes,
 			KsEnable:          opt.Kubesphere,
@@ -42,7 +42,7 @@ var configCmd = &cobra.Command{
 			KubeConfig:        opt.Kubeconfig,
 		}
 
-		err := config2.GenerateKubeKeyConfig(arg, opt.Name)
+		err := config.GenerateKubeKeyConfig(arg, opt.Name)
 		if err != nil {
 			return err
 		}

@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	common2 "github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
 	"github.com/spf13/cobra"
 )
@@ -26,11 +26,11 @@ var addNodesCmd = &cobra.Command{
 	Use:   "nodes",
 	Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		arg := common2.Argument{
+		arg := common.Argument{
 			FilePath:         opt.ClusterCfgFile,
 			KsEnable:         false,
 			Debug:            opt.Verbose,
-			SkipCheck:        opt.SkipCheck,
+			SkipConfirmCheck: opt.SkipConfirmCheck,
 			SkipPullImages:   opt.SkipPullImages,
 			InCluster:        opt.InCluster,
 			ContainerManager: opt.ContainerManager,
@@ -42,7 +42,6 @@ var addNodesCmd = &cobra.Command{
 func init() {
 	addCmd.AddCommand(addNodesCmd)
 	addNodesCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
-	addNodesCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	addNodesCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	addNodesCmd.Flags().StringVarP(&opt.ContainerManager, "container-manager", "", "docker", "Container manager: docker, crio, containerd and isula.")
 	addNodesCmd.Flags().StringVarP(&opt.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",

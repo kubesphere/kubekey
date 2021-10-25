@@ -208,7 +208,7 @@ func DoServerSideApply(ctx context.Context, cfg *rest.Config, objectYAML []byte)
 func DoPatchCluster(client dynamic.Interface, name string, data []byte) error {
 	var gvr = schema.GroupVersionResource{
 		Group:    "kubekey.kubesphere.io",
-		Version:  "v1alpha1",
+		Version:  "v1alpha2",
 		Resource: "clusters",
 	}
 	cfg, err := rest.InClusterConfig()

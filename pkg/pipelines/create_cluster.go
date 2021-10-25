@@ -33,7 +33,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 
 	m := []module.Module{
 		&precheck.NodePreCheckModule{},
-		&confirm.InstallConfirmModule{},
+		&confirm.InstallConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&kubernetes.KubernetesStatusModule{},

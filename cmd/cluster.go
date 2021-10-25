@@ -17,8 +17,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
-	common2 "github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
@@ -37,16 +37,16 @@ var clusterCmd = &cobra.Command{
 			ksVersion = ""
 		}
 
-		arg := common2.Argument{
+		arg := common.Argument{
 			FilePath:           opt.ClusterCfgFile,
 			KubernetesVersion:  opt.Kubernetes,
 			KsEnable:           opt.Kubesphere,
 			KsVersion:          ksVersion,
-			SkipCheck:          opt.SkipCheck,
 			SkipPullImages:     opt.SkipPullImages,
 			InCluster:          opt.InCluster,
 			DeployLocalStorage: opt.LocalStorage,
 			Debug:              opt.Verbose,
+			SkipConfirmCheck:   opt.SkipConfirmCheck,
 			ContainerManager:   opt.ContainerManager,
 		}
 
@@ -58,10 +58,9 @@ func init() {
 	createCmd.AddCommand(clusterCmd)
 
 	clusterCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
-	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", v1alpha1.DefaultKubeVersion, "Specify a supported version of kubernetes")
+	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", v1alpha2.DefaultKubeVersion, "Specify a supported version of kubernetes")
 	clusterCmd.Flags().BoolVarP(&opt.LocalStorage, "with-local-storage", "", false, "Deploy a local PV provisioner")
 	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.1.0)")
-	clusterCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	clusterCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	clusterCmd.Flags().StringVarP(&opt.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")
 	clusterCmd.Flags().StringVarP(&opt.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",

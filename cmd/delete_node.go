@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	common2 "github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -18,7 +18,7 @@ var deleteNodeCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		arg := common2.Argument{
+		arg := common.Argument{
 			FilePath: opt.ClusterCfgFile,
 			Debug:    opt.Verbose,
 			NodeName: strings.Join(args, ""),

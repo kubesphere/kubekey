@@ -24,6 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
+// SchemeGroupVersion is group version used to register these objects
+var SchemeGroupVersion = GroupVersion
+
 var (
 	// GroupVersion is group version used to register these objects
 	GroupVersion = schema.GroupVersion{Group: "kubekey.kubesphere.io", Version: "v1alpha2"}
