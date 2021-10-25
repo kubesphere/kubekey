@@ -9,9 +9,11 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
+	"github.com/kubesphere/kubekey/pkg/core/hook"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/etcd"
+	"github.com/kubesphere/kubekey/pkg/hooks"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/k3s"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
@@ -38,9 +40,10 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "AddNodesPipeline",
-		Modules: m,
-		Runtime: runtime,
+		Name:            "AddNodesPipeline",
+		Modules:         m,
+		Runtime:         runtime,
+		ModulePostHooks: []hook.PostHook{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
 		if runtime.Arg.InCluster {
@@ -79,9 +82,10 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "AddNodesPipeline",
-		Modules: m,
-		Runtime: runtime,
+		Name:            "AddNodesPipeline",
+		Modules:         m,
+		Runtime:         runtime,
+		ModulePostHooks: []hook.PostHook{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
 		if runtime.Arg.InCluster {

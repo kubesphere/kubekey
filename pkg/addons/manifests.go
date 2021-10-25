@@ -231,7 +231,7 @@ func DoPatchCluster(client dynamic.Interface, name string, data []byte) error {
 func GetCluster(name string) (*unstructured.Unstructured, error) {
 	var gvr = schema.GroupVersionResource{
 		Group:    "cluster.kubesphere.io",
-		Version:  "v1alpha1",
+		Version:  "v1alpha2",
 		Resource: "clusters",
 	}
 	cfg, err := rest.InClusterConfig()

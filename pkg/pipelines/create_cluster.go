@@ -11,9 +11,11 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
+	"github.com/kubesphere/kubekey/pkg/core/hook"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/etcd"
+	"github.com/kubesphere/kubekey/pkg/hooks"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/k3s"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
@@ -56,9 +58,10 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "CreateClusterPipeline",
-		Modules: m,
-		Runtime: runtime,
+		Name:            "CreateClusterPipeline",
+		Modules:         m,
+		Runtime:         runtime,
+		ModulePostHooks: []hook.PostHook{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
 		return err
@@ -120,9 +123,10 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "K3sCreateClusterPipeline",
-		Modules: m,
-		Runtime: runtime,
+		Name:            "K3sCreateClusterPipeline",
+		Modules:         m,
+		Runtime:         runtime,
+		ModulePostHooks: []hook.PostHook{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
 		return err
