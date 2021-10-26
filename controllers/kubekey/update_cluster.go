@@ -54,7 +54,7 @@ const (
 var (
 	newNodes          []string
 	clusterKubeSphere = template.Must(template.New("cluster.kubesphere.io").Parse(
-		dedent.Dedent(`apiVersion: cluster.kubesphere.io/v1alpha1
+		dedent.Dedent(`apiVersion: cluster.kubesphere.io/v1alpha2
 kind: Cluster
 metadata:
   finalizers:
@@ -97,7 +97,7 @@ func CheckClusterRole() (bool, *rest.Config, error) {
 	}
 	var hostClusterFlag bool
 	if err := clientset.RESTClient().Get().
-		AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").
+		AbsPath("/apis/cluster.kubesphere.io/v1alpha2/clusters").
 		Name("host").
 		Do(context.TODO()).Error(); err == nil {
 		hostClusterFlag = true
@@ -172,7 +172,7 @@ func getCluster(name string) (*kubekeyapiv1alpha2.Cluster, error) {
 }
 
 // UpdateClusterConditions is used for updating cluster installation process information or adding nodes.
-func UpdateClusterConditions(kubeConf *common.KubeConf, step string, result *ending.ModuleResult) error {
+func UpdateClusterConditions(runtime *common.KubeRuntime, step string, result *ending.ModuleResult) error {
 	m := make(map[string]kubekeyapiv1alpha2.Event)
 	allStatus := true
 	for k, v := range result.HostResults {
@@ -180,9 +180,11 @@ func UpdateClusterConditions(kubeConf *common.KubeConf, step string, result *end
 			allStatus = false
 		}
 		e := kubekeyapiv1alpha2.Event{
-			Step:    step,
-			Status:  v.GetStatus().String(),
-			Message: v.GetErr().Error(),
+			Step:   step,
+			Status: v.GetStatus().String(),
+		}
+		if v.GetErr() != nil {
+			e.Message = v.GetErr().Error()
 		}
 		m[k] = e
 	}
@@ -195,14 +197,21 @@ func UpdateClusterConditions(kubeConf *common.KubeConf, step string, result *end
 	}
 	//kubeConf.Conditions = append(kubeConf.Conditions, condition)
 
-	cluster, err := getCluster(kubeConf.ClusterName)
+	cluster, err := getCluster(runtime.ClusterName)
 	if err != nil {
 		return err
 	}
 
-	cluster.Status.Conditions = append(cluster.Status.Conditions, condition)
+	length := len(cluster.Status.Conditions)
+	if length <= 0 {
+		cluster.Status.Conditions = append(cluster.Status.Conditions, condition)
+	} else if cluster.Status.Conditions[length-1].Step == condition.Step {
+		cluster.Status.Conditions[length-1] = condition
+	} else {
+		cluster.Status.Conditions = append(cluster.Status.Conditions, condition)
+	}
 
-	if _, err := kubeConf.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 	return nil

@@ -342,6 +342,8 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 	}
 
 	imageRepoList := strings.Split(image, "/")
+	var kubekey int64
+	kubekey = 1000
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{},
@@ -383,6 +385,10 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 							},
 						},
 					},
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsUser: &kubekey,
+						FSGroup:   &kubekey,
+					},
 					InitContainers: []corev1.Container{
 						{
 							Name:  "kube-binaries",
@@ -403,7 +409,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 					Containers: []corev1.Container{{
 						Name:            "runner",
 						Image:           image,
-						ImagePullPolicy: "Always",
+						ImagePullPolicy: "IfNotPresent",
 						Command:         []string{"/home/kubekey/kk"},
 						Args:            args,
 						VolumeMounts: []corev1.VolumeMount{
@@ -418,7 +424,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 						},
 					}},
 					NodeName:           nodeName,
-					ServiceAccountName: "default",
+					ServiceAccountName: "kubekey-controller-manager",
 					RestartPolicy:      "Never",
 				},
 			},
@@ -566,7 +572,7 @@ func sendHostsAction(action int, hosts []kubekeyv1alpha2.HostCfg, log logr.Logge
 		}
 
 		fmt.Println(string(hostsInfoBytes))
-		req, err := http.NewRequest("POST", "http://localhost:8090/api/v1alpha1/hosts", bytes.NewReader(hostsInfoBytes))
+		req, err := http.NewRequest("POST", "http://localhost:8090/api/v1alpha2/hosts", bytes.NewReader(hostsInfoBytes))
 		if err != nil {
 			log.Error(err, "Failed to create request")
 		}

@@ -17,15 +17,7 @@ func (u *UpdateCRStatusHook) Try() error {
 		return nil
 	}
 
-	conf := &common.KubeConf{
-		ClusterHosts: kubeRuntime.ClusterHosts,
-		Cluster:      kubeRuntime.Cluster,
-		Kubeconfig:   kubeRuntime.Kubeconfig,
-		Conditions:   kubeRuntime.Conditions,
-		ClientSet:    kubeRuntime.ClientSet,
-		Arg:          kubeRuntime.Arg,
-	}
-	if err := kubekeycontroller.UpdateClusterConditions(conf, u.Desc, u.Result); err != nil {
+	if err := kubekeycontroller.UpdateClusterConditions(kubeRuntime, u.Desc, u.Result); err != nil {
 		return err
 	}
 	return nil
