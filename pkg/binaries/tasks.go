@@ -2,7 +2,6 @@ package binaries
 
 import (
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -59,7 +58,7 @@ func (k *K3sDownload) Execute(runtime connector.Runtime) error {
 
 	var kubeVersion string
 	if cfg.Kubernetes.Version == "" {
-		kubeVersion = kubekeyapiv1alpha1.DefaultKubeVersion
+		kubeVersion = kubekeyapiv1alpha2.DefaultKubeVersion
 	} else {
 		kubeVersion = cfg.Kubernetes.Version
 	}

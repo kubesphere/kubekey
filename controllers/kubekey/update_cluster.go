@@ -258,10 +258,8 @@ func getClusterClientSet(runtime *common.KubeRuntime) (*kube.Clientset, error) {
 	}
 
 	obj, err := clientset.RESTClient().Get().AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").Name(runtime.ClusterName).Do(context.TODO()).Raw()
-	if err != nil && !kubeErr.IsNotFound(err) {
+	if err != nil {
 		return nil, err
-	} else if kubeErr.IsNotFound(err) {
-		return nil, nil
 	}
 
 	result := make(map[string]interface{})
@@ -305,11 +303,13 @@ func nodeForCluster(name string, labels map[string]string) *corev1.Node {
 // CreateNodeForCluster is used to create new nodes for the cluster to be add nodes.
 func CreateNodeForCluster(runtime *common.KubeRuntime) error {
 	clientsetForCluster, err := getClusterClientSet(runtime)
-	if err != nil && !kubeErr.IsNotFound(err) {
+	if err != nil {
+		if kubeErr.IsNotFound(err) {
+			return nil
+		}
 		return err
-	} else if kubeErr.IsNotFound(err) {
-		return nil
 	}
+
 	nodeInfo := make(map[string]string)
 	nodeList, _ := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	for _, node := range nodeList.Items {
@@ -339,10 +339,11 @@ func CreateNodeForCluster(runtime *common.KubeRuntime) error {
 // PatchNodeImportStatus is used to update new node's status.
 func PatchNodeImportStatus(runtime *common.KubeRuntime, status string) error {
 	clientsetForCluster, err := getClusterClientSet(runtime)
-	if err != nil && !kubeErr.IsNotFound(err) {
+	if err != nil {
+		if kubeErr.IsNotFound(err) {
+			return nil
+		}
 		return err
-	} else if kubeErr.IsNotFound(err) {
-		return nil
 	}
 
 	patchStr := fmt.Sprintf(`{"metadata": {"labels": {"kubekey.kubesphere.io/import-status": "%s"}}}`, status)

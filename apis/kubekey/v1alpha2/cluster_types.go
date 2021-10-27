@@ -288,7 +288,7 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 		logger.Log.Fatal(errors.New("The number of etcd cannot be 0"))
 	}
 
-	if len(masterGroup) != len(cfg.Hosts) {
+	if len(masterGroup) != len(clusterHostsGroups.Master) {
 		return nil, errors.New("Incorrect nodeName under roleGroups/master in the configuration file")
 	}
 	if len(etcdGroup) != len(clusterHostsGroups.Etcd) {
