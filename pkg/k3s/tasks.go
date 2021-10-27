@@ -2,7 +2,7 @@ package k3s
 
 import (
 	"fmt"
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -215,13 +215,13 @@ func (g *GenerateK3sServiceEnv) Execute(runtime connector.Runtime) error {
 	}
 	cluster := clusterStatus.(*K3sStatus)
 
-	var externalEtcd kubekeyapiv1alpha1.ExternalEtcd
+	var externalEtcd kubekeyapiv1alpha2.ExternalEtcd
 	var endpointsList []string
 	var caFile, certFile, keyFile string
 	var token string
 
 	for _, node := range runtime.GetHostsByRole(common.ETCD) {
-		endpoint := fmt.Sprintf("https://%s:%s", node.GetInternalAddress(), kubekeyapiv1alpha1.DefaultEtcdPort)
+		endpoint := fmt.Sprintf("https://%s:%s", node.GetInternalAddress(), kubekeyapiv1alpha2.DefaultEtcdPort)
 		endpointsList = append(endpointsList, endpoint)
 	}
 	externalEtcd.Endpoints = endpointsList
