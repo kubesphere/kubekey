@@ -20,6 +20,7 @@ func (n *NodePreCheckModule) IsSkip() bool {
 
 func (n *NodePreCheckModule) Init() {
 	n.Name = "NodePreCheckModule"
+	n.Desc = "Do pre-check on cluster nodes"
 
 	preCheck := &module.RemoteTask{
 		Name:  "NodePreCheck",
@@ -48,6 +49,7 @@ type ClusterPreCheckModule struct {
 
 func (c *ClusterPreCheckModule) Init() {
 	c.Name = "ClusterPreCheckModule"
+	c.Desc = "Do pre-check on cluster"
 
 	getKubeConfig := &module.RemoteTask{
 		Name:     "GetKubeConfig",

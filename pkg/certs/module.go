@@ -13,6 +13,7 @@ type CheckCertsModule struct {
 
 func (c *CheckCertsModule) Init() {
 	c.Name = "CheckCertsModule"
+	c.Desc = "Check cluster certs"
 
 	check := &module.RemoteTask{
 		Name:     "CheckClusterCerts",
@@ -52,6 +53,7 @@ type RenewCertsModule struct {
 
 func (r *RenewCertsModule) Init() {
 	r.Name = "RenewCertsModule"
+	r.Desc = "Renew control-plane certs"
 
 	renew := &module.RemoteTask{
 		Name:     "RenewCerts",

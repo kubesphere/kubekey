@@ -5,7 +5,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/ending"
-	"github.com/kubesphere/kubekey/pkg/core/hook"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/pkg/errors"
@@ -32,7 +31,7 @@ type Pipeline struct {
 	Runtime         connector.Runtime
 	PipelineCache   *cache.Cache
 	ModuleCachePool sync.Pool
-	ModulePostHooks []hook.PostHook
+	ModulePostHooks []module.PostHookInterface
 }
 
 func (p *Pipeline) Init() error {

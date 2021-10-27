@@ -15,7 +15,7 @@ type BaseModule struct {
 	ModuleCache   *cache.Cache
 	PipelineCache *cache.Cache
 	Runtime       connector.ModuleRuntime
-	PostHook      []hook.PostHook
+	PostHook      []PostHookInterface
 }
 
 func (b *BaseModule) IsSkip() bool {
@@ -52,14 +52,14 @@ func (b *BaseModule) Slogan() {
 func (b *BaseModule) AutoAssert() {
 }
 
-func (b *BaseModule) AppendPostHook(h hook.PostHook) {
+func (b *BaseModule) AppendPostHook(h PostHookInterface) {
 	b.PostHook = append(b.PostHook, h)
 }
 
 func (b *BaseModule) CallPostHook(result *ending.ModuleResult) error {
 	for i := range b.PostHook {
 		h := b.PostHook[i]
-		h.Init(b.Runtime.(connector.Runtime), b.Name, result)
+		h.Init(b, result)
 		if err := hook.Call(h); err != nil {
 			return errors.Wrapf(err, "Module[%s] call post hook failed", b.Name)
 		}

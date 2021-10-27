@@ -13,12 +13,13 @@ import (
 	"path/filepath"
 )
 
-type KubernetesStatusModule struct {
+type StatusModule struct {
 	common.KubeModule
 }
 
-func (k *KubernetesStatusModule) Init() {
+func (k *StatusModule) Init() {
 	k.Name = "KubernetesStatusModule"
+	k.Desc = "Get kubernetes cluster status"
 
 	cluster := NewKubernetesStatus()
 	k.PipelineCache.GetOrSet(common.ClusterStatus, cluster)
@@ -43,6 +44,7 @@ type InstallKubeBinariesModule struct {
 
 func (i *InstallKubeBinariesModule) Init() {
 	i.Name = "InstallKubeBinariesModule"
+	i.Desc = "Install kubernetes cluster"
 
 	syncBinary := &module.RemoteTask{
 		Name:     "SyncKubeBinary",
@@ -112,6 +114,7 @@ type InitKubernetesModule struct {
 
 func (i *InitKubernetesModule) Init() {
 	i.Name = "InitKubernetesModule"
+	i.Desc = "Init kubernetes cluster"
 
 	generateKubeadmConfig := &module.RemoteTask{
 		Name:  "GenerateKubeadmConfig",
@@ -193,6 +196,7 @@ type JoinNodesModule struct {
 
 func (j *JoinNodesModule) Init() {
 	j.Name = "JoinNodesModule"
+	j.Desc = "Join kubernetes nodes"
 
 	j.PipelineCache.Set(common.ClusterExist, true)
 
@@ -314,6 +318,7 @@ type ResetClusterModule struct {
 
 func (r *ResetClusterModule) Init() {
 	r.Name = "ResetClusterModule"
+	r.Desc = "Reset kubernetes cluster"
 
 	kubeadmReset := &module.RemoteTask{
 		Name:     "KubeadmReset",
@@ -334,6 +339,7 @@ type CompareConfigAndClusterInfoModule struct {
 
 func (c *CompareConfigAndClusterInfoModule) Init() {
 	c.Name = "CompareConfigAndClusterInfoModule"
+	c.Desc = "Compare config and cluster nodes info"
 
 	check := &module.RemoteTask{
 		Name:    "FindDifferences",
@@ -352,13 +358,14 @@ type DeleteKubeNodeModule struct {
 	common.KubeModule
 }
 
-func (r *DeleteKubeNodeModule) Init() {
-	r.Name = "DeleteKubeNodeModule"
+func (d *DeleteKubeNodeModule) Init() {
+	d.Name = "DeleteKubeNodeModule"
+	d.Desc = "Delete kubernetes node"
 
 	drain := &module.RemoteTask{
 		Name:    "DrainNode",
 		Desc:    "Node safely evict all pods",
-		Hosts:   r.Runtime.GetHostsByRole(common.Master),
+		Hosts:   d.Runtime.GetHostsByRole(common.Master),
 		Prepare: new(common.OnlyFirstMaster),
 		Action:  new(DrainNode),
 		Retry:   5,
@@ -367,13 +374,13 @@ func (r *DeleteKubeNodeModule) Init() {
 	deleteNode := &module.RemoteTask{
 		Name:    "DeleteNode",
 		Desc:    "Delete the node using kubectl",
-		Hosts:   r.Runtime.GetHostsByRole(common.Master),
+		Hosts:   d.Runtime.GetHostsByRole(common.Master),
 		Prepare: new(common.OnlyFirstMaster),
 		Action:  new(KubectlDeleteNode),
 		Retry:   5,
 	}
 
-	r.Tasks = []module.Task{
+	d.Tasks = []module.Task{
 		drain,
 		deleteNode,
 	}
@@ -386,6 +393,7 @@ type SetUpgradePlanModule struct {
 
 func (s *SetUpgradePlanModule) Init() {
 	s.Name = fmt.Sprintf("SetUpgradePlanModule %d/%d", s.Step, len(UpgradeStepList))
+	s.Desc = "Set upgrade plan"
 
 	plan := &module.LocalTask{
 		Name:   "SetUpgradePlan",
@@ -405,6 +413,7 @@ type ProgressiveUpgradeModule struct {
 
 func (p *ProgressiveUpgradeModule) Init() {
 	p.Name = fmt.Sprintf("ProgressiveUpgradeModule %d/%d", p.Step, len(UpgradeStepList))
+	p.Desc = fmt.Sprintf("Progressive upgrade %d/%d", p.Step, len(UpgradeStepList))
 
 	nextVersion := &module.LocalTask{
 		Name:    "CalculateNextVersion",
