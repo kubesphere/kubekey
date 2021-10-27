@@ -15,6 +15,7 @@ type StatusModule struct {
 
 func (s *StatusModule) Init() {
 	s.Name = "StatusModule"
+	s.Desc = "Get cluster status"
 
 	cluster := NewK3sStatus()
 	s.PipelineCache.GetOrSet(common.ClusterStatus, cluster)
@@ -38,6 +39,7 @@ type InstallKubeBinariesModule struct {
 
 func (i *InstallKubeBinariesModule) Init() {
 	i.Name = "InstallKubeBinariesModule"
+	i.Desc = "Install k3s cluster"
 
 	syncBinary := &module.RemoteTask{
 		Name:     "SyncKubeBinary",
@@ -99,6 +101,7 @@ type InitClusterModule struct {
 
 func (i *InitClusterModule) Init() {
 	i.Name = "K3sInitClusterModule"
+	i.Desc = "Init k3s cluster"
 
 	k3sService := &module.RemoteTask{
 		Name:  "GenerateK3sService",
@@ -192,6 +195,7 @@ type JoinNodesModule struct {
 
 func (j *JoinNodesModule) Init() {
 	j.Name = "K3sJoinNodesModule"
+	j.Desc = "Join k3s nodes"
 
 	k3sService := &module.RemoteTask{
 		Name:  "GenerateK3sService",
@@ -292,6 +296,7 @@ type DeleteClusterModule struct {
 
 func (d *DeleteClusterModule) Init() {
 	d.Name = "DeleteClusterModule"
+	d.Desc = "Delete k3s cluster"
 
 	execScript := &module.RemoteTask{
 		Name:     "ExecUninstallScript",

@@ -21,7 +21,8 @@ func (h *HaproxyModule) IsSkip() bool {
 }
 
 func (h *HaproxyModule) Init() {
-	h.Name = "InternalLoadbalancer"
+	h.Name = "InternalLoadbalancerModule"
+	h.Desc = "Install internal load balancer"
 
 	haproxyCfg := &module.RemoteTask{
 		Name:    "GenerateHaproxyConfig",
@@ -127,7 +128,8 @@ func (k *K3sHaproxyModule) IsSkip() bool {
 }
 
 func (k *K3sHaproxyModule) Init() {
-	k.Name = "InternalLoadbalancer"
+	k.Name = "InternalLoadbalancerModule"
+	k.Name = "Install internal load balancer"
 
 	haproxyCfg := &module.RemoteTask{
 		Name:    "GenerateHaproxyConfig",

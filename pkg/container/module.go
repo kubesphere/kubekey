@@ -25,6 +25,7 @@ func (i *InstallContainerModule) IsSkip() bool {
 
 func (i *InstallContainerModule) Init() {
 	i.Name = "InstallContainerModule"
+	i.Desc = "Install container manager"
 
 	switch i.KubeConf.Cluster.Kubernetes.ContainerManager {
 	case common.Docker:

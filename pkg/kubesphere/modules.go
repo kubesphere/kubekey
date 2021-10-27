@@ -24,6 +24,7 @@ func (d *DeployModule) IsSkip() bool {
 
 func (d *DeployModule) Init() {
 	d.Name = "DeployKubeSphereModule"
+	d.Desc = "Deploy KubeSphere"
 
 	generateManifests := &module.RemoteTask{
 		Name:  "GenerateKsInstallerCRD",
@@ -132,6 +133,7 @@ func (c *CheckResultModule) IsSkip() bool {
 
 func (c *CheckResultModule) Init() {
 	c.Name = "CheckResultModule"
+	c.Desc = "Check deploy KubeSphere result"
 
 	check := &module.RemoteTask{
 		Name:  "CheckKsInstallerResult",
@@ -156,6 +158,7 @@ type ConvertModule struct {
 
 func (c *ConvertModule) Init() {
 	c.Name = "ConvertModule"
+	c.Desc = "Convert ks-installer config v2 to v3"
 
 	convert := &module.RemoteTask{
 		Name:  "ConvertV2ToV3",

@@ -15,6 +15,7 @@ type ConfigureOSModule struct {
 
 func (c *ConfigureOSModule) Init() {
 	c.Name = "ConfigureOSModule"
+	c.Desc = "Init os dependencies"
 
 	initOS := &module.RemoteTask{
 		Name:     "InitOS",

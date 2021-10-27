@@ -17,6 +17,7 @@ type ClusterDNSModule struct {
 
 func (c *ClusterDNSModule) Init() {
 	c.Name = "ClusterDNSModule"
+	c.Desc = "Deploy cluster dns"
 
 	generateCoreDNDSvc := &module.RemoteTask{
 		Name:  "GenerateCoreDNSSvc",

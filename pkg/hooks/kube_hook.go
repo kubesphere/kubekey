@@ -3,21 +3,22 @@ package hooks
 import (
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/hook"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 )
 
 type UpdateCRStatusHook struct {
-	hook.Base
+	module.PostHook
 }
 
 func (u *UpdateCRStatusHook) Try() error {
-	kubeRuntime := u.Runtime.(*common.KubeRuntime)
+	m := u.Module.(*module.BaseModule)
+	kubeRuntime := m.Runtime.(*common.KubeRuntime)
 
 	if !kubeRuntime.Arg.InCluster {
 		return nil
 	}
 
-	if err := kubekeycontroller.UpdateClusterConditions(kubeRuntime, u.Desc, u.Result); err != nil {
+	if err := kubekeycontroller.UpdateClusterConditions(kubeRuntime, m.Desc, u.Result); err != nil {
 		return err
 	}
 	return nil

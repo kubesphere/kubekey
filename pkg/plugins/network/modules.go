@@ -19,6 +19,7 @@ type DeployNetworkPluginModule struct {
 
 func (d *DeployNetworkPluginModule) Init() {
 	d.Name = "DeployNetworkPluginModule"
+	d.Desc = "Deploy cluster network plugin"
 
 	switch d.KubeConf.Cluster.Network.Plugin {
 	case common.Calico:

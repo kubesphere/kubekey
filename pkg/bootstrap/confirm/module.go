@@ -16,7 +16,7 @@ func (i *InstallConfirmModule) IsSkip() bool {
 
 func (i *InstallConfirmModule) Init() {
 	i.Name = "ConfirmModule"
-	i.Desc = "display confirmation form"
+	i.Desc = "Display confirmation form"
 
 	display := &module.LocalTask{
 		Name:   "ConfirmForm",

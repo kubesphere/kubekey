@@ -11,6 +11,7 @@ type NodeBinariesModule struct {
 
 func (n *NodeBinariesModule) Init() {
 	n.Name = "NodeBinariesModule"
+	n.Desc = "Download installation binaries"
 
 	download := &module.LocalTask{
 		Name:   "DownloadBinaries",
@@ -29,6 +30,7 @@ type K3sNodeBinariesModule struct {
 
 func (k *K3sNodeBinariesModule) Init() {
 	k.Name = "K3sNodeBinariesModule"
+	k.Desc = "Download installation binaries"
 
 	download := &module.LocalTask{
 		Name:   "DownloadBinaries",
