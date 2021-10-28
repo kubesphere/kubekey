@@ -2,7 +2,7 @@ package images
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 )
 
 type PullModule struct {
@@ -18,7 +18,7 @@ func (p *PullModule) Init() {
 	p.Name = "PullModule"
 	p.Desc = "Pull images on all nodes"
 
-	pull := &module.RemoteTask{
+	pull := &task.RemoteTask{
 		Name:     "PullImages",
 		Desc:     "Start to pull images on all nodes",
 		Hosts:    p.Runtime.GetAllHosts(),
@@ -26,7 +26,7 @@ func (p *PullModule) Init() {
 		Parallel: true,
 	}
 
-	p.Tasks = []module.Task{
+	p.Tasks = []task.Interface{
 		pull,
 	}
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere/templates"
@@ -26,7 +26,7 @@ func (d *DeployModule) Init() {
 	d.Name = "DeployKubeSphereModule"
 	d.Desc = "Deploy KubeSphere"
 
-	generateManifests := &module.RemoteTask{
+	generateManifests := &task.RemoteTask{
 		Name:  "GenerateKsInstallerCRD",
 		Desc:  "Generate KubeSphere ks-installer crd manifests",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -45,7 +45,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	addConfig := &module.RemoteTask{
+	addConfig := &task.RemoteTask{
 		Name:  "AddKsInstallerConfig",
 		Desc:  "Add config to ks-installer manifests",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -57,7 +57,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	createNamespace := &module.RemoteTask{
+	createNamespace := &task.RemoteTask{
 		Name:  "CreateKubeSphereNamespace",
 		Desc:  "Create the kubesphere namespace",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -69,7 +69,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	setup := &module.RemoteTask{
+	setup := &task.RemoteTask{
 		Name:  "SetupKsInstallerConfig",
 		Desc:  "Setup ks-installer config",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -81,7 +81,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	apply := &module.RemoteTask{
+	apply := &task.RemoteTask{
 		Name:  "ApplyKsInstaller",
 		Desc:  "Apply ks-installer",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -93,7 +93,7 @@ func (d *DeployModule) Init() {
 		Parallel: true,
 	}
 
-	d.Tasks = []module.Task{
+	d.Tasks = []task.Interface{
 		generateManifests,
 		addConfig,
 		createNamespace,
@@ -135,7 +135,7 @@ func (c *CheckResultModule) Init() {
 	c.Name = "CheckResultModule"
 	c.Desc = "Check deploy KubeSphere result"
 
-	check := &module.RemoteTask{
+	check := &task.RemoteTask{
 		Name:  "CheckKsInstallerResult",
 		Desc:  "Check ks-installer result",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -147,7 +147,7 @@ func (c *CheckResultModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []module.Task{
+	c.Tasks = []task.Interface{
 		check,
 	}
 }
@@ -160,7 +160,7 @@ func (c *ConvertModule) Init() {
 	c.Name = "ConvertModule"
 	c.Desc = "Convert ks-installer config v2 to v3"
 
-	convert := &module.RemoteTask{
+	convert := &task.RemoteTask{
 		Name:  "ConvertV2ToV3",
 		Desc:  "Convert ks-installer config v2 to v3",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -173,7 +173,7 @@ func (c *ConvertModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []module.Task{
+	c.Tasks = []task.Interface{
 		convert,
 	}
 }

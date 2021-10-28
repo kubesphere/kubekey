@@ -2,8 +2,8 @@ package certs
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
@@ -15,7 +15,7 @@ func (c *CheckCertsModule) Init() {
 	c.Name = "CheckCertsModule"
 	c.Desc = "Check cluster certs"
 
-	check := &module.RemoteTask{
+	check := &task.RemoteTask{
 		Name:     "CheckClusterCerts",
 		Desc:     "Check cluster certs",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -23,7 +23,7 @@ func (c *CheckCertsModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []module.Task{
+	c.Tasks = []task.Interface{
 		check,
 	}
 }
@@ -36,13 +36,13 @@ func (p *PrintClusterCertsModule) Init() {
 	p.Name = "PrintClusterCertsModule"
 	p.Desc = "Display cluster certs form"
 
-	display := &module.LocalTask{
+	display := &task.LocalTask{
 		Name:   "DisplayCertsForm",
 		Desc:   "Display cluster certs form",
 		Action: new(DisplayForm),
 	}
 
-	p.Tasks = []module.Task{
+	p.Tasks = []task.Interface{
 		display,
 	}
 }
@@ -55,7 +55,7 @@ func (r *RenewCertsModule) Init() {
 	r.Name = "RenewCertsModule"
 	r.Desc = "Renew control-plane certs"
 
-	renew := &module.RemoteTask{
+	renew := &task.RemoteTask{
 		Name:     "RenewCerts",
 		Desc:     "Renew control-plane certs",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -64,7 +64,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    5,
 	}
 
-	copyKubeConfig := &module.RemoteTask{
+	copyKubeConfig := &task.RemoteTask{
 		Name:     "CopyKubeConfig",
 		Desc:     "Copy admin.conf to ~/.kube/config",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -73,7 +73,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    2,
 	}
 
-	fetchKubeConfig := &module.RemoteTask{
+	fetchKubeConfig := &task.RemoteTask{
 		Name:     "FetchKubeConfig",
 		Desc:     "Fetch kube config file from control-plane",
 		Hosts:    r.Runtime.GetHostsByRole(common.Master),
@@ -82,7 +82,7 @@ func (r *RenewCertsModule) Init() {
 		Parallel: true,
 	}
 
-	syncKubeConfig := &module.RemoteTask{
+	syncKubeConfig := &task.RemoteTask{
 		Name:  "SyncKubeConfig",
 		Desc:  "Synchronize kube config to worker",
 		Hosts: r.Runtime.GetHostsByRole(common.Worker),
@@ -94,7 +94,7 @@ func (r *RenewCertsModule) Init() {
 		Retry:    3,
 	}
 
-	r.Tasks = []module.Task{
+	r.Tasks = []task.Interface{
 		renew,
 		copyKubeConfig,
 		fetchKubeConfig,

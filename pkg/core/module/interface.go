@@ -18,9 +18,3 @@ type Module interface {
 	AppendPostHook(h PostHookInterface)
 	CallPostHook(result *ending.ModuleResult) error
 }
-
-type Task interface {
-	GetDesc() string
-	Init(runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache)
-	Execute() *ending.TaskResult
-}

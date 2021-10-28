@@ -2,7 +2,7 @@ package addons
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 )
 
 type AddonsModule struct {
@@ -18,13 +18,13 @@ func (a *AddonsModule) Init() {
 	a.Name = "AddonsModule"
 	a.Desc = "Install addons"
 
-	install := &module.LocalTask{
+	install := &task.LocalTask{
 		Name:   "InstallAddons",
 		Desc:   "Install addons",
 		Action: new(Install),
 	}
 
-	a.Tasks = []module.Task{
+	a.Tasks = []task.Interface{
 		install,
 	}
 }

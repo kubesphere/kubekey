@@ -5,8 +5,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/binaries"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/kubernetes/templates"
 	"github.com/pkg/errors"
@@ -24,7 +24,7 @@ func (k *StatusModule) Init() {
 	cluster := NewKubernetesStatus()
 	k.PipelineCache.GetOrSet(common.ClusterStatus, cluster)
 
-	clusterStatus := &module.RemoteTask{
+	clusterStatus := &task.RemoteTask{
 		Name:  "GetClusterStatus",
 		Desc:  "Get kubernetes cluster status",
 		Hosts: k.Runtime.GetHostsByRole(common.Master),
@@ -33,7 +33,7 @@ func (k *StatusModule) Init() {
 		Parallel: false,
 	}
 
-	k.Tasks = []module.Task{
+	k.Tasks = []task.Interface{
 		clusterStatus,
 	}
 }
@@ -46,7 +46,7 @@ func (i *InstallKubeBinariesModule) Init() {
 	i.Name = "InstallKubeBinariesModule"
 	i.Desc = "Install kubernetes cluster"
 
-	syncBinary := &module.RemoteTask{
+	syncBinary := &task.RemoteTask{
 		Name:     "SyncKubeBinary",
 		Desc:     "Synchronize kubernetes binaries",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
@@ -56,7 +56,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	syncKubelet := &module.RemoteTask{
+	syncKubelet := &task.RemoteTask{
 		Name:     "SyncKubelet",
 		Desc:     "Synchronize kubelet",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
@@ -66,7 +66,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	generateKubeletService := &module.RemoteTask{
+	generateKubeletService := &task.RemoteTask{
 		Name:    "GenerateKubeletService",
 		Desc:    "Generate kubelet service",
 		Hosts:   i.Runtime.GetHostsByRole(common.K8s),
@@ -79,7 +79,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	enableKubelet := &module.RemoteTask{
+	enableKubelet := &task.RemoteTask{
 		Name:     "EnableKubelet",
 		Desc:     "Enable kubelet service",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
@@ -89,7 +89,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    5,
 	}
 
-	generateKubeletEnv := &module.RemoteTask{
+	generateKubeletEnv := &task.RemoteTask{
 		Name:     "GenerateKubeletEnv",
 		Desc:     "Generate kubelet env",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
@@ -99,7 +99,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	i.Tasks = []module.Task{
+	i.Tasks = []task.Interface{
 		syncBinary,
 		syncKubelet,
 		generateKubeletService,
@@ -116,7 +116,7 @@ func (i *InitKubernetesModule) Init() {
 	i.Name = "InitKubernetesModule"
 	i.Desc = "Init kubernetes cluster"
 
-	generateKubeadmConfig := &module.RemoteTask{
+	generateKubeadmConfig := &task.RemoteTask{
 		Name:  "GenerateKubeadmConfig",
 		Desc:  "Generate kubeadm config",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -128,7 +128,7 @@ func (i *InitKubernetesModule) Init() {
 		Parallel: true,
 	}
 
-	kubeadmInit := &module.RemoteTask{
+	kubeadmInit := &task.RemoteTask{
 		Name:  "KubeadmInit",
 		Desc:  "Init cluster using kubeadm",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -141,7 +141,7 @@ func (i *InitKubernetesModule) Init() {
 		Parallel: true,
 	}
 
-	copyKubeConfig := &module.RemoteTask{
+	copyKubeConfig := &task.RemoteTask{
 		Name:  "CopyKubeConfig",
 		Desc:  "Copy admin.conf to ~/.kube/config",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -153,7 +153,7 @@ func (i *InitKubernetesModule) Init() {
 		Parallel: true,
 	}
 
-	removeMasterTaint := &module.RemoteTask{
+	removeMasterTaint := &task.RemoteTask{
 		Name:  "RemoveMasterTaint",
 		Desc:  "Remove master taint",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -167,7 +167,7 @@ func (i *InitKubernetesModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabel := &module.RemoteTask{
+	addWorkerLabel := &task.RemoteTask{
 		Name:  "AddWorkerLabel",
 		Desc:  "Add worker label",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -181,7 +181,7 @@ func (i *InitKubernetesModule) Init() {
 		Retry:    5,
 	}
 
-	i.Tasks = []module.Task{
+	i.Tasks = []task.Interface{
 		generateKubeadmConfig,
 		kubeadmInit,
 		copyKubeConfig,
@@ -200,7 +200,7 @@ func (j *JoinNodesModule) Init() {
 
 	j.PipelineCache.Set(common.ClusterExist, true)
 
-	generateKubeadmConfig := &module.RemoteTask{
+	generateKubeadmConfig := &task.RemoteTask{
 		Name:  "GenerateKubeadmConfig",
 		Desc:  "Generate kubeadm config",
 		Hosts: j.Runtime.GetHostsByRole(common.K8s),
@@ -211,7 +211,7 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	joinMasterNode := &module.RemoteTask{
+	joinMasterNode := &task.RemoteTask{
 		Name:  "JoinMasterNode",
 		Desc:  "Join master node",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
@@ -223,7 +223,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	joinWorkerNode := &module.RemoteTask{
+	joinWorkerNode := &task.RemoteTask{
 		Name:  "JoinWorkerNode",
 		Desc:  "Join worker node",
 		Hosts: j.Runtime.GetHostsByRole(common.Worker),
@@ -236,7 +236,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	copyKubeConfig := &module.RemoteTask{
+	copyKubeConfig := &task.RemoteTask{
 		Name:  "copyKubeConfig",
 		Desc:  "Copy admin.conf to ~/.kube/config",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
@@ -248,7 +248,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    2,
 	}
 
-	removeMasterTaint := &module.RemoteTask{
+	removeMasterTaint := &task.RemoteTask{
 		Name:  "RemoveMasterTaint",
 		Desc:  "Remove master taint",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
@@ -261,7 +261,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabelToMaster := &module.RemoteTask{
+	addWorkerLabelToMaster := &task.RemoteTask{
 		Name:  "AddWorkerLabelToMaster",
 		Desc:  "Add worker label to master",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
@@ -274,7 +274,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	syncKubeConfig := &module.RemoteTask{
+	syncKubeConfig := &task.RemoteTask{
 		Name:  "SyncKubeConfig",
 		Desc:  "Synchronize kube config to worker",
 		Hosts: j.Runtime.GetHostsByRole(common.Worker),
@@ -287,7 +287,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    3,
 	}
 
-	addWorkerLabelToWorker := &module.RemoteTask{
+	addWorkerLabelToWorker := &task.RemoteTask{
 		Name:  "AddWorkerLabelToWorker",
 		Desc:  "Add worker label to worker",
 		Hosts: j.Runtime.GetHostsByRole(common.Worker),
@@ -300,7 +300,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	j.Tasks = []module.Task{
+	j.Tasks = []task.Interface{
 		generateKubeadmConfig,
 		joinMasterNode,
 		joinWorkerNode,
@@ -320,7 +320,7 @@ func (r *ResetClusterModule) Init() {
 	r.Name = "ResetClusterModule"
 	r.Desc = "Reset kubernetes cluster"
 
-	kubeadmReset := &module.RemoteTask{
+	kubeadmReset := &task.RemoteTask{
 		Name:     "KubeadmReset",
 		Desc:     "Reset the cluster using kubeadm",
 		Hosts:    r.Runtime.GetHostsByRole(common.K8s),
@@ -328,7 +328,7 @@ func (r *ResetClusterModule) Init() {
 		Parallel: true,
 	}
 
-	r.Tasks = []module.Task{
+	r.Tasks = []task.Interface{
 		kubeadmReset,
 	}
 }
@@ -341,7 +341,7 @@ func (c *CompareConfigAndClusterInfoModule) Init() {
 	c.Name = "CompareConfigAndClusterInfoModule"
 	c.Desc = "Compare config and cluster nodes info"
 
-	check := &module.RemoteTask{
+	check := &task.RemoteTask{
 		Name:    "FindDifferences",
 		Desc:    "Find the differences between config and cluster node info",
 		Hosts:   c.Runtime.GetHostsByRole(common.Master),
@@ -349,7 +349,7 @@ func (c *CompareConfigAndClusterInfoModule) Init() {
 		Action:  new(FindDifferences),
 	}
 
-	c.Tasks = []module.Task{
+	c.Tasks = []task.Interface{
 		check,
 	}
 }
@@ -362,7 +362,7 @@ func (d *DeleteKubeNodeModule) Init() {
 	d.Name = "DeleteKubeNodeModule"
 	d.Desc = "Delete kubernetes node"
 
-	drain := &module.RemoteTask{
+	drain := &task.RemoteTask{
 		Name:    "DrainNode",
 		Desc:    "Node safely evict all pods",
 		Hosts:   d.Runtime.GetHostsByRole(common.Master),
@@ -371,7 +371,7 @@ func (d *DeleteKubeNodeModule) Init() {
 		Retry:   5,
 	}
 
-	deleteNode := &module.RemoteTask{
+	deleteNode := &task.RemoteTask{
 		Name:    "DeleteNode",
 		Desc:    "Delete the node using kubectl",
 		Hosts:   d.Runtime.GetHostsByRole(common.Master),
@@ -380,7 +380,7 @@ func (d *DeleteKubeNodeModule) Init() {
 		Retry:   5,
 	}
 
-	d.Tasks = []module.Task{
+	d.Tasks = []task.Interface{
 		drain,
 		deleteNode,
 	}
@@ -395,13 +395,13 @@ func (s *SetUpgradePlanModule) Init() {
 	s.Name = fmt.Sprintf("SetUpgradePlanModule %d/%d", s.Step, len(UpgradeStepList))
 	s.Desc = "Set upgrade plan"
 
-	plan := &module.LocalTask{
+	plan := &task.LocalTask{
 		Name:   "SetUpgradePlan",
 		Desc:   "Set upgrade plan",
 		Action: &SetUpgradePlan{Step: s.Step},
 	}
 
-	s.Tasks = []module.Task{
+	s.Tasks = []task.Interface{
 		plan,
 	}
 }
@@ -415,21 +415,21 @@ func (p *ProgressiveUpgradeModule) Init() {
 	p.Name = fmt.Sprintf("ProgressiveUpgradeModule %d/%d", p.Step, len(UpgradeStepList))
 	p.Desc = fmt.Sprintf("Progressive upgrade %d/%d", p.Step, len(UpgradeStepList))
 
-	nextVersion := &module.LocalTask{
+	nextVersion := &task.LocalTask{
 		Name:    "CalculateNextVersion",
 		Desc:    "Calculate next upgrade version",
 		Prepare: new(NotEqualPlanVersion),
 		Action:  new(CalculateNextVersion),
 	}
 
-	download := &module.LocalTask{
+	download := &task.LocalTask{
 		Name:    "DownloadBinaries",
 		Desc:    "Download installation binaries",
 		Prepare: new(NotEqualPlanVersion),
 		Action:  new(binaries.Download),
 	}
 
-	pull := &module.RemoteTask{
+	pull := &task.RemoteTask{
 		Name:     "PullImages",
 		Desc:     "Start to pull images on all nodes",
 		Hosts:    p.Runtime.GetHostsByRole(common.K8s),
@@ -438,7 +438,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Parallel: true,
 	}
 
-	syncBinary := &module.RemoteTask{
+	syncBinary := &task.RemoteTask{
 		Name:     "SyncKubeBinary",
 		Desc:     "Synchronize kubernetes binaries",
 		Hosts:    p.Runtime.GetHostsByRole(common.K8s),
@@ -448,7 +448,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Retry:    2,
 	}
 
-	upgradeKubeMaster := &module.RemoteTask{
+	upgradeKubeMaster := &task.RemoteTask{
 		Name:     "UpgradeClusterOnMaster",
 		Desc:     "Upgrade cluster on master",
 		Hosts:    p.Runtime.GetHostsByRole(common.Master),
@@ -460,7 +460,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 	cluster := NewKubernetesStatus()
 	p.PipelineCache.GetOrSet(common.ClusterStatus, cluster)
 
-	clusterStatus := &module.RemoteTask{
+	clusterStatus := &task.RemoteTask{
 		Name:     "GetClusterStatus",
 		Desc:     "Get kubernetes cluster status",
 		Hosts:    p.Runtime.GetHostsByRole(common.Master),
@@ -469,7 +469,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Parallel: false,
 	}
 
-	upgradeKubeWorker := &module.RemoteTask{
+	upgradeKubeWorker := &task.RemoteTask{
 		Name:  "UpgradeClusterOnWorker",
 		Desc:  "Upgrade cluster on worker",
 		Hosts: p.Runtime.GetHostsByRole(common.Worker),
@@ -481,7 +481,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Parallel: false,
 	}
 
-	reconfigureDNS := &module.RemoteTask{
+	reconfigureDNS := &task.RemoteTask{
 		Name:  "ReconfigureCoreDNS",
 		Desc:  "Reconfigure CoreDNS",
 		Hosts: p.Runtime.GetHostsByRole(common.Master),
@@ -493,14 +493,14 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Parallel: false,
 	}
 
-	currentVersion := &module.LocalTask{
+	currentVersion := &task.LocalTask{
 		Name:    "SetCurrentK8sVersion",
 		Desc:    "Set current k8s version",
 		Prepare: new(NotEqualPlanVersion),
 		Action:  new(SetCurrentK8sVersion),
 	}
 
-	p.Tasks = []module.Task{
+	p.Tasks = []task.Interface{
 		nextVersion,
 		download,
 		pull,
