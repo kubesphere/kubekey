@@ -1,4 +1,4 @@
-package module
+package task
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"

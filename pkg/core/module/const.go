@@ -10,9 +10,4 @@ const (
 	TaskModuleType      = "TaskModuleType"
 	GoroutineModuleType = "GoroutineModuleType"
 	CustomModuleType    = "CustomModuleType"
-
-	DefaultTimeout = 120
-	DefaultCon     = 10
-
-	DefaultTaskName = "DefaultTask"
 )

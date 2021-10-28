@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 )
 
 type ModifyConfigModule struct {
@@ -13,13 +13,13 @@ func (m *ModifyConfigModule) Init() {
 	m.Name = "ModifyConfigModule"
 	m.Desc = "Modify the KubeKey config file"
 
-	modify := &module.LocalTask{
+	modify := &task.LocalTask{
 		Name:   "ModifyConfig",
 		Desc:   "Modify the KubeKey config file",
 		Action: new(ModifyConfig),
 	}
 
-	m.Tasks = []module.Task{
+	m.Tasks = []task.Interface{
 		modify,
 	}
 }

@@ -4,8 +4,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +22,7 @@ func (n *NodePreCheckModule) Init() {
 	n.Name = "NodePreCheckModule"
 	n.Desc = "Do pre-check on cluster nodes"
 
-	preCheck := &module.RemoteTask{
+	preCheck := &task.RemoteTask{
 		Name:  "NodePreCheck",
 		Desc:  "A pre-check on nodes",
 		Hosts: n.Runtime.GetAllHosts(),
@@ -38,7 +38,7 @@ func (n *NodePreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	n.Tasks = []module.Task{
+	n.Tasks = []task.Interface{
 		preCheck,
 	}
 }
@@ -51,7 +51,7 @@ func (c *ClusterPreCheckModule) Init() {
 	c.Name = "ClusterPreCheckModule"
 	c.Desc = "Do pre-check on cluster"
 
-	getKubeConfig := &module.RemoteTask{
+	getKubeConfig := &task.RemoteTask{
 		Name:     "GetKubeConfig",
 		Desc:     "Get KubeConfig file",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -60,7 +60,7 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	getAllNodesK8sVersion := &module.RemoteTask{
+	getAllNodesK8sVersion := &task.RemoteTask{
 		Name:     "GetAllNodesK8sVersion",
 		Desc:     "Get all nodes Kubernetes version",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
@@ -68,7 +68,7 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	calculateMinK8sVersion := &module.RemoteTask{
+	calculateMinK8sVersion := &task.RemoteTask{
 		Name:     "CalculateMinK8sVersion",
 		Desc:     "Calculate min Kubernetes version",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -77,7 +77,7 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	checkDesiredK8sVersion := &module.RemoteTask{
+	checkDesiredK8sVersion := &task.RemoteTask{
 		Name:     "CheckDesiredK8sVersion",
 		Desc:     "Check desired Kubernetes version",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -86,7 +86,7 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	ksVersionCheck := &module.RemoteTask{
+	ksVersionCheck := &task.RemoteTask{
 		Name:     "KsVersionCheck",
 		Desc:     "Check KubeSphere version",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -95,7 +95,7 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	dependencyCheck := &module.RemoteTask{
+	dependencyCheck := &task.RemoteTask{
 		Name:  "DependencyCheck",
 		Desc:  "Check dependency matrix for KubeSphere and Kubernetes",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -107,7 +107,7 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	getKubernetesNodesStatus := &module.RemoteTask{
+	getKubernetesNodesStatus := &task.RemoteTask{
 		Name:     "GetKubernetesNodesStatus",
 		Desc:     "Get kubernetes nodes status",
 		Hosts:    c.Runtime.GetHostsByRole(common.Master),
@@ -116,7 +116,7 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []module.Task{
+	c.Tasks = []task.Interface{
 		getKubeConfig,
 		getAllNodesK8sVersion,
 		calculateMinK8sVersion,
