@@ -9,7 +9,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
-	"github.com/kubesphere/kubekey/pkg/core/hook"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/etcd"
@@ -26,14 +25,14 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&confirm.InstallConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
-		&kubernetes.KubernetesStatusModule{},
+		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
-		&images.ImageModule{Skip: runtime.Arg.SkipPullImages},
-		&etcd.ETCDPreCheckModule{},
-		&etcd.ETCDCertsModule{},
+		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
+		&etcd.PreCheckModule{},
+		&etcd.CertsModule{},
 		&etcd.InstallETCDBinaryModule{},
-		&etcd.ETCDModule{},
-		&etcd.BackupETCDModule{},
+		&etcd.ConfigureModule{},
+		&etcd.BackupModule{},
 		&kubernetes.InstallKubeBinariesModule{},
 		&kubernetes.JoinNodesModule{},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
@@ -43,7 +42,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		Name:            "AddNodesPipeline",
 		Modules:         m,
 		Runtime:         runtime,
-		ModulePostHooks: []hook.PostHook{&hooks.UpdateCRStatusHook{}},
+		ModulePostHooks: []module.PostHookInterface{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
 		if runtime.Arg.InCluster {
@@ -71,11 +70,11 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&binaries.K3sNodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&k3s.StatusModule{},
-		&etcd.ETCDPreCheckModule{},
-		&etcd.ETCDCertsModule{},
+		&etcd.PreCheckModule{},
+		&etcd.CertsModule{},
 		&etcd.InstallETCDBinaryModule{},
-		&etcd.ETCDModule{},
-		&etcd.BackupETCDModule{},
+		&etcd.ConfigureModule{},
+		&etcd.BackupModule{},
 		&k3s.InstallKubeBinariesModule{},
 		&k3s.JoinNodesModule{},
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
@@ -85,7 +84,7 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		Name:            "AddNodesPipeline",
 		Modules:         m,
 		Runtime:         runtime,
-		ModulePostHooks: []hook.PostHook{&hooks.UpdateCRStatusHook{}},
+		ModulePostHooks: []module.PostHookInterface{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
 		if runtime.Arg.InCluster {

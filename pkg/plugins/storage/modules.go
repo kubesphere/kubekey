@@ -22,6 +22,7 @@ func (d *DeployLocalVolumeModule) IsSkip() bool {
 
 func (d *DeployLocalVolumeModule) Init() {
 	d.Name = "DeployStorageClassModule"
+	d.Desc = "Deploy cluster storage-class"
 
 	generate := &module.RemoteTask{
 		Name:  "GenerateOpenEBSManifest",

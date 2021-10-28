@@ -5,27 +5,28 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/module"
 )
 
-type ImageModule struct {
+type PullModule struct {
 	common.KubeModule
 	Skip bool
 }
 
-func (i *ImageModule) IsSkip() bool {
-	return i.Skip
+func (p *PullModule) IsSkip() bool {
+	return p.Skip
 }
 
-func (i *ImageModule) Init() {
-	i.Name = "ImageModule"
+func (p *PullModule) Init() {
+	p.Name = "PullModule"
+	p.Desc = "Pull images on all nodes"
 
 	pull := &module.RemoteTask{
 		Name:     "PullImages",
 		Desc:     "Start to pull images on all nodes",
-		Hosts:    i.Runtime.GetAllHosts(),
+		Hosts:    p.Runtime.GetAllHosts(),
 		Action:   new(PullImage),
 		Parallel: true,
 	}
 
-	i.Tasks = []module.Task{
+	p.Tasks = []module.Task{
 		pull,
 	}
 }
