@@ -18,6 +18,7 @@ package config
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -89,8 +90,12 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			return nil, "", errors.Wrap(err, "Unable to unmarshal the given cluster configuration file")
 		}
 		if result["kind"] == "Cluster" {
-			if err := yaml.Unmarshal(content, clusterCfg); err != nil {
-				return nil, "", errors.Wrap(err, "Unable to convert file to yaml")
+			contentToJson, err := k8syaml.ToJSON(content)
+			if err != nil {
+				return nil, "", errors.Wrap(err, "Unable to convert configuration to json")
+			}
+			if err := json.Unmarshal(contentToJson, clusterCfg); err != nil {
+				return nil, "", errors.Wrap(err, "Failed to unmarshal configuration")
 			}
 			metadata := result["metadata"].(map[interface{}]interface{})
 			objName = metadata["name"].(string)
