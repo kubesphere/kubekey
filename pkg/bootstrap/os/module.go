@@ -4,7 +4,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os/templates"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/module"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"path/filepath"
 )
@@ -17,7 +17,7 @@ func (c *ConfigureOSModule) Init() {
 	c.Name = "ConfigureOSModule"
 	c.Desc = "Init os dependencies"
 
-	initOS := &module.RemoteTask{
+	initOS := &task.RemoteTask{
 		Name:     "InitOS",
 		Desc:     "Prepare to init OS",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -25,7 +25,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	GenerateScript := &module.RemoteTask{
+	GenerateScript := &task.RemoteTask{
 		Name:  "GenerateScript",
 		Desc:  "Generate init os script",
 		Hosts: c.Runtime.GetAllHosts(),
@@ -39,7 +39,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	ExecScript := &module.RemoteTask{
+	ExecScript := &task.RemoteTask{
 		Name:     "ExecScript",
 		Desc:     "Exec init os script",
 		Hosts:    c.Runtime.GetAllHosts(),
@@ -47,7 +47,7 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []module.Task{
+	c.Tasks = []task.Interface{
 		initOS,
 		GenerateScript,
 		ExecScript,
@@ -61,7 +61,7 @@ type ClearOSEnvironmentModule struct {
 func (c *ClearOSEnvironmentModule) Init() {
 	c.Name = "ClearOSModule"
 
-	resetNetworkConfig := &module.RemoteTask{
+	resetNetworkConfig := &task.RemoteTask{
 		Name:     "ResetNetworkConfig",
 		Desc:     "Reset os network config",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
@@ -69,7 +69,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	stopETCD := &module.RemoteTask{
+	stopETCD := &task.RemoteTask{
 		Name:     "StopETCDService",
 		Desc:     "Stop etcd service",
 		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
@@ -77,7 +77,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	removeFiles := &module.RemoteTask{
+	removeFiles := &task.RemoteTask{
 		Name:     "RemoveFiles",
 		Desc:     "Remove cluster files",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
@@ -85,7 +85,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	daemonReload := &module.RemoteTask{
+	daemonReload := &task.RemoteTask{
 		Name:     "DaemonReload",
 		Desc:     "Systemd daemon reload",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
@@ -93,7 +93,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []module.Task{
+	c.Tasks = []task.Interface{
 		resetNetworkConfig,
 		stopETCD,
 		removeFiles,
@@ -108,7 +108,7 @@ type InitDependenciesModule struct {
 func (i *InitDependenciesModule) Init() {
 	i.Name = "InitDependenciesModule"
 
-	getOSData := &module.RemoteTask{
+	getOSData := &task.RemoteTask{
 		Name:     "GetOSData",
 		Desc:     "Get OS release",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -116,7 +116,7 @@ func (i *InitDependenciesModule) Init() {
 		Parallel: true,
 	}
 
-	onlineInstall := &module.RemoteTask{
+	onlineInstall := &task.RemoteTask{
 		Name:     "OnlineInstallDependencies",
 		Desc:     "Online install dependencies",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -124,7 +124,7 @@ func (i *InitDependenciesModule) Init() {
 		Parallel: true,
 	}
 
-	offlineInstall := &module.RemoteTask{
+	offlineInstall := &task.RemoteTask{
 		Name:     "OnlineInstallDependencies",
 		Desc:     "Offline install dependencies",
 		Hosts:    i.Runtime.GetAllHosts(),
@@ -133,12 +133,12 @@ func (i *InitDependenciesModule) Init() {
 	}
 
 	if i.KubeConf.Arg.SourcesDir == "" {
-		i.Tasks = []module.Task{
+		i.Tasks = []task.Interface{
 			getOSData,
 			onlineInstall,
 		}
 	} else {
-		i.Tasks = []module.Task{
+		i.Tasks = []task.Interface{
 			getOSData,
 			offlineInstall,
 		}

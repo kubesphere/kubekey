@@ -4,12 +4,13 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/pkg/errors"
 )
 
 type BaseTaskModule struct {
 	BaseModule
-	Tasks []Task
+	Tasks []task.Interface
 }
 
 func (b *BaseTaskModule) Init() {
@@ -24,12 +25,12 @@ func (b *BaseTaskModule) Is() string {
 
 func (b *BaseTaskModule) Run(result *ending.ModuleResult) {
 	for i := range b.Tasks {
-		task := b.Tasks[i]
-		task.Init(b.Runtime.(connector.Runtime), b.ModuleCache, b.PipelineCache)
+		t := b.Tasks[i]
+		t.Init(b.Runtime.(connector.Runtime), b.ModuleCache, b.PipelineCache)
 
-		logger.Log.Infof("[%s] %s", b.Name, task.GetDesc())
+		logger.Log.Infof("[%s] %s", b.Name, t.GetDesc())
 
-		res := task.Execute()
+		res := t.Execute()
 		for j := range res.ActionResults {
 			ac := res.ActionResults[j]
 			logger.Log.Infof("%s: [%s]", ac.Status.String(), ac.Host.GetName())

@@ -3,8 +3,8 @@ package k3s
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/k3s/templates"
 	"path/filepath"
 )
@@ -20,7 +20,7 @@ func (s *StatusModule) Init() {
 	cluster := NewK3sStatus()
 	s.PipelineCache.GetOrSet(common.ClusterStatus, cluster)
 
-	clusterStatus := &module.RemoteTask{
+	clusterStatus := &task.RemoteTask{
 		Name:     "GetClusterStatus",
 		Desc:     "Get k3s cluster status",
 		Hosts:    s.Runtime.GetHostsByRole(common.Master),
@@ -28,7 +28,7 @@ func (s *StatusModule) Init() {
 		Parallel: false,
 	}
 
-	s.Tasks = []module.Task{
+	s.Tasks = []task.Interface{
 		clusterStatus,
 	}
 }
@@ -41,7 +41,7 @@ func (i *InstallKubeBinariesModule) Init() {
 	i.Name = "InstallKubeBinariesModule"
 	i.Desc = "Install k3s cluster"
 
-	syncBinary := &module.RemoteTask{
+	syncBinary := &task.RemoteTask{
 		Name:     "SyncKubeBinary",
 		Desc:     "Synchronize k3s binaries",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
@@ -51,7 +51,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	killAllScript := &module.RemoteTask{
+	killAllScript := &task.RemoteTask{
 		Name:    "GenerateK3sKillAllScript",
 		Desc:    "Generate k3s killall.sh script",
 		Hosts:   i.Runtime.GetHostsByRole(common.K8s),
@@ -64,7 +64,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	uninstallScript := &module.RemoteTask{
+	uninstallScript := &task.RemoteTask{
 		Name:    "GenerateK3sUninstallScript",
 		Desc:    "Generate k3s uninstall script",
 		Hosts:   i.Runtime.GetHostsByRole(common.K8s),
@@ -77,7 +77,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	chmod := &module.RemoteTask{
+	chmod := &task.RemoteTask{
 		Name:     "ChmodScript",
 		Desc:     "Chmod +x k3s script ",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
@@ -87,7 +87,7 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	i.Tasks = []module.Task{
+	i.Tasks = []task.Interface{
 		syncBinary,
 		killAllScript,
 		uninstallScript,
@@ -103,7 +103,7 @@ func (i *InitClusterModule) Init() {
 	i.Name = "K3sInitClusterModule"
 	i.Desc = "Init k3s cluster"
 
-	k3sService := &module.RemoteTask{
+	k3sService := &task.RemoteTask{
 		Name:  "GenerateK3sService",
 		Desc:  "Generate k3s Service",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -115,7 +115,7 @@ func (i *InitClusterModule) Init() {
 		Parallel: true,
 	}
 
-	k3sEnv := &module.RemoteTask{
+	k3sEnv := &task.RemoteTask{
 		Name:  "GenerateK3sServiceEnv",
 		Desc:  "Generate k3s service env",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -127,7 +127,7 @@ func (i *InitClusterModule) Init() {
 		Parallel: true,
 	}
 
-	enableK3s := &module.RemoteTask{
+	enableK3s := &task.RemoteTask{
 		Name:  "EnableK3sService",
 		Desc:  "Enable k3s service",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -139,7 +139,7 @@ func (i *InitClusterModule) Init() {
 		Parallel: true,
 	}
 
-	copyKubeConfig := &module.RemoteTask{
+	copyKubeConfig := &task.RemoteTask{
 		Name:  "CopyKubeConfig",
 		Desc:  "Copy k3s.yaml to ~/.kube/config",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -151,7 +151,7 @@ func (i *InitClusterModule) Init() {
 		Parallel: true,
 	}
 
-	addMasterTaint := &module.RemoteTask{
+	addMasterTaint := &task.RemoteTask{
 		Name:  "AddMasterTaint",
 		Desc:  "Add master taint",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -165,7 +165,7 @@ func (i *InitClusterModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabel := &module.RemoteTask{
+	addWorkerLabel := &task.RemoteTask{
 		Name:  "AddWorkerLabel",
 		Desc:  "Add worker label",
 		Hosts: i.Runtime.GetHostsByRole(common.Master),
@@ -179,7 +179,7 @@ func (i *InitClusterModule) Init() {
 		Retry:    5,
 	}
 
-	i.Tasks = []module.Task{
+	i.Tasks = []task.Interface{
 		k3sService,
 		k3sEnv,
 		enableK3s,
@@ -197,7 +197,7 @@ func (j *JoinNodesModule) Init() {
 	j.Name = "K3sJoinNodesModule"
 	j.Desc = "Join k3s nodes"
 
-	k3sService := &module.RemoteTask{
+	k3sService := &task.RemoteTask{
 		Name:  "GenerateK3sService",
 		Desc:  "Generate k3s Service",
 		Hosts: j.Runtime.GetHostsByRole(common.K8s),
@@ -208,7 +208,7 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	k3sEnv := &module.RemoteTask{
+	k3sEnv := &task.RemoteTask{
 		Name:  "GenerateK3sServiceEnv",
 		Desc:  "Generate k3s service env",
 		Hosts: j.Runtime.GetHostsByRole(common.K8s),
@@ -219,7 +219,7 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	enableK3s := &module.RemoteTask{
+	enableK3s := &task.RemoteTask{
 		Name:  "EnableK3sService",
 		Desc:  "Enable k3s service",
 		Hosts: j.Runtime.GetHostsByRole(common.K8s),
@@ -230,7 +230,7 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	copyKubeConfigForMaster := &module.RemoteTask{
+	copyKubeConfigForMaster := &task.RemoteTask{
 		Name:  "CopyKubeConfig",
 		Desc:  "Copy k3s.yaml to ~/.kube/config",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
@@ -241,7 +241,7 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	syncKubeConfigToWorker := &module.RemoteTask{
+	syncKubeConfigToWorker := &task.RemoteTask{
 		Name:  "SyncKubeConfigToWorker",
 		Desc:  "Synchronize kube config to worker",
 		Hosts: j.Runtime.GetHostsByRole(common.Worker),
@@ -253,7 +253,7 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	addMasterTaint := &module.RemoteTask{
+	addMasterTaint := &task.RemoteTask{
 		Name:  "AddMasterTaint",
 		Desc:  "Add master taint",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
@@ -266,7 +266,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabel := &module.RemoteTask{
+	addWorkerLabel := &task.RemoteTask{
 		Name:  "AddWorkerLabel",
 		Desc:  "Add worker label",
 		Hosts: j.Runtime.GetHostsByRole(common.K8s),
@@ -279,7 +279,7 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	j.Tasks = []module.Task{
+	j.Tasks = []task.Interface{
 		k3sService,
 		k3sEnv,
 		enableK3s,
@@ -298,7 +298,7 @@ func (d *DeleteClusterModule) Init() {
 	d.Name = "DeleteClusterModule"
 	d.Desc = "Delete k3s cluster"
 
-	execScript := &module.RemoteTask{
+	execScript := &task.RemoteTask{
 		Name:     "ExecUninstallScript",
 		Desc:     "Exec k3s uninstall script",
 		Hosts:    d.Runtime.GetHostsByRole(common.K8s),
@@ -306,7 +306,7 @@ func (d *DeleteClusterModule) Init() {
 		Parallel: true,
 	}
 
-	d.Tasks = []module.Task{
+	d.Tasks = []task.Interface{
 		execScript,
 	}
 }

@@ -3,8 +3,8 @@ package storage
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage/templates"
@@ -24,7 +24,7 @@ func (d *DeployLocalVolumeModule) Init() {
 	d.Name = "DeployStorageClassModule"
 	d.Desc = "Deploy cluster storage-class"
 
-	generate := &module.RemoteTask{
+	generate := &task.RemoteTask{
 		Name:  "GenerateOpenEBSManifest",
 		Desc:  "Generate OpenEBS manifest",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -43,7 +43,7 @@ func (d *DeployLocalVolumeModule) Init() {
 		Parallel: true,
 	}
 
-	deploy := &module.RemoteTask{
+	deploy := &task.RemoteTask{
 		Name:  "DeployOpenEBS",
 		Desc:  "Deploy OpenEBS as cluster default StorageClass",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -55,7 +55,7 @@ func (d *DeployLocalVolumeModule) Init() {
 		Parallel: true,
 	}
 
-	d.Tasks = []module.Task{
+	d.Tasks = []task.Interface{
 		generate,
 		deploy,
 	}

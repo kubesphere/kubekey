@@ -4,8 +4,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/templates"
@@ -34,8 +34,8 @@ func (d *DeployNetworkPluginModule) Init() {
 	}
 }
 
-func deployCalico(d *DeployNetworkPluginModule) []module.Task {
-	generateCalicoOld := &module.RemoteTask{
+func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
+	generateCalicoOld := &task.RemoteTask{
 		Name:  "GenerateCalico",
 		Desc:  "Generate calico",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -62,7 +62,7 @@ func deployCalico(d *DeployNetworkPluginModule) []module.Task {
 		Parallel: true,
 	}
 
-	generateCalicoNew := &module.RemoteTask{
+	generateCalicoNew := &task.RemoteTask{
 		Name:  "GenerateCalico",
 		Desc:  "Generate calico",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -91,7 +91,7 @@ func deployCalico(d *DeployNetworkPluginModule) []module.Task {
 		Parallel: true,
 	}
 
-	deploy := &module.RemoteTask{
+	deploy := &task.RemoteTask{
 		Name:     "DeployCalico",
 		Desc:     "Deploy calico",
 		Hosts:    d.Runtime.GetHostsByRole(common.Master),
@@ -102,20 +102,20 @@ func deployCalico(d *DeployNetworkPluginModule) []module.Task {
 	}
 
 	if CompareVersionLater(d.KubeConf.Cluster.Kubernetes.Version, "v1.16.0") {
-		return []module.Task{
+		return []task.Interface{
 			generateCalicoNew,
 			deploy,
 		}
 	} else {
-		return []module.Task{
+		return []task.Interface{
 			generateCalicoOld,
 			deploy,
 		}
 	}
 }
 
-func deployFlannel(d *DeployNetworkPluginModule) []module.Task {
-	generateFlannel := &module.RemoteTask{
+func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {
+	generateFlannel := &task.RemoteTask{
 		Name:  "GenerateFlannel",
 		Desc:  "Generate flannel",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -135,7 +135,7 @@ func deployFlannel(d *DeployNetworkPluginModule) []module.Task {
 		Parallel: true,
 	}
 
-	deploy := &module.RemoteTask{
+	deploy := &task.RemoteTask{
 		Name:     "DeployFlannel",
 		Desc:     "Deploy flannel",
 		Hosts:    d.Runtime.GetHostsByRole(common.Master),
@@ -145,14 +145,14 @@ func deployFlannel(d *DeployNetworkPluginModule) []module.Task {
 		Retry:    5,
 	}
 
-	return []module.Task{
+	return []task.Interface{
 		generateFlannel,
 		deploy,
 	}
 }
 
-func deployCilium(d *DeployNetworkPluginModule) []module.Task {
-	generateCilium := &module.RemoteTask{
+func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
+	generateCilium := &task.RemoteTask{
 		Name:  "GenerateCilium",
 		Desc:  "Generate cilium",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -173,7 +173,7 @@ func deployCilium(d *DeployNetworkPluginModule) []module.Task {
 		Parallel: true,
 	}
 
-	deploy := &module.RemoteTask{
+	deploy := &task.RemoteTask{
 		Name:     "DeployCilium",
 		Desc:     "Deploy cilium",
 		Hosts:    d.Runtime.GetHostsByRole(common.Master),
@@ -183,7 +183,7 @@ func deployCilium(d *DeployNetworkPluginModule) []module.Task {
 		Retry:    5,
 	}
 
-	return []module.Task{
+	return []task.Interface{
 		generateCilium,
 		deploy,
 	}

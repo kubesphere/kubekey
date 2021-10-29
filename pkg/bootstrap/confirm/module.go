@@ -2,7 +2,7 @@ package confirm
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
+	"github.com/kubesphere/kubekey/pkg/core/task"
 )
 
 type InstallConfirmModule struct {
@@ -18,13 +18,13 @@ func (i *InstallConfirmModule) Init() {
 	i.Name = "ConfirmModule"
 	i.Desc = "Display confirmation form"
 
-	display := &module.LocalTask{
+	display := &task.LocalTask{
 		Name:   "ConfirmForm",
 		Desc:   "Display confirmation form",
 		Action: new(InstallationConfirm),
 	}
 
-	i.Tasks = []module.Task{
+	i.Tasks = []task.Interface{
 		display,
 	}
 }
@@ -37,13 +37,13 @@ func (d *DeleteClusterConfirmModule) Init() {
 	d.Name = "DeleteClusterConfirmModule"
 	d.Desc = "Display delete confirmation form"
 
-	display := &module.LocalTask{
+	display := &task.LocalTask{
 		Name:   "ConfirmForm",
 		Desc:   "Display confirmation form",
 		Action: &DeleteConfirm{Content: "cluster"},
 	}
 
-	d.Tasks = []module.Task{
+	d.Tasks = []task.Interface{
 		display,
 	}
 }
@@ -56,13 +56,13 @@ func (d *DeleteNodeConfirmModule) Init() {
 	d.Name = "DeleteNodeConfirmModule"
 	d.Desc = "Display delete node confirmation form"
 
-	display := &module.LocalTask{
+	display := &task.LocalTask{
 		Name:   "ConfirmForm",
 		Desc:   "Display confirmation form",
 		Action: &DeleteConfirm{Content: "node"},
 	}
 
-	d.Tasks = []module.Task{
+	d.Tasks = []task.Interface{
 		display,
 	}
 }
@@ -80,13 +80,13 @@ func (u *UpgradeConfirmModule) Init() {
 	u.Name = "UpgradeConfirmModule"
 	u.Desc = "Display upgrade confirmation form"
 
-	display := &module.LocalTask{
+	display := &task.LocalTask{
 		Name:   "ConfirmForm",
 		Desc:   "Display confirmation form",
 		Action: new(UpgradeConfirm),
 	}
 
-	u.Tasks = []module.Task{
+	u.Tasks = []task.Interface{
 		display,
 	}
 }
