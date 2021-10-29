@@ -157,6 +157,15 @@ EOF
 		}
 	}
 
+	switch mgr.ContainerManager {
+	case "docker", "containerd", "crio":
+		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/containerruntime/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", mgr.ContainerManager), 2, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("Failed to set container runtime: %s", mgr.ContainerManager))
+		}
+	default:
+		mgr.Logger.Warningf("Currently, the logging function of KubeSphere does not support %s. If %s is used, the logging function will be unavailable.", mgr.ContainerManager, mgr.ContainerManager)
+	}
+
 	_, err3 := mgr.Runner.ExecuteCmd(`cat <<EOF | /usr/local/bin/kubectl apply -f -
 apiVersion: v1
 kind: Namespace
