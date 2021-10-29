@@ -130,7 +130,7 @@ func GenerateClusterObj(k8sVersion, ksVersion, name, kubeconfig, clusterCfgPath 
 		case "v2.1.1":
 			opt.KubeSphereConfigMap = kubesphere.V2_1_1
 		default:
-			if strings.Contains(ksVersion, "alpha") || strings.Contains(ksVersion, "rc") {
+			if strings.Contains(ksVersion, "alpha") || strings.Contains(ksVersion, "rc") || strings.Contains(ksVersion, "release") {
 				opt.KubeSphereConfigMap = kubesphere.GenerateAlphaYaml(ksVersion)
 			} else {
 				return errors.New(fmt.Sprintf("Unsupported version: %s", strings.TrimSpace(ksVersion)))

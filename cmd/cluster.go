@@ -47,7 +47,7 @@ func init() {
 	clusterCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	clusterCmd.Flags().StringVarP(&opt.Kubernetes, "with-kubernetes", "", v1alpha1.DefaultKubeVersion, "Specify a supported version of kubernetes")
 	clusterCmd.Flags().BoolVarP(&opt.LocalStorage, "with-local-storage", "", false, "Deploy a local PV provisioner")
-	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.1.0)")
+	clusterCmd.Flags().BoolVarP(&opt.Kubesphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.2.0)")
 	clusterCmd.Flags().BoolVarP(&opt.SkipCheck, "yes", "y", false, "Skip pre-check of the installation")
 	clusterCmd.Flags().BoolVarP(&opt.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	clusterCmd.Flags().StringVarP(&opt.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")

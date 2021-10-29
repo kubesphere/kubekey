@@ -125,7 +125,7 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 					clusterCfg.Spec.KubeSphere.Version = "v2.1.1"
 				default:
 					if strings.Contains(labels["version"].(string), "alpha") ||
-						strings.Contains(labels["version"].(string), "rc") {
+						strings.Contains(labels["version"].(string), "rc") || strings.Contains(labels["version"].(string), "release") {
 						clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 						clusterCfg.Spec.KubeSphere.Version = labels["version"].(string)
 					} else {
@@ -159,7 +159,8 @@ func ParseCfg(clusterCfgPath, k8sVersion, ksVersion string, ksEnabled bool) (*ku
 			if strings.HasPrefix(ksVersion, "nightly-") ||
 				ksVersion == "latest" ||
 				strings.Contains(ksVersion, "alpha") ||
-				strings.Contains(ksVersion, "rc") {
+				strings.Contains(ksVersion, "rc") ||
+				strings.Contains(ksVersion, "release") {
 				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
 				// nightly build and a released. So please keep update it with the latest release here.
 				clusterCfg.Spec.KubeSphere.Version = ksVersion
@@ -251,7 +252,8 @@ func AllinoneCfg(user *user.User, k8sVersion, ksVersion string, ksEnabled bool, 
 			if strings.HasPrefix(ksVersion, "nightly-") ||
 				ksVersion == "latest" ||
 				strings.Contains(ksVersion, "alpha") ||
-				strings.Contains(ksVersion, "rc") {
+				strings.Contains(ksVersion, "rc") ||
+				strings.Contains(ksVersion, "release") {
 				// this is not the perfect solution here, but it's not necessary to track down the exact version between the
 				// nightly build and a released. So please keep update it with the latest release here.
 				allinoneCfg.Spec.KubeSphere.Version = ksVersion

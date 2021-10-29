@@ -176,7 +176,7 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 		} else {
 			if mgr.Cluster.KubeSphere.Enabled {
 				var version string
-				if strings.Contains(mgr.Cluster.KubeSphere.Version, "latest") || strings.Contains(mgr.Cluster.KubeSphere.Version, "nightly") {
+				if strings.Contains(mgr.Cluster.KubeSphere.Version, "latest") || strings.Contains(mgr.Cluster.KubeSphere.Version, "nightly") || strings.Contains(mgr.Cluster.KubeSphere.Version, "release") {
 					version = "v3.2.0"
 				} else {
 					r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
