@@ -3,6 +3,7 @@ package certs
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/certs/templates"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/pkg/errors"
@@ -331,5 +332,38 @@ func (s *SyneKubeConfigToWorker) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(chownKubeConfig, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "chown .kube dir failed")
 	}
+	return nil
+}
+
+type EnableRenewService struct {
+	common.KubeAction
+}
+
+func (e *EnableRenewService) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(
+		"chmod +x /usr/local/bin/kube-scripts/k8s-certs-renew.sh && systemctl enable --now k8s-certs-renew.timer",
+		false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "enable k8s renew certs service failed")
+	}
+	return nil
+}
+
+type UninstallAutoRenewCerts struct {
+	common.KubeAction
+}
+
+func (u *UninstallAutoRenewCerts) Execute(runtime connector.Runtime) error {
+	_, _ = runtime.GetRunner().SudoCmd("systemctl disable k8s-certs-renew.timer 1>/dev/null 2>/dev/null", true)
+	_, _ = runtime.GetRunner().SudoCmd("systemctl stop k8s-certs-renew.timer 1>/dev/null 2>/dev/null", true)
+
+	files := []string{
+		filepath.Join("/usr/local/bin/kube-scripts/", templates.K8sCertsRenewScript.Name()),
+		filepath.Join("/etc/systemd/system/", templates.K8sCertsRenewService.Name()),
+		filepath.Join("/etc/systemd/system/", templates.K8sCertsRenewTimer.Name()),
+	}
+	for _, file := range files {
+		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
+	}
+
 	return nil
 }
