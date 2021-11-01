@@ -42,7 +42,10 @@ func VersionSupport(version string) bool {
 }
 
 func PreRelease(version string) bool {
-	if strings.HasPrefix(version, "nightly-") || version == "latest" || strings.Contains(version, "alpha") {
+	if strings.HasPrefix(version, "nightly-") ||
+		version == "latest" ||
+		strings.Contains(version, "alpha") ||
+		strings.Contains(version, "release") {
 		return true
 	}
 	return false

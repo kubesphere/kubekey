@@ -7,6 +7,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/core/module"
@@ -36,6 +37,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.InstallKubeBinariesModule{},
 		&kubernetes.JoinNodesModule{},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&certs.AutoRenewCertsModule{},
 	}
 
 	p := pipeline.Pipeline{
@@ -78,6 +80,7 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&k3s.InstallKubeBinariesModule{},
 		&k3s.JoinNodesModule{},
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&certs.AutoRenewCertsModule{},
 	}
 
 	p := pipeline.Pipeline{

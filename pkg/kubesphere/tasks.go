@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	ksv2 "github.com/kubesphere/kubekey/pkg/kubesphere/v2"
 	ksv3 "github.com/kubesphere/kubekey/pkg/kubesphere/v3"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
@@ -99,6 +100,18 @@ func (s *Setup) Execute(runtime connector.Runtime) error {
 			false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("remove kubekey zone failed"))
 		}
+	}
+
+	switch s.KubeConf.Arg.ContainerManager {
+	case "docker", "containerd", "crio":
+		if _, err := runtime.GetRunner().SudoCmd(
+			fmt.Sprintf("sed -i '/containerruntime/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml", s.KubeConf.Arg.ContainerManager), false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set container runtime: %s failed", s.KubeConf.Arg.ContainerManager))
+		}
+	default:
+		logger.Log.Message(runtime.RemoteHost().GetName(),
+			fmt.Sprintf("Currently, the logging function of KubeSphere does not support %s. If %s is used, the logging function will be unavailable.",
+				s.KubeConf.Arg.ContainerManager, s.KubeConf.Arg.ContainerManager))
 	}
 
 	caFile := "/etc/ssl/etcd/ssl/ca.pem"
