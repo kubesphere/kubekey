@@ -2,6 +2,7 @@ package common
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/core/util"
@@ -164,8 +165,12 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 		}
 
 		if result["kind"] == "Cluster" {
-			if err := yaml.Unmarshal(content, &clusterCfg); err != nil {
-				return nil, errors.Wrap(err, "Unable to convert file to yaml")
+			contentToJson, err := k8syaml.ToJSON(content)
+			if err != nil {
+				return nil, errors.Wrap(err, "Unable to convert configuration to json")
+			}
+			if err := json.Unmarshal(contentToJson, &clusterCfg); err != nil {
+				return nil, errors.Wrap(err, "Failed to unmarshal configuration")
 			}
 			metadata := result["metadata"].(map[interface{}]interface{})
 			objName = metadata["name"].(string)

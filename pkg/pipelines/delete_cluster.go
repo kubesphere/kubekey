@@ -3,6 +3,7 @@ package pipelines
 import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
+	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
@@ -15,6 +16,7 @@ func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 		&confirm.DeleteClusterConfirmModule{},
 		&kubernetes.ResetClusterModule{},
 		&os.ClearOSEnvironmentModule{},
+		&certs.UninstallAutoRenewCertsModule{},
 	}
 
 	p := pipeline.Pipeline{
@@ -33,6 +35,7 @@ func NewK3sDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 		&confirm.DeleteClusterConfirmModule{},
 		&k3s.DeleteClusterModule{},
 		&os.ClearOSEnvironmentModule{},
+		&certs.UninstallAutoRenewCertsModule{},
 	}
 
 	p := pipeline.Pipeline{

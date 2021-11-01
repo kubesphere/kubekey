@@ -9,6 +9,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/core/module"
@@ -50,6 +51,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.JoinNodesModule{},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
+		&certs.AutoRenewCertsModule{},
 		&addons.AddonsModule{Skip: noNetworkPlugin},
 		&storage.DeployLocalVolumeModule{Skip: noNetworkPlugin || (!runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled)},
 		&kubesphere.DeployModule{Skip: noNetworkPlugin || !runtime.Cluster.KubeSphere.Enabled},
@@ -115,6 +117,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&k3s.JoinNodesModule{},
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
+		&certs.AutoRenewCertsModule{},
 		&addons.AddonsModule{Skip: noNetworkPlugin},
 		&storage.DeployLocalVolumeModule{Skip: noNetworkPlugin || (!runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled)},
 		&kubesphere.DeployModule{Skip: noNetworkPlugin || !runtime.Cluster.KubeSphere.Enabled},

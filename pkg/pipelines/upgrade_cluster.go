@@ -5,6 +5,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
@@ -27,6 +28,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubesphere.CheckResultModule{},
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV122},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV122},
+		&certs.AutoRenewCertsModule{},
 	}
 
 	p := pipeline.Pipeline{
