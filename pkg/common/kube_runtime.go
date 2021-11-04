@@ -13,7 +13,6 @@ type KubeRuntime struct {
 	ClusterName  string
 	Cluster      *kubekeyapiv1alpha2.ClusterSpec
 	Kubeconfig   string
-	Conditions   []kubekeyapiv1alpha2.Condition
 	ClientSet    *kubekeyclientset.Clientset
 	Arg          Argument
 }
@@ -25,6 +24,7 @@ type Argument struct {
 	KsEnable           bool
 	KsVersion          string
 	Debug              bool
+	IgnoreErr          bool
 	SkipPullImages     bool
 	AddImagesRepo      bool
 	DeployLocalStorage bool
@@ -53,16 +53,7 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		defaultCluster.Kubernetes.ContainerManager = arg.ContainerManager
 	}
 
-	//var clientset *kubekeyclientset.Clientset
-	//if arg.InCluster {
-	//	c, err := kubekeycontroller.NewKubekeyClient()
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	clientset = c
-	//}
-
-	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), arg.Debug)
+	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), arg.Debug, arg.IgnoreErr)
 	for _, v := range hostGroups.All {
 		host := ToHosts(v)
 		if v.IsMaster {
@@ -87,8 +78,7 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		ClusterHosts: generateHosts(hostGroups, defaultCluster),
 		Cluster:      defaultCluster,
 		ClusterName:  cluster.Name,
-		//ClientSet:    clientset,
-		Arg: arg,
+		Arg:          arg,
 	}
 	r.BaseRuntime = base
 

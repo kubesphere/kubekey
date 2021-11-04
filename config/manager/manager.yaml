@@ -23,10 +23,10 @@ spec:
         control-plane: controller-manager
     spec:
       securityContext:
-        runAsNonRoot: true
+        runAsUser: 1000
       containers:
       - command:
-        - /manager
+        - ./manager
         args:
         - --leader-elect
         image: controller:latest

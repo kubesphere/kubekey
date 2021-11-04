@@ -29,6 +29,7 @@ type Pipeline struct {
 	Name            string
 	Modules         []module.Module
 	Runtime         connector.Runtime
+	SpecHosts       int
 	PipelineCache   *cache.Cache
 	ModuleCachePool sync.Pool
 	ModulePostHooks []module.PostHookInterface
@@ -37,6 +38,7 @@ type Pipeline struct {
 func (p *Pipeline) Init() error {
 	fmt.Print(logo)
 	p.PipelineCache = cache.NewCache()
+	p.SpecHosts = len(p.Runtime.GetAllHosts())
 	if err := p.Runtime.GenerateWorkDir(); err != nil {
 		return err
 	}
@@ -48,7 +50,7 @@ func (p *Pipeline) Init() error {
 
 func (p *Pipeline) Start() error {
 	if err := p.Init(); err != nil {
-		return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
+		return errors.Wrapf(err, "Pipeline[%s] execute failed", p.Name)
 	}
 	for i := range p.Modules {
 		m := p.Modules[i]
@@ -60,13 +62,16 @@ func (p *Pipeline) Start() error {
 		res := p.RunModule(m)
 		err := m.CallPostHook(res)
 		if res.IsFailed() {
-			return errors.Wrapf(res.CombineResult, "Pipeline[%s] exec failed", p.Name)
+			return errors.Wrapf(res.CombineResult, "Pipeline[%s] execute failed", p.Name)
 		}
 		if err != nil {
-			return errors.Wrapf(err, "Pipeline[%s] exec failed", p.Name)
+			return errors.Wrapf(err, "Pipeline[%s] execute failed", p.Name)
 		}
 	}
 	p.releasePipelineCache()
+	if p.SpecHosts != len(p.Runtime.GetAllHosts()) {
+		return errors.Errorf("Pipeline[%s] execute failed: there are some error in your spec hosts", p.Name)
+	}
 	logger.Log.Infof("Pipeline[%s] execute successful", p.Name)
 	return nil
 }

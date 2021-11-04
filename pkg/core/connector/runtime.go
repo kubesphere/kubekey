@@ -10,22 +10,26 @@ import (
 )
 
 type BaseRuntime struct {
-	ObjName   string
-	connector Connector
-	runner    *Runner
-	workDir   string
-	verbose   bool
-	allHosts  []Host
-	roleHosts map[string][]Host
+	ObjName         string
+	connector       Connector
+	runner          *Runner
+	workDir         string
+	verbose         bool
+	ignoreErr       bool
+	allHosts        []Host
+	roleHosts       map[string][]Host
+	deprecatedHosts map[string]string
 }
 
-func NewBaseRuntime(name string, connector Connector, verbose bool) BaseRuntime {
+func NewBaseRuntime(name string, connector Connector, verbose bool, ignoreErr bool) BaseRuntime {
 	return BaseRuntime{
-		ObjName:   name,
-		connector: connector,
-		verbose:   verbose,
-		allHosts:  make([]Host, 0, 0),
-		roleHosts: make(map[string][]Host),
+		ObjName:         name,
+		connector:       connector,
+		verbose:         verbose,
+		ignoreErr:       ignoreErr,
+		allHosts:        make([]Host, 0, 0),
+		roleHosts:       make(map[string][]Host),
+		deprecatedHosts: make(map[string]string),
 	}
 }
 
@@ -87,6 +91,10 @@ func (b *BaseRuntime) GetWorkDir() string {
 	return b.workDir
 }
 
+func (b *BaseRuntime) GetIgnoreErr() bool {
+	return b.ignoreErr
+}
+
 func (b *BaseRuntime) GetAllHosts() []Host {
 	return b.allHosts
 }
@@ -105,13 +113,22 @@ func (b *BaseRuntime) RemoteHost() Host {
 
 func (b *BaseRuntime) DeleteHost(host Host) {
 	i := 0
-	for i = range b.allHosts {
-		if b.GetAllHosts()[i].GetName() == host.GetName() {
-			break
+	for j := range b.allHosts {
+		if b.GetAllHosts()[j].GetName() != host.GetName() {
+			b.allHosts[i] = b.allHosts[j]
+			i++
 		}
 	}
-	b.allHosts = append(b.allHosts[:i], b.allHosts[i+1:]...)
+	b.allHosts = b.allHosts[:i]
 	b.RoleMapDelete(host)
+	b.deprecatedHosts[host.GetName()] = ""
+}
+
+func (b *BaseRuntime) HostIsDeprecated(host Host) bool {
+	if _, ok := b.deprecatedHosts[host.GetName()]; ok {
+		return true
+	}
+	return false
 }
 
 func (b *BaseRuntime) InitLogger() error {
@@ -154,13 +171,15 @@ func (b *BaseRuntime) AppendRoleMap(host Host) {
 }
 
 func (b *BaseRuntime) RoleMapDelete(host Host) {
-	for k, role := range b.roleHosts {
+	for role, hosts := range b.roleHosts {
 		i := 0
-		for i = range role {
-			if role[i].GetName() == host.GetName() {
-				role = append(role[:i], role[i+1:]...)
+		for j := range hosts {
+			if hosts[j].GetName() != host.GetName() {
+				hosts[i] = hosts[j]
+				i++
 			}
 		}
-		b.roleHosts[k] = role
+		hosts = hosts[:i]
+		b.roleHosts[role] = hosts
 	}
 }

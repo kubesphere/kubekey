@@ -125,6 +125,22 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
+
+		nodes, err := clusterDiff(r, ctx, cluster)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		}
+		// If the CR cluster define current cluster
+		if len(nodes) != 0 {
+			if err := adaptCurrentCluster(nodes, cluster); err != nil {
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			}
+			if err := r.Status().Update(context.TODO(), cluster); err != nil {
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			}
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+
 		if err := updateRunJob(r, req, ctx, cluster, jobFound, log, CreateCluster); err != nil {
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
@@ -324,7 +340,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 		args = []string{"create", "cluster", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true"}
 	} else if action == AddNodes {
 		name = fmt.Sprintf("%s-add-nodes", c.Name)
-		args = []string{"add", "nodes", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true"}
+		args = []string{"add", "nodes", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true", "--ignore-err", "true"}
 	}
 
 	podlist := &corev1.PodList{}
@@ -517,29 +533,6 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 	// Check if the job already exists, if not create a new one
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
 		return nil
-	} else if err == nil && (jobFound.Status.Failed != 0 || jobFound.Status.Succeeded != 0) {
-		// delete old pods
-		podlist := &corev1.PodList{}
-		listOpts := []client.ListOption{
-			client.InNamespace("kubekey-system"),
-			client.MatchingLabels{"job-name": name},
-		}
-		if err := r.List(context.TODO(), podlist, listOpts...); err == nil && len(podlist.Items) != 0 {
-			for _, pod := range podlist.Items {
-				_ = r.Delete(ctx, &pod)
-			}
-		}
-		if err := r.Delete(ctx, jobFound); err != nil {
-			log.Error(err, "Failed to delete old Job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
-			return err
-		}
-
-		jobCluster := r.jobForCluster(cluster, action)
-		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-		if err := r.Create(ctx, jobCluster); err != nil {
-			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
-			return err
-		}
 	} else if kubeErr.IsNotFound(err) {
 		jobCluster := r.jobForCluster(cluster, action)
 		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
@@ -584,4 +577,79 @@ func sendHostsAction(action int, hosts []kubekeyv1alpha2.HostCfg, log logr.Logge
 			log.Error(err, "Failed to  send hosts info")
 		}
 	}
+}
+
+type NodeInfo struct {
+	Address string
+	Master  bool
+	Worker  bool
+}
+
+func clusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alpha2.Cluster) ([]kubekeyv1alpha2.NodeStatus, error) {
+	nodes := &corev1.NodeList{}
+	newNodes := make([]kubekeyv1alpha2.NodeStatus, 0)
+
+	if err := r.List(ctx, nodes, &client.ListOptions{}); err != nil {
+		return newNodes, err
+	}
+
+	m := make(map[string]NodeInfo)
+	for _, node := range nodes.Items {
+		var info NodeInfo
+
+		if _, ok := node.Labels["node-role.kubernetes.io/control-plane"]; ok {
+			info.Master = true
+		}
+		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+			info.Master = true
+		}
+		if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
+			info.Worker = true
+		}
+
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				info.Address = address.Address
+			}
+		}
+		m[node.Name] = info
+	}
+
+	for _, host := range c.Spec.Hosts {
+		if info, ok := m[host.Name]; ok {
+			if info.Address == host.InternalAddress {
+				newNodes = append(newNodes, kubekeyv1alpha2.NodeStatus{
+					InternalIP: host.InternalAddress,
+					Hostname:   host.Name,
+					Roles:      map[string]bool{"master": info.Master, "worker": info.Worker},
+				})
+			}
+		}
+	}
+	return newNodes, nil
+}
+
+func adaptCurrentCluster(newNodes []kubekeyv1alpha2.NodeStatus, c *kubekeyv1alpha2.Cluster) error {
+	var newMaster, newWorker []string
+	for _, node := range newNodes {
+		//if node.Roles["etcd"] {
+		//	newEtcd = append(newEtcd, node.Hostname)
+		//}
+		if node.Roles["master"] {
+			newMaster = append(newMaster, node.Hostname)
+		}
+		if node.Roles["worker"] {
+			newWorker = append(newWorker, node.Hostname)
+		}
+	}
+
+	c.Status.NodesCount = len(newNodes)
+	c.Status.MasterCount = len(newMaster)
+	//c.Status.EtcdCount = len(newEtcd)
+	c.Status.WorkerCount = len(newWorker)
+	c.Status.Nodes = newNodes
+	c.Status.Version = c.Spec.Kubernetes.Version
+	c.Status.NetworkPlugin = c.Spec.Network.Plugin
+
+	return nil
 }

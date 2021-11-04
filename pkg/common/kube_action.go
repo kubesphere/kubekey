@@ -16,7 +16,6 @@ func (k *KubeAction) AutoAssert(runtime connector.Runtime) {
 		ClusterHosts: kubeRuntime.ClusterHosts,
 		Cluster:      kubeRuntime.Cluster,
 		Kubeconfig:   kubeRuntime.Kubeconfig,
-		Conditions:   kubeRuntime.Conditions,
 		ClientSet:    kubeRuntime.ClientSet,
 		Arg:          kubeRuntime.Arg,
 	}

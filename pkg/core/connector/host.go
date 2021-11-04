@@ -19,9 +19,9 @@ type BaseHost struct {
 
 func NewHost() *BaseHost {
 	return &BaseHost{
-		Roles:           make([]string, 0, 0),
-		RoleTable:       make(map[string]bool),
-		Cache:           cache.NewCache(),
+		Roles:     make([]string, 0, 0),
+		RoleTable: make(map[string]bool),
+		Cache:     cache.NewCache(),
 	}
 }
 

@@ -28,10 +28,12 @@ type ModuleRuntime interface {
 	GenerateWorkDir() error
 	GetHostWorkDir() string
 	GetWorkDir() string
+	GetIgnoreErr() bool
 	GetAllHosts() []Host
 	SetAllHosts([]Host)
 	GetHostsByRole(role string) []Host
 	DeleteHost(host Host)
+	HostIsDeprecated(host Host) bool
 	InitLogger() error
 }
 

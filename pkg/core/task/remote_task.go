@@ -59,6 +59,9 @@ func (t *RemoteTask) Execute() *ending.TaskResult {
 	wg := &sync.WaitGroup{}
 
 	for i := range t.Hosts {
+		if t.Runtime.HostIsDeprecated(t.Hosts[i]) {
+			continue
+		}
 		selfRuntime := t.Runtime.Copy()
 		selfHost := t.Hosts[i].Copy()
 

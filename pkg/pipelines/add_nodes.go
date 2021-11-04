@@ -51,6 +51,9 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 			if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Failed); err != nil {
 				return err
 			}
+			if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+				return err
+			}
 		}
 		return err
 	}
@@ -92,6 +95,9 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 	if err := p.Start(); err != nil {
 		if runtime.Arg.InCluster {
 			if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Failed); err != nil {
+				return err
+			}
+			if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
 				return err
 			}
 		}

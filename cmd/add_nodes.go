@@ -30,6 +30,7 @@ var addNodesCmd = &cobra.Command{
 			FilePath:         opt.ClusterCfgFile,
 			KsEnable:         false,
 			Debug:            opt.Verbose,
+			IgnoreErr:        opt.IgnoreErr,
 			SkipConfirmCheck: opt.SkipConfirmCheck,
 			SkipPullImages:   opt.SkipPullImages,
 			InCluster:        opt.InCluster,

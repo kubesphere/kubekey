@@ -23,6 +23,7 @@ import (
 
 type Options struct {
 	Verbose          bool
+	IgnoreErr        bool
 	Addons           string
 	Name             string
 	ClusterCfgPath   string
@@ -75,6 +76,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&opt.InCluster, "in-cluster", false, "Running inside the cluster")
 	rootCmd.PersistentFlags().BoolVar(&opt.Verbose, "debug", true, "Print detailed information")
 	rootCmd.PersistentFlags().BoolVarP(&opt.SkipConfirmCheck, "yes", "y", false, "Skip confirm check")
+	rootCmd.PersistentFlags().BoolVar(&opt.IgnoreErr, "ignore-err", false, "Ignore the error message, remove the host which reported error and force to continue")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 }

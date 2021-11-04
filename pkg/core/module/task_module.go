@@ -35,7 +35,22 @@ func (b *BaseTaskModule) Run(result *ending.ModuleResult) {
 			ac := res.ActionResults[j]
 			logger.Log.Infof("%s: [%s]", ac.Status.String(), ac.Host.GetName())
 			result.AppendHostResult(ac)
+
+			if _, ok := t.(*task.RemoteTask); ok {
+				if b.Runtime.GetIgnoreErr() {
+					if len(b.Runtime.GetAllHosts()) > 0 {
+						if ac.GetStatus() == ending.FAILED {
+							res.Status = ending.SUCCESS
+							b.Runtime.DeleteHost(ac.Host)
+						}
+					} else {
+						result.ErrResult(errors.Wrapf(res.CombineErr(), "Module[%s] exec failed", b.Name))
+						return
+					}
+				}
+			}
 		}
+
 		if res.IsFailed() {
 			result.ErrResult(errors.Wrapf(res.CombineErr(), "Module[%s] exec failed", b.Name))
 			return

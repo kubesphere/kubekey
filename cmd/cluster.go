@@ -46,6 +46,7 @@ var clusterCmd = &cobra.Command{
 			InCluster:          opt.InCluster,
 			DeployLocalStorage: opt.LocalStorage,
 			Debug:              opt.Verbose,
+			IgnoreErr:          opt.IgnoreErr,
 			SkipConfirmCheck:   opt.SkipConfirmCheck,
 			ContainerManager:   opt.ContainerManager,
 		}

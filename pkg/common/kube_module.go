@@ -11,7 +11,6 @@ type KubeConf struct {
 	ClusterName  string
 	Cluster      *kubekeyapiv1alpha2.ClusterSpec
 	Kubeconfig   string
-	Conditions   []kubekeyapiv1alpha2.Condition
 	ClientSet    *kubekeyclientset.Clientset
 	Arg          Argument
 }
@@ -32,7 +31,6 @@ func (k *KubeModule) AutoAssert() {
 		ClusterName:  kubeRuntime.ClusterName,
 		Cluster:      kubeRuntime.Cluster,
 		Kubeconfig:   kubeRuntime.Kubeconfig,
-		Conditions:   kubeRuntime.Conditions,
 		ClientSet:    kubeRuntime.ClientSet,
 		Arg:          kubeRuntime.Arg,
 	}
@@ -52,7 +50,6 @@ func (k *KubeCustomModule) AutoAssert() {
 		ClusterName:  kubeRuntime.ClusterName,
 		Cluster:      kubeRuntime.Cluster,
 		Kubeconfig:   kubeRuntime.Kubeconfig,
-		Conditions:   kubeRuntime.Conditions,
 		ClientSet:    kubeRuntime.ClientSet,
 		Arg:          kubeRuntime.Arg,
 	}
