@@ -6,6 +6,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/certs/templates"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
@@ -290,11 +291,8 @@ type FetchKubeConfig struct {
 }
 
 func (f *FetchKubeConfig) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
-		"if [ -d %s ]; "+
-			"then rm -rf %s ;"+
-			"fi && mkdir -p %s", common.TmpDir, common.TmpDir, common.TmpDir), false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return err
 	}
 
 	tmpConfigFile := filepath.Join(common.TmpDir, "admin.conf")

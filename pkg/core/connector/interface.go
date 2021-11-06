@@ -7,13 +7,13 @@ import (
 )
 
 type Connection interface {
-	Exec(cmd string) (stdout string, stderr string, code int, err error)
-	PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr io.Writer) (code int, err error)
-	Fetch(local, remote string) error
-	Scp(local, remote string) error
-	RemoteFileExist(remote string) bool
-	RemoteDirExist(remote string) (bool, error)
-	MkDirAll(path string) error
+	Exec(cmd string, host Host) (stdout string, code int, err error)
+	PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr io.Writer, host Host) (code int, err error)
+	Fetch(local, remote string, host Host) error
+	Scp(local, remote string, host Host) error
+	RemoteFileExist(remote string, host Host) bool
+	RemoteDirExist(remote string, host Host) (bool, error)
+	MkDirAll(path string, mode string, host Host) error
 	Chmod(path string, mode os.FileMode) error
 	Close()
 }

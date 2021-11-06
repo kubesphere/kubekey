@@ -5,6 +5,7 @@ import (
 	osrelease "github.com/dominodatalab/os-release"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
 	"path/filepath"
 	"strings"
@@ -17,16 +18,16 @@ type NodeConfigureOS struct {
 func (n *NodeConfigureOS) Execute(runtime connector.Runtime) error {
 
 	host := runtime.RemoteHost()
-	_ = addUsers(runtime, host)
+	if err := addUsers(runtime, host); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to add users")
+	}
 
 	if err := createDirectories(runtime, host); err != nil {
 		return err
 	}
 
-	tmpDir := common.TmpDir
-	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("if [ -d %s ]; then rm -rf %s ;fi && mkdir -p %s", tmpDir, tmpDir, tmpDir), false)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to create tmp dir")
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return err
 	}
 
 	_, err1 := runtime.GetRunner().SudoCmd(fmt.Sprintf("hostnamectl set-hostname %s && sed -i '/^127.0.1.1/s/.*/127.0.1.1      %s/g' /etc/hosts", host.GetName(), host.GetName()), false)

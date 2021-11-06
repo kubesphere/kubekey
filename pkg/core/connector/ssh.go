@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
@@ -244,7 +245,7 @@ func (c *connection) session() (*ssh.Session, error) {
 	return sess, nil
 }
 
-func (c *connection) PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr io.Writer) (int, error) {
+func (c *connection) PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr io.Writer, host Host) (int, error) {
 	sess, err := c.session()
 	if err != nil {
 		return 1, errors.Wrap(err, "failed to get SSH session")
@@ -256,7 +257,48 @@ func (c *connection) PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr
 	sess.Stderr = stderr
 
 	exitCode := 0
-	if err = sess.Run(cmd); err != nil {
+
+	in, _ := sess.StdinPipe()
+	out, _ := sess.StdoutPipe()
+
+	err = sess.Start(strings.TrimSpace(cmd))
+	if err != nil {
+		exitCode = -1
+		if exitErr, ok := err.(*ssh.ExitError); ok {
+			exitCode = exitErr.ExitStatus()
+		}
+	}
+
+	var (
+		output []byte
+		line   = ""
+		r      = bufio.NewReader(out)
+	)
+
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			break
+		}
+
+		output = append(output, b)
+
+		if b == byte('\n') {
+			line = ""
+			continue
+		}
+
+		line += string(b)
+
+		if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
+			_, err = in.Write([]byte(host.GetPassword() + "\n"))
+			if err != nil {
+				break
+			}
+		}
+	}
+	err = sess.Wait()
+	if err != nil {
 		exitCode = -1
 		if exitErr, ok := err.(*ssh.ExitError); ok {
 			exitCode = exitErr.ExitStatus()
@@ -267,20 +309,78 @@ func (c *connection) PExec(cmd string, stdin io.Reader, stdout io.Writer, stderr
 	return exitCode, err
 }
 
-func (c *connection) Exec(cmd string) (stdout string, stderr string, code int, err error) {
-	var stdoutBuf, stderrBuf strings.Builder
+func (c *connection) Exec(cmd string, host Host) (stdout string, code int, err error) {
+	sess, err := c.session()
+	if err != nil {
+		return "", 1, errors.Wrap(err, "failed to get SSH session")
+	}
+	defer sess.Close()
 
-	exitCode, err := c.PExec(cmd, nil, &stdoutBuf, &stderrBuf)
+	exitCode := 0
 
-	return strings.TrimSpace(stdoutBuf.String()), stderrBuf.String(), exitCode, err
+	in, _ := sess.StdinPipe()
+	out, _ := sess.StdoutPipe()
+
+	err = sess.Start(strings.TrimSpace(cmd))
+	if err != nil {
+		exitCode = -1
+		if exitErr, ok := err.(*ssh.ExitError); ok {
+			exitCode = exitErr.ExitStatus()
+		}
+		return "", exitCode, err
+	}
+
+	var (
+		output []byte
+		line   = ""
+		r      = bufio.NewReader(out)
+	)
+
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			break
+		}
+
+		output = append(output, b)
+
+		if b == byte('\n') {
+			line = ""
+			continue
+		}
+
+		line += string(b)
+
+		if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
+			_, err = in.Write([]byte(host.GetPassword() + "\n"))
+			if err != nil {
+				break
+			}
+		}
+	}
+	err = sess.Wait()
+	if err != nil {
+		exitCode = -1
+		if exitErr, ok := err.(*ssh.ExitError); ok {
+			exitCode = exitErr.ExitStatus()
+		}
+	}
+	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", host.GetUser()))
+
+	// preserve original error
+	return strings.TrimSpace(outStr), exitCode, errors.Wrapf(err, "Failed to exec command: %s \n%s", cmd, strings.TrimSpace(outStr))
 }
 
-func (c *connection) Fetch(local, remote string) error {
-	srcFile, err := c.sftpclient.Open(remote)
+func (c *connection) Fetch(local, remote string, host Host) error {
+	//srcFile, err := c.sftpclient.Open(remote)
+	//if err != nil {
+	//	return fmt.Errorf("open remote file failed %v, remote path: %s", err, remote)
+	//}
+	//defer srcFile.Close()
+	output, _, err := c.Exec(SudoPrefix(fmt.Sprintf("cat %s", remote)), host)
 	if err != nil {
 		return fmt.Errorf("open remote file failed %v, remote path: %s", err, remote)
 	}
-	defer srcFile.Close()
 
 	err = util.MkFileFullPathDir(local)
 	if err != nil {
@@ -293,7 +393,8 @@ func (c *connection) Fetch(local, remote string) error {
 	}
 	defer dstFile.Close()
 	// copy to local file
-	_, err = srcFile.WriteTo(dstFile)
+	//_, err = srcFile.WriteTo(dstFile)
+	_, err = dstFile.WriteString(output)
 	return err
 }
 
@@ -301,10 +402,10 @@ type scpErr struct {
 	err error
 }
 
-func (c *connection) Scp(src, dst string) error {
+func (c *connection) Scp(src, dst string, host Host) error {
 	baseRemotePath := filepath.Dir(dst)
 
-	if err := c.MkDirAll(baseRemotePath); err != nil {
+	if err := c.MkDirAll(baseRemotePath, "777", host); err != nil {
 		return err
 	}
 	f, err := os.Stat(src)
@@ -323,26 +424,26 @@ func (c *connection) Scp(src, dst string) error {
 
 	scpErr := new(scpErr)
 	if f.IsDir() {
-		c.copyDirToRemote(src, dst, scpErr)
+		c.copyDirToRemote(src, dst, scpErr, host)
 		if scpErr.err != nil {
 			return scpErr.err
 		}
 	} else {
-		if err := c.copyFileToRemote(src, dst); err != nil {
+		if err := c.copyFileToRemote(src, dst, host); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *connection) copyDirToRemote(src, dst string, scrErr *scpErr) {
+func (c *connection) copyDirToRemote(src, dst string, scrErr *scpErr, host Host) {
 	localFiles, err := ioutil.ReadDir(src)
 	if err != nil {
 		logger.Log.Errorf("read local path dir %s failed %v", src, err)
 		scrErr.err = err
 		return
 	}
-	if err = c.MkDirAll(dst); err != nil {
+	if err = c.MkDirAll(dst, "", host); err != nil {
 		logger.Log.Errorf("failed to create remote path %s:%v", dst, err)
 		scrErr.err = err
 		return
@@ -351,14 +452,14 @@ func (c *connection) copyDirToRemote(src, dst string, scrErr *scpErr) {
 		local := path.Join(src, file.Name())
 		remote := path.Join(dst, file.Name())
 		if file.IsDir() {
-			if err = c.MkDirAll(remote); err != nil {
+			if err = c.MkDirAll(remote, "", host); err != nil {
 				logger.Log.Errorf("failed to create remote path %s:%v", remote, err)
 				scrErr.err = err
 				return
 			}
-			c.copyDirToRemote(local, remote, scrErr)
+			c.copyDirToRemote(local, remote, scrErr, host)
 		} else {
-			err := c.copyFileToRemote(local, remote)
+			err := c.copyFileToRemote(local, remote, host)
 			if err != nil {
 				logger.Log.Errorf("copy local file %s to remote file %s failed %v ", local, remote, err)
 				scrErr.err = err
@@ -368,14 +469,14 @@ func (c *connection) copyDirToRemote(src, dst string, scrErr *scpErr) {
 	}
 }
 
-func (c *connection) copyFileToRemote(src, dst string) error {
+func (c *connection) copyFileToRemote(src, dst string, host Host) error {
 	// check remote file md5 first
 	var (
 		srcMd5, dstMd5 string
 	)
 	srcMd5 = util.LocalMd5Sum(src)
-	if c.RemoteFileExist(dst) {
-		dstMd5 = c.RemoteMd5Sum(dst)
+	if c.RemoteFileExist(dst, host) {
+		dstMd5 = c.RemoteMd5Sum(dst, host)
 		if srcMd5 == dstMd5 {
 			logger.Log.Debug("remote file %s md5 value is the same as local file, skip scp", dst)
 			return nil
@@ -388,7 +489,7 @@ func (c *connection) copyFileToRemote(src, dst string) error {
 	}
 	defer srcFile.Close()
 	// the dst file mod will be 0666
-	dstFile, err := c.sftpclient.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	dstFile, err := c.sftpclient.Create(dst)
 	if err != nil {
 		return err
 	}
@@ -404,29 +505,29 @@ func (c *connection) copyFileToRemote(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	dstMd5 = c.RemoteMd5Sum(dst)
+	dstMd5 = c.RemoteMd5Sum(dst, host)
 	if srcMd5 != dstMd5 {
 		return fmt.Errorf("validate md5sum failed %s != %s", srcMd5, dstMd5)
 	}
 	return nil
 }
 
-func (c *connection) RemoteMd5Sum(dst string) string {
+func (c *connection) RemoteMd5Sum(dst string, host Host) string {
 	cmd := fmt.Sprintf("md5sum %s | cut -d\" \" -f1", dst)
-	remoteMd5, _, _, err := c.Exec(cmd)
+	remoteMd5, _, err := c.Exec(cmd, host)
 	if err != nil {
 		logger.Log.Errorf("exec countRemoteMd5Command %s failed: %v", cmd, err)
 	}
 	return remoteMd5
 }
 
-func (c *connection) RemoteFileExist(dst string) bool {
+func (c *connection) RemoteFileExist(dst string, host Host) bool {
 	remoteFileName := path.Base(dst)
 	remoteFileDirName := path.Dir(dst)
 
 	remoteFileCommand := fmt.Sprintf(SudoPrefix("ls -l %s/%s 2>/dev/null |wc -l"), remoteFileDirName, remoteFileName)
 
-	out, _, _, err := c.Exec(remoteFileCommand)
+	out, _, err := c.Exec(remoteFileCommand, host)
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Log.Errorf("exec remoteFileCommand %s err: %v", remoteFileCommand, err)
@@ -447,16 +548,19 @@ func (c *connection) RemoteFileExist(dst string) bool {
 	return count != 0
 }
 
-func (c *connection) RemoteDirExist(dst string) (bool, error) {
+func (c *connection) RemoteDirExist(dst string, host Host) (bool, error) {
 	if _, err := c.sftpclient.ReadDir(dst); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (c *connection) MkDirAll(path string) error {
-	mkDstDir := fmt.Sprintf("mkdir -p %s || true", path)
-	if _, _, _, err := c.Exec(SudoPrefix(mkDstDir)); err != nil {
+func (c *connection) MkDirAll(path string, mode string, host Host) error {
+	if mode == "" {
+		mode = "666"
+	}
+	mkDstDir := fmt.Sprintf("mkdir -p -m %s %s || true", mode, path)
+	if _, _, err := c.Exec(SudoPrefix(mkDstDir), host); err != nil {
 		return err
 	}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/kubernetes/templates/v1beta2"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	dnsTemplates "github.com/kubesphere/kubekey/pkg/plugins/dns/templates"
+	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os"
@@ -89,10 +90,8 @@ func (i *SyncKubeBinary) Execute(runtime connector.Runtime) error {
 
 // SyncKubeBinaries is used to sync kubernetes' binaries to each node.
 func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]files.KubeBinary) error {
-	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("if [ -d %s ]; then rm -rf %s ;fi && mkdir -p %s",
-		common.TmpDir, common.TmpDir, common.TmpDir), false)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return err
 	}
 
 	binaryList := []string{"kubeadm", "kubelet", "kubectl", "helm", "kubecni"}
@@ -102,10 +101,10 @@ func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]files.Ku
 			return fmt.Errorf("get kube binary %s info failed: no such key", name)
 		}
 		switch name {
-		case "kubelet":
-			if err := runtime.GetRunner().Scp(binary.Path, fmt.Sprintf("%s/%s", common.TmpDir, binary.Name)); err != nil {
-				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube binaries failed"))
-			}
+		//case "kubelet":
+		//	if err := runtime.GetRunner().Scp(binary.Path, fmt.Sprintf("%s/%s", common.TmpDir, binary.Name)); err != nil {
+		//		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube binaries failed"))
+		//	}
 		case "kubecni":
 			dst := filepath.Join("/opt/cni/bin", binary.Name)
 			if err := runtime.GetRunner().SudoScp(binary.Path, dst); err != nil {
@@ -132,8 +131,7 @@ type SyncKubelet struct {
 }
 
 func (s *SyncKubelet) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd("cp -f /tmp/kubekey/kubelet /usr/local/bin/kubelet "+
-		"&& chmod +x /usr/local/bin/kubelet", false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd("chmod +x /usr/local/bin/kubelet", false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync kubelet service failed")
 	}
 	return nil

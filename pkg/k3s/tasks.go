@@ -10,6 +10,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/k3s/templates"
+	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
 	"path/filepath"
 	"strings"
@@ -78,10 +79,8 @@ func (s *SyncKubeBinary) Execute(runtime connector.Runtime) error {
 
 // SyncKubeBinaries is used to sync kubernetes' binaries to each node.
 func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]files.KubeBinary) error {
-	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("if [ -d %s ]; then rm -rf %s ;fi && mkdir -p %s",
-		common.TmpDir, common.TmpDir, common.TmpDir), false)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return err
 	}
 
 	binaryList := []string{"k3s", "helm", "kubecni"}

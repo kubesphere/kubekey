@@ -8,6 +8,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/etcd/templates"
+	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
 	"path/filepath"
 	"strings"
@@ -95,9 +96,9 @@ func (e *ExecCertsScript) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	cmd := fmt.Sprintf("sh %s/make-ssl-etcd.sh -f %s/openssl.conf -d %s", common.ETCDCertDir, common.ETCDCertDir, common.ETCDCertDir)
+	cmd := fmt.Sprintf("/bin/bash -x %s/make-ssl-etcd.sh -f %s/openssl.conf -d %s", common.ETCDCertDir, common.ETCDCertDir, common.ETCDCertDir)
 	if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "generate etcd certs faild")
+		return errors.Wrap(errors.WithStack(err), "generate etcd certs failed")
 	}
 
 	tmpCertsDir := filepath.Join(common.TmpDir, "ETCD_certs")
@@ -169,9 +170,8 @@ type InstallETCDBinary struct {
 }
 
 func (g *InstallETCDBinary) Execute(runtime connector.Runtime) error {
-	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("if [ -d %s ]; then rm -rf %s ;fi && mkdir -p %s", common.TmpDir, common.TmpDir, common.TmpDir), false)
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return err
 	}
 
 	etcdFile := fmt.Sprintf("etcd-%s-linux-%s", kubekeyapiv1alpha2.DefaultEtcdVersion, runtime.RemoteHost().GetArch())
