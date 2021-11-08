@@ -484,6 +484,7 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 						Containers: []kubekeyv1alpha2.ContainerInfo{{Name: podlist.Items[0].Status.ContainerStatuses[0].Name}},
 					}},
 				}
+				cluster.Status.Conditions = make([]kubekeyv1alpha2.Condition, 0)
 
 				if err := r.Status().Update(context.TODO(), cluster); err != nil {
 					return err
@@ -533,6 +534,29 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 	// Check if the job already exists, if not create a new one
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
 		return nil
+	} else if err == nil && jobFound.Status.Succeeded != 0 {
+		// delete old pods
+		podlist := &corev1.PodList{}
+		listOpts := []client.ListOption{
+			client.InNamespace("kubekey-system"),
+			client.MatchingLabels{"job-name": name},
+		}
+		if err := r.List(context.TODO(), podlist, listOpts...); err == nil && len(podlist.Items) != 0 {
+			for _, pod := range podlist.Items {
+				_ = r.Delete(ctx, &pod)
+			}
+		}
+		if err := r.Delete(ctx, jobFound); err != nil {
+			log.Error(err, "Failed to delete old Job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
+			return err
+		}
+
+		jobCluster := r.jobForCluster(cluster, action)
+		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+		if err := r.Create(ctx, jobCluster); err != nil {
+			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+			return err
+		}
 	} else if kubeErr.IsNotFound(err) {
 		jobCluster := r.jobForCluster(cluster, action)
 		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
