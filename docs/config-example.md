@@ -83,7 +83,7 @@ spec:
         enabled: false
         username: ""
         password: ""
-      externalElasticsearchHost: ""
+      externalElasticsearchUrl: ""
       externalElasticsearchPort: ""
   console:
     enableMultiLogin: true  # Enable or disable simultaneous logins. It allows different users to log in with the same account at the same time.
