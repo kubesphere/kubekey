@@ -206,7 +206,7 @@ spec:
         enabled: false
         username: ""
         password: ""
-      externalElasticsearchUrl: ""
+      externalElasticsearchHost: ""
       externalElasticsearchPort: ""  
   console:
     enableMultiLogin: true 
@@ -323,7 +323,7 @@ spec:
         enabled: false
         username: ""
         password: ""
-      externalElasticsearchUrl: ""
+      externalElasticsearchHost: ""
       externalElasticsearchPort: ""  
   console:
     enableMultiLogin: true 
@@ -465,7 +465,7 @@ spec:
         enabled: false
         username: ""
         password: ""
-      externalElasticsearchUrl: ""
+      externalElasticsearchHost: ""
       externalElasticsearchPort: ""
   alerting:
     enabled: false
