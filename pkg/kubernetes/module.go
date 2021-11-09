@@ -536,3 +536,22 @@ func (p *ProgressiveUpgradeModule) Until() (*bool, error) {
 		return &t, nil
 	}
 }
+
+type SaveKubeConfigModule struct {
+	common.KubeModule
+}
+
+func (s *SaveKubeConfigModule) Init() {
+	s.Name = "SaveKubeConfigModule"
+	s.Desc = "Save kube config file as a configmap"
+
+	save := &task.LocalTask{
+		Name:   "SaveKubeConfig",
+		Desc:   "Save kube config as a configmap",
+		Action: new(SaveKubeConfig),
+	}
+
+	s.Tasks = []task.Interface{
+		save,
+	}
+}

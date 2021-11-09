@@ -18,20 +18,17 @@ package kubekey
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/ending"
-	"io/ioutil"
-	"path/filepath"
+	"github.com/pkg/errors"
 	"text/template"
 
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/lithammer/dedent"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,7 +51,7 @@ const (
 var (
 	newNodes          []string
 	clusterKubeSphere = template.Must(template.New("cluster.kubesphere.io").Parse(
-		dedent.Dedent(`apiVersion: cluster.kubesphere.io/v1alpha2
+		dedent.Dedent(`apiVersion: cluster.kubesphere.io/v1alpha1
 kind: Cluster
 metadata:
   finalizers:
@@ -97,7 +94,7 @@ func CheckClusterRole() (bool, *rest.Config, error) {
 	}
 	var hostClusterFlag bool
 	if err := clientset.RESTClient().Get().
-		AbsPath("/apis/cluster.kubesphere.io/v1alpha2/clusters").
+		AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").
 		Name("host").
 		Do(context.TODO()).Error(); err == nil {
 		hostClusterFlag = true
@@ -257,28 +254,26 @@ func getClusterClientSet(runtime *common.KubeRuntime) (*kube.Clientset, error) {
 		return nil, err
 	}
 
-	obj, err := clientset.RESTClient().Get().AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").Name(runtime.ClusterName).Do(context.TODO()).Raw()
+	cm, err := clientset.
+		CoreV1().
+		ConfigMaps("kubekey-system").
+		Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", runtime.ClusterName), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-
-	result := make(map[string]interface{})
-	_ = yaml.Unmarshal(obj, &result)
-
-	spec := result["spec"].(map[interface{}]interface{})
-	connection := spec["connection"].(map[interface{}]interface{})
-
-	kubeconfigStr, _ := base64.StdEncoding.DecodeString(connection["kubeconfig"].(string))
-
-	kubeConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.ClusterName))
-	if err := ioutil.WriteFile(kubeConfigPath, kubeconfigStr, 0644); err != nil {
-		return nil, err
+	kubeConfig, ok := cm.Data["kubeconfig"]
+	if !ok {
+		return nil, errors.Errorf("get kubeconfig from %s configmap failed", runtime.ClusterName)
 	}
-	kubeconfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	config, err := clientcmd.NewClientConfigFromBytes([]byte(kubeConfig))
 	if err != nil {
 		return nil, err
 	}
-	clientsetForCluster, err := kube.NewForConfig(kubeconfig)
+	restConfig, err := config.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientsetForCluster, err := kube.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}

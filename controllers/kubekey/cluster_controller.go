@@ -484,7 +484,6 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 						Containers: []kubekeyv1alpha2.ContainerInfo{{Name: podlist.Items[0].Status.ContainerStatuses[0].Name}},
 					}},
 				}
-				cluster.Status.Conditions = make([]kubekeyv1alpha2.Condition, 0)
 
 				if err := r.Status().Update(context.TODO(), cluster); err != nil {
 					return err
@@ -535,6 +534,11 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
 		return nil
 	} else if err == nil && jobFound.Status.Succeeded != 0 {
+		cluster.Status.Conditions = make([]kubekeyv1alpha2.Condition, 0)
+		if err := r.Status().Update(context.TODO(), cluster); err != nil {
+			return err
+		}
+
 		// delete old pods
 		podlist := &corev1.PodList{}
 		listOpts := []client.ListOption{

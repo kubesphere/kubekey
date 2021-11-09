@@ -1,6 +1,7 @@
 package k3s
 
 import (
+	"context"
 	"fmt"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -12,6 +13,10 @@ import (
 	"github.com/kubesphere/kubekey/pkg/k3s/templates"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kube "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	"path/filepath"
 	"strings"
 )
@@ -366,6 +371,64 @@ func (e *ExecUninstallScript) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && /usr/local/bin/k3s-uninstall.sh",
 		true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "add master NoSchedule taint failed")
+	}
+	return nil
+}
+
+type SaveKubeConfig struct {
+	common.KubeAction
+}
+
+func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
+	status, ok := s.PipelineCache.Get(common.ClusterStatus)
+	if !ok {
+		return errors.New("get kubernetes status failed by pipeline cache")
+	}
+	cluster := status.(*K3sStatus)
+
+	oldServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Domain, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
+	newServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Address, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
+	newKubeConfigStr := strings.Replace(cluster.KubeConfig, oldServer, newServer, -1)
+
+	config, err := clientcmd.NewClientConfigFromBytes([]byte(newKubeConfigStr))
+	if err != nil {
+		return err
+	}
+	restConfig, err := config.ClientConfig()
+	if err != nil {
+		return err
+	}
+	clientsetForCluster, err := kube.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "kubekey-system",
+		},
+	}
+	if _, err := clientsetForCluster.
+		CoreV1().
+		Namespaces().
+		Create(context.TODO(), namespace, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-kubeconfig", s.KubeConf.ClusterName),
+		},
+		Data: map[string]string{
+			"kubeconfig": newKubeConfigStr,
+		},
+	}
+
+	if _, err := clientsetForCluster.
+		CoreV1().
+		ConfigMaps("kubekey-system").
+		Create(context.TODO(), cm, metav1.CreateOptions{}); err != nil {
+		return err
 	}
 	return nil
 }
