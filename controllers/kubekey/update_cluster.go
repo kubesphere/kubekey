@@ -192,7 +192,6 @@ func UpdateClusterConditions(runtime *common.KubeRuntime, step string, result *e
 		Status:    allStatus,
 		Events:    m,
 	}
-	//kubeConf.Conditions = append(kubeConf.Conditions, condition)
 
 	cluster, err := getCluster(runtime.ClusterName)
 	if err != nil {
@@ -396,4 +395,17 @@ func configMapForKubeconfig(runtime *common.KubeRuntime) *corev1.ConfigMap {
 	}
 
 	return cm
+}
+
+func ClearConditions(runtime *common.KubeRuntime) error {
+	cluster, err := getCluster(runtime.ClusterName)
+	if err != nil {
+		return err
+	}
+	cluster.Status.Conditions = make([]kubekeyapiv1alpha2.Condition, 0)
+
+	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+	return nil
 }

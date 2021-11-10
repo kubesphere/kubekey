@@ -147,6 +147,9 @@ func AddNodes(args common.Argument, downloadCmd string) error {
 		if err := kubekeycontroller.CreateNodeForCluster(runtime); err != nil {
 			return err
 		}
+		if err := kubekeycontroller.ClearConditions(runtime); err != nil {
+			return err
+		}
 	}
 
 	switch runtime.Cluster.Kubernetes.Type {

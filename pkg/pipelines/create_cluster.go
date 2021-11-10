@@ -191,6 +191,9 @@ func CreateCluster(args common.Argument, downloadCmd string) error {
 			return err
 		}
 		runtime.ClientSet = c
+		if err := kubekeycontroller.ClearConditions(runtime); err != nil {
+			return err
+		}
 	}
 
 	switch runtime.Cluster.Kubernetes.Type {
