@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"strings"
@@ -533,7 +534,7 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 
 	// Check if the job already exists, if not create a new one
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
-		return nil
+		return err
 	} else if err == nil && (jobFound.Status.Failed != 0 || jobFound.Status.Succeeded != 0) {
 		// delete old pods
 		podlist := &corev1.PodList{}
@@ -546,13 +547,32 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 				_ = r.Delete(ctx, &pod)
 			}
 		}
+		log.Info("Prepare to delete old job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
 		if err := r.Delete(ctx, jobFound); err != nil {
 			log.Error(err, "Failed to delete old Job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
 			return err
 		}
+		log.Info("Deleting old job success", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
+
+		err := wait.PollInfinite(1*time.Second, func() (bool, error) {
+			log.Info("Checking old job is deleted", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
+			if e := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); e != nil {
+				if kubeErr.IsNotFound(e) {
+					return true, nil
+				} else {
+					return false, e
+				}
+			} else {
+				return false, nil
+			}
+		})
+		if err != nil {
+			log.Error(err, "Failed to loop check old job is deleted", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
+			return err
+		}
 
 		jobCluster := r.jobForCluster(cluster, action)
-		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+		log.Info("Creating a new Job to scale cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 		if err := r.Create(ctx, jobCluster); err != nil {
 			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 			return err
