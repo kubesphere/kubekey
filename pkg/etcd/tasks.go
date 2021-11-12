@@ -133,7 +133,7 @@ func generateCertsFiles(runtime connector.Runtime) []string {
 		certsList = append(certsList, fmt.Sprintf("member-%s.pem", host.GetName()))
 		certsList = append(certsList, fmt.Sprintf("member-%s-key.pem", host.GetName()))
 	}
-	for _, host := range runtime.GetHostsByRole(common.ETCD) {
+	for _, host := range runtime.GetHostsByRole(common.Master) {
 		certsList = append(certsList, fmt.Sprintf("node-%s.pem", host.GetName()))
 		certsList = append(certsList, fmt.Sprintf("node-%s-key.pem", host.GetName()))
 	}
