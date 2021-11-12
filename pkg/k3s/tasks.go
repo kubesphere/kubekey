@@ -2,6 +2,7 @@ package k3s
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -389,6 +390,7 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 	oldServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Domain, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
 	newServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Address, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
 	newKubeConfigStr := strings.Replace(cluster.KubeConfig, oldServer, newServer, -1)
+	kubeConfigBase64 := base64.StdEncoding.EncodeToString([]byte(newKubeConfigStr))
 
 	config, err := clientcmd.NewClientConfigFromBytes([]byte(newKubeConfigStr))
 	if err != nil {
@@ -420,7 +422,7 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 			Name: fmt.Sprintf("%s-kubeconfig", s.KubeConf.ClusterName),
 		},
 		Data: map[string]string{
-			"kubeconfig": newKubeConfigStr,
+			"kubeconfig": kubeConfigBase64,
 		},
 	}
 

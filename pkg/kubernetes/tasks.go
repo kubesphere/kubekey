@@ -367,13 +367,13 @@ func (s *SyncKubeConfigToWorker) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(errors.WithStack(err), "create .kube dir failed")
 		}
 
-		syncKubeConfigForRootCmd := fmt.Sprintf("echo %s | base64 -d > %s", cluster.KubeConfig, "/root/.kube/config")
+		syncKubeConfigForRootCmd := fmt.Sprintf("echo %s > %s", cluster.KubeConfig, "/root/.kube/config")
 		if _, err := runtime.GetRunner().SudoCmd(syncKubeConfigForRootCmd, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "sync kube config for root failed")
 		}
 
 		chownKubeConfig := "chown $(id -u):$(id -g) -R $HOME/.kube"
-		syncKubeConfigForUserCmd := fmt.Sprintf("echo %s | base64 -d > %s && %s", cluster.KubeConfig, "$HOME/.kube/config", chownKubeConfig)
+		syncKubeConfigForUserCmd := fmt.Sprintf("echo %s > %s && %s", cluster.KubeConfig, "$HOME/.kube/config", chownKubeConfig)
 		if _, err := runtime.GetRunner().SudoCmd(syncKubeConfigForUserCmd, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "sync kube config for normal user failed")
 		}
@@ -924,14 +924,12 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 		return errors.New("get kubernetes status failed by pipeline cache")
 	}
 	cluster := status.(*KubernetesStatus)
-	kubeConfigStr, err := base64.StdEncoding.DecodeString(cluster.KubeConfig)
-	if err != nil {
-		return err
-	}
+	kubeConfigStr := cluster.KubeConfig
 
 	oldServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Domain, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
 	newServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Address, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
-	newKubeConfigStr := strings.Replace(string(kubeConfigStr), oldServer, newServer, -1)
+	newKubeConfigStr := strings.Replace(kubeConfigStr, oldServer, newServer, -1)
+	kubeConfigBase64 := base64.StdEncoding.EncodeToString([]byte(newKubeConfigStr))
 
 	config, err := clientcmd.NewClientConfigFromBytes([]byte(newKubeConfigStr))
 	if err != nil {
@@ -963,7 +961,7 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 			Name: fmt.Sprintf("%s-kubeconfig", s.KubeConf.ClusterName),
 		},
 		Data: map[string]string{
-			"kubeconfig": newKubeConfigStr,
+			"kubeconfig": kubeConfigBase64,
 		},
 	}
 

@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"encoding/base64"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -111,8 +110,8 @@ func (k *KubernetesStatus) SearchNodesInfo(_ connector.Runtime) error {
 }
 
 func (k *KubernetesStatus) SearchKubeConfig(runtime connector.Runtime) error {
-	kubeCfgBase64Cmd := "cat /etc/kubernetes/admin.conf | base64 --wrap=0"
-	if kubeConfigStr, err := runtime.GetRunner().SudoCmd(kubeCfgBase64Cmd, false); err != nil {
+	kubeCfgCmd := "cat /etc/kubernetes/admin.conf"
+	if kubeConfigStr, err := runtime.GetRunner().SudoCmd(kubeCfgCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "search cluster kubeconfig failed")
 	} else {
 		k.KubeConfig = kubeConfigStr
@@ -122,14 +121,11 @@ func (k *KubernetesStatus) SearchKubeConfig(runtime connector.Runtime) error {
 
 func (k *KubernetesStatus) LoadKubeConfig(runtime connector.Runtime, kubeConf *common.KubeConf) error {
 	kubeConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.GetObjName()))
-	kubeConfigStr, err := base64.StdEncoding.DecodeString(k.KubeConfig)
-	if err != nil {
-		return err
-	}
+	kubeConfigStr := k.KubeConfig
 
 	oldServer := fmt.Sprintf("server: https://%s:%d", kubeConf.Cluster.ControlPlaneEndpoint.Domain, kubeConf.Cluster.ControlPlaneEndpoint.Port)
 	newServer := fmt.Sprintf("server: https://%s:%d", kubeConf.Cluster.ControlPlaneEndpoint.Address, kubeConf.Cluster.ControlPlaneEndpoint.Port)
-	newKubeConfigStr := strings.Replace(string(kubeConfigStr), oldServer, newServer, -1)
+	newKubeConfigStr := strings.Replace(kubeConfigStr, oldServer, newServer, -1)
 
 	if err := ioutil.WriteFile(kubeConfigPath, []byte(newKubeConfigStr), 0644); err != nil {
 		return err

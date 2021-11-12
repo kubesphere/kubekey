@@ -18,6 +18,7 @@ package kubekey
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/addons"
@@ -260,11 +261,17 @@ func getClusterClientSet(runtime *common.KubeRuntime) (*kube.Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	kubeConfig, ok := cm.Data["kubeconfig"]
+	kubeConfigBase64, ok := cm.Data["kubeconfig"]
 	if !ok {
 		return nil, errors.Errorf("get kubeconfig from %s configmap failed", runtime.ClusterName)
 	}
-	config, err := clientcmd.NewClientConfigFromBytes([]byte(kubeConfig))
+
+	kubeConfigStr, err := base64.StdEncoding.DecodeString(kubeConfigBase64)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := clientcmd.NewClientConfigFromBytes(kubeConfigStr)
 	if err != nil {
 		return nil, err
 	}

@@ -331,7 +331,7 @@ func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha2.Cluster) *cor
 	return cm
 }
 
-func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action string) *batchv1.Job {
+func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action string, log logr.Logger) *batchv1.Job {
 	var (
 		backoffLimit int32 = 0
 		name         string
@@ -350,7 +350,10 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 		client.InNamespace("kubekey-system"),
 		client.MatchingLabels{"control-plane": "controller-manager"},
 	}
-	_ = r.List(context.TODO(), podlist, listOpts...)
+	err := r.List(context.TODO(), podlist, listOpts...)
+	if err != nil {
+		log.Error(err, "Failed to list kubekey controller-manager pod")
+	}
 	nodeName := podlist.Items[0].Spec.NodeName
 	var image string
 	for _, container := range podlist.Items[0].Spec.Containers {
@@ -571,14 +574,14 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 			return err
 		}
 
-		jobCluster := r.jobForCluster(cluster, action)
+		jobCluster := r.jobForCluster(cluster, action, log)
 		log.Info("Creating a new Job to scale cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 		if err := r.Create(ctx, jobCluster); err != nil {
 			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 			return err
 		}
 	} else if kubeErr.IsNotFound(err) {
-		jobCluster := r.jobForCluster(cluster, action)
+		jobCluster := r.jobForCluster(cluster, action, log)
 		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 		if err := r.Create(ctx, jobCluster); err != nil {
 			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
