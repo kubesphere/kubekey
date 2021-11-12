@@ -14,16 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package completion
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/spf13/cobra"
 )
 
 // CompletionOptions is the option of completion command
 type CompletionOptions struct {
 	Type string
+}
+
+func NewCompletionOptions() *CompletionOptions {
+	return &CompletionOptions{}
 }
 
 // ShellTypes contains all types of shell
@@ -33,28 +38,14 @@ var ShellTypes = []string{
 
 var completionOptions CompletionOptions
 
-func init() {
-	rootCmd.AddCommand(completionCmd)
-
-	flags := completionCmd.Flags()
-	flags.StringVarP(&completionOptions.Type, "type", "t", "",
-		fmt.Sprintf("Generate different types of shell which are %v", ShellTypes))
-
-	err := completionCmd.RegisterFlagCompletionFunc("type", func(cmd *cobra.Command, args []string, toComplete string) (
-		i []string, directive cobra.ShellCompDirective) {
-		return ShellTypes, cobra.ShellCompDirectiveDefault
-	})
-	if err != nil {
-		completionCmd.PrintErrf("register flag type for sub-command doc failed %#v\n", err)
-	}
-}
-
-var completionCmd = &cobra.Command{
-	Use:   "completion",
-	Short: "Generate shell completion scripts",
-	Long: `Generate shell completion scripts
+func NewCmdCompletion() *cobra.Command {
+	o := NewCompletionOptions()
+	cmd := &cobra.Command{
+		Use:   "completion",
+		Short: "Generate shell completion scripts",
+		Long: `Generate shell completion scripts
 Normally you don't need to do more extra work to have this feature if you've installed kk by brew`,
-	Example: `# Installing bash completion on Linux
+		Example: `# Installing bash completion on Linux
 ## If bash-completion is not installed on Linux, please install the 'bash-completion' package
 ## via your distribution's package manager.
 ## Load the ks completion code for bash into the current shell
@@ -76,20 +67,45 @@ Load the kk completion code for zsh[1] into the current shell
 source <(kk completion --type zsh)
 Set the kk completion code for zsh[1] to autoload on startup
 kk completion --type zsh > "${fpath[1]}/_kk"`,
-	RunE: func(cmd *cobra.Command, _ []string) (err error) {
-		shellType := completionOptions.Type
-		switch shellType {
-		case "zsh":
-			err = rootCmd.GenZshCompletion(cmd.OutOrStdout())
-		case "powerShell":
-			err = rootCmd.GenPowerShellCompletion(cmd.OutOrStdout())
-		case "bash":
-			err = rootCmd.GenBashCompletion(cmd.OutOrStdout())
-		case "":
-			err = cmd.Help()
-		default:
-			err = fmt.Errorf("unknown shell type %s", shellType)
-		}
-		return
-	},
+		Run: func(cmd *cobra.Command, _ []string) {
+			util.CheckErr(o.Run(cmd))
+		},
+	}
+
+	o.AddFlags(cmd)
+	if err := completionSetting(cmd); err != nil {
+		panic(fmt.Sprintf("register flag type for sub-command doc failed %#v\n", err))
+	}
+	return cmd
+}
+
+func (o *CompletionOptions) Run(cmd *cobra.Command) error {
+	var err error
+	shellType := completionOptions.Type
+	switch shellType {
+	case "zsh":
+		err = cmd.GenZshCompletion(cmd.OutOrStdout())
+	case "powerShell":
+		err = cmd.GenPowerShellCompletion(cmd.OutOrStdout())
+	case "bash":
+		err = cmd.GenBashCompletion(cmd.OutOrStdout())
+	case "":
+		err = cmd.Help()
+	default:
+		err = fmt.Errorf("unknown shell type %s", shellType)
+	}
+	return err
+}
+
+func (o *CompletionOptions) AddFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&completionOptions.Type, "type", "t", "",
+		fmt.Sprintf("Generate different types of shell which are %v", ShellTypes))
+}
+
+func completionSetting(cmd *cobra.Command) error {
+	err := cmd.RegisterFlagCompletionFunc("type", func(cmd *cobra.Command, args []string, toComplete string) (
+		i []string, directive cobra.ShellCompDirective) {
+		return ShellTypes, cobra.ShellCompDirectiveDefault
+	})
+	return err
 }

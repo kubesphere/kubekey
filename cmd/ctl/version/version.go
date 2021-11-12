@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package version
 
 import (
 	"fmt"
@@ -24,25 +24,36 @@ import (
 	"strings"
 )
 
-var shortVersion bool
-var showSupportedK8sVersionList bool
-
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "print the client version information",
-	RunE: func(cmd *cobra.Command, _ []string) error {
-		if showSupportedK8sVersionList {
-			return printSupportedK8sVersionList(cmd.OutOrStdout())
-		}
-		return printVersion(shortVersion)
-	},
+type VersionOptions struct {
+	ShortVersion                bool
+	ShowSupportedK8sVersionList bool
 }
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
-	versionCmd.Flags().BoolVarP(&shortVersion, "short", "", false, "print the version number")
-	versionCmd.Flags().BoolVarP(&showSupportedK8sVersionList, "show-supported-k8s", "", false,
+func NewVersionOptions() *VersionOptions {
+	return &VersionOptions{}
+}
+
+// NewCmdVersion creates a new version command
+func NewCmdVersion() *cobra.Command {
+	o := NewVersionOptions()
+
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "print the client version information",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if o.ShowSupportedK8sVersionList {
+				return printSupportedK8sVersionList(cmd.OutOrStdout())
+			}
+			return printVersion(o.ShortVersion)
+		},
+	}
+	o.AddFlags(cmd)
+	return cmd
+}
+
+func (o *VersionOptions) AddFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolVarP(&o.ShortVersion, "short", "", false, "print the version number")
+	cmd.Flags().BoolVarP(&o.ShowSupportedK8sVersionList, "show-supported-k8s", "", false,
 		`print the version of supported k8s`)
 }
 

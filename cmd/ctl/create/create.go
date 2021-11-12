@@ -13,18 +13,34 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package create
 
 import (
+	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
 )
 
-// createCmd represents the create command
-var createCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a cluster or a cluster configuration file",
+type CreateOptions struct {
+	CommonOptions *options.CommonOptions
 }
 
-func init() {
-	rootCmd.AddCommand(createCmd)
+func NewCreateOptions() *CreateOptions {
+	return &CreateOptions{
+		CommonOptions: options.NewCommonOptions(),
+	}
+}
+
+// NewCmdCreate creates a new create command
+func NewCmdCreate() *cobra.Command {
+	o := NewCreateOptions()
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a cluster or a cluster configuration file",
+	}
+
+	o.CommonOptions.AddCommonFlag(cmd)
+
+	cmd.AddCommand(NewCmdCreateCluster())
+	cmd.AddCommand(NewCmdCreateConfig())
+	return cmd
 }

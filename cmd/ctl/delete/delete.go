@@ -13,18 +13,34 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package delete
 
 import (
+	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
 )
 
-// initCmd represents the create command
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initializes the installation environment",
+type DeleteOptions struct {
+	CommonOptions *options.CommonOptions
 }
 
-func init() {
-	rootCmd.AddCommand(initCmd)
+func NewDeleteOptions() *DeleteOptions {
+	return &DeleteOptions{
+		CommonOptions: options.NewCommonOptions(),
+	}
+}
+
+// NewCmdDelete creates a new delete command
+func NewCmdDelete() *cobra.Command {
+	o := NewDeleteOptions()
+	cmd := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete nodes or cluster",
+	}
+
+	o.CommonOptions.AddCommonFlag(cmd)
+
+	cmd.AddCommand(NewCmdDeleteCluster())
+	cmd.AddCommand(NewCmdDeleteNode())
+	return cmd
 }

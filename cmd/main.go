@@ -13,22 +13,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+
+package main
 
 import (
-	"github.com/spf13/cobra"
+	"github.com/kubesphere/kubekey/cmd/ctl"
+	"os"
+	"os/exec"
 )
 
-// osCmd represents the os command
-var registryCmd = &cobra.Command{
-	Use:   "registry",
-	Short: "Init a local image registry",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
-}
+// Using a separate entry-point can reduce the size of the binary file
+func main() {
+	cmd := ctl.NewDefaultKubeKeyCommand()
+	_ = exec.Command("/bin/bash", "-c", "ulimit -u 65535").Run()
+	_ = exec.Command("/bin/bash", "-c", "ulimit -n 65535").Run()
 
-func init() {
-	initCmd.AddCommand(registryCmd)
-	registryCmd.Flags().StringVarP(&opt.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
+	// Execute adds all child commands to the root command and sets flags appropriately.
+	// This is called by main.main(). It only needs to happen once to the rootCmd.
+	if err := cmd.Execute(); err != nil {
+		//fmt.Println(err)
+		os.Exit(1)
+	}
 }

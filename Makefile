@@ -232,7 +232,7 @@ binary:
 		-e CGO_ENABLED=0 \
 		-e GO111MODULE=on \
 		-w /usr/src/myapp golang:1.16 \
-		go build -ldflags '$(LDFLAGS)' -v -o output/linux/amd64/kk ./cmd/kk/main.go  # linux
+		go build -ldflags '$(LDFLAGS)' -v -o output/linux/amd64/kk ./cmd/main.go  # linux
 	sha256sum output/linux/amd64/kk || shasum -a 256 output/linux/amd64/kk
 
 	docker run --rm \
@@ -242,13 +242,13 @@ binary:
 		-e CGO_ENABLED=0 \
 		-e GO111MODULE=on \
 		-w /usr/src/myapp golang:1.16 \
-		go build -ldflags '$(LDFLAGS)' -v -o output/linux/arm64/kk ./cmd/kk/main.go  # linux
+		go build -ldflags '$(LDFLAGS)' -v -o output/linux/arm64/kk ./cmd/main.go  # linux
 	sha256sum output/linux/arm64/kk || shasum -a 256 output/linux/arm64/kk
 
 # build the binary file of kk
 kk-linux:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/linux/amd64/kk ./cmd/kk/main.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/linux/amd64/kk ./cmd/main.go
 kk-darwin:
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/darwin/amd64/kk ./cmd/kk/main.go
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags '$(LDFLAGS)' -o bin/darwin/amd64/kk ./cmd/main.go
 go-releaser-test:
 	goreleaser release --rm-dist --skip-publish --snapshot
