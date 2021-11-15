@@ -50,7 +50,13 @@ func FilesDownloadHTTP(mgr *manager.Manager, filepath, version, arch string) err
 		helm.GetCmd = mgr.DownloadCommand(helm.Path, helm.Url)
 	} else {
 		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
-		k3s.Url = fmt.Sprintf("https://github.com/rancher/k3s/releases/download/%s+k3s1/k3s", k3s.Version)
+		
+		if k3s.Arch == kubekeyapiv1alpha1.DefaultArch {
+			k3s.Url = fmt.Sprintf("https://github.com/k3s-io/k3s/releases/download/%s+k3s1/k3s", k3s.Version)
+		} else {
+			k3s.Url = fmt.Sprintf("https://github.com/k3s-io/k3s/releases/download/%s+k3s1/k3s%s", k3s.Version,k3s.Arch)
+		}
+		
 		kubecni.Url = fmt.Sprintf("https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
 		helm.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", helm.Version, helm.Arch)
 		getCmd := mgr.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
