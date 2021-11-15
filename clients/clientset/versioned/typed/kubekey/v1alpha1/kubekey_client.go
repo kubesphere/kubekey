@@ -28,7 +28,7 @@ type KubekeyV1alpha1Interface interface {
 	ClustersGetter
 }
 
-// KubekeyV1alpha1Client is used to interact with features provided by the kubekey.kubesphere.io group.
+// KubekeyV1alpha1Client is used to interact with features provided by the kubekey group.
 type KubekeyV1alpha1Client struct {
 	restClient rest.Interface
 }
@@ -66,7 +66,7 @@ func New(c rest.Interface) *KubekeyV1alpha1Client {
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	gv := v1alpha1.SchemeGroupVersion
+	gv := v1alpha1.GroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
 	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()

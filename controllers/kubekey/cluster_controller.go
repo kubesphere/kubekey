@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+   http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"strings"
@@ -39,8 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -88,16 +88,15 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=*,verbs=*
 // +kubebuilder:rbac:groups=cluster.kubesphere.io,resources=*,verbs=*
 
-func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("cluster", req.NamespacedName)
 
-	cluster := &kubekeyv1alpha1.Cluster{}
+	cluster := &kubekeyv1alpha2.Cluster{}
 	cmFound := &corev1.ConfigMap{}
 	jobFound := &batchv1.Job{}
 	var (
 		clusterAlreadyExist   bool
-		addHosts, removeHosts []kubekeyv1alpha1.HostCfg
+		addHosts, removeHosts []kubekeyv1alpha2.HostCfg
 	)
 	// Fetch the Cluster object
 	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
@@ -127,6 +126,23 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
+
+		nodes, err := clusterDiff(r, ctx, cluster)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		}
+		// If the CR cluster define current cluster
+		if len(nodes) != 0 {
+			log.Info("Cluster resource defines current cluster")
+			if err := adaptCurrentCluster(nodes, cluster); err != nil {
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			}
+			if err := r.Status().Update(context.TODO(), cluster); err != nil {
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			}
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+
 		if err := updateRunJob(r, req, ctx, cluster, jobFound, log, CreateCluster); err != nil {
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
@@ -199,7 +215,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		nodes := cluster.Status.Nodes
-		newNodes := []kubekeyv1alpha1.NodeStatus{}
+		newNodes := []kubekeyv1alpha2.NodeStatus{}
 
 		for _, node := range nodes {
 			if _, ok := currentNodes[node.Hostname]; ok {
@@ -208,7 +224,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		hosts := cluster.Spec.Hosts
-		newHosts := []kubekeyv1alpha1.HostCfg{}
+		newHosts := []kubekeyv1alpha2.HostCfg{}
 		for _, host := range hosts {
 			if _, ok := currentNodes[host.Name]; ok {
 				newHosts = append(newHosts, host)
@@ -233,7 +249,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		cluster.Spec.Hosts = newHosts
-		cluster.Spec.RoleGroups = kubekeyv1alpha1.RoleGroups{
+		cluster.Spec.RoleGroups = kubekeyv1alpha2.RoleGroups{
 			Etcd:   newEtcd,
 			Master: newMaster,
 			Worker: newWorker,
@@ -266,7 +282,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kubekeyv1alpha1.Cluster{}).
+		For(&kubekeyv1alpha2.Cluster{}).
 		WithEventFilter(ignoreDeletionPredicate()).
 		Complete(r)
 }
@@ -275,7 +291,7 @@ func ignoreDeletionPredicate() predicate.Predicate {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+			return e.ObjectOld.GetGeneration() != e.ObjectNew.GetGeneration()
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// Evaluates to false if the object has been confirmed deleted.
@@ -284,7 +300,7 @@ func ignoreDeletionPredicate() predicate.Predicate {
 	}
 }
 
-func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha1.Cluster) *corev1.ConfigMap {
+func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha2.Cluster) *corev1.ConfigMap {
 	type Metadata struct {
 		Name string `yaml:"name" json:"name,omitempty"`
 	}
@@ -292,7 +308,7 @@ func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha1.Cluster) *cor
 		ApiVersion string                      `yaml:"apiVersion" json:"apiVersion,omitempty"`
 		Kind       string                      `yaml:"kind" json:"kind,omitempty"`
 		Metadata   Metadata                    `yaml:"metadata" json:"metadata,omitempty"`
-		Spec       kubekeyv1alpha1.ClusterSpec `yaml:"spec" json:"spec,omitempty"`
+		Spec       kubekeyv1alpha2.ClusterSpec `yaml:"spec" json:"spec,omitempty"`
 	}{ApiVersion: c.APIVersion, Kind: c.Kind, Metadata: Metadata{Name: c.Name}, Spec: c.Spec}
 
 	clusterStr, _ := yamlV2.Marshal(clusterConfiguration)
@@ -315,7 +331,7 @@ func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha1.Cluster) *cor
 	return cm
 }
 
-func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action string) *batchv1.Job {
+func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action string, log logr.Logger) *batchv1.Job {
 	var (
 		backoffLimit int32 = 0
 		name         string
@@ -326,7 +342,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 		args = []string{"create", "cluster", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true"}
 	} else if action == AddNodes {
 		name = fmt.Sprintf("%s-add-nodes", c.Name)
-		args = []string{"add", "nodes", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true"}
+		args = []string{"add", "nodes", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true", "--ignore-err", "true"}
 	}
 
 	podlist := &corev1.PodList{}
@@ -334,7 +350,10 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 		client.InNamespace("kubekey-system"),
 		client.MatchingLabels{"control-plane": "controller-manager"},
 	}
-	_ = r.List(context.TODO(), podlist, listOpts...)
+	err := r.List(context.TODO(), podlist, listOpts...)
+	if err != nil {
+		log.Error(err, "Failed to list kubekey controller-manager pod")
+	}
 	nodeName := podlist.Items[0].Spec.NodeName
 	var image string
 	for _, container := range podlist.Items[0].Spec.Containers {
@@ -344,6 +363,8 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 	}
 
 	imageRepoList := strings.Split(image, "/")
+	var kubekey int64
+	kubekey = 1000
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{},
@@ -385,6 +406,10 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 							},
 						},
 					},
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsUser: &kubekey,
+						FSGroup:   &kubekey,
+					},
 					InitContainers: []corev1.Container{
 						{
 							Name:  "kube-binaries",
@@ -405,7 +430,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 					Containers: []corev1.Container{{
 						Name:            "runner",
 						Image:           image,
-						ImagePullPolicy: "Always",
+						ImagePullPolicy: "IfNotPresent",
 						Command:         []string{"/home/kubekey/kk"},
 						Args:            args,
 						VolumeMounts: []corev1.VolumeMount{
@@ -420,7 +445,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 						},
 					}},
 					NodeName:           nodeName,
-					ServiceAccountName: "default",
+					ServiceAccountName: "kubekey-controller-manager",
 					RestartPolicy:      "Never",
 				},
 			},
@@ -429,7 +454,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha1.Cluster, action str
 	return job
 }
 
-func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekeyv1alpha1.Cluster, action string) error {
+func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekeyv1alpha2.Cluster, action string) error {
 	var (
 		name string
 	)
@@ -456,12 +481,12 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 			}
 
 			if len(podlist.Items[0].ObjectMeta.GetName()) != 0 && len(podlist.Items[0].Status.ContainerStatuses[0].Name) != 0 && podlist.Items[0].Status.Phase != "Pending" {
-				cluster.Status.JobInfo = kubekeyv1alpha1.JobInfo{
+				cluster.Status.JobInfo = kubekeyv1alpha2.JobInfo{
 					Namespace: "kubekey-system",
 					Name:      name,
-					Pods: []kubekeyv1alpha1.PodInfo{{
+					Pods: []kubekeyv1alpha2.PodInfo{{
 						Name:       podlist.Items[0].ObjectMeta.GetName(),
-						Containers: []kubekeyv1alpha1.ContainerInfo{{Name: podlist.Items[0].Status.ContainerStatuses[0].Name}},
+						Containers: []kubekeyv1alpha2.ContainerInfo{{Name: podlist.Items[0].Status.ContainerStatuses[0].Name}},
 					}},
 				}
 
@@ -478,7 +503,7 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 	return nil
 }
 
-func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, cmFound *corev1.ConfigMap, log logr.Logger) error {
+func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha2.Cluster, cmFound *corev1.ConfigMap, log logr.Logger) error {
 	// Check if the configmap already exists, if not create a new one
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: "kubekey-system"}, cmFound); err != nil && !kubeErr.IsNotFound(err) {
 		log.Error(err, "Failed to get ConfigMap", "ConfigMap.Namespace", cmFound.Namespace, "ConfigMap.Name", cmFound.Name)
@@ -500,7 +525,7 @@ func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *
 	return nil
 }
 
-func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, cluster *kubekeyv1alpha1.Cluster, jobFound *batchv1.Job, log logr.Logger, action string) error {
+func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, cluster *kubekeyv1alpha2.Cluster, jobFound *batchv1.Job, log logr.Logger, action string) error {
 	var (
 		name string
 	)
@@ -512,7 +537,7 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 
 	// Check if the job already exists, if not create a new one
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
-		return nil
+		return err
 	} else if err == nil && (jobFound.Status.Failed != 0 || jobFound.Status.Succeeded != 0) {
 		// delete old pods
 		podlist := &corev1.PodList{}
@@ -525,19 +550,38 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 				_ = r.Delete(ctx, &pod)
 			}
 		}
+		log.Info("Prepare to delete old job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
 		if err := r.Delete(ctx, jobFound); err != nil {
 			log.Error(err, "Failed to delete old Job", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
 			return err
 		}
+		log.Info("Deleting old job success", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
 
-		jobCluster := r.jobForCluster(cluster, action)
-		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
+		err := wait.PollInfinite(1*time.Second, func() (bool, error) {
+			log.Info("Checking old job is deleted", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
+			if e := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); e != nil {
+				if kubeErr.IsNotFound(e) {
+					return true, nil
+				} else {
+					return false, e
+				}
+			} else {
+				return false, nil
+			}
+		})
+		if err != nil {
+			log.Error(err, "Failed to loop check old job is deleted", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
+			return err
+		}
+
+		jobCluster := r.jobForCluster(cluster, action, log)
+		log.Info("Creating a new Job to scale cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 		if err := r.Create(ctx, jobCluster); err != nil {
 			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 			return err
 		}
 	} else if kubeErr.IsNotFound(err) {
-		jobCluster := r.jobForCluster(cluster, action)
+		jobCluster := r.jobForCluster(cluster, action, log)
 		log.Info("Creating a new Job to create cluster", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
 		if err := r.Create(ctx, jobCluster); err != nil {
 			log.Error(err, "Failed to create new Job", "Job.Namespace", jobCluster.Namespace, "Job.Name", jobCluster.Name)
@@ -550,10 +594,10 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 	return nil
 }
 
-func sendHostsAction(action int, hosts []kubekeyv1alpha1.HostCfg, log logr.Logger) {
+func sendHostsAction(action int, hosts []kubekeyv1alpha2.HostCfg, log logr.Logger) {
 	if os.Getenv("HOSTS_MANAGER") == "true" {
 		type HostsAction struct {
-			Hosts  []kubekeyv1alpha1.HostCfg `json:"hosts,omitempty"`
+			Hosts  []kubekeyv1alpha2.HostCfg `json:"hosts,omitempty"`
 			Action int                       `json:"action,omitempty"`
 		}
 		newHostsAction := HostsAction{
@@ -568,7 +612,7 @@ func sendHostsAction(action int, hosts []kubekeyv1alpha1.HostCfg, log logr.Logge
 		}
 
 		fmt.Println(string(hostsInfoBytes))
-		req, err := http.NewRequest("POST", "http://localhost:8090/api/v1alpha1/hosts", bytes.NewReader(hostsInfoBytes))
+		req, err := http.NewRequest("POST", "http://localhost:8090/api/v1alpha2/hosts", bytes.NewReader(hostsInfoBytes))
 		if err != nil {
 			log.Error(err, "Failed to create request")
 		}
@@ -580,4 +624,79 @@ func sendHostsAction(action int, hosts []kubekeyv1alpha1.HostCfg, log logr.Logge
 			log.Error(err, "Failed to  send hosts info")
 		}
 	}
+}
+
+type NodeInfo struct {
+	Address string
+	Master  bool
+	Worker  bool
+}
+
+func clusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alpha2.Cluster) ([]kubekeyv1alpha2.NodeStatus, error) {
+	nodes := &corev1.NodeList{}
+	newNodes := make([]kubekeyv1alpha2.NodeStatus, 0)
+
+	if err := r.List(ctx, nodes, &client.ListOptions{}); err != nil {
+		return newNodes, err
+	}
+
+	m := make(map[string]NodeInfo)
+	for _, node := range nodes.Items {
+		var info NodeInfo
+
+		if _, ok := node.Labels["node-role.kubernetes.io/control-plane"]; ok {
+			info.Master = true
+		}
+		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+			info.Master = true
+		}
+		if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
+			info.Worker = true
+		}
+
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				info.Address = address.Address
+			}
+		}
+		m[node.Name] = info
+	}
+
+	for _, host := range c.Spec.Hosts {
+		if info, ok := m[host.Name]; ok {
+			if info.Address == host.InternalAddress {
+				newNodes = append(newNodes, kubekeyv1alpha2.NodeStatus{
+					InternalIP: host.InternalAddress,
+					Hostname:   host.Name,
+					Roles:      map[string]bool{"master": info.Master, "worker": info.Worker},
+				})
+			}
+		}
+	}
+	return newNodes, nil
+}
+
+func adaptCurrentCluster(newNodes []kubekeyv1alpha2.NodeStatus, c *kubekeyv1alpha2.Cluster) error {
+	var newMaster, newWorker []string
+	for _, node := range newNodes {
+		//if node.Roles["etcd"] {
+		//	newEtcd = append(newEtcd, node.Hostname)
+		//}
+		if node.Roles["master"] {
+			newMaster = append(newMaster, node.Hostname)
+		}
+		if node.Roles["worker"] {
+			newWorker = append(newWorker, node.Hostname)
+		}
+	}
+
+	c.Status.NodesCount = len(newNodes)
+	c.Status.MasterCount = len(newMaster)
+	//c.Status.EtcdCount = len(newEtcd)
+	c.Status.WorkerCount = len(newWorker)
+	c.Status.Nodes = newNodes
+	c.Status.Version = c.Spec.Kubernetes.Version
+	c.Status.NetworkPlugin = c.Spec.Network.Plugin
+
+	return nil
 }

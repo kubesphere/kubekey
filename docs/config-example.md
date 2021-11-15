@@ -1,5 +1,5 @@
 ```yaml
-apiVersion: kubekey.kubesphere.io/v1alpha1
+apiVersion: kubekey.kubesphere.io/v1alpha2
 kind: Cluster
 metadata:
   name: sample

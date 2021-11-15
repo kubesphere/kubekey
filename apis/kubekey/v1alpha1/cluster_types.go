@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,15 +17,14 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"errors"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/kubesphere/kubekey/pkg/util"
-	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -194,6 +193,12 @@ type ExternalEtcd struct {
 	KeyFile   string
 }
 
+// Copy is used to create a copy for Runtime.
+func (h *HostCfg) Copy() *HostCfg {
+	host := *h
+	return &host
+}
+
 // GenerateCertSANs is used to generate cert sans for cluster.
 func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.Kubernetes.ClusterName)
@@ -226,7 +231,7 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 }
 
 // GroupHosts is used to group hosts according to the configuration file.s
-func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
+func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 	clusterHostsGroups := HostGroups{}
 
 	hostList := map[string]string{}
@@ -234,7 +239,7 @@ func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 		hostList[host.Name] = host.Name
 	}
 
-	etcdGroup, masterGroup, workerGroup, err := cfg.ParseRolesList(hostList, logger)
+	etcdGroup, masterGroup, workerGroup, err := cfg.ParseRolesList(hostList)
 	if err != nil {
 		return nil, err
 	}
@@ -284,10 +289,10 @@ func (cfg *ClusterSpec) GroupHosts(logger *log.Logger) (*HostGroups, error) {
 
 	//Check that the parameters under roleGroups are incorrect
 	if len(masterGroup) == 0 {
-		logger.Fatal(errors.New("The number of master cannot be 0"))
+		logger.Log.Fatal(errors.New("The number of master cannot be 0"))
 	}
 	if len(etcdGroup) == 0 {
-		logger.Fatal(errors.New("The number of etcd cannot be 0"))
+		logger.Log.Fatal(errors.New("The number of etcd cannot be 0"))
 	}
 
 	if len(masterGroup) != len(clusterHostsGroups.Master) {
@@ -323,17 +328,17 @@ func (cfg *ClusterSpec) ClusterDNS() string {
 }
 
 // ParseRolesList is used to parse the host grouping list.
-func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string, logger *log.Logger) ([]string, []string, []string, error) {
+func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string) ([]string, []string, []string, error) {
 	etcdGroupList := []string{}
 	masterGroupList := []string{}
 	workerGroupList := []string{}
 
 	for _, host := range cfg.RoleGroups.Etcd {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
-			etcdGroupList = append(etcdGroupList, getHostsRange(host, hostList, "etcd", logger)...)
+			etcdGroupList = append(etcdGroupList, getHostsRange(host, hostList, "etcd")...)
 		} else {
 			if err := hostVerify(hostList, host, "etcd"); err != nil {
-				logger.Fatal(err)
+				logger.Log.Fatal(err)
 			}
 			etcdGroupList = append(etcdGroupList, host)
 		}
@@ -341,10 +346,10 @@ func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string, logger *log.L
 
 	for _, host := range cfg.RoleGroups.Master {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
-			masterGroupList = append(masterGroupList, getHostsRange(host, hostList, "master", logger)...)
+			masterGroupList = append(masterGroupList, getHostsRange(host, hostList, "master")...)
 		} else {
 			if err := hostVerify(hostList, host, "master"); err != nil {
-				logger.Fatal(err)
+				logger.Log.Fatal(err)
 			}
 			masterGroupList = append(masterGroupList, host)
 		}
@@ -352,10 +357,10 @@ func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string, logger *log.L
 
 	for _, host := range cfg.RoleGroups.Worker {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
-			workerGroupList = append(workerGroupList, getHostsRange(host, hostList, "worker", logger)...)
+			workerGroupList = append(workerGroupList, getHostsRange(host, hostList, "worker")...)
 		} else {
 			if err := hostVerify(hostList, host, "worker"); err != nil {
-				logger.Fatal(err)
+				logger.Log.Fatal(err)
 			}
 			workerGroupList = append(workerGroupList, host)
 		}
@@ -363,7 +368,7 @@ func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string, logger *log.L
 	return etcdGroupList, masterGroupList, workerGroupList, nil
 }
 
-func getHostsRange(rangeStr string, hostList map[string]string, group string, logger *log.Logger) []string {
+func getHostsRange(rangeStr string, hostList map[string]string, group string) []string {
 	hostRangeList := []string{}
 	r := regexp.MustCompile(`\[(\d+)\:(\d+)\]`)
 	nameSuffix := r.FindStringSubmatch(rangeStr)
@@ -372,7 +377,7 @@ func getHostsRange(rangeStr string, hostList map[string]string, group string, lo
 	nameSuffixEnd, _ := strconv.Atoi(nameSuffix[2])
 	for i := nameSuffixStart; i <= nameSuffixEnd; i++ {
 		if err := hostVerify(hostList, fmt.Sprintf("%s%d", namePrefix, i), group); err != nil {
-			logger.Fatal(err)
+			logger.Log.Fatal(err)
 		}
 		hostRangeList = append(hostRangeList, fmt.Sprintf("%s%d", namePrefix, i))
 	}

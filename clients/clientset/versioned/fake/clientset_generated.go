@@ -21,6 +21,8 @@ import (
 	clientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha1"
 	fakekubekeyv1alpha1 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha1/fake"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha2"
+	fakekubekeyv1alpha2 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -73,9 +75,17 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 	return c.tracker
 }
 
-var _ clientset.Interface = &Clientset{}
+var (
+	_ clientset.Interface = &Clientset{}
+	_ testing.FakeClient  = &Clientset{}
+)
 
 // KubekeyV1alpha1 retrieves the KubekeyV1alpha1Client
 func (c *Clientset) KubekeyV1alpha1() kubekeyv1alpha1.KubekeyV1alpha1Interface {
 	return &fakekubekeyv1alpha1.FakeKubekeyV1alpha1{Fake: &c.Fake}
+}
+
+// KubekeyV1alpha2 retrieves the KubekeyV1alpha2Client
+func (c *Clientset) KubekeyV1alpha2() kubekeyv1alpha2.KubekeyV1alpha2Interface {
+	return &fakekubekeyv1alpha2.FakeKubekeyV1alpha2{Fake: &c.Fake}
 }

@@ -22,19 +22,35 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
-#      hostNetwork: true
+      securityContext:
+        runAsUser: 1000
       containers:
       - command:
-        - /home/kubekey/manager
+        - ./manager
         args:
-        - --enable-leader-election
+        - --leader-elect
         image: controller:latest
         name: manager
+        securityContext:
+          allowPrivilegeEscalation: false
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
         resources:
           limits:
-            cpu: 300m
-            memory: 200Mi
+            cpu: 200m
+            memory: 100Mi
           requests:
             cpu: 100m
             memory: 20Mi
+      serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

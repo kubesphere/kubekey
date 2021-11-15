@@ -20,17 +20,16 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/pkg/addons"
+	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/ending"
+	"github.com/pkg/errors"
 	"text/template"
 
-	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
-	"github.com/kubesphere/kubekey/pkg/addons/manifests"
-	"github.com/kubesphere/kubekey/pkg/util"
-	"github.com/kubesphere/kubekey/pkg/util/manager"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/lithammer/dedent"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -104,7 +103,7 @@ func CheckClusterRole() (bool, *rest.Config, error) {
 	return hostClusterFlag, config, nil
 }
 
-func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha1.Cluster) error {
+func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha2.Cluster) error {
 	if hostClusterFlag, config, err := CheckClusterRole(); err != nil {
 		return err
 	} else if hostClusterFlag {
@@ -112,12 +111,12 @@ func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha1.Cluster) e
 		if err != nil {
 			return err
 		}
-		if err := manifests.DoServerSideApply(context.TODO(), config, []byte(obj)); err != nil {
+		if err := addons.DoServerSideApply(context.TODO(), config, []byte(obj)); err != nil {
 			_ = r.Delete(context.TODO(), c)
 			return err
 		}
 
-		kscluster, err1 := manifests.GetCluster(c.Name)
+		kscluster, err1 := addons.GetCluster(c.Name)
 		if err1 != nil {
 			return err
 		}
@@ -130,15 +129,15 @@ func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha1.Cluster) e
 }
 
 // UpdateKubeSphereCluster is used to update the cluster object of KubeSphere's multicluster.
-func UpdateKubeSphereCluster(mgr *manager.Manager) error {
+func UpdateKubeSphereCluster(runtime *common.KubeRuntime) error {
 	if hostClusterFlag, config, err := CheckClusterRole(); err != nil {
 		return err
 	} else if hostClusterFlag {
-		obj, err := generateClusterKubeSphere(mgr.ObjName, mgr.Kubeconfig, true, true)
+		obj, err := generateClusterKubeSphere(runtime.ClusterName, runtime.Kubeconfig, true, true)
 		if err != nil {
 			return err
 		}
-		if err := manifests.DoServerSideApply(context.TODO(), config, []byte(obj)); err != nil {
+		if err := addons.DoServerSideApply(context.TODO(), config, []byte(obj)); err != nil {
 			return err
 		}
 	}
@@ -158,12 +157,12 @@ func NewKubekeyClient() (*kubekeyclientset.Clientset, error) {
 	return clientset, nil
 }
 
-func getCluster(name string) (*kubekeyapiv1alpha1.Cluster, error) {
+func getCluster(name string) (*kubekeyapiv1alpha2.Cluster, error) {
 	clientset, err := NewKubekeyClient()
 	if err != nil {
 		return nil, err
 	}
-	clusterObj, err := clientset.KubekeyV1alpha1().Clusters().Get(context.TODO(), name, metav1.GetOptions{})
+	clusterObj, err := clientset.KubekeyV1alpha2().Clusters().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -171,61 +170,79 @@ func getCluster(name string) (*kubekeyapiv1alpha1.Cluster, error) {
 }
 
 // UpdateClusterConditions is used for updating cluster installation process information or adding nodes.
-func UpdateClusterConditions(mgr *manager.Manager, step string, startTime, endTime metav1.Time, status bool, index int) error {
-	condition := kubekeyapiv1alpha1.Condition{
-		Step:      step,
-		StartTime: startTime,
-		EndTime:   endTime,
-		Status:    status,
+func UpdateClusterConditions(runtime *common.KubeRuntime, step string, result *ending.ModuleResult) error {
+	m := make(map[string]kubekeyapiv1alpha2.Event)
+	allStatus := true
+	for k, v := range result.HostResults {
+		if v.GetStatus() == ending.FAILED {
+			allStatus = false
+		}
+		e := kubekeyapiv1alpha2.Event{
+			Step:   step,
+			Status: v.GetStatus().String(),
+		}
+		if v.GetErr() != nil {
+			e.Message = v.GetErr().Error()
+		}
+		m[k] = e
 	}
-	if len(mgr.Conditions) < index {
-		mgr.Conditions = append(mgr.Conditions, condition)
-	} else if len(mgr.Conditions) == index {
-		mgr.Conditions[index-1] = condition
+	condition := kubekeyapiv1alpha2.Condition{
+		Step:      step,
+		StartTime: metav1.Time{Time: result.StartTime},
+		EndTime:   metav1.Time{Time: result.EndTime},
+		Status:    allStatus,
+		Events:    m,
 	}
 
-	cluster, err := getCluster(mgr.ObjName)
+	cluster, err := getCluster(runtime.ClusterName)
 	if err != nil {
 		return err
 	}
 
-	cluster.Status.Conditions = mgr.Conditions
+	length := len(cluster.Status.Conditions)
+	if length <= 0 {
+		cluster.Status.Conditions = append(cluster.Status.Conditions, condition)
+	} else if cluster.Status.Conditions[length-1].Step == condition.Step {
+		cluster.Status.Conditions[length-1] = condition
+	} else {
+		cluster.Status.Conditions = append(cluster.Status.Conditions, condition)
+	}
 
-	if _, err := mgr.ClientSet.KubekeyV1alpha1().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 	return nil
 }
 
 // UpdateStatus is used to update status for a new or expanded cluster.
-func UpdateStatus(mgr *manager.Manager) error {
-	cluster, err := getCluster(mgr.ObjName)
+func UpdateStatus(runtime *common.KubeRuntime) error {
+	cluster, err := getCluster(runtime.ClusterName)
 	if err != nil {
 		return err
 	}
-	cluster.Status.Version = mgr.Cluster.Kubernetes.Version
-	cluster.Status.NodesCount = len(mgr.AllNodes)
-	cluster.Status.MasterCount = len(mgr.MasterNodes)
-	cluster.Status.WorkerCount = len(mgr.WorkerNodes)
-	cluster.Status.EtcdCount = len(mgr.EtcdNodes)
-	cluster.Status.NetworkPlugin = mgr.Cluster.Network.Plugin
-	cluster.Status.Nodes = []kubekeyapiv1alpha1.NodeStatus{}
+	cluster.Status.Version = runtime.Cluster.Kubernetes.Version
+	cluster.Status.NodesCount = len(runtime.GetAllHosts())
+	cluster.Status.MasterCount = len(runtime.GetHostsByRole(common.Master))
+	cluster.Status.WorkerCount = len(runtime.GetHostsByRole(common.Worker))
+	cluster.Status.EtcdCount = len(runtime.GetHostsByRole(common.ETCD))
+	cluster.Status.NetworkPlugin = runtime.Cluster.Network.Plugin
+	cluster.Status.Nodes = []kubekeyapiv1alpha2.NodeStatus{}
 
-	for _, node := range mgr.AllNodes {
-		cluster.Status.Nodes = append(cluster.Status.Nodes, kubekeyapiv1alpha1.NodeStatus{
-			InternalIP: node.InternalAddress,
-			Hostname:   node.Name,
-			Roles:      map[string]bool{"etcd": node.IsEtcd, "master": node.IsMaster, "worker": node.IsWorker},
+	for _, node := range runtime.GetAllHosts() {
+		cluster.Status.Nodes = append(cluster.Status.Nodes, kubekeyapiv1alpha2.NodeStatus{
+			InternalIP: node.GetInternalAddress(),
+			Hostname:   node.GetName(),
+			Roles:      map[string]bool{"etcd": node.IsRole(common.ETCD), "master": node.IsRole(common.Master), "worker": node.IsRole(common.Worker)},
 		})
 	}
 
-	if _, err := mgr.ClientSet.KubekeyV1alpha1().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func getClusterClientSet(mgr *manager.Manager) (*kube.Clientset, error) {
+func getClusterClientSet(runtime *common.KubeRuntime) (*kube.Clientset, error) {
 	// creates the in-cluster config
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -237,30 +254,32 @@ func getClusterClientSet(mgr *manager.Manager) (*kube.Clientset, error) {
 		return nil, err
 	}
 
-	obj, err := clientset.RESTClient().Get().AbsPath("/apis/cluster.kubesphere.io/v1alpha1/clusters").Name(mgr.ObjName).Do(context.TODO()).Raw()
-	if err != nil && !kubeErr.IsNotFound(err) {
-		return nil, err
-	} else if kubeErr.IsNotFound(err) {
-		return nil, nil
-	}
-
-	result := make(map[string]interface{})
-	_ = yaml.Unmarshal(obj, &result)
-
-	spec := result["spec"].(map[interface{}]interface{})
-	connection := spec["connection"].(map[interface{}]interface{})
-
-	kubeconfigStr, _ := base64.StdEncoding.DecodeString(connection["kubeconfig"].(string))
-
-	kubeConfigPath := filepath.Join(mgr.WorkDir, fmt.Sprintf("config-%s", mgr.ObjName))
-	if err := ioutil.WriteFile(kubeConfigPath, kubeconfigStr, 0644); err != nil {
-		return nil, err
-	}
-	kubeconfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	cm, err := clientset.
+		CoreV1().
+		ConfigMaps("kubekey-system").
+		Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", runtime.ClusterName), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	clientsetForCluster, err := kube.NewForConfig(kubeconfig)
+	kubeConfigBase64, ok := cm.Data["kubeconfig"]
+	if !ok {
+		return nil, errors.Errorf("get kubeconfig from %s configmap failed", runtime.ClusterName)
+	}
+
+	kubeConfigStr, err := base64.StdEncoding.DecodeString(kubeConfigBase64)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := clientcmd.NewClientConfigFromBytes(kubeConfigStr)
+	if err != nil {
+		return nil, err
+	}
+	restConfig, err := config.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientsetForCluster, err := kube.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -283,33 +302,35 @@ func nodeForCluster(name string, labels map[string]string) *corev1.Node {
 }
 
 // CreateNodeForCluster is used to create new nodes for the cluster to be add nodes.
-func CreateNodeForCluster(mgr *manager.Manager) error {
-	clientsetForCluster, err := getClusterClientSet(mgr)
-	if err != nil && !kubeErr.IsNotFound(err) {
+func CreateNodeForCluster(runtime *common.KubeRuntime) error {
+	clientsetForCluster, err := getClusterClientSet(runtime)
+	if err != nil {
+		if kubeErr.IsNotFound(err) {
+			return nil
+		}
 		return err
-	} else if kubeErr.IsNotFound(err) {
-		return nil
 	}
+
 	nodeInfo := make(map[string]string)
 	nodeList, _ := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	for _, node := range nodeList.Items {
 		nodeInfo[node.Name] = node.Status.NodeInfo.KubeletVersion
 	}
 
-	for _, host := range mgr.K8sNodes {
-		if _, ok := nodeInfo[host.Name]; !ok {
+	for _, host := range runtime.GetHostsByRole(common.K8s) {
+		if _, ok := nodeInfo[host.GetName()]; !ok {
 			labels := map[string]string{"kubekey.kubesphere.io/import-status": Pending}
-			if host.IsMaster {
+			if host.IsRole(common.Master) {
 				labels["node-role.kubernetes.io/master"] = ""
 			}
-			if host.IsWorker {
+			if host.IsRole(common.Worker) {
 				labels["node-role.kubernetes.io/worker"] = ""
 			}
-			node := nodeForCluster(host.Name, labels)
+			node := nodeForCluster(host.GetName(), labels)
 			if _, err = clientsetForCluster.CoreV1().Nodes().Create(context.TODO(), node, metav1.CreateOptions{}); err != nil {
 				return err
 			}
-			newNodes = append(newNodes, host.Name)
+			newNodes = append(newNodes, host.GetName())
 		}
 	}
 
@@ -317,12 +338,13 @@ func CreateNodeForCluster(mgr *manager.Manager) error {
 }
 
 // PatchNodeImportStatus is used to update new node's status.
-func PatchNodeImportStatus(mgr *manager.Manager, status string) error {
-	clientsetForCluster, err := getClusterClientSet(mgr)
-	if err != nil && !kubeErr.IsNotFound(err) {
+func PatchNodeImportStatus(runtime *common.KubeRuntime, status string) error {
+	clientsetForCluster, err := getClusterClientSet(runtime)
+	if err != nil {
+		if kubeErr.IsNotFound(err) {
+			return nil
+		}
 		return err
-	} else if kubeErr.IsNotFound(err) {
-		return nil
 	}
 
 	patchStr := fmt.Sprintf(`{"metadata": {"labels": {"kubekey.kubesphere.io/import-status": "%s"}}}`, status)
@@ -341,7 +363,7 @@ func PatchNodeImportStatus(mgr *manager.Manager, status string) error {
 }
 
 // SaveKubeConfig is used to save the kubeconfig for the new cluster.
-func SaveKubeConfig(mgr *manager.Manager) error {
+func SaveKubeConfig(runtime *common.KubeRuntime) error {
 	// creates the in-cluster config
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -354,30 +376,43 @@ func SaveKubeConfig(mgr *manager.Manager) error {
 	}
 	cmClientset := clientset.CoreV1().ConfigMaps("kubekey-system")
 
-	if _, err := cmClientset.Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", mgr.ObjName), metav1.GetOptions{}); err != nil {
+	if _, err := cmClientset.Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", runtime.ClusterName), metav1.GetOptions{}); err != nil {
 		if kubeErr.IsNotFound(err) {
-			cmClientset.Create(context.TODO(), configMapForKubeconfig(mgr), metav1.CreateOptions{})
+			cmClientset.Create(context.TODO(), configMapForKubeconfig(runtime), metav1.CreateOptions{})
 		} else {
 			return err
 		}
 	} else {
-		kubeconfigStr := fmt.Sprintf(`{"kubeconfig": "%s"}`, mgr.Kubeconfig)
-		cmClientset.Patch(context.TODO(), mgr.ObjName, types.ApplyPatchType, []byte(kubeconfigStr), metav1.PatchOptions{})
+		kubeconfigStr := fmt.Sprintf(`{"kubeconfig": "%s"}`, runtime.Kubeconfig)
+		cmClientset.Patch(context.TODO(), runtime.ClusterName, types.ApplyPatchType, []byte(kubeconfigStr), metav1.PatchOptions{})
 	}
 	// clientset.CoreV1().ConfigMaps("kubekey-system").Create(context.TODO(), kubeconfigConfigMap, metav1.CreateOptions{}
 	return nil
 }
 
 // configMapForKubeconfig is used to generate configmap scheme for cluster's kubeconfig.
-func configMapForKubeconfig(mgr *manager.Manager) *corev1.ConfigMap {
+func configMapForKubeconfig(runtime *common.KubeRuntime) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-kubeconfig", mgr.ObjName),
+			Name: fmt.Sprintf("%s-kubeconfig", runtime.ClusterName),
 		},
 		Data: map[string]string{
-			"kubeconfig": mgr.Kubeconfig,
+			"kubeconfig": runtime.Kubeconfig,
 		},
 	}
 
 	return cm
+}
+
+func ClearConditions(runtime *common.KubeRuntime) error {
+	cluster, err := getCluster(runtime.ClusterName)
+	if err != nil {
+		return err
+	}
+	cluster.Status.Conditions = make([]kubekeyapiv1alpha2.Condition, 0)
+
+	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+	return nil
 }
