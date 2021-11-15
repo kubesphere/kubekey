@@ -10,9 +10,6 @@ builds:
     - arm64
   goos:
     - linux
-  hooks:
-    post:
-      - upx "{{ .Path }}"
   ldflags:
     - -X github.com/kubesphere/kubekey/version.version={{.Version}}
     - -X github.com/kubesphere/kubekey/version.gitCommit={{.ShortCommit}}
@@ -25,9 +22,6 @@ archives:
     linux: linux
     amd64: amd64
     arm64: arm64
-  files:
-    - README.md
-    - README_zh-CN.md
 checksum:
   name_template: 'checksums.txt'
 snapshot:
