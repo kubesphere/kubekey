@@ -4,6 +4,8 @@ ENV KUBEVERSION=v1.21.5
 ENV ETCDVERSION=v3.4.13
 ENV CNIVERSION=v0.9.1
 ENV HELMVERSION=v3.6.3
+ENV DOCKERVERSION=20.10.8
+ENV CRICTLVERSION=v1.22.0
 ENV ARCH=amd64
 
 WORKDIR /kubekey/${KUBEVERSION}/${ARCH}
@@ -13,4 +15,9 @@ RUN wget https://github.com/coreos/etcd/releases/download/${ETCDVERSION}/etcd-${
     wget https://storage.googleapis.com/kubernetes-release/release/${KUBEVERSION}/bin/linux/${ARCH}/kubectl && \
     wget https://get.helm.sh/helm-${HELMVERSION}-linux-${ARCH}.tar.gz && tar -zxf helm-${HELMVERSION}-linux-${ARCH}.tar.gz && \
     mv linux-${ARCH}/helm . && rm -rf *linux-${ARCH}* && \
-    wget https://github.com/containernetworking/plugins/releases/download/${CNIVERSION}/cni-plugins-linux-${ARCH}-${CNIVERSION}.tgz 
+    wget https://github.com/containernetworking/plugins/releases/download/${CNIVERSION}/cni-plugins-linux-${ARCH}-${CNIVERSION}.tgz && \
+    if [ ${ARCH} == 'amd64' ]; then wget https://github.com/k3s-io/k3s/releases/download/${KUBEVERSION}+k3s1/k3s; else \
+    wget https://github.com/k3s-io/k3s/releases/download/${KUBEVERSION}+k3s1/k3s-${ARCH}; mv k3s-${ARCH} k3s;fi && \
+    if [ ${ARCH} == 'amd64' ]; then wget https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz; else \
+    wget https://download.docker.com/linux/static/stable/aarch64/docker-${DOCKERVERSION}.tgz;fi && \
+    wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTLVERSION}/crictl-${CRICTLVERSION}-linux-${ARCH}.tar.gz
