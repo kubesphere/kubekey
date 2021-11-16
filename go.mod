@@ -8,7 +8,7 @@ require (
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.5 // indirect
 	github.com/lithammer/dedent v1.1.0
-	github.com/mitchellh/mapstructure v1.4.1
+	github.com/mitchellh/mapstructure v1.4.2
 	github.com/modood/table v0.0.0-20200225102042-88de94bb9876
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.17.0
@@ -17,7 +17,7 @@ require (
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
-	github.com/spf13/viper v1.8.1
+	github.com/spf13/viper v1.9.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e // indirect
 	gopkg.in/yaml.v2 v2.4.0
