@@ -18,6 +18,8 @@ spec:
     - node1
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
   controlPlaneEndpoint:
+    internalLoadbalancer: haproxy #Internal loadbalancer for apiservers. [Default: ""]
+    
     domain: lb.kubesphere.local
     address: ""      # The IP address of your load balancer.
     port: 6443
