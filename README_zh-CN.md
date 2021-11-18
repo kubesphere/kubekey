@@ -264,6 +264,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 ## 相关文档
 
 * [配置示例](docs/config-example.md)
+* [高可用集群](docs/ha-mode.md)
 * [自定义插件安装](docs/addons.md)
 * [网络访问](docs/network-access.md)
 * [存储客户端](docs/storage-client.md)
