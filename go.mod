@@ -26,7 +26,7 @@ require (
 	k8s.io/apimachinery v0.22.3
 	k8s.io/cli-runtime v0.22.3
 	k8s.io/client-go v0.22.3
-	k8s.io/code-generator v0.22.3
+	k8s.io/code-generator v0.22.4
 	k8s.io/kubectl v0.22.1
 	sigs.k8s.io/controller-runtime v0.10.3
 )
