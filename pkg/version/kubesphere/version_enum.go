@@ -16,7 +16,11 @@
 
 package kubesphere
 
-import "strings"
+import (
+	"fmt"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"strings"
+)
 
 type Version int
 
@@ -50,21 +54,51 @@ var CNSource = map[string]bool{
 	V320.String(): true,
 }
 
-func VersionSupport(version string) bool {
-	if _, ok := VersionMap[version]; ok {
-		return true
+func StabledVersionSupport(version string) (*KsInstaller, bool) {
+	v, err := versionutil.ParseSemantic(version)
+	if err != nil {
+		return nil, false
 	}
-	return false
+
+	str := fmt.Sprintf("v%s", v.String())
+
+	if ks, ok := VersionMap[str]; ok {
+		return ks, true
+	}
+	return nil, false
 }
 
-func PreRelease(version string) bool {
+func LatestRelease(version string) (*KsInstaller, bool) {
 	if strings.HasPrefix(version, "nightly-") ||
 		version == "latest" ||
-		strings.Contains(version, "alpha") ||
+		version == "master" ||
 		strings.Contains(version, "release") {
-		return true
+		return Latest(), true
 	}
-	return false
+
+	if ks, ok := StabledVersionSupport(version); ok {
+		if ks.Version == Latest().Version {
+			return ks, true
+		}
+		return nil, false
+	}
+
+	return nil, false
+}
+
+func DevRelease(version string) (*KsInstaller, bool) {
+	if _, ok := StabledVersionSupport(version); ok {
+		return nil, false
+	}
+
+	if v, err := versionutil.ParseGeneric(version); err != nil {
+		return nil, false
+	} else {
+		if ks, ok := StabledVersionSupport(v.String()); ok {
+			return ks, true
+		}
+	}
+	return nil, false
 }
 
 func Latest() *KsInstaller {

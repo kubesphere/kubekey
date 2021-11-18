@@ -201,8 +201,12 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 			if !ok {
 				return nil, errors.New("Unknown version")
 			}
+
 			version := v.(string)
-			if kubesphere.VersionSupport(version) || kubesphere.PreRelease(version) {
+			_, stable := kubesphere.StabledVersionSupport(version)
+			_, latest := kubesphere.LatestRelease(version)
+			_, dev := kubesphere.DevRelease(version)
+			if stable || latest || dev {
 				clusterCfg.Spec.KubeSphere.Configurations = "---\n" + string(content)
 				clusterCfg.Spec.KubeSphere.Version = version
 			} else {
@@ -230,17 +234,18 @@ func (c ConfigMapLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 func defaultKSConfig(ks *kubekeyapiv1alpha2.KubeSphere, version string) error {
 	ks.Enabled = true
 	version = strings.TrimSpace(version)
-	ksInstaller, ok := kubesphere.VersionMap[version]
+	ksInstaller, ok := kubesphere.StabledVersionSupport(version)
 	if ok {
 		ks.Version = ksInstaller.Version
 		ks.Configurations = ksInstaller.CCToString()
+	} else if latest, ok := kubesphere.LatestRelease(version); ok {
+		ks.Version = version
+		ks.Configurations = latest.CCToString()
+	} else if dev, ok := kubesphere.DevRelease(version); ok {
+		ks.Version = version
+		ks.Configurations = dev.CCToString()
 	} else {
-		if kubesphere.PreRelease(version) {
-			ks.Version = version
-			ks.Configurations = kubesphere.Latest().CCToString()
-		} else {
-			return errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
-		}
+		return errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
 	}
 	return nil
 }

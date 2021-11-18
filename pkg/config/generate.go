@@ -59,15 +59,15 @@ func GenerateKubeKeyConfig(arg common.Argument, name string) error {
 
 	if arg.KsEnable {
 		version := strings.TrimSpace(arg.KsVersion)
-		ksInstaller, ok := kubesphere.VersionMap[version]
+		ksInstaller, ok := kubesphere.StabledVersionSupport(version)
 		if ok {
 			opt.KubeSphereConfigMap = ksInstaller.CCToString()
+		} else if latest, ok := kubesphere.LatestRelease(version); ok {
+			opt.KubeSphereConfigMap = latest.CCToString()
+		} else if dev, ok := kubesphere.DevRelease(version); ok {
+			opt.KubeSphereConfigMap = dev.CCToString()
 		} else {
-			if kubesphere.PreRelease(version) {
-				opt.KubeSphereConfigMap = kubesphere.Latest().CCToString()
-			} else {
-				return errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
-			}
+			return errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
 		}
 	}
 

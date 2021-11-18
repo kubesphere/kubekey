@@ -207,8 +207,10 @@ func (d *DependencyCheck) Execute(_ connector.Runtime) error {
 
 	if d.KubeConf.Cluster.KubeSphere.Enabled {
 		var version string
-		if kubesphere.PreRelease(desiredVersion) {
-			version = kubesphere.Latest().Version
+		if latest, ok := kubesphere.LatestRelease(desiredVersion); ok {
+			version = latest.Version
+		} else if ks, ok := kubesphere.DevRelease(desiredVersion); ok {
+			version = ks.Version
 		} else {
 			r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
 			version = r.FindString(desiredVersion)
