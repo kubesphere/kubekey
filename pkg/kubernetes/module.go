@@ -565,6 +565,7 @@ func (s *SaveKubeConfigModule) Init() {
 		Name:   "SaveKubeConfig",
 		Desc:   "Save kube config as a configmap",
 		Action: new(SaveKubeConfig),
+		Retry:  5,
 	}
 
 	s.Tasks = []task.Interface{

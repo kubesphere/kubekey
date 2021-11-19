@@ -45,6 +45,7 @@ func (d *DeployNetworkPluginModule) Init() {
 	case common.Cilium:
 		d.Tasks = deployCilium(d)
 	case common.Kubeovn:
+		d.Tasks = deployKubeOVN(d)
 	default:
 		return
 	}
@@ -117,7 +118,7 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 		Retry:    5,
 	}
 
-	if CompareVersionLater(d.KubeConf.Cluster.Kubernetes.Version, "v1.16.0") {
+	if K8sVersionAtLeast(d.KubeConf.Cluster.Kubernetes.Version, "v1.16.0") {
 		return []task.Interface{
 			generateCalicoNew,
 			deploy,
@@ -205,7 +206,103 @@ func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
 	}
 }
 
-func CompareVersionLater(version string, compare string) bool {
+func deployKubeOVN(d *DeployNetworkPluginModule) []task.Interface {
+	label := &task.RemoteTask{
+		Name:     "LabelNode",
+		Desc:     "Label node",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(LabelNode),
+		Parallel: true,
+	}
+
+	ssl := &task.RemoteTask{
+		Name:  "GenerateSSl",
+		Desc:  "Generate ssl",
+		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(EnableSSL),
+		},
+		Action:   new(GenerateSSL),
+		Parallel: true,
+	}
+
+	generateKubeOVNOld := &task.RemoteTask{
+		Name:  "GenerateKubeOVN",
+		Desc:  "Generate kube-ovn",
+		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(OldK8sVersion),
+		},
+		Action:   new(GenerateKubeOVNOld),
+		Parallel: true,
+	}
+
+	generateKubeOVNNew := &task.RemoteTask{
+		Name:  "GenerateKubeOVN",
+		Desc:  "Generate kube-ovn",
+		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			&OldK8sVersion{Not: true},
+		},
+		Action:   new(GenerateKubeOVNNew),
+		Parallel: true,
+	}
+
+	deploy := &task.RemoteTask{
+		Name:     "DeployKubeOVN",
+		Desc:     "Deploy kube-ovn",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(DeployNetworkPlugin),
+		Parallel: true,
+		Retry:    5,
+	}
+
+	kubectlKo := &task.RemoteTask{
+		Name:  "GenerateKubectlKo",
+		Desc:  "Generate kubectl-ko",
+		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Action: &action.Template{
+			Template: templates.KubectlKo,
+			Dst:      filepath.Join(common.BinDir, templates.KubectlKo.Name()),
+		},
+		Parallel: true,
+	}
+
+	chmod := &task.RemoteTask{
+		Name:     "ChmodKubectlKo",
+		Desc:     "Chmod kubectl-ko",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Action:   new(ChmodKubectlKo),
+		Parallel: true,
+	}
+
+	if K8sVersionAtLeast(d.KubeConf.Cluster.Kubernetes.Version, "v1.16.0") {
+		return []task.Interface{
+			label,
+			ssl,
+			generateKubeOVNNew,
+			deploy,
+			kubectlKo,
+			chmod,
+		}
+	} else {
+		return []task.Interface{
+			label,
+			ssl,
+			generateKubeOVNOld,
+			deploy,
+			kubectlKo,
+			chmod,
+		}
+	}
+}
+
+func K8sVersionAtLeast(version string, compare string) bool {
 	cmp, err := versionutil.MustParseSemantic(version).Compare(compare)
 	if err != nil {
 		logger.Log.Fatal("unknown kubernetes version")

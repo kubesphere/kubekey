@@ -40,3 +40,14 @@ func (o *OldK8sVersion) PreCheck(_ connector.Runtime) (bool, error) {
 		return o.Not, nil
 	}
 }
+
+type EnableSSL struct {
+	common.KubePrepare
+}
+
+func (e *EnableSSL) PreCheck(_ connector.Runtime) (bool, error) {
+	if e.KubeConf.Cluster.Network.Kubeovn.EnableSSL {
+		return true, nil
+	}
+	return false, nil
+}
