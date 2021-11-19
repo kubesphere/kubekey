@@ -126,7 +126,9 @@ func MirrorRepo(version string) string {
 		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
 	} else {
 		if repo == "" {
-			if kubesphere.PreRelease(version) {
+			_, latest := kubesphere.LatestRelease(version)
+			_, dev := kubesphere.DevRelease(version)
+			if latest || dev {
 				repo = "kubespheredev"
 			} else {
 				repo = "kubesphere"
