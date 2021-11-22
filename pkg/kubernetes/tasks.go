@@ -132,7 +132,7 @@ func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]files.Ku
 			if err := runtime.GetRunner().SudoScp(binary.Path, dst); err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube binaries failed"))
 			}
-			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("tar -zxf %s", dst), false); err != nil {
+			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("tar -zxf %s -C /opt/cni/bin", dst), false); err != nil {
 				return err
 			}
 		default:
@@ -378,19 +378,24 @@ func (s *SyncKubeConfigToWorker) Execute(runtime connector.Runtime) error {
 	if v, ok := s.PipelineCache.Get(common.ClusterStatus); ok {
 		cluster := v.(*KubernetesStatus)
 
-		createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
+		createConfigDirCmd := "mkdir -p /root/.kube"
 		if _, err := runtime.GetRunner().SudoCmd(createConfigDirCmd, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "create .kube dir failed")
 		}
 
-		syncKubeConfigForRootCmd := fmt.Sprintf("echo %s > %s", cluster.KubeConfig, "/root/.kube/config")
+		syncKubeConfigForRootCmd := fmt.Sprintf("echo '%s' > %s", cluster.KubeConfig, "/root/.kube/config")
 		if _, err := runtime.GetRunner().SudoCmd(syncKubeConfigForRootCmd, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "sync kube config for root failed")
 		}
 
+		userConfigDirCmd := "mkdir -p $HOME/.kube"
+		if _, err := runtime.GetRunner().Cmd(userConfigDirCmd, false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "create user .kube dir failed")
+		}
+
 		chownKubeConfig := "chown $(id -u):$(id -g) -R $HOME/.kube"
-		syncKubeConfigForUserCmd := fmt.Sprintf("echo %s > %s && %s", cluster.KubeConfig, "$HOME/.kube/config", chownKubeConfig)
-		if _, err := runtime.GetRunner().SudoCmd(syncKubeConfigForUserCmd, false); err != nil {
+		syncKubeConfigForUserCmd := fmt.Sprintf("echo '%s' > %s && %s", cluster.KubeConfig, "$HOME/.kube/config", chownKubeConfig)
+		if _, err := runtime.GetRunner().Cmd(syncKubeConfigForUserCmd, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "sync kube config for normal user failed")
 		}
 	}

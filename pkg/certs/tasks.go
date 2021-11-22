@@ -328,18 +328,30 @@ type SyneKubeConfigToWorker struct {
 }
 
 func (s *SyneKubeConfigToWorker) Execute(runtime connector.Runtime) error {
-	createConfigDirCmd := "mkdir -p /root/.kube && mkdir -p $HOME/.kube"
+	createConfigDirCmd := "mkdir -p /root/.kube"
 	if _, err := runtime.GetRunner().SudoCmd(createConfigDirCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "create .kube dir failed")
 	}
 
 	firstMaster := runtime.GetHostsByRole(common.Master)[0]
-	if err := runtime.GetRunner().SudoScp(filepath.Join(runtime.GetWorkDir(), firstMaster.GetName(), "admin.conf"), "/root/.kube/config"); err != nil {
+	localFile := filepath.Join(runtime.GetWorkDir(), firstMaster.GetName(), "admin.conf")
+	if err := runtime.GetRunner().SudoScp(localFile, "/root/.kube/config"); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sudo scp config file to worker /root/.kube/config failed")
 	}
 
-	if err := runtime.GetRunner().SudoScp(filepath.Join(runtime.GetWorkDir(), firstMaster.GetName(), "admin.conf"), "$HOME/.kube/config"); err != nil {
-		return errors.Wrap(errors.WithStack(err), "sudo scp config file to worker $HOME/.kube/config failed")
+	// that doesn't work
+	//if err := runtime.GetRunner().SudoScp(filepath.Join(runtime.GetWorkDir(), firstMaster.GetName(), "admin.conf"), "$HOME/.kube/config"); err != nil {
+	//	return errors.Wrap(errors.WithStack(err), "sudo scp config file to worker $HOME/.kube/config failed")
+	//}
+
+	userConfigDirCmd := "mkdir -p $HOME/.kube"
+	if _, err := runtime.GetRunner().Cmd(userConfigDirCmd, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "create user .kube dir failed")
+	}
+
+	getKubeConfigCmdUsr := "cp -f /root/.kube/config $HOME/.kube/config"
+	if _, err := runtime.GetRunner().SudoCmd(getKubeConfigCmdUsr, false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "sudo cp config file to worker $HOME/.kube/config failed")
 	}
 
 	chownKubeConfig := "chown $(id -u):$(id -g) -R $HOME/.kube"
