@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -112,17 +113,18 @@ func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]files.Ku
 			return fmt.Errorf("get kube binary %s info failed: no such key", name)
 		}
 
+		fileName := path.Base(binary.Path)
 		switch name {
 		case "kubecni":
-			dst := filepath.Join("/opt/cni/bin", binary.Name)
-			if err := runtime.GetRunner().SudoScp(binary.Path, dst); err != nil {
+			dst := filepath.Join(common.TmpDir, fileName)
+			if err := runtime.GetRunner().Scp(binary.Path, dst); err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube binaries failed"))
 			}
 			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("tar -zxf %s -C /opt/cni/bin", dst), false); err != nil {
 				return err
 			}
 		default:
-			dst := filepath.Join(common.BinDir, binary.Name)
+			dst := filepath.Join(common.BinDir, fileName)
 			if err := runtime.GetRunner().SudoScp(binary.Path, dst); err != nil {
 				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube binaries failed"))
 			}
