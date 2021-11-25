@@ -1070,7 +1070,11 @@ spec:
 func GenerateKubeSphereYaml(repo, version string) (string, error) {
 	_, ok := mirrorVersionList[version]
 	if ok && os.Getenv("KKZONE") == "cn" {
-		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
+		if repo == "" {
+			repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
+		} else {
+			repo = fmt.Sprintf("%s/kubesphere", repo)
+		}
 	} else {
 		if repo == "" {
 			if strings.Contains(version, "latest") ||
