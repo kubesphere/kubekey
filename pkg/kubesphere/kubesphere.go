@@ -111,7 +111,7 @@ EOF
 		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
 			return err
 		}
-	case "v3.0.0", "v3.1.0", "v3.1.1", "v3.2.0", "latest":
+	case "v3.0.0", "v3.1.0", "v3.1.1", "v3.2.0", "v3.2.1", "latest":
 		if err := generateKubeSphereManifests(mgr, ksVersion); err != nil {
 			return err
 		}
@@ -183,8 +183,8 @@ EOF
 	}
 
 	caFile := "/etc/ssl/etcd/ssl/ca.pem"
-	certFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", mgr.EtcdNodes[0].Name)
-	keyFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", mgr.EtcdNodes[0].Name)
+	certFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", mgr.MasterNodes[0].Name)
+	keyFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", mgr.MasterNodes[0].Name)
 	if output, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo -E /bin/sh -c \"/usr/local/bin/kubectl -n kubesphere-monitoring-system create secret generic kube-etcd-client-certs --from-file=etcd-client-ca.crt=%s --from-file=etcd-client.crt=%s --from-file=etcd-client.key=%s\"", caFile, certFile, keyFile), 1, true); err != nil {
 		if !strings.Contains(output, "exists") {
 			return err
