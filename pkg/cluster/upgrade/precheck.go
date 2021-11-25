@@ -33,6 +33,19 @@ import (
 )
 
 var versionCheck = map[string]map[string]map[string]bool{
+	"v3.2.1": {
+		"k8s": {
+			"v1.22": true,
+			"v1.21": true,
+			"v1.20": true,
+			"v1.19": true,
+		},
+		"ks": {
+			"v3.2.0": true,
+			"v3.1.1": true,
+			"v3.1.0": true,
+		},
+	},
 	"v3.2.0": {
 		"k8s": {
 			"v1.22": true,
@@ -177,7 +190,7 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 			if mgr.Cluster.KubeSphere.Enabled {
 				var version string
 				if strings.Contains(mgr.Cluster.KubeSphere.Version, "latest") || strings.Contains(mgr.Cluster.KubeSphere.Version, "nightly") || strings.Contains(mgr.Cluster.KubeSphere.Version, "release") {
-					version = "v3.2.0"
+					version = "v3.2.1"
 				} else {
 					r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
 					version = r.FindString(mgr.Cluster.KubeSphere.Version)

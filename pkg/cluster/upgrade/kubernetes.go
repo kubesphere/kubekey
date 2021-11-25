@@ -240,7 +240,7 @@ func UpgradeKubeCluster(mgr *manager.Manager) error {
 	if err != nil {
 		return err
 	}
-	if strings.Contains(mgr.KsVersion, "v3.2.0") && targetCmp != -1 && (currentCmp <= 0) {
+	if strings.Contains(mgr.KsVersion, "v3.2") && targetCmp != -1 && (currentCmp <= 0) {
 		targetVersionStr = "v1.21.5"
 	}
 Loop:
