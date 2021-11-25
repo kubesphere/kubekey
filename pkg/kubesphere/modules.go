@@ -54,7 +54,7 @@ func (d *DeployModule) Init() {
 			Template: templates.KsInstaller,
 			Dst:      filepath.Join(common.KubeAddonsDir, templates.KsInstaller.Name()),
 			Data: util.Data{
-				"Repo": MirrorRepo(d.KubeConf.Cluster.KubeSphere.Version),
+				"Repo": MirrorRepo(d.KubeConf),
 				"Tag":  d.KubeConf.Cluster.KubeSphere.Version,
 			},
 		},
@@ -118,12 +118,17 @@ func (d *DeployModule) Init() {
 	}
 }
 
-func MirrorRepo(version string) string {
-	var repo string
+func MirrorRepo(kubeConf *common.KubeConf) string {
+	repo := kubeConf.Cluster.Registry.PrivateRegistry
+	version := kubeConf.Cluster.KubeSphere.Version
 
 	_, ok := kubesphere.CNSource[version]
 	if ok && os.Getenv("KKZONE") == "cn" {
-		repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
+		if repo == "" {
+			repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
+		} else {
+			repo = fmt.Sprintf("%s/kubesphere", repo)
+		}
 	} else {
 		if repo == "" {
 			_, latest := kubesphere.LatestRelease(version)
