@@ -52,6 +52,7 @@ type ClusterStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	JobInfo       JobInfo      `json:"jobInfo,omitempty"`
+	PiplineInfo   PiplineInfo  `json:"piplineInfo,omitempty"`
 	Version       string       `json:"version,omitempty"`
 	NetworkPlugin string       `json:"networkPlugin,omitempty"`
 	NodesCount    int          `json:"nodesCount,omitempty"`
@@ -78,6 +79,12 @@ type PodInfo struct {
 // ContainerInfo defines the container information to be used to create a cluster or add a node.
 type ContainerInfo struct {
 	Name string `json:"name,omitempty"`
+}
+
+// PiplineInfo define the pipline information for operating cluster.
+type PiplineInfo struct {
+	// Running or Terminated
+	Status string `json:"status,omitempty"`
 }
 
 // NodeStatus defines the status information of the nodes in the cluster.

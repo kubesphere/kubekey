@@ -169,6 +169,9 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		addHosts = cluster.Spec.Hosts
 		sendHostsAction(1, addHosts, log)
+
+		// Ensure that the cluster has been created successfully, otherwise re-enter Reconcile.
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
 	// add nodes to cluster
@@ -191,6 +194,9 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 		sendHostsAction(1, addHosts, log)
+
+		// Ensure that the nodes has been added successfully, otherwise re-enter Reconcile.
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
 	// Synchronizing Node Information
