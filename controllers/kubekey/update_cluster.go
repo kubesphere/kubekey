@@ -208,6 +208,7 @@ func UpdateClusterConditions(runtime *common.KubeRuntime, step string, result *e
 		cluster.Status.Conditions = append(cluster.Status.Conditions, condition)
 	}
 
+	cluster.Status.PiplineInfo.Status = "Running"
 	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
@@ -236,6 +237,7 @@ func UpdateStatus(runtime *common.KubeRuntime) error {
 		})
 	}
 
+	cluster.Status.PiplineInfo.Status = "Terminated"
 	if _, err := runtime.ClientSet.KubekeyV1alpha2().Clusters().UpdateStatus(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
