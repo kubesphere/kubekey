@@ -23,9 +23,11 @@ import (
 	"encoding/json"
 	"fmt"
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -127,19 +129,37 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 
-		nodes, err := clusterDiff(r, ctx, cluster)
+		// If the CR cluster define current cluster
+		nodes, err := currentClusterDiff(r, ctx, cluster)
 		if err != nil {
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
-		// If the CR cluster define current cluster
 		if len(nodes) != 0 {
 			log.Info("Cluster resource defines current cluster")
-			if err := adaptCurrentCluster(nodes, cluster); err != nil {
+			if err := adaptExistedCluster(nodes, cluster); err != nil {
 				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 			}
 			if err := r.Status().Update(context.TODO(), cluster); err != nil {
 				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 			}
+
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+
+		// If the CR cluster define other existed cluster
+		otherClusterNodes, err := otherClusterDiff(r, ctx, cluster)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		}
+		if len(otherClusterNodes) != 0 {
+			log.Info("Cluster resource defines other existed cluster")
+			if err := adaptExistedCluster(otherClusterNodes, cluster); err != nil {
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			}
+			if err := r.Status().Update(context.TODO(), cluster); err != nil {
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			}
+
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 
@@ -174,17 +194,21 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Synchronizing Node Information
-	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.Name), Namespace: "kubekey-system"}, cmFound); err == nil && len(cluster.Status.Nodes) != 0 {
-		cmFound.OwnerReferences = []metav1.OwnerReference{{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		}}
-		if err := r.Update(ctx, cmFound); err != nil {
-			return ctrl.Result{Requeue: true}, err
-		}
-		kubeconfig, err := base64.StdEncoding.DecodeString(cmFound.Data["kubeconfig"])
+	kubeConfigCm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.Name), Namespace: "kubekey-system"}, kubeConfigCm); err == nil && len(cluster.Status.Nodes) != 0 {
+		// fixme: this code will delete the kube config configmap when user delete the CR cluster.
+		// And if user apply this deleted CR cluster again, kk will no longer be able to find the kube config.
+
+		//kubeConfigCm.OwnerReferences = []metav1.OwnerReference{{
+		//	APIVersion: cluster.APIVersion,
+		//	Kind:       cluster.Kind,
+		//	Name:       cluster.Name,
+		//	UID:        cluster.UID,
+		//}}
+		//if err := r.Update(ctx, kubeConfigCm); err != nil {
+		//	return ctrl.Result{Requeue: true}, err
+		//}
+		kubeconfig, err := base64.StdEncoding.DecodeString(kubeConfigCm.Data["kubeconfig"])
 		if err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -215,7 +239,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		nodes := cluster.Status.Nodes
-		newNodes := []kubekeyv1alpha2.NodeStatus{}
+		var newNodes []kubekeyv1alpha2.NodeStatus
 
 		for _, node := range nodes {
 			if _, ok := currentNodes[node.Hostname]; ok {
@@ -224,7 +248,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		hosts := cluster.Spec.Hosts
-		newHosts := []kubekeyv1alpha2.HostCfg{}
+		var newHosts []kubekeyv1alpha2.HostCfg
 		for _, host := range hosts {
 			if _, ok := currentNodes[host.Name]; ok {
 				newHosts = append(newHosts, host)
@@ -627,61 +651,160 @@ func sendHostsAction(action int, hosts []kubekeyv1alpha2.HostCfg, log logr.Logge
 }
 
 type NodeInfo struct {
+	Name    string
 	Address string
 	Master  bool
 	Worker  bool
+	Etcd    bool
 }
 
-func clusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alpha2.Cluster) ([]kubekeyv1alpha2.NodeStatus, error) {
-	nodes := &corev1.NodeList{}
+type Configuration struct {
+	Etcd Etcd `yaml:"etcd"`
+}
+
+type Etcd struct {
+	External External `yaml:"external"`
+}
+
+type External struct {
+	Endpoints []string `yaml:"endpoints"`
+}
+
+func currentClusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alpha2.Cluster) ([]kubekeyv1alpha2.NodeStatus, error) {
 	newNodes := make([]kubekeyv1alpha2.NodeStatus, 0)
 
-	if err := r.List(ctx, nodes, &client.ListOptions{}); err != nil {
+	allSpecHostsMap := make(map[string]NodeInfo)
+	for _, host := range c.Spec.Hosts {
+		allSpecHostsMap[host.InternalAddress] = NodeInfo{
+			Name:    host.Name,
+			Address: host.InternalAddress,
+		}
+	}
+
+	nodeList := &corev1.NodeList{}
+	if err := r.List(ctx, nodeList, &client.ListOptions{}); err != nil {
 		return newNodes, err
 	}
 
-	m := make(map[string]NodeInfo)
-	for _, node := range nodes.Items {
-		var info NodeInfo
+	// get cluster nodes which in spec hosts
+	currentHostsMap := make(map[string]NodeInfo)
+	for _, node := range nodeList.Items {
+		isMaster := false
+		isWorker := false
 
 		if _, ok := node.Labels["node-role.kubernetes.io/control-plane"]; ok {
-			info.Master = true
+			isMaster = true
 		}
 		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
-			info.Master = true
+			isMaster = true
 		}
 		if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
-			info.Worker = true
+			isWorker = true
 		}
 
 		for _, address := range node.Status.Addresses {
 			if address.Type == corev1.NodeInternalIP {
-				info.Address = address.Address
+				if _, ok := allSpecHostsMap[address.Address]; ok {
+					currentHostsMap[address.Address] = NodeInfo{
+						Address: address.Address,
+						Name:    node.Name,
+						Master:  isMaster,
+						Worker:  isWorker,
+					}
+				}
 			}
 		}
-		m[node.Name] = info
 	}
 
-	for _, host := range c.Spec.Hosts {
-		if info, ok := m[host.Name]; ok {
-			if info.Address == host.InternalAddress {
-				newNodes = append(newNodes, kubekeyv1alpha2.NodeStatus{
-					InternalIP: host.InternalAddress,
-					Hostname:   host.Name,
-					Roles:      map[string]bool{"master": info.Master, "worker": info.Worker},
-				})
+	// spec cluster is different from current cluster
+	if len(currentHostsMap) == 0 {
+		return newNodes, nil
+	}
+
+	if len(currentHostsMap) < len(nodeList.Items) {
+		return newNodes, errors.New("the number of spec hosts are not enough compared with the cluster exist hosts")
+	}
+
+	// mark which ip or node name is etcd role
+	etcdSpecMap := make(map[string]bool)
+	kubeadmConfig := &corev1.ConfigMap{}
+	err := r.Get(ctx, types.NamespacedName{Name: "kubeadm-config", Namespace: "kube-system"}, kubeadmConfig)
+	if err == nil {
+		configuration, ok := kubeadmConfig.Data["ClusterConfiguration"]
+		if !ok {
+			return newNodes, errors.Errorf("Failed to get ClusterConfiguration key in kubeadm-config configmap")
+		}
+
+		conf := &Configuration{}
+		if err := yamlV2.Unmarshal([]byte(configuration), conf); err != nil {
+			return newNodes, err
+		}
+
+		for _, endpoint := range conf.Etcd.External.Endpoints {
+			ip, err := findIpAddress(endpoint)
+			if err != nil {
+				return newNodes, errors.Wrap(err, "Failed to find etcd external endpoints")
+			}
+			etcdSpecMap[ip] = true
+		}
+	} else {
+		if kubeErr.IsNotFound(err) {
+			for _, etcdHostName := range c.Spec.RoleGroups.Etcd {
+				etcdSpecMap[etcdHostName] = true
+			}
+		} else {
+			return newNodes, errors.Wrap(errors.WithStack(err), "Failed to get kubeadm-config")
+		}
+	}
+
+	// add etcd node info to current hosts map
+	for _, host := range allSpecHostsMap {
+		_, nameOk := etcdSpecMap[host.Name]
+		_, ipOk := etcdSpecMap[host.Address]
+		if !nameOk && !ipOk {
+			continue
+		}
+		if exist, ok := currentHostsMap[host.Address]; ok {
+			exist.Etcd = true
+			currentHostsMap[host.Address] = exist
+		} else {
+			currentHostsMap[host.Address] = NodeInfo{
+				Address: host.Address,
+				Name:    host.Name,
+				Etcd:    true,
 			}
 		}
+	}
+
+	for _, host := range currentHostsMap {
+		newNodes = append(newNodes, kubekeyv1alpha2.NodeStatus{
+			InternalIP: host.Address,
+			Hostname:   host.Name,
+			Roles:      map[string]bool{"master": host.Master, "worker": host.Worker, "etcd": host.Etcd},
+		})
 	}
 	return newNodes, nil
 }
 
-func adaptCurrentCluster(newNodes []kubekeyv1alpha2.NodeStatus, c *kubekeyv1alpha2.Cluster) error {
-	var newMaster, newWorker []string
+func findIpAddress(endpoint string) (string, error) {
+	ipv4Regexp, err := regexp.Compile("[\\d]+\\.[\\d]+\\.[\\d]+\\.[\\d]+")
+	if err != nil {
+		return "", err
+	}
+	ip := ipv4Regexp.FindStringSubmatch(endpoint)
+
+	if len(ip) != 0 {
+		return ip[0], nil
+	}
+	return "", errors.Errorf("Failed to find ip address in %s", endpoint)
+}
+
+func adaptExistedCluster(newNodes []kubekeyv1alpha2.NodeStatus, c *kubekeyv1alpha2.Cluster) error {
+	var newMaster, newWorker, newEtcd []string
 	for _, node := range newNodes {
-		//if node.Roles["etcd"] {
-		//	newEtcd = append(newEtcd, node.Hostname)
-		//}
+		if node.Roles["etcd"] {
+			newEtcd = append(newEtcd, node.Hostname)
+		}
 		if node.Roles["master"] {
 			newMaster = append(newMaster, node.Hostname)
 		}
@@ -692,11 +815,149 @@ func adaptCurrentCluster(newNodes []kubekeyv1alpha2.NodeStatus, c *kubekeyv1alph
 
 	c.Status.NodesCount = len(newNodes)
 	c.Status.MasterCount = len(newMaster)
-	//c.Status.EtcdCount = len(newEtcd)
+	c.Status.EtcdCount = len(newEtcd)
 	c.Status.WorkerCount = len(newWorker)
 	c.Status.Nodes = newNodes
 	c.Status.Version = c.Spec.Kubernetes.Version
 	c.Status.NetworkPlugin = c.Spec.Network.Plugin
 
 	return nil
+}
+
+func otherClusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alpha2.Cluster) ([]kubekeyv1alpha2.NodeStatus, error) {
+	newNodes := make([]kubekeyv1alpha2.NodeStatus, 0)
+
+	allSpecHostsMap := make(map[string]NodeInfo)
+	for _, host := range c.Spec.Hosts {
+		allSpecHostsMap[host.InternalAddress] = NodeInfo{
+			Name:    host.Name,
+			Address: host.InternalAddress,
+		}
+	}
+
+	kubeConfigFound := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", c.Name), Namespace: "kubekey-system"}, kubeConfigFound); err != nil {
+		if kubeErr.IsNotFound(err) {
+			return newNodes, nil
+		}
+		return newNodes, err
+	}
+
+	kubeconfig, err := base64.StdEncoding.DecodeString(kubeConfigFound.Data["kubeconfig"])
+	if err != nil {
+		return newNodes, err
+	}
+
+	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		return newNodes, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return newNodes, err
+	}
+
+	nodeList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return newNodes, err
+	}
+
+	// get cluster nodes which in spec hosts
+	currentHostsMap := make(map[string]NodeInfo)
+	for _, node := range nodeList.Items {
+		isMaster := false
+		isWorker := false
+
+		if _, ok := node.Labels["node-role.kubernetes.io/control-plane"]; ok {
+			isMaster = true
+		}
+		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+			isMaster = true
+		}
+		if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
+			isWorker = true
+		}
+
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				if _, ok := allSpecHostsMap[address.Address]; ok {
+					currentHostsMap[address.Address] = NodeInfo{
+						Address: address.Address,
+						Name:    node.Name,
+						Master:  isMaster,
+						Worker:  isWorker,
+					}
+				}
+			}
+		}
+	}
+
+	// spec cluster is different from current cluster
+	if len(currentHostsMap) == 0 {
+		return newNodes, nil
+	}
+
+	if len(currentHostsMap) < len(nodeList.Items) {
+		return newNodes, errors.New("the number of spec hosts are not enough compared with the cluster exist hosts")
+	}
+
+	// mark which ip or node name is etcd role
+	etcdSpecMap := make(map[string]bool)
+	kubeadmConfig, err := clientset.CoreV1().ConfigMaps("kube-system").Get(ctx, "kubeadm-config", metav1.GetOptions{})
+	if err == nil {
+		configuration, ok := kubeadmConfig.Data["ClusterConfiguration"]
+		if !ok {
+			return newNodes, errors.Errorf("Failed to get ClusterConfiguration key in kubeadm-config configmap")
+		}
+
+		conf := &Configuration{}
+		if err := yamlV2.Unmarshal([]byte(configuration), conf); err != nil {
+			return newNodes, err
+		}
+
+		for _, endpoint := range conf.Etcd.External.Endpoints {
+			ip, err := findIpAddress(endpoint)
+			if err != nil {
+				return newNodes, errors.Wrap(err, "Failed to find etcd external endpoints")
+			}
+			etcdSpecMap[ip] = true
+		}
+	} else {
+		if kubeErr.IsNotFound(err) {
+			for _, etcdHostName := range c.Spec.RoleGroups.Etcd {
+				etcdSpecMap[etcdHostName] = true
+			}
+		} else {
+			return newNodes, errors.Wrap(errors.WithStack(err), "Failed to get kubeadm-config")
+		}
+	}
+
+	// add etcd node info to current hosts map
+	for _, host := range allSpecHostsMap {
+		_, nameOk := etcdSpecMap[host.Name]
+		_, ipOk := etcdSpecMap[host.Address]
+		if !nameOk && !ipOk {
+			continue
+		}
+		if exist, ok := currentHostsMap[host.Address]; ok {
+			exist.Etcd = true
+			currentHostsMap[host.Address] = exist
+		} else {
+			currentHostsMap[host.Address] = NodeInfo{
+				Address: host.Address,
+				Name:    host.Name,
+				Etcd:    true,
+			}
+		}
+	}
+
+	for _, host := range currentHostsMap {
+		newNodes = append(newNodes, kubekeyv1alpha2.NodeStatus{
+			InternalIP: host.Address,
+			Hostname:   host.Name,
+			Roles:      map[string]bool{"master": host.Master, "worker": host.Worker, "etcd": host.Etcd},
+		})
+	}
+	return newNodes, nil
 }
