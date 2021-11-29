@@ -30,6 +30,7 @@ const (
 	V310
 	V311
 	V320
+	V321
 )
 
 var VersionList = []Version{
@@ -38,6 +39,7 @@ var VersionList = []Version{
 	V310,
 	V311,
 	V320,
+	V321,
 }
 
 var VersionMap = map[string]*KsInstaller{
@@ -46,12 +48,41 @@ var VersionMap = map[string]*KsInstaller{
 	V310.String(): KsV310,
 	V311.String(): KsV311,
 	V320.String(): KsV320,
+	V321.String(): KsV321,
 }
 
 var CNSource = map[string]bool{
 	V310.String(): true,
 	V311.String(): true,
 	V320.String(): true,
+	V321.String(): true,
+}
+
+func (v Version) String() string {
+	switch v {
+	case V211:
+		return "v2.1.1"
+	case V300:
+		return "v3.0.0"
+	case V310:
+		return "v3.1.0"
+	case V311:
+		return "v3.1.1"
+	case V320:
+		return "v3.2.0"
+	case V321:
+		return "v3.2.1"
+	default:
+		return "invalid option"
+	}
+}
+
+func VersionsStringArr() []string {
+	strArr := make([]string, 0, len(VersionList))
+	for i, v := range VersionList {
+		strArr[i] = v.String()
+	}
+	return strArr
 }
 
 func StabledVersionSupport(version string) (*KsInstaller, bool) {
@@ -103,21 +134,4 @@ func DevRelease(version string) (*KsInstaller, bool) {
 
 func Latest() *KsInstaller {
 	return VersionMap[VersionList[len(VersionList)-1].String()]
-}
-
-func (v Version) String() string {
-	switch v {
-	case V211:
-		return "v2.1.1"
-	case V300:
-		return "v3.0.0"
-	case V310:
-		return "v3.1.0"
-	case V311:
-		return "v3.1.1"
-	case V320:
-		return "v3.2.0"
-	default:
-		return "invalid option"
-	}
 }
