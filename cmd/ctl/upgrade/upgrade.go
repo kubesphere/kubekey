@@ -22,8 +22,8 @@ import (
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
-	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
 	"time"
 )
@@ -99,13 +99,14 @@ func (o *UpgradeOptions) AddFlags(cmd *cobra.Command) {
 func completionSetting(cmd *cobra.Command) (err error) {
 	cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) (
 		strings []string, directive cobra.ShellCompDirective) {
-		versionArray := []string{"v2.1.1", "v3.0.0", "v3.1.0", "v3.1.1", "v3.2.0", time.Now().Add(-time.Hour * 24).Format("nightly-20060102")}
+		versionArray := kubesphere.VersionsStringArr()
+		versionArray = append(versionArray, time.Now().Add(-time.Hour*24).Format("nightly-20060102"))
 		return versionArray, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	err = cmd.RegisterFlagCompletionFunc("with-kubernetes", func(cmd *cobra.Command, args []string, toComplete string) (
 		strings []string, directive cobra.ShellCompDirective) {
-		return version.SupportedK8sVersionList(), cobra.ShellCompDirectiveNoFileComp
+		return kubernetes.SupportedK8sVersionList(), cobra.ShellCompDirectiveNoFileComp
 	})
 	return
 }

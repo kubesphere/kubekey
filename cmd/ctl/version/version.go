@@ -18,6 +18,7 @@ package version
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/version"
 	"github.com/spf13/cobra"
 	"io"
@@ -71,6 +72,6 @@ func printVersion(short bool) error {
 }
 
 func printSupportedK8sVersionList(output io.Writer) (err error) {
-	_, err = output.Write([]byte(fmt.Sprintln(strings.Join(version.SupportedK8sVersionList(), "\n"))))
+	_, err = output.Write([]byte(fmt.Sprintln(strings.Join(kubernetes.SupportedK8sVersionList(), "\n"))))
 	return
 }
