@@ -17,6 +17,9 @@
 package container
 
 import (
+	"path/filepath"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container/templates"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -26,8 +29,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
-	"path/filepath"
-	"strings"
 )
 
 type InstallContainerModule struct {
@@ -113,7 +114,7 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
-	generateDOckerConfig := &task.RemoteTask{
+	generateDockerConfig := &task.RemoteTask{
 		Name:  "GenerateDockerConfig",
 		Desc:  "Generate docker config",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
@@ -149,7 +150,7 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		generateContainerdService,
 		enableContainerd,
 		generateDockerService,
-		generateDOckerConfig,
+		generateDockerConfig,
 		enableDocker,
 	}
 }
