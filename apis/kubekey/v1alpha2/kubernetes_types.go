@@ -48,7 +48,6 @@ type Kubernetes struct {
 func (k *Kubernetes) EnableNodelocaldns() bool {
 	if k.Nodelocaldns == nil {
 		return true
-	} else {
-		return *k.Nodelocaldns
 	}
+	return *k.Nodelocaldns
 }
