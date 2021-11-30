@@ -19,6 +19,9 @@ package task
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -27,8 +30,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
-	"sync"
-	"time"
 )
 
 type RemoteTask struct {
@@ -184,9 +185,8 @@ func (t *RemoteTask) When(runtime connector.Runtime) (bool, error) {
 		return false, err
 	} else if !ok {
 		return false, nil
-	} else {
-		return true, nil
 	}
+	return true, nil
 }
 
 func (t *RemoteTask) WhenWithRetry(runtime connector.Runtime) (bool, error) {

@@ -22,14 +22,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/go-logr/logr"
 	yamlV2 "gopkg.in/yaml.v2"
@@ -592,12 +593,10 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 			if e := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); e != nil {
 				if kubeErr.IsNotFound(e) {
 					return true, nil
-				} else {
-					return false, e
 				}
-			} else {
-				return false, nil
+				return false, e
 			}
+			return false, nil
 		})
 		if err != nil {
 			log.Error(err, "Failed to loop check old job is deleted", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)

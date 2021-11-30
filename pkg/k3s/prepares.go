@@ -40,9 +40,8 @@ func (n *NodeInCluster) PreCheck(runtime connector.Runtime) (bool, error) {
 			return !(versionOk || ipOk), nil
 		}
 		return versionOk || ipOk, nil
-	} else {
-		return false, errors.New("get k3s cluster status by pipeline cache failed")
 	}
+	return false, errors.New("get k3s cluster status by pipeline cache failed")
 }
 
 type ClusterIsExist struct {

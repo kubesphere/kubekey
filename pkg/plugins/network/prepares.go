@@ -35,10 +35,9 @@ func (o *OldK8sVersion) PreCheck(_ connector.Runtime) (bool, error) {
 	// old version
 	if cmp == -1 {
 		return !o.Not, nil
-	} else {
-		// new version
-		return o.Not, nil
 	}
+	// new version
+	return o.Not, nil
 }
 
 type EnableSSL struct {

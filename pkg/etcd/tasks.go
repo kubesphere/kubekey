@@ -18,6 +18,9 @@ package etcd
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -26,8 +29,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/etcd/templates"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
-	"path/filepath"
-	"strings"
 )
 
 type EtcdNode struct {
@@ -318,9 +319,8 @@ func (r *RefreshConfig) Execute(runtime connector.Runtime) error {
 			}
 		}
 		return nil
-	} else {
-		return errors.New("get etcd cluster status by pipeline cache failed")
 	}
+	return errors.New("get etcd cluster status by pipeline cache failed")
 }
 
 func refreshConfig(runtime connector.Runtime, endpoints []string, state, etcdName string) error {
