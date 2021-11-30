@@ -19,6 +19,8 @@ package task
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/common"
@@ -27,7 +29,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type LocalTask struct {
@@ -187,9 +188,8 @@ func (l *LocalTask) When(runtime connector.Runtime) (bool, error) {
 		return false, err
 	} else if !ok {
 		return false, nil
-	} else {
-		return true, nil
 	}
+	return true, nil
 }
 
 func (l *LocalTask) ExecuteWithRetry(runtime connector.Runtime, host connector.Host) error {

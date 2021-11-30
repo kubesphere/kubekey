@@ -18,8 +18,9 @@ package kubesphere
 
 import (
 	"fmt"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"strings"
+
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 )
 
 type Version int

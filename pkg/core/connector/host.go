@@ -129,9 +129,8 @@ func (b *BaseHost) SetRole(role string) {
 func (b *BaseHost) IsRole(role string) bool {
 	if res, ok := b.RoleTable[role]; ok {
 		return res
-	} else {
-		return false
 	}
+	return false
 }
 
 func (b *BaseHost) GetCache() *cache.Cache {

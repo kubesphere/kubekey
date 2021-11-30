@@ -17,9 +17,10 @@
 package container
 
 import (
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"strings"
 )
 
 type DockerExist struct {
@@ -36,9 +37,8 @@ func (d *DockerExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	}
 	if strings.Contains(output, "not exist") {
 		return d.Not, nil
-	} else {
-		return !d.Not, nil
 	}
+	return !d.Not, nil
 }
 
 type CrictlExist struct {
@@ -76,7 +76,6 @@ func (c *ContainerdExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	}
 	if strings.Contains(output, "not exist") {
 		return c.Not, nil
-	} else {
-		return !c.Not, nil
 	}
+	return !c.Not, nil
 }

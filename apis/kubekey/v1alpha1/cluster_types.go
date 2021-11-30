@@ -18,13 +18,14 @@ package v1alpha1
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -322,9 +323,8 @@ func (cfg *ClusterSpec) CorednsClusterIP() string {
 func (cfg *ClusterSpec) ClusterDNS() string {
 	if cfg.Kubernetes.EnableNodelocaldns() {
 		return "169.254.25.10"
-	} else {
-		return cfg.CorednsClusterIP()
 	}
+	return cfg.CorednsClusterIP()
 }
 
 // ParseRolesList is used to parse the host grouping list.

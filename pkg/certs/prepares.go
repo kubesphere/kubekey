@@ -17,10 +17,11 @@
 package certs
 
 import (
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/certs/templates"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"path/filepath"
 )
 
 type AutoRenewCertsEnabled struct {
@@ -35,7 +36,6 @@ func (a *AutoRenewCertsEnabled) PreCheck(runtime connector.Runtime) (bool, error
 	}
 	if exist {
 		return !a.Not, nil
-	} else {
-		return a.Not, nil
 	}
+	return a.Not, nil
 }
