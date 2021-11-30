@@ -17,10 +17,11 @@
 package etcd
 
 import (
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 type FirstETCDNode struct {
@@ -52,10 +53,8 @@ func (n *NodeETCDExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	if v, ok := host.GetCache().GetMustBool(common.ETCDExist); ok {
 		if v {
 			return !n.Not, nil
-		} else {
-			return n.Not, nil
 		}
-	} else {
-		return false, errors.New("get etcd node status by host label failed")
+		return n.Not, nil
 	}
+	return false, errors.New("get etcd node status by host label failed")
 }

@@ -17,6 +17,8 @@
 package network
 
 import (
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
@@ -26,7 +28,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/templates"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
-	"path/filepath"
 )
 
 type DeployNetworkPluginModule struct {
@@ -310,8 +311,7 @@ func K8sVersionAtLeast(version string, compare string) bool {
 	// old version
 	if cmp == -1 {
 		return false
-	} else {
-		// new version
-		return true
 	}
+	// new version
+	return true
 }
