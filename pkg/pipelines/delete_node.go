@@ -34,7 +34,7 @@ func DeleteNodePipeline(runtime *common.KubeRuntime) error {
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "AddNodesPipeline",
+		Name:    "DeleteNodesPipeline",
 		Modules: m,
 		Runtime: runtime,
 	}

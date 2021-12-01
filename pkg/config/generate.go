@@ -20,16 +20,17 @@ import (
 	"bufio"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/config/templates"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/pkg/errors"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
 // GenerateKubeKeyConfig is used to generate cluster configuration file
@@ -91,9 +92,8 @@ func GenerateKubeKeyConfig(arg common.Argument, name string) error {
 		}
 		CheckConfigFileStatus(fmt.Sprintf("%s/config-%s.yaml", currentDir, opt.Name))
 		cmd := fmt.Sprintf("echo %s | base64 -d > %s/config-%s.yaml", ClusterObjStrBase64, currentDir, opt.Name)
-		err1 := exec.Command("/bin/sh", "-c", cmd).Run()
-		if err1 != nil {
-			return err1
+		if err := exec.Command("/bin/sh", "-c", cmd).Run(); err != nil {
+			return err
 		}
 	}
 

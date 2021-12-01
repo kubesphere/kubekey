@@ -19,15 +19,16 @@ package plugin
 import (
 	"bytes"
 	"fmt"
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
-	"github.com/spf13/cobra"
 	"io/ioutil"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"k8s.io/kubectl/pkg/util/i18n"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/kubesphere/kubekey/cmd/ctl/options"
+	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/util/i18n"
 )
 
 type PluginListOptions struct {
@@ -228,10 +229,9 @@ func uniquePathsList(paths []string) []string {
 
 func hasValidPrefix(filepath string, validPrefixes []string) bool {
 	for _, prefix := range validPrefixes {
-		if !strings.HasPrefix(filepath, prefix+"-") {
-			continue
+		if strings.HasPrefix(filepath, prefix+"-") {
+			return true
 		}
-		return true
 	}
 	return false
 }
