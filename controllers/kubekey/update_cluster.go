@@ -117,8 +117,8 @@ func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha2.Cluster) e
 			return err
 		}
 
-		kscluster, err1 := addons.GetCluster(c.Name)
-		if err1 != nil {
+		kscluster, err := addons.GetCluster(c.Name)
+		if err != nil {
 			return err
 		}
 		ownerReferencePatch := fmt.Sprintf(`{"metadata": {"ownerReferences": [{"apiVersion": "%s", "kind": "%s", "name": "%s", "uid": "%s"}]}}`, kscluster.GetAPIVersion(), kscluster.GetKind(), kscluster.GetName(), kscluster.GetUID())
