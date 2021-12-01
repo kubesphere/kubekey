@@ -31,7 +31,7 @@ func RenewCertsPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "CheckCertsPipeline",
+		Name:    "RenewCertsPipeline",
 		Modules: m,
 		Runtime: runtime,
 	}

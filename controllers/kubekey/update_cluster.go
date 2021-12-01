@@ -20,12 +20,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"text/template"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"github.com/pkg/errors"
-	"text/template"
 
 	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
 	"github.com/kubesphere/kubekey/pkg/core/util"
@@ -314,7 +315,10 @@ func CreateNodeForCluster(runtime *common.KubeRuntime) error {
 	}
 
 	nodeInfo := make(map[string]string)
-	nodeList, _ := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodeList, err := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
 	for _, node := range nodeList.Items {
 		nodeInfo[node.Name] = node.Status.NodeInfo.KubeletVersion
 	}
@@ -350,7 +354,10 @@ func PatchNodeImportStatus(runtime *common.KubeRuntime, status string) error {
 	}
 
 	patchStr := fmt.Sprintf(`{"metadata": {"labels": {"kubekey.kubesphere.io/import-status": "%s"}}}`, status)
-	nodeList, _ := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodeList, err := clientsetForCluster.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
 	for _, node := range nodeList.Items {
 		for k, v := range node.Labels {
 			if k == "kubekey.kubesphere.io/import-status" && v != Success {
@@ -380,13 +387,19 @@ func SaveKubeConfig(runtime *common.KubeRuntime) error {
 
 	if _, err := cmClientset.Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", runtime.ClusterName), metav1.GetOptions{}); err != nil {
 		if kubeErr.IsNotFound(err) {
-			cmClientset.Create(context.TODO(), configMapForKubeconfig(runtime), metav1.CreateOptions{})
+			_, err = cmClientset.Create(context.TODO(), configMapForKubeconfig(runtime), metav1.CreateOptions{})
+			if err != nil {
+				return err
+			}
 		} else {
 			return err
 		}
 	} else {
 		kubeconfigStr := fmt.Sprintf(`{"kubeconfig": "%s"}`, runtime.Kubeconfig)
-		cmClientset.Patch(context.TODO(), runtime.ClusterName, types.ApplyPatchType, []byte(kubeconfigStr), metav1.PatchOptions{})
+		_, err = cmClientset.Patch(context.TODO(), runtime.ClusterName, types.ApplyPatchType, []byte(kubeconfigStr), metav1.PatchOptions{})
+		if err != nil {
+			return err
+		}
 	}
 	// clientset.CoreV1().ConfigMaps("kubekey-system").Create(context.TODO(), kubeconfigConfigMap, metav1.CreateOptions{}
 	return nil
