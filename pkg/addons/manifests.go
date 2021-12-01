@@ -21,6 +21,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,9 +43,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/cmd/apply"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 var (
@@ -259,10 +260,9 @@ func GetCluster(name string) (*unstructured.Unstructured, error) {
 		return nil, err
 	}
 
-	var cluster *unstructured.Unstructured
-	cluster, err1 := dyn.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-	if err1 != nil {
-		return nil, err1
+	cluster, err := dyn.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
 	}
 
 	return cluster, nil
