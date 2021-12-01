@@ -113,7 +113,10 @@ func newKubeSphereCluster(r *ClusterReconciler, c *kubekeyapiv1alpha2.Cluster) e
 			return err
 		}
 		if err := addons.DoServerSideApply(context.TODO(), config, []byte(obj)); err != nil {
-			_ = r.Delete(context.TODO(), c)
+			err = r.Delete(context.TODO(), c)
+			if err != nil {
+				return err
+			}
 			return err
 		}
 
