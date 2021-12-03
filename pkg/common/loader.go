@@ -127,7 +127,8 @@ func (d *DefaultLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 		}
 	}
 
-	allInOne.Name = AllInOne + time.Now().Format("2006-01-02")
+	// must be a lower case
+	allInOne.Name = "kubekey" + time.Now().Format("2006-01-02")
 
 	return &allInOne, nil
 }
