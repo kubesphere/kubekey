@@ -157,6 +157,9 @@ EOF
 		}
 	}
 
+	if mgr.ContainerManager == "" {
+		mgr.ContainerManager = "docker"
+	}
 	switch mgr.ContainerManager {
 	case "docker", "containerd", "crio":
 		if _, err := mgr.Runner.ExecuteCmd(fmt.Sprintf("sudo /bin/sh -c \"sed -i '/containerruntime/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml\"", mgr.ContainerManager), 2, false); err != nil {
