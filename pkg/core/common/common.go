@@ -33,4 +33,5 @@ const (
 
 	// command
 	CopyCmd = "cp -r %s %s"
+	MoveCmd = "mv -f %s %s"
 )
