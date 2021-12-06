@@ -133,7 +133,7 @@ func (r *Runner) SudoScp(local, remote string) error {
 		return err
 	}
 
-	if _, err := r.SudoCmd(fmt.Sprintf(common.CopyCmd, remoteTmp, remote), false); err != nil {
+	if _, err := r.SudoCmd(fmt.Sprintf(common.MoveCmd, remoteTmp, remote), false); err != nil {
 		return err
 	}
 
