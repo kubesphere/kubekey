@@ -331,6 +331,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
     <td align="center"><a href="https://github.com/TheApeMachine"><img src="https://avatars.githubusercontent.com/u/9572060?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Daniel Owen van Dommelen</b></sub></a><br /><a href="#ideas-TheApeMachine" title="Ideas, Planning, & Feedback">🤔</a></td>
     <td align="center"><a href="https://github.com/Naidile-P-N"><img src="https://avatars.githubusercontent.com/u/29476402?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Naidile P N</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=Naidile-P-N" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/haiker2011"><img src="https://avatars.githubusercontent.com/u/8073429?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Haiker Sun</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=haiker2011" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/yj-cloud"><img src="https://avatars.githubusercontent.com/u/19648473?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jing Yu</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=yj-cloud" title="Code">💻</a></td>
   </tr>
 </table>
 
