@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/pkg/errors"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -82,16 +83,35 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		}
 
 		for i := 5; i > 0; i-- {
-			if output, err := exec.Command("/bin/sh", "-c", binary.GetCmd).CombinedOutput(); err != nil {
-				fmt.Println(string(output))
+			cmd := exec.Command("/bin/sh", "-c", binary.GetCmd)
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			}
+			cmd.Stderr = cmd.Stdout
 
+			if err = cmd.Start(); err != nil {
+				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			}
+			for {
+				tmp := make([]byte, 1024)
+				_, err := stdout.Read(tmp)
+				fmt.Print(string(tmp)) // Get the output from the pipeline in real time and print it to the terminal
+				if errors.Is(err, io.EOF) {
+					break
+				} else if err != nil {
+					logger.Log.Errorln(err)
+					break
+				}
+			}
+			if err = cmd.Wait(); err != nil {
 				if kkzone != "cn" {
 					logger.Log.Warningln("Having a problem with accessing https://storage.googleapis.com? You can try again after setting environment 'export KKZONE=cn'")
 				}
-				return errors.New(fmt.Sprintf("Failed to download %s binary: %s", binary.Name, binary.GetCmd))
+				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
 			}
 
-			if err := K3sSHA256Check(binary, version); err != nil {
+			if err := SHA256Check(binary); err != nil {
 				if i == 1 {
 					return err
 				}
