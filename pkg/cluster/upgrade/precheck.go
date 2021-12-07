@@ -41,6 +41,7 @@ var versionCheck = map[string]map[string]map[string]bool{
 			"v1.19": true,
 		},
 		"ks": {
+			"v3.2.1": true,
 			"v3.2.0": true,
 			"v3.1.1": true,
 			"v3.1.0": true,
@@ -177,6 +178,8 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 		}
 
 		ksVersion, err := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get deploy -n  kubesphere-system ks-console -o jsonpath='{.metadata.labels.version}'\"", 1, false)
+		ccKsVersion, ccErr := mgr.Runner.ExecuteCmd("sudo -E /bin/sh -c \"/usr/local/bin/kubectl get ClusterConfiguration ks-installer -n  kubesphere-system  -o jsonpath='{.metadata.labels.version}'\"", 1, false)
+
 		if err != nil {
 			if mgr.Cluster.KubeSphere.Enabled {
 				return errors.New("Failed to get kubesphere version")
@@ -187,18 +190,23 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 				}
 			}
 		} else {
+			if ccErr == nil && ksVersion == "v3.1.0" {
+				ksVersion = ccKsVersion
+			}
+			r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
+			currentKsVersion := r.FindString(ksVersion)
+
 			if mgr.Cluster.KubeSphere.Enabled {
 				var version string
 				if strings.Contains(mgr.Cluster.KubeSphere.Version, "latest") || strings.Contains(mgr.Cluster.KubeSphere.Version, "nightly") || strings.Contains(mgr.Cluster.KubeSphere.Version, "release") {
 					version = "v3.2.1"
 				} else {
-					r := regexp.MustCompile("v(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)")
 					version = r.FindString(mgr.Cluster.KubeSphere.Version)
 				}
 				if _, ok := versionCheck[version]; !ok {
 					return errors.New(fmt.Sprintf("Unsupported version: %s", mgr.Cluster.KubeSphere.Version))
 				}
-				if _, ok := versionCheck[version]["ks"][ksVersion]; !ok {
+				if _, ok := versionCheck[version]["ks"][currentKsVersion]; !ok {
 					return errors.New(fmt.Sprintf("Unsupported upgrade plan: %s to %s", strings.TrimSpace(ksVersion), mgr.Cluster.KubeSphere.Version))
 				}
 				K8sTargetVersion := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version)
@@ -206,11 +214,11 @@ func getClusterInfo(mgr *manager.Manager, _ *kubekeyapiv1alpha1.HostCfg) error {
 					return errors.New(fmt.Sprintf("KubeSphere %s does not support running on Kubernetes %s", version, fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
 				}
 			} else {
-				if _, ok := versionCheck[ksVersion]; !ok {
+				if _, ok := versionCheck[currentKsVersion]; !ok {
 					return errors.New(fmt.Sprintf("Unsupported version: %s", ksVersion))
 				}
 				K8sTargetVersion := versionutil.MustParseSemantic(mgr.Cluster.Kubernetes.Version)
-				if _, ok := versionCheck[ksVersion]["k8s"][fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())]; !ok {
+				if _, ok := versionCheck[currentKsVersion]["k8s"][fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())]; !ok {
 					return errors.New(fmt.Sprintf("KubeSphere %s does not support running on Kubernetes %s", ksVersion, fmt.Sprintf("v%v.%v", K8sTargetVersion.Major(), K8sTargetVersion.Minor())))
 				}
 			}
