@@ -34,7 +34,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.NodePreCheckModule{},
 		&precheck.ClusterPreCheckModule{},
-		&confirm.UpgradeConfirmModule{},
+		&confirm.UpgradeConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&os.ConfigureOSModule{},
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV121},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
