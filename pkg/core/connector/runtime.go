@@ -130,11 +130,12 @@ func (b *BaseRuntime) RemoteHost() Host {
 func (b *BaseRuntime) DeleteHost(host Host) {
 	i := 0
 	for j := range b.allHosts {
-		if b.GetAllHosts()[j].GetName() != host.GetName() {
+		if b.allHosts[j].GetName() != host.GetName() {
 			b.allHosts[i] = b.allHosts[j]
 			i++
 		}
 	}
+	b.allHosts[i] = nil
 	b.allHosts = b.allHosts[:i]
 	b.RoleMapDelete(host)
 	b.deprecatedHosts[host.GetName()] = ""
