@@ -83,6 +83,7 @@ func (o *UpgradeOptions) Run() error {
 		KsVersion:         o.KubeSphere,
 		SkipPullImages:    o.SkipPullImages,
 		Debug:             o.CommonOptions.Verbose,
+		SkipConfirmCheck:  o.CommonOptions.SkipConfirmCheck,
 	}
 	return pipelines.UpgradeCluster(arg, o.DownloadCmd)
 }
