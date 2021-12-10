@@ -54,6 +54,11 @@ const (
 	Cilium  = "cilium"
 	Kubeovn = "kubeovn"
 
+	Calico_Multus  = "calico-multus"
+	Flannel_Multus = "flannel-multus"
+	Cilium_Multus  = "cilium-multus"
+	Kubeovn_Multus = "kubeovn-multus"
+
 	Docker     = "docker"
 	Crictl     = "crictl"
 	Conatinerd = "containerd"
