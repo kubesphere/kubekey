@@ -176,7 +176,7 @@ func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
 			new(common.OnlyFirstMaster),
-			new(OldK8sVersion),
+			&OldK8sVersion{Not: true},
 		},
 		Action: &action.Template{
 			Template: templates.Cilium,
