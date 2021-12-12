@@ -137,10 +137,7 @@ func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {
 		Name:  "GenerateFlannel",
 		Desc:  "Generate flannel",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(OldK8sVersion),
-		},
+		Prepare: new(common.OnlyFirstMaster),
 		Action: &action.Template{
 			Template: templates.Flannel,
 			Dst:      filepath.Join(common.KubeConfigDir, templates.Flannel.Name()),
@@ -174,10 +171,7 @@ func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
 		Name:  "GenerateCilium",
 		Desc:  "Generate cilium",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(OldK8sVersion),
-		},
+		Prepare: new(common.OnlyFirstMaster),
 		Action: &action.Template{
 			Template: templates.Cilium,
 			Dst:      filepath.Join(common.KubeConfigDir, templates.Cilium.Name()),
