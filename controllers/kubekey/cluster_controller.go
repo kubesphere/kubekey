@@ -118,6 +118,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// create a new cluster
 	if cluster.Status.NodesCount == 0 {
+		// Ensure that the current pipeline execution is complete
+		if cluster.Status.PiplineInfo.Status != "" {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		}
+
 		if !clusterAlreadyExist {
 			// create kubesphere cluster
 			if err := newKubeSphereCluster(r, cluster); err != nil {
@@ -177,6 +182,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// add nodes to cluster
 	if cluster.Status.NodesCount != 0 && len(cluster.Spec.Hosts) > cluster.Status.NodesCount {
+		// Ensure that the current pipeline execution is complete
+		if cluster.Status.PiplineInfo.Status != "" {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		}
+
 		if err := updateClusterConfigMap(r, ctx, cluster, cmFound, log); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -198,6 +208,12 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		// Ensure that the nodes has been added successfully, otherwise re-enter Reconcile.
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+	}
+
+	// Completion of pipeline execution, clearing pipeline status information
+	cluster.Status.PiplineInfo.Status = ""
+	if err := r.Status().Update(context.TODO(), cluster); err != nil {
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
 	// Synchronizing Node Information
