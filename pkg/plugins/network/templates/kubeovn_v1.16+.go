@@ -397,7 +397,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: ovn-central
-  namespace:  kube-system
+  namespace: kube-system
   annotations:
     kubernetes.io/description: |
       OVN components: northd, nb and sb.
@@ -528,7 +528,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: ovs-ovn
-  namespace:  kube-system
+  namespace: kube-system
   annotations:
     kubernetes.io/description: |
       This daemon set launches the openvswitch daemon.
