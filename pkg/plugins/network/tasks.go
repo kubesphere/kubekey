@@ -179,8 +179,8 @@ func (g *GenerateKubeOVNNew) Execute(runtime connector.Runtime) error {
 	}
 
 	templateAction := action.Template{
-		Template: templates.KubeOVNOld,
-		Dst:      filepath.Join(common.KubeConfigDir, templates.KubeOVNOld.Name()),
+		Template: templates.KubeOVNNew,
+		Dst:      filepath.Join(common.KubeConfigDir, templates.KubeOVNNew.Name()),
 		Data: util.Data{
 			"Address":             address,
 			"Count":               count,
