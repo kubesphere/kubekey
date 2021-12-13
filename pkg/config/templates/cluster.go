@@ -53,11 +53,11 @@ spec:
     version: {{ .Options.KubeVersion }}
     clusterName: cluster.local
   network:
-    # multus support. https://github.com/k8snetworkplumbingwg/multus-cni
-    # for example: plugin: calico-multus , plugin: flannel-multus , plugin: cilium-multus
     plugin: calico
     kubePodsCIDR: 10.233.64.0/18
     kubeServiceCIDR: 10.233.0.0/18
+    # multus support. https://github.com/k8snetworkplumbingwg/multus-cni
+    enableMultusCNI: false
   registry:
     registryMirrors: []
     insecureRegistries: []

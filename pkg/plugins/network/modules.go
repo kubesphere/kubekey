@@ -47,33 +47,12 @@ func (d *DeployNetworkPluginModule) Init() {
 		d.Tasks = deployCilium(d)
 	case common.Kubeovn:
 		d.Tasks = deployKubeOVN(d)
-	case common.Calico_Multus:
-		d.Tasks = deployCalicoMultus(d)
-	case common.Flannel_Multus:
-		d.Tasks = deployFlannelMultus(d)
-	case common.Cilium_Multus:
-		d.Tasks = deployCiliumMultus(d)
-	case common.Kubeovn_Multus:
-		d.Tasks = deployKubeOVNMultus(d)
 	default:
 		return
 	}
-}
-
-func deployCalicoMultus(d *DeployNetworkPluginModule) []task.Interface {
-	return append(deployCalico(d), deployMultus(d)...)
-}
-
-func deployFlannelMultus(d *DeployNetworkPluginModule) []task.Interface {
-	return append(deployFlannel(d), deployMultus(d)...)
-}
-
-func deployCiliumMultus(d *DeployNetworkPluginModule) []task.Interface {
-	return append(deployCilium(d), deployMultus(d)...)
-}
-
-func deployKubeOVNMultus(d *DeployNetworkPluginModule) []task.Interface {
-	return append(deployKubeOVN(d), deployMultus(d)...)
+	if d.KubeConf.Cluster.Network.EnableMultusCNI {
+		d.Tasks = append(d.Tasks, deployMultus(d)...)
+	}
 }
 
 func deployMultus(d *DeployNetworkPluginModule) []task.Interface {

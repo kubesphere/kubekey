@@ -20,6 +20,7 @@ type NetworkConfig struct {
 	Plugin          string     `yaml:"plugin" json:"plugin,omitempty"`
 	KubePodsCIDR    string     `yaml:"kubePodsCIDR" json:"kubePodsCIDR,omitempty"`
 	KubeServiceCIDR string     `yaml:"kubeServiceCIDR" json:"kubeServiceCIDR,omitempty"`
+	EnableMultusCNI bool       `yaml:"enableMultusCNI" json:"enableMultusCNI,omitempty"`
 	Calico          CalicoCfg  `yaml:"calico" json:"calico,omitempty"`
 	Flannel         FlannelCfg `yaml:"flannel" json:"flannel,omitempty"`
 	Kubeovn         KubeovnCfg `yaml:"kubeovn" json:"kubeovn,omitempty"`
