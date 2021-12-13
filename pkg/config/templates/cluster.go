@@ -56,6 +56,8 @@ spec:
     plugin: calico
     kubePodsCIDR: 10.233.64.0/18
     kubeServiceCIDR: 10.233.0.0/18
+    # multus support. https://github.com/k8snetworkplumbingwg/multus-cni
+    enableMultusCNI: false
   registry:
     registryMirrors: []
     insecureRegistries: []
