@@ -82,12 +82,12 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 
 		if v, ok := g.PipelineCache.Get(common.ETCDCluster); ok {
 			c := v.(*EtcdCluster)
-			c.peerAddresses = append(c.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetAddress()))
+			c.peerAddresses = append(c.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
 			c.clusterExist = true
 			// type: *EtcdCluster
 			g.PipelineCache.Set(common.ETCDCluster, c)
 		} else {
-			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetAddress()))
+			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
 			cluster.clusterExist = true
 			g.PipelineCache.Set(common.ETCDCluster, cluster)
 		}
