@@ -50,6 +50,42 @@ func (d *DeployNetworkPluginModule) Init() {
 	default:
 		return
 	}
+	if d.KubeConf.Cluster.Network.EnableMultusCNI {
+		d.Tasks = append(d.Tasks, deployMultus(d)...)
+	}
+}
+
+func deployMultus(d *DeployNetworkPluginModule) []task.Interface {
+	generateMultus := &task.RemoteTask{
+		Name:  "GenerateMultus",
+		Desc:  "Generate multus cni",
+		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			&OldK8sVersion{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.Multus,
+			Dst:      filepath.Join(common.KubeConfigDir, templates.Multus.Name()),
+			Data: util.Data{
+				"MultusImage": images.GetImage(d.Runtime, d.KubeConf, "multus").ImageName(),
+			},
+		},
+		Parallel: true,
+	}
+	deploy := &task.RemoteTask{
+		Name:     "DeployMultus",
+		Desc:     "Deploy multus",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(DeployNetworkMultusPlugin),
+		Parallel: true,
+		Retry:    5,
+	}
+	return []task.Interface{
+		generateMultus,
+		deploy,
+	}
 }
 
 func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
