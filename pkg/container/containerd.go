@@ -50,7 +50,7 @@ func (s *SyncCrictlBinaries) Execute(runtime connector.Runtime) error {
 	fileName := path.Base(crictl.Path)
 	dst := filepath.Join(common.TmpDir, fileName)
 
-	if err := runtime.GetRunner().SudoScp(crictl.Path, dst); err != nil {
+	if err := runtime.GetRunner().Scp(crictl.Path, dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync crictl binaries failed"))
 	}
 
