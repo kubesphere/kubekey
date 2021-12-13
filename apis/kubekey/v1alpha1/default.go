@@ -18,9 +18,10 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/core/util"
 )
 
 const (
@@ -169,7 +170,7 @@ func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg, incluster bool) Co
 	}
 
 	if cfg.ControlPlaneEndpoint.Address == "" || cfg.ControlPlaneEndpoint.Address == "127.0.0.1" {
-		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
+		cfg.ControlPlaneEndpoint.Address = masterGroup[0].Address
 	}
 	if cfg.ControlPlaneEndpoint.Domain == "" {
 		cfg.ControlPlaneEndpoint.Domain = DefaultLBDomain
