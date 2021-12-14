@@ -20,6 +20,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
+
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -37,16 +44,11 @@ import (
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"path"
-	"path/filepath"
-	"sort"
-	"strings"
-	"time"
 )
 
 type GetClusterStatus struct {
@@ -942,7 +944,7 @@ type SaveKubeConfig struct {
 	common.KubeAction
 }
 
-func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
+func (s *SaveKubeConfig) Execute(runtime connector.Runtime) error {
 	status, ok := s.PipelineCache.Get(common.ClusterStatus)
 	if !ok {
 		return errors.New("get kubernetes status failed by pipeline cache")
@@ -950,8 +952,14 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 	cluster := status.(*KubernetesStatus)
 	kubeConfigStr := cluster.KubeConfig
 
+	clusterPublicAddress := s.KubeConf.Cluster.ControlPlaneEndpoint.Address
+	master1 := runtime.GetHostsByRole(common.Master)[0]
+	if clusterPublicAddress == master1.GetInternalAddress() {
+		clusterPublicAddress = master1.GetAddress()
+	}
+
 	oldServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Domain, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
-	newServer := fmt.Sprintf("https://%s:%d", s.KubeConf.Cluster.ControlPlaneEndpoint.Address, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
+	newServer := fmt.Sprintf("https://%s:%d", clusterPublicAddress, s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
 	newKubeConfigStr := strings.Replace(kubeConfigStr, oldServer, newServer, -1)
 	kubeConfigBase64 := base64.StdEncoding.EncodeToString([]byte(newKubeConfigStr))
 
@@ -976,7 +984,14 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 	if _, err := clientsetForCluster.
 		CoreV1().
 		Namespaces().
-		Create(context.TODO(), namespace, metav1.CreateOptions{}); err != nil {
+		Get(context.TODO(), namespace.Name, metav1.GetOptions{}); kubeerrors.IsNotFound(err) {
+		if _, err := clientsetForCluster.
+			CoreV1().
+			Namespaces().
+			Create(context.TODO(), namespace, metav1.CreateOptions{}); err != nil {
+			return err
+		}
+	} else {
 		return err
 	}
 
@@ -992,8 +1007,20 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 	if _, err := clientsetForCluster.
 		CoreV1().
 		ConfigMaps("kubekey-system").
-		Create(context.TODO(), cm, metav1.CreateOptions{}); err != nil {
-		return err
+		Get(context.TODO(), cm.Name, metav1.GetOptions{}); kubeerrors.IsNotFound(err) {
+		if _, err := clientsetForCluster.
+			CoreV1().
+			ConfigMaps("kubekey-system").
+			Create(context.TODO(), cm, metav1.CreateOptions{}); err != nil {
+			return err
+		}
+	} else {
+		if _, err := clientsetForCluster.
+			CoreV1().
+			ConfigMaps("kubekey-system").
+			Update(context.TODO(), cm, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
