@@ -79,8 +79,10 @@ func ExecTasks(mgr *manager.Manager) error {
 	}
 
 	for _, step := range upgradeTasks {
-		if err := step.Run(mgr); err != nil {
-			return errors.Wrap(err, step.ErrMsg)
+		if !step.Skip {
+			if err := step.Run(mgr); err != nil {
+				return errors.Wrap(err, step.ErrMsg)
+			}
 		}
 	}
 
