@@ -41,6 +41,18 @@ func (d *DeployNetworkPlugin) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type DeployNetworkMultusPlugin struct {
+	common.KubeAction
+}
+
+func (d *DeployNetworkMultusPlugin) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(
+		"/usr/local/bin/kubectl apply -f /etc/kubernetes/multus-network-plugin.yaml --force", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "deploy multus network plugin failed")
+	}
+	return nil
+}
+
 type LabelNode struct {
 	common.KubeAction
 }
@@ -179,8 +191,8 @@ func (g *GenerateKubeOVNNew) Execute(runtime connector.Runtime) error {
 	}
 
 	templateAction := action.Template{
-		Template: templates.KubeOVNOld,
-		Dst:      filepath.Join(common.KubeConfigDir, templates.KubeOVNOld.Name()),
+		Template: templates.KubeOVNNew,
+		Dst:      filepath.Join(common.KubeConfigDir, templates.KubeOVNNew.Name()),
 		Data: util.Data{
 			"Address":             address,
 			"Count":               count,
