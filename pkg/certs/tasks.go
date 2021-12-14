@@ -346,17 +346,27 @@ func (s *SyneKubeConfigToWorker) Execute(runtime connector.Runtime) error {
 
 	userConfigDirCmd := "mkdir -p $HOME/.kube"
 	if _, err := runtime.GetRunner().Cmd(userConfigDirCmd, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "create user .kube dir failed")
+		return errors.Wrap(errors.WithStack(err), "user mkdir $HOME/.kube failed")
 	}
 
 	getKubeConfigCmdUsr := "cp -f /root/.kube/config $HOME/.kube/config"
 	if _, err := runtime.GetRunner().SudoCmd(getKubeConfigCmdUsr, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "sudo cp config file to worker $HOME/.kube/config failed")
+		return errors.Wrap(errors.WithStack(err), "user copy /etc/kubernetes/admin.conf to $HOME/.kube/config failed")
 	}
 
-	chownKubeConfig := "chown $(id -u):$(id -g) -R $HOME/.kube"
+	userId, err := runtime.GetRunner().Cmd("echo $(id -u)", false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "get user id failed")
+	}
+
+	userGroupId, err := runtime.GetRunner().Cmd("echo $(id -g)", false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "get user group id failed")
+	}
+
+	chownKubeConfig := fmt.Sprintf("chown -R %s:%s $HOME/.kube", userId, userGroupId)
 	if _, err := runtime.GetRunner().SudoCmd(chownKubeConfig, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "chown .kube dir failed")
+		return errors.Wrap(errors.WithStack(err), "chown user kube config failed")
 	}
 	return nil
 }

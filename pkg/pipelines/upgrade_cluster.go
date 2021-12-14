@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/filesystem"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer"
@@ -44,6 +45,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubesphere.CheckResultModule{},
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV122},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV122},
+		&filesystem.ChownModule{},
 		&certs.AutoRenewCertsModule{},
 	}
 
