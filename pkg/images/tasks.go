@@ -78,7 +78,13 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 	} else {
 		pauseTag = "3.2"
 	}
-
+	cmp2, err2 := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.23.0")
+	if err2 != nil {
+		logger.Log.Fatal("Failed to compare version: %v", err)
+	}
+	if cmp2 == 0 || cmp2 == 1 {
+		pauseTag = "3.6"
+	}
 	// get coredns image tag
 	if cmp == -1 {
 		corednsTag = "1.6.9"
