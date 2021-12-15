@@ -32,6 +32,7 @@ const (
 	V120
 	V121
 	V122
+	V123
 )
 
 var VersionList = []Version{
@@ -43,6 +44,7 @@ var VersionList = []Version{
 	V120,
 	V121,
 	V122,
+	V123,
 }
 
 func (v Version) String() string {
@@ -63,6 +65,8 @@ func (v Version) String() string {
 		return "v1.21"
 	case V122:
 		return "v1.22"
+	case V123:
+		return "v1.23"
 	default:
 		return "invalid option"
 	}
@@ -106,5 +110,6 @@ func SupportedK8sVersionList() []string {
 		"v1.21.4",
 		"v1.21.5",
 		"v1.22.1",
+		"v1.23.0",
 	}
 }
