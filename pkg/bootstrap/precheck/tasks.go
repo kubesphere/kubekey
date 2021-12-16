@@ -95,11 +95,25 @@ func (g *GetKubeConfig) Execute(runtime connector.Runtime) error {
 				return err
 			} else {
 				if exist {
-					if _, err := runtime.GetRunner().SudoCmd(
-						"mkdir -p $HOME/.kube "+
-							"&& cp /etc/kubernetes/admin.conf $HOME/.kube/config "+
-							"&& chown $(id -u):$(id -g) -R $HOME/.kube", false); err != nil {
+					if _, err := runtime.GetRunner().Cmd("mkdir -p $HOME/.kube", false); err != nil {
 						return err
+					}
+					if _, err := runtime.GetRunner().SudoCmd("cp /etc/kubernetes/admin.conf $HOME/.kube/config", false); err != nil {
+						return err
+					}
+					userId, err := runtime.GetRunner().Cmd("echo $(id -u)", false)
+					if err != nil {
+						return errors.Wrap(errors.WithStack(err), "get user id failed")
+					}
+
+					userGroupId, err := runtime.GetRunner().Cmd("echo $(id -g)", false)
+					if err != nil {
+						return errors.Wrap(errors.WithStack(err), "get user group id failed")
+					}
+
+					chownKubeConfig := fmt.Sprintf("chown -R %s:%s $HOME/.kube", userId, userGroupId)
+					if _, err := runtime.GetRunner().SudoCmd(chownKubeConfig, false); err != nil {
+						return errors.Wrap(errors.WithStack(err), "chown user kube config failed")
 					}
 				}
 			}

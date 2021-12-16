@@ -34,6 +34,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/etcd"
+	"github.com/kubesphere/kubekey/pkg/filesystem"
 	"github.com/kubesphere/kubekey/pkg/hooks"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/k3s"
@@ -67,6 +68,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.JoinNodesModule{},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
+		&filesystem.ChownModule{},
 		&certs.AutoRenewCertsModule{},
 		&kubernetes.SaveKubeConfigModule{},
 		&addons.AddonsModule{},
@@ -143,6 +145,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&k3s.JoinNodesModule{},
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
+		&filesystem.ChownModule{},
 		&k3s.SaveKubeConfigModule{},
 		&addons.AddonsModule{},
 		&storage.DeployLocalVolumeModule{Skip: !runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled},

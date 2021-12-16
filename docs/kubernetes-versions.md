@@ -25,6 +25,7 @@
 | v1.20.10   | :white_check_mark: |
 | v1.21.4   | :white_check_mark: |
 | v1.22.1   | :white_check_mark: |
+| v1.23.0   | :white_check_mark: |
 
 ## Kubernetes Versions(arm64)
 | Version   |     Supported      |
@@ -49,3 +50,4 @@
 | v1.21.4   | :white_check_mark: |
 | v1.21.5   | :white_check_mark: |
 | v1.22.1   | :white_check_mark: |
+| v1.23.0   | :white_check_mark: |
