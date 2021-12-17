@@ -58,3 +58,22 @@ func (k *K3sNodeBinariesModule) Init() {
 		download,
 	}
 }
+
+type ArtifactBinariesModule struct {
+	common.ArtifactModule
+}
+
+func (a *ArtifactBinariesModule) Init() {
+	a.Name = "ArtifactBinariesModule"
+	a.Desc = "Download artifact binaries"
+
+	download := &task.LocalTask{
+		Name:   "DownloadBinaries",
+		Desc:   "Download manifest expect binaries",
+		Action: new(ArtifactDownload),
+	}
+
+	a.Tasks = []task.Interface{
+		download,
+	}
+}

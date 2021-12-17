@@ -19,6 +19,7 @@ package ctl
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/cmd/ctl/add"
+	"github.com/kubesphere/kubekey/cmd/ctl/artifact"
 	"github.com/kubesphere/kubekey/cmd/ctl/cert"
 	"github.com/kubesphere/kubekey/cmd/ctl/completion"
 	"github.com/kubesphere/kubekey/cmd/ctl/create"
@@ -108,6 +109,7 @@ func NewKubeKeyCommand(o KubeKeyOptions) *cobra.Command {
 	cmds.AddCommand(add.NewCmdAdd())
 	cmds.AddCommand(upgrade.NewCmdUpgrade())
 	cmds.AddCommand(cert.NewCmdCerts())
+	cmds.AddCommand(artifact.NewCmdArtifact())
 
 	cmds.AddCommand(plugin.NewCmdPlugin(o.IOStreams))
 
