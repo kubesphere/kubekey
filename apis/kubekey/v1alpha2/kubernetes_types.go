@@ -40,6 +40,7 @@ type Kubernetes struct {
 	SchedulerArgs            []string             `yaml:"schedulerArgs" json:"schedulerArgs,omitempty"`
 	KubeletArgs              []string             `yaml:"kubeletArgs" json:"kubeletArgs,omitempty"`
 	KubeProxyArgs            []string             `yaml:"kubeProxyArgs" json:"kubeProxyArgs,omitempty"`
+	FeatureGates             map[string]bool      `yaml:"featureGates" json:"featureGates,omitempty"`
 	KubeletConfiguration     runtime.RawExtension `yaml:"kubeletConfiguration" json:"kubeletConfiguration,omitempty"`
 	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration" json:"kubeProxyConfiguration,omitempty"`
 }

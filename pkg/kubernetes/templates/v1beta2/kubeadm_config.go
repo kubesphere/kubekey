@@ -17,15 +17,17 @@
 package v1beta2
 
 import (
+	"fmt"
+	"regexp"
+	"strings"
+	"text/template"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
-	"regexp"
-	"strings"
-	"text/template"
 )
 
 var (
@@ -129,23 +131,49 @@ nodeRegistration:
 )
 
 var (
+	// ref: https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/
+	FeatureGatesDefaultConfiguration = map[string]bool{
+		"RotateKubeletServerCertificate": true, //k8s 1.7+
+		"TTLAfterFinished":               true, //k8s 1.12+
+		"ExpandCSIVolumes":               true, //k8s 1.14+
+		"CSIStorageCapacity":             true, //k8s 1.19+
+	}
+
 	ApiServerArgs = map[string]string{
 		"bind-address":        "0.0.0.0",
 		"audit-log-maxage":    "30",
 		"audit-log-maxbackup": "10",
 		"audit-log-maxsize":   "100",
-		"feature-gates":       "ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
 	}
 	ControllermanagerArgs = map[string]string{
 		"bind-address":                          "0.0.0.0",
 		"experimental-cluster-signing-duration": "87600h",
-		"feature-gates":                         "ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
 	}
 	SchedulerArgs = map[string]string{
-		"bind-address":  "0.0.0.0",
-		"feature-gates": "ExpandCSIVolumes=true,RotateKubeletServerCertificate=true",
+		"bind-address": "0.0.0.0",
 	}
 )
+
+func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.KubeConf) map[string]string {
+
+	var featureGates []string
+
+	for k, v := range kubeConf.Cluster.Kubernetes.FeatureGates {
+		featureGates = append(featureGates, fmt.Sprintf("%s=%v", k, v))
+	}
+
+	for k, v := range FeatureGatesDefaultConfiguration {
+		if _, ok := kubeConf.Cluster.Kubernetes.FeatureGates[k]; !ok {
+			featureGates = append(featureGates, fmt.Sprintf("%s=%v", k, v))
+		}
+	}
+
+	args["feature-gates"] = strings.Join(featureGates, ",")
+
+	logger.Log.Info("update: %v", args)
+
+	return args
+}
 
 func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeConf, criSock string) map[string]interface{} {
 	defaultKubeletConfiguration := map[string]interface{}{
@@ -172,10 +200,7 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		},
 		"evictionMaxPodGracePeriod":        120,
 		"evictionPressureTransitionPeriod": "30s",
-		"featureGates": map[string]bool{
-			"ExpandCSIVolumes":               true,
-			"RotateKubeletServerCertificate": true,
-		},
+		"featureGates":                     FeatureGatesDefaultConfiguration,
 	}
 
 	cgroupDriver, err := GetKubeletCgroupDriver(runtime, kubeConf)
@@ -190,6 +215,9 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		defaultKubeletConfiguration["containerLogMaxSize"] = "5Mi"
 		defaultKubeletConfiguration["containerLogMaxFiles"] = 3
 	}
+
+	logger.Log.Info("Default: %v", defaultKubeletConfiguration)
+	logger.Log.Info("kubeConf: %v", kubeConf.Cluster.Kubernetes.KubeletConfiguration)
 
 	customKubeletConfiguration := make(map[string]interface{})
 	if len(kubeConf.Cluster.Kubernetes.KubeletConfiguration.Raw) != 0 {
@@ -213,10 +241,26 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 	}
 
 	if len(defaultKubeletConfiguration) != 0 {
-		for defaultArg := range defaultKubeletConfiguration {
-			kubeletConfiguration[defaultArg] = defaultKubeletConfiguration[defaultArg]
+		for k, v := range defaultKubeletConfiguration {
+			kubeletConfiguration[k] = v
 		}
 	}
+
+	if featureGates, ok := kubeletConfiguration["featureGates"].(map[string]bool); ok {
+		for k, v := range kubeConf.Cluster.Kubernetes.FeatureGates {
+			if _, ok := featureGates[k]; !ok {
+				featureGates[k] = v
+			}
+		}
+
+		for k, v := range FeatureGatesDefaultConfiguration {
+			if _, ok := featureGates[k]; !ok {
+				featureGates[k] = v
+			}
+		}
+	}
+
+	logger.Log.Info("kubeletConfiguration: %v", kubeletConfiguration)
 	return kubeletConfiguration
 }
 
