@@ -155,7 +155,7 @@ func CreateManifest(arg common.Argument, name string) error {
 
 	if containerRuntime.Type == kubekeyv1alpha2.Conatinerd {
 		options.Components.Crictl = kubekeyv1alpha2.Crictl{Version: kubekeyv1alpha2.DefaultCrictlVersion}
-		options.Components.ContainerRuntime.Type = kubekeyv1alpha2.Conatinerd
+		options.Components.ContainerRuntime.Type = kubekeyv1alpha2.Docker
 		options.Components.ContainerRuntime.Version = kubekeyv1alpha2.DefaultDockerVersion
 	}
 
