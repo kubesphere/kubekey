@@ -26,10 +26,11 @@ const (
 	File     = "file"
 	Operator = "operator"
 
-	Master = "master"
-	Worker = "worker"
-	ETCD   = "etcd"
-	K8s    = "k8s"
+	Master  = "master"
+	Worker  = "worker"
+	ETCD    = "etcd"
+	K8s     = "k8s"
+	KubeKey = "kubekey"
 
 	KubeBinaries = "KubeBinaries"
 
@@ -82,4 +83,9 @@ const (
 	// CertsModule
 	Certificate   = "certificate"
 	CaCertificate = "caCertificate"
+
+	// Artifact pipeline
+	Artifact = "artifact"
+	// ContainerModule
+	ContainerdClient = "client"
 )

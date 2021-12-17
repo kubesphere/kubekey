@@ -183,3 +183,84 @@ func sha256sum(path string) (string, error) {
 	}
 	return fmt.Sprintf("%x", sha256.Sum256(data)), nil
 }
+
+func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch string, pipelineCache *cache.Cache) error {
+	kkzone := os.Getenv("KKZONE")
+
+	m := manifest.Spec
+
+	var err error
+	etcd, err := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubeadm, err := files.NewKubeBinary("kubeadm", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubelet, err := files.NewKubeBinary("kubelet", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubectl, err := files.NewKubeBinary("kubectl", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubecni, err := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	helm, err := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	docker, err := files.NewKubeBinary("docker", arch, m.Components.ContainerRuntime.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	crictl, err := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	if err != nil {
+		return errors.Wrap(err, "Failed to new kube binary")
+	}
+
+	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, docker, etcd}
+	if m.Components.Crictl.Version != "" {
+		binaries = append(binaries, crictl)
+	}
+
+	binariesMap := make(map[string]files.KubeBinary)
+	for _, binary := range binaries {
+		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
+
+		binariesMap[binary.Name] = binary
+		if util.IsExist(binary.Path) {
+			// download it again if it's incorrect
+			if err := SHA256Check(binary); err != nil {
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+			} else {
+				continue
+			}
+		}
+
+		for i := 5; i > 0; i-- {
+			cmd := exec.Command("/bin/sh", "-c", binary.GetCmd)
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			}
+			cmd.Stderr = cmd.Stdout
+
+			if err = cmd.Start(); err != nil {
+				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			}
+			for {
+				tmp := make([]byte, 1024)
+				_, err := stdout.Read(tmp)
+				fmt.Print(string(tmp)) // Get the output from the pipeline in real time and print it to the terminal
+				if errors.Is(err, io.EOF) {
+					break
+				} else if err != nil {
+					logger.Log.Errorln(err)
+					break
+				}
+			}
+			if err = cmd.Wait(); err != nil {
+				if kkzone != "cn" {
+					logger.Log.Warningln("Having a problem with accessing https://storage.googleapis.com? You can try again after setting environment 'export KKZONE=cn'")
+				}
+				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			}
+
+			if err := SHA256Check(binary); err != nil {
+				if i == 1 {
+					return err
+				}
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+				continue
+			}
+			break
+		}
+	}
+
+	pipelineCache.Set(common.KubeBinaries, binariesMap)
+	return nil
+}

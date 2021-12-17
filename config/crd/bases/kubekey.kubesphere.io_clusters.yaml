@@ -543,6 +543,8 @@ spec:
                       vxlanMode:
                         type: string
                     type: object
+                  enableMultusCNI:
+                    type: boolean
                   flannel:
                     properties:
                       backendMode:

@@ -118,16 +118,16 @@ func (s *Setup) Execute(runtime connector.Runtime) error {
 		}
 	}
 
-	switch s.KubeConf.Arg.ContainerManager {
+	switch s.KubeConf.Cluster.Kubernetes.ContainerManager {
 	case "docker", "containerd", "crio":
 		if _, err := runtime.GetRunner().SudoCmd(
-			fmt.Sprintf("sed -i '/containerruntime/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml", s.KubeConf.Arg.ContainerManager), false); err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set container runtime: %s failed", s.KubeConf.Arg.ContainerManager))
+			fmt.Sprintf("sed -i '/containerruntime/s/\\:.*/\\: %s/g' /etc/kubernetes/addons/kubesphere.yaml", s.KubeConf.Cluster.Kubernetes.ContainerManager), false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set container runtime: %s failed", s.KubeConf.Cluster.Kubernetes.ContainerManager))
 		}
 	default:
 		logger.Log.Message(runtime.RemoteHost().GetName(),
-			fmt.Sprintf("Currently, the logging function of KubeSphere does not support %s. If %s is used, the logging function will be unavailable.",
-				s.KubeConf.Arg.ContainerManager, s.KubeConf.Arg.ContainerManager))
+			fmt.Sprintf("Currently, the logging module of KubeSphere does not support %s. If %s is used, the logging module will be unavailable.",
+				s.KubeConf.Cluster.Kubernetes.ContainerManager, s.KubeConf.Cluster.Kubernetes.ContainerManager))
 	}
 
 	caFile := "/etc/ssl/etcd/ssl/ca.pem"

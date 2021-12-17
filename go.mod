@@ -3,6 +3,8 @@ module github.com/kubesphere/kubekey
 go 1.16
 
 require (
+	github.com/containerd/containerd v1.5.8
+	github.com/deckarep/golang-set v1.7.1
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/go-logr/logr v0.4.0
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
