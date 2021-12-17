@@ -43,5 +43,6 @@ func NewCmdCreate() *cobra.Command {
 
 	cmd.AddCommand(NewCmdCreateCluster())
 	cmd.AddCommand(NewCmdCreateConfig())
+	cmd.AddCommand(NewCmdCreateManifest())
 	return cmd
 }

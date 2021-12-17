@@ -2,4 +2,5 @@
 resources:
 - kubekey_v1alpha1_cluster.yaml
 - kubekey_v1alpha2_cluster.yaml
+- kubekey_v1alpha2_manifest.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
