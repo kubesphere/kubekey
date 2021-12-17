@@ -808,7 +808,7 @@ func currentClusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1a
 }
 
 func findIpAddress(endpoint string) (string, error) {
-	ipv4Regexp, err := regexp.Compile("[\\d]+\\.[\\d]+\\.[\\d]+\\.[\\d]+")
+	ipv4Regexp, err := regexp.Compile(`[\d]+\.[\d]+\.[\d]+\.[\d]+`)
 	if err != nil {
 		return "", err
 	}
