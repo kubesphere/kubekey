@@ -45,19 +45,19 @@ ETCD_UNSUPPORTED_ARCH={{ .Arch }}
 {{ end }}
 
 # TLS settings
-ETCD_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
-ETCD_CERT_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}.pem
-ETCD_KEY_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}-key.pem
+ETCD_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.crt
+ETCD_CERT_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}.crt
+ETCD_KEY_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}.key
 ETCD_CLIENT_CERT_AUTH=true
 
-ETCD_PEER_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
-ETCD_PEER_CERT_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}.pem
-ETCD_PEER_KEY_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}-key.pem
+ETCD_PEER_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.crt
+ETCD_PEER_CERT_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}.crt
+ETCD_PEER_KEY_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}.key
 ETCD_PEER_CLIENT_CERT_AUTH=True
 
 # CLI settings
 ETCDCTL_ENDPOINTS=https://127.0.0.1:2379
-ETCDCTL_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
-ETCDCTL_KEY_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem
-ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
+ETCDCTL_CA_FILE=/etc/ssl/etcd/ssl/ca.crt
+ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.crt
+ETCDCTL_KEY_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.key
     `)))

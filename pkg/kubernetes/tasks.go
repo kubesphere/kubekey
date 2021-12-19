@@ -226,9 +226,9 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		}
 		externalEtcd.Endpoints = endpointsList
 
-		caFile = "/etc/ssl/etcd/ssl/ca.pem"
-		certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", host.GetName())
-		keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", host.GetName())
+		caFile = "/etc/ssl/etcd/ssl/ca.crt"
+		certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.crt", host.GetName())
+		keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.key", host.GetName())
 
 		externalEtcd.CaFile = caFile
 		externalEtcd.CertFile = certFile

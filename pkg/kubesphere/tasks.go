@@ -130,9 +130,9 @@ func (s *Setup) Execute(runtime connector.Runtime) error {
 				s.KubeConf.Arg.ContainerManager, s.KubeConf.Arg.ContainerManager))
 	}
 
-	caFile := "/etc/ssl/etcd/ssl/ca.pem"
-	certFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", runtime.GetHostsByRole(common.ETCD)[0].GetName())
-	keyFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", runtime.GetHostsByRole(common.ETCD)[0].GetName())
+	caFile := "/etc/ssl/etcd/ssl/ca.crt"
+	certFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.crt", runtime.GetHostsByRole(common.ETCD)[0].GetName())
+	keyFile := fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.key", runtime.GetHostsByRole(common.ETCD)[0].GetName())
 	if output, err := runtime.GetRunner().SudoCmd(
 		fmt.Sprintf("/usr/local/bin/kubectl -n kubesphere-monitoring-system create secret generic kube-etcd-client-certs "+
 			"--from-file=etcd-client-ca.crt=%s "+

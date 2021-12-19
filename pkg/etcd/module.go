@@ -20,9 +20,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/task"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/etcd/templates"
-	"path/filepath"
 )
 
 type PreCheckModule struct {
@@ -54,56 +52,16 @@ func (c *CertsModule) Init() {
 	c.Name = "CertsModule"
 	c.Desc = "Sign ETCD cluster certs"
 
-	generateCertsScript := &task.RemoteTask{
-		Name:    "GenerateCertsScript",
-		Desc:    "Generate certs script",
-		Hosts:   c.Runtime.GetHostsByRole(common.ETCD),
-		Prepare: new(FirstETCDNode),
-		Action: &action.Template{
-			Template: templates.EtcdSslScript,
-			Dst:      filepath.Join(common.ETCDCertDir, templates.EtcdSslScript.Name()),
-			Data: util.Data{
-				"Masters": templates.GenerateHosts(c.Runtime.GetHostsByRole(common.ETCD)),
-				"Hosts":   templates.GenerateHosts(c.Runtime.GetHostsByRole(common.Master)),
-			},
-		},
-		Parallel: true,
-		Retry:    1,
-	}
-
-	dnsList, ipList := templates.DNSAndIp(c.KubeConf)
-	generateOpenSSLConf := &task.RemoteTask{
-		Name:    "GenerateOpenSSLConf",
-		Desc:    "Generate OpenSSL config",
-		Hosts:   c.Runtime.GetHostsByRole(common.ETCD),
-		Prepare: new(FirstETCDNode),
-		Action: &action.Template{
-			Template: templates.ETCDOpenSSLConf,
-			Dst:      filepath.Join(common.ETCDCertDir, templates.ETCDOpenSSLConf.Name()),
-			Data: util.Data{
-				"Dns": dnsList,
-				"Ips": ipList,
-			},
-		},
-		Parallel: true,
-		Retry:    1,
-	}
-
-	execCertsScript := &task.RemoteTask{
-		Name:     "ExecCertsScript",
-		Desc:     "Exec certs script",
-		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
-		Prepare:  new(FirstETCDNode),
-		Action:   new(ExecCertsScript),
-		Parallel: true,
-		Retry:    1,
+	generateCerts := &task.LocalTask{
+		Name:   "GenerateETCDCerts",
+		Desc:   "Generate ETCD Certs",
+		Action: new(GenerateCerts),
 	}
 
 	syncCertsFile := &task.RemoteTask{
 		Name:     "SyncCertsFile",
 		Desc:     "Synchronize certs file",
 		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
-		Prepare:  &FirstETCDNode{Not: true},
 		Action:   new(SyncCertsFile),
 		Parallel: true,
 		Retry:    1,
@@ -120,9 +78,7 @@ func (c *CertsModule) Init() {
 	}
 
 	c.Tasks = []task.Interface{
-		generateCertsScript,
-		generateOpenSSLConf,
-		execCertsScript,
+		generateCerts,
 		syncCertsFile,
 		syncCertsToMaster,
 	}

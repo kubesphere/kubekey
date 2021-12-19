@@ -28,5 +28,6 @@ require (
 	k8s.io/client-go v0.22.4
 	k8s.io/code-generator v0.22.4
 	k8s.io/kubectl v0.22.4
+	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
 	sigs.k8s.io/controller-runtime v0.10.3
 )

@@ -51,6 +51,7 @@ type Argument struct {
 	ContainerManager   string
 	FromCluster        bool
 	KubeConfig         string
+	CertificatesDir    string
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
@@ -97,7 +98,6 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		Arg:          arg,
 	}
 	r.BaseRuntime = base
-
 	return r, nil
 }
 

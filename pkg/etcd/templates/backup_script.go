@@ -38,9 +38,9 @@ ETCDBACKUPPERIOD='{{ .EtcdBackupPeriod }}'
 ETCDBACKUPSCIPT='{{ .EtcdBackupScriptDir }}'
 ETCDBACKUPHOUR='{{ .EtcdBackupHour }}'
 
-ETCDCTL_CERT="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem"
-ETCDCTL_KEY="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem"
-ETCDCTL_CA_FILE="/etc/ssl/etcd/ssl/ca.pem"
+ETCDCTL_CERT="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.crt"
+ETCDCTL_KEY="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.key"
+ETCDCTL_CA_FILE="/etc/ssl/etcd/ssl/ca.crt"
 
 [ ! -d $BACKUP_DIR ] && mkdir -p $BACKUP_DIR
 

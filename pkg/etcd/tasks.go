@@ -103,60 +103,6 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type ExecCertsScript struct {
-	common.KubeAction
-}
-
-func (e *ExecCertsScript) Execute(runtime connector.Runtime) error {
-	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/make-ssl-etcd.sh", common.ETCDCertDir), false)
-	if err != nil {
-		return err
-	}
-
-	cmd := fmt.Sprintf("/bin/bash -x %s/make-ssl-etcd.sh -f %s/openssl.conf -d %s", common.ETCDCertDir, common.ETCDCertDir, common.ETCDCertDir)
-	if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "generate etcd certs failed")
-	}
-
-	tmpCertsDir := filepath.Join(common.TmpDir, "ETCD_certs")
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("cp -r %s %s", common.ETCDCertDir, tmpCertsDir), false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "copy certs result failed")
-	}
-
-	localCertsDir := filepath.Join(runtime.GetWorkDir(), "ETCD_certs")
-	if err := util.CreateDir(localCertsDir); err != nil {
-		return err
-	}
-
-	files := generateCertsFiles(runtime)
-	for _, fileName := range files {
-		if err := runtime.GetRunner().Fetch(filepath.Join(localCertsDir, fileName), filepath.Join(tmpCertsDir, fileName)); err != nil {
-			return errors.Wrap(errors.WithStack(err), "fetch etcd certs file failed")
-		}
-	}
-
-	e.ModuleCache.Set(LocalCertsDir, localCertsDir)
-	e.ModuleCache.Set(CertsFileList, files)
-	return nil
-}
-
-func generateCertsFiles(runtime connector.Runtime) []string {
-	var certsList []string
-	certsList = append(certsList, "ca.pem")
-	certsList = append(certsList, "ca-key.pem")
-	for _, host := range runtime.GetHostsByRole(common.ETCD) {
-		certsList = append(certsList, fmt.Sprintf("admin-%s.pem", host.GetName()))
-		certsList = append(certsList, fmt.Sprintf("admin-%s-key.pem", host.GetName()))
-		certsList = append(certsList, fmt.Sprintf("member-%s.pem", host.GetName()))
-		certsList = append(certsList, fmt.Sprintf("member-%s-key.pem", host.GetName()))
-	}
-	for _, host := range runtime.GetHostsByRole(common.Master) {
-		certsList = append(certsList, fmt.Sprintf("node-%s.pem", host.GetName()))
-		certsList = append(certsList, fmt.Sprintf("node-%s-key.pem", host.GetName()))
-	}
-	return certsList
-}
-
 type SyncCertsFile struct {
 	common.KubeAction
 }
@@ -244,9 +190,9 @@ func (h *HealthCheck) Execute(runtime connector.Runtime) error {
 func healthCheck(runtime connector.Runtime, cluster *EtcdCluster) error {
 	host := runtime.RemoteHost()
 	checkHealthCmd := fmt.Sprintf("export ETCDCTL_API=2;"+
-		"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';"+
-		"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';"+
-		"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';"+
+		"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.crt';"+
+		"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s.key';"+
+		"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.crt';"+
 		"%s/etcdctl --endpoints=%s cluster-health | grep -q 'cluster is healthy'",
 		host.GetName(), host.GetName(), common.BinDir, cluster.accessAddresses)
 	if _, err := runtime.GetRunner().SudoCmd(checkHealthCmd, false); err != nil {
@@ -367,9 +313,9 @@ func (j *JoinMember) Execute(runtime connector.Runtime) error {
 	if v, ok := j.PipelineCache.Get(common.ETCDCluster); ok {
 		cluster := v.(*EtcdCluster)
 		joinMemberCmd := fmt.Sprintf("export ETCDCTL_API=2;"+
-			"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';"+
-			"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';"+
-			"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';"+
+			"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.crt';"+
+			"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s.key';"+
+			"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.crt';"+
 			"%s/etcdctl --endpoints=%s member add %s %s",
 			host.GetName(), host.GetName(), common.BinDir, cluster.accessAddresses, etcdName,
 			fmt.Sprintf("https://%s:2380", host.GetInternalAddress()))
@@ -392,9 +338,9 @@ func (c *CheckMember) Execute(runtime connector.Runtime) error {
 	if v, ok := c.PipelineCache.Get(common.ETCDCluster); ok {
 		cluster := v.(*EtcdCluster)
 		checkMemberCmd := fmt.Sprintf("export ETCDCTL_API=2;"+
-			"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.pem';"+
-			"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s-key.pem';"+
-			"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';"+
+			"export ETCDCTL_CERT_FILE='/etc/ssl/etcd/ssl/admin-%s.crt';"+
+			"export ETCDCTL_KEY_FILE='/etc/ssl/etcd/ssl/admin-%s.key';"+
+			"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.crt';"+
 			"%s/etcdctl --no-sync --endpoints=%s member list", host.GetName(), host.GetName(), common.BinDir, cluster.accessAddresses)
 		memberList, err := runtime.GetRunner().SudoCmd(checkMemberCmd, true)
 		if err != nil {

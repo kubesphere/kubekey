@@ -250,9 +250,9 @@ func (g *GenerateK3sServiceEnv) Execute(runtime connector.Runtime) error {
 	externalEtcd.Endpoints = endpointsList
 
 	externalEtcdEndpoints := strings.Join(endpointsList, ",")
-	caFile = "/etc/ssl/etcd/ssl/ca.pem"
-	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", runtime.GetHostsByRole(common.Master)[0].GetName())
-	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", runtime.GetHostsByRole(common.Master)[0].GetName())
+	caFile = "/etc/ssl/etcd/ssl/ca.crt"
+	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.crt", runtime.GetHostsByRole(common.Master)[0].GetName())
+	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.key", runtime.GetHostsByRole(common.Master)[0].GetName())
 
 	externalEtcd.CaFile = caFile
 	externalEtcd.CertFile = certFile
