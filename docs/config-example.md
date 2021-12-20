@@ -31,6 +31,11 @@ spec:
     maxPods: 110  # maxPods is the number of Pods that can run on this Kubelet. [Default: 110]
     nodeCidrMaskSize: 24  # The internal network node size allocation. This is the size allocated to each node on your network. [Default: 24]
     proxyMode: ipvs  # Specify which proxy mode to use. [Default: ipvs]
+    featureGates: # enable featureGates, [Default: {"ExpandCSIVolumes":true,"RotateKubeletServerCertificate": true,"CSIStorageCapacity":true, "TTLAfterFinished":true}]
+      CSIStorageCapacity: true
+      ExpandCSIVolumes: true
+      RotateKubeletServerCertificate: true
+      TTLAfterFinished: true
   network:
     plugin: calico
     calico:
