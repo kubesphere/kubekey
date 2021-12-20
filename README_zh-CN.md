@@ -145,7 +145,7 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 1. 首先，创建一个示例配置文件
 
     ```shell script
-    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
+    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
     ```
 
    **例子：**

@@ -143,7 +143,7 @@ You have more control to customize parameters or create a multi-node cluster usi
 1. First, create an example configuration file
 
     ```shell script
-    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
+    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
     ```
 
    **examples:**
