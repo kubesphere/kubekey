@@ -225,7 +225,7 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 #### 多节点集群
 通过指定配置文件对集群进行升级。
 ```shell script
-./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
+./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
 ```
 * `--with-kubernetes` 指定kubernetes目标版本。
 * `--with-kubesphere` 指定kubesphere目标版本。
@@ -235,7 +235,7 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 
 Getting cluster info and generating kubekey's configuration file (optional).
 ```shell script
-./kk create config [--from-cluster] [(-f | --file) path] [--kubeconfig path]
+./kk create config [--from-cluster] [(-f | --filename) path] [--kubeconfig path]
 ```
 * `--from-cluster` 根据已存在集群信息生成配置文件. 
 * `-f` 指定生成配置文件路径.
