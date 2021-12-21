@@ -143,7 +143,7 @@ You have more control to customize parameters or create a multi-node cluster usi
 1. First, create an example configuration file
 
     ```shell script
-    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
+    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
     ```
 
    **examples:**
@@ -225,7 +225,7 @@ Upgrading cluster with a specified version.
 #### Multi-nodes
 Upgrading cluster with a specified configuration file.
 ```shell script
-./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --file) path]
+./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
 ```
 * If `--with-kubernetes` or `--with-kubesphere` is specified, the configuration file will be also updated.
 * Use `-f` to specify the configuration file which was generated for cluster creation.
@@ -234,7 +234,7 @@ Upgrading cluster with a specified configuration file.
 
 Getting cluster info and generating kubekey's configuration file (optional).
 ```shell script
-./kk create config [--from-cluster] [(-f | --file) path] [--kubeconfig path]
+./kk create config [--from-cluster] [(-f | --filename) path] [--kubeconfig path]
 ```
 * `--from-cluster` means fetching cluster's information from an existing cluster. 
 * `-f` refers to the path where the configuration file is generated.
