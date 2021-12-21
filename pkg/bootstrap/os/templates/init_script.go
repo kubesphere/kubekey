@@ -18,10 +18,11 @@ package templates
 
 import (
 	"fmt"
+	"text/template"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/lithammer/dedent"
-	"text/template"
 )
 
 var InitOsScriptTmpl = template.Must(template.New("initOS.sh").Parse(
@@ -43,6 +44,18 @@ var InitOsScriptTmpl = template.Must(template.New("initOS.sh").Parse(
 
 swapoff -a
 sed -i /^[^#]*swap*/s/^/\#/g /etc/fstab
+
+# See https://github.com/kubernetes/website/issues/14457
+if [ -f /etc/selinux/config ]; then 
+  sed -ri 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+fi
+# for ubuntu: sudo apt install selinux-utils
+# for centos: yum install selinux-policy
+if command -v setenforce &> /dev/null
+then
+  setenforce 0
+  getenforce
+fi
 
 echo 'net.ipv4.ip_forward = 1' >> /etc/sysctl.conf
 echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf
