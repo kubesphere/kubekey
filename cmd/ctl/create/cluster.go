@@ -55,6 +55,7 @@ func NewCmdCreateCluster() *cobra.Command {
 		Short: "Create a Kubernetes or KubeSphere cluster",
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(o.Complete(cmd, args))
+			util.CheckErr(o.Validate(cmd, args))
 			util.CheckErr(o.Run())
 		},
 	}
@@ -75,6 +76,15 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) error
 		ksVersion = kubesphere.Latest().Version
 	}
 	o.KubeSphere = ksVersion
+	return nil
+}
+
+func (o *CreateClusterOptions) Validate(cmd *cobra.Command, args []string) error {
+	switch o.ContainerManager {
+	case common.Docker, common.Conatinerd, common.Crio, common.Isula:
+	default:
+		return fmt.Errorf("unsupport container runtime [%s]", o.ContainerManager)
+	}
 	return nil
 }
 
