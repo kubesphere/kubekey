@@ -55,6 +55,7 @@ func NewLoader(flag string, arg Argument) Loader {
 }
 
 type DefaultLoader struct {
+	arg               Argument
 	KubernetesVersion string
 	KubeSphereVersion string
 	KubeSphereEnable  bool
@@ -62,6 +63,7 @@ type DefaultLoader struct {
 
 func NewDefaultLoader(arg Argument) *DefaultLoader {
 	return &DefaultLoader{
+		arg:               arg,
 		KubernetesVersion: arg.KubernetesVersion,
 		KubeSphereVersion: arg.KsVersion,
 		KubeSphereEnable:  arg.KsEnable,
@@ -127,13 +129,17 @@ func (d *DefaultLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 		}
 	}
 
+	if d.arg.ContainerManager != "" && d.arg.ContainerManager != Docker {
+		allInOne.Spec.Kubernetes.ContainerManager = d.arg.ContainerManager
+	}
+
 	// must be a lower case
 	allInOne.Name = "kubekey" + time.Now().Format("2006-01-02")
-
 	return &allInOne, nil
 }
 
 type FileLoader struct {
+	arg               Argument
 	FilePath          string
 	KubernetesVersion string
 	KubeSphereVersion string
@@ -142,6 +148,7 @@ type FileLoader struct {
 
 func NewFileLoader(arg Argument) *FileLoader {
 	return &FileLoader{
+		arg:               arg,
 		FilePath:          arg.FilePath,
 		KubernetesVersion: arg.KubernetesVersion,
 		KubeSphereVersion: arg.KsVersion,
@@ -234,6 +241,10 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 				Version: f.KubernetesVersion,
 			}
 		}
+	}
+
+	if f.arg.ContainerManager != "" && f.arg.ContainerManager != Docker {
+		clusterCfg.Spec.Kubernetes.ContainerManager = f.arg.ContainerManager
 	}
 
 	clusterCfg.Name = objName
