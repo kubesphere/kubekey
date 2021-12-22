@@ -170,8 +170,6 @@ func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.Ku
 
 	args["feature-gates"] = strings.Join(featureGates, ",")
 
-	logger.Log.Info("update: %v", args)
-
 	return args
 }
 
@@ -216,9 +214,6 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		defaultKubeletConfiguration["containerLogMaxFiles"] = 3
 	}
 
-	logger.Log.Info("Default: %v", defaultKubeletConfiguration)
-	logger.Log.Info("kubeConf: %v", kubeConf.Cluster.Kubernetes.KubeletConfiguration)
-
 	customKubeletConfiguration := make(map[string]interface{})
 	if len(kubeConf.Cluster.Kubernetes.KubeletConfiguration.Raw) != 0 {
 		err := yaml.Unmarshal(kubeConf.Cluster.Kubernetes.KubeletConfiguration.Raw, &customKubeletConfiguration)
@@ -260,7 +255,10 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		}
 	}
 
-	logger.Log.Info("kubeletConfiguration: %v", kubeletConfiguration)
+	if kubeConf.Arg.Debug {
+		logger.Log.Debug("Set kubeletConfiguration: %v", kubeletConfiguration)
+	}
+
 	return kubeletConfiguration
 }
 
