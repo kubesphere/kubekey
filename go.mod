@@ -6,7 +6,7 @@ require (
 	github.com/containerd/containerd v1.5.8
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
-	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/logr v1.2.0
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.5 // indirect
 	github.com/lithammer/dedent v1.1.0
@@ -14,6 +14,7 @@ require (
 	github.com/modood/table v0.0.0-20200225102042-88de94bb9876
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
+	github.com/opencontainers/image-spec v1.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.4
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
@@ -29,6 +30,8 @@ require (
 	k8s.io/cli-runtime v0.22.4
 	k8s.io/client-go v0.22.4
 	k8s.io/code-generator v0.22.4
+	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kubectl v0.22.4
+	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b // indirect
 	sigs.k8s.io/controller-runtime v0.10.3
 )

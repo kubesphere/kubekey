@@ -46,3 +46,53 @@ func (p *PullModule) Init() {
 		pull,
 	}
 }
+
+//
+//type LoadModule struct {
+//	common.KubeModule
+//}
+//
+//func (l *LoadModule) IsSkip() bool {
+//	return l.Skip
+//}
+//
+//func (l *LoadModule) Init() {
+//	l.Name = "LoadModule"
+//	l.Desc = "Load local tar file onto local image registry"
+//
+//	load := &task.LocalTask{
+//		Name:   "LoadModule",
+//		Desc:   "Load local tar file onto local image registry",
+//		Action: new(PullImage),
+//	}
+//
+//	l.Tasks = []task.Interface{
+//		load,
+//	}
+//}
+
+type PushModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (p *PushModule) IsSkip() bool {
+	return p.Skip
+}
+
+func (p *PushModule) Init() {
+	p.Name = "PushModule"
+	p.Desc = "Push images on all nodes"
+
+	push := &task.RemoteTask{
+		Name:     "PushImages",
+		Desc:     "Push images to private registry",
+		Hosts:    p.Runtime.GetAllHosts(),
+		Action:   new(PushImage),
+		Parallel: true,
+	}
+
+	p.Tasks = []task.Interface{
+		push,
+	}
+}

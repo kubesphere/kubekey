@@ -18,19 +18,22 @@ package filesystem
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
+	"os/exec"
 )
 
-type ChownUserKubeDir struct {
-	common.KubeAction
+type ChownFileAndDir struct {
+	action.BaseAction
+	Path string
 }
 
-func (c *ChownUserKubeDir) Execute(runtime connector.Runtime) error {
-	exist, err := runtime.GetRunner().FileExist("$HOME/.kube")
+func (c *ChownFileAndDir) Execute(runtime connector.Runtime) error {
+	exist, err := runtime.GetRunner().FileExist(c.Path)
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "get user $HOME/.kube failed")
+		return errors.Wrapf(errors.WithStack(err), "get user %s failed", c.Path)
 	}
 
 	if exist {
@@ -44,9 +47,23 @@ func (c *ChownUserKubeDir) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(errors.WithStack(err), "get user group id failed")
 		}
 
-		chownKubeConfig := fmt.Sprintf("chown -R %s:%s $HOME/.kube", userId, userGroupId)
+		chownKubeConfig := fmt.Sprintf("chown -R %s:%s %s", userId, userGroupId, c.Path)
 		if _, err := runtime.GetRunner().SudoCmd(chownKubeConfig, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "chown user kube config failed")
+			return errors.Wrapf(errors.WithStack(err), "chown user %s failed", c.Path)
+		}
+	}
+	return nil
+}
+
+type LocalTaskChown struct {
+	action.BaseAction
+	Path string
+}
+
+func (l *LocalTaskChown) Execute(runtime connector.Runtime) error {
+	if exist := util.IsExist(l.Path); exist {
+		if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("chown -R ${SUDO_UID}:${SUDO_GID} %s", l.Path)).Run(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "chown %s failed", l.Path)
 		}
 	}
 	return nil

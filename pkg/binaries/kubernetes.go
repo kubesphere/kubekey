@@ -96,6 +96,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 			if err := SHA256Check(binary); err != nil {
 				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
 			} else {
+				logger.Log.Messagef(common.LocalHost, "%s is existed", binary.Name)
 				continue
 			}
 		}
