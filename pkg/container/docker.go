@@ -18,13 +18,15 @@ package container
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/container/templates"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
-	"path"
-	"path/filepath"
 )
 
 type SyncDockerBinaries struct {
@@ -72,5 +74,29 @@ func (e *EnableDocker) Execute(runtime connector.Runtime) error {
 		false); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("enable and start docker failed"))
 	}
+	return nil
+}
+
+type DockerLoginRegistry struct {
+	common.KubeAction
+}
+
+func (p *DockerLoginRegistry) Execute(runtime connector.Runtime) error {
+
+	auths := templates.Auths(p.KubeConf)
+
+	for repo, entry := range auths {
+
+		cmd := fmt.Sprintf("docker login --username \"%s\" --password \"%s\" %s", entry.Username, entry.Password, repo)
+		if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
+			return errors.Wrapf(err, "login registry failed, cmd: %v, err:%v", cmd, err)
+		}
+	}
+
+	cmd := "mkdir -p /.docker && cp -f $HOME/.docker/config.json /.docker/ && chmod 0644 /.docker/config.json "
+	if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
+		return errors.Wrapf(err, "copy docker auths failed cmd: %v, err:%v", cmd, err)
+	}
+
 	return nil
 }

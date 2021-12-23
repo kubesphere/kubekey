@@ -145,6 +145,18 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
+	dockerLoginRegistry := &task.RemoteTask{
+		Name:  "Login PrivateRegistry",
+		Desc:  "Add auths to container runtime",
+		Hosts: m.Runtime.GetAllHosts(),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&DockerExist{},
+		},
+		Action:   new(DockerLoginRegistry),
+		Parallel: true,
+	}
+
 	return []task.Interface{
 		syncBinaries,
 		generateContainerdService,
@@ -152,6 +164,7 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		generateDockerService,
 		generateDockerConfig,
 		enableDocker,
+		dockerLoginRegistry,
 	}
 }
 
@@ -212,6 +225,7 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 				"Mirrors":            templates.Mirrors(m.KubeConf),
 				"InsecureRegistries": templates.InsecureRegistries(m.KubeConf),
 				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
+				"Auths":              templates.Auths(m.KubeConf),
 			},
 		},
 		Parallel: true,
