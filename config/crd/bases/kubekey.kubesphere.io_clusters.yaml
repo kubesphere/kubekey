@@ -488,6 +488,10 @@ spec:
                     type: integer
                   etcdBackupScript:
                     type: string
+                  featureGates:
+                    additionalProperties:
+                      type: boolean
+                    type: object
                   keepBackupNumber:
                     type: integer
                   kubeProxyArgs:
