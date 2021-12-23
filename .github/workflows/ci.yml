@@ -19,10 +19,10 @@ jobs:
       GO111MODULE: on
     steps:
 
-      - name: Set up Go 1.16
+      - name: Set up Go 1.17
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
         id: go
 
       - name: Check out code into the Go module directory
@@ -42,8 +42,11 @@ jobs:
             exit 1
           fi
 
-      - name: Build
-        run: go build -v -o output/kk ./main.go
+      - name: Build operator manager
+        run: go build -v -o output/manager ./main.go
+
+      - name: Build command-line tool
+        run: go build -v -o output/kk ./cmd/main.go
 
       - uses: actions/upload-artifact@v2
         if: github.event_name == 'push'
