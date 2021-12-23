@@ -18,13 +18,15 @@ package v1alpha2
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"regexp"
-	"strconv"
-	"strings"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -179,9 +181,10 @@ type ControlPlaneEndpoint struct {
 
 // RegistryConfig defines the configuration information of the image's repository.
 type RegistryConfig struct {
-	RegistryMirrors    []string `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
-	InsecureRegistries []string `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
-	PrivateRegistry    string   `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
+	RegistryMirrors    []string             `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
+	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
+	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
+	Auths              runtime.RawExtension `yaml:"Auths" json:"Auths,omitempty"`
 }
 
 // KubeSphere defines the configuration information of the KubeSphere.

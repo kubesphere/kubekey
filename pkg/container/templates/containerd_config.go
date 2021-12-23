@@ -17,8 +17,9 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 var ContainerdConfig = template.Must(template.New("config.toml").Parse(
@@ -74,4 +75,14 @@ state = "/run/containerd"
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
           endpoint = ["https://registry-1.docker.io"]
         {{- end}}
+      
+        {{- if .Auths }}
+        [plugins."io.containerd.grpc.v1.cri".registry.configs]
+          {{- range $repo, $entry := .Auths }}
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}"]
+            username = "{{$entry.Username}}"
+            password = "{{$entry.Password}}"
+          {{- end}}
+        {{- end}}
+      
     `)))
