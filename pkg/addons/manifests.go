@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,81 +66,119 @@ func InstallYaml(manifests []string, namespace, kubeConfig, version string) erro
 }
 
 func CreateApplyOptions(configFlags *genericclioptions.ConfigFlags, manifests []string, version string) (*apply.ApplyOptions, error) {
-	var err error
 	matchVersionKubeConfigFlags := NewMatchVersionFlags(configFlags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 	ioStreams := genericclioptions.IOStreams{In: nil, Out: os.Stdout, ErrOut: os.Stderr}
 
-	o := apply.NewApplyOptions(ioStreams)
+	flags := apply.NewApplyFlags(f, ioStreams)
+	return ToOptions(flags, manifests, version)
+}
 
+func ToOptions(flags *apply.ApplyFlags, manifests []string, version string) (*apply.ApplyOptions, error) {
+	serverSideApply := false
 	cmp, err := versionutil.MustParseSemantic(version).Compare("v1.16.0")
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Failed to compare version: %v", err))
 	}
 	if cmp == 0 || cmp == 1 {
-		o.ServerSideApply = true
+		serverSideApply = true
 	} else {
-		o.ServerSideApply = false
+		serverSideApply = false
 	}
 
-	o.ForceConflicts = true
-	o.DryRunStrategy = cmdutil.DryRunNone
+	dryRunStrategy := cmdutil.DryRunNone
 
-	o.DynamicClient, err = f.DynamicClient()
+	dynamicClient, err := flags.Factory.DynamicClient()
 	if err != nil {
 		return nil, err
 	}
 
-	discoveryClient, err := f.ToDiscoveryClient()
+	discoveryClient, err := flags.Factory.ToDiscoveryClient()
 	if err != nil {
 		return nil, err
 	}
 
-	o.DryRunVerifier = resource.NewDryRunVerifier(o.DynamicClient, discoveryClient)
-	o.FieldManager = "client-side-apply"
+	dryRunVerifier := resource.NewDryRunVerifier(dynamicClient, discoveryClient)
+	fieldManager := "client-side-apply"
 
-	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
-		o.PrintFlags.NamePrintFlags.Operation = operation
-		cmdutil.PrintFlagsWithDryRunStrategy(o.PrintFlags, o.DryRunStrategy)
-		return o.PrintFlags.ToPrinter()
+	// allow for a success message operation to be specified at print time
+	toPrinter := func(operation string) (printers.ResourcePrinter, error) {
+		flags.PrintFlags.NamePrintFlags.Operation = operation
+		cmdutil.PrintFlagsWithDryRunStrategy(flags.PrintFlags, dryRunStrategy)
+		return flags.PrintFlags.ToPrinter()
 	}
-	_ = o.RecordFlags.CompleteWithChangeCause("")
+	_ = flags.RecordFlags.CompleteWithChangeCause("")
 
-	o.Recorder, err = o.RecordFlags.ToRecorder()
+	recorder, err := flags.RecordFlags.ToRecorder()
 	if err != nil {
 		return nil, err
 	}
 
 	filenames := manifests
-	o.DeleteFlags.FileNameFlags.Filenames = &filenames
+	flags.DeleteFlags.FileNameFlags.Filenames = &filenames
 
-	o.DeleteOptions, err = o.DeleteFlags.ToOptions(o.DynamicClient, o.IOStreams)
-	err = o.DeleteOptions.FilenameOptions.RequireFilenameOrKustomize()
+	deleteOptions, err := flags.DeleteFlags.ToOptions(dynamicClient, flags.IOStreams)
 	if err != nil {
 		return nil, err
 	}
 
-	o.OpenAPISchema, _ = f.OpenAPISchema()
-	o.Validator, err = f.Validator(true)
-	if err != nil {
-		return nil, err
-	}
-	o.Builder = f.NewBuilder()
-	o.Mapper, err = f.ToRESTMapper()
+	err = deleteOptions.FilenameOptions.RequireFilenameOrKustomize()
 	if err != nil {
 		return nil, err
 	}
 
-	o.Namespace, o.EnforceNamespace, err = f.ToRawKubeConfigLoader().Namespace()
+	openAPISchema, _ := flags.Factory.OpenAPISchema()
+	validator, err := flags.Factory.Validator(true)
+	if err != nil {
+		return nil, err
+	}
+	builder := flags.Factory.NewBuilder()
+	mapper, err := flags.Factory.ToRESTMapper()
 	if err != nil {
 		return nil, err
 	}
 
-	o.Prune = false
+	namespace, enforceNamespace, err := flags.Factory.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return nil, err
+	}
+
+	o := &apply.ApplyOptions{
+		PrintFlags: flags.PrintFlags,
+
+		DeleteOptions:   deleteOptions,
+		ToPrinter:       toPrinter,
+		ServerSideApply: serverSideApply,
+		ForceConflicts:  true,
+		FieldManager:    fieldManager,
+		Selector:        flags.Selector,
+		DryRunStrategy:  dryRunStrategy,
+		DryRunVerifier:  dryRunVerifier,
+		Prune:           flags.Prune,
+		PruneResources:  flags.PruneResources,
+		All:             flags.All,
+		Overwrite:       flags.Overwrite,
+		OpenAPIPatch:    flags.OpenAPIPatch,
+		PruneWhitelist:  flags.PruneWhitelist,
+
+		Recorder:         recorder,
+		Namespace:        namespace,
+		EnforceNamespace: enforceNamespace,
+		Validator:        validator,
+		Builder:          builder,
+		Mapper:           mapper,
+		DynamicClient:    dynamicClient,
+		OpenAPISchema:    openAPISchema,
+
+		IOStreams: flags.IOStreams,
+
+		VisitedUids:       sets.NewString(),
+		VisitedNamespaces: sets.NewString(),
+	}
 
 	o.PostProcessorFn = o.PrintAndPrunePostProcessor()
 
-	return o, err
+	return o, nil
 }
 
 func NewConfigFlags(kubeconfig, namespace string) *genericclioptions.ConfigFlags {

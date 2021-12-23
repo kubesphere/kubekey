@@ -18,7 +18,6 @@ import (
 	"text/template"
 )
 
-
 var Multus = template.Must(template.New("multus-network-plugin.yaml").Parse(
 	dedent.Dedent(`
 ---

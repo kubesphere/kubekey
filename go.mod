@@ -22,16 +22,13 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.7.1
-	k8s.io/api v0.22.4
-	k8s.io/apimachinery v0.22.4
-	k8s.io/cli-runtime v0.22.4
-	k8s.io/client-go v0.22.4
-	k8s.io/code-generator v0.22.4
-	k8s.io/klog/v2 v2.30.0 // indirect
-	k8s.io/kubectl v0.22.4
-	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b // indirect
-	sigs.k8s.io/controller-runtime v0.10.3
+	k8s.io/api v0.23.1
+	k8s.io/apimachinery v0.23.1
+	k8s.io/cli-runtime v0.23.1
+	k8s.io/client-go v0.23.1
+	k8s.io/code-generator v0.23.1
+	k8s.io/kubectl v0.23.1
+	sigs.k8s.io/controller-runtime v0.11.0
 )
