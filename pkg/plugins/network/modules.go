@@ -170,9 +170,9 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 
 func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {
 	generateFlannel := &task.RemoteTask{
-		Name:  "GenerateFlannel",
-		Desc:  "Generate flannel",
-		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Name:    "GenerateFlannel",
+		Desc:    "Generate flannel",
+		Hosts:   d.Runtime.GetHostsByRole(common.Master),
 		Prepare: new(common.OnlyFirstMaster),
 		Action: &action.Template{
 			Template: templates.Flannel,
@@ -204,9 +204,9 @@ func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {
 
 func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
 	generateCilium := &task.RemoteTask{
-		Name:  "GenerateCilium",
-		Desc:  "Generate cilium",
-		Hosts: d.Runtime.GetHostsByRole(common.Master),
+		Name:    "GenerateCilium",
+		Desc:    "Generate cilium",
+		Hosts:   d.Runtime.GetHostsByRole(common.Master),
 		Prepare: new(common.OnlyFirstMaster),
 		Action: &action.Template{
 			Template: templates.Cilium,
