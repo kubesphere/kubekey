@@ -221,6 +221,12 @@ func Untar(src, dst string) error {
 				}
 			}
 		case tar.TypeReg:
+			if dir := filepath.Dir(dstPath); !IsExist(dir) {
+				if err := CreateDir(dir); err != nil {
+					return err
+				}
+			}
+
 			file, err := os.OpenFile(dstPath, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
 				return err

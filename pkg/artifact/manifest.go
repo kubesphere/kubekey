@@ -37,6 +37,8 @@ import (
 )
 
 func CreateManifest(arg common.Argument, name string) error {
+	checkFileExists(arg.FilePath)
+
 	client, err := kubernetes.NewClient(arg.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "get kubernetes client failed")
@@ -153,15 +155,14 @@ func CreateManifest(arg common.Argument, name string) error {
 		Images: imageArr,
 	}
 
+	options.Components.Crictl = kubekeyv1alpha2.Crictl{Version: kubekeyv1alpha2.DefaultCrictlVersion}
 	if containerRuntime.Type == kubekeyv1alpha2.Conatinerd {
-		options.Components.Crictl = kubekeyv1alpha2.Crictl{Version: kubekeyv1alpha2.DefaultCrictlVersion}
 		options.Components.ContainerRuntime.Type = kubekeyv1alpha2.Docker
 		options.Components.ContainerRuntime.Version = kubekeyv1alpha2.DefaultDockerVersion
 	}
 
 	manifestStr, err := templates.RenderManifest(options)
 
-	checkFileExists(arg.FilePath)
 	if err := ioutil.WriteFile(arg.FilePath, []byte(manifestStr), 0644); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("write file %s failed", arg.FilePath))
 	}

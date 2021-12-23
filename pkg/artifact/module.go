@@ -106,3 +106,27 @@ func (a *ArchiveModule) Init() {
 		archive,
 	}
 }
+
+type UnArchiveModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (u *UnArchiveModule) IsSkip() bool {
+	return u.Skip
+}
+
+func (u *UnArchiveModule) Init() {
+	u.Name = "UnArchiveArtifactModule"
+	u.Desc = "UnArchive the KubeKey artifact"
+
+	unArchive := &task.LocalTask{
+		Name:   "UnArchiveArtifact",
+		Desc:   "UnArchive the KubeKey artifact",
+		Action: new(UnArchive),
+	}
+
+	u.Tasks = []task.Interface{
+		unArchive,
+	}
+}

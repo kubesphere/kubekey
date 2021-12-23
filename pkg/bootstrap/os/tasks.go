@@ -19,6 +19,7 @@ package os
 import (
 	"fmt"
 	osrelease "github.com/dominodatalab/os-release"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/os/repository"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/utils"
@@ -322,6 +323,134 @@ func (o *OfflineInstallDependencies) Execute(runtime connector.Runtime) error {
 		}
 	default:
 		return errors.New(fmt.Sprintf("Unsupported operating system: %s", r.ID))
+	}
+	return nil
+}
+
+type SyncRepositoryFile struct {
+	common.KubeAction
+}
+
+func (s *SyncRepositoryFile) Execute(runtime connector.Runtime) error {
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return errors.Wrap(err, "reset tmp dir failed")
+	}
+
+	host := runtime.RemoteHost()
+	release, ok := host.GetCache().Get(Release)
+	if !ok {
+		return errors.New("get os release failed by root cache")
+	}
+	r := release.(*osrelease.Data)
+
+	fileName := fmt.Sprintf("%s-%s-%s.iso", r.ID, r.VersionID, host.GetArch())
+	src := filepath.Join(runtime.GetWorkDir(), common.Artifact, "repository", host.GetArch(), r.ID, r.VersionID, fileName)
+	dst := filepath.Join(common.TmpDir, fileName)
+	if err := runtime.GetRunner().Scp(src, dst); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "scp %s to %s failed", src, dst)
+	}
+
+	host.GetCache().Set("iso", fileName)
+	return nil
+}
+
+type MountISO struct {
+	common.KubeAction
+}
+
+func (m *MountISO) Execute(runtime connector.Runtime) error {
+	mountPath := filepath.Join(common.TmpDir, "iso")
+	if err := runtime.GetRunner().MkDir(mountPath); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "create mount dir failed")
+	}
+
+	host := runtime.RemoteHost()
+	isoFile, _ := host.GetCache().GetMustString("iso")
+	path := filepath.Join(common.TmpDir, isoFile)
+	mountCmd := fmt.Sprintf("sudo mount -t iso9660 -o loop %s %s", path, mountPath)
+	if _, err := runtime.GetRunner().Cmd(mountCmd, false); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "mount %s at %s failed", path, mountPath)
+	}
+	return nil
+}
+
+type AddLocalRepository struct {
+	common.KubeAction
+}
+
+func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	release, ok := host.GetCache().Get(Release)
+	if !ok {
+		return errors.New("get os release failed by host cache")
+	}
+	r := release.(*osrelease.Data)
+
+	repo, err := repository.New(r.ID, runtime)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "new repository manager failed")
+	}
+
+	if err := repo.Backup(); err != nil {
+		return errors.Wrap(errors.WithStack(err), "backup repository failed")
+	}
+	if err := repo.Add(filepath.Join(common.TmpDir, "iso")); err != nil {
+		return errors.Wrap(errors.WithStack(err), "add local repository failed")
+	}
+	if err := repo.Update(); err != nil {
+		return errors.Wrap(errors.WithStack(err), "update local repository failed")
+	}
+
+	host.GetCache().Set("repo", repo)
+	return nil
+}
+
+type InstallPackage struct {
+	common.KubeAction
+}
+
+func (i *InstallPackage) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	repo, ok := host.GetCache().Get("repo")
+	if !ok {
+		return errors.New("get repo failed by host cache")
+	}
+	r := repo.(repository.Interface)
+
+	if err := r.Install(); err != nil {
+		return errors.Wrap(errors.WithStack(err), "install repository package failed")
+	}
+	return nil
+}
+
+type ResetRepository struct {
+	common.KubeAction
+}
+
+func (r *ResetRepository) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	repo, ok := host.GetCache().Get("repo")
+	if !ok {
+		return errors.New("get repo failed by host cache")
+	}
+	re := repo.(repository.Interface)
+
+	if err := re.Reset(); err != nil {
+		return errors.Wrap(errors.WithStack(err), "reset repository failed")
+	}
+
+	return nil
+}
+
+type UmountISO struct {
+	common.KubeAction
+}
+
+func (u *UmountISO) Execute(runtime connector.Runtime) error {
+	mountPath := filepath.Join(common.TmpDir, "iso")
+	umountCmd := fmt.Sprintf("umount %s", mountPath)
+	if _, err := runtime.GetRunner().SudoCmd(umountCmd, false); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "umount %s failed", mountPath)
 	}
 	return nil
 }

@@ -20,12 +20,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/cmd/ctr/commands/content"
+	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/images/archive"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/platforms"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"io"
 	"os"
@@ -61,18 +65,45 @@ func (p *PullImages) Execute(_ connector.Runtime) error {
 
 	ctx := namespaces.WithNamespace(context.Background(), "kubekey")
 	for _, image := range p.Manifest.Spec.Images {
-		var err error
-		for i := 0; i < 3; i++ {
-			if _, e := client.Fetch(ctx, image); e != nil {
-				err = e
-				continue
-			}
-			logger.Log.Messagef(common.LocalHost, "pull image %s success", image)
-			break
-		}
+		progress := make(chan struct{})
+		lctx, done, err := client.WithLease(ctx)
 		if err != nil {
+			return err
+		}
+		defer done(ctx)
+
+		ongoing := content.NewJobs(image)
+		pctx, stopProgress := context.WithCancel(lctx)
+
+		go func() {
+			content.ShowProgress(pctx, ongoing, client.ContentStore(), os.Stdout)
+			close(progress)
+		}()
+
+		h := images.HandlerFunc(func(ctx context.Context, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
+			if desc.MediaType != images.MediaTypeDockerSchema1Manifest {
+				ongoing.Add(desc)
+			}
+			return nil, nil
+		})
+
+		opts := []containerd.RemoteOpt{
+			containerd.WithImageHandler(h),
+			containerd.WithSchema1Conversion,
+		}
+
+		for _, arch := range p.Manifest.Spec.Arches {
+			opts = append(opts, containerd.WithPlatform(arch))
+		}
+
+		_, err = client.Fetch(ctx, image, opts...)
+		stopProgress()
+		if err != nil {
+			logger.Log.Messagef(common.LocalHost, "pull image %s failed", image)
 			return errors.Wrapf(errors.WithStack(err), "pull image %s failed", image)
 		}
+
+		<-progress
 		//todo: Whether it need to be unpack?
 	}
 
@@ -114,7 +145,22 @@ func (e *ExportImages) Execute(runtime connector.Runtime) error {
 		}
 		defer w.Close()
 
-		if err := client.Export(ctx, w, archive.WithImage(is, image)); err != nil {
+		exportOpts := []archive.ExportOpt{
+			archive.WithPlatform(platforms.Default()),
+			archive.WithImage(is, image),
+		}
+
+		var all []ocispec.Platform
+		for _, arch := range e.Manifest.Spec.Arches {
+			p, err := platforms.Parse(arch)
+			if err != nil {
+				return errors.Wrapf(err, "invalid platform %q", arch)
+			}
+			all = append(all, p)
+		}
+		exportOpts = append(exportOpts, archive.WithPlatform(platforms.Ordered(all...)))
+
+		if err := client.Export(ctx, w, exportOpts...); err != nil {
 			return errors.Wrapf(errors.WithStack(err), "export image %s failed", image)
 		}
 		logger.Log.Messagef(common.LocalHost, "export image %s as %s success", image, fileName)
@@ -192,8 +238,9 @@ func (l *LocalCopy) Execute(runtime connector.Runtime) error {
 			return errors.Wrapf(errors.WithStack(err), "mkdir %s failed", dir)
 		}
 
-		if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sudo cp -f %s %s", sys.Repository.Iso.LocalPath, dir)).Run(); err != nil {
-			return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", sys.Repository.Iso.LocalPath, dir)
+		path := filepath.Join(dir, fmt.Sprintf("%s-%s-%s.iso", sys.Id, sys.Version, sys.Arch))
+		if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sudo cp -f %s %s", sys.Repository.Iso.LocalPath, path)).Run(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", sys.Repository.Iso.LocalPath, path)
 		}
 	}
 
@@ -208,6 +255,23 @@ func (a *ArchiveDependencies) Execute(runtime connector.Runtime) error {
 	src := filepath.Join(runtime.GetWorkDir(), common.Artifact)
 	if err := coreutil.Tar(src, a.Manifest.Arg.Output, runtime.GetWorkDir()); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "archive %s failed", src)
+	}
+	return nil
+}
+
+type UnArchive struct {
+	common.KubeAction
+}
+
+func (u *UnArchive) Execute(runtime connector.Runtime) error {
+	if err := coreutil.Untar(u.KubeConf.Arg.Artifact, runtime.GetWorkDir()); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "unArchive %s failed", u.KubeConf.Arg.Artifact)
+	}
+
+	// copy k8s binaries ("./kubekey/artifact/v1.21.5" tp "./kubekey/v1.21.5 .e.g")
+	src := filepath.Join(runtime.GetWorkDir(), "artifact", u.KubeConf.Cluster.Kubernetes.Version)
+	if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -r -f %s %s", src, runtime.GetWorkDir())).Run(); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", src, runtime.GetWorkDir())
 	}
 	return nil
 }

@@ -20,17 +20,21 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/artifact"
 	"github.com/kubesphere/kubekey/pkg/binaries"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/filesystem"
 )
 
 func NewArtifactExportPipeline(runtime *common.ArtifactRuntime) error {
 	m := []module.Module{
+		&confirm.CheckFileExistModule{FileName: runtime.Arg.Output},
 		&artifact.ImagesModule{},
 		&binaries.ArtifactBinariesModule{},
 		&artifact.RepositoryModule{},
 		&artifact.ArchiveModule{},
+		&filesystem.ChownWorkDirModule{},
 	}
 
 	p := pipeline.Pipeline{
