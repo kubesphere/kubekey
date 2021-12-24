@@ -48,6 +48,12 @@ spec:
     registryMirrors: []
     insecureRegistries: []
     privateRegistry: ""
+    auths: # if docker add by `docker login`, if containerd append to `/etc/containerd/config.toml`
+      "registry-1.docker.io":
+        username : "xxx"
+        password : "***"
+
+
   addons: [] # You can install cloud-native addons (Chart or YAML) by using this field.
 
 ---
