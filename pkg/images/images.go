@@ -162,6 +162,9 @@ func Push(fileName string, prePath string, runtime connector.Runtime, kubeConf *
 		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH docker tag %s %s", oldName, image.ImageName()), false); err != nil {
 			return image, errors.Wrap(err, "pull image failed")
 		}
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH docker push %s", image.ImageName()), false); err != nil {
+			return image, errors.Wrap(err, "pull image failed")
+		}
 	case common.Conatinerd:
 		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH ctr images import --base-name %s %s", image.ImageName(), fullPath), false); err != nil {
 			return image, errors.Wrapf(err, "load %s tar onto image %s failed", imageName, fullPath)
