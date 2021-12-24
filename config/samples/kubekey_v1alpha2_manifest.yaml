@@ -1,0 +1,6 @@
+apiVersion: kubekey.kubesphere.io/v1alpha2
+kind: Manifest
+metadata:
+  name: manifest-sample
+spec:
+  # Add fields here

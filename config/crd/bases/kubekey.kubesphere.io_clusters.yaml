@@ -488,6 +488,10 @@ spec:
                     type: integer
                   etcdBackupScript:
                     type: string
+                  featureGates:
+                    additionalProperties:
+                      type: boolean
+                    type: object
                   keepBackupNumber:
                     type: integer
                   kubeProxyArgs:
@@ -543,6 +547,8 @@ spec:
                       vxlanMode:
                         type: string
                     type: object
+                  enableMultusCNI:
+                    type: boolean
                   flannel:
                     properties:
                       backendMode:

@@ -21,7 +21,10 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/pkg/errors"
+	"io/ioutil"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"path/filepath"
 	"strings"
 )
 
@@ -122,4 +125,25 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 
 	image = ImageList[name]
 	return image
+}
+
+type PushImage struct {
+	common.KubeAction
+}
+
+func (p *PushImage) Execute(runtime connector.Runtime) error {
+	imagesPath := filepath.Join(runtime.GetWorkDir(), common.Artifact, "images")
+	files, err := ioutil.ReadDir(imagesPath)
+	if err != nil {
+		return errors.Wrapf(errors.WithStack(err), "read %s dir faied", imagesPath)
+	}
+
+	for _, file := range files {
+		name := file.Name()
+		_, err := Push(name, imagesPath, runtime, p.KubeConf)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

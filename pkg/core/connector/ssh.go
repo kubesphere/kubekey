@@ -573,7 +573,7 @@ func (c *connection) RemoteDirExist(dst string, host Host) (bool, error) {
 
 func (c *connection) MkDirAll(path string, mode string, host Host) error {
 	if mode == "" {
-		mode = "666"
+		mode = "775"
 	}
 	mkDstDir := fmt.Sprintf("mkdir -p -m %s %s || true", mode, path)
 	if _, _, err := c.Exec(SudoPrefix(mkDstDir), host); err != nil {

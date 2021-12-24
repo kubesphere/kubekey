@@ -16,6 +16,11 @@
 
 package files
 
+import (
+	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/util"
+)
+
 const (
 	kubeadm = "kubeadm"
 	kubelet = "kubelet"
@@ -37,6 +42,99 @@ type KubeBinary struct {
 	Url     string
 	Path    string
 	GetCmd  string
+}
+
+func NewKubeBinary(name, arch, version, prePath, zone string, getCmd func(path, url string) string) (KubeBinary, error) {
+	var component KubeBinary
+	component.Arch = arch
+	component.Version = version
+
+	switch name {
+	case etcd:
+		component.Name = etcd
+		component.Path = fmt.Sprintf("%s/etcd-%s-linux-%s.tar.gz", prePath, version, arch)
+		component.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", version, version, arch)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf(
+				"https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz",
+				component.Version, component.Version, component.Arch)
+		}
+	case kubeadm:
+		component.Name = kubeadm
+		component.Path = fmt.Sprintf("%s/kubeadm", prePath)
+		component.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", version, arch)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", version, arch)
+		}
+	case kubelet:
+		component.Name = kubelet
+		component.Path = fmt.Sprintf("%s/kubelet", prePath)
+		component.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubelet", version, arch)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", version, arch)
+		}
+	case kubectl:
+		component.Name = kubectl
+		component.Path = fmt.Sprintf("%s/kubectl", prePath)
+		component.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl", version, arch)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", version, arch)
+		}
+	case kubecni:
+		component.Name = kubecni
+		component.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", prePath, arch, version)
+		component.Url = fmt.Sprintf("https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", version, arch, version)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", version, arch, version)
+		}
+	case helm:
+		component.Name = helm
+		component.Path = fmt.Sprintf("%s/helm", prePath)
+		component.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", version, arch)
+		get := getCmd(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", prePath, version, arch), component.Url)
+		component.GetCmd =
+			fmt.Sprintf("%s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*",
+				get, prePath, version, arch, arch, arch)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", arch, version)
+			component.GetCmd = getCmd(component.Path, component.Url)
+		}
+	case docker:
+		component.Name = docker
+		component.Path = fmt.Sprintf("%s/docker-%s.tgz", prePath, version)
+		component.Url = fmt.Sprintf("https://download.docker.com/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(arch), version)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://mirrors.aliyun.com/docker-ce/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(arch), version)
+		}
+	case crictl:
+		component.Name = crictl
+		component.Path = fmt.Sprintf("%s/crictl-%s-linux-%s.tar.gz", prePath, version, arch)
+		component.Url = fmt.Sprintf("https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", version, version, arch)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", version, version, arch)
+		}
+	case k3s:
+		component.Name = k3s
+		component.Path = fmt.Sprintf("%s/k3s", prePath)
+		component.Url = fmt.Sprintf("https://github.com/k3s-io/k3s/releases/download/%s+k3s1/k3s", version)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if arch == arm64 {
+			component.Url = fmt.Sprintf("https://github.com/k3s-io/k3s/releases/download/%s+k3s1/k3s-%s", version, arch)
+		}
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/k3s/releases/download/%s+k3s1/linux/%s/k3s", version, arch)
+		}
+	default:
+		return component, fmt.Errorf("unsupported kube binaries %s", name)
+	}
+	return component, nil
 }
 
 var (

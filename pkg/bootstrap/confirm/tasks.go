@@ -20,8 +20,10 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
 	"github.com/pkg/errors"
@@ -75,16 +77,18 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	table.OutputA(results)
 	reader := bufio.NewReader(os.Stdin)
 
-	for _, host := range results {
-		if host.Conntrack == "" {
-			fmt.Printf("%s: conntrack is required. \n", host.Name)
-			logger.Log.Errorf("%s: conntrack is required. \n", host.Name)
-			stopFlag = true
+	if i.KubeConf.Arg.Artifact == "" {
+		for _, host := range results {
+			if host.Conntrack == "" {
+				fmt.Printf("%s: conntrack is required. \n", host.Name)
+				logger.Log.Errorf("%s: conntrack is required. \n", host.Name)
+				stopFlag = true
+			}
 		}
-	}
 
-	if stopFlag {
-		os.Exit(1)
+		if stopFlag {
+			os.Exit(1)
+		}
 	}
 
 	fmt.Println("")
@@ -259,4 +263,34 @@ func RefineDockerVersion(version string) (string, error) {
 		newVersionComponents = append(newVersionComponents, newVersion)
 	}
 	return strings.Join(newVersionComponents, "."), nil
+}
+
+type CheckFile struct {
+	action.BaseAction
+	FileName string
+}
+
+func (c *CheckFile) Execute(runtime connector.Runtime) error {
+	if util.IsExist(c.FileName) {
+		reader := bufio.NewReader(os.Stdin)
+		stop := false
+		for {
+			if stop {
+				break
+			}
+			fmt.Printf("%s already exists. Are you sure you want to overwrite this file? [yes/no]: ", c.FileName)
+			input, _ := reader.ReadString('\n')
+			input = strings.TrimSpace(input)
+
+			if input != "" {
+				switch input {
+				case "yes":
+					stop = true
+				case "no":
+					os.Exit(0)
+				}
+			}
+		}
+	}
+	return nil
 }
