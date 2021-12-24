@@ -103,3 +103,35 @@ func (k *K3sDownload) Execute(runtime connector.Runtime) error {
 	}
 	return nil
 }
+
+type ArtifactDownload struct {
+	common.ArtifactAction
+}
+
+func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
+	manifest := a.Manifest.Spec
+
+	archMap := make(map[string]bool)
+	for _, arch := range manifest.Arches {
+		switch arch {
+		case "amd64":
+			archMap["amd64"] = true
+		case "arm64":
+			archMap["arm64"] = true
+		default:
+			return errors.New(fmt.Sprintf("Unsupported architecture: %s", arch))
+		}
+	}
+
+	for arch := range archMap {
+		binariesDir := filepath.Join(runtime.GetWorkDir(), common.Artifact, manifest.KubernetesDistribution.Version, arch)
+		if err := util.CreateDir(binariesDir); err != nil {
+			return errors.Wrap(err, "Failed to create download target dir")
+		}
+
+		if err := KubernetesArtifactBinariesDownload(a.Manifest, binariesDir, arch, a.PipelineCache); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -18,11 +18,12 @@ package filesystem
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/task"
 )
 
 type ChownModule struct {
-	common.KubeModule
+	module.BaseTaskModule
 }
 
 func (c *ChownModule) Init() {
@@ -30,14 +31,40 @@ func (c *ChownModule) Init() {
 	c.Desc = "Change file and dir mode and owner"
 
 	userKubeDir := &task.RemoteTask{
-		Name:     "ChownUserKubeDir",
+		Name:     "ChownFileAndDir",
 		Desc:     "Chown user $HOME/.kube dir",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
-		Action:   new(ChownUserKubeDir),
+		Action:   &ChownFileAndDir{Path: "$HOME/.kube"},
 		Parallel: true,
 	}
 
 	c.Tasks = []task.Interface{
 		userKubeDir,
+	}
+}
+
+type ChownWorkDirModule struct {
+	common.ArtifactModule
+}
+
+func (c *ChownWorkDirModule) Init() {
+	c.Name = "ChownWorkDirModule"
+	c.Desc = "Change file and dir owner"
+
+	userKubeDir := &task.LocalTask{
+		Name:   "ChownFileAndDir",
+		Desc:   "Chown ./kubekey dir",
+		Action: &LocalTaskChown{Path: c.Runtime.GetWorkDir()},
+	}
+
+	output := &task.LocalTask{
+		Name:   "Chown output file",
+		Desc:   "Chown output file",
+		Action: &LocalTaskChown{Path: c.Manifest.Arg.Output},
+	}
+
+	c.Tasks = []task.Interface{
+		userKubeDir,
+		output,
 	}
 }

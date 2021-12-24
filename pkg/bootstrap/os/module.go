@@ -160,3 +160,85 @@ func (i *InitDependenciesModule) Init() {
 		}
 	}
 }
+
+type RepositoryModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (r *RepositoryModule) IsSkip() bool {
+	return r.Skip
+}
+
+func (r *RepositoryModule) Init() {
+	r.Name = "RepositoryModule"
+	r.Desc = "Install local repository"
+
+	getOSData := &task.RemoteTask{
+		Name:     "GetOSData",
+		Desc:     "Get OS release",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(GetOSData),
+		Parallel: true,
+	}
+
+	sync := &task.RemoteTask{
+		Name:     "SyncRepositoryISOFile",
+		Desc:     "Sync repository iso file to all nodes",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(SyncRepositoryFile),
+		Parallel: true,
+	}
+
+	mount := &task.RemoteTask{
+		Name:     "MountISO",
+		Desc:     "Mount iso file",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(MountISO),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	add := &task.RemoteTask{
+		Name:     "AddLocalRepository",
+		Desc:     "Add local repository",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(AddLocalRepository),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	install := &task.RemoteTask{
+		Name:     "InstallPackage",
+		Desc:     "Install packages",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(InstallPackage),
+		Parallel: true,
+	}
+
+	reset := &task.RemoteTask{
+		Name:     "ResetRepository",
+		Desc:     "Reset repository to the original repository",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(ResetRepository),
+		Parallel: true,
+	}
+
+	umount := &task.RemoteTask{
+		Name:     "UmountISO",
+		Desc:     "Umount ISO file",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(UmountISO),
+		Parallel: true,
+	}
+
+	r.Tasks = []task.Interface{
+		getOSData,
+		sync,
+		mount,
+		add,
+		install,
+		reset,
+		umount,
+	}
+}

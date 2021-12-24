@@ -17,14 +17,18 @@
 package util
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"crypto/md5"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/common"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func IsExist(path string) bool {
@@ -130,4 +134,110 @@ func WriteFile(fileName string, content []byte) error {
 		return err
 	}
 	return nil
+}
+
+func Tar(src, dst, trimPrefix string) error {
+	fw, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer fw.Close()
+
+	gw := gzip.NewWriter(fw)
+	defer gw.Close()
+
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	return filepath.Walk(src, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		hdr, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return err
+		}
+
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+
+		fr, err := os.Open(path)
+		defer fr.Close()
+		if err != nil {
+			return err
+		}
+
+		path = strings.TrimPrefix(path, trimPrefix)
+		fmt.Println(strings.TrimPrefix(path, string(filepath.Separator)))
+
+		hdr.Name = strings.TrimPrefix(path, string(filepath.Separator))
+		if err := tw.WriteHeader(hdr); err != nil {
+			return err
+		}
+
+		if _, err := io.Copy(tw, fr); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func Untar(src, dst string) error {
+	fr, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer fr.Close()
+
+	gr, err := gzip.NewReader(fr)
+	if err != nil {
+		return err
+	}
+	defer gr.Close()
+
+	tr := tar.NewReader(gr)
+	for {
+		hdr, err := tr.Next()
+
+		switch {
+		case err == io.EOF:
+			return nil
+		case err != nil:
+			return err
+		case hdr == nil:
+			continue
+		}
+
+		dstPath := filepath.Join(dst, hdr.Name)
+
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			if !IsExist(dstPath) && IsDir(dstPath) {
+				if err := CreateDir(dstPath); err != nil {
+					return err
+				}
+			}
+		case tar.TypeReg:
+			if dir := filepath.Dir(dstPath); !IsExist(dir) {
+				if err := CreateDir(dir); err != nil {
+					return err
+				}
+			}
+
+			file, err := os.OpenFile(dstPath, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
+			if err != nil {
+				return err
+			}
+
+			if _, err = io.Copy(file, tr); err != nil {
+				return err
+			}
+
+			fmt.Println(dstPath)
+			file.Close()
+		}
+	}
 }

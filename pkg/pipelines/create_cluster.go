@@ -19,42 +19,48 @@ package pipelines
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/artifact"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/pkg/certs"
+	"github.com/kubesphere/kubekey/pkg/container"
+	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"io/ioutil"
 	"path/filepath"
 
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons"
 	"github.com/kubesphere/kubekey/pkg/binaries"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/etcd"
 	"github.com/kubesphere/kubekey/pkg/filesystem"
 	"github.com/kubesphere/kubekey/pkg/hooks"
-	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/k3s"
-	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer"
-	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
 )
 
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+	skipPushImages := runtime.Arg.SKipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
 
 	m := []module.Module{
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
+		&artifact.UnArchiveModule{Skip: noArtifact},
+		&os.RepositoryModule{Skip: noArtifact || runtime.Arg.SkipInstallPackages},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
+		&images.PushModule{Skip: skipPushImages},
 		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
 		&etcd.PreCheckModule{},
 		&etcd.CertsModule{},
