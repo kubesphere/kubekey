@@ -128,7 +128,7 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
-	cmd.Flags().BoolVarP(&o.SkipInstallPackages, "--skip-install-packages", "", false, "Skip install packages by artifact")
+	cmd.Flags().BoolVarP(&o.SkipInstallPackages, "skip-install-packages", "", false, "Skip install packages by artifact")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {
