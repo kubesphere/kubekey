@@ -6,7 +6,7 @@ require (
 	github.com/containerd/containerd v1.5.8
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
-	github.com/go-logr/logr v1.2.0
+	github.com/go-logr/logr v1.2.2
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/mapstructure v1.4.3
