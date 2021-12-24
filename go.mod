@@ -13,7 +13,7 @@ require (
 	github.com/modood/table v0.0.0-20200225102042-88de94bb9876
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
-	github.com/opencontainers/image-spec v1.0.1
+	github.com/opencontainers/image-spec v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.4
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
