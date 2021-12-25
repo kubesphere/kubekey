@@ -79,3 +79,14 @@ func (c *ContainerdExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	}
 	return !c.Not, nil
 }
+
+type PrivateRegistryAuth struct {
+	common.KubePrepare
+}
+
+func (p *PrivateRegistryAuth) PreCheck(runtime connector.Runtime) (bool, error) {
+	if len(p.KubeConf.Cluster.Registry.Auths.Raw) == 0 {
+		return false, nil
+	}
+	return true, nil
+}
