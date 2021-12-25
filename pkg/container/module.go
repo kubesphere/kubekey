@@ -152,6 +152,7 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		Prepare: &prepare.PrepareCollection{
 			&kubernetes.NodeInCluster{Not: true},
 			&DockerExist{},
+			&PrivateRegistryAuth{},
 		},
 		Action:   new(DockerLoginRegistry),
 		Parallel: true,
