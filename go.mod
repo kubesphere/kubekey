@@ -6,14 +6,14 @@ require (
 	github.com/containerd/containerd v1.5.8
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
-	github.com/go-logr/logr v1.2.0
+	github.com/go-logr/logr v1.2.2
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/modood/table v0.0.0-20200225102042-88de94bb9876
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
-	github.com/opencontainers/image-spec v1.0.1
+	github.com/opencontainers/image-spec v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.4
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
@@ -22,7 +22,7 @@ require (
 	github.com/spf13/viper v1.9.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.7.1
+	helm.sh/helm/v3 v3.7.2
 	k8s.io/api v0.23.1
 	k8s.io/apimachinery v0.23.1
 	k8s.io/cli-runtime v0.23.1
@@ -46,7 +46,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
-	github.com/Masterminds/squirrel v1.5.0 // indirect
+	github.com/Masterminds/squirrel v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.4.17 // indirect
 	github.com/Microsoft/hcsshim v0.8.23 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
