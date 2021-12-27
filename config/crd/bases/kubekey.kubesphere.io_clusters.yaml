@@ -596,6 +596,8 @@ spec:
                 description: RegistryConfig defines the configuration information
                   of the image's repository.
                 properties:
+                  Auths:
+                    type: object
                   insecureRegistries:
                     items:
                       type: string
