@@ -14,7 +14,7 @@
  limitations under the License.
 */
 
-package container
+package containerruntime
 
 import (
 	"github.com/pkg/errors"
