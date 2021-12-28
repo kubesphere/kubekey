@@ -190,20 +190,32 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 
 	m := manifest.Spec
 
-	var err error
-	etcd, err := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubeadm, err := files.NewKubeBinary("kubeadm", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubelet, err := files.NewKubeBinary("kubelet", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubectl, err := files.NewKubeBinary("kubectl", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubecni, err := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	helm, err := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	docker, err := files.NewKubeBinary("docker", arch, m.Components.ContainerRuntime.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	crictl, err := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	if err != nil {
-		return errors.Wrap(err, "Failed to new kube binary")
+	etcd := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubeadm := files.NewKubeBinary("kubeadm", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubelet := files.NewKubeBinary("kubelet", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubectl := files.NewKubeBinary("kubectl", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
+
+	dockerArr := make([]files.KubeBinary, 0, 0)
+	dockerVersionMap := make(map[string]struct{})
+	for _, c := range m.Components.ContainerRuntimes {
+		var dockerVersion string
+		if c.Type == common.Docker {
+			dockerVersion = c.Version
+		} else {
+			dockerVersion = kubekeyapiv1alpha2.DefaultDockerVersion
+		}
+		if _, ok := dockerVersionMap[dockerVersion]; !ok {
+			dockerVersionMap[dockerVersion] = struct{}{}
+			docker := files.NewKubeBinary("docker", arch, dockerVersion, path, kkzone, manifest.Arg.DownloadCommand)
+			dockerArr = append(dockerArr, docker)
+		}
 	}
 
-	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, docker, etcd}
+	binaries = append(binaries, dockerArr...)
 	if m.Components.Crictl.Version != "" {
 		binaries = append(binaries, crictl)
 	}

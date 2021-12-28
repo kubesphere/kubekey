@@ -49,16 +49,18 @@ spec:
                     required:
                     - version
                     type: object
-                  containerRuntime:
-                    properties:
-                      type:
-                        type: string
-                      version:
-                        type: string
-                    required:
-                    - type
-                    - version
-                    type: object
+                  containerRuntimes:
+                    items:
+                      properties:
+                        type:
+                          type: string
+                        version:
+                          type: string
+                      required:
+                      - type
+                      - version
+                      type: object
+                    type: array
                   crictl:
                     properties:
                       version:
@@ -82,7 +84,7 @@ spec:
                     type: object
                 required:
                 - cni
-                - containerRuntime
+                - containerRuntimes
                 - etcd
                 - helm
                 type: object
