@@ -50,17 +50,33 @@ func CreateManifest(arg common.Argument, name string) error {
 	}
 
 	archSet := mapset.NewThreadUnsafeSet()
+	containerSet := mapset.NewThreadUnsafeSet()
 	imagesSet := mapset.NewThreadUnsafeSet()
 	osSet := mapset.NewThreadUnsafeSet()
+
 	maxKubeletVersion := versionutil.MustParseGeneric("v0.0.0")
 	kubernetesDistribution := kubekeyv1alpha2.KubernetesDistribution{}
-	maxContainerVersion := versionutil.MustParseGeneric("v0.0.0")
-	containerRuntime := kubekeyv1alpha2.ContainerRuntime{}
 	for _, node := range nodes.Items {
+		containerStrArr := strings.Split(node.Status.NodeInfo.ContainerRuntimeVersion, "://")
+		containerRuntime := kubekeyv1alpha2.ContainerRuntime{
+			Type:    containerStrArr[0],
+			Version: containerStrArr[1],
+		}
+		containerSet.Add(containerRuntime)
+
 		archSet.Add(node.Status.NodeInfo.Architecture)
 		for _, image := range node.Status.Images {
 			for _, name := range image.Names {
 				if !strings.Contains(name, "@sha256") {
+					if containerRuntime.Type == kubekeyv1alpha2.Docker {
+						arr := strings.Split(name, "/")
+						switch len(arr) {
+						case 1:
+							name = fmt.Sprintf("docker.io/library/%s", name)
+						case 2:
+							name = fmt.Sprintf("docker.io/%s", name)
+						}
+					}
 					imagesSet.Add(name)
 				}
 			}
@@ -105,13 +121,6 @@ func CreateManifest(arg common.Argument, name string) error {
 			kubernetesDistribution.Type = distribution
 		}
 
-		containerStrArr := strings.Split(node.Status.NodeInfo.ContainerRuntimeVersion, "://")
-		containerVersion := containerStrArr[1]
-		if maxContainerVersion.LessThan(versionutil.MustParseGeneric(containerVersion)) {
-			maxContainerVersion = versionutil.MustParseGeneric(containerVersion)
-			containerRuntime.Version = fmt.Sprintf("%s", maxContainerVersion.String())
-			containerRuntime.Type = containerStrArr[0]
-		}
 	}
 
 	archArr := make([]string, 0, archSet.Cardinality())
@@ -122,21 +131,26 @@ func CreateManifest(arg common.Argument, name string) error {
 	imageArr := make([]string, 0, imagesSet.Cardinality())
 	for _, v := range imagesSet.ToSlice() {
 		image := v.(string)
-		if containerRuntime.Type == kubekeyv1alpha2.Docker {
-			arr := strings.Split(image, "/")
-			switch len(arr) {
-			case 1:
-				image = fmt.Sprintf("docker.io/library/%s", image)
-			case 2:
-				image = fmt.Sprintf("docker.io/%s", image)
-			}
-		}
 		imageArr = append(imageArr, image)
 	}
 	osArr := make([]kubekeyv1alpha2.OperationSystem, 0, osSet.Cardinality())
 	for _, v := range osSet.ToSlice() {
 		osObj := v.(kubekeyv1alpha2.OperationSystem)
 		osArr = append(osArr, osObj)
+	}
+
+	containerArr := make([]kubekeyv1alpha2.ContainerRuntime, 0, containerSet.Cardinality())
+	isAdded := false
+	for _, v := range containerSet.ToSlice() {
+		container := v.(kubekeyv1alpha2.ContainerRuntime)
+		containerArr = append(containerArr, container)
+		if !isAdded && container.Type == kubekeyv1alpha2.Conatinerd {
+			containerArr = append(containerArr, kubekeyv1alpha2.ContainerRuntime{
+				Type:    kubekeyv1alpha2.Docker,
+				Version: kubekeyv1alpha2.DefaultDockerVersion,
+			})
+			isAdded = true
+		}
 	}
 
 	// todo: Whether it need to detect components version
@@ -147,18 +161,13 @@ func CreateManifest(arg common.Argument, name string) error {
 		OperationSystems:       osArr,
 		KubernetesDistribution: kubernetesDistribution,
 		Components: kubekeyv1alpha2.Components{
-			Helm:             kubekeyv1alpha2.Helm{Version: kubekeyv1alpha2.DefaultHelmVersion},
-			CNI:              kubekeyv1alpha2.CNI{Version: kubekeyv1alpha2.DefaultCniVersion},
-			ETCD:             kubekeyv1alpha2.ETCD{Version: kubekeyv1alpha2.DefaultEtcdVersion},
-			ContainerRuntime: containerRuntime,
+			Helm:              kubekeyv1alpha2.Helm{Version: kubekeyv1alpha2.DefaultHelmVersion},
+			CNI:               kubekeyv1alpha2.CNI{Version: kubekeyv1alpha2.DefaultCniVersion},
+			ETCD:              kubekeyv1alpha2.ETCD{Version: kubekeyv1alpha2.DefaultEtcdVersion},
+			Crictl:            kubekeyv1alpha2.Crictl{Version: kubekeyv1alpha2.DefaultCrictlVersion},
+			ContainerRuntimes: containerArr,
 		},
 		Images: imageArr,
-	}
-
-	options.Components.Crictl = kubekeyv1alpha2.Crictl{Version: kubekeyv1alpha2.DefaultCrictlVersion}
-	if containerRuntime.Type == kubekeyv1alpha2.Conatinerd {
-		options.Components.ContainerRuntime.Type = kubekeyv1alpha2.Docker
-		options.Components.ContainerRuntime.Version = kubekeyv1alpha2.DefaultDockerVersion
 	}
 
 	manifestStr, err := templates.RenderManifest(options)

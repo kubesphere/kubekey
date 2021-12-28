@@ -222,7 +222,11 @@ func (in *Components) DeepCopyInto(out *Components) {
 	out.Helm = in.Helm
 	out.CNI = in.CNI
 	out.ETCD = in.ETCD
-	out.ContainerRuntime = in.ContainerRuntime
+	if in.ContainerRuntimes != nil {
+		in, out := &in.ContainerRuntimes, &out.ContainerRuntimes
+		*out = make([]ContainerRuntime, len(*in))
+		copy(*out, *in)
+	}
 	out.Crictl = in.Crictl
 }
 
@@ -701,7 +705,7 @@ func (in *ManifestSpec) DeepCopyInto(out *ManifestSpec) {
 		copy(*out, *in)
 	}
 	out.KubernetesDistribution = in.KubernetesDistribution
-	out.Components = in.Components
+	in.Components.DeepCopyInto(&out.Components)
 	if in.Images != nil {
 		in, out := &in.Images, &out.Images
 		*out = make([]string, len(*in))
