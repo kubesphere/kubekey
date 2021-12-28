@@ -84,12 +84,10 @@ func (p *PushModule) Init() {
 	p.Name = "PushModule"
 	p.Desc = "Push images on all nodes"
 
-	push := &task.RemoteTask{
-		Name:     "PushImages",
-		Desc:     "Push images to private registry",
-		Hosts:    p.Runtime.GetAllHosts(),
-		Action:   new(PushImage),
-		Parallel: true,
+	push := &task.LocalTask{
+		Name:   "PushImages",
+		Desc:   "Push images to private registry",
+		Action: new(PushImage),
 	}
 
 	p.Tasks = []task.Interface{

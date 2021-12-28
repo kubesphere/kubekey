@@ -17,7 +17,13 @@
 package images
 
 import (
+	"context"
 	"fmt"
+	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/images"
+	"github.com/containerd/containerd/images/archive"
+	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/platforms"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
@@ -123,7 +129,7 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 	return nil
 }
 
-func Push(fileName string, prePath string, runtime connector.Runtime, kubeConf *common.KubeConf) (Image, error) {
+func Push(client *containerd.Client, fileName string, prePath string, kubeConf *common.KubeConf, arches []string) error {
 	// just like: docker.io-calico-cni-v3.20.0.tar, docker.io-kubesphere-kube-apiserver-v1.21.5.tar .e.g.
 	nameArr := strings.Split(fileName, "-")
 
@@ -153,31 +159,56 @@ func Push(fileName string, prePath string, runtime connector.Runtime, kubeConf *
 
 	fullPath := filepath.Join(prePath, fileName)
 	oldName := fmt.Sprintf("%s/%s/%s:%s", registry, namespace, imageName, tag)
-	switch kubeConf.Cluster.Kubernetes.ContainerManager {
-	case common.Docker:
-		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH docker load -i %s", fullPath), false); err != nil {
-			return image, errors.Wrap(err, "pull image failed")
-		}
 
-		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH docker tag %s %s", oldName, image.ImageName()), false); err != nil {
-			return image, errors.Wrap(err, "pull image failed")
-		}
-		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH docker push %s", image.ImageName()), false); err != nil {
-			return image, errors.Wrap(err, "pull image failed")
-		}
-	case common.Conatinerd:
-		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH ctr images import --base-name %s %s", image.ImageName(), fullPath), false); err != nil {
-			return image, errors.Wrapf(err, "load %s tar onto image %s failed", imageName, fullPath)
-		}
+	ctx := namespaces.WithNamespace(context.Background(), "kubekey")
 
-		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH ctr images push %s %s", image.ImageName(), oldName), false); err != nil {
-			return image, errors.Wrap(err, "pull image failed")
-		}
-	case common.Isula:
-	case common.Crio:
-
-	default:
-		return image, fmt.Errorf("unsupport container manager [%s]", kubeConf.Cluster.Kubernetes.ContainerManager)
+	opts := []containerd.ImportOpt{
+		containerd.WithImageRefTranslator(archive.AddRefPrefix(oldName)),
+		containerd.WithDigestRef(archive.DigestTranslator(oldName)),
+		containerd.WithAllPlatforms(false),
 	}
-	return image, nil
+
+	r, err := os.Open(fullPath)
+	if err != nil {
+		return errors.Wrapf(err, "open file %s failed", fullPath)
+	}
+
+	localImages, err := client.Import(ctx, r, opts...)
+	if err != nil {
+		return errors.Wrapf(err, "import image %s failed", fullPath)
+	}
+
+	var remoteOpts []containerd.RemoteOpt
+	for _, arch := range arches {
+		remoteOpts = append(remoteOpts, containerd.WithPlatform(arch))
+	}
+
+	desc := localImages[0].Target
+	if len(arches) == 1 {
+		p, err := platforms.Parse(arches[0])
+		if err != nil {
+			return errors.Wrapf(err, "invalid platform %q", arches[0])
+		}
+
+		cs := client.ContentStore()
+		if manifests, err := images.Children(ctx, cs, desc); err == nil && len(manifests) > 0 {
+			matcher := platforms.NewMatcher(p)
+			for _, manifest := range manifests {
+				if manifest.Platform != nil && matcher.Match(*manifest.Platform) {
+					if _, err := images.Children(ctx, cs, manifest); err != nil {
+						return errors.Wrap(err, "no matching manifest")
+					}
+					desc = manifest
+					break
+				}
+			}
+		}
+	}
+
+	if err := client.Push(ctx, image.ImageName(), desc, remoteOpts...); err != nil {
+		return errors.Wrapf(err, "push image %s failed", image.ImageName())
+	}
+
+	logger.Log.Messagef(common.LocalHost, "Push %s success", image.ImageName())
+	return nil
 }

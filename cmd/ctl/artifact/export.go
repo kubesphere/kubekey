@@ -21,9 +21,9 @@ import (
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/container"
 	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
+	"github.com/kubesphere/kubekey/pkg/utils/containerruntime"
 	"github.com/spf13/cobra"
 )
 
@@ -66,7 +66,7 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) erro
 		o.Output = "kubekey-artifact.tar.gz"
 	}
 	if o.CriSocket == "" {
-		o.CriSocket, err = container.DetectCRISocket()
+		o.CriSocket, err = containerruntime.DetectCRISocket()
 		if err != nil {
 			return err
 		}
