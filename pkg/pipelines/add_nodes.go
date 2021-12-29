@@ -23,6 +23,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
 	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
@@ -43,6 +44,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&confirm.InstallConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
+		&registry.RegistryCertsModule{Skip: len(runtime.GetHostsByRole(common.Registry)) == 0},
 		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
 		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
