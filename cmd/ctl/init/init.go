@@ -40,5 +40,6 @@ func NewCmdInit() *cobra.Command {
 	}
 	o.CommonOptions.AddCommonFlag(cmd)
 	cmd.AddCommand(NewCmdInitOs())
+	cmd.AddCommand(NewCmdInitRegistry())
 	return cmd
 }

@@ -84,5 +84,4 @@ state = "/run/containerd"
             password = "{{$entry.Password}}"
           {{- end}}
         {{- end}}
-      
     `)))
