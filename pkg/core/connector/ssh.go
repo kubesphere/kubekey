@@ -19,6 +19,7 @@ package connector
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
@@ -393,7 +394,9 @@ func (c *connection) Fetch(local, remote string, host Host) error {
 	//	return fmt.Errorf("open remote file failed %v, remote path: %s", err, remote)
 	//}
 	//defer srcFile.Close()
-	output, _, err := c.Exec(SudoPrefix(fmt.Sprintf("cat %s", remote)), host)
+
+	// Base64 encoding is performed on the contents of the file to prevent garbled code in the target file.
+	output, _, err := c.Exec(SudoPrefix(fmt.Sprintf("cat %s | base64 -w 0", remote)), host)
 	if err != nil {
 		return fmt.Errorf("open remote file failed %v, remote path: %s", err, remote)
 	}
@@ -410,8 +413,15 @@ func (c *connection) Fetch(local, remote string, host Host) error {
 	defer dstFile.Close()
 	// copy to local file
 	//_, err = srcFile.WriteTo(dstFile)
-	_, err = dstFile.WriteString(output)
-	return err
+	if base64Str, err := base64.StdEncoding.DecodeString(output); err != nil {
+		return err
+	} else {
+		if _, err = dstFile.WriteString(string(base64Str)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type scpErr struct {
