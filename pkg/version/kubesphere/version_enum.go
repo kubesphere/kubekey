@@ -87,14 +87,7 @@ func VersionsStringArr() []string {
 }
 
 func StabledVersionSupport(version string) (*KsInstaller, bool) {
-	v, err := versionutil.ParseSemantic(version)
-	if err != nil {
-		return nil, false
-	}
-
-	str := fmt.Sprintf("v%s", v.String())
-
-	if ks, ok := VersionMap[str]; ok {
+	if ks, ok := VersionMap[version]; ok {
 		return ks, true
 	}
 	return nil, false
@@ -108,7 +101,13 @@ func LatestRelease(version string) (*KsInstaller, bool) {
 		return Latest(), true
 	}
 
-	if ks, ok := StabledVersionSupport(version); ok {
+	v, err := versionutil.ParseGeneric(version)
+	if err != nil {
+		return nil, false
+	}
+
+	str := fmt.Sprintf("v%s", v.String())
+	if ks, ok := StabledVersionSupport(str); ok {
 		if ks.Version == Latest().Version {
 			return ks, true
 		}
@@ -119,17 +118,26 @@ func LatestRelease(version string) (*KsInstaller, bool) {
 }
 
 func DevRelease(version string) (*KsInstaller, bool) {
+	if strings.HasPrefix(version, "nightly-") ||
+		version == "latest" ||
+		version == "master" ||
+		strings.Contains(version, "release") {
+		return Latest(), true
+	}
+
 	if _, ok := StabledVersionSupport(version); ok {
 		return nil, false
 	}
 
-	if v, err := versionutil.ParseGeneric(version); err != nil {
+	v, err := versionutil.ParseGeneric(version)
+	if err != nil {
 		return nil, false
-	} else {
-		if ks, ok := StabledVersionSupport(v.String()); ok {
-			return ks, true
-		}
 	}
+
+	if ks, ok := StabledVersionSupport(fmt.Sprintf("v%s", v.String())); ok {
+		return ks, true
+	}
+
 	return nil, false
 }
 

@@ -29,6 +29,18 @@ func TestDevRelease(t *testing.T) {
 		ok      bool
 	}{
 		{
+			name:    "test_v3.2.1-rc.1",
+			version: "v3.2.1-rc.1",
+			want:    KsV321,
+			ok:      true,
+		},
+		{
+			name:    "test_v3.2.1",
+			version: "v3.2.1",
+			want:    nil,
+			ok:      false,
+		},
+		{
 			name:    "test_v3.2.0",
 			version: "v3.2.0",
 			want:    nil,
@@ -55,6 +67,24 @@ func TestDevRelease(t *testing.T) {
 		{
 			name:    "test_latest",
 			version: "latest",
+			want:    KsV321,
+			ok:      true,
+		},
+		{
+			name:    "test_master",
+			version: "master",
+			want:    KsV321,
+			ok:      true,
+		},
+		{
+			name:    "test_release-3.2",
+			version: "release-3.2",
+			want:    KsV321,
+			ok:      true,
+		},
+		{
+			name:    "test_v1.2.0",
+			version: "v1.2.0",
 			want:    nil,
 			ok:      false,
 		},
@@ -79,7 +109,7 @@ func TestLatest(t *testing.T) {
 	}{
 		{
 			name: "test_latest",
-			want: KsV320,
+			want: KsV321,
 		},
 	}
 	for _, tt := range tests {
@@ -101,26 +131,38 @@ func TestLatestRelease(t *testing.T) {
 		{
 			name:    "test_latest",
 			version: "latest",
-			want:    KsV320,
+			want:    KsV321,
 			ok:      true,
 		},
 		{
 			name:    "test_master",
 			version: "master",
-			want:    KsV320,
+			want:    KsV321,
 			ok:      true,
 		},
 		{
 			name:    "test_release-3.2",
 			version: "release-3.2",
-			want:    KsV320,
+			want:    KsV321,
+			ok:      true,
+		},
+		{
+			name:    "test_v3.2.1",
+			version: "v3.2.1",
+			want:    KsV321,
+			ok:      true,
+		},
+		{
+			name:    "test_v3.2.1-rc.1",
+			version: "v3.2.1-rc.1",
+			want:    KsV321,
 			ok:      true,
 		},
 		{
 			name:    "test_v3.2.0",
 			version: "v3.2.0",
-			want:    KsV320,
-			ok:      true,
+			want:    nil,
+			ok:      false,
 		},
 		{
 			name:    "test_v3.1.0",
@@ -156,6 +198,12 @@ func TestStabledVersionSupport(t *testing.T) {
 		ok      bool
 	}{
 		{
+			name:    "test_v3.2.1-rc.1",
+			version: "v3.2.1-rc.1",
+			want:    nil,
+			ok:      false,
+		},
+		{
 			name:    "test_v3.2.0",
 			version: "v3.2.0",
 			want:    KsV320,
@@ -164,8 +212,8 @@ func TestStabledVersionSupport(t *testing.T) {
 		{
 			name:    "test_3.2.0",
 			version: "3.2.0",
-			want:    KsV320,
-			ok:      true,
+			want:    nil,
+			ok:      false,
 		},
 		{
 			name:    "test_v3.2.0-alpha.1",
