@@ -17,19 +17,20 @@ limitations under the License.
 package delete
 
 import (
+	"strings"
+
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 type DeleteNodeOptions struct {
 	CommonOptions  *options.CommonOptions
 	ClusterCfgFile string
-	nodes          string
+	nodeName       string
 }
 
 func NewDeleteNodeOptions() *DeleteNodeOptions {
@@ -57,13 +58,13 @@ func NewCmdDeleteNode() *cobra.Command {
 }
 
 func (o *DeleteNodeOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.nodes = strings.Join(args, "")
+	o.nodeName = strings.Join(args, "")
 	return nil
 }
 
 func (o *DeleteNodeOptions) Validate() error {
-	if o.nodes == "" {
-		return errors.New("node can not be empty")
+	if o.nodeName == "" {
+		return errors.New("node name can not be empty")
 	}
 	return nil
 }
@@ -72,7 +73,7 @@ func (o *DeleteNodeOptions) Run() error {
 	arg := common.Argument{
 		FilePath: o.ClusterCfgFile,
 		Debug:    o.CommonOptions.Verbose,
-		NodeName: o.nodes,
+		NodeName: o.nodeName,
 	}
 	return pipelines.DeleteNode(arg)
 }
