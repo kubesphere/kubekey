@@ -17,12 +17,10 @@
 package images
 
 import (
-	"github.com/containerd/containerd"
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/utils/containerruntime"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
@@ -140,16 +138,6 @@ func (p *PushImage) Execute(runtime connector.Runtime) error {
 		return errors.Wrapf(errors.WithStack(err), "read %s dir faied", imagesPath)
 	}
 
-	socket, err := containerruntime.DetectCRISocket()
-	if err != nil {
-		return errors.Wrap(err, "detect conatierd runtime socket failed")
-	}
-	client, err := containerd.New(socket)
-	if err != nil {
-		return errors.Wrap(err, "new containerd client failed")
-	}
-	defer client.Close()
-
 	var arches []string
 	for _, host := range runtime.GetHostsByRole(common.K8s) {
 		arches = append(arches, host.GetArch())
@@ -157,7 +145,7 @@ func (p *PushImage) Execute(runtime connector.Runtime) error {
 
 	for _, file := range files {
 		name := file.Name()
-		if err := Push(client, name, imagesPath, p.KubeConf, arches); err != nil {
+		if err := CmdPush(name, imagesPath, p.KubeConf, arches); err != nil {
 			return err
 		}
 	}
