@@ -133,9 +133,15 @@ func MirrorRepo(kubeConf *common.KubeConf) string {
 		if repo == "" {
 			_, latest := kubesphere.LatestRelease(version)
 			_, dev := kubesphere.DevRelease(version)
-			if latest || dev {
+			_, stable := kubesphere.StabledVersionSupport(version)
+			switch {
+			case stable:
+				repo = "kubesphere"
+			case dev:
 				repo = "kubespheredev"
-			} else {
+			case latest:
+				repo = "kubespheredev"
+			default:
 				repo = "kubesphere"
 			}
 		} else {
