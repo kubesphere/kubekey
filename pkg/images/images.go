@@ -17,18 +17,13 @@
 package images
 
 import (
-	"context"
 	"fmt"
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/images"
-	"github.com/containerd/containerd/images/archive"
-	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/platforms"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/pkg/errors"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -129,7 +124,7 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 	return nil
 }
 
-func Push(client *containerd.Client, fileName string, prePath string, kubeConf *common.KubeConf, arches []string) error {
+func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches []string) error {
 	// just like: docker.io-calico-cni-v3.20.0.tar, docker.io-kubesphere-kube-apiserver-v1.21.5.tar .e.g.
 	nameArr := strings.Split(fileName, "-")
 
@@ -160,53 +155,15 @@ func Push(client *containerd.Client, fileName string, prePath string, kubeConf *
 	fullPath := filepath.Join(prePath, fileName)
 	oldName := fmt.Sprintf("%s/%s/%s:%s", registry, namespace, imageName, tag)
 
-	ctx := namespaces.WithNamespace(context.Background(), "kubekey")
-
-	opts := []containerd.ImportOpt{
-		containerd.WithImageRefTranslator(archive.AddRefPrefix(oldName)),
-		containerd.WithDigestRef(archive.DigestTranslator(oldName)),
-		containerd.WithAllPlatforms(false),
+	if out, err := exec.Command("/bin/bash", "-c",
+		fmt.Sprintf("sudo ctr images import --base-name %s %s", oldName, fullPath)).CombinedOutput(); err != nil {
+		return errors.Wrapf(err, "import image %s failed: %s", oldName, out)
 	}
 
-	r, err := os.Open(fullPath)
-	if err != nil {
-		return errors.Wrapf(err, "open file %s failed", fullPath)
-	}
-
-	localImages, err := client.Import(ctx, r, opts...)
-	if err != nil {
-		return errors.Wrapf(err, "import image %s failed", fullPath)
-	}
-
-	var remoteOpts []containerd.RemoteOpt
-	for _, arch := range arches {
-		remoteOpts = append(remoteOpts, containerd.WithPlatform(arch))
-	}
-
-	desc := localImages[0].Target
-	if len(arches) == 1 {
-		p, err := platforms.Parse(arches[0])
-		if err != nil {
-			return errors.Wrapf(err, "invalid platform %q", arches[0])
-		}
-
-		cs := client.ContentStore()
-		if manifests, err := images.Children(ctx, cs, desc); err == nil && len(manifests) > 0 {
-			matcher := platforms.NewMatcher(p)
-			for _, manifest := range manifests {
-				if manifest.Platform != nil && matcher.Match(*manifest.Platform) {
-					if _, err := images.Children(ctx, cs, manifest); err != nil {
-						return errors.Wrap(err, "no matching manifest")
-					}
-					desc = manifest
-					break
-				}
-			}
-		}
-	}
-
-	if err := client.Push(ctx, image.ImageName(), desc, remoteOpts...); err != nil {
-		return errors.Wrapf(err, "push image %s failed", image.ImageName())
+	if out, err := exec.Command("/bin/bash", "-c",
+		fmt.Sprintf("sudo ctr images push  %s %s --platform %s -k --plain-http",
+			image.ImageName(), oldName, strings.Join(arches, " "))).CombinedOutput(); err != nil {
+		return errors.Wrapf(err, "push image %s failed: %s", oldName, out)
 	}
 
 	logger.Log.Messagef(common.LocalHost, "Push %s success", image.ImageName())
