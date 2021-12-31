@@ -130,7 +130,6 @@ func (e *ExportImages) Execute(runtime connector.Runtime) error {
 	is := client.ImageService()
 	for _, image := range e.Manifest.Spec.Images {
 		fileName := strings.ReplaceAll(image, "/", "-")
-		fileName = strings.ReplaceAll(fileName, ":", "-")
 		fileName = fmt.Sprintf("%s.tar", fileName)
 
 		filePath := filepath.Join(dir, fileName)
