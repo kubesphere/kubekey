@@ -68,6 +68,7 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 	} else {
 		results["time"] = strings.TrimSpace(output)
 	}
+	logger.Log.Debugf("results: %v", results)
 
 	host := runtime.RemoteHost()
 	if res, ok := host.GetCache().Get(common.NodePreCheck); ok {

@@ -23,6 +23,11 @@ spec:
     domain: lb.kubesphere.local
     address: ""      # The IP address of your load balancer.
     port: 6443
+  system:
+    ntpServers: 
+      - time1.cloud.tencent.com
+      - ntp.aliyun.com
+    timezone: "Asia/Shanghai"
   kubernetes:
     version: v1.21.5
     imageRepo: kubesphere

@@ -63,10 +63,19 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
+	ConfigureNtpServer := &task.RemoteTask{
+		Name:     "ConfigureNtpServer",
+		Desc:     "configure the ntp server for each node",
+		Hosts:    c.Runtime.GetAllHosts(),
+		Action:   new(NodeConfigureNtpServer),
+		Parallel: true,
+	}
+
 	c.Tasks = []task.Interface{
 		initOS,
 		GenerateScript,
 		ExecScript,
+		ConfigureNtpServer,
 	}
 }
 
