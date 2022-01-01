@@ -454,3 +454,32 @@ func (u *UmountISO) Execute(runtime connector.Runtime) error {
 	}
 	return nil
 }
+
+type NodeConfigureNtpServer struct {
+	common.KubeAction
+}
+
+func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
+
+	for _, server := range n.KubeConf.Cluster.System.NtpServers {
+		checkAndReplaceCmd := `grep -q "^server %s iburst" /etc/chrony.conf || sed '1a server %s iburst' -i /etc/chrony.conf`
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(checkAndReplaceCmd, server, server), false); err != nil {
+			return errors.Wrapf(err, "set ntpserver: %s failed, please check file /etc/chrony.conf", server)
+		}
+	}
+
+	if len(n.KubeConf.Cluster.System.TimeZone) > 0 {
+		setTimeZoneCmd := fmt.Sprintf("timedatectl set-timezone %s", n.KubeConf.Cluster.System.TimeZone)
+		if _, err := runtime.GetRunner().SudoCmd(setTimeZoneCmd, false); err != nil {
+			return errors.Wrapf(err, "set timezone: %s failed", n.KubeConf.Cluster.System.TimeZone)
+		}
+	}
+
+	if len(n.KubeConf.Cluster.System.NtpServers) > 0 || len(n.KubeConf.Cluster.System.TimeZone) > 0 {
+		if _, err := runtime.GetRunner().SudoCmd("systemctl enable chronyd.service && systemctl restart chronyd.service", false); err != nil {
+			return errors.Wrap(err, "restart chronyd failed")
+		}
+	}
+
+	return nil
+}

@@ -25,6 +25,7 @@ const (
 	socat     = "socat"
 	ipset     = "ipset"
 	conntrack = "conntrack"
+	chrony    = "chronyd"
 	docker    = "docker"
 	showmount = "showmount"
 	rbd       = "rbd"
@@ -46,6 +47,7 @@ var baseSoftware = []string{
 	socat,
 	ipset,
 	conntrack,
+	chrony,
 	docker,
 	showmount,
 	rbd,
