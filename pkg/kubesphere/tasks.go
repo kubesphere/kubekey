@@ -239,6 +239,15 @@ func CheckKubeSphereStatus(ctx context.Context, runtime connector.Runtime, stopC
 	}
 }
 
+type CleanCC struct {
+	common.KubeAction
+}
+
+func (c *CleanCC) Execute(runtime connector.Runtime) error {
+	c.KubeConf.Cluster.KubeSphere.Configurations = "\n"
+	return nil
+}
+
 type ConvertV2ToV3 struct {
 	common.KubeAction
 }
@@ -261,7 +270,7 @@ func (c *ConvertV2ToV3) Execute(runtime connector.Runtime) error {
 	if err != nil {
 		return err
 	}
-	c.KubeConf.Cluster.KubeSphere.Configurations = configV3
+	c.KubeConf.Cluster.KubeSphere.Configurations = "---\n" + configV3
 	return nil
 }
 
