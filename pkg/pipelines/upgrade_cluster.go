@@ -40,6 +40,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV121},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&kubesphere.CleanClusterConfigurationModule{},
 		&kubesphere.ConvertModule{},
 		&kubesphere.DeployModule{},
 		&kubesphere.CheckResultModule{},
