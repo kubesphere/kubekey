@@ -91,6 +91,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *Ho
 	}
 	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, hostGroups.Master, incluster)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
+	clusterCfg.System = cfg.System
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
