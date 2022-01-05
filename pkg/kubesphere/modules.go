@@ -181,6 +181,26 @@ func (c *CheckResultModule) Init() {
 	}
 }
 
+type CleanClusterConfigurationModule struct {
+	common.KubeModule
+}
+
+func (c *CleanClusterConfigurationModule) Init() {
+	c.Name = "CleanClusterConfigurationModule"
+	c.Desc = "Clean redundant ClusterConfiguration config"
+
+	// ensure there is no cc config, and prevent to reset cc config when upgrade the cluster
+	clean := &task.LocalTask{
+		Name:   "CleanClusterConfiguration",
+		Desc:   "Clean redundant ClusterConfiguration config",
+		Action: new(CleanCC),
+	}
+
+	c.Tasks = []task.Interface{
+		clean,
+	}
+}
+
 type ConvertModule struct {
 	common.KubeModule
 }
