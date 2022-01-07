@@ -120,13 +120,29 @@ func (u *UnArchiveModule) Init() {
 	u.Name = "UnArchiveArtifactModule"
 	u.Desc = "UnArchive the KubeKey artifact"
 
+	md5Check := &task.LocalTask{
+		Name:   "CheckArtifactMd5",
+		Desc:   "Check the KubeKey artifact md5 value",
+		Action: new(Md5Check),
+	}
+
 	unArchive := &task.LocalTask{
-		Name:   "UnArchiveArtifact",
-		Desc:   "UnArchive the KubeKey artifact",
-		Action: new(UnArchive),
+		Name:    "UnArchiveArtifact",
+		Desc:    "UnArchive the KubeKey artifact",
+		Prepare: &Md5AreEqual{Not: true},
+		Action:  new(UnArchive),
+	}
+
+	createMd5File := &task.LocalTask{
+		Name:    "CreateArtifactMd5File",
+		Desc:    "Create the KubeKey artifact Md5 file",
+		Prepare: &Md5AreEqual{Not: true},
+		Action:  new(CreateMd5File),
 	}
 
 	u.Tasks = []task.Interface{
+		md5Check,
 		unArchive,
+		createMd5File,
 	}
 }

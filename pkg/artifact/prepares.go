@@ -17,6 +17,7 @@
 package artifact
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
@@ -32,4 +33,21 @@ func (e *EnableDownload) PreCheck(_ connector.Runtime) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+type Md5AreEqual struct {
+	common.KubePrepare
+	Not bool
+}
+
+func (m *Md5AreEqual) PreCheck(_ connector.Runtime) (bool, error) {
+	equal, ok := m.ModuleCache.GetMustBool("md5AreEqual")
+	if !ok {
+		return false, fmt.Errorf("get md5 equal value from module cache failed")
+	}
+
+	if equal {
+		return !m.Not, nil
+	}
+	return m.Not, nil
 }

@@ -32,6 +32,7 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -271,6 +272,50 @@ func (u *UnArchive) Execute(runtime connector.Runtime) error {
 	src := filepath.Join(runtime.GetWorkDir(), "artifact", u.KubeConf.Cluster.Kubernetes.Version)
 	if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -r -f %s %s", src, runtime.GetWorkDir())).Run(); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", src, runtime.GetWorkDir())
+	}
+	return nil
+}
+
+type Md5Check struct {
+	common.KubeAction
+}
+
+func (m *Md5Check) Execute(runtime connector.Runtime) error {
+	m.ModuleCache.Set("md5AreEqual", false)
+
+	// check if there is a md5.sum file. This file's content contains the last artifact md5 value.
+	oldFile := filepath.Join(runtime.GetWorkDir(), "md5.sum")
+	if exist := coreutil.IsExist(oldFile); !exist {
+		return nil
+	}
+
+	oldMd5, err := ioutil.ReadFile(oldFile)
+	if err != nil {
+		return errors.Wrapf(errors.WithStack(err), "read old md5 file %s failed", oldFile)
+	}
+
+	newMd5 := coreutil.LocalMd5Sum(m.KubeConf.Arg.Artifact)
+
+	if string(oldMd5) == newMd5 {
+		m.ModuleCache.Set("md5AreEqual", true)
+	}
+	return nil
+}
+
+type CreateMd5File struct {
+	common.KubeAction
+}
+
+func (c *CreateMd5File) Execute(runtime connector.Runtime) error {
+	oldFile := filepath.Join(runtime.GetWorkDir(), "md5.sum")
+	newMd5 := coreutil.LocalMd5Sum(c.KubeConf.Arg.Artifact)
+	f, err := os.Create(oldFile)
+	if err != nil {
+		return errors.Wrapf(errors.WithStack(err), "create md5 fild %s failed", oldFile)
+	}
+
+	if _, err := io.Copy(f, strings.NewReader(newMd5)); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "write md5 value to file %s failed", oldFile)
 	}
 	return nil
 }
