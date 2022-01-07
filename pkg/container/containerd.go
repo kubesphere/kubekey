@@ -36,7 +36,7 @@ func (s *SyncCrictlBinaries) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	binariesMapObj, ok := s.PipelineCache.Get(common.KubeBinaries)
+	binariesMapObj, ok := s.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}

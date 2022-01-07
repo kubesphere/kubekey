@@ -101,7 +101,7 @@ type SyncKubeBinary struct {
 }
 
 func (i *SyncKubeBinary) Execute(runtime connector.Runtime) error {
-	binariesMapObj, ok := i.PipelineCache.Get(common.KubeBinaries)
+	binariesMapObj, ok := i.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}

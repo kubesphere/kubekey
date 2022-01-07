@@ -70,7 +70,7 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	binaries := []files.KubeBinary{k3s, helm, kubecni, etcd}
 	binariesMap := make(map[string]files.KubeBinary)
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s ...", arch, binary.Name)
 
 		binariesMap[binary.Name] = binary
 		if util.IsExist(binary.Path) {
@@ -122,7 +122,7 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		}
 	}
 
-	pipelineCache.Set(common.KubeBinaries, binariesMap)
+	pipelineCache.Set(common.KubeBinaries+"-"+arch, binariesMap)
 	return nil
 }
 
