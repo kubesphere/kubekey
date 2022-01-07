@@ -106,9 +106,10 @@ func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]files.Ku
 		return err
 	}
 
+	host := runtime.RemoteHost()
 	binaryList := []string{"k3s", "helm", "kubecni"}
 	for _, name := range binaryList {
-		binary, ok := binariesMap[name]
+		binary, ok := binariesMap[fmt.Sprintf("%s-%s", name, host.GetArch())]
 		if !ok {
 			return fmt.Errorf("get kube binary %s info failed: no such key", name)
 		}

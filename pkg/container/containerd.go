@@ -42,7 +42,7 @@ func (s *SyncCrictlBinaries) Execute(runtime connector.Runtime) error {
 	}
 	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
 
-	crictl, ok := binariesMap[common.Crictl]
+	crictl, ok := binariesMap[common.Crictl+"-"+runtime.RemoteHost().GetArch()]
 	if !ok {
 		return errors.New("get KubeBinary key crictl by pipeline cache failed")
 	}

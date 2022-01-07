@@ -72,7 +72,7 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	for _, binary := range binaries {
 		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
 
-		binariesMap[binary.Name] = binary
+		binariesMap[fmt.Sprintf("%s-%s", binary.Name, arch)] = binary
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
 			if err := K3sSHA256Check(binary, version); err != nil {

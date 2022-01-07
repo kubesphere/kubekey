@@ -44,7 +44,7 @@ func (s *SyncDockerBinaries) Execute(runtime connector.Runtime) error {
 	}
 	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
 
-	docker, ok := binariesMap[common.Docker]
+	docker, ok := binariesMap[common.Docker+"-"+runtime.RemoteHost().GetArch()]
 	if !ok {
 		return errors.New("get KubeBinary key docker by pipeline cache failed")
 	}
