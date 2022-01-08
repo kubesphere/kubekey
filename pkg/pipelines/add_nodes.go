@@ -19,6 +19,7 @@ package pipelines
 import (
 	"fmt"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
+	"github.com/kubesphere/kubekey/pkg/artifact"
 	"github.com/kubesphere/kubekey/pkg/binaries"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
@@ -39,9 +40,13 @@ import (
 )
 
 func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+
 	m := []module.Module{
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
+		&artifact.UnArchiveModule{Skip: noArtifact},
+		&os.RepositoryModule{Skip: noArtifact || runtime.Arg.SkipInstallPackages},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&registry.RegistryCertsModule{Skip: len(runtime.GetHostsByRole(common.Registry)) == 0},

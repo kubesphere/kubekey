@@ -17,9 +17,16 @@
 package files
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/pkg/errors"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
 )
 
 const (
@@ -134,6 +141,30 @@ func NewKubeBinary(name, arch, version, prePath, zone string, getCmd func(path, 
 		}
 		if zone == "cn" {
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/k3s/releases/download/%s+k3s1/linux/%s/k3s", version, arch)
+		}
+	case registry:
+		component.Name = registry
+		component.Path = fmt.Sprintf("%s/registry-%s-linux-%s.tar.gz", prePath, version, arch)
+		component.Url = fmt.Sprintf("https://github.com/kubesphere/kubekey/releases/download/v2.0.0-alpha.1/registry-%s-linux-%s.tar.gz", version, arch)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/registry/%s/registry-%s-linux-%s.tar.gz", version, version, arch)
+		}
+	case harbor:
+		component.Name = harbor
+		component.Path = fmt.Sprintf("%s/harbor-offline-installer-%s.tgz", prePath, version)
+		component.Url = fmt.Sprintf("https://github.com/goharbor/harbor/releases/download/%s/harbor-offline-installer-%s.tgz", version, version)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/harbor/releases/download/%s/harbor-offline-installer-%s.tgz", version, version)
+		}
+	case compose:
+		component.Name = compose
+		component.Path = fmt.Sprintf("%s/docker-compose-linux-x86_64", prePath)
+		component.Url = fmt.Sprintf("https://github.com/docker/compose/releases/download/%s/docker-compose-linux-x86_64", version)
+		component.GetCmd = getCmd(component.Path, component.Url)
+		if zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/docker/compose/releases/download/%s/docker-compose-linux-x86_64", version)
 		}
 	default:
 		logger.Log.Fatalf("unsupported kube binaries %s", name)
@@ -383,7 +414,79 @@ var (
 	}
 )
 
-func (binary *KubeBinary) GetSha256() string {
-	sha256 := FileSha256[binary.Name][binary.Arch][binary.Version]
-	return sha256
+func (b *KubeBinary) GetSha256() string {
+	s := FileSha256[b.Name][b.Arch][b.Version]
+	return s
+}
+
+func (b *KubeBinary) Download() error {
+	for i := 5; i > 0; i-- {
+		cmd := exec.Command("/bin/sh", "-c", b.GetCmd)
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			return err
+		}
+		cmd.Stderr = cmd.Stdout
+
+		if err = cmd.Start(); err != nil {
+			return err
+		}
+		for {
+			tmp := make([]byte, 1024)
+			_, err := stdout.Read(tmp)
+			fmt.Print(string(tmp)) // Get the output from the pipeline in real time and print it to the terminal
+			if errors.Is(err, io.EOF) {
+				break
+			} else if err != nil {
+				logger.Log.Errorln(err)
+				break
+			}
+		}
+		if err = cmd.Wait(); err != nil {
+			if os.Getenv("KKZONE") != "cn" {
+				logger.Log.Warningln("Having a problem with accessing https://storage.googleapis.com? You can try again after setting environment 'export KKZONE=cn'")
+			}
+			return err
+		}
+
+		if err := SHA256Check(b); err != nil {
+			if i == 1 {
+				return err
+			}
+			_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", b.Path)).Run()
+			continue
+		}
+		break
+	}
+	return nil
+}
+
+// SHA256Check is used to hash checks on downloaded binary. (sha256)
+func SHA256Check(binary *KubeBinary) error {
+	output, err := sha256sum(binary.Path)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
+	}
+
+	if strings.TrimSpace(binary.GetSha256()) == "" {
+		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", binary.Name, binary.Version))
+	}
+	if output != binary.GetSha256() {
+		return errors.New(fmt.Sprintf("SHA256 no match. %s not equal %s", binary.GetSha256(), output))
+	}
+	return nil
+}
+
+func sha256sum(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(data)), nil
 }

@@ -273,6 +273,12 @@ func (u *UnArchive) Execute(runtime connector.Runtime) error {
 	if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -r -f %s %s", src, runtime.GetWorkDir())).Run(); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", src, runtime.GetWorkDir())
 	}
+
+	// copy registry binaries ("./kubekey/artifact/registry" tp "./kubekey/registry .e.g")
+	rSrc := filepath.Join(runtime.GetWorkDir(), "artifact", "registry")
+	if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -r -f %s %s", rSrc, runtime.GetWorkDir())).Run(); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", src, runtime.GetWorkDir())
+	}
 	return nil
 }
 

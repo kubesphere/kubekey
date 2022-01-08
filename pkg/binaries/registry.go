@@ -24,8 +24,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
-	"github.com/pkg/errors"
-	"io"
 	"os"
 	"os/exec"
 )
@@ -79,53 +77,58 @@ func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, filepath, arch strin
 		binariesMap[binary.Name] = binary
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
-			if err := SHA256Check(binary); err != nil {
+			if err := files.SHA256Check(&binary); err != nil {
 				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
 			} else {
 				continue
 			}
 		}
 
-		for i := 5; i > 0; i-- {
-			cmd := exec.Command("/bin/sh", "-c", binary.GetCmd)
-			stdout, err := cmd.StdoutPipe()
-			if err != nil {
-				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
-			}
-			cmd.Stderr = cmd.Stdout
-
-			if err = cmd.Start(); err != nil {
-				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
-			}
-			for {
-				tmp := make([]byte, 1024)
-				_, err := stdout.Read(tmp)
-				fmt.Print(string(tmp)) // Get the output from the pipeline in real time and print it to the terminal
-				if errors.Is(err, io.EOF) {
-					break
-				} else if err != nil {
-					logger.Log.Errorln(err)
-					break
-				}
-			}
-			if err = cmd.Wait(); err != nil {
-				if kkzone != "cn" {
-					logger.Log.Warningln("Having a problem with accessing https://storage.googleapis.com? You can try again after setting environment 'export KKZONE=cn'")
-				}
-				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
-			}
-
-			if err := SHA256Check(binary); err != nil {
-				if i == 1 {
-					return err
-				}
-				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
-				continue
-			}
-			break
+		if err := binary.Download(); err != nil {
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
 		}
 	}
 
 	pipelineCache.Set(common.KubeBinaries, binariesMap)
+	return nil
+}
+
+func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch string) error {
+	kkzone := os.Getenv("KKZONE")
+
+	m := manifest.Spec
+	binaries := make([]files.KubeBinary, 0, 0)
+
+	if m.Components.DockerRegistry.Version != "" {
+		registry := files.NewKubeBinary("registry", arch, kubekeyapiv1alpha2.DefaultRegistryVersion, path, kkzone, manifest.Arg.DownloadCommand)
+		binaries = append(binaries, registry)
+	}
+
+	if m.Components.Harbor.Version != "" {
+		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, kkzone, manifest.Arg.DownloadCommand)
+		binaries = append(binaries, harbor)
+	}
+
+	if m.Components.DockerCompose.Version != "" {
+		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, kkzone, manifest.Arg.DownloadCommand)
+		binaries = append(binaries, compose)
+	}
+
+	for _, binary := range binaries {
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s ...", arch, binary.Name)
+
+		if util.IsExist(binary.Path) {
+			// download it again if it's incorrect
+			if err := files.SHA256Check(&binary); err != nil {
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+			} else {
+				continue
+			}
+		}
+
+		if err := binary.Download(); err != nil {
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+		}
+	}
 	return nil
 }

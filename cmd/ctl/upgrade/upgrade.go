@@ -36,6 +36,7 @@ type UpgradeOptions struct {
 	KubeSphere       string
 	SkipPullImages   bool
 	DownloadCmd      string
+	Artifact         string
 }
 
 func NewUpgradeOptions() *UpgradeOptions {
@@ -84,6 +85,7 @@ func (o *UpgradeOptions) Run() error {
 		SkipPullImages:    o.SkipPullImages,
 		Debug:             o.CommonOptions.Verbose,
 		SkipConfirmCheck:  o.CommonOptions.SkipConfirmCheck,
+		Artifact:          o.Artifact,
 	}
 	return pipelines.UpgradeCluster(arg, o.DownloadCmd)
 }
@@ -95,6 +97,7 @@ func (o *UpgradeOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
+	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {
