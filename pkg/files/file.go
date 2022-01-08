@@ -400,6 +400,9 @@ var (
 			amd64: {
 				"2": "7706e46674fa2cf20f734dfb7e4dd7f1390710e9c0a2c520563e3c55f3e4b5c5",
 			},
+			arm64: {
+				"2": "a6e98123b850da5f6476c08b357e504de352a00f656279ec2636625d352abd5a",
+			},
 		},
 		compose: {
 			amd64: {
