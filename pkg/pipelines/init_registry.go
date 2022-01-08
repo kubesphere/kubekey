@@ -18,6 +18,7 @@ package pipelines
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/artifact"
 	"github.com/kubesphere/kubekey/pkg/binaries"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
@@ -27,7 +28,10 @@ import (
 )
 
 func NewInitRegistryPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+
 	m := []module.Module{
+		&artifact.UnArchiveModule{Skip: noArtifact},
 		&binaries.RegistryPackageModule{},
 		&os.ConfigureOSModule{},
 		&registry.RegistryCertsModule{},

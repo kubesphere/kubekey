@@ -162,9 +162,13 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 		return errors.Wrapf(err, "import image %s failed: %s", oldName, out)
 	}
 
-	if out, err := exec.Command("/bin/bash", "-c",
-		fmt.Sprintf("sudo ctr images push  %s %s --platform %s -k --plain-http",
-			image.ImageName(), oldName, strings.Join(arches, " "))).CombinedOutput(); err != nil {
+	pushCmd := fmt.Sprintf("sudo ctr images push  %s %s --platform %s -k",
+		image.ImageName(), oldName, strings.Join(arches, " "))
+	if kubeConf.Cluster.Registry.PlainHTTP {
+		pushCmd = fmt.Sprintf("%s --plain-http", pushCmd)
+	}
+
+	if out, err := exec.Command("/bin/bash", "-c", pushCmd).CombinedOutput(); err != nil {
 		return errors.Wrapf(err, "push image %s failed: %s", oldName, out)
 	}
 

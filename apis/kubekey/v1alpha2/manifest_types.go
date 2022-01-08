@@ -71,12 +71,27 @@ type ContainerRuntime struct {
 	Version string `yaml:"version" json:"version"`
 }
 
+type DockerRegistry struct {
+	Version string `yaml:"version" json:"version"`
+}
+
+type Harbor struct {
+	Version string `yaml:"version" json:"version"`
+}
+
+type DockerCompose struct {
+	Version string `yaml:"version" json:"version"`
+}
+
 type Components struct {
 	Helm              Helm               `yaml:"helm" json:"helm"`
 	CNI               CNI                `yaml:"cni" json:"cni"`
 	ETCD              ETCD               `yaml:"etcd" json:"etcd"`
 	ContainerRuntimes []ContainerRuntime `yaml:"containerRuntimes" json:"containerRuntimes"`
 	Crictl            Crictl             `yaml:"crictl" json:"crictl,omitempty"`
+	DockerRegistry    DockerRegistry     `yaml:"docker-registry" json:"docker-registry"`
+	Harbor            Harbor             `yaml:"harbor" json:"harbor"`
+	DockerCompose     DockerCompose      `yaml:"docker-compose" json:"docker-compose"`
 }
 
 // ManifestSpec defines the desired state of Manifest

@@ -18,6 +18,7 @@ package pipelines
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/artifact"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
@@ -32,10 +33,13 @@ import (
 )
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+
 	m := []module.Module{
 		&precheck.NodePreCheckModule{},
 		&precheck.ClusterPreCheckModule{},
 		&confirm.UpgradeConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
+		&artifact.UnArchiveModule{Skip: noArtifact},
 		&os.ConfigureOSModule{},
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV121},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
