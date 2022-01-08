@@ -1,5 +1,5 @@
 /*
- Copyright 2021 The KubeSphere Authors.
+ Copyright 2022 The KubeSphere Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -14,40 +14,21 @@
  limitations under the License.
 */
 
-package artifact
+package registry
 
 import (
-	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
 
-type EnableDownload struct {
-	common.ArtifactPrepare
-}
-
-func (e *EnableDownload) PreCheck(_ connector.Runtime) (bool, error) {
-	for _, sys := range e.Manifest.Spec.OperationSystems {
-		if sys.Repository.Iso.LocalPath == "" && sys.Repository.Iso.Url != "" {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-type Md5AreEqual struct {
+type FirstRegistryNode struct {
 	common.KubePrepare
 	Not bool
 }
 
-func (m *Md5AreEqual) PreCheck(_ connector.Runtime) (bool, error) {
-	equal, ok := m.ModuleCache.GetMustBool("md5AreEqual")
-	if !ok {
-		return false, fmt.Errorf("get md5 equal value from module cache failed")
+func (f *FirstRegistryNode) PreCheck(runtime connector.Runtime) (bool, error) {
+	if runtime.GetHostsByRole(common.Registry)[0].GetName() == runtime.RemoteHost().GetName() {
+		return !f.Not, nil
 	}
-
-	if equal {
-		return !m.Not, nil
-	}
-	return m.Not, nil
+	return f.Not, nil
 }

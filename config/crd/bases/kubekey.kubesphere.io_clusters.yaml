@@ -608,16 +608,22 @@ spec:
                     items:
                       type: string
                     type: array
+                  type:
+                    type: string
                 type: object
               roleGroups:
                 description: RoleGroups defines the grouping of role for hosts (etcd
-                  / master / worker).
+                  / master / worker / registry).
                 properties:
                   etcd:
                     items:
                       type: string
                     type: array
                   master:
+                    items:
+                      type: string
+                    type: array
+                  registry:
                     items:
                       type: string
                     type: array

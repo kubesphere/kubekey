@@ -18,6 +18,7 @@ package templates
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
 	"text/template"
 
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -165,6 +166,10 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 				kubeConf.Cluster.Kubernetes.ClusterName,
 				host.GetName()))
 		}
+	}
+
+	if len(runtime.GetHostsByRole(common.Registry)) > 0 {
+		hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), registry.RegistryCertificateBaseName))
 	}
 
 	hostsList = append(hostsList, lbHost)

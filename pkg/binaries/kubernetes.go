@@ -88,7 +88,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, docker, crictl, etcd}
 	binariesMap := make(map[string]files.KubeBinary)
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s ...", arch, binary.Name)
 
 		binariesMap[binary.Name] = binary
 		if util.IsExist(binary.Path) {
@@ -151,7 +151,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		}
 	}
 
-	pipelineCache.Set(common.KubeBinaries, binariesMap)
+	pipelineCache.Set(common.KubeBinaries+"-"+arch, binariesMap)
 	return nil
 }
 
@@ -185,7 +185,7 @@ func sha256sum(path string) (string, error) {
 	return fmt.Sprintf("%x", sha256.Sum256(data)), nil
 }
 
-func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch string, pipelineCache *cache.Cache) error {
+func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch string) error {
 	kkzone := os.Getenv("KKZONE")
 
 	m := manifest.Spec
@@ -220,11 +220,9 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 		binaries = append(binaries, crictl)
 	}
 
-	binariesMap := make(map[string]files.KubeBinary)
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s ...", arch, binary.Name)
 
-		binariesMap[binary.Name] = binary
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
 			if err := SHA256Check(binary); err != nil {
@@ -274,6 +272,5 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 		}
 	}
 
-	pipelineCache.Set(common.KubeBinaries, binariesMap)
 	return nil
 }
