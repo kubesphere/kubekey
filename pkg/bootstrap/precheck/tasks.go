@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/pkg/errors"
@@ -48,7 +47,6 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		}
 		if err != nil {
 			results[software] = ""
-			logger.Log.Debugf("exec cmd 'which %s' got err return: %v", software, err)
 		} else {
 			results[software] = "y"
 			if software == docker {
@@ -68,7 +66,6 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 	} else {
 		results["time"] = strings.TrimSpace(output)
 	}
-	logger.Log.Debugf("results: %v", results)
 
 	host := runtime.RemoteHost()
 	if res, ok := host.GetCache().Get(common.NodePreCheck); ok {
