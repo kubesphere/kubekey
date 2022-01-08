@@ -455,19 +455,6 @@ func (u *UmountISO) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type NodeConfigureNtpCheck struct {
-	common.KubePrepare
-}
-
-func (n *NodeConfigureNtpCheck) PreCheck(runtime connector.Runtime) (bool, error) {
-
-	if len(n.KubeConf.Cluster.System.NtpServers) == 0 && len(n.KubeConf.Cluster.System.Timezone) == 0 {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 type NodeConfigureNtpServer struct {
 	common.KubeAction
 }
@@ -475,7 +462,7 @@ type NodeConfigureNtpServer struct {
 func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 
 	currentHost := runtime.RemoteHost()
-
+	// if NtpServers was configured
 	for _, server := range n.KubeConf.Cluster.System.NtpServers {
 
 		serverAddr := strings.Trim(server, " \"")
@@ -500,6 +487,7 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 		}
 	}
 
+	// if Timezone was configured
 	if len(n.KubeConf.Cluster.System.Timezone) > 0 {
 		setTimeZoneCmd := fmt.Sprintf("timedatectl set-timezone %s", n.KubeConf.Cluster.System.Timezone)
 		if _, err := runtime.GetRunner().SudoCmd(setTimeZoneCmd, false); err != nil {
@@ -511,13 +499,16 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 		}
 	}
 
+	// ensure chronyd was enabled and work normally
 	if len(n.KubeConf.Cluster.System.NtpServers) > 0 || len(n.KubeConf.Cluster.System.Timezone) > 0 {
 		if _, err := runtime.GetRunner().SudoCmd("systemctl enable chronyd.service && systemctl restart chronyd.service", false); err != nil {
 			return errors.Wrap(err, "restart chronyd failed")
 		}
 
 		// tells chronyd to cancel any remaining correction that was being slewed and jump the system clock by the equivalent amount, making it correct immediately.
-		runtime.GetRunner().SudoCmd("chronyc makestep > /dev/null && chronyc sources", true)
+		if _, err := runtime.GetRunner().SudoCmd("chronyc makestep > /dev/null && chronyc sources", true); err != nil {
+			return errors.Wrap(err, "chronyc makestep failed")
+		}
 	}
 
 	return nil
