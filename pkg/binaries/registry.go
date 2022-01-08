@@ -29,7 +29,7 @@ import (
 )
 
 // RegistryPackageDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
-func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, filepath, arch string, pipelineCache *cache.Cache) error {
+func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, registryPackagesDir, kubeBinariesDir, arch string, pipelineCache *cache.Cache) error {
 	kkzone := os.Getenv("KKZONE")
 
 	binaries := []files.KubeBinary{}
@@ -37,12 +37,12 @@ func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, filepath, arch strin
 	switch kubeConf.Cluster.Registry.Type {
 	case common.Harbor:
 		harbor := files.KubeBinary{Name: "harbor", Arch: arch, Version: kubekeyapiv1alpha2.DefaultHarborVersion}
-		harbor.Path = fmt.Sprintf("%s/harbor-offline-installer-%s.tgz", filepath, kubekeyapiv1alpha2.DefaultHarborVersion)
+		harbor.Path = fmt.Sprintf("%s/harbor-offline-installer-%s.tgz", registryPackagesDir, kubekeyapiv1alpha2.DefaultHarborVersion)
 		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present.
 		docker := files.KubeBinary{Name: "docker", Arch: arch, Version: kubekeyapiv1alpha2.DefaultDockerVersion}
-		docker.Path = fmt.Sprintf("%s/docker-%s.tgz", filepath, kubekeyapiv1alpha2.DefaultDockerVersion)
+		docker.Path = fmt.Sprintf("%s/docker-%s.tgz", kubeBinariesDir, kubekeyapiv1alpha2.DefaultDockerVersion)
 		compose := files.KubeBinary{Name: "compose", Arch: arch, Version: kubekeyapiv1alpha2.DefaultDockerComposeVersion}
-		compose.Path = fmt.Sprintf("%s/docker-compose-linux-x86_64", filepath)
+		compose.Path = fmt.Sprintf("%s/docker-compose-linux-x86_64", registryPackagesDir)
 
 		if kkzone == "cn" {
 			harbor.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/harbor/releases/download/%s/harbor-offline-installer-%s.tgz", harbor.Version, harbor.Version)
@@ -61,7 +61,7 @@ func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, filepath, arch strin
 		binaries = []files.KubeBinary{harbor, docker, compose}
 	default:
 		registry := files.KubeBinary{Name: "registry", Arch: arch, Version: kubekeyapiv1alpha2.DefaultRegistryVersion}
-		registry.Path = fmt.Sprintf("%s/registry-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha2.DefaultRegistryVersion, arch)
+		registry.Path = fmt.Sprintf("%s/registry-%s-linux-%s.tar.gz", registryPackagesDir, kubekeyapiv1alpha2.DefaultRegistryVersion, arch)
 		if kkzone == "cn" {
 			registry.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/registry/%s/registry-%s-linux-%s.tar.gz", kubekeyapiv1alpha2.DefaultRegistryVersion, kubekeyapiv1alpha2.DefaultRegistryVersion, registry.Arch)
 		} else {
@@ -89,7 +89,7 @@ func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, filepath, arch strin
 		}
 	}
 
-	pipelineCache.Set(common.KubeBinaries, binariesMap)
+	pipelineCache.Set(common.KubeBinaries+"-"+arch, binariesMap)
 	return nil
 }
 
@@ -106,12 +106,18 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 
 	if m.Components.Harbor.Version != "" {
 		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, kkzone, manifest.Arg.DownloadCommand)
-		binaries = append(binaries, harbor)
+		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present.
+		if arch == "amd64" {
+			binaries = append(binaries, harbor)
+		}
 	}
 
 	if m.Components.DockerCompose.Version != "" {
 		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, kkzone, manifest.Arg.DownloadCommand)
-		binaries = append(binaries, compose)
+		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present. docker-compose is required only if harbor is installed.
+		if arch == "amd64" {
+			binaries = append(binaries, compose)
+		}
 	}
 
 	for _, binary := range binaries {
