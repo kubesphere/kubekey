@@ -455,6 +455,19 @@ func (u *UmountISO) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type NodeConfigureNtpCheck struct {
+	common.KubePrepare
+}
+
+func (n *NodeConfigureNtpCheck) PreCheck(runtime connector.Runtime) (bool, error) {
+
+	if len(n.KubeConf.Cluster.System.NtpServers) == 0 && len(n.KubeConf.Cluster.System.Timezone) == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 type NodeConfigureNtpServer struct {
 	common.KubeAction
 }

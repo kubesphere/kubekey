@@ -67,6 +67,7 @@ func (c *ConfigureOSModule) Init() {
 		Name:     "ConfigureNtpServer",
 		Desc:     "configure the ntp server for each node",
 		Hosts:    c.Runtime.GetAllHosts(),
+		Prepare:  new(NodeConfigureNtpCheck),
 		Action:   new(NodeConfigureNtpServer),
 		Parallel: true,
 	}
