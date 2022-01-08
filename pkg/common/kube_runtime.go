@@ -85,6 +85,9 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		if v.IsMaster || v.IsWorker {
 			host.SetRole(K8s)
 		}
+		if v.IsRegistry {
+			host.SetRole(Registry)
+		}
 		base.AppendHost(host)
 		base.AppendRoleMap(host)
 	}

@@ -135,3 +135,21 @@ func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
 	}
 	return nil
 }
+
+type RegistryPackageDownload struct {
+	common.KubeAction
+}
+
+func (k *RegistryPackageDownload) Execute(runtime connector.Runtime) error {
+	arch := runtime.GetHostsByRole(common.Registry)[0].GetArch()
+
+	packageDir := filepath.Join(runtime.GetWorkDir(), "registry", arch)
+	if err := util.CreateDir(packageDir); err != nil {
+		return errors.Wrap(err, "Failed to create download target dir")
+	}
+	if err := RegistryPackageDownloadHTTP(k.KubeConf, packageDir, arch, k.PipelineCache); err != nil {
+		return err
+	}
+
+	return nil
+}

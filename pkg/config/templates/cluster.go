@@ -59,6 +59,7 @@ spec:
     # multus support. https://github.com/k8snetworkplumbingwg/multus-cni
     enableMultusCNI: false
   registry:
+    privateRegistry: ""
     registryMirrors: []
     insecureRegistries: []
   addons: []

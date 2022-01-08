@@ -101,9 +101,10 @@ func (d *DefaultLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 	})
 
 	allInOne.Spec.RoleGroups = kubekeyapiv1alpha2.RoleGroups{
-		Etcd:   []string{hostname},
-		Master: []string{hostname},
-		Worker: []string{hostname},
+		Etcd:     []string{hostname},
+		Master:   []string{hostname},
+		Worker:   []string{hostname},
+		Registry: []string{hostname},
 	}
 	if d.KubernetesVersion != "" {
 		s := strings.Split(d.KubernetesVersion, "-")

@@ -82,7 +82,7 @@ func KubekeyCertEtcdMember(hostname string, altNames *certutil.AltNames) *certs.
 	}
 }
 
-// KubekeyCertEtcdMember is the definition of the cert for etcd client.
+// KubekeyCertEtcdClient is the definition of the cert for etcd client.
 func KubekeyCertEtcdClient(hostname string, altNames *certutil.AltNames) *certs.KubekeyCert {
 	l := strings.Split(hostname, ".")
 	return &certs.KubekeyCert{
