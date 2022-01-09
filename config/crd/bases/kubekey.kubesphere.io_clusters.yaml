@@ -632,6 +632,16 @@ spec:
                       type: string
                     type: array
                 type: object
+              system:
+                description: System defines the system config for each node in cluster.
+                properties:
+                  ntpservers:
+                    items:
+                      type: string
+                    type: array
+                  timezone:
+                    type: string
+                type: object
             type: object
           status:
             description: ClusterStatus defines the observed state of Cluster
