@@ -188,6 +188,7 @@ type RegistryConfig struct {
 	RegistryMirrors    []string             `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
+	PlainHTTP          bool                 `yaml:"plainHTTP" json:"plainHTTP,omitempty"`
 	Auths              runtime.RawExtension `yaml:"Auths" json:"Auths,omitempty"`
 }
 

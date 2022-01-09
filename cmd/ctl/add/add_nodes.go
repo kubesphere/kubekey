@@ -25,11 +25,13 @@ import (
 )
 
 type AddNodesOptions struct {
-	CommonOptions    *options.CommonOptions
-	ClusterCfgFile   string
-	SkipPullImages   bool
-	ContainerManager string
-	DownloadCmd      string
+	CommonOptions       *options.CommonOptions
+	ClusterCfgFile      string
+	SkipPullImages      bool
+	ContainerManager    string
+	DownloadCmd         string
+	Artifact            string
+	SkipInstallPackages bool
 }
 
 func NewAddNodesOptions() *AddNodesOptions {
@@ -45,6 +47,7 @@ func NewCmdAddNodes() *cobra.Command {
 		Use:   "nodes",
 		Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(o.Complete(cmd, args))
 			util.CheckErr(o.Run())
 		},
 	}
@@ -54,16 +57,25 @@ func NewCmdAddNodes() *cobra.Command {
 	return cmd
 }
 
+func (o *AddNodesOptions) Complete(_ *cobra.Command, _ []string) error {
+	if o.Artifact == "" {
+		o.SkipInstallPackages = false
+	}
+	return nil
+}
+
 func (o *AddNodesOptions) Run() error {
 	arg := common.Argument{
-		FilePath:         o.ClusterCfgFile,
-		KsEnable:         false,
-		Debug:            o.CommonOptions.Verbose,
-		IgnoreErr:        o.CommonOptions.IgnoreErr,
-		SkipConfirmCheck: o.CommonOptions.SkipConfirmCheck,
-		SkipPullImages:   o.SkipPullImages,
-		InCluster:        o.CommonOptions.InCluster,
-		ContainerManager: o.ContainerManager,
+		FilePath:            o.ClusterCfgFile,
+		KsEnable:            false,
+		Debug:               o.CommonOptions.Verbose,
+		IgnoreErr:           o.CommonOptions.IgnoreErr,
+		SkipConfirmCheck:    o.CommonOptions.SkipConfirmCheck,
+		SkipPullImages:      o.SkipPullImages,
+		InCluster:           o.CommonOptions.InCluster,
+		ContainerManager:    o.ContainerManager,
+		Artifact:            o.Artifact,
+		SkipInstallPackages: o.SkipInstallPackages,
 	}
 	return pipelines.AddNodes(arg, o.DownloadCmd)
 }
@@ -74,4 +86,6 @@ func (o *AddNodesOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ContainerManager, "container-manager", "", "docker", "Container manager: docker, crio, containerd and isula.")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
+	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
+	cmd.Flags().BoolVarP(&o.SkipInstallPackages, "skip-install-packages", "", false, "Skip install packages by artifact")
 }

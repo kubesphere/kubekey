@@ -132,6 +132,14 @@ func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
 		if err := KubernetesArtifactBinariesDownload(a.Manifest, binariesDir, arch); err != nil {
 			return err
 		}
+
+		registryBinariesDir := filepath.Join(runtime.GetWorkDir(), common.Artifact, "registry", arch)
+		if err := util.CreateDir(registryBinariesDir); err != nil {
+			return errors.Wrap(err, "Failed to create download target dir")
+		}
+		if err := RegistryBinariesDownload(a.Manifest, registryBinariesDir, arch); err != nil {
+			return err
+		}
 	}
 	return nil
 }
