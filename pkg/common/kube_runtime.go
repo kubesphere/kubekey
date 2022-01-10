@@ -54,6 +54,7 @@ type Argument struct {
 	KubeConfig          string
 	Artifact            string
 	SkipInstallPackages bool
+	CertificatesDir     string
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
