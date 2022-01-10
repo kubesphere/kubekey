@@ -72,11 +72,11 @@ type ContainerRuntime struct {
 }
 
 type Components struct {
-	Helm             Helm             `yaml:"helm" json:"helm"`
-	CNI              CNI              `yaml:"cni" json:"cni"`
-	ETCD             ETCD             `yaml:"etcd" json:"etcd"`
-	ContainerRuntime ContainerRuntime `yaml:"containerRuntime" json:"containerRuntime"`
-	Crictl           Crictl           `yaml:"crictl" json:"crictl,omitempty"`
+	Helm              Helm               `yaml:"helm" json:"helm"`
+	CNI               CNI                `yaml:"cni" json:"cni"`
+	ETCD              ETCD               `yaml:"etcd" json:"etcd"`
+	ContainerRuntimes []ContainerRuntime `yaml:"containerRuntimes" json:"containerRuntimes"`
+	Crictl            Crictl             `yaml:"crictl" json:"crictl,omitempty"`
 }
 
 // ManifestSpec defines the desired state of Manifest

@@ -18,6 +18,7 @@ package files
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 )
 
@@ -44,7 +45,7 @@ type KubeBinary struct {
 	GetCmd  string
 }
 
-func NewKubeBinary(name, arch, version, prePath, zone string, getCmd func(path, url string) string) (KubeBinary, error) {
+func NewKubeBinary(name, arch, version, prePath, zone string, getCmd func(path, url string) string) KubeBinary {
 	var component KubeBinary
 	component.Arch = arch
 	component.Version = version
@@ -132,9 +133,9 @@ func NewKubeBinary(name, arch, version, prePath, zone string, getCmd func(path, 
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/k3s/releases/download/%s+k3s1/linux/%s/k3s", version, arch)
 		}
 	default:
-		return component, fmt.Errorf("unsupported kube binaries %s", name)
+		logger.Log.Fatalf("unsupported kube binaries %s", name)
 	}
-	return component, nil
+	return component
 }
 
 var (
