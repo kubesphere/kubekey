@@ -75,7 +75,7 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 		binariesMap[binary.Name] = binary
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
-			if err := K3sSHA256Check(binary, version); err != nil {
+			if err := K3sSHA256Check(binary); err != nil {
 				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
 			} else {
 				continue
@@ -111,7 +111,7 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 				return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
 			}
 
-			if err := SHA256Check(binary); err != nil {
+			if err := K3sSHA256Check(binary); err != nil {
 				if i == 1 {
 					return err
 				}
@@ -127,14 +127,14 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 }
 
 // K3sSHA256Check is used to hash checks on downloaded binary. (sha256)
-func K3sSHA256Check(binary files.KubeBinary, version string) error {
+func K3sSHA256Check(binary files.KubeBinary) error {
 	output, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sha256sum %s", binary.Path)).CombinedOutput()
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", binary.Path))
 	}
 
 	if strings.TrimSpace(binary.GetSha256()) == "" {
-		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", version, version))
+		return errors.New(fmt.Sprintf("No SHA256 found for %s. %s is not supported.", binary.Name, binary.Version))
 	}
 	if !strings.Contains(strings.TrimSpace(string(output)), binary.GetSha256()) {
 		return errors.New(fmt.Sprintf("SHA256 no match. %s not in %s", binary.GetSha256(), strings.TrimSpace(string(output))))

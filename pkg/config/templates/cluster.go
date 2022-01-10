@@ -43,7 +43,7 @@ spec:
     - node1
     - node2
   controlPlaneEndpoint:
-    ##Internal loadbalancer for apiservers 
+    ## Internal loadbalancer for apiservers 
     #internalLoadbalancer: haproxy
 
     domain: lb.kubesphere.local
@@ -56,9 +56,10 @@ spec:
     plugin: calico
     kubePodsCIDR: 10.233.64.0/18
     kubeServiceCIDR: 10.233.0.0/18
-    # multus support. https://github.com/k8snetworkplumbingwg/multus-cni
+    ## multus support. https://github.com/k8snetworkplumbingwg/multus-cni
     enableMultusCNI: false
   registry:
+    plainHTTP: false
     privateRegistry: ""
     registryMirrors: []
     insecureRegistries: []

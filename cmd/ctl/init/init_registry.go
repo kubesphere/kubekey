@@ -28,6 +28,7 @@ type InitRegistryOptions struct {
 	CommonOptions  *options.CommonOptions
 	ClusterCfgFile string
 	DownloadCmd    string
+	Artifact       string
 }
 
 func NewInitRegistryOptions() *InitRegistryOptions {
@@ -43,6 +44,7 @@ func NewCmdInitRegistry() *cobra.Command {
 		Use:   "registry",
 		Short: "Init a local image registry",
 		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(o.Complete(cmd, args))
 			util.CheckErr(o.Run())
 		},
 	}
@@ -52,10 +54,15 @@ func NewCmdInitRegistry() *cobra.Command {
 	return cmd
 }
 
+func (o *InitRegistryOptions) Complete(_ *cobra.Command, _ []string) error {
+	return nil
+}
+
 func (o *InitRegistryOptions) Run() error {
 	arg := common.Argument{
 		FilePath: o.ClusterCfgFile,
 		Debug:    o.CommonOptions.Verbose,
+		Artifact: o.Artifact,
 	}
 	return pipelines.InitRegistry(arg, o.DownloadCmd)
 }
@@ -64,4 +71,5 @@ func (o *InitRegistryOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary files. The first param '%s' is output path, the second param '%s', is the URL`)
+	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 }

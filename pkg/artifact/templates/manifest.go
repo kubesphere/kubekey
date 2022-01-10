@@ -57,15 +57,22 @@ spec:
       version: {{ .Options.Components.CNI.Version }}
     etcd: 
       version: {{ .Options.Components.ETCD.Version }}
-    # For now, if your cluster container runtime is containerd, KubeKey will add a docker 20.10.8 container runtime in the below list.
-    # The reason is KubeKey creates a cluster with containerd by installing a docker first and making kubelet connect the socket file of containerd which docker contained.
+    ## For now, if your cluster container runtime is containerd, KubeKey will add a docker 20.10.8 container runtime in the below list.
+    ## The reason is KubeKey creates a cluster with containerd by installing a docker first and making kubelet connect the socket file of containerd which docker contained.
     containerRuntimes:
-      {{- range $i, $v := .Options.Components.ContainerRuntimes }}
-      - type: {{ $v.Type }}
-        version: {{ $v.Version }}
-      {{- end}}
+    {{- range $i, $v := .Options.Components.ContainerRuntimes }}
+    - type: {{ $v.Type }}
+      version: {{ $v.Version }}
+    {{- end}}
     crictl: 
       version: {{ .Options.Components.Crictl.Version }}
+    ## 
+    #docker-registry:
+    #  version: 2
+    #harbor:
+    #  version: v2.4.1
+    #docker-compose:
+    #  version: v2.2.2
   images:
   {{- range .Options.Images }}
   - {{ . }}
