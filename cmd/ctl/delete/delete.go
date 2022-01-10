@@ -36,7 +36,7 @@ func NewCmdDelete() *cobra.Command {
 	o := NewDeleteOptions()
 	cmd := &cobra.Command{
 		Use:   "delete",
-		Short: "Delete nodes or cluster",
+		Short: "Delete node or cluster",
 	}
 
 	o.CommonOptions.AddCommonFlag(cmd)
