@@ -19,10 +19,14 @@ spec:
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
   controlPlaneEndpoint:
     internalLoadbalancer: haproxy #Internal loadbalancer for apiservers. [Default: ""]
-    
     domain: lb.kubesphere.local
     address: ""      # The IP address of your load balancer.
     port: 6443
+  system:
+    ntpServers: #  The ntp servers of chrony, set the node name in `hosts` as ntp servers if no public ntp servers access.
+      - time1.cloud.tencent.com
+      - ntp.aliyun.com
+    timezone: "Asia/Shanghai"
   kubernetes:
     version: v1.21.5
     imageRepo: kubesphere

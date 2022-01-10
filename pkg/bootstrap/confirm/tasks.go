@@ -43,6 +43,7 @@ type PreCheckResults struct {
 	Socat     string `table:"socat"`
 	Ipset     string `table:"ipset"`
 	Conntrack string `table:"conntrack"`
+	Chronyd   string `table:"chrony"`
 	Docker    string `table:"docker"`
 	Nfs       string `table:"nfs client"`
 	Ceph      string `table:"ceph client"`

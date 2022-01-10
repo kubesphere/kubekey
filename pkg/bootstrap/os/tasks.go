@@ -454,3 +454,62 @@ func (u *UmountISO) Execute(runtime connector.Runtime) error {
 	}
 	return nil
 }
+
+type NodeConfigureNtpServer struct {
+	common.KubeAction
+}
+
+func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
+
+	currentHost := runtime.RemoteHost()
+	// if NtpServers was configured
+	for _, server := range n.KubeConf.Cluster.System.NtpServers {
+
+		serverAddr := strings.Trim(server, " \"")
+		if serverAddr == currentHost.GetName() || serverAddr == currentHost.GetInternalAddress() {
+			allowClientCmd := `sed -i '/#allow/ a\allow 0.0.0.0/0' /etc/chrony.conf`
+			if _, err := runtime.GetRunner().SudoCmd(allowClientCmd, false); err != nil {
+				return errors.Wrapf(err, "change host:%s chronyd conf failed, please check file /etc/chrony.conf", serverAddr)
+			}
+		}
+
+		// use internal ip to client chronyd server
+		for _, host := range runtime.GetAllHosts() {
+			if serverAddr == host.GetName() {
+				serverAddr = host.GetInternalAddress()
+				break
+			}
+		}
+
+		checkOrAddCmd := fmt.Sprintf(`grep -q '^server %s iburst' /etc/chrony.conf||sed '1a server %s iburst' -i /etc/chrony.conf`, serverAddr, serverAddr)
+		if _, err := runtime.GetRunner().SudoCmd(checkOrAddCmd, false); err != nil {
+			return errors.Wrapf(err, "set ntpserver: %s failed, please check file /etc/chrony.conf", serverAddr)
+		}
+	}
+
+	// if Timezone was configured
+	if len(n.KubeConf.Cluster.System.Timezone) > 0 {
+		setTimeZoneCmd := fmt.Sprintf("timedatectl set-timezone %s", n.KubeConf.Cluster.System.Timezone)
+		if _, err := runtime.GetRunner().SudoCmd(setTimeZoneCmd, false); err != nil {
+			return errors.Wrapf(err, "set timezone: %s failed", n.KubeConf.Cluster.System.Timezone)
+		}
+
+		if _, err := runtime.GetRunner().SudoCmd("timedatectl set-ntp true", false); err != nil {
+			return errors.Wrap(err, "timedatectl set-ntp true failed")
+		}
+	}
+
+	// ensure chronyd was enabled and work normally
+	if len(n.KubeConf.Cluster.System.NtpServers) > 0 || len(n.KubeConf.Cluster.System.Timezone) > 0 {
+		if _, err := runtime.GetRunner().SudoCmd("systemctl enable chronyd.service && systemctl restart chronyd.service", false); err != nil {
+			return errors.Wrap(err, "restart chronyd failed")
+		}
+
+		// tells chronyd to cancel any remaining correction that was being slewed and jump the system clock by the equivalent amount, making it correct immediately.
+		if _, err := runtime.GetRunner().SudoCmd("chronyc makestep > /dev/null && chronyc sources", true); err != nil {
+			return errors.Wrap(err, "chronyc makestep failed")
+		}
+	}
+
+	return nil
+}

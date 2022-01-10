@@ -41,6 +41,7 @@ type ClusterSpec struct {
 	Hosts                []HostCfg            `yaml:"hosts" json:"hosts,omitempty"`
 	RoleGroups           RoleGroups           `yaml:"roleGroups" json:"roleGroups,omitempty"`
 	ControlPlaneEndpoint ControlPlaneEndpoint `yaml:"controlPlaneEndpoint" json:"controlPlaneEndpoint,omitempty"`
+	System               System               `yaml:"system" json:"system,omitempty"`
 	Kubernetes           Kubernetes           `yaml:"kubernetes" json:"kubernetes,omitempty"`
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
@@ -177,6 +178,12 @@ type ControlPlaneEndpoint struct {
 	Domain               string `yaml:"domain" json:"domain,omitempty"`
 	Address              string `yaml:"address" json:"address,omitempty"`
 	Port                 int    `yaml:"port" json:"port,omitempty"`
+}
+
+// System defines the system config for each node in cluster.
+type System struct {
+	NtpServers []string `yaml:"ntpServers" json:"ntpServers,omitempty"`
+	Timezone   string   `yaml:"timezone" json:"timezone,omitempty"`
 }
 
 // RegistryConfig defines the configuration information of the image's repository.
