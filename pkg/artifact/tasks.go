@@ -89,6 +89,7 @@ func (p *PullImages) Execute(_ connector.Runtime) error {
 		})
 
 		opts := []containerd.RemoteOpt{
+			containerd.WithResolver(GetResolver(ctx)),
 			containerd.WithImageHandler(h),
 			containerd.WithSchema1Conversion,
 		}
