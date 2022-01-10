@@ -125,24 +125,26 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 }
 
 func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches []string) error {
-	// just like: docker.io-calico-cni-v3.20.0.tar, docker.io-kubesphere-kube-apiserver-v1.21.5.tar .e.g.
-	nameArr := strings.Split(fileName, "-")
+	// just like: docker.io-calico-cni:v3.20.0.tar, docker.io-kubesphere-kube-apiserver:v1.21.5.tar
+	// docker.io-fluent-fluentd:v1.4.2-2.0.tar .e.g.
+	fullArr := strings.Split(fileName, ":")
+
+	// v3.20.0.tar, v1.21.5.tar or v1.4.2-2.0.tar
+	tag := fullArr[len(fullArr)-1]
+	// .tar
+	tagExt := path.Ext(tag)
+	// v3.20.0, v1.21.5 or v1.4.2-2.0
+	tag = strings.TrimSuffix(tag, tagExt)
+
+	// docker.io-calico-cni, docker.io-kubesphere-kube-apiserver or docker.io-fluent-fluentd
+	nameArr := strings.Split(strings.Join(fullArr[:len(fullArr)-1], ":"), "-")
 
 	// docker.io
 	registry := nameArr[0]
-
-	// calico or kubesphere .e.g
+	// calico, kubesphere or fluent
 	namespace := nameArr[1]
-
-	// cni or kube-apiserver
-	imageName := strings.Join(nameArr[2:len(nameArr)-1], "-")
-
-	// v3.20.0.tar
-	tag := nameArr[len(nameArr)-1]
-	// .tar
-	tagExt := path.Ext(tag)
-	// v3.20.0
-	tag = strings.TrimSuffix(tag, tagExt)
+	// cni, kube-apiserver or fluentd
+	imageName := strings.Join(nameArr[2:], "-")
 
 	privateRegistry := kubeConf.Cluster.Registry.PrivateRegistry
 	image := Image{
