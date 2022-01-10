@@ -26,11 +26,13 @@ const (
 	File     = "file"
 	Operator = "operator"
 
-	Master  = "master"
-	Worker  = "worker"
-	ETCD    = "etcd"
-	K8s     = "k8s"
-	KubeKey = "kubekey"
+	Master   = "master"
+	Worker   = "worker"
+	ETCD     = "etcd"
+	K8s      = "k8s"
+	Registry = "registry"
+	KubeKey  = "kubekey"
+	Harbor   = "harbor"
 
 	KubeBinaries = "KubeBinaries"
 
@@ -43,7 +45,8 @@ const (
 	KubeScriptDir                = "/usr/local/bin/kube-scripts"
 	KubeletFlexvolumesPluginsDir = "/usr/libexec/kubernetes/kubelet-plugins/volume/exec"
 
-	ETCDCertDir = "/etc/ssl/etcd/ssl"
+	ETCDCertDir     = "/etc/ssl/etcd/ssl"
+	RegistryCertDir = "/etc/ssl/registry/ssl"
 
 	HaproxyDir = "/etc/kubekey/haproxy"
 

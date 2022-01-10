@@ -18,7 +18,9 @@ package binaries
 
 import (
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/task"
+	"github.com/pkg/errors"
 )
 
 type NodeBinariesModule struct {
@@ -74,6 +76,29 @@ func (a *ArtifactBinariesModule) Init() {
 	}
 
 	a.Tasks = []task.Interface{
+		download,
+	}
+}
+
+type RegistryPackageModule struct {
+	common.KubeModule
+}
+
+func (n *RegistryPackageModule) Init() {
+	n.Name = "RegistryPackageModule"
+	n.Desc = "Download registry package"
+
+	if len(n.Runtime.GetHostsByRole(common.Registry)) == 0 {
+		logger.Log.Fatal(errors.New("[registry] node not found in the roleGroups of the configuration file"))
+	}
+
+	download := &task.LocalTask{
+		Name:   "DownloadRegistryPackage",
+		Desc:   "Download registry package",
+		Action: new(RegistryPackageDownload),
+	}
+
+	n.Tasks = []task.Interface{
 		download,
 	}
 }

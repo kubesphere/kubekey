@@ -23,17 +23,20 @@ import (
 )
 
 const (
-	kubeadm = "kubeadm"
-	kubelet = "kubelet"
-	kubectl = "kubectl"
-	kubecni = "kubecni"
-	etcd    = "etcd"
-	helm    = "helm"
-	amd64   = "amd64"
-	arm64   = "arm64"
-	k3s     = "k3s"
-	docker  = "docker"
-	crictl  = "crictl"
+	kubeadm  = "kubeadm"
+	kubelet  = "kubelet"
+	kubectl  = "kubectl"
+	kubecni  = "kubecni"
+	etcd     = "etcd"
+	helm     = "helm"
+	amd64    = "amd64"
+	arm64    = "arm64"
+	k3s      = "k3s"
+	docker   = "docker"
+	crictl   = "crictl"
+	registry = "registry"
+	harbor   = "harbor"
+	compose  = "compose"
 )
 
 type KubeBinary struct {
@@ -360,6 +363,21 @@ var (
 			},
 			arm64: {
 				"v1.22.0": "a713c37fade0d96a989bc15ebe906e08ef5c8fe5e107c2161b0665e9963b770e",
+			},
+		},
+		registry: {
+			amd64: {
+				"2": "7706e46674fa2cf20f734dfb7e4dd7f1390710e9c0a2c520563e3c55f3e4b5c5",
+			},
+		},
+		compose: {
+			amd64: {
+				"v2.2.2": "92551cd3d22b41536ce8345fe06795ad0d08cb3c17b693ecbfe41176e501bfd4",
+			},
+		},
+		harbor: {
+			amd64: {
+				"v2.4.1": "cfd799c150b59353aefb34835f3a2e859763cb2e91966cd3ffeb1b6ceaa19841",
 			},
 		},
 	}

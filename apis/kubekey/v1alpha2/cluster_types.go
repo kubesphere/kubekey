@@ -148,28 +148,31 @@ type HostCfg struct {
 	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
 
-	Labels   map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
-	ID       string            `yaml:"id,omitempty" json:"id,omitempty"`
-	Index    int               `json:"-"`
-	IsEtcd   bool              `json:"-"`
-	IsMaster bool              `json:"-"`
-	IsWorker bool              `json:"-"`
+	Labels     map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	ID         string            `yaml:"id,omitempty" json:"id,omitempty"`
+	Index      int               `json:"-"`
+	IsEtcd     bool              `json:"-"`
+	IsMaster   bool              `json:"-"`
+	IsWorker   bool              `json:"-"`
+	IsRegistry bool              `json:"-"`
 }
 
-// RoleGroups defines the grouping of role for hosts (etcd / master / worker).
+// RoleGroups defines the grouping of role for hosts (etcd / master / worker / registry).
 type RoleGroups struct {
-	Etcd   []string `yaml:"etcd" json:"etcd,omitempty"`
-	Master []string `yaml:"master" json:"master,omitempty"`
-	Worker []string `yaml:"worker" json:"worker,omitempty"`
+	Etcd     []string `yaml:"etcd" json:"etcd,omitempty"`
+	Master   []string `yaml:"master" json:"master,omitempty"`
+	Worker   []string `yaml:"worker" json:"worker,omitempty"`
+	Registry []string `yaml:"registry" json:"registry,omitempty"`
 }
 
 // HostGroups defines the grouping of hosts for cluster (all / etcd / master / worker / k8s).
 type HostGroups struct {
-	All    []HostCfg
-	Etcd   []HostCfg
-	Master []HostCfg
-	Worker []HostCfg
-	K8s    []HostCfg
+	All      []HostCfg
+	Etcd     []HostCfg
+	Master   []HostCfg
+	Worker   []HostCfg
+	K8s      []HostCfg
+	Registry []HostCfg
 }
 
 // ControlPlaneEndpoint defines the control plane endpoint information for cluster.
@@ -188,6 +191,7 @@ type System struct {
 
 // RegistryConfig defines the configuration information of the image's repository.
 type RegistryConfig struct {
+	Type               string               `yaml:"type" json:"type,omitempty"`
 	RegistryMirrors    []string             `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
@@ -249,7 +253,7 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 		hostList[host.Name] = host.Name
 	}
 
-	etcdGroup, masterGroup, workerGroup, err := cfg.ParseRolesList(hostList)
+	etcdGroup, masterGroup, workerGroup, registryGroup, err := cfg.ParseRolesList(hostList)
 	if err != nil {
 		return nil, err
 	}
@@ -282,6 +286,14 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 			}
 		}
 
+		if len(registryGroup) > 0 {
+			for _, hostName := range registryGroup {
+				if hostName != "" && host.Name == hostName {
+					host.IsRegistry = true
+				}
+			}
+		}
+
 		if host.IsEtcd {
 			clusterHostsGroups.Etcd = append(clusterHostsGroups.Etcd, host)
 		}
@@ -294,6 +306,10 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 		if host.IsMaster || host.IsWorker {
 			clusterHostsGroups.K8s = append(clusterHostsGroups.K8s, host)
 		}
+		if host.IsRegistry {
+			clusterHostsGroups.Registry = append(clusterHostsGroups.Registry, host)
+		}
+
 		clusterHostsGroups.All = append(clusterHostsGroups.All, host)
 	}
 
@@ -304,6 +320,9 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 	if len(etcdGroup) == 0 {
 		logger.Log.Fatal(errors.New("The number of etcd cannot be 0"))
 	}
+	if len(registryGroup) > 1 {
+		logger.Log.Fatal(errors.New("The number of registry node cannot be greater than 1."))
+	}
 
 	if len(masterGroup) != len(clusterHostsGroups.Master) {
 		return nil, errors.New("Incorrect nodeName under roleGroups/master in the configuration file")
@@ -313,6 +332,9 @@ func (cfg *ClusterSpec) GroupHosts() (*HostGroups, error) {
 	}
 	if len(workerGroup) != len(clusterHostsGroups.Worker) {
 		return nil, errors.New("Incorrect nodeName under roleGroups/work in the configuration file")
+	}
+	if len(registryGroup) != len(clusterHostsGroups.Registry) {
+		return nil, errors.New("Incorrect nodeName under roleGroups/registry in the configuration file")
 	}
 
 	return &clusterHostsGroups, nil
@@ -338,10 +360,11 @@ func (cfg *ClusterSpec) ClusterDNS() string {
 }
 
 // ParseRolesList is used to parse the host grouping list.
-func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string) ([]string, []string, []string, error) {
+func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string) ([]string, []string, []string, []string, error) {
 	etcdGroupList := make([]string, 0)
 	masterGroupList := make([]string, 0)
 	workerGroupList := make([]string, 0)
+	registryGroupList := make([]string, 0)
 
 	for _, host := range cfg.RoleGroups.Etcd {
 		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
@@ -375,7 +398,19 @@ func (cfg *ClusterSpec) ParseRolesList(hostList map[string]string) ([]string, []
 			workerGroupList = append(workerGroupList, host)
 		}
 	}
-	return etcdGroupList, masterGroupList, workerGroupList, nil
+
+	for _, host := range cfg.RoleGroups.Registry {
+		if strings.Contains(host, "[") && strings.Contains(host, "]") && strings.Contains(host, ":") {
+			registryGroupList = append(registryGroupList, getHostsRange(host, hostList, "registry")...)
+		} else {
+			if err := hostVerify(hostList, host, "registry"); err != nil {
+				logger.Log.Fatal(err)
+			}
+			registryGroupList = append(registryGroupList, host)
+		}
+	}
+
+	return etcdGroupList, masterGroupList, workerGroupList, registryGroupList, nil
 }
 
 func getHostsRange(rangeStr string, hostList map[string]string, group string) []string {
