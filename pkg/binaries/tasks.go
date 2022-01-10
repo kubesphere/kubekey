@@ -129,7 +129,7 @@ func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(err, "Failed to create download target dir")
 		}
 
-		if err := KubernetesArtifactBinariesDownload(a.Manifest, binariesDir, arch, a.PipelineCache); err != nil {
+		if err := KubernetesArtifactBinariesDownload(a.Manifest, binariesDir, arch); err != nil {
 			return err
 		}
 	}
