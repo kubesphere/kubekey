@@ -18,12 +18,13 @@ package registry
 
 import (
 	"fmt"
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -115,13 +116,25 @@ func (g *InstallRegistryBinary) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	registryFile := fmt.Sprintf("registry-2-linux-%s", runtime.RemoteHost().GetArch())
-	filesDir := filepath.Join(runtime.GetWorkDir(), "registry", runtime.RemoteHost().GetArch())
-	if err := runtime.GetRunner().Scp(fmt.Sprintf("%s/%s.tar.gz", filesDir, registryFile), fmt.Sprintf("%s/%s.tar.gz", common.TmpDir, registryFile)); err != nil {
+	binariesMapObj, ok := g.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
+	if !ok {
+		return errors.New("get KubeBinary by pipeline cache failed")
+	}
+	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+
+	registry, ok := binariesMap[common.Registry]
+	if !ok {
+		return errors.New("get KubeBinary key registry by pipeline cache failed")
+	}
+
+	fileName := path.Base(registry.Path)
+	dst := filepath.Join(common.TmpDir, fileName)
+
+	if err := runtime.GetRunner().Scp(registry.Path, dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync etcd tar.gz failed")
 	}
 
-	installCmd := fmt.Sprintf("tar -zxf %s/%s.tar.gz && mv -f registry /usr/local/bin/ && chmod +x /usr/local/bin/registry", common.TmpDir, registryFile)
+	installCmd := fmt.Sprintf("tar -zxf %s && mv -f registry /usr/local/bin/ && chmod +x /usr/local/bin/registry", dst)
 	if _, err := runtime.GetRunner().SudoCmd(installCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "install etcd binaries failed")
 	}
@@ -154,13 +167,25 @@ func (g *InstallDockerCompose) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	dockerComposeFile := "docker-compose-linux-x86_64"
-	filesDir := filepath.Join(runtime.GetWorkDir(), runtime.RemoteHost().GetArch())
-	if err := runtime.GetRunner().Scp(fmt.Sprintf("%s/%s", filesDir, dockerComposeFile), fmt.Sprintf("%s/%s", common.TmpDir, dockerComposeFile)); err != nil {
+	binariesMapObj, ok := g.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
+	if !ok {
+		return errors.New("get KubeBinary by pipeline cache failed")
+	}
+	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+
+	compose, ok := binariesMap[common.DockerCompose]
+	if !ok {
+		return errors.New("get KubeBinary key docker-compose by pipeline cache failed")
+	}
+
+	fileName := path.Base(compose.Path)
+	dst := filepath.Join(common.TmpDir, fileName)
+
+	if err := runtime.GetRunner().Scp(compose.Path, dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync docker-compose failed")
 	}
 
-	installCmd := fmt.Sprintf("mv -f %s/%s /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose", common.TmpDir, dockerComposeFile)
+	installCmd := fmt.Sprintf("mv -f %s /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose", dst)
 	if _, err := runtime.GetRunner().SudoCmd(installCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "install dokcer-compose failed")
 	}
@@ -177,13 +202,25 @@ func (g *SyncHarborPackage) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	harborPackageFile := fmt.Sprintf("harbor-offline-installer-%s.tgz", kubekeyapiv1alpha2.DefaultHarborVersion)
-	filesDir := filepath.Join(runtime.GetWorkDir(), "registry", runtime.RemoteHost().GetArch())
-	if err := runtime.GetRunner().Scp(fmt.Sprintf("%s/%s", filesDir, harborPackageFile), fmt.Sprintf("%s/%s", common.TmpDir, harborPackageFile)); err != nil {
+	binariesMapObj, ok := g.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
+	if !ok {
+		return errors.New("get KubeBinary by pipeline cache failed")
+	}
+	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+
+	harbor, ok := binariesMap[common.Harbor]
+	if !ok {
+		return errors.New("get KubeBinary key harbor by pipeline cache failed")
+	}
+
+	fileName := path.Base(harbor.Path)
+	dst := filepath.Join(common.TmpDir, fileName)
+
+	if err := runtime.GetRunner().Scp(harbor.Path, dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync harbor package failed")
 	}
 
-	installCmd := fmt.Sprintf("tar -zxvf %s/%s -C /opt", common.TmpDir, harborPackageFile)
+	installCmd := fmt.Sprintf("tar -zxvf %s -C /opt", dst)
 	if _, err := runtime.GetRunner().SudoCmd(installCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "unzip harbor package failed")
 	}

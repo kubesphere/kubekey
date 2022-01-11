@@ -149,13 +149,24 @@ type RegistryPackageDownload struct {
 }
 
 func (k *RegistryPackageDownload) Execute(runtime connector.Runtime) error {
+	cfg := k.KubeConf.Cluster
+
+	var kubeVersion string
+	if cfg.Kubernetes.Version == "" {
+		kubeVersion = kubekeyapiv1alpha2.DefaultKubeVersion
+	} else {
+		kubeVersion = cfg.Kubernetes.Version
+	}
+
 	arch := runtime.GetHostsByRole(common.Registry)[0].GetArch()
 
-	packageDir := filepath.Join(runtime.GetWorkDir(), "registry", arch)
-	if err := util.CreateDir(packageDir); err != nil {
+	kubeBinariesDir := filepath.Join(runtime.GetWorkDir(), kubeVersion, arch)
+	registryPackageDir := filepath.Join(runtime.GetWorkDir(), "registry", arch)
+
+	if err := util.CreateDir(registryPackageDir); err != nil {
 		return errors.Wrap(err, "Failed to create download target dir")
 	}
-	if err := RegistryPackageDownloadHTTP(k.KubeConf, packageDir, arch, k.PipelineCache); err != nil {
+	if err := RegistryPackageDownloadHTTP(k.KubeConf, registryPackageDir, kubeBinariesDir, arch, k.PipelineCache); err != nil {
 		return err
 	}
 

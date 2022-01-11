@@ -19,6 +19,7 @@ package images
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/container/templates"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/pkg/errors"
@@ -154,6 +155,8 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 		Tag:       tag,
 	}
 
+	auths := templates.Auths(kubeConf)
+
 	fullPath := filepath.Join(prePath, fileName)
 	oldName := fmt.Sprintf("%s/%s/%s:%s", registry, namespace, imageName, tag)
 
@@ -166,6 +169,10 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 		image.ImageName(), oldName, strings.Join(arches, " "))
 	if kubeConf.Cluster.Registry.PlainHTTP {
 		pushCmd = fmt.Sprintf("%s --plain-http", pushCmd)
+	}
+	if _, ok := auths[privateRegistry]; ok {
+		auth := auths[privateRegistry]
+		pushCmd = fmt.Sprintf("%s --user %s:%s", pushCmd, auth.Username, auth.Password)
 	}
 
 	if out, err := exec.Command("/bin/bash", "-c", pushCmd).CombinedOutput(); err != nil {

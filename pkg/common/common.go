@@ -26,13 +26,14 @@ const (
 	File     = "file"
 	Operator = "operator"
 
-	Master   = "master"
-	Worker   = "worker"
-	ETCD     = "etcd"
-	K8s      = "k8s"
-	Registry = "registry"
-	KubeKey  = "kubekey"
-	Harbor   = "harbor"
+	Master        = "master"
+	Worker        = "worker"
+	ETCD          = "etcd"
+	K8s           = "k8s"
+	Registry      = "registry"
+	KubeKey       = "kubekey"
+	Harbor        = "harbor"
+	DockerCompose = "compose"
 
 	KubeBinaries = "KubeBinaries"
 
