@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/filesystem"
+	"github.com/pkg/errors"
 )
 
 func NewArtifactExportPipeline(runtime *common.ArtifactRuntime) error {
@@ -63,7 +64,18 @@ func ArtifactExport(args common.ArtifactArgument, downloadCmd string) error {
 		return err
 	}
 
-	switch runtime.Spec.KubernetesDistribution.Type {
+	if len(runtime.Spec.KubernetesDistributions) == 0 {
+		return errors.New("the length of kubernetes distributions can't be 0")
+	}
+
+	pre := runtime.Spec.KubernetesDistributions[0].Type
+	for _, t := range runtime.Spec.KubernetesDistributions {
+		if t.Type != pre {
+			return errors.New("all the types of kubernetes distributions can't be different")
+		}
+	}
+
+	switch runtime.Spec.KubernetesDistributions[0].Type {
 	case common.K3s:
 	case common.Kubernetes:
 		if err := NewArtifactExportPipeline(runtime); err != nil {

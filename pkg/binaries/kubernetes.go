@@ -117,15 +117,15 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 	return nil
 }
 
-func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch string) error {
+func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch, k8sVersion string) error {
 	kkzone := os.Getenv("KKZONE")
 
 	m := manifest.Spec
 
 	etcd := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubeadm := files.NewKubeBinary("kubeadm", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubelet := files.NewKubeBinary("kubelet", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubectl := files.NewKubeBinary("kubectl", arch, m.KubernetesDistribution.Version, path, kkzone, manifest.Arg.DownloadCommand)
+	kubeadm := files.NewKubeBinary("kubeadm", arch, k8sVersion, path, kkzone, manifest.Arg.DownloadCommand)
+	kubelet := files.NewKubeBinary("kubelet", arch, k8sVersion, path, kkzone, manifest.Arg.DownloadCommand)
+	kubectl := files.NewKubeBinary("kubectl", arch, k8sVersion, path, kkzone, manifest.Arg.DownloadCommand)
 	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, kkzone, manifest.Arg.DownloadCommand)
 	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, kkzone, manifest.Arg.DownloadCommand)
 	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, kkzone, manifest.Arg.DownloadCommand)
@@ -153,7 +153,7 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 	}
 
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s %s ...", arch, binary.Name)
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.Name, binary.Version)
 
 		if util.IsExist(binary.Path) {
 			// download it again if it's incorrect
