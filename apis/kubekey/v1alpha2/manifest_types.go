@@ -99,11 +99,11 @@ type ManifestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Arches                 []string               `yaml:"arches" json:"arches"`
-	OperationSystems       []OperationSystem      `yaml:"operationSystems" json:"operationSystems"`
-	KubernetesDistribution KubernetesDistribution `yaml:"kubernetesDistribution" json:"kubernetesDistribution"`
-	Components             Components             `yaml:"components" json:"components"`
-	Images                 []string               `yaml:"images" json:"images"`
+	Arches                  []string                 `yaml:"arches" json:"arches"`
+	OperationSystems        []OperationSystem        `yaml:"operationSystems" json:"operationSystems"`
+	KubernetesDistributions []KubernetesDistribution `yaml:"kubernetesDistributions" json:"kubernetesDistributions"`
+	Components              Components               `yaml:"components" json:"components"`
+	Images                  []string                 `yaml:"images" json:"images"`
 }
 
 // ManifestStatus defines the observed state of Manifest
