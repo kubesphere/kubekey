@@ -602,6 +602,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  plainHTTP:
+                    type: boolean
                   privateRegistry:
                     type: string
                   registryMirrors:

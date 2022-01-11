@@ -18,6 +18,7 @@ package binaries
 
 import (
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -123,14 +124,27 @@ func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
 		}
 	}
 
-	for arch := range archMap {
-		binariesDir := filepath.Join(runtime.GetWorkDir(), common.Artifact, manifest.KubernetesDistribution.Version, arch)
-		if err := util.CreateDir(binariesDir); err != nil {
-			return errors.Wrap(err, "Failed to create download target dir")
-		}
+	kubernetesSet := mapset.NewThreadUnsafeSet()
+	for _, k := range manifest.KubernetesDistributions {
+		kubernetesSet.Add(k)
+	}
 
-		if err := KubernetesArtifactBinariesDownload(a.Manifest, binariesDir, arch); err != nil {
-			return err
+	kubernetesVersions := make([]string, 0, kubernetesSet.Cardinality())
+	for _, k := range kubernetesSet.ToSlice() {
+		k8s := k.(kubekeyapiv1alpha2.KubernetesDistribution)
+		kubernetesVersions = append(kubernetesVersions, k8s.Version)
+	}
+
+	for arch := range archMap {
+		for _, version := range kubernetesVersions {
+			binariesDir := filepath.Join(runtime.GetWorkDir(), common.Artifact, version, arch)
+			if err := util.CreateDir(binariesDir); err != nil {
+				return errors.Wrap(err, "Failed to create download target dir")
+			}
+
+			if err := KubernetesArtifactBinariesDownload(a.Manifest, binariesDir, arch, version); err != nil {
+				return err
+			}
 		}
 
 		registryBinariesDir := filepath.Join(runtime.GetWorkDir(), common.Artifact, "registry", arch)
