@@ -156,10 +156,10 @@ func CreateManifest(arg common.Argument, name string) error {
 	// todo: Whether it need to detect components version
 	sort.Strings(imageArr)
 	options := &templates.Options{
-		Name:                   name,
-		Arches:                 archArr,
-		OperationSystems:       osArr,
-		KubernetesDistribution: kubernetesDistribution,
+		Name:                    name,
+		Arches:                  archArr,
+		OperationSystems:        osArr,
+		KubernetesDistributions: []kubekeyv1alpha2.KubernetesDistribution{kubernetesDistribution},
 		Components: kubekeyv1alpha2.Components{
 			Helm:              kubekeyv1alpha2.Helm{Version: kubekeyv1alpha2.DefaultHelmVersion},
 			CNI:               kubekeyv1alpha2.CNI{Version: kubekeyv1alpha2.DefaultCniVersion},

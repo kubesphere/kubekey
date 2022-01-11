@@ -47,9 +47,11 @@ spec:
         localPath: {{ $v.Repository.Iso.LocalPath }}
         url: {{ $v.Repository.Iso.Url }}
   {{- end }}
-  kubernetesDistribution:
-    type: {{ .Options.KubernetesDistribution.Type }}
-    version: {{ .Options.KubernetesDistribution.Version }}
+  kubernetesDistributions:
+  {{- range $i, $v := .Options.KubernetesDistributions }}
+  - type: {{ $v.Type }}
+    version: {{ $v.Version }}
+  {{- end}}
   components:
     helm: 
       version: {{ .Options.Components.Helm.Version }}
@@ -81,12 +83,12 @@ spec:
     `)))
 
 type Options struct {
-	Name                   string
-	Arches                 []string
-	OperationSystems       []kubekeyv1alpha2.OperationSystem
-	KubernetesDistribution kubekeyv1alpha2.KubernetesDistribution
-	Components             kubekeyv1alpha2.Components
-	Images                 []string
+	Name                    string
+	Arches                  []string
+	OperationSystems        []kubekeyv1alpha2.OperationSystem
+	KubernetesDistributions []kubekeyv1alpha2.KubernetesDistribution
+	Components              kubekeyv1alpha2.Components
+	Images                  []string
 }
 
 func RenderManifest(opt *Options) (string, error) {

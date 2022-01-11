@@ -68,7 +68,28 @@ spec:
                     required:
                     - version
                     type: object
+                  docker-compose:
+                    properties:
+                      version:
+                        type: string
+                    required:
+                    - version
+                    type: object
+                  docker-registry:
+                    properties:
+                      version:
+                        type: string
+                    required:
+                    - version
+                    type: object
                   etcd:
+                    properties:
+                      version:
+                        type: string
+                    required:
+                    - version
+                    type: object
+                  harbor:
                     properties:
                       version:
                         type: string
@@ -85,23 +106,28 @@ spec:
                 required:
                 - cni
                 - containerRuntimes
+                - docker-compose
+                - docker-registry
                 - etcd
+                - harbor
                 - helm
                 type: object
               images:
                 items:
                   type: string
                 type: array
-              kubernetesDistribution:
-                properties:
-                  type:
-                    type: string
-                  version:
-                    type: string
-                required:
-                - type
-                - version
-                type: object
+              kubernetesDistributions:
+                items:
+                  properties:
+                    type:
+                      type: string
+                    version:
+                      type: string
+                  required:
+                  - type
+                  - version
+                  type: object
+                type: array
               operationSystems:
                 items:
                   properties:
@@ -142,7 +168,7 @@ spec:
             - arches
             - components
             - images
-            - kubernetesDistribution
+            - kubernetesDistributions
             - operationSystems
             type: object
           status:
