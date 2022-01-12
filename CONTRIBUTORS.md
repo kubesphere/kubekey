@@ -63,6 +63,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
   <tr>
     <td align="center"><a href="https://github.com/tanguofu"><img src="https://avatars.githubusercontent.com/u/87045830?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Tan Guofu</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=tanguofu" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/lvillis"><img src="https://avatars.githubusercontent.com/u/56720445?v=4?s=100" width="100px;" alt=""/><br /><sub><b>lvillis</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=lvillis" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/vincenthe11"><img src="https://avatars.githubusercontent.com/u/8400716?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Vincent He</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=vincenthe11" title="Code">💻</a></td>
   </tr>
 </table>
 
