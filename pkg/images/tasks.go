@@ -132,7 +132,7 @@ type PushImage struct {
 }
 
 func (p *PushImage) Execute(runtime connector.Runtime) error {
-	imagesPath := filepath.Join(runtime.GetWorkDir(), common.Artifact, "images")
+	imagesPath := filepath.Join(runtime.GetWorkDir(), "images")
 	files, err := ioutil.ReadDir(imagesPath)
 	if err != nil {
 		return errors.Wrapf(errors.WithStack(err), "read %s dir faied", imagesPath)
