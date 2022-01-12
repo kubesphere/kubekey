@@ -413,6 +413,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "vincenthe11",
+      "name": "Vincent He",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8400716?v=4",
+      "profile": "https://github.com/vincenthe11",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
