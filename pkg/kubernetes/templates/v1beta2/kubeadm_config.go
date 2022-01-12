@@ -187,8 +187,10 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 			"cpu":    "200m",
 			"memory": "250Mi",
 		},
+		"podPidsLimit": 1000,
 		"evictionHard": map[string]string{
 			"memory.available": "5%",
+			"pid.available": "10%",
 		},
 		"evictionSoft": map[string]string{
 			"memory.available": "10%",
