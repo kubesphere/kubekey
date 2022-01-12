@@ -254,7 +254,7 @@ type ArchiveDependencies struct {
 
 func (a *ArchiveDependencies) Execute(runtime connector.Runtime) error {
 	src := filepath.Join(runtime.GetWorkDir(), common.Artifact)
-	if err := coreutil.Tar(src, a.Manifest.Arg.Output, runtime.GetWorkDir()); err != nil {
+	if err := coreutil.Tar(src, a.Manifest.Arg.Output, src); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "archive %s failed", src)
 	}
 	return nil
@@ -268,18 +268,6 @@ func (u *UnArchive) Execute(runtime connector.Runtime) error {
 	if err := coreutil.Untar(u.KubeConf.Arg.Artifact, runtime.GetWorkDir()); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "unArchive %s failed", u.KubeConf.Arg.Artifact)
 	}
-
-	// copy k8s binaries ("./kubekey/artifact/v1.21.5" tp "./kubekey/v1.21.5 .e.g")
-	src := filepath.Join(runtime.GetWorkDir(), "artifact", u.KubeConf.Cluster.Kubernetes.Version)
-	if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -r -f %s %s", src, runtime.GetWorkDir())).Run(); err != nil {
-		return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", src, runtime.GetWorkDir())
-	}
-
-	// copy registry binaries ("./kubekey/artifact/registry" tp "./kubekey/registry .e.g")
-	rSrc := filepath.Join(runtime.GetWorkDir(), "artifact", "registry")
-	if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -r -f %s %s", rSrc, runtime.GetWorkDir())).Run(); err != nil {
-		return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", src, runtime.GetWorkDir())
-	}
 	return nil
 }
 
@@ -291,7 +279,7 @@ func (m *Md5Check) Execute(runtime connector.Runtime) error {
 	m.ModuleCache.Set("md5AreEqual", false)
 
 	// check if there is a md5.sum file. This file's content contains the last artifact md5 value.
-	oldFile := filepath.Join(runtime.GetWorkDir(), "md5.sum")
+	oldFile := filepath.Join(runtime.GetWorkDir(), "artifact.md5")
 	if exist := coreutil.IsExist(oldFile); !exist {
 		return nil
 	}
@@ -314,7 +302,7 @@ type CreateMd5File struct {
 }
 
 func (c *CreateMd5File) Execute(runtime connector.Runtime) error {
-	oldFile := filepath.Join(runtime.GetWorkDir(), "md5.sum")
+	oldFile := filepath.Join(runtime.GetWorkDir(), "artifact.md5")
 	newMd5 := coreutil.LocalMd5Sum(c.KubeConf.Arg.Artifact)
 	f, err := os.Create(oldFile)
 	if err != nil {

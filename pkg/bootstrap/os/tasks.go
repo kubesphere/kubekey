@@ -344,7 +344,7 @@ func (s *SyncRepositoryFile) Execute(runtime connector.Runtime) error {
 	r := release.(*osrelease.Data)
 
 	fileName := fmt.Sprintf("%s-%s-%s.iso", r.ID, r.VersionID, host.GetArch())
-	src := filepath.Join(runtime.GetWorkDir(), common.Artifact, "repository", host.GetArch(), r.ID, r.VersionID, fileName)
+	src := filepath.Join(runtime.GetWorkDir(), "repository", host.GetArch(), r.ID, r.VersionID, fileName)
 	dst := filepath.Join(common.TmpDir, fileName)
 	if err := runtime.GetRunner().Scp(src, dst); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "scp %s to %s failed", src, dst)
