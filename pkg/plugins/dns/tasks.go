@@ -74,7 +74,7 @@ func (g *GenerateNodeLocalDNSConfigMap) Execute(runtime connector.Runtime) error
 		Dst:      filepath.Join(common.KubeConfigDir, templates.NodeLocalDNSConfigMap.Name()),
 		Data: util.Data{
 			"ForwardTarget": clusterIP,
-			"DndDomain":     g.KubeConf.Cluster.Kubernetes.ClusterName,
+			"DNSDomain":     g.KubeConf.Cluster.Kubernetes.DNSDomain,
 		},
 	}
 
