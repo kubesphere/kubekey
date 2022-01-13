@@ -34,6 +34,7 @@ const (
 	DefaultServiceCIDR          = "10.233.0.0/18"
 	DefaultKubeImageNamespace   = "kubesphere"
 	DefaultClusterName          = "cluster.local"
+	DefaultDNSDomain            = "cluster.local"
 	DefaultArch                 = "amd64"
 	DefaultEtcdVersion          = "v3.4.13"
 	DefaultEtcdPort             = "2379"
@@ -246,6 +247,9 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	}
 	if cfg.Kubernetes.ClusterName == "" {
 		cfg.Kubernetes.ClusterName = DefaultClusterName
+	}
+	if cfg.Kubernetes.DNSDomain == "" {
+		cfg.Kubernetes.DNSDomain = DefaultDNSDomain
 	}
 	if cfg.Kubernetes.EtcdBackupDir == "" {
 		cfg.Kubernetes.EtcdBackupDir = DefaultEtcdBackupDir

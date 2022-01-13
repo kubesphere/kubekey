@@ -482,6 +482,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  dnsDomain:
+                    type: string
                   etcdBackupDir:
                     type: string
                   etcdBackupPeriod:
@@ -637,7 +639,7 @@ spec:
               system:
                 description: System defines the system config for each node in cluster.
                 properties:
-                  ntpservers:
+                  ntpServers:
                     items:
                       type: string
                     type: array

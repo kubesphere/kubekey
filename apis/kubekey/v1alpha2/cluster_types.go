@@ -216,7 +216,7 @@ type ExternalEtcd struct {
 
 // GenerateCertSANs is used to generate cert sans for cluster.
 func (cfg *ClusterSpec) GenerateCertSANs() []string {
-	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.Kubernetes.ClusterName)
+	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.Kubernetes.DNSDomain)
 	defaultCertSANs := []string{"kubernetes", "kubernetes.default", "kubernetes.default.svc", clusterSvc, "localhost", "127.0.0.1"}
 	extraCertSANs := make([]string, 0)
 
@@ -225,7 +225,7 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 
 	for _, host := range cfg.Hosts {
 		extraCertSANs = append(extraCertSANs, host.Name)
-		extraCertSANs = append(extraCertSANs, fmt.Sprintf("%s.%s", host.Name, cfg.Kubernetes.ClusterName))
+		extraCertSANs = append(extraCertSANs, fmt.Sprintf("%s.%s", host.Name, cfg.Kubernetes.DNSDomain))
 		if host.Address != cfg.ControlPlaneEndpoint.Address {
 			extraCertSANs = append(extraCertSANs, host.Address)
 		}
