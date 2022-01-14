@@ -47,9 +47,6 @@ func detectCRISocketImpl(isSocket func(string) bool) (string, error) {
 		"/var/run/crio/crio.sock",
 	}
 
-	if isSocket(dockerSocket) {
-
-	}
 	if isSocket(containerdSocket) {
 		// Docker 18.09 gets bundled together with containerd, thus having both dockerSocket and containerdSocket present.
 		// Docker will be deprecated, so prefer to use containerd.
@@ -68,7 +65,7 @@ func detectCRISocketImpl(isSocket func(string) bool) (string, error) {
 	switch len(foundCRISockets) {
 	case 0:
 		// Fall back to Docker if no CRI is detected, we can error out later on if we need it
-		return DefaultDockerCRISocket, nil
+		return containerdSocket, nil
 	case 1:
 		// Precisely one CRI found, use that
 		return foundCRISockets[0], nil
