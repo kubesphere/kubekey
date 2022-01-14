@@ -267,6 +267,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"CorednsTag":             images.GetImage(runtime, g.KubeConf, "coredns").Tag,
 				"Version":                g.KubeConf.Cluster.Kubernetes.Version,
 				"ClusterName":            g.KubeConf.Cluster.Kubernetes.ClusterName,
+				"DNSDomain":              g.KubeConf.Cluster.Kubernetes.DNSDomain,
 				"AdvertiseAddress":       host.GetInternalAddress(),
 				"ControlPlanPort":        g.KubeConf.Cluster.ControlPlaneEndpoint.Port,
 				"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", g.KubeConf.Cluster.ControlPlaneEndpoint.Domain, g.KubeConf.Cluster.ControlPlaneEndpoint.Port),

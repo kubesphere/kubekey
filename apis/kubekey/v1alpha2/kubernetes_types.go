@@ -22,6 +22,7 @@ type Kubernetes struct {
 	Type                   string   `yaml:"type" json:"type,omitempty"`
 	Version                string   `yaml:"version" json:"version,omitempty"`
 	ClusterName            string   `yaml:"clusterName" json:"clusterName,omitempty"`
+	DNSDomain              string   `yaml:"dnsDomain" json:"dnsDomain,omitempty"`
 	MasqueradeAll          bool     `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`
 	MaxPods                int      `yaml:"maxPods" json:"maxPods,omitempty"`
 	NodeCidrMaskSize       int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`

@@ -58,7 +58,7 @@ certificatesDir: /etc/kubernetes/pki
 clusterName: {{ .ClusterName }}
 controlPlaneEndpoint: {{ .ControlPlaneEndpoint }}
 networking:
-  dnsDomain: {{ .ClusterName }}
+  dnsDomain: {{ .DNSDomain }}
   podSubnet: {{ .PodSubnet }}
   serviceSubnet: {{ .ServiceSubnet }}
 apiServer:
@@ -175,7 +175,7 @@ func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.Ku
 
 func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeConf, criSock string) map[string]interface{} {
 	defaultKubeletConfiguration := map[string]interface{}{
-		"clusterDomain":      kubeConf.Cluster.Kubernetes.ClusterName,
+		"clusterDomain":      kubeConf.Cluster.Kubernetes.DNSDomain,
 		"clusterDNS":         []string{kubeConf.Cluster.ClusterDNS()},
 		"maxPods":            kubeConf.Cluster.Kubernetes.MaxPods,
 		"rotateCertificates": true,
@@ -190,7 +190,7 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		"podPidsLimit": 1000,
 		"evictionHard": map[string]string{
 			"memory.available": "5%",
-			"pid.available": "10%",
+			"pid.available":    "10%",
 		},
 		"evictionSoft": map[string]string{
 			"memory.available": "10%",

@@ -33,7 +33,7 @@ metadata:
 
 data:
   Corefile: |
-    {{ .DndDomain }}:53 {
+    {{ .DNSDomain }}:53 {
         errors
         cache {
             success 9984 30
