@@ -23,7 +23,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
-	"path"
 	"path/filepath"
 )
 
@@ -40,17 +39,16 @@ func (s *SyncCrictlBinaries) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}
-	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
 
 	crictl, ok := binariesMap[common.Crictl]
 	if !ok {
 		return errors.New("get KubeBinary key crictl by pipeline cache failed")
 	}
 
-	fileName := path.Base(crictl.Path)
-	dst := filepath.Join(common.TmpDir, fileName)
+	dst := filepath.Join(common.TmpDir, crictl.FileName)
 
-	if err := runtime.GetRunner().Scp(crictl.Path, dst); err != nil {
+	if err := runtime.GetRunner().Scp(crictl.Path(), dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync crictl binaries failed"))
 	}
 
