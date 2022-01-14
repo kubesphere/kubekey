@@ -137,7 +137,7 @@ func generateHosts(hostGroups *kubekeyapiv1alpha2.HostGroups, cfg *kubekeyapiv1a
 
 	for _, host := range cfg.Hosts {
 		if host.Name != "" {
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s", host.InternalAddress, host.Name, cfg.Kubernetes.ClusterName, host.Name))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s", host.InternalAddress, host.Name, cfg.Kubernetes.DNSDomain, host.Name))
 		}
 	}
 
