@@ -25,87 +25,52 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/pkg/errors"
-	"os"
 	"os/exec"
 )
 
 // K8sFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
-func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch string, pipelineCache *cache.Cache) error {
-	kkzone := os.Getenv("KKZONE")
-	etcd := files.KubeBinary{Name: "etcd", Arch: arch, Version: kubekeyapiv1alpha2.DefaultEtcdVersion}
-	kubeadm := files.KubeBinary{Name: "kubeadm", Arch: arch, Version: version}
-	kubelet := files.KubeBinary{Name: "kubelet", Arch: arch, Version: version}
-	kubectl := files.KubeBinary{Name: "kubectl", Arch: arch, Version: version}
-	kubecni := files.KubeBinary{Name: "kubecni", Arch: arch, Version: kubekeyapiv1alpha2.DefaultCniVersion}
-	helm := files.KubeBinary{Name: "helm", Arch: arch, Version: kubekeyapiv1alpha2.DefaultHelmVersion}
-	docker := files.KubeBinary{Name: "docker", Arch: arch, Version: kubekeyapiv1alpha2.DefaultDockerVersion}
-	crictl := files.KubeBinary{Name: "crictl", Arch: arch, Version: kubekeyapiv1alpha2.DefaultCrictlVersion}
+func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string, pipelineCache *cache.Cache) error {
 
-	etcd.Path = fmt.Sprintf("%s/etcd-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha2.DefaultEtcdVersion, arch)
-	kubeadm.Path = fmt.Sprintf("%s/kubeadm", filepath)
-	kubelet.Path = fmt.Sprintf("%s/kubelet", filepath)
-	kubectl.Path = fmt.Sprintf("%s/kubectl", filepath)
-	kubecni.Path = fmt.Sprintf("%s/cni-plugins-linux-%s-%s.tgz", filepath, arch, kubekeyapiv1alpha2.DefaultCniVersion)
-	helm.Path = fmt.Sprintf("%s/helm", filepath)
-	docker.Path = fmt.Sprintf("%s/docker-%s.tgz", filepath, kubekeyapiv1alpha2.DefaultDockerVersion)
-	crictl.Path = fmt.Sprintf("%s/crictl-%s-linux-%s.tar.gz", filepath, kubekeyapiv1alpha2.DefaultCrictlVersion, arch)
+	etcd := files.NewKubeBinary("etcd", arch, kubekeyapiv1alpha2.DefaultEtcdVersion, path, kubeConf.Arg.DownloadCommand)
+	kubeadm := files.NewKubeBinary("kubeadm", arch, version, path, kubeConf.Arg.DownloadCommand)
+	kubelet := files.NewKubeBinary("kubelet", arch, version, path, kubeConf.Arg.DownloadCommand)
+	kubectl := files.NewKubeBinary("kubectl", arch, version, path, kubeConf.Arg.DownloadCommand)
+	kubecni := files.NewKubeBinary("kubecni", arch, kubekeyapiv1alpha2.DefaultCniVersion, path, kubeConf.Arg.DownloadCommand)
+	helm := files.NewKubeBinary("helm", arch, kubekeyapiv1alpha2.DefaultHelmVersion, path, kubeConf.Arg.DownloadCommand)
+	docker := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, kubeConf.Arg.DownloadCommand)
+	crictl := files.NewKubeBinary("crictl", arch, kubekeyapiv1alpha2.DefaultCrictlVersion, path, kubeConf.Arg.DownloadCommand)
 
-	if kkzone == "cn" {
-		etcd.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
-		kubeadm.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
-		kubelet.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", kubelet.Version, kubelet.Arch)
-		kubectl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
-		kubecni.Url = fmt.Sprintf("https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
-		helm.Url = fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, helm.Version)
-		helm.GetCmd = kubeConf.Arg.DownloadCommand(helm.Path, helm.Url)
-		docker.Url = fmt.Sprintf("https://mirrors.aliyun.com/docker-ce/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(docker.Arch), docker.Version)
-		crictl.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", kubekeyapiv1alpha2.DefaultCrictlVersion, kubekeyapiv1alpha2.DefaultCrictlVersion, arch)
-	} else {
-		etcd.Url = fmt.Sprintf("https://github.com/coreos/etcd/releases/download/%s/etcd-%s-linux-%s.tar.gz", etcd.Version, etcd.Version, etcd.Arch)
-		kubeadm.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", kubeadm.Version, kubeadm.Arch)
-		kubelet.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubelet", kubelet.Version, kubelet.Arch)
-		kubectl.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl", kubectl.Version, kubectl.Arch)
-		kubecni.Url = fmt.Sprintf("https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz", kubecni.Version, kubecni.Arch, kubecni.Version)
-		helm.Url = fmt.Sprintf("https://get.helm.sh/helm-%s-linux-%s.tar.gz", helm.Version, helm.Arch)
-		getCmd := kubeConf.Arg.DownloadCommand(fmt.Sprintf("%s/helm-%s-linux-%s.tar.gz", filepath, helm.Version, helm.Arch), helm.Url)
-		helm.GetCmd = fmt.Sprintf("%s && cd %s && tar -zxf helm-%s-linux-%s.tar.gz && mv linux-%s/helm . && rm -rf *linux-%s*", getCmd, filepath, helm.Version, helm.Arch, helm.Arch, helm.Arch)
-		docker.Url = fmt.Sprintf("https://download.docker.com/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(docker.Arch), docker.Version)
-		crictl.Url = fmt.Sprintf("https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz", kubekeyapiv1alpha2.DefaultCrictlVersion, kubekeyapiv1alpha2.DefaultCrictlVersion, arch)
-	}
-
-	kubeadm.GetCmd = kubeConf.Arg.DownloadCommand(kubeadm.Path, kubeadm.Url)
-	kubelet.GetCmd = kubeConf.Arg.DownloadCommand(kubelet.Path, kubelet.Url)
-	kubectl.GetCmd = kubeConf.Arg.DownloadCommand(kubectl.Path, kubectl.Url)
-	kubecni.GetCmd = kubeConf.Arg.DownloadCommand(kubecni.Path, kubecni.Url)
-	etcd.GetCmd = kubeConf.Arg.DownloadCommand(etcd.Path, etcd.Url)
-	docker.GetCmd = kubeConf.Arg.DownloadCommand(docker.Path, docker.Url)
-	crictl.GetCmd = kubeConf.Arg.DownloadCommand(crictl.Path, crictl.Url)
-
-	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, docker, crictl, etcd}
-	binariesMap := make(map[string]files.KubeBinary)
+	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, docker, crictl, etcd}
+	binariesMap := make(map[string]*files.KubeBinary)
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s %s ...", arch, binary.Name)
+		if err := binary.CreateBaseDir(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "create file %s base dir failed", binary.FileName)
+		}
 
-		binariesMap[binary.Name] = binary
-		if util.IsExist(binary.Path) {
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.ID, binary.Version)
+
+		binariesMap[binary.ID] = binary
+		if util.IsExist(binary.Path()) {
 			// download it again if it's incorrect
-			if err := files.SHA256Check(&binary); err != nil {
-				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+			if err := binary.SHA256Check(); err != nil {
+				p := binary.Path()
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", p)).Run()
 			} else {
-				logger.Log.Messagef(common.LocalHost, "%s is existed", binary.Name)
+				logger.Log.Messagef(common.LocalHost, "%s is existed", binary.ID)
 				continue
 			}
 		}
 
 		if err := binary.Download(); err != nil {
-			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.ID, binary.GetCmd(), err)
 		}
 	}
 
 	if kubeConf.Cluster.KubeSphere.Version == "v2.1.1" {
 		logger.Log.Infoln(fmt.Sprintf("Downloading %s ...", "helm2"))
-		if util.IsExist(fmt.Sprintf("%s/helm2", filepath)) == false {
-			cmd := kubeConf.Arg.DownloadCommand(fmt.Sprintf("%s/helm2", filepath), fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.9"))
+		if util.IsExist(fmt.Sprintf("%s/helm2", helm.BaseDir)) == false {
+			cmd := kubeConf.Arg.DownloadCommand(fmt.Sprintf("%s/helm2", helm.BaseDir),
+				fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.9"))
 			if output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
 				fmt.Println(string(output))
 				return errors.Wrap(err, "Failed to download helm2 binary")
@@ -118,20 +83,18 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, filepath, version, arch str
 }
 
 func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch, k8sVersion string) error {
-	kkzone := os.Getenv("KKZONE")
-
 	m := manifest.Spec
 
-	etcd := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	kubeadm := files.NewKubeBinary("kubeadm", arch, k8sVersion, path, kkzone, manifest.Arg.DownloadCommand)
-	kubelet := files.NewKubeBinary("kubelet", arch, k8sVersion, path, kkzone, manifest.Arg.DownloadCommand)
-	kubectl := files.NewKubeBinary("kubectl", arch, k8sVersion, path, kkzone, manifest.Arg.DownloadCommand)
-	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, kkzone, manifest.Arg.DownloadCommand)
-	binaries := []files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
+	etcd := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, manifest.Arg.DownloadCommand)
+	kubeadm := files.NewKubeBinary("kubeadm", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
+	kubelet := files.NewKubeBinary("kubelet", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
+	kubectl := files.NewKubeBinary("kubectl", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
+	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, manifest.Arg.DownloadCommand)
+	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, manifest.Arg.DownloadCommand)
+	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, manifest.Arg.DownloadCommand)
+	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
 
-	dockerArr := make([]files.KubeBinary, 0, 0)
+	dockerArr := make([]*files.KubeBinary, 0, 0)
 	dockerVersionMap := make(map[string]struct{})
 	for _, c := range m.Components.ContainerRuntimes {
 		var dockerVersion string
@@ -142,7 +105,7 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 		}
 		if _, ok := dockerVersionMap[dockerVersion]; !ok {
 			dockerVersionMap[dockerVersion] = struct{}{}
-			docker := files.NewKubeBinary("docker", arch, dockerVersion, path, kkzone, manifest.Arg.DownloadCommand)
+			docker := files.NewKubeBinary("docker", arch, dockerVersion, path, manifest.Arg.DownloadCommand)
 			dockerArr = append(dockerArr, docker)
 		}
 	}
@@ -153,19 +116,23 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 	}
 
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.Name, binary.Version)
+		if err := binary.CreateBaseDir(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "create file %s base dir failed", binary.FileName)
+		}
 
-		if util.IsExist(binary.Path) {
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.ID, binary.Version)
+
+		if util.IsExist(binary.Path()) {
 			// download it again if it's incorrect
-			if err := files.SHA256Check(&binary); err != nil {
-				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+			if err := binary.SHA256Check(); err != nil {
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path())).Run()
 			} else {
 				continue
 			}
 		}
 
 		if err := binary.Download(); err != nil {
-			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.ID, binary.GetCmd(), err)
 		}
 	}
 

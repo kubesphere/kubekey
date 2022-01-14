@@ -24,7 +24,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -120,17 +119,15 @@ func (g *InstallRegistryBinary) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}
-	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
 
 	registry, ok := binariesMap[common.Registry]
 	if !ok {
 		return errors.New("get KubeBinary key registry by pipeline cache failed")
 	}
 
-	fileName := path.Base(registry.Path)
-	dst := filepath.Join(common.TmpDir, fileName)
-
-	if err := runtime.GetRunner().Scp(registry.Path, dst); err != nil {
+	dst := filepath.Join(common.TmpDir, registry.FileName)
+	if err := runtime.GetRunner().Scp(registry.Path(), dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync etcd tar.gz failed")
 	}
 
@@ -171,17 +168,15 @@ func (g *InstallDockerCompose) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}
-	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
 
 	compose, ok := binariesMap[common.DockerCompose]
 	if !ok {
 		return errors.New("get KubeBinary key docker-compose by pipeline cache failed")
 	}
 
-	fileName := path.Base(compose.Path)
-	dst := filepath.Join(common.TmpDir, fileName)
-
-	if err := runtime.GetRunner().Scp(compose.Path, dst); err != nil {
+	dst := filepath.Join(common.TmpDir, compose.FileName)
+	if err := runtime.GetRunner().Scp(compose.Path(), dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync docker-compose failed")
 	}
 
@@ -206,17 +201,15 @@ func (g *SyncHarborPackage) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}
-	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
 
 	harbor, ok := binariesMap[common.Harbor]
 	if !ok {
 		return errors.New("get KubeBinary key harbor by pipeline cache failed")
 	}
 
-	fileName := path.Base(harbor.Path)
-	dst := filepath.Join(common.TmpDir, fileName)
-
-	if err := runtime.GetRunner().Scp(harbor.Path, dst); err != nil {
+	dst := filepath.Join(common.TmpDir, harbor.FileName)
+	if err := runtime.GetRunner().Scp(harbor.Path(), dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync harbor package failed")
 	}
 

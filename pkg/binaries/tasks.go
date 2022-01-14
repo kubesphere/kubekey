@@ -22,7 +22,6 @@ import (
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
 	"path/filepath"
 )
@@ -54,12 +53,7 @@ func (d *Download) Execute(runtime connector.Runtime) error {
 	}
 
 	for arch := range archMap {
-		binariesDir := filepath.Join(runtime.GetWorkDir(), kubeVersion, arch)
-		if err := util.CreateDir(binariesDir); err != nil {
-			return errors.Wrap(err, "Failed to create download target dir")
-		}
-
-		if err := K8sFilesDownloadHTTP(d.KubeConf, binariesDir, kubeVersion, arch, d.PipelineCache); err != nil {
+		if err := K8sFilesDownloadHTTP(d.KubeConf, runtime.GetWorkDir(), kubeVersion, arch, d.PipelineCache); err != nil {
 			return err
 		}
 	}
@@ -93,12 +87,7 @@ func (k *K3sDownload) Execute(runtime connector.Runtime) error {
 	}
 
 	for arch := range archMap {
-		binariesDir := filepath.Join(runtime.GetWorkDir(), kubeVersion, arch)
-		if err := util.CreateDir(binariesDir); err != nil {
-			return errors.Wrap(err, "Failed to create download target dir")
-		}
-
-		if err := K3sFilesDownloadHTTP(k.KubeConf, binariesDir, kubeVersion, arch, k.PipelineCache); err != nil {
+		if err := K3sFilesDownloadHTTP(k.KubeConf, runtime.GetWorkDir(), kubeVersion, arch, k.PipelineCache); err != nil {
 			return err
 		}
 	}
@@ -135,23 +124,15 @@ func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
 		kubernetesVersions = append(kubernetesVersions, k8s.Version)
 	}
 
+	basePath := filepath.Join(runtime.GetWorkDir(), common.Artifact)
 	for arch := range archMap {
 		for _, version := range kubernetesVersions {
-			binariesDir := filepath.Join(runtime.GetWorkDir(), common.Artifact, version, arch)
-			if err := util.CreateDir(binariesDir); err != nil {
-				return errors.Wrap(err, "Failed to create download target dir")
-			}
-
-			if err := KubernetesArtifactBinariesDownload(a.Manifest, binariesDir, arch, version); err != nil {
+			if err := KubernetesArtifactBinariesDownload(a.Manifest, basePath, arch, version); err != nil {
 				return err
 			}
 		}
 
-		registryBinariesDir := filepath.Join(runtime.GetWorkDir(), common.Artifact, "registry", arch)
-		if err := util.CreateDir(registryBinariesDir); err != nil {
-			return errors.Wrap(err, "Failed to create download target dir")
-		}
-		if err := RegistryBinariesDownload(a.Manifest, registryBinariesDir, arch); err != nil {
+		if err := RegistryBinariesDownload(a.Manifest, basePath, arch); err != nil {
 			return err
 		}
 	}
@@ -163,24 +144,8 @@ type RegistryPackageDownload struct {
 }
 
 func (k *RegistryPackageDownload) Execute(runtime connector.Runtime) error {
-	cfg := k.KubeConf.Cluster
-
-	var kubeVersion string
-	if cfg.Kubernetes.Version == "" {
-		kubeVersion = kubekeyapiv1alpha2.DefaultKubeVersion
-	} else {
-		kubeVersion = cfg.Kubernetes.Version
-	}
-
 	arch := runtime.GetHostsByRole(common.Registry)[0].GetArch()
-
-	kubeBinariesDir := filepath.Join(runtime.GetWorkDir(), kubeVersion, arch)
-	registryPackageDir := filepath.Join(runtime.GetWorkDir(), "registry", arch)
-
-	if err := util.CreateDir(registryPackageDir); err != nil {
-		return errors.Wrap(err, "Failed to create download target dir")
-	}
-	if err := RegistryPackageDownloadHTTP(k.KubeConf, registryPackageDir, kubeBinariesDir, arch, k.PipelineCache); err != nil {
+	if err := RegistryPackageDownloadHTTP(k.KubeConf, runtime.GetWorkDir(), arch, k.PipelineCache); err != nil {
 		return err
 	}
 

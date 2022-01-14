@@ -18,7 +18,6 @@ package container
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -42,17 +41,15 @@ func (s *SyncDockerBinaries) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get KubeBinary by pipeline cache failed")
 	}
-	binariesMap := binariesMapObj.(map[string]files.KubeBinary)
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
 
 	docker, ok := binariesMap[common.Docker]
 	if !ok {
 		return errors.New("get KubeBinary key docker by pipeline cache failed")
 	}
 
-	fileName := path.Base(docker.Path)
-	dst := filepath.Join(common.TmpDir, fileName)
-
-	if err := runtime.GetRunner().Scp(docker.Path, dst); err != nil {
+	dst := filepath.Join(common.TmpDir, docker.FileName)
+	if err := runtime.GetRunner().Scp(docker.Path(), dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync docker binaries failed"))
 	}
 
