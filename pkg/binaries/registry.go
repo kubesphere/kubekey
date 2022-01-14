@@ -24,68 +24,46 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
-	"os"
+	"github.com/pkg/errors"
 	"os/exec"
 )
 
 // RegistryPackageDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
-func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, registryPackagesDir, kubeBinariesDir, arch string, pipelineCache *cache.Cache) error {
-	kkzone := os.Getenv("KKZONE")
-
-	binaries := []files.KubeBinary{}
+func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, path, arch string, pipelineCache *cache.Cache) error {
+	var binaries []*files.KubeBinary
 
 	switch kubeConf.Cluster.Registry.Type {
 	case common.Harbor:
-		harbor := files.KubeBinary{Name: "harbor", Arch: arch, Version: kubekeyapiv1alpha2.DefaultHarborVersion}
-		harbor.Path = fmt.Sprintf("%s/harbor-offline-installer-%s.tgz", registryPackagesDir, kubekeyapiv1alpha2.DefaultHarborVersion)
 		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present.
-		docker := files.KubeBinary{Name: "docker", Arch: arch, Version: kubekeyapiv1alpha2.DefaultDockerVersion}
-		docker.Path = fmt.Sprintf("%s/docker-%s.tgz", kubeBinariesDir, kubekeyapiv1alpha2.DefaultDockerVersion)
-		compose := files.KubeBinary{Name: "compose", Arch: arch, Version: kubekeyapiv1alpha2.DefaultDockerComposeVersion}
-		compose.Path = fmt.Sprintf("%s/docker-compose-linux-x86_64", registryPackagesDir)
-
-		if kkzone == "cn" {
-			harbor.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/harbor/releases/download/%s/harbor-offline-installer-%s.tgz", harbor.Version, harbor.Version)
-			docker.Url = fmt.Sprintf("https://mirrors.aliyun.com/docker-ce/linux/static/stable/x86_64/docker-%s.tgz", docker.Version)
-			compose.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/docker/compose/releases/download/%s/docker-compose-linux-x86_64", compose.Version)
-		} else {
-			harbor.Url = fmt.Sprintf("https://github.com/goharbor/harbor/releases/download/%s/harbor-offline-installer-%s.tgz", harbor.Version, harbor.Version)
-			docker.Url = fmt.Sprintf("https://download.docker.com/linux/static/stable/x86_64/docker-%s.tgz", docker.Version)
-			compose.Url = fmt.Sprintf("https://github.com/docker/compose/releases/download/%s/docker-compose-linux-x86_64", compose.Version)
-		}
-
-		harbor.GetCmd = kubeConf.Arg.DownloadCommand(harbor.Path, harbor.Url)
-		docker.GetCmd = kubeConf.Arg.DownloadCommand(docker.Path, docker.Url)
-		compose.GetCmd = kubeConf.Arg.DownloadCommand(compose.Path, compose.Url)
-
-		binaries = []files.KubeBinary{harbor, docker, compose}
+		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, kubeConf.Arg.DownloadCommand)
+		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, kubeConf.Arg.DownloadCommand)
+		docker := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, kubeConf.Arg.DownloadCommand)
+		binaries = []*files.KubeBinary{harbor, docker, compose}
 	default:
-		registry := files.KubeBinary{Name: "registry", Arch: arch, Version: kubekeyapiv1alpha2.DefaultRegistryVersion}
-		registry.Path = fmt.Sprintf("%s/registry-%s-linux-%s.tar.gz", registryPackagesDir, kubekeyapiv1alpha2.DefaultRegistryVersion, arch)
-		if kkzone == "cn" {
-			registry.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/registry/%s/registry-%s-linux-%s.tar.gz", kubekeyapiv1alpha2.DefaultRegistryVersion, kubekeyapiv1alpha2.DefaultRegistryVersion, registry.Arch)
-		} else {
-			registry.Url = fmt.Sprintf("https://github.com/kubesphere/kubekey/releases/download/v2.0.0-alpha.1/registry-%s-linux-%s.tar.gz", kubekeyapiv1alpha2.DefaultRegistryVersion, registry.Arch)
-		}
-		registry.GetCmd = kubeConf.Arg.DownloadCommand(registry.Path, registry.Url)
-		binaries = []files.KubeBinary{registry}
+		registry := files.NewKubeBinary("registry", arch, kubekeyapiv1alpha2.DefaultRegistryVersion, path, kubeConf.Arg.DownloadCommand)
+		binaries = []*files.KubeBinary{registry}
 	}
 
-	binariesMap := make(map[string]files.KubeBinary)
+	binariesMap := make(map[string]*files.KubeBinary)
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s ...", binary.Name)
-		binariesMap[binary.Name] = binary
-		if util.IsExist(binary.Path) {
+		if err := binary.CreateBaseDir(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "create file %s base dir failed", binary.FileName)
+		}
+
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s  ...", arch, binary.ID, binary.Version)
+		binariesMap[binary.ID] = binary
+		if util.IsExist(binary.Path()) {
 			// download it again if it's incorrect
-			if err := files.SHA256Check(&binary); err != nil {
-				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+			if err := binary.SHA256Check(); err != nil {
+				p := binary.Path()
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", p)).Run()
 			} else {
 				continue
 			}
 		}
 
 		if err := binary.Download(); err != nil {
-			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.ID, binary.GetCmd(), err)
 		}
 	}
 
@@ -94,18 +72,17 @@ func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, registryPackagesDir,
 }
 
 func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch string) error {
-	kkzone := os.Getenv("KKZONE")
 
 	m := manifest.Spec
-	binaries := make([]files.KubeBinary, 0, 0)
+	binaries := make([]*files.KubeBinary, 0, 0)
 
 	if m.Components.DockerRegistry.Version != "" {
-		registry := files.NewKubeBinary("registry", arch, kubekeyapiv1alpha2.DefaultRegistryVersion, path, kkzone, manifest.Arg.DownloadCommand)
+		registry := files.NewKubeBinary("registry", arch, kubekeyapiv1alpha2.DefaultRegistryVersion, path, manifest.Arg.DownloadCommand)
 		binaries = append(binaries, registry)
 	}
 
 	if m.Components.Harbor.Version != "" {
-		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, kkzone, manifest.Arg.DownloadCommand)
+		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, manifest.Arg.DownloadCommand)
 		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present.
 		if arch == "amd64" {
 			binaries = append(binaries, harbor)
@@ -113,7 +90,7 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 	}
 
 	if m.Components.DockerCompose.Version != "" {
-		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, kkzone, manifest.Arg.DownloadCommand)
+		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, manifest.Arg.DownloadCommand)
 		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present. docker-compose is required only if harbor is installed.
 		if arch == "amd64" {
 			binaries = append(binaries, compose)
@@ -121,19 +98,24 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 	}
 
 	for _, binary := range binaries {
-		logger.Log.Messagef(common.LocalHost, "downloading %s %s ...", arch, binary.Name)
+		if err := binary.CreateBaseDir(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "create file %s base dir failed", binary.FileName)
+		}
 
-		if util.IsExist(binary.Path) {
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.ID, binary.Version)
+
+		if util.IsExist(binary.Path()) {
 			// download it again if it's incorrect
-			if err := files.SHA256Check(&binary); err != nil {
-				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path)).Run()
+			if err := binary.SHA256Check(); err != nil {
+				p := binary.Path()
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", p)).Run()
 			} else {
 				continue
 			}
 		}
 
 		if err := binary.Download(); err != nil {
-			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.Name, binary.GetCmd, err)
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.ID, binary.GetCmd(), err)
 		}
 	}
 	return nil

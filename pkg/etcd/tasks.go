@@ -18,6 +18,7 @@ package etcd
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/files"
 	"path/filepath"
 	"strings"
 
@@ -137,13 +138,23 @@ func (g *InstallETCDBinary) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	etcdFile := fmt.Sprintf("etcd-%s-linux-%s", kubekeyapiv1alpha2.DefaultEtcdVersion, runtime.RemoteHost().GetArch())
-	filesDir := filepath.Join(runtime.GetWorkDir(), g.KubeConf.Cluster.Kubernetes.Version, runtime.RemoteHost().GetArch())
-	if err := runtime.GetRunner().Scp(fmt.Sprintf("%s/%s.tar.gz", filesDir, etcdFile), fmt.Sprintf("%s/%s.tar.gz", common.TmpDir, etcdFile)); err != nil {
+	binariesMapObj, ok := g.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
+	if !ok {
+		return errors.New("get KubeBinary by pipeline cache failed")
+	}
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
+	binary, ok := binariesMap["etcd"]
+	if !ok {
+		return fmt.Errorf("get kube binary etcd info failed: no such key")
+	}
+
+	dst := filepath.Join(common.TmpDir, binary.FileName)
+	if err := runtime.GetRunner().Scp(binary.Path(), dst); err != nil {
 		return errors.Wrap(errors.WithStack(err), "sync etcd tar.gz failed")
 	}
 
-	installCmd := fmt.Sprintf("tar -zxf %s/%s.tar.gz && cp -f %s/etcd* /usr/local/bin/ && chmod +x /usr/local/bin/etcd* && rm -rf %s", common.TmpDir, etcdFile, etcdFile, etcdFile)
+	etcdDir := strings.TrimSuffix(binary.FileName, ".tar.gz")
+	installCmd := fmt.Sprintf("tar -zxf %s && cp -f %s/etcd* /usr/local/bin/ && chmod +x /usr/local/bin/etcd* && rm -rf %s", dst, etcdDir, etcdDir)
 	if _, err := runtime.GetRunner().SudoCmd(installCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "install etcd binaries failed")
 	}
