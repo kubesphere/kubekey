@@ -18,6 +18,7 @@ package v1alpha2
 
 import "k8s.io/apimachinery/pkg/runtime"
 
+// Kubernetes contains the configuration for the cluster
 type Kubernetes struct {
 	Type                   string   `yaml:"type" json:"type,omitempty"`
 	Version                string   `yaml:"version" json:"version,omitempty"`
@@ -36,6 +37,8 @@ type Kubernetes struct {
 	EtcdBackupScriptDir      string               `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
 	ContainerManager         string               `yaml:"containerManager" json:"containerManager,omitempty"`
 	ContainerRuntimeEndpoint string               `yaml:"containerRuntimeEndpoint" json:"containerRuntimeEndpoint,omitempty"`
+	NodeFeatureDiscovery     Kata                 `yaml:"nodeFeatureDiscovery" json:"nodeFeatureDiscovery,omitempty"`
+	Kata                     NodeFeatureDiscovery `yaml:"kata" json:"kata,omitempty"`
 	ApiServerArgs            []string             `yaml:"apiserverArgs" json:"apiserverArgs,omitempty"`
 	ControllerManagerArgs    []string             `yaml:"controllerManagerArgs" json:"controllerManagerArgs,omitempty"`
 	SchedulerArgs            []string             `yaml:"schedulerArgs" json:"schedulerArgs,omitempty"`
@@ -46,10 +49,36 @@ type Kubernetes struct {
 	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration" json:"kubeProxyConfiguration,omitempty"`
 }
 
+// Kata contains the configuration for the kata in cluster
+type Kata struct {
+	Enabled *bool `yaml:"enabled" json:"enabled,omitempty"`
+}
+
+// NodeFeatureDiscovery contains the configuration for the node-feature-discovery in cluster
+type NodeFeatureDiscovery struct {
+	Enabled *bool `yaml:"enabled" json:"enabled,omitempty"`
+}
+
 // EnableNodelocaldns is used to determine whether to deploy nodelocaldns.
 func (k *Kubernetes) EnableNodelocaldns() bool {
 	if k.Nodelocaldns == nil {
 		return true
 	}
 	return *k.Nodelocaldns
+}
+
+// EnableKataDeploy is used to determine whether to deploy kata.
+func (k *Kubernetes) EnableKataDeploy() bool {
+	if k.Kata.Enabled == nil {
+		return false
+	}
+	return *k.Kata.Enabled
+}
+
+// EnableNodeFeatureDiscovery is used to determine whether to deploy node-feature-discovery.
+func (k *Kubernetes) EnableNodeFeatureDiscovery() bool {
+	if k.NodeFeatureDiscovery.Enabled == nil {
+		return false
+	}
+	return *k.NodeFeatureDiscovery.Enabled
 }

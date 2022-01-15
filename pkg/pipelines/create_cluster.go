@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/plugins"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"io/ioutil"
 	"path/filepath"
@@ -77,6 +78,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&filesystem.ChownModule{},
 		&certs.AutoRenewCertsModule{},
 		&kubernetes.SaveKubeConfigModule{},
+		&plugins.DeployPluginsModule{},
 		&addons.AddonsModule{},
 		&storage.DeployLocalVolumeModule{Skip: !runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled},
 		&kubesphere.DeployModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
