@@ -463,6 +463,7 @@ spec:
                   type: object
                 type: array
               kubernetes:
+                description: Kubernetes contains the configuration for the cluster
                 properties:
                   apiserverArgs:
                     items:
@@ -494,6 +495,13 @@ spec:
                     additionalProperties:
                       type: boolean
                     type: object
+                  kata:
+                    description: NodeFeatureDiscovery contains the configuration for
+                      the node-feature-discovery in cluster
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   keepBackupNumber:
                     type: integer
                   kubeProxyArgs:
@@ -514,6 +522,12 @@ spec:
                     type: integer
                   nodeCidrMaskSize:
                     type: integer
+                  nodeFeatureDiscovery:
+                    description: Kata contains the configuration for the kata in cluster
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   nodelocaldns:
                     type: boolean
                   proxyMode:
