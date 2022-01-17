@@ -1,0 +1,19 @@
+FROM ubuntu:18.04
+
+WORKDIR package
+
+ENV DIR=ubuntu-18.04-amd64-debs
+ENV DOCKERVERSION=5:20.10.8~3-0~ubuntu-bionic
+ENV PACKAGES="apt-transport-https ca-certificates curl git gnupg-agent software-properties-common sudo openssl openssh-server socat conntrack ebtables ipset docker-ce=${DOCKERVERSION} docker-ce-cli=${DOCKERVERSION} containerd.io chrony ipvsadm nfs-common ceph-common glusterfs-client dnsutils telnet lvm2 keepalived haproxy psmisc tcpdump"
+
+RUN mkdir ${DIR} && apt update && apt install curl sudo software-properties-common apt-transport-https -y && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable" && \
+    add-apt-repository ppa:gluster/glusterfs-7 -y && apt update
+
+ADD download-pkgs.sh ./${DIR}/
+
+RUN cd ${DIR} && sh download-pkgs.sh && rm -rf download-pkgs.sh && rm -rf errors.txt
+
+RUN apt install apt-utils dpkg-dev -y && cd ${DIR} && dpkg-scanpackages ./ /dev/null |gzip > ./Packages.gz
+
+RUN apt-get install genisoimage -y &&  mkisofs -r -o ${DIR}.iso ${DIR}
