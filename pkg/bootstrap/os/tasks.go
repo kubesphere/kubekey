@@ -263,7 +263,7 @@ func (o *OnlineInstallDependencies) Execute(runtime connector.Runtime) error {
 		}
 	case "rpm":
 		if _, err := runtime.GetRunner().SudoCmd(
-			"yum install yum-utils openssl socat conntrack ipset ebtables chrony -y",
+			"yum install openssl socat conntrack ipset ebtables chrony -y",
 			false); err != nil {
 			return err
 		}
@@ -394,11 +394,19 @@ func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
 	if err := repo.Backup(); err != nil {
 		return errors.Wrap(errors.WithStack(err), "backup repository failed")
 	}
-	if err := repo.Add(filepath.Join(common.TmpDir, "iso")); err != nil {
-		return errors.Wrap(errors.WithStack(err), "add local repository failed")
+
+	var installErr error
+	defer func() {
+		if installErr != nil {
+			RecoverRepository(runtime, repo)
+		}
+	}()
+
+	if installErr = repo.Add(filepath.Join(common.TmpDir, "iso")); installErr != nil {
+		return errors.Wrap(errors.WithStack(installErr), "add local repository failed")
 	}
-	if err := repo.Update(); err != nil {
-		return errors.Wrap(errors.WithStack(err), "update local repository failed")
+	if installErr = repo.Update(); installErr != nil {
+		return errors.Wrap(errors.WithStack(installErr), "update local repository failed")
 	}
 
 	host.GetCache().Set("repo", repo)
@@ -417,10 +425,24 @@ func (i *InstallPackage) Execute(runtime connector.Runtime) error {
 	}
 	r := repo.(repository.Interface)
 
-	if err := r.Install(); err != nil {
-		return errors.Wrap(errors.WithStack(err), "install repository package failed")
+	var installErr error
+	defer func() {
+		if installErr != nil {
+			RecoverRepository(runtime, r)
+		}
+	}()
+
+	if installErr = r.Install(); installErr != nil {
+		return errors.Wrap(errors.WithStack(installErr), "install repository package failed")
 	}
 	return nil
+}
+
+func RecoverRepository(runtime connector.Runtime, repo repository.Interface) {
+	_ = repo.Reset()
+	mountPath := filepath.Join(common.TmpDir, "iso")
+	umountCmd := fmt.Sprintf("umount %s", mountPath)
+	_, _ = runtime.GetRunner().SudoCmd(umountCmd, false)
 }
 
 type ResetRepository struct {
@@ -435,8 +457,17 @@ func (r *ResetRepository) Execute(runtime connector.Runtime) error {
 	}
 	re := repo.(repository.Interface)
 
-	if err := re.Reset(); err != nil {
-		return errors.Wrap(errors.WithStack(err), "reset repository failed")
+	var resetErr error
+	defer func() {
+		if resetErr != nil {
+			mountPath := filepath.Join(common.TmpDir, "iso")
+			umountCmd := fmt.Sprintf("umount %s", mountPath)
+			_, _ = runtime.GetRunner().SudoCmd(umountCmd, false)
+		}
+	}()
+
+	if resetErr = re.Reset(); resetErr != nil {
+		return errors.Wrap(errors.WithStack(resetErr), "reset repository failed")
 	}
 
 	return nil

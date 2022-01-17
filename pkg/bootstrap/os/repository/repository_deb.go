@@ -34,7 +34,11 @@ func NewDeb(runtime connector.Runtime) Interface {
 }
 
 func (d *Debian) Backup() error {
-	if _, err := d.runtime.GetRunner().SudoCmd("cp -r /etc/apt/sources.list.d /etc/apt/sources.list.d.kubekey.bak", false); err != nil {
+	if _, err := d.runtime.GetRunner().SudoCmd("mkdir -p /etc/apt/sources.list.d.kubekey.bak/", false); err != nil {
+		return err
+	}
+
+	if _, err := d.runtime.GetRunner().SudoCmd("cp -r /etc/apt/sources.list.d/* /etc/apt/sources.list.d.kubekey.bak/", false); err != nil {
 		return err
 	}
 	d.backup = true
@@ -93,8 +97,5 @@ func (d *Debian) Reset() error {
 		return err
 	}
 
-	if err := d.Update(); err != nil {
-		return err
-	}
 	return nil
 }
