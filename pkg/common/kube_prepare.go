@@ -29,11 +29,10 @@ type KubePrepare struct {
 func (k *KubePrepare) AutoAssert(runtime connector.Runtime) {
 	kubeRuntime := runtime.(*KubeRuntime)
 	conf := &KubeConf{
-		ClusterHosts: kubeRuntime.ClusterHosts,
-		Cluster:      kubeRuntime.Cluster,
-		Kubeconfig:   kubeRuntime.Kubeconfig,
-		ClientSet:    kubeRuntime.ClientSet,
-		Arg:          kubeRuntime.Arg,
+		Cluster:    kubeRuntime.Cluster,
+		Kubeconfig: kubeRuntime.Kubeconfig,
+		ClientSet:  kubeRuntime.ClientSet,
+		Arg:        kubeRuntime.Arg,
 	}
 
 	k.KubeConf = conf

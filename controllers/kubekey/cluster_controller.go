@@ -255,7 +255,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		for _, node := range nodeList.Items {
 			currentNodes[node.Name] = node.Name
 		}
-		for _, etcd := range cluster.Spec.RoleGroups.Etcd {
+		for _, etcd := range cluster.Spec.RoleGroups["etcd"] {
 			if _, ok := currentNodes[etcd]; !ok {
 				currentNodes[etcd] = etcd
 			}
@@ -296,10 +296,10 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		cluster.Spec.Hosts = newHosts
-		cluster.Spec.RoleGroups = kubekeyv1alpha2.RoleGroups{
-			Etcd:   newEtcd,
-			Master: newMaster,
-			Worker: newWorker,
+		cluster.Spec.RoleGroups = map[string][]string{
+			"master": newMaster,
+			"etcd":   newEtcd,
+			"worker": newWorker,
 		}
 
 		if err := r.Update(ctx, cluster); err != nil {
@@ -770,7 +770,7 @@ func currentClusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1a
 		}
 	} else {
 		if kubeErr.IsNotFound(err) {
-			for _, etcdHostName := range c.Spec.RoleGroups.Etcd {
+			for _, etcdHostName := range c.Spec.RoleGroups["etcd"] {
 				etcdSpecMap[etcdHostName] = true
 			}
 		} else {
@@ -946,7 +946,7 @@ func otherClusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alp
 		}
 	} else {
 		if kubeErr.IsNotFound(err) {
-			for _, etcdHostName := range c.Spec.RoleGroups.Etcd {
+			for _, etcdHostName := range c.Spec.RoleGroups["etcd"] {
 				etcdSpecMap[etcdHostName] = true
 			}
 		} else {
@@ -956,6 +956,7 @@ func otherClusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alp
 
 	// add etcd node info to current hosts map
 	for _, host := range allSpecHostsMap {
+
 		_, nameOk := etcdSpecMap[host.Name]
 		_, ipOk := etcdSpecMap[host.Address]
 		if !nameOk && !ipOk {

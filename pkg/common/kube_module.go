@@ -43,12 +43,11 @@ func (k *KubeModule) IsSkip() bool {
 func (k *KubeModule) AutoAssert() {
 	kubeRuntime := k.Runtime.(*KubeRuntime)
 	conf := &KubeConf{
-		ClusterHosts: kubeRuntime.ClusterHosts,
-		ClusterName:  kubeRuntime.ClusterName,
-		Cluster:      kubeRuntime.Cluster,
-		Kubeconfig:   kubeRuntime.Kubeconfig,
-		ClientSet:    kubeRuntime.ClientSet,
-		Arg:          kubeRuntime.Arg,
+		ClusterName: kubeRuntime.ClusterName,
+		Cluster:     kubeRuntime.Cluster,
+		Kubeconfig:  kubeRuntime.Kubeconfig,
+		ClientSet:   kubeRuntime.ClientSet,
+		Arg:         kubeRuntime.Arg,
 	}
 
 	k.KubeConf = conf
@@ -62,12 +61,11 @@ type KubeCustomModule struct {
 func (k *KubeCustomModule) AutoAssert() {
 	kubeRuntime := k.Runtime.(*KubeRuntime)
 	conf := &KubeConf{
-		ClusterHosts: kubeRuntime.ClusterHosts,
-		ClusterName:  kubeRuntime.ClusterName,
-		Cluster:      kubeRuntime.Cluster,
-		Kubeconfig:   kubeRuntime.Kubeconfig,
-		ClientSet:    kubeRuntime.ClientSet,
-		Arg:          kubeRuntime.Arg,
+		ClusterName: kubeRuntime.ClusterName,
+		Cluster:     kubeRuntime.Cluster,
+		Kubeconfig:  kubeRuntime.Kubeconfig,
+		ClientSet:   kubeRuntime.ClientSet,
+		Arg:         kubeRuntime.Arg,
 	}
 
 	k.KubeConf = conf
