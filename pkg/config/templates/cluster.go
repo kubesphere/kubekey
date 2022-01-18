@@ -32,19 +32,19 @@ metadata:
   name: {{ .Options.Name }}
 spec:
   hosts:
-  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: Qcloud@123}
-  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, user: ubuntu, password: Qcloud@123}
+  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, user: ubuntu, password: "Qcloud@123"}
+  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, user: ubuntu, password: "Qcloud@123"}
   roleGroups:
     etcd:
     - node1
-    master: 
+    control-plane: 
     - node1
     worker:
     - node1
     - node2
   controlPlaneEndpoint:
     ## Internal loadbalancer for apiservers 
-    #internalLoadbalancer: haproxy
+    # internalLoadbalancer: haproxy
 
     domain: lb.kubesphere.local
     address: ""

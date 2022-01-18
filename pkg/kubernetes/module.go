@@ -228,8 +228,8 @@ func (j *JoinNodesModule) Init() {
 	}
 
 	joinMasterNode := &task.RemoteTask{
-		Name:  "JoinMasterNode",
-		Desc:  "Join master node",
+		Name:  "JoinControlPlaneNode",
+		Desc:  "Join control-plane node",
 		Hosts: j.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
 			&NodeInCluster{Not: true},
