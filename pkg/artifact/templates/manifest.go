@@ -40,7 +40,7 @@ spec:
   - arch: {{ $v.Arch }}
     type: {{ $v.Type }}
     id: {{ $v.Id }}
-    version: {{ $v.Version }}
+    version: "{{ $v.Version }}"
     osImage: {{ $v.OsImage }}
     repository:
       iso:
@@ -69,16 +69,18 @@ spec:
     crictl: 
       version: {{ .Options.Components.Crictl.Version }}
     ## 
-    #docker-registry:
-    #  version: 2
-    #harbor:
-    #  version: v2.4.1
-    #docker-compose:
-    #  version: v2.2.2
+    # docker-registry:
+    #   version: "2"
+    # harbor:
+    #   version: v2.4.1
+    # docker-compose:
+    #   version: v2.2.2
   images:
   {{- range .Options.Images }}
   - {{ . }}
   {{- end }}
+  registry:
+    auth: {}
 
     `)))
 
