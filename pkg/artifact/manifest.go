@@ -28,6 +28,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os"
 	"sort"
@@ -51,7 +52,6 @@ func CreateManifest(arg common.Argument, name string) error {
 
 	archSet := mapset.NewThreadUnsafeSet()
 	containerSet := mapset.NewThreadUnsafeSet()
-	imagesSet := mapset.NewThreadUnsafeSet()
 	osSet := mapset.NewThreadUnsafeSet()
 
 	maxKubeletVersion := versionutil.MustParseGeneric("v0.0.0")
@@ -65,22 +65,6 @@ func CreateManifest(arg common.Argument, name string) error {
 		containerSet.Add(containerRuntime)
 
 		archSet.Add(node.Status.NodeInfo.Architecture)
-		for _, image := range node.Status.Images {
-			for _, name := range image.Names {
-				if !strings.Contains(name, "@sha256") {
-					if containerRuntime.Type == kubekeyv1alpha2.Docker {
-						arr := strings.Split(name, "/")
-						switch len(arr) {
-						case 1:
-							name = fmt.Sprintf("docker.io/library/%s", name)
-						case 2:
-							name = fmt.Sprintf("docker.io/%s", name)
-						}
-					}
-					imagesSet.Add(name)
-				}
-			}
-		}
 
 		// todo: for now, the cases only have ubuntu, centos. Ant it need to check all linux distribution.
 		var (
@@ -121,6 +105,37 @@ func CreateManifest(arg common.Argument, name string) error {
 			kubernetesDistribution.Type = distribution
 		}
 
+	}
+
+	pods, err := client.CoreV1().Pods(corev1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	imagesSet := mapset.NewThreadUnsafeSet()
+	for _, pod := range pods.Items {
+		for _, initContainer := range pod.Spec.InitContainers {
+			imageName := initContainer.Image
+			arr := strings.Split(imageName, "/")
+			switch len(arr) {
+			case 1:
+				imageName = fmt.Sprintf("docker.io/library/%s", imageName)
+			case 2:
+				imageName = fmt.Sprintf("docker.io/%s", imageName)
+			}
+			imagesSet.Add(imageName)
+		}
+		for _, container := range pod.Spec.Containers {
+			imageName := container.Image
+			arr := strings.Split(imageName, "/")
+			switch len(arr) {
+			case 1:
+				imageName = fmt.Sprintf("docker.io/library/%s", imageName)
+			case 2:
+				imageName = fmt.Sprintf("docker.io/%s", imageName)
+			}
+			imagesSet.Add(imageName)
+		}
 	}
 
 	archArr := make([]string, 0, archSet.Cardinality())
