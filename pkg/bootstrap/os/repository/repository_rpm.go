@@ -34,7 +34,11 @@ func NewRPM(runtime connector.Runtime) Interface {
 }
 
 func (r *RedhatPackageManager) Backup() error {
-	if _, err := r.runtime.GetRunner().SudoCmd("mv /etc/yum.repos.d /etc/yum.repos.d.kubekey.bak", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("mkdir -p /etc/yum.repos.d.kubekey.bak", false); err != nil {
+		return err
+	}
+
+	if _, err := r.runtime.GetRunner().SudoCmd("cp -r /etc/yum.repos.d/* /etc/yum.repos.d.kubekey.bak/", false); err != nil {
 		return err
 	}
 	r.backup = true
@@ -50,7 +54,7 @@ func (r *RedhatPackageManager) Add(path string) error {
 		return fmt.Errorf("linux repository must be backuped before")
 	}
 
-	if _, err := r.runtime.GetRunner().SudoCmd("mkdir /etc/yum.repos.d", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("rm -rf /etc/yum.repos.d/*", false); err != nil {
 		return err
 	}
 
@@ -82,7 +86,7 @@ func (r *RedhatPackageManager) Update() error {
 
 func (r *RedhatPackageManager) Install(pkg ...string) error {
 	if len(pkg) == 0 {
-		pkg = []string{"yum-utils", "openssl", "socat", "conntrack", "ipset", "ebtables", "chrony"}
+		pkg = []string{"openssl", "socat", "conntrack", "ipset", "ebtables", "chrony"}
 	}
 
 	str := strings.Join(pkg, " ")
@@ -93,15 +97,15 @@ func (r *RedhatPackageManager) Install(pkg ...string) error {
 }
 
 func (r *RedhatPackageManager) Reset() error {
-	if _, err := r.runtime.GetRunner().SudoCmd("rm -rf /etc/yum.repos.d", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("rm -rf /etc/yum.repos.d/CentOS-local.repo", false); err != nil {
 		return err
 	}
 
-	if _, err := r.runtime.GetRunner().SudoCmd("mv /etc/yum.repos.d.kubekey.bak /etc/yum.repos.d", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("cp -r /etc/yum.repos.d.kubekey.bak/* /etc/yum.repos.d/", false); err != nil {
 		return err
 	}
 
-	if err := r.Update(); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("rm -rf /etc/yum.repos.d.kubekey.bak", false); err != nil {
 		return err
 	}
 	return nil

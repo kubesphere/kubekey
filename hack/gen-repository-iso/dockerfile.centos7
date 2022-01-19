@@ -1,0 +1,15 @@
+FROM centos:centos7
+
+WORKDIR package
+
+ENV DIR=centos-7-amd64-rpms
+ENV DOCKERVERSION=20.10.8
+
+RUN mkdir ${DIR} && cd ${DIR} && \
+    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
+    yumdownloader --resolve --destdir ./ docker-ce-${DOCKERVERSION} docker-ce-cli-${DOCKERVERSION} containerd.io \
+        nss nss-sysinit nss-tools lz4 chrony bind-utils nfs-utils net-tools ipvsadm ceph-common glusterfs-fuse yum-utils \
+        curl openssl socat conntrack ebtables ipset telnet lvm2 keepalived haproxy psmisc tcpdump && \
+        yum install createrepo mkisofs -y && createrepo ./
+
+RUN  mkisofs -r -o ${DIR}.iso ${DIR}
