@@ -55,12 +55,12 @@ func (p *Pipeline) Init() error {
 	fmt.Print(logo)
 	p.PipelineCache = cache.NewCache()
 	p.SpecHosts = len(p.Runtime.GetAllHosts())
-	if err := p.Runtime.GenerateWorkDir(); err != nil {
-		return err
-	}
-	if err := p.Runtime.InitLogger(); err != nil {
-		return err
-	}
+	//if err := p.Runtime.GenerateWorkDir(); err != nil {
+	//	return err
+	//}
+	//if err := p.Runtime.InitLogger(); err != nil {
+	//	return err
+	//}
 	return nil
 }
 

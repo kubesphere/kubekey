@@ -17,6 +17,7 @@
 package connector
 
 import (
+	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/common"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
@@ -38,7 +39,7 @@ type BaseRuntime struct {
 }
 
 func NewBaseRuntime(name string, connector Connector, verbose bool, ignoreErr bool) BaseRuntime {
-	return BaseRuntime{
+	base := BaseRuntime{
 		ObjName:         name,
 		connector:       connector,
 		verbose:         verbose,
@@ -47,6 +48,15 @@ func NewBaseRuntime(name string, connector Connector, verbose bool, ignoreErr bo
 		roleHosts:       make(map[string][]Host),
 		deprecatedHosts: make(map[string]string),
 	}
+	if err := base.GenerateWorkDir(); err != nil {
+		fmt.Printf("[ERRO]: Failed to create KubeKey work dir: %s\n", err)
+		os.Exit(1)
+	}
+	if err := base.InitLogger(); err != nil {
+		fmt.Printf("[ERRO]: Failed to init KubeKey log entry: %s\n", err)
+		os.Exit(1)
+	}
+	return base
 }
 
 func (b *BaseRuntime) GetObjName() string {
