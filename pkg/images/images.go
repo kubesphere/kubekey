@@ -175,10 +175,11 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 		pushCmd = fmt.Sprintf("%s --user %s:%s", pushCmd, auth.Username, auth.Password)
 	}
 
+	logger.Log.Debugf("push command: %s", pushCmd)
 	if out, err := exec.Command("/bin/bash", "-c", pushCmd).CombinedOutput(); err != nil {
 		return errors.Wrapf(err, "push image %s failed: %s", oldName, out)
 	}
 
-	logger.Log.Messagef(common.LocalHost, "Push %s success", image.ImageName())
+	fmt.Printf("push %s success \n", image.ImageName())
 	return nil
 }

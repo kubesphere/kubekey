@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -94,6 +95,10 @@ type Components struct {
 	DockerCompose     DockerCompose      `yaml:"docker-compose" json:"docker-compose"`
 }
 
+type ManifestRegistry struct {
+	Auths runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
+}
+
 // ManifestSpec defines the desired state of Manifest
 type ManifestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -104,6 +109,7 @@ type ManifestSpec struct {
 	KubernetesDistributions []KubernetesDistribution `yaml:"kubernetesDistributions" json:"kubernetesDistributions"`
 	Components              Components               `yaml:"components" json:"components"`
 	Images                  []string                 `yaml:"images" json:"images"`
+	ManifestRegistry        ManifestRegistry         `yaml:"registry" json:"registry"`
 }
 
 // ManifestStatus defines the observed state of Manifest

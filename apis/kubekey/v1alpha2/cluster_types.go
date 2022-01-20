@@ -196,7 +196,7 @@ type RegistryConfig struct {
 	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
 	PlainHTTP          bool                 `yaml:"plainHTTP" json:"plainHTTP,omitempty"`
-	Auths              runtime.RawExtension `yaml:"Auths" json:"Auths,omitempty"`
+	Auths              runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
 }
 
 // KubeSphere defines the configuration information of the KubeSphere.
