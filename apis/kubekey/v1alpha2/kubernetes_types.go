@@ -37,8 +37,8 @@ type Kubernetes struct {
 	EtcdBackupScriptDir      string               `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
 	ContainerManager         string               `yaml:"containerManager" json:"containerManager,omitempty"`
 	ContainerRuntimeEndpoint string               `yaml:"containerRuntimeEndpoint" json:"containerRuntimeEndpoint,omitempty"`
-	NodeFeatureDiscovery     Kata                 `yaml:"nodeFeatureDiscovery" json:"nodeFeatureDiscovery,omitempty"`
-	Kata                     NodeFeatureDiscovery `yaml:"kata" json:"kata,omitempty"`
+	NodeFeatureDiscovery     NodeFeatureDiscovery `yaml:"nodeFeatureDiscovery" json:"nodeFeatureDiscovery,omitempty"`
+	Kata                     Kata                 `yaml:"kata" json:"kata,omitempty"`
 	ApiServerArgs            []string             `yaml:"apiserverArgs" json:"apiserverArgs,omitempty"`
 	ControllerManagerArgs    []string             `yaml:"controllerManagerArgs" json:"controllerManagerArgs,omitempty"`
 	SchedulerArgs            []string             `yaml:"schedulerArgs" json:"schedulerArgs,omitempty"`

@@ -20,10 +20,10 @@ type NetworkConfig struct {
 	Plugin          string     `yaml:"plugin" json:"plugin,omitempty"`
 	KubePodsCIDR    string     `yaml:"kubePodsCIDR" json:"kubePodsCIDR,omitempty"`
 	KubeServiceCIDR string     `yaml:"kubeServiceCIDR" json:"kubeServiceCIDR,omitempty"`
-	EnableMultusCNI bool       `yaml:"enableMultusCNI" json:"enableMultusCNI,omitempty"`
 	Calico          CalicoCfg  `yaml:"calico" json:"calico,omitempty"`
 	Flannel         FlannelCfg `yaml:"flannel" json:"flannel,omitempty"`
 	Kubeovn         KubeovnCfg `yaml:"kubeovn" json:"kubeovn,omitempty"`
+	MultusCNI       MultusCNI  `yaml:"multusCNI" json:"multusCNI,omitempty"`
 }
 
 type CalicoCfg struct {
@@ -51,4 +51,15 @@ type KubeovnCfg struct {
 	DpdkVersion           string `yaml:"dpdkVersion" json:"dpdkVersion,omitempty"`
 	PingerExternalAddress string `yaml:"pingerExternalAddress" json:"pingerExternalAddress,omitempty"`
 	PingerExternalDomain  string `yaml:"pingerExternalDomain" json:"pingerExternalDomain,omitempty"`
+}
+
+type MultusCNI struct {
+	Enabled *bool `yaml:"enabled" json:"enabled,omitempty"`
+}
+
+func (n *NetworkConfig) EnableMultusCNI() bool {
+	if n.MultusCNI.Enabled == nil {
+		return false
+	}
+	return *n.MultusCNI.Enabled
 }
