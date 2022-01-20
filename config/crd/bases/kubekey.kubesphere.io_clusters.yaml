@@ -616,25 +616,10 @@ spec:
                     type: string
                 type: object
               roleGroups:
-                description: RoleGroups defines the grouping of role for hosts (etcd
-                  / master / worker / registry).
-                properties:
-                  etcd:
-                    items:
-                      type: string
-                    type: array
-                  master:
-                    items:
-                      type: string
-                    type: array
-                  registry:
-                    items:
-                      type: string
-                    type: array
-                  worker:
-                    items:
-                      type: string
-                    type: array
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
                 type: object
               system:
                 description: System defines the system config for each node in cluster.
