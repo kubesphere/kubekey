@@ -17,11 +17,12 @@
 package common
 
 import (
+	"encoding/json"
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"path/filepath"
 )
 
@@ -56,9 +57,14 @@ func NewArtifactRuntime(arg ArtifactArgument) (*ArtifactRuntime, error) {
 		return nil, errors.Wrapf(err, "Failed to read file %s", fp)
 	}
 
+	contentToJson, err := k8syaml.ToJSON(fileByte)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to convert configuration to json")
+	}
+
 	manifest := &kubekeyv1alpha2.Manifest{}
-	if err := yaml.Unmarshal(fileByte, manifest); err != nil {
-		return nil, errors.Wrapf(err, "Failed to yaml unmarshal")
+	if err := json.Unmarshal(contentToJson, manifest); err != nil {
+		return nil, errors.Wrapf(err, "Failed to json unmarshal")
 	}
 
 	r := &ArtifactRuntime{
