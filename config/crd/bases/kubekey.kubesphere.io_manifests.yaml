@@ -164,12 +164,18 @@ spec:
                   - version
                   type: object
                 type: array
+              registry:
+                properties:
+                  auths:
+                    type: object
+                type: object
             required:
             - arches
             - components
             - images
             - kubernetesDistributions
             - operationSystems
+            - registry
             type: object
           status:
             description: ManifestStatus defines the observed state of Manifest

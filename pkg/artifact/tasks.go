@@ -25,6 +25,7 @@ import (
 	"github.com/containerd/containerd/images/archive"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/containerd/remotes"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
@@ -62,9 +63,17 @@ func (p *PullImages) Execute(_ connector.Runtime) error {
 	if !ok {
 		return errors.New("get containerd client failed by pipeline client")
 	}
-	client := c.(*containerd.Client)
 
+	client := c.(*containerd.Client)
 	ctx := namespaces.WithNamespace(context.Background(), "kubekey")
+
+	// k: registry name "registry-1.docker.io", v: registryAuth
+	auths := Auths(p.Manifest)
+	resolvers := make(map[string]remotes.Resolver)
+	for repo, auth := range auths {
+		resolvers[repo] = GetResolver(ctx, auth)
+	}
+
 	for _, image := range p.Manifest.Spec.Images {
 		progress := make(chan struct{})
 		lctx, done, err := client.WithLease(ctx)
@@ -89,9 +98,14 @@ func (p *PullImages) Execute(_ connector.Runtime) error {
 		})
 
 		opts := []containerd.RemoteOpt{
-			containerd.WithResolver(GetResolver(ctx)),
 			containerd.WithImageHandler(h),
 			containerd.WithSchema1Conversion,
+		}
+
+		if resolver, ok := resolvers[strings.Split(image, "/")[0]]; ok {
+			opts = append(opts, containerd.WithResolver(resolver))
+		} else {
+			opts = append(opts, containerd.WithResolver(GetResolver(ctx, registryAuth{})))
 		}
 
 		for _, arch := range p.Manifest.Spec.Arches {
@@ -106,7 +120,6 @@ func (p *PullImages) Execute(_ connector.Runtime) error {
 		}
 
 		<-progress
-		//todo: Whether it need to be unpack?
 	}
 
 	return nil
