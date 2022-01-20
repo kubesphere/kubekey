@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"strings"
@@ -63,8 +64,10 @@ const (
 	DefaultIsulaEndpoint        = "unix:///var/run/isulad.sock"
 	Etcd                        = "etcd"
 	Master                      = "master"
+	ControlPlane                = "control-plane"
 	Worker                      = "worker"
 	K8s                         = "k8s"
+	Registry                    = "registry"
 	DefaultEtcdBackupDir        = "/var/backups/kube_etcd"
 	DefaultEtcdBackupPeriod     = 30
 	DefaultKeepBackNumber       = 5
@@ -84,16 +87,16 @@ const (
 	Haproxy = "haproxy"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *HostGroups, error) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map[string][]*connector.BaseHost, error) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
-	hostGroups, err := clusterCfg.GroupHosts()
+	roleGroups, err := clusterCfg.GroupHosts()
 	if err != nil {
 		return nil, nil, err
 	}
-	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, hostGroups.Master, incluster)
+	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, roleGroups[Master], incluster)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.System = cfg.System
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
@@ -116,7 +119,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, *Ho
 	if cfg.Kubernetes.ProxyMode == "" {
 		clusterCfg.Kubernetes.ProxyMode = DefaultProxyMode
 	}
-	return &clusterCfg, hostGroups, nil
+	return &clusterCfg, roleGroups, nil
 }
 
 func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
@@ -155,7 +158,7 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 	return hostCfg
 }
 
-func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []HostCfg, incluster bool) ControlPlaneEndpoint {
+func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*connector.BaseHost, incluster bool) ControlPlaneEndpoint {
 	if !incluster {
 		//The detection is not an HA environment, and the address at LB does not need input
 		if len(masterGroup) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
