@@ -1,5 +1,5 @@
 /*
- Copyright 2021 The KubeSphere Authors.
+ Copyright 2022 The KubeSphere Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  limitations under the License.
 */
 
-package task
+package rollback
 
 import (
 	"github.com/kubesphere/kubekey/pkg/core/cache"
@@ -22,9 +22,20 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/ending"
 )
 
-type Interface interface {
-	GetDesc() string
-	Init(runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache)
-	Execute() *ending.TaskResult
-	ExecuteRollback()
+type BaseRollback struct {
+	ModuleCache   *cache.Cache
+	PipelineCache *cache.Cache
+}
+
+func (b *BaseRollback) Init(moduleCache *cache.Cache, pipelineCache *cache.Cache) {
+	b.ModuleCache = moduleCache
+	b.PipelineCache = pipelineCache
+}
+
+func (b *BaseRollback) Execute(runtime connector.Runtime, result *ending.ActionResult) error {
+	return nil
+}
+
+func (b *BaseRollback) AutoAssert(runtime connector.Runtime) {
+
 }

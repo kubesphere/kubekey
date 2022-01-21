@@ -34,11 +34,11 @@ func NewRPM(runtime connector.Runtime) Interface {
 }
 
 func (r *RedhatPackageManager) Backup() error {
-	if _, err := r.runtime.GetRunner().SudoCmd("mkdir -p /etc/yum.repos.d.kubekey.bak", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("mv /etc/yum.repos.d /etc/yum.repos.d.kubekey.bak", false); err != nil {
 		return err
 	}
 
-	if _, err := r.runtime.GetRunner().SudoCmd("cp -r /etc/yum.repos.d/* /etc/yum.repos.d.kubekey.bak/", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("mkdir -p /etc/yum.repos.d", false); err != nil {
 		return err
 	}
 	r.backup = true
@@ -97,16 +97,13 @@ func (r *RedhatPackageManager) Install(pkg ...string) error {
 }
 
 func (r *RedhatPackageManager) Reset() error {
-	if _, err := r.runtime.GetRunner().SudoCmd("rm -rf /etc/yum.repos.d/CentOS-local.repo", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("rm -rf /etc/yum.repos.d", false); err != nil {
 		return err
 	}
 
-	if _, err := r.runtime.GetRunner().SudoCmd("cp -r /etc/yum.repos.d.kubekey.bak/* /etc/yum.repos.d/", false); err != nil {
+	if _, err := r.runtime.GetRunner().SudoCmd("mv /etc/yum.repos.d.kubekey.bak /etc/yum.repos.d", false); err != nil {
 		return err
 	}
 
-	if _, err := r.runtime.GetRunner().SudoCmd("rm -rf /etc/yum.repos.d.kubekey.bak", false); err != nil {
-		return err
-	}
 	return nil
 }

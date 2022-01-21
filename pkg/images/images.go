@@ -177,7 +177,7 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 
 	logger.Log.Debugf("push command: %s", pushCmd)
 	if out, err := exec.Command("/bin/bash", "-c", pushCmd).CombinedOutput(); err != nil {
-		return errors.Wrapf(err, "push image %s failed: %s", oldName, out)
+		return errors.Wrapf(err, "push image %s failed: %s", image.ImageName(), out)
 	}
 
 	fmt.Printf("push %s success \n", image.ImageName())
