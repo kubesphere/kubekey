@@ -50,7 +50,7 @@ func (d *DeployNetworkPluginModule) Init() {
 	default:
 		return
 	}
-	if d.KubeConf.Cluster.Network.EnableMultusCNI {
+	if d.KubeConf.Cluster.Network.EnableMultusCNI() {
 		d.Tasks = append(d.Tasks, deployMultus(d)...)
 	}
 }
