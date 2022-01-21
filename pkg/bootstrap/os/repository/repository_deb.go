@@ -34,11 +34,15 @@ func NewDeb(runtime connector.Runtime) Interface {
 }
 
 func (d *Debian) Backup() error {
-	if _, err := d.runtime.GetRunner().SudoCmd("mkdir -p /etc/apt/sources.list.d.kubekey.bak/", false); err != nil {
+	if _, err := d.runtime.GetRunner().SudoCmd("mv /etc/apt/sources.list /etc/apt/sources.list.kubekey.bak", false); err != nil {
 		return err
 	}
 
-	if _, err := d.runtime.GetRunner().SudoCmd("cp -r /etc/apt/sources.list.d/* /etc/apt/sources.list.d.kubekey.bak/", false); err != nil {
+	if _, err := d.runtime.GetRunner().SudoCmd("mv /etc/apt/sources.list.d /etc/apt/sources.list.d.kubekey.bak", false); err != nil {
+		return err
+	}
+
+	if _, err := d.runtime.GetRunner().SudoCmd("mkdir -p /etc/apt/sources.list.d", false); err != nil {
 		return err
 	}
 	d.backup = true
@@ -66,7 +70,7 @@ func (d *Debian) Add(path string) error {
 }
 
 func (d *Debian) Update() error {
-	if _, err := d.runtime.GetRunner().SudoCmd("apt-get update && apt-get upgrade -y", true); err != nil {
+	if _, err := d.runtime.GetRunner().Cmd("sudo apt-get update", true); err != nil {
 		return err
 	}
 	return nil
@@ -85,15 +89,15 @@ func (d *Debian) Install(pkg ...string) error {
 }
 
 func (d *Debian) Reset() error {
-	if _, err := d.runtime.GetRunner().SudoCmd("rm -f /etc/apt/sources.list.d/kubekey.list", false); err != nil {
+	if _, err := d.runtime.GetRunner().SudoCmd("rm -rf /etc/apt/sources.list.d", false); err != nil {
 		return err
 	}
 
-	if _, err := d.runtime.GetRunner().SudoCmd("cp -r /etc/apt/sources.list.d.kubekey.bak/* /etc/apt/sources.list.d/", false); err != nil {
+	if _, err := d.runtime.GetRunner().SudoCmd("mv /etc/apt/sources.list.kubekey.bak /etc/apt/sources.list", false); err != nil {
 		return err
 	}
 
-	if _, err := d.runtime.GetRunner().SudoCmd("rm -rf /etc/apt/sources.list.d.kubekey.bak", false); err != nil {
+	if _, err := d.runtime.GetRunner().SudoCmd("mv /etc/apt/sources.list.d.kubekey.bak /etc/apt/sources.list.d", false); err != nil {
 		return err
 	}
 

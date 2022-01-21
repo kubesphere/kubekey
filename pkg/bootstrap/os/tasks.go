@@ -374,11 +374,11 @@ func (m *MountISO) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type AddLocalRepository struct {
+type BackupOriginalRepository struct {
 	common.KubeAction
 }
 
-func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
+func (b *BackupOriginalRepository) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
 	release, ok := host.GetCache().Get(Release)
 	if !ok {
@@ -395,21 +395,29 @@ func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), "backup repository failed")
 	}
 
-	var installErr error
-	defer func() {
-		if installErr != nil {
-			RecoverRepository(runtime, repo)
-		}
-	}()
+	host.GetCache().Set("repo", repo)
+	return nil
+}
 
-	if installErr = repo.Add(filepath.Join(common.TmpDir, "iso")); installErr != nil {
+type AddLocalRepository struct {
+	common.KubeAction
+}
+
+func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	r, ok := host.GetCache().Get("repo")
+	if !ok {
+		return errors.New("get repo failed by host cache")
+	}
+	repo := r.(repository.Interface)
+
+	if installErr := repo.Add(filepath.Join(common.TmpDir, "iso")); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "add local repository failed")
 	}
-	if installErr = repo.Update(); installErr != nil {
+	if installErr := repo.Update(); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "update local repository failed")
 	}
 
-	host.GetCache().Set("repo", repo)
 	return nil
 }
 
@@ -425,24 +433,10 @@ func (i *InstallPackage) Execute(runtime connector.Runtime) error {
 	}
 	r := repo.(repository.Interface)
 
-	var installErr error
-	defer func() {
-		if installErr != nil {
-			RecoverRepository(runtime, r)
-		}
-	}()
-
-	if installErr = r.Install(); installErr != nil {
+	if installErr := r.Install(); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "install repository package failed")
 	}
 	return nil
-}
-
-func RecoverRepository(runtime connector.Runtime, repo repository.Interface) {
-	_ = repo.Reset()
-	mountPath := filepath.Join(common.TmpDir, "iso")
-	umountCmd := fmt.Sprintf("umount %s", mountPath)
-	_, _ = runtime.GetRunner().SudoCmd(umountCmd, false)
 }
 
 type ResetRepository struct {

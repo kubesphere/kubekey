@@ -198,6 +198,7 @@ func (r *RepositoryModule) Init() {
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(SyncRepositoryFile),
 		Parallel: true,
+		Retry:    2,
 	}
 
 	mount := &task.RemoteTask{
@@ -209,14 +210,24 @@ func (r *RepositoryModule) Init() {
 		Retry:    1,
 	}
 
+	backup := &task.RemoteTask{
+		Name:     "BackupOriginalRepository",
+		Desc:     "Backup original repository",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(BackupOriginalRepository),
+		Parallel: true,
+		Retry:    1,
+		Rollback: new(RollbackUmount),
+	}
+
 	add := &task.RemoteTask{
 		Name:     "AddLocalRepository",
 		Desc:     "Add local repository",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(AddLocalRepository),
 		Parallel: true,
-		// the action have a defer function to reset the os repository, so the task can't retry.
-		Retry: 1,
+		Retry:    1,
+		Rollback: new(RecoverRepository),
 	}
 
 	install := &task.RemoteTask{
@@ -226,6 +237,7 @@ func (r *RepositoryModule) Init() {
 		Action:   new(InstallPackage),
 		Parallel: true,
 		Retry:    1,
+		Rollback: new(RecoverRepository),
 	}
 
 	reset := &task.RemoteTask{
@@ -249,6 +261,7 @@ func (r *RepositoryModule) Init() {
 		getOSData,
 		sync,
 		mount,
+		backup,
 		add,
 		install,
 		reset,
