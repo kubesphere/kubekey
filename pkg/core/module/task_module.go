@@ -68,6 +68,7 @@ func (b *BaseTaskModule) Run(result *ending.ModuleResult) {
 		}
 
 		if res.IsFailed() {
+			t.ExecuteRollback()
 			result.ErrResult(errors.Wrapf(res.CombineErr(), "Module[%s] exec failed", b.Name))
 			return
 		}
