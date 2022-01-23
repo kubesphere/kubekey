@@ -61,14 +61,15 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 	if err != nil {
 		return nil, err
 	}
-	clusterSpec := &cluster.Spec
 
+	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), arg.Debug, arg.IgnoreErr)
+
+	clusterSpec := &cluster.Spec
 	defaultCluster, roleGroups, err := clusterSpec.SetDefaultClusterSpec(arg.InCluster)
 	if err != nil {
 		return nil, err
 	}
 
-	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), arg.Debug, arg.IgnoreErr)
 	hostSet := make(map[string]struct{})
 	for _, role := range roleGroups {
 		for _, host := range role {
