@@ -1,5 +1,5 @@
 /*
- Copyright 2021 The KubeSphere Authors.
+ Copyright 2022 The KubeSphere Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -14,17 +14,27 @@
  limitations under the License.
 */
 
-package task
+package common
 
 import (
-	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/ending"
+	"github.com/kubesphere/kubekey/pkg/core/rollback"
 )
 
-type Interface interface {
-	GetDesc() string
-	Init(runtime connector.Runtime, moduleCache *cache.Cache, pipelineCache *cache.Cache)
-	Execute() *ending.TaskResult
-	ExecuteRollback()
+type KubeRollback struct {
+	rollback.BaseRollback
+	KubeConf *KubeConf
+}
+
+func (k *KubeRollback) AutoAssert(runtime connector.Runtime) {
+	kubeRuntime := runtime.(*KubeRuntime)
+	conf := &KubeConf{
+		Cluster:     kubeRuntime.Cluster,
+		ClusterName: kubeRuntime.ClusterName,
+		Kubeconfig:  kubeRuntime.Kubeconfig,
+		ClientSet:   kubeRuntime.ClientSet,
+		Arg:         kubeRuntime.Arg,
+	}
+
+	k.KubeConf = conf
 }
