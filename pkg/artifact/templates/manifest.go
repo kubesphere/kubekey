@@ -44,8 +44,8 @@ spec:
     osImage: {{ $v.OsImage }}
     repository:
       iso:
-        localPath: {{ $v.Repository.Iso.LocalPath }}
-        url: {{ $v.Repository.Iso.Url }}
+        localPath: 
+        url: 
   {{- end }}
   kubernetesDistributions:
   {{- range $i, $v := .Options.KubernetesDistributions }}
