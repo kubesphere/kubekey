@@ -147,9 +147,15 @@ func (p *PushImage) Execute(runtime connector.Runtime) error {
 	}
 
 	for _, file := range files {
-		name := file.Name()
-		if err := CmdPush(name, imagesPath, p.KubeConf, arches); err != nil {
-			return err
+		for i := 5; i > 0; i-- {
+			name := file.Name()
+			if err := CmdPush(name, imagesPath, p.KubeConf, arches); err != nil {
+				if i == 1 {
+					return err
+				}
+				continue
+			}
+			break
 		}
 	}
 	return nil

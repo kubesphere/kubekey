@@ -25,13 +25,13 @@ import (
 )
 
 type AddNodesOptions struct {
-	CommonOptions       *options.CommonOptions
-	ClusterCfgFile      string
-	SkipPullImages      bool
-	ContainerManager    string
-	DownloadCmd         string
-	Artifact            string
-	SkipInstallPackages bool
+	CommonOptions    *options.CommonOptions
+	ClusterCfgFile   string
+	SkipPullImages   bool
+	ContainerManager string
+	DownloadCmd      string
+	Artifact         string
+	InstallPackages  bool
 }
 
 func NewAddNodesOptions() *AddNodesOptions {
@@ -59,23 +59,23 @@ func NewCmdAddNodes() *cobra.Command {
 
 func (o *AddNodesOptions) Complete(_ *cobra.Command, _ []string) error {
 	if o.Artifact == "" {
-		o.SkipInstallPackages = false
+		o.InstallPackages = false
 	}
 	return nil
 }
 
 func (o *AddNodesOptions) Run() error {
 	arg := common.Argument{
-		FilePath:            o.ClusterCfgFile,
-		KsEnable:            false,
-		Debug:               o.CommonOptions.Verbose,
-		IgnoreErr:           o.CommonOptions.IgnoreErr,
-		SkipConfirmCheck:    o.CommonOptions.SkipConfirmCheck,
-		SkipPullImages:      o.SkipPullImages,
-		InCluster:           o.CommonOptions.InCluster,
-		ContainerManager:    o.ContainerManager,
-		Artifact:            o.Artifact,
-		SkipInstallPackages: o.SkipInstallPackages,
+		FilePath:         o.ClusterCfgFile,
+		KsEnable:         false,
+		Debug:            o.CommonOptions.Verbose,
+		IgnoreErr:        o.CommonOptions.IgnoreErr,
+		SkipConfirmCheck: o.CommonOptions.SkipConfirmCheck,
+		SkipPullImages:   o.SkipPullImages,
+		InCluster:        o.CommonOptions.InCluster,
+		ContainerManager: o.ContainerManager,
+		Artifact:         o.Artifact,
+		InstallPackages:  o.InstallPackages,
 	}
 	return pipelines.AddNodes(arg, o.DownloadCmd)
 }
@@ -87,5 +87,5 @@ func (o *AddNodesOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
-	cmd.Flags().BoolVarP(&o.SkipInstallPackages, "skip-install-packages", "", false, "Skip install packages by artifact")
+	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
 }
