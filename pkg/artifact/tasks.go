@@ -247,6 +247,10 @@ type LocalCopy struct {
 
 func (l *LocalCopy) Execute(runtime connector.Runtime) error {
 	for _, sys := range l.Manifest.Spec.OperationSystems {
+		if sys.Repository.Iso.LocalPath == "" {
+			continue
+		}
+
 		dir := filepath.Join(runtime.GetWorkDir(), common.Artifact, "repository", sys.Arch, sys.Id, sys.Version)
 		if err := coreutil.Mkdir(dir); err != nil {
 			return errors.Wrapf(errors.WithStack(err), "mkdir %s failed", dir)
