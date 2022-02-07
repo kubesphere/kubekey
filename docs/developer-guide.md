@@ -2,8 +2,12 @@
 
 KubeKey defines task pipelines for cluster operations such as installation, scaling, uninstallation, etc. And uses SSH and Kubernetes Api to perform corresponding tasks on hosts and cluster with host grouping and configuration management.
 
-![Image](img/KubeKey-Architecture.jpg?raw=true)
+![Image](img/KubeKey-Architecture.png?raw=true)
 
+* `Action`: The most basic unit. It represents one operation performed on one node;
+* `Task`: The one that manages `Action`. It contains fields such as `Action`, `Hosts` (The hosts where the action will be executed), `Retry`, `Parallel`, etc. In short, it represents executing an `Action` on the specified hosts as required;
+* `Module`: A unit that contains one or more related `Task`. `Module` is a module with specific and complete functions;
+* `Pipeline`: It contains `Modules` combined in a certain order. It is the complete execution process of a KubeKey command. For example, `Create Cluster Pipeline`, `Add Nodes Pipeline` and so on.
 ## Addons
 All plugins which are installed by yaml or chart can be kubernetes' addons. So the addons configuration support both yaml and chart.
 

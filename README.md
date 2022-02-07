@@ -1,25 +1,24 @@
-# KubeKey
+<div align=center><img src="docs/img/kubekey-logo.svg?raw=true"></div>
 
 [![CI](https://github.com/kubesphere/kubekey/workflows/CI/badge.svg?branch=master&event=push)](https://github.com/kubesphere/kubekey/actions?query=event%3Apush+branch%3Amaster+workflow%3ACI+)
 
 > English | [中文](README_zh-CN.md)
 
-Since v3.0.0, [KubeSphere](https://kubesphere.io) changes the ansible-based installer to the new installer called KubeKey that is developed in Go language. With KubeKey, you can install Kubernetes and KubeSphere separately or as a whole easily, efficiently and flexibly.
+### 👋 Welcome to KubeKey!
 
-There are three scenarios to use KubeKey.
+KubeKey is an open-source lightweight tool for deploying Kubernetes clusters. It provides a flexible, rapid, and convenient way to install Kubernetes/K3s only, both Kubernetes/K3s and KubeSphere, and related cloud-native add-ons. It is also an efficient tool to scale and upgrade your cluster.
 
-* Install Kubernetes only
-* Install Kubernetes and KubeSphere together in one command
-* Install Kubernetes first, then deploy KubeSphere on it using [ks-installer](https://github.com/kubesphere/ks-installer)
+In addition, KubeKey also supports customized Air-Gap package, which is convenient for users to quickly deploy clusters in offline environments.
 
-> **Important:** If you have existing clusters, please refer to [ks-installer (Install KubeSphere on existing Kubernetes cluster)](https://github.com/kubesphere/ks-installer).
+> KubeKey has passed [CNCF kubernetes conformance verification](https://www.cncf.io/certification/software-conformance/).
 
-## Motivation
+Use KubeKey in the following three scenarios.
 
-* Ansible-based installer has a bunch of software dependency such as Python. KubeKey is developed in Go language to get rid of the problem in a variety of environment so that increasing the success rate of installation.
-* KubeKey uses Kubeadm to install K8s cluster on nodes in parallel as much as possible in order to reduce installation complexity and improve efficiency. It will greatly save installation time compared to the older installer.
-* KubeKey supports for scaling cluster from allinone to multi-node cluster, even an HA cluster.
-* KubeKey aims to install cluster as an object, i.e., CaaO.
+* Install Kubernetes/K3s only
+* Install Kubernetes/K3s and KubeSphere together in one command
+* Install Kubernetes/K3s first, then deploy KubeSphere on it using [ks-installer](https://github.com/kubesphere/ks-installer)
+
+> **Important:** If you have existing Kubernetes clusters, please refer to [ks-installer (Install KubeSphere on existing Kubernetes cluster)](https://github.com/kubesphere/ks-installer).
 
 ## Supported Environment
 
@@ -43,6 +42,14 @@ There are three scenarios to use KubeKey.
 * **v1.22**: &ensp; *v1.22.1*
 > Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
 
+### Container Manager
+* **Docker** / **containerd** / **CRI-O** / **iSula**
+> `Kata Containers` can be set to automatically install and configure runtime class for it when the container manager is containerd or CRI-O.
+
+### Network Plugins
+* **Calico** / **Flannel** / **Cilium** / **Kube-OVN** / **Multus-CNI**
+
+> Kubekey also supports users to set the network plugin to `none` if there is a requirement for custom network plugin.
 ## Requirements and Recommendations
 
 * Minimum resource requirements (For Minimal Installation of KubeSphere only)：
@@ -80,9 +87,12 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 
 ## Usage
 
-### Get the Installer Executable File
-
-* Binary downloads of the KubeKey can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
+### Get the KubeKey Executable File
+* The fastest way to get KubeKey is to use the script:
+  ```
+  curl -sfL https://get-kk.kubesphere.io | sh -
+  ```
+* Binary downloads of the KubeKey also can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
   Unpack the binary and you are good to go!
 
 * Build Binary from Source Code
@@ -102,7 +112,7 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 
 #### Quick Start
 
-Quick Start is for `all-in-one` installation which is a good start to get familiar with KubeSphere.
+Quick Start is for `all-in-one` installation which is a good start to get familiar with Kubernetes and KubeSphere.
 
 > Note: Since Kubernetes temporarily does not support uppercase NodeName, contains uppercase letters in the hostname will lead to subsequent installation error
 
