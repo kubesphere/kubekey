@@ -52,6 +52,7 @@ spec:
     registryMirrors: []
     insecureRegistries: []
     privateRegistry: ""
+    namespaceOverride: ""
     auths: # if docker add by `docker login`, if containerd append to `/etc/containerd/config.toml`
       "registry-1.docker.io":
         username : "xxx"
