@@ -43,6 +43,8 @@ type CreateClusterOptions struct {
 	Artifact         string
 	InstallPackages  bool
 	CertificatesDir  string
+
+	localStorageChanged bool
 }
 
 func NewCreateClusterOptions() *CreateClusterOptions {
@@ -72,7 +74,7 @@ func NewCmdCreateCluster() *cobra.Command {
 	return cmd
 }
 
-func (o *CreateClusterOptions) Complete(_ *cobra.Command, args []string) error {
+func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) error {
 	var ksVersion string
 	if o.EnableKubeSphere && len(args) > 0 {
 		ksVersion = args[0]
@@ -84,6 +86,10 @@ func (o *CreateClusterOptions) Complete(_ *cobra.Command, args []string) error {
 	if o.Artifact == "" {
 		o.InstallPackages = false
 		o.SkipPushImages = false
+	}
+
+	if cmd.Flags().Changed("with-local-storage") {
+		o.localStorageChanged = true
 	}
 	return nil
 }
@@ -99,21 +105,25 @@ func (o *CreateClusterOptions) Validate(_ *cobra.Command, _ []string) error {
 
 func (o *CreateClusterOptions) Run() error {
 	arg := common.Argument{
-		FilePath:           o.ClusterCfgFile,
-		KubernetesVersion:  o.Kubernetes,
-		KsEnable:           o.EnableKubeSphere,
-		KsVersion:          o.KubeSphere,
-		SkipPullImages:     o.SkipPullImages,
-		SKipPushImages:     o.SkipPushImages,
-		InCluster:          o.CommonOptions.InCluster,
-		DeployLocalStorage: o.LocalStorage,
-		Debug:              o.CommonOptions.Verbose,
-		IgnoreErr:          o.CommonOptions.IgnoreErr,
-		SkipConfirmCheck:   o.CommonOptions.SkipConfirmCheck,
-		ContainerManager:   o.ContainerManager,
-		Artifact:           o.Artifact,
-		InstallPackages:    o.InstallPackages,
-		CertificatesDir:    o.CertificatesDir,
+		FilePath:          o.ClusterCfgFile,
+		KubernetesVersion: o.Kubernetes,
+		KsEnable:          o.EnableKubeSphere,
+		KsVersion:         o.KubeSphere,
+		SkipPullImages:    o.SkipPullImages,
+		SKipPushImages:    o.SkipPushImages,
+		InCluster:         o.CommonOptions.InCluster,
+		Debug:             o.CommonOptions.Verbose,
+		IgnoreErr:         o.CommonOptions.IgnoreErr,
+		SkipConfirmCheck:  o.CommonOptions.SkipConfirmCheck,
+		ContainerManager:  o.ContainerManager,
+		Artifact:          o.Artifact,
+		InstallPackages:   o.InstallPackages,
+		CertificatesDir:   o.CertificatesDir,
+	}
+
+	if o.localStorageChanged {
+		deploy := o.LocalStorage
+		arg.DeployLocalStorage = &deploy
 	}
 
 	return pipelines.CreateCluster(arg, o.DownloadCmd)
