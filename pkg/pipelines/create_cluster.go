@@ -51,6 +51,12 @@ import (
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
 	skipPushImages := runtime.Arg.SKipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
+	skipLocalStorage := true
+	if runtime.Arg.DeployLocalStorage != nil {
+		skipLocalStorage = !*runtime.Arg.DeployLocalStorage
+	} else if runtime.Cluster.KubeSphere.Enabled {
+		skipLocalStorage = false
+	}
 
 	m := []module.Module{
 		&precheck.NodePreCheckModule{},
@@ -80,7 +86,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.SaveKubeConfigModule{},
 		&plugins.DeployPluginsModule{},
 		&addons.AddonsModule{},
-		&storage.DeployLocalVolumeModule{Skip: !runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled},
+		&storage.DeployLocalVolumeModule{Skip: skipLocalStorage},
 		&kubesphere.DeployModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
 		&kubesphere.CheckResultModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
 	}
@@ -137,6 +143,12 @@ Please check the result using the command:
 }
 
 func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
+	skipLocalStorage := true
+	if runtime.Arg.DeployLocalStorage != nil {
+		skipLocalStorage = !*runtime.Arg.DeployLocalStorage
+	} else if runtime.Cluster.KubeSphere.Enabled {
+		skipLocalStorage = false
+	}
 
 	m := []module.Module{
 		&binaries.K3sNodeBinariesModule{},
@@ -156,7 +168,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&filesystem.ChownModule{},
 		&k3s.SaveKubeConfigModule{},
 		&addons.AddonsModule{},
-		&storage.DeployLocalVolumeModule{Skip: !runtime.Arg.DeployLocalStorage && !runtime.Cluster.KubeSphere.Enabled},
+		&storage.DeployLocalVolumeModule{Skip: skipLocalStorage},
 		&kubesphere.DeployModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
 		&kubesphere.CheckResultModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
 	}

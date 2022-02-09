@@ -42,7 +42,7 @@ type Argument struct {
 	SkipPullImages     bool
 	SKipPushImages     bool
 	AddImagesRepo      bool
-	DeployLocalStorage bool
+	DeployLocalStorage *bool
 	SourcesDir         string
 	DownloadCommand    func(path, url string) string
 	SkipConfirmCheck   bool
