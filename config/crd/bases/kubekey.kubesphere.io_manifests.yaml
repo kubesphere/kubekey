@@ -128,7 +128,7 @@ spec:
                   - version
                   type: object
                 type: array
-              operationSystems:
+              operatingSystems:
                 items:
                   properties:
                     arch:
@@ -174,7 +174,7 @@ spec:
             - components
             - images
             - kubernetesDistributions
-            - operationSystems
+            - operatingSystems
             - registry
             type: object
           status:
