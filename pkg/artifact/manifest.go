@@ -100,7 +100,7 @@ func CreateManifest(arg common.Argument, name string) error {
 			version = "Didn't get the os version. Please edit it manually."
 		}
 
-		osObj := kubekeyv1alpha2.OperationSystem{
+		osObj := kubekeyv1alpha2.OperatingSystem{
 			Arch:    node.Status.NodeInfo.Architecture,
 			Type:    node.Status.NodeInfo.OperatingSystem,
 			Id:      id,
@@ -133,9 +133,9 @@ func CreateManifest(arg common.Argument, name string) error {
 		image := v.(string)
 		imageArr = append(imageArr, image)
 	}
-	osArr := make([]kubekeyv1alpha2.OperationSystem, 0, osSet.Cardinality())
+	osArr := make([]kubekeyv1alpha2.OperatingSystem, 0, osSet.Cardinality())
 	for _, v := range osSet.ToSlice() {
-		osObj := v.(kubekeyv1alpha2.OperationSystem)
+		osObj := v.(kubekeyv1alpha2.OperatingSystem)
 		osArr = append(osArr, osObj)
 	}
 
@@ -158,7 +158,7 @@ func CreateManifest(arg common.Argument, name string) error {
 	options := &templates.Options{
 		Name:                    name,
 		Arches:                  archArr,
-		OperationSystems:        osArr,
+		OperatingSystems:        osArr,
 		KubernetesDistributions: []kubekeyv1alpha2.KubernetesDistribution{kubernetesDistribution},
 		Components: kubekeyv1alpha2.Components{
 			Helm:              kubekeyv1alpha2.Helm{Version: kubekeyv1alpha2.DefaultHelmVersion},

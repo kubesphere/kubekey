@@ -27,7 +27,7 @@ type EnableDownload struct {
 }
 
 func (e *EnableDownload) PreCheck(_ connector.Runtime) (bool, error) {
-	for _, sys := range e.Manifest.Spec.OperationSystems {
+	for _, sys := range e.Manifest.Spec.OperatingSystems {
 		if sys.Repository.Iso.LocalPath == "" && sys.Repository.Iso.Url != "" {
 			return true, nil
 		}

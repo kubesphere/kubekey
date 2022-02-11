@@ -203,7 +203,7 @@ type DownloadISOFile struct {
 }
 
 func (d *DownloadISOFile) Execute(runtime connector.Runtime) error {
-	for i, sys := range d.Manifest.Spec.OperationSystems {
+	for i, sys := range d.Manifest.Spec.OperatingSystems {
 		if sys.Repository.Iso.Url == "" {
 			continue
 		}
@@ -236,7 +236,7 @@ func (d *DownloadISOFile) Execute(runtime connector.Runtime) error {
 		if err = cmd.Wait(); err != nil {
 			return fmt.Errorf("Failed to download %s iso file: %s error: %w ", fileName, getCmd, err)
 		}
-		d.Manifest.Spec.OperationSystems[i].Repository.Iso.LocalPath = filePath
+		d.Manifest.Spec.OperatingSystems[i].Repository.Iso.LocalPath = filePath
 	}
 	return nil
 }
@@ -246,7 +246,7 @@ type LocalCopy struct {
 }
 
 func (l *LocalCopy) Execute(runtime connector.Runtime) error {
-	for _, sys := range l.Manifest.Spec.OperationSystems {
+	for _, sys := range l.Manifest.Spec.OperatingSystems {
 		if sys.Repository.Iso.LocalPath == "" {
 			continue
 		}
