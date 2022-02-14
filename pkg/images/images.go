@@ -126,26 +126,7 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 }
 
 func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches []string) error {
-	// just like: docker.io-calico-cni:v3.20.0.tar, docker.io-kubesphere-kube-apiserver:v1.21.5.tar
-	// docker.io-fluent-fluentd:v1.4.2-2.0.tar .e.g.
-	fullArr := strings.Split(fileName, ":")
-
-	// v3.20.0.tar, v1.21.5.tar or v1.4.2-2.0.tar
-	tag := fullArr[len(fullArr)-1]
-	// .tar
-	tagExt := path.Ext(tag)
-	// v3.20.0, v1.21.5 or v1.4.2-2.0
-	tag = strings.TrimSuffix(tag, tagExt)
-
-	// docker.io-calico-cni, docker.io-kubesphere-kube-apiserver or docker.io-fluent-fluentd
-	nameArr := strings.Split(strings.Join(fullArr[:len(fullArr)-1], ":"), "-")
-
-	// docker.io
-	registry := nameArr[0]
-	// calico, kubesphere or fluent
-	namespace := nameArr[1]
-	// cni, kube-apiserver or fluentd
-	imageName := strings.Join(nameArr[2:], "-")
+	registry, namespace, imageName, tag := parseImageName(fileName)
 
 	privateRegistry := kubeConf.Cluster.Registry.PrivateRegistry
 	image := Image{
@@ -182,4 +163,29 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 
 	fmt.Printf("push %s success \n", image.ImageName())
 	return nil
+}
+
+func parseImageName(file string) (string, string, string, string) {
+	// just like: docker.io-calico-cni:v3.20.0.tar, docker.io-kubesphere-kube-apiserver:v1.21.5.tar
+	// docker.io-fluent-fluentd:v1.4.2-2.0.tar .e.g.
+	fullArr := strings.Split(file, ":")
+
+	// v3.20.0.tar, v1.21.5.tar or v1.4.2-2.0.tar
+	tag := fullArr[len(fullArr)-1]
+	// .tar
+	tagExt := path.Ext(tag)
+	// v3.20.0, v1.21.5 or v1.4.2-2.0
+	tag = strings.TrimSuffix(tag, tagExt)
+
+	// docker.io-calico-cni, docker.io-kubesphere-kube-apiserver or docker.io-fluent-fluentd
+	nameArr := strings.Split(strings.Join(fullArr[:len(fullArr)-1], ":"), "#")
+
+	// docker.io
+	registry := nameArr[0]
+	// calico, kubesphere or fluent
+	namespace := nameArr[1]
+	// cni, kube-apiserver or fluentd
+	imageName := nameArr[2]
+
+	return registry, namespace, imageName, tag
 }
