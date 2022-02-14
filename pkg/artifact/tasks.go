@@ -144,7 +144,7 @@ func (e *ExportImages) Execute(runtime connector.Runtime) error {
 	ctx := namespaces.WithNamespace(context.Background(), "kubekey")
 	is := client.ImageService()
 	for _, image := range e.Manifest.Spec.Images {
-		fileName := strings.ReplaceAll(image, "/", "-")
+		fileName := strings.ReplaceAll(image, "/", "#")
 		fileName = fmt.Sprintf("%s.tar", fileName)
 
 		filePath := filepath.Join(dir, fileName)
