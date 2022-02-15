@@ -33,7 +33,7 @@ type Repository struct {
 	Iso Iso `yaml:"iso" json:"iso"`
 }
 
-type OperationSystem struct {
+type OperatingSystem struct {
 	Arch       string     `yaml:"arch" json:"arch"`
 	Type       string     `yaml:"type" json:"type,omitempty"`
 	Id         string     `yaml:"id" json:"id"`
@@ -105,7 +105,7 @@ type ManifestSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Arches                  []string                 `yaml:"arches" json:"arches"`
-	OperationSystems        []OperationSystem        `yaml:"operationSystems" json:"operationSystems"`
+	OperatingSystems        []OperatingSystem        `yaml:"operatingSystems" json:"operatingSystems"`
 	KubernetesDistributions []KubernetesDistribution `yaml:"kubernetesDistributions" json:"kubernetesDistributions"`
 	Components              Components               `yaml:"components" json:"components"`
 	Images                  []string                 `yaml:"images" json:"images"`

@@ -35,8 +35,8 @@ spec:
   {{- range .Options.Arches }}
   - {{ . }}
   {{- end }}
-  operationSystems:
-  {{- range $i, $v := .Options.OperationSystems }}
+  operatingSystems:
+  {{- range $i, $v := .Options.OperatingSystems }}
   - arch: {{ $v.Arch }}
     type: {{ $v.Type }}
     id: {{ $v.Id }}
@@ -87,7 +87,7 @@ spec:
 type Options struct {
 	Name                    string
 	Arches                  []string
-	OperationSystems        []kubekeyv1alpha2.OperationSystem
+	OperatingSystems        []kubekeyv1alpha2.OperatingSystem
 	KubernetesDistributions []kubekeyv1alpha2.KubernetesDistribution
 	Components              kubekeyv1alpha2.Components
 	Images                  []string
