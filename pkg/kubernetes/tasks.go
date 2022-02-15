@@ -268,7 +268,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"ClusterName":            g.KubeConf.Cluster.Kubernetes.ClusterName,
 				"DNSDomain":              g.KubeConf.Cluster.Kubernetes.DNSDomain,
 				"AdvertiseAddress":       host.GetInternalAddress(),
-				"ControlPlanPort":        g.KubeConf.Cluster.ControlPlaneEndpoint.Port,
+				"BindPort":               kubekeyv1alpha2.DefaultApiserverPort,
 				"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", g.KubeConf.Cluster.ControlPlaneEndpoint.Domain, g.KubeConf.Cluster.ControlPlaneEndpoint.Port),
 				"PodSubnet":              g.KubeConf.Cluster.Network.KubePodsCIDR,
 				"ServiceSubnet":          g.KubeConf.Cluster.Network.KubeServiceCIDR,

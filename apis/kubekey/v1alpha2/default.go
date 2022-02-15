@@ -29,6 +29,7 @@ const (
 	DefaultTmpDir               = "/tmp/kubekey"
 	DefaultSSHPort              = 22
 	DefaultLBPort               = 6443
+	DefaultApiserverPort        = 6443
 	DefaultLBDomain             = "lb.kubesphere.local"
 	DefaultNetworkPlugin        = "calico"
 	DefaultPodsCIDR             = "10.233.64.0/18"

@@ -17,6 +17,7 @@
 package loadbalancer
 
 import (
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -50,7 +51,7 @@ func (h *HaproxyModule) Init() {
 			Dst:      filepath.Join(common.HaproxyDir, templates.HaproxyConfig.Name()),
 			Data: util.Data{
 				"MasterNodes":                          templates.MasterNodeStr(h.Runtime, h.KubeConf),
-				"LoadbalancerApiserverPort":            h.KubeConf.Cluster.ControlPlaneEndpoint.Port,
+				"LoadbalancerApiserverPort":            kubekeyapiv1alpha2.DefaultApiserverPort,
 				"LoadbalancerApiserverHealthcheckPort": 8081,
 				"KubernetesType":                       h.KubeConf.Cluster.Kubernetes.Type,
 			},
