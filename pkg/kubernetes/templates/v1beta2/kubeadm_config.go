@@ -86,7 +86,7 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: {{ .AdvertiseAddress }}
-  bindPort: {{ .ControlPlanPort }}
+  bindPort: {{ .BindPort }}
 nodeRegistration:
 {{- if .CriSock }}
   criSocket: {{ .CriSock }}
@@ -116,7 +116,7 @@ discovery:
 controlPlane:
   localAPIEndpoint:
     advertiseAddress: {{ .AdvertiseAddress }}
-    bindPort: {{ .ControlPlanPort }}
+    bindPort: {{ .BindPort }}
   certificateKey: {{ .CertificateKey }}
 {{- end }}
 nodeRegistration:

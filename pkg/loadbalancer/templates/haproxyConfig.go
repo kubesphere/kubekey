@@ -17,6 +17,7 @@
 package templates
 
 import (
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/lithammer/dedent"
@@ -74,7 +75,7 @@ backend kube_api_backend
 func MasterNodeStr(runtime connector.ModuleRuntime, conf *common.KubeConf) []string {
 	masterNodes := make([]string, len(runtime.GetHostsByRole(common.Master)))
 	for i, node := range runtime.GetHostsByRole(common.Master) {
-		masterNodes[i] = node.GetName() + " " + node.GetAddress() + ":" + strconv.Itoa(conf.Cluster.ControlPlaneEndpoint.Port)
+		masterNodes[i] = node.GetName() + " " + node.GetAddress() + ":" + strconv.Itoa(kubekeyapiv1alpha2.DefaultApiserverPort)
 	}
 	return masterNodes
 }
