@@ -17,15 +17,16 @@
 package images
 
 import (
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/pkg/errors"
-	"io/ioutil"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
-	"path/filepath"
-	"strings"
 )
 
 type PullImage struct {
@@ -127,6 +128,9 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 	}
 
 	image = ImageList[name]
+	if kubeConf.Cluster.Registry.NamespaceOverride != "" {
+		image.NamespaceOverride = kubeConf.Cluster.Registry.NamespaceOverride
+	}
 	return image
 }
 

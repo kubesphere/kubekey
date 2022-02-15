@@ -17,10 +17,11 @@
 package templates
 
 import (
+	"text/template"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/lithammer/dedent"
-	"text/template"
 )
 
 // Cluster defines the template of cluster configuration file default.
@@ -62,6 +63,7 @@ spec:
   registry:
     plainHTTP: false
     privateRegistry: ""
+    namespaceOverride: ""
     registryMirrors: []
     insecureRegistries: []
   addons: []
