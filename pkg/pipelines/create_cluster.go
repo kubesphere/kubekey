@@ -143,6 +143,8 @@ Please check the result using the command:
 }
 
 func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+	skipPushImages := runtime.Arg.SKipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
 	skipLocalStorage := true
 	if runtime.Arg.DeployLocalStorage != nil {
 		skipLocalStorage = !*runtime.Arg.DeployLocalStorage
@@ -151,6 +153,8 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	m := []module.Module{
+		&artifact.UnArchiveModule{Skip: noArtifact},
+		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.K3sNodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&k3s.StatusModule{},
@@ -163,6 +167,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&k3s.InitClusterModule{},
 		&k3s.StatusModule{},
 		&k3s.JoinNodesModule{},
+		&images.PushModule{Skip: skipPushImages},
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
 		&filesystem.ChownModule{},

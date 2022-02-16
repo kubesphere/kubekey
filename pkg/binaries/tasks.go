@@ -139,6 +139,51 @@ func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type K3sArtifactDownload struct {
+	common.ArtifactAction
+}
+
+func (a *K3sArtifactDownload) Execute(runtime connector.Runtime) error {
+	manifest := a.Manifest.Spec
+
+	archMap := make(map[string]bool)
+	for _, arch := range manifest.Arches {
+		switch arch {
+		case "amd64":
+			archMap["amd64"] = true
+		case "arm64":
+			archMap["arm64"] = true
+		default:
+			return errors.New(fmt.Sprintf("Unsupported architecture: %s", arch))
+		}
+	}
+
+	kubernetesSet := mapset.NewThreadUnsafeSet()
+	for _, k := range manifest.KubernetesDistributions {
+		kubernetesSet.Add(k)
+	}
+
+	kubernetesVersions := make([]string, 0, kubernetesSet.Cardinality())
+	for _, k := range kubernetesSet.ToSlice() {
+		k8s := k.(kubekeyapiv1alpha2.KubernetesDistribution)
+		kubernetesVersions = append(kubernetesVersions, k8s.Version)
+	}
+
+	basePath := filepath.Join(runtime.GetWorkDir(), common.Artifact)
+	for arch := range archMap {
+		for _, version := range kubernetesVersions {
+			if err := K3sArtifactBinariesDownload(a.Manifest, basePath, arch, version); err != nil {
+				return err
+			}
+		}
+
+		if err := RegistryBinariesDownload(a.Manifest, basePath, arch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type RegistryPackageDownload struct {
 	common.KubeAction
 }

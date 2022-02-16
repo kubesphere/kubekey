@@ -80,6 +80,25 @@ func (a *ArtifactBinariesModule) Init() {
 	}
 }
 
+type K3sArtifactBinariesModule struct {
+	common.ArtifactModule
+}
+
+func (a *K3sArtifactBinariesModule) Init() {
+	a.Name = "K3sArtifactBinariesModule"
+	a.Desc = "Download artifact binaries"
+
+	download := &task.LocalTask{
+		Name:   "K3sDownloadBinaries",
+		Desc:   "Download k3s manifest expect binaries",
+		Action: new(K3sArtifactDownload),
+	}
+
+	a.Tasks = []task.Interface{
+		download,
+	}
+}
+
 type RegistryPackageModule struct {
 	common.KubeModule
 }

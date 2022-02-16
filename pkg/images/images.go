@@ -141,13 +141,17 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 	fullPath := filepath.Join(prePath, fileName)
 	oldName := fmt.Sprintf("%s/%s/%s:%s", registry, namespace, imageName, tag)
 
+	ctrCmd := "sudo ctr"
+	if kubeConf.Cluster.Kubernetes.Type == common.K3s {
+		ctrCmd = "k3s ctr"
+	}
+
 	if out, err := exec.Command("/bin/bash", "-c",
-		fmt.Sprintf("sudo ctr images import --base-name %s %s", oldName, fullPath)).CombinedOutput(); err != nil {
+		fmt.Sprintf("%s images import --base-name %s %s", ctrCmd, oldName, fullPath)).CombinedOutput(); err != nil {
 		return errors.Wrapf(err, "import image %s failed: %s", oldName, out)
 	}
 
-	pushCmd := fmt.Sprintf("sudo ctr images push  %s %s --platform %s -k",
-		image.ImageName(), oldName, strings.Join(arches, " "))
+	pushCmd := fmt.Sprintf("%s images push  %s %s --platform %s -k", ctrCmd, image.ImageName(), oldName, strings.Join(arches, " "))
 	if kubeConf.Cluster.Registry.PlainHTTP {
 		pushCmd = fmt.Sprintf("%s --plain-http", pushCmd)
 	}
