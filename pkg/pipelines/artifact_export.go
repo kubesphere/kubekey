@@ -51,6 +51,29 @@ func NewArtifactExportPipeline(runtime *common.ArtifactRuntime) error {
 	return nil
 }
 
+func NewK3sArtifactExportPipeline(runtime *common.ArtifactRuntime) error {
+	m := []module.Module{
+		&confirm.CheckFileExistModule{FileName: runtime.Arg.Output},
+		&artifact.ImagesModule{},
+		&binaries.K3sArtifactBinariesModule{},
+		&artifact.RepositoryModule{},
+		&artifact.ArchiveModule{},
+		&filesystem.ChownWorkDirModule{},
+	}
+
+	p := pipeline.Pipeline{
+		Name:            "K3sArtifactExportPipeline",
+		Modules:         m,
+		Runtime:         runtime,
+		ModulePostHooks: nil,
+	}
+	if err := p.Start(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ArtifactExport(args common.ArtifactArgument, downloadCmd string) error {
 	args.DownloadCommand = func(path, url string) string {
 		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
@@ -77,6 +100,9 @@ func ArtifactExport(args common.ArtifactArgument, downloadCmd string) error {
 
 	switch runtime.Spec.KubernetesDistributions[0].Type {
 	case common.K3s:
+		if err := NewK3sArtifactExportPipeline(runtime); err != nil {
+			return err
+		}
 	case common.Kubernetes:
 		if err := NewArtifactExportPipeline(runtime); err != nil {
 			return err

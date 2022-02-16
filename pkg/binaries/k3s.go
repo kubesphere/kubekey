@@ -64,3 +64,58 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	pipelineCache.Set(common.KubeBinaries+"-"+arch, binariesMap)
 	return nil
 }
+
+func K3sArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch, version string) error {
+	m := manifest.Spec
+
+	etcd := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, manifest.Arg.DownloadCommand)
+	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, manifest.Arg.DownloadCommand)
+	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, manifest.Arg.DownloadCommand)
+	k3s := files.NewKubeBinary("k3s", arch, version, path, manifest.Arg.DownloadCommand)
+	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, manifest.Arg.DownloadCommand)
+	binaries := []*files.KubeBinary{k3s, helm, kubecni, etcd}
+
+	dockerArr := make([]*files.KubeBinary, 0, 0)
+	dockerVersionMap := make(map[string]struct{})
+	for _, c := range m.Components.ContainerRuntimes {
+		var dockerVersion string
+		if c.Type == common.Docker {
+			dockerVersion = c.Version
+		} else {
+			dockerVersion = kubekeyapiv1alpha2.DefaultDockerVersion
+		}
+		if _, ok := dockerVersionMap[dockerVersion]; !ok {
+			dockerVersionMap[dockerVersion] = struct{}{}
+			docker := files.NewKubeBinary("docker", arch, dockerVersion, path, manifest.Arg.DownloadCommand)
+			dockerArr = append(dockerArr, docker)
+		}
+	}
+
+	binaries = append(binaries, dockerArr...)
+	if m.Components.Crictl.Version != "" {
+		binaries = append(binaries, crictl)
+	}
+
+	for _, binary := range binaries {
+		if err := binary.CreateBaseDir(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "create file %s base dir failed", binary.FileName)
+		}
+
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.ID, binary.Version)
+
+		if util.IsExist(binary.Path()) {
+			// download it again if it's incorrect
+			if err := binary.SHA256Check(); err != nil {
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path())).Run()
+			} else {
+				continue
+			}
+		}
+
+		if err := binary.Download(); err != nil {
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.ID, binary.GetCmd(), err)
+		}
+	}
+
+	return nil
+}
