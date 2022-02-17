@@ -122,12 +122,15 @@ func (d *DeployModule) Init() {
 
 func MirrorRepo(kubeConf *common.KubeConf) string {
 	repo := kubeConf.Cluster.Registry.PrivateRegistry
+	namespaceOverride := kubeConf.Cluster.Registry.NamespaceOverride
 	version := kubeConf.Cluster.KubeSphere.Version
 
 	_, ok := kubesphere.CNSource[version]
 	if ok && os.Getenv("KKZONE") == "cn" {
 		if repo == "" {
 			repo = "registry.cn-beijing.aliyuncs.com/kubesphereio"
+		} else if len(namespaceOverride) != 0 {
+			repo = fmt.Sprintf("%s/%s", repo, namespaceOverride)
 		} else {
 			repo = fmt.Sprintf("%s/kubesphere", repo)
 		}
@@ -146,6 +149,8 @@ func MirrorRepo(kubeConf *common.KubeConf) string {
 			default:
 				repo = "kubesphere"
 			}
+		} else if len(namespaceOverride) != 0 {
+			repo = fmt.Sprintf("%s/%s", repo, namespaceOverride)
 		} else {
 			repo = fmt.Sprintf("%s/kubesphere", repo)
 		}
