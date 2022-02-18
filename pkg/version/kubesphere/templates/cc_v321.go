@@ -37,6 +37,7 @@ spec:
   authentication:
     jwtSecret: ""
   local_registry: ""
+  namespace_override: ""
   # dev_tag: ""
   etcd:
     monitoring: false
