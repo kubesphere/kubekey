@@ -103,6 +103,18 @@ func (s *Setup) Execute(runtime connector.Runtime) error {
 		}
 	}
 
+	if s.KubeConf.Cluster.Registry.NamespaceOverride != "" {
+		if _, err := runtime.GetRunner().SudoCmd(
+			fmt.Sprintf("sed -i '/namespace_override/s/\\:.*/\\: %s/g' %s", s.KubeConf.Cluster.Registry.NamespaceOverride, filePath),
+			false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("add namespace override: %s failed", s.KubeConf.Cluster.Registry.NamespaceOverride))
+		}
+	} else {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("sed -i '/namespace_override/d' %s", filePath), false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("remove namespace override failed"))
+		}
+	}
+
 	_, ok := kubesphere.CNSource[s.KubeConf.Cluster.KubeSphere.Version]
 	if ok && (os.Getenv("KKZONE") == "cn" || s.KubeConf.Cluster.Registry.PrivateRegistry == "registry.cn-beijing.aliyuncs.com") {
 		if _, err := runtime.GetRunner().SudoCmd(
