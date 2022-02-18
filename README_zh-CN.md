@@ -135,7 +135,11 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
     ```shell script
     ./kk create cluster --with-kubesphere [version]
     ```
+* 创建一个指定的 container runtime 的 Kubernetes 集群（docker, crio, containerd and isula）
 
+    ```shell script
+    ./kk create  cluster --container-manager containerd
+    ```
 #### 高级用法
 
 您可以使用高级安装来控制自定义参数或创建多节点集群。具体来说，通过指定配置文件来创建集群。
