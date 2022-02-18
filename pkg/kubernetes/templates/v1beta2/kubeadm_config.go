@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"regexp"
 	"strings"
 	"text/template"
@@ -155,6 +156,11 @@ var (
 )
 
 func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.KubeConf) map[string]string {
+	// When kubernetes version is less than 1.21,`CSIStorageCapacity` should not be set.
+	cmp, _ := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.21.0")
+	if cmp == -1 {
+		delete(FeatureGatesDefaultConfiguration, "CSIStorageCapacity")
+	}
 
 	var featureGates []string
 
@@ -174,6 +180,12 @@ func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.Ku
 }
 
 func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeConf, criSock string) map[string]interface{} {
+	// When kubernetes version is less than 1.21,`CSIStorageCapacity` should not be set.
+	cmp, _ := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.21.0")
+	if cmp == -1 {
+		delete(FeatureGatesDefaultConfiguration, "CSIStorageCapacity")
+	}
+
 	defaultKubeletConfiguration := map[string]interface{}{
 		"clusterDomain":      kubeConf.Cluster.Kubernetes.DNSDomain,
 		"clusterDNS":         []string{kubeConf.Cluster.ClusterDNS()},
