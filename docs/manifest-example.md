@@ -1,5 +1,5 @@
 # QuickStart
-The following is an example of a manifest file for a kubernetes v1.21.5 cluster. It contains the repositories for `ubuntu 20.04` and `centos 7`, some necessary components, private registry，and necessary images.
+The following is an example of a manifest file for a kubernetes v1.21.5 cluster. It contains the repositories for `ubuntu 20.04` and `centos 7`, some necessary components, private registry, and necessary images.
 ```yaml
 apiVersion: kubekey.kubesphere.io/v1alpha2
 kind: Manifest
