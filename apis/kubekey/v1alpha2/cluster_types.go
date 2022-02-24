@@ -150,8 +150,8 @@ type HostCfg struct {
 	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
 
+	// Labels defines the kubernetes labels for the node.
 	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
-	ID     string            `yaml:"id,omitempty" json:"id,omitempty"`
 }
 
 // ControlPlaneEndpoint defines the control plane endpoint information for cluster.
@@ -226,17 +226,14 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 }
 
 // GroupHosts is used to group hosts according to the configuration file.s
-func (cfg *ClusterSpec) GroupHosts() (map[string][]*connector.BaseHost, error) {
-	hostMap := make(map[string]*connector.BaseHost)
+func (cfg *ClusterSpec) GroupHosts() map[string][]*KubeHost {
+	hostMap := make(map[string]*KubeHost)
 	for _, hostCfg := range cfg.Hosts {
 		host := toHosts(hostCfg)
 		hostMap[host.Name] = host
 	}
 
-	roleGroups, err := cfg.ParseRolesList(hostMap)
-	if err != nil {
-		return nil, err
-	}
+	roleGroups := cfg.ParseRolesList(hostMap)
 
 	//Check that the parameters under roleGroups are incorrect
 	if len(roleGroups[Master]) == 0 && len(roleGroups[ControlPlane]) == 0 {
@@ -254,10 +251,15 @@ func (cfg *ClusterSpec) GroupHosts() (map[string][]*connector.BaseHost, error) {
 		roleGroups[Master] = append(roleGroups[Master], host)
 	}
 
-	return roleGroups, nil
+	return roleGroups
 }
 
-func toHosts(cfg HostCfg) *connector.BaseHost {
+type KubeHost struct {
+	*connector.BaseHost
+	Labels map[string]string
+}
+
+func toHosts(cfg HostCfg) *KubeHost {
 	host := connector.NewHost()
 	host.Name = cfg.Name
 	host.Address = cfg.Address
@@ -268,7 +270,12 @@ func toHosts(cfg HostCfg) *connector.BaseHost {
 	host.PrivateKey = cfg.PrivateKey
 	host.PrivateKeyPath = cfg.PrivateKeyPath
 	host.Arch = cfg.Arch
-	return host
+
+	kubeHost := &KubeHost{
+		BaseHost: host,
+		Labels:   cfg.Labels,
+	}
+	return kubeHost
 }
 
 // ClusterIP is used to get the kube-apiserver service address inside the cluster.
@@ -291,8 +298,8 @@ func (cfg *ClusterSpec) ClusterDNS() string {
 }
 
 // ParseRolesList is used to parse the host grouping list.
-func (cfg *ClusterSpec) ParseRolesList(hostMap map[string]*connector.BaseHost) (map[string][]*connector.BaseHost, error) {
-	roleGroupLists := make(map[string][]*connector.BaseHost)
+func (cfg *ClusterSpec) ParseRolesList(hostMap map[string]*KubeHost) map[string][]*KubeHost {
+	roleGroupLists := make(map[string][]*KubeHost)
 	for role, hosts := range cfg.RoleGroups {
 		roleGroup := make([]string, 0)
 		for _, host := range hosts {
@@ -312,23 +319,23 @@ func (cfg *ClusterSpec) ParseRolesList(hostMap map[string]*connector.BaseHost) (
 				if h, ok := hostMap[hostName]; ok {
 					roleGroupAppend(roleGroupLists, role, h)
 				} else {
-					return roleGroupLists, fmt.Errorf("incorrect nodeName under roleGroups/%s in the configuration file", role)
+					logger.Log.Fatal(fmt.Errorf("incorrect nodeName under roleGroups/%s in the configuration file", role))
 				}
 			}
 		}
 	}
 
-	return roleGroupLists, nil
+	return roleGroupLists
 }
 
-func roleGroupAppend(roleGroupLists map[string][]*connector.BaseHost, role string, host *connector.BaseHost) {
+func roleGroupAppend(roleGroupLists map[string][]*KubeHost, role string, host *KubeHost) {
 	host.SetRole(role)
 	r := roleGroupLists[role]
 	r = append(r, host)
 	roleGroupLists[role] = r
 }
 
-func getHostsRange(rangeStr string, hostMap map[string]*connector.BaseHost, group string) []string {
+func getHostsRange(rangeStr string, hostMap map[string]*KubeHost, group string) []string {
 	hostRangeList := make([]string, 0)
 	r := regexp.MustCompile(`\[(\d+)\:(\d+)\]`)
 	nameSuffix := r.FindStringSubmatch(rangeStr)
@@ -344,7 +351,7 @@ func getHostsRange(rangeStr string, hostMap map[string]*connector.BaseHost, grou
 	return hostRangeList
 }
 
-func hostVerify(hostMap map[string]*connector.BaseHost, hostName string, group string) error {
+func hostVerify(hostMap map[string]*KubeHost, hostName string, group string) error {
 	if _, ok := hostMap[hostName]; !ok {
 		return fmt.Errorf("[%s] is in [%s] group, but not in hosts list", hostName, group)
 	}
