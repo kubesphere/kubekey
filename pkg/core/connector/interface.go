@@ -87,5 +87,4 @@ type Host interface {
 	IsRole(role string) bool
 	GetCache() *cache.Cache
 	SetCache(c *cache.Cache)
-	Copy() Host
 }

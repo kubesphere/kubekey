@@ -81,13 +81,12 @@ func (t *RemoteTask) Execute() *ending.TaskResult {
 			continue
 		}
 		selfRuntime := t.Runtime.Copy()
-		selfHost := t.Hosts[i].Copy()
 
 		wg.Add(1)
 		if t.Parallel {
-			go t.RunWithTimeout(ctx, selfRuntime, selfHost, i, wg, routinePool)
+			go t.RunWithTimeout(ctx, selfRuntime, t.Hosts[i], i, wg, routinePool)
 		} else {
-			t.RunWithTimeout(ctx, selfRuntime, selfHost, i, wg, routinePool)
+			t.RunWithTimeout(ctx, selfRuntime, t.Hosts[i], i, wg, routinePool)
 		}
 	}
 	wg.Wait()
@@ -250,12 +249,11 @@ func (t *RemoteTask) ExecuteRollback() {
 			continue
 		}
 		selfRuntime := t.Runtime.Copy()
-		selfHost := ar.Host.Copy()
 
 		if t.Parallel {
-			go t.RollbackWithTimeout(ctx, selfRuntime, selfHost, i, ar, rwg, routinePool)
+			go t.RollbackWithTimeout(ctx, selfRuntime, ar.Host, i, ar, rwg, routinePool)
 		} else {
-			t.RollbackWithTimeout(ctx, selfRuntime, selfHost, i, ar, rwg, routinePool)
+			t.RollbackWithTimeout(ctx, selfRuntime, ar.Host, i, ar, rwg, routinePool)
 		}
 		rwg.Add(1)
 	}

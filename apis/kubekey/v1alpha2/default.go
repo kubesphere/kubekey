@@ -18,7 +18,6 @@ package v1alpha2
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"strings"
@@ -88,15 +87,12 @@ const (
 	Haproxy = "haproxy"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map[string][]*connector.BaseHost, error) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map[string][]*KubeHost) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
-	roleGroups, err := clusterCfg.GroupHosts()
-	if err != nil {
-		return nil, nil, err
-	}
+	roleGroups := clusterCfg.GroupHosts()
 	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, roleGroups[Master], incluster)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.System = cfg.System
@@ -120,7 +116,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map
 	if cfg.Kubernetes.ProxyMode == "" {
 		clusterCfg.Kubernetes.ProxyMode = DefaultProxyMode
 	}
-	return &clusterCfg, roleGroups, nil
+	return &clusterCfg, roleGroups
 }
 
 func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
@@ -159,7 +155,7 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 	return hostCfg
 }
 
-func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*connector.BaseHost, incluster bool) ControlPlaneEndpoint {
+func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*KubeHost, incluster bool) ControlPlaneEndpoint {
 	if !incluster {
 		//The detection is not an HA environment, and the address at LB does not need input
 		if len(masterGroup) == 1 && cfg.ControlPlaneEndpoint.Address != "" {
