@@ -136,10 +136,17 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 
 type PushImage struct {
 	common.KubeAction
+	ImagesPath string
 }
 
 func (p *PushImage) Execute(runtime connector.Runtime) error {
-	imagesPath := filepath.Join(runtime.GetWorkDir(), "images")
+	var imagesPath string
+	if p.ImagesPath != "" {
+		imagesPath = p.ImagesPath
+	} else {
+		imagesPath = filepath.Join(runtime.GetWorkDir(), "images")
+	}
+
 	files, err := ioutil.ReadDir(imagesPath)
 	if err != nil {
 		return errors.Wrapf(errors.WithStack(err), "read %s dir faied", imagesPath)

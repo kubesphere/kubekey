@@ -139,3 +139,22 @@ func (c *ClusterPreCheckModule) Init() {
 		getKubernetesNodesStatus,
 	}
 }
+
+type CRIPreCheckModule struct {
+	common.KubeModule
+}
+
+func (c *CRIPreCheckModule) Init() {
+	c.Name = "CRIPreCheckModule"
+	c.Desc = "Do CRI pre-check on local node"
+
+	criCheck := &task.LocalTask{
+		Name:   "CRIPreCheck",
+		Desc:   "Check CRI",
+		Action: new(CRIPreCheck),
+	}
+
+	c.Tasks = []task.Interface{
+		criCheck,
+	}
+}

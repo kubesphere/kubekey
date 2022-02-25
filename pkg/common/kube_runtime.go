@@ -53,6 +53,7 @@ type Argument struct {
 	Artifact           string
 	InstallPackages    bool
 	CertificatesDir    string
+	ImagesDir          string
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
