@@ -35,6 +35,7 @@ func NewArtifactExportPipeline(runtime *common.ArtifactRuntime) error {
 		&binaries.ArtifactBinariesModule{},
 		&artifact.RepositoryModule{},
 		&artifact.ArchiveModule{},
+		&filesystem.ChownOutputModule{},
 		&filesystem.ChownWorkDirModule{},
 	}
 
@@ -58,6 +59,7 @@ func NewK3sArtifactExportPipeline(runtime *common.ArtifactRuntime) error {
 		&binaries.K3sArtifactBinariesModule{},
 		&artifact.RepositoryModule{},
 		&artifact.ArchiveModule{},
+		&filesystem.ChownOutputModule{},
 		&filesystem.ChownWorkDirModule{},
 	}
 
