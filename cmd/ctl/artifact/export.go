@@ -42,8 +42,8 @@ func NewArtifactExportOptions() *ArtifactExportOptions {
 	}
 }
 
-// NewCmdCreateCluster creates a new create cluster command
-func NewCmdCreateCluster() *cobra.Command {
+// NewCmdArtifactExport creates a new `kubekey artifact export` command
+func NewCmdArtifactExport() *cobra.Command {
 	o := NewArtifactExportOptions()
 	cmd := &cobra.Command{
 		Use:   "export",
@@ -60,7 +60,7 @@ func NewCmdCreateCluster() *cobra.Command {
 	return cmd
 }
 
-func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) error {
+func (o *ArtifactExportOptions) Complete(_ *cobra.Command, _ []string) error {
 	var err error
 	if o.Output == "" {
 		o.Output = "kubekey-artifact.tar.gz"
@@ -74,7 +74,7 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) erro
 	return nil
 }
 
-func (o *ArtifactExportOptions) Validate(args []string) error {
+func (o *ArtifactExportOptions) Validate(_ []string) error {
 	if o.ManifestFile == "" {
 		return fmt.Errorf("--manifest can not be an empty string")
 	}

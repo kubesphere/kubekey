@@ -1,5 +1,5 @@
 /*
- Copyright 2021 The KubeSphere Authors.
+ Copyright 2022 The KubeSphere Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -14,35 +14,34 @@
  limitations under the License.
 */
 
-package artifact
+package images
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl/artifact/images"
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
 )
 
-type ArtifactOptions struct {
+type ArtifactImagesOptions struct {
 	CommonOptions *options.CommonOptions
 }
 
-func NewArtifactOptions() *ArtifactOptions {
-	return &ArtifactOptions{
+func NewArtifactImagesOptions() *ArtifactImagesOptions {
+	return &ArtifactImagesOptions{
 		CommonOptions: options.NewCommonOptions(),
 	}
 }
 
-// NewCmdArtifact creates a new cobra.Command for `kubekey artifact`
-func NewCmdArtifact() *cobra.Command {
-	o := NewArtifactOptions()
+// NewCmdArtifactImages creates a new `kubekey artifact image` command
+func NewCmdArtifactImages() *cobra.Command {
+	o := NewArtifactImagesOptions()
 	cmd := &cobra.Command{
-		Use:   "artifact",
-		Short: "manage KubeKey artifact",
+		Use:     "images",
+		Aliases: []string{"image", "i"},
+		Short:   "manage KubeKey artifact image",
 	}
 
 	o.CommonOptions.AddCommonFlag(cmd)
+	cmd.AddCommand(NewCmdArtifactImagesPush())
 
-	cmd.AddCommand(NewCmdArtifactExport())
-	cmd.AddCommand(images.NewCmdArtifactImages())
 	return cmd
 }

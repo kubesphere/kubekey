@@ -44,18 +44,31 @@ func (c *ChownModule) Init() {
 }
 
 type ChownWorkDirModule struct {
-	common.ArtifactModule
+	module.BaseTaskModule
 }
 
 func (c *ChownWorkDirModule) Init() {
-	c.Name = "ChownWorkDirModule"
-	c.Desc = "Change file and dir owner"
+	c.Name = "ChownWorkerModule"
+	c.Desc = "Change kubekey work dir mode and owner"
 
 	userKubeDir := &task.LocalTask{
 		Name:   "ChownFileAndDir",
 		Desc:   "Chown ./kubekey dir",
 		Action: &LocalTaskChown{Path: c.Runtime.GetWorkDir()},
 	}
+
+	c.Tasks = []task.Interface{
+		userKubeDir,
+	}
+}
+
+type ChownOutputModule struct {
+	common.ArtifactModule
+}
+
+func (c *ChownOutputModule) Init() {
+	c.Name = "ChownOutputModule"
+	c.Desc = "Change file and dir owner"
 
 	output := &task.LocalTask{
 		Name:   "Chown output file",
@@ -64,7 +77,6 @@ func (c *ChownWorkDirModule) Init() {
 	}
 
 	c.Tasks = []task.Interface{
-		userKubeDir,
 		output,
 	}
 }
