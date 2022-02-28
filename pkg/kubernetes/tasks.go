@@ -1050,3 +1050,17 @@ func (s *SaveKubeConfig) Execute(runtime connector.Runtime) error {
 	}
 	return nil
 }
+
+type ConfigureKubernetes struct {
+	common.KubeAction
+}
+
+func (c *ConfigureKubernetes) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	kubeHost := host.(*kubekeyv1alpha2.KubeHost)
+	for k, v := range kubeHost.Labels {
+		labelCmd := fmt.Sprintf("/usr/local/bin/kubectl label --overwrite node %s %s=%s", host.GetName(), k, v)
+		_, _ = runtime.GetRunner().SudoCmd(labelCmd, true)
+	}
+	return nil
+}

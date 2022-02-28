@@ -16,7 +16,9 @@
 
 package connector
 
-import "github.com/kubesphere/kubekey/pkg/core/cache"
+import (
+	"github.com/kubesphere/kubekey/pkg/core/cache"
+)
 
 type BaseHost struct {
 	Name            string          `yaml:"name,omitempty" json:"name,omitempty"`
@@ -139,9 +141,4 @@ func (b *BaseHost) GetCache() *cache.Cache {
 
 func (b *BaseHost) SetCache(c *cache.Cache) {
 	b.Cache = c
-}
-
-func (b *BaseHost) Copy() Host {
-	host := *b
-	return &host
 }

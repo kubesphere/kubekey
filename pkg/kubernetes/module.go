@@ -572,3 +572,25 @@ func (s *SaveKubeConfigModule) Init() {
 		save,
 	}
 }
+
+type ConfigureKubernetesModule struct {
+	common.KubeModule
+}
+
+func (c *ConfigureKubernetesModule) Init() {
+	c.Name = "ConfigureKubernetesModule"
+	c.Desc = "Configure kubernetes"
+
+	configure := &task.RemoteTask{
+		Name:     "ConfigureKubernetes",
+		Desc:     "Configure kubernetes",
+		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
+		Action:   new(ConfigureKubernetes),
+		Retry:    3,
+		Parallel: true,
+	}
+
+	c.Tasks = []task.Interface{
+		configure,
+	}
+}

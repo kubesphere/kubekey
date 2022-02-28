@@ -30,6 +30,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer"
+	"github.com/pkg/errors"
 )
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
@@ -85,8 +86,14 @@ func UpgradeCluster(args common.Argument, downloadCmd string) error {
 		return err
 	}
 
-	if err := NewUpgradeClusterPipeline(runtime); err != nil {
-		return err
+	switch runtime.Cluster.Kubernetes.Type {
+	case common.Kubernetes:
+		if err := NewUpgradeClusterPipeline(runtime); err != nil {
+			return err
+		}
+	default:
+		return errors.New("unsupported cluster kubernetes type")
 	}
+
 	return nil
 }

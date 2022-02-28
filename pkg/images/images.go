@@ -170,8 +170,8 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 }
 
 func parseImageName(file string) (string, string, string, string) {
-	// just like: docker.io-calico-cni:v3.20.0.tar, docker.io-kubesphere-kube-apiserver:v1.21.5.tar
-	// docker.io-fluent-fluentd:v1.4.2-2.0.tar .e.g.
+	// just like: docker.io#calico#cni:v3.20.0.tar, docker.io#kubesphere#kube-apiserver:v1.21.5.tar
+	// docker.io#fluent#fluentd:v1.4.2-2.0.tar .e.g.
 	fullArr := strings.Split(file, ":")
 
 	// v3.20.0.tar, v1.21.5.tar or v1.4.2-2.0.tar
@@ -181,7 +181,7 @@ func parseImageName(file string) (string, string, string, string) {
 	// v3.20.0, v1.21.5 or v1.4.2-2.0
 	tag = strings.TrimSuffix(tag, tagExt)
 
-	// docker.io-calico-cni, docker.io-kubesphere-kube-apiserver or docker.io-fluent-fluentd
+	// docker.io#calico#cni, docker.io#kubesphere#kube-apiserver or docker.io#fluent#fluentd
 	nameArr := strings.Split(strings.Join(fullArr[:len(fullArr)-1], ":"), "#")
 
 	// docker.io
