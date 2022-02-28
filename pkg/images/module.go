@@ -73,7 +73,8 @@ func (p *PullModule) Init() {
 
 type PushModule struct {
 	common.KubeModule
-	Skip bool
+	Skip      bool
+	ImagePath string
 }
 
 func (p *PushModule) IsSkip() bool {
@@ -87,7 +88,7 @@ func (p *PushModule) Init() {
 	push := &task.LocalTask{
 		Name:   "PushImages",
 		Desc:   "Push images to private registry",
-		Action: new(PushImage),
+		Action: &PushImage{ImagesPath: p.ImagePath},
 	}
 
 	p.Tasks = []task.Interface{
