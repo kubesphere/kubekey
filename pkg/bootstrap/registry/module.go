@@ -237,18 +237,6 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Parallel: true,
 	}
 
-	dockerLoginRegistry := &task.RemoteTask{
-		Name:  "Login PrivateRegistry",
-		Desc:  "Add auths to container runtime",
-		Hosts: i.Runtime.GetHostsByRole(common.Registry),
-		Prepare: &prepare.PrepareCollection{
-			&container.DockerExist{},
-			&container.PrivateRegistryAuth{},
-		},
-		Action:   new(container.DockerLoginRegistry),
-		Parallel: true,
-	}
-
 	// Install docker compose
 	installDockerCompose := &task.RemoteTask{
 		Name:     "InstallDockerCompose",
@@ -302,7 +290,6 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		generateDockerService,
 		generateDockerConfig,
 		enableDocker,
-		dockerLoginRegistry,
 		installDockerCompose,
 		syncHarborPackage,
 		generateHarborConfig,
