@@ -3,7 +3,7 @@ module github.com/kubesphere/kubekey
 go 1.17
 
 require (
-	github.com/containerd/containerd v1.5.9
+	github.com/containerd/containerd v1.5.10
 	github.com/deckarep/golang-set v1.8.0
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/go-logr/logr v1.2.2
