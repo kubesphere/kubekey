@@ -2,7 +2,7 @@
 KubeKey v2.0.0 (hereinafter kk) adds the concepts of `manifest` and `artifact` to provide a solution for users to deploy Kubernetes clusters offline enviroment. In the past, users had to prepare deployment tools, images' `tar` files, and other related binaries, and each user has a different version of Kubernetes to deploy and different images to deploy. Now with kk, you only need to use the `manifest` file to define what you need for the cluster environment to be deployed offline, and then use that `manifest` to export the `artifact` file to complete the preparation. Then offline installation requires only kk and `artifact` for quick and easy deployment of image registry (docker-registry or harbor) and Kubernetes clusters in your environment.
 
 ## What is the KubeKey Manifest?
-A `manifest` is a text file that describes information about the current Kubernetes cluster and defines what needs to be included in the `artifact` . There are currently two ways to generate this file：
+The `Manifest` is an offline installation package configuration file. There are currently two ways to generate this file：
 * Manually creating and writing the file from a template.
 * Generate the file from an existing cluster using the kk command.
 
@@ -35,7 +35,7 @@ kk connects to the corresponding Kubernetes cluster via the `kubeconfig` file an
 After that, the description of the current cluster will be written to the `manifest` file. Besides, other undetectable files (e.g. ETCD cluster information, image regsitry, etc.) will be written to the `manifest` file according to the default values recommended by kk.
 
 ## What is the KubeKey Artifact?
-The `artifact` is a `.tar.gz` package containing the images' `tar` file and other related binaries, exported from the specified `manifest` file. An `artifact` can be specified in the kk `init registry`, `create cluster`, `add node` and `upgrade cluster` commands. kk will automatically unpack the `artifact` and will use the unpacked file directly when executing the command.
+The `artifact` is an offline installation package, exported from the specified `manifest` file. An `artifact` can be specified in the kk `init registry`, `create cluster`, `add node` and `upgrade cluster` commands. kk will automatically unpack the `artifact` and will use the unpacked file directly when executing the command.
 
 ### Usage
 #### Export Artifact
