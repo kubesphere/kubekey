@@ -37,7 +37,7 @@ func NewCmdArtifact() *cobra.Command {
 	o := NewArtifactOptions()
 	cmd := &cobra.Command{
 		Use:   "artifact",
-		Short: "manage KubeKey artifact",
+		Short: "Manage a KubeKey offline installation package",
 	}
 
 	o.CommonOptions.AddCommonFlag(cmd)

@@ -49,7 +49,7 @@ func NewCmdCreateManifest() *cobra.Command {
 	o := NewCreateManifestOptions()
 	cmd := &cobra.Command{
 		Use:   "manifest",
-		Short: "Create cluster artifact manifest file",
+		Short: "Create an offline installation package configuration file",
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(o.Complete(cmd, args))
 			util.CheckErr(o.Run())
