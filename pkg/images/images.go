@@ -130,10 +130,11 @@ func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches 
 
 	privateRegistry := kubeConf.Cluster.Registry.PrivateRegistry
 	image := Image{
-		RepoAddr:  privateRegistry,
-		Namespace: namespace,
-		Repo:      imageName,
-		Tag:       tag,
+		RepoAddr:          privateRegistry,
+		Namespace:         namespace,
+		NamespaceOverride: kubeConf.Cluster.Registry.NamespaceOverride,
+		Repo:              imageName,
+		Tag:               tag,
 	}
 
 	auths := templates.Auths(kubeConf)
