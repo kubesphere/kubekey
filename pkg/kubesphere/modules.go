@@ -190,6 +190,11 @@ func (c *CheckResultModule) Init() {
 
 type CleanClusterConfigurationModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (c *CleanClusterConfigurationModule) IsSkip() bool {
+	return c.Skip
 }
 
 func (c *CleanClusterConfigurationModule) Init() {
@@ -210,6 +215,11 @@ func (c *CleanClusterConfigurationModule) Init() {
 
 type ConvertModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (c *ConvertModule) IsSkip() bool {
+	return c.Skip
 }
 
 func (c *ConvertModule) Init() {
