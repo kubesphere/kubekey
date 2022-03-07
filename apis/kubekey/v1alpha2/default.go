@@ -245,6 +245,9 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 			cfg.Kubernetes.Type = s[1]
 		}
 	}
+	if cfg.Kubernetes.Type == "" {
+		cfg.Kubernetes.Type = "kubernetes"
+	}
 	if cfg.Kubernetes.ClusterName == "" {
 		cfg.Kubernetes.ClusterName = DefaultClusterName
 	}

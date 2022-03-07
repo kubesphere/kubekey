@@ -18,7 +18,7 @@ package common
 
 const (
 	K3s        = "k3s"
-	Kubernetes = "Kubernetes"
+	Kubernetes = "kubernetes"
 
 	LocalHost = "localhost"
 
