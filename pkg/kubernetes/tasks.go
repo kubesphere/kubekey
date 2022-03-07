@@ -425,8 +425,18 @@ func (s *SyncKubeConfigToWorker) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(errors.WithStack(err), "sync kube config for normal user failed")
 		}
 
-		chownKubeConfig := "chown -R $(id -u):$(id -g) -R $HOME/.kube"
-		if _, err := runtime.GetRunner().Cmd(chownKubeConfig, false); err != nil {
+		userId, err := runtime.GetRunner().Cmd("echo $(id -u)", false)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "get user id failed")
+		}
+
+		userGroupId, err := runtime.GetRunner().Cmd("echo $(id -g)", false)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "get user group id failed")
+		}
+
+		chownKubeConfig := fmt.Sprintf("chown -R %s:%s -R $HOME/.kube", userId, userGroupId)
+		if _, err := runtime.GetRunner().SudoCmd(chownKubeConfig, false); err != nil {
 			return errors.Wrap(errors.WithStack(err), "chown user kube config failed")
 		}
 	}
