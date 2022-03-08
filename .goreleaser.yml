@@ -22,6 +22,8 @@ archives:
     linux: linux
     amd64: amd64
     arm64: arm64
+  files:
+    - none*
 checksum:
   name_template: 'checksums.txt'
 snapshot:
