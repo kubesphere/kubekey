@@ -37,6 +37,7 @@
 
 ### Air-Gapped Installation
 
+- Customize and use the [air-gapped installation package](manifest_and_artifact.md)
 - Create a private image registry
 - Customize images available in the private image registry 
 

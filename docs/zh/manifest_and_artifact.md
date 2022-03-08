@@ -59,6 +59,10 @@ kk 通过 `kubeconfig` 文件连接对应的 Kubernetes 集群，然后检查出
 ```
 ./kk init registry -f config-sample.yaml -a kubekey-artifact.tar.gz
 ```
+* 推送镜像到私有镜像仓库
+```
+./kk artifact image push -f config-sample.yaml -a kubekey-artifact.tar.gz
+```
 * 创建集群。
 > 注意：在离线环境中，需配置私有镜像仓库信息用于集群镜像的管理，相关配置可参考 [config-sample.yaml](../config-example.md) 和 [容器镜像仓库](../registry.md)。
 ```
