@@ -60,6 +60,10 @@ After execution, the `kubekey-artifact.tar.gz` file will be generated in the cur
  ```
 ./kk init registry -f config-sample.yaml -a kubekey-artifact.tar.gz
 ```
+* Push the image to the private image registry.
+```
+./kk artifact image push -f config-sample.yaml -a kubekey-artifact.tar.gz
+```
 * Create the cluster.
 > Note: In an offline environment, you need to configure private image registry information for cluster image management, please refer to [config-sample.yaml](./config-example.md) and [container image registry](./registry.md).
 
