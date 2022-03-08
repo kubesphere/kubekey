@@ -47,7 +47,7 @@ func NewCmdArtifactExport() *cobra.Command {
 	o := NewArtifactExportOptions()
 	cmd := &cobra.Command{
 		Use:   "export",
-		Short: "export a KubeKey artifact",
+		Short: "Export a KubeKey offline installation package",
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(o.Complete(cmd, args))
 			util.CheckErr(o.Validate(args))
