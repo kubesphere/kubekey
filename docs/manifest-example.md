@@ -17,7 +17,7 @@ spec:
     repository: 
       iso:
         localPath: 
-        url: https://github.com/pixiake/k8s-dependencies/releases/download/v1.0.0/ubuntu-20.04-amd64-debs.iso
+        url: https://github.com/kubesphere/kubekey/releases/download/v2.0.0/ubuntu-20.04-amd64-debs.iso
   - arch: amd64
     type: linux
     id: centos
@@ -26,7 +26,7 @@ spec:
     repository:
       iso:
         localPath:
-        url: https://github.com/pixiake/k8s-dependencies/releases/download/v1.0.0/centos-7-amd64-rpms.iso
+        url: https://github.com/kubesphere/kubekey/releases/download/v2.0.0/centos-7-amd64-rpms.iso
   kubernetesDistributions: 
   - type: kubernetes
     version: v1.21.5
@@ -91,7 +91,7 @@ spec:
     repository:
       iso:
         localPath:
-        url: https://github.com/pixiake/k8s-dependencies/releases/download/v1.0.0/centos-7-amd64-rpms.iso
+        url: https://github.com/kubesphere/kubekey/releases/download/v2.0.0/centos-7-amd64-rpms.iso
   kubernetesDistributions: # Define the kubernetes distribution that will be included in the artifact.
   - type: kubernetes
     version: v1.21.5
