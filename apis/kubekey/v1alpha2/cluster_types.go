@@ -254,6 +254,7 @@ func (cfg *ClusterSpec) GroupHosts() map[string][]*KubeHost {
 	return roleGroups
 }
 
+// +kubebuilder:object:generate=false
 type KubeHost struct {
 	*connector.BaseHost
 	Labels map[string]string
