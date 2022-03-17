@@ -14,3 +14,27 @@ KubeKey Roadmap demonstrates a list of open source product development plans, as
 - [ ] Support for adding taints to nodes when deploying cluster.
 - [x] Support command auto-completion.
 - [x] Support for deploying k3s (experimental).
+
+## v1.2.0
+### Feature:
+- [x] Support for deploying Highly Available clusters by using internal load balancer.
+- [x] Support Kubernetes certificate automatic renew.
+
+## v2.0.0
+### Feature:
+- [x] More flexible task scheduling framework.
+- [x] Support easier and more flexible air-gapped installation.
+- [x] Support kubekey to independently generate certificate.
+- [x] Support custom private registry authorization.
+- [x] Enable featureGates in Kubernetes of cluster-config.
+- [x] Support Kata and Node Feature Discovery.
+- [x] Support customizing dnsDomain for the cluster.
+- [x] Add pod PID limit and PID available.
+- [x] Support setting NTP server and timezone.
+
+## v2.1.0
+### Feature:
+- [] Support the use of kubeadm to manage etcd and use of existing etcd. 
+- [] Optimize the Container Manager installation process.
+- [] Reduce the size of KubeKey artifact.
+- [] Support more version of Kubernetes.
