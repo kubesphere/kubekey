@@ -19,6 +19,7 @@ package pipelines
 import (
 	"encoding/base64"
 	"fmt"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/artifact"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
@@ -69,11 +70,11 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&container.InstallContainerModule{},
 		&images.PushModule{Skip: skipPushImages},
 		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
-		&etcd.PreCheckModule{},
+		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&etcd.CertsModule{},
-		&etcd.InstallETCDBinaryModule{},
-		&etcd.ConfigureModule{},
-		&etcd.BackupModule{},
+		&etcd.InstallETCDBinaryModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&kubernetes.InstallKubeBinariesModule{},
 		&kubernetes.InitKubernetesModule{},
 		&dns.ClusterDNSModule{},
@@ -159,11 +160,11 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&binaries.K3sNodeBinariesModule{},
 		&os.ConfigureOSModule{},
 		&k3s.StatusModule{},
-		&etcd.PreCheckModule{},
+		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&etcd.CertsModule{},
-		&etcd.InstallETCDBinaryModule{},
-		&etcd.ConfigureModule{},
-		&etcd.BackupModule{},
+		&etcd.InstallETCDBinaryModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&k3s.InstallKubeBinariesModule{},
 		&k3s.InitClusterModule{},
 		&k3s.StatusModule{},

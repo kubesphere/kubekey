@@ -44,6 +44,7 @@ type ClusterSpec struct {
 	RoleGroups           map[string][]string  `yaml:"roleGroups" json:"roleGroups,omitempty"`
 	ControlPlaneEndpoint ControlPlaneEndpoint `yaml:"controlPlaneEndpoint" json:"controlPlaneEndpoint,omitempty"`
 	System               System               `yaml:"system" json:"system,omitempty"`
+	Etcd                 EtcdCluster          `yaml:"etcd" json:"etcd,omitempty"`
 	Kubernetes           Kubernetes           `yaml:"kubernetes" json:"kubernetes,omitempty"`
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
@@ -186,14 +187,6 @@ type KubeSphere struct {
 	Configurations string `json:"configurations,omitempty"`
 }
 
-// ExternalEtcd defines configuration information of external etcd.
-type ExternalEtcd struct {
-	Endpoints []string
-	CaFile    string
-	CertFile  string
-	KeyFile   string
-}
-
 // GenerateCertSANs is used to generate cert sans for cluster.
 func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	clusterSvc := fmt.Sprintf("kubernetes.default.svc.%s", cfg.Kubernetes.DNSDomain)
@@ -239,7 +232,7 @@ func (cfg *ClusterSpec) GroupHosts() map[string][]*KubeHost {
 	if len(roleGroups[Master]) == 0 && len(roleGroups[ControlPlane]) == 0 {
 		logger.Log.Fatal(errors.New("The number of master/control-plane cannot be 0"))
 	}
-	if len(roleGroups[Etcd]) == 0 {
+	if len(roleGroups[Etcd]) == 0 && cfg.Etcd.Type == KubeKey {
 		logger.Log.Fatal(errors.New("The number of etcd cannot be 0"))
 	}
 	if len(roleGroups[Registry]) > 1 {

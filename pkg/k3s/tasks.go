@@ -239,23 +239,30 @@ func (g *GenerateK3sServiceEnv) Execute(runtime connector.Runtime) error {
 
 	var externalEtcd kubekeyapiv1alpha2.ExternalEtcd
 	var endpointsList []string
-	var caFile, certFile, keyFile string
-	var token string
+	var externalEtcdEndpoints, token string
 
-	for _, node := range runtime.GetHostsByRole(common.ETCD) {
-		endpoint := fmt.Sprintf("https://%s:%s", node.GetInternalAddress(), kubekeyapiv1alpha2.DefaultEtcdPort)
-		endpointsList = append(endpointsList, endpoint)
+	switch g.KubeConf.Cluster.Etcd.Type {
+	case kubekeyapiv1alpha2.External:
+		externalEtcd.Endpoints = g.KubeConf.Cluster.Etcd.External.Endpoints
+
+		if len(g.KubeConf.Cluster.Etcd.External.CAFile) != 0 && len(g.KubeConf.Cluster.Etcd.External.CAFile) != 0 && len(g.KubeConf.Cluster.Etcd.External.CAFile) != 0 {
+			externalEtcd.CAFile = fmt.Sprintf("/etc/ssl/etcd/ssl/%s", filepath.Base(g.KubeConf.Cluster.Etcd.External.CAFile))
+			externalEtcd.CertFile = fmt.Sprintf("/etc/ssl/etcd/ssl/%s", filepath.Base(g.KubeConf.Cluster.Etcd.External.CertFile))
+			externalEtcd.KeyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/%s", filepath.Base(g.KubeConf.Cluster.Etcd.External.KeyFile))
+		}
+	default:
+		for _, node := range runtime.GetHostsByRole(common.ETCD) {
+			endpoint := fmt.Sprintf("https://%s:%s", node.GetInternalAddress(), kubekeyapiv1alpha2.DefaultEtcdPort)
+			endpointsList = append(endpointsList, endpoint)
+		}
+		externalEtcd.Endpoints = endpointsList
+
+		externalEtcd.CAFile = "/etc/ssl/etcd/ssl/ca.pem"
+		externalEtcd.CertFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", runtime.GetHostsByRole(common.Master)[0].GetName())
+		externalEtcd.KeyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", runtime.GetHostsByRole(common.Master)[0].GetName())
 	}
-	externalEtcd.Endpoints = endpointsList
 
-	externalEtcdEndpoints := strings.Join(endpointsList, ",")
-	caFile = "/etc/ssl/etcd/ssl/ca.pem"
-	certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", runtime.GetHostsByRole(common.Master)[0].GetName())
-	keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", runtime.GetHostsByRole(common.Master)[0].GetName())
-
-	externalEtcd.CaFile = caFile
-	externalEtcd.CertFile = certFile
-	externalEtcd.KeyFile = keyFile
+	externalEtcdEndpoints = strings.Join(externalEtcd.Endpoints, ",")
 
 	if !host.IsRole(common.Master) {
 		token = cluster.NodeToken
@@ -266,9 +273,9 @@ func (g *GenerateK3sServiceEnv) Execute(runtime connector.Runtime) error {
 		Dst:      filepath.Join("/etc/systemd/system/", templates.K3sServiceEnv.Name()),
 		Data: util.Data{
 			"DataStoreEndPoint": externalEtcdEndpoints,
-			"DataStoreCaFile":   caFile,
-			"DataStoreCertFile": certFile,
-			"DataStoreKeyFile":  keyFile,
+			"DataStoreCaFile":   externalEtcd.CAFile,
+			"DataStoreCertFile": externalEtcd.CertFile,
+			"DataStoreKeyFile":  externalEtcd.KeyFile,
 			"IsMaster":          host.IsRole(common.Master),
 			"Token":             token,
 		},

@@ -36,6 +36,7 @@ spec:
     storageClass: ""
   authentication:
     jwtSecret: ""
+  zone: ""
   local_registry: ""
   # dev_tag: ""
   etcd:

@@ -131,11 +131,13 @@ func (n *NodeExecScript) Execute(runtime connector.Runtime) error {
 }
 
 var (
-	clusterFiles = []string{
+	etcdFiles = []string{
 		"/usr/local/bin/etcd",
 		"/etc/ssl/etcd",
 		"/var/lib/etcd",
 		"/etc/etcd.env",
+	}
+	clusterFiles = []string{
 		"/etc/kubernetes",
 		"/etc/systemd/system/etcd.service",
 		"/var/log/calico",
@@ -177,12 +179,15 @@ func (r *ResetNetworkConfig) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type StopETCDService struct {
+type UninstallETCD struct {
 	common.KubeAction
 }
 
-func (s *StopETCDService) Execute(runtime connector.Runtime) error {
+func (s *UninstallETCD) Execute(runtime connector.Runtime) error {
 	_, _ = runtime.GetRunner().SudoCmd("systemctl stop etcd && exit 0", false)
+	for _, file := range etcdFiles {
+		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
+	}
 	return nil
 }
 

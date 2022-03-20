@@ -130,7 +130,11 @@ func (b *BaseRuntime) SetAllHosts(hosts []Host) {
 }
 
 func (b *BaseRuntime) GetHostsByRole(role string) []Host {
-	return b.roleHosts[role]
+	if _, ok := b.roleHosts[role]; ok {
+		return b.roleHosts[role]
+	} else {
+		return []Host{}
+	}
 }
 
 func (b *BaseRuntime) RemoteHost() Host {

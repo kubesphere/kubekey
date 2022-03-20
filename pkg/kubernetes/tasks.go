@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/etcd"
 	"os"
 	"path/filepath"
 	"sort"
@@ -216,22 +217,34 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 	} else {
 		// generate etcd configuration
 		var externalEtcd kubekeyv1alpha2.ExternalEtcd
-		var endpointsList []string
-		var caFile, certFile, keyFile string
+		var endpointsList, etcdCertSANs []string
 
-		for _, host := range runtime.GetHostsByRole(common.ETCD) {
-			endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalAddress(), kubekeyv1alpha2.DefaultEtcdPort)
-			endpointsList = append(endpointsList, endpoint)
+		switch g.KubeConf.Cluster.Etcd.Type {
+		case kubekeyv1alpha2.KubeKey:
+			for _, host := range runtime.GetHostsByRole(common.ETCD) {
+				endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalAddress(), kubekeyv1alpha2.DefaultEtcdPort)
+				endpointsList = append(endpointsList, endpoint)
+			}
+			externalEtcd.Endpoints = endpointsList
+
+			externalEtcd.CAFile = "/etc/ssl/etcd/ssl/ca.pem"
+			externalEtcd.CertFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", host.GetName())
+			externalEtcd.KeyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", host.GetName())
+		case kubekeyv1alpha2.External:
+			externalEtcd.Endpoints = g.KubeConf.Cluster.Etcd.External.Endpoints
+
+			if len(g.KubeConf.Cluster.Etcd.External.CAFile) != 0 && len(g.KubeConf.Cluster.Etcd.External.CAFile) != 0 && len(g.KubeConf.Cluster.Etcd.External.CAFile) != 0 {
+				externalEtcd.CAFile = fmt.Sprintf("/etc/ssl/etcd/ssl/%s", filepath.Base(g.KubeConf.Cluster.Etcd.External.CAFile))
+				externalEtcd.CertFile = fmt.Sprintf("/etc/ssl/etcd/ssl/%s", filepath.Base(g.KubeConf.Cluster.Etcd.External.CertFile))
+				externalEtcd.KeyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/%s", filepath.Base(g.KubeConf.Cluster.Etcd.External.KeyFile))
+			}
+		case kubekeyv1alpha2.Kubeadm:
+			altNames := etcd.GenerateAltName(g.KubeConf, &runtime)
+			etcdCertSANs = append(etcdCertSANs, altNames.DNSNames...)
+			for _, ip := range altNames.IPs {
+				etcdCertSANs = append(etcdCertSANs, string(ip))
+			}
 		}
-		externalEtcd.Endpoints = endpointsList
-
-		caFile = "/etc/ssl/etcd/ssl/ca.pem"
-		certFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s.pem", host.GetName())
-		keyFile = fmt.Sprintf("/etc/ssl/etcd/ssl/node-%s-key.pem", host.GetName())
-
-		externalEtcd.CaFile = caFile
-		externalEtcd.CertFile = certFile
-		externalEtcd.KeyFile = keyFile
 
 		_, ApiServerArgs := util.GetArgs(v1beta2.ApiServerArgs, g.KubeConf.Cluster.Kubernetes.ApiServerArgs)
 		_, ControllerManagerArgs := util.GetArgs(v1beta2.ControllermanagerArgs, g.KubeConf.Cluster.Kubernetes.ControllerManagerArgs)
@@ -262,6 +275,10 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 			Data: util.Data{
 				"IsInitCluster":          g.IsInitConfiguration,
 				"ImageRepo":              strings.TrimSuffix(images.GetImage(runtime, g.KubeConf, "kube-apiserver").ImageRepo(), "/kube-apiserver"),
+				"EtcdTypeIsKubeadm":      g.KubeConf.Cluster.Etcd.Type == kubekeyv1alpha2.Kubeadm,
+				"EtcdCertSANs":           etcdCertSANs,
+				"EtcdRepo":               strings.TrimSuffix(images.GetImage(runtime, g.KubeConf, "etcd").ImageRepo(), "/etcd"),
+				"EtcdTag":                images.GetImage(runtime, g.KubeConf, "etcd").Tag,
 				"CorednsRepo":            strings.TrimSuffix(images.GetImage(runtime, g.KubeConf, "coredns").ImageRepo(), "/coredns"),
 				"CorednsTag":             images.GetImage(runtime, g.KubeConf, "coredns").Tag,
 				"Version":                g.KubeConf.Cluster.Kubernetes.Version,

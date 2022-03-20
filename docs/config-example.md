@@ -40,6 +40,16 @@ spec:
       ExpandCSIVolumes: true
       RotateKubeletServerCertificate: true
       TTLAfterFinished: true
+  etcd:
+    type: kubekey  # Specify the type of etcd used by the cluster. When the cluster type is k3s, setting this parameter to kubeadm is invalid. [kubekey | kubeadm | external] [Default: kubekey]
+    ## The following parameters need to be added only when the type is set to external.
+    ## caFile, certFile and keyFile need not be set, if TLS authentication is not enabled for the existing etcd.
+    # external:
+    #   endpoints:
+    #     - https://192.168.6.6:2379
+    #   caFile: /pki/etcd/ca.crt
+    #   certFile: /pki/etcd/etcd.crt
+    #   keyFile: /pki/etcd/etcd.key
   network:
     plugin: calico
     calico:

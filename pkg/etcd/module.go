@@ -17,6 +17,7 @@
 package etcd
 
 import (
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/task"
@@ -25,6 +26,11 @@ import (
 
 type PreCheckModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (p *PreCheckModule) IsSkip() bool {
+	return p.Skip
 }
 
 func (p *PreCheckModule) Init() {
@@ -46,16 +52,30 @@ func (p *PreCheckModule) Init() {
 
 type CertsModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (p *CertsModule) IsSkip() bool {
+	return p.Skip
 }
 
 func (c *CertsModule) Init() {
 	c.Name = "CertsModule"
 	c.Desc = "Sign ETCD cluster certs"
 
+	switch c.KubeConf.Cluster.Etcd.Type {
+	case kubekeyapiv1alpha2.KubeKey:
+		c.Tasks = CertsModuleForKubeKey(c)
+	case kubekeyapiv1alpha2.External:
+		c.Tasks = CertsModuleForExternal(c)
+	}
+}
+
+func CertsModuleForKubeKey(c *CertsModule) []task.Interface {
 	// If the etcd cluster already exists, obtain the certificate in use from the etcd node.
 	fetchCerts := &task.RemoteTask{
 		Name:     "FetchETCDCerts",
-		Desc:     "Fetcd etcd certs",
+		Desc:     "Fetch etcd certs",
 		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
 		Prepare:  new(FirstETCDNode),
 		Action:   new(FetchCerts),
@@ -87,7 +107,7 @@ func (c *CertsModule) Init() {
 		Retry:    1,
 	}
 
-	c.Tasks = []task.Interface{
+	return []task.Interface{
 		fetchCerts,
 		generateCerts,
 		syncCertsFile,
@@ -95,8 +115,35 @@ func (c *CertsModule) Init() {
 	}
 }
 
+func CertsModuleForExternal(c *CertsModule) []task.Interface {
+	fetchCerts := &task.LocalTask{
+		Name:   "FetchETCDCerts",
+		Desc:   "Fetch etcd certs",
+		Action: new(FetchCertsForExternalEtcd),
+	}
+
+	syncCertsToMaster := &task.RemoteTask{
+		Name:     "SyncCertsFileToMaster",
+		Desc:     "Synchronize certs file to master",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Action:   new(SyncCertsFile),
+		Parallel: true,
+		Retry:    1,
+	}
+
+	return []task.Interface{
+		fetchCerts,
+		syncCertsToMaster,
+	}
+}
+
 type InstallETCDBinaryModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (p *InstallETCDBinaryModule) IsSkip() bool {
+	return p.Skip
 }
 
 func (i *InstallETCDBinaryModule) Init() {
@@ -143,6 +190,11 @@ func (i *InstallETCDBinaryModule) Init() {
 
 type ConfigureModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (p *ConfigureModule) IsSkip() bool {
+	return p.Skip
 }
 
 func (e *ConfigureModule) Init() {
@@ -316,6 +368,11 @@ func handleExistCluster(c *ConfigureModule) []task.Interface {
 
 type BackupModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (p *BackupModule) IsSkip() bool {
+	return p.Skip
 }
 
 func (b *BackupModule) Init() {

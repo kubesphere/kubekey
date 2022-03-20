@@ -312,19 +312,8 @@ func (t *RemoteTask) Default() {
 		t.Name = DefaultTaskName
 	}
 
-	if len(t.Hosts) < 1 {
-		t.Hosts = []connector.Host{}
-		t.TaskResult.AppendErr(nil, errors.New("the length of task hosts is 0"))
-		return
-	}
-
 	if t.Prepare == nil {
 		t.Prepare = new(prepare.BasePrepare)
-	}
-
-	if t.Action == nil {
-		t.TaskResult.AppendErr(nil, errors.New("the action is nil"))
-		return
 	}
 
 	if t.Retry <= 0 {

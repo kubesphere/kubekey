@@ -430,6 +430,45 @@ spec:
                   port:
                     type: integer
                 type: object
+              etcd:
+                properties:
+                  backupDir:
+                    type: string
+                  backupPeriod:
+                    type: integer
+                  backupScript:
+                    type: string
+                  external:
+                    description: ExternalEtcd describes how to connect to an external
+                      etcd cluster when type is set to external
+                    properties:
+                      caFile:
+                        description: CAFile is an SSL Certificate Authority file used
+                          to secure etcd communication.
+                        type: string
+                      certFile:
+                        description: CertFile is an SSL certification file used to
+                          secure etcd communication.
+                        type: string
+                      endpoints:
+                        description: Endpoints of etcd members. Useful for using external
+                          etcd. If not provided, kubeadm will run etcd in a static
+                          pod.
+                        items:
+                          type: string
+                        type: array
+                      keyFile:
+                        description: KeyFile is an SSL key file used to secure etcd
+                          communication.
+                        type: string
+                    type: object
+                  keepBackupNumber:
+                    type: integer
+                  type:
+                    description: Type of etcd cluster, can be set to 'kubekey' 'kubeadm'
+                      'external'
+                    type: string
+                type: object
               hosts:
                 description: Foo is an example field of Cluster. Edit Cluster_types.go
                   to remove/update
@@ -440,13 +479,12 @@ spec:
                       type: string
                     arch:
                       type: string
-                    id:
-                      type: string
                     internalAddress:
                       type: string
                     labels:
                       additionalProperties:
                         type: string
+                      description: Labels defines the kubernetes labels for the node.
                       type: object
                     name:
                       type: string
@@ -485,25 +523,16 @@ spec:
                     type: array
                   dnsDomain:
                     type: string
-                  etcdBackupDir:
-                    type: string
-                  etcdBackupPeriod:
-                    type: integer
-                  etcdBackupScript:
-                    type: string
                   featureGates:
                     additionalProperties:
                       type: boolean
                     type: object
                   kata:
-                    description: NodeFeatureDiscovery contains the configuration for
-                      the node-feature-discovery in cluster
+                    description: Kata contains the configuration for the kata in cluster
                     properties:
                       enabled:
                         type: boolean
                     type: object
-                  keepBackupNumber:
-                    type: integer
                   kubeProxyArgs:
                     items:
                       type: string
@@ -523,7 +552,8 @@ spec:
                   nodeCidrMaskSize:
                     type: integer
                   nodeFeatureDiscovery:
-                    description: Kata contains the configuration for the kata in cluster
+                    description: NodeFeatureDiscovery contains the configuration for
+                      the node-feature-discovery in cluster
                     properties:
                       enabled:
                         type: boolean
@@ -563,8 +593,6 @@ spec:
                       vxlanMode:
                         type: string
                     type: object
-                  enableMultusCNI:
-                    type: boolean
                   flannel:
                     properties:
                       backendMode:
@@ -605,6 +633,11 @@ spec:
                       vlanInterfaceName:
                         type: string
                     type: object
+                  multusCNI:
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   plugin:
                     type: string
                 type: object
@@ -612,12 +645,14 @@ spec:
                 description: RegistryConfig defines the configuration information
                   of the image's repository.
                 properties:
-                  Auths:
+                  auths:
                     type: object
                   insecureRegistries:
                     items:
                       type: string
                     type: array
+                  namespaceOverride:
+                    type: string
                   plainHTTP:
                     type: boolean
                   privateRegistry:

@@ -52,7 +52,6 @@ type Argument struct {
 	KubeConfig         string
 	Artifact           string
 	InstallPackages    bool
-	CertificatesDir    string
 	ImagesDir          string
 }
 

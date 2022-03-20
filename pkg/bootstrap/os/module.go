@@ -95,11 +95,12 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Parallel: true,
 	}
 
-	stopETCD := &task.RemoteTask{
-		Name:     "StopETCDService",
-		Desc:     "Stop etcd service",
+	uninstallETCD := &task.RemoteTask{
+		Name:     "UninstallETCD",
+		Desc:     "Uninstall etcd",
 		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
-		Action:   new(StopETCDService),
+		Prepare:  new(EtcdTypeIsKubeKey),
+		Action:   new(UninstallETCD),
 		Parallel: true,
 	}
 
@@ -121,7 +122,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 
 	c.Tasks = []task.Interface{
 		resetNetworkConfig,
-		stopETCD,
+		uninstallETCD,
 		removeFiles,
 		daemonReload,
 	}

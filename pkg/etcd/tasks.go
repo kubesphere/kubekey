@@ -384,14 +384,14 @@ type BackupETCD struct {
 func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 	templateAction := action.Template{
 		Template: templates.EtcdBackupScript,
-		Dst:      filepath.Join(b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir, "etcd-backup.sh"),
+		Dst:      filepath.Join(b.KubeConf.Cluster.Etcd.BackupScriptDir, "etcd-backup.sh"),
 		Data: util.Data{
 			"Hostname":            runtime.RemoteHost().GetName(),
 			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalAddress()),
-			"Backupdir":           b.KubeConf.Cluster.Kubernetes.EtcdBackupDir,
-			"KeepbackupNumber":    b.KubeConf.Cluster.Kubernetes.KeepBackupNumber,
-			"EtcdBackupPeriod":    b.KubeConf.Cluster.Kubernetes.EtcdBackupPeriod,
-			"EtcdBackupScriptDir": b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir,
+			"Backupdir":           b.KubeConf.Cluster.Etcd.BackupDir,
+			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber,
+			"EtcdBackupPeriod":    b.KubeConf.Cluster.Etcd.BackupPeriod,
+			"EtcdBackupScriptDir": b.KubeConf.Cluster.Etcd.BackupScriptDir,
 			"EtcdBackupHour":      templates.BackupTimeInterval(runtime, b.KubeConf),
 		},
 	}
@@ -401,11 +401,11 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/etcd-backup.sh", b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir), false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/etcd-backup.sh", b.KubeConf.Cluster.Etcd.BackupScriptDir), false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "chmod etcd backup script failed")
 	}
 
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("sh %s/etcd-backup.sh", b.KubeConf.Cluster.Kubernetes.EtcdBackupScriptDir), false); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("sh %s/etcd-backup.sh", b.KubeConf.Cluster.Etcd.BackupScriptDir), false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to run the etcd-backup.sh")
 	}
 	return nil

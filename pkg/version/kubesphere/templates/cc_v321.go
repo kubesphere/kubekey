@@ -36,11 +36,12 @@ spec:
     storageClass: ""
   authentication:
     jwtSecret: ""
+  zone: ""
   local_registry: ""
   namespace_override: ""
   # dev_tag: ""
   etcd:
-    monitoring: false
+    monitoring: true
     endpointIps: localhost
     port: 2379
     tlsEnable: true

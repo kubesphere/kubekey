@@ -26,9 +26,15 @@ var K3sServiceEnv = template.Must(template.New("k3s.service.env").Parse(
 	dedent.Dedent(`# Note: This dropin only works with k3s
 {{ if .IsMaster }}
 K3S_DATASTORE_ENDPOINT={{ .DataStoreEndPoint }}
+{{- if .DataStoreCaFile }}
 K3S_DATASTORE_CAFILE={{ .DataStoreCaFile }}
+{{- end }}
+{{- if .DataStoreCertFile }}
 K3S_DATASTORE_CERTFILE={{ .DataStoreCertFile }}
+{{- end }}
+{{- if .DataStoreKeyFile }}
 K3S_DATASTORE_KEYFILE={{ .DataStoreKeyFile }}
+{{- end }}
 K3S_KUBECONFIG_MODE=644
 {{ end }}
 {{ if .Token }}
