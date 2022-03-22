@@ -78,7 +78,7 @@ func (d *Debian) Update() error {
 
 func (d *Debian) Install(pkg ...string) error {
 	if len(pkg) == 0 {
-		pkg = []string{"socat", "conntrack", "ipset", "ebtables", "chrony"}
+		pkg = []string{"socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
 	}
 
 	str := strings.Join(pkg, " ")

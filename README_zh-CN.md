@@ -74,6 +74,7 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 | `conntrack` | 必须安装               | 可选，但推荐安装       |
 | `ebtables`  | 可选，但推荐安装       | 可选，但推荐安装       |
 | `ipset`     | 可选，但推荐安装       | 可选，但推荐安装       |
+| `ipvsadm`   | 可选，但推荐安装       | 可选，但推荐安装       |
 
 * 网络和 DNS 要求：
   * 确保 `/etc/resolv.conf` 中的 DNS 地址可用。否则，可能会导致集群中出现某些 DNS 问题。
