@@ -17,13 +17,17 @@
 package certs
 
 import (
+	"path/filepath"
+
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
 	"github.com/kubesphere/kubekey/pkg/certs/templates"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/task"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
-	"path/filepath"
 )
 
 type CheckCertsModule struct {
@@ -136,6 +140,10 @@ func (a *AutoRenewCertsModule) Init() {
 		Action: &action.Template{
 			Template: templates.K8sCertsRenewScript,
 			Dst:      filepath.Join("/usr/local/bin/kube-scripts/", templates.K8sCertsRenewScript.Name()),
+			Data: util.Data{
+				"IsDocker":            a.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker,
+				"IsKubeadmAlphaCerts": versionutil.MustParseSemantic(a.KubeConf.Cluster.Kubernetes.Version).LessThan(versionutil.MustParseGeneric("v1.20.0")),
+			},
 		},
 		Parallel: true,
 	}
