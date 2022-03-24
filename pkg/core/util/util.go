@@ -19,7 +19,6 @@ package util
 import (
 	"bytes"
 	"fmt"
-	"github.com/pkg/errors"
 	"math"
 	"os"
 	"os/exec"
@@ -28,6 +27,8 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+
+	"github.com/pkg/errors"
 )
 
 type Data map[string]interface{}
@@ -92,20 +93,27 @@ func homeWindows() (string, error) {
 }
 
 func GetArgs(argsMap map[string]string, args []string) ([]string, map[string]string) {
-	for _, arg := range args {
+	targetMap := make(map[string]string, len(argsMap))
+	for k, v := range argsMap {
+		targetMap[k] = v
+	}
+	targetSlice := make([]string, len(args))
+	copy(targetSlice, args)
+
+	for _, arg := range targetSlice {
 		splitArg := strings.SplitN(arg, "=", 2)
 		if len(splitArg) < 2 {
 			continue
 		}
-		argsMap[splitArg[0]] = splitArg[1]
+		targetMap[splitArg[0]] = splitArg[1]
 	}
 
-	for arg, value := range argsMap {
+	for arg, value := range targetMap {
 		cmd := fmt.Sprintf("%s=%s", arg, value)
-		args = append(args, cmd)
+		targetSlice = append(targetSlice, cmd)
 	}
-	sort.Strings(args)
-	return args, argsMap
+	sort.Strings(targetSlice)
+	return targetSlice, targetMap
 }
 
 // Round returns the result of rounding 'val' according to the specified 'precision' precision (the number of digits after the decimal point)。
