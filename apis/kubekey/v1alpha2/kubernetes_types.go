@@ -31,10 +31,6 @@ type Kubernetes struct {
 	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
 	// +optional
 	Nodelocaldns             *bool                `yaml:"nodelocaldns" json:"nodelocaldns,omitempty"`
-	EtcdBackupDir            string               `yaml:"etcdBackupDir" json:"etcdBackupDir,omitempty"`
-	EtcdBackupPeriod         int                  `yaml:"etcdBackupPeriod" json:"etcdBackupPeriod,omitempty"`
-	KeepBackupNumber         int                  `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
-	EtcdBackupScriptDir      string               `yaml:"etcdBackupScript" json:"etcdBackupScript,omitempty"`
 	ContainerManager         string               `yaml:"containerManager" json:"containerManager,omitempty"`
 	ContainerRuntimeEndpoint string               `yaml:"containerRuntimeEndpoint" json:"containerRuntimeEndpoint,omitempty"`
 	NodeFeatureDiscovery     NodeFeatureDiscovery `yaml:"nodeFeatureDiscovery" json:"nodeFeatureDiscovery,omitempty"`

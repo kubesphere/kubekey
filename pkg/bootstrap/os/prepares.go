@@ -17,6 +17,7 @@
 package os
 
 import (
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
@@ -32,4 +33,16 @@ func (n *NodeConfigureNtpCheck) PreCheck(_ connector.Runtime) (bool, error) {
 	}
 
 	return true, nil
+}
+
+type EtcdTypeIsKubeKey struct {
+	common.KubePrepare
+}
+
+func (e *EtcdTypeIsKubeKey) PreCheck(_ connector.Runtime) (bool, error) {
+	if len(e.KubeConf.Cluster.Etcd.Type) == 0 || e.KubeConf.Cluster.Etcd.Type == kubekeyv1alpha2.KubeKey {
+		return true, nil
+	}
+
+	return false, nil
 }

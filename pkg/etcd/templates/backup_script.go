@@ -78,10 +78,10 @@ rm -rf /tmp/file
 
 func BackupTimeInterval(runtime connector.Runtime, kubeConf *common.KubeConf) string {
 	var etcdBackupHour string
-	if kubeConf.Cluster.Kubernetes.EtcdBackupPeriod != 0 {
-		period := kubeConf.Cluster.Kubernetes.EtcdBackupPeriod
+	if kubeConf.Cluster.Etcd.BackupPeriod != 0 {
+		period := kubeConf.Cluster.Etcd.BackupPeriod
 		if period > 60 && period < 1440 {
-			kubeConf.Cluster.Kubernetes.EtcdBackupPeriod = period % 60
+			kubeConf.Cluster.Etcd.BackupPeriod = period % 60
 			etcdBackupHour = strconv.Itoa(period / 60)
 		}
 		if period > 1440 {

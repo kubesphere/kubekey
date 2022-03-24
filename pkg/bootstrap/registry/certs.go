@@ -98,10 +98,8 @@ type GenerateCerts struct {
 }
 
 func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
-	var pkiPath string
-	if g.KubeConf.Arg.CertificatesDir == "" {
-		pkiPath = fmt.Sprintf("%s/pki/registry", runtime.GetWorkDir())
-	}
+
+	pkiPath := fmt.Sprintf("%s/pki/registry", runtime.GetWorkDir())
 
 	var altName cert.AltNames
 

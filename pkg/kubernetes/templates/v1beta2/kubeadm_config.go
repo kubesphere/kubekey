@@ -41,14 +41,30 @@ var (
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 etcd:
+{{- if .EtcdTypeIsKubeadm }}
+  local:
+    imageRepository: {{ .EtcdRepo }}
+    imageTag: {{ .EtcdTag }}
+    serverCertSANs:
+    {{- range .ExternalEtcd.Endpoints }}
+    - {{ . }}
+    {{- end }}
+{{- else }}
   external:
     endpoints:
     {{- range .ExternalEtcd.Endpoints }}
     - {{ . }}
     {{- end }}
-    caFile: {{ .ExternalEtcd.CaFile }}
+{{- if .ExternalEtcd.CAFile }}
+    caFile: {{ .ExternalEtcd.CAFile }}
+{{- end }}
+{{- if .ExternalEtcd.CertFile }}
     certFile: {{ .ExternalEtcd.CertFile }}
+{{- end }}
+{{- if .ExternalEtcd.KeyFile }}
     keyFile: {{ .ExternalEtcd.KeyFile }}
+{{- end }}
+{{- end }}
 dns:
   type: CoreDNS
   imageRepository: {{ .CorednsRepo }}

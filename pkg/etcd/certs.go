@@ -22,12 +22,15 @@ import (
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/utils/certs"
 	"github.com/pkg/errors"
+	"io/ioutil"
 	"k8s.io/client-go/util/cert"
 	certutil "k8s.io/client-go/util/cert"
 	netutils "k8s.io/utils/net"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -139,32 +142,10 @@ type GenerateCerts struct {
 }
 
 func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
-	var pkiPath string
-	if g.KubeConf.Arg.CertificatesDir == "" {
-		pkiPath = fmt.Sprintf("%s/pki/etcd", runtime.GetWorkDir())
-	}
 
-	var altName cert.AltNames
+	pkiPath := fmt.Sprintf("%s/pki/etcd", runtime.GetWorkDir())
 
-	dnsList := []string{"localhost", "etcd.kube-system.svc.cluster.local", "etcd.kube-system.svc", "etcd.kube-system", "etcd"}
-	ipList := []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
-
-	if g.KubeConf.Cluster.ControlPlaneEndpoint.Domain == "" {
-		dnsList = append(dnsList, kubekeyapiv1alpha2.DefaultLBDomain)
-	} else {
-		dnsList = append(dnsList, g.KubeConf.Cluster.ControlPlaneEndpoint.Domain)
-	}
-
-	for _, host := range g.KubeConf.Cluster.Hosts {
-		dnsList = append(dnsList, host.Name)
-		internalAddress := netutils.ParseIPSloppy(host.InternalAddress)
-		if internalAddress != nil {
-			ipList = append(ipList, internalAddress)
-		}
-	}
-
-	altName.DNSNames = dnsList
-	altName.IPs = ipList
+	altName := GenerateAltName(g.KubeConf, &runtime)
 
 	files := []string{"ca.pem", "ca-key.pem"}
 
@@ -174,13 +155,13 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 	// Certs
 	for _, host := range runtime.GetAllHosts() {
 		if host.IsRole(common.ETCD) {
-			certsList = append(certsList, KubekeyCertEtcdAdmin(host.GetName(), &altName))
+			certsList = append(certsList, KubekeyCertEtcdAdmin(host.GetName(), altName))
 			files = append(files, []string{fmt.Sprintf("admin-%s.pem", host.GetName()), fmt.Sprintf("admin-%s-key.pem", host.GetName())}...)
-			certsList = append(certsList, KubekeyCertEtcdMember(host.GetName(), &altName))
+			certsList = append(certsList, KubekeyCertEtcdMember(host.GetName(), altName))
 			files = append(files, []string{fmt.Sprintf("member-%s.pem", host.GetName()), fmt.Sprintf("member-%s-key.pem", host.GetName())}...)
 		}
 		if host.IsRole(common.Master) {
-			certsList = append(certsList, KubekeyCertEtcdClient(host.GetName(), &altName))
+			certsList = append(certsList, KubekeyCertEtcdClient(host.GetName(), altName))
 			files = append(files, []string{fmt.Sprintf("node-%s.pem", host.GetName()), fmt.Sprintf("node-%s-key.pem", host.GetName())}...)
 		}
 	}
@@ -203,6 +184,78 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 
 	g.ModuleCache.Set(LocalCertsDir, pkiPath)
 	g.ModuleCache.Set(CertsFileList, files)
+
+	return nil
+}
+
+func GenerateAltName(k *common.KubeConf, runtime *connector.Runtime) *cert.AltNames {
+	var altName cert.AltNames
+
+	dnsList := []string{"localhost", "etcd.kube-system.svc.cluster.local", "etcd.kube-system.svc", "etcd.kube-system", "etcd"}
+	ipList := []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
+
+	if k.Cluster.ControlPlaneEndpoint.Domain == "" {
+		dnsList = append(dnsList, kubekeyapiv1alpha2.DefaultLBDomain)
+	} else {
+		dnsList = append(dnsList, k.Cluster.ControlPlaneEndpoint.Domain)
+	}
+
+	for _, host := range k.Cluster.Hosts {
+		dnsList = append(dnsList, host.Name)
+		internalAddress := netutils.ParseIPSloppy(host.InternalAddress)
+		if internalAddress != nil {
+			ipList = append(ipList, internalAddress)
+		}
+	}
+
+	altName.DNSNames = dnsList
+	altName.IPs = ipList
+
+	return &altName
+}
+
+type FetchCertsForExternalEtcd struct {
+	common.KubeAction
+}
+
+func (f *FetchCertsForExternalEtcd) Execute(runtime connector.Runtime) error {
+
+	pkiPath := fmt.Sprintf("%s/pki/etcd", runtime.GetWorkDir())
+
+	if err := util.CreateDir(pkiPath); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to create dir %s", pkiPath))
+	}
+
+	srcCertsFiles := []string{f.KubeConf.Cluster.Etcd.External.CAFile, f.KubeConf.Cluster.Etcd.External.CertFile, f.KubeConf.Cluster.Etcd.External.KeyFile}
+	dstCertsFiles := []string{}
+	for _, certFile := range srcCertsFiles {
+		if len(certFile) != 0 {
+			certPath, err := filepath.Abs(certFile)
+			if err != nil {
+				return errors.Wrap(err, "bad certificate file path")
+			}
+			_, err = os.Stat(certPath)
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("%s does not exist", certPath))
+			}
+
+			dstCertFileName := filepath.Base(certPath)
+			dstCert := fmt.Sprintf("%s/%s", pkiPath, dstCertFileName)
+			dstCertsFiles = append(dstCertsFiles, dstCertFileName)
+
+			data, err := ioutil.ReadFile(certPath)
+			if err != nil {
+				return errors.Wrap(err, "failed to copy certificate content")
+			}
+
+			if err := ioutil.WriteFile(dstCert, data, 0600); err != nil {
+				return errors.Wrap(err, "failed to copy certificate content")
+			}
+		}
+	}
+
+	f.ModuleCache.Set(LocalCertsDir, pkiPath)
+	f.ModuleCache.Set(CertsFileList, dstCertsFiles)
 
 	return nil
 }

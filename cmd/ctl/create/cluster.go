@@ -42,7 +42,6 @@ type CreateClusterOptions struct {
 	DownloadCmd      string
 	Artifact         string
 	InstallPackages  bool
-	CertificatesDir  string
 
 	localStorageChanged bool
 }
@@ -118,7 +117,6 @@ func (o *CreateClusterOptions) Run() error {
 		ContainerManager:  o.ContainerManager,
 		Artifact:          o.Artifact,
 		InstallPackages:   o.InstallPackages,
-		CertificatesDir:   o.CertificatesDir,
 	}
 
 	if o.localStorageChanged {
@@ -137,7 +135,6 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	cmd.Flags().BoolVarP(&o.SkipPushImages, "skip-push-images", "", false, "Skip pre push images")
 	cmd.Flags().StringVarP(&o.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")
-	cmd.Flags().StringVarP(&o.CertificatesDir, "certificates-dir", "", "", "Specifies where to store or look for all required certificates.")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
