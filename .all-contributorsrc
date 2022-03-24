@@ -422,6 +422,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "tpiperatgod",
+      "name": "laminar",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2360535?v=4",
+      "profile": "https://laminar.fun/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
