@@ -86,7 +86,7 @@ func (r *RedhatPackageManager) Update() error {
 
 func (r *RedhatPackageManager) Install(pkg ...string) error {
 	if len(pkg) == 0 {
-		pkg = []string{"openssl", "socat", "conntrack", "ipset", "ebtables", "chrony"}
+		pkg = []string{"openssl", "socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
 	}
 
 	str := strings.Join(pkg, " ")

@@ -80,6 +80,7 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 | `conntrack` | Required                  | Optional but recommended  |
 | `ebtables`  | Optional but recommended  | Optional but recommended  |
 | `ipset`     | Optional but recommended  | Optional but recommended  |
+| `ipvsadm`   | Optional but recommended  | Optional but recommended  |
 
 * Networking and DNS requirements:
   * Make sure the DNS address in `/etc/resolv.conf` is available. Otherwise, it may cause some issues of DNS in cluster.

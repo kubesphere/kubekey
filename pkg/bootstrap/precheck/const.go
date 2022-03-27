@@ -24,6 +24,7 @@ const (
 	ebtables  = "ebtables"
 	socat     = "socat"
 	ipset     = "ipset"
+	ipvsadm   = "ipvsadm"
 	conntrack = "conntrack"
 	chrony    = "chronyd"
 	docker    = "docker"
@@ -46,6 +47,7 @@ var baseSoftware = []string{
 	ebtables,
 	socat,
 	ipset,
+	ipvsadm,
 	conntrack,
 	chrony,
 	docker,

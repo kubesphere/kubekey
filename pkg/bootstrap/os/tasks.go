@@ -18,14 +18,15 @@ package os
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	osrelease "github.com/dominodatalab/os-release"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os/repository"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
-	"path/filepath"
-	"strings"
 )
 
 type NodeConfigureOS struct {
@@ -165,6 +166,7 @@ var (
 		"iptables -X",
 		"iptables -F -t nat",
 		"iptables -X -t nat",
+		"ipvsadm -C",
 		"ip link del kube-ipvs0",
 		"ip link del nodelocaldns",
 	}
@@ -175,7 +177,9 @@ type ResetNetworkConfig struct {
 }
 
 func (r *ResetNetworkConfig) Execute(runtime connector.Runtime) error {
-	_, _ = runtime.GetRunner().SudoCmd(strings.Join(networkResetCmds, " && "), true)
+	for _, cmd := range networkResetCmds {
+		_, _ = runtime.GetRunner().SudoCmd(cmd, true)
+	}
 	return nil
 }
 
@@ -262,13 +266,13 @@ func (o *OnlineInstallDependencies) Execute(runtime connector.Runtime) error {
 	case "deb":
 		if _, err := runtime.GetRunner().SudoCmd(
 			"apt update;"+
-				"apt install socat conntrack ipset ebtables chrony -y;",
+				"apt install socat conntrack ipset ebtables chrony ipvsadm -y;",
 			false); err != nil {
 			return err
 		}
 	case "rpm":
 		if _, err := runtime.GetRunner().SudoCmd(
-			"yum install openssl socat conntrack ipset ebtables chrony -y",
+			"yum install openssl socat conntrack ipset ebtables chrony ipvsadm -y",
 			false); err != nil {
 			return err
 		}

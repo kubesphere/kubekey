@@ -42,6 +42,7 @@ type PreCheckResults struct {
 	Ebtables  string `table:"ebtables"`
 	Socat     string `table:"socat"`
 	Ipset     string `table:"ipset"`
+	Ipvsadm   string `table:"ipvsadm"`
 	Conntrack string `table:"conntrack"`
 	Chronyd   string `table:"chrony"`
 	Docker    string `table:"docker"`

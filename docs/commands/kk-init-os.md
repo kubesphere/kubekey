@@ -2,7 +2,7 @@
 **kk init os**: Init operating system.
 
 # DESCRIPTION
-Init operating system. This command will install `openssl`, `socat`, `conntrack`, `ipset`, `ebtables` and `chrony`  on all the nodes.
+Init operating system. This command will install `openssl`, `socat`, `conntrack`, `ipset`, `ipvsadm`, `ebtables` and `chrony`  on all the nodes.
 
 # OPTIONS
 
