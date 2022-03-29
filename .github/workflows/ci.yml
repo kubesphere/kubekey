@@ -43,10 +43,10 @@ jobs:
           fi
 
       - name: Build operator manager
-        run: go build -v -o output/manager ./main.go
+        run: CGO_ENABLED=0 go build -tags='containers_image_openpgp' -v -o output/manager ./main.go
 
       - name: Build command-line tool
-        run: go build -v -o output/kk ./cmd/main.go
+        run: CGO_ENABLED=0 go build -tags='containers_image_openpgp' -v -o output/kk ./cmd/main.go
 
       - uses: actions/upload-artifact@v2
         if: github.event_name == 'push'
