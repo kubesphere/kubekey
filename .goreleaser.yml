@@ -10,6 +10,8 @@ builds:
     - arm64
   goos:
     - linux
+  tags:
+    containers_image_openpgp
   ldflags:
     - -X github.com/kubesphere/kubekey/version.version={{.Version}}
     - -X github.com/kubesphere/kubekey/version.gitCommit={{.ShortCommit}}
