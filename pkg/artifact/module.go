@@ -21,46 +21,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/task"
 )
 
-type ImagesModule struct {
-	common.ArtifactModule
-}
-
-func (i *ImagesModule) Init() {
-	i.Name = "ArtifactImagesModule"
-	i.Desc = "Export images on the localhost"
-
-	check := &task.LocalTask{
-		Name:   "CheckContainerd",
-		Desc:   "Try to new a containerd client",
-		Action: new(CheckContainerd),
-	}
-
-	pull := &task.LocalTask{
-		Name:   "ArtifactPullImages",
-		Desc:   "Pull images on the localhost",
-		Action: new(PullImages),
-	}
-
-	export := &task.LocalTask{
-		Name:   "ArtifactExportImages",
-		Desc:   "Export images on the localhost",
-		Action: new(ExportImages),
-	}
-
-	closeClient := &task.LocalTask{
-		Name:   "CloseContainerdClient",
-		Desc:   "Delete containerd client from cache and close it",
-		Action: new(CloseClient),
-	}
-
-	i.Tasks = []task.Interface{
-		check,
-		pull,
-		export,
-		closeClient,
-	}
-}
-
 type RepositoryModule struct {
 	common.ArtifactModule
 }

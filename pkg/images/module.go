@@ -47,51 +47,53 @@ func (p *PullModule) Init() {
 	}
 }
 
-//
-//type LoadModule struct {
-//	common.KubeModule
-//}
-//
-//func (l *LoadModule) IsSkip() bool {
-//	return l.Skip
-//}
-//
-//func (l *LoadModule) Init() {
-//	l.Name = "LoadModule"
-//	l.Desc = "Load local tar file onto local image registry"
-//
-//	load := &task.LocalTask{
-//		Name:   "LoadModule",
-//		Desc:   "Load local tar file onto local image registry",
-//		Action: new(PullImage),
-//	}
-//
-//	l.Tasks = []task.Interface{
-//		load,
-//	}
-//}
+type CopyImagesToLocalModule struct {
+	common.ArtifactModule
+}
 
-type PushModule struct {
+func (c *CopyImagesToLocalModule) Init() {
+	c.Name = "CopyImagesToLocalModule"
+	c.Desc = "Copy images to a local OCI path from registries"
+
+	copyImage := &task.LocalTask{
+		Name:   "SaveImages",
+		Desc:   "Copy images to a local OCI path from registries",
+		Action: new(SaveImages),
+	}
+
+	c.Tasks = []task.Interface{
+		copyImage,
+	}
+}
+
+type CopyImagesToRegistryModule struct {
 	common.KubeModule
 	Skip      bool
 	ImagePath string
 }
 
-func (p *PushModule) IsSkip() bool {
-	return p.Skip
+func (c *CopyImagesToRegistryModule) IsSkip() bool {
+	return c.Skip
 }
 
-func (p *PushModule) Init() {
-	p.Name = "PushModule"
-	p.Desc = "Push images on all nodes"
+func (c *CopyImagesToRegistryModule) Init() {
+	c.Name = "CopyImagesToRegistryModule"
+	c.Desc = "Copy images to a private registry from an artifact OCI path"
 
-	push := &task.LocalTask{
-		Name:   "PushImages",
-		Desc:   "Push images to private registry",
-		Action: &PushImage{ImagesPath: p.ImagePath},
+	copyImage := &task.LocalTask{
+		Name:   "CopyImagesToRegistry",
+		Desc:   "Copy images to a private registry from an artifact OCI Path",
+		Action: &CopyImagesToRegistry{ImagesPath: c.ImagePath},
 	}
 
-	p.Tasks = []task.Interface{
-		push,
+	pushManifest := &task.LocalTask{
+		Name:   "PushManifest",
+		Desc:   "Push multi-arch manifest to private registry",
+		Action: new(PushManifest),
+	}
+
+	c.Tasks = []task.Interface{
+		copyImage,
+		pushManifest,
 	}
 }
