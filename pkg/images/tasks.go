@@ -17,10 +17,16 @@
 package images
 
 import (
+	"encoding/json"
+	"fmt"
+	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
+	"github.com/kubesphere/kubekey/pkg/container/templates"
+	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 
+	manifestregistry "github.com/estesp/manifest-tool/v2/pkg/registry"
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -135,40 +141,197 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 	return image
 }
 
-type PushImage struct {
+type SaveImages struct {
+	common.ArtifactAction
+}
+
+func (s *SaveImages) Execute(runtime connector.Runtime) error {
+	auths := Auths(s.Manifest)
+
+	dirName := filepath.Join(runtime.GetWorkDir(), common.Artifact, "images")
+	if err := coreutil.Mkdir(dirName); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "mkdir %s failed", dirName)
+	}
+	for _, image := range s.Manifest.Spec.Images {
+		imageFullName := strings.Split(image, "/")
+		repo := imageFullName[0]
+		var registryAuth registryAuth
+		if v, ok := auths[repo]; ok {
+			registryAuth = v
+		}
+
+		srcName := fmt.Sprintf("docker://%s", image)
+		for _, platform := range s.Manifest.Spec.Arches {
+			arch, variant := ParseArchVariant(platform)
+			// placeholder
+			if variant != "" {
+				variant = "-" + variant
+			}
+			// Ex:
+			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver-amd64:v1.21.5
+			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver-arm-v7:v1.21.5
+			destName := fmt.Sprintf("oci:%s:%s:%s-%s%s", dirName, imageFullName[1], imageFullName[2], arch, variant)
+			fmt.Println(srcName)
+			fmt.Println(destName)
+			o := &CopyImageOptions{
+				srcImage: &srcImageOptions{
+					imageName: srcName,
+					dockerImage: dockerImageOptions{
+						arch:      arch,
+						variant:   variant,
+						os:        "linux",
+						username:  registryAuth.Username,
+						password:  registryAuth.Password,
+						tlsVerify: registryAuth.PlainHTTP,
+					},
+				},
+				destImage: &destImageOptions{
+					imageName: destName,
+					dockerImage: dockerImageOptions{
+						arch:    arch,
+						variant: variant,
+						os:      "linux",
+					},
+				},
+			}
+
+			if err := o.Copy(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type CopyImagesToRegistry struct {
 	common.KubeAction
 	ImagesPath string
 }
 
-func (p *PushImage) Execute(runtime connector.Runtime) error {
+func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 	var imagesPath string
-	if p.ImagesPath != "" {
-		imagesPath = p.ImagesPath
+	if c.ImagesPath != "" {
+		imagesPath = c.ImagesPath
 	} else {
 		imagesPath = filepath.Join(runtime.GetWorkDir(), "images")
 	}
 
-	files, err := ioutil.ReadDir(imagesPath)
+	indexFile, err := ioutil.ReadFile(filepath.Join(imagesPath, "index.json"))
 	if err != nil {
-		return errors.Wrapf(errors.WithStack(err), "read %s dir faied", imagesPath)
+		return errors.Errorf("read index.json failed: %s", err)
 	}
 
-	var arches []string
-	for _, host := range runtime.GetHostsByRole(common.K8s) {
-		arches = append(arches, host.GetArch())
+	index := NewIndex()
+	if err := json.Unmarshal(indexFile, index); err != nil {
+		return errors.Wrap(errors.WithStack(err), "unmarshal index.json failed: %s")
 	}
 
-	for _, file := range files {
-		for i := 5; i > 0; i-- {
-			name := file.Name()
-			if err := CmdPush(name, imagesPath, p.KubeConf, arches); err != nil {
-				if i == 1 {
-					return err
-				}
-				continue
-			}
-			break
+	auths := templates.Auths(c.KubeConf)
+
+	manifestList := make(map[string][]manifesttypes.ManifestEntry)
+	for _, m := range index.Manifests {
+		ref := m.Annotations.RefName
+
+		// Ex:
+		// calico:cni:v3.20.0-amd64
+		nameArr := strings.Split(ref, ":")
+		if len(nameArr) != 3 {
+			return errors.Errorf("invalid ref name: %s", ref)
+		}
+
+		image := Image{
+			RepoAddr:          c.KubeConf.Cluster.Registry.PrivateRegistry,
+			Namespace:         nameArr[0],
+			NamespaceOverride: c.KubeConf.Cluster.Registry.NamespaceOverride,
+			Repo:              nameArr[1],
+			Tag:               nameArr[2],
+		}
+
+		uniqueImage, p := ParseImageWithArchTag(image.ImageName())
+		entry := manifesttypes.ManifestEntry{
+			Image:    image.ImageName(),
+			Platform: p,
+		}
+		if v, ok := manifestList[uniqueImage]; ok {
+			v = append(v, entry)
+			manifestList[uniqueImage] = v
+		} else {
+			entryArr := make([]manifesttypes.ManifestEntry, 0)
+			manifestList[uniqueImage] = append(entryArr, entry)
+		}
+
+		var auth templates.DockerConfigEntry
+		if config, ok := auths[c.KubeConf.Cluster.Registry.PrivateRegistry]; ok {
+			auth = config
+		}
+
+		srcName := fmt.Sprintf("oci:%s:%s", imagesPath, ref)
+		destName := fmt.Sprintf("docker://%s", image.ImageName())
+		fmt.Println(srcName)
+		fmt.Println(destName)
+		o := &CopyImageOptions{
+			srcImage: &srcImageOptions{
+				imageName: srcName,
+				dockerImage: dockerImageOptions{
+					arch:    p.Architecture,
+					variant: p.Variant,
+					os:      "linux",
+				},
+			},
+			destImage: &destImageOptions{
+				imageName: destName,
+				dockerImage: dockerImageOptions{
+					arch:      p.Architecture,
+					variant:   p.Variant,
+					os:        "linux",
+					username:  auth.Username,
+					password:  auth.Password,
+					tlsVerify: c.KubeConf.Cluster.Registry.PlainHTTP,
+				},
+			},
+		}
+
+		if err := o.Copy(); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("copy image %s to %s failed", srcName, destName))
 		}
 	}
+
+	c.ModuleCache.Set("manifestList", manifestList)
+
+	return nil
+}
+
+type PushManifest struct {
+	common.KubeAction
+}
+
+func (p *PushManifest) Execute(_ connector.Runtime) error {
+	// make a multi-arch image
+	// push a manifest list to the private registry.
+
+	v, ok := p.ModuleCache.Get("manifestList")
+	if !ok {
+		return errors.New("get manifest list failed by module cache")
+	}
+	list := v.(map[string][]manifesttypes.ManifestEntry)
+
+	auths := templates.Auths(p.KubeConf)
+	var auth templates.DockerConfigEntry
+	if _, ok := auths[p.KubeConf.Cluster.Registry.PrivateRegistry]; ok {
+		auth = auths[p.KubeConf.Cluster.Registry.PrivateRegistry]
+	}
+
+	for imageName, platforms := range list {
+		manifestSpec := NewManifestSpec(imageName, platforms)
+		logger.Log.Debug(manifestSpec)
+
+		digest, length, err := manifestregistry.PushManifestList(auth.Username, auth.Password, manifestSpec, false, true,
+			p.KubeConf.Cluster.Registry.PlainHTTP, "")
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("push image %s multi-arch manifest failed", imageName))
+		}
+		fmt.Printf("Digest: %s %d\n", digest, length)
+	}
+
 	return nil
 }

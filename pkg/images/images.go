@@ -18,18 +18,12 @@ package images
 
 import (
 	"fmt"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/container/templates"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/pkg/errors"
 	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
-	"strings"
-
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 )
 
 const (
@@ -123,74 +117,4 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 
 	}
 	return nil
-}
-
-func CmdPush(fileName string, prePath string, kubeConf *common.KubeConf, arches []string) error {
-	registry, namespace, imageName, tag := parseImageName(fileName)
-
-	privateRegistry := kubeConf.Cluster.Registry.PrivateRegistry
-	image := Image{
-		RepoAddr:          privateRegistry,
-		Namespace:         namespace,
-		NamespaceOverride: kubeConf.Cluster.Registry.NamespaceOverride,
-		Repo:              imageName,
-		Tag:               tag,
-	}
-
-	auths := templates.Auths(kubeConf)
-
-	fullPath := filepath.Join(prePath, fileName)
-	oldName := fmt.Sprintf("%s/%s/%s:%s", registry, namespace, imageName, tag)
-
-	ctrCmd := "sudo ctr"
-	if kubeConf.Cluster.Kubernetes.Type == common.K3s {
-		ctrCmd = "k3s ctr"
-	}
-
-	if out, err := exec.Command("/bin/bash", "-c",
-		fmt.Sprintf("%s images import --base-name %s %s", ctrCmd, oldName, fullPath)).CombinedOutput(); err != nil {
-		return errors.Wrapf(err, "import image %s failed: %s", oldName, out)
-	}
-
-	pushCmd := fmt.Sprintf("%s images push  %s %s --platform %s -k", ctrCmd, image.ImageName(), oldName, strings.Join(arches, " "))
-	if kubeConf.Cluster.Registry.PlainHTTP {
-		pushCmd = fmt.Sprintf("%s --plain-http", pushCmd)
-	}
-	if _, ok := auths[privateRegistry]; ok {
-		auth := auths[privateRegistry]
-		pushCmd = fmt.Sprintf("%s --user %s:%s", pushCmd, auth.Username, auth.Password)
-	}
-
-	logger.Log.Debugf("push command: %s", pushCmd)
-	if out, err := exec.Command("/bin/bash", "-c", pushCmd).CombinedOutput(); err != nil {
-		return errors.Wrapf(err, "push image %s failed: %s", image.ImageName(), out)
-	}
-
-	fmt.Printf("push %s success \n", image.ImageName())
-	return nil
-}
-
-func parseImageName(file string) (string, string, string, string) {
-	// just like: docker.io#calico#cni:v3.20.0.tar, docker.io#kubesphere#kube-apiserver:v1.21.5.tar
-	// docker.io#fluent#fluentd:v1.4.2-2.0.tar .e.g.
-	fullArr := strings.Split(file, ":")
-
-	// v3.20.0.tar, v1.21.5.tar or v1.4.2-2.0.tar
-	tag := fullArr[len(fullArr)-1]
-	// .tar
-	tagExt := path.Ext(tag)
-	// v3.20.0, v1.21.5 or v1.4.2-2.0
-	tag = strings.TrimSuffix(tag, tagExt)
-
-	// docker.io#calico#cni, docker.io#kubesphere#kube-apiserver or docker.io#fluent#fluentd
-	nameArr := strings.Split(strings.Join(fullArr[:len(fullArr)-1], ":"), "#")
-
-	// docker.io
-	registry := nameArr[0]
-	// calico, kubesphere or fluent
-	namespace := nameArr[1]
-	// cni, kube-apiserver or fluentd
-	imageName := nameArr[2]
-
-	return registry, namespace, imageName, tag
 }
