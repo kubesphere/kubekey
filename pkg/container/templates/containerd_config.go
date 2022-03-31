@@ -79,7 +79,7 @@ state = "/run/containerd"
         {{- if .Auths }}
         [plugins."io.containerd.grpc.v1.cri".registry.configs]
           {{- range $repo, $entry := .Auths }}
-          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}"]
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}".auth]
             username = "{{$entry.Username}}"
             password = "{{$entry.Password}}"
           {{- end}}
