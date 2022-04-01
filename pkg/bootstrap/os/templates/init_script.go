@@ -18,8 +18,9 @@ package templates
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
 	"text/template"
+
+	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
 
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -145,10 +146,6 @@ update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || 
 ulimit -u 65535
 ulimit -n 65535
 
-crontab -l | grep -v '#' > /tmp/file1
-echo "0 3 * * * ps -A -ostat,ppid | grep -e '^[Zz]' | awk '{print $2}' | xargs kill -HUP > /dev/null 2>&1" >> /tmp/file1 && awk ' !x[$0]++{print > "/tmp/file1"}' /tmp/file1
-crontab /tmp/file1
-rm -rf /tmp/file1
     `)))
 
 func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) []string {
