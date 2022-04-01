@@ -657,6 +657,8 @@ spec:
                     type: boolean
                   privateRegistry:
                     type: string
+                  privateRegistryIp:
+                    type: string
                   registryMirrors:
                     items:
                       type: string

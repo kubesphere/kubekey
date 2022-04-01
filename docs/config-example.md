@@ -68,6 +68,7 @@ spec:
     registryMirrors: []
     insecureRegistries: []
     privateRegistry: ""
+    privateRegistryIp: ""   # if use inner private registry, auto add domain to hosts
     namespaceOverride: ""
     auths: # if docker add by `docker login`, if containerd append to `/etc/containerd/config.toml`
       "registry-1.docker.io":

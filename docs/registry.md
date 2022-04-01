@@ -52,6 +52,7 @@ KubeKey now allows users to create a container image registry ([Docker registry]
        ## `harbor` can be also set for type.
        # type: "harbor"  
        privateRegistry: dockerhub.kubekey.local
+       privateRegistryIp: ""
        auths:
          "dockerhub.kubekey.local":
            username: admin
