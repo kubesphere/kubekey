@@ -142,8 +142,8 @@ spec:
   ## Define the authentication information if you need to pull images from a registry that requires authorization.
   registry:
     auths:
-    "dockerhub.kubekey.local":
-      username: "xxx"
-      password: "***"
-      plainHTTP: false # If the registry is serving for http request, set this to true.
+      "dockerhub.kubekey.local":
+        username: "xxx"
+        password: "***"
+        plainHTTP: false # If the registry is serving for http request, set this to true.
 ```
