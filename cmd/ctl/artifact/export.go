@@ -21,9 +21,7 @@ import (
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/kubesphere/kubekey/pkg/common"
-	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
-	"github.com/kubesphere/kubekey/pkg/utils/containerruntime"
 	"github.com/spf13/cobra"
 )
 
@@ -61,15 +59,8 @@ func NewCmdArtifactExport() *cobra.Command {
 }
 
 func (o *ArtifactExportOptions) Complete(_ *cobra.Command, _ []string) error {
-	var err error
 	if o.Output == "" {
 		o.Output = "kubekey-artifact.tar.gz"
-	}
-	if o.CriSocket == "" {
-		o.CriSocket, err = containerruntime.DetectCRISocket()
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -77,9 +68,6 @@ func (o *ArtifactExportOptions) Complete(_ *cobra.Command, _ []string) error {
 func (o *ArtifactExportOptions) Validate(_ []string) error {
 	if o.ManifestFile == "" {
 		return fmt.Errorf("--manifest can not be an empty string")
-	}
-	if !coreutil.IsExist(o.CriSocket) {
-		return fmt.Errorf("can not found the socket file %s", o.CriSocket)
 	}
 	return nil
 }
@@ -99,7 +87,6 @@ func (o *ArtifactExportOptions) Run() error {
 func (o *ArtifactExportOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ManifestFile, "manifest", "m", "", "Path to a manifest file")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "Path to a output path")
-	cmd.Flags().StringVar(&o.CriSocket, "cri-socket", "", "Path to the CRI socket to connect. If empty KubeKey will try to auto-detect this value")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 }
