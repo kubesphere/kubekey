@@ -13,8 +13,8 @@ RUN git clone https://github.com/kubesphere/helm-charts.git
 # Copy the go source
 ADD ./ /workspace
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o kk cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -tags='containers_image_openpgp' -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -tags='containers_image_openpgp' -a -o kk cmd/main.go
 
 # Build the manager image
 FROM debian:stable

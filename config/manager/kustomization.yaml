@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: kubespheredev/kubekey
-  newTag: v2.0.0
+  newTag: latest
