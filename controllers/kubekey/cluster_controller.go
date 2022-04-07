@@ -113,7 +113,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Check if the configMap already exists
-	if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: "kubekey-system"}, cmFound); err == nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: req.Namespace}, cmFound); err == nil {
 		clusterAlreadyExist = true
 	}
 
@@ -219,7 +219,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Synchronizing Node Information
 	kubeConfigCm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.Name), Namespace: "kubekey-system"}, kubeConfigCm); err == nil && len(cluster.Status.Nodes) != 0 {
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.Name), Namespace: req.Namespace}, kubeConfigCm); err == nil && len(cluster.Status.Nodes) != 0 {
 		// fixme: this code will delete the kube config configmap when user delete the CR cluster.
 		// And if user apply this deleted CR cluster again, kk will no longer be able to find the kube config.
 
@@ -365,7 +365,7 @@ func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha2.Cluster) *cor
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
-			Namespace: "kubekey-system",
+			Namespace: c.Namespace,
 			Labels:    map[string]string{"kubekey.kubesphere.io/name": c.Name},
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: c.APIVersion,
@@ -387,15 +387,15 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 	)
 	if action == CreateCluster {
 		name = fmt.Sprintf("%s-create-cluster", c.Name)
-		args = []string{"create", "cluster", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true"}
+		args = []string{"create", "cluster", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true", "--namespace", c.Namespace}
 	} else if action == AddNodes {
 		name = fmt.Sprintf("%s-add-nodes", c.Name)
-		args = []string{"add", "nodes", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true", "--ignore-err", "true"}
+		args = []string{"add", "nodes", "-f", "/home/kubekey/config/cluster.yaml", "-y", "--in-cluster", "true", "--ignore-err", "true", "--namespace", c.Namespace}
 	}
 
 	podlist := &corev1.PodList{}
 	listOpts := []client.ListOption{
-		client.InNamespace("kubekey-system"),
+		client.InNamespace(c.Namespace),
 		client.MatchingLabels{"control-plane": "controller-manager"},
 	}
 	err := r.List(context.TODO(), podlist, listOpts...)
@@ -418,7 +418,7 @@ func (r *ClusterReconciler) jobForCluster(c *kubekeyv1alpha2.Cluster, action str
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "kubekey-system",
+			Namespace: c.Namespace,
 			Labels:    map[string]string{"kubekey.kubesphere.io/name": c.Name},
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: c.APIVersion,
@@ -514,7 +514,7 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 
 	podlist := &corev1.PodList{}
 	listOpts := []client.ListOption{
-		client.InNamespace("kubekey-system"),
+		client.InNamespace(req.Namespace),
 		client.MatchingLabels{"job-name": name},
 	}
 	for i := 0; i < 100; i++ {
@@ -530,7 +530,7 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 
 			if len(podlist.Items[0].ObjectMeta.GetName()) != 0 && len(podlist.Items[0].Status.ContainerStatuses[0].Name) != 0 && podlist.Items[0].Status.Phase != "Pending" {
 				cluster.Status.JobInfo = kubekeyv1alpha2.JobInfo{
-					Namespace: "kubekey-system",
+					Namespace: req.Namespace,
 					Name:      name,
 					Pods: []kubekeyv1alpha2.PodInfo{{
 						Name:       podlist.Items[0].ObjectMeta.GetName(),
@@ -553,7 +553,7 @@ func updateStatusRunner(r *ClusterReconciler, req ctrl.Request, cluster *kubekey
 
 func updateClusterConfigMap(r *ClusterReconciler, ctx context.Context, cluster *kubekeyv1alpha2.Cluster, cmFound *corev1.ConfigMap, log logr.Logger) error {
 	// Check if the configmap already exists, if not create a new one
-	if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: "kubekey-system"}, cmFound); err != nil && !kubeErr.IsNotFound(err) {
+	if err := r.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, cmFound); err != nil && !kubeErr.IsNotFound(err) {
 		log.Error(err, "Failed to get ConfigMap", "ConfigMap.Namespace", cmFound.Namespace, "ConfigMap.Name", cmFound.Name)
 		return err
 	} else if err == nil {
@@ -584,13 +584,13 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 	}
 
 	// Check if the job already exists, if not create a new one
-	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
+	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: req.Namespace}, jobFound); err != nil && !kubeErr.IsNotFound(err) {
 		return err
 	} else if err == nil && (jobFound.Status.Failed != 0 || jobFound.Status.Succeeded != 0) {
 		// delete old pods
 		podlist := &corev1.PodList{}
 		listOpts := []client.ListOption{
-			client.InNamespace("kubekey-system"),
+			client.InNamespace(req.Namespace),
 			client.MatchingLabels{"job-name": name},
 		}
 		if err := r.List(context.TODO(), podlist, listOpts...); err == nil && len(podlist.Items) != 0 {
@@ -607,7 +607,7 @@ func updateRunJob(r *ClusterReconciler, req ctrl.Request, ctx context.Context, c
 
 		err := wait.PollInfinite(1*time.Second, func() (bool, error) {
 			log.Info("Checking old job is deleted", "Job.Namespace", jobFound.Namespace, "Job.Name", jobFound.Name)
-			if e := r.Get(ctx, types.NamespacedName{Name: name, Namespace: "kubekey-system"}, jobFound); e != nil {
+			if e := r.Get(ctx, types.NamespacedName{Name: name, Namespace: req.Namespace}, jobFound); e != nil {
 				if kubeErr.IsNotFound(e) {
 					return true, nil
 				}
@@ -858,7 +858,7 @@ func otherClusterDiff(r *ClusterReconciler, ctx context.Context, c *kubekeyv1alp
 	}
 
 	kubeConfigFound := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", c.Name), Namespace: "kubekey-system"}, kubeConfigFound); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", c.Name), Namespace: c.Namespace}, kubeConfigFound); err != nil {
 		if kubeErr.IsNotFound(err) {
 			return newNodes, nil
 		}

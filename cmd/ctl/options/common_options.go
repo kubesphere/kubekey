@@ -25,6 +25,7 @@ type CommonOptions struct {
 	Verbose          bool
 	SkipConfirmCheck bool
 	IgnoreErr        bool
+	Namespace        string
 }
 
 func NewCommonOptions() *CommonOptions {
@@ -36,4 +37,5 @@ func (o *CommonOptions) AddCommonFlag(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.Verbose, "debug", false, "Print detailed information")
 	cmd.Flags().BoolVarP(&o.SkipConfirmCheck, "yes", "y", false, "Skip confirm check")
 	cmd.Flags().BoolVar(&o.IgnoreErr, "ignore-err", false, "Ignore the error message, remove the host which reported error and force to continue")
+	cmd.Flags().StringVar(&o.Namespace, "namespace", "kubekey-system", "KubeKey namespace to use")
 }

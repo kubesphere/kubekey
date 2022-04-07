@@ -262,7 +262,7 @@ func getClusterClientSet(runtime *common.KubeRuntime) (*kube.Clientset, error) {
 
 	cm, err := clientset.
 		CoreV1().
-		ConfigMaps("kubekey-system").
+		ConfigMaps(runtime.Arg.Namespace).
 		Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", runtime.ClusterName), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -386,7 +386,7 @@ func SaveKubeConfig(runtime *common.KubeRuntime) error {
 	if err != nil {
 		return err
 	}
-	cmClientset := clientset.CoreV1().ConfigMaps("kubekey-system")
+	cmClientset := clientset.CoreV1().ConfigMaps(runtime.Arg.Namespace)
 
 	if _, err := cmClientset.Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", runtime.ClusterName), metav1.GetOptions{}); err != nil {
 		if kubeErr.IsNotFound(err) {
