@@ -8,16 +8,19 @@ ENV DOCKERVERSION=20.10.8
 ENV CRICTLVERSION=v1.22.0
 ENV ARCH=amd64
 
-WORKDIR /kubekey/${KUBEVERSION}/${ARCH}
-RUN wget https://github.com/coreos/etcd/releases/download/${ETCDVERSION}/etcd-${ETCDVERSION}-linux-${ARCH}.tar.gz && \
-    wget https://storage.googleapis.com/kubernetes-release/release/${KUBEVERSION}/bin/linux/${ARCH}/kubeadm && \
-    wget https://storage.googleapis.com/kubernetes-release/release/${KUBEVERSION}/bin/linux/${ARCH}/kubelet && \
-    wget https://storage.googleapis.com/kubernetes-release/release/${KUBEVERSION}/bin/linux/${ARCH}/kubectl && \
-    wget https://get.helm.sh/helm-${HELMVERSION}-linux-${ARCH}.tar.gz && tar -zxf helm-${HELMVERSION}-linux-${ARCH}.tar.gz && \
-    mv linux-${ARCH}/helm . && rm -rf *linux-${ARCH}* && \
-    wget https://github.com/containernetworking/plugins/releases/download/${CNIVERSION}/cni-plugins-linux-${ARCH}-${CNIVERSION}.tgz && \
-    if [ ${ARCH} == 'amd64' ]; then wget https://github.com/k3s-io/k3s/releases/download/${KUBEVERSION}+k3s1/k3s; else \
-    wget https://github.com/k3s-io/k3s/releases/download/${KUBEVERSION}+k3s1/k3s-${ARCH}; mv k3s-${ARCH} k3s;fi && \
-    if [ ${ARCH} == 'amd64' ]; then wget https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz; else \
-    wget https://download.docker.com/linux/static/stable/aarch64/docker-${DOCKERVERSION}.tgz;fi && \
-    wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTLVERSION}/crictl-${CRICTLVERSION}-linux-${ARCH}.tar.gz
+WORKDIR /kubekey
+RUN if [[ $(arch) == "aarch64*" ]]; then ARCH=arm64; fi && \
+    mkdir -p etcd/${ETCDVERSION}/${ARCH} && wget https://github.com/coreos/etcd/releases/download/${ETCDVERSION}/etcd-${ETCDVERSION}-linux-${ARCH}.tar.gz -P etcd/${ETCDVERSION}/${ARCH} && \
+    mkdir -p kube/${KUBEVERSION}/${ARCH} && \
+    wget https://storage.googleapis.com/kubernetes-release/release/${KUBEVERSION}/bin/linux/${ARCH}/kubeadm -P kube/${KUBEVERSION}/${ARCH} && \
+    wget https://storage.googleapis.com/kubernetes-release/release/${KUBEVERSION}/bin/linux/${ARCH}/kubelet -P kube/${KUBEVERSION}/${ARCH} && \
+    wget https://storage.googleapis.com/kubernetes-release/release/${KUBEVERSION}/bin/linux/${ARCH}/kubectl -P kube/${KUBEVERSION}/${ARCH} && \
+    mkdir -p helm/${HELMVERSION}/${ARCH} && wget https://get.helm.sh/helm-${HELMVERSION}-linux-${ARCH}.tar.gz && tar -zxf helm-${HELMVERSION}-linux-${ARCH}.tar.gz && \
+    mv linux-${ARCH}/helm helm/${HELMVERSION}/${ARCH} && rm -rf *linux-${ARCH}* && \
+    mkdir -p cni/${CNIVERSION}/${ARCH} && wget https://github.com/containernetworking/plugins/releases/download/${CNIVERSION}/cni-plugins-linux-${ARCH}-${CNIVERSION}.tgz -P cni/${CNIVERSION}/${ARCH} && \
+    if [ ${ARCH} == 'amd64' ]; then wget https://github.com/k3s-io/k3s/releases/download/${KUBEVERSION}+k3s1/k3s -P kube/${KUBEVERSION}/${ARCH}; else \
+    wget https://github.com/k3s-io/k3s/releases/download/${KUBEVERSION}+k3s1/k3s-${ARCH}; mv k3s-${ARCH} kube/${KUBEVERSION}/${ARCH}/k3s;fi && \
+    mkdir -p docker/${DOCKERVERSION}/${ARCH} && \
+    if [ ${ARCH} == 'amd64' ]; then wget https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz -P docker/${DOCKERVERSION}/${ARCH}; else \
+    wget https://download.docker.com/linux/static/stable/aarch64/docker-${DOCKERVERSION}.tgz -P docker/${DOCKERVERSION}/${ARCH};fi && \
+    mkdir -p crictl/${CRICTLVERSION}/${ARCH} && wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTLVERSION}/crictl-${CRICTLVERSION}-linux-${ARCH}.tar.gz -P crictl/${CRICTLVERSION}/${ARCH}

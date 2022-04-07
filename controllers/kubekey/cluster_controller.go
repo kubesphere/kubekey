@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"time"
 
@@ -358,7 +359,7 @@ func (r *ClusterReconciler) configMapForCluster(c *kubekeyv1alpha2.Cluster) *cor
 		Spec       kubekeyv1alpha2.ClusterSpec `yaml:"spec" json:"spec,omitempty"`
 	}{ApiVersion: c.APIVersion, Kind: c.Kind, Metadata: Metadata{Name: c.Name}, Spec: c.Spec}
 
-	clusterStr, _ := yamlV2.Marshal(clusterConfiguration)
+	clusterStr, _ := yaml.Marshal(clusterConfiguration)
 
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{},
