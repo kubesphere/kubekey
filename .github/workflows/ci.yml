@@ -48,7 +48,7 @@ jobs:
       - name: Build command-line tool
         run: CGO_ENABLED=0 go build -tags='containers_image_openpgp' -v -o output/kk ./cmd/main.go
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: github.event_name == 'push'
         with:
           name: kk
