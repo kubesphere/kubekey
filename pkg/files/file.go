@@ -31,31 +31,35 @@ import (
 )
 
 const (
-	kubeadm  = "kubeadm"
-	kubelet  = "kubelet"
-	kubectl  = "kubectl"
-	kubecni  = "kubecni"
-	etcd     = "etcd"
-	helm     = "helm"
-	amd64    = "amd64"
-	arm64    = "arm64"
-	k3s      = "k3s"
-	docker   = "docker"
-	crictl   = "crictl"
-	registry = "registry"
-	harbor   = "harbor"
-	compose  = "compose"
+	kubeadm    = "kubeadm"
+	kubelet    = "kubelet"
+	kubectl    = "kubectl"
+	kubecni    = "kubecni"
+	etcd       = "etcd"
+	helm       = "helm"
+	amd64      = "amd64"
+	arm64      = "arm64"
+	k3s        = "k3s"
+	docker     = "docker"
+	crictl     = "crictl"
+	registry   = "registry"
+	harbor     = "harbor"
+	compose    = "compose"
+	containerd = "containerd"
+	runc       = "runc"
 )
 
 // KubeBinary Type field const
 const (
-	CNI      = "cni"
-	CRICTL   = "crictl"
-	DOCKER   = "docker"
-	ETCD     = "etcd"
-	HELM     = "helm"
-	KUBE     = "kube"
-	REGISTRY = "registry"
+	CNI        = "cni"
+	CRICTL     = "crictl"
+	DOCKER     = "docker"
+	ETCD       = "etcd"
+	HELM       = "helm"
+	KUBE       = "kube"
+	REGISTRY   = "registry"
+	CONTAINERD = "containerd"
+	RUNC       = "runc"
 )
 
 type KubeBinary struct {
@@ -171,6 +175,20 @@ func NewKubeBinary(name, arch, version, prePath string, getCmd func(path, url st
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/docker/compose/releases/download/%s/docker-compose-linux-x86_64", version)
 		}
 		component.BaseDir = filepath.Join(prePath, component.Type, component.ID, component.Version, component.Arch)
+	case containerd:
+		component.Type = CONTAINERD
+		component.FileName = fmt.Sprintf("containerd-%s-linux-%s.tar.gz", version, arch)
+		component.Url = fmt.Sprintf("https://github.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz", version, version, arch)
+		if component.Zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz", version, version, arch)
+		}
+	case runc:
+		component.Type = RUNC
+		component.FileName = fmt.Sprintf("runc.%s", arch)
+		component.Url = fmt.Sprintf("https://github.com/opencontainers/runc/releases/download/%s/runc.%s", version, arch)
+		if component.Zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/%s/runc.%s", version, arch)
+		}
 	default:
 		logger.Log.Fatalf("unsupported kube binaries %s", name)
 	}
@@ -496,6 +514,22 @@ var (
 			},
 			arm64: {
 				"20.10.8": "4eb9d5e2adf718cd7ee59f6951715f3113c9c4ee49c75c9efb9747f2c3457b2b",
+			},
+		},
+		containerd: {
+			amd64: {
+				"1.6.2": "3d94f887de5f284b0d6ee61fa17ba413a7d60b4bb27d756a402b713a53685c6a",
+			},
+			arm64: {
+				"1.6.2": "a4b24b3c38a67852daa80f03ec2bc94e31a0f4393477cd7dc1c1a7c2d3eb2a95",
+			},
+		},
+		runc: {
+			amd64: {
+				"v1.1.1": "5798c85d2c8b6942247ab8d6830ef362924cd72a8e236e77430c3ab1be15f080",
+			},
+			arm64: {
+				"v1.1.1": "20c436a736547309371c7ac2a335f5fe5a42b450120e497d09c8dc3902c28444",
 			},
 		},
 		crictl: {

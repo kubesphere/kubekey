@@ -18,10 +18,10 @@ package container
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
 
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/container/templates"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
@@ -80,7 +80,7 @@ type DockerLoginRegistry struct {
 
 func (p *DockerLoginRegistry) Execute(runtime connector.Runtime) error {
 
-	auths := templates.Auths(p.KubeConf)
+	auths := registry.DockerRegistryAuthEntries(p.KubeConf.Cluster.Registry.Auths)
 
 	for repo, entry := range auths {
 

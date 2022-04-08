@@ -37,7 +37,20 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 	var results = make(map[string]string)
 	results["name"] = runtime.RemoteHost().GetName()
 	for _, software := range baseSoftware {
-		_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("which %s", software), false)
+		var (
+			cmd string
+		)
+
+		switch software {
+		case docker:
+			cmd = "docker version --format '{{.Server.Version}}'"
+		case containerd:
+			cmd = "containerd --version | cut -d ' ' -f 3"
+		default:
+			cmd = fmt.Sprintf("which %s", software)
+		}
+
+		res, err := runtime.GetRunner().SudoCmd(cmd, false)
 		switch software {
 		case showmount:
 			software = nfs
@@ -46,18 +59,13 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		case glusterfs:
 			software = glusterfs
 		}
-		if err != nil {
+		if err != nil || strings.Contains(res, "not found") {
 			results[software] = ""
 		} else {
-			results[software] = "y"
-			if software == docker {
-				dockerVersion, err := runtime.GetRunner().SudoCmd("docker version --format '{{.Server.Version}}'", false)
-				if err != nil {
-					results[software] = UnknownVersion
-				} else {
-					results[software] = dockerVersion
-				}
+			if strings.HasPrefix(cmd, "which") {
+				res = "y"
 			}
+			results[software] = res
 		}
 	}
 

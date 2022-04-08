@@ -17,13 +17,11 @@
 package templates
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"text/template"
 
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/lithammer/dedent"
 )
 
@@ -65,24 +63,4 @@ func InsecureRegistries(kubeConf *common.KubeConf) string {
 		insecureRegistries = strings.Join(registriesArr, ", ")
 	}
 	return insecureRegistries
-}
-
-type DockerConfigEntry struct {
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-}
-
-func Auths(kubeConf *common.KubeConf) (auths map[string]DockerConfigEntry) {
-
-	if len(kubeConf.Cluster.Registry.Auths.Raw) == 0 {
-		return
-	}
-
-	err := json.Unmarshal(kubeConf.Cluster.Registry.Auths.Raw, &auths)
-	if err != nil {
-		logger.Log.Fatal("Failed to Parse Registry Auths configuration: %v", kubeConf.Cluster.Registry.Auths.Raw)
-		return
-	}
-
-	return
 }
