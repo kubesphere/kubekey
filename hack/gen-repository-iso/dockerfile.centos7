@@ -1,15 +1,22 @@
-FROM centos:centos7
+FROM centos:7 as centos7
+ARG TARGETARCH
+ENV OS=centos
+ENV OS_VERSION=7
+ARG BUILD_TOOLS="yum-utils createrepo mkisofs epel-release"
+ARG DIR=${OS}${OS_VERSION}-${TARGETARCH}-rpms
+
+RUN yum install -q -y ${BUILD_TOOLS} \
+    && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
+    && yum makecache
 
 WORKDIR package
+COPY packages.yaml .
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+RUN yq eval ".common[],.rpms[],.${OS}[],.${OS}${OS_VERSION}" packages.yaml > packages.list
 
-ENV DIR=centos-7-amd64-rpms
-ENV DOCKERVERSION=20.10.8
+RUN sort -u packages.list | xargs repotrack -p ${DIR} \
+    && createrepo -d ${DIR} \
+    && mkisofs -r -o ${DIR}.iso ${DIR}
 
-RUN mkdir ${DIR} && cd ${DIR} && \
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
-    yumdownloader --resolve --destdir ./ docker-ce-${DOCKERVERSION} docker-ce-cli-${DOCKERVERSION} containerd.io \
-        nss nss-sysinit nss-tools lz4 chrony bind-utils nfs-utils net-tools ipvsadm ceph-common glusterfs-fuse yum-utils \
-        curl openssl socat conntrack ebtables ipset telnet lvm2 keepalived haproxy psmisc tcpdump && \
-        yum install createrepo mkisofs -y && createrepo ./
-
-RUN  mkisofs -r -o ${DIR}.iso ${DIR}
+FROM scratch
+COPY --from=centos7 /package/*.iso /

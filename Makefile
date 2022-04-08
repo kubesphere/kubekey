@@ -257,3 +257,20 @@ kk: fmt vet
 
 go-releaser-test:
 	goreleaser release --rm-dist --skip-publish --snapshot
+
+# build the artifact of repository iso
+ISO_ARCH ?= amd64
+ISO_OUTPUT_DIR ?= ./output
+ISO_BUILD_WORKDIR := hack/gen-repository-iso
+ISO_OS_NAMES := centos7 debian9 debian10 ubuntu1604 ubuntu1804 ubuntu2004
+ISO_BUILD_NAMES := $(addprefix build-iso-,$(ISO_OS_NAMES))
+build-iso-all: $(ISO_BUILD_NAMES)
+.PHONY: $(ISO_BUILD_NAMES)
+$(ISO_BUILD_NAMES):
+	@export DOCKER_BUILDKIT=1
+	docker build \
+		--platform linux/$(ISO_ARCH) \
+		--build-arg TARGETARCH=$(ISO_ARCH) \
+		-o type=local,dest=$(ISO_OUTPUT_DIR) \
+		-f $(ISO_BUILD_WORKDIR)/dockerfile.$(subst build-iso-,,$@) \
+		$(ISO_BUILD_WORKDIR)

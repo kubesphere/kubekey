@@ -1,19 +1,34 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 as ubuntu1804
+ARG TARGETARCH
+ARG OS_RELEASE=bionic
+ARG DIR=ubuntu-18.04-${TARGETARCH}-debs
+ARG PKGS=.common[],.debs[],.ubuntu[],.ubuntu1804[]
+ARG BUILD_TOOLS="apt-transport-https software-properties-common ca-certificates curl wget gnupg dpkg-dev genisoimage"
+ENV DEBIAN_FRONTEND=noninteractive
 
-WORKDIR package
+# dump system package list
+RUN dpkg --get-selections | grep -v deinstall | cut -f1 | cut -d ':' -f1 > packages.list
+RUN apt update -qq \
+    && apt install -y --no-install-recommends $BUILD_TOOLS \
+    && add-apt-repository ppa:gluster/glusterfs-7 -y \
+    && curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add -qq - \
+    && echo "deb [arch=$TARGETARCH] https://download.docker.com/linux/ubuntu ${OS_RELEASE} stable" > /etc/apt/sources.list.d/docker.list\
+    && apt update -qq
 
-ENV DIR=ubuntu-18.04-amd64-debs
-ENV DOCKERVERSION=5:20.10.8~3-0~ubuntu-bionic
-ENV PACKAGES="apt-transport-https ca-certificates curl git gnupg-agent software-properties-common sudo openssl openssh-server socat conntrack ebtables ipset docker-ce=${DOCKERVERSION} docker-ce-cli=${DOCKERVERSION} containerd.io chrony ipvsadm nfs-common ceph-common glusterfs-client dnsutils telnet lvm2 keepalived haproxy psmisc tcpdump"
+WORKDIR /package
+COPY packages.yaml .
 
-RUN mkdir ${DIR} && apt update && apt install curl sudo software-properties-common apt-transport-https -y && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable" && \
-    add-apt-repository ppa:gluster/glusterfs-7 -y && apt update
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+RUN yq eval "${PKGS}" packages.yaml >> packages.list \
+    && dpkg --get-selections | grep -v deinstall | cut -f1 | cut -d ':' -f1 >> packages.list \
+    && sort -u packages.list | xargs apt-get install --yes --reinstall --print-uris | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls
 
-ADD download-pkgs.sh ./${DIR}/
+RUN mkdir -p ${DIR} \
+    && wget -q -x -P ${DIR} -i packages.urls \
+    && cd ${DIR} \
+    && dpkg-scanpackages ./ /dev/null | gzip -9c > ./Packages.gz
 
-RUN cd ${DIR} && sh download-pkgs.sh && rm -rf download-pkgs.sh && rm -rf errors.txt
+RUN genisoimage -r -o ${DIR}.iso ${DIR}
 
-RUN apt install apt-utils dpkg-dev -y && cd ${DIR} && dpkg-scanpackages ./ /dev/null |gzip > ./Packages.gz
-
-RUN apt-get install genisoimage -y &&  mkisofs -r -o ${DIR}.iso ${DIR}
+FROM scratch
+COPY --from=ubuntu1804 /package/*.iso /
