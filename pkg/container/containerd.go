@@ -26,6 +26,39 @@ import (
 	"path/filepath"
 )
 
+type SyncContainerd struct {
+	common.KubeAction
+}
+
+func (s *SyncContainerd) Execute(runtime connector.Runtime) error {
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return err
+	}
+
+	binariesMapObj, ok := s.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
+	if !ok {
+		return errors.New("get KubeBinary by pipeline cache failed")
+	}
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
+
+	containerd, ok := binariesMap[common.Conatinerd]
+	if !ok {
+		return errors.New("get KubeBinary key containerd by pipeline cache failed")
+	}
+
+	dst := filepath.Join(common.TmpDir, containerd.FileName)
+	if err := runtime.GetRunner().Scp(containerd.Path(), dst); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync containerd binaries failed"))
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(
+		fmt.Sprintf("mkdir -p /usr/bin && tar -zxf %s && mv bin/* /usr/bin && rm -rf bin", dst),
+		false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("install containerd binaries failed"))
+	}
+	return nil
+}
+
 type SyncCrictlBinaries struct {
 	common.KubeAction
 }
@@ -69,6 +102,33 @@ func (e *EnableContainerd) Execute(runtime connector.Runtime) error {
 		"systemctl daemon-reload && systemctl enable containerd && systemctl start containerd",
 		false); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("enable and start containerd failed"))
+	}
+
+	// install runc
+	if err := utils.ResetTmpDir(runtime); err != nil {
+		return err
+	}
+
+	binariesMapObj, ok := e.PipelineCache.Get(common.KubeBinaries + "-" + runtime.RemoteHost().GetArch())
+	if !ok {
+		return errors.New("get KubeBinary by pipeline cache failed")
+	}
+	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
+
+	containerd, ok := binariesMap[common.Runc]
+	if !ok {
+		return errors.New("get KubeBinary key runc by pipeline cache failed")
+	}
+
+	dst := filepath.Join(common.TmpDir, containerd.FileName)
+	if err := runtime.GetRunner().Scp(containerd.Path(), dst); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync runc binaries failed"))
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(
+		fmt.Sprintf("install -m 755 %s /usr/local/sbin/runc", dst),
+		false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("install runc binaries failed"))
 	}
 	return nil
 }

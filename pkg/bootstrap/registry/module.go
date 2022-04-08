@@ -169,31 +169,6 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Retry:    2,
 	}
 
-	generateContainerdService := &task.RemoteTask{
-		Name:  "GenerateContainerdService",
-		Desc:  "Generate containerd service",
-		Hosts: i.Runtime.GetHostsByRole(common.Registry),
-		Prepare: &prepare.PrepareCollection{
-			&container.DockerExist{Not: true},
-		},
-		Action: &action.Template{
-			Template: docker_template.ContainerdService,
-			Dst:      filepath.Join("/etc/systemd/system", docker_template.ContainerdService.Name()),
-		},
-		Parallel: true,
-	}
-
-	enableContainerd := &task.RemoteTask{
-		Name:  "EnableContainerd",
-		Desc:  "Enable containerd",
-		Hosts: i.Runtime.GetHostsByRole(common.Registry),
-		Prepare: &prepare.PrepareCollection{
-			&container.DockerExist{Not: true},
-		},
-		Action:   new(container.EnableContainerd),
-		Parallel: true,
-	}
-
 	generateDockerService := &task.RemoteTask{
 		Name:  "GenerateDockerService",
 		Desc:  "Generate docker service",
@@ -285,8 +260,6 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 
 	return []task.Interface{
 		syncBinaries,
-		generateContainerdService,
-		enableContainerd,
 		generateDockerService,
 		generateDockerConfig,
 		enableDocker,

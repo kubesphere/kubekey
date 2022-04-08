@@ -17,6 +17,7 @@
 package container
 
 import (
+	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
 	"strings"
 
@@ -70,33 +71,6 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		Action:   new(SyncDockerBinaries),
 		Parallel: true,
 		Retry:    2,
-	}
-
-	generateContainerdService := &task.RemoteTask{
-		Name:  "GenerateContainerdService",
-		Desc:  "Generate containerd service",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&DockerExist{Not: true},
-		},
-		Action: &action.Template{
-			Template: templates.ContainerdService,
-			Dst:      filepath.Join("/etc/systemd/system", templates.ContainerdService.Name()),
-		},
-		Parallel: true,
-	}
-
-	enableContainerd := &task.RemoteTask{
-		Name:  "EnableContainerd",
-		Desc:  "Enable containerd",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&DockerExist{Not: true},
-		},
-		Action:   new(EnableContainerd),
-		Parallel: true,
 	}
 
 	generateDockerService := &task.RemoteTask{
@@ -160,8 +134,6 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 
 	return []task.Interface{
 		syncBinaries,
-		generateContainerdService,
-		enableContainerd,
 		generateDockerService,
 		generateDockerConfig,
 		enableDocker,
@@ -170,6 +142,19 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 }
 
 func InstallContainerd(m *InstallContainerModule) []task.Interface {
+	syncContainerd := &task.RemoteTask{
+		Name:  "SyncContainerd",
+		Desc:  "Sync containerd binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action:   new(SyncContainerd),
+		Parallel: true,
+		Retry:    2,
+	}
+
 	syncCrictlBinaries := &task.RemoteTask{
 		Name:  "SyncCrictlBinaries",
 		Desc:  "Sync crictl binaries",
@@ -179,19 +164,6 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 			&CrictlExist{Not: true},
 		},
 		Action:   new(SyncCrictlBinaries),
-		Parallel: true,
-		Retry:    2,
-	}
-
-	syncDockerBinaries := &task.RemoteTask{
-		Name:  "SyncDockerBinaries",
-		Desc:  "Sync docker binaries",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&ContainerdExist{Not: true},
-		},
-		Action:   new(SyncDockerBinaries),
 		Parallel: true,
 		Retry:    2,
 	}
@@ -226,7 +198,7 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 				"Mirrors":            templates.Mirrors(m.KubeConf),
 				"InsecureRegistries": templates.InsecureRegistries(m.KubeConf),
 				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
-				"Auths":              templates.Auths(m.KubeConf),
+				"Auths":              registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths),
 			},
 		},
 		Parallel: true,
@@ -262,61 +234,12 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
-	generateDockerService := &task.RemoteTask{
-		Name:  "GenerateDockerService",
-		Desc:  "Generate docker service",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&ContainerdExist{Not: true},
-		},
-		Action: &action.Template{
-			Template: templates.DockerService,
-			Dst:      filepath.Join("/etc/systemd/system", templates.DockerService.Name()),
-		},
-		Parallel: true,
-	}
-
-	generateDockerConfig := &task.RemoteTask{
-		Name:  "GenerateDockerConfig",
-		Desc:  "Generate docker config",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&ContainerdExist{Not: true},
-		},
-		Action: &action.Template{
-			Template: templates.DockerConfig,
-			Dst:      filepath.Join("/etc/docker/", templates.DockerConfig.Name()),
-			Data: util.Data{
-				"Mirrors":            templates.Mirrors(m.KubeConf),
-				"InsecureRegistries": templates.InsecureRegistries(m.KubeConf),
-			},
-		},
-		Parallel: true,
-	}
-
-	enableDocker := &task.RemoteTask{
-		Name:  "EnableDocker",
-		Desc:  "Enable docker",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&ContainerdExist{Not: true},
-		},
-		Action:   new(EnableDocker),
-		Parallel: true,
-	}
-
 	return []task.Interface{
+		syncContainerd,
 		syncCrictlBinaries,
-		syncDockerBinaries,
 		generateContainerdService,
 		generateContainerdConfig,
 		generateCrictlConfig,
 		enableContainerd,
-		generateDockerService,
-		generateDockerConfig,
-		enableDocker,
 	}
 }

@@ -17,12 +17,10 @@
 package images
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/image/v5/types"
 	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
-	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"strings"
@@ -37,7 +35,7 @@ type dockerImageOptions struct {
 	username       string
 	password       string
 	dockerCertPath string
-	tlsVerify      bool
+	SkipTLSVerify  bool
 }
 
 func (d *dockerImageOptions) systemContext() *types.SystemContext {
@@ -46,7 +44,7 @@ func (d *dockerImageOptions) systemContext() *types.SystemContext {
 		OSChoice:                    d.os,
 		VariantChoice:               d.variant,
 		DockerRegistryUserAgent:     defaultUserAgent,
-		DockerInsecureSkipTLSVerify: types.NewOptionalBool(d.tlsVerify),
+		DockerInsecureSkipTLSVerify: types.NewOptionalBool(d.SkipTLSVerify),
 	}
 	return ctx
 }
@@ -83,26 +81,6 @@ func (d *destImageOptions) systemContext() *types.SystemContext {
 	}
 
 	return ctx
-}
-
-type registryAuth struct {
-	Username  string `json:"username,omitempty"`
-	Password  string `json:"password,omitempty"`
-	PlainHTTP bool   `json:"plainHTTP,omitempty"`
-}
-
-func Auths(manifest *common.ArtifactManifest) (auths map[string]registryAuth) {
-	if len(manifest.Spec.ManifestRegistry.Auths.Raw) == 0 {
-		return
-	}
-
-	err := json.Unmarshal(manifest.Spec.ManifestRegistry.Auths.Raw, &auths)
-	if err != nil {
-		logger.Log.Fatalf("Failed to Parse Registry Auths configuration: %v", manifest.Spec.ManifestRegistry.Auths.Raw)
-		return
-	}
-
-	return
 }
 
 // ParseArchVariant

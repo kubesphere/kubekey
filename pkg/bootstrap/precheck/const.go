@@ -18,19 +18,20 @@ package precheck
 
 const (
 	// command software
-	sudo      = "sudo"
-	curl      = "curl"
-	openssl   = "openssl"
-	ebtables  = "ebtables"
-	socat     = "socat"
-	ipset     = "ipset"
-	ipvsadm   = "ipvsadm"
-	conntrack = "conntrack"
-	chrony    = "chronyd"
-	docker    = "docker"
-	showmount = "showmount"
-	rbd       = "rbd"
-	glusterfs = "glusterfs"
+	sudo       = "sudo"
+	curl       = "curl"
+	openssl    = "openssl"
+	ebtables   = "ebtables"
+	socat      = "socat"
+	ipset      = "ipset"
+	ipvsadm    = "ipvsadm"
+	conntrack  = "conntrack"
+	chrony     = "chronyd"
+	docker     = "docker"
+	containerd = "containerd"
+	showmount  = "showmount"
+	rbd        = "rbd"
+	glusterfs  = "glusterfs"
 
 	// extra command tools
 	nfs  = "nfs"
@@ -51,6 +52,7 @@ var baseSoftware = []string{
 	conntrack,
 	chrony,
 	docker,
+	containerd,
 	showmount,
 	rbd,
 	glusterfs,

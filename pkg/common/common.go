@@ -64,6 +64,7 @@ const (
 	Conatinerd = "containerd"
 	Crio       = "crio"
 	Isula      = "isula"
+	Runc       = "runc"
 
 	// global cache key
 	// PreCheckModule
@@ -90,6 +91,4 @@ const (
 
 	// Artifact pipeline
 	Artifact = "artifact"
-	// ContainerModule
-	ContainerdClient = "client"
 )

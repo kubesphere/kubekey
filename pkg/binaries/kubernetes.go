@@ -39,8 +39,17 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	helm := files.NewKubeBinary("helm", arch, kubekeyapiv1alpha2.DefaultHelmVersion, path, kubeConf.Arg.DownloadCommand)
 	docker := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, kubeConf.Arg.DownloadCommand)
 	crictl := files.NewKubeBinary("crictl", arch, kubekeyapiv1alpha2.DefaultCrictlVersion, path, kubeConf.Arg.DownloadCommand)
+	containerd := files.NewKubeBinary("containerd", arch, kubekeyapiv1alpha2.DefaultContainerdVersion, path, kubeConf.Arg.DownloadCommand)
+	runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, kubeConf.Arg.DownloadCommand)
 
-	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, docker, crictl, etcd}
+	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, crictl, etcd}
+
+	if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Docker {
+		binaries = append(binaries, docker)
+	} else if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Conatinerd {
+		binaries = append(binaries, containerd, runc)
+	}
+
 	binariesMap := make(map[string]*files.KubeBinary)
 	for _, binary := range binaries {
 		if err := binary.CreateBaseDir(); err != nil {
@@ -94,23 +103,21 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, manifest.Arg.DownloadCommand)
 	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
 
-	dockerArr := make([]*files.KubeBinary, 0, 0)
-	dockerVersionMap := make(map[string]struct{})
+	containerManagerArr := make([]*files.KubeBinary, 0, 0)
+	containerManagerVersion := make(map[string]struct{})
 	for _, c := range m.Components.ContainerRuntimes {
-		var dockerVersion string
-		if c.Type == common.Docker {
-			dockerVersion = c.Version
-		} else {
-			dockerVersion = kubekeyapiv1alpha2.DefaultDockerVersion
-		}
-		if _, ok := dockerVersionMap[dockerVersion]; !ok {
-			dockerVersionMap[dockerVersion] = struct{}{}
-			docker := files.NewKubeBinary("docker", arch, dockerVersion, path, manifest.Arg.DownloadCommand)
-			dockerArr = append(dockerArr, docker)
+		if _, ok := containerManagerVersion[c.Type+c.Version]; !ok {
+			containerManagerVersion[c.Type+c.Version] = struct{}{}
+			containerManager := files.NewKubeBinary(c.Type, arch, c.Version, path, manifest.Arg.DownloadCommand)
+			containerManagerArr = append(containerManagerArr, containerManager)
+			if c.Type == "containerd" {
+				runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, manifest.Arg.DownloadCommand)
+				containerManagerArr = append(containerManagerArr, runc)
+			}
 		}
 	}
 
-	binaries = append(binaries, dockerArr...)
+	binaries = append(binaries, containerManagerArr...)
 	if m.Components.Crictl.Version != "" {
 		binaries = append(binaries, crictl)
 	}

@@ -70,9 +70,11 @@ spec:
     privateRegistry: ""
     namespaceOverride: ""
     auths: # if docker add by `docker login`, if containerd append to `/etc/containerd/config.toml`
-      "registry-1.docker.io":
-        username : "xxx"
-        password : "***"
+      "dockerhub.kubekey.local":
+        username: "xxx"
+        password: "***"
+        skipTLSVerify: false # Allow contacting registries over HTTP, or HTTPS with failed TLS verification.
+        certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
 
 
   addons: [] # You can install cloud-native addons (Chart or YAML) by using this field.

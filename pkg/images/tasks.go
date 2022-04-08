@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
-	"github.com/kubesphere/kubekey/pkg/container/templates"
 	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/kubesphere/kubekey/pkg/registry"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -146,7 +146,7 @@ type SaveImages struct {
 }
 
 func (s *SaveImages) Execute(runtime connector.Runtime) error {
-	auths := Auths(s.Manifest)
+	auths := registry.DockerRegistryAuthEntries(s.Manifest.Spec.ManifestRegistry.Auths)
 
 	dirName := filepath.Join(runtime.GetWorkDir(), common.Artifact, "images")
 	if err := coreutil.Mkdir(dirName); err != nil {
@@ -155,9 +155,9 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 	for _, image := range s.Manifest.Spec.Images {
 		imageFullName := strings.Split(image, "/")
 		repo := imageFullName[0]
-		var registryAuth registryAuth
+		auth := new(registry.DockerRegistryEntry)
 		if v, ok := auths[repo]; ok {
-			registryAuth = v
+			auth = v
 		}
 
 		srcName := fmt.Sprintf("docker://%s", image)
@@ -178,12 +178,13 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 				srcImage: &srcImageOptions{
 					imageName: srcName,
 					dockerImage: dockerImageOptions{
-						arch:      arch,
-						variant:   variant,
-						os:        "linux",
-						username:  registryAuth.Username,
-						password:  registryAuth.Password,
-						tlsVerify: registryAuth.PlainHTTP,
+						arch:           arch,
+						variant:        variant,
+						os:             "linux",
+						username:       auth.Username,
+						password:       auth.Password,
+						SkipTLSVerify:  auth.SkipTLSVerify,
+						dockerCertPath: auth.CertsPath,
 					},
 				},
 				destImage: &destImageOptions{
@@ -227,7 +228,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), "unmarshal index.json failed: %s")
 	}
 
-	auths := templates.Auths(c.KubeConf)
+	auths := registry.DockerRegistryAuthEntries(c.KubeConf.Cluster.Registry.Auths)
 
 	manifestList := make(map[string][]manifesttypes.ManifestEntry)
 	for _, m := range index.Manifests {
@@ -261,7 +262,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			manifestList[uniqueImage] = append(entryArr, entry)
 		}
 
-		var auth templates.DockerConfigEntry
+		auth := new(registry.DockerRegistryEntry)
 		if config, ok := auths[c.KubeConf.Cluster.Registry.PrivateRegistry]; ok {
 			auth = config
 		}
@@ -283,12 +284,13 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			destImage: &destImageOptions{
 				imageName: destName,
 				dockerImage: dockerImageOptions{
-					arch:      p.Architecture,
-					variant:   p.Variant,
-					os:        "linux",
-					username:  auth.Username,
-					password:  auth.Password,
-					tlsVerify: c.KubeConf.Cluster.Registry.PlainHTTP,
+					arch:           p.Architecture,
+					variant:        p.Variant,
+					os:             "linux",
+					username:       auth.Username,
+					password:       auth.Password,
+					SkipTLSVerify:  auth.SkipTLSVerify,
+					dockerCertPath: auth.CertsPath,
 				},
 			},
 		}
@@ -317,8 +319,8 @@ func (p *PushManifest) Execute(_ connector.Runtime) error {
 	}
 	list := v.(map[string][]manifesttypes.ManifestEntry)
 
-	auths := templates.Auths(p.KubeConf)
-	var auth templates.DockerConfigEntry
+	auths := registry.DockerRegistryAuthEntries(p.KubeConf.Cluster.Registry.Auths)
+	auth := new(registry.DockerRegistryEntry)
 	if _, ok := auths[p.KubeConf.Cluster.Registry.PrivateRegistry]; ok {
 		auth = auths[p.KubeConf.Cluster.Registry.PrivateRegistry]
 	}
@@ -328,8 +330,9 @@ func (p *PushManifest) Execute(_ connector.Runtime) error {
 		logger.Log.Debug(manifestSpec)
 
 		logger.Log.Infof("Push multi-arch manifest list: %s", imageName)
-		digest, length, err := manifestregistry.PushManifestList(auth.Username, auth.Password, manifestSpec, false, true,
-			p.KubeConf.Cluster.Registry.PlainHTTP, "")
+		// todo: the function can't support specify a certs dir
+		digest, length, err := manifestregistry.PushManifestList(auth.Username, auth.Password, manifestSpec,
+			false, true, p.KubeConf.Cluster.Registry.PlainHTTP, "")
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("push image %s multi-arch manifest failed", imageName))
 		}

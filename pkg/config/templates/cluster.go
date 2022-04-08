@@ -66,6 +66,7 @@ spec:
     namespaceOverride: ""
     registryMirrors: []
     insecureRegistries: []
+    auths: {}
   addons: []
 
 {{ if .Options.KubeSphereEnabled }}

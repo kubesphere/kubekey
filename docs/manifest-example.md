@@ -145,5 +145,6 @@ spec:
       "dockerhub.kubekey.local":
         username: "xxx"
         password: "***"
-        plainHTTP: false # If the registry is serving for http request, set this to true.
+        skipTLSVerify: false # Allow contacting registries over HTTP, or HTTPS with failed TLS verification.
+        certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
 ```
