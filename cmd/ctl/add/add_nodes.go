@@ -76,6 +76,7 @@ func (o *AddNodesOptions) Run() error {
 		ContainerManager: o.ContainerManager,
 		Artifact:         o.Artifact,
 		InstallPackages:  o.InstallPackages,
+		Namespace:        o.CommonOptions.Namespace,
 	}
 	return pipelines.AddNodes(arg, o.DownloadCmd)
 }

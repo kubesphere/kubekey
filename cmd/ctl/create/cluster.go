@@ -117,6 +117,7 @@ func (o *CreateClusterOptions) Run() error {
 		ContainerManager:  o.ContainerManager,
 		Artifact:          o.Artifact,
 		InstallPackages:   o.InstallPackages,
+		Namespace:         o.CommonOptions.Namespace,
 	}
 
 	if o.localStorageChanged {
