@@ -64,8 +64,10 @@ func GenerateKubeKeyConfig(arg common.Argument, name string) error {
 		if ok {
 			opt.KubeSphereConfigMap = ksInstaller.CCToString()
 		} else if latest, ok := kubesphere.LatestRelease(version); ok {
+			latest.Version = version
 			opt.KubeSphereConfigMap = latest.CCToString()
 		} else if dev, ok := kubesphere.DevRelease(version); ok {
+			dev.Version = version
 			opt.KubeSphereConfigMap = dev.CCToString()
 		} else {
 			return errors.New(fmt.Sprintf("Unsupported KubeSphere version: %s", version))
