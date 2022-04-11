@@ -19,6 +19,10 @@ package confirm
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -28,9 +32,6 @@ import (
 	"github.com/modood/table"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
-	"os"
-	"regexp"
-	"strings"
 )
 
 // PreCheckResults defines the items to be checked.
@@ -82,9 +83,21 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 
 	if i.KubeConf.Arg.Artifact == "" {
 		for _, host := range results {
+			if host.Sudo == "" {
+				fmt.Printf("%s: sudo is required. \n", host.Name)
+				logger.Log.Errorf("%s: sudo is required. \n", host.Name)
+				stopFlag = true
+			}
+
 			if host.Conntrack == "" {
 				fmt.Printf("%s: conntrack is required. \n", host.Name)
 				logger.Log.Errorf("%s: conntrack is required. \n", host.Name)
+				stopFlag = true
+			}
+
+			if host.Socat == "" {
+				fmt.Printf("%s: socat is required. \n", host.Name)
+				logger.Log.Errorf("%s: socat is required. \n", host.Name)
 				stopFlag = true
 			}
 		}
