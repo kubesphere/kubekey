@@ -18,15 +18,16 @@ package precheck
 
 import (
 	"fmt"
+	"os/exec"
+	"regexp"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
-	"os/exec"
-	"regexp"
-	"strings"
 )
 
 type NodePreCheck struct {
@@ -50,7 +51,14 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 			cmd = fmt.Sprintf("which %s", software)
 		}
 
-		res, err := runtime.GetRunner().SudoCmd(cmd, false)
+		switch software {
+		case sudo:
+			// sudo skip sudo prefix
+		default:
+			cmd = connector.SudoPrefix(cmd)
+		}
+
+		res, err := runtime.GetRunner().Cmd(cmd, false)
 		switch software {
 		case showmount:
 			software = nfs
@@ -62,10 +70,13 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		if err != nil || strings.Contains(res, "not found") {
 			results[software] = ""
 		} else {
-			if strings.HasPrefix(cmd, "which") {
-				res = "y"
+			// software in path
+			if strings.Contains(res, "bin/") {
+				results[software] = "y"
+			} else {
+				// get software version, e.g. docker, containerd, etc.
+				results[software] = res
 			}
-			results[software] = res
 		}
 	}
 
