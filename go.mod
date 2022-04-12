@@ -21,7 +21,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/modood/table v0.0.0-20200225102042-88de94bb9876
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.1
+	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.4
