@@ -67,6 +67,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
     <td align="center"><a href="https://laminar.fun/"><img src="https://avatars.githubusercontent.com/u/2360535?v=4?s=100" width="100px;" alt=""/><br /><sub><b>laminar</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=tpiperatgod" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/cumirror"><img src="https://avatars.githubusercontent.com/u/2455429?v=4?s=100" width="100px;" alt=""/><br /><sub><b>tongjin</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=cumirror" title="Code">💻</a></td>
     <td align="center"><a href="http://k8s.li"><img src="https://avatars.githubusercontent.com/u/42566386?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Reimu</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=muzi502" title="Code">💻</a></td>
+    <td align="center"><a href="https://bandism.net/"><img src="https://avatars.githubusercontent.com/u/22633385?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Ikko Ashimine</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=eltociear" title="Documentation">📖</a></td>
   </tr>
 </table>
 
