@@ -10,7 +10,7 @@ Create cluster configuration file. More information about the configuration file
 Print detailed information. The default is `false`.
 
 ## **--filename, -f**
-Specify the configuration file output path. The deafult is `./config-example.yaml`.
+Specify the configuration file output path. The default is `./config-example.yaml`.
 
 ## **--from-cluster**
 Create a configuration based on existing cluster. Usually used in conjunction with the ``--kubeconfig`` option.
