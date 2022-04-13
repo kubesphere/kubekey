@@ -17,6 +17,7 @@
 package connector
 
 import (
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"sync"
 	"time"
 )
@@ -47,9 +48,9 @@ func (d *Dialer) Connect(host Host) (Connection, error) {
 			Password:   host.GetPassword(),
 			PrivateKey: host.GetPrivateKey(),
 			KeyFile:    host.GetPrivateKeyPath(),
-			Timeout:    30 * time.Second,
+			Timeout:    time.Duration(host.GetTimeout()) * time.Second,
 		}
-		conn, err = NewConnection(d, opts)
+		conn, err = NewConnection(opts)
 		if err != nil {
 			return nil, err
 		}
@@ -57,6 +58,19 @@ func (d *Dialer) Connect(host Host) (Connection, error) {
 	}
 
 	return conn, nil
+}
+
+func (d *Dialer) Close(host Host) {
+	conn, ok := d.connections[host.GetName()]
+	if !ok {
+		return
+	}
+
+	conn.Close()
+	logger.Log.Debugf("close connection %s", host.GetName())
+
+	c := conn.(*connection)
+	d.forgetConnection(c)
 }
 
 func (d *Dialer) forgetConnection(conn *connection) {

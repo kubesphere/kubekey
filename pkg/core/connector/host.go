@@ -21,18 +21,20 @@ import (
 )
 
 type BaseHost struct {
-	Name            string          `yaml:"name,omitempty" json:"name,omitempty"`
-	Address         string          `yaml:"address,omitempty" json:"address,omitempty"`
-	InternalAddress string          `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
-	Port            int             `yaml:"port,omitempty" json:"port,omitempty"`
-	User            string          `yaml:"user,omitempty" json:"user,omitempty"`
-	Password        string          `yaml:"password,omitempty" json:"password,omitempty"`
-	PrivateKey      string          `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
-	PrivateKeyPath  string          `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
-	Arch            string          `yaml:"arch,omitempty" json:"arch,omitempty"`
-	Roles           []string        `json:"-"`
-	RoleTable       map[string]bool `json:"-"`
-	Cache           *cache.Cache    `json:"-"`
+	Name            string `yaml:"name,omitempty" json:"name,omitempty"`
+	Address         string `yaml:"address,omitempty" json:"address,omitempty"`
+	InternalAddress string `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
+	Port            int    `yaml:"port,omitempty" json:"port,omitempty"`
+	User            string `yaml:"user,omitempty" json:"user,omitempty"`
+	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
+	PrivateKey      string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
+	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
+	Timeout         int64  `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+
+	Roles     []string        `json:"-"`
+	RoleTable map[string]bool `json:"-"`
+	Cache     *cache.Cache    `json:"-"`
 }
 
 func NewHost() *BaseHost {
@@ -113,6 +115,14 @@ func (b *BaseHost) GetArch() string {
 
 func (b *BaseHost) SetArch(arch string) {
 	b.Arch = arch
+}
+
+func (b *BaseHost) GetTimeout() int64 {
+	return b.Timeout
+}
+
+func (b *BaseHost) SetTimeout(timeout int64) {
+	b.Timeout = timeout
 }
 
 func (b *BaseHost) GetRoles() []string {

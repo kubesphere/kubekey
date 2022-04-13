@@ -3,10 +3,8 @@ module github.com/kubesphere/kubekey
 go 1.17
 
 replace (
-	github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
-	github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
-	// urfave/cli must be <= v1.22.1 due to a regression: https://github.com/urfave/cli/issues/1092
-	github.com/urfave/cli => github.com/urfave/cli v1.22.1
+	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/docker => github.com/moby/moby v20.10.14+incompatible
 )
 
 require (
@@ -69,7 +67,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chai2010/gettext-go v0.0.0-20160711120539-c6fed771bfd5 // indirect
 	github.com/containerd/cgroups v1.0.3 // indirect
-	github.com/containerd/continuity v0.2.2 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.11.1 // indirect
 	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
 	github.com/containers/ocicrypt v1.1.3 // indirect
