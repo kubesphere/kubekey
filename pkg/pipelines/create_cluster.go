@@ -60,6 +60,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	m := []module.Module{
+		&precheck.GreetingsModule{},
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&artifact.UnArchiveModule{Skip: noArtifact},
@@ -155,6 +156,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	}
 
 	m := []module.Module{
+		&precheck.GreetingsModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.K3sNodeBinariesModule{},

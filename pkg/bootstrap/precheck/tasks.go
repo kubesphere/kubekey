@@ -19,7 +19,9 @@ package precheck
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/pkg/errors"
@@ -28,6 +30,19 @@ import (
 	"regexp"
 	"strings"
 )
+
+type GreetingsTask struct {
+	action.BaseAction
+}
+
+func (h *GreetingsTask) Execute(runtime connector.Runtime) error {
+	hello, err := runtime.GetRunner().SudoCmd("echo 'Greetings, KubeKey!'", false)
+	if err != nil {
+		return err
+	}
+	logger.Log.Messagef(runtime.RemoteHost().GetName(), hello)
+	return nil
+}
 
 type NodePreCheck struct {
 	common.KubeAction

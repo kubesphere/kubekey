@@ -18,6 +18,7 @@ package pipelines
 
 import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
@@ -25,6 +26,7 @@ import (
 
 func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
+		&precheck.GreetingsModule{},
 		&os.InitDependenciesModule{},
 	}
 
