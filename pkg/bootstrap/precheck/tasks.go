@@ -18,7 +18,6 @@ package precheck
 
 import (
 	"fmt"
-	"os/exec"
 	"regexp"
 	"strings"
 
@@ -308,16 +307,5 @@ func (g *GetKubernetesNodesStatus) Execute(runtime connector.Runtime) error {
 	}
 
 	g.PipelineCache.Set(common.ClusterNodeStatus, nodeStatus)
-	return nil
-}
-
-type CRIPreCheck struct {
-	common.KubeAction
-}
-
-func (c *CRIPreCheck) Execute(_ connector.Runtime) error {
-	if _, err := exec.Command("/bin/bash", "-c", "which ctr").CombinedOutput(); err != nil {
-		return errors.New("containerd is not installed")
-	}
 	return nil
 }
