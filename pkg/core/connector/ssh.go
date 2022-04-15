@@ -59,12 +59,11 @@ type connection struct {
 	mu         sync.Mutex
 	sftpclient *sftp.Client
 	sshclient  *ssh.Client
-	dialer     *Dialer
 	ctx        context.Context
 	cancel     context.CancelFunc
 }
 
-func NewConnection(dialer *Dialer, cfg Cfg) (Connection, error) {
+func NewConnection(cfg Cfg) (Connection, error) {
 	cfg, err := validateOptions(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to validate ssh connection parameters")
@@ -138,7 +137,6 @@ func NewConnection(dialer *Dialer, cfg Cfg) (Connection, error) {
 	sshConn := &connection{
 		ctx:    ctx,
 		cancel: cancelFn,
-		dialer: dialer,
 	}
 
 	if cfg.Bastion == "" {
@@ -209,7 +207,7 @@ func validateOptions(cfg Cfg) (Cfg, error) {
 	}
 
 	if cfg.Timeout == 0 {
-		cfg.Timeout = 60 * time.Second
+		cfg.Timeout = 15 * time.Second
 	}
 
 	return cfg, nil
@@ -223,7 +221,6 @@ func (c *connection) Close() {
 		return
 	}
 	c.cancel()
-	c.dialer.forgetConnection(c)
 
 	if c.sshclient != nil {
 		c.sshclient.Close()

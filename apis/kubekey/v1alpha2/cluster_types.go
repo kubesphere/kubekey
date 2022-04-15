@@ -150,6 +150,7 @@ type HostCfg struct {
 	PrivateKey      string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
 	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
+	Timeout         *int64 `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 
 	// Labels defines the kubernetes labels for the node.
 	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
@@ -264,6 +265,7 @@ func toHosts(cfg HostCfg) *KubeHost {
 	host.PrivateKey = cfg.PrivateKey
 	host.PrivateKeyPath = cfg.PrivateKeyPath
 	host.Arch = cfg.Arch
+	host.Timeout = *cfg.Timeout
 
 	kubeHost := &KubeHost{
 		BaseHost: host,

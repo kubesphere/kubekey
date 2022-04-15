@@ -19,6 +19,7 @@ package pipelines
 import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/config"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
@@ -27,6 +28,7 @@ import (
 
 func DeleteNodePipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
+		&precheck.GreetingsModule{},
 		&confirm.DeleteNodeConfirmModule{},
 		&config.ModifyConfigModule{},
 		&kubernetes.CompareConfigAndClusterInfoModule{},

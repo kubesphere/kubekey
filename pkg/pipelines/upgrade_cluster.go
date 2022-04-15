@@ -37,6 +37,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
 
 	m := []module.Module{
+		&precheck.GreetingsModule{},
 		&precheck.NodePreCheckModule{},
 		&precheck.ClusterPreCheckModule{},
 		&confirm.UpgradeConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},

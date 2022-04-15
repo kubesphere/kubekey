@@ -37,6 +37,7 @@ const (
 	DefaultClusterName          = "cluster.local"
 	DefaultDNSDomain            = "cluster.local"
 	DefaultArch                 = "amd64"
+	DefaultSSHTimeout           = 10
 	DefaultEtcdVersion          = "v3.4.13"
 	DefaultEtcdPort             = "2379"
 	DefaultDockerVersion        = "20.10.8"
@@ -153,6 +154,13 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 		if host.Arch == "" {
 			host.Arch = DefaultArch
 		}
+
+		if host.Timeout == nil {
+			var timeout int64
+			timeout = DefaultSSHTimeout
+			host.Timeout = &timeout
+		}
+
 		hostCfg = append(hostCfg, host)
 	}
 	return hostCfg

@@ -36,6 +36,7 @@ type Connection interface {
 
 type Connector interface {
 	Connect(host Host) (Connection, error)
+	Close(host Host)
 }
 
 type ModuleRuntime interface {
@@ -82,6 +83,8 @@ type Host interface {
 	SetPrivateKeyPath(path string)
 	GetArch() string
 	SetArch(arch string)
+	GetTimeout() int64
+	SetTimeout(timeout int64)
 	GetRoles() []string
 	SetRoles(roles []string)
 	IsRole(role string) bool
