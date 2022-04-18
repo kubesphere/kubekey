@@ -71,6 +71,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
   </tr>
   <tr>
     <td align="center"><a href="https://yeya24.github.io/"><img src="https://avatars.githubusercontent.com/u/25150124?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Ben Ye</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=yeya24" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/yinheli"><img src="https://avatars.githubusercontent.com/u/235094?v=4?s=100" width="100px;" alt=""/><br /><sub><b>yinheli</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=yinheli" title="Code">💻</a></td>
   </tr>
 </table>
 
