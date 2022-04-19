@@ -121,7 +121,7 @@ spec:
     #   replicas: 2
     #   resources: {}
   logging:
-    enabled:
+    enabled: false
     logsidecar:
       enabled: true
       replicas: 2
