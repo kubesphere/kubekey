@@ -99,9 +99,12 @@ func CreateManifest(arg common.Argument, name string) error {
 		case "centos":
 			id = "centos"
 			version = osImageArr[2]
+		case "rhel":
+			id = "rhel"
+			version = osImageArr[2]
 		default:
 			id = strings.ToLower(osImageArr[0])
-			version = "Didn't get the os version. Please edit it manually."
+			version = "Can't get the os version. Please edit it manually."
 		}
 
 		osObj := kubekeyv1alpha2.OperatingSystem{

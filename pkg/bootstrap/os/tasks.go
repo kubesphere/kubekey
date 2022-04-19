@@ -246,96 +246,6 @@ func (g *GetOSData) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type OnlineInstallDependencies struct {
-	common.KubeAction
-}
-
-func (o *OnlineInstallDependencies) Execute(runtime connector.Runtime) error {
-	host := runtime.RemoteHost()
-	pkg, ok := host.GetCache().GetMustString(PkgTool)
-	if !ok {
-		return errors.New("get pkgTool failed by root cache")
-	}
-	release, ok := host.GetCache().Get(Release)
-	if !ok {
-		return errors.New("get os release failed by root cache")
-	}
-	r := release.(*osrelease.Data)
-
-	switch strings.TrimSpace(pkg) {
-	case "deb":
-		if _, err := runtime.GetRunner().SudoCmd(
-			"apt update;"+
-				"apt install socat conntrack ipset ebtables chrony ipvsadm -y;",
-			false); err != nil {
-			return err
-		}
-	case "rpm":
-		if _, err := runtime.GetRunner().SudoCmd(
-			"yum install openssl socat conntrack ipset ebtables chrony ipvsadm -y",
-			false); err != nil {
-			return err
-		}
-	default:
-		return errors.New(fmt.Sprintf("Unsupported operating system: %s", r.ID))
-	}
-	return nil
-}
-
-type OfflineInstallDependencies struct {
-	common.KubeAction
-}
-
-func (o *OfflineInstallDependencies) Execute(runtime connector.Runtime) error {
-	fp, err := filepath.Abs(o.KubeConf.Arg.SourcesDir)
-	if err != nil {
-		return errors.Wrap(err, "Failed to look up current directory")
-	}
-
-	host := runtime.RemoteHost()
-	pkg, ok := host.GetCache().GetMustString(PkgTool)
-	if !ok {
-		return errors.New("get pkgTool failed by root cache")
-	}
-	release, ok := host.GetCache().Get(Release)
-	if !ok {
-		return errors.New("get os release failed by root cache")
-	}
-	r := release.(*osrelease.Data)
-
-	switch strings.TrimSpace(pkg) {
-	case "deb":
-		dirName := fmt.Sprintf("%s-%s-%s-debs", r.ID, r.VersionID, host.GetArch())
-		srcPath := filepath.Join(fp, dirName)
-		srcTar := fmt.Sprintf("%s.tar.gz", srcPath)
-		dstPath := filepath.Join(common.TmpDir, dirName)
-		dstTar := fmt.Sprintf("%s.tar.gz", dstPath)
-
-		_ = runtime.GetRunner().Scp(srcTar, dstTar)
-		if _, err := runtime.GetRunner().SudoCmd(
-			fmt.Sprintf("tar -zxvf %s -C %s && dpkg -iR --force-all %s", dstTar, common.TmpDir, dstPath),
-			false); err != nil {
-			return err
-		}
-	case "rpm":
-		dirName := fmt.Sprintf("%s-%s-%s-rpms", r.ID, r.VersionID, host.GetArch())
-		srcPath := filepath.Join(fp, dirName)
-		srcTar := fmt.Sprintf("%s.tar.gz", srcPath)
-		dstPath := filepath.Join(common.TmpDir, dirName)
-		dstTar := fmt.Sprintf("%s.tar.gz", dstPath)
-
-		_ = runtime.GetRunner().Scp(srcTar, dstTar)
-		if _, err := runtime.GetRunner().SudoCmd(
-			fmt.Sprintf("tar -zxvf %s -C %s && rpm -Uvh --force --nodeps %s", dstTar, common.TmpDir, filepath.Join(dstPath, "*rpm")),
-			false); err != nil {
-			return err
-		}
-	default:
-		return errors.New(fmt.Sprintf("Unsupported operating system: %s", r.ID))
-	}
-	return nil
-}
-
 type SyncRepositoryFile struct {
 	common.KubeAction
 }
@@ -383,11 +293,11 @@ func (m *MountISO) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type BackupOriginalRepository struct {
+type NewRepoClient struct {
 	common.KubeAction
 }
 
-func (b *BackupOriginalRepository) Execute(runtime connector.Runtime) error {
+func (n *NewRepoClient) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
 	release, ok := host.GetCache().Get(Release)
 	if !ok {
@@ -395,16 +305,44 @@ func (b *BackupOriginalRepository) Execute(runtime connector.Runtime) error {
 	}
 	r := release.(*osrelease.Data)
 
-	repo, err := repository.New(r.ID, runtime)
+	repo, err := repository.New(r.ID)
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "new repository manager failed")
-	}
+		checkDeb, _ := runtime.GetRunner().SudoCmd("which apt", false)
+		if strings.Contains(checkDeb, "bin") {
+			repo = repository.NewDeb()
+		}
+		checkRPM, _ := runtime.GetRunner().SudoCmd("which yum", false)
+		if strings.Contains(checkRPM, "bin") {
+			repo = repository.NewRPM()
+		}
 
-	if err := repo.Backup(); err != nil {
-		return errors.Wrap(errors.WithStack(err), "backup repository failed")
+		if checkDeb == "" && checkRPM == "" {
+			return errors.Wrap(errors.WithStack(err), "new repository manager failed")
+		} else if checkDeb != "" && checkRPM != "" {
+			return errors.New("can't detect the main package repository, only one of apt or yum is supported")
+		}
 	}
 
 	host.GetCache().Set("repo", repo)
+	return nil
+}
+
+type BackupOriginalRepository struct {
+	common.KubeAction
+}
+
+func (b *BackupOriginalRepository) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	r, ok := host.GetCache().Get("repo")
+	if !ok {
+		return errors.New("get repo failed by host cache")
+	}
+	repo := r.(repository.Interface)
+
+	if err := repo.Backup(runtime); err != nil {
+		return errors.Wrap(errors.WithStack(err), "backup repository failed")
+	}
+
 	return nil
 }
 
@@ -420,10 +358,10 @@ func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
 	}
 	repo := r.(repository.Interface)
 
-	if installErr := repo.Add(filepath.Join(common.TmpDir, "iso")); installErr != nil {
+	if installErr := repo.Add(runtime, filepath.Join(common.TmpDir, "iso")); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "add local repository failed")
 	}
-	if installErr := repo.Update(); installErr != nil {
+	if installErr := repo.Update(runtime); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "update local repository failed")
 	}
 
@@ -442,7 +380,7 @@ func (i *InstallPackage) Execute(runtime connector.Runtime) error {
 	}
 	r := repo.(repository.Interface)
 
-	if installErr := r.Install(); installErr != nil {
+	if installErr := r.Install(runtime); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "install repository package failed")
 	}
 	return nil
@@ -469,7 +407,7 @@ func (r *ResetRepository) Execute(runtime connector.Runtime) error {
 		}
 	}()
 
-	if resetErr = re.Reset(); resetErr != nil {
+	if resetErr = re.Reset(runtime); resetErr != nil {
 		return errors.Wrap(errors.WithStack(resetErr), "reset repository failed")
 	}
 

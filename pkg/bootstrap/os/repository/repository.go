@@ -19,23 +19,24 @@ package repository
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"strings"
 )
 
 type Interface interface {
-	Backup() error
+	Backup(runtime connector.Runtime) error
 	IsAlreadyBackUp() bool
-	Add(path string) error
-	Update() error
-	Install(pkg ...string) error
-	Reset() error
+	Add(runtime connector.Runtime, path string) error
+	Update(runtime connector.Runtime) error
+	Install(runtime connector.Runtime, pkg ...string) error
+	Reset(runtime connector.Runtime) error
 }
 
-func New(os string, runtime connector.Runtime) (Interface, error) {
-	switch os {
-	case "ubuntu":
-		return NewDeb(runtime), nil
-	case "centos":
-		return NewRPM(runtime), nil
+func New(os string) (Interface, error) {
+	switch strings.ToLower(os) {
+	case "ubuntu", "debian":
+		return NewDeb(), nil
+	case "centos", "rhel":
+		return NewRPM(), nil
 	default:
 		return nil, fmt.Errorf("unsupported operation system %s", os)
 	}

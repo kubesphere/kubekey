@@ -31,6 +31,19 @@ type RollbackUmount struct {
 }
 
 func (r *RollbackUmount) Execute(runtime connector.Runtime, result *ending.ActionResult) error {
+	mountPath := filepath.Join(common.TmpDir, "iso")
+	umountCmd := fmt.Sprintf("umount %s", mountPath)
+	if _, err := runtime.GetRunner().SudoCmd(umountCmd, false); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "umount %s failed", mountPath)
+	}
+	return nil
+}
+
+type RecoverBackupSuccessNode struct {
+	common.KubeRollback
+}
+
+func (r *RecoverBackupSuccessNode) Execute(runtime connector.Runtime, result *ending.ActionResult) error {
 	if result.Status == ending.SUCCESS {
 		host := runtime.RemoteHost()
 		repo, ok := host.GetCache().Get("repo")
@@ -39,7 +52,7 @@ func (r *RollbackUmount) Execute(runtime connector.Runtime, result *ending.Actio
 		}
 
 		re := repo.(repository.Interface)
-		if err := re.Reset(); err != nil {
+		if err := re.Reset(runtime); err != nil {
 			return errors.Wrapf(errors.WithStack(err), "reset repository failed")
 		}
 	}
@@ -64,7 +77,7 @@ func (r *RecoverRepository) Execute(runtime connector.Runtime, result *ending.Ac
 	}
 
 	re := repo.(repository.Interface)
-	_ = re.Reset()
+	_ = re.Reset(runtime)
 
 	mountPath := filepath.Join(common.TmpDir, "iso")
 	umountCmd := fmt.Sprintf("umount %s", mountPath)
