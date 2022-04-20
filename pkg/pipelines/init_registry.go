@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/filesystem"
 )
 
 func NewInitRegistryPipeline(runtime *common.KubeRuntime) error {
@@ -38,6 +39,7 @@ func NewInitRegistryPipeline(runtime *common.KubeRuntime) error {
 		&os.ConfigureOSModule{},
 		&registry.RegistryCertsModule{},
 		&registry.InstallRegistryModule{},
+		&filesystem.ChownWorkDirModule{},
 	}
 
 	p := pipeline.Pipeline{

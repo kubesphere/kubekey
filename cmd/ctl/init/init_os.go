@@ -27,8 +27,7 @@ import (
 type InitOsOptions struct {
 	CommonOptions  *options.CommonOptions
 	ClusterCfgFile string
-	SourcesDir     string
-	AddImagesRepo  bool
+	Artifact       string
 }
 
 func NewInitOsOptions() *InitOsOptions {
@@ -55,16 +54,14 @@ func NewCmdInitOs() *cobra.Command {
 
 func (o *InitOsOptions) Run() error {
 	arg := common.Argument{
-		FilePath:      o.ClusterCfgFile,
-		SourcesDir:    o.SourcesDir,
-		AddImagesRepo: o.AddImagesRepo,
-		Debug:         o.CommonOptions.Verbose,
+		FilePath: o.ClusterCfgFile,
+		Debug:    o.CommonOptions.Verbose,
+		Artifact: o.Artifact,
 	}
 	return pipelines.InitDependencies(arg)
 }
 
 func (o *InitOsOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
-	cmd.Flags().StringVarP(&o.SourcesDir, "sources", "s", "", "Path to the dependencies' dir")
-	cmd.Flags().BoolVarP(&o.AddImagesRepo, "add-images-repo", "", false, "Create a local images registry")
+	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 }

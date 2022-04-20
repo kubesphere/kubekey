@@ -41,9 +41,7 @@ type Argument struct {
 	IgnoreErr          bool
 	SkipPullImages     bool
 	SKipPushImages     bool
-	AddImagesRepo      bool
 	DeployLocalStorage *bool
-	SourcesDir         string
 	DownloadCommand    func(path, url string) string
 	SkipConfirmCheck   bool
 	InCluster          bool

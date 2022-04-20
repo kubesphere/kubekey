@@ -17,17 +17,24 @@
 package pipelines
 
 import (
+	"github.com/kubesphere/kubekey/pkg/artifact"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/filesystem"
 )
 
 func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+
 	m := []module.Module{
 		&precheck.GreetingsModule{},
-		&os.InitDependenciesModule{},
+		&artifact.UnArchiveModule{Skip: noArtifact},
+		&os.RepositoryModule{Skip: noArtifact},
+		&os.RepositoryOnlineModule{Skip: !noArtifact},
+		&filesystem.ChownWorkDirModule{},
 	}
 
 	p := pipeline.Pipeline{
