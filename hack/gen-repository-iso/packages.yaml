@@ -27,6 +27,7 @@ rpms:
   - nss
   - nss-sysinit
   - nss-tools
+  - conntrack-tools
 debs:
   - apt-transport-https
   - ca-certificates
