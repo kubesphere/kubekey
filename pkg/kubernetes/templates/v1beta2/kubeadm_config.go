@@ -296,13 +296,13 @@ func GetKubeletCgroupDriver(runtime connector.Runtime, kubeConf *common.KubeConf
 	var cmd, kubeletCgroupDriver string
 	switch kubeConf.Cluster.Kubernetes.ContainerManager {
 	case common.Docker, "":
-		cmd = "docker info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
+		cmd = "docker info | grep 'Cgroup Driver'"
 	case common.Crio:
-		cmd = "crio config | grep cgroup_manager | awk -F'= ' '{ print $2; }'"
+		cmd = "crio config | grep cgroup_manager"
 	case common.Conatinerd:
-		cmd = "containerd config dump | grep SystemdCgroup | awk -F'= ' '{ print $2; }'"
+		cmd = "containerd config dump | grep SystemdCgroup"
 	case common.Isula:
-		cmd = "isula info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
+		cmd = "isula info | grep 'Cgroup Driver'"
 	default:
 		kubeletCgroupDriver = ""
 	}
