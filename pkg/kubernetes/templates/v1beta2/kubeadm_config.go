@@ -311,10 +311,12 @@ func GetKubeletCgroupDriver(runtime connector.Runtime, kubeConf *common.KubeConf
 	if err != nil {
 		return "", errors.Wrap(errors.WithStack(err), "Failed to get container runtime cgroup driver.")
 	}
-	if strings.Contains(checkResult, "systemd") || !strings.Contains(checkResult, "false") {
+	if strings.Contains(checkResult, "systemd") || strings.Contains(checkResult, "SystemdCgroup = true") {
 		kubeletCgroupDriver = "systemd"
-	} else {
+	} else if strings.Contains(checkResult, "cgroupfs") || strings.Contains(checkResult, "SystemdCgroup = false") {
 		kubeletCgroupDriver = "cgroupfs"
+	} else {
+		return "", errors.Errorf("Failed to get container runtime cgroup driver from %s by run %s", checkResult, cmd)
 	}
 	return kubeletCgroupDriver, nil
 }
