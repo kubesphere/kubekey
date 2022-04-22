@@ -124,7 +124,7 @@ func (t *RemoteTask) RunWithTimeout(ctx context.Context, runtime connector.Runti
 func (t *RemoteTask) Run(runtime connector.Runtime, host connector.Host, index int, resCh chan error) {
 	var res error
 	defer func() {
-		runtime.GetConnector().Close(host)
+		//runtime.GetConnector().Close(host)
 
 		resCh <- res
 		close(resCh)
@@ -288,7 +288,7 @@ func (t *RemoteTask) RollbackWithTimeout(ctx context.Context, runtime connector.
 func (t *RemoteTask) RunRollback(runtime connector.Runtime, host connector.Host, index int, result *ending.ActionResult, resCh chan error) {
 	var res error
 	defer func() {
-		runtime.GetConnector().Close(host)
+		//runtime.GetConnector().Close(host)
 
 		resCh <- res
 		close(resCh)
