@@ -93,6 +93,12 @@ func (p *Pipeline) Start() error {
 		p.releaseModuleCache(moduleCache)
 	}
 	p.releasePipelineCache()
+
+	// close ssh connect
+	for _, host := range p.Runtime.GetAllHosts() {
+		p.Runtime.GetConnector().Close(host)
+	}
+
 	if p.SpecHosts != len(p.Runtime.GetAllHosts()) {
 		return errors.Errorf("Pipeline[%s] execute failed: there are some error in your spec hosts", p.Name)
 	}
