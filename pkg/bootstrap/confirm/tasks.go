@@ -84,26 +84,19 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	if i.KubeConf.Arg.Artifact == "" {
 		for _, host := range results {
 			if host.Sudo == "" {
-				fmt.Printf("%s: sudo is required. \n", host.Name)
-				logger.Log.Errorf("%s: sudo is required. \n", host.Name)
+				logger.Log.Errorf("%s: sudo is required.", host.Name)
 				stopFlag = true
 			}
 
 			if host.Conntrack == "" {
-				fmt.Printf("%s: conntrack is required. \n", host.Name)
-				logger.Log.Errorf("%s: conntrack is required. \n", host.Name)
+				logger.Log.Errorf("%s: conntrack is required.", host.Name)
 				stopFlag = true
 			}
 
 			if host.Socat == "" {
-				fmt.Printf("%s: socat is required. \n", host.Name)
-				logger.Log.Errorf("%s: socat is required. \n", host.Name)
+				logger.Log.Errorf("%s: socat is required.", host.Name)
 				stopFlag = true
 			}
-		}
-
-		if stopFlag {
-			os.Exit(1)
 		}
 	}
 
@@ -112,6 +105,10 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	fmt.Println("Before installation, you should ensure that your machines meet all requirements specified at")
 	fmt.Println("https://github.com/kubesphere/kubekey#requirements-and-recommendations")
 	fmt.Println("")
+
+	if stopFlag {
+		os.Exit(1)
+	}
 
 	confirmOK := false
 	for !confirmOK {
