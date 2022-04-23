@@ -30,7 +30,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.7.2
-	k8s.io/api v0.23.5
+	k8s.io/api v0.23.6
 	k8s.io/apimachinery v0.23.6
 	k8s.io/cli-runtime v0.23.5
 	k8s.io/client-go v0.23.5
