@@ -296,13 +296,13 @@ func GetKubeletCgroupDriver(runtime connector.Runtime, kubeConf *common.KubeConf
 	var cmd, kubeletCgroupDriver string
 	switch kubeConf.Cluster.Kubernetes.ContainerManager {
 	case common.Docker, "":
-		cmd = "docker info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
+		cmd = "docker info | grep 'Cgroup Driver'"
 	case common.Crio:
-		cmd = "crio config | grep cgroup_manager | awk -F'= ' '{ print $2; }'"
+		cmd = "crio config | grep cgroup_manager"
 	case common.Conatinerd:
-		cmd = "containerd config dump | grep SystemdCgroup | awk -F'= ' '{ print $2; }'"
+		cmd = "containerd config dump | grep SystemdCgroup"
 	case common.Isula:
-		cmd = "isula info | grep 'Cgroup Driver' | awk -F': ' '{ print $2; }'"
+		cmd = "isula info | grep 'Cgroup Driver'"
 	default:
 		kubeletCgroupDriver = ""
 	}
@@ -311,10 +311,12 @@ func GetKubeletCgroupDriver(runtime connector.Runtime, kubeConf *common.KubeConf
 	if err != nil {
 		return "", errors.Wrap(errors.WithStack(err), "Failed to get container runtime cgroup driver.")
 	}
-	if strings.Contains(checkResult, "systemd") || !strings.Contains(checkResult, "false") {
+	if strings.Contains(checkResult, "systemd") || strings.Contains(checkResult, "SystemdCgroup = true") {
 		kubeletCgroupDriver = "systemd"
-	} else {
+	} else if strings.Contains(checkResult, "cgroupfs") || strings.Contains(checkResult, "SystemdCgroup = false") {
 		kubeletCgroupDriver = "cgroupfs"
+	} else {
+		return "", errors.Errorf("Failed to get container runtime cgroup driver from %s by run %s", checkResult, cmd)
 	}
 	return kubeletCgroupDriver, nil
 }
