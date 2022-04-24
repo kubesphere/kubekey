@@ -110,6 +110,8 @@ func SupportedK8sVersionList() []string {
 		"v1.21.4",
 		"v1.21.5",
 		"v1.22.1",
+		"v1.22.9",
 		"v1.23.0",
+		"v1.23.6",
 	}
 }
