@@ -44,7 +44,7 @@ func (i *RegistryCertsModule) Init() {
 
 	fetchCerts := &task.RemoteTask{
 		Name:     "FetchRegistryCerts",
-		Desc:     "Fetcd registry certs",
+		Desc:     "Fetch registry certs",
 		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
 		Prepare:  new(FirstRegistryNode),
 		Action:   new(FetchCerts),
