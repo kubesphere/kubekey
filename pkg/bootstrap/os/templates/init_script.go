@@ -100,7 +100,7 @@ fi
 modinfo overlay > /dev/null 2>&1
 if [ $? -eq 0 ]; then
    modprobe overlay
-   echo 'overlay' > /etc/modules-load.d/kubekey-br_netfilter.conf
+   echo 'overlay' >> /etc/modules-load.d/kubekey-br_netfilter.conf
 fi
 
 modprobe ip_vs
