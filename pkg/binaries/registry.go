@@ -92,8 +92,10 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 	if m.Components.DockerCompose.Version != "" {
 		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, manifest.Arg.DownloadCommand)
 		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present. docker-compose is required only if harbor is installed.
+		containerManager := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, manifest.Arg.DownloadCommand)
 		if arch == "amd64" {
 			binaries = append(binaries, compose)
+			binaries = append(binaries, containerManager)
 		}
 	}
 
