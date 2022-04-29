@@ -6,6 +6,9 @@ Init operating system. This command will install `openssl`, `socat`, `conntrack`
 
 # OPTIONS
 
+## **--artifact, -a**
+Path to a KubeKey artifact.
+
 ## **--debug**
 Print detailed information. The default is `false`.
 
@@ -13,9 +16,12 @@ Print detailed information. The default is `false`.
 Path to a configuration file.
 
 # EXAMPLES
-Init the operationg system from a specified configuration file.
+Init the operating system from a specified configuration file.
 ```
 $ kk init os -f config-example.yaml
 ```
-
+Init the operating system from a specified configuration file and use a KubeKey artifact.
+```
+$ kk init os -f config-example.yaml -a kubekey-artifact.tar.gz
+```
 

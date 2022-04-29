@@ -41,9 +41,8 @@ The `artifact` is an offline installation package, exported from the specified `
 #### Export Artifact
 > Note:
 > 1. The export command will download the corresponding binaries from the Internet, so please make sure the network connection is success.
-> 2. Make sure kk's work node has containerd or a minimum version of 18.09 docker installed.
-> 3. kk will parse the image's name in the image list, if the mirror in the image's name needs authentication information, you can configure it in the `.registry.auths` field in the `manifest` file.
-> 4. If the `artifact` file to be exported contains OS dependency files (e.g. conntarck, chrony, etc.), you can configure the corresponding ISO dependency download URL address in the `.repostiory.iso.url` in the `operationSystems` field.
+> 2. kk will parse the image's name in the image list, if the mirror in the image's name needs authentication information, you can configure it in the `.registry.auths` field in the `manifest` file.
+> 3. If the `artifact` file to be exported contains OS dependency files (e.g. conntarck, chrony, etc.), you can configure the corresponding ISO dependency download URL address in the `.repostiory.iso.url` in the `operationSystems` field.
 
 * Export
 ```

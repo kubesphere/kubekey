@@ -41,9 +41,8 @@ kk 通过 `kubeconfig` 文件连接对应的 Kubernetes 集群，然后检查出
 #### 导出 artifact
 > 注意：
 > 1. 导出命令会从互联网中下载相应的二进制文件，请确保网络连接正常。
-> 2. 导出命令会根据`manifest`文件中的镜像列表逐个拉取镜像，请确保 kk 的工作节点已安装containerd 或最低版本为 18.09 的 docker。
-> 3. kk 会解析镜像列表中的镜像名，若镜像名中的镜像仓库需要鉴权信息，可在`manifest`文件中的`.registry.auths`字段中进行配置。
-> 4. 若需要导出的`artifact`文件中包含操作系统依赖文件（如：conntarck、chrony等），可在`operationSystem`元素中的`.repostiory.iso.url`中配置相应的 ISO 依赖文件下载地址。
+> 2. kk 会解析镜像列表中的镜像名，若镜像名中的镜像仓库需要鉴权信息，可在`manifest`文件中的`.registry.auths`字段中进行配置。
+> 3. 若需要导出的`artifact`文件中包含操作系统依赖文件（如：conntarck、chrony等），可在`operationSystem`元素中的`.repostiory.iso.url`中配置相应的 ISO 依赖文件下载地址。
 * 导出。
 ```
 ./kk artifact export -m manifest-sample.yaml
