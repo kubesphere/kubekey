@@ -38,35 +38,19 @@ func (r *Runner) Exec(cmd string, printOutput bool) (string, int, error) {
 		return "", 1, errors.New("no ssh connection available")
 	}
 
-	//stdout := NewTee(os.Stdout)
-	//defer stdout.Close()
-	//
-	//stderr := NewTee(os.Stderr)
-	//defer stderr.Close()
-	//
-	//code, err := r.Conn.PExec(cmd, nil, stdout, stderr)
-
-	//if printOutput {
-	//	if stdout.String() != "" {
-	//		logger.Log.Infof("[stdout]: %s", stdout.String())
-	//	}
-	//	if stderr.String() != "" {
-	//		logger.Log.Infof("[stderr]: %s", stderr.String())
-	//	}
-	//}
-	//if err != nil {
-	//	return "", err.Error(), code, err
-	//}
-	//
-	//return stdout.String(), stderr.String(), code, nil
 	stdout, code, err := r.Conn.Exec(cmd, r.Host)
+	logger.Log.Debugf("command: [%s]\n%s", r.Host.GetName(), cmd)
+	if stdout != "" {
+		logger.Log.Debugf("stdout: [%s]\n%s", r.Host.GetName(), stdout)
+	}
+	if err != nil {
+		logger.Log.Debugf("stderr: [%s]\n%s", r.Host.GetName(), err)
+	}
+
 	if printOutput {
 		if stdout != "" {
 			logger.Log.Infof("stdout: [%s]\n%s", r.Host.GetName(), stdout)
 		}
-		//if stderr != "" {
-		//	logger.Log.Infof("stderr: [%s]\n%s", r.Host.GetName(), stderr)
-		//}
 	}
 	return stdout, code, err
 }
