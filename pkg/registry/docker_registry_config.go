@@ -72,7 +72,7 @@ func DockerRegistryAuthEntries(auths runtime.RawExtension) (entries map[string]*
 		if v.CertsPath != "" {
 			ca, cert, key, err := LookupCertsFile(v.CertsPath)
 			if err != nil {
-				logger.Log.Fatalf("Failed to lookup certs file from the specific cert path %s: %s", v.CertsPath, err.Error())
+				logger.Log.Warningf("Failed to lookup certs file from the specific cert path %s: %s", v.CertsPath, err.Error())
 				return
 			}
 			v.CAFile = ca
@@ -86,7 +86,12 @@ func DockerRegistryAuthEntries(auths runtime.RawExtension) (entries map[string]*
 
 func LookupCertsFile(path string) (ca string, cert string, key string, err error) {
 	logger.Log.Debugf("Looking for TLS certificates and private keys in %s", path)
-	fs, err := ioutil.ReadDir(path)
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return
+	}
+	logger.Log.Debugf("Looking for TLS certificates and private keys in abs path %s", absPath)
+	fs, err := ioutil.ReadDir(absPath)
 	if err != nil {
 		return ca, cert, key, err
 	}
