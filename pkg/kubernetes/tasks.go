@@ -379,7 +379,12 @@ func (r *RemoveMasterTaint) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 		"/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/master=:NoSchedule-",
 		runtime.RemoteHost().GetName()), true); err != nil {
-		return errors.Wrap(errors.WithStack(err), "remove master taint failed")
+		logger.Log.Warning(err.Error())
+	}
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+		"/usr/local/bin/kubectl taint nodes %s node-role.kubernetes.io/control-plane=:NoSchedule-",
+		runtime.RemoteHost().GetName()), true); err != nil {
+		logger.Log.Warningf(err.Error())
 	}
 	return nil
 }
