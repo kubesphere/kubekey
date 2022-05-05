@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
+	"strings"
 
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -92,9 +93,15 @@ func (p *DockerLoginRegistry) Execute(runtime connector.Runtime) error {
 		}
 	}
 
-	cmd := "mkdir -p /.docker && cp -f $HOME/.docker/config.json /.docker/ && chmod 0644 /.docker/config.json "
-	if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
-		return errors.Wrapf(err, "copy docker auths failed cmd: %v, err:%v", cmd, err)
+	if output, err := runtime.GetRunner().SudoCmd(
+		"if [ -e $HOME/.docker/config.json ]; "+
+			"then echo 'exist'; "+
+			"fi", false); err == nil && strings.Contains(output, "exist") {
+
+		cmd := "mkdir -p /.docker && cp -f $HOME/.docker/config.json /.docker/ && chmod 0644 /.docker/config.json "
+		if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
+			return errors.Wrapf(err, "copy docker auths failed cmd: %v, err:%v", cmd, err)
+		}
 	}
 
 	return nil
