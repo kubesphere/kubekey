@@ -53,6 +53,8 @@ spec:
   kubernetes:
     version: {{ .Options.KubeVersion }}
     clusterName: cluster.local
+  etcd:
+    type: kubekey
   network:
     plugin: calico
     kubePodsCIDR: 10.233.64.0/18
@@ -61,7 +63,6 @@ spec:
     multusCNI:
       enabled: false
   registry:
-    plainHTTP: false
     privateRegistry: ""
     namespaceOverride: ""
     registryMirrors: []
