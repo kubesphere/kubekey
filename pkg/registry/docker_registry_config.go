@@ -47,6 +47,7 @@ type DockerRegistryEntry struct {
 	Username      string `json:"username,omitempty"`
 	Password      string `json:"password,omitempty"`
 	SkipTLSVerify bool   `json:"skipTLSVerify,omitempty"`
+	PlainHTTP     bool   `json:"plainHTTP,omitempty"`
 	CertsPath     string `json:"certsPath,omitempty"`
 	// CAFile is an SSL Certificate Authority file used to secure etcd communication.
 	CAFile string `yaml:"caFile" json:"caFile,omitempty"`
@@ -78,6 +79,9 @@ func DockerRegistryAuthEntries(auths runtime.RawExtension) (entries map[string]*
 			v.CAFile = ca
 			v.CertFile = cert
 			v.KeyFile = key
+		}
+		if v.PlainHTTP {
+			v.SkipTLSVerify = true
 		}
 	}
 
