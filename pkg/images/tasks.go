@@ -69,38 +69,31 @@ func (p *PullImage) Execute(runtime connector.Runtime) error {
 // GetImage defines the list of all images and gets image object by name.
 func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name string) Image {
 	var image Image
-	var pauseTag, corednsTag string
+	pauseTag, corednsTag := "3.2", "1.6.9"
 
-	cmp, err := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.21.0")
-	if err != nil {
-		logger.Log.Fatal("Failed to compare version: %v", err)
-	}
-	if (cmp == 0 || cmp == 1) || (kubeConf.Cluster.Kubernetes.ContainerManager != "" && kubeConf.Cluster.Kubernetes.ContainerManager != "docker") {
-		cmp, err := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.22.0")
-		if err != nil {
-			logger.Log.Fatal("Failed to compare version: %v", err)
-		}
-		if cmp == 0 || cmp == 1 {
-			pauseTag = "3.5"
-		} else {
-			pauseTag = "3.4.1"
-		}
-	} else {
+	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).LessThan(versionutil.MustParseSemantic("v1.21.0")) {
 		pauseTag = "3.2"
-	}
-	cmp2, err2 := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.23.0")
-	if err2 != nil {
-		logger.Log.Fatal("Failed to compare version: %v", err)
-	}
-	if cmp2 == 0 || cmp2 == 1 {
-		pauseTag = "3.6"
-	}
-	// get coredns image tag
-	if cmp == -1 {
 		corednsTag = "1.6.9"
-	} else {
+	}
+	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.21.0")) ||
+		(kubeConf.Cluster.Kubernetes.ContainerManager != "" && kubeConf.Cluster.Kubernetes.ContainerManager != "docker") {
+		pauseTag = "3.4.1"
 		corednsTag = "1.8.0"
 	}
+	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.22.0")) {
+		pauseTag = "3.5"
+		corednsTag = "1.8.0"
+	}
+	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.23.0")) {
+		pauseTag = "3.6"
+		corednsTag = "1.8.6"
+	}
+	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+		pauseTag = "3.7"
+		corednsTag = "1.8.6"
+	}
+
+	logger.Log.Debugf("pauseTag: %s, corednsTag: %s", pauseTag, corednsTag)
 
 	ImageList := map[string]Image{
 		"pause":                   {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyv1alpha2.DefaultKubeImageNamespace, Repo: "pause", Tag: pauseTag, Group: kubekeyv1alpha2.K8s, Enable: true},
