@@ -83,7 +83,9 @@ func (p *DockerLoginRegistry) Execute(runtime connector.Runtime) error {
 	auths := registry.DockerRegistryAuthEntries(p.KubeConf.Cluster.Registry.Auths)
 
 	for repo, entry := range auths {
-
+		if len(entry.Username) == 0 || len(entry.Password) == 0 {
+			continue
+		}
 		cmd := fmt.Sprintf("docker login --username \"%s\" --password \"%s\" %s", entry.Username, entry.Password, repo)
 		if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
 			return errors.Wrapf(err, "login registry failed, cmd: %v, err:%v", cmd, err)
