@@ -53,6 +53,7 @@ spec:
   kubernetes:
     version: {{ .Options.KubeVersion }}
     clusterName: cluster.local
+    autoRenewCerts: true
   etcd:
     type: kubekey
   network:

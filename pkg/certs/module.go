@@ -127,6 +127,11 @@ func (r *RenewCertsModule) Init() {
 
 type AutoRenewCertsModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (a *AutoRenewCertsModule) IsSkip() bool {
+	return a.Skip
 }
 
 func (a *AutoRenewCertsModule) Init() {

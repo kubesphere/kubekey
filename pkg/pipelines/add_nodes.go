@@ -65,7 +65,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&kubernetes.ConfigureKubernetesModule{},
 		&filesystem.ChownModule{},
-		&certs.AutoRenewCertsModule{},
+		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
 	}
 
 	p := pipeline.Pipeline{
@@ -118,7 +118,7 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&kubernetes.ConfigureKubernetesModule{},
 		&filesystem.ChownModule{},
-		&certs.AutoRenewCertsModule{},
+		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
 	}
 
 	p := pipeline.Pipeline{

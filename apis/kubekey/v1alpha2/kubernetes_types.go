@@ -29,6 +29,7 @@ type Kubernetes struct {
 	NodeCidrMaskSize       int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
 	ApiserverCertExtraSans []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
 	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
+	AutoRenewCerts         *bool    `yaml:"autoRenewCerts" json:"autoRenewCerts,omitempty"`
 	// +optional
 	Nodelocaldns             *bool                `yaml:"nodelocaldns" json:"nodelocaldns,omitempty"`
 	ContainerManager         string               `yaml:"containerManager" json:"containerManager,omitempty"`
@@ -77,4 +78,11 @@ func (k *Kubernetes) EnableNodeFeatureDiscovery() bool {
 		return false
 	}
 	return *k.NodeFeatureDiscovery.Enabled
+}
+
+func (k *Kubernetes) EnableAutoRenewCerts() bool {
+	if k.AutoRenewCerts == nil {
+		return false
+	}
+	return *k.AutoRenewCerts
 }
