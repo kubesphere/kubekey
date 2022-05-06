@@ -8,7 +8,7 @@ replace (
 )
 
 require (
-	github.com/containerd/containerd v1.6.3
+	github.com/containerd/containerd v1.6.4
 	github.com/containers/image/v5 v5.21.0
 	github.com/deckarep/golang-set v1.8.0
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
