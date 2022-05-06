@@ -53,7 +53,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV122},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV122},
 		&filesystem.ChownModule{},
-		&certs.AutoRenewCertsModule{},
+		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
 	}
 
 	p := pipeline.Pipeline{

@@ -23,14 +23,16 @@ spec:
     address: ""      # The IP address of your load balancer.
     port: 6443
   system:
-    ntpServers: #  The ntp servers of chrony, set the node name in `hosts` as ntp servers if no public ntp servers access.
+    ntpServers: #  The ntp servers of chrony.
       - time1.cloud.tencent.com
       - ntp.aliyun.com
+      - node1 # Set the node name in `hosts` as ntp server if no public ntp servers access.
     timezone: "Asia/Shanghai"
   kubernetes:
     version: v1.21.5
     imageRepo: kubesphere
     clusterName: cluster.local
+    autoRenewCerts: true # Whether to install a script which can automatically renew the Kubernetes control plane certificates. [Default: false]
     masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false].
     maxPods: 110  # maxPods is the number of Pods that can run on this Kubelet. [Default: 110]
     nodeCidrMaskSize: 24  # The internal network node size allocation. This is the size allocated to each node on your network. [Default: 24]

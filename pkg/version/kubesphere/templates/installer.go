@@ -305,12 +305,10 @@ spec:
   selector:
     matchLabels:
       app: ks-install
-      version: {{ .Tag }}
   template:
     metadata:
       labels:
         app: ks-install
-        version: {{ .Tag }}
     spec:
       serviceAccountName: ks-installer
       containers:
