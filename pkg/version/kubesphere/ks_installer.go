@@ -169,6 +169,7 @@ var KsV330 = &KsInstaller{
 		"v1.20",
 		"v1.21",
 		"v1.22",
+		"v1.23",
 	},
 	UpgradeSupportVersions: []string{
 		V320.String(),
