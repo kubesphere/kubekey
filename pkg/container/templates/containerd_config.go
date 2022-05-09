@@ -79,6 +79,12 @@ state = "/run/containerd"
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
           endpoint = ["https://registry-1.docker.io"]
         {{- end}}
+        {{- if .InsecureRegistries }}
+        {{- range $value := .InsecureRegistries }}
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."{{$value}}"]
+          endpoint = ["http://{{$value}}"]
+        {{- end}}
+        {{- end}}
       
         {{- if .Auths }}
         [plugins."io.containerd.grpc.v1.cri".registry.configs]

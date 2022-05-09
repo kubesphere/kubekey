@@ -196,7 +196,7 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 			Dst:      filepath.Join("/etc/containerd/", templates.ContainerdConfig.Name()),
 			Data: util.Data{
 				"Mirrors":            templates.Mirrors(m.KubeConf),
-				"InsecureRegistries": templates.InsecureRegistries(m.KubeConf),
+				"InsecureRegistries": strings.Split(strings.ReplaceAll(templates.InsecureRegistries(m.KubeConf), "\"", ""), ","),
 				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
 				"Auths":              registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths),
 			},
