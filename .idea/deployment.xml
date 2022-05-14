@@ -5,7 +5,7 @@
       <paths name="remote170">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/kubekey" local="$PROJECT_DIR$" web="/" />
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
