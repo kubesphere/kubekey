@@ -49,7 +49,7 @@ func (t *Task) Run(mgr *Manager) error {
 
 	var lastErr error
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		lastErr = t.Task(mgr) //执行方法  获取Taks对象中的方法，传入mgr对象到方法进行之星
+		lastErr = t.Task(mgr) //执行方法  获取Taks对象中的方法，传入mgr对象到方法进行执行
 		if lastErr != nil {
 			mgr.Logger.Warn("Task failed ...")
 			if mgr.Debug {

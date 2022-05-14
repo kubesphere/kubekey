@@ -95,7 +95,7 @@ func ExecTasks(mgr *manager.Manager) error {
 		{Task: kubernetes.JoinNodesToCluster, ErrMsg: "Failed to join node"},
 		//添加rook-ceph自动化过程
 		{Task: rook.DeployRookCeph, ErrMsg: "Failed to deploy rook-ceph"},
-		//TODO 缺少验证ceph部署成功过程，后期补充
+		//TODO 缺少验证ceph部署成功过程，后期补充*/
 		{Task: addons.InstallAddons, ErrMsg: "Failed to deploy addons"},
 		{Task: kubesphere.DeployLocalVolume, ErrMsg: "Failed to deploy localVolume"},
 		{Task: kubesphere.DeployKubeSphere, ErrMsg: "Failed to deploy kubesphere"},
