@@ -233,14 +233,10 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 	if f.KubernetesVersion != "" {
 		s := strings.Split(f.KubernetesVersion, "-")
 		if len(s) > 1 {
-			clusterCfg.Spec.Kubernetes = kubekeyapiv1alpha2.Kubernetes{
-				Version: s[0],
-				Type:    s[1],
-			}
+			clusterCfg.Spec.Kubernetes.Version = s[0]
+			clusterCfg.Spec.Kubernetes.Type = s[1]
 		} else {
-			clusterCfg.Spec.Kubernetes = kubekeyapiv1alpha2.Kubernetes{
-				Version: f.KubernetesVersion,
-			}
+			clusterCfg.Spec.Kubernetes.Version = f.KubernetesVersion
 		}
 	}
 
