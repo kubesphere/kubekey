@@ -1,0 +1,24 @@
+# permissions for end users to edit etcds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: etcd-editor-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - etcds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - etcds/status
+  verbs:
+  - get

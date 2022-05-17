@@ -1,0 +1,20 @@
+# permissions for end users to view kubeadmconfigs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubeadmconfig-viewer-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigs/status
+  verbs:
+  - get

@@ -1,0 +1,24 @@
+# permissions for end users to edit controlplanes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: controlplane-editor-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - controlplanes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - controlplanes/status
+  verbs:
+  - get

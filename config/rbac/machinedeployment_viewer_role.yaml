@@ -1,0 +1,20 @@
+# permissions for end users to view machinedeployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: machinedeployment-viewer-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinedeployments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinedeployments/status
+  verbs:
+  - get

@@ -4,6 +4,16 @@
 resources:
 - bases/kubekey.kubesphere.io_clusters.yaml
 - bases/kubekey.kubesphere.io_manifests.yaml
+- bases/kubekey.kubesphere.io_machinesets.yaml
+- bases/kubekey.kubesphere.io_machinedeployments.yaml
+- bases/kubekey.kubesphere.io_machines.yaml
+- bases/kubekey.kubesphere.io_controlplanes.yaml
+- bases/kubekey.kubesphere.io_kubeadmconfigtemplates.yaml
+- bases/kubekey.kubesphere.io_kubeadmconfigs.yaml
+- bases/kubekey.kubesphere.io_workers.yaml
+- bases/kubekey.kubesphere.io_etcds.yaml
+- bases/kubekey.kubesphere.io_registries.yaml
+- bases/kubekey.kubesphere.io_addons.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
@@ -11,12 +21,32 @@ patchesStrategicMerge:
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_clusters.yaml
 #- patches/webhook_in_manifests.yaml
+#- patches/webhook_in_machinesets.yaml
+#- patches/webhook_in_machinedeployments.yaml
+#- patches/webhook_in_machines.yaml
+#- patches/webhook_in_controlplanes.yaml
+#- patches/webhook_in_kubeadmconfigtemplates.yaml
+#- patches/webhook_in_kubeadmconfigs.yaml
+#- patches/webhook_in_workers.yaml
+#- patches/webhook_in_etcds.yaml
+#- patches/webhook_in_registries.yaml
+#- patches/webhook_in_addons.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
 # patches here are for enabling the CA injection for each CRD
 #- patches/cainjection_in_clusters.yaml
 #- patches/cainjection_in_manifests.yaml
+#- patches/cainjection_in_machinesets.yaml
+#- patches/cainjection_in_machinedeployments.yaml
+#- patches/cainjection_in_machines.yaml
+#- patches/cainjection_in_controlplanes.yaml
+#- patches/cainjection_in_kubeadmconfigtemplates.yaml
+#- patches/cainjection_in_kubeadmconfigs.yaml
+#- patches/cainjection_in_workers.yaml
+#- patches/cainjection_in_etcds.yaml
+#- patches/cainjection_in_registries.yaml
+#- patches/cainjection_in_addons.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.

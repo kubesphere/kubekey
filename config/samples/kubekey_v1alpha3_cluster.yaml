@@ -1,0 +1,6 @@
+apiVersion: kubekey.kubesphere.io/v1alpha3
+kind: Cluster
+metadata:
+  name: cluster-sample
+spec:
+  # TODO(user): Add fields here

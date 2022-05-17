@@ -3,4 +3,14 @@ resources:
 - kubekey_v1alpha1_cluster.yaml
 - kubekey_v1alpha2_cluster.yaml
 - kubekey_v1alpha2_manifest.yaml
+- kubekey_v1alpha3_machineset.yaml
+- kubekey_v1alpha3_machinedeployment.yaml
+- kubekey_v1alpha3_machine.yaml
+- kubekey_v1alpha3_controlplane.yaml
+- kubekey_v1alpha3_kubeadmconfigtemplate.yaml
+- kubekey_v1alpha3_kubeadmconfig.yaml
+- kubekey_v1alpha3_worker.yaml
+- kubekey_v1alpha3_etcd.yaml
+- kubekey_v1alpha3_registry.yaml
+- kubekey_v1alpha3_addon.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

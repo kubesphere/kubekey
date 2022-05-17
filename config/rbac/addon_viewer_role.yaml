@@ -1,0 +1,20 @@
+# permissions for end users to view addons.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: addon-viewer-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - addons
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - addons/status
+  verbs:
+  - get

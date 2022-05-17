@@ -1,0 +1,24 @@
+# permissions for end users to edit addons.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: addon-editor-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - addons
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - addons/status
+  verbs:
+  - get

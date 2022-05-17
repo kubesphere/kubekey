@@ -1,0 +1,20 @@
+# permissions for end users to view machinesets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: machineset-viewer-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinesets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinesets/status
+  verbs:
+  - get

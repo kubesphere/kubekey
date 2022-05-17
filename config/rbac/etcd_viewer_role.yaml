@@ -1,0 +1,20 @@
+# permissions for end users to view etcds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: etcd-viewer-role
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - etcds
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - etcds/status
+  verbs:
+  - get

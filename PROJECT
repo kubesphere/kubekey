@@ -28,9 +28,91 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
+  controller: true
   domain: kubesphere.io
   group: kubekey
-  kind: Manifest
-  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha2
-  version: v1alpha2
+  kind: MachineSet
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: MachineDeployment
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: Machine
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: ControlPlane
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: KubeadmConfigTemplate
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: KubeadmConfig
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: Worker
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: Etcd
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: Registry
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubesphere.io
+  group: kubekey
+  kind: Addon
+  path: github.com/kubesphere/kubekey/apis/kubekey/v1alpha3
+  version: v1alpha3
 version: "3"

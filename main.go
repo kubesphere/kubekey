@@ -33,7 +33,8 @@ import (
 
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/controllers/kubekey"
+	kubekeyv1alpha3 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha3"
+	kubekeycontrollers "github.com/kubesphere/kubekey/controllers/kubekey"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -47,6 +48,7 @@ func init() {
 
 	utilruntime.Must(kubekeyv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(kubekeyv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(kubekeyv1alpha3.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -82,12 +84,82 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&kubekey.ClusterReconciler{
+	if err = (&kubekeycontrollers.ClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.MachineSetReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.MachineDeploymentReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.MachineReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Machine")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.ControlPlaneReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ControlPlane")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.KubeadmConfigTemplateReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfigTemplate")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.KubeadmConfigReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.WorkerReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Worker")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.EtcdReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Etcd")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.RegistryReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Registry")
+		os.Exit(1)
+	}
+	if err = (&kubekeycontrollers.AddonReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Addon")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
