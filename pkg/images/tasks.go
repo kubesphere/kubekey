@@ -40,28 +40,31 @@ type PullImage struct {
 }
 
 func (p *PullImage) Execute(runtime connector.Runtime) error {
-	i := Images{}
-	i.Images = []Image{
-		GetImage(runtime, p.KubeConf, "etcd"),
-		GetImage(runtime, p.KubeConf, "pause"),
-		GetImage(runtime, p.KubeConf, "kube-apiserver"),
-		GetImage(runtime, p.KubeConf, "kube-controller-manager"),
-		GetImage(runtime, p.KubeConf, "kube-scheduler"),
-		GetImage(runtime, p.KubeConf, "kube-proxy"),
-		GetImage(runtime, p.KubeConf, "coredns"),
-		GetImage(runtime, p.KubeConf, "k8s-dns-node-cache"),
-		GetImage(runtime, p.KubeConf, "calico-kube-controllers"),
-		GetImage(runtime, p.KubeConf, "calico-cni"),
-		GetImage(runtime, p.KubeConf, "calico-node"),
-		GetImage(runtime, p.KubeConf, "calico-flexvol"),
-		GetImage(runtime, p.KubeConf, "cilium"),
-		GetImage(runtime, p.KubeConf, "operator-generic"),
-		GetImage(runtime, p.KubeConf, "flannel"),
-		GetImage(runtime, p.KubeConf, "kubeovn"),
-		GetImage(runtime, p.KubeConf, "haproxy"),
-	}
-	if err := i.PullImages(runtime, p.KubeConf); err != nil {
-		return err
+	if !p.KubeConf.Arg.SkipPullImages {
+		i := Images{}
+		i.Images = []Image{
+			GetImage(runtime, p.KubeConf, "etcd"),
+			GetImage(runtime, p.KubeConf, "pause"),
+			GetImage(runtime, p.KubeConf, "kube-apiserver"),
+			GetImage(runtime, p.KubeConf, "kube-controller-manager"),
+			GetImage(runtime, p.KubeConf, "kube-scheduler"),
+			GetImage(runtime, p.KubeConf, "kube-proxy"),
+			GetImage(runtime, p.KubeConf, "coredns"),
+			GetImage(runtime, p.KubeConf, "k8s-dns-node-cache"),
+			GetImage(runtime, p.KubeConf, "calico-kube-controllers"),
+			GetImage(runtime, p.KubeConf, "calico-cni"),
+			GetImage(runtime, p.KubeConf, "calico-node"),
+			GetImage(runtime, p.KubeConf, "calico-flexvol"),
+			GetImage(runtime, p.KubeConf, "cilium"),
+			GetImage(runtime, p.KubeConf, "operator-generic"),
+			GetImage(runtime, p.KubeConf, "flannel"),
+			GetImage(runtime, p.KubeConf, "kubeovn"),
+			GetImage(runtime, p.KubeConf, "haproxy"),
+		}
+
+		if err := i.PullImages(runtime, p.KubeConf); err != nil {
+			return err
+		}
 	}
 	return nil
 }

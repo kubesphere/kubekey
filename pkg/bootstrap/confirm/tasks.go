@@ -190,17 +190,18 @@ func (u *UpgradeConfirm) Execute(runtime connector.Runtime) error {
 	}
 	if cmp == 0 || cmp == 1 {
 		for _, result := range results {
-			dockerVersion, err := RefineDockerVersion(result.Docker)
-			if err != nil {
-				logger.Log.Fatalf("Failed to get docker version: %v", err)
+			if len(result.Docker) != 0 {
+				dockerVersion, err := RefineDockerVersion(result.Docker)
+				if err != nil {
+					logger.Log.Fatalf("Failed to get docker version: %v", err)
+				}
+				cmp, err := versionutil.MustParseSemantic(dockerVersion).Compare("20.10.0")
+				if err != nil {
+					logger.Log.Fatalf("Failed to compare docker version: %v", err)
+				}
+				warningFlag = warningFlag || (cmp == -1)
 			}
-			cmp, err := versionutil.MustParseSemantic(dockerVersion).Compare("20.10.0")
-			if err != nil {
-				logger.Log.Fatalf("Failed to compare docker version: %v", err)
-			}
-			warningFlag = warningFlag || (cmp == -1)
 		}
-
 		if warningFlag {
 			fmt.Println(`
 Warning:
