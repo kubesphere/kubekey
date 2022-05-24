@@ -301,11 +301,16 @@ type GetKubernetesNodesStatus struct {
 }
 
 func (g *GetKubernetesNodesStatus) Execute(runtime connector.Runtime) error {
-	nodeStatus, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl get node", false)
+	nodeStatus, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl get node -o wide", false)
 	if err != nil {
 		return err
 	}
-
 	g.PipelineCache.Set(common.ClusterNodeStatus, nodeStatus)
+
+	cri, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl get node -o jsonpath=\"{.items[*].status.nodeInfo.containerRuntimeVersion}\"", false)
+	if err != nil {
+		return err
+	}
+	g.PipelineCache.Set(common.ClusterNodeCRIRuntimes, cri)
 	return nil
 }

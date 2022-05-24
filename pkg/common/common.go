@@ -68,13 +68,14 @@ const (
 
 	// global cache key
 	// PreCheckModule
-	NodePreCheck      = "nodePreCheck"
-	K8sVersion        = "k8sVersion"        // current k8s version
-	KubeSphereVersion = "kubeSphereVersion" // current KubeSphere version
-	ClusterNodeStatus = "clusterNodeStatus"
-	DesiredK8sVersion = "desiredK8sVersion"
-	PlanK8sVersion    = "planK8sVersion"
-	NodeK8sVersion    = "NodeK8sVersion"
+	NodePreCheck           = "nodePreCheck"
+	K8sVersion             = "k8sVersion"        // current k8s version
+	KubeSphereVersion      = "kubeSphereVersion" // current KubeSphere version
+	ClusterNodeStatus      = "clusterNodeStatus"
+	ClusterNodeCRIRuntimes = "ClusterNodeCRIRuntimes"
+	DesiredK8sVersion      = "desiredK8sVersion"
+	PlanK8sVersion         = "planK8sVersion"
+	NodeK8sVersion         = "NodeK8sVersion"
 
 	// ETCDModule
 	ETCDCluster = "etcdCluster"
