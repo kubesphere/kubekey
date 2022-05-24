@@ -106,6 +106,18 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	fmt.Println("https://github.com/kubesphere/kubekey#requirements-and-recommendations")
 	fmt.Println("")
 
+	if k8sVersion, err := versionutil.ParseGeneric(i.KubeConf.Cluster.Kubernetes.Version); err == nil {
+		if k8sVersion.AtLeast(versionutil.MustParseSemantic("v1.24.0")) && i.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
+			fmt.Println("[Notice]")
+			fmt.Println("Incorrect runtime. Please specify a container runtime other than Docker to install Kubernetes v1.24 or later.")
+			fmt.Println("For more information, please refer to:")
+			fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
+			fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
+			fmt.Println("")
+			stopFlag = true
+		}
+	}
+
 	if stopFlag {
 		os.Exit(1)
 	}
@@ -236,8 +248,22 @@ Warning:
 	}
 	fmt.Println()
 
-	reader := bufio.NewReader(os.Stdin)
+	if k8sVersion, err := versionutil.ParseGeneric(u.KubeConf.Cluster.Kubernetes.Version); err == nil {
+		if cri, ok := u.PipelineCache.GetMustString(common.ClusterNodeCRIRuntimes); ok {
+			k8sV124 := versionutil.MustParseSemantic("v1.24.0")
+			if k8sVersion.AtLeast(k8sV124) && versionutil.MustParseSemantic(currentK8sVersion).LessThan(k8sV124) && strings.Contains(cri, "docker") {
+				fmt.Println("[Notice]")
+				fmt.Println("Kubernetes v1.24 and later no longer support dockershim and Docker.")
+				fmt.Println("Please make sure you have completed the migration from Docker to other container runtimes that are compatible with the Kubernetes CRI.")
+				fmt.Println("For more information, please refer to:")
+				fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
+				fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
+				fmt.Println("")
+			}
+		}
+	}
 
+	reader := bufio.NewReader(os.Stdin)
 	confirmOK := false
 	for !confirmOK {
 		fmt.Printf("Continue upgrading cluster? [yes/no]: ")
