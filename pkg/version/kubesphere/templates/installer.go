@@ -298,17 +298,17 @@ metadata:
   name: ks-installer
   namespace: kubesphere-system
   labels:
-    app: ks-install
+    app: ks-installer
     version: {{ .Tag }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ks-install
+      app: ks-installer
   template:
     metadata:
       labels:
-        app: ks-install
+        app: ks-installer
     spec:
       serviceAccountName: ks-installer
       containers:

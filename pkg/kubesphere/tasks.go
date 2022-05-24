@@ -306,12 +306,12 @@ func CheckKubeSphereStatus(ctx context.Context, runtime connector.Runtime, stopC
 		default:
 			_, err := runtime.GetRunner().SudoCmd(
 				"/usr/local/bin/kubectl exec -n kubesphere-system "+
-					"$(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') "+
+					"$(kubectl get pod -n kubesphere-system -l app=ks-installer -o jsonpath='{.items[0].metadata.name}') "+
 					"-- ls /kubesphere/playbooks/kubesphere_running", false)
 			if err == nil {
 				output, err := runtime.GetRunner().SudoCmd(
 					"/usr/local/bin/kubectl exec -n kubesphere-system "+
-						"$(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') "+
+						"$(kubectl get pod -n kubesphere-system -l app=ks-installer -o jsonpath='{.items[0].metadata.name}') "+
 						"-- cat /kubesphere/playbooks/kubesphere_running", false)
 				if err == nil && output != "" {
 					stopChan <- output

@@ -110,7 +110,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 
 Please check the result using the command:
 
-	kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+	kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-installer -o jsonpath='{.items[0].metadata.name}') -f
 
 `)
 	} else {
@@ -200,7 +200,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 
 Please check the result using the command:
 
-	kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+	kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-installer -o jsonpath='{.items[0].metadata.name}') -f
 
 `)
 	} else {
