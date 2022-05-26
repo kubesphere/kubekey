@@ -16,6 +16,16 @@
 
 package v1alpha3
 
+const (
+	// ClusterLabelName is the label set on machines linked to a cluster
+	ClusterLabelName = "kubekey.kubesphere.io/cluster-name"
+
+	// DisableMachineCreate is an annotation that can be used to signal a MachineSet to stop creating new machines.
+	// It is utilized in the OnDelete MachineDeploymentStrategy to allow the MachineDeployment controller to scale down
+	// older MachineSets when Machines are deleted and add the new replicas to the latest MachineSet.
+	DisableMachineCreate = "kubekey.kubesphere.io/disable-machine-create"
+)
+
 // ObjectMeta is metadata that all persisted resources must have, which includes all objects
 // users must create. This is a copy of customizable fields from metav1.ObjectMeta.
 //

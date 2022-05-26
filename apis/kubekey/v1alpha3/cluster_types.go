@@ -17,13 +17,36 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
+)
+
+const (
+	// WatchLabel is a label othat can be applied to any Cluster API object.
+	//
+	// Controllers which allow for selective reconciliation may check this label and proceed
+	// with reconciliation of the object only if this label and a configured value is present.
+	WatchLabel = "kubekey.kubesphere.io/watch-filter"
+
+	// PausedAnnotation is an annotation that can be applied to any Cluster API
+	// object to prevent a controller from processing a resource.
+	//
+	// Controllers working with Cluster API objects must check the existence of this annotation
+	// on the reconciled object.
+	PausedAnnotation = "kubekey.kubesphere.io/paused"
+
+	// MachineSkipRemediationAnnotation is the annotation used to mark the machines that should not be considered for remediation by MachineHealthCheck reconciler.
+	MachineSkipRemediationAnnotation = "kubekey.kubesphere.io/skip-remediation"
 )
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
+	// Paused can be used to prevent controllers from processing the Cluster and all its associated objects.
+	// +optional
+	Paused bool `json:"paused,omitempty"`
+
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint ControlPlaneEndpoint `json:"controlPlaneEndpoint,omitempty"`
@@ -45,9 +68,9 @@ type ClusterSpec struct {
 	// +optional
 	ControlPlaneRef *corev1.ObjectReference `json:"controlPlaneRef"`
 
-	// WorkerRef offered by a worker custom resource.
+	// WorkerRefs offered by a worker custom resource.
 	// +optional
-	WorkerRef *corev1.ObjectReference `json:"workerRef"`
+	WorkerRefs []*corev1.ObjectReference `json:"workerRefs"`
 
 	// RegistryRef us offered by a registry custom resource.
 	// +optional

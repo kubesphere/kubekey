@@ -121,6 +121,16 @@ type ControlPlane struct {
 	Status ControlPlaneStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the set of conditions for this object.
+func (c *ControlPlane) GetConditions() Conditions {
+	return c.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (c *ControlPlane) SetConditions(conditions Conditions) {
+	c.Status.Conditions = conditions
+}
+
 //+kubebuilder:object:root=true
 
 // ControlPlaneList contains a list of ControlPlane

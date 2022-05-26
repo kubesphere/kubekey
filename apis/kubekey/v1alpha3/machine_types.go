@@ -17,12 +17,21 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"github.com/imdario/mergo"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// MachineControlPlaneLabelName is the label set on machines or related objects that are part of a control plane.
+	MachineControlPlaneLabelName = "kubekey.kubesphere.io/control-plane"
+)
+
 // MachineSpec defines the desired state of Machine
 type MachineSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	ClusterName string `json:"clusterName"`
+
 	// Name is the host name of the machine.
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
@@ -41,6 +50,20 @@ type MachineSpec struct {
 
 	// ContainerManager is the container manager of the machine.
 	ContainerManager ContainerManager `json:"containerManager,omitempty"`
+}
+
+func (ms *MachineSpec) FillAuth(auth *Auth) error {
+	if err := mergo.Merge(&ms.Auth, auth); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ms *MachineSpec) FillContainerManager(containerManager *ContainerManager) error {
+	if err := mergo.Merge(&ms.ContainerManager, containerManager); err != nil {
+		return err
+	}
+	return nil
 }
 
 // MachineStatus defines the observed state of Machine
@@ -124,6 +147,16 @@ type Machine struct {
 
 	Spec   MachineSpec   `json:"spec,omitempty"`
 	Status MachineStatus `json:"status,omitempty"`
+}
+
+// GetConditions returns the set of conditions for this object.
+func (m *Machine) GetConditions() Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (m *Machine) SetConditions(conditions Conditions) {
+	m.Status.Conditions = conditions
 }
 
 //+kubebuilder:object:root=true

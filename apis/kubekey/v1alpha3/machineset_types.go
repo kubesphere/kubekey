@@ -18,10 +18,15 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	kapierrors "github.com/kubesphere/kubekey/errors"
 )
 
 // MachineSetSpec defines the desired state of MachineSet
 type MachineSetSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	ClusterName string `json:"clusterName"`
+
 	// Selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.
@@ -54,9 +59,19 @@ type MachineTemplateSpec struct {
 
 // MachineSetStatus defines the observed state of MachineSet
 type MachineSetStatus struct {
+	// Selector is the same as the label selector but in the string format to avoid introspection
+	// by clients. The string will be in the same format as the query-param syntax.
+	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+	// +optional
+	Selector string `json:"selector,omitempty"`
+
 	// Replicas is the most recently observed number of replicas.
 	// +optional
 	Replicas int32 `json:"replicas"`
+
+	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
+	// +optional
+	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
 
 	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
@@ -85,7 +100,7 @@ type MachineSetStatus struct {
 	// can be added as events to the MachineSet object and/or logged in the
 	// controller's output.
 	// +optional
-	FailureReason *string `json:"failureReason,omitempty"`
+	FailureReason *kapierrors.MachineSetStatusError `json:"failureReason,omitempty"`
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions defines current service state of the MachineSet.
@@ -103,6 +118,16 @@ type MachineSet struct {
 
 	Spec   MachineSetSpec   `json:"spec,omitempty"`
 	Status MachineSetStatus `json:"status,omitempty"`
+}
+
+// GetConditions returns the set of conditions for this object.
+func (m *MachineSet) GetConditions() Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (m *MachineSet) SetConditions(conditions Conditions) {
+	m.Status.Conditions = conditions
 }
 
 //+kubebuilder:object:root=true
