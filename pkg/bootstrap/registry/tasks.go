@@ -18,13 +18,14 @@ package registry
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
-	"path/filepath"
-	"strings"
 )
 
 type SyncCertsFile struct {
@@ -215,7 +216,7 @@ type StartHarbor struct {
 }
 
 func (g *StartHarbor) Execute(runtime connector.Runtime) error {
-	startCmd := "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh --with-notary --with-trivy --with-chartmuseum"
+	startCmd := "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh --with-notary --with-trivy --with-chartmuseum && systemctl daemon-reload && systemctl enable harbor && systemctl restart harbor"
 	if _, err := runtime.GetRunner().SudoCmd(startCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "start harbor failed")
 	}

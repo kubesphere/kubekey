@@ -14,11 +14,27 @@ limitations under the License.
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 var (
+	// HarborServiceTempl defines the template of registry's configuration file.
+	HarborServiceTempl = template.Must(template.New("harborSerivce").Parse(
+		dedent.Dedent(`[Unit]
+Description=Harbor
+After=docker.service systemd-networkd.service systemd-resolved.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/docker-compose -f {{ .Harbor_install_path }}/docker-compose.yml up
+ExecStop=/usr/local/bin/docker-compose -f {{ .Harbor_install_path }}/docker-compose.yml down
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+    `)))
 	// HarborConfigTempl defines the template of registry's configuration file.
 	HarborConfigTempl = template.Must(template.New("harborConfig").Parse(
 		dedent.Dedent(`# Configuration file of Harbor
