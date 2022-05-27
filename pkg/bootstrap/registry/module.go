@@ -18,6 +18,8 @@ package registry
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/bootstrap/registry/templates"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container"
@@ -26,7 +28,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"path/filepath"
 )
 
 type RegistryCertsModule struct {
@@ -232,6 +233,22 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Retry:    2,
 	}
 
+	// generate Harbor Systemd
+	generateHarborService := &task.RemoteTask{
+		Name:  "GenerateHarborService",
+		Desc:  "Generate harbor service",
+		Hosts: i.Runtime.GetHostsByRole(common.Registry),
+		Action: &action.Template{
+			Template: templates.HarborServiceTempl,
+			Dst:      "/etc/systemd/system/harbor.service",
+			Data: util.Data{
+				"Harbor_install_path": "/opt/harbor",
+			},
+		},
+		Parallel: true,
+		Retry:    1,
+	}
+
 	generateHarborConfig := &task.RemoteTask{
 		Name:  "GenerateHarborConfig",
 		Desc:  "Generate harbor config",
@@ -265,6 +282,7 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		enableDocker,
 		installDockerCompose,
 		syncHarborPackage,
+		generateHarborService,
 		generateHarborConfig,
 		startHarbor,
 	}
