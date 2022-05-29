@@ -1,0 +1,245 @@
+/*
+ Copyright 2021 The KubeSphere Authors.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+*/
+
+package container
+
+import (
+	"path/filepath"
+	"strings"
+
+	"github.com/kubesphere/kubekey/cmd/kk/internal/common"
+	"github.com/kubesphere/kubekey/cmd/kk/internal/container/templates"
+	"github.com/kubesphere/kubekey/cmd/kk/internal/images"
+	"github.com/kubesphere/kubekey/cmd/kk/internal/kubernetes"
+	"github.com/kubesphere/kubekey/cmd/kk/internal/registry"
+	"github.com/kubesphere/kubekey/util/workflow/action"
+	"github.com/kubesphere/kubekey/util/workflow/logger"
+	"github.com/kubesphere/kubekey/util/workflow/prepare"
+	"github.com/kubesphere/kubekey/util/workflow/task"
+	"github.com/kubesphere/kubekey/util/workflow/util"
+)
+
+type InstallContainerModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (i *InstallContainerModule) IsSkip() bool {
+	return i.Skip
+}
+
+func (i *InstallContainerModule) Init() {
+	i.Name = "InstallContainerModule"
+	i.Desc = "Install container manager"
+
+	switch i.KubeConf.Cluster.Kubernetes.ContainerManager {
+	case common.Docker:
+		i.Tasks = InstallDocker(i)
+	case common.Conatinerd:
+		i.Tasks = InstallContainerd(i)
+	case common.Crio:
+		// TODO: Add the steps of cri-o's installation.
+	case common.Isula:
+		// TODO: Add the steps of iSula's installation.
+	default:
+		logger.Log.Fatalf("Unsupported container runtime: %s", strings.TrimSpace(i.KubeConf.Cluster.Kubernetes.ContainerManager))
+	}
+}
+
+func InstallDocker(m *InstallContainerModule) []task.Interface {
+	syncBinaries := &task.RemoteTask{
+		Name:  "SyncDockerBinaries",
+		Desc:  "Sync docker binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&DockerExist{Not: true},
+		},
+		Action:   new(SyncDockerBinaries),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	generateDockerService := &task.RemoteTask{
+		Name:  "GenerateDockerService",
+		Desc:  "Generate docker service",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&DockerExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.DockerService,
+			Dst:      filepath.Join("/etc/systemd/system", templates.DockerService.Name()),
+		},
+		Parallel: true,
+	}
+
+	generateDockerConfig := &task.RemoteTask{
+		Name:  "GenerateDockerConfig",
+		Desc:  "Generate docker config",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&DockerExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.DockerConfig,
+			Dst:      filepath.Join("/etc/docker/", templates.DockerConfig.Name()),
+			Data: util.Data{
+				"Mirrors":            templates.Mirrors(m.KubeConf),
+				"InsecureRegistries": templates.InsecureRegistries(m.KubeConf),
+			},
+		},
+		Parallel: true,
+	}
+
+	enableDocker := &task.RemoteTask{
+		Name:  "EnableDocker",
+		Desc:  "Enable docker",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&DockerExist{Not: true},
+		},
+		Action:   new(EnableDocker),
+		Parallel: true,
+	}
+
+	dockerLoginRegistry := &task.RemoteTask{
+		Name:  "Login PrivateRegistry",
+		Desc:  "Add auths to container runtime",
+		Hosts: m.Runtime.GetAllHosts(),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&DockerExist{},
+			&PrivateRegistryAuth{},
+		},
+		Action:   new(DockerLoginRegistry),
+		Parallel: true,
+	}
+
+	return []task.Interface{
+		syncBinaries,
+		generateDockerService,
+		generateDockerConfig,
+		enableDocker,
+		dockerLoginRegistry,
+	}
+}
+
+func InstallContainerd(m *InstallContainerModule) []task.Interface {
+	syncContainerd := &task.RemoteTask{
+		Name:  "SyncContainerd",
+		Desc:  "Sync containerd binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action:   new(SyncContainerd),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	syncCrictlBinaries := &task.RemoteTask{
+		Name:  "SyncCrictlBinaries",
+		Desc:  "Sync crictl binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&CrictlExist{Not: true},
+		},
+		Action:   new(SyncCrictlBinaries),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	generateContainerdService := &task.RemoteTask{
+		Name:  "GenerateContainerdService",
+		Desc:  "Generate containerd service",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.ContainerdService,
+			Dst:      filepath.Join("/etc/systemd/system", templates.ContainerdService.Name()),
+		},
+		Parallel: true,
+	}
+
+	generateContainerdConfig := &task.RemoteTask{
+		Name:  "GenerateContainerdConfig",
+		Desc:  "Generate containerd config",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.ContainerdConfig,
+			Dst:      filepath.Join("/etc/containerd/", templates.ContainerdConfig.Name()),
+			Data: util.Data{
+				"Mirrors":            templates.Mirrors(m.KubeConf),
+				"InsecureRegistries": m.KubeConf.Cluster.Registry.InsecureRegistries,
+				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
+				"Auths":              registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths),
+			},
+		},
+		Parallel: true,
+	}
+
+	generateCrictlConfig := &task.RemoteTask{
+		Name:  "GenerateCrictlConfig",
+		Desc:  "Generate crictl config",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.CrictlConfig,
+			Dst:      filepath.Join("/etc/", templates.CrictlConfig.Name()),
+			Data: util.Data{
+				"Endpoint": m.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint,
+			},
+		},
+		Parallel: true,
+	}
+
+	enableContainerd := &task.RemoteTask{
+		Name:  "EnableContainerd",
+		Desc:  "Enable containerd",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action:   new(EnableContainerd),
+		Parallel: true,
+	}
+
+	return []task.Interface{
+		syncContainerd,
+		syncCrictlBinaries,
+		generateContainerdService,
+		generateContainerdConfig,
+		generateCrictlConfig,
+		enableContainerd,
+	}
+}

@@ -18,9 +18,10 @@ package v1alpha2
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"strings"
+
+	"github.com/kubesphere/kubekey/util/workflow/util"
 )
 
 const (

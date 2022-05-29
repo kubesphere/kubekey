@@ -23,6 +23,7 @@ import (
 
 // ControlPlaneSpec defines the desired state of ControlPlane
 type ControlPlaneSpec struct {
+	Replicas *int32
 	// ClusterName is the name of the Cluster
 	ClusterName string `json:"clusterName"`
 
@@ -30,7 +31,7 @@ type ControlPlaneSpec struct {
 	Version string `json:"version"`
 
 	// Machines defines machines contained in the control plane
-	Machines []KubeadmControlPlaneMachines `json:"machines"`
+	Machines KubeadmControlPlaneMachines `json:"machines"`
 
 	// KubeadmConfigTemplateSpec is a KubeadmConfigTemplateSpec
 	// to use for initializing and joining machines to the control plane.

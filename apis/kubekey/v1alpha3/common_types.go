@@ -20,6 +20,12 @@ const (
 	// ClusterLabelName is the label set on machines linked to a cluster
 	ClusterLabelName = "kubekey.kubesphere.io/cluster-name"
 
+	// ClusterNameAnnotation is the annotation set on nodes identifying the name of the cluster the node belongs to.
+	ClusterNameAnnotation = "kubekey.kubesphere.io/cluster-name"
+
+	// ClusterNamespaceAnnotation is the annotation set on nodes identifying the namespace of the cluster the node belongs to.
+	ClusterNamespaceAnnotation = "cluster.x-k8s.io/cluster-namespace"
+
 	// DisableMachineCreate is an annotation that can be used to signal a MachineSet to stop creating new machines.
 	// It is utilized in the OnDelete MachineDeploymentStrategy to allow the MachineDeployment controller to scale down
 	// older MachineSets when Machines are deleted and add the new replicas to the latest MachineSet.

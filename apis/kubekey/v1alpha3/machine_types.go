@@ -23,6 +23,9 @@ import (
 )
 
 const (
+	// MachineFinalizer is set on PrepareForCreate callback.
+	MachineFinalizer = "machine.kubekey.kubesphere.io"
+
 	// MachineControlPlaneLabelName is the label set on machines or related objects that are part of a control plane.
 	MachineControlPlaneLabelName = "kubekey.kubesphere.io/control-plane"
 )
@@ -135,6 +138,27 @@ type MachineStatus struct {
 	// Conditions defines current service state of the Machine.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+}
+
+// SetTypedPhase sets the Phase field to the string representation of MachinePhase.
+func (m *MachineStatus) SetTypedPhase(p MachinePhase) {
+	m.Phase = string(p)
+}
+
+// GetTypedPhase attempts to parse the Phase field and return
+// the typed MachinePhase representation as described in `machine_phase_types.go`.
+func (m *MachineStatus) GetTypedPhase() MachinePhase {
+	switch phase := MachinePhase(m.Phase); phase {
+	case
+		MachinePhasePending,
+		MachinePhaseRunning,
+		MachinePhaseDeleting,
+		MachinePhaseDeleted,
+		MachinePhaseFailed:
+		return phase
+	default:
+		return MachinePhaseUnknown
+	}
 }
 
 //+kubebuilder:object:root=true

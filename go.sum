@@ -987,6 +987,8 @@ github.com/pkg/sftp v1.13.4/go.mod h1:LzqnAvaD5TWeNBsZpfKxSYn1MbjWwOsCIAFFJbpIsK
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
+github.com/povsister/scp v0.0.0-20210427074412-33febfd9f13e h1:VtsDti2SgX7M7jy0QAyGgb162PeHLrOaNxmcYOtaGsY=
+github.com/povsister/scp v0.0.0-20210427074412-33febfd9f13e/go.mod h1:i1Au86ZXK0ZalQNyBp2njCcyhSCR/QP/AMfILip+zNI=
 github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021/go.mod h1:prYjPmNq4d1NPVmpShWobRqXY3q7Vp+80DqgxxUrUIA=
 github.com/proglottis/gpgme v0.1.1 h1:72xI0pt/hy7pqsRxk32KExITkXp+RZErRizsA+up/lQ=
 github.com/proglottis/gpgme v0.1.1/go.mod h1:fPbW/EZ0LvwQtH8Hy7eixhp1eF3G39dtx7GUN+0Gmy0=

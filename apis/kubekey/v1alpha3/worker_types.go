@@ -23,6 +23,7 @@ import (
 
 // WorkerSpec defines the desired state of Worker
 type WorkerSpec struct {
+	Replicas *int32
 	// ClusterName is the name of the Cluster
 	ClusterName string `json:"clusterName"`
 
@@ -30,7 +31,7 @@ type WorkerSpec struct {
 	Version string `json:"version"`
 
 	// Machines defines machines contained in the worker.
-	Machines []KubeadmWorkerMachineTemplate `json:"machines"`
+	Machines KubeadmWorkerMachineTemplate `json:"machines"`
 
 	// KubeadmConfigTemplateSpec is a KubeadmConfigTemplateSpec
 	// to use for joining machines to the cluster.
