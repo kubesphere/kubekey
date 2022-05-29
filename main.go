@@ -38,6 +38,8 @@ import (
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	kubekeyv1alpha3 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha3"
 	kubekeycontrollers "github.com/kubesphere/kubekey/controllers/kubekey"
+	"github.com/kubesphere/kubekey/controllers/kubekey/machine"
+	"github.com/kubesphere/kubekey/controllers/kubekey/machineset"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -127,7 +129,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
-	if err = (&kubekeycontrollers.MachineSetReconciler{
+	if err = (&machineset.MachineSetReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
@@ -141,10 +143,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)
 	}
-	if err = (&kubekeycontrollers.MachineReconciler{
+	if err = (&machine.MachineReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
 		os.Exit(1)
 	}

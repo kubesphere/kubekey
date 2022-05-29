@@ -18,12 +18,12 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/util/workflow/logger"
+	"github.com/kubesphere/kubekey/util/workflow/util"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
