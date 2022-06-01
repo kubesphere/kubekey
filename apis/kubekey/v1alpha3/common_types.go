@@ -24,7 +24,16 @@ const (
 	ClusterNameAnnotation = "kubekey.kubesphere.io/cluster-name"
 
 	// ClusterNamespaceAnnotation is the annotation set on nodes identifying the namespace of the cluster the node belongs to.
-	ClusterNamespaceAnnotation = "cluster.x-k8s.io/cluster-namespace"
+	ClusterNamespaceAnnotation = "kubekey.kubesphere.io/cluster-namespace"
+
+	// MachineAnnotation is the annotation set on nodes identifying the machine the node belongs to.
+	MachineAnnotation = "kubekey.kubesphere.io/machine"
+
+	// OwnerKindAnnotation is the annotation set on nodes identifying the owner kind.
+	OwnerKindAnnotation = "kubekey.kubesphere.io/owner-kind"
+
+	// OwnerNameAnnotation is the annotation set on nodes identifying the owner name.
+	OwnerNameAnnotation = "kubekey.kubesphere.io/owner-name"
 
 	// DisableMachineCreate is an annotation that can be used to signal a MachineSet to stop creating new machines.
 	// It is utilized in the OnDelete MachineDeploymentStrategy to allow the MachineDeployment controller to scale down

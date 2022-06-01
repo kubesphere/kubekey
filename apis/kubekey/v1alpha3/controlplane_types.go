@@ -23,7 +23,9 @@ import (
 
 // ControlPlaneSpec defines the desired state of ControlPlane
 type ControlPlaneSpec struct {
-	Replicas *int32
+	// Replicas is the number of desired replicas.
+	Replicas *int32 `json:"replicas,omitempty"`
+
 	// ClusterName is the name of the Cluster
 	ClusterName string `json:"clusterName"`
 
@@ -110,8 +112,11 @@ type ControlPlaneStatus struct {
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // ControlPlane is the Schema for the controlplanes API
 type ControlPlane struct {

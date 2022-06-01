@@ -36,8 +36,6 @@ import (
 	"github.com/kubesphere/kubekey/cmd/kk/internal/k3s"
 	"github.com/kubesphere/kubekey/cmd/kk/internal/kubernetes"
 	"github.com/kubesphere/kubekey/cmd/kk/internal/loadbalancer"
-	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
-
 	"github.com/kubesphere/kubekey/util/workflow/module"
 	"github.com/kubesphere/kubekey/util/workflow/pipeline"
 )
@@ -77,24 +75,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		ModulePostHooks: []module.PostHookInterface{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
-		if runtime.Arg.InCluster {
-			if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Failed); err != nil {
-				return err
-			}
-			if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
-				return err
-			}
-		}
 		return err
-	}
-
-	if runtime.Arg.InCluster {
-		if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Success); err != nil {
-			return err
-		}
-		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -130,24 +111,7 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		ModulePostHooks: []module.PostHookInterface{&hooks.UpdateCRStatusHook{}},
 	}
 	if err := p.Start(); err != nil {
-		if runtime.Arg.InCluster {
-			if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Failed); err != nil {
-				return err
-			}
-			if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
-				return err
-			}
-		}
 		return err
-	}
-
-	if runtime.Arg.InCluster {
-		if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Success); err != nil {
-			return err
-		}
-		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -171,22 +135,6 @@ func AddNodes(args common.Argument, downloadCmd string) error {
 	runtime, err := common.NewKubeRuntime(loaderType, args)
 	if err != nil {
 		return err
-	}
-	if args.InCluster {
-		c, err := kubekeycontroller.NewKubekeyClient()
-		if err != nil {
-			return err
-		}
-		runtime.ClientSet = c
-	}
-
-	if runtime.Arg.InCluster {
-		if err := kubekeycontroller.CreateNodeForCluster(runtime); err != nil {
-			return err
-		}
-		if err := kubekeycontroller.ClearConditions(runtime); err != nil {
-			return err
-		}
 	}
 
 	switch runtime.Cluster.Kubernetes.Type {

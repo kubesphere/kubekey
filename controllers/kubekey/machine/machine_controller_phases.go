@@ -18,10 +18,17 @@ package machine
 
 import (
 	"context"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha3"
+	"github.com/kubesphere/kubekey/pkg/clients/ssh"
+)
+
+const (
+	defaultRequeueWait = 30 * time.Second
 )
 
 func (r *MachineReconciler) reconcilePhase(_ context.Context, m *kubekeyv1.Machine) {
@@ -52,4 +59,22 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *kubekeyv1.Machi
 		now := metav1.Now()
 		m.Status.LastUpdated = &now
 	}
+}
+
+// reconcilePing reconciles an ssh connection on a machine.
+func (r *MachineReconciler) reconcilePing(ctx context.Context, cluster *kubekeyv1.Cluster, m *kubekeyv1.Machine) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+
+	dialer := ssh.NewDialer()
+	err := dialer.Ping(m.Spec.Address, &m.Spec.Auth, 3)
+
+	m.Status.SSHReady = true
+
+	if err != nil {
+		m.Status.SSHReady = false
+		log.Info("machine ssh connection is not ready, requeuing")
+		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
+	}
+
+	return ctrl.Result{}, nil
 }

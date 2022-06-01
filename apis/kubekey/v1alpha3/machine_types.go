@@ -27,7 +27,10 @@ const (
 	MachineFinalizer = "machine.kubekey.kubesphere.io"
 
 	// MachineControlPlaneLabelName is the label set on machines or related objects that are part of a control plane.
-	MachineControlPlaneLabelName = "kubekey.kubesphere.io/control-plane"
+	MachineControlPlaneLabelName = "machine.kubekey.kubesphere.io/control-plane"
+
+	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set.
+	ExcludeNodeDrainingAnnotation = "machine.kubekey.kubesphere.io/exclude-node-draining"
 )
 
 // MachineSpec defines the desired state of Machine
@@ -53,6 +56,18 @@ type MachineSpec struct {
 
 	// ContainerManager is the container manager of the machine.
 	ContainerManager ContainerManager `json:"containerManager,omitempty"`
+
+	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +optional
+	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+
+	// NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// Defaults to 10 seconds.
+	// +optional
+	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 }
 
 func (ms *MachineSpec) FillAuth(auth *Auth) error {
@@ -161,8 +176,11 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 	}
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // Machine is the Schema for the machines API
 type Machine struct {

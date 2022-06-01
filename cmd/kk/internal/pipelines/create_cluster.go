@@ -17,10 +17,7 @@
 package pipelines
 
 import (
-	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/cmd/kk/internal/addons"
@@ -44,7 +41,6 @@ import (
 	"github.com/kubesphere/kubekey/cmd/kk/internal/plugins/dns"
 	"github.com/kubesphere/kubekey/cmd/kk/internal/plugins/network"
 	"github.com/kubesphere/kubekey/cmd/kk/internal/plugins/storage"
-	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/util/workflow/module"
 	"github.com/kubesphere/kubekey/util/workflow/pipeline"
 )
@@ -124,24 +120,6 @@ Please check the result using the command:
 
 	}
 
-	if runtime.Arg.InCluster {
-		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
-			return err
-		}
-		kkConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.ObjName))
-		if config, err := ioutil.ReadFile(kkConfigPath); err != nil {
-			return err
-		} else {
-			runtime.Kubeconfig = base64.StdEncoding.EncodeToString(config)
-			if err := kubekeycontroller.UpdateKubeSphereCluster(runtime); err != nil {
-				return err
-			}
-			if err := kubekeycontroller.SaveKubeConfig(runtime); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -214,24 +192,6 @@ Please check the result using the command:
 
 	}
 
-	if runtime.Arg.InCluster {
-		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
-			return err
-		}
-		kkConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.ObjName))
-		if config, err := ioutil.ReadFile(kkConfigPath); err != nil {
-			return err
-		} else {
-			runtime.Kubeconfig = base64.StdEncoding.EncodeToString(config)
-			if err := kubekeycontroller.UpdateKubeSphereCluster(runtime); err != nil {
-				return err
-			}
-			if err := kubekeycontroller.SaveKubeConfig(runtime); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -253,16 +213,6 @@ func CreateCluster(args common.Argument, downloadCmd string) error {
 	runtime, err := common.NewKubeRuntime(loaderType, args)
 	if err != nil {
 		return err
-	}
-	if args.InCluster {
-		c, err := kubekeycontroller.NewKubekeyClient()
-		if err != nil {
-			return err
-		}
-		runtime.ClientSet = c
-		if err := kubekeycontroller.ClearConditions(runtime); err != nil {
-			return err
-		}
 	}
 
 	switch runtime.Cluster.Kubernetes.Type {

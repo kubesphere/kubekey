@@ -34,8 +34,11 @@ type KubeadmConfigTemplateResource struct {
 type KubeadmConfigTemplateStatus struct {
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API
 type KubeadmConfigTemplate struct {

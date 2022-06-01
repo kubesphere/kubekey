@@ -22,6 +22,15 @@ const (
 	ReadyCondition ConditionType = "Ready"
 )
 
+const (
+	// DeletingReason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
+	DeletingReason = "Deleting"
+
+	// DeletionFailedReason (Severity=Warning) documents a condition not in Status=True because the underlying object
+	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
+	DeletionFailedReason = "DeletionFailed"
+)
+
 // Common ConditionReason used by Cluster API objects.
 const (
 	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this cluster/machine/machinepool.
@@ -47,6 +56,8 @@ const (
 
 // Conditions and condition Reasons for the Machine object.
 const (
+	SSHReadyCondition ConditionType = "SSHReady"
+
 	// BootstrapReadyCondition reports a summary of current status of the bootstrap object defined for this machine.
 	// This condition is mirrored from the Ready condition in the bootstrap ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
@@ -111,6 +122,26 @@ const (
 
 	// ExternalRemediationRequestCreationFailed is the reason used when a machine health check fails to create external remediation request.
 	ExternalRemediationRequestCreationFailed = "ExternalRemediationRequestCreationFailed"
+)
+
+const (
+	// MachineNodeHealthyCondition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.
+	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure, and NodeNetworkUnavailable) are in a healthy state, it will be set to True.
+	MachineNodeHealthyCondition ConditionType = "NodeHealthy"
+
+	// WaitingForNodeRefReason (Severity=Info) documents a machine.spec.providerId is not assigned yet.
+	WaitingForNodeRefReason = "WaitingForNodeRef"
+
+	// NodeProvisioningReason (Severity=Info) documents machine in the process of provisioning a node.
+	// NB. provisioning --> NodeRef == "".
+	NodeProvisioningReason = "NodeProvisioning"
+
+	// NodeNotFoundReason (Severity=Error) documents a machine's node has previously been observed but is now gone.
+	// NB. provisioned --> NodeRef != "".
+	NodeNotFoundReason = "NodeNotFound"
+
+	// NodeConditionsFailedReason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.
+	NodeConditionsFailedReason = "NodeConditionsFailed"
 )
 
 const (

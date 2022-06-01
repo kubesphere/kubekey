@@ -496,6 +496,9 @@ spec:
                       type: string
                     privateKeyPath:
                       type: string
+                    timeout:
+                      format: int64
+                      type: integer
                     user:
                       type: string
                   type: object
@@ -511,6 +514,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  autoRenewCerts:
+                    type: boolean
                   clusterName:
                     type: string
                   containerManager:
@@ -653,8 +658,6 @@ spec:
                     type: array
                   namespaceOverride:
                     type: string
-                  plainHTTP:
-                    type: boolean
                   privateRegistry:
                     type: string
                   registryMirrors:
@@ -773,6 +776,472 @@ spec:
                 type: string
               workerCount:
                 type: integer
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: Cluster is the Schema for the clusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterSpec defines the desired state of Cluster
+            properties:
+              controlPlaneEndpoint:
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
+                properties:
+                  address:
+                    description: Address defines the control plane api endpoint address.
+                    type: string
+                  domain:
+                    description: Domain defines the control plane domain. Default
+                      is "lb.kubesphere.local"
+                    type: string
+                  internalLoadbalancer:
+                    description: InternalLoadbalancer defines the type of loadbalancer
+                      to use for the control plane. "haproxy" is the only supported
+                      value.
+                    type: string
+                  port:
+                    description: Port defines the control plane api endpoint port.
+                    type: integer
+                type: object
+              controlPlaneRef:
+                description: ControlPlaneRef is an optional reference to a provider-specific
+                  resource that holds the details for provisioning the Control Plane
+                  for a Cluster.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              customRef:
+                description: AddonRef offered by an addon custom resource.
+                items:
+                  description: 'ObjectReference contains enough information to let
+                    you inspect or modify the referred object. --- New uses of this
+                    type are discouraged because of difficulty describing its usage
+                    when embedded in APIs.  1. Ignored fields.  It includes many fields
+                    which are not generally honored.  For instance, ResourceVersion
+                    and FieldPath are both very rarely valid in actual usage.  2.
+                    Invalid usage help.  It is impossible to add specific help for
+                    individual usage.  In most embedded usages, there are particular     restrictions
+                    like, "must refer only to types A and B" or "UID not honored"
+                    or "name must be restricted".     Those cannot be well described
+                    when embedded.  3. Inconsistent validation.  Because the usages
+                    are different, the validation rules are different by usage, which
+                    makes it hard for users to predict what will happen.  4. The fields
+                    are both imprecise and overly precise.  Kind is not a precise
+                    mapping to a URL. This can produce ambiguity     during interpretation
+                    and require a REST mapping.  In most cases, the dependency is
+                    on the group,resource tuple     and the version of the actual
+                    struct is irrelevant.  5. We cannot easily change it.  Because
+                    this type is embedded in many locations, updates to this type     will
+                    affect numerous schemas.  Don''t make new APIs embed an underspecified
+                    API type they do not control. Instead of using this type, create
+                    a locally provided and used type that is well-focused on your
+                    reference. For example, ServiceReferences for admission registration:
+                    https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
+                    .'
+                  properties:
+                    apiVersion:
+                      description: API version of the referent.
+                      type: string
+                    fieldPath:
+                      description: 'If referring to a piece of an object instead of
+                        an entire object, this string should contain a valid JSON/Go
+                        field access statement, such as desiredState.manifest.containers[2].
+                        For example, if the object reference is to a container within
+                        a pod, this would take on a value like: "spec.containers{name}"
+                        (where "name" refers to the name of the container that triggered
+                        the event) or if no container name is specified "spec.containers[2]"
+                        (container with index 2 in this pod). This syntax is chosen
+                        only to have some well-defined way of referencing a part of
+                        an object. TODO: this design is not final and this field is
+                        subject to change in the future.'
+                      type: string
+                    kind:
+                      description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                      type: string
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                      type: string
+                    namespace:
+                      description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                      type: string
+                    resourceVersion:
+                      description: 'Specific resourceVersion to which this reference
+                        is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                      type: string
+                    uid:
+                      description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                      type: string
+                  type: object
+                type: array
+              etcdRef:
+                description: ETCDRef offered by an etcd custom resource.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              network:
+                description: Network defines the network configuration for the cluster.
+                properties:
+                  apiServerPort:
+                    description: APIServerPort specifies the port the API Server should
+                      bind to. Defaults to 6443.
+                    format: int32
+                    type: integer
+                  pods:
+                    description: The network ranges from which Pod networks are allocated.
+                    properties:
+                      cidrBlocks:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - cidrBlocks
+                    type: object
+                  serviceDomain:
+                    description: Domain name for services.
+                    type: string
+                  services:
+                    description: The network ranges from which service VIPs are allocated.
+                    properties:
+                      cidrBlocks:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - cidrBlocks
+                    type: object
+                type: object
+              paused:
+                description: Paused can be used to prevent controllers from processing
+                  the Cluster and all its associated objects.
+                type: boolean
+              registryConfig:
+                description: RegistryConfig defines the registry configuration for
+                  the cluster.
+                properties:
+                  auth:
+                    description: Auth defines the auth of this PrivateRegistry.
+                    properties:
+                      caFile:
+                        description: CAFile is an SSL Certificate Authority file used
+                          to secure etcd communication.
+                        type: string
+                      certFile:
+                        description: CertFile is an SSL certification file used to
+                          secure etcd communication.
+                        type: string
+                      certsPath:
+                        description: CertsPath defines the path of the certs files
+                          of this PrivateRegistry.
+                        type: string
+                      insecureSkipVerify:
+                        description: InsecureSkipVerify allow contacting this PrivateRegistry
+                          over HTTPS with failed TLS verification.
+                        type: boolean
+                      keyFile:
+                        description: KeyFile is an SSL key file used to secure etcd
+                          communication.
+                        type: string
+                      password:
+                        description: Password defines the password of this PrivateRegistry.
+                        type: string
+                      plainHTTP:
+                        description: PlainHTTP allow contacting this PrivateRegistry
+                          over HTTP.
+                        type: boolean
+                      username:
+                        description: Username defines the username of this PrivateRegistry.
+                        type: string
+                    required:
+                    - certsPath
+                    - insecureSkipVerify
+                    - password
+                    - plainHTTP
+                    - username
+                    type: object
+                  namespaceOverride:
+                    description: NamespaceOverride defines the namespace override
+                      of this PrivateRegistry.
+                    type: string
+                  privateRegistry:
+                    description: PrivateRegistry defines the private registry address
+                      of ContainerManager.
+                    type: string
+                  registryMirrors:
+                    description: RegistryMirrors defines the registry mirrors of this
+                      PrivateRegistry.
+                    items:
+                      type: string
+                    type: array
+                required:
+                - auth
+                - namespaceOverride
+                - privateRegistry
+                type: object
+              registryRef:
+                description: RegistryRef us offered by a registry custom resource.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              workerRefs:
+                description: WorkerRefs offered by a worker custom resource.
+                items:
+                  description: 'ObjectReference contains enough information to let
+                    you inspect or modify the referred object. --- New uses of this
+                    type are discouraged because of difficulty describing its usage
+                    when embedded in APIs.  1. Ignored fields.  It includes many fields
+                    which are not generally honored.  For instance, ResourceVersion
+                    and FieldPath are both very rarely valid in actual usage.  2.
+                    Invalid usage help.  It is impossible to add specific help for
+                    individual usage.  In most embedded usages, there are particular     restrictions
+                    like, "must refer only to types A and B" or "UID not honored"
+                    or "name must be restricted".     Those cannot be well described
+                    when embedded.  3. Inconsistent validation.  Because the usages
+                    are different, the validation rules are different by usage, which
+                    makes it hard for users to predict what will happen.  4. The fields
+                    are both imprecise and overly precise.  Kind is not a precise
+                    mapping to a URL. This can produce ambiguity     during interpretation
+                    and require a REST mapping.  In most cases, the dependency is
+                    on the group,resource tuple     and the version of the actual
+                    struct is irrelevant.  5. We cannot easily change it.  Because
+                    this type is embedded in many locations, updates to this type     will
+                    affect numerous schemas.  Don''t make new APIs embed an underspecified
+                    API type they do not control. Instead of using this type, create
+                    a locally provided and used type that is well-focused on your
+                    reference. For example, ServiceReferences for admission registration:
+                    https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
+                    .'
+                  properties:
+                    apiVersion:
+                      description: API version of the referent.
+                      type: string
+                    fieldPath:
+                      description: 'If referring to a piece of an object instead of
+                        an entire object, this string should contain a valid JSON/Go
+                        field access statement, such as desiredState.manifest.containers[2].
+                        For example, if the object reference is to a container within
+                        a pod, this would take on a value like: "spec.containers{name}"
+                        (where "name" refers to the name of the container that triggered
+                        the event) or if no container name is specified "spec.containers[2]"
+                        (container with index 2 in this pod). This syntax is chosen
+                        only to have some well-defined way of referencing a part of
+                        an object. TODO: this design is not final and this field is
+                        subject to change in the future.'
+                      type: string
+                    kind:
+                      description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                      type: string
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                      type: string
+                    namespace:
+                      description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                      type: string
+                    resourceVersion:
+                      description: 'Specific resourceVersion to which this reference
+                        is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                      type: string
+                    uid:
+                      description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                      type: string
+                  type: object
+                type: array
+            required:
+            - customRef
+            type: object
+          status:
+            description: ClusterStatus defines the observed state of Cluster
+            properties:
+              conditions:
+                description: Conditions defines current service state of the cluster.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              controlPlaneReady:
+                description: ControlPlaneReady defines if the control plane is ready.
+                type: boolean
+              etcdReady:
+                description: ETCDReady defines if the etcd cluster is ready.
+                type: boolean
+              failureMessage:
+                description: FailureMessage indicates that there is a fatal problem
+                  reconciling the state, and will be set to a descriptive error message.
+                type: string
+              failureReason:
+                description: FailureReason indicates that there is a fatal problem
+                  reconciling the state, and will be set to a token value suitable
+                  for programmatic interpretation.
+                type: string
+              infrastructureReady:
+                description: InfrastructureReady is the state of the infrastructure
+                  provider.
+                type: boolean
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of cluster actuation.
+                  E.g. Pending, Running, Terminating, Failed etc.
+                type: string
+              registryReady:
+                description: RegistryReady defines if the registry is ready.
+                type: boolean
+              workerReady:
+                description: WorkerReady defines if the worker is ready.
+                type: boolean
             type: object
         type: object
     served: true

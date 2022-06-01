@@ -108,8 +108,11 @@ type MachineSetStatus struct {
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // MachineSet is the Schema for the machinesets API
 type MachineSet struct {

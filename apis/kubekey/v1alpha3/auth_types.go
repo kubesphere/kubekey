@@ -16,6 +16,10 @@
 
 package v1alpha3
 
+import (
+	"time"
+)
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Auth contains the SSH authentication configuration for machines.
@@ -27,7 +31,7 @@ type Auth struct {
 	Password string `yaml:"password,omitempty" json:"password,omitempty"`
 
 	// Port is the port for SSH authentication.
-	Port int `yaml:"port,omitempty" json:"port,omitempty"`
+	Port *int `yaml:"port,omitempty" json:"port,omitempty"`
 
 	// PrivateKey is the value of the private key for SSH authentication.
 	PrivateKey string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
@@ -37,5 +41,5 @@ type Auth struct {
 
 	// Timeout is the timeout for establish an SSH connection.
 	// +optional
-	Timeout *int64 `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	Timeout *time.Duration `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 }

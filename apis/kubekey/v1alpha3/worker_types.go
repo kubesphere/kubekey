@@ -23,7 +23,9 @@ import (
 
 // WorkerSpec defines the desired state of Worker
 type WorkerSpec struct {
-	Replicas *int32
+	// Replicas is the number of replicas of the worker.
+	Replicas *int32 `json:"replicas,omitempty"`
+
 	// ClusterName is the name of the Cluster
 	ClusterName string `json:"clusterName"`
 
@@ -105,8 +107,11 @@ type WorkerStatus struct {
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // Worker is the Schema for the workers API
 type Worker struct {

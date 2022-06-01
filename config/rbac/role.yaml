@@ -129,6 +129,32 @@ rules:
 - apiGroups:
   - kubekey.kubesphere.io
   resources:
+  - addons
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - addons/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - addons/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
   - clusters
   verbs:
   - create
@@ -142,6 +168,240 @@ rules:
   - kubekey.kubesphere.io
   resources:
   - clusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - controlplanes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - controlplanes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - controlplanes/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - etcds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - etcds/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - etcds/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigtemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigtemplates/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - kubeadmconfigtemplates/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinedeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinedeployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinedeployments/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machines/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machines/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinesets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinesets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - machinesets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - registries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - registries/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - registries/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - workers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - workers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - workers/status
   verbs:
   - get
   - patch

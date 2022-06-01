@@ -62,8 +62,11 @@ type Yaml struct {
 type AddonStatus struct {
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // Addon is the Schema for the addons API
 type Addon struct {
