@@ -51,25 +51,31 @@ centos7:
 debian:
   - containerd.io
 
+# The latest version of docker-ce on debian 9 is 19.03.15
 debian9:
   - docker-ce=5:19.03.15~3-0~debian-stretch
   - docker-ce-cli=5:19.03.15~3-0~debian-stretch
 
 debian10:
-  - docker-ce=5:20.10.7~3-0~debian-buster
-  - docker-ce-cli=5:20.10.7~3-0~debian-buster
+  - docker-ce=5:20.10.8~3-0~debian-buster
+  - docker-ce-cli=5:20.10.8~3-0~debian-buster
 
 ubuntu:
   - containerd.io
 
 ubuntu1604:
-  - docker-ce=5:20.10.7~3-0~ubuntu-xenial
-  - docker-ce-cli=5:20.10.7~3-0~ubuntu-xenial
+  - docker-ce=5:20.10.8~3-0~ubuntu-xenial
+  - docker-ce-cli=5:20.10.8~3-0~ubuntu-xenial
 
 ubuntu1804:
   - docker-ce=5:20.10.8~3-0~ubuntu-bionic
-  - docker-ce-cli=5:20.10.7~3-0~ubuntu-bionic
+  - docker-ce-cli=5:20.10.8~3-0~ubuntu-bionic
 
 ubuntu2004:
   - docker-ce=5:20.10.8~3-0~ubuntu-focal
-  - docker-ce-cli=5:20.10.7~3-0~ubuntu-focal
+  - docker-ce-cli=5:20.10.8~3-0~ubuntu-focal
+
+# The minimum version of docker-ce on ubuntu 2204 is 20.10.13
+ubuntu2204:
+  - docker-ce=5:20.10.13~3-0~ubuntu-jammy
+  - docker-ce-cli=5:20.10.13~3-0~ubuntu-jammy
