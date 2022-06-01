@@ -262,7 +262,7 @@ go-releaser-test:
 ISO_ARCH ?= amd64
 ISO_OUTPUT_DIR ?= ./output
 ISO_BUILD_WORKDIR := hack/gen-repository-iso
-ISO_OS_NAMES := centos7 debian9 debian10 ubuntu1604 ubuntu1804 ubuntu2004
+ISO_OS_NAMES := centos7 debian9 debian10 ubuntu1604 ubuntu1804 ubuntu2004 ubuntu2204
 ISO_BUILD_NAMES := $(addprefix build-iso-,$(ISO_OS_NAMES))
 build-iso-all: $(ISO_BUILD_NAMES)
 .PHONY: $(ISO_BUILD_NAMES)

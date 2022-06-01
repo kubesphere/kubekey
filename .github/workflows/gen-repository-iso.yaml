@@ -26,6 +26,8 @@ jobs:
             dockerfile: dockerfile.ubuntu1804
           - name: ubuntu-20.04-debs
             dockerfile: dockerfile.ubuntu2004
+          - name: ubuntu-22.04-debs
+            dockerfile: dockerfile.ubuntu2204
     steps:
       - name: Checkout
         uses: actions/checkout@v2
