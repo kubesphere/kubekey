@@ -18,12 +18,14 @@ package connector
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
+
 	"github.com/kubesphere/kubekey/pkg/core/common"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
 )
 
 type BaseRuntime struct {
@@ -122,7 +124,14 @@ func (b *BaseRuntime) GetIgnoreErr() bool {
 }
 
 func (b *BaseRuntime) GetAllHosts() []Host {
-	return b.allHosts
+	hosts := make([]Host, 0, 0)
+	for i := range b.allHosts {
+		if b.allHosts[i] == nil || b.HostIsDeprecated(b.allHosts[i]) {
+			continue
+		}
+		hosts = append(hosts, b.allHosts[i])
+	}
+	return hosts
 }
 
 func (b *BaseRuntime) SetAllHosts(hosts []Host) {
