@@ -20,12 +20,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"os"
 	"os/exec"
 	"os/user"
@@ -33,6 +27,14 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 )
 
 type Loader interface {
@@ -133,6 +135,9 @@ func (d *DefaultLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 	if d.arg.ContainerManager != "" && d.arg.ContainerManager != Docker {
 		allInOne.Spec.Kubernetes.ContainerManager = d.arg.ContainerManager
 	}
+
+	enableAutoRenewCerts := true
+	allInOne.Spec.Kubernetes.AutoRenewCerts = &enableAutoRenewCerts
 
 	// must be a lower case
 	allInOne.Name = "kubekey" + time.Now().Format("2006-01-02")
