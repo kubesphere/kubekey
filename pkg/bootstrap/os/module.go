@@ -17,12 +17,14 @@
 package os
 
 import (
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os/templates"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
+	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"path/filepath"
 )
 
 type ConfigureOSModule struct {
@@ -91,15 +93,19 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Name:     "ResetNetworkConfig",
 		Desc:     "Reset os network config",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
+		Prepare:  new(DeleteNode),
 		Action:   new(ResetNetworkConfig),
 		Parallel: true,
 	}
 
 	uninstallETCD := &task.RemoteTask{
-		Name:     "UninstallETCD",
-		Desc:     "Uninstall etcd",
-		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
-		Prepare:  new(EtcdTypeIsKubeKey),
+		Name:  "UninstallETCD",
+		Desc:  "Uninstall etcd",
+		Hosts: c.Runtime.GetHostsByRole(common.ETCD),
+		Prepare: &prepare.PrepareCollection{
+			new(EtcdTypeIsKubeKey),
+			new(DeleteNode),
+		},
 		Action:   new(UninstallETCD),
 		Parallel: true,
 	}
@@ -108,6 +114,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Name:     "RemoveFiles",
 		Desc:     "Remove cluster files",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
+		Prepare:  new(DeleteNode),
 		Action:   new(RemoveFiles),
 		Parallel: true,
 	}
@@ -116,6 +123,7 @@ func (c *ClearOSEnvironmentModule) Init() {
 		Name:     "DaemonReload",
 		Desc:     "Systemd daemon reload",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
+		Prepare:  new(DeleteNode),
 		Action:   new(DaemonReload),
 		Parallel: true,
 	}

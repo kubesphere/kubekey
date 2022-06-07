@@ -20,12 +20,21 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/etcd"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/kubesphere/kubekey/pkg/etcd"
+
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+	kube "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -42,13 +51,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	dnsTemplates "github.com/kubesphere/kubekey/pkg/plugins/dns/templates"
 	"github.com/kubesphere/kubekey/pkg/utils"
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
-	kube "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type GetClusterStatus struct {
@@ -478,15 +480,14 @@ func (k *KubeadmReset) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type FindDifferences struct {
+type FindNode struct {
 	common.KubeAction
 }
 
-func (f *FindDifferences) Execute(runtime connector.Runtime) error {
-	var node string
+func (f *FindNode) Execute(runtime connector.Runtime) error {
 	var resArr []string
 	res, err := runtime.GetRunner().Cmd(
-		"sudo -E /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master' | awk '{print $1}'",
+		"sudo -E /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master\\|control-plane' | awk '{print $1}'",
 		true)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "kubectl get nodes failed")
@@ -498,17 +499,21 @@ func (f *FindDifferences) Execute(runtime connector.Runtime) error {
 		resArr = strings.Split(res, "\r\n")
 	}
 
-	var workerNameStr string
+	workerName := make(map[string]struct{})
 	for j := 0; j < len(runtime.GetHostsByRole(common.Worker)); j++ {
-		workerNameStr += runtime.GetHostsByRole(common.Worker)[j].GetName()
+		workerName[runtime.GetHostsByRole(common.Worker)[j].GetName()] = struct{}{}
 	}
+
+	var node string
 	for i := 0; i < len(resArr); i++ {
-		if strings.Contains(workerNameStr, resArr[i]) {
-			continue
-		} else {
+		if _, ok := workerName[resArr[i]]; ok && resArr[i] == f.KubeConf.Arg.NodeName {
 			node = resArr[i]
 			break
 		}
+	}
+
+	if node == "" {
+		return errors.New("Please check the node name in the config-sample.yaml or only support to delete a worker")
 	}
 
 	f.PipelineCache.Set("dstNode", node)

@@ -18,6 +18,10 @@ package kubernetes
 
 import (
 	"fmt"
+	"path/filepath"
+
+	"github.com/pkg/errors"
+
 	"github.com/kubesphere/kubekey/pkg/binaries"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -25,8 +29,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/kubernetes/templates"
-	"github.com/pkg/errors"
-	"path/filepath"
 )
 
 type StatusModule struct {
@@ -358,11 +360,11 @@ func (c *CompareConfigAndClusterInfoModule) Init() {
 	c.Desc = "Compare config and cluster nodes info"
 
 	check := &task.RemoteTask{
-		Name:    "FindDifferences",
-		Desc:    "Find the differences between config and cluster node info",
+		Name:    "FindNode",
+		Desc:    "Find information about nodes that are expected to be deleted",
 		Hosts:   c.Runtime.GetHostsByRole(common.Master),
 		Prepare: new(common.OnlyFirstMaster),
-		Action:  new(FindDifferences),
+		Action:  new(FindNode),
 	}
 
 	c.Tasks = []task.Interface{
