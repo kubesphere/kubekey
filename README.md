@@ -37,9 +37,11 @@ Use KubeKey in the following three scenarios.
 * **v1.17**: &ensp; *v1.17.9*
 * **v1.18**: &ensp; *v1.18.6*
 * **v1.19**: &ensp; *v1.19.8*  
-* **v1.20**: &ensp; *v1.20.6*
-* **v1.21**: &ensp; *v1.21.5*  (default)
-* **v1.22**: &ensp; *v1.22.1*
+* **v1.20**: &ensp; *v1.20.10*
+* **v1.21**: &ensp; *v1.21.13*  
+* **v1.22**: &ensp; *v1.22.9*
+* **v1.23**: &ensp; *v1.23.7*   (default)
+* **v1.24**: &ensp; *v1.24.1*
 > Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
 
 ### Container Manager
@@ -97,17 +99,11 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
   Unpack the binary and you are good to go!
 
 * Build Binary from Source Code
-
     ```shell script
     git clone https://github.com/kubesphere/kubekey.git
     cd kubekey
-    ./build.sh
+    make kk
     ```
-
-> Note:
->
-> * Docker needs to be installed before building.
-> * If you have problem to access `https://proxy.golang.org/`, excute `build.sh -p` instead.
 
 ### Create a Cluster
 
@@ -133,13 +129,13 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
     ./kk create cluster
     ```
 
-* Create a Kubernetes cluster with a specified version ([supported versions](#KubernetesVersions)).
+* Create a Kubernetes cluster with a specified version (e.g. `--with-kubernetes v1.24.1`).
 
     ```shell script
-    ./kk create cluster --with-kubernetes v1.19.8
+    ./kk create cluster --with-kubernetes [version]
     ```
 
-* Create a Kubernetes cluster with KubeSphere installed (e.g. `--with-kubesphere v3.1.0`)
+* Create a Kubernetes cluster with KubeSphere installed (e.g. `--with-kubesphere v3.2.1`).
 
     ```shell script
     ./kk create cluster --with-kubesphere [version]
@@ -168,7 +164,7 @@ You have more control to customize parameters or create a multi-node cluster usi
    * with KubeSphere
 
     ```shell script
-    ./kk create config --with-kubesphere
+    ./kk create config --with-kubesphere v3.2.1
     ```
 
 2. Modify the file config-sample.yaml according to your environment

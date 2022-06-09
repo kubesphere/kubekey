@@ -18,9 +18,10 @@ package v1alpha2
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/core/util"
 )
 
 const (
@@ -44,7 +45,7 @@ const (
 	DefaultContainerdVersion    = "1.6.4"
 	DefaultRuncVersion          = "v1.1.1"
 	DefaultCrictlVersion        = "v1.24.0"
-	DefaultKubeVersion          = "v1.21.5"
+	DefaultKubeVersion          = "v1.23.7"
 	DefaultCalicoVersion        = "v3.20.0"
 	DefaultFlannelVersion       = "v0.12.0"
 	DefaultCniVersion           = "v0.9.1"
