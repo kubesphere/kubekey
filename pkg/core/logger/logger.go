@@ -18,12 +18,14 @@ package logger
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/common"
+	"path/filepath"
+	"time"
+
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
-	"path/filepath"
-	"time"
+
+	"github.com/kubesphere/kubekey/pkg/core/common"
 )
 
 var Log *KubeKeyLog
@@ -41,7 +43,7 @@ func NewLogger(outputPath string, verbose bool) *KubeKeyLog {
 		HideKeys:               true,
 		TimestampFormat:        "15:04:05 MST",
 		NoColors:               true,
-		ShowLevel:              logrus.FatalLevel,
+		ShowLevel:              logrus.WarnLevel,
 		FieldsDisplayWithOrder: []string{common.Pipeline, common.Module, common.Task, common.Node},
 	}
 	logger.SetFormatter(formatter)
