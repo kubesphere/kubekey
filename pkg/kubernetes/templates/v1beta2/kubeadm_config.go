@@ -18,17 +18,19 @@ package v1beta2
 
 import (
 	"fmt"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"regexp"
 	"strings"
 	"text/template"
 
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+
+	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 )
 
 var (
@@ -215,10 +217,9 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 			"cpu":    "200m",
 			"memory": "250Mi",
 		},
-		"podPidsLimit": 1000,
 		"evictionHard": map[string]string{
 			"memory.available": "5%",
-			"pid.available":    "10%",
+			"pid.available":    "5%",
 		},
 		"evictionSoft": map[string]string{
 			"memory.available": "10%",
