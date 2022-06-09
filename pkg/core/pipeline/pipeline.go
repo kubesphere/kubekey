@@ -18,14 +18,16 @@ package pipeline
 
 import (
 	"fmt"
+	"os"
+	"sync"
+
+	"github.com/pkg/errors"
+
 	"github.com/kubesphere/kubekey/pkg/core/cache"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/module"
-	"github.com/pkg/errors"
-	"os"
-	"sync"
 )
 
 var logo = `
@@ -102,7 +104,7 @@ func (p *Pipeline) Start() error {
 	if p.SpecHosts != len(p.Runtime.GetAllHosts()) {
 		return errors.Errorf("Pipeline[%s] execute failed: there are some error in your spec hosts", p.Name)
 	}
-	logger.Log.Infof("Pipeline[%s] execute successful", p.Name)
+	logger.Log.Infof("Pipeline[%s] execute successfully", p.Name)
 	return nil
 }
 
