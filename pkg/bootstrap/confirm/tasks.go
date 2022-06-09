@@ -23,15 +23,16 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
+	"github.com/modood/table"
+	"github.com/pkg/errors"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/mitchellh/mapstructure"
-	"github.com/modood/table"
-	"github.com/pkg/errors"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 )
 
 // PreCheckResults defines the items to be checked.
@@ -131,10 +132,10 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 		}
 		input = strings.TrimSpace(strings.ToLower(input))
 
-		switch input {
-		case "yes":
+		switch strings.ToLower(input) {
+		case "yes", "y":
 			confirmOK = true
-		case "no":
+		case "no", "n":
 			os.Exit(0)
 		default:
 			continue
@@ -151,24 +152,25 @@ type DeleteConfirm struct {
 func (d *DeleteConfirm) Execute(runtime connector.Runtime) error {
 	reader := bufio.NewReader(os.Stdin)
 
-	var res string
-	for {
+	confirmOK := false
+	for !confirmOK {
 		fmt.Printf("Are you sure to delete this %s? [yes/no]: ", d.Content)
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			return err
 		}
-		input = strings.TrimSpace(input)
+		input = strings.ToLower(strings.TrimSpace(input))
 
-		if input != "" && (input == "yes" || input == "no") {
-			res = input
-			break
+		switch strings.ToLower(input) {
+		case "yes", "y":
+			confirmOK = true
+		case "no", "n":
+			os.Exit(0)
+		default:
+			continue
 		}
 	}
 
-	if res == "no" {
-		os.Exit(0)
-	}
 	return nil
 }
 
@@ -271,12 +273,12 @@ Warning:
 		if err != nil {
 			return err
 		}
-		input = strings.TrimSpace(input)
+		input = strings.ToLower(strings.TrimSpace(input))
 
 		switch input {
-		case "yes":
+		case "yes", "y":
 			confirmOK = true
-		case "no":
+		case "no", "n":
 			os.Exit(0)
 		default:
 			continue
@@ -320,13 +322,13 @@ func (c *CheckFile) Execute(runtime connector.Runtime) error {
 			}
 			fmt.Printf("%s already exists. Are you sure you want to overwrite this file? [yes/no]: ", c.FileName)
 			input, _ := reader.ReadString('\n')
-			input = strings.TrimSpace(input)
+			input = strings.ToLower(strings.TrimSpace(input))
 
 			if input != "" {
 				switch input {
-				case "yes":
+				case "yes", "y":
 					stop = true
-				case "no":
+				case "no", "n":
 					os.Exit(0)
 				}
 			}
