@@ -20,18 +20,20 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"sort"
+	"strings"
+
 	mapset "github.com/deckarep/golang-set"
+	"github.com/pkg/errors"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/artifact/templates"
 	"github.com/kubesphere/kubekey/pkg/client/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/pkg/errors"
-	"io/ioutil"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
-	"os"
-	"sort"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -174,6 +176,7 @@ func CreateManifest(arg common.Argument, name string) error {
 		return errors.Wrap(err, fmt.Sprintf("write file %s failed", arg.FilePath))
 	}
 
+	fmt.Println("Generate KubeKey manifest file successfully")
 	return nil
 }
 

@@ -25,12 +25,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/config/templates"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
-	"github.com/pkg/errors"
 )
 
 // GenerateKubeKeyConfig is used to generate cluster configuration file
@@ -99,6 +100,7 @@ func GenerateKubeKeyConfig(arg common.Argument, name string) error {
 		}
 	}
 
+	fmt.Println("Generate KubeKey config file successfully")
 	return nil
 }
 
