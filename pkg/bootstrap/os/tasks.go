@@ -232,21 +232,9 @@ func (g *GetOSData) Execute(runtime connector.Runtime) error {
 	}
 	osrData := osrelease.Parse(strings.Replace(osReleaseStr, "\r\n", "\n", -1))
 
-	pkgToolStr, err := runtime.GetRunner().SudoCmd(
-		"if [ ! -z $(which yum 2>/dev/null) ]; "+
-			"then echo rpm; "+
-			"elif [ ! -z $(which apt 2>/dev/null) ]; "+
-			"then echo deb; "+
-			"fi", false)
-	if err != nil {
-		return err
-	}
-
 	host := runtime.RemoteHost()
 	// type: *osrelease.data
 	host.GetCache().Set(Release, osrData)
-	// type: string
-	host.GetCache().Set(PkgTool, pkgToolStr)
 	return nil
 }
 
