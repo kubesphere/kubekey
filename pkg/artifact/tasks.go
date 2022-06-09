@@ -92,8 +92,8 @@ func (l *LocalCopy) Execute(runtime connector.Runtime) error {
 		}
 
 		path := filepath.Join(dir, fmt.Sprintf("%s-%s-%s.iso", sys.Id, sys.Version, sys.Arch))
-		if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sudo cp -f %s %s", sys.Repository.Iso.LocalPath, path)).Run(); err != nil {
-			return errors.Wrapf(errors.WithStack(err), "copy %s to %s failed", sys.Repository.Iso.LocalPath, path)
+		if out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("sudo cp -f %s %s", sys.Repository.Iso.LocalPath, path)).CombinedOutput(); err != nil {
+			return errors.Errorf("copy %s to %s failed: %s", sys.Repository.Iso.LocalPath, path, string(out))
 		}
 	}
 
