@@ -26,7 +26,6 @@ var log = NewLogger("", true)
 func TestKubeKey_Print(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	for i := 0; i < 5; i++ {
-		Log.Info("begin")
 
 		log.Info("empty fields")
 		l1 := *log
