@@ -196,6 +196,38 @@ func (s *UninstallETCD) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type RemoveNodeFiles struct {
+	common.KubeAction
+}
+
+func (r *RemoveNodeFiles) Execute(runtime connector.Runtime) error {
+	nodeFiles := []string{
+		"/etc/kubernetes",
+		"/etc/systemd/system/etcd.service",
+		"/var/log/calico",
+		"/etc/cni",
+		"/var/log/pods/",
+		"/var/lib/cni",
+		"/var/lib/calico",
+		"/var/lib/kubelet",
+		"/run/calico",
+		"/run/flannel",
+		"/etc/flannel",
+		"/etc/systemd/system/kubelet.service",
+		"/etc/systemd/system/kubelet.service.d",
+		"/usr/local/bin/kubelet",
+		"/usr/local/bin/kubeadm",
+		"/usr/bin/kubelet",
+		"/tmp/kubekey",
+		"/etc/kubekey",
+	}
+
+	for _, file := range nodeFiles {
+		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
+	}
+	return nil
+}
+
 type RemoveFiles struct {
 	common.KubeAction
 }
