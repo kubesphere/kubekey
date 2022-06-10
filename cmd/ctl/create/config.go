@@ -22,6 +22,9 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/config"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
+
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -88,7 +91,7 @@ func (o *CreateConfigOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.Name, "name", "", "sample", "Specify a name of cluster object")
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Specify a configuration file path")
 	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
-	cmd.Flags().BoolVarP(&o.EnableKubeSphere, "with-kubesphere", "", false, "Deploy a specific version of kubesphere (default v3.1.0)")
+	cmd.Flags().BoolVarP(&o.EnableKubeSphere, "with-kubesphere", "", false, fmt.Sprintf("Deploy a specific version of kubesphere (default %s)", kubesphere.Latest().Version))
 	cmd.Flags().BoolVarP(&o.FromCluster, "from-cluster", "", false, "Create a configuration based on existing cluster")
 	cmd.Flags().StringVarP(&o.KubeConfig, "kubeconfig", "", "", "Specify a kubeconfig file")
 }
