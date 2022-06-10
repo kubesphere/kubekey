@@ -513,7 +513,10 @@ func (f *FindNode) Execute(runtime connector.Runtime) error {
 	}
 
 	if node == "" {
-		return errors.New("Please check the node name in the config-sample.yaml or only support to delete a worker")
+		return errors.New("" +
+			"1. check the node name in the config-sample.yaml\n" +
+			"2. check the node name in the Kubernetes cluster\n" +
+			"3. only support to delete a worker\n")
 	}
 
 	f.PipelineCache.Set("dstNode", node)

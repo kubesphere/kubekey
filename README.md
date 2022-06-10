@@ -123,22 +123,22 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 
 ##### Examples
 
-* Create a pure Kubernetes cluster with default version.
+* Create a pure Kubernetes cluster with default version (Kubernetes v1.23.7).
 
     ```shell script
     ./kk create cluster
     ```
 
-* Create a Kubernetes cluster with a specified version (e.g. `--with-kubernetes v1.24.1`).
+* Create a Kubernetes cluster with a specified version.
 
     ```shell script
-    ./kk create cluster --with-kubernetes [version]
+    ./kk create cluster --with-kubernetes v1.24.1 --container-manager containerd
     ```
 
-* Create a Kubernetes cluster with KubeSphere installed (e.g. `--with-kubesphere v3.2.1`).
+* Create a Kubernetes cluster with KubeSphere installed.
 
     ```shell script
-    ./kk create cluster --with-kubesphere [version]
+    ./kk create cluster --with-kubesphere v3.2.1
     ```
 
 #### Advanced
