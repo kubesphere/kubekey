@@ -31,6 +31,7 @@ spec:
   kubernetes:
     version: v1.21.5
     imageRepo: kubesphere
+    containerManager: docker # Container Runtime, support: containerd, cri-o, isula. [Default: docker]
     clusterName: cluster.local
     autoRenewCerts: true # Whether to install a script which can automatically renew the Kubernetes control plane certificates. [Default: false]
     masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false].
@@ -42,7 +43,6 @@ spec:
       ExpandCSIVolumes: true
       RotateKubeletServerCertificate: true
       TTLAfterFinished: true
-    # containerManager: docker # Container Runtime, support: containerd, cri-o, isula. [Default: docker]
     ## support kata and NFD
     # kata:
     #   enabled: true

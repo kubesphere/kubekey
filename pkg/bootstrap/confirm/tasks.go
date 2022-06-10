@@ -103,7 +103,7 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 
 	fmt.Println("")
 	fmt.Println("This is a simple check of your environment.")
-	fmt.Println("Before installation, you should ensure that your machines meet all requirements specified at")
+	fmt.Println("Before installation, ensure that your machines meet all requirements specified at")
 	fmt.Println("https://github.com/kubesphere/kubekey#requirements-and-recommendations")
 	fmt.Println("")
 
@@ -111,7 +111,9 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 		if k8sVersion.AtLeast(versionutil.MustParseSemantic("v1.24.0")) && i.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
 			fmt.Println("[Notice]")
 			fmt.Println("Incorrect runtime. Please specify a container runtime other than Docker to install Kubernetes v1.24 or later.")
-			fmt.Println("For more information, please refer to:")
+			fmt.Println("You can set \"spec.kubernetes.containerManager\" in the configuration file to \"containerd\" or add \"--container-manager containerd\" to the \"./kk create cluster\" command.")
+			fmt.Println("For more information, see:")
+			fmt.Println("https://github.com/kubesphere/kubekey/blob/master/docs/commands/kk-create-cluster.md")
 			fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
 			fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
 			fmt.Println("")
@@ -255,9 +257,10 @@ Warning:
 			k8sV124 := versionutil.MustParseSemantic("v1.24.0")
 			if k8sVersion.AtLeast(k8sV124) && versionutil.MustParseSemantic(currentK8sVersion).LessThan(k8sV124) && strings.Contains(cri, "docker") {
 				fmt.Println("[Notice]")
+				fmt.Println("Pre-upgrade check failed. The container runtime of the current cluster is Docker.")
 				fmt.Println("Kubernetes v1.24 and later no longer support dockershim and Docker.")
-				fmt.Println("Please make sure you have completed the migration from Docker to other container runtimes that are compatible with the Kubernetes CRI.")
-				fmt.Println("For more information, please refer to:")
+				fmt.Println("Make sure you have completed the migration from Docker to other container runtimes that are compatible with the Kubernetes CRI.")
+				fmt.Println("For more information, see:")
 				fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
 				fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
 				fmt.Println("")
