@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -57,6 +58,15 @@ func GenerateKubeKeyConfig(arg common.Argument, name string) error {
 	} else {
 		opt.KubeVersion = arg.KubernetesVersion
 	}
+
+	if k8sVersion, err := versionutil.ParseGeneric(opt.KubeVersion); err == nil {
+		if k8sVersion.AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+			opt.ContainerManager = common.Conatinerd
+		} else {
+			opt.ContainerManager = common.Docker
+		}
+	}
+
 	opt.KubeSphereEnabled = arg.KsEnable
 
 	if arg.KsEnable {

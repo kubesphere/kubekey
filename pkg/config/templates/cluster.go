@@ -19,9 +19,9 @@ package templates
 import (
 	"text/template"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/lithammer/dedent"
+
+	"github.com/kubesphere/kubekey/pkg/core/util"
 )
 
 // Cluster defines the template of cluster configuration file default.
@@ -54,6 +54,7 @@ spec:
     version: {{ .Options.KubeVersion }}
     clusterName: cluster.local
     autoRenewCerts: true
+    containerManager: {{ .Options.ContainerManager }}
   etcd:
     type: kubekey
   network:
@@ -81,12 +82,12 @@ type Options struct {
 	KubeVersion         string
 	KubeSphereEnabled   bool
 	KubeSphereConfigMap string
+	ContainerManager    string
 }
 
 // GenerateCluster is used to generate cluster configuration content.
 func GenerateCluster(opt *Options) (string, error) {
 	return util.Render(Cluster, util.Data{
-		"KubeVersion": kubekeyapiv1alpha2.DefaultKubeVersion,
-		"Options":     opt,
+		"Options": opt,
 	})
 }
