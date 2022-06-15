@@ -21,14 +21,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
-	"github.com/pkg/errors"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 )
 
 type GreetingsTask struct {
@@ -274,8 +275,10 @@ func (d *DependencyCheck) Execute(_ connector.Runtime) error {
 			return errors.New(fmt.Sprintf("Unsupported version: %s", desiredVersion))
 		}
 
-		if ok := ksInstaller.UpgradeSupport(currentKsVersion); !ok {
-			return errors.New(fmt.Sprintf("Unsupported upgrade plan: %s to %s", currentKsVersion, desiredVersion))
+		if currentKsVersion != desiredVersion {
+			if ok := ksInstaller.UpgradeSupport(currentKsVersion); !ok {
+				return errors.New(fmt.Sprintf("Unsupported upgrade plan: %s to %s", currentKsVersion, desiredVersion))
+			}
 		}
 
 		if ok := ksInstaller.K8sSupport(d.KubeConf.Cluster.Kubernetes.Version); !ok {
@@ -285,7 +288,7 @@ func (d *DependencyCheck) Execute(_ connector.Runtime) error {
 	} else {
 		ksInstaller, ok := kubesphere.VersionMap[currentKsVersion]
 		if !ok {
-			return errors.New(fmt.Sprintf("Unsupported version: %s", desiredVersion))
+			return errors.New(fmt.Sprintf("Unsupported version: %s", currentKsVersion))
 		}
 
 		if ok := ksInstaller.K8sSupport(d.KubeConf.Cluster.Kubernetes.Version); !ok {
