@@ -236,7 +236,7 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 	if err != nil {
 		logger.Log.Fatal(err)
 	}
-	if len(cgroupDriver) != 0 {
+	if len(cgroupDriver) == 0 {
 		defaultKubeletConfiguration["cgroupDriver"] = "systemd"
 	}
 
