@@ -1,0 +1,8 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- infrastructure_v1beta1_kkcluster.yaml
+- infrastructure_v1beta1_kkclustertemplate.yaml
+- infrastructure_v1beta1_kkmachine.yaml
+- infrastructure_v1beta1_kkmachinetemplate.yaml
+- infrastructure_v1beta1_kkinstance.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

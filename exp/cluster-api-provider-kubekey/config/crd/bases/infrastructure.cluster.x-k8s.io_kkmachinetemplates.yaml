@@ -1,0 +1,112 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.1
+  creationTimestamp: null
+  name: kkmachinetemplates.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: KKMachineTemplate
+    listKind: KKMachineTemplateList
+    plural: kkmachinetemplates
+    singular: kkmachinetemplate
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: KKMachineTemplate is the Schema for the kkmachinetemplates API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KKMachineTemplateSpec defines the desired state of KKMachineTemplate
+            properties:
+              template:
+                description: KKMachineTemplateResource describes the data needed to
+                  create am KKMachine from a template.
+                properties:
+                  metadata:
+                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: 'Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata. They are not queryable
+                          and should be preserved when modifying objects. More info:
+                          http://kubernetes.io/docs/user-guide/annotations'
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: 'Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects. May
+                          match selectors of replication controllers and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        type: object
+                    type: object
+                  spec:
+                    description: Spec is the specification of the desired behavior
+                      of the machine.
+                    properties:
+                      containerManager:
+                        description: ContainerManager is the container manager config
+                          of this machine.
+                        properties:
+                          criSocket:
+                            description: CRISocket is used to connect an existing
+                              CRIClient.
+                            type: string
+                          type:
+                            description: Type defines the type of ContainerManager.
+                              "docker", "containerd"
+                            type: string
+                          version:
+                            description: Version defines the version of ContainerManager.
+                            type: string
+                        type: object
+                      instanceID:
+                        type: string
+                      providerID:
+                        description: ProviderID is the unique identifier as specified
+                          by the kubekey provider.
+                        type: string
+                      roles:
+                        description: Roles is the role of the machine.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                required:
+                - spec
+                type: object
+            required:
+            - template
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
