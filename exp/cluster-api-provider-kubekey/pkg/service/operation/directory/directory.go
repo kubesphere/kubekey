@@ -14,11 +14,32 @@
  limitations under the License.
 */
 
-package service
+package directory
 
-type Bootstrap interface {
-	AddUsers() error
-	CreateDirectory() error
-	ResetTmpDirectory() error
-	ExecInitScript() error
+import (
+	"fmt"
+)
+
+func (s *Service) Make() error {
+	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("mkdir -p -m %s %s", s.Mode.String(), s.Path))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) Chown(user string) error {
+	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("chown %s -R %s", user, s.Path))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) Remove() error {
+	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("rm -rf %s", s.Path))
+	if err != nil {
+		return err
+	}
+	return nil
 }

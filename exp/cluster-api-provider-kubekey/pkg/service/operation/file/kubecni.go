@@ -20,7 +20,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/file/checksum"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 const (
@@ -29,12 +30,20 @@ const (
 	KubecniDownloadURLTmpl = "https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
 )
 
-func NewKubecni(file *File, version, arch string) (*Binary, error) {
-	file.name = fmt.Sprintf(KubecniName, arch, version)
-	file.localFullPath = filepath.Join(file.name)
-	file.remoteFullPath = filepath.Join(TmpDir, file.name)
-
+func NewKubecni(sshClient ssh.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(KubecniID, version, arch)
+
+	fileName := KubecniName
+	file, err := NewFile(FileParams{
+		SSHClient:      sshClient,
+		Type:           FileBinary,
+		Name:           fileName,
+		LocalFullPath:  filepath.Join(fileName),
+		RemoteFullPath: filepath.Join(TmpDir, fileName),
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Binary{
 		file,

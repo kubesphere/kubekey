@@ -17,8 +17,11 @@
 package scope
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -69,4 +72,58 @@ type ClusterScope struct {
 	KKCluster *infrav1.KKCluster
 
 	controllerName string
+}
+
+// Name returns the CAPI cluster name.
+func (s *ClusterScope) Name() string {
+	return s.Cluster.Name
+}
+
+// Namespace returns the cluster namespace.
+func (s *ClusterScope) Namespace() string {
+	return s.Cluster.Namespace
+}
+
+// InfraClusterName returns the KK cluster name.
+func (s *ClusterScope) InfraClusterName() string {
+	return s.KKCluster.Name
+}
+
+// KubernetesClusterName is the name of the Kubernetes cluster.
+func (s *ClusterScope) KubernetesClusterName() string {
+	return s.Cluster.Name
+}
+
+// PatchObject persists the cluster configuration and status.
+func (s *ClusterScope) PatchObject() error {
+	// Always update the readyCondition by summarizing the state of other conditions.
+	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
+	applicableConditions := []clusterv1.ConditionType{
+		infrav1.HostReadyCondition,
+	}
+
+	conditions.SetSummary(s.KKCluster,
+		conditions.WithConditions(applicableConditions...),
+		conditions.WithStepCounterIf(s.KKCluster.ObjectMeta.DeletionTimestamp.IsZero()),
+		conditions.WithStepCounter(),
+	)
+
+	return s.patchHelper.Patch(
+		context.TODO(),
+		s.KKCluster,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			infrav1.HostReadyCondition,
+		}})
+}
+
+// Close closes the current scope persisting the cluster configuration and status.
+func (s *ClusterScope) Close() error {
+	return s.PatchObject()
+}
+
+// ControllerName returns the name of the controller that
+// created the ClusterScope.
+func (s *ClusterScope) ControllerName() string {
+	return s.controllerName
 }

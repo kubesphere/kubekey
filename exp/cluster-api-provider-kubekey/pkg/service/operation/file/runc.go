@@ -20,7 +20,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/file/checksum"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 const (
@@ -29,12 +30,20 @@ const (
 	RuncDownloadURLTmpl = "https://github.com/opencontainers/runc/releases/download/%s/runc.%s"
 )
 
-func NewRunc(file *File, version, arch string) (*Binary, error) {
+func NewRunc(sshClient ssh.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(RuncID, version, arch)
 
-	file.name = fmt.Sprintf(RuncName, arch)
-	file.localFullPath = filepath.Join(file.name)
-	file.remoteFullPath = filepath.Join(BinDir, file.name)
+	fileName := fmt.Sprintf(RuncName, arch)
+	file, err := NewFile(FileParams{
+		SSHClient:      sshClient,
+		Type:           FileBinary,
+		Name:           fileName,
+		LocalFullPath:  filepath.Join(fileName),
+		RemoteFullPath: filepath.Join(BinDir, fileName),
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Binary{
 		file,

@@ -14,11 +14,16 @@
  limitations under the License.
 */
 
-package service
+package user
 
-type Bootstrap interface {
-	AddUsers() error
-	CreateDirectory() error
-	ResetTmpDirectory() error
-	ExecInitScript() error
+import (
+	"fmt"
+)
+
+func (s *Service) Add() error {
+	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
+	if err != nil {
+		return err
+	}
+	return nil
 }

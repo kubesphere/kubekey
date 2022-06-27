@@ -14,11 +14,27 @@
  limitations under the License.
 */
 
-package service
+package directory
 
-type Bootstrap interface {
-	AddUsers() error
-	CreateDirectory() error
-	ResetTmpDirectory() error
-	ExecInitScript() error
+import (
+	"os"
+
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+)
+
+type Service struct {
+	SSHClient ssh.Interface
+	Path      string
+	Mode      os.FileMode
+}
+
+func NewService(sshClient ssh.Interface, path string, mode os.FileMode) *Service {
+	if mode == 0 {
+		mode = os.ModeDir
+	}
+	return &Service{
+		SSHClient: sshClient,
+		Path:      path,
+		Mode:      mode,
+	}
 }

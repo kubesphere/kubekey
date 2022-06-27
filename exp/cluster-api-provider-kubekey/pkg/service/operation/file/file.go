@@ -44,6 +44,9 @@ func NewFile(params FileParams) (*File, error) {
 	if params.SSHClient == nil {
 		return nil, errors.New("ssh client is required when creating a File")
 	}
+	if params.Type == "" {
+		return nil, errors.New("file type is required when creating a File")
+	}
 	return &File{
 		sshClient:      params.SSHClient,
 		name:           params.Name,

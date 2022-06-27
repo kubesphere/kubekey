@@ -20,7 +20,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/file/checksum"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util"
 )
 
@@ -30,12 +31,20 @@ const (
 	DockerDownloadURLTmpl = "https://download.docker.com/linux/static/stable/%s/docker-%s.tgz"
 )
 
-func NewDocker(file *File, version, arch string) (*Binary, error) {
+func NewDocker(sshClient ssh.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(DockerID, version, arch)
 
-	file.name = fmt.Sprintf(DockerName, version)
-	file.localFullPath = filepath.Join(file.name)
-	file.remoteFullPath = filepath.Join(BinDir, file.name)
+	fileName := fmt.Sprintf(DockerName, version)
+	file, err := NewFile(FileParams{
+		SSHClient:      sshClient,
+		Type:           FileBinary,
+		Name:           fileName,
+		LocalFullPath:  filepath.Join(fileName),
+		RemoteFullPath: filepath.Join(BinDir, fileName),
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Binary{
 		file,

@@ -21,6 +21,10 @@ import (
 )
 
 const (
+	HostReadyCondition clusterv1.ConditionType = "HostReadyCondition"
+)
+
+const (
 	// InstanceReadyCondition reports on current status of the SSH instance. Ready indicates the instance is in a Running state.
 	InstanceReadyCondition clusterv1.ConditionType = "InstanceReady"
 
