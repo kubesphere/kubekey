@@ -135,3 +135,12 @@ func (s *File) Fetch(override bool) error {
 	}
 	return s.sshClient.Fetch(s.LocalPath(), s.RemotePath())
 }
+
+func (s *File) Chmod(mode os.FileMode) error {
+	if !s.RemoteExist() {
+		return errors.Errorf("remote file %s is not exist in the remote path %s", s.Name(), s.RemotePath())
+	}
+
+	_, err := s.sshClient.SudoCmdf("chmod +%s", mode.String())
+	return err
+}

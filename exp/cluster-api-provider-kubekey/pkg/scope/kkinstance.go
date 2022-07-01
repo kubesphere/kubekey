@@ -14,29 +14,12 @@
  limitations under the License.
 */
 
-package ssh
+package scope
 
-type Interface interface {
-	Connector
-	Command
-	Sftp
-	Ping(host string) error
-}
+import (
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
+)
 
-type Connector interface {
-	Connect(host string) error
-	Close() error
-}
-
-type Command interface {
-	Cmd(cmd string) (string, error)
-	Cmdf(cmd string, a ...any) (string, error)
-	SudoCmd(cmd string) (string, error)
-	SudoCmdf(cmd string, a ...any) (string, error)
-}
-
-type Sftp interface {
-	Copy(local, remote string) error
-	Fetch(local, remote string) error
-	RemoteFileExist(remote string) (bool, error)
+type KKInstanceScope interface {
+	pkg.ClusterScoper
 }

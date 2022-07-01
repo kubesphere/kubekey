@@ -30,14 +30,14 @@ import (
 
 type Service struct {
 	SSHClient ssh.Interface
-	scope     *scope.InstanceScope
+	scope     scope.KKInstanceScope
 
 	userFactory      func(sshClient ssh.Interface, name, desc string) operation.User
 	directoryFactory func(sshClient ssh.Interface, path string, mode os.FileMode) operation.Directory
 	templateFactory  func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
 }
 
-func NewService(sshClient ssh.Interface, scope *scope.InstanceScope) *Service {
+func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope) *Service {
 	return &Service{
 		SSHClient: sshClient,
 		scope:     scope,

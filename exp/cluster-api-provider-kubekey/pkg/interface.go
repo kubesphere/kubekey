@@ -16,6 +16,10 @@
 
 package pkg
 
+import (
+	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+)
+
 // ScopeUsage is used to indicate which controller is using a scope.
 type ScopeUsage interface {
 	// ControllerName returns the name of the controller that created the scope
@@ -35,6 +39,21 @@ type ClusterScoper interface {
 
 	// KubernetesClusterName is the name of the Kubernetes cluster.
 	KubernetesClusterName() string
+
+	// ControlPlaneEndpoint returns KKCluster control plane endpoint
+	ControlPlaneEndpoint() infrav1.ControlPlaneEndPoint
+
+	Registry() *infrav1.Registry
+
+	Auth() *infrav1.Auth
+
+	ContainerManager() *infrav1.ContainerManager
+
+	AllInstancesSpec() []infrav1.KKInstanceSpec
+
+	GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKInstanceSpec
+
+	AllInstances() ([]*infrav1.KKInstance, error)
 
 	// PatchObject persists the cluster configuration and status.
 	PatchObject() error

@@ -17,6 +17,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -84,10 +85,29 @@ func (s *Service) ResetTmpDirectory() error {
 }
 
 func (s *Service) ExecInitScript() error {
+	var (
+		hostsList []string
+		lbHost    string
+	)
+
+	if s.scope.ControlPlaneEndpoint().Address != "" {
+		lbHost = fmt.Sprintf("%s  %s", s.scope.ControlPlaneEndpoint().Address, s.scope.ControlPlaneEndpoint().Domain)
+	}
+	for _, host := range s.scope.AllInstancesSpec() {
+		if host.Name != "" {
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
+				host.InternalAddress,
+				host.Name,
+				s.scope.KubernetesClusterName(),
+				host.Name))
+		}
+	}
+	hostsList = append(hostsList, lbHost)
+
 	svc, err := s.getTemplateFactory(
 		templates.InitOsScriptTmpl,
 		file.Data{
-			"Hosts": []string{},
+			"Hosts": hostsList,
 		},
 		filepath.Join(directory.KubeScriptDir, templates.InitOsScriptTmpl.Name()))
 	if err != nil {
@@ -96,13 +116,12 @@ func (s *Service) ExecInitScript() error {
 	if err := svc.RenderToLocal(); err != nil {
 		return err
 	}
-
 	if err := svc.Copy(true); err != nil {
 		return err
 	}
-
-	// todo: chmod +x svc.RemotePath()
-
+	if err := svc.Chmod(os.ModeExclusive); err != nil {
+		return err
+	}
 	if _, err := s.SSHClient.SudoCmd(svc.RemotePath()); err != nil {
 		return err
 	}

@@ -34,10 +34,10 @@ const (
 	InstanceCleanedReason = "InstanceCleaned"
 	// InstanceNotReadyReason used when the instance is in a pending state.
 	InstanceNotReadyReason = "InstanceNotReady"
-	// InstanceProvisionStartedReason set when the provisioning of an instance started.
-	InstanceProvisionStartedReason = "InstanceProvisionStarted"
-	// InstanceProvisionFailedReason used for failures during instance provisioning.
-	InstanceProvisionFailedReason = "InstanceProvisionFailed"
+	// InstanceBootstrapStartedReason set when the provisioning of an instance started.
+	InstanceBootstrapStartedReason = "InstanceBootstrapStarted"
+	// InstanceBootstrapFailedReason used for failures during instance provisioning.
+	InstanceBootstrapFailedReason = "InstanceBootstrapFailed"
 	// WaitingForClusterInfrastructureReason used when machine is waiting for cluster infrastructure to be ready before proceeding.
 	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
 	// WaitingForBootstrapDataReason used when machine is waiting for bootstrap data to be ready before proceeding.

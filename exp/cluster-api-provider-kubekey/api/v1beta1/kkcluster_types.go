@@ -17,6 +17,9 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+	"net"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -29,15 +32,30 @@ const (
 
 // KKClusterSpec defines the desired state of KKCluster
 type KKClusterSpec struct {
+	// Selector is a label query over machines that should match the replica count.
+	// Label keys and values that must match in order to be controlled by this MachineSet.
+	// It must match the machine template's labels.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	Selector metav1.LabelSelector `json:"selector"`
+
 	Nodes Nodes `json:"nodes"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint ControlPlaneEndPoint `json:"controlPlaneEndpoint"`
 
 	// Registry represents the cluster image registry used to pull the images.
 	// +optional
 	Registry Registry `json:"registry"`
+}
+
+type ControlPlaneEndPoint struct {
+	Address string `json:"address"`
+
+	Domain string `json:"domain"`
+
+	// The port on which the API server is serving.
+	Port int32 `json:"port"`
 }
 
 type Nodes struct {
@@ -98,4 +116,19 @@ func (k *KKCluster) SetConditions(conditions clusterv1.Conditions) {
 
 func init() {
 	SchemeBuilder.Register(&KKCluster{}, &KKClusterList{})
+}
+
+// IsZero returns true if both host and port are zero values.
+func (c ControlPlaneEndPoint) IsZero() bool {
+	return c.Address == "" && c.Port == 0
+}
+
+// IsValid returns true if both host and port are non-zero values.
+func (c ControlPlaneEndPoint) IsValid() bool {
+	return c.Address != "" && c.Port != 0
+}
+
+// String returns a formatted version HOST:PORT of this APIEndpoint.
+func (c ControlPlaneEndPoint) String() string {
+	return net.JoinHostPort(c.Address, fmt.Sprintf("%d", c.Port))
 }

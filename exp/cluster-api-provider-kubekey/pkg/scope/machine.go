@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -87,12 +89,22 @@ type MachineScope struct {
 	KKMachine    *infrav1.KKMachine
 }
 
+// Name returns the KKMachine name.
+func (m *MachineScope) Name() string {
+	return m.KKMachine.Name
+}
+
+// Namespace returns the namespace name.
+func (m *MachineScope) Namespace() string {
+	return m.KKMachine.Namespace
+}
+
 // IsControlPlane returns true if the machine is a control plane.
 func (m *MachineScope) IsControlPlane() bool {
 	return util.IsControlPlaneMachine(m.Machine)
 }
 
-// GetProviderID returns the AWSMachine providerID from the spec.
+// GetProviderID returns the KKMachine providerID from the spec.
 func (m *MachineScope) GetProviderID() string {
 	if m.KKMachine.Spec.ProviderID != nil {
 		return *m.KKMachine.Spec.ProviderID
@@ -109,7 +121,7 @@ func (m *MachineScope) GetInstanceID() *string {
 	return pointer.StringPtr(parsed.ID())
 }
 
-// SetProviderID sets the AWSMachine providerID in spec.
+// SetProviderID sets the KKMachine providerID in spec.
 func (m *MachineScope) SetProviderID(instanceID, clusterName string) {
 	providerID := fmt.Sprintf("kk:///%s/%s", clusterName, instanceID)
 	m.KKMachine.Spec.ProviderID = pointer.StringPtr(providerID)
@@ -120,34 +132,66 @@ func (m *MachineScope) SetInstanceID(instanceID string) {
 	m.KKMachine.Spec.InstanceID = pointer.StringPtr(instanceID)
 }
 
-// GetInstanceState returns the AWSMachine instance state from the status.
+func (m *MachineScope) IsRole(role infrav1.Role) bool {
+	for _, r := range m.KKMachine.Spec.Roles {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}
+
+// GetInstanceState returns the KKMachine instance state from the status.
 func (m *MachineScope) GetInstanceState() *infrav1.InstanceState {
 	return m.KKMachine.Status.InstanceState
 }
 
-// SetInstanceState sets the AWSMachine status instance state.
+// SetInstanceState sets the KKMachine status instance state.
 func (m *MachineScope) SetInstanceState(v infrav1.InstanceState) {
 	m.KKMachine.Status.InstanceState = &v
 }
 
-// SetReady sets the AWSMachine Ready Status.
+// SetReady sets the KKMachine Ready Status.
 func (m *MachineScope) SetReady() {
 	m.KKMachine.Status.Ready = true
 }
 
-// SetNotReady sets the AWSMachine Ready Status to false.
+// SetNotReady sets the KKMachine Ready Status to false.
 func (m *MachineScope) SetNotReady() {
 	m.KKMachine.Status.Ready = false
 }
 
-// SetFailureMessage sets the AWSMachine status failure message.
+// SetFailureMessage sets the KKMachine status failure message.
 func (m *MachineScope) SetFailureMessage(v error) {
 	m.KKMachine.Status.FailureMessage = pointer.StringPtr(v.Error())
 }
 
-// SetFailureReason sets the AWSMachine status failure reason.
+// SetFailureReason sets the KKMachine status failure reason.
 func (m *MachineScope) SetFailureReason(v capierrors.MachineStatusError) {
 	m.KKMachine.Status.FailureReason = &v
+}
+
+func (m *MachineScope) UseCloudInit(userDataFormat string) bool {
+	return userDataFormat == "cloudinit"
+}
+
+func (m *MachineScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
+	if m.Machine.Spec.Bootstrap.DataSecretName == nil {
+		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: m.Namespace(), Name: *m.Machine.Spec.Bootstrap.DataSecretName}
+	if err := m.client.Get(context.TODO(), key, secret); err != nil {
+		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for KKMachine %s/%s", m.Namespace(), m.Name())
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	return value, string(secret.Data["format"]), nil
 }
 
 // PatchObject persists the machine spec and status.
@@ -185,4 +229,10 @@ func (m *MachineScope) Close() error {
 // HasFailed returns the failure state of the machine scope.
 func (m *MachineScope) HasFailed() bool {
 	return m.KKMachine.Status.FailureReason != nil || m.KKMachine.Status.FailureMessage != nil
+}
+
+// InstanceIsInKnownState checks if the machine scope's instance state is known.
+func (m *MachineScope) InstanceIsInKnownState() bool {
+	state := m.GetInstanceState()
+	return state != nil && infrav1.InstanceKnownStates.Has(string(*state))
 }

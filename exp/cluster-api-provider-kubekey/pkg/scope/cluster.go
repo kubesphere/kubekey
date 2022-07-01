@@ -19,7 +19,9 @@ package scope
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -65,6 +67,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
+	logr.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 
@@ -92,6 +95,77 @@ func (s *ClusterScope) InfraClusterName() string {
 // KubernetesClusterName is the name of the Kubernetes cluster.
 func (s *ClusterScope) KubernetesClusterName() string {
 	return s.Cluster.Name
+}
+
+func (s *ClusterScope) ControlPlaneEndpoint() infrav1.ControlPlaneEndPoint {
+	return s.KKCluster.Spec.ControlPlaneEndpoint
+}
+
+func (s *ClusterScope) Registry() *infrav1.Registry {
+	return &s.KKCluster.Spec.Registry
+}
+
+func (s *ClusterScope) Auth() *infrav1.Auth {
+	return &s.KKCluster.Spec.Nodes.Auth
+}
+
+func (s *ClusterScope) ContainerManager() *infrav1.ContainerManager {
+	return &s.KKCluster.Spec.Nodes.ContainerManager
+}
+
+func (s *ClusterScope) AllInstancesSpec() []infrav1.KKInstanceSpec {
+	return s.KKCluster.Spec.Nodes.Instances
+}
+
+func (s *ClusterScope) GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKInstanceSpec {
+	var arr []infrav1.KKInstanceSpec
+	for _, v := range s.KKCluster.Spec.Nodes.Instances {
+		for _, r := range v.Roles {
+			if r == role {
+				arr = append(arr, v)
+			}
+		}
+	}
+	return arr
+}
+
+func (s *ClusterScope) AllInstances() ([]*infrav1.KKInstance, error) {
+	selectorMap, err := metav1.LabelSelectorAsMap(&s.KKCluster.Spec.Selector)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert KKCluster %q label selector to a map", s.KKCluster.Name)
+	}
+
+	// Get all KKInstances linked to this KKCluster.
+	allInstances := &infrav1.KKInstanceList{}
+	err = s.client.List(
+		context.TODO(),
+		allInstances,
+		client.InNamespace(s.KKCluster.Namespace),
+		client.MatchingLabels(selectorMap),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list kkInstances")
+	}
+
+	// Filter out irrelevant instances (deleting/mismatch labels) and claim orphaned instances.
+	filteredInstances := make([]*infrav1.KKInstance, 0, len(allInstances.Items))
+	for idx := range allInstances.Items {
+		instance := &allInstances.Items[idx]
+		if shouldExcludeInstance(s.KKCluster, instance) {
+			continue
+		}
+		filteredInstances = append(filteredInstances, instance)
+	}
+	return filteredInstances, nil
+}
+
+// shouldExcludeInstance returns true if the instance should be filtered out, false otherwise.
+func shouldExcludeInstance(cluster *infrav1.KKCluster, instance *infrav1.KKInstance) bool {
+	if metav1.GetControllerOf(instance) != nil && !metav1.IsControlledBy(instance, cluster) {
+		return true
+	}
+
+	return false
 }
 
 // PatchObject persists the cluster configuration and status.

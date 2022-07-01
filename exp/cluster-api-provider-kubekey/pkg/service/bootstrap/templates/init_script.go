@@ -142,31 +142,3 @@ ulimit -u 65535
 ulimit -n 65535
 
     `)))
-
-func GenerateHosts() []string {
-	var lbHost string
-	var hostsList []string
-
-	//if kubeConf.Cluster.ControlPlaneEndpoint.Address != "" {
-	//	lbHost = fmt.Sprintf("%s  %s", kubeConf.Cluster.ControlPlaneEndpoint.Address, kubeConf.Cluster.ControlPlaneEndpoint.Domain)
-	//} else {
-	//	lbHost = fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Master)[0].GetInternalAddress(), kubeConf.Cluster.ControlPlaneEndpoint.Domain)
-	//}
-	//
-	//for _, host := range runtime.GetAllHosts() {
-	//	if host.GetName() != "" {
-	//		hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-	//			host.GetInternalAddress(),
-	//			host.GetName(),
-	//			kubeConf.Cluster.Kubernetes.ClusterName,
-	//			host.GetName()))
-	//	}
-	//}
-	//
-	//if len(runtime.GetHostsByRole(common.Registry)) > 0 {
-	//	hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), registry.RegistryCertificateBaseName))
-	//}
-
-	hostsList = append(hostsList, lbHost)
-	return hostsList
-}

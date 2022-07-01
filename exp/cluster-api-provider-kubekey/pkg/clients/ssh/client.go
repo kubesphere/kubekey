@@ -216,6 +216,10 @@ func (c *Client) Cmd(cmd string) (string, error) {
 	return string(output), nil
 }
 
+func (c *Client) Cmdf(cmd string, a ...any) (string, error) {
+	return c.Cmd(fmt.Sprintf(cmd, a))
+}
+
 func (c *Client) SudoCmd(cmd string) (string, error) {
 	session, err := c.session()
 	if err != nil {
@@ -244,6 +248,10 @@ func (c *Client) SudoCmd(cmd string) (string, error) {
 		return "", err
 	}
 	return stdoutB.String(), nil
+}
+
+func (c *Client) SudoCmdf(cmd string, a ...any) (string, error) {
+	return c.SudoCmd(fmt.Sprintf(cmd, a))
 }
 
 func (c *Client) Copy(src, dst string) error {

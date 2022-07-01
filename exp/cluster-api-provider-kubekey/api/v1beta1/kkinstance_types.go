@@ -30,6 +30,10 @@ var (
 	// InstanceStatePending is the string representing an instance in a pending state.
 	InstanceStatePending = InstanceState("pending")
 
+	InstanceStateBootstrapping = InstanceState("bootstrapping")
+
+	//InstanceStateBootstrapped = InstanceState("bootstrapped")
+
 	// InstanceStateRunning is the string representing an instance in a running state.
 	InstanceStateRunning = InstanceState("running")
 
@@ -49,6 +53,7 @@ var (
 	// InstanceKnownStates represents all known EC2 instance states.
 	InstanceKnownStates = InstanceRunningStates.Union(
 		sets.NewString(
+			string(InstanceStateBootstrapping),
 			string(InstanceStateCleaning),
 			string(InstanceStateCleaned),
 		),
@@ -69,6 +74,9 @@ type KKInstanceSpec struct {
 	// InternalAddress is the internal IP address of the machine.
 	InternalAddress string `json:"internalAddress"`
 
+	// Roles is the role of the machine.
+	Roles []Role `json:"roles"`
+
 	// Arch is the architecture of the machine. e.g. "amd64", "arm64".
 	Arch string `json:"arch"`
 
@@ -77,6 +85,8 @@ type KKInstanceSpec struct {
 
 	// ContainerManager is the container manager config of this machine.
 	ContainerManager ContainerManager `json:"containerManager"`
+
+	Bootstrap clusterv1.Bootstrap `json:"bootstrap"`
 }
 
 // KKInstanceStatus defines the observed state of KKInstance
