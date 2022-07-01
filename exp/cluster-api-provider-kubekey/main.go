@@ -18,12 +18,18 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"os"
+	"time"
+
+	"github.com/spf13/pflag"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +37,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	infrastructurev1beta1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/controllers"
@@ -50,34 +55,44 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
-func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	var watchFilterValue string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
+var (
+	metricsAddr             string
+	enableLeaderElection    bool
+	leaderElectionNamespace string
+	probeAddr               string
+	watchFilterValue        string
+	kkClusterConcurrency    int
+	kkInstanceConcurrency   int
+	kkMachineConcurrency    int
+	syncPeriod              time.Duration
+	watchNamespace          string
+)
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+func main() {
+	klog.InitFlags(nil)
+
+	rand.Seed(time.Now().UnixNano())
+	initFlags(pflag.CommandLine)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+
+	ctrl.SetLogger(klogr.New())
 
 	ctx := ctrl.SetupSignalHandler()
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = "cluster-api-provider-kk-controller"
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsAddr,
-		Port:                       9443,
-		HealthProbeBindAddress:     probeAddr,
 		LeaderElection:             enableLeaderElection,
 		LeaderElectionID:           "controller-leader-election-capkk",
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+		LeaderElectionNamespace:    leaderElectionNamespace,
+		SyncPeriod:                 &syncPeriod,
+		Namespace:                  watchNamespace,
+		Port:                       9443,
+		HealthProbeBindAddress:     probeAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -89,7 +104,7 @@ func main() {
 		Recorder:         mgr.GetEventRecorderFor("kkcluster-controller"),
 		Scheme:           mgr.GetScheme(),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{RecoverPanic: true}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkClusterConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKCluster")
 		os.Exit(1)
 	}
@@ -98,7 +113,7 @@ func main() {
 		Recorder:         mgr.GetEventRecorderFor("kkmachine-controller"),
 		Scheme:           mgr.GetScheme(),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{RecoverPanic: true}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkMachineConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKMachine")
 		os.Exit(1)
 	}
@@ -107,7 +122,7 @@ func main() {
 		Recorder:         mgr.GetEventRecorderFor("kkinstance-controller"),
 		Scheme:           mgr.GetScheme(),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{RecoverPanic: true}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkInstanceConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKInstance")
 		os.Exit(1)
 	}
@@ -127,4 +142,65 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func initFlags(fs *pflag.FlagSet) {
+	fs.StringVar(
+		&metricsAddr,
+		"metrics-bind-address",
+		":8080",
+		"The address the metric endpoint binds to.",
+	)
+
+	fs.BoolVar(
+		&enableLeaderElection,
+		"leader-elect",
+		false,
+		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.",
+	)
+
+	fs.StringVar(
+		&watchNamespace,
+		"namespace",
+		"",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.",
+	)
+
+	fs.StringVar(
+		&leaderElectionNamespace,
+		"leader-elect-namespace",
+		"",
+		"Namespace that the controller performs leader election in. If unspecified, the controller will discover which namespace it is running in.",
+	)
+
+	fs.DurationVar(&syncPeriod,
+		"sync-period",
+		10*time.Minute,
+		"The minimum interval at which watched resources are reconciled. ",
+	)
+
+	fs.IntVar(&kkClusterConcurrency,
+		"kkcluster-concurrency",
+		5,
+		"Number of KKClusters to process simultaneously",
+	)
+
+	fs.IntVar(&kkInstanceConcurrency,
+		"kkinstance-concurrency",
+		5,
+		"Number of concurrent watches for instance state changes",
+	)
+
+	fs.IntVar(&kkMachineConcurrency,
+		"kkmachine-concurrency",
+		10,
+		"Number of KKMachines to process simultaneously",
+	)
+
+	fs.StringVar(
+		&probeAddr,
+		"health-probe-bind-address",
+		":8081",
+		"The address the probe endpoint binds to.",
+	)
 }

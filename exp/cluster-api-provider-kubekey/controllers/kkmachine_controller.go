@@ -75,6 +75,13 @@ func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	log := ctrl.LoggerFrom(ctx)
 	kkClusterToKKMachines := r.KKClusterToKKMachines(log)
 
+	if r.WaitKKInstanceInterval.Nanoseconds() == 0 {
+		r.WaitKKInstanceInterval = 10 * time.Second
+	}
+	if r.WaitKKInstanceTimeout.Nanoseconds() == 0 {
+		r.WaitKKInstanceTimeout = 10 * time.Minute
+	}
+
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.KKMachine{}).
