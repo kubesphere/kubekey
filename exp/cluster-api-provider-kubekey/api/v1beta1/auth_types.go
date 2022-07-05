@@ -29,18 +29,23 @@ type Auth struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// User is the username for SSH authentication.
+	// +optional
 	User string `yaml:"user,omitempty" json:"user,omitempty"`
 
 	// Password is the password for SSH authentication.
+	// +optional
 	Password string `yaml:"password,omitempty" json:"password,omitempty"`
 
 	// Port is the port for SSH authentication.
+	// +optional
 	Port *int `yaml:"port,omitempty" json:"port,omitempty"`
 
 	// PrivateKey is the value of the private key for SSH authentication.
+	// +optional
 	PrivateKey string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
 
 	// PrivateKeyFile is the path to the private key for SSH authentication.
+	// +optional
 	PrivateKeyPath string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 
 	// Timeout is the timeout for establish an SSH connection.

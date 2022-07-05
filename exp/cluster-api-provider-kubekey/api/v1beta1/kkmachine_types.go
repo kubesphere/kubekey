@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	// MachineFinalizer allows ReconcileAWSMachine to clean up KubeKey resources associated with KKMachine before
+	// MachineFinalizer allows ReconcileKKMachine to clean up KubeKey resources associated with KKMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "kkmachine.infrastructure.cluster.x-k8s.io"
 )
@@ -39,6 +39,7 @@ type KKMachineSpec struct {
 	Roles []Role `json:"roles"`
 
 	// ContainerManager is the container manager config of this machine.
+	// +optional
 	ContainerManager ContainerManager `json:"containerManager"`
 }
 
@@ -48,10 +49,10 @@ type KKMachineStatus struct {
 	// +optional
 	Ready bool `json:"ready"`
 
-	// Addresses contains the AWS instance associated addresses.
+	// Addresses contains the KK instance associated addresses.
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
-	// InstanceState is the state of the AWS instance for this machine.
+	// InstanceState is the state of the KK instance for this machine.
 	// +optional
 	InstanceState *InstanceState `json:"instanceState,omitempty"`
 

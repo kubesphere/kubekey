@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
-// InstanceState describes the state of an AWS instance.
+// InstanceState describes the state of an KK instance.
 type InstanceState string
 
 var (
@@ -62,8 +62,6 @@ var (
 
 // KKInstanceSpec defines the desired state of KKInstance
 type KKInstanceSpec struct {
-	ID string `json:"id"`
-
 	// Name is the host name of the machine.
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
@@ -78,14 +76,18 @@ type KKInstanceSpec struct {
 	Roles []Role `json:"roles"`
 
 	// Arch is the architecture of the machine. e.g. "amd64", "arm64".
+	// +optional
 	Arch string `json:"arch"`
 
 	// Auth is the SSH authentication information of this machine. It will override the global auth configuration.
+	// +optional
 	Auth Auth `json:"auth,omitempty"`
 
 	// ContainerManager is the container manager config of this machine.
+	// +optional
 	ContainerManager ContainerManager `json:"containerManager"`
 
+	// +optional
 	Bootstrap clusterv1.Bootstrap `json:"bootstrap"`
 }
 

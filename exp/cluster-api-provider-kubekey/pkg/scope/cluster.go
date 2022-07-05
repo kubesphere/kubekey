@@ -130,18 +130,13 @@ func (s *ClusterScope) GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKIns
 }
 
 func (s *ClusterScope) AllInstances() ([]*infrav1.KKInstance, error) {
-	selectorMap, err := metav1.LabelSelectorAsMap(&s.KKCluster.Spec.Selector)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to convert KKCluster %q label selector to a map", s.KKCluster.Name)
-	}
-
 	// Get all KKInstances linked to this KKCluster.
 	allInstances := &infrav1.KKInstanceList{}
-	err = s.client.List(
+	err := s.client.List(
 		context.TODO(),
 		allInstances,
 		client.InNamespace(s.KKCluster.Namespace),
-		client.MatchingLabels(selectorMap),
+		client.MatchingLabels(s.KKCluster.Labels),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list kkInstances")

@@ -182,7 +182,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	infraCluster, err := util.GetInfraCluster(ctx, r.Client, cluster, kkMachine, "kkmachine")
 	if err != nil {
-		return ctrl.Result{}, errors.New("error getting infra provider cluster object")
+		return ctrl.Result{}, errors.Wrapf(err, "error getting infra provider cluster object")
 	}
 	if infraCluster == nil {
 		log.Info("KKCluster is not ready yet")
@@ -323,9 +323,9 @@ func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, machineScope 
 			}
 		}
 
-		instance, err := r.createInstance(ctx, machineScope, clusterScope)
+		instance, err = r.createInstance(ctx, machineScope, clusterScope)
 		if err != nil {
-			log.Error(err, "unable to create kkInstance", "kkInstance", instance.Name)
+			log.Error(err, "unable to create kkInstance")
 			r.Recorder.Eventf(machineScope.KKMachine, corev1.EventTypeWarning, "FailedCreate", "Failed to create kkInstance %q: %v", instance.Name, err)
 			conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason,
 				clusterv1.ConditionSeverityError, err.Error())
@@ -371,6 +371,14 @@ func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, machineScope 
 		machineScope.SetFailureMessage(errors.Errorf("KubeKey instance state %q is unexpected", instance.Status.State))
 	}
 
+	var addresses []clusterv1.MachineAddress
+	privateIPAddress := clusterv1.MachineAddress{
+		Type:    clusterv1.MachineInternalIP,
+		Address: instance.Spec.InternalAddress,
+	}
+	addresses = append(addresses, privateIPAddress)
+	machineScope.SetAddresses(addresses)
+
 	return ctrl.Result{}, nil
 }
 
@@ -383,7 +391,9 @@ func (r *KKMachineReconciler) findInstance(ctx context.Context, machineScope *sc
 	// Parse the ProviderID.
 	pid, err := noderefutil.NewProviderID(machineScope.GetProviderID())
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
+		if !errors.Is(err, noderefutil.ErrEmptyProviderID) {
+			return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
+		}
 	} else {
 		// If the ProviderID is populated, describe the instance using the ID.
 		id := pointer.StringPtr(pid.ID())

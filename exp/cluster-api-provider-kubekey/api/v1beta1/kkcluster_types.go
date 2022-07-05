@@ -32,11 +32,11 @@ const (
 
 // KKClusterSpec defines the desired state of KKCluster
 type KKClusterSpec struct {
-	// Selector is a label query over machines that should match the replica count.
-	// Label keys and values that must match in order to be controlled by this MachineSet.
-	// It must match the machine template's labels.
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
-	Selector metav1.LabelSelector `json:"selector"`
+	//// Selector is a label query over machines that should match the replica count.
+	//// Label keys and values that must match in order to be controlled by this MachineSet.
+	//// It must match the machine template's labels.
+	//// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	//Selector metav1.LabelSelector `json:"selector"`
 
 	Nodes Nodes `json:"nodes"`
 
@@ -50,6 +50,7 @@ type KKClusterSpec struct {
 }
 
 type ControlPlaneEndPoint struct {
+	// +optional
 	Address string `json:"address"`
 
 	Domain string `json:"domain"`
@@ -60,9 +61,11 @@ type ControlPlaneEndPoint struct {
 
 type Nodes struct {
 	// Auth is the SSH authentication information of all instance. It is a global auth configuration.
+	// +optional
 	Auth Auth `json:"auth"`
 
 	// ContainerManager is the container manager config of all instance. It is a global container manager configuration.
+	// +optional
 	ContainerManager ContainerManager `json:"containerManager"`
 
 	// Instances defines all instance contained in kkcluster.

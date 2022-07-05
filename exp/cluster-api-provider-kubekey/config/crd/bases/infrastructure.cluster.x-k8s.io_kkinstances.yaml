@@ -160,8 +160,6 @@ spec:
                 - type
                 - version
                 type: object
-              id:
-                type: string
               internalAddress:
                 description: InternalAddress is the internal IP address of the machine.
                 type: string
@@ -176,10 +174,6 @@ spec:
                 type: array
             required:
             - address
-            - arch
-            - bootstrap
-            - containerManager
-            - id
             - internalAddress
             - name
             - roles

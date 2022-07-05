@@ -132,6 +132,11 @@ func (m *MachineScope) SetInstanceID(instanceID string) {
 	m.KKMachine.Spec.InstanceID = pointer.StringPtr(instanceID)
 }
 
+// SetAddresses sets the KKMachine address status.
+func (m *MachineScope) SetAddresses(addrs []clusterv1.MachineAddress) {
+	m.KKMachine.Status.Addresses = addrs
+}
+
 func (m *MachineScope) IsRole(role infrav1.Role) bool {
 	for _, r := range m.KKMachine.Spec.Roles {
 		if r == role {

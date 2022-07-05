@@ -36,7 +36,7 @@ func GetInfraCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cl
 	}
 
 	if err := c.Get(ctx, infraClusterName, kkCluster); err != nil {
-		return nil, nil // nolint:nilerr
+		return nil, err
 	}
 
 	// Create the cluster scope

@@ -98,9 +98,9 @@ func (r *KKClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
-				// for AWSCluster resources only
+				// for KKCluster resources only
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "AWSCluster" {
+					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "KKCluster" {
 						return true
 					}
 

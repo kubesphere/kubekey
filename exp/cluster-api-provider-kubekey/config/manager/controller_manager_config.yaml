@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: cb659ce9.kubekey.kubesphere.io
+  resourceName: controller-leader-election-capkk

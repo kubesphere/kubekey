@@ -120,11 +120,11 @@ func (c *Client) Close() (err error) {
 	}
 
 	if c.sshClient != nil {
-		err = c.sshClient.Close()
+		_ = c.sshClient.Close()
 		c.sshClient = nil
 	}
 	if c.scpClient != nil {
-		err = c.scpClient.Close()
+		_ = c.scpClient.Close()
 		c.scpClient = nil
 	}
 	return err
@@ -217,7 +217,7 @@ func (c *Client) Cmd(cmd string) (string, error) {
 }
 
 func (c *Client) Cmdf(cmd string, a ...any) (string, error) {
-	return c.Cmd(fmt.Sprintf(cmd, a))
+	return c.Cmd(fmt.Sprintf(cmd, a...))
 }
 
 func (c *Client) SudoCmd(cmd string) (string, error) {
@@ -251,7 +251,7 @@ func (c *Client) SudoCmd(cmd string) (string, error) {
 }
 
 func (c *Client) SudoCmdf(cmd string, a ...any) (string, error) {
-	return c.SudoCmd(fmt.Sprintf(cmd, a))
+	return c.SudoCmd(fmt.Sprintf(cmd, a...))
 }
 
 func (c *Client) Copy(src, dst string) error {

@@ -48,8 +48,9 @@ func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *
 			Name:            r.generateInstanceID(instanceSpec),
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineScope.KKMachine, kkMachineKind)},
 			Namespace:       machineScope.KKMachine.Namespace,
-			Labels:          machineScope.KKMachine.Labels,
-			Annotations:     machineScope.KKMachine.Annotations,
+			// todo: if need to use the kkmachine labels?
+			Labels:      machineScope.Machine.Labels,
+			Annotations: machineScope.KKMachine.Annotations,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       gv.WithKind("KKInstance").Kind,
@@ -69,7 +70,7 @@ func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *
 		i := &infrav1.KKInstance{}
 		key := client.ObjectKeyFromObject(instance)
 		if err := r.Client.Get(ctx, key, i); err != nil {
-			return false, err
+			return false, nil
 		}
 
 		if i.Status.State == infrav1.InstanceStateRunning {
@@ -114,7 +115,7 @@ func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.Mach
 			if err := mergo.Merge(&spec.Auth, auth); err != nil {
 				return nil, err
 			}
-			cm := clusterScope.Auth().DeepCopy()
+			cm := clusterScope.ContainerManager().DeepCopy()
 			if err := mergo.Merge(&spec.ContainerManager, cm); err != nil {
 				return nil, err
 			}

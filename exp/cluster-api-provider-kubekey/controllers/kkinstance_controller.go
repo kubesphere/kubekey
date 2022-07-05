@@ -183,7 +183,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	infraCluster, err := util.GetInfraCluster(ctx, r.Client, cluster, kkMachine, "kkinstance")
 	if err != nil {
-		return ctrl.Result{}, errors.New("error getting infra provider cluster object")
+		return ctrl.Result{}, errors.Wrapf(err, "error getting infra provider cluster object")
 	}
 	if infraCluster == nil {
 		log.Info("KKCluster is not ready yet")
@@ -193,6 +193,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := r.Dialer.Ping(kkInstance.Spec.Address, &kkInstance.Spec.Auth, 3); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to ping remote instance [%s]", kkInstance.Spec.Address)
 	}
+	defer r.Dialer.Close(kkInstance.Spec.Address)
 
 	instanceScope, err := scope.NewInstanceScope(scope.InstanceScopeParams{
 		Client:       r.Client,
@@ -362,8 +363,7 @@ func (r *KKInstanceReconciler) KKMachineToKKInstanceMapFunc() handler.MapFunc {
 			return nil
 		}
 
-		id := pointer.StringPtr(*m.Spec.InstanceID)
-		if id == nil {
+		if m.Spec.InstanceID == nil {
 			return nil
 		}
 
@@ -371,7 +371,7 @@ func (r *KKInstanceReconciler) KKMachineToKKInstanceMapFunc() handler.MapFunc {
 			{
 				NamespacedName: client.ObjectKey{
 					Namespace: m.Namespace,
-					Name:      *id,
+					Name:      *m.Spec.InstanceID,
 				},
 			},
 		}

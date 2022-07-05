@@ -67,7 +67,6 @@ spec:
                     format: int32
                     type: integer
                 required:
-                - address
                 - domain
                 - port
                 type: object
@@ -279,8 +278,6 @@ spec:
                           - type
                           - version
                           type: object
-                        id:
-                          type: string
                         internalAddress:
                           description: InternalAddress is the internal IP address
                             of the machine.
@@ -296,18 +293,12 @@ spec:
                           type: array
                       required:
                       - address
-                      - arch
-                      - bootstrap
-                      - containerManager
-                      - id
                       - internalAddress
                       - name
                       - roles
                       type: object
                     type: array
                 required:
-                - auth
-                - containerManager
                 - instances
                 type: object
               registry:
@@ -385,56 +376,8 @@ spec:
                 - namespaceOverride
                 - privateRegistry
                 type: object
-              selector:
-                description: 'Selector is a label query over machines that should
-                  match the replica count. Label keys and values that must match in
-                  order to be controlled by this MachineSet. It must match the machine
-                  template''s labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
-                properties:
-                  matchExpressions:
-                    description: matchExpressions is a list of label selector requirements.
-                      The requirements are ANDed.
-                    items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
-                      properties:
-                        key:
-                          description: key is the label key that the selector applies
-                            to.
-                          type: string
-                        operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
-                          type: string
-                        values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
-                            merge patch.
-                          items:
-                            type: string
-                          type: array
-                      required:
-                      - key
-                      - operator
-                      type: object
-                    type: array
-                  matchLabels:
-                    additionalProperties:
-                      type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
-                    type: object
-                type: object
             required:
             - nodes
-            - selector
             type: object
           status:
             description: KKClusterStatus defines the observed state of KKCluster

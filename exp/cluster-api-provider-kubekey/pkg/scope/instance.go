@@ -61,7 +61,7 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 		return nil, errors.New("kk instance is required when creating a InstanceScope")
 	}
 
-	helper, err := patch.NewHelper(params.KKMachine, params.Client)
+	helper, err := patch.NewHelper(params.KKInstance, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}

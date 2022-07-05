@@ -3,4 +3,4 @@ kind: KKMachine
 metadata:
   name: kkmachine-sample
 spec:
-  # TODO(user): Add fields here
+  roles: [control-plane, worker]

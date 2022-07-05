@@ -99,14 +99,13 @@ spec:
                   type: string
                 type: array
             required:
-            - containerManager
             - roles
             type: object
           status:
             description: KKMachineStatus defines the observed state of KKMachine
             properties:
               addresses:
-                description: Addresses contains the AWS instance associated addresses.
+                description: Addresses contains the KK instance associated addresses.
                 items:
                   description: MachineAddress contains information for the node's
                     address.
@@ -199,7 +198,7 @@ spec:
                   the Machine object and/or logged in the controller's output."
                 type: string
               instanceState:
-                description: InstanceState is the state of the AWS instance for this
+                description: InstanceState is the state of the KK instance for this
                   machine.
                 type: string
               ready:

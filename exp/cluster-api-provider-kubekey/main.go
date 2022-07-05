@@ -26,6 +26,8 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/record"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -38,7 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	infrastructurev1beta1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -50,8 +52,8 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(infrastructurev1beta1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(infrav1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -99,6 +101,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize event recorder.
+	record.InitFromRecorder(mgr.GetEventRecorderFor("kk-controller"))
+
 	if err = (&controllers.KKClusterReconciler{
 		Client:           mgr.GetClient(),
 		Recorder:         mgr.GetEventRecorderFor("kkcluster-controller"),
@@ -138,7 +143,7 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
@@ -176,25 +181,25 @@ func initFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&syncPeriod,
 		"sync-period",
 		10*time.Minute,
-		"The minimum interval at which watched resources are reconciled. ",
+		"The minimum interval at which watched resources are reconciled.",
 	)
 
 	fs.IntVar(&kkClusterConcurrency,
 		"kkcluster-concurrency",
 		5,
-		"Number of KKClusters to process simultaneously",
+		"Number of KKClusters to process simultaneously.",
 	)
 
 	fs.IntVar(&kkInstanceConcurrency,
 		"kkinstance-concurrency",
 		5,
-		"Number of concurrent watches for instance state changes",
+		"Number of concurrent watches for instance state changes.",
 	)
 
 	fs.IntVar(&kkMachineConcurrency,
 		"kkmachine-concurrency",
 		10,
-		"Number of KKMachines to process simultaneously",
+		"Number of KKMachines to process simultaneously.",
 	)
 
 	fs.StringVar(
