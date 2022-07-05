@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
 )
 
 // InstanceScopeParams defines the input parameters used to create a new InstanceScope.
@@ -83,10 +84,14 @@ type InstanceScope struct {
 	patchHelper *patch.Helper
 
 	Cluster      *clusterv1.Cluster
-	InfraCluster *ClusterScope
+	InfraCluster pkg.ClusterScoper
 	//Machine      *clusterv1.Machine
 	KKMachine  *infrav1.KKMachine
 	KKInstance *infrav1.KKInstance
+}
+
+func (i *InstanceScope) InternalAddress() string {
+	return i.KKInstance.Spec.InternalAddress
 }
 
 // PatchObject persists the machine spec and status.

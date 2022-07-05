@@ -90,15 +90,15 @@ func (s *Service) ExecInitScript() error {
 		lbHost    string
 	)
 
-	if s.scope.ControlPlaneEndpoint().Address != "" {
-		lbHost = fmt.Sprintf("%s  %s", s.scope.ControlPlaneEndpoint().Address, s.scope.ControlPlaneEndpoint().Domain)
+	if s.infraCluster.ControlPlaneEndpoint().Address != "" {
+		lbHost = fmt.Sprintf("%s  %s", s.infraCluster.ControlPlaneEndpoint().Address, s.infraCluster.ControlPlaneEndpoint().Domain)
 	}
-	for _, host := range s.scope.AllInstancesSpec() {
+	for _, host := range s.infraCluster.AllInstancesSpec() {
 		if host.Name != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
 				host.InternalAddress,
 				host.Name,
-				s.scope.KubernetesClusterName(),
+				s.infraCluster.KubernetesClusterName(),
 				host.Name))
 		}
 	}

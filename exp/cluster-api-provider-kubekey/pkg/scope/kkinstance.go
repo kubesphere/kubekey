@@ -17,9 +17,12 @@
 package scope
 
 import (
+	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
 )
 
 type KKInstanceScope interface {
 	pkg.ClusterScoper
+
+	InstanceAuth() *infrav1.Auth
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -45,6 +46,8 @@ import (
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/bootstrap"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util"
 )
 
@@ -57,9 +60,21 @@ type KKInstanceReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
+	bootstrapFactory func(sshClient ssh.Interface, scope *scope.InstanceScope) service.Bootstrap
 	WatchFilterValue string
 
 	Dialer *ssh.Dialer
+}
+
+func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) (ssh.Interface, error) {
+	return r.Dialer.Connect(scope.KKInstance.Spec.Address, &scope.KKInstance.Spec.Auth)
+}
+
+func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scope *scope.InstanceScope) service.Bootstrap {
+	if r.bootstrapFactory != nil {
+		return r.bootstrapFactory(sshClient, scope)
+	}
+	return bootstrap.NewService(sshClient, scope)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -205,6 +220,13 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.reconcileNormal(ctx, instanceScope)
 }
 
+func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(4).Info("Reconcile KKInstance delete")
+
+	return ctrl.Result{}, nil
+}
+
 func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKInstance normal")
@@ -221,6 +243,29 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 		return ctrl.Result{}, nil
 	}
 
+	sshClient, err := r.getSSHClient(instanceScope)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get remote instance [%s] ssh client", instanceScope.InternalAddress())
+	}
+
+	phases := []func(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope) (ctrl.Result, error){
+		r.reconcileBootstrap,
+	}
+
+	res := ctrl.Result{}
+	var errs []error
+	for _, phase := range phases {
+		// Call the inner reconciliation methods.
+		phaseResult, err := phase(ctx, sshClient, instanceScope)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if len(errs) > 0 {
+			continue
+		}
+		res = cutil.LowestNonZeroResult(res, phaseResult)
+	}
+
 	// parse cloud-init file
 	// todo:
 
@@ -233,11 +278,7 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 	// install container runtime
 	// todo:
 
-	return ctrl.Result{}, nil
-}
-
-func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) (ssh.Interface, error) {
-	return r.Dialer.Connect(scope.KKInstance.Spec.Address, &scope.KKInstance.Spec.Auth)
+	return res, kerrors.NewAggregate(errs)
 }
 
 // KKClusterToKKInstances is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation of KKInstance.
