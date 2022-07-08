@@ -203,22 +203,21 @@ func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {
 }
 
 func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
-	generateCilium := &task.RemoteTask{
-		Name:    "GenerateCilium",
-		Desc:    "Generate cilium",
-		Hosts:   d.Runtime.GetHostsByRole(common.Master),
-		Prepare: new(common.OnlyFirstMaster),
-		Action: &action.Template{
-			Template: templates.Cilium,
-			Dst:      filepath.Join(common.KubeConfigDir, templates.Cilium.Name()),
-			Data: util.Data{
-				"KubePodsCIDR":         d.KubeConf.Cluster.Network.KubePodsCIDR,
-				"NodeCidrMaskSize":     d.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
-				"CiliumImage":          images.GetImage(d.Runtime, d.KubeConf, "cilium").ImageName(),
-				"OperatorGenericImage": images.GetImage(d.Runtime, d.KubeConf, "operator-generic").ImageName(),
-			},
-		},
+
+	releaseCiliumChart := &task.LocalTask{
+		Name:   "GenerateCiliumChart",
+		Desc:   "Generate cilium chart",
+		Action: new(ReleaseCiliumChart),
+	}
+
+	syncCiliumChart := &task.RemoteTask{
+		Name:     "SyncKubeBinary",
+		Desc:     "Synchronize kubernetes binaries",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(SyncCiliumChart),
 		Parallel: true,
+		Retry:    2,
 	}
 
 	deploy := &task.RemoteTask{
@@ -226,13 +225,14 @@ func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
 		Desc:     "Deploy cilium",
 		Hosts:    d.Runtime.GetHostsByRole(common.Master),
 		Prepare:  new(common.OnlyFirstMaster),
-		Action:   new(DeployNetworkPlugin),
+		Action:   new(DeployCilium),
 		Parallel: true,
 		Retry:    5,
 	}
 
 	return []task.Interface{
-		generateCilium,
+		releaseCiliumChart,
+		syncCiliumChart,
 		deploy,
 	}
 }

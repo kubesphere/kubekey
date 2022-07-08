@@ -17,6 +17,7 @@
 package network
 
 import (
+	"embed"
 	"fmt"
 	"github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -26,8 +27,77 @@ import (
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/plugins/network/templates"
 	"github.com/pkg/errors"
+	"io"
+	"os"
 	"path/filepath"
 )
+
+//go:embed cilium-1.11.6.tgz
+
+var f embed.FS
+
+type ReleaseCiliumChart struct {
+	common.KubeAction
+}
+
+func (r *ReleaseCiliumChart) Execute(runtime connector.Runtime) error {
+	fs, err := os.Create(fmt.Sprintf("%s/cilium.tgz", runtime.GetWorkDir()))
+	if err != nil {
+		return err
+	}
+	chartFile, err := f.Open("cilium-1.11.6.tgz")
+	if err != nil {
+		return err
+	}
+	defer chartFile.Close()
+
+	_, err = io.Copy(fs, chartFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type SyncCiliumChart struct {
+	common.KubeAction
+}
+
+func (s *SyncCiliumChart) Execute(runtime connector.Runtime) error {
+	src := filepath.Join(runtime.GetWorkDir(), "cilium.tgz")
+	dst := filepath.Join(common.TmpDir, "cilium.tgz")
+	if err := runtime.GetRunner().Scp(src, dst); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync cilium chart failed"))
+	}
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("mv %s/cilium.tgz /etc/kubernetes", common.TmpDir), true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "sync cilium chart failed")
+	}
+	return nil
+}
+
+type DeployCilium struct {
+	common.KubeAction
+}
+
+func (d *DeployCilium) Execute(runtime connector.Runtime) error {
+	ciliumImage := images.GetImage(runtime, d.KubeConf, "cilium").ImageName()
+	ciliumOperatorImage := images.GetImage(runtime, d.KubeConf, "cilium-operator-generic").ImageName()
+
+	cmd := fmt.Sprintf("/usr/local/bin/helm upgrade --install cilium /etc/kubernetes/cilium.tgz --namespace kube-system "+
+		"--set operator.image.override=%s "+
+		"--set operator.replicas=1 "+
+		"--set image.override=%s "+
+		"--set ipam.operator.clusterPoolIPv4PodCIDR=%s", ciliumOperatorImage, ciliumImage, d.KubeConf.Cluster.Network.KubePodsCIDR)
+
+	if d.KubeConf.Cluster.Kubernetes.DisableKubeProxy {
+		cmd = fmt.Sprintf("%s --set kubeProxyReplacement=strict --set k8sServiceHost=%s --set k8sServicePort=%d", cmd, d.KubeConf.Cluster.ControlPlaneEndpoint.Address, d.KubeConf.Cluster.ControlPlaneEndpoint.Port)
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(cmd, true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "deploy cilium failed")
+	}
+	return nil
+}
 
 type DeployNetworkPlugin struct {
 	common.KubeAction
