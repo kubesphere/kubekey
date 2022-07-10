@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
@@ -30,15 +31,16 @@ const (
 	ContainerdDownloadURLTmpl = "https://github.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz"
 )
 
-func NewContainerd(sshClient ssh.Interface, version, arch string) (*Binary, error) {
+func NewContainerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(ContainerdID, version, arch)
 
 	fileName := fmt.Sprintf(ContainerdName, version, arch)
 	file, err := NewFile(FileParams{
 		SSHClient:      sshClient,
+		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
 		RemoteFullPath: filepath.Join(BinDir, fileName),
 	})
 	if err != nil {

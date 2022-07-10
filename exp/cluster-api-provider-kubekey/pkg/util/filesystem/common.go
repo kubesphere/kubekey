@@ -14,18 +14,35 @@
  limitations under the License.
 */
 
-package user
+package filesystem
 
 import (
-	"fmt"
+	"path/filepath"
 
-	"github.com/pkg/errors"
+	"github.com/mitchellh/go-homedir"
 )
 
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
+const (
+	DefaultLocalTmpDir = "/var/lib/kubekey"
+)
+
+const (
+	FileMode0755 = 0755
+	FileMode0644 = 0644
+)
+
+func GetClusterWorkDir(clusterName string) string {
+	return filepath.Join(HomeDir(), ".kubekey", clusterName)
+}
+
+func GetCommonWorkDir() string {
+	return filepath.Join(HomeDir(), ".kubekey")
+}
+
+func HomeDir() string {
+	home, err := homedir.Dir()
 	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
+		return "/root"
 	}
-	return nil
+	return home
 }

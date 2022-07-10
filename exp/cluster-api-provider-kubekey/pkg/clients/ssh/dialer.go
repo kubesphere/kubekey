@@ -20,8 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 )
 
@@ -41,9 +39,9 @@ func (d *Dialer) Ping(host string, auth *infrav1.Auth, retry int) error {
 	defer d.lock.Unlock()
 
 	var err error
-	client := NewClient(auth)
+	client := NewClient(host, auth)
 	for i := 0; i < retry; i++ {
-		err = client.Ping(host)
+		err = client.Ping()
 		if err == nil {
 			break
 		}
@@ -58,12 +56,8 @@ func (d *Dialer) Connect(host string, auth *infrav1.Auth) (Interface, error) {
 
 	client, ok := d.clients[host]
 	if !ok {
-		if err := d.Ping(host, auth, 3); err != nil {
-			return nil, errors.Wrapf(err, "the host %s ssh is not ready", host)
-		}
-
-		client = NewClient(auth)
-		if err := client.Connect(host); err != nil {
+		client = NewClient(host, auth)
+		if err := client.Connect(); err != nil {
 			return nil, err
 		}
 		d.clients[host] = client

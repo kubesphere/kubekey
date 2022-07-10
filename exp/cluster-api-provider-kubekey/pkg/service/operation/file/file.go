@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 )
 
 type FileType string
@@ -38,17 +39,22 @@ type FileParams struct {
 	Type           FileType
 	LocalFullPath  string
 	RemoteFullPath string
+	RootFs         rootfs.Interface
 }
 
 func NewFile(params FileParams) (*File, error) {
 	if params.SSHClient == nil {
 		return nil, errors.New("ssh client is required when creating a File")
 	}
+	if params.RootFs == nil {
+		return nil, errors.New("rootfs is required when creating a File")
+	}
 	if params.Type == "" {
 		return nil, errors.New("file type is required when creating a File")
 	}
 	return &File{
 		sshClient:      params.SSHClient,
+		rootFs:         params.RootFs,
 		name:           params.Name,
 		fileType:       params.Type,
 		localFullPath:  params.LocalFullPath,
@@ -62,6 +68,7 @@ type File struct {
 	fileType       FileType
 	localFullPath  string
 	remoteFullPath string
+	rootFs         rootfs.Interface
 }
 
 func (s *File) Name() string {
@@ -136,11 +143,11 @@ func (s *File) Fetch(override bool) error {
 	return s.sshClient.Fetch(s.LocalPath(), s.RemotePath())
 }
 
-func (s *File) Chmod(mode os.FileMode) error {
+func (s *File) Chmod(option string) error {
 	if !s.RemoteExist() {
 		return errors.Errorf("remote file %s is not exist in the remote path %s", s.Name(), s.RemotePath())
 	}
 
-	_, err := s.sshClient.SudoCmdf("chmod +%s", mode.String())
+	_, err := s.sshClient.SudoCmdf("chmod %s", option)
 	return err
 }

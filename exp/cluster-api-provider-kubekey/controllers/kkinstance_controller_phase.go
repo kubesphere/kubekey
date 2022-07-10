@@ -21,27 +21,30 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
-func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
+func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope, lbScope scope.LBScope) error {
 	log := ctrl.LoggerFrom(ctx, "infraCluster", instanceScope.InfraCluster.Name())
 	log.V(4).Info("Reconcile bootstrap")
 
-	svc := r.getBootstrapService(sshClient, instanceScope)
+	instanceScope.SetState(infrav1.InstanceStateBootstrapping)
+
+	svc := r.getBootstrapService(sshClient, lbScope)
 
 	if err := svc.AddUsers(); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	if err := svc.CreateDirectory(); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	if err := svc.ResetTmpDirectory(); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	if err := svc.ExecInitScript(); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
-	return ctrl.Result{}, nil
+	return nil
 }

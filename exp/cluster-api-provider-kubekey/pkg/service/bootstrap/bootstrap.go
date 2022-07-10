@@ -24,7 +24,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/bootstrap/templates"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/directory"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
-	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
 func (s *Service) AddUsers() error {
@@ -41,20 +41,19 @@ func (s *Service) CreateDirectory() error {
 		directory.KubeCertDir,
 		directory.KubeManifestDir,
 		directory.KubeScriptDir,
-		common.KubeletFlexvolumesPluginsDir,
+		directory.KubeletFlexvolumesPluginsDir,
 		"/var/lib/calico",
 		"/etc/cni/net.d",
 		"/opt/cni/bin",
 	}
 	for _, dir := range makeDirs {
-		dirService := s.getDirectoryFactory(dir, os.ModeDir)
+		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0644))
 		if err := dirService.Make(); err != nil {
 			return err
 		}
 	}
 
 	chownDirs := []string{
-		directory.BinDir,
 		directory.KubeConfigDir,
 		directory.KubeCertDir,
 		directory.KubeManifestDir,
@@ -65,7 +64,7 @@ func (s *Service) CreateDirectory() error {
 		"/var/lib/calico",
 	}
 	for _, dir := range chownDirs {
-		dirService := s.getDirectoryFactory(dir, os.ModeDir)
+		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0644))
 		if err := dirService.Chown("kube"); err != nil {
 			return err
 		}
@@ -74,7 +73,7 @@ func (s *Service) CreateDirectory() error {
 }
 
 func (s *Service) ResetTmpDirectory() error {
-	dirService := s.getDirectoryFactory(directory.TmpDir, os.ModeDir)
+	dirService := s.getDirectoryFactory(directory.TmpDir, os.FileMode(filesystem.FileMode0644))
 	if err := dirService.Remove(); err != nil {
 		return err
 	}
@@ -90,15 +89,15 @@ func (s *Service) ExecInitScript() error {
 		lbHost    string
 	)
 
-	if s.infraCluster.ControlPlaneEndpoint().Address != "" {
-		lbHost = fmt.Sprintf("%s  %s", s.infraCluster.ControlPlaneEndpoint().Address, s.infraCluster.ControlPlaneEndpoint().Domain)
+	if s.scope.ControlPlaneLoadBalancer().Address != "" {
+		lbHost = fmt.Sprintf("%s  %s", s.scope.ControlPlaneLoadBalancer().Address, s.scope.ControlPlaneEndpoint().Host)
 	}
-	for _, host := range s.infraCluster.AllInstancesSpec() {
+	for _, host := range s.scope.AllInstancesSpec() {
 		if host.Name != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
 				host.InternalAddress,
 				host.Name,
-				s.infraCluster.KubernetesClusterName(),
+				s.scope.KubernetesClusterName(),
 				host.Name))
 		}
 	}
@@ -119,7 +118,7 @@ func (s *Service) ExecInitScript() error {
 	if err := svc.Copy(true); err != nil {
 		return err
 	}
-	if err := svc.Chmod(os.ModeExclusive); err != nil {
+	if err := svc.Chmod("+x"); err != nil {
 		return err
 	}
 	if _, err := s.SSHClient.SudoCmd(svc.RemotePath()); err != nil {

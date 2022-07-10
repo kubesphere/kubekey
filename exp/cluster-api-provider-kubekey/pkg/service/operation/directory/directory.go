@@ -18,12 +18,14 @@ package directory
 
 import (
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 func (s *Service) Make() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("mkdir -p -m %s %s", s.Mode.String(), s.Path))
+	_, err := s.SSHClient.SudoCmdf("mkdir -p -m %s %s", s.Mode.PermNumberString(), s.Path)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to mkdir -p -m %s %s", s.Mode.PermNumberString(), s.Path)
 	}
 	return nil
 }
@@ -31,7 +33,7 @@ func (s *Service) Make() error {
 func (s *Service) Chown(user string) error {
 	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("chown %s -R %s", user, s.Path))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to chown %s -R %s", user, s.Path)
 	}
 	return nil
 }
@@ -39,7 +41,7 @@ func (s *Service) Chown(user string) error {
 func (s *Service) Remove() error {
 	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("rm -rf %s", s.Path))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to rm -rf %s", s.Path)
 	}
 	return nil
 }

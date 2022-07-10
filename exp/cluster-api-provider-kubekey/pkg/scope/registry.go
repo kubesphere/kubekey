@@ -14,18 +14,12 @@
  limitations under the License.
 */
 
-package user
+package scope
 
 import (
-	"fmt"
-
-	"github.com/pkg/errors"
+	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 )
 
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
-	}
-	return nil
+type RegistryScope interface {
+	Registry() *infrav1.Registry
 }

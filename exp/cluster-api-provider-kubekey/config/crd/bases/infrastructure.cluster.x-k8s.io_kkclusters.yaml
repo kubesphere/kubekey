@@ -58,17 +58,25 @@ spec:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
                 properties:
-                  address:
-                    type: string
-                  domain:
+                  host:
+                    description: The hostname on which the API server is serving.
                     type: string
                   port:
                     description: The port on which the API server is serving.
                     format: int32
                     type: integer
                 required:
-                - domain
+                - host
                 - port
+                type: object
+              controlPlaneLoadBalancer:
+                description: ControlPlaneLoadBalancer is optional configuration for
+                  customizing control plane behavior.
+                properties:
+                  address:
+                    type: string
+                  domain:
+                    type: string
                 type: object
               nodes:
                 properties:
@@ -383,8 +391,7 @@ spec:
             description: KKClusterStatus defines the observed state of KKCluster
             properties:
               conditions:
-                description: Conditions provide observations of the operational state
-                  of a Cluster API resource.
+                description: Conditions defines current service state of the KKMachine.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -428,25 +435,36 @@ spec:
                   - type
                   type: object
                 type: array
-              failureDomains:
-                additionalProperties:
-                  description: FailureDomainSpec is the Schema for Cluster API failure
-                    domains. It allows controllers to understand how many failure
-                    domains a cluster can optionally span across.
-                  properties:
-                    attributes:
-                      additionalProperties:
-                        type: string
-                      description: Attributes is a free form map of attributes an
-                        infrastructure provider might use or require.
-                      type: object
-                    controlPlane:
-                      description: ControlPlane determines if this failure domain
-                        is suitable for use by control plane machines.
-                      type: boolean
-                  type: object
-                description: FailureDomains is a slice of FailureDomains.
-                type: object
+              failureMessage:
+                description: "FailureMessage will be set in the event that there is
+                  a terminal problem reconciling the Machine and will contain a more
+                  verbose string suitable for logging and human consumption. \n This
+                  field should not be set for transitive errors that a controller
+                  faces that are expected to be fixed automatically over time (like
+                  service outages), but instead indicate that something is fundamentally
+                  wrong with the Machine's spec or the configuration of the controller,
+                  and that manual intervention is required. Examples of terminal errors
+                  would be invalid combinations of settings in the spec, values that
+                  are unsupported by the controller, or the responsible controller
+                  itself being critically misconfigured. \n Any transient errors that
+                  occur during the reconciliation of Machines can be added as events
+                  to the Machine object and/or logged in the controller's output."
+                type: string
+              failureReason:
+                description: "FailureReason will be set in the event that there is
+                  a terminal problem reconciling the Machine and will contain a succinct
+                  value suitable for machine interpretation. \n This field should
+                  not be set for transitive errors that a controller faces that are
+                  expected to be fixed automatically over time (like service outages),
+                  but instead indicate that something is fundamentally wrong with
+                  the Machine's spec or the configuration of the controller, and that
+                  manual intervention is required. Examples of terminal errors would
+                  be invalid combinations of settings in the spec, values that are
+                  unsupported by the controller, or the responsible controller itself
+                  being critically misconfigured. \n Any transient errors that occur
+                  during the reconciliation of Machines can be added as events to
+                  the Machine object and/or logged in the controller's output."
+                type: string
               ready:
                 default: false
                 type: boolean

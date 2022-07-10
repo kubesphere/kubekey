@@ -21,7 +21,16 @@ import (
 )
 
 const (
+	PrincipalPreparedCondition clusterv1.ConditionType = "PrincipalPrepared"
+)
+
+const (
 	HostReadyCondition clusterv1.ConditionType = "HostReadyCondition"
+)
+
+const (
+	// LoadBalancerReadyCondition reports on whether a control plane load balancer was successfully reconciled.
+	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
 )
 
 const (

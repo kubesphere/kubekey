@@ -20,7 +20,6 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
@@ -30,20 +29,18 @@ import (
 )
 
 type Service struct {
-	SSHClient    ssh.Interface
-	scope        *scope.InstanceScope
-	infraCluster pkg.ClusterScoper
+	SSHClient ssh.Interface
+	scope     scope.LBScope
 
 	userFactory      func(sshClient ssh.Interface, name, desc string) operation.User
 	directoryFactory func(sshClient ssh.Interface, path string, mode os.FileMode) operation.Directory
 	templateFactory  func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
 }
 
-func NewService(sshClient ssh.Interface, scope *scope.InstanceScope) *Service {
+func NewService(sshClient ssh.Interface, scope scope.LBScope) *Service {
 	return &Service{
-		SSHClient:    sshClient,
-		scope:        scope,
-		infraCluster: scope.InfraCluster,
+		SSHClient: sshClient,
+		scope:     scope,
 	}
 }
 
@@ -65,5 +62,5 @@ func (s *Service) getTemplateFactory(template *template.Template, data file.Data
 	if s.templateFactory != nil {
 		return s.templateFactory(s.SSHClient, template, data, dst)
 	}
-	return file.NewTemplate(s.SSHClient, template, data, dst)
+	return file.NewTemplate(s.SSHClient, s.scope.RootFs(), template, data, dst)
 }

@@ -59,7 +59,7 @@ func GetOwnerKKMachine(ctx context.Context, c client.Client, obj metav1.ObjectMe
 		if err != nil {
 			return nil, err
 		}
-		if ref.Kind == "KKMachine" && gv.Group == clusterv1.GroupVersion.Group {
+		if ref.Kind == "KKMachine" && gv.Group == infrav1.GroupVersion.Group {
 			return GetMachineByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}

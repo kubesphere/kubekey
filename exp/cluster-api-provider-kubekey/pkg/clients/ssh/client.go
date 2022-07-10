@@ -17,7 +17,7 @@
 package ssh
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,16 +25,19 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/povsister/scp"
+	"github.com/pkg/sftp"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
 const (
@@ -52,10 +55,11 @@ type Client struct {
 	Timeout        *time.Duration
 	host           string
 	sshClient      *ssh.Client
-	scpClient      *scp.Client
+	sftpClient     *sftp.Client
+	fs             filesystem.Interface
 }
 
-func NewClient(auth *infrav1.Auth) Interface {
+func NewClient(host string, auth *infrav1.Auth) Interface {
 	if auth.User == "" {
 		auth.User = "root"
 	}
@@ -79,10 +83,12 @@ func NewClient(auth *infrav1.Auth) Interface {
 		PrivateKey:     auth.PrivateKey,
 		PrivateKeyPath: auth.PrivateKeyPath,
 		Timeout:        auth.Timeout,
+		host:           host,
+		fs:             filesystem.NewFileSystem(),
 	}
 }
 
-func (c *Client) Connect(host string) error {
+func (c *Client) Connect() error {
 	authMethods, err := c.authMethod(c.Password, c.PrivateKey, c.PrivateKeyPath)
 	if err != nil {
 		return errors.Wrap(err, "The given SSH key could not be parsed")
@@ -95,39 +101,77 @@ func (c *Client) Connect(host string) error {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	endpoint := net.JoinHostPort(host, strconv.Itoa(*c.Port))
+	endpoint := net.JoinHostPort(c.host, strconv.Itoa(*c.Port))
 	sshClient, err := ssh.Dial("tcp", endpoint, sshConfig)
 	if err != nil {
 		return errors.Wrapf(err, "could not establish connection to %s", endpoint)
 	}
-	scpClient, err := scp.NewClientFromExistingSSH(sshClient, &scp.ClientOption{})
-	if err != nil {
-		return errors.Wrapf(err, "coould not new scp client to : %v", endpoint)
-	}
 
-	c.host = host
 	c.sshClient = sshClient
-	c.scpClient = scpClient
 	return nil
 }
 
-func (c *Client) Close() (err error) {
+func (c *Client) ConnectSftpClient(opts ...sftp.ClientOption) error {
+	sess1, err := c.sshClient.NewSession()
+	if err != nil {
+		return err
+	}
+	defer sess1.Close()
+
+	cmd := `grep -oP "Subsystem\s+sftp\s+\K.*" /etc/ssh/sshd_config`
+	buff, err := sess1.Output(cmd)
+	if err != nil {
+		return fmt.Errorf("cmd output errored %v", err)
+	}
+
+	sess2, err := c.sshClient.NewSession()
+	if err != nil {
+		return err
+	}
+
+	sftpServerPath := strings.ReplaceAll(string(buff), "\r", "")
+	if match, _ := regexp.MatchString(`^sudo `, sftpServerPath); !match {
+		sftpServerPath = "sudo" + " " + sftpServerPath
+	}
+
+	ok, err := sess2.SendRequest("exec", true, ssh.Marshal(struct{ Command string }{sftpServerPath}))
+	if err == nil && !ok {
+		return errors.New("ssh: exec request failed")
+	}
+
+	pw, err := sess2.StdinPipe()
+	if err != nil {
+		return err
+	}
+	pr, err := sess2.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	sftpClient, err := sftp.NewClientPipe(pr, pw, opts...)
+	if err != nil {
+		return err
+	}
+	c.sftpClient = sftpClient
+	return nil
+}
+
+func (c *Client) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.sshClient == nil && c.scpClient == nil {
-		return err
+	if c.sshClient == nil && c.sftpClient == nil {
+		return
 	}
 
 	if c.sshClient != nil {
 		_ = c.sshClient.Close()
 		c.sshClient = nil
 	}
-	if c.scpClient != nil {
-		_ = c.scpClient.Close()
-		c.scpClient = nil
+	if c.sftpClient != nil {
+		_ = c.sftpClient.Close()
+		c.sftpClient = nil
 	}
-	return err
 }
 
 func (c *Client) authMethod(password, privateKey, privateKeyPath string) (auths []ssh.AuthMethod, err error) {
@@ -202,11 +246,15 @@ func (c *Client) session() (*ssh.Session, error) {
 }
 
 func (c *Client) Cmd(cmd string) (string, error) {
+	if err := c.Connect(); err != nil {
+		return "", errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
+	}
 	session, err := c.session()
 	if err != nil {
 		return "", errors.Wrapf(err, "[%s] create ssh session failed", c.host)
 	}
 	defer session.Close()
+	defer c.sshClient.Close()
 
 	output, err := session.CombinedOutput(cmd)
 	if err != nil {
@@ -221,33 +269,62 @@ func (c *Client) Cmdf(cmd string, a ...any) (string, error) {
 }
 
 func (c *Client) SudoCmd(cmd string) (string, error) {
+	if err := c.Connect(); err != nil {
+		return "", errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
+	}
 	session, err := c.session()
 	if err != nil {
 		return "", errors.Wrapf(err, "[%s] create ssh session failed", c.host)
 	}
 	defer session.Close()
+	defer c.sshClient.Close()
 
-	stdoutB := new(bytes.Buffer)
-	session.Stdout = stdoutB
-	in, _ := session.StdinPipe()
+	in, err := session.StdinPipe()
+	if err != nil {
+		return "", err
+	}
 
-	go func(in io.Writer, output *bytes.Buffer) {
+	out, err := session.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+
+	var output []byte
+
+	go func(in io.WriteCloser, out io.Reader, output *[]byte) {
+		var (
+			line string
+			r    = bufio.NewReader(out)
+		)
 		for {
-			if strings.Contains(string(output.Bytes()), "[sudo] password for ") {
+			b, err := r.ReadByte()
+			if err != nil {
+				break
+			}
+
+			*output = append(*output, b)
+
+			if b == byte('\n') {
+				line = ""
+				continue
+			}
+
+			line += string(b)
+
+			if strings.HasPrefix(line, "[sudo] password for ") && strings.HasSuffix(line, ": ") {
 				_, err = in.Write([]byte(c.Password + "\n"))
 				if err != nil {
 					break
 				}
-				break
 			}
 		}
-	}(in, stdoutB)
+	}(in, out, &output)
 
-	err = session.Run(SudoPrefix(cmd))
+	_, err = session.Output(SudoPrefix(cmd))
 	if err != nil {
 		return "", err
 	}
-	return stdoutB.String(), nil
+	return string(output), nil
 }
 
 func (c *Client) SudoCmdf(cmd string, a ...any) (string, error) {
@@ -255,6 +332,16 @@ func (c *Client) SudoCmdf(cmd string, a ...any) (string, error) {
 }
 
 func (c *Client) Copy(src, dst string) error {
+	if err := c.Connect(); err != nil {
+		return errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
+	}
+
+	if err := c.ConnectSftpClient(); err != nil {
+		return errors.Wrapf(err, "[%s] connect sftp client failed", c.host)
+	}
+	defer c.sshClient.Close()
+	defer c.sftpClient.Close()
+
 	f, err := os.Stat(src)
 	if err != nil {
 		return errors.Wrapf(err, "[%s] get file stat failed", c.host)
@@ -264,13 +351,76 @@ func (c *Client) Copy(src, dst string) error {
 		return errors.Wrapf(err, "[%s] the source %s is not a file", c.host, src)
 	}
 
-	if err := c.scpClient.CopyFileToRemote(src, dst, &scp.FileTransferOption{PreserveProp: true}); err != nil {
+	baseRemoteFilePath := filepath.Dir(dst)
+	_, err = c.sftpClient.ReadDir(baseRemoteFilePath)
+	if err != nil {
+		if err = c.sftpClient.MkdirAll(baseRemoteFilePath); err != nil {
+			return err
+		}
+	}
+
+	if err := c.copyLocalFileToRemote(src, dst); err != nil {
 		return errors.Wrapf(err, "[%s] copy file failed", c.host)
 	}
 	return nil
 }
 
+func (c *Client) copyLocalFileToRemote(src, dst string) error {
+	// check remote file md5 first
+	var (
+		srcMd5, dstMd5 string
+	)
+	srcMd5 = c.fs.MD5Sum(src)
+	if exist, err := c.RemoteFileExist(dst); err != nil {
+		return err
+	} else if exist {
+		dstMd5 = c.RemoteMd5Sum(dst)
+		if srcMd5 == dstMd5 {
+			// todo: debug log
+			return nil
+		}
+	}
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+	// the dst file mod will be 0666
+	dstFile, err := c.sftpClient.Create(dst)
+	if err != nil {
+		return err
+	}
+	fileStat, err := srcFile.Stat()
+	if err != nil {
+		return fmt.Errorf("get file stat failed %v", err)
+	}
+	if err := dstFile.Chmod(fileStat.Mode()); err != nil {
+		return fmt.Errorf("chmod remote file failed %v", err)
+	}
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+	dstMd5 = c.RemoteMd5Sum(dst)
+	if srcMd5 != dstMd5 {
+		return fmt.Errorf("validate md5sum failed %s != %s", srcMd5, dstMd5)
+	}
+	return nil
+}
+
 func (c *Client) Fetch(local, remote string) error {
+	if err := c.Connect(); err != nil {
+		return errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
+	}
+
+	if err := c.ConnectSftpClient(); err != nil {
+		return errors.Wrapf(err, "[%s] connect sftp client failed", c.host)
+	}
+	defer c.sshClient.Close()
+	defer c.sftpClient.Close()
+
 	ok, err := c.RemoteFileExist(remote)
 	if err != nil {
 		return errors.Wrapf(err, "[%s] check remote file failed", c.host)
@@ -279,13 +429,56 @@ func (c *Client) Fetch(local, remote string) error {
 		return errors.Errorf("[%s] remote file %s not exist", c.host, remote)
 	}
 
-	if err := c.scpClient.CopyFileFromRemote(remote, local, &scp.FileTransferOption{}); err != nil {
-		return errors.Wrapf(err, "[%s] fetch file failed", c.host)
+	// open remote source file
+	srcFile, err := c.sftpClient.Open(remote)
+	if err != nil {
+		return fmt.Errorf("open remote file failed %v, remote path: %s", err, remote)
 	}
-	return nil
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			logrus.Fatal("failed to close file")
+		}
+	}()
+
+	err = os.MkdirAll(filepath.Dir(local), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	dstFile, err := os.Create(filepath.Clean(local))
+	if err != nil {
+		return fmt.Errorf("create local file failed %v", err)
+	}
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			logrus.Fatal("failed to close file")
+		}
+	}()
+
+	_, err = srcFile.WriteTo(dstFile)
+	return err
+}
+
+func (c *Client) RemoteMd5Sum(dst string) string {
+	if err := c.Connect(); err != nil {
+		return ""
+	}
+	defer c.sshClient.Close()
+
+	cmd := fmt.Sprintf("md5sum %s | cut -d\" \" -f1", dst)
+	remoteMd5, err := c.SudoCmd(cmd)
+	if err != nil {
+		// TODO: log
+	}
+	return remoteMd5
 }
 
 func (c *Client) RemoteFileExist(remote string) (bool, error) {
+	if err := c.Connect(); err != nil {
+		return false, errors.Wrapf(err, "[%s] connect failed", c.host)
+	}
+	defer c.sshClient.Close()
+
 	remoteFileName := path.Base(remote)
 	remoteFileDirName := path.Dir(remote)
 
@@ -302,15 +495,20 @@ func (c *Client) RemoteFileExist(remote string) (bool, error) {
 	return count != 0, nil
 }
 
-func (c *Client) Ping(host string) error {
-	if err := c.Connect(host); err != nil {
-		return errors.Wrapf(err, "[%s] connect failed", host)
+func (c *Client) Ping() error {
+	if err := c.Connect(); err != nil {
+		return errors.Wrapf(err, "[%s] connect failed", c.host)
 	}
-
-	if err := c.Close(); err != nil {
-		return errors.Wrapf(err, "[%s] close connect failed", host)
-	}
+	defer c.Close()
 	return nil
+}
+
+func (c *Client) Host() string {
+	return c.host
+}
+
+func (c *Client) Fs() filesystem.Interface {
+	return c.fs
 }
 
 func fileExist(path string) bool {

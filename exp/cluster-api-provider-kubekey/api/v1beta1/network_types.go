@@ -14,18 +14,15 @@
  limitations under the License.
 */
 
-package user
+package v1beta1
 
-import (
-	"fmt"
+// NetworkSpec encapsulates all things related to KK network.
+type NetworkSpec struct {
+	// CNI configuration
+	// +optional
+	CNI *CNISpec `json:"cni,omitempty"`
+}
 
-	"github.com/pkg/errors"
-)
-
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
-	}
-	return nil
+// CNISpec defines configuration for CNI.
+type CNISpec struct {
 }

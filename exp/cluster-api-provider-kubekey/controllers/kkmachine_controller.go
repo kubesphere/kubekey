@@ -53,7 +53,7 @@ import (
 
 var (
 	// kkMachineKind contains the schema.GroupVersionKind for the KKMachine type.
-	kkMachineKind = clusterv1.GroupVersion.WithKind("KKMachine")
+	kkMachineKind = infrav1.GroupVersion.WithKind("KKMachine")
 )
 
 // InstanceIDIndex defines the kk machine controller's instance ID index.
@@ -140,6 +140,10 @@ func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkmachines,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkmachines/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkmachines/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -213,7 +217,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return r.reconcileDelete(ctx, machineScope)
 	}
 
-	return r.reconcileNormal(ctx, machineScope, infraCluster)
+	return r.reconcileNormal(ctx, machineScope, infraCluster, infraCluster)
 }
 
 func (r *KKMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope) (ctrl.Result, error) {
@@ -273,7 +277,13 @@ func (r *KKMachineReconciler) reconcileDelete(ctx context.Context, machineScope 
 	return ctrl.Result{}, nil
 }
 
-func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, clusterScope pkg.ClusterScoper) (ctrl.Result, error) {
+func (r *KKMachineReconciler) reconcileNormal(
+	ctx context.Context,
+	machineScope *scope.MachineScope,
+	clusterScope pkg.ClusterScoper,
+	kkInstanceScope scope.KKInstanceScope,
+) (ctrl.Result, error) {
+
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKMachine normal")
 
@@ -323,10 +333,10 @@ func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, machineScope 
 			}
 		}
 
-		instance, err = r.createInstance(ctx, machineScope, clusterScope)
+		instance, err = r.createInstance(ctx, machineScope, kkInstanceScope)
 		if err != nil {
 			log.Error(err, "unable to create kkInstance")
-			r.Recorder.Eventf(machineScope.KKMachine, corev1.EventTypeWarning, "FailedCreate", "Failed to create kkInstance %q: %v", instance.Name, err)
+			r.Recorder.Eventf(machineScope.KKMachine, corev1.EventTypeWarning, "FailedCreate", "Failed to create kkInstance: %v", err)
 			conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason,
 				clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err

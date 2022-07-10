@@ -75,17 +75,25 @@ spec:
                         description: ControlPlaneEndpoint represents the endpoint
                           used to communicate with the control plane.
                         properties:
-                          address:
-                            type: string
-                          domain:
+                          host:
+                            description: The hostname on which the API server is serving.
                             type: string
                           port:
                             description: The port on which the API server is serving.
                             format: int32
                             type: integer
                         required:
-                        - domain
+                        - host
                         - port
+                        type: object
+                      controlPlaneLoadBalancer:
+                        description: ControlPlaneLoadBalancer is optional configuration
+                          for customizing control plane behavior.
+                        properties:
+                          address:
+                            type: string
+                          domain:
+                            type: string
                         type: object
                       nodes:
                         properties:

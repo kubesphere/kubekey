@@ -26,9 +26,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	cutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -60,7 +58,7 @@ type KKInstanceReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
-	bootstrapFactory func(sshClient ssh.Interface, scope *scope.InstanceScope) service.Bootstrap
+	bootstrapFactory func(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap
 	WatchFilterValue string
 
 	Dialer *ssh.Dialer
@@ -70,7 +68,7 @@ func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) (ssh.Int
 	return r.Dialer.Connect(scope.KKInstance.Spec.Address, &scope.KKInstance.Spec.Auth)
 }
 
-func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scope *scope.InstanceScope) service.Bootstrap {
+func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap {
 	if r.bootstrapFactory != nil {
 		return r.bootstrapFactory(sshClient, scope)
 	}
@@ -215,10 +213,10 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}()
 
 	if !kkInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		//return r.reconcileDelete(ctx, instanceScope)
+		return r.reconcileDelete(ctx, instanceScope)
 	}
 
-	return r.reconcileNormal(ctx, instanceScope)
+	return r.reconcileNormal(ctx, instanceScope, infraCluster)
 }
 
 func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
@@ -228,7 +226,7 @@ func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScop
 	return ctrl.Result{}, nil
 }
 
-func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
+func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKInstance normal")
 
@@ -246,26 +244,16 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 
 	sshClient, err := r.getSSHClient(instanceScope)
 	if err != nil {
+		log.Info("failed to get remote ssh client", "instance", instanceScope.KKInstance.Name)
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get remote instance [%s] ssh client", instanceScope.InternalAddress())
 	}
 
-	phases := []func(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope) (ctrl.Result, error){
-		r.reconcileBootstrap,
+	if err := r.reconcileBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {
+		log.Error(err, "failed to reconcile bootstrap")
+		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
 	}
-
-	res := ctrl.Result{}
-	var errs []error
-	for _, phase := range phases {
-		// Call the inner reconciliation methods.
-		phaseResult, err := phase(ctx, sshClient, instanceScope)
-		if err != nil {
-			errs = append(errs, err)
-		}
-		if len(errs) > 0 {
-			continue
-		}
-		res = cutil.LowestNonZeroResult(res, phaseResult)
-	}
+	instanceScope.SetState(infrav1.InstanceStateRunning)
 
 	// parse cloud-init file
 	// todo:
@@ -279,7 +267,7 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 	// install container runtime
 	// todo:
 
-	return res, kerrors.NewAggregate(errs)
+	return ctrl.Result{}, nil
 }
 
 // KKClusterToKKInstances is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation of KKInstance.
@@ -343,15 +331,14 @@ func (r *KKInstanceReconciler) requestsForCluster(log logr.Logger, namespace, na
 	for _, m := range kkMachineList.Items {
 		log.WithValues("kkmachine", m.Name)
 
-		id := pointer.StringPtr(*m.Spec.InstanceID)
-		if id == nil {
+		if m.Spec.InstanceID == nil {
 			log.V(4).Info("KKMachine does not have a providerID, will not add to reconciliation request.")
 			continue
 		}
 
-		log.WithValues("kkInstance", *m.Spec.InstanceID)
+		log.WithValues("kkInstance", m.Spec.InstanceID)
 		log.V(4).Info("Adding KKInstance to reconciliation request.")
-		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: m.Namespace, Name: *id}})
+		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: m.Namespace, Name: *m.Spec.InstanceID}})
 	}
 	return result
 }

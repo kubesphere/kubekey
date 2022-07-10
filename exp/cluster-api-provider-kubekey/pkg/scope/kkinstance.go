@@ -23,6 +23,14 @@ import (
 
 type KKInstanceScope interface {
 	pkg.ClusterScoper
-
-	InstanceAuth() *infrav1.Auth
+	// GlobalAuth returns the global auth configuration of all instances.
+	GlobalAuth() *infrav1.Auth
+	// GlobalContainerManager returns the global container manager configuration of all instances.
+	GlobalContainerManager() *infrav1.ContainerManager
+	// AllInstancesSpec returns the KKInstanceSpec
+	AllInstancesSpec() []infrav1.KKInstanceSpec
+	// GetInstancesSpecByRole returns all instances filtered by role.
+	GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKInstanceSpec
+	// AllInstances returns all KKInstance existing in cluster.
+	AllInstances() ([]*infrav1.KKInstance, error)
 }

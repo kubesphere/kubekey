@@ -14,18 +14,44 @@
  limitations under the License.
 */
 
-package user
+package filesystem
 
 import (
-	"fmt"
-
-	"github.com/pkg/errors"
+	"os"
+	"strconv"
 )
 
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
+type FileMode struct {
+	os.FileMode
+}
+
+func (m FileMode) PermNumberString() string {
+	const str = "dalTLDpSugct?"
+	var buf [32]byte // Mode is uint32.
+	w := 0
+	for i, c := range str {
+		if m.FileMode.Perm()&(1<<uint(32-1-i)) != 0 {
+			buf[w] = byte(c)
+			w++
+		}
 	}
-	return nil
+	if w == 0 {
+		buf[w] = '-'
+		w++
+	}
+	const rwx = "421421421"
+	res := ""
+	cur := 0
+	for i, c := range rwx {
+		if (9-1-i)%3 == 0 {
+			res = res + strconv.Itoa(cur)
+			cur = 0
+		}
+
+		if m.FileMode.Perm()&(1<<uint(9-1-i)) != 0 {
+			cnum, _ := strconv.Atoi(string(c))
+			cur += cnum
+		}
+	}
+	return res
 }

@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 )
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
@@ -36,6 +37,7 @@ type ClusterScopeParams struct {
 	Cluster        *clusterv1.Cluster
 	KKCluster      *infrav1.KKCluster
 	ControllerName string
+	RootFsBasePath string
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -53,6 +55,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		Cluster:        params.Cluster,
 		KKCluster:      params.KKCluster,
 		controllerName: params.ControllerName,
+		rootFs:         rootfs.NewLocalRootFs(params.KKCluster.Name, params.RootFsBasePath),
 	}
 
 	helper, err := patch.NewHelper(params.KKCluster, params.Client)
@@ -75,6 +78,8 @@ type ClusterScope struct {
 	KKCluster *infrav1.KKCluster
 
 	controllerName string
+
+	rootFs rootfs.Interface
 }
 
 // Name returns the CAPI cluster name.
@@ -97,7 +102,7 @@ func (s *ClusterScope) KubernetesClusterName() string {
 	return s.Cluster.Name
 }
 
-func (s *ClusterScope) ControlPlaneEndpoint() infrav1.ControlPlaneEndPoint {
+func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
 	return s.KKCluster.Spec.ControlPlaneEndpoint
 }
 
@@ -105,11 +110,11 @@ func (s *ClusterScope) Registry() *infrav1.Registry {
 	return &s.KKCluster.Spec.Registry
 }
 
-func (s *ClusterScope) Auth() *infrav1.Auth {
+func (s *ClusterScope) GlobalAuth() *infrav1.Auth {
 	return &s.KKCluster.Spec.Nodes.Auth
 }
 
-func (s *ClusterScope) ContainerManager() *infrav1.ContainerManager {
+func (s *ClusterScope) GlobalContainerManager() *infrav1.ContainerManager {
 	return &s.KKCluster.Spec.Nodes.ContainerManager
 }
 
@@ -169,6 +174,7 @@ func (s *ClusterScope) PatchObject() error {
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
 	applicableConditions := []clusterv1.ConditionType{
 		infrav1.HostReadyCondition,
+		infrav1.LoadBalancerReadyCondition,
 	}
 
 	conditions.SetSummary(s.KKCluster,
@@ -183,6 +189,8 @@ func (s *ClusterScope) PatchObject() error {
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.HostReadyCondition,
+			infrav1.LoadBalancerReadyCondition,
+			infrav1.PrincipalPreparedCondition,
 		}})
 }
 
@@ -195,4 +203,21 @@ func (s *ClusterScope) Close() error {
 // created the ClusterScope.
 func (s *ClusterScope) ControllerName() string {
 	return s.controllerName
+}
+
+func (s *ClusterScope) RootFs() rootfs.Interface {
+	return s.rootFs
+}
+
+// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.
+func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.KKLoadBalancerSpec {
+	return s.KKCluster.Spec.ControlPlaneLoadBalancer
+}
+
+// APIServerPort returns the APIServerPort to use when creating the load balancer.
+func (s *ClusterScope) APIServerPort() int32 {
+	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
+		return *s.Cluster.Spec.ClusterNetwork.APIServerPort
+	}
+	return 6443
 }

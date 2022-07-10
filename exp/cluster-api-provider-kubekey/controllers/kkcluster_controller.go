@@ -30,10 +30,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -41,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
 // KKClusterReconciler reconciles a KKCluster object
@@ -49,43 +52,6 @@ type KKClusterReconciler struct {
 	Recorder         record.EventRecorder
 	Scheme           *runtime.Scheme
 	WatchFilterValue string
-}
-
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkclusters,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkclusters/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-
-func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	kkCluster := &infrav1.KKCluster{}
-	err := r.Get(ctx, req.NamespacedName, kkCluster)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
-	}
-
-	// Fetch the Cluster.
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, kkCluster.ObjectMeta)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if cluster == nil {
-		log.Info("Cluster Controller has not yet set OwnerRef")
-		return reconcile.Result{}, nil
-	}
-
-	if annotations.IsPaused(cluster, kkCluster) {
-		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
-		return reconcile.Result{}, nil
-	}
-
-	log = log.WithValues("cluster", cluster.Name)
-
-	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -128,6 +94,116 @@ func (r *KKClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		handler.EnqueueRequestsFromMapFunc(r.requeueKKClusterForUnpausedCluster(ctx, log)),
 		predicates.ClusterUnpaused(log),
 	)
+}
+
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkclusters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkclusters/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+
+func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	kkCluster := &infrav1.KKCluster{}
+	err := r.Get(ctx, req.NamespacedName, kkCluster)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
+	// Fetch the Cluster.
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, kkCluster.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if cluster == nil {
+		log.Info("Cluster Controller has not yet set OwnerRef")
+		return reconcile.Result{}, nil
+	}
+
+	if annotations.IsPaused(cluster, kkCluster) {
+		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
+		return reconcile.Result{}, nil
+	}
+
+	log = log.WithValues("cluster", cluster.Name)
+	helper, err := patch.NewHelper(kkCluster, r.Client)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, "failed to init patch helper")
+	}
+
+	defer func() {
+		e := helper.Patch(
+			context.TODO(),
+			kkCluster,
+			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				infrav1.PrincipalPreparedCondition,
+			}})
+		if e != nil {
+			fmt.Println(e.Error())
+		}
+	}()
+
+	// Create the scope.
+	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+		Client:         r.Client,
+		Cluster:        cluster,
+		KKCluster:      kkCluster,
+		ControllerName: "kkcluster",
+		RootFsBasePath: "",
+	})
+	if err != nil {
+		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
+	}
+
+	// Always close the scope when exiting this function so we can persist any AWSCluster changes.
+	defer func() {
+		if err := clusterScope.Close(); err != nil && retErr == nil {
+			retErr = err
+		}
+	}()
+
+	// Handle deleted clusters
+	if !kkCluster.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, clusterScope)
+	}
+
+	// Handle non-deleted clusters
+	return r.reconcileNormal(ctx, clusterScope)
+}
+
+func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(4).Info("Reconcile KKCluster delete")
+
+	// Cluster is deleted so remove the finalizer.
+	controllerutil.RemoveFinalizer(clusterScope.KKCluster, infrav1.ClusterFinalizer)
+	return ctrl.Result{}, nil
+}
+
+func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(4).Info("Reconcile KKCluster normal")
+
+	kkCluster := clusterScope.KKCluster
+
+	// If the KKCluster doesn't have our finalizer, add it.
+	controllerutil.AddFinalizer(kkCluster, infrav1.ClusterFinalizer)
+	// Register the finalizer immediately to avoid orphaning KK resources on delete
+	if err := clusterScope.PatchObject(); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// todo: if need to lookup the domain
+	kkCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+		Host: clusterScope.ControlPlaneLoadBalancer().Domain,
+		Port: clusterScope.APIServerPort(),
+	}
+
+	kkCluster.Status.Ready = true
+	return ctrl.Result{}, nil
 }
 
 func (r *KKClusterReconciler) requeueKKClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {

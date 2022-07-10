@@ -14,18 +14,43 @@
  limitations under the License.
 */
 
-package user
+package filesystem
 
 import (
-	"fmt"
-
-	"github.com/pkg/errors"
+	"os"
+	"testing"
 )
 
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
+func TestFileMode_PermNumberString(t *testing.T) {
+	tests := []struct {
+		FileMode os.FileMode
+		want     string
+	}{
+		{
+			os.FileMode(0000),
+			"000",
+		},
+		{
+			os.FileMode(0777),
+			"777",
+		},
+		{
+			os.FileMode(0660),
+			"660",
+		},
+		{
+			os.FileMode(0755),
+			"755",
+		},
 	}
-	return nil
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			m := FileMode{
+				FileMode: tt.FileMode,
+			}
+			if got := m.PermNumberString(); got != tt.want {
+				t.Errorf("PermNumberString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

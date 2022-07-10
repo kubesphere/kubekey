@@ -14,39 +14,39 @@
  limitations under the License.
 */
 
-package ssh
+package rootfs
 
 import (
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
-type Interface interface {
-	Connector
-	Command
-	Sftp
-	LocalFileSystem
-	Ping() error
-	Host() string
+type Local struct {
+	clusterName string
+	basePath    string
+	fs          filesystem.Interface
 }
 
-type Connector interface {
-	Connect() error
-	Close()
+func NewLocalRootFs(clusterName, basePath string) Interface {
+	if basePath == "" {
+		basePath = DefaultLocalRootFsDir
+	}
+	return &Local{
+		clusterName: clusterName,
+		basePath:    basePath,
+		fs:          filesystem.NewFileSystem(),
+	}
 }
 
-type Command interface {
-	Cmd(cmd string) (string, error)
-	Cmdf(cmd string, a ...any) (string, error)
-	SudoCmd(cmd string) (string, error)
-	SudoCmdf(cmd string, a ...any) (string, error)
+func (l *Local) ClusterRootFsDir() string {
+	return filepath.Join(l.basePath, l.clusterName)
 }
 
-type Sftp interface {
-	Copy(local, remote string) error
-	Fetch(local, remote string) error
-	RemoteFileExist(remote string) (bool, error)
+func (l *Local) HostRootFsDir(host string) string {
+	return filepath.Join(l.basePath, l.clusterName, host)
 }
 
-type LocalFileSystem interface {
-	Fs() filesystem.Interface
+func (l *Local) Fs() filesystem.Interface {
+	return l.fs
 }

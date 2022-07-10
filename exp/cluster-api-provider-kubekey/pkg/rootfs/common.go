@@ -14,18 +14,9 @@
  limitations under the License.
 */
 
-package user
+package rootfs
 
-import (
-	"fmt"
-
-	"github.com/pkg/errors"
+const (
+	DefaultLocalTmpDir    = "/var/lib/kubekey"
+	DefaultLocalRootFsDir = "/var/lib/kubekey/rootfs"
 )
-
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
-	}
-	return nil
-}

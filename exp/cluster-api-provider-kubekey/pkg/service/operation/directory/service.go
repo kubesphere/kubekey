@@ -20,21 +20,31 @@ import (
 	"os"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
 type Service struct {
 	SSHClient ssh.Interface
 	Path      string
-	Mode      os.FileMode
+	Mode      filesystem.FileMode
 }
 
 func NewService(sshClient ssh.Interface, path string, mode os.FileMode) *Service {
-	if mode == 0 {
-		mode = os.ModeDir
-	}
 	return &Service{
 		SSHClient: sshClient,
 		Path:      path,
-		Mode:      mode,
+		Mode:      checkFileMode(mode),
 	}
+}
+
+func checkFileMode(mode os.FileMode) filesystem.FileMode {
+	if mode.Perm() == 0 {
+		mode = os.FileMode(0644)
+	}
+
+	if mode.Type() != os.ModeDir {
+		mode = os.ModeDir | mode
+	}
+
+	return filesystem.FileMode{FileMode: mode}
 }

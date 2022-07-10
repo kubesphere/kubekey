@@ -192,8 +192,8 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&kkInstanceConcurrency,
 		"kkinstance-concurrency",
-		5,
-		"Number of concurrent watches for instance state changes.",
+		10,
+		"Number of KKInstance to process simultaneously.",
 	)
 
 	fs.IntVar(&kkMachineConcurrency,

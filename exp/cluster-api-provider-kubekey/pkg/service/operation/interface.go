@@ -17,8 +17,6 @@
 package operation
 
 import (
-	"os"
-
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 )
 
@@ -31,7 +29,7 @@ type File interface {
 	RemoteExist() bool
 	Copy(override bool) error
 	Fetch(override bool) error
-	Chmod(mode os.FileMode) error
+	Chmod(option string) error
 }
 
 type Binary interface {

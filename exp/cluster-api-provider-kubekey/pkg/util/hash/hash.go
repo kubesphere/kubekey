@@ -14,18 +14,28 @@
  limitations under the License.
 */
 
-package user
+package hash
 
 import (
+	"crypto/md5"
 	"fmt"
-
-	"github.com/pkg/errors"
+	"io"
+	"os"
+	"path/filepath"
 )
 
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
+//FileMD5 count file md5
+func FileMD5(path string) (string, error) {
+	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
+		return "", err
 	}
-	return nil
+
+	m := md5.New()
+	if _, err := io.Copy(m, file); err != nil {
+		return "", err
+	}
+
+	fileMd5 := fmt.Sprintf("%x", m.Sum(nil))
+	return fileMd5, nil
 }

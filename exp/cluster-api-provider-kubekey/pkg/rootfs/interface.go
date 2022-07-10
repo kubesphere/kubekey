@@ -14,18 +14,14 @@
  limitations under the License.
 */
 
-package user
+package rootfs
 
 import (
-	"fmt"
-
-	"github.com/pkg/errors"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
-	}
-	return nil
+type Interface interface {
+	ClusterRootFsDir() string
+	HostRootFsDir(host string) string
+	Fs() filesystem.Interface
 }

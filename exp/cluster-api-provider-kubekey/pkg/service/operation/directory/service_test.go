@@ -14,39 +14,38 @@
  limitations under the License.
 */
 
-package ssh
+package directory
 
 import (
+	"os"
+	"testing"
+
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
-type Interface interface {
-	Connector
-	Command
-	Sftp
-	LocalFileSystem
-	Ping() error
-	Host() string
-}
-
-type Connector interface {
-	Connect() error
-	Close()
-}
-
-type Command interface {
-	Cmd(cmd string) (string, error)
-	Cmdf(cmd string, a ...any) (string, error)
-	SudoCmd(cmd string) (string, error)
-	SudoCmdf(cmd string, a ...any) (string, error)
-}
-
-type Sftp interface {
-	Copy(local, remote string) error
-	Fetch(local, remote string) error
-	RemoteFileExist(remote string) (bool, error)
-}
-
-type LocalFileSystem interface {
-	Fs() filesystem.Interface
+func Test_checkFileMode(t *testing.T) {
+	tests := []struct {
+		mode os.FileMode
+		want filesystem.FileMode
+	}{
+		{
+			0,
+			filesystem.FileMode{FileMode: os.ModeDir | os.FileMode(0644)},
+		},
+		{
+			os.FileMode(0664),
+			filesystem.FileMode{FileMode: os.ModeDir | os.FileMode(0664)},
+		},
+		{
+			os.FileMode(0777),
+			filesystem.FileMode{FileMode: os.ModeDir | os.FileMode(0777)},
+		},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			if got := checkFileMode(tt.mode); got != tt.want {
+				t.Errorf("checkFileMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

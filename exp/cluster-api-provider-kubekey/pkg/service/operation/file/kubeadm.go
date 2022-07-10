@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
@@ -30,15 +31,16 @@ const (
 	KubeadmDownloadURLTmpl = "https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm"
 )
 
-func NewKubeadm(sshClient ssh.Interface, version, arch string) (*Binary, error) {
+func NewKubeadm(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(KubeadmID, version, arch)
 
 	fileName := KubeadmName
 	file, err := NewFile(FileParams{
 		SSHClient:      sshClient,
+		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
 		RemoteFullPath: filepath.Join(BinDir, fileName),
 	})
 	if err != nil {

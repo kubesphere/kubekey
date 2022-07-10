@@ -22,7 +22,7 @@ import (
 	"text/template"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
-	"github.com/kubesphere/kubekey/pkg/core/common"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 )
 
 type Data map[string]interface{}
@@ -34,12 +34,13 @@ type Template struct {
 	dst      string
 }
 
-func NewTemplate(sshClient ssh.Interface, template *template.Template, data Data, dst string) (*Template, error) {
+func NewTemplate(sshClient ssh.Interface, rootFs rootfs.Interface, template *template.Template, data Data, dst string) (*Template, error) {
 	file, err := NewFile(FileParams{
 		SSHClient:      sshClient,
+		RootFs:         rootFs,
 		Name:           template.Name(),
 		Type:           FileTemplate,
-		LocalFullPath:  filepath.Join("", template.Name()),
+		LocalFullPath:  filepath.Join(rootFs.HostRootFsDir(sshClient.Host()), template.Name()),
 		RemoteFullPath: dst,
 	})
 	if err != nil {
@@ -56,7 +57,7 @@ func NewTemplate(sshClient ssh.Interface, template *template.Template, data Data
 func (t *Template) RenderToLocal() error {
 	dir := filepath.Dir(t.localFullPath)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, common.FileMode0755); err != nil {
+		if err = os.MkdirAll(dir, 0755); err != nil {
 			return err
 		}
 	}

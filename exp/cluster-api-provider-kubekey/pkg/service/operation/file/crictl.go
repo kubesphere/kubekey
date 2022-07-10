@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
@@ -30,15 +31,16 @@ const (
 	CrictlDownloadURLTmpl = "https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
 )
 
-func NewCrictl(sshClient ssh.Interface, version, arch string) (*Binary, error) {
+func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(CrictlID, version, arch)
 
 	fileName := fmt.Sprintf(CrictlName, version, arch)
 	file, err := NewFile(FileParams{
 		SSHClient:      sshClient,
+		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
 		RemoteFullPath: filepath.Join(BinDir, fileName),
 	})
 	if err != nil {

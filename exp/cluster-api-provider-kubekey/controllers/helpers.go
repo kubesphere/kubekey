@@ -29,15 +29,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
-func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *scope.MachineScope, clusterScope pkg.ClusterScoper) (*infrav1.KKInstance, error) {
+func (r *KKMachineReconciler) createInstance(
+	ctx context.Context,
+	machineScope *scope.MachineScope,
+	kkInstanceScope scope.KKInstanceScope,
+) (*infrav1.KKInstance, error) {
+
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Creating KKInstance")
 
-	instanceSpec, err := r.getUnassignedInstanceSpec(machineScope, clusterScope)
+	instanceSpec, err := r.getUnassignedInstanceSpec(machineScope, kkInstanceScope)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +83,7 @@ func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *
 		}
 		return false, nil
 	}); err != nil {
-		return nil, errors.Wrapf(err, "Could not determine if KKInstance is bootstrapped and running.")
+		return nil, errors.Wrapf(err, "Could not determine if KKInstance is bootstrapped and running")
 	}
 
 	return instance, nil
@@ -89,18 +93,18 @@ func (r *KKMachineReconciler) generateInstanceID(instanceSpec *infrav1.KKInstanc
 	return names.SimpleNameGenerator.GenerateName(instanceSpec.Name + "-")
 }
 
-func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.MachineScope, clusterScope pkg.ClusterScoper) (*infrav1.KKInstanceSpec, error) {
+func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.MachineScope, kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstanceSpec, error) {
 	var instanceSpecs []infrav1.KKInstanceSpec
 	if machineScope.IsRole(infrav1.ControlPlane) {
-		instanceSpecs = clusterScope.GetInstancesSpecByRole(infrav1.ControlPlane)
+		instanceSpecs = kkInstanceScope.GetInstancesSpecByRole(infrav1.ControlPlane)
 	} else if machineScope.IsRole(infrav1.Worker) {
-		instanceSpecs = clusterScope.GetInstancesSpecByRole(infrav1.Worker)
+		instanceSpecs = kkInstanceScope.GetInstancesSpecByRole(infrav1.Worker)
 	} else {
-		instanceSpecs = clusterScope.AllInstancesSpec()
+		instanceSpecs = kkInstanceScope.AllInstancesSpec()
 	}
 
 	// get all existing instances
-	instances, err := clusterScope.AllInstances()
+	instances, err := kkInstanceScope.AllInstances()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get all existing instance")
 	}
@@ -111,11 +115,11 @@ func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.Mach
 
 	for _, spec := range instanceSpecs {
 		if _, ok := instancesMap[spec.InternalAddress]; !ok {
-			auth := clusterScope.Auth().DeepCopy()
+			auth := kkInstanceScope.GlobalAuth().DeepCopy()
 			if err := mergo.Merge(&spec.Auth, auth); err != nil {
 				return nil, err
 			}
-			cm := clusterScope.ContainerManager().DeepCopy()
+			cm := kkInstanceScope.GlobalContainerManager().DeepCopy()
 			if err := mergo.Merge(&spec.ContainerManager, cm); err != nil {
 				return nil, err
 			}

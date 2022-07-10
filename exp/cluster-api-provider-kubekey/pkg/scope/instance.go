@@ -126,3 +126,7 @@ func (i *InstanceScope) Close() error {
 func (i *InstanceScope) HasFailed() bool {
 	return i.KKInstance.Status.FailureReason != nil || i.KKInstance.Status.FailureMessage != nil
 }
+
+func (i *InstanceScope) SetState(state infrav1.InstanceState) {
+	i.KKInstance.Status.State = state
+}

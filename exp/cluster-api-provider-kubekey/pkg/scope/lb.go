@@ -14,18 +14,21 @@
  limitations under the License.
 */
 
-package user
+package scope
 
 import (
-	"fmt"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	"github.com/pkg/errors"
+	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
 )
 
-func (s *Service) Add() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to add user %s", s.Name)
-	}
-	return nil
+type LBScope interface {
+	pkg.ClusterScoper
+	// ControlPlaneEndpoint returns KKCluster control plane endpoint
+	ControlPlaneEndpoint() clusterv1.APIEndpoint
+	// ControlPlaneLoadBalancer returns the KKLoadBalancerSpec
+	ControlPlaneLoadBalancer() *infrav1.KKLoadBalancerSpec
+	// AllInstancesSpec returns the KKInstanceSpec
+	AllInstancesSpec() []infrav1.KKInstanceSpec
 }

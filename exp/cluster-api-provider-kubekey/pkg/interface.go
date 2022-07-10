@@ -17,7 +17,7 @@
 package pkg
 
 import (
-	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 )
 
 // ScopeUsage is used to indicate which controller is using a scope.
@@ -36,25 +36,10 @@ type ClusterScoper interface {
 	Namespace() string
 	// InfraClusterName returns the KKK cluster name.
 	InfraClusterName() string
-
 	// KubernetesClusterName is the name of the Kubernetes cluster.
 	KubernetesClusterName() string
-
-	// ControlPlaneEndpoint returns KKCluster control plane endpoint
-	ControlPlaneEndpoint() infrav1.ControlPlaneEndPoint
-
-	Registry() *infrav1.Registry
-
-	Auth() *infrav1.Auth
-
-	ContainerManager() *infrav1.ContainerManager
-
-	AllInstancesSpec() []infrav1.KKInstanceSpec
-
-	GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKInstanceSpec
-
-	AllInstances() ([]*infrav1.KKInstance, error)
-
+	// RootFs is the cluster scope rootfs
+	RootFs() rootfs.Interface
 	// PatchObject persists the cluster configuration and status.
 	PatchObject() error
 	// Close closes the current scope persisting the cluster configuration and status.
