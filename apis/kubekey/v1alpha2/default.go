@@ -38,7 +38,7 @@ const (
 	DefaultClusterName          = "cluster.local"
 	DefaultDNSDomain            = "cluster.local"
 	DefaultArch                 = "amd64"
-	DefaultSSHTimeout           = 10
+	DefaultSSHTimeout           = 30
 	DefaultEtcdVersion          = "v3.4.13"
 	DefaultEtcdPort             = "2379"
 	DefaultDockerVersion        = "20.10.8"

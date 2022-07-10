@@ -19,8 +19,9 @@ package task
 import (
 	"context"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/rollback"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
@@ -29,7 +30,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/pkg/errors"
+	"github.com/kubesphere/kubekey/pkg/core/rollback"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 )
 
 type LocalTask struct {
@@ -119,7 +121,7 @@ func (l *LocalTask) RunWithTimeout(runtime connector.Runtime, host connector.Hos
 	go l.Run(runtime, host, resCh)
 	select {
 	case <-ctx.Done():
-		l.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%d", l.Timeout))
+		l.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%s", util.ShortDur(l.Timeout)))
 	case e := <-resCh:
 		if e != nil {
 			l.TaskResult.AppendErr(host, e)
