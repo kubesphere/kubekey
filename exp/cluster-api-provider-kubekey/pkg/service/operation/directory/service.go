@@ -26,7 +26,7 @@ import (
 type Service struct {
 	SSHClient ssh.Interface
 	Path      string
-	Mode      filesystem.FileMode
+	Mode      os.FileMode
 }
 
 func NewService(sshClient ssh.Interface, path string, mode os.FileMode) *Service {
@@ -37,14 +37,14 @@ func NewService(sshClient ssh.Interface, path string, mode os.FileMode) *Service
 	}
 }
 
-func checkFileMode(mode os.FileMode) filesystem.FileMode {
+func checkFileMode(mode os.FileMode) os.FileMode {
 	if mode.Perm() == 0 {
-		mode = os.FileMode(0644)
+		mode = os.FileMode(filesystem.FileMode0664)
 	}
 
 	if mode.Type() != os.ModeDir {
 		mode = os.ModeDir | mode
 	}
 
-	return filesystem.FileMode{FileMode: mode}
+	return mode
 }

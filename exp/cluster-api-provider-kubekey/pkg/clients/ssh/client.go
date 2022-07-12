@@ -31,10 +31,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
+	"k8s.io/klog/v2/klogr"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
@@ -46,6 +48,7 @@ const (
 )
 
 type Client struct {
+	logr.Logger
 	mu             sync.Mutex
 	User           string
 	Password       string
@@ -59,7 +62,11 @@ type Client struct {
 	fs             filesystem.Interface
 }
 
-func NewClient(host string, auth *infrav1.Auth) Interface {
+func NewClient(host string, auth *infrav1.Auth, log *logr.Logger) Interface {
+	if log == nil {
+		l := klogr.New()
+		log = &l
+	}
 	if auth.User == "" {
 		auth.User = "root"
 	}
@@ -85,6 +92,7 @@ func NewClient(host string, auth *infrav1.Auth) Interface {
 		Timeout:        auth.Timeout,
 		host:           host,
 		fs:             filesystem.NewFileSystem(),
+		Logger:         *log,
 	}
 }
 
@@ -256,6 +264,8 @@ func (c *Client) Cmd(cmd string) (string, error) {
 	defer session.Close()
 	defer c.sshClient.Close()
 
+	c.Logger.V(2).Info(fmt.Sprintf("cmd: %s", cmd))
+
 	output, err := session.CombinedOutput(cmd)
 	if err != nil {
 		return "", errors.Wrapf(err, "[%s] run command failed", c.host)
@@ -272,12 +282,19 @@ func (c *Client) SudoCmd(cmd string) (string, error) {
 	if err := c.Connect(); err != nil {
 		return "", errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
 	}
+	defer c.sshClient.Close()
+	return c.sudoCmd(cmd)
+}
+
+func (c *Client) sudoCmd(cmd string) (string, error) {
 	session, err := c.session()
 	if err != nil {
 		return "", errors.Wrapf(err, "[%s] create ssh session failed", c.host)
 	}
 	defer session.Close()
-	defer c.sshClient.Close()
+
+	cmd = SudoPrefix(cmd)
+	c.Logger.V(2).Info(fmt.Sprintf("cmd: %s", cmd))
 
 	in, err := session.StdinPipe()
 	if err != nil {
@@ -289,42 +306,44 @@ func (c *Client) SudoCmd(cmd string) (string, error) {
 		return "", err
 	}
 
-	var output []byte
+	if err := session.Start(cmd); err != nil {
+		return "", err
+	}
+	var (
+		output []byte
+		line   = ""
+		r      = bufio.NewReader(out)
+	)
 
-	go func(in io.WriteCloser, out io.Reader, output *[]byte) {
-		var (
-			line string
-			r    = bufio.NewReader(out)
-		)
-		for {
-			b, err := r.ReadByte()
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			break
+		}
+
+		output = append(output, b)
+
+		if b == byte('\n') {
+			line = ""
+			continue
+		}
+
+		line += string(b)
+
+		if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
+			_, err = in.Write([]byte(c.Password + "\n"))
 			if err != nil {
 				break
 			}
-
-			*output = append(*output, b)
-
-			if b == byte('\n') {
-				line = ""
-				continue
-			}
-
-			line += string(b)
-
-			if strings.HasPrefix(line, "[sudo] password for ") && strings.HasSuffix(line, ": ") {
-				_, err = in.Write([]byte(c.Password + "\n"))
-				if err != nil {
-					break
-				}
-			}
 		}
-	}(in, out, &output)
+	}
 
-	_, err = session.Output(SudoPrefix(cmd))
+	err = session.Wait()
 	if err != nil {
 		return "", err
 	}
-	return string(output), nil
+	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", c.User))
+	return strings.TrimSpace(outStr), nil
 }
 
 func (c *Client) SudoCmdf(cmd string, a ...any) (string, error) {
@@ -371,12 +390,12 @@ func (c *Client) copyLocalFileToRemote(src, dst string) error {
 		srcMd5, dstMd5 string
 	)
 	srcMd5 = c.fs.MD5Sum(src)
-	if exist, err := c.RemoteFileExist(dst); err != nil {
+	if exist, err := c.remoteFileExist(dst); err != nil {
 		return err
 	} else if exist {
-		dstMd5 = c.RemoteMd5Sum(dst)
+		dstMd5 = c.remoteMd5Sum(dst)
 		if srcMd5 == dstMd5 {
-			// todo: debug log
+			c.Logger.V(2).Info(fmt.Sprintf("remote file %s md5 value is the same as local file, skip scp", dst))
 			return nil
 		}
 	}
@@ -403,7 +422,7 @@ func (c *Client) copyLocalFileToRemote(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	dstMd5 = c.RemoteMd5Sum(dst)
+	dstMd5 = c.remoteMd5Sum(dst)
 	if srcMd5 != dstMd5 {
 		return fmt.Errorf("validate md5sum failed %s != %s", srcMd5, dstMd5)
 	}
@@ -459,16 +478,12 @@ func (c *Client) Fetch(local, remote string) error {
 	return err
 }
 
-func (c *Client) RemoteMd5Sum(dst string) string {
-	if err := c.Connect(); err != nil {
-		return ""
-	}
-	defer c.sshClient.Close()
-
+func (c *Client) remoteMd5Sum(dst string) string {
 	cmd := fmt.Sprintf("md5sum %s | cut -d\" \" -f1", dst)
-	remoteMd5, err := c.SudoCmd(cmd)
+	remoteMd5, err := c.sudoCmd(cmd)
 	if err != nil {
-		// TODO: log
+		c.Logger.Error(err, fmt.Sprintf("sum remote file md5 failed, output: %s", remoteMd5))
+		return ""
 	}
 	return remoteMd5
 }
@@ -478,13 +493,16 @@ func (c *Client) RemoteFileExist(remote string) (bool, error) {
 		return false, errors.Wrapf(err, "[%s] connect failed", c.host)
 	}
 	defer c.sshClient.Close()
+	return c.remoteFileExist(remote)
+}
 
+func (c *Client) remoteFileExist(remote string) (bool, error) {
 	remoteFileName := path.Base(remote)
 	remoteFileDirName := path.Dir(remote)
 
 	remoteFileCommand := fmt.Sprintf("ls -l %s/%s 2>/dev/null |wc -l", remoteFileDirName, remoteFileName)
 
-	out, err := c.SudoCmd(remoteFileCommand)
+	out, err := c.sudoCmd(remoteFileCommand)
 	if err != nil {
 		return false, err
 	}
@@ -517,5 +535,5 @@ func fileExist(path string) bool {
 }
 
 func SudoPrefix(cmd string) string {
-	return fmt.Sprintf("sudo -E /bin/bash -c \"%s\"", cmd)
+	return fmt.Sprintf("sudo -E /bin/bash <<EOF\n%s\nEOF", cmd)
 }

@@ -19,6 +19,7 @@ package util
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -28,7 +29,15 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
-func GetInfraCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, kkMachine *infrav1.KKMachine, controllerName string) (*scope.ClusterScope, error) {
+func GetInfraCluster(
+	ctx context.Context,
+	c client.Client,
+	log logr.Logger,
+	cluster *clusterv1.Cluster,
+	kkMachine *infrav1.KKMachine,
+	controllerName string,
+	dataDir string) (*scope.ClusterScope, error) {
+
 	kkCluster := &infrav1.KKCluster{}
 	infraClusterName := client.ObjectKey{
 		Namespace: kkMachine.Namespace,
@@ -42,9 +51,11 @@ func GetInfraCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cl
 	// Create the cluster scope
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         c,
+		Logger:         &log,
 		Cluster:        cluster,
 		KKCluster:      kkCluster,
 		ControllerName: controllerName,
+		RootFsBasePath: dataDir,
 	})
 	if err != nil {
 		return nil, err

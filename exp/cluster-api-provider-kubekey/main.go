@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -68,6 +69,7 @@ var (
 	kkMachineConcurrency    int
 	syncPeriod              time.Duration
 	watchNamespace          string
+	dataDir                 string
 )
 
 func main() {
@@ -109,6 +111,7 @@ func main() {
 		Recorder:         mgr.GetEventRecorderFor("kkcluster-controller"),
 		Scheme:           mgr.GetScheme(),
 		WatchFilterValue: watchFilterValue,
+		DataDir:          dataDir,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkClusterConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKCluster")
 		os.Exit(1)
@@ -118,6 +121,7 @@ func main() {
 		Recorder:         mgr.GetEventRecorderFor("kkmachine-controller"),
 		Scheme:           mgr.GetScheme(),
 		WatchFilterValue: watchFilterValue,
+		DataDir:          dataDir,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkMachineConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKMachine")
 		os.Exit(1)
@@ -127,6 +131,7 @@ func main() {
 		Recorder:         mgr.GetEventRecorderFor("kkinstance-controller"),
 		Scheme:           mgr.GetScheme(),
 		WatchFilterValue: watchFilterValue,
+		DataDir:          dataDir,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkInstanceConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKInstance")
 		os.Exit(1)
@@ -207,5 +212,19 @@ func initFlags(fs *pflag.FlagSet) {
 		"health-probe-bind-address",
 		":8081",
 		"The address the probe endpoint binds to.",
+	)
+
+	fs.StringVar(
+		&watchFilterValue,
+		"watch-filter",
+		"",
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
+	)
+
+	fs.StringVar(
+		&dataDir,
+		"data-dir",
+		"",
+		"The KubeKey data dir.",
 	)
 }

@@ -47,7 +47,7 @@ func (s *Service) CreateDirectory() error {
 		"/opt/cni/bin",
 	}
 	for _, dir := range makeDirs {
-		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0644))
+		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0755))
 		if err := dirService.Make(); err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func (s *Service) CreateDirectory() error {
 		"/var/lib/calico",
 	}
 	for _, dir := range chownDirs {
-		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0644))
+		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0755))
 		if err := dirService.Chown("kube"); err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (s *Service) CreateDirectory() error {
 }
 
 func (s *Service) ResetTmpDirectory() error {
-	dirService := s.getDirectoryFactory(directory.TmpDir, os.FileMode(filesystem.FileMode0644))
+	dirService := s.getDirectoryFactory(directory.TmpDir, os.FileMode(filesystem.FileMode0755))
 	if err := dirService.Remove(); err != nil {
 		return err
 	}

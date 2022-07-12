@@ -18,40 +18,33 @@ package filesystem
 
 import (
 	"os"
-	"strconv"
+	"syscall"
 )
 
-type FileMode struct {
-	os.FileMode
-}
+const (
+	s_ISUID = syscall.S_ISUID
+	s_ISGID = syscall.S_ISGID
+	s_ISVTX = syscall.S_ISVTX
+)
 
-func (m FileMode) PermNumberString() string {
-	const str = "dalTLDpSugct?"
-	var buf [32]byte // Mode is uint32.
-	w := 0
-	for i, c := range str {
-		if m.FileMode.Perm()&(1<<uint(32-1-i)) != 0 {
-			buf[w] = byte(c)
-			w++
-		}
-	}
-	if w == 0 {
-		buf[w] = '-'
-		w++
-	}
-	const rwx = "421421421"
-	res := ""
-	cur := 0
-	for i, c := range rwx {
-		if (9-1-i)%3 == 0 {
-			res = res + strconv.Itoa(cur)
-			cur = 0
-		}
+// ToChmodPerm converts Go permission bits to POSIX permission bits.
+//
+// This differs from fromFileMode in that we preserve the POSIX versions of
+// setuid, setgid and sticky in m, because we've historically supported those
+// bits, and we mask off any non-permission bits.
+func ToChmodPerm(m os.FileMode) (perm uint32) {
+	const mask = os.ModePerm | s_ISUID | s_ISGID | s_ISVTX
+	perm = uint32(m & mask)
 
-		if m.FileMode.Perm()&(1<<uint(9-1-i)) != 0 {
-			cnum, _ := strconv.Atoi(string(c))
-			cur += cnum
-		}
+	if m&os.ModeSetuid != 0 {
+		perm |= s_ISUID
 	}
-	return res
+	if m&os.ModeSetgid != 0 {
+		perm |= s_ISGID
+	}
+	if m&os.ModeSticky != 0 {
+		perm |= s_ISVTX
+	}
+
+	return perm
 }

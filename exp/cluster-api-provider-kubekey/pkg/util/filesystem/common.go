@@ -16,12 +16,6 @@
 
 package filesystem
 
-import (
-	"path/filepath"
-
-	"github.com/mitchellh/go-homedir"
-)
-
 const (
 	DefaultLocalTmpDir = "/var/lib/kubekey"
 )
@@ -29,20 +23,5 @@ const (
 const (
 	FileMode0755 = 0755
 	FileMode0644 = 0644
+	FileMode0664 = 0664
 )
-
-func GetClusterWorkDir(clusterName string) string {
-	return filepath.Join(HomeDir(), ".kubekey", clusterName)
-}
-
-func GetCommonWorkDir() string {
-	return filepath.Join(HomeDir(), ".kubekey")
-}
-
-func HomeDir() string {
-	home, err := homedir.Dir()
-	if err != nil {
-		return "/root"
-	}
-	return home
-}

@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -34,6 +35,7 @@ import (
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	Client         client.Client
+	Logger         *logr.Logger
 	Cluster        *clusterv1.Cluster
 	KKCluster      *infrav1.KKCluster
 	ControllerName string
@@ -50,7 +52,13 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.New("failed to generate new scope from nil KKCluster")
 	}
 
+	if params.Logger == nil {
+		log := klogr.New()
+		params.Logger = &log
+	}
+
 	clusterScope := &ClusterScope{
+		Logger:         *params.Logger,
 		client:         params.Client,
 		Cluster:        params.Cluster,
 		KKCluster:      params.KKCluster,

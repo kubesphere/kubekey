@@ -148,6 +148,6 @@ func (s *File) Chmod(option string) error {
 		return errors.Errorf("remote file %s is not exist in the remote path %s", s.Name(), s.RemotePath())
 	}
 
-	_, err := s.sshClient.SudoCmdf("chmod %s", option)
+	_, err := s.sshClient.SudoCmdf("chmod %s %s", option, s.remoteFullPath)
 	return err
 }

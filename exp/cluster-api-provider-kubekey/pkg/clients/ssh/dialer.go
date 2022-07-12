@@ -18,9 +18,6 @@ package ssh
 
 import (
 	"sync"
-	"time"
-
-	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 )
 
 type Dialer struct {
@@ -34,37 +31,37 @@ func NewDialer() *Dialer {
 	}
 }
 
-func (d *Dialer) Ping(host string, auth *infrav1.Auth, retry int) error {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
-	var err error
-	client := NewClient(host, auth)
-	for i := 0; i < retry; i++ {
-		err = client.Ping()
-		if err == nil {
-			break
-		}
-		time.Sleep(time.Duration(i) * time.Second)
-	}
-	return err
-}
-
-func (d *Dialer) Connect(host string, auth *infrav1.Auth) (Interface, error) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
-	client, ok := d.clients[host]
-	if !ok {
-		client = NewClient(host, auth)
-		if err := client.Connect(); err != nil {
-			return nil, err
-		}
-		d.clients[host] = client
-	}
-
-	return client, nil
-}
+//func (d *Dialer) Ping(host string, auth *infrav1.Auth, retry int) error {
+//	d.lock.Lock()
+//	defer d.lock.Unlock()
+//
+//	var err error
+//	client := NewClient(host, auth)
+//	for i := 0; i < retry; i++ {
+//		err = client.Ping()
+//		if err == nil {
+//			break
+//		}
+//		time.Sleep(time.Duration(i) * time.Second)
+//	}
+//	return err
+//}
+//
+//func (d *Dialer) Connect(host string, auth *infrav1.Auth) (Interface, error) {
+//	d.lock.Lock()
+//	defer d.lock.Unlock()
+//
+//	client, ok := d.clients[host]
+//	if !ok {
+//		client = NewClient(host, auth)
+//		if err := client.Connect(); err != nil {
+//			return nil, err
+//		}
+//		d.clients[host] = client
+//	}
+//
+//	return client, nil
+//}
 
 func (d *Dialer) Close(host string) {
 	client, ok := d.clients[host]

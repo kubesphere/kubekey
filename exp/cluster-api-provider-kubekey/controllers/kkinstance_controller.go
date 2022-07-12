@@ -58,14 +58,19 @@ type KKInstanceReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
+	sshClientFactory func(scope *scope.InstanceScope) ssh.Interface
 	bootstrapFactory func(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap
 	WatchFilterValue string
+	DataDir          string
 
 	Dialer *ssh.Dialer
 }
 
-func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) (ssh.Interface, error) {
-	return r.Dialer.Connect(scope.KKInstance.Spec.Address, &scope.KKInstance.Spec.Auth)
+func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) ssh.Interface {
+	if r.sshClientFactory != nil {
+		return r.sshClientFactory(scope)
+	}
+	return ssh.NewClient(scope.KKInstance.Spec.Address, &scope.KKInstance.Spec.Auth, &scope.Logger)
 }
 
 func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap {
@@ -179,7 +184,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	infraCluster, err := util.GetInfraCluster(ctx, r.Client, cluster, kkMachine, "kkinstance")
+	infraCluster, err := util.GetInfraCluster(ctx, r.Client, log, cluster, kkMachine, "kkinstance", r.DataDir)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting infra provider cluster object")
 	}
@@ -187,11 +192,6 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Info("KKCluster is not ready yet")
 		return ctrl.Result{}, nil
 	}
-
-	if err := r.Dialer.Ping(kkInstance.Spec.Address, &kkInstance.Spec.Auth, 3); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to ping remote instance [%s]", kkInstance.Spec.Address)
-	}
-	defer r.Dialer.Close(kkInstance.Spec.Address)
 
 	instanceScope, err := scope.NewInstanceScope(scope.InstanceScopeParams{
 		Client:       r.Client,
@@ -203,6 +203,10 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		log.Error(err, "failed to create instance scope")
 		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcilePing(ctx, instanceScope); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to ping remote instance [%s]", kkInstance.Spec.Address)
 	}
 
 	// Always close the scope when exiting this function, so we can persist any KKInstance changes.
@@ -227,29 +231,23 @@ func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScop
 }
 
 func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Reconcile KKInstance normal")
+	instanceScope.Info("Reconcile KKInstance normal")
 
 	// If the KKInstance is in an error state, return early.
 	if instanceScope.HasFailed() {
-		log.Info("Error state detected, skipping reconciliation")
+		instanceScope.Info("Error state detected, skipping reconciliation")
 		return ctrl.Result{}, nil
 	}
 
 	if !instanceScope.Cluster.Status.InfrastructureReady {
-		log.Info("Cluster infrastructure is not ready yet")
+		instanceScope.Info("Cluster infrastructure is not ready yet")
 		conditions.MarkFalse(instanceScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
-	sshClient, err := r.getSSHClient(instanceScope)
-	if err != nil {
-		log.Info("failed to get remote ssh client", "instance", instanceScope.KKInstance.Name)
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get remote instance [%s] ssh client", instanceScope.InternalAddress())
-	}
-
+	sshClient := r.getSSHClient(instanceScope)
 	if err := r.reconcileBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {
-		log.Error(err, "failed to reconcile bootstrap")
+		instanceScope.Error(err, "failed to reconcile bootstrap")
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
 		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
 	}

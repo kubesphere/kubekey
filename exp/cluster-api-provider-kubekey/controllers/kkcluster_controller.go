@@ -52,6 +52,7 @@ type KKClusterReconciler struct {
 	Recorder         record.EventRecorder
 	Scheme           *runtime.Scheme
 	WatchFilterValue string
+	DataDir          string
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -149,10 +150,11 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         r.Client,
+		Logger:         &log,
 		Cluster:        cluster,
 		KKCluster:      kkCluster,
 		ControllerName: "kkcluster",
-		RootFsBasePath: "",
+		RootFsBasePath: r.DataDir,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)

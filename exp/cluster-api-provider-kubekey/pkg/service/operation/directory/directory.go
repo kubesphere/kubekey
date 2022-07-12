@@ -20,12 +20,14 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
 func (s *Service) Make() error {
-	_, err := s.SSHClient.SudoCmdf("mkdir -p -m %s %s", s.Mode.PermNumberString(), s.Path)
+	_, err := s.SSHClient.SudoCmdf("mkdir -p -m %o %s", filesystem.ToChmodPerm(s.Mode), s.Path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to mkdir -p -m %s %s", s.Mode.PermNumberString(), s.Path)
+		return errors.Wrapf(err, "failed to mkdir -p -m %o %s", filesystem.ToChmodPerm(s.Mode), s.Path)
 	}
 	return nil
 }

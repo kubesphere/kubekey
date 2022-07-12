@@ -26,6 +26,21 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
+func (r *KKInstanceReconciler) reconcilePing(ctx context.Context, instanceScope *scope.InstanceScope) error {
+	log := ctrl.LoggerFrom(ctx, "infraCluster", instanceScope.InfraCluster.Name())
+	log.V(4).Info("Reconcile ping")
+
+	sshClient := r.getSSHClient(instanceScope)
+	var err error
+	for i := 0; i < 3; i++ {
+		err = sshClient.Ping()
+		if err == nil {
+			break
+		}
+	}
+	return err
+}
+
 func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope, lbScope scope.LBScope) error {
 	log := ctrl.LoggerFrom(ctx, "infraCluster", instanceScope.InfraCluster.Name())
 	log.V(4).Info("Reconcile bootstrap")

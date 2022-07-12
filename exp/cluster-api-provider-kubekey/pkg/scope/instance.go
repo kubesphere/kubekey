@@ -19,7 +19,9 @@ package scope
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -32,6 +34,7 @@ import (
 // InstanceScopeParams defines the input parameters used to create a new InstanceScope.
 type InstanceScopeParams struct {
 	Client       client.Client
+	Logger       *logr.Logger
 	Cluster      *clusterv1.Cluster
 	InfraCluster *ClusterScope
 	//Machine      *clusterv1.Machine
@@ -61,12 +64,18 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 		return nil, errors.New("kk instance is required when creating a InstanceScope")
 	}
 
+	if params.Logger == nil {
+		log := klogr.New()
+		params.Logger = &log
+	}
+
 	helper, err := patch.NewHelper(params.KKInstance, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
 	return &InstanceScope{
+		Logger:      *params.Logger,
 		client:      params.Client,
 		patchHelper: helper,
 
@@ -80,6 +89,7 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 
 // InstanceScope defines a scope defined around a machine instance and its cluster.
 type InstanceScope struct {
+	logr.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 

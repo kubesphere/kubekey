@@ -21,35 +21,32 @@ import (
 	"testing"
 )
 
-func TestFileMode_PermNumberString(t *testing.T) {
+func TestToChmodPerm(t *testing.T) {
 	tests := []struct {
-		FileMode os.FileMode
-		want     string
+		mode     os.FileMode
+		wantPerm uint32
 	}{
 		{
 			os.FileMode(0000),
-			"000",
+			0000,
 		},
 		{
 			os.FileMode(0777),
-			"777",
+			0777,
 		},
 		{
 			os.FileMode(0660),
-			"660",
+			0660,
 		},
 		{
 			os.FileMode(0755),
-			"755",
+			0755,
 		},
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			m := FileMode{
-				FileMode: tt.FileMode,
-			}
-			if got := m.PermNumberString(); got != tt.want {
-				t.Errorf("PermNumberString() = %v, want %v", got, tt.want)
+			if gotPerm := ToChmodPerm(tt.mode); gotPerm != tt.wantPerm {
+				t.Errorf("ToChmodPerm() = %v, want %v", gotPerm, tt.wantPerm)
 			}
 		})
 	}

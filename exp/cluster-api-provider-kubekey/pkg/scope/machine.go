@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -38,6 +40,7 @@ import (
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
 	Client       client.Client
+	Logger       *logr.Logger
 	Cluster      *clusterv1.Cluster
 	InfraCluster *ClusterScope
 	Machine      *clusterv1.Machine
@@ -63,11 +66,17 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.New("kk machine is required when creating a MachineScope")
 	}
 
+	if params.Logger == nil {
+		log := klogr.New()
+		params.Logger = &log
+	}
+
 	helper, err := patch.NewHelper(params.KKMachine, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 	return &MachineScope{
+		Logger:      *params.Logger,
 		client:      params.Client,
 		patchHelper: helper,
 
@@ -80,6 +89,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 // MachineScope defines a scope defined around a machine and its cluster.
 type MachineScope struct {
+	logr.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 
