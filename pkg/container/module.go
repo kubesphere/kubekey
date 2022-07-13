@@ -102,6 +102,7 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 			Data: util.Data{
 				"Mirrors":            templates.Mirrors(m.KubeConf),
 				"InsecureRegistries": templates.InsecureRegistries(m.KubeConf),
+				"DataRoot":           templates.DataRoot(m.KubeConf),
 			},
 		},
 		Parallel: true,

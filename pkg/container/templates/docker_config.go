@@ -31,6 +31,9 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
     "max-size": "5m",
     "max-file":"3"
   },
+  {{- if .DataRoot }}
+  "data-root": {{ .DataRoot }},
+  {{- end}}
   {{- if .Mirrors }}
   "registry-mirrors": [{{ .Mirrors }}],
   {{- end}}
@@ -63,4 +66,12 @@ func InsecureRegistries(kubeConf *common.KubeConf) string {
 		insecureRegistries = strings.Join(registriesArr, ", ")
 	}
 	return insecureRegistries
+}
+
+func DataRoot(kubeConf *common.KubeConf) string {
+	var dataRoot string
+	if kubeConf.Cluster.Registry.DataRoot != "" {
+		dataRoot = fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.DataRoot)
+	}
+	return dataRoot
 }

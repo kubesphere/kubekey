@@ -287,7 +287,7 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 	}
 
 	if kubeConf.Arg.Debug {
-		logger.Log.Debug("Set kubeletConfiguration: %v", kubeletConfiguration)
+		logger.Log.Debugf("Set kubeletConfiguration: %v", kubeletConfiguration)
 	}
 
 	return kubeletConfiguration
