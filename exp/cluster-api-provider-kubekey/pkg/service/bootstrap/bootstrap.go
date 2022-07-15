@@ -17,15 +17,19 @@
 package bootstrap
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
+	"text/template"
 
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/bootstrap/templates"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/directory"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
+
+//go:embed templates
+var f embed.FS
 
 func (s *Service) AddUsers() error {
 	userService := s.getUserService("kube", "Kubernetes user")
@@ -47,7 +51,7 @@ func (s *Service) CreateDirectory() error {
 		"/opt/cni/bin",
 	}
 	for _, dir := range makeDirs {
-		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0755))
+		dirService := s.getDirectoryService(dir, os.FileMode(filesystem.FileMode0755))
 		if err := dirService.Make(); err != nil {
 			return err
 		}
@@ -64,7 +68,7 @@ func (s *Service) CreateDirectory() error {
 		"/var/lib/calico",
 	}
 	for _, dir := range chownDirs {
-		dirService := s.getDirectoryFactory(dir, os.FileMode(filesystem.FileMode0755))
+		dirService := s.getDirectoryService(dir, os.FileMode(filesystem.FileMode0755))
 		if err := dirService.Chown("kube"); err != nil {
 			return err
 		}
@@ -73,7 +77,7 @@ func (s *Service) CreateDirectory() error {
 }
 
 func (s *Service) ResetTmpDirectory() error {
-	dirService := s.getDirectoryFactory(directory.TmpDir, os.FileMode(filesystem.FileMode0755))
+	dirService := s.getDirectoryService(directory.TmpDir, os.FileMode(filesystem.FileMode0755))
 	if err := dirService.Remove(); err != nil {
 		return err
 	}
@@ -103,12 +107,17 @@ func (s *Service) ExecInitScript() error {
 	}
 	hostsList = append(hostsList, lbHost)
 
-	svc, err := s.getTemplateFactory(
-		templates.InitOsScriptTmpl,
+	temp, err := template.ParseFS(f, "templates/initOS.sh")
+	if err != nil {
+		return err
+	}
+
+	svc, err := s.getTemplateService(
+		temp,
 		file.Data{
 			"Hosts": hostsList,
 		},
-		filepath.Join(directory.KubeScriptDir, templates.InitOsScriptTmpl.Name()))
+		filepath.Join(directory.KubeScriptDir, temp.Name()))
 	if err != nil {
 		return err
 	}

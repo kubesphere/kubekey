@@ -71,14 +71,14 @@ func GetOwnerKKMachine(ctx context.Context, c client.Client, obj metav1.ObjectMe
 			return nil, err
 		}
 		if ref.Kind == "KKMachine" && gv.Group == infrav1.GroupVersion.Group {
-			return GetMachineByName(ctx, c, obj.Namespace, ref.Name)
+			return GetKKMachineByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
 	return nil, nil
 }
 
-// GetMachineByName finds and return a Machine object using the specified params.
-func GetMachineByName(ctx context.Context, c client.Client, namespace, name string) (*infrav1.KKMachine, error) {
+// GetKKMachineByName finds and return a Machine object using the specified params.
+func GetKKMachineByName(ctx context.Context, c client.Client, namespace, name string) (*infrav1.KKMachine, error) {
 	m := &infrav1.KKMachine{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	if err := c.Get(ctx, key, m); err != nil {

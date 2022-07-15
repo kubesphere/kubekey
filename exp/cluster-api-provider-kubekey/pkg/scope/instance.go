@@ -37,9 +37,9 @@ type InstanceScopeParams struct {
 	Logger       *logr.Logger
 	Cluster      *clusterv1.Cluster
 	InfraCluster *ClusterScope
-	//Machine      *clusterv1.Machine
-	KKMachine  *infrav1.KKMachine
-	KKInstance *infrav1.KKInstance
+	Machine      *clusterv1.Machine
+	KKMachine    *infrav1.KKMachine
+	KKInstance   *infrav1.KKInstance
 }
 
 // NewInstanceScope creates a new InstanceScope from the supplied parameters.
@@ -53,6 +53,9 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 	//}
 	if params.Cluster == nil {
 		return nil, errors.New("cluster is required when creating a InstanceScope")
+	}
+	if params.Machine == nil {
+		return nil, errors.New("machine is required when creating a InstanceScope")
 	}
 	if params.InfraCluster == nil {
 		return nil, errors.New("kk cluster is required when creating a InstanceScope")
@@ -79,8 +82,8 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 		client:      params.Client,
 		patchHelper: helper,
 
-		Cluster: params.Cluster,
-		//Machine:      params.Machine,
+		Cluster:      params.Cluster,
+		Machine:      params.Machine,
 		InfraCluster: params.InfraCluster,
 		KKMachine:    params.KKMachine,
 		KKInstance:   params.KKInstance,
@@ -95,13 +98,25 @@ type InstanceScope struct {
 
 	Cluster      *clusterv1.Cluster
 	InfraCluster pkg.ClusterScoper
-	//Machine      *clusterv1.Machine
-	KKMachine  *infrav1.KKMachine
-	KKInstance *infrav1.KKInstance
+	Machine      *clusterv1.Machine
+	KKMachine    *infrav1.KKMachine
+	KKInstance   *infrav1.KKInstance
 }
 
 func (i *InstanceScope) InternalAddress() string {
 	return i.KKInstance.Spec.InternalAddress
+}
+
+func (i *InstanceScope) Arch() string {
+	return i.KKInstance.Spec.Arch
+}
+
+func (i *InstanceScope) ContainerManager() *infrav1.ContainerManager {
+	return &i.KKInstance.Spec.ContainerManager
+}
+
+func (i *InstanceScope) KubernetesVersion() string {
+	return *i.Machine.Spec.Version
 }
 
 // PatchObject persists the machine spec and status.

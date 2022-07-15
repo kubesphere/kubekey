@@ -16,6 +16,10 @@
 
 package checksum
 
+import (
+	"github.com/pkg/errors"
+)
+
 const (
 	kubeadm    = "kubeadm"
 	kubelet    = "kubelet"
@@ -51,7 +55,11 @@ func NewInternalChecksum(id, version, arch string) *InternalChecksum {
 }
 
 func (i *InternalChecksum) Get() error {
-	i.value = FileSha256[i.ID][i.Arch][i.value]
+	value, ok := FileSha256[i.ID][i.Arch][i.Version]
+	if !ok {
+		return errors.New("unsupported version")
+	}
+	i.value = value
 	return nil
 }
 

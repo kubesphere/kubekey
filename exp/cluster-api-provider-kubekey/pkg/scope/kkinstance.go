@@ -27,6 +27,7 @@ type KKInstanceScope interface {
 	GlobalAuth() *infrav1.Auth
 	// GlobalContainerManager returns the global container manager configuration of all instances.
 	GlobalContainerManager() *infrav1.ContainerManager
+	GlobalRegistry() *infrav1.Registry
 	// AllInstancesSpec returns the KKInstanceSpec
 	AllInstancesSpec() []infrav1.KKInstanceSpec
 	// GetInstancesSpecByRole returns all instances filtered by role.

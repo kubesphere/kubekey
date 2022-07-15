@@ -45,7 +45,9 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/binary"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/bootstrap"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/containermanager"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util"
 )
 
@@ -56,12 +58,14 @@ const (
 // KKInstanceReconciler reconciles a KKInstance object
 type KKInstanceReconciler struct {
 	client.Client
-	Scheme           *runtime.Scheme
-	Recorder         record.EventRecorder
-	sshClientFactory func(scope *scope.InstanceScope) ssh.Interface
-	bootstrapFactory func(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap
-	WatchFilterValue string
-	DataDir          string
+	Scheme                  *runtime.Scheme
+	Recorder                record.EventRecorder
+	sshClientFactory        func(scope *scope.InstanceScope) ssh.Interface
+	bootstrapFactory        func(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap
+	binaryFactory           func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService
+	containerManagerFactory func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager
+	WatchFilterValue        string
+	DataDir                 string
 
 	Dialer *ssh.Dialer
 }
@@ -78,6 +82,20 @@ func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scop
 		return r.bootstrapFactory(sshClient, scope)
 	}
 	return bootstrap.NewService(sshClient, scope)
+}
+
+func (r *KKInstanceReconciler) getBinaryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService {
+	if r.binaryFactory != nil {
+		return r.binaryFactory(sshClient, scope, instanceScope)
+	}
+	return binary.NewService(sshClient, scope, instanceScope)
+}
+
+func (r *KKInstanceReconciler) getContainerManager(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager {
+	if r.containerManagerFactory != nil {
+		return r.containerManagerFactory(sshClient, scope, instanceScope)
+	}
+	return containermanager.NewService(sshClient, scope, instanceScope)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -170,6 +188,18 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	log = log.WithValues("kkMachine", kkMachine.Name)
 
+	// Fetch the Machine.
+	machine, err := cutil.GetOwnerMachine(ctx, r.Client, kkMachine.ObjectMeta)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if machine == nil {
+		log.Info("Machine Controller has not yet set OwnerRef")
+		return ctrl.Result{}, nil
+	}
+
+	log = log.WithValues("machine", machine.Name)
+
 	// Fetch the Cluster.
 	cluster, err := cutil.GetClusterFromMetadata(ctx, r.Client, kkInstance.ObjectMeta)
 	if err != nil {
@@ -196,6 +226,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	instanceScope, err := scope.NewInstanceScope(scope.InstanceScopeParams{
 		Client:       r.Client,
 		Cluster:      cluster,
+		Machine:      machine,
 		InfraCluster: infraCluster,
 		KKMachine:    kkMachine,
 		KKInstance:   kkInstance,
@@ -220,7 +251,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return r.reconcileDelete(ctx, instanceScope)
 	}
 
-	return r.reconcileNormal(ctx, instanceScope, infraCluster)
+	return r.reconcileNormal(ctx, instanceScope, infraCluster, infraCluster)
 }
 
 func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
@@ -230,7 +261,7 @@ func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScop
 	return ctrl.Result{}, nil
 }
 
-func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (ctrl.Result, error) {
+func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope, kkInstanceScope scope.KKInstanceScope) (ctrl.Result, error) {
 	instanceScope.Info("Reconcile KKInstance normal")
 
 	// If the KKInstance is in an error state, return early.
@@ -247,22 +278,26 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 
 	sshClient := r.getSSHClient(instanceScope)
 	if err := r.reconcileBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {
-		instanceScope.Error(err, "failed to reconcile bootstrap")
+		instanceScope.Error(err, "failed to reconcile internal bootstrap")
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
 		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
 	}
+
+	if err := r.reconcileBinaryService(ctx, sshClient, instanceScope, kkInstanceScope); err != nil {
+		instanceScope.Error(err, "failed to reconcile binary service")
+		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
+	}
+
+	if err := r.reconcileContainerManager(ctx, sshClient, instanceScope, kkInstanceScope); err != nil {
+		instanceScope.Error(err, "failed to reconcile container manager")
+		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
+	}
+
 	instanceScope.SetState(infrav1.InstanceStateRunning)
 
 	// parse cloud-init file
-	// todo:
-
-	// init os environment
-	// todo:
-
-	// download binaries
-	// todo:
-
-	// install container runtime
 	// todo:
 
 	return ctrl.Result{}, nil

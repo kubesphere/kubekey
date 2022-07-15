@@ -30,6 +30,7 @@ const (
 	DockerName            = "docker-%s.tgz"
 	DockerID              = "docker"
 	DockerDownloadURLTmpl = "https://download.docker.com/linux/static/stable/%s/docker-%s.tgz"
+	DockerDefaultVersion  = "20.10.8"
 )
 
 func NewDocker(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {

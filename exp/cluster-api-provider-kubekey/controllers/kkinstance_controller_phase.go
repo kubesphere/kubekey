@@ -18,8 +18,7 @@ package controllers
 
 import (
 	"context"
-
-	ctrl "sigs.k8s.io/controller-runtime"
+	"fmt"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
@@ -27,8 +26,7 @@ import (
 )
 
 func (r *KKInstanceReconciler) reconcilePing(ctx context.Context, instanceScope *scope.InstanceScope) error {
-	log := ctrl.LoggerFrom(ctx, "infraCluster", instanceScope.InfraCluster.Name())
-	log.V(4).Info("Reconcile ping")
+	instanceScope.Info("Reconcile ping")
 
 	sshClient := r.getSSHClient(instanceScope)
 	var err error
@@ -42,8 +40,7 @@ func (r *KKInstanceReconciler) reconcilePing(ctx context.Context, instanceScope 
 }
 
 func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope, lbScope scope.LBScope) error {
-	log := ctrl.LoggerFrom(ctx, "infraCluster", instanceScope.InfraCluster.Name())
-	log.V(4).Info("Reconcile bootstrap")
+	instanceScope.Info("Reconcile bootstrap")
 
 	instanceScope.SetState(infrav1.InstanceStateBootstrapping)
 
@@ -59,6 +56,39 @@ func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient
 		return err
 	}
 	if err := svc.ExecInitScript(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *KKInstanceReconciler) reconcileBinaryService(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope, kkInstanceScope scope.KKInstanceScope) error {
+	instanceScope.Info("Reconcile binary service")
+
+	svc := r.getBinaryService(sshClient, kkInstanceScope, instanceScope)
+	if err := svc.DownloadAll(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *KKInstanceReconciler) reconcileContainerManager(
+	ctx context.Context,
+	sshClient ssh.Interface,
+	instanceScope *scope.InstanceScope,
+	scope scope.KKInstanceScope) error {
+
+	instanceScope.Info("Reconcile container manager")
+
+	svc := r.getContainerManager(sshClient, scope, instanceScope)
+	if svc.IsExist() {
+		instanceScope.V(2).Info(fmt.Sprintf("container manager %s is exist, skip installation", svc.Type()))
+		return nil
+	}
+
+	if err := svc.Get(); err != nil {
+		return err
+	}
+	if err := svc.Install(); err != nil {
 		return err
 	}
 	return nil

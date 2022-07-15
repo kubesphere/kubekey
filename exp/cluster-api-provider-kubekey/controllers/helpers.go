@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -41,10 +42,19 @@ func (r *KKMachineReconciler) createInstance(
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Creating KKInstance")
 
+	if machineScope.Machine.Spec.Version == nil {
+		err := errors.New("Machine's spec.version must be defined")
+		machineScope.SetFailureReason(capierrors.CreateMachineError)
+		machineScope.SetFailureMessage(err)
+		return nil, err
+	}
+
 	instanceSpec, err := r.getUnassignedInstanceSpec(machineScope, kkInstanceScope)
 	if err != nil {
 		return nil, err
 	}
+
+	instanceSpec.Arch = "amd64"
 
 	gv := infrav1.GroupVersion
 	instance := &infrav1.KKInstance{

@@ -114,7 +114,7 @@ func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
 	return s.KKCluster.Spec.ControlPlaneEndpoint
 }
 
-func (s *ClusterScope) Registry() *infrav1.Registry {
+func (s *ClusterScope) GlobalRegistry() *infrav1.Registry {
 	return &s.KKCluster.Spec.Registry
 }
 

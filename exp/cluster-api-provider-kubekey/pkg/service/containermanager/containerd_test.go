@@ -14,22 +14,35 @@
  limitations under the License.
 */
 
-package service
+package containermanager
 
-type Bootstrap interface {
-	AddUsers() error
-	CreateDirectory() error
-	ResetTmpDirectory() error
-	ExecInitScript() error
-}
+import (
+	"testing"
+)
 
-type BinaryService interface {
-	DownloadAll() error
-}
-
-type ContainerManager interface {
-	Type() string
-	IsExist() bool
-	Get() error
-	Install() error
+func Test_getFirstMajorVersion(t *testing.T) {
+	tests := []struct {
+		version string
+		want    string
+	}{
+		{
+			"v1.24.0",
+			"v1.24.0",
+		},
+		{
+			"1.24.0",
+			"v1.24.0",
+		},
+		{
+			"v1.24.1",
+			"v1.24.0",
+		},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			if got := getFirstMajorVersion(tt.version); got != tt.want {
+				t.Errorf("getFirstMajorVersion() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

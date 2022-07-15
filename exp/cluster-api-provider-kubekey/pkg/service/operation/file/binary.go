@@ -57,22 +57,22 @@ func (b *Binary) Get() error {
 
 	out, err := os.Create(b.LocalPath())
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "create local file %s failed", b.LocalPath())
 	}
 
 	resp, err := http.Get(b.url)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "http get file %s failed", b.url)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		return fmt.Errorf("%s recive a bad status: %s", b.url, resp.Status)
 	}
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "io copy file %s failed", b.Name())
 	}
 	return nil
 }
@@ -93,16 +93,16 @@ func (b *Binary) SHA256() (string, error) {
 
 func (b *Binary) CompareChecksum() error {
 	if err := b.checksum.Get(); err != nil {
-		return err
+		return errors.Wrapf(err, "%s get checksum failed", b.Name())
 	}
 
 	sum, err := b.SHA256()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "%s caculate SHA256 failed", b.Name())
 	}
 
 	if sum != b.checksum.Value() {
-		return errors.New(fmt.Sprintf("SHA256 no match. file: %s not equal checksum: %s", sum, b.checksum.Value()))
+		return errors.New(fmt.Sprintf("SHA256 no match. file: %s sha256: %s not equal checksum: %s", b.Name(), sum, b.checksum.Value()))
 	}
 	return nil
 }

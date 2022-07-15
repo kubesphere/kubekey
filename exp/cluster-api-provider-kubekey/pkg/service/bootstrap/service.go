@@ -51,14 +51,14 @@ func (s *Service) getUserService(name, desc string) operation.User {
 	return user.NewService(s.SSHClient, name, desc)
 }
 
-func (s *Service) getDirectoryFactory(path string, mode os.FileMode) operation.Directory {
+func (s *Service) getDirectoryService(path string, mode os.FileMode) operation.Directory {
 	if s.directoryFactory != nil {
 		return s.directoryFactory(s.SSHClient, path, mode)
 	}
 	return directory.NewService(s.SSHClient, path, mode)
 }
 
-func (s *Service) getTemplateFactory(template *template.Template, data file.Data, dst string) (operation.Template, error) {
+func (s *Service) getTemplateService(template *template.Template, data file.Data, dst string) (operation.Template, error) {
 	if s.templateFactory != nil {
 		return s.templateFactory(s.SSHClient, template, data, dst)
 	}

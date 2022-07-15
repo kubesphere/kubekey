@@ -29,19 +29,20 @@ const (
 	KubecniName            = "cni-plugins-linux-%s-%s.tgz"
 	KubecniID              = "kubecni"
 	KubecniDownloadURLTmpl = "https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
+	KubecniDefaultVersion  = "v0.9.1"
 )
 
 func NewKubecni(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(KubecniID, version, arch)
 
-	fileName := KubecniName
+	fileName := fmt.Sprintf(KubecniName, arch, version)
 	file, err := NewFile(FileParams{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
 		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
-		RemoteFullPath: filepath.Join(TmpDir, fileName),
+		RemoteFullPath: filepath.Join(OptCniBinDir, fileName),
 	})
 	if err != nil {
 		return nil, err
