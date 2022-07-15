@@ -105,6 +105,7 @@ func (h *HaproxyModule) Init() {
 		Desc:  "Update kube-proxy configmap",
 		Hosts: []connector.Host{h.Runtime.GetHostsByRole(common.Master)[0]},
 		Prepare: &prepare.PrepareCollection{
+			new(common.EnableKubeProxy),
 			new(common.OnlyKubernetes),
 			new(common.OnlyFirstMaster),
 			new(updateKubeProxyPrapre),

@@ -118,3 +118,14 @@ func (o *OnlyKubernetes) PreCheck(_ connector.Runtime) (bool, error) {
 	}
 	return false, nil
 }
+
+type EnableKubeProxy struct {
+	KubePrepare
+}
+
+func (e *EnableKubeProxy) PreCheck(_ connector.Runtime) (bool, error) {
+	if !e.KubeConf.Cluster.Kubernetes.DisableKubeProxy {
+		return true, nil
+	}
+	return false, nil
+}

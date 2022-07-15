@@ -320,9 +320,13 @@ type KubeadmInit struct {
 }
 
 func (k *KubeadmInit) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm init "+
-		"--config=/etc/kubernetes/kubeadm-config.yaml "+
-		"--ignore-preflight-errors=FileExisting-crictl", true); err != nil {
+	initCmd := "/usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull"
+
+	if k.KubeConf.Cluster.Kubernetes.DisableKubeProxy {
+		initCmd = initCmd + " --skip-phases=addon/kube-proxy"
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(initCmd, true); err != nil {
 		// kubeadm reset and then retry
 		resetCmd := "/usr/local/bin/kubeadm reset -f"
 		if k.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
@@ -409,7 +413,7 @@ type JoinNode struct {
 }
 
 func (j *JoinNode) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml",
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull",
 		true); err != nil {
 		resetCmd := "/usr/local/bin/kubeadm reset -f"
 		if j.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint != "" {
