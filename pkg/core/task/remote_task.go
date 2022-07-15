@@ -19,9 +19,10 @@ package task
 import (
 	"context"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/rollback"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
@@ -29,8 +30,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/ending"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/pkg/core/rollback"
 	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/pkg/errors"
 )
 
 type RemoteTask struct {
@@ -110,7 +111,7 @@ func (t *RemoteTask) RunWithTimeout(ctx context.Context, runtime connector.Runti
 
 	select {
 	case <-ctx.Done():
-		t.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%d", t.Timeout))
+		t.TaskResult.AppendErr(host, fmt.Errorf("execute task timeout, Timeout=%s", util.ShortDur(t.Timeout)))
 	case e := <-resCh:
 		if e != nil {
 			t.TaskResult.AppendErr(host, e)

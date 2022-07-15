@@ -17,11 +17,12 @@
 package precheck
 
 import (
+	"time"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/pkg/core/task"
-	"time"
 )
 
 type GreetingsModule struct {
@@ -32,13 +33,18 @@ func (h *GreetingsModule) Init() {
 	h.Name = "GreetingsModule"
 	h.Desc = "Greetings"
 
+	var timeout int64
+	for _, v := range h.Runtime.GetAllHosts() {
+		timeout += v.GetTimeout()
+	}
+
 	hello := &task.RemoteTask{
 		Name:     "Greetings",
 		Desc:     "Greetings",
 		Hosts:    h.Runtime.GetAllHosts(),
 		Action:   new(GreetingsTask),
 		Parallel: true,
-		Timeout:  30 * time.Second,
+		Timeout:  time.Duration(timeout) * time.Second,
 	}
 
 	h.Tasks = []task.Interface{
