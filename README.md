@@ -35,12 +35,12 @@ Use KubeKey in the following three scenarios.
 ### <span id = "KubernetesVersions">Kubernetes Versions</span> 
 
 * **v1.17**: &ensp; *v1.17.9*
-* **v1.18**: &ensp; *v1.18.6*
-* **v1.19**: &ensp; *v1.19.8*  
+* **v1.18**: &ensp; *v1.18.8*
+* **v1.19**: &ensp; *v1.19.9*
 * **v1.20**: &ensp; *v1.20.10*
-* **v1.21**: &ensp; *v1.21.13*  
-* **v1.22**: &ensp; *v1.22.9*
-* **v1.23**: &ensp; *v1.23.7*   (default)
+* **v1.21**: &ensp; *v1.21.13*
+* **v1.22**: &ensp; *v1.22.10*
+* **v1.23**: &ensp; *v1.23.8*   (default)
 * **v1.24**: &ensp; *v1.24.1*
 > Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
 
