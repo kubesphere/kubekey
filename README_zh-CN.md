@@ -36,11 +36,13 @@
 ### <span id = "KubernetesVersions">Kubernetes 版本</span> 
 
 * **v1.17**: &ensp; *v1.17.9*
-* **v1.18**: &ensp; *v1.18.6*
-* **v1.19**: &ensp; *v1.19.8*  
-* **v1.20**: &ensp; *v1.20.6*
-* **v1.21**: &ensp; *v1.21.5*  (default)
-* **v1.22**: &ensp; *v1.22.1*
+* **v1.18**: &ensp; *v1.18.8*
+* **v1.19**: &ensp; *v1.19.9*
+* **v1.20**: &ensp; *v1.20.10*
+* **v1.21**: &ensp; *v1.21.13*
+* **v1.22**: &ensp; *v1.22.10*
+* **v1.23**: &ensp; *v1.23.8*   (default)
+* **v1.24**: &ensp; *v1.24.1*
 > 查看更多支持的版本[点击这里](./docs/kubernetes-versions.md)
 
 ## 要求和建议
