@@ -18,56 +18,47 @@ package upgrade
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
+	"github.com/kubesphere/kubekey/pkg/alpha"
 	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/pipelines"
-	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/spf13/cobra"
 )
 
-type UpgradeOptions struct {
+type UpgradePrecheckOptions struct {
 	CommonOptions    *options.CommonOptions
 	ClusterCfgFile   string
 	Kubernetes       string
 	EnableKubeSphere bool
 	KubeSphere       string
-	SkipPullImages   bool
-	DownloadCmd      string
-	Artifact         string
 }
 
-func NewUpgradeOptions() *UpgradeOptions {
-	return &UpgradeOptions{
+func NewUpgradePrecheckOptions() *UpgradePrecheckOptions {
+	return &UpgradePrecheckOptions{
 		CommonOptions: options.NewCommonOptions(),
 	}
 }
 
 // NewCmdUpgrade creates a new upgrade command
-func NewCmdUpgrade() *cobra.Command {
-	o := NewUpgradeOptions()
+func NewCmdUpgradePrecheck() *cobra.Command {
+	o := NewUpgradePrecheckOptions()
 	cmd := &cobra.Command{
-		Use:   "upgrade",
-		Short: "Upgrade your cluster smoothly to a newer version with this command",
+		Use:   "precheck",
+		Short: "Precheck the nodes and cluster before the upgrade cluster",
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(o.Complete(cmd, args))
 			util.CheckErr(o.Run())
 		},
 	}
+
 	o.CommonOptions.AddCommonFlag(cmd)
 	o.AddFlags(cmd)
-	cmd.AddCommand(NewPhaseCommand())
-
-	if err := completionSetting(cmd); err != nil {
-		panic(fmt.Sprintf("Got error with the completion setting"))
-	}
 	return cmd
 }
 
-func (o *UpgradeOptions) Complete(cmd *cobra.Command, args []string) error {
+func (o *UpgradePrecheckOptions) Complete(cmd *cobra.Command, args []string) error {
 	var ksVersion string
 	if o.EnableKubeSphere && len(args) > 0 {
 		ksVersion = args[0]
@@ -78,41 +69,19 @@ func (o *UpgradeOptions) Complete(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (o *UpgradeOptions) Run() error {
+func (o *UpgradePrecheckOptions) Run() error {
 	arg := common.Argument{
 		FilePath:          o.ClusterCfgFile,
 		KubernetesVersion: o.Kubernetes,
 		KsEnable:          o.EnableKubeSphere,
 		KsVersion:         o.KubeSphere,
-		SkipPullImages:    o.SkipPullImages,
 		Debug:             o.CommonOptions.Verbose,
-		SkipConfirmCheck:  o.CommonOptions.SkipConfirmCheck,
-		Artifact:          o.Artifact,
 	}
-	return pipelines.UpgradeCluster(arg, o.DownloadCmd)
+	return alpha.UpgradePrecheck(arg)
 }
 
-func (o *UpgradeOptions) AddFlags(cmd *cobra.Command) {
+func (o *UpgradePrecheckOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
 	cmd.Flags().BoolVarP(&o.EnableKubeSphere, "with-kubesphere", "", false, fmt.Sprintf("Deploy a specific version of kubesphere (default %s)", kubesphere.Latest().Version))
-	cmd.Flags().BoolVarP(&o.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
-	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
-		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
-	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
-}
-
-func completionSetting(cmd *cobra.Command) (err error) {
-	cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) (
-		strings []string, directive cobra.ShellCompDirective) {
-		versionArray := kubesphere.VersionsStringArr()
-		versionArray = append(versionArray, time.Now().Add(-time.Hour*24).Format("nightly-20060102"))
-		return versionArray, cobra.ShellCompDirectiveNoFileComp
-	}
-
-	err = cmd.RegisterFlagCompletionFunc("with-kubernetes", func(cmd *cobra.Command, args []string, toComplete string) (
-		strings []string, directive cobra.ShellCompDirective) {
-		return kubernetes.SupportedK8sVersionList(), cobra.ShellCompDirectiveNoFileComp
-	})
-	return
 }
