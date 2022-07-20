@@ -200,7 +200,7 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, clusterScope 
 
 	// todo: if need to lookup the domain
 	kkCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
-		Host: clusterScope.ControlPlaneLoadBalancer().Domain,
+		Host: clusterScope.ControlPlaneLoadBalancer().Address,
 		Port: clusterScope.APIServerPort(),
 	}
 

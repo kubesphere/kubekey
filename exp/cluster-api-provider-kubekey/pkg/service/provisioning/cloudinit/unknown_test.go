@@ -14,18 +14,32 @@
  limitations under the License.
 */
 
-package v1beta1
+package cloudinit
 
-// ContainerManager defines the desired state of ContainerManager
-type ContainerManager struct {
-	// CRISocket is used to connect an existing CRIClient.
-	// +optional
-	CRISocket string `json:"criSocket,omitempty"`
+import (
+	"testing"
 
-	// Type defines the type of ContainerManager.
-	// "docker", "containerd"
-	Type string `json:"type"`
+	. "github.com/onsi/gomega"
+)
 
-	// Version defines the version of ContainerManager.
-	Version string `json:"version"`
+func TestUnknown_Run(t *testing.T) {
+	g := NewWithT(t)
+
+	u := &unknown{
+		lines: []string{},
+	}
+	lines, err := u.Commands()
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(lines).To(HaveLen(0))
+}
+
+func TestUnknown_Unmarshal(t *testing.T) {
+	g := NewWithT(t)
+
+	u := &unknown{}
+	expected := []string{"test 1", "test 2", "test 3"}
+	input := `["test 1", "test 2", "test 3"]`
+
+	g.Expect(u.Unmarshal([]byte(input))).To(Succeed())
+	g.Expect(u.lines).To(Equal(expected))
 }

@@ -34,7 +34,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"k8s.io/klog/v2/klogr"
 
@@ -62,7 +61,7 @@ type Client struct {
 	fs             filesystem.Interface
 }
 
-func NewClient(host string, auth *infrav1.Auth, log *logr.Logger) Interface {
+func NewClient(host string, auth infrav1.Auth, log *logr.Logger) Interface {
 	if log == nil {
 		l := klogr.New()
 		log = &l
@@ -264,7 +263,7 @@ func (c *Client) Cmd(cmd string) (string, error) {
 	defer session.Close()
 	defer c.sshClient.Close()
 
-	c.Logger.V(2).Info(fmt.Sprintf("cmd: %s", cmd))
+	c.Logger.V(4).Info(fmt.Sprintf("cmd: %s", cmd))
 
 	output, err := session.CombinedOutput(cmd)
 	if err != nil {
@@ -294,7 +293,7 @@ func (c *Client) sudoCmd(cmd string) (string, error) {
 	defer session.Close()
 
 	cmd = SudoPrefix(cmd)
-	c.Logger.V(2).Info(fmt.Sprintf("cmd: %s", cmd))
+	c.Logger.V(4).Info(fmt.Sprintf("cmd: %s", cmd))
 
 	in, err := session.StdinPipe()
 	if err != nil {
@@ -338,11 +337,11 @@ func (c *Client) sudoCmd(cmd string) (string, error) {
 		}
 	}
 
+	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", c.User))
 	err = session.Wait()
 	if err != nil {
-		return "", err
+		return strings.TrimSpace(outStr), errors.Wrap(err, strings.TrimSpace(outStr))
 	}
-	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", c.User))
 	return strings.TrimSpace(outStr), nil
 }
 
@@ -395,7 +394,7 @@ func (c *Client) copyLocalFileToRemote(src, dst string) error {
 	} else if exist {
 		dstMd5 = c.remoteMd5Sum(dst)
 		if srcMd5 == dstMd5 {
-			c.Logger.V(2).Info(fmt.Sprintf("remote file %s md5 value is the same as local file, skip scp", dst))
+			c.Logger.V(4).Info(fmt.Sprintf("remote file %s md5 value is the same as local file, skip scp", dst))
 			return nil
 		}
 	}
@@ -455,7 +454,7 @@ func (c *Client) Fetch(local, remote string) error {
 	}
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			c.Logger.Error(err, "failed to close file")
 		}
 	}()
 
@@ -470,7 +469,7 @@ func (c *Client) Fetch(local, remote string) error {
 	}
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logrus.Fatal("failed to close file")
+			c.Logger.Error(err, "failed to close file")
 		}
 	}()
 

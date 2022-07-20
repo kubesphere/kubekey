@@ -31,6 +31,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	cutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -57,13 +58,18 @@ var (
 )
 
 // InstanceIDIndex defines the kk machine controller's instance ID index.
-const InstanceIDIndex = ".spec.instanceID"
+const (
+	InstanceIDIndex           = ".spec.instanceID"
+	DefaultKKInstanceInterval = 15 * time.Second
+	DefaultKKInstanceTimeout  = 30 * time.Minute
+)
 
 // KKMachineReconciler reconciles a KKMachine object
 type KKMachineReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
+	Tracker          *remote.ClusterCacheTracker
 	WatchFilterValue string
 	DataDir          string
 
@@ -74,13 +80,12 @@ type KKMachineReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
-	kkClusterToKKMachines := r.KKClusterToKKMachines(log)
 
 	if r.WaitKKInstanceInterval.Nanoseconds() == 0 {
-		r.WaitKKInstanceInterval = 10 * time.Second
+		r.WaitKKInstanceInterval = DefaultKKInstanceInterval
 	}
 	if r.WaitKKInstanceTimeout.Nanoseconds() == 0 {
-		r.WaitKKInstanceTimeout = 10 * time.Minute
+		r.WaitKKInstanceTimeout = DefaultKKInstanceTimeout
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
@@ -92,7 +97,7 @@ func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		).
 		Watches(
 			&source.Kind{Type: &infrav1.KKCluster{}},
-			handler.EnqueueRequestsFromMapFunc(kkClusterToKKMachines),
+			handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKMachines(log)),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
 		WithEventFilter(
@@ -113,7 +118,12 @@ func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 					oldMachine.ObjectMeta.ResourceVersion = ""
 					newMachine.ObjectMeta.ResourceVersion = ""
 
-					return !cmp.Equal(oldMachine, newMachine)
+					if cmp.Equal(oldMachine, newMachine) {
+						log.V(4).Info("oldMachine and newMachine are equaled, skip")
+						return false
+					}
+					log.V(4).Info("oldMachine and newMachine are not equaled, allowing further processing")
+					return true
 				},
 			},
 		).
@@ -364,6 +374,10 @@ func (r *KKMachineReconciler) reconcileNormal(
 		machineScope.SetNotReady()
 		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceCleanedReason, clusterv1.ConditionSeverityWarning, "")
 	case infrav1.InstanceStateRunning:
+		if err := r.SetNodeProviderID(ctx, machineScope, instance); err != nil {
+			machineScope.Error(err, "failed to patch the Kubernetes node with the machine providerID")
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
 		machineScope.SetReady()
 		conditions.MarkTrue(machineScope.KKMachine, infrav1.InstanceReadyCondition)
 	default:
@@ -406,6 +420,7 @@ func (r *KKMachineReconciler) findInstance(ctx context.Context, machineScope *sc
 			return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
 		}
 	} else {
+		machineScope.V(4).Info("KKMachine has an instance id", "instance-id", pid.ID())
 		// If the ProviderID is populated, describe the instance using the ID.
 		id := pointer.StringPtr(pid.ID())
 

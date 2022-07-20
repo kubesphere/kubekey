@@ -16,15 +16,22 @@
 
 package service
 
+import (
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning/commands"
+)
+
 type Bootstrap interface {
 	AddUsers() error
+	SetHostname() error
 	CreateDirectory() error
 	ResetTmpDirectory() error
 	ExecInitScript() error
+	Repository() error
 }
 
 type BinaryService interface {
 	DownloadAll() error
+	ConfigureKubelet() error
 }
 
 type ContainerManager interface {
@@ -32,4 +39,8 @@ type ContainerManager interface {
 	IsExist() bool
 	Get() error
 	Install() error
+}
+
+type Provisioning interface {
+	RawBootstrapDataToProvisioningCommands(config []byte) ([]commands.Cmd, error)
 }

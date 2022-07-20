@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/record"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -103,6 +104,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
+	tracker, err := remote.NewClusterCacheTracker(
+		mgr,
+		remote.ClusterCacheTrackerOptions{
+			Log:     &log,
+			Indexes: remote.DefaultIndexes,
+		},
+	)
+
 	// Initialize event recorder.
 	record.InitFromRecorder(mgr.GetEventRecorderFor("kk-controller"))
 
@@ -120,6 +130,7 @@ func main() {
 		Client:           mgr.GetClient(),
 		Recorder:         mgr.GetEventRecorderFor("kkmachine-controller"),
 		Scheme:           mgr.GetScheme(),
+		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 		DataDir:          dataDir,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkMachineConcurrency, RecoverPanic: true}); err != nil {

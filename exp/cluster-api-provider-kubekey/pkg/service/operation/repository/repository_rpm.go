@@ -17,7 +17,6 @@
 package repository
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
@@ -44,7 +43,7 @@ func (r *RedhatPackageManager) Install(pkg ...string) error {
 	if len(pkg) == 0 {
 		pkg = []string{"openssl", "socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
 	}
-	if _, err := r.SSHClient.SudoCmd(fmt.Sprintf("apt install -y %s", strings.Join(pkg, " "))); err != nil {
+	if _, err := r.SSHClient.SudoCmdf("apt install -y %s", strings.Join(pkg, " ")); err != nil {
 		return err
 	}
 	return nil

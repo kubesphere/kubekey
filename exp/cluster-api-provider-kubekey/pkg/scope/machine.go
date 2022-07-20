@@ -22,8 +22,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -184,29 +182,6 @@ func (m *MachineScope) SetFailureMessage(v error) {
 // SetFailureReason sets the KKMachine status failure reason.
 func (m *MachineScope) SetFailureReason(v capierrors.MachineStatusError) {
 	m.KKMachine.Status.FailureReason = &v
-}
-
-func (m *MachineScope) UseCloudInit(userDataFormat string) bool {
-	return userDataFormat == "cloudinit"
-}
-
-func (m *MachineScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
-	if m.Machine.Spec.Bootstrap.DataSecretName == nil {
-		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
-	}
-
-	secret := &corev1.Secret{}
-	key := types.NamespacedName{Namespace: m.Namespace(), Name: *m.Machine.Spec.Bootstrap.DataSecretName}
-	if err := m.client.Get(context.TODO(), key, secret); err != nil {
-		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for KKMachine %s/%s", m.Namespace(), m.Name())
-	}
-
-	value, ok := secret.Data["value"]
-	if !ok {
-		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
-	}
-
-	return value, string(secret.Data["format"]), nil
 }
 
 // PatchObject persists the machine spec and status.

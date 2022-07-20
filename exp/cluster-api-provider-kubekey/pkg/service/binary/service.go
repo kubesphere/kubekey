@@ -17,6 +17,8 @@
 package binary
 
 import (
+	"text/template"
+
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
@@ -28,6 +30,7 @@ type Service struct {
 	scope         scope.KKInstanceScope
 	instanceScope *scope.InstanceScope
 
+	templateFactory   func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
 	runcFactory       func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
 	containerdFactory func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
 	crictlFactory     func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
@@ -44,6 +47,13 @@ func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceSc
 		scope:         scope,
 		instanceScope: instanceScope,
 	}
+}
+
+func (s *Service) getTemplateService(template *template.Template, data file.Data, dst string) (operation.Template, error) {
+	if s.templateFactory != nil {
+		return s.templateFactory(s.SSHClient, template, data, dst)
+	}
+	return file.NewTemplate(s.SSHClient, s.scope.RootFs(), template, data, dst)
 }
 
 func (s *Service) getRuncService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {

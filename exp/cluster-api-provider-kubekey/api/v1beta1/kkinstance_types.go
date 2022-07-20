@@ -86,9 +86,6 @@ type KKInstanceSpec struct {
 	// ContainerManager is the container manager config of this machine.
 	// +optional
 	ContainerManager ContainerManager `json:"containerManager"`
-
-	// +optional
-	Bootstrap clusterv1.Bootstrap `json:"bootstrap"`
 }
 
 // KKInstanceStatus defines the observed state of KKInstance

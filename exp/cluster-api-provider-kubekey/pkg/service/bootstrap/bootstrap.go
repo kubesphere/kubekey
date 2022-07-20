@@ -21,7 +21,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
+
+	osrelease "github.com/dominodatalab/os-release"
+	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/directory"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
@@ -36,6 +40,16 @@ func (s *Service) AddUsers() error {
 
 	// todo: if need to create a etcd user
 	return userService.Add()
+}
+
+func (s *Service) SetHostname() error {
+	if _, err := s.SSHClient.SudoCmdf(
+		"hostnamectl set-hostname %s && sed -i '/^127.0.1.1/s/.*/127.0.1.1      %s/g' /etc/hosts",
+		s.instanceScope.HostName(),
+		s.instanceScope.HostName()); err != nil {
+		return errors.Wrapf(err, "failed to set host name [%s]", s.instanceScope.HostName())
+	}
+	return nil
 }
 
 func (s *Service) CreateDirectory() error {
@@ -132,6 +146,23 @@ func (s *Service) ExecInitScript() error {
 	}
 	if _, err := s.SSHClient.SudoCmd(svc.RemotePath()); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *Service) Repository() error {
+	output, err := s.SSHClient.SudoCmd("cat /etc/os-release")
+	if err != nil {
+		return errors.Wrap(err, "failed to get os release")
+	}
+
+	osrData := osrelease.Parse(strings.Replace(output, "\r\n", "\n", -1))
+	svc := s.getRepositoryService(osrData.ID)
+	if err := svc.Update(); err != nil {
+		return errors.Wrap(err, "failed to update os repository")
+	}
+	if err := svc.Install(); err != nil {
+		return errors.Wrap(err, "failed to use the repository to install software")
 	}
 	return nil
 }

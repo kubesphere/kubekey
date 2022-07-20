@@ -8,16 +8,14 @@ replace (
 )
 
 require (
+	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.7
 	github.com/imdario/mergo v0.3.12
-	github.com/lithammer/dedent v1.1.0
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.4
-	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	k8s.io/api v0.24.2
@@ -28,6 +26,7 @@ require (
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/cluster-api v1.1.4
 	sigs.k8s.io/controller-runtime v0.12.2
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -96,9 +95,9 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/apiextensions-apiserver v0.24.2 // indirect
+	k8s.io/cluster-bootstrap v0.23.0 // indirect
 	k8s.io/component-base v0.24.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42 // indirect
 	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )

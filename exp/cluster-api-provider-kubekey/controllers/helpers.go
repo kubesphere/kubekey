@@ -21,11 +21,14 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -56,10 +59,12 @@ func (r *KKMachineReconciler) createInstance(
 
 	instanceSpec.Arch = "amd64"
 
+	instanceID := r.generateInstanceID(instanceSpec)
+	instanceSpec.Name = instanceID
 	gv := infrav1.GroupVersion
 	instance := &infrav1.KKInstance{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            r.generateInstanceID(instanceSpec),
+			Name:            instanceID,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineScope.KKMachine, kkMachineKind)},
 			Namespace:       machineScope.KKMachine.Namespace,
 			// todo: if need to use the kkmachine labels?
@@ -134,8 +139,6 @@ func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.Mach
 				return nil, err
 			}
 
-			spec.Bootstrap = machineScope.Machine.Spec.Bootstrap
-
 			return &spec, nil
 		}
 	}
@@ -154,5 +157,35 @@ func (r *KKMachineReconciler) deleteInstance(ctx context.Context, instance *infr
 	}); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (r *KKMachineReconciler) SetNodeProviderID(ctx context.Context, machineScope *scope.MachineScope, instance *infrav1.KKInstance) error {
+	// Usually a cloud provider will do this, but there is no kubekey-cloud provider.
+	// Requeue if there is an error, as this is likely momentary load balancer
+	// state changes during control plane provisioning.
+	remoteClient, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(machineScope.Cluster))
+	if err != nil {
+		return errors.Wrap(err, "failed to generate workload cluster client")
+	}
+
+	node := &corev1.Node{}
+	if err = remoteClient.Get(ctx, apimachinerytypes.NamespacedName{Name: instance.Name}, node); err != nil {
+		return errors.Wrap(err, "failed to retrieve node")
+	}
+
+	machineScope.Info("Setting Kubernetes node providerID")
+
+	patchHelper, err := patch.NewHelper(node, remoteClient)
+	if err != nil {
+		return err
+	}
+
+	node.Spec.ProviderID = machineScope.GetProviderID()
+
+	if err = patchHelper.Patch(ctx, node); err != nil {
+		return errors.Wrap(err, "failed update providerID")
+	}
+
 	return nil
 }

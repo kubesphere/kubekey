@@ -17,11 +17,16 @@
 package binary
 
 import (
+	"embed"
 	"path/filepath"
+	"text/template"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 )
+
+//go:embed templates
+var f embed.FS
 
 func (s *Service) DownloadAll() error {
 	kubeadm, err := s.getKubeadmService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
@@ -66,11 +71,72 @@ func (s *Service) DownloadAll() error {
 		if err := b.Copy(true); err != nil {
 			return err
 		}
+		if err := b.Chmod("+x"); err != nil {
+			return err
+		}
 	}
 
 	if _, err := s.SSHClient.SudoCmdf("tar Cxzvf %s %s", filepath.Dir(kubecni.RemotePath()), kubecni.RemotePath()); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (s *Service) ConfigureKubelet() error {
+	kubelet, err := s.getKubeletService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.SSHClient.SudoCmdf("ln -snf %s /usr/bin/kubelet", kubelet.RemotePath()); err != nil {
+		return err
+	}
+
+	temp, err := template.ParseFS(f, "templates/kubelet.service")
+	if err != nil {
+		return err
+	}
+
+	svc, err := s.getTemplateService(
+		temp,
+		nil,
+		filepath.Join(file.SystemdDir, temp.Name()))
+	if err != nil {
+		return err
+	}
+	if err := svc.RenderToLocal(); err != nil {
+		return err
+	}
+	if err := svc.Copy(true); err != nil {
+		return err
+	}
+
+	env, err := template.ParseFS(f, "templates/kubelet.conf")
+	if err != nil {
+		return err
+	}
+
+	envSvc, err := s.getTemplateService(
+		env,
+		file.Data{
+			"NodeIP":   s.instanceScope.InternalAddress(),
+			"Hostname": s.instanceScope.HostName(),
+		},
+		filepath.Join(file.SystemdDir, "kubelet.service.d", env.Name()),
+	)
+	if err != nil {
+		return err
+	}
+	if err := envSvc.RenderToLocal(); err != nil {
+		return err
+	}
+	if err := envSvc.Copy(true); err != nil {
+		return err
+	}
+
+	if _, err := s.SSHClient.SudoCmdf("systemctl disable kubelet && systemctl enable kubelet"); err != nil {
+		return err
+	}
 	return nil
 }

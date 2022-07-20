@@ -21,8 +21,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -103,6 +106,18 @@ type InstanceScope struct {
 	KKInstance   *infrav1.KKInstance
 }
 
+func (i *InstanceScope) Name() string {
+	return i.KKInstance.Name
+}
+
+func (i *InstanceScope) HostName() string {
+	return i.KKInstance.Spec.Name
+}
+
+func (i *InstanceScope) Namespace() string {
+	return i.KKInstance.Namespace
+}
+
 func (i *InstanceScope) InternalAddress() string {
 	return i.KKInstance.Spec.InternalAddress
 }
@@ -117,6 +132,30 @@ func (i *InstanceScope) ContainerManager() *infrav1.ContainerManager {
 
 func (i *InstanceScope) KubernetesVersion() string {
 	return *i.Machine.Spec.Version
+}
+
+func (i *InstanceScope) GetRawBootstrapDataWithFormat(ctx context.Context) ([]byte, bootstrapv1.Format, error) {
+	if i.Machine.Spec.Bootstrap.DataSecretName == nil {
+		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: i.Machine.Namespace, Name: *i.Machine.Spec.Bootstrap.DataSecretName}
+	if err := i.client.Get(ctx, key, secret); err != nil {
+		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for KKInstance %s/%s", i.Namespace(), i.Name())
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	format := secret.Data["format"]
+	if string(format) == "" {
+		format = []byte(bootstrapv1.CloudConfig)
+	}
+
+	return value, bootstrapv1.Format(format), nil
 }
 
 // PatchObject persists the machine spec and status.

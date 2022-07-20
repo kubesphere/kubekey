@@ -14,37 +14,25 @@
  limitations under the License.
 */
 
-package repository
+package provisioning
 
 import (
-	"strings"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning/cloudinit"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning/commands"
 )
 
-type Debian struct {
-	SSHClient ssh.Interface
+type Service interface {
+	RawBootstrapDataToProvisioningCommands(config []byte) ([]commands.Cmd, error)
 }
 
-func NewDeb(sshClient ssh.Interface) *Debian {
-	return &Debian{
-		SSHClient: sshClient,
+func NewService(sshClient ssh.Interface, format bootstrapv1.Format) Service {
+	switch format {
+	case bootstrapv1.CloudConfig:
+		return cloudinit.NewService(sshClient)
+	default:
+		return cloudinit.NewService(sshClient)
 	}
-}
-
-func (d *Debian) Update() error {
-	if _, err := d.SSHClient.Cmd("sudo apt-get update"); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *Debian) Install(pkg ...string) error {
-	if len(pkg) == 0 {
-		pkg = []string{"socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
-	}
-	if _, err := d.SSHClient.SudoCmdf("apt install -y %s", strings.Join(pkg, " ")); err != nil {
-		return err
-	}
-	return nil
 }

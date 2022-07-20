@@ -18,7 +18,11 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
@@ -44,9 +48,12 @@ func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient
 
 	instanceScope.SetState(infrav1.InstanceStateBootstrapping)
 
-	svc := r.getBootstrapService(sshClient, lbScope)
+	svc := r.getBootstrapService(sshClient, lbScope, instanceScope)
 
 	if err := svc.AddUsers(); err != nil {
+		return err
+	}
+	if err := svc.SetHostname(); err != nil {
 		return err
 	}
 	if err := svc.CreateDirectory(); err != nil {
@@ -58,6 +65,9 @@ func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient
 	if err := svc.ExecInitScript(); err != nil {
 		return err
 	}
+	if err := svc.Repository(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -66,6 +76,9 @@ func (r *KKInstanceReconciler) reconcileBinaryService(ctx context.Context, sshCl
 
 	svc := r.getBinaryService(sshClient, kkInstanceScope, instanceScope)
 	if err := svc.DownloadAll(); err != nil {
+		return err
+	}
+	if err := svc.ConfigureKubelet(); err != nil {
 		return err
 	}
 	return nil
@@ -90,6 +103,32 @@ func (r *KKInstanceReconciler) reconcileContainerManager(
 	}
 	if err := svc.Install(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (r *KKInstanceReconciler) reconcileProvisioning(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope) error {
+	instanceScope.Info("Reconcile provisioning")
+
+	bootstrapData, format, err := instanceScope.GetRawBootstrapDataWithFormat(ctx)
+	if err != nil {
+		instanceScope.Error(err, "failed to get bootstrap data")
+		r.Recorder.Event(instanceScope.KKInstance, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+		return err
+	}
+
+	svc := r.getProvisioningService(sshClient, format)
+
+	commands, err := svc.RawBootstrapDataToProvisioningCommands(bootstrapData)
+	if err != nil {
+		instanceScope.Error(err, "provisioning code failed to parse", "bootstrap-data", base64.StdEncoding.EncodeToString(bootstrapData))
+		return errors.Wrap(err, "failed to join a control plane node with kubeadm")
+	}
+
+	for _, command := range commands {
+		if _, err := sshClient.SudoCmd(command.String()); err != nil {
+			return errors.Wrapf(err, "failed to run cloud config")
+		}
 	}
 	return nil
 }

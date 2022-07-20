@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	cutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -48,6 +49,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/binary"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/bootstrap"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/containermanager"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util"
 )
 
@@ -61,27 +63,26 @@ type KKInstanceReconciler struct {
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	sshClientFactory        func(scope *scope.InstanceScope) ssh.Interface
-	bootstrapFactory        func(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap
+	bootstrapFactory        func(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) service.Bootstrap
 	binaryFactory           func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService
 	containerManagerFactory func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager
+	provisioningFactory     func(sshClient ssh.Interface, format bootstrapv1.Format) service.Provisioning
 	WatchFilterValue        string
 	DataDir                 string
-
-	Dialer *ssh.Dialer
 }
 
 func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) ssh.Interface {
 	if r.sshClientFactory != nil {
 		return r.sshClientFactory(scope)
 	}
-	return ssh.NewClient(scope.KKInstance.Spec.Address, &scope.KKInstance.Spec.Auth, &scope.Logger)
+	return ssh.NewClient(scope.KKInstance.Spec.Address, scope.KKInstance.Spec.Auth, &scope.Logger)
 }
 
-func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scope scope.LBScope) service.Bootstrap {
+func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) service.Bootstrap {
 	if r.bootstrapFactory != nil {
-		return r.bootstrapFactory(sshClient, scope)
+		return r.bootstrapFactory(sshClient, scope, instanceScope)
 	}
-	return bootstrap.NewService(sshClient, scope)
+	return bootstrap.NewService(sshClient, scope, instanceScope)
 }
 
 func (r *KKInstanceReconciler) getBinaryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService {
@@ -98,21 +99,27 @@ func (r *KKInstanceReconciler) getContainerManager(sshClient ssh.Interface, scop
 	return containermanager.NewService(sshClient, scope, instanceScope)
 }
 
+func (r *KKInstanceReconciler) getProvisioningService(sshClient ssh.Interface, format bootstrapv1.Format) service.Provisioning {
+	if r.provisioningFactory != nil {
+		return r.provisioningFactory(sshClient, format)
+	}
+	return provisioning.NewService(sshClient, format)
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
-	kkClusterToKKInstances := r.KKClusterToKKInstances(log)
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.KKInstance{}).
 		Watches(
 			&source.Kind{Type: &infrav1.KKMachine{}},
-			handler.EnqueueRequestsFromMapFunc(r.KKMachineToKKInstanceMapFunc()),
+			handler.EnqueueRequestsFromMapFunc(r.KKMachineToKKInstanceMapFunc(log)),
 		).
 		Watches(
 			&source.Kind{Type: &infrav1.KKCluster{}},
-			handler.EnqueueRequestsFromMapFunc(kkClusterToKKInstances),
+			handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKInstances(log)),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
 		WithEventFilter(
@@ -133,7 +140,12 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldInstance.ObjectMeta.ResourceVersion = ""
 					newInstance.ObjectMeta.ResourceVersion = ""
 
-					return !cmp.Equal(oldInstance, newInstance)
+					if cmp.Equal(oldInstance, newInstance) {
+						log.V(4).Info("oldInstance and newInstance are equaled, skip")
+						return false
+					}
+					log.V(4).Info("oldInstance and newInstance are not equaled, allowing further processing")
+					return true
 				},
 			},
 		).
@@ -142,18 +154,13 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return err
 	}
 
-	requeueKKInstancesForUnpausedCluster := r.requeueKKInstancesForUnpausedCluster(log)
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(requeueKKInstancesForUnpausedCluster),
+		handler.EnqueueRequestsFromMapFunc(r.requeueKKInstancesForUnpausedCluster(log)),
 		predicates.ClusterUnpausedAndInfrastructureReady(log),
 	)
 	if err != nil {
 		return err
-	}
-
-	if r.Dialer == nil {
-		r.Dialer = ssh.NewDialer()
 	}
 
 	return nil
@@ -165,7 +172,6 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
-
 	// Fetch the KKInstance.
 	kkInstance := &infrav1.KKInstance{}
 	err := r.Get(ctx, req.NamespacedName, kkInstance)
@@ -176,6 +182,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	fmt.Printf("%+v\n", kkInstance)
 	// Fetch the KKMachine.
 	kkMachine, err := util.GetOwnerKKMachine(ctx, r.Client, kkInstance.ObjectMeta)
 	if err != nil {
@@ -272,7 +279,7 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 
 	if !instanceScope.Cluster.Status.InfrastructureReady {
 		instanceScope.Info("Cluster infrastructure is not ready yet")
-		conditions.MarkFalse(instanceScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -280,31 +287,32 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 	if err := r.reconcileBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {
 		instanceScope.Error(err, "failed to reconcile internal bootstrap")
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
+		return ctrl.Result{}, err
 	}
-
 	if err := r.reconcileBinaryService(ctx, sshClient, instanceScope, kkInstanceScope); err != nil {
 		instanceScope.Error(err, "failed to reconcile binary service")
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
+		return ctrl.Result{}, err
 	}
-
 	if err := r.reconcileContainerManager(ctx, sshClient, instanceScope, kkInstanceScope); err != nil {
 		instanceScope.Error(err, "failed to reconcile container manager")
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{RequeueAfter: defaultRequeueWait}, err
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileProvisioning(ctx, sshClient, instanceScope); err != nil {
+		instanceScope.Error(err, "failed to reconcile provisioning")
+		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{}, err
 	}
 
 	instanceScope.SetState(infrav1.InstanceStateRunning)
-
-	// parse cloud-init file
-	// todo:
-
 	return ctrl.Result{}, nil
 }
 
 // KKClusterToKKInstances is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation of KKInstance.
 func (r *KKInstanceReconciler) KKClusterToKKInstances(log logr.Logger) handler.MapFunc {
+	log.V(4).Info("KKClusterToKKInstances")
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.KKCluster)
 		if !ok {
@@ -334,6 +342,7 @@ func (r *KKInstanceReconciler) KKClusterToKKInstances(log logr.Logger) handler.M
 }
 
 func (r *KKInstanceReconciler) requeueKKInstancesForUnpausedCluster(log logr.Logger) handler.MapFunc {
+	log.V(4).Info("requeueKKInstancesForUnpausedCluster")
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
@@ -376,7 +385,8 @@ func (r *KKInstanceReconciler) requestsForCluster(log logr.Logger, namespace, na
 	return result
 }
 
-func (r *KKInstanceReconciler) KKMachineToKKInstanceMapFunc() handler.MapFunc {
+func (r *KKInstanceReconciler) KKMachineToKKInstanceMapFunc(log logr.Logger) handler.MapFunc {
+	log.V(4).Info("KKMachineToKKInstanceMapFunc")
 	return func(o client.Object) []reconcile.Request {
 		m, ok := o.(*infrav1.KKMachine)
 		if !ok {

@@ -39,7 +39,9 @@ state = "/run/containerd"
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
       SystemdCgroup = true
   [plugins."io.containerd.grpc.v1.cri"]
+    {{- if .SandBoxImage }}
     sandbox_image = "{{ .SandBoxImage }}"
+    {{- end}}
     [plugins."io.containerd.grpc.v1.cri".cni]
       bin_dir = "/opt/cni/bin"
       conf_dir = "/etc/cni/net.d"
@@ -69,4 +71,4 @@ state = "/run/containerd"
               cert_file = {{ .Auth.CertFile }}
               key_file = {{ .Auth.KeyFile }}
               insecure_skip_verify = {{ .Auth.SkipTLSVerify }}
-          {{- end}}
+        {{- end}}
