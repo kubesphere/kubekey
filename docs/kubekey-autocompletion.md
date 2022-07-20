@@ -16,7 +16,7 @@ For CentOS, `yum install -y bash-completion`
 Write bash completion code to a file and source if from .bash_profile.
 
 ```
-mkdir -p ~/.config/kk/ && kk completion bash > ~/.config/kk/completion.bash.inc
+mkdir -p ~/.config/kk/ && kk completion --type bash > ~/.config/kk/completion.bash.inc
 printf "
 # kk shell completion
 source '$HOME/.config/kk/completion.bash.inc'
