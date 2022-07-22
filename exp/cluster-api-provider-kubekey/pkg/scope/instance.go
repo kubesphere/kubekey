@@ -181,7 +181,7 @@ func (i *InstanceScope) PatchObject() error {
 		}})
 }
 
-// Close the MachineScope by updating the instance spec, instance status.
+// Close the InstanceScope by updating the instance spec, instance status.
 func (i *InstanceScope) Close() error {
 	return i.PatchObject()
 }

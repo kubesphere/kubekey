@@ -18,6 +18,7 @@ package file
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -60,7 +61,13 @@ func (b *Binary) Get() error {
 		return errors.Wrapf(err, "create local file %s failed", b.LocalPath())
 	}
 
-	resp, err := http.Get(b.url)
+	httpclient := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	resp, err := httpclient.Get(b.url)
 	if err != nil {
 		return errors.Wrapf(err, "http get file %s failed", b.url)
 	}

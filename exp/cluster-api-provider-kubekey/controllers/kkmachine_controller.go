@@ -105,7 +105,7 @@ func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
 				// for KKMachine resources only
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "KKMachine" {
+					if _, ok := e.ObjectOld.(*infrav1.KKMachine); !ok {
 						return true
 					}
 
@@ -220,6 +220,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Always close the scope when exiting this function, so we can persist any KKMachine changes.
 	defer func() {
 		if err := machineScope.Close(); err != nil && retErr == nil {
+			log.Error(err, "failed to patch object")
 			retErr = err
 		}
 	}()
@@ -351,6 +352,8 @@ func (r *KKMachineReconciler) reconcileNormal(
 			return ctrl.Result{}, err
 		}
 	}
+
+	// todo: if the createInstance timeout, this kkmachine can not be set up providerID, and the next reconcile will create a new kkinstance.
 	// Make sure Spec.ProviderID and Spec.InstanceID are always set.
 	machineScope.SetProviderID(instance.Name, machineScope.Cluster.Name)
 	machineScope.SetInstanceID(instance.Name)
@@ -378,6 +381,15 @@ func (r *KKMachineReconciler) reconcileNormal(
 			machineScope.Error(err, "failed to patch the Kubernetes node with the machine providerID")
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
+
+		var addresses []clusterv1.MachineAddress
+		privateIPAddress := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalIP,
+			Address: instance.Spec.InternalAddress,
+		}
+		addresses = append(addresses, privateIPAddress)
+		machineScope.SetAddresses(addresses)
+
 		machineScope.SetReady()
 		conditions.MarkTrue(machineScope.KKMachine, infrav1.InstanceReadyCondition)
 	default:
@@ -393,14 +405,6 @@ func (r *KKMachineReconciler) reconcileNormal(
 		machineScope.SetFailureReason(capierrors.UpdateMachineError)
 		machineScope.SetFailureMessage(errors.Errorf("KubeKey instance state %q is unexpected", instance.Status.State))
 	}
-
-	var addresses []clusterv1.MachineAddress
-	privateIPAddress := clusterv1.MachineAddress{
-		Type:    clusterv1.MachineInternalIP,
-		Address: instance.Spec.InternalAddress,
-	}
-	addresses = append(addresses, privateIPAddress)
-	machineScope.SetAddresses(addresses)
 
 	return ctrl.Result{}, nil
 }

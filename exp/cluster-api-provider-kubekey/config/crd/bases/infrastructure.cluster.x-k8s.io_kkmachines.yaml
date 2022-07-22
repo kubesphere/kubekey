@@ -25,9 +25,9 @@ spec:
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
-    - description: machine hostname
-      jsonPath: .spec.name
-      name: Name
+    - description: kubekey instance hostname
+      jsonPath: .spec.instanceID
+      name: Instance
       type: string
     - description: Machine ready status
       jsonPath: .status.ready

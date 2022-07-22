@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -169,7 +170,7 @@ func (s *ClusterScope) AllInstances() ([]*infrav1.KKInstance, error) {
 
 // shouldExcludeInstance returns true if the instance should be filtered out, false otherwise.
 func shouldExcludeInstance(cluster *infrav1.KKCluster, instance *infrav1.KKInstance) bool {
-	if metav1.GetControllerOf(instance) != nil && !metav1.IsControlledBy(instance, cluster) {
+	if metav1.GetControllerOf(instance) != nil && !capiutil.IsOwnedByObject(instance, cluster) {
 		return true
 	}
 

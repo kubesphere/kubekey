@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
@@ -110,26 +109,33 @@ func (r *KKInstanceReconciler) getProvisioningService(sshClient ssh.Interface, f
 func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	c, err := ctrl.NewControllerManagedBy(mgr).
+	_, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.KKInstance{}).
-		Watches(
-			&source.Kind{Type: &infrav1.KKMachine{}},
-			handler.EnqueueRequestsFromMapFunc(r.KKMachineToKKInstanceMapFunc(log)),
-		).
-		Watches(
-			&source.Kind{Type: &infrav1.KKCluster{}},
-			handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKInstances(log)),
-		).
+		//Watches(
+		//	&source.Kind{Type: &infrav1.KKMachine{}},
+		//	handler.EnqueueRequestsFromMapFunc(r.KKMachineToKKInstanceMapFunc(log)),
+		//).
+		//Watches(
+		//	&source.Kind{Type: &infrav1.KKCluster{}},
+		//	handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKInstances(log)),
+		//).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
 				// for KKInstance resources only
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "KKInstance" {
-						return true
-					}
+					log.V(5).Info("KKInstance controller update predicate")
+					//if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "KKInstance" {
+					//	log.V(5).Info(fmt.Sprintf("gvk is %s, not equale KKInstance", e.ObjectOld.GetObjectKind().GroupVersionKind().Kind))
+					//	return true
+					//}
+
+					//if _, ok := e.ObjectOld.(*infrav1.KKInstance); !ok {
+					//	log.V(5).Info(fmt.Sprintf("gvk is %s, not equale KKInstance", e.ObjectOld.GetObjectKind().GroupVersionKind().Kind))
+					//	return true
+					//}
 
 					oldInstance := e.ObjectOld.(*infrav1.KKInstance).DeepCopy()
 					newInstance := e.ObjectNew.(*infrav1.KKInstance).DeepCopy()
@@ -140,6 +146,10 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldInstance.ObjectMeta.ResourceVersion = ""
 					newInstance.ObjectMeta.ResourceVersion = ""
 
+					oldInstance.ObjectMeta.ManagedFields = nil
+					newInstance.ObjectMeta.ManagedFields = nil
+
+					fmt.Printf("diff: %s", cmp.Diff(oldInstance, newInstance))
 					if cmp.Equal(oldInstance, newInstance) {
 						log.V(4).Info("oldInstance and newInstance are equaled, skip")
 						return false
@@ -154,14 +164,14 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return err
 	}
 
-	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(r.requeueKKInstancesForUnpausedCluster(log)),
-		predicates.ClusterUnpausedAndInfrastructureReady(log),
-	)
-	if err != nil {
-		return err
-	}
+	//err = c.Watch(
+	//	&source.Kind{Type: &clusterv1.Cluster{}},
+	//	handler.EnqueueRequestsFromMapFunc(r.requeueKKInstancesForUnpausedCluster(log)),
+	//	predicates.ClusterUnpausedAndInfrastructureReady(log),
+	//)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -182,7 +192,6 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	fmt.Printf("%+v\n", kkInstance)
 	// Fetch the KKMachine.
 	kkMachine, err := util.GetOwnerKKMachine(ctx, r.Client, kkInstance.ObjectMeta)
 	if err != nil {
@@ -250,6 +259,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Always close the scope when exiting this function, so we can persist any KKInstance changes.
 	defer func() {
 		if err := instanceScope.Close(); err != nil && retErr == nil {
+			log.Error(err, "failed to patch object")
 			retErr = err
 		}
 	}()
@@ -307,6 +317,7 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 	}
 
 	instanceScope.SetState(infrav1.InstanceStateRunning)
+	instanceScope.Info("Reconcile KKInstance normal successful")
 	return ctrl.Result{}, nil
 }
 

@@ -54,13 +54,11 @@ func (s *Service) DownloadAll() error {
 	}
 
 	for _, b := range binaries {
-		skipGet := false
-		if b.LocalExist() {
-			if err := b.CompareChecksum(); err == nil {
-				skipGet = true
-			}
+		needGet := true
+		if b.LocalExist() && b.CompareChecksum() == nil {
+			needGet = false
 		}
-		if !skipGet {
+		if needGet {
 			if err := b.Get(); err != nil {
 				return err
 			}

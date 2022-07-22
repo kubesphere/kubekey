@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -77,6 +78,13 @@ func (r *KKMachineReconciler) createInstance(
 		},
 		Spec: *instanceSpec,
 	}
+
+	instance.OwnerReferences = capiutil.EnsureOwnerRef(instance.OwnerReferences, metav1.OwnerReference{
+		APIVersion: infrav1.GroupVersion.String(),
+		Kind:       "KKCluster",
+		Name:       machineScope.InfraCluster.InfraClusterName(),
+		UID:        machineScope.InfraCluster.KKCluster.UID,
+	})
 
 	if err := r.Client.Create(ctx, instance); err != nil {
 		return nil, err

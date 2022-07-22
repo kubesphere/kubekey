@@ -67,7 +67,7 @@ func (r *KKClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
 				// for KKCluster resources only
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "KKCluster" {
+					if _, ok := e.ObjectOld.(*infrav1.KKCluster); !ok {
 						return true
 					}
 
@@ -163,6 +163,7 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Always close the scope when exiting this function so we can persist any AWSCluster changes.
 	defer func() {
 		if err := clusterScope.Close(); err != nil && retErr == nil {
+			log.Error(err, "failed to patch object")
 			retErr = err
 		}
 	}()

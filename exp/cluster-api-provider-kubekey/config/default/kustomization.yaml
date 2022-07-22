@@ -1,16 +1,8 @@
-# Adds namespace to all resources.
-namespace: cluster-api-kubekey-provider-system
+namePrefix: capk-
+namespace: capk-system
 
-# Value of this field is prepended to the
-# names of all resources, e.g. a deployment named
-# "wordpress" becomes "alices-wordpress".
-# Note that it should also match with the prefix (text before '-') of the namespace
-# field above.
-namePrefix: cluster-api-kubekey-provider-
-
-# Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
+commonLabels:
+  cluster.x-k8s.io/provider: "infrastructure-kk"
 
 bases:
 - ../crd
@@ -25,10 +17,6 @@ bases:
 #- ../prometheus
 
 patchesStrategicMerge:
-# Protect the /metrics endpoint by putting it behind auth.
-# If you want your controller-manager to expose the /metrics
-# endpoint w/o any authn/z, please comment the following line.
-- manager_auth_proxy_patch.yaml
 
 # Mount the controller config file for loading manager configurations
 # through a ComponentConfig type

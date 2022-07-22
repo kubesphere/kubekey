@@ -153,7 +153,7 @@ func (k *KKInstance) GetConditions() clusterv1.Conditions {
 	return k.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the KKMachine to the predescribed clusterv1.Conditions.
+// SetConditions sets the underlying service state of the KKInstance to the predescribed clusterv1.Conditions.
 func (k *KKInstance) SetConditions(conditions clusterv1.Conditions) {
 	k.Status.Conditions = conditions
 }
