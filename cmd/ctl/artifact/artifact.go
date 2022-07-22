@@ -17,6 +17,7 @@
 package artifact
 
 import (
+	"github.com/kubesphere/kubekey/cmd/ctl/alpha"
 	"github.com/kubesphere/kubekey/cmd/ctl/artifact/images"
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
@@ -44,5 +45,6 @@ func NewCmdArtifact() *cobra.Command {
 
 	cmd.AddCommand(NewCmdArtifactExport())
 	cmd.AddCommand(images.NewCmdArtifactImages())
+	cmd.AddCommand(alpha.NewCmdArtifactImport())
 	return cmd
 }
