@@ -44,5 +44,6 @@ func NewCmdArtifact() *cobra.Command {
 
 	cmd.AddCommand(NewCmdArtifactExport())
 	cmd.AddCommand(images.NewCmdArtifactImages())
+	cmd.AddCommand(NewCmdArtifactImport())
 	return cmd
 }

@@ -18,14 +18,16 @@ package upgrade
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/cmd/ctl/upgrade/phase"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
 	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 type UpgradeOptions struct {
@@ -56,9 +58,10 @@ func NewCmdUpgrade() *cobra.Command {
 			util.CheckErr(o.Run())
 		},
 	}
-
 	o.CommonOptions.AddCommonFlag(cmd)
 	o.AddFlags(cmd)
+	cmd.AddCommand(phase.NewPhaseCommand())
+
 	if err := completionSetting(cmd); err != nil {
 		panic(fmt.Sprintf("Got error with the completion setting"))
 	}

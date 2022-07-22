@@ -18,6 +18,12 @@ package ctl
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
+	"strings"
+	"syscall"
+
 	"github.com/kubesphere/kubekey/cmd/ctl/add"
 	"github.com/kubesphere/kubekey/cmd/ctl/artifact"
 	"github.com/kubesphere/kubekey/cmd/ctl/cert"
@@ -30,11 +36,6 @@ import (
 	"github.com/kubesphere/kubekey/cmd/ctl/upgrade"
 	"github.com/kubesphere/kubekey/cmd/ctl/version"
 	"github.com/spf13/cobra"
-	"os"
-	"os/exec"
-	"runtime"
-	"strings"
-	"syscall"
 )
 
 type KubeKeyOptions struct {

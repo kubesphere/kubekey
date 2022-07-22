@@ -17,9 +17,10 @@
 package container
 
 import (
-	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/registry"
 
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container/templates"
