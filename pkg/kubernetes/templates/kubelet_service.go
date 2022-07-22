@@ -28,6 +28,8 @@ Description=kubelet: The Kubernetes Node Agent
 Documentation=http://kubernetes.io/docs/
 
 [Service]
+CPUAccounting=true
+MemoryAccounting=true
 ExecStart=/usr/local/bin/kubelet
 Restart=always
 StartLimitInterval=0
