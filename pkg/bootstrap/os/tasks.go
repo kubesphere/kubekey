@@ -331,18 +331,18 @@ func (n *NewRepoClient) Execute(runtime connector.Runtime) error {
 
 	repo, err := repository.New(r.ID)
 	if err != nil {
-		checkDeb, _ := runtime.GetRunner().SudoCmd("which apt", false)
-		if strings.Contains(checkDeb, "bin") {
+		checkDeb, debErr := runtime.GetRunner().SudoCmd("which apt", false)
+		if debErr == nil && strings.Contains(checkDeb, "bin") {
 			repo = repository.NewDeb()
 		}
-		checkRPM, _ := runtime.GetRunner().SudoCmd("which yum", false)
-		if strings.Contains(checkRPM, "bin") {
+		checkRPM, rpmErr := runtime.GetRunner().SudoCmd("which yum", false)
+		if rpmErr == nil && strings.Contains(checkRPM, "bin") {
 			repo = repository.NewRPM()
 		}
 
-		if checkDeb == "" && checkRPM == "" {
+		if debErr != nil && rpmErr != nil {
 			return errors.Wrap(errors.WithStack(err), "new repository manager failed")
-		} else if checkDeb != "" && checkRPM != "" {
+		} else if debErr == nil && rpmErr == nil {
 			return errors.New("can't detect the main package repository, only one of apt or yum is supported")
 		}
 	}
