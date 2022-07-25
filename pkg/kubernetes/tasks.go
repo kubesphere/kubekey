@@ -537,7 +537,7 @@ func (d *DrainNode) Execute(runtime connector.Runtime) error {
 		return errors.New("get dstNode failed by pipeline cache")
 	}
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
-		"/usr/local/bin/kubectl drain %s --delete-emptydir-data --ignore-daemonsets", nodeName),
+		"/usr/local/bin/kubectl drain %s --delete-emptydir-data --ignore-daemonsets --timeout=2m --force", nodeName),
 		true); err != nil {
 		return errors.Wrap(err, "drain the node failed")
 	}

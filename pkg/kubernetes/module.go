@@ -386,7 +386,7 @@ func (d *DeleteKubeNodeModule) Init() {
 		Hosts:   d.Runtime.GetHostsByRole(common.Master),
 		Prepare: new(common.OnlyFirstMaster),
 		Action:  new(DrainNode),
-		Retry:   5,
+		Retry:   2,
 	}
 
 	deleteNode := &task.RemoteTask{
