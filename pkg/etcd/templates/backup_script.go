@@ -17,12 +17,9 @@
 package templates
 
 import (
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/lithammer/dedent"
-	"strconv"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 // EtcdBackupScriptTmpl defines the template of etcd backup script.
@@ -34,9 +31,7 @@ ENDPOINTS='{{ .Etcdendpoint }}'
 ETCD_DATA_DIR="/var/lib/etcd"
 BACKUP_DIR="{{ .Backupdir }}/etcd-$(date +%Y-%m-%d-%H-%M-%S)"
 KEEPBACKUPNUMBER='{{ .KeepbackupNumber }}'
-ETCDBACKUPPERIOD='{{ .EtcdBackupPeriod }}'
 ETCDBACKUPSCIPT='{{ .EtcdBackupScriptDir }}'
-ETCDBACKUPHOUR='{{ .EtcdBackupHour }}'
 
 ETCDCTL_CERT="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem"
 ETCDCTL_KEY="/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem"
@@ -59,35 +54,4 @@ sleep 3
 
 cd $BACKUP_DIR/../;ls -lt |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$9}}'|sh
 
-if [[ ! $ETCDBACKUPHOUR ]]; then
-  time="*/$ETCDBACKUPPERIOD * * * *"
-else
-  if [[ 0 == $ETCDBACKUPPERIOD ]];then
-    time="* */$ETCDBACKUPHOUR * * *"
-  else
-    time="*/$ETCDBACKUPPERIOD */$ETCDBACKUPHOUR * * *"
-  fi
-fi
-
-crontab -l | grep -v '#' > /tmp/file
-echo "$time sh $ETCDBACKUPSCIPT/etcd-backup.sh" >> /tmp/file && awk ' !x[$0]++{print > "/tmp/file"}' /tmp/file
-crontab /tmp/file
-rm -rf /tmp/file
-
 `)))
-
-func BackupTimeInterval(runtime connector.Runtime, kubeConf *common.KubeConf) string {
-	var etcdBackupHour string
-	if kubeConf.Cluster.Etcd.BackupPeriod != 0 {
-		period := kubeConf.Cluster.Etcd.BackupPeriod
-		if period > 60 && period < 1440 {
-			kubeConf.Cluster.Etcd.BackupPeriod = period % 60
-			etcdBackupHour = strconv.Itoa(period / 60)
-		}
-		if period > 1440 {
-			logger.Log.Message(runtime.RemoteHost().GetName(), "etcd backup cannot last more than one day, Please change it to within one day or KubeKey will set it to the default value '24'.")
-			return "24"
-		}
-	}
-	return etcdBackupHour
-}

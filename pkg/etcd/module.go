@@ -17,10 +17,13 @@
 package etcd
 
 import (
+	"path/filepath"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/task"
+	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/etcd/templates"
 )
 
@@ -387,7 +390,46 @@ func (b *BackupModule) Init() {
 		Parallel: true,
 	}
 
+	generateBackupETCDService := &task.RemoteTask{
+		Name:  "GenerateBackupETCDService",
+		Desc:  "Generate backup ETCD service",
+		Hosts: b.Runtime.GetHostsByRole(common.ETCD),
+		Action: &action.Template{
+			Template: templates.BackupETCDService,
+			Dst:      filepath.Join("/etc/systemd/system/", templates.BackupETCDService.Name()),
+			Data: util.Data{
+				"ScriptPath": filepath.Join(b.KubeConf.Cluster.Etcd.BackupScriptDir, "etcd-backup.sh"),
+			},
+		},
+		Parallel: true,
+	}
+
+	generateBackupETCDTimer := &task.RemoteTask{
+		Name:  "GenerateBackupETCDTimer",
+		Desc:  "Generate backup ETCD timer",
+		Hosts: b.Runtime.GetHostsByRole(common.ETCD),
+		Action: &action.Template{
+			Template: templates.BackupETCDTimer,
+			Dst:      filepath.Join("/etc/systemd/system/", templates.BackupETCDTimer.Name()),
+			Data: util.Data{
+				"OnCalendarStr": templates.BackupTimeOnCalendar(b.KubeConf.Cluster.Etcd.BackupPeriod),
+			},
+		},
+		Parallel: true,
+	}
+
+	enable := &task.RemoteTask{
+		Name:     "EnableBackupETCDService",
+		Desc:     "Enable backup etcd service",
+		Hosts:    b.Runtime.GetHostsByRole(common.ETCD),
+		Action:   new(EnableBackupETCDService),
+		Parallel: true,
+	}
+
 	b.Tasks = []task.Interface{
 		backupETCD,
+		generateBackupETCDService,
+		generateBackupETCDTimer,
+		enable,
 	}
 }
