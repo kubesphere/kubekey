@@ -357,6 +357,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
     <td align="center"><a href="https://github.com/brandan-schmitz"><img src="https://avatars.githubusercontent.com/u/6267549?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Brandan Schmitz</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=brandan-schmitz" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/yjqg6666"><img src="https://avatars.githubusercontent.com/u/1879641?v=4?s=100" width="100px;" alt=""/><br /><sub><b>yjqg6666</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=yjqg6666" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/zaunist"><img src="https://avatars.githubusercontent.com/u/38528079?v=4?s=100" width="100px;" alt=""/><br /><sub><b>失眠是真滴难受</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=zaunist" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/mangoGoForward"><img src="https://avatars.githubusercontent.com/u/35127166?v=4?s=100" width="100px;" alt=""/><br /><sub><b>mango</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/pulls?q=is%3Apr+reviewed-by%3AmangoGoForward" title="Reviewed Pull Requests">👀</a></td>
   </tr>
 </table>
 
