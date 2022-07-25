@@ -18,9 +18,12 @@ package etcd
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/files"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/files"
+
+	"github.com/pkg/errors"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -29,7 +32,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/etcd/templates"
 	"github.com/kubesphere/kubekey/pkg/utils"
-	"github.com/pkg/errors"
 )
 
 type EtcdNode struct {
@@ -390,9 +392,7 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalAddress()),
 			"Backupdir":           b.KubeConf.Cluster.Etcd.BackupDir,
 			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber,
-			"EtcdBackupPeriod":    b.KubeConf.Cluster.Etcd.BackupPeriod,
 			"EtcdBackupScriptDir": b.KubeConf.Cluster.Etcd.BackupScriptDir,
-			"EtcdBackupHour":      templates.BackupTimeInterval(runtime, b.KubeConf),
 		},
 	}
 
@@ -404,9 +404,17 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/etcd-backup.sh", b.KubeConf.Cluster.Etcd.BackupScriptDir), false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "chmod etcd backup script failed")
 	}
+	return nil
+}
 
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("sh %s/etcd-backup.sh", b.KubeConf.Cluster.Etcd.BackupScriptDir), false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to run the etcd-backup.sh")
+type EnableBackupETCDService struct {
+	common.KubeAction
+}
+
+func (e *EnableBackupETCDService) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("systemctl enable --now backup-etcd.timer",
+		false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "enable backup-etcd.service failed")
 	}
 	return nil
 }
