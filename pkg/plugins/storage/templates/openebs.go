@@ -105,7 +105,7 @@ metadata:
   labels:
     name: openebs-localpv-provisioner
     openebs.io/component-name: openebs-localpv-provisioner
-    openebs.io/version: 2.10.1
+    openebs.io/version: 3.3.0
 spec:
   selector:
     matchLabels:
@@ -119,7 +119,7 @@ spec:
       labels:
         name: openebs-localpv-provisioner
         openebs.io/component-name: openebs-localpv-provisioner
-        openebs.io/version: 2.10.1
+        openebs.io/version: 3.3.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
