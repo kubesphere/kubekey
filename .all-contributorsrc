@@ -503,6 +503,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "zaunist",
+      "name": "失眠是真滴难受",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38528079?v=4",
+      "profile": "https://github.com/zaunist",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
