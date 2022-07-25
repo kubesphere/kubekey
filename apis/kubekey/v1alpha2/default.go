@@ -89,6 +89,7 @@ const (
 	Isula      = "isula"
 
 	Haproxy = "haproxy"
+	Kubevip = "kube-vip"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map[string][]*KubeHost) {

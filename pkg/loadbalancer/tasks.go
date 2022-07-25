@@ -18,6 +18,9 @@ package loadbalancer
 
 import (
 	"fmt"
+	"path/filepath"
+	"strconv"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -25,8 +28,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer/templates"
 	"github.com/pkg/errors"
-	"path/filepath"
-	"strconv"
 )
 
 type GetChecksum struct {
@@ -138,6 +139,67 @@ func (u *UpdateHosts) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type CheckVIPAddress struct {
+	common.KubeAction
+}
+
+func (c *CheckVIPAddress) Execute(runtime connector.Runtime) error {
+	if c.KubeConf.Cluster.ControlPlaneEndpoint.Address == "" {
+		return errors.New("VIP address is empty")
+	} else {
+		return nil
+	}
+}
+
+type GetInterfaceName struct {
+	common.KubeAction
+}
+
+func (g *GetInterfaceName) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	cmd := fmt.Sprintf("ip route "+
+		"| grep %s "+
+		"| sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\"", host.GetAddress())
+	interfaceName, err := runtime.GetRunner().SudoCmd(cmd, false)
+	if err != nil {
+		return err
+	}
+	if interfaceName == "" {
+		return errors.New("get interface failed")
+	}
+	// type: string
+	host.GetCache().Set("interface", interfaceName)
+	return nil
+}
+
+type GenerateKubevipManifest struct {
+	common.KubeAction
+}
+
+func (g *GenerateKubevipManifest) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	interfaceName, ok := host.GetCache().GetMustString("interface")
+	if !ok {
+		return errors.New("get interface failed")
+	}
+
+	templateAction := action.Template{
+		Template: templates.KubevipManifest,
+		Dst:      filepath.Join(common.KubeManifestDir, templates.KubevipManifest.Name()),
+		Data: util.Data{
+			"VipInterface": interfaceName,
+			"KubeVip":      g.KubeConf.Cluster.ControlPlaneEndpoint.Address,
+			"KubevipImage": images.GetImage(runtime, g.KubeConf, "kubevip").ImageName(),
+		},
+	}
+
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+	return nil
+}
+
 type GenerateK3sHaproxyManifest struct {
 	common.KubeAction
 }
@@ -156,6 +218,47 @@ func (g *GenerateK3sHaproxyManifest) Execute(runtime connector.Runtime) error {
 			"HaproxyImage":    images.GetImage(runtime, g.KubeConf, "haproxy").ImageName(),
 			"HealthCheckPort": 8081,
 			"Checksum":        md5Str,
+		},
+	}
+
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+	return nil
+}
+
+type CreateManifestsFolder struct {
+	action.BaseAction
+}
+
+func (h *CreateManifestsFolder) Execute(runtime connector.Runtime) error {
+	_, err := runtime.GetRunner().SudoCmd("mkdir -p /var/lib/rancher/k3s/server/manifests/", false)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type GenerateK3sKubevipDaemonset struct {
+	common.KubeAction
+}
+
+func (g *GenerateK3sKubevipDaemonset) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	interfaceName, ok := host.GetCache().GetMustString("interface")
+	if !ok {
+		return errors.New("get interface failed")
+	}
+
+	templateAction := action.Template{
+		Template: templates.K3sKubevipManifest,
+		Dst:      filepath.Join("/var/lib/rancher/k3s/server/manifests/", templates.K3sKubevipManifest.Name()),
+		Data: util.Data{
+			"KubeVipVersion": images.GetImage(runtime, g.KubeConf, "kubevip").Tag,
+			"VipInterface":   interfaceName,
+			"KubeVip":        g.KubeConf.Cluster.ControlPlaneEndpoint.Address,
+			"KubevipImage":   images.GetImage(runtime, g.KubeConf, "kubevip").ImageName(),
 		},
 	}
 
