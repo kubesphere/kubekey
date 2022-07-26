@@ -521,6 +521,15 @@
       "contributions": [
         "review"
       ]
+    },
+    {
+      "login": "wenwutang1",
+      "name": "wenwutang",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45817987?v=4",
+      "profile": "https://github.com/wenwutang1",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
