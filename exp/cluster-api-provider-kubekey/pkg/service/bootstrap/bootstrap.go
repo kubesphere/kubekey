@@ -166,3 +166,52 @@ func (s *Service) Repository() error {
 	}
 	return nil
 }
+
+func (s *Service) ResetNetwork() error {
+	networkResetCmds := []string{
+		"iptables -F",
+		"iptables -X",
+		"iptables -F -t nat",
+		"iptables -X -t nat",
+		"ipvsadm -C",
+		"ip link del kube-ipvs0",
+		"ip link del nodelocaldns",
+	}
+	for _, cmd := range networkResetCmds {
+		_, _ = s.SSHClient.SudoCmd(cmd)
+	}
+	return nil
+}
+
+func (s *Service) RemoveFiles() error {
+	removeDirs := []string{
+		directory.KubeConfigDir,
+		directory.KubeScriptDir,
+		"/var/log/calico",
+		"/etc/cni",
+		"/var/log/pods/",
+		"/var/lib/cni",
+		"/var/lib/calico",
+		"/var/lib/kubelet",
+		"/var/lib/rook",
+		"/run/calico",
+		"/run/flannel",
+		"/etc/flannel",
+		"/var/openebs",
+		"/etc/systemd/system/kubelet.service",
+		"/etc/systemd/system/kubelet.service.d",
+		"/tmp/kubekey",
+		"/etc/kubekey",
+	}
+	for _, dir := range removeDirs {
+		dirService := s.getDirectoryService(dir, 0)
+		_ = dirService.Remove()
+	}
+	return nil
+}
+
+func (s *Service) DaemonReload() error {
+	_, _ = s.SSHClient.SudoCmd("systemctl daemon-reload && exit 0")
+	_, _ = s.SSHClient.SudoCmd("systemctl restart containerd")
+	return nil
+}

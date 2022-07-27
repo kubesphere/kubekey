@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -149,7 +150,7 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldInstance.ObjectMeta.ManagedFields = nil
 					newInstance.ObjectMeta.ManagedFields = nil
 
-					fmt.Printf("diff: %s", cmp.Diff(oldInstance, newInstance))
+					log.V(5).Info(fmt.Sprintf("diff: %s", cmp.Diff(oldInstance, newInstance)))
 					if cmp.Equal(oldInstance, newInstance) {
 						log.V(4).Info("oldInstance and newInstance are equaled, skip")
 						return false
@@ -265,16 +266,25 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}()
 
 	if !kkInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, instanceScope)
+		return r.reconcileDelete(ctx, instanceScope, infraCluster)
 	}
 
 	return r.reconcileNormal(ctx, instanceScope, infraCluster, infraCluster)
 }
 
-func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
+func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKInstance delete")
 
+	sshClient := r.getSSHClient(instanceScope)
+	if err := r.reconcileDeletingBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {
+		instanceScope.Error(err, "failed to reconcile deleting bootstrap")
+		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, nil
+	}
+	instanceScope.SetState(infrav1.InstanceStateCleaned)
+	instanceScope.Info("Reconcile KKInstance delete successful")
+	controllerutil.RemoveFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
 	return ctrl.Result{}, nil
 }
 
@@ -292,6 +302,9 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
+
+	// If the KKMachine doesn't have our finalizer, add it.
+	controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
 
 	sshClient := r.getSSHClient(instanceScope)
 	if err := r.reconcileBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {

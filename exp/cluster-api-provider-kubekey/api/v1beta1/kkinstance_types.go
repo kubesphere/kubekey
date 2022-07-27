@@ -23,6 +23,12 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
+const (
+	// InstanceFinalizer allows ReconcileKKInstance to clean up KubeKey resources associated with KKInstance before
+	// removing it from the apiserver.
+	InstanceFinalizer = "kkinstance.infrastructure.cluster.x-k8s.io"
+)
+
 // InstanceState describes the state of an KK instance.
 type InstanceState string
 

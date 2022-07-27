@@ -52,10 +52,6 @@ func (b *Binary) Version() string {
 }
 
 func (b *Binary) Get() error {
-	if b.LocalExist() {
-		return nil
-	}
-
 	out, err := os.Create(b.LocalPath())
 	if err != nil {
 		return errors.Wrapf(err, "create local file %s failed", b.LocalPath())

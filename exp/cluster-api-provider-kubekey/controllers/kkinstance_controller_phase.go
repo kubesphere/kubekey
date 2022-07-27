@@ -43,6 +43,24 @@ func (r *KKInstanceReconciler) reconcilePing(ctx context.Context, instanceScope 
 	return err
 }
 
+func (r *KKInstanceReconciler) reconcileDeletingBootstrap(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope, lbScope scope.LBScope) error {
+	instanceScope.Info("Reconcile deleting bootstrap")
+
+	instanceScope.SetState(infrav1.InstanceStateCleaning)
+
+	svc := r.getBootstrapService(sshClient, lbScope, instanceScope)
+	if err := svc.ResetNetwork(); err != nil {
+		return err
+	}
+	if err := svc.RemoveFiles(); err != nil {
+		return err
+	}
+	if err := svc.DaemonReload(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope, lbScope scope.LBScope) error {
 	instanceScope.Info("Reconcile bootstrap")
 

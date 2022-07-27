@@ -27,6 +27,9 @@ type Bootstrap interface {
 	ResetTmpDirectory() error
 	ExecInitScript() error
 	Repository() error
+	ResetNetwork() error
+	RemoveFiles() error
+	DaemonReload() error
 }
 
 type BinaryService interface {
