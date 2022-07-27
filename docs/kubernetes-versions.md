@@ -48,6 +48,8 @@
 | v1.22.8  | :white_check_mark: |
 | v1.22.9  | :white_check_mark: |
 | v1.22.10 | :white_check_mark: |
+| v1.22.11 | :white_check_mark: |
+| v1.22.12 | :white_check_mark: |
 | v1.23.0  | :white_check_mark: |
 | v1.23.1  | :white_check_mark: |
 | v1.23.2  | :white_check_mark: |
@@ -57,8 +59,11 @@
 | v1.23.6  | :white_check_mark: |
 | v1.23.7  | :white_check_mark: |
 | v1.23.8  | :white_check_mark: |
+| v1.23.9  | :white_check_mark: |
 | v1.24.0  | :white_check_mark: |
 | v1.24.1  | :white_check_mark: |
+| v1.24.2  | :white_check_mark: |
+| v1.24.3  | :white_check_mark: |
 
 ## Kubernetes Versions(arm64)
 | Version  |     Supported      |
@@ -105,6 +110,8 @@
 | v1.22.8  | :white_check_mark: |
 | v1.22.9  | :white_check_mark: |
 | v1.22.10 | :white_check_mark: |
+| v1.22.11 | :white_check_mark: |
+| v1.22.12 | :white_check_mark: |
 | v1.23.0  | :white_check_mark: |
 | v1.23.1  | :white_check_mark: |
 | v1.23.2  | :white_check_mark: |
@@ -114,5 +121,8 @@
 | v1.23.6  | :white_check_mark: |
 | v1.23.7  | :white_check_mark: |
 | v1.23.8  | :white_check_mark: |
+| v1.23.9  | :white_check_mark: |
 | v1.24.0  | :white_check_mark: |
 | v1.24.1  | :white_check_mark: |
+| v1.24.2  | :white_check_mark: |
+| v1.24.3  | :white_check_mark: |
