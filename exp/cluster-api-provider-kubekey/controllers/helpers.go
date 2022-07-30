@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -58,10 +57,13 @@ func (r *KKMachineReconciler) createInstance(
 		return nil, err
 	}
 
-	instanceSpec.Arch = "amd64"
+	if instanceSpec.Arch == "" {
+		instanceSpec.Arch = "amd64"
+	}
 
-	instanceID := r.generateInstanceID(instanceSpec)
-	instanceSpec.Name = instanceID
+	// todo: if it need to append a random suffix to the name string
+	instanceID := instanceSpec.Name
+
 	gv := infrav1.GroupVersion
 	instance := &infrav1.KKInstance{
 		ObjectMeta: metav1.ObjectMeta{
@@ -88,25 +90,6 @@ func (r *KKMachineReconciler) createInstance(
 
 	if err := r.Client.Create(ctx, instance); err != nil {
 		return nil, err
-	}
-
-	// wait until instance running
-	log.V(4)
-	if err := wait.PollImmediate(r.WaitKKInstanceInterval, r.WaitKKInstanceTimeout, func() (done bool, err error) {
-
-		i := &infrav1.KKInstance{}
-		key := client.ObjectKeyFromObject(instance)
-		if err := r.Client.Get(ctx, key, i); err != nil {
-			return false, nil
-		}
-
-		if i.Status.State == infrav1.InstanceStateRunning {
-			instance = i
-			return true, nil
-		}
-		return false, nil
-	}); err != nil {
-		return nil, errors.Wrapf(err, "Could not determine if KKInstance is bootstrapped and running")
 	}
 
 	return instance, nil
@@ -154,16 +137,10 @@ func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.Mach
 }
 
 func (r *KKMachineReconciler) deleteInstance(ctx context.Context, instance *infrav1.KKInstance) error {
-	if err := wait.PollImmediate(r.WaitKKInstanceInterval, r.WaitKKInstanceTimeout, func() (done bool, err error) {
-		if err := r.Client.Delete(ctx, instance); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return false, err
-			}
+	if err := r.Client.Delete(ctx, instance); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
 		}
-
-		return true, nil
-	}); err != nil {
-		return err
 	}
 	return nil
 }

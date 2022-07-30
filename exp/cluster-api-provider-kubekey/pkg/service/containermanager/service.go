@@ -18,6 +18,7 @@ package containermanager
 
 import (
 	"embed"
+	"time"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
@@ -30,7 +31,7 @@ var f embed.FS
 type Service interface {
 	Type() string
 	IsExist() bool
-	Get() error
+	Get(timeout time.Duration) error
 	Install() error
 }
 

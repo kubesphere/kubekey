@@ -20,6 +20,7 @@ import (
 	"embed"
 	"path/filepath"
 	"text/template"
+	"time"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
@@ -28,7 +29,7 @@ import (
 //go:embed templates
 var f embed.FS
 
-func (s *Service) DownloadAll() error {
+func (s *Service) DownloadAll(timeout time.Duration) error {
 	kubeadm, err := s.getKubeadmService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {
 		return err
@@ -59,7 +60,7 @@ func (s *Service) DownloadAll() error {
 			needGet = false
 		}
 		if needGet {
-			if err := b.Get(); err != nil {
+			if err := b.Get(timeout); err != nil {
 				return err
 			}
 			if err := b.CompareChecksum(); err != nil {

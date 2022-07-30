@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
@@ -100,7 +101,7 @@ func (s *ContainerdService) IsExist() bool {
 	return true
 }
 
-func (s *ContainerdService) Get() error {
+func (s *ContainerdService) Get(timeout time.Duration) error {
 	containerd, err := s.getContainerdService(s.SSHClient, file.ContainerdDefaultVersion, s.instanceScope.Arch())
 	if err != nil {
 		return err
@@ -120,14 +121,12 @@ func (s *ContainerdService) Get() error {
 	}
 
 	for _, b := range binaries {
-		skipGet := false
-		if b.LocalExist() {
-			if err := b.CompareChecksum(); err == nil {
-				skipGet = true
-			}
+		needGet := true
+		if b.LocalExist() && b.CompareChecksum() == nil {
+			needGet = false
 		}
-		if !skipGet {
-			if err := b.Get(); err != nil {
+		if needGet {
+			if err := b.Get(timeout); err != nil {
 				return err
 			}
 			if err := b.CompareChecksum(); err != nil {

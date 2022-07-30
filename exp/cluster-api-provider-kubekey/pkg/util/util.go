@@ -34,13 +34,12 @@ func GetInfraCluster(
 	c client.Client,
 	log logr.Logger,
 	cluster *clusterv1.Cluster,
-	kkMachine *infrav1.KKMachine,
 	controllerName string,
 	dataDir string) (*scope.ClusterScope, error) {
 
 	kkCluster := &infrav1.KKCluster{}
 	infraClusterName := client.ObjectKey{
-		Namespace: kkMachine.Namespace,
+		Namespace: cluster.Spec.InfrastructureRef.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 

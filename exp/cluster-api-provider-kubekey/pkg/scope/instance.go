@@ -41,7 +41,6 @@ type InstanceScopeParams struct {
 	Cluster      *clusterv1.Cluster
 	InfraCluster *ClusterScope
 	Machine      *clusterv1.Machine
-	KKMachine    *infrav1.KKMachine
 	KKInstance   *infrav1.KKInstance
 }
 
@@ -62,9 +61,6 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 	}
 	if params.InfraCluster == nil {
 		return nil, errors.New("kk cluster is required when creating a InstanceScope")
-	}
-	if params.KKMachine == nil {
-		return nil, errors.New("kk machine is required when creating a InstanceScope")
 	}
 	if params.KKInstance == nil {
 		return nil, errors.New("kk instance is required when creating a InstanceScope")
@@ -88,7 +84,6 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 		Cluster:      params.Cluster,
 		Machine:      params.Machine,
 		InfraCluster: params.InfraCluster,
-		KKMachine:    params.KKMachine,
 		KKInstance:   params.KKInstance,
 	}, nil
 }
@@ -163,7 +158,10 @@ func (i *InstanceScope) PatchObject() error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
 	applicableConditions := []clusterv1.ConditionType{
-		infrav1.InstanceReadyCondition,
+		infrav1.KKInstanceBootstrappedCondition,
+		infrav1.KKInstanceBinariesReadyCondition,
+		infrav1.KKInstanceCRIReadyCondition,
+		infrav1.KKInstanceProvisionedCondition,
 	}
 
 	conditions.SetSummary(i.KKInstance,
@@ -177,7 +175,11 @@ func (i *InstanceScope) PatchObject() error {
 		i.KKInstance,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
-			infrav1.InstanceReadyCondition,
+			infrav1.KKInstanceBootstrappedCondition,
+			infrav1.KKInstanceBinariesReadyCondition,
+			infrav1.KKInstanceCRIReadyCondition,
+			infrav1.KKInstanceProvisionedCondition,
+			infrav1.KKInstanceDeletingBootstrapCondition,
 		}})
 }
 

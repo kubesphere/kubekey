@@ -20,6 +20,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// KKCluster condition
 const (
 	PrincipalPreparedCondition clusterv1.ConditionType = "PrincipalPrepared"
 )
@@ -33,6 +34,7 @@ const (
 	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
 )
 
+// KKMachine condition
 const (
 	// InstanceReadyCondition reports on current status of the SSH instance. Ready indicates the instance is in a Running state.
 	InstanceReadyCondition clusterv1.ConditionType = "InstanceReady"
@@ -51,4 +53,33 @@ const (
 	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
 	// WaitingForBootstrapDataReason used when machine is waiting for bootstrap data to be ready before proceeding.
 	WaitingForBootstrapDataReason = "WaitingForBootstrapData"
+)
+
+// KKInstance condition
+const (
+	KKInstanceBootstrappedCondition clusterv1.ConditionType = "InstanceBootstrapped"
+	KKInstanceInitOSFailedReason                            = "InitOSFailed"
+)
+
+const (
+	KKInstanceBinariesReadyCondition clusterv1.ConditionType = "InstanceBinariesReady"
+	KKInstanceGetBinaryFailedReason                          = "GetBinaryFailed"
+)
+
+const (
+	KKInstanceCRIReadyCondition      clusterv1.ConditionType = "InstanceCRIReady"
+	KKInstanceInstallCRIFailedReason                         = "InstallCRIFailed"
+)
+
+const (
+	KKInstanceProvisionedCondition       clusterv1.ConditionType = "InstanceProvisioned"
+	KKInstanceRunCloudConfigFailedReason                         = "RunCloudConfigFailed"
+)
+
+const (
+	KKInstanceDeletingBootstrapCondition   clusterv1.ConditionType = "InstanceDeletingBootstrapped"
+	KKInstanceClearEnvironmentFailedReason                         = "ClearEnvironmentFailed"
+
+	// CleaningReason (Severity=Info) documents a machine node being cleaned.
+	CleaningReason = "Cleaning"
 )

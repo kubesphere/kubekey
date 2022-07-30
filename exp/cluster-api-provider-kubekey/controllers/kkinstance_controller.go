@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -41,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
@@ -54,7 +56,9 @@ import (
 )
 
 const (
-	defaultRequeueWait = 30 * time.Second
+	defaultRequeueWait        = 30 * time.Second
+	DefaultKKInstanceInterval = 5 * time.Second
+	DefaultKKInstanceTimeout  = 10 * time.Minute
 )
 
 // KKInstanceReconciler reconciles a KKInstance object
@@ -69,6 +73,9 @@ type KKInstanceReconciler struct {
 	provisioningFactory     func(sshClient ssh.Interface, format bootstrapv1.Format) service.Provisioning
 	WatchFilterValue        string
 	DataDir                 string
+
+	WaitKKInstanceInterval time.Duration
+	WaitKKInstanceTimeout  time.Duration
 }
 
 func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) ssh.Interface {
@@ -110,17 +117,24 @@ func (r *KKInstanceReconciler) getProvisioningService(sshClient ssh.Interface, f
 func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	_, err := ctrl.NewControllerManagedBy(mgr).
+	if r.WaitKKInstanceInterval.Nanoseconds() == 0 {
+		r.WaitKKInstanceInterval = DefaultKKInstanceInterval
+	}
+	if r.WaitKKInstanceTimeout.Nanoseconds() == 0 {
+		r.WaitKKInstanceTimeout = DefaultKKInstanceTimeout
+	}
+
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.KKInstance{}).
-		//Watches(
-		//	&source.Kind{Type: &infrav1.KKMachine{}},
-		//	handler.EnqueueRequestsFromMapFunc(r.KKMachineToKKInstanceMapFunc(log)),
-		//).
-		//Watches(
-		//	&source.Kind{Type: &infrav1.KKCluster{}},
-		//	handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKInstances(log)),
-		//).
+		Watches(
+			&source.Kind{Type: &infrav1.KKMachine{}},
+			handler.EnqueueRequestsFromMapFunc(r.KKMachineToKKInstanceMapFunc(log)),
+		).
+		Watches(
+			&source.Kind{Type: &infrav1.KKCluster{}},
+			handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKInstances(log)),
+		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
@@ -128,15 +142,10 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 				// for KKInstance resources only
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					log.V(5).Info("KKInstance controller update predicate")
-					//if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "KKInstance" {
-					//	log.V(5).Info(fmt.Sprintf("gvk is %s, not equale KKInstance", e.ObjectOld.GetObjectKind().GroupVersionKind().Kind))
-					//	return true
-					//}
-
-					//if _, ok := e.ObjectOld.(*infrav1.KKInstance); !ok {
-					//	log.V(5).Info(fmt.Sprintf("gvk is %s, not equale KKInstance", e.ObjectOld.GetObjectKind().GroupVersionKind().Kind))
-					//	return true
-					//}
+					if _, ok := e.ObjectOld.(*infrav1.KKInstance); !ok {
+						log.V(5).Info(fmt.Sprintf("gvk is %s, not equale KKInstance", e.ObjectOld.GetObjectKind().GroupVersionKind().Kind))
+						return true
+					}
 
 					oldInstance := e.ObjectOld.(*infrav1.KKInstance).DeepCopy()
 					newInstance := e.ObjectNew.(*infrav1.KKInstance).DeepCopy()
@@ -147,10 +156,6 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldInstance.ObjectMeta.ResourceVersion = ""
 					newInstance.ObjectMeta.ResourceVersion = ""
 
-					oldInstance.ObjectMeta.ManagedFields = nil
-					newInstance.ObjectMeta.ManagedFields = nil
-
-					log.V(5).Info(fmt.Sprintf("diff: %s", cmp.Diff(oldInstance, newInstance)))
 					if cmp.Equal(oldInstance, newInstance) {
 						log.V(4).Info("oldInstance and newInstance are equaled, skip")
 						return false
@@ -165,14 +170,14 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return err
 	}
 
-	//err = c.Watch(
-	//	&source.Kind{Type: &clusterv1.Cluster{}},
-	//	handler.EnqueueRequestsFromMapFunc(r.requeueKKInstancesForUnpausedCluster(log)),
-	//	predicates.ClusterUnpausedAndInfrastructureReady(log),
-	//)
-	//if err != nil {
-	//	return err
-	//}
+	err = c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		handler.EnqueueRequestsFromMapFunc(r.requeueKKInstancesForUnpausedCluster(log)),
+		predicates.ClusterUnpausedAndInfrastructureReady(log),
+	)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -231,7 +236,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	infraCluster, err := util.GetInfraCluster(ctx, r.Client, log, cluster, kkMachine, "kkinstance", r.DataDir)
+	infraCluster, err := util.GetInfraCluster(ctx, r.Client, log, cluster, "kkinstance", r.DataDir)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting infra provider cluster object")
 	}
@@ -245,7 +250,6 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Cluster:      cluster,
 		Machine:      machine,
 		InfraCluster: infraCluster,
-		KKMachine:    kkMachine,
 		KKInstance:   kkInstance,
 	})
 	if err != nil {
@@ -276,12 +280,22 @@ func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScop
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKInstance delete")
 
+	if conditions.Get(instanceScope.KKInstance, infrav1.KKInstanceDeletingBootstrapCondition) == nil {
+		conditions.MarkFalse(instanceScope.KKInstance, infrav1.KKInstanceDeletingBootstrapCondition,
+			infrav1.CleaningReason, clusterv1.ConditionSeverityInfo, "Cleaning the node before deletion")
+	}
+
+	if err := instanceScope.PatchObject(); err != nil {
+		instanceScope.Error(err, "unable to patch object")
+		return ctrl.Result{}, err
+	}
+
 	sshClient := r.getSSHClient(instanceScope)
 	if err := r.reconcileDeletingBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {
 		instanceScope.Error(err, "failed to reconcile deleting bootstrap")
-		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
+	conditions.MarkTrue(instanceScope.KKInstance, infrav1.KKInstanceDeletingBootstrapCondition)
 	instanceScope.SetState(infrav1.InstanceStateCleaned)
 	instanceScope.Info("Reconcile KKInstance delete successful")
 	controllerutil.RemoveFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
@@ -297,36 +311,34 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 		return ctrl.Result{}, nil
 	}
 
-	if !instanceScope.Cluster.Status.InfrastructureReady {
-		instanceScope.Info("Cluster infrastructure is not ready yet")
-		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, nil
-	}
-
 	// If the KKMachine doesn't have our finalizer, add it.
 	controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
+	// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
+	if err := instanceScope.PatchObject(); err != nil {
+		instanceScope.Error(err, "unable to patch object")
+		return ctrl.Result{}, err
+	}
 
 	sshClient := r.getSSHClient(instanceScope)
-	if err := r.reconcileBootstrap(ctx, sshClient, instanceScope, lbScope); err != nil {
-		instanceScope.Error(err, "failed to reconcile internal bootstrap")
-		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
-	}
-	if err := r.reconcileBinaryService(ctx, sshClient, instanceScope, kkInstanceScope); err != nil {
-		instanceScope.Error(err, "failed to reconcile binary service")
-		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
-	}
-	if err := r.reconcileContainerManager(ctx, sshClient, instanceScope, kkInstanceScope); err != nil {
-		instanceScope.Error(err, "failed to reconcile container manager")
-		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
+
+	phases := []func(context.Context, ssh.Interface, *scope.InstanceScope, scope.KKInstanceScope, scope.LBScope) error{
+		r.reconcileBootstrap,
+		r.reconcileBinaryService,
+		r.reconcileContainerManager,
+		r.reconcileProvisioning,
 	}
 
-	if err := r.reconcileProvisioning(ctx, sshClient, instanceScope); err != nil {
-		instanceScope.Error(err, "failed to reconcile provisioning")
-		conditions.MarkFalse(instanceScope.KKInstance, infrav1.InstanceReadyCondition, infrav1.InstanceBootstrapFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
+	for _, phase := range phases {
+		pollErr := wait.PollImmediate(r.WaitKKInstanceInterval, r.WaitKKInstanceTimeout, func() (done bool, err error) {
+			if err := phase(ctx, sshClient, instanceScope, kkInstanceScope, lbScope); err != nil {
+				return false, err
+			}
+			return true, nil
+		})
+		if pollErr != nil {
+			instanceScope.Error(pollErr, "failed to reconcile phase")
+			return ctrl.Result{RequeueAfter: defaultRequeueWait}, pollErr
+		}
 	}
 
 	instanceScope.SetState(infrav1.InstanceStateRunning)

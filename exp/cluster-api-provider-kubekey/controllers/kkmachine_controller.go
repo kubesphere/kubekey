@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,9 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
@@ -59,9 +56,7 @@ var (
 
 // InstanceIDIndex defines the kk machine controller's instance ID index.
 const (
-	InstanceIDIndex           = ".spec.instanceID"
-	DefaultKKInstanceInterval = 15 * time.Second
-	DefaultKKInstanceTimeout  = 30 * time.Minute
+	InstanceIDIndex = ".spec.instanceID"
 )
 
 // KKMachineReconciler reconciles a KKMachine object
@@ -72,21 +67,11 @@ type KKMachineReconciler struct {
 	Tracker          *remote.ClusterCacheTracker
 	WatchFilterValue string
 	DataDir          string
-
-	WaitKKInstanceInterval time.Duration
-	WaitKKInstanceTimeout  time.Duration
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
-
-	if r.WaitKKInstanceInterval.Nanoseconds() == 0 {
-		r.WaitKKInstanceInterval = DefaultKKInstanceInterval
-	}
-	if r.WaitKKInstanceTimeout.Nanoseconds() == 0 {
-		r.WaitKKInstanceTimeout = DefaultKKInstanceTimeout
-	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
@@ -100,33 +85,6 @@ func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 			handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKMachines(log)),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
-		WithEventFilter(
-			predicate.Funcs{
-				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
-				// for KKMachine resources only
-				UpdateFunc: func(e event.UpdateEvent) bool {
-					if _, ok := e.ObjectOld.(*infrav1.KKMachine); !ok {
-						return true
-					}
-
-					oldMachine := e.ObjectOld.(*infrav1.KKMachine).DeepCopy()
-					newMachine := e.ObjectNew.(*infrav1.KKMachine).DeepCopy()
-
-					oldMachine.Status = infrav1.KKMachineStatus{}
-					newMachine.Status = infrav1.KKMachineStatus{}
-
-					oldMachine.ObjectMeta.ResourceVersion = ""
-					newMachine.ObjectMeta.ResourceVersion = ""
-
-					if cmp.Equal(oldMachine, newMachine) {
-						log.V(4).Info("oldMachine and newMachine are equaled, skip")
-						return false
-					}
-					log.V(4).Info("oldMachine and newMachine are not equaled, allowing further processing")
-					return true
-				},
-			},
-		).
 		Build(r)
 	if err != nil {
 		return err
@@ -195,7 +153,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	infraCluster, err := util.GetInfraCluster(ctx, r.Client, log, cluster, kkMachine, "kkmachine", r.DataDir)
+	infraCluster, err := util.GetInfraCluster(ctx, r.Client, log, cluster, "kkmachine", r.DataDir)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting infra provider cluster object")
 	}
@@ -235,57 +193,48 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *KKMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope) (ctrl.Result, error) {
 	machineScope.Info("Reconcile KKMachine delete")
 
+	// Set the InstanceReadyCondition and patch the object before the blocking operation
+	conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := machineScope.PatchObject(); err != nil {
+		machineScope.Error(err, "failed to patch object")
+		return ctrl.Result{}, err
+	}
+
+	instance, err := r.reconcileDeleteKKInstance(ctx, machineScope)
+	if instance != nil || err != nil {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+	}
+
+	machineScope.V(4).Info("Unable to locate KubeKey instance by ID")
+
+	conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+	controllerutil.RemoveFinalizer(machineScope.KKMachine, infrav1.MachineFinalizer)
+	return ctrl.Result{}, nil
+}
+
+func (r *KKMachineReconciler) reconcileDeleteKKInstance(ctx context.Context, machineScope *scope.MachineScope) (*infrav1.KKInstance, error) {
 	// Find existing instance
 	instance, err := r.findInstance(ctx, machineScope)
 	if err != nil && !apierrors.IsNotFound(err) {
 		machineScope.Error(err, "unable to find instance")
-		return ctrl.Result{}, err
+		return nil, err
 	}
 
-	if instance == nil {
-		// The machine was never created or was deleted by some other entity
-		// One way to reach this state:
-		// 1. Scale deployment to 0
-		// 2. Rename KubeKey machine, and delete ProviderID from spec of both Machine and KKMachine
-		// 3. Issue a delete
-		// 4. Scale controller deployment to 1
-		machineScope.V(2).Info("Unable to locate KubeKey instance by ID")
-		r.Recorder.Eventf(machineScope.KKMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching KubeKey instance")
-		controllerutil.RemoveFinalizer(machineScope.KKMachine, infrav1.MachineFinalizer)
-		return ctrl.Result{}, nil
-	}
-
-	machineScope.V(3).Info("KubeKey instance found matching deleted KKMachine", "instance", instance.Name)
-
-	switch instance.Status.State {
-	case infrav1.InstanceStateCleaning, infrav1.InstanceStateCleaned:
-		machineScope.Info("KubeKey instance is cleaning or already cleaned", "instance", instance.Name)
-	default:
-		machineScope.Info("Cleaning KubeKey instance", "instance", instance)
-
-		// Set the InstanceReadyCondition and patch the object before the blocking operation
-		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-		if err := machineScope.PatchObject(); err != nil {
-			machineScope.Error(err, "failed to patch object")
-			return ctrl.Result{}, err
+	if instance != nil {
+		machineScope.V(3).Info("KubeKey instance found matching deleted KKMachine", "instance", instance.Name)
+		if conditions.IsTrue(instance, infrav1.KKInstanceDeletingBootstrapCondition) {
+			machineScope.V(5).Info("instance has not been cleaned up yet", "instance", instance.Name)
+			return instance, errors.Errorf("kkinstance %s has not been cleaned up yet", instance.Name)
 		}
 
 		if err := r.deleteInstance(ctx, instance); err != nil {
-			machineScope.Error(err, "failed to delete instance")
 			conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			r.Recorder.Eventf(machineScope.KKMachine, corev1.EventTypeWarning, "FailedDelete", "Failed to delete instance %q: %v", instance.Name, err)
-			return ctrl.Result{}, err
+			return instance, err
 		}
-		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
-
-		machineScope.Info("KubeKey instance successfully cleaned", "instance", instance.Name)
 		r.Recorder.Eventf(machineScope.KKMachine, corev1.EventTypeNormal, "SuccessfulCleaned", "Clean instance %q", instance.Name)
 	}
-
-	// Instance is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(machineScope.KKMachine, infrav1.MachineFinalizer)
-
-	return ctrl.Result{}, nil
+	return instance, nil
 }
 
 func (r *KKMachineReconciler) reconcileNormal(
@@ -353,7 +302,6 @@ func (r *KKMachineReconciler) reconcileNormal(
 		}
 	}
 
-	// todo: if the createInstance timeout, this kkmachine can not be set up providerID, and the next reconcile will create a new kkinstance.
 	// Make sure Spec.ProviderID and Spec.InstanceID are always set.
 	machineScope.SetProviderID(instance.Name, machineScope.Cluster.Name)
 	machineScope.SetInstanceID(instance.Name)
@@ -367,15 +315,22 @@ func (r *KKMachineReconciler) reconcileNormal(
 	}
 
 	switch instance.Status.State {
+	case "":
+		machineScope.SetNotReady()
+		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReadyReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{Requeue: true}, nil
 	case infrav1.InstanceStatePending:
 		machineScope.SetNotReady()
 		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReadyReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{Requeue: true}, nil
 	case infrav1.InstanceStateBootstrapping:
 		machineScope.SetNotReady()
 		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReadyReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{Requeue: true}, nil
 	case infrav1.InstanceStateCleaning, infrav1.InstanceStateCleaned:
 		machineScope.SetNotReady()
 		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceCleanedReason, clusterv1.ConditionSeverityWarning, "")
+		return ctrl.Result{Requeue: true}, nil
 	case infrav1.InstanceStateRunning:
 		if err := r.SetNodeProviderID(ctx, machineScope, instance); err != nil {
 			machineScope.Error(err, "failed to patch the Kubernetes node with the machine providerID")
@@ -399,11 +354,6 @@ func (r *KKMachineReconciler) reconcileNormal(
 		machineScope.SetFailureReason(capierrors.UpdateMachineError)
 		machineScope.SetFailureMessage(errors.Errorf("KubeKey instance state %q is undefined", instance.Status.State))
 		conditions.MarkUnknown(machineScope.KKMachine, infrav1.InstanceReadyCondition, "", "")
-	}
-
-	if instance.Status.State == infrav1.InstanceStatePending {
-		machineScope.SetFailureReason(capierrors.UpdateMachineError)
-		machineScope.SetFailureMessage(errors.Errorf("KubeKey instance state %q is unexpected", instance.Status.State))
 	}
 
 	return ctrl.Result{}, nil

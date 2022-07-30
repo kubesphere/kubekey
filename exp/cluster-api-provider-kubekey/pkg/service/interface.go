@@ -17,6 +17,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning/commands"
 )
 
@@ -33,14 +35,14 @@ type Bootstrap interface {
 }
 
 type BinaryService interface {
-	DownloadAll() error
+	DownloadAll(timeout time.Duration) error
 	ConfigureKubelet() error
 }
 
 type ContainerManager interface {
 	Type() string
 	IsExist() bool
-	Get() error
+	Get(timeout time.Duration) error
 	Install() error
 }
 

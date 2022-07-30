@@ -20,11 +20,13 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/hashicorp/go-getter"
+	urlhelper "github.com/hashicorp/go-getter/helper/url"
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
@@ -51,32 +53,26 @@ func (b *Binary) Version() string {
 	return b.version
 }
 
-func (b *Binary) Get() error {
-	out, err := os.Create(b.LocalPath())
-	if err != nil {
-		return errors.Wrapf(err, "create local file %s failed", b.LocalPath())
-	}
-
-	httpclient := http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+func (b *Binary) Get(timeout time.Duration) error {
+	//todo: should not to skip TLS verify
+	client := &getter.HttpGetter{
+		ReadTimeout: timeout,
+		Client: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
 		},
 	}
 
-	resp, err := httpclient.Get(b.url)
+	url, err := urlhelper.Parse(b.url)
 	if err != nil {
-		return errors.Wrapf(err, "http get file %s failed", b.url)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s recive a bad status: %s", b.url, resp.Status)
+		return errors.Wrapf(err, "failed to parse url: %s", b.url)
 	}
 
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return errors.Wrapf(err, "io copy file %s failed", b.Name())
+	if err := client.GetFile(b.LocalPath(), url); err != nil {
+		return errors.Wrapf(err, "failed to http get file: %s", b.LocalPath())
 	}
+
 	return nil
 }
 

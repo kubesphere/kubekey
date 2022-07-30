@@ -17,6 +17,8 @@
 package operation
 
 import (
+	"time"
+
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 )
 
@@ -37,7 +39,7 @@ type Binary interface {
 	ID() string
 	Arch() string
 	Version() string
-	Get() error
+	Get(timeout time.Duration) error
 	CompareChecksum() error
 }
 
