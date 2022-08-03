@@ -30,6 +30,7 @@ var f embed.FS
 
 type Service interface {
 	Type() string
+	Version() string
 	IsExist() bool
 	Get(timeout time.Duration) error
 	Install() error

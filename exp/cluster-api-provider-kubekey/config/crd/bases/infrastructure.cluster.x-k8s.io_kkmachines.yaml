@@ -25,7 +25,7 @@ spec:
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
-    - description: kubekey instance hostname
+    - description: KKInstance name
       jsonPath: .spec.instanceID
       name: Instance
       type: string
@@ -71,9 +71,6 @@ spec:
                   version:
                     description: Version defines the version of ContainerManager.
                     type: string
-                required:
-                - type
-                - version
                 type: object
               instanceID:
                 type: string
@@ -86,8 +83,6 @@ spec:
                 items:
                   type: string
                 type: array
-            required:
-            - roles
             type: object
           status:
             description: KKMachineStatus defines the observed state of KKMachine

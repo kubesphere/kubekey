@@ -30,8 +30,11 @@ const (
 )
 
 const (
-	// LoadBalancerReadyCondition reports on whether a control plane load balancer was successfully reconciled.
-	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
+	// ExternalLoadBalancerReadyCondition reports on whether a control plane load balancer was successfully reconciled.
+	ExternalLoadBalancerReadyCondition clusterv1.ConditionType = "ExternalLoadBalancerReady"
+
+	// WaitForDNSNameResolveReason used while waiting for DNS name to resolve.
+	WaitForDNSNameResolveReason = "WaitForDNSNameResolve"
 )
 
 // KKMachine condition

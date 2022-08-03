@@ -33,12 +33,7 @@ const (
 
 // KKClusterSpec defines the desired state of KKCluster
 type KKClusterSpec struct {
-	//// Selector is a label query over machines that should match the replica count.
-	//// Label keys and values that must match in order to be controlled by this MachineSet.
-	//// It must match the machine template's labels.
-	//// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
-	//Selector metav1.LabelSelector `json:"selector"`
-
+	// Nodes represents the information about the nodes available to the cluster
 	Nodes Nodes `json:"nodes"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
@@ -71,19 +66,16 @@ type Nodes struct {
 
 	// ContainerManager is the container manager config of all instance. It is a global container manager configuration.
 	// +optional
-	ContainerManager ContainerManager `json:"containerManager"`
+	ContainerManager ContainerManager `json:"containerManager,omitempty"`
 
 	// Instances defines all instance contained in kkcluster.
 	Instances []KKInstanceSpec `json:"instances"`
 }
 
-// KKLoadBalancerSpec defines the desired state of an AWS load balancer.
+// KKLoadBalancerSpec defines the desired state of an KK load balancer.
 type KKLoadBalancerSpec struct {
-	// +optional
-	Address string `json:"address"`
-
-	// +optional
-	Domain string `json:"domain"`
+	// The hostname on which the API server is serving.
+	Host string `json:"host,omitempty"`
 }
 
 // KKClusterStatus defines the observed state of KKCluster

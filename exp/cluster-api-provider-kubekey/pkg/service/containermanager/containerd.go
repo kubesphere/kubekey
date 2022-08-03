@@ -87,6 +87,10 @@ func (s *ContainerdService) Type() string {
 	return file.ContainerdID
 }
 
+func (s *ContainerdService) Version() string {
+	return s.instanceScope.KKInstance.Spec.ContainerManager.Version
+}
+
 func (s *ContainerdService) IsExist() bool {
 	res, err := s.SSHClient.SudoCmd(
 		"if [ -z $(which containerd) ] || [ ! -e /run/containerd/containerd.sock ]; " +
@@ -102,7 +106,7 @@ func (s *ContainerdService) IsExist() bool {
 }
 
 func (s *ContainerdService) Get(timeout time.Duration) error {
-	containerd, err := s.getContainerdService(s.SSHClient, file.ContainerdDefaultVersion, s.instanceScope.Arch())
+	containerd, err := s.getContainerdService(s.SSHClient, s.Version(), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}

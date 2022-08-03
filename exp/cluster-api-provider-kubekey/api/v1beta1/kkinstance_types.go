@@ -70,20 +70,21 @@ var (
 type KKInstanceSpec struct {
 	// Name is the host name of the machine.
 	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// Address is the IP address of the machine.
-	Address string `json:"address"`
+	Address string `json:"address,omitempty"`
 
 	// InternalAddress is the internal IP address of the machine.
-	InternalAddress string `json:"internalAddress"`
+	InternalAddress string `json:"internalAddress,omitempty"`
 
 	// Roles is the role of the machine.
-	Roles []Role `json:"roles"`
+	// +optional
+	Roles []Role `json:"roles,omitempty"`
 
 	// Arch is the architecture of the machine. e.g. "amd64", "arm64".
 	// +optional
-	Arch string `json:"arch"`
+	Arch string `json:"arch,omitempty"`
 
 	// Auth is the SSH authentication information of this machine. It will override the global auth configuration.
 	// +optional
@@ -91,7 +92,7 @@ type KKInstanceSpec struct {
 
 	// ContainerManager is the container manager config of this machine.
 	// +optional
-	ContainerManager ContainerManager `json:"containerManager"`
+	ContainerManager ContainerManager `json:"containerManager,omitempty"`
 }
 
 // KKInstanceStatus defines the observed state of KKInstance
@@ -142,8 +143,13 @@ type KKInstanceStatus struct {
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=kkinstances,scope=Namespaced,categories=cluster-api,shortName=kki
+// +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Hostname",type="string",JSONPath=".spec.name",description="kubekey instance hostname"
+// +kubebuilder:printcolumn:name="Address",type="string",JSONPath=".spec.address",description="kubekey instance address"
+// +k8s:defaulter-gen=true
 
 // KKInstance is the Schema for the kkinstances API
 type KKInstance struct {

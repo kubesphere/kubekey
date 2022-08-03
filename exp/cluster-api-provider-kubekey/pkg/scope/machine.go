@@ -145,6 +145,10 @@ func (m *MachineScope) SetAddresses(addrs []clusterv1.MachineAddress) {
 	m.KKMachine.Status.Addresses = addrs
 }
 
+func (m *MachineScope) GetRoles() []infrav1.Role {
+	return m.KKMachine.Spec.Roles
+}
+
 func (m *MachineScope) IsRole(role infrav1.Role) bool {
 	for _, r := range m.KKMachine.Spec.Roles {
 		if r == role {

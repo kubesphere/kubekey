@@ -36,6 +36,7 @@ type KKMachineSpec struct {
 	InstanceID *string `json:"instanceID,omitempty"`
 
 	// Roles is the role of the machine.
+	// +optional
 	Roles []Role `json:"roles"`
 
 	// ContainerManager is the container manager config of this machine.
@@ -104,7 +105,7 @@ type KKMachineStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this KKMachine belongs"
-// +kubebuilder:printcolumn:name="Instance",type="string",JSONPath=".spec.instanceID",description="kubekey instance hostname"
+// +kubebuilder:printcolumn:name="Instance",type="string",JSONPath=".spec.instanceID",description="KKInstance name"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this KKMachine"
 // +k8s:defaulter-gen=true

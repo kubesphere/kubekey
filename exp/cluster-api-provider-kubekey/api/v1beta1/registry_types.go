@@ -30,7 +30,7 @@ type Registry struct {
 	PrivateRegistry string `json:"privateRegistry"`
 
 	// InsecureRegistries defines the insecure registries of ContainerManager.
-	InsecureRegistries []string `json:"insecureRegistries"`
+	InsecureRegistries []string `json:"insecureRegistries,omitempty"`
 
 	// RegistryMirrors defines the registry mirrors of this PrivateRegistry.
 	RegistryMirrors []string `json:"registryMirrors,omitempty"`

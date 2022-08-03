@@ -26,7 +26,7 @@ type KKMachineTemplateSpec struct {
 	Template KKMachineTemplateResource `json:"template"`
 }
 
-// KKMachineTemplateResource describes the data needed to create am AWSMachine from a template.
+// KKMachineTemplateResource describes the data needed to create am KKMachine from a template.
 type KKMachineTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata

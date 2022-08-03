@@ -16,6 +16,16 @@
 
 package v1beta1
 
+const (
+	DockerType             = "docker"
+	DefaultDockerVersion   = "20.10.8"
+	DefaultDockerCRISocket = ""
+
+	ContainerdType             = "containerd"
+	DefaultContainerdVersion   = "1.6.4"
+	DefaultContainerdCRISocket = "unix:///var/run/containerd/containerd.sock"
+)
+
 // ContainerManager defines the desired state of ContainerManager
 type ContainerManager struct {
 	// CRISocket is used to connect an existing CRIClient.
@@ -24,8 +34,8 @@ type ContainerManager struct {
 
 	// Type defines the type of ContainerManager.
 	// "docker", "containerd"
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 
 	// Version defines the version of ContainerManager.
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 }

@@ -107,9 +107,9 @@ func (s *Service) ExecInitScript() error {
 		lbHost    string
 	)
 
-	if s.scope.ControlPlaneLoadBalancer().Address != "" {
-		lbHost = fmt.Sprintf("%s  %s", s.scope.ControlPlaneLoadBalancer().Address, s.scope.ControlPlaneEndpoint().Host)
-	}
+	//if s.scope.ControlPlaneLoadBalancer().Address != "" {
+	//	lbHost = fmt.Sprintf("%s  %s", s.scope.ControlPlaneLoadBalancer().Address, s.scope.ControlPlaneEndpoint().Host)
+	//}
 	for _, host := range s.scope.AllInstancesSpec() {
 		if host.Name != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",

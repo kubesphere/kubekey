@@ -38,7 +38,7 @@ spec:
             properties:
               template:
                 description: KKMachineTemplateResource describes the data needed to
-                  create am AWSMachine from a template.
+                  create am KKMachine from a template.
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
@@ -80,9 +80,6 @@ spec:
                           version:
                             description: Version defines the version of ContainerManager.
                             type: string
-                        required:
-                        - type
-                        - version
                         type: object
                       instanceID:
                         type: string
@@ -95,8 +92,6 @@ spec:
                         items:
                           type: string
                         type: array
-                    required:
-                    - roles
                     type: object
                 required:
                 - spec

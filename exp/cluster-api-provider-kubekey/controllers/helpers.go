@@ -101,12 +101,10 @@ func (r *KKMachineReconciler) generateInstanceID(instanceSpec *infrav1.KKInstanc
 
 func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.MachineScope, kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstanceSpec, error) {
 	var instanceSpecs []infrav1.KKInstanceSpec
-	if machineScope.IsRole(infrav1.ControlPlane) {
-		instanceSpecs = kkInstanceScope.GetInstancesSpecByRole(infrav1.ControlPlane)
-	} else if machineScope.IsRole(infrav1.Worker) {
-		instanceSpecs = kkInstanceScope.GetInstancesSpecByRole(infrav1.Worker)
-	} else {
-		instanceSpecs = kkInstanceScope.AllInstancesSpec()
+	if len(machineScope.GetRoles()) != 0 {
+		for _, role := range machineScope.GetRoles() {
+			instanceSpecs = append(instanceSpecs, kkInstanceScope.GetInstancesSpecByRole(role)...)
+		}
 	}
 
 	// get all existing instances

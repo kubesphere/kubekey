@@ -183,7 +183,7 @@ func (s *ClusterScope) PatchObject() error {
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
 	applicableConditions := []clusterv1.ConditionType{
 		infrav1.HostReadyCondition,
-		infrav1.LoadBalancerReadyCondition,
+		infrav1.ExternalLoadBalancerReadyCondition,
 	}
 
 	conditions.SetSummary(s.KKCluster,
@@ -198,7 +198,7 @@ func (s *ClusterScope) PatchObject() error {
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.HostReadyCondition,
-			infrav1.LoadBalancerReadyCondition,
+			infrav1.ExternalLoadBalancerReadyCondition,
 			infrav1.PrincipalPreparedCondition,
 		}})
 }
@@ -218,7 +218,7 @@ func (s *ClusterScope) RootFs() rootfs.Interface {
 	return s.rootFs
 }
 
-// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.
+// ControlPlaneLoadBalancer returns the KKLoadBalancerSpec.
 func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.KKLoadBalancerSpec {
 	return s.KKCluster.Spec.ControlPlaneLoadBalancer
 }

@@ -16,13 +16,20 @@
 
 package v1beta1
 
-// NetworkSpec encapsulates all things related to KK network.
-type NetworkSpec struct {
-	// CNI configuration
-	// +optional
-	CNI *CNISpec `json:"cni,omitempty"`
-}
+import (
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+)
 
-// CNISpec defines configuration for CNI.
-type CNISpec struct {
+func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(
+		gk,
+		name,
+		allErrs,
+	)
 }

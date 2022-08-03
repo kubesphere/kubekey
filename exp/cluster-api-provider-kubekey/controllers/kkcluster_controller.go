@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
@@ -30,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -160,7 +163,7 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
 	}
 
-	// Always close the scope when exiting this function so we can persist any AWSCluster changes.
+	// Always close the scope when exiting this function, so we can persist any KKCluster changes.
 	defer func() {
 		if err := clusterScope.Close(); err != nil && retErr == nil {
 			log.Error(err, "failed to patch object")
@@ -199,9 +202,15 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, clusterScope 
 		return reconcile.Result{}, err
 	}
 
-	// todo: if need to lookup the domain
+	if _, err := net.LookupIP(kkCluster.Spec.ControlPlaneLoadBalancer.Host); err != nil {
+		conditions.MarkFalse(kkCluster, infrav1.ExternalLoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
+		clusterScope.Info("Waiting on API server DNS name to resolve")
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil // nolint:nilerr
+	}
+	conditions.MarkTrue(kkCluster, infrav1.ExternalLoadBalancerReadyCondition)
+
 	kkCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
-		Host: clusterScope.ControlPlaneLoadBalancer().Address,
+		Host: clusterScope.ControlPlaneLoadBalancer().Host,
 		Port: clusterScope.APIServerPort(),
 	}
 

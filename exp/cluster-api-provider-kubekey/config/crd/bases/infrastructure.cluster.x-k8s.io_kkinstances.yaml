@@ -10,13 +10,26 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: KKInstance
     listKind: KKInstanceList
     plural: kkinstances
+    shortNames:
+    - kki
     singular: kkinstance
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: kubekey instance hostname
+      jsonPath: .spec.name
+      name: Hostname
+      type: string
+    - description: kubekey instance address
+      jsonPath: .spec.address
+      name: Address
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: KKInstance is the Schema for the kkinstances API
@@ -83,9 +96,6 @@ spec:
                   version:
                     description: Version defines the version of ContainerManager.
                     type: string
-                required:
-                - type
-                - version
                 type: object
               internalAddress:
                 description: InternalAddress is the internal IP address of the machine.
@@ -99,11 +109,6 @@ spec:
                 items:
                   type: string
                 type: array
-            required:
-            - address
-            - internalAddress
-            - name
-            - roles
             type: object
           status:
             description: KKInstanceStatus defines the observed state of KKInstance

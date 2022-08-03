@@ -90,12 +90,13 @@ spec:
                         description: ControlPlaneLoadBalancer is optional configuration
                           for customizing control plane behavior.
                         properties:
-                          address:
-                            type: string
-                          domain:
+                          host:
+                            description: The hostname on which the API server is serving.
                             type: string
                         type: object
                       nodes:
+                        description: Nodes represents the information about the nodes
+                          available to the cluster
                         properties:
                           auth:
                             description: Auth is the SSH authentication information
@@ -140,9 +141,6 @@ spec:
                               version:
                                 description: Version defines the version of ContainerManager.
                                 type: string
-                            required:
-                            - type
-                            - version
                             type: object
                           instances:
                             description: Instances defines all instance contained
@@ -203,9 +201,6 @@ spec:
                                       description: Version defines the version of
                                         ContainerManager.
                                       type: string
-                                  required:
-                                  - type
-                                  - version
                                   type: object
                                 internalAddress:
                                   description: InternalAddress is the internal IP
@@ -220,11 +215,6 @@ spec:
                                   items:
                                     type: string
                                   type: array
-                              required:
-                              - address
-                              - internalAddress
-                              - name
-                              - roles
                               type: object
                             type: array
                         required:
@@ -310,7 +300,6 @@ spec:
                             type: array
                         required:
                         - auth
-                        - insecureRegistries
                         - namespaceOverride
                         - privateRegistry
                         type: object
