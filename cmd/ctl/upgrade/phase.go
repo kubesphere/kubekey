@@ -16,6 +16,7 @@ limitations under the License.
 package upgrade
 
 import (
+	"github.com/kubesphere/kubekey/cmd/ctl/alpha"
 	"github.com/spf13/cobra"
 )
 
@@ -25,5 +26,6 @@ func NewPhaseCommand() *cobra.Command {
 		Short: "KubeKey upgrade phase",
 		Long:  `This is the upgrade phase run cmd`,
 	}
+	cmds.AddCommand(alpha.NewCmdUpgradeBinary())
 	return cmds
 }

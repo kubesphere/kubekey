@@ -21,7 +21,7 @@ import (
 
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/alpha"
+	"github.com/kubesphere/kubekey/pkg/alpha/artifact"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/spf13/cobra"
 )
@@ -59,7 +59,7 @@ func (o *ArtifactImportOptions) Run() error {
 		Debug:    o.CommonOptions.Verbose,
 		Artifact: o.Artifact,
 	}
-	return alpha.ArtifactImport(arg)
+	return artifact.ArtifactImport(arg)
 }
 
 func (o *ArtifactImportOptions) AddFlags(cmd *cobra.Command) {

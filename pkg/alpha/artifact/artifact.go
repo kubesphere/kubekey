@@ -14,7 +14,7 @@
  limitations under the License.
 */
 
-package alpha
+package artifact
 
 import (
 	"errors"
