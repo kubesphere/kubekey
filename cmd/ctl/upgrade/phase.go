@@ -27,5 +27,6 @@ func NewPhaseCommand() *cobra.Command {
 		Long:  `This is the upgrade phase run cmd`,
 	}
 	cmds.AddCommand(alpha.NewCmdUpgradeBinary())
+	cmds.AddCommand(alpha.NewCmdUpgradeImages())
 	return cmds
 }

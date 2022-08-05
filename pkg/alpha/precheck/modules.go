@@ -56,27 +56,27 @@ func (c *UprgadePreCheckModule) Init() {
 	}
 
 	calculateMinK8sVersion := &task.LocalTask{
-		Name:     "CalculateMinK8sVersion",
-		Desc:     "Calculate min Kubernetes version",
-		Action:   new(precheck.CalculateMinK8sVersion),
+		Name:   "CalculateMinK8sVersion",
+		Desc:   "Calculate min Kubernetes version",
+		Action: new(precheck.CalculateMinK8sVersion),
 	}
 
 	calculateMaxK8sVersion := &task.LocalTask{
-		Name:     "CalculateMaxK8sVersion",
-		Desc:     "Calculate max Kubernetes version",
-		Action:   new(CalculateMaxK8sVersion),
+		Name:   "CalculateMaxK8sVersion",
+		Desc:   "Calculate max Kubernetes version",
+		Action: new(CalculateMaxK8sVersion),
 	}
 
 	checkDesiredK8sVersion := &task.LocalTask{
-		Name:     "CheckDesiredK8sVersion",
-		Desc:     "Check desired Kubernetes version",
-		Action:   new(precheck.CheckDesiredK8sVersion),
+		Name:   "CheckDesiredK8sVersion",
+		Desc:   "Check desired Kubernetes version",
+		Action: new(precheck.CheckDesiredK8sVersion),
 	}
 
 	checkUpgradeK8sVersion := &task.LocalTask{
-		Name:     "checkUpgradeK8sVersion",
-		Desc:     "Check the Kubernetes version can correctly upgrade",
-		Action:   new(CheckUpgradeK8sVersion),
+		Name:   "checkUpgradeK8sVersion",
+		Desc:   "Check the Kubernetes version can correctly upgrade",
+		Action: new(CheckUpgradeK8sVersion),
 	}
 
 	ksVersionCheck := &task.RemoteTask{
