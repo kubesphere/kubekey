@@ -695,10 +695,12 @@ var (
 			amd64: {
 				"v3.2.1": "98c57f2b86493dd36ebaab98990e6d5117510f5efbf21c3344c3bdc91a4f947c",
 				"v3.6.3": "6e5498e0fa82ba7b60423b1632dba8681d629e5a4818251478cb53f0b71b3c82",
+				"v3.9.0": "111c4aa64532946feb11a1542e96af730f9748483ee56a06e6b67609ee8cfec3",
 			},
 			arm64: {
 				"v3.2.1": "20bb9d66e74f618cd104ca07e4525a8f2f760dd6d5611f7d59b6ac574624d672",
 				"v3.6.3": "fce1f94dd973379147bb63d8b6190983ad63f3a1b774aad22e54d2a27049414f",
+				"v3.9.0": "2fcc6ffdaa280465f5a5c487ca87ad9bdca6101c714d3346ca6adc328e580b93",
 			},
 		},
 		kubecni: {
@@ -778,6 +780,7 @@ var (
 		harbor: {
 			amd64: {
 				"v2.4.1": "cfd799c150b59353aefb34835f3a2e859763cb2e91966cd3ffeb1b6ceaa19841",
+				"v2.5.3": "c536eaf5dcb35a1f2a5b1c4278380bde254a288700aa2ba59c1fd464bf2fcbf1",
 			},
 		},
 	}
