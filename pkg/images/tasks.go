@@ -19,12 +19,13 @@ package images
 import (
 	"encoding/json"
 	"fmt"
-	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
-	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/registry"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+
+	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
+	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/kubesphere/kubekey/pkg/registry"
 
 	manifestregistry "github.com/estesp/manifest-tool/v2/pkg/registry"
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
@@ -60,6 +61,7 @@ func (p *PullImage) Execute(runtime connector.Runtime) error {
 			GetImage(runtime, p.KubeConf, "flannel"),
 			GetImage(runtime, p.KubeConf, "kubeovn"),
 			GetImage(runtime, p.KubeConf, "haproxy"),
+			GetImage(runtime, p.KubeConf, "kubevip"),
 		}
 
 		if err := i.PullImages(runtime, p.KubeConf); err != nil {
@@ -124,6 +126,7 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 		"linux-utils":         {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "openebs", Repo: "linux-utils", Tag: "3.3.0", Group: kubekeyv1alpha2.Worker, Enable: false},
 		// load balancer
 		"haproxy": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "library", Repo: "haproxy", Tag: "2.3", Group: kubekeyv1alpha2.Worker, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		"kubevip": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "plndr", Repo: "kube-vip", Tag: "v0.5.0", Group: kubekeyv1alpha2.Master, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 		// kata-deploy
 		"kata-deploy": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyv1alpha2.DefaultKubeImageNamespace, Repo: "kata-deploy", Tag: "stable", Group: kubekeyv1alpha2.Worker, Enable: kubeConf.Cluster.Kubernetes.EnableKataDeploy()},
 		// node-feature-discovery

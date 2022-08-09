@@ -17,6 +17,8 @@
 package loadbalancer
 
 import (
+	"path/filepath"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -25,7 +27,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer/templates"
-	"path/filepath"
 )
 
 type HaproxyModule struct {
@@ -136,6 +137,69 @@ func (h *HaproxyModule) Init() {
 	}
 }
 
+type KubevipModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (k *KubevipModule) IsSkip() bool {
+	return k.Skip
+}
+
+func (k *KubevipModule) Init() {
+	k.Name = "InternalLoadbalancerModule"
+	k.Desc = "Install internal load balancer"
+
+	checkVIPAddress := &task.RemoteTask{
+		Name:     "CheckVIPAddress",
+		Desc:     "Check VIP Address",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(CheckVIPAddress),
+		Parallel: true,
+	}
+
+	getInterface := &task.RemoteTask{
+		Name:     "GetNodeInterface",
+		Desc:     "Get Node Interface",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Action:   new(GetInterfaceName),
+		Parallel: true,
+	}
+
+	kubevipManifestOnlyFirstMaster := &task.RemoteTask{
+		Name:     "GenerateKubevipManifest",
+		Desc:     "Generate kubevip manifest at first master",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(GenerateKubevipManifest),
+		Parallel: true,
+	}
+
+	kubevipManifestNotFirstMaster := &task.RemoteTask{
+		Name:     "GenerateKubevipManifest",
+		Desc:     "Generate kubevip manifest at other master",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Prepare:  &common.OnlyFirstMaster{Not: true},
+		Action:   new(GenerateKubevipManifest),
+		Parallel: true,
+	}
+
+	if exist, _ := k.BaseModule.PipelineCache.GetMustBool(common.ClusterExist); exist {
+		k.Tasks = []task.Interface{
+			checkVIPAddress,
+			getInterface,
+			kubevipManifestNotFirstMaster,
+		}
+	} else {
+		k.Tasks = []task.Interface{
+			checkVIPAddress,
+			getInterface,
+			kubevipManifestOnlyFirstMaster,
+		}
+	}
+}
+
 type K3sHaproxyModule struct {
 	common.KubeModule
 	Skip bool
@@ -220,5 +284,62 @@ func (k *K3sHaproxyModule) Init() {
 		haproxyManifestK3s,
 		updateK3sConfig,
 		updateHostsFile,
+	}
+}
+
+type K3sKubevipModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (k *K3sKubevipModule) IsSkip() bool {
+	return k.Skip
+}
+
+func (k *K3sKubevipModule) Init() {
+	k.Name = "InternalLoadbalancerModule"
+	k.Name = "Install internal load balancer"
+
+	checkVIPAddress := &task.RemoteTask{
+		Name:     "CheckVIPAddress",
+		Desc:     "Check VIP Address",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(CheckVIPAddress),
+		Parallel: true,
+	}
+
+	createManifestsFolder := &task.RemoteTask{
+		Name:     "CreateManifestsFolder",
+		Desc:     "Create Manifests Folder",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(CreateManifestsFolder),
+		Parallel: true,
+	}
+
+	getInterface := &task.RemoteTask{
+		Name:     "GetNodeInterface",
+		Desc:     "Get Node Interface",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(GetInterfaceName),
+		Parallel: true,
+	}
+
+	kubevipDaemonsetK3s := &task.RemoteTask{
+		Name:     "GenerateKubevipManifest",
+		Desc:     "Generate kubevip manifest at other master",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(GenerateK3sKubevipDaemonset),
+		Parallel: true,
+	}
+
+	k.Tasks = []task.Interface{
+		checkVIPAddress,
+		createManifestsFolder,
+		getInterface,
+		kubevipDaemonsetK3s,
 	}
 }

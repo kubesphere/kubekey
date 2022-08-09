@@ -18,9 +18,9 @@ spec:
     - node1
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
   controlPlaneEndpoint:
-    internalLoadbalancer: haproxy #Internal loadbalancer for apiservers. [Default: ""]
+    internalLoadbalancer: haproxy #Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
     domain: lb.kubesphere.local
-    address: ""      # The IP address of your load balancer.
+    address: ""      # The IP address of your load balancer. If you use internalLoadblancer in "kube-vip" mode, a VIP is required here.
     port: 6443
   system:
     ntpServers: #  The ntp servers of chrony.

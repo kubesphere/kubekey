@@ -355,8 +355,9 @@ func hostVerify(hostMap map[string]*KubeHost, hostName string, group string) err
 }
 
 func (c ControlPlaneEndpoint) IsInternalLBEnabled() bool {
-	if c.InternalLoadbalancer == Haproxy {
-		return true
-	}
-	return false
+	return c.InternalLoadbalancer == Haproxy
+}
+
+func (c ControlPlaneEndpoint) IsInternalLBEnabledVip() bool {
+	return c.InternalLoadbalancer == Kubevip
 }
