@@ -17,7 +17,6 @@
 package container
 
 import (
-	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
 	"strings"
 
@@ -30,6 +29,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/registry"
 )
 
 type InstallContainerModule struct {
@@ -243,4 +243,41 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		generateCrictlConfig,
 		enableContainerd,
 	}
+}
+
+type DeleteContainerModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (d *DeleteContainerModule) IsSkip() bool {
+	return d.Skip
+}
+
+func (d *DeleteContainerModule) Init() {
+	d.Name = "DeleteContainerModule"
+	d.Desc = "Delete container manager"
+
+	switch d.KubeConf.Cluster.Kubernetes.ContainerManager {
+	case common.Docker:
+		d.Tasks = DeleteDocker(d)
+	case common.Conatinerd:
+		d.Tasks = DeleteContainerd(d)
+	case common.Crio:
+		// TODO: Add the steps of cri-o's installation.
+	case common.Isula:
+		// TODO: Add the steps of iSula's installation.
+	default:
+		logger.Log.Fatalf("Unsupported container runtime: %s", strings.TrimSpace(d.KubeConf.Cluster.Kubernetes.ContainerManager))
+	}
+}
+
+func DeleteDocker(m *DeleteContainerModule) []task.Interface {
+	// TODO
+	return nil
+}
+
+func DeleteContainerd(m *DeleteContainerModule) []task.Interface {
+	// TODO
+	return nil
 }
