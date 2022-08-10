@@ -20,6 +20,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -32,10 +35,9 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"path/filepath"
-	"strings"
 )
 
 type GetClusterStatus struct {
@@ -264,8 +266,14 @@ func (g *GenerateK3sServiceEnv) Execute(runtime connector.Runtime) error {
 
 	externalEtcdEndpoints = strings.Join(externalEtcd.Endpoints, ",")
 
-	if !host.IsRole(common.Master) {
+	v121 := versionutil.MustParseSemantic("v1.21.0")
+	atLeast := versionutil.MustParseSemantic(g.KubeConf.Cluster.Kubernetes.Version).AtLeast(v121)
+	if atLeast {
 		token = cluster.NodeToken
+	} else {
+		if !host.IsRole(common.Master) {
+			token = cluster.NodeToken
+		}
 	}
 
 	templateAction := action.Template{

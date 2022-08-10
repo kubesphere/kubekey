@@ -329,7 +329,7 @@ func (k *K3sKubevipModule) Init() {
 
 	kubevipDaemonsetK3s := &task.RemoteTask{
 		Name:     "GenerateKubevipManifest",
-		Desc:     "Generate kubevip manifest at other master",
+		Desc:     "Generate kubevip daemoset",
 		Hosts:    k.Runtime.GetHostsByRole(common.Master),
 		Prepare:  new(common.OnlyFirstMaster),
 		Action:   new(GenerateK3sKubevipDaemonset),
