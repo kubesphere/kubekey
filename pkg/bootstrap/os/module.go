@@ -35,6 +35,14 @@ func (c *ConfigureOSModule) Init() {
 	c.Name = "ConfigureOSModule"
 	c.Desc = "Init os dependencies"
 
+	getOSData := &task.RemoteTask{
+		Name:     "GetOSData",
+		Desc:     "Get OS release",
+		Hosts:    c.Runtime.GetAllHosts(),
+		Action:   new(GetOSData),
+		Parallel: true,
+	}
+
 	initOS := &task.RemoteTask{
 		Name:     "InitOS",
 		Desc:     "Prepare to init OS",
@@ -75,6 +83,7 @@ func (c *ConfigureOSModule) Init() {
 	}
 
 	c.Tasks = []task.Interface{
+		getOSData,
 		initOS,
 		GenerateScript,
 		ExecScript,
