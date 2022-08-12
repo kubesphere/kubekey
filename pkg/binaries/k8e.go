@@ -1,5 +1,5 @@
 /*
- Copyright 2021 The KubeSphere Authors.
+ Copyright 2022 The KubeSphere Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -29,15 +29,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// K3sFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
-func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string, pipelineCache *cache.Cache) error {
+// K8eFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
+func K8eFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string, pipelineCache *cache.Cache) error {
 
 	etcd := files.NewKubeBinary("etcd", arch, kubekeyapiv1alpha2.DefaultEtcdVersion, path, kubeConf.Arg.DownloadCommand)
 	kubecni := files.NewKubeBinary("kubecni", arch, kubekeyapiv1alpha2.DefaultCniVersion, path, kubeConf.Arg.DownloadCommand)
 	helm := files.NewKubeBinary("helm", arch, kubekeyapiv1alpha2.DefaultHelmVersion, path, kubeConf.Arg.DownloadCommand)
-	k3s := files.NewKubeBinary("k3s", arch, version, path, kubeConf.Arg.DownloadCommand)
+	k8e := files.NewKubeBinary("k8e", arch, version, path, kubeConf.Arg.DownloadCommand)
 
-	binaries := []*files.KubeBinary{k3s, helm, kubecni, etcd}
+	binaries := []*files.KubeBinary{k8e, helm, kubecni, etcd}
 	binariesMap := make(map[string]*files.KubeBinary)
 	for _, binary := range binaries {
 		if err := binary.CreateBaseDir(); err != nil {
@@ -66,15 +66,15 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	return nil
 }
 
-func K3sArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch, version string) error {
+func K8eArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch, version string) error {
 	m := manifest.Spec
 
 	etcd := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, manifest.Arg.DownloadCommand)
 	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, manifest.Arg.DownloadCommand)
 	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, manifest.Arg.DownloadCommand)
-	k3s := files.NewKubeBinary("k3s", arch, version, path, manifest.Arg.DownloadCommand)
+	k8e := files.NewKubeBinary("k8e", arch, version, path, manifest.Arg.DownloadCommand)
 	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, manifest.Arg.DownloadCommand)
-	binaries := []*files.KubeBinary{k3s, helm, kubecni, etcd}
+	binaries := []*files.KubeBinary{k8e, helm, kubecni, etcd}
 
 	dockerArr := make([]*files.KubeBinary, 0, 0)
 	dockerVersionMap := make(map[string]struct{})

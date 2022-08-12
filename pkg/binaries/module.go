@@ -61,6 +61,25 @@ func (k *K3sNodeBinariesModule) Init() {
 	}
 }
 
+type K8eNodeBinariesModule struct {
+	common.KubeModule
+}
+
+func (k *K8eNodeBinariesModule) Init() {
+	k.Name = "K8eNodeBinariesModule"
+	k.Desc = "Download installation binaries"
+
+	download := &task.LocalTask{
+		Name:   "DownloadBinaries",
+		Desc:   "Download installation binaries",
+		Action: new(K8eDownload),
+	}
+
+	k.Tasks = []task.Interface{
+		download,
+	}
+}
+
 type ArtifactBinariesModule struct {
 	common.ArtifactModule
 }
@@ -92,6 +111,25 @@ func (a *K3sArtifactBinariesModule) Init() {
 		Name:   "K3sDownloadBinaries",
 		Desc:   "Download k3s manifest expect binaries",
 		Action: new(K3sArtifactDownload),
+	}
+
+	a.Tasks = []task.Interface{
+		download,
+	}
+}
+
+type K8eArtifactBinariesModule struct {
+	common.ArtifactModule
+}
+
+func (a *K8eArtifactBinariesModule) Init() {
+	a.Name = "K8eArtifactBinariesModule"
+	a.Desc = "Download artifact binaries"
+
+	download := &task.LocalTask{
+		Name:   "K8eDownloadBinaries",
+		Desc:   "Download k8e manifest expect binaries",
+		Action: new(K8eArtifactDownload),
 	}
 
 	a.Tasks = []task.Interface{
