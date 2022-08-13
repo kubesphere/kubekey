@@ -51,7 +51,7 @@ func (c *UprgadePreCheckModule) Init() {
 		Name:     "GetAllNodesK8sVersion",
 		Desc:     "Get all nodes Kubernetes version",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
-		Action:   new(precheck.GetAllNodesK8sVersion),
+		Action:   new(GetAllNodesK8sVersion),
 		Parallel: true,
 	}
 

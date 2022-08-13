@@ -17,6 +17,8 @@ package precheck
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -99,5 +101,37 @@ func (g *CalculateMaxK8sVersion) Execute(runtime connector.Runtime) error {
 		}
 	}
 	g.PipelineCache.Set(common.MaxK8sVersion, fmt.Sprintf("v%s", maxVersion))
+	return nil
+}
+
+type GetAllNodesK8sVersion struct {
+	common.KubeAction
+}
+
+func (g *GetAllNodesK8sVersion) Execute(runtime connector.Runtime) error {
+	var nodeK8sVersion string
+	host := runtime.RemoteHost()
+	hostName := host.GetName()
+
+	kubectlCmd := fmt.Sprintf("/usr/local/bin/kubectl get nodes %s", hostName)
+	kubectlVersionInfo, err := runtime.GetRunner().SudoCmd(kubectlCmd, false)
+	if err != nil {
+		errorMsg := fmt.Sprintf("get current version of %s failed", hostName)
+		return errors.Wrap(err, errorMsg)
+	}
+
+	kubectlCmdGroup := strings.Split(kubectlVersionInfo, " ")
+	nodeK8sVersion = kubectlCmdGroup[len(kubectlCmdGroup)-1]
+
+	if host.IsRole(common.Master) {
+		apiserverVersion, err := runtime.GetRunner().SudoCmd(
+			"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | rev | cut -d ':' -f1 | rev",
+			false)
+		if err != nil {
+			return errors.Wrap(err, "get current kube-apiserver version failed")
+		}
+		nodeK8sVersion = apiserverVersion
+	}
+	host.GetCache().Set(common.NodeK8sVersion, nodeK8sVersion)
 	return nil
 }

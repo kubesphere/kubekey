@@ -26,7 +26,9 @@ func NewPhaseCommand() *cobra.Command {
 		Short: "KubeKey upgrade phase",
 		Long:  `This is the upgrade phase run cmd`,
 	}
+
 	cmds.AddCommand(alpha.NewCmdUpgradeBinary())
 	cmds.AddCommand(alpha.NewCmdUpgradeImages())
+	cmds.AddCommand(alpha.NewCmdUpgradeNodes())
 	return cmds
 }
