@@ -1,6 +1,6 @@
 ## Kubernetes Versions(amd64)
-| Version  |     Supported      |
-|----------| ------------------ |
+| Version  | Supported          |
+|----------|--------------------|
 | v1.15.12 | :white_check_mark: |
 | v1.16.8  | :white_check_mark: |
 | v1.16.10 | :white_check_mark: |
@@ -66,8 +66,8 @@
 | v1.24.3  | :white_check_mark: |
 
 ## Kubernetes Versions(arm64)
-| Version  |     Supported      |
-|----------| ------------------ |
+| Version  | Supported          |
+|----------|--------------------|
 | v1.15.12 | :white_check_mark: |
 | v1.16.8  | :white_check_mark: |
 | v1.16.12 | :white_check_mark: |

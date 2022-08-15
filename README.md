@@ -42,7 +42,9 @@ Use KubeKey in the following three scenarios.
 * **v1.22**: &ensp; *v1.22.12*
 * **v1.23**: &ensp; *v1.23.9*   (default)
 * **v1.24**: &ensp; *v1.24.3*
-> Looking for more supported versions [Click here](./docs/kubernetes-versions.md)
+> Looking for more supported versions  
+> [Kubernetes Versions](./docs/kubernetes-versions.md)  
+> [K3s Versions](./docs/k3s-versions.md)  
 
 ### Container Manager
 * **Docker** / **containerd** / **CRI-O** / **iSula**
