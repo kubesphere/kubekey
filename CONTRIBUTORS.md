@@ -80,6 +80,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
   </tr>
   <tr>
     <td align="center"><a href="https://github.com/wenwutang1"><img src="https://avatars.githubusercontent.com/u/45817987?v=4?s=100" width="100px;" alt=""/><br /><sub><b>wenwutang</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=wenwutang1" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/zhouqiu0103"><img src="https://avatars.githubusercontent.com/u/108912268?v=4?s=100" width="100px;" alt=""/><br /><sub><b>zhouqiu0103</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=zhouqiu0103" title="Code">💻</a></td>
   </tr>
 </table>
 
