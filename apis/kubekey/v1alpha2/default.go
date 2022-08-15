@@ -52,10 +52,10 @@ const (
 	DefaultCiliumVersion        = "v1.11.6"
 	DefaultKubeovnVersion       = "v1.5.0"
 	DefalutMultusVersion        = "v3.8"
-	DefaultHelmVersion          = "v3.6.3"
+	DefaultHelmVersion          = "v3.9.0"
 	DefaultDockerComposeVersion = "v2.2.2"
 	DefaultRegistryVersion      = "2"
-	DefaultHarborVersion        = "v2.4.1"
+	DefaultHarborVersion        = "v2.5.3"
 	DefaultMaxPods              = 110
 	DefaultNodeCidrMaskSize     = 24
 	DefaultIPIPMode             = "Always"
