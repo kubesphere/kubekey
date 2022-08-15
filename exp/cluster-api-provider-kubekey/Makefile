@@ -1,3 +1,59 @@
+# Ensure Make is run with bash shell as some syntax below is bash-specific
+SHELL:=/usr/bin/env bash
+
+.DEFAULT_GOAL:=help
+
+#
+# Go.
+#
+GO_VERSION ?= 1.18.3
+GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
+
+# Use GOPROXY environment variable if set
+GOPROXY := $(shell go env GOPROXY)
+ifeq ($(GOPROXY),)
+GOPROXY := https://goproxy.cn,direct
+endif
+export GOPROXY
+
+# Active module mode, as we use go modules to manage dependencies
+export GO111MODULE=on
+
+# This option is for running docker manifest command
+export DOCKER_CLI_EXPERIMENTAL := enabled
+
+#
+# Directories.
+#
+# Full directory of where the Makefile resides
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+EXP_DIR := exp
+BIN_DIR := bin
+TEST_DIR := test
+E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
+GO_INSTALL := ./scripts/go_install.sh
+
+TAG ?= dev
+ARCH ?= $(shell go env GOARCH)
+ALL_ARCH = amd64 arm arm64 ppc64le s390x
+
+#
+# Binaries.
+#
+# Note: Need to use abspath so we can invoke these from subdirectories
+KUSTOMIZE_VER := v4.5.2
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+
+# Define Docker related variables. Releases should modify and double check these vars.
+REGISTRY ?= docker.io/kubespheredev
+PROD_REGISTRY ?= docker.io/kubesphere
+
+# capd
+CAPK_IMAGE_NAME ?= capk-manager
+CAPK_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPK_IMAGE_NAME)
+
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
@@ -58,33 +114,21 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
-SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
+# Set build time variables including version details
+LDFLAGS := $(shell hack/version.sh)
 
 .PHONY: all
 all: build
-
-##@ General
-
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
 
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##@ Development
+## --------------------------------------
+## Generate / Manifests
+## --------------------------------------
+
+##@ generate:
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -94,6 +138,12 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+## --------------------------------------
+## Lint / Verify
+## --------------------------------------
+
+##@ lint and verify:
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -101,10 +151,6 @@ fmt: ## Run go fmt against code.
 .PHONY: vet
 vet: ## Run go vet against code.
 	go vet ./...
-
-.PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -231,3 +277,95 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+## --------------------------------------
+## Binaries
+## --------------------------------------
+
+##@ build:
+
+ALL_MANAGERS = capk
+
+.PHONY: managers
+managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
+
+.PHONY: manager-capk
+manager-capk: ## Build the capk manager binary into the ./bin folder
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager kubesphere.io/kubekey/exp/cluster-api-provider-kubekey
+
+.PHONY: docker-pull-prerequisites
+docker-pull-prerequisites:
+	docker pull docker.io/docker/dockerfile:1.4
+	docker pull $(GO_CONTAINER_IMAGE)
+
+.PHONY: docker-build-all
+docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images for all architectures
+
+docker-build-%:
+	$(MAKE) ARCH=$* docker-build
+
+ALL_DOCKER_BUILD = capk
+
+.PHONY: docker-build-capk
+docker-build-capk: ## Build the docker image for capk
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPK_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPK_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG)
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-build-e2e
+docker-build-e2e: ## Build the docker image for capk
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t "$(CAPK_CONTROLLER_IMG):e2e"
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPK_CONTROLLER_IMG) MANIFEST_TAG="e2e" TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+
+## --------------------------------------
+## Testing
+## --------------------------------------
+
+##@ test:
+
+ARTIFACTS ?= ${ROOT_DIR}/_artifacts
+
+ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+else
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+endif
+
+.PHONY: test
+test: $(SETUP_ENVTEST) ## Run unit and integration tests
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+
+.PHONY: test-verbose
+test-verbose: ## Run unit and integration tests with verbose flag
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
+
+.PHONY: test-junit
+test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report
+	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
+	exit $$(cat $(ARTIFACTS)/junit.exitcode)
+
+.PHONY: test-cover
+test-cover: ## Run unit and integration tests and generate a coverage report
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=out/coverage.out"
+	go tool cover -func=out/coverage.out -o out/coverage.txt
+	go tool cover -html=out/coverage.out -o out/coverage.html
+
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests
+	$(MAKE) -C $(TEST_DIR)/e2e run
+
+## --------------------------------------
+## Docker
+## --------------------------------------
+
+.PHONY: set-manifest-pull-policy
+set-manifest-pull-policy:
+	$(info Updating kustomize pull policy file for manager resources)
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(TARGET_RESOURCE)
+
+.PHONY: set-manifest-image
+set-manifest-image:
+	$(info Updating kustomize image patch file for manager resource)
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' $(TARGET_RESOURCE)

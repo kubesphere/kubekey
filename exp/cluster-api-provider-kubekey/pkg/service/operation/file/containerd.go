@@ -29,6 +29,7 @@ const (
 	ContainerdName            = "containerd-%s-linux-%s.tar.gz"
 	ContainerdID              = "containerd"
 	ContainerdDownloadURLTmpl = "https://github.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz"
+	//ContainerdDownloadURLTmpl = "https://kubernetes-release.pek3b.qingstor.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz"
 )
 
 func NewContainerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {

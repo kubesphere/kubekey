@@ -30,15 +30,11 @@ type Service struct {
 	scope         scope.KKInstanceScope
 	instanceScope *scope.InstanceScope
 
-	templateFactory   func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
-	runcFactory       func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	containerdFactory func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	crictlFactory     func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	dockerFactory     func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubeadmFactory    func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubeletFactory    func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubecniFactory    func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubectlFactory    func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	templateFactory func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
+	kubeadmFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	kubeletFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	kubecniFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	kubectlFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
 }
 
 func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) *Service {
@@ -56,57 +52,29 @@ func (s *Service) getTemplateService(template *template.Template, data file.Data
 	return file.NewTemplate(s.SSHClient, s.scope.RootFs(), template, data, dst)
 }
 
-func (s *Service) getRuncService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.runcFactory != nil {
-		return s.runcFactory(sshClient, version, arch)
-	}
-	return file.NewRunc(sshClient, s.scope.RootFs(), version, arch)
-}
-
-func (s *Service) getContainerdService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
-		return s.containerdFactory(sshClient, version, arch)
-	}
-	return file.NewContainerd(sshClient, s.scope.RootFs(), version, arch)
-}
-
-func (s *Service) getCrictlService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
-		return s.crictlFactory(sshClient, version, arch)
-	}
-	return file.NewCrictl(sshClient, s.scope.RootFs(), version, arch)
-}
-
-func (s *Service) getDockerService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
-		return s.dockerFactory(sshClient, version, arch)
-	}
-	return file.NewDocker(sshClient, s.scope.RootFs(), version, arch)
-}
-
 func (s *Service) getKubeadmService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
+	if s.kubeadmFactory != nil {
 		return s.kubeadmFactory(sshClient, version, arch)
 	}
 	return file.NewKubeadm(sshClient, s.scope.RootFs(), version, arch)
 }
 
 func (s *Service) getKubeletService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
+	if s.kubeletFactory != nil {
 		return s.kubeletFactory(sshClient, version, arch)
 	}
 	return file.NewKubelet(sshClient, s.scope.RootFs(), version, arch)
 }
 
 func (s *Service) getKubecniService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
+	if s.kubecniFactory != nil {
 		return s.kubecniFactory(sshClient, version, arch)
 	}
 	return file.NewKubecni(sshClient, s.scope.RootFs(), version, arch)
 }
 
 func (s *Service) getKubectlService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
+	if s.kubectlFactory != nil {
 		return s.kubectlFactory(sshClient, version, arch)
 	}
 	return file.NewKubectl(sshClient, s.scope.RootFs(), version, arch)

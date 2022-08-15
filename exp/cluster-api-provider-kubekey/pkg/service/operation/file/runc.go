@@ -29,7 +29,8 @@ const (
 	RuncName            = "runc.%s"
 	RuncID              = "runc"
 	RuncDownloadURLTmpl = "https://github.com/opencontainers/runc/releases/download/%s/runc.%s"
-	RuncDefaultVersion  = "v1.1.1"
+	//RuncDownloadURLTmpl = "https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/%s/runc.%s"
+	RuncDefaultVersion = "v1.1.1"
 )
 
 func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {

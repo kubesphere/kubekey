@@ -29,7 +29,8 @@ const (
 	KubecniName            = "cni-plugins-linux-%s-%s.tgz"
 	KubecniID              = "kubecni"
 	KubecniDownloadURLTmpl = "https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
-	KubecniDefaultVersion  = "v0.9.1"
+	//KubecniDownloadURLTmpl = "https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
+	KubecniDefaultVersion = "v0.9.1"
 )
 
 func NewKubecni(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {

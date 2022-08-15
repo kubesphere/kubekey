@@ -29,7 +29,6 @@ spec:
         - "--leader-elect"
         - "--v=5"
         image: controller:latest
-        imagePullPolicy: IfNotPresent
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

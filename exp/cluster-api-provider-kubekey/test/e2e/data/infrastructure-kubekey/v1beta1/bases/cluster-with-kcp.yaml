@@ -1,0 +1,89 @@
+---
+# KKCluster object referenced by the Cluster object
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKCluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  nodes:
+    auth:
+      user: '${USER_NAME}'
+      password: '${PASSWORD}'
+    instances:
+      - name: '${CLUSTER_NAME}-test1'
+        address: '${INSTANCE01_IP}'
+      - name: '${CLUSTER_NAME}-test2'
+        address: '${INSTANCE02_IP}'
+      - name: '${CLUSTER_NAME}-test3'
+        address: '${INSTANCE03_IP}'
+  controlPlaneLoadBalancer:
+    host: '${LOADBALANCER_IP}'
+---
+# Cluster object with
+# - Reference to the KubeadmControlPlane object
+# - the label cni=${CLUSTER_NAME}-crs-0, so the cluster can be selected by the ClusterResourceSet.
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${POD_CIDRS}']
+    serviceDomain: '${SERVICE_DOMAIN}'
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: KKCluster
+    name: '${CLUSTER_NAME}'
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    name: "${CLUSTER_NAME}-control-plane"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    spec:
+      roles:
+        - control-plane
+---
+# KubeadmControlPlane referenced by the Cluster object with
+# - the label kcp-adoption.step2, because it should be created in the second step of the kcp-adoption test.
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+  labels:
+    kcp-adoption.step2: ""
+spec:
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  machineTemplate:
+    infrastructureRef:
+      kind: KKMachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: "${CLUSTER_NAME}-control-plane"
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      controllerManager:
+        extraArgs: {enable-hostpath-provisioner: 'true'}
+      apiServer:
+        # host.docker.internal is required by kubetest when running on macOS because of the way ports are proxied.
+        certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
+    initConfiguration:
+      nodeRegistration:
+        criSocket: unix:///var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: unix:///var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+  version: "${KUBERNETES_VERSION}"

@@ -1,0 +1,119 @@
+---
+
+images:
+  # Use local dev images built source tree;
+  - name: kubespheredev/capk-manager:e2e
+    loadBehavior: mustLoad
+#
+## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+
+  # Cluster API v1beta1 Preloads
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.8.2
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-webhook:v1.8.2
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-controller:v1.8.2
+    loadBehavior: tryLoad
+  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.2.0
+    loadBehavior: tryLoad
+  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.2.0
+    loadBehavior: tryLoad
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.2.0
+    loadBehavior: tryLoad
+
+providers:
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v1.2.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/core-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+  - name: kubeadm
+    type: BootstrapProvider
+    files:
+      - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    versions:
+      - name: v1.2.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+  - name: kubeadm
+    type: ControlPlaneProvider
+    files:
+      - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    versions:
+      - name: v1.2.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+  - name: kubekey
+    type: InfrastructureProvider
+    versions:
+      - name: v2.3.0
+        value: ../../../config/default
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/infrastructure-kubekey/v1beta1/cluster-template.yaml"
+          - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
+        replacements:
+          # To allow bugs to be catched.
+#          - old: controller:latest
+#            new: docker.io/kubesphere/capk-controller:e2e
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
+variables:
+  # Default variables for the e2e test; those values could be overridden via env variables, thus
+  # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
+  # The following Kubernetes versions should be the latest versions with already published kindest/node images.
+  # This avoids building node images in the default case which improves the test duration significantly.
+  KUBERNETES_VERSION_MANAGEMENT: "v1.24.0"
+  KUBERNETES_VERSION: "v1.24.0"
+  CNI: "./data/cni/calico.yaml"
+  EVENT_BRIDGE_INSTANCE_STATE: "true"
+  EXP_CLUSTER_RESOURCE_SET: "true"
+  ETCD_VERSION_UPGRADE_TO: "3.5.1-0"
+  COREDNS_VERSION_UPGRADE_TO: "v1.8.4"
+  IP_FAMILY: "IPv4"
+  SERVICE_CIDRS: "10.233.0.0/18"
+  POD_CIDRS: "10.233.64.0/18"
+  SERVICE_DOMAIN: "cluster.local"
+  USER_NAME: "ubuntu"
+  PASSWORD: "Qcloud@123"
+  INSTANCE01_IP: 172.31.50.190
+  INSTANCE02_IP: 172.31.50.197
+  INSTANCE03_IP: 172.31.50.196
+  LOADBALANCER_IP: 172.31.50.190
+
+intervals:
+  default/wait-controllers: [ "5m", "10s" ]
+  default/wait-cluster: [ "5m", "10s" ]
+  default/wait-control-plane: [ "30m", "10s" ]
+  default/wait-worker-nodes: [ "30m", "10s" ]
+  default/wait-delete-cluster: [ "5m", "10s" ]
+  default/wait-machine-upgrade: [ "15m", "1m" ]
+  default/wait-machine-remediation: [ "5m", "10s" ]
+  node-drain/wait-deployment-available: [ "3m", "10s" ]
+  node-drain/wait-machine-deleted: [ "2m", "10s" ]
