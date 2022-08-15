@@ -530,6 +530,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "kuops",
+      "name": "Shiny Hou",
+      "avatar_url": "https://avatars.githubusercontent.com/u/18283256?v=4",
+      "profile": "http://kuops.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
