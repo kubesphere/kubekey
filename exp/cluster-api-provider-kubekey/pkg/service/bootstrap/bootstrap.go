@@ -202,6 +202,7 @@ func (s *Service) RemoveFiles() error {
 		"/etc/systemd/system/kubelet.service.d",
 		"/tmp/kubekey",
 		"/etc/kubekey",
+		"/run/kubeadm/*",
 	}
 	for _, dir := range removeDirs {
 		dirService := s.getDirectoryService(dir, 0)
