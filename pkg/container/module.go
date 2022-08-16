@@ -17,9 +17,10 @@
 package container
 
 import (
-	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/registry"
 
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/container/templates"
@@ -242,5 +243,67 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		generateContainerdConfig,
 		generateCrictlConfig,
 		enableContainerd,
+	}
+}
+
+type UninstallContainerModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (i *UninstallContainerModule) IsSkip() bool {
+	return i.Skip
+}
+
+func (i *UninstallContainerModule) Init() {
+	i.Name = "UninstallContainerModule"
+	i.Desc = "Uninstall container manager"
+
+	switch i.KubeConf.Cluster.Kubernetes.ContainerManager {
+	case common.Docker:
+		i.Tasks = UninstallDocker(i)
+	case common.Conatinerd:
+		i.Tasks = UninstallContainerd(i)
+	case common.Crio:
+		// TODO: Add the steps of cri-o's installation.
+	case common.Isula:
+		// TODO: Add the steps of iSula's installation.
+	default:
+		logger.Log.Fatalf("Unsupported container runtime: %s", strings.TrimSpace(i.KubeConf.Cluster.Kubernetes.ContainerManager))
+	}
+}
+
+func UninstallDocker(m *UninstallContainerModule) []task.Interface {
+
+	disableDocker := &task.RemoteTask{
+		Name:  "DisableDocker",
+		Desc:  "Disable docker",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&DockerExist{Not: false},
+		},
+		Action:   new(DisableDocker),
+		Parallel: true,
+	}
+
+	return []task.Interface{
+		disableDocker,
+	}
+}
+
+func UninstallContainerd(m *UninstallContainerModule) []task.Interface {
+	disableContainerd := &task.RemoteTask{
+		Name:  "UninstallContainerd",
+		Desc:  "Uninstall containerd",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&ContainerdExist{Not: false},
+		},
+		Action:   new(DisableContainerd),
+		Parallel: true,
+	}
+
+	return []task.Interface{
+		disableContainerd,
 	}
 }

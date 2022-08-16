@@ -52,6 +52,7 @@ type Argument struct {
 	InstallPackages    bool
 	ImagesDir          string
 	Namespace          string
+	DeleteCRI          bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {

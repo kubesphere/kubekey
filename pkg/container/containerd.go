@@ -18,12 +18,14 @@ package container
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/container/templates"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
 	"github.com/pkg/errors"
-	"path/filepath"
 )
 
 type SyncContainerd struct {
@@ -129,6 +131,38 @@ func (e *EnableContainerd) Execute(runtime connector.Runtime) error {
 		fmt.Sprintf("install -m 755 %s /usr/local/sbin/runc", dst),
 		false); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("install runc binaries failed"))
+	}
+	return nil
+}
+
+type DisableContainerd struct {
+	common.KubeAction
+}
+
+func (d *DisableContainerd) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(
+		"systemctl disable containerd && systemctl stop containerd", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("disable and stop containerd failed"))
+	}
+
+	// remove containerd related files
+	files := []string{
+		"/usr/local/sbin/runc",
+		"/usr/bin/crictl",
+		"/usr/bin/containerd*",
+		"/usr/bin/ctr",
+		filepath.Join("/etc/systemd/system", templates.ContainerdService.Name()),
+		filepath.Join("/etc/containerd", templates.ContainerdConfig.Name()),
+		filepath.Join("/etc", templates.CrictlConfig.Name()),
+	}
+	if d.KubeConf.Cluster.Registry.DataRoot != "" {
+		files = append(files, d.KubeConf.Cluster.Registry.DataRoot)
+	} else {
+		files = append(files, "/var/lib/containerd")
+	}
+
+	for _, file := range files {
+		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
 	}
 	return nil
 }

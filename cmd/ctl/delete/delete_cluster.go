@@ -28,6 +28,7 @@ type DeleteClusterOptions struct {
 	CommonOptions  *options.CommonOptions
 	ClusterCfgFile string
 	Kubernetes     string
+	DeleteCRI      bool
 }
 
 func NewDeleteClusterOptions() *DeleteClusterOptions {
@@ -57,6 +58,7 @@ func (o *DeleteClusterOptions) Run() error {
 		FilePath:          o.ClusterCfgFile,
 		Debug:             o.CommonOptions.Verbose,
 		KubernetesVersion: o.Kubernetes,
+		DeleteCRI:         o.DeleteCRI,
 	}
 	return pipelines.DeleteCluster(arg)
 }
@@ -64,4 +66,5 @@ func (o *DeleteClusterOptions) Run() error {
 func (o *DeleteClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
+	cmd.Flags().BoolVarP(&o.DeleteCRI, "all", "A", false, "Delete total cri conficutation and data directories")
 }
