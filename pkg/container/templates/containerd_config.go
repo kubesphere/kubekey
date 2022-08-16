@@ -24,7 +24,11 @@ import (
 
 var ContainerdConfig = template.Must(template.New("config.toml").Parse(
 	dedent.Dedent(`version = 2
+{{- if .DataRoot }}
+root = {{ .DataRoot }}
+{{ else }}
 root = "/var/lib/containerd"
+{{- end }}
 state = "/run/containerd"
 
 [grpc]

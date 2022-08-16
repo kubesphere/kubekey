@@ -201,6 +201,7 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 				"InsecureRegistries": m.KubeConf.Cluster.Registry.InsecureRegistries,
 				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
 				"Auths":              registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths),
+				"DataRoot":           templates.DataRoot(m.KubeConf),
 			},
 		},
 		Parallel: true,
