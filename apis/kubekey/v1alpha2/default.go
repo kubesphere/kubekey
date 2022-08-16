@@ -50,7 +50,7 @@ const (
 	DefaultFlannelVersion       = "v0.12.0"
 	DefaultCniVersion           = "v0.9.1"
 	DefaultCiliumVersion        = "v1.11.6"
-	DefaultKubeovnVersion       = "v1.5.0"
+	DefaultKubeovnVersion       = "v1.10.5"
 	DefalutMultusVersion        = "v3.8"
 	DefaultHelmVersion          = "v3.6.3"
 	DefaultDockerComposeVersion = "v2.2.2"
@@ -76,12 +76,19 @@ const (
 	DefaultEtcdBackupPeriod     = 30
 	DefaultKeepBackNumber       = 5
 	DefaultEtcdBackupScriptDir  = "/usr/local/bin/kube-scripts"
+	DefaultPodGateway           = "10.233.64.1"
 	DefaultJoinCIDR             = "100.64.0.0/16"
 	DefaultNetworkType          = "geneve"
+	DefaultTunnelType           = "geneve"
+	DefaultPodNicType           = "veth-pair"
+	DefaultModules              = "kube_ovn_fastpath.ko"
+	DefaultRPMs                 = "openvswitch-kmod"
 	DefaultVlanID               = "100"
-	DefaultOvnLabel             = "node-role.kubernetes.io/master"
+	DefaultOvnLabel             = "node-role.kubernetes.io/control-plane"
 	DefaultDPDKVersion          = "19.11"
 	DefaultDNSAddress           = "114.114.114.114"
+	DefaultDpdkTunnelIface      = "br-phy"
+	DefaultCNIConfigPriority    = "01"
 
 	Docker     = "docker"
 	Conatinerd = "containerd"
@@ -225,23 +232,44 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 		cfg.Network.Flannel.BackendMode = DefaultBackendMode
 	}
 	// kube-ovn default config
+	if cfg.Network.Kubeovn.KubeOvnController.PodGateway == "" {
+		cfg.Network.Kubeovn.KubeOvnController.PodGateway = DefaultPodGateway
+	}
 	if cfg.Network.Kubeovn.JoinCIDR == "" {
 		cfg.Network.Kubeovn.JoinCIDR = DefaultJoinCIDR
 	}
 	if cfg.Network.Kubeovn.Label == "" {
 		cfg.Network.Kubeovn.Label = DefaultOvnLabel
 	}
-	if cfg.Network.Kubeovn.VlanID == "" {
-		cfg.Network.Kubeovn.VlanID = DefaultVlanID
+	if cfg.Network.Kubeovn.KubeOvnController.VlanID == "" {
+		cfg.Network.Kubeovn.KubeOvnController.VlanID = DefaultVlanID
 	}
-	if cfg.Network.Kubeovn.NetworkType == "" {
-		cfg.Network.Kubeovn.NetworkType = DefaultNetworkType
+	if cfg.Network.Kubeovn.KubeOvnController.NetworkType == "" {
+		cfg.Network.Kubeovn.KubeOvnController.NetworkType = DefaultNetworkType
 	}
-	if cfg.Network.Kubeovn.PingerExternalAddress == "" {
-		cfg.Network.Kubeovn.PingerExternalAddress = DefaultDNSAddress
+	if cfg.Network.Kubeovn.TunnelType == "" {
+		cfg.Network.Kubeovn.TunnelType = DefaultTunnelType
 	}
-	if cfg.Network.Kubeovn.DpdkVersion == "" {
-		cfg.Network.Kubeovn.DpdkVersion = DefaultDPDKVersion
+	if cfg.Network.Kubeovn.KubeOvnController.PodNicType == "" {
+		cfg.Network.Kubeovn.KubeOvnController.PodNicType = DefaultPodNicType
+	}
+	if cfg.Network.Kubeovn.KubeOvnCni.Modules == "" {
+		cfg.Network.Kubeovn.KubeOvnCni.Modules = DefaultModules
+	}
+	if cfg.Network.Kubeovn.KubeOvnCni.RPMs == "" {
+		cfg.Network.Kubeovn.KubeOvnCni.RPMs = DefaultRPMs
+	}
+	if cfg.Network.Kubeovn.KubeOvnPinger.PingerExternalAddress == "" {
+		cfg.Network.Kubeovn.KubeOvnPinger.PingerExternalAddress = DefaultDNSAddress
+	}
+	if cfg.Network.Kubeovn.Dpdk.DpdkVersion == "" {
+		cfg.Network.Kubeovn.Dpdk.DpdkVersion = DefaultDPDKVersion
+	}
+	if cfg.Network.Kubeovn.Dpdk.DpdkTunnelIface == "" {
+		cfg.Network.Kubeovn.Dpdk.DpdkTunnelIface = DefaultDpdkTunnelIface
+	}
+	if cfg.Network.Kubeovn.KubeOvnCni.CNIConfigPriority == "" {
+		cfg.Network.Kubeovn.KubeOvnCni.CNIConfigPriority = DefaultCNIConfigPriority
 	}
 	defaultNetworkCfg := cfg.Network
 
