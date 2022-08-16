@@ -139,7 +139,8 @@ func isKnownArch(arch string) bool {
 // ParseImageTag
 // Get a repos name and returns the right reposName + tag
 // The tag can be confusing because of a port in a repository name.
-//     Ex: localhost.localdomain:5000/samalba/hipache:latest
+//
+//	Ex: localhost.localdomain:5000/samalba/hipache:latest
 func ParseImageTag(repos string) (string, string) {
 	n := strings.LastIndex(repos, ":")
 	if n < 0 {

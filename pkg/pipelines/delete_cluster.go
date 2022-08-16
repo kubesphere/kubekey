@@ -22,6 +22,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/k3s"
@@ -33,6 +34,7 @@ func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 		&precheck.GreetingsModule{},
 		&confirm.DeleteClusterConfirmModule{},
 		&kubernetes.ResetClusterModule{},
+		&container.UninstallContainerModule{Skip: !runtime.Arg.DeleteCRI},
 		&os.ClearOSEnvironmentModule{},
 		&certs.UninstallAutoRenewCertsModule{},
 	}

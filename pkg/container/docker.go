@@ -18,9 +18,11 @@ package container
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/container/templates"
+	"github.com/kubesphere/kubekey/pkg/registry"
 
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -104,5 +106,36 @@ func (p *DockerLoginRegistry) Execute(runtime connector.Runtime) error {
 		}
 	}
 
+	return nil
+}
+
+type DisableDocker struct {
+	common.KubeAction
+}
+
+func (d *DisableDocker) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("systemctl disable docker && systemctl stop docker",
+		false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("disable and stop docker failed"))
+	}
+
+	// remove docker related files
+	files := []string{
+		"/usr/bin/runc",
+		"/usr/bin/ctr",
+		"/usr/bin/docker*",
+		"/usr/bin/containerd*",
+		filepath.Join("/etc/systemd/system", templates.DockerService.Name()),
+		filepath.Join("/etc/docker", templates.DockerConfig.Name()),
+	}
+	if d.KubeConf.Cluster.Registry.DataRoot != "" {
+		files = append(files, d.KubeConf.Cluster.Registry.DataRoot)
+	} else {
+		files = append(files, "/var/lib/docker")
+	}
+
+	for _, file := range files {
+		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
+	}
 	return nil
 }

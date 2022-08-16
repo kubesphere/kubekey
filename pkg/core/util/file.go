@@ -82,7 +82,7 @@ func CountDirFiles(dirName string) int {
 	return count
 }
 
-//FileMD5 count file md5
+// FileMD5 count file md5
 func FileMD5(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
