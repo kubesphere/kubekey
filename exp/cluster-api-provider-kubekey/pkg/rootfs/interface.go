@@ -21,7 +21,10 @@ import (
 )
 
 type Interface interface {
+	// ClusterRootFsDir returns the rootfs directory of the cluster.
 	ClusterRootFsDir() string
+	// HostRootFsDir returns the rootfs directory of the host.
 	HostRootFsDir(host string) string
+	// Fs returns the filesystem interface.
 	Fs() filesystem.Interface
 }

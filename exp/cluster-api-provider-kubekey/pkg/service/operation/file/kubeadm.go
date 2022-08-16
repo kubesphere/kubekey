@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	KubeadmName            = "kubeadm"
-	KubeadmID              = "kubeadm"
-	KubeadmDownloadURLTmpl = "https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm"
+	KubeadmName              = "kubeadm"
+	KubeadmID                = "kubeadm"
+	KubeadmDownloadURLTmpl   = "https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm"
+	KubeadmDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm"
 )
 
 func NewKubeadm(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
@@ -53,6 +54,7 @@ func NewKubeadm(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 		version,
 		arch,
 		fmt.Sprintf(KubeadmDownloadURLTmpl, version, arch),
+		fmt.Sprintf(KubeadmDownloadURLTmplCN, version, arch),
 		internal,
 	}, nil
 }

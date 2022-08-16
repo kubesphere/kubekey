@@ -39,6 +39,8 @@ type Binary interface {
 	ID() string
 	Arch() string
 	Version() string
+	Url() string
+	SetZone(zone string)
 	Get(timeout time.Duration) error
 	CompareChecksum() error
 }

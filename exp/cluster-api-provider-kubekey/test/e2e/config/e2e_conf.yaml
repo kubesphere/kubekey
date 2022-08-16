@@ -100,6 +100,7 @@ variables:
   SERVICE_CIDRS: "10.233.0.0/18"
   POD_CIDRS: "10.233.64.0/18"
   SERVICE_DOMAIN: "cluster.local"
+  KKZONE: "cn"
   USER_NAME: "ubuntu"
   PASSWORD: "Qcloud@123"
   INSTANCE01_IP: 172.31.50.190

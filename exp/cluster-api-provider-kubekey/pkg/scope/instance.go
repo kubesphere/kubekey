@@ -67,7 +67,8 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 	}
 
 	if params.Logger == nil {
-		log := klogr.New()
+		log := klogr.New().WithValues("cluster", params.Cluster.Name, "machine", params.Machine.Name,
+			"kkInstance", params.KKInstance.Name)
 		params.Logger = &log
 	}
 

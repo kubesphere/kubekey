@@ -214,8 +214,14 @@ func (s *ClusterScope) ControllerName() string {
 	return s.controllerName
 }
 
+// RootFs returns the CAPKK rootfs interface.
 func (s *ClusterScope) RootFs() rootfs.Interface {
 	return s.rootFs
+}
+
+// Zone returns the KKCluster binaries zone.
+func (s *ClusterScope) Zone() string {
+	return s.KKCluster.Spec.ZONE
 }
 
 // ControlPlaneLoadBalancer returns the KKLoadBalancerSpec.

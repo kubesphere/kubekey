@@ -38,6 +38,7 @@ type Binary struct {
 	version  string
 	arch     string
 	url      string
+	cnURL    string
 	checksum checksum.Interface
 }
 
@@ -51,6 +52,16 @@ func (b *Binary) Arch() string {
 
 func (b *Binary) Version() string {
 	return b.version
+}
+
+func (b *Binary) Url() string {
+	return b.url
+}
+
+func (b *Binary) SetZone(zone string) {
+	if zone == "cn" {
+		b.url = b.cnURL
+	}
 }
 
 func (b *Binary) Get(timeout time.Duration) error {

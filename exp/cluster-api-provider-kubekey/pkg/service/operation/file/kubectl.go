@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	KubectlName            = "kubectl"
-	KubectlID              = "kubectl"
-	KubectlDownloadURLTmpl = "https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl"
+	KubectlName              = "kubectl"
+	KubectlID                = "kubectl"
+	KubectlDownloadURLTmpl   = "https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl"
+	KubectlDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl"
 )
 
 func NewKubectl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
@@ -53,6 +54,7 @@ func NewKubectl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 		version,
 		arch,
 		fmt.Sprintf(KubectlDownloadURLTmpl, version, arch),
+		fmt.Sprintf(KubectlDownloadURLTmplCN, version, arch),
 		internal,
 	}, nil
 }

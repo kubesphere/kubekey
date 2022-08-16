@@ -26,11 +26,11 @@ import (
 )
 
 const (
-	RuncName            = "runc.%s"
-	RuncID              = "runc"
-	RuncDownloadURLTmpl = "https://github.com/opencontainers/runc/releases/download/%s/runc.%s"
-	//RuncDownloadURLTmpl = "https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/%s/runc.%s"
-	RuncDefaultVersion = "v1.1.1"
+	RuncName              = "runc.%s"
+	RuncID                = "runc"
+	RuncDownloadURLTmpl   = "https://github.com/opencontainers/runc/releases/download/%s/runc.%s"
+	RuncDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/%s/runc.%s"
+	RuncDefaultVersion    = "v1.1.1"
 )
 
 func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
@@ -55,6 +55,7 @@ func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch str
 		version,
 		arch,
 		fmt.Sprintf(RuncDownloadURLTmpl, version, arch),
+		fmt.Sprintf(RuncDownloadURLTmplCN, version, arch),
 		internal,
 	}, nil
 }

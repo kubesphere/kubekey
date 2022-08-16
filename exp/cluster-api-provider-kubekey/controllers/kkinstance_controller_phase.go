@@ -31,7 +31,6 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
-// todo: every phase reconcile method needs to handle a timeout case.
 func (r *KKInstanceReconciler) reconcilePing(ctx context.Context, instanceScope *scope.InstanceScope) error {
 	instanceScope.Info("Reconcile ping")
 

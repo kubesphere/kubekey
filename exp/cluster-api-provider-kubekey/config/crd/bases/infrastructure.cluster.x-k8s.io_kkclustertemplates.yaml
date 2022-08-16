@@ -303,6 +303,11 @@ spec:
                         - namespaceOverride
                         - privateRegistry
                         type: object
+                      zone:
+                        description: 'ZONE is the zone of the KKCluster where can
+                          get the binaries. If you have problem to access https://storage.googleapis.com,
+                          you can set "zone: cn".'
+                        type: string
                     required:
                     - nodes
                     type: object

@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	CrictlName            = "crictl-%s-linux-%s.tar.gz"
-	CrictlID              = "crictl"
-	CrictlDownloadURLTmpl = "https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
-	//CrictlDownloadURLTmpl = "https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
+	CrictlName              = "crictl-%s-linux-%s.tar.gz"
+	CrictlID                = "crictl"
+	CrictlDownloadURLTmpl   = "https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
+	CrictlDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
 )
 
 func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
@@ -54,6 +54,7 @@ func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch s
 		version,
 		arch,
 		fmt.Sprintf(CrictlDownloadURLTmpl, version, version, arch),
+		fmt.Sprintf(CrictlDownloadURLTmplCN, version, version, arch),
 		internal,
 	}, nil
 }

@@ -5,6 +5,7 @@ kind: KKCluster
 metadata:
   name: '${CLUSTER_NAME}'
 spec:
+  zone: '${KKZONE}'
   nodes:
     auth:
       user: '${USER_NAME}'

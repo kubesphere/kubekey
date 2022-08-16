@@ -125,11 +125,14 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 	}
 
 	for _, b := range binaries {
+		b.SetZone(s.scope.Zone())
 		needGet := true
 		if b.LocalExist() && b.CompareChecksum() == nil {
 			needGet = false
 		}
 		if needGet {
+			s.instanceScope.V(4).Info("download binary", "binary", b.Name(),
+				"version", b.Version(), "url", b.Url())
 			if err := b.Get(timeout); err != nil {
 				return err
 			}
