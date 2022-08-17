@@ -50,9 +50,9 @@ KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
 REGISTRY ?= docker.io/kubespheredev
 PROD_REGISTRY ?= docker.io/kubesphere
 
-# capd
-CAPK_IMAGE_NAME ?= capk-manager
-CAPK_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPK_IMAGE_NAME)
+# capkk
+CAPKK_IMAGE_NAME ?= capkk-manager
+CAPKK_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPKK_IMAGE_NAME)
 
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
@@ -284,13 +284,13 @@ catalog-push: ## Push a catalog image.
 
 ##@ build:
 
-ALL_MANAGERS = capk
+ALL_MANAGERS = capkk
 
 .PHONY: managers
 managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
 
-.PHONY: manager-capk
-manager-capk: ## Build the capk manager binary into the ./bin folder
+.PHONY: manager-capkk
+manager-capkk: ## Build the capkk manager binary into the ./bin folder
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager kubesphere.io/kubekey/exp/cluster-api-provider-kubekey
 
 .PHONY: docker-pull-prerequisites
@@ -304,18 +304,18 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images 
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-ALL_DOCKER_BUILD = capk
+ALL_DOCKER_BUILD = capkk
 
-.PHONY: docker-build-capk
-docker-build-capk: ## Build the docker image for capk
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPK_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPK_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG)
+.PHONY: docker-build-capkk
+docker-build-capkk: ## Build the docker image for capkk
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG)
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-e2e
-docker-build-e2e: ## Build the docker image for capk
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t "$(CAPK_CONTROLLER_IMG):e2e"
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPK_CONTROLLER_IMG) MANIFEST_TAG="e2e" TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+docker-build-e2e: ## Build the docker image for capkk
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t "$(CAPKK_CONTROLLER_IMG):e2e"
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG) MANIFEST_TAG="e2e" TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
 ## --------------------------------------

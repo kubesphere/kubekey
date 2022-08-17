@@ -2,7 +2,7 @@
 
 images:
   # Use local dev images built source tree;
-  - name: kubespheredev/capk-manager:e2e
+  - name: kubespheredev/capkk-manager:e2e
     loadBehavior: mustLoad
 #
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
@@ -82,7 +82,7 @@ providers:
         replacements:
           # To allow bugs to be catched.
 #          - old: controller:latest
-#            new: docker.io/kubesphere/capk-controller:e2e
+#            new: docker.io/kubesphere/capkk-controller:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 
