@@ -259,27 +259,12 @@ func deployKubeOVN(d *DeployNetworkPluginModule) []task.Interface {
 		Parallel: true,
 	}
 
-	generateKubeOVNOld := &task.RemoteTask{
-		Name:  "GenerateKubeOVN",
-		Desc:  "Generate kube-ovn",
-		Hosts: d.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(OldK8sVersion),
-		},
-		Action:   new(GenerateKubeOVNOld),
-		Parallel: true,
-	}
-
-	generateKubeOVNNew := &task.RemoteTask{
-		Name:  "GenerateKubeOVN",
-		Desc:  "Generate kube-ovn",
-		Hosts: d.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			&OldK8sVersion{Not: true},
-		},
-		Action:   new(GenerateKubeOVNNew),
+	generateKubeOVN := &task.RemoteTask{
+		Name:     "GenerateKubeOVN",
+		Desc:     "Generate kube-ovn",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(GenerateKubeOVN),
 		Parallel: true,
 	}
 
@@ -312,24 +297,13 @@ func deployKubeOVN(d *DeployNetworkPluginModule) []task.Interface {
 		Parallel: true,
 	}
 
-	if K8sVersionAtLeast(d.KubeConf.Cluster.Kubernetes.Version, "v1.16.0") {
-		return []task.Interface{
-			label,
-			ssl,
-			generateKubeOVNNew,
-			deploy,
-			kubectlKo,
-			chmod,
-		}
-	} else {
-		return []task.Interface{
-			label,
-			ssl,
-			generateKubeOVNOld,
-			deploy,
-			kubectlKo,
-			chmod,
-		}
+	return []task.Interface{
+		label,
+		ssl,
+		generateKubeOVN,
+		deploy,
+		kubectlKo,
+		chmod,
 	}
 }
 
