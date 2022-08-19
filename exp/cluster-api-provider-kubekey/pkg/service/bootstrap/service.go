@@ -29,8 +29,10 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/user"
 )
 
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
 type Service struct {
-	SSHClient     ssh.Interface
+	sshClient     ssh.Interface
 	scope         scope.LBScope
 	instanceScope *scope.InstanceScope
 
@@ -40,9 +42,10 @@ type Service struct {
 	repositoryFactory func(sshClient ssh.Interface, os string) operation.Repository
 }
 
+// NewService returns a new service given the remote instance kubekey build-in bootstrap provision client.
 func NewService(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) *Service {
 	return &Service{
-		SSHClient:     sshClient,
+		sshClient:     sshClient,
 		scope:         scope,
 		instanceScope: instanceScope,
 	}
@@ -50,28 +53,28 @@ func NewService(sshClient ssh.Interface, scope scope.LBScope, instanceScope *sco
 
 func (s *Service) getUserService(name, desc string) operation.User {
 	if s.userFactory != nil {
-		return s.userFactory(s.SSHClient, name, desc)
+		return s.userFactory(s.sshClient, name, desc)
 	}
-	return user.NewService(s.SSHClient, name, desc)
+	return user.NewService(s.sshClient, name, desc)
 }
 
 func (s *Service) getDirectoryService(path string, mode os.FileMode) operation.Directory {
 	if s.directoryFactory != nil {
-		return s.directoryFactory(s.SSHClient, path, mode)
+		return s.directoryFactory(s.sshClient, path, mode)
 	}
-	return directory.NewService(s.SSHClient, path, mode)
+	return directory.NewService(s.sshClient, path, mode)
 }
 
 func (s *Service) getTemplateService(template *template.Template, data file.Data, dst string) (operation.Template, error) {
 	if s.templateFactory != nil {
-		return s.templateFactory(s.SSHClient, template, data, dst)
+		return s.templateFactory(s.sshClient, template, data, dst)
 	}
-	return file.NewTemplate(s.SSHClient, s.scope.RootFs(), template, data, dst)
+	return file.NewTemplate(s.sshClient, s.scope.RootFs(), template, data, dst)
 }
 
 func (s *Service) getRepositoryService(os string) operation.Repository {
 	if s.repositoryFactory != nil {
-		return s.repositoryFactory(s.SSHClient, os)
+		return s.repositoryFactory(s.sshClient, os)
 	}
-	return repository.NewService(s.SSHClient, os)
+	return repository.NewService(s.sshClient, os)
 }

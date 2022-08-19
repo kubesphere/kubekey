@@ -20,6 +20,7 @@ import (
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 )
 
+// RegistryScope is the scope for global registry.
 type RegistryScope interface {
 	Registry() *infrav1.Registry
 }

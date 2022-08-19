@@ -25,24 +25,30 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
 )
 
-type FileType string
+// Type represents the type of file.
+type Type string
 
 var (
-	FileBinary   = FileType("fileBinary")
-	FileText     = FileType("fileText")
-	FileTemplate = FileType("fileTemplate")
+	// FileBinary represents a binary file.
+	FileBinary = Type("fileBinary")
+	// FileText represents a text file.
+	FileText = Type("fileText")
+	// FileTemplate represents a template file.
+	FileTemplate = Type("fileTemplate")
 )
 
-type FileParams struct {
+// Params represents the parameters of a file.
+type Params struct {
 	SSHClient      ssh.Interface
 	Name           string
-	Type           FileType
+	Type           Type
 	LocalFullPath  string
 	RemoteFullPath string
 	RootFs         rootfs.Interface
 }
 
-func NewFile(params FileParams) (*File, error) {
+// NewFile returns a new File object given a FileParams.
+func NewFile(params Params) (*File, error) {
 	if params.SSHClient == nil {
 		return nil, errors.New("ssh client is required when creating a File")
 	}
@@ -62,39 +68,47 @@ func NewFile(params FileParams) (*File, error) {
 	}, nil
 }
 
+// File is an implementation of the File interface.
 type File struct {
 	sshClient      ssh.Interface
 	name           string
-	fileType       FileType
+	fileType       Type
 	localFullPath  string
 	remoteFullPath string
 	rootFs         rootfs.Interface
 }
 
+// Name returns the name of the file.
 func (s *File) Name() string {
 	return s.name
 }
 
-func (s *File) Type() FileType {
+// Type returns the type of the file.
+func (s *File) Type() Type {
 	return s.fileType
 }
 
+// SetLocalPath sets the local path of the file.
 func (s *File) SetLocalPath(path string) {
 	s.localFullPath = path
 }
 
+// SetRemotePath sets the remote path of the file.
 func (s *File) SetRemotePath(path string) {
 	s.remoteFullPath = path
 }
 
+// LocalPath returns the local path of the file.
 func (s *File) LocalPath() string {
 	return s.localFullPath
 }
 
+// RemotePath returns the remote path of the file.
 func (s *File) RemotePath() string {
 	return s.remoteFullPath
 }
 
+// LocalExist returns true if the file exists in the local path.
 func (s *File) LocalExist() bool {
 	_, err := os.Stat(s.LocalPath())
 	if err != nil {
@@ -109,6 +123,7 @@ func (s *File) LocalExist() bool {
 	return true
 }
 
+// RemoteExist returns true if the file exists in the remote path.
 func (s *File) RemoteExist() bool {
 	ok, err := s.sshClient.RemoteFileExist(s.RemotePath())
 	if err != nil {
@@ -117,6 +132,7 @@ func (s *File) RemoteExist() bool {
 	return ok
 }
 
+// Copy copies the file from the local path to the remote path.
 func (s *File) Copy(override bool) error {
 	if !s.LocalExist() {
 		return errors.Errorf("file %s is not exist in the local path %s", s.Name(), s.LocalPath())
@@ -130,6 +146,7 @@ func (s *File) Copy(override bool) error {
 	return s.sshClient.Copy(s.LocalPath(), s.RemotePath())
 }
 
+// Fetch copies the file from the remote path to the local path.
 func (s *File) Fetch(override bool) error {
 	if !s.RemoteExist() {
 		return errors.Errorf("remote file %s is not exist in the remote path %s", s.Name(), s.RemotePath())
@@ -143,6 +160,7 @@ func (s *File) Fetch(override bool) error {
 	return s.sshClient.Fetch(s.LocalPath(), s.RemotePath())
 }
 
+// Chmod changes the mode of the file.
 func (s *File) Chmod(option string) error {
 	if !s.RemoteExist() {
 		return errors.Errorf("remote file %s is not exist in the remote path %s", s.Name(), s.RemotePath())

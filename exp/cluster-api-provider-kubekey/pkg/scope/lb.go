@@ -23,6 +23,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
 )
 
+// LBScope is a scope for LB.
 type LBScope interface {
 	pkg.ClusterScoper
 	// ControlPlaneEndpoint returns KKCluster control plane endpoint

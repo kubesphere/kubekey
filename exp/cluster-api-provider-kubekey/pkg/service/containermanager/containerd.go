@@ -18,7 +18,6 @@ package containermanager
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,8 +34,9 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 )
 
+// ContainerdService is a ContainerManager service implementation for containerd.
 type ContainerdService struct {
-	SSHClient ssh.Interface
+	sshClient ssh.Interface
 
 	scope         scope.KKInstanceScope
 	instanceScope *scope.InstanceScope
@@ -47,9 +47,10 @@ type ContainerdService struct {
 	crictlFactory     func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
 }
 
+// NewContainerdService returns a new ContainerdService given the remote instance container manager client.
 func NewContainerdService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) *ContainerdService {
 	return &ContainerdService{
-		SSHClient:     sshClient,
+		sshClient:     sshClient,
 		scope:         scope,
 		instanceScope: instanceScope,
 	}
@@ -78,21 +79,24 @@ func (s *ContainerdService) getCrictlService(sshClient ssh.Interface, version, a
 
 func (s *ContainerdService) getTemplateService(template *template.Template, data file.Data, dst string) (operation.Template, error) {
 	if s.templateFactory != nil {
-		return s.templateFactory(s.SSHClient, template, data, dst)
+		return s.templateFactory(s.sshClient, template, data, dst)
 	}
-	return file.NewTemplate(s.SSHClient, s.scope.RootFs(), template, data, dst)
+	return file.NewTemplate(s.sshClient, s.scope.RootFs(), template, data, dst)
 }
 
+// Type returns the type containerd of the container manager.
 func (s *ContainerdService) Type() string {
 	return file.ContainerdID
 }
 
+// Version returns the version of the container manager.
 func (s *ContainerdService) Version() string {
 	return s.instanceScope.KKInstance.Spec.ContainerManager.Version
 }
 
+// IsExist returns true if the container manager is installed.
 func (s *ContainerdService) IsExist() bool {
-	res, err := s.SSHClient.SudoCmd(
+	res, err := s.sshClient.SudoCmd(
 		"if [ -z $(which containerd) ] || [ ! -e /run/containerd/containerd.sock ]; " +
 			"then echo 'not exist'; " +
 			"fi")
@@ -105,16 +109,17 @@ func (s *ContainerdService) IsExist() bool {
 	return true
 }
 
+// Get gets the binary of containerd and related components and copy them to the remote instance.
 func (s *ContainerdService) Get(timeout time.Duration) error {
-	containerd, err := s.getContainerdService(s.SSHClient, s.Version(), s.instanceScope.Arch())
+	containerd, err := s.getContainerdService(s.sshClient, s.Version(), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
-	runc, err := s.getRuncService(s.SSHClient, file.RuncDefaultVersion, s.instanceScope.Arch())
+	runc, err := s.getRuncService(s.sshClient, file.RuncDefaultVersion, s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
-	crictl, err := s.getCrictlService(s.SSHClient, getFirstMajorVersion(s.instanceScope.KubernetesVersion()), s.instanceScope.Arch())
+	crictl, err := s.getCrictlService(s.sshClient, getFirstMajorVersion(s.instanceScope.KubernetesVersion()), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
@@ -132,7 +137,7 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 		}
 		if needGet {
 			s.instanceScope.V(4).Info("download binary", "binary", b.Name(),
-				"version", b.Version(), "url", b.Url())
+				"version", b.Version(), "url", b.URL())
 			if err := b.Get(timeout); err != nil {
 				return err
 			}
@@ -147,15 +152,16 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 
 	// /usr/local
 	dir := filepath.Dir(filepath.Dir(containerd.RemotePath()))
-	if _, err := s.SSHClient.SudoCmdf("tar Cxzvf %s %s", dir, containerd.RemotePath()); err != nil {
+	if _, err := s.sshClient.SudoCmdf("tar Cxzvf %s %s", dir, containerd.RemotePath()); err != nil {
 		return err
 	}
-	if _, err := s.SSHClient.SudoCmdf("tar Cxzvf %s %s", filepath.Dir(crictl.RemotePath()), crictl.RemotePath()); err != nil {
+	if _, err := s.sshClient.SudoCmdf("tar Cxzvf %s %s", filepath.Dir(crictl.RemotePath()), crictl.RemotePath()); err != nil {
 		return err
 	}
 	return nil
 }
 
+// Install installs the container manager and related components.
 func (s *ContainerdService) Install() error {
 	if err := s.installContainerd(); err != nil {
 		return err
@@ -176,7 +182,7 @@ func (s *ContainerdService) installContainerd() error {
 	if err := s.generateContainerdService(); err != nil {
 		return err
 	}
-	if _, err := s.SSHClient.SudoCmd("systemctl daemon-reload && systemctl enable containerd && systemctl start containerd"); err != nil {
+	if _, err := s.sshClient.SudoCmd("systemctl daemon-reload && systemctl enable containerd && systemctl start containerd"); err != nil {
 		return err
 	}
 	return nil
@@ -212,7 +218,8 @@ func (s *ContainerdService) generateContainerdConfig() error {
 		file.Data{
 			"Mirrors":            s.mirrors(),
 			"InsecureRegistries": s.insecureRegistry(),
-			//"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
+			// todo: handle sandbox image
+			// "SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
 			"PrivateRegistry": s.privateRegistry(),
 			"Auth":            s.auth(),
 		},
@@ -234,7 +241,7 @@ func (s *ContainerdService) mirrors() string {
 	if s.scope.GlobalRegistry() != nil {
 		var mirrorsArr []string
 		for _, mirror := range s.scope.GlobalRegistry().RegistryMirrors {
-			mirrorsArr = append(mirrorsArr, fmt.Sprintf("\"%s\"", mirror))
+			mirrorsArr = append(mirrorsArr, fmt.Sprintf("%q", mirror))
 		}
 		m = strings.Join(mirrorsArr, ", ")
 	}
@@ -284,7 +291,7 @@ func (s *ContainerdService) lookupCertsFile(path string) (ca string, cert string
 		return
 	}
 	s.instanceScope.V(2).Info(fmt.Sprintf("Looking for TLS certificates and private keys in abs path %s", absPath))
-	fs, err := ioutil.ReadDir(absPath)
+	fs, err := os.ReadDir(absPath)
 	if err != nil {
 		return ca, cert, key, err
 	}
@@ -318,16 +325,16 @@ func (s *ContainerdService) lookupCertsFile(path string) (ca string, cert string
 }
 
 func (s *ContainerdService) installRunc() error {
-	runc, err := s.getRuncService(s.SSHClient, file.RuncDefaultVersion, s.instanceScope.Arch())
+	runc, err := s.getRuncService(s.sshClient, file.RuncDefaultVersion, s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
 
-	if _, err := s.SSHClient.SudoCmdf("install -m 755 %s /usr/local/sbin/runc", runc.RemotePath()); err != nil {
+	if _, err := s.sshClient.SudoCmdf("install -m 755 %s /usr/local/sbin/runc", runc.RemotePath()); err != nil {
 		return err
 	}
 
-	_, _ = s.SSHClient.SudoCmdf("rm -rf %s", runc.RemotePath())
+	_, _ = s.sshClient.SudoCmdf("rm -rf %s", runc.RemotePath())
 	return nil
 }
 
@@ -355,7 +362,7 @@ func (s *ContainerdService) installCrictl() error {
 	return nil
 }
 
-func hasFile(files []os.FileInfo, name string) bool {
+func hasFile(files []os.DirEntry, name string) bool {
 	for _, f := range files {
 		if f.Name() == name {
 			return true

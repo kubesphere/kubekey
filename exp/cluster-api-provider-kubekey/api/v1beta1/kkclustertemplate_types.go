@@ -53,6 +53,7 @@ func init() {
 	SchemeBuilder.Register(&KKClusterTemplate{}, &KKClusterTemplateList{})
 }
 
+// KKClusterTemplateResource Standard object's metadata
 type KKClusterTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata

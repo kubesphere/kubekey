@@ -56,10 +56,12 @@ func (u *unknown) Unmarshal(data []byte) error {
 	return nil
 }
 
+// Commands returns the commands to run for the unknown action.
 func (u *unknown) Commands() ([]commands.Cmd, error) {
 	return []commands.Cmd{}, nil
 }
 
+// Run runs the commands for the unknown action.
 func (u *unknown) Run() error {
 	return nil
 }

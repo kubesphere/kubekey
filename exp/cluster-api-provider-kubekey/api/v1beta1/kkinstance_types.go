@@ -36,9 +36,10 @@ var (
 	// InstanceStatePending is the string representing an instance in a pending state.
 	InstanceStatePending = InstanceState("pending")
 
+	// InstanceStateBootstrapping is the string representing an instance in a bootstrapping state.
 	InstanceStateBootstrapping = InstanceState("bootstrapping")
 
-	//InstanceStateBootstrapped = InstanceState("bootstrapped")
+	// InstanceStateBootstrapped = InstanceState("bootstrapped")
 
 	// InstanceStateRunning is the string representing an instance in a running state.
 	InstanceStateRunning = InstanceState("running")

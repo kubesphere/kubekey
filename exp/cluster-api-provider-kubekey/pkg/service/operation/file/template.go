@@ -26,8 +26,10 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
+// Data is the data that will be passed to the template.
 type Data map[string]interface{}
 
+// Template is an implementation of the Template interface.
 type Template struct {
 	*File
 	template *template.Template
@@ -35,8 +37,9 @@ type Template struct {
 	dst      string
 }
 
+// NewTemplate returns a new Template.
 func NewTemplate(sshClient ssh.Interface, rootFs rootfs.Interface, template *template.Template, data Data, dst string) (*Template, error) {
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Name:           template.Name(),
@@ -55,6 +58,7 @@ func NewTemplate(sshClient ssh.Interface, rootFs rootfs.Interface, template *tem
 	}, nil
 }
 
+// RenderToLocal renders the template to the local filesystem.
 func (t *Template) RenderToLocal() error {
 	dir := filepath.Dir(t.localFullPath)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {

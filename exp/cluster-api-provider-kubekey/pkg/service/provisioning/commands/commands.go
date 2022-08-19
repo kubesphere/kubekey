@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package provisioning deals with various machine initialization methods viz. cloud-init, Ignition,
+// Package commands deals with various machine initialization methods viz. cloud-init, Ignition,
 // etc.
 package commands
 
@@ -61,12 +61,12 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// String returns the command as a string.
 func (c *Cmd) String() string {
-
 	cmd := strings.Join(append([]string{c.Cmd}, c.Args...), " ")
 	if strings.HasPrefix(cmd, "/bin/sh -c") {
 		cmd = strings.TrimPrefix(cmd, "/bin/sh -c")
-	} else if strings.HasPrefix(cmd, "/bin/bash -c") {
+	} else {
 		cmd = strings.TrimPrefix(cmd, "/bin/bash -c")
 	}
 

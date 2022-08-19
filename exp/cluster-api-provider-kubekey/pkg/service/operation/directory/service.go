@@ -23,17 +23,20 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
 type Service struct {
-	SSHClient ssh.Interface
-	Path      string
-	Mode      os.FileMode
+	sshClient ssh.Interface
+	path      string
+	mode      os.FileMode
 }
 
+// NewService returns a new service given the remote instance directory client.
 func NewService(sshClient ssh.Interface, path string, mode os.FileMode) *Service {
 	return &Service{
-		SSHClient: sshClient,
-		Path:      path,
-		Mode:      checkFileMode(mode),
+		sshClient: sshClient,
+		path:      path,
+		mode:      checkFileMode(mode),
 	}
 }
 

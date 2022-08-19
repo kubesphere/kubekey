@@ -22,13 +22,15 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 )
 
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
 type Service interface {
 	Update() error
 	Install(pkg ...string) error
 }
 
+// NewService returns a new service given the remote instance package manager client.
 func NewService(sshClient ssh.Interface, os string) Service {
-
 	switch strings.ToLower(os) {
 	case "ubuntu", "debian":
 		return NewDeb(sshClient)

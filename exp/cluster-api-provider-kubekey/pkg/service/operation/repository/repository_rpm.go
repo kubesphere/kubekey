@@ -22,16 +22,19 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 )
 
+// RedhatPackageManager is a repository manager implementation for Redhat, Centos.
 type RedhatPackageManager struct {
 	SSHClient ssh.Interface
 }
 
+// NewRPM returns a new RedhatPackageManager.
 func NewRPM(sshClient ssh.Interface) *RedhatPackageManager {
 	return &RedhatPackageManager{
 		SSHClient: sshClient,
 	}
 }
 
+// Update updates the repository cache.
 func (r *RedhatPackageManager) Update() error {
 	if _, err := r.SSHClient.SudoCmd("yum clean all && yum makecache"); err != nil {
 		return err
@@ -39,11 +42,12 @@ func (r *RedhatPackageManager) Update() error {
 	return nil
 }
 
+// Install installs common packages.
 func (r *RedhatPackageManager) Install(pkg ...string) error {
 	if len(pkg) == 0 {
 		pkg = []string{"openssl", "socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
 	}
-	if _, err := r.SSHClient.SudoCmdf("apt install -y %s", strings.Join(pkg, " ")); err != nil {
+	if _, err := r.SSHClient.SudoCmdf("yum install -y %s", strings.Join(pkg, " ")); err != nil {
 		return err
 	}
 	return nil

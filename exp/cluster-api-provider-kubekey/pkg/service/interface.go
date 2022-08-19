@@ -14,6 +14,7 @@
  limitations under the License.
 */
 
+// Package service implements various services.
 package service
 
 import (
@@ -22,6 +23,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning/commands"
 )
 
+// Bootstrap is the interface for bootstrap provision.
 type Bootstrap interface {
 	AddUsers() error
 	SetHostname() error
@@ -34,11 +36,13 @@ type Bootstrap interface {
 	DaemonReload() error
 }
 
+// BinaryService is the interface for binary provision.
 type BinaryService interface {
 	DownloadAll(timeout time.Duration) error
 	ConfigureKubelet() error
 }
 
+// ContainerManager is the interface for container manager provision.
 type ContainerManager interface {
 	Type() string
 	IsExist() bool
@@ -46,6 +50,7 @@ type ContainerManager interface {
 	Install() error
 }
 
+// Provisioning is the interface for bootstrap generate by CABPK provision.
 type Provisioning interface {
 	RawBootstrapDataToProvisioningCommands(config []byte) ([]commands.Cmd, error)
 }

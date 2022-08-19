@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// Kubeadm info
 const (
 	KubeadmName              = "kubeadm"
 	KubeadmID                = "kubeadm"
@@ -32,11 +33,12 @@ const (
 	KubeadmDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm"
 )
 
+// NewKubeadm returns a new Binary for kubeadm
 func NewKubeadm(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(KubeadmID, version, arch)
 
 	fileName := KubeadmName
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

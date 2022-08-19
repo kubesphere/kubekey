@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Add adds a new Linux user to the remote instance.
 func (s *Service) Add() error {
 	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("useradd -M -c '%s' -s /sbin/nologin -r %s || :", s.Desc, s.Name))
 	if err != nil {

@@ -22,16 +22,19 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 )
 
+// Debian is a repository manager implementation for Debian.
 type Debian struct {
 	SSHClient ssh.Interface
 }
 
+// NewDeb returns a new Debian repository manager
 func NewDeb(sshClient ssh.Interface) *Debian {
 	return &Debian{
 		SSHClient: sshClient,
 	}
 }
 
+// Update updates the repository cache
 func (d *Debian) Update() error {
 	if _, err := d.SSHClient.Cmd("sudo apt-get update"); err != nil {
 		return err
@@ -39,6 +42,7 @@ func (d *Debian) Update() error {
 	return nil
 }
 
+// Install installs common packages
 func (d *Debian) Install(pkg ...string) error {
 	if len(pkg) == 0 {
 		pkg = []string{"socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}

@@ -16,8 +16,10 @@
 
 package v1beta1
 
+// Role represents a role of a node.
 type Role string
 
+// Internal roles.
 const (
 	ControlPlane Role = "control-plane"
 	Master       Role = "master"

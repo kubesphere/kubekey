@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// runc info
 const (
 	RuncName              = "runc.%s"
 	RuncID                = "runc"
@@ -33,11 +34,12 @@ const (
 	RuncDefaultVersion    = "v1.1.1"
 )
 
+// NewRunc returns a new Binary for runc
 func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(RuncID, version, arch)
 
 	fileName := fmt.Sprintf(RuncName, arch)
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

@@ -14,6 +14,7 @@
  limitations under the License.
 */
 
+// Package pkg defines the interface for a cluster scope.
 package pkg
 
 import (

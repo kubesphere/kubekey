@@ -42,9 +42,9 @@ const (
 // log is for logging in this package.
 var kkclusterlog = logf.Log.WithName("kkcluster-resource")
 
-func (r *KKCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (k *KKCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(k).
 		Complete()
 }
 
@@ -53,12 +53,12 @@ func (r *KKCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &KKCluster{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *KKCluster) Default() {
-	kkclusterlog.Info("default", "name", r.Name)
+func (k *KKCluster) Default() {
+	kkclusterlog.Info("default", "name", k.Name)
 
-	defaultAuth(&r.Spec.Nodes.Auth)
-	defaultContainerManager(&r.Spec)
-	defaultInstance(&r.Spec)
+	defaultAuth(&k.Spec.Nodes.Auth)
+	defaultContainerManager(&k.Spec)
+	defaultInstance(&k.Spec)
 }
 
 func defaultAuth(auth *Auth) {
@@ -122,19 +122,19 @@ func defaultInstance(spec *KKClusterSpec) {
 var _ webhook.Validator = &KKCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *KKCluster) ValidateCreate() error {
-	kkclusterlog.Info("validate create", "name", r.Name)
+func (k *KKCluster) ValidateCreate() error {
+	kkclusterlog.Info("validate create", "name", k.Name)
 
 	var allErrs field.ErrorList
-	allErrs = append(allErrs, validateClusterNodes(r.Spec.Nodes)...)
-	allErrs = append(allErrs, validateLoadBalancer(r.Spec.ControlPlaneLoadBalancer)...)
+	allErrs = append(allErrs, validateClusterNodes(k.Spec.Nodes)...)
+	allErrs = append(allErrs, validateLoadBalancer(k.Spec.ControlPlaneLoadBalancer)...)
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return aggregateObjErrors(k.GroupVersionKind().GroupKind(), k.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *KKCluster) ValidateUpdate(old runtime.Object) error {
-	kkclusterlog.Info("validate update", "name", r.Name)
+func (k *KKCluster) ValidateUpdate(old runtime.Object) error {
+	kkclusterlog.Info("validate update", "name", k.Name)
 
 	var allErrs field.ErrorList
 	oldC, ok := old.(*KKCluster)
@@ -144,8 +144,8 @@ func (r *KKCluster) ValidateUpdate(old runtime.Object) error {
 
 	newLoadBalancer := &KKLoadBalancerSpec{}
 
-	if r.Spec.ControlPlaneLoadBalancer != nil {
-		newLoadBalancer = r.Spec.ControlPlaneLoadBalancer.DeepCopy()
+	if k.Spec.ControlPlaneLoadBalancer != nil {
+		newLoadBalancer = k.Spec.ControlPlaneLoadBalancer.DeepCopy()
 	}
 
 	if oldC.Spec.ControlPlaneLoadBalancer != nil {
@@ -154,17 +154,17 @@ func (r *KKCluster) ValidateUpdate(old runtime.Object) error {
 		if !cmp.Equal(newLoadBalancer, existingLoadBalancer) {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer"),
-					r.Spec.ControlPlaneLoadBalancer, "field is immutable"),
+					k.Spec.ControlPlaneLoadBalancer, "field is immutable"),
 			)
 		}
 	}
 
-	allErrs = append(allErrs, validateClusterNodes(r.Spec.Nodes)...)
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	allErrs = append(allErrs, validateClusterNodes(k.Spec.Nodes)...)
+	return aggregateObjErrors(k.GroupVersionKind().GroupKind(), k.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *KKCluster) ValidateDelete() error {
+func (k *KKCluster) ValidateDelete() error {
 	return nil
 }
 

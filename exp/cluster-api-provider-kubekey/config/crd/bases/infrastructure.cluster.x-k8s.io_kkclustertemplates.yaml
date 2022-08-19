@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.1
+    controller-gen.kubebuilder.io/version: v0.9.1
   creationTimestamp: null
   name: kkclustertemplates.infrastructure.cluster.x-k8s.io
 spec:
@@ -46,6 +45,7 @@ spec:
             description: KKClusterTemplateSpec defines the desired state of KKClusterTemplate
             properties:
               template:
+                description: KKClusterTemplateResource Standard object's metadata
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
@@ -213,6 +213,7 @@ spec:
                                 roles:
                                   description: Roles is the role of the machine.
                                   items:
+                                    description: Role represents a role of a node.
                                     type: string
                                   type: array
                               type: object
@@ -321,9 +322,3 @@ spec:
     served: true
     storage: true
     subresources: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

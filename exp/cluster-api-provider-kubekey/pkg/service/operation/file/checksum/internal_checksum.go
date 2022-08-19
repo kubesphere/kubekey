@@ -39,6 +39,7 @@ const (
 	runc       = "runc"
 )
 
+// InternalChecksum is the internal checksum implementation.
 type InternalChecksum struct {
 	ID      string
 	Version string
@@ -46,6 +47,7 @@ type InternalChecksum struct {
 	value   string
 }
 
+// NewInternalChecksum returns a new internal checksum implementation given the binary information.
 func NewInternalChecksum(id, version, arch string) *InternalChecksum {
 	return &InternalChecksum{
 		ID:      id,
@@ -54,6 +56,7 @@ func NewInternalChecksum(id, version, arch string) *InternalChecksum {
 	}
 }
 
+// Get gets the internal checksum.
 func (i *InternalChecksum) Get() error {
 	value, ok := FileSha256[i.ID][i.Arch][i.Version]
 	if !ok {
@@ -63,11 +66,13 @@ func (i *InternalChecksum) Get() error {
 	return nil
 }
 
+// Value returns the internal checksum value.
 func (i *InternalChecksum) Value() string {
 	return i.value
 }
 
 var (
+	// FileSha256 is a hash table the storage the checksum of the binary files.
 	FileSha256 = map[string]map[string]map[string]string{
 		kubeadm: {
 			amd64: {

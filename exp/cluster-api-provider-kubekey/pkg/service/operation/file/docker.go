@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util"
 )
 
+// Docker info
 const (
 	DockerName              = "docker-%s.tgz"
 	DockerID                = "docker"
@@ -34,11 +35,12 @@ const (
 	DockerDefaultVersion    = "20.10.8"
 )
 
+// NewDocker returns a new Binary for docker.
 func NewDocker(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(DockerID, version, arch)
 
 	fileName := fmt.Sprintf(DockerName, version)
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

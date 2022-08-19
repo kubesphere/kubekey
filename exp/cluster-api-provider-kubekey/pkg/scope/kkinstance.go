@@ -21,6 +21,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg"
 )
 
+// KKInstanceScope is a scope for global KKInstance.
 type KKInstanceScope interface {
 	pkg.ClusterScoper
 	// GlobalAuth returns the global auth configuration of all instances.

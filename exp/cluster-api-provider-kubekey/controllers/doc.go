@@ -14,22 +14,5 @@
  limitations under the License.
 */
 
-package file
-
-import (
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
-)
-
-type Service struct {
-	SSHClient      ssh.Interface
-	Name           string
-	Type           string
-	LocalFullPath  string
-	RemoteFullPath string
-}
-
-func NewService(sshClient ssh.Interface) *Service {
-	return &Service{
-		SSHClient: sshClient,
-	}
-}
+// Package controllers implements controllers.
+package controllers

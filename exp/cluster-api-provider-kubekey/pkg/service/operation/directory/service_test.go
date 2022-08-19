@@ -19,26 +19,24 @@ package directory
 import (
 	"os"
 	"testing"
-
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
 func Test_checkFileMode(t *testing.T) {
 	tests := []struct {
 		mode os.FileMode
-		want filesystem.FileMode
+		want os.FileMode
 	}{
 		{
 			0,
-			filesystem.FileMode{FileMode: os.ModeDir | os.FileMode(0644)},
+			os.ModeDir | os.FileMode(0664),
 		},
 		{
 			os.FileMode(0664),
-			filesystem.FileMode{FileMode: os.ModeDir | os.FileMode(0664)},
+			os.ModeDir | os.FileMode(0664),
 		},
 		{
 			os.FileMode(0777),
-			filesystem.FileMode{FileMode: os.ModeDir | os.FileMode(0777)},
+			os.ModeDir | os.FileMode(0777),
 		},
 	}
 	for _, tt := range tests {

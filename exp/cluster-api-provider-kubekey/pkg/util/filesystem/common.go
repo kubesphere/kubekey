@@ -17,11 +17,15 @@
 package filesystem
 
 const (
+	// DefaultLocalTmpDir represents the CAPKK default local tmp directory
 	DefaultLocalTmpDir = "/var/lib/kubekey"
 )
 
 const (
+	// FileMode0755 represents the file mode 0755
 	FileMode0755 = 0755
+	// FileMode0644 represents the file mode 0644
 	FileMode0644 = 0644
+	// FileMode0664 represents the file mode 0664
 	FileMode0664 = 0664
 )

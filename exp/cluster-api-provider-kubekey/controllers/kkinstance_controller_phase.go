@@ -31,7 +31,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
-func (r *KKInstanceReconciler) reconcilePing(ctx context.Context, instanceScope *scope.InstanceScope) error {
+func (r *KKInstanceReconciler) reconcilePing(_ context.Context, instanceScope *scope.InstanceScope) error {
 	instanceScope.Info("Reconcile ping")
 
 	sshClient := r.getSSHClient(instanceScope)
@@ -45,7 +45,8 @@ func (r *KKInstanceReconciler) reconcilePing(ctx context.Context, instanceScope 
 	return err
 }
 
-func (r *KKInstanceReconciler) reconcileDeletingBootstrap(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (err error) {
+func (r *KKInstanceReconciler) reconcileDeletingBootstrap(_ context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope,
+	lbScope scope.LBScope) (err error) {
 	instanceScope.Info("Reconcile deleting bootstrap")
 
 	defer func() {
@@ -77,9 +78,8 @@ func (r *KKInstanceReconciler) reconcileDeletingBootstrap(ctx context.Context, s
 	return nil
 }
 
-func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient ssh.Interface,
-	instanceScope *scope.InstanceScope, kkInstanceScope scope.KKInstanceScope, lbScope scope.LBScope) (err error) {
-
+func (r *KKInstanceReconciler) reconcileBootstrap(_ context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope,
+	_ scope.KKInstanceScope, lbScope scope.LBScope) (err error) {
 	defer func() {
 		if err != nil {
 			conditions.MarkFalse(
@@ -125,9 +125,8 @@ func (r *KKInstanceReconciler) reconcileBootstrap(ctx context.Context, sshClient
 	return nil
 }
 
-func (r *KKInstanceReconciler) reconcileBinaryService(ctx context.Context, sshClient ssh.Interface,
-	instanceScope *scope.InstanceScope, kkInstanceScope scope.KKInstanceScope, lbScope scope.LBScope) (err error) {
-
+func (r *KKInstanceReconciler) reconcileBinaryService(_ context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope,
+	kkInstanceScope scope.KKInstanceScope, _ scope.LBScope) (err error) {
 	defer func() {
 		if err != nil {
 			conditions.MarkFalse(
@@ -158,12 +157,8 @@ func (r *KKInstanceReconciler) reconcileBinaryService(ctx context.Context, sshCl
 	return nil
 }
 
-func (r *KKInstanceReconciler) reconcileContainerManager(
-	ctx context.Context,
-	sshClient ssh.Interface,
-	instanceScope *scope.InstanceScope,
-	scope scope.KKInstanceScope, lbScope scope.LBScope) (err error) {
-
+func (r *KKInstanceReconciler) reconcileContainerManager(_ context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope,
+	scope scope.KKInstanceScope, _ scope.LBScope) (err error) {
 	defer func() {
 		if err != nil {
 			conditions.MarkFalse(
@@ -200,9 +195,8 @@ func (r *KKInstanceReconciler) reconcileContainerManager(
 	return nil
 }
 
-func (r *KKInstanceReconciler) reconcileProvisioning(ctx context.Context, sshClient ssh.Interface,
-	instanceScope *scope.InstanceScope, kkInstanceScope scope.KKInstanceScope, lbScope scope.LBScope) (err error) {
-
+func (r *KKInstanceReconciler) reconcileProvisioning(ctx context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope,
+	_ scope.KKInstanceScope, _ scope.LBScope) (err error) {
 	defer func() {
 		if err != nil {
 			conditions.MarkFalse(

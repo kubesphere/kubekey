@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// Containerd info
 const (
 	ContainerdName              = "containerd-%s-linux-%s.tar.gz"
 	ContainerdID                = "containerd"
@@ -32,11 +33,12 @@ const (
 	ContainerdDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz"
 )
 
+// NewContainerd returns a new Binary for containerd
 func NewContainerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(ContainerdID, version, arch)
 
 	fileName := fmt.Sprintf(ContainerdName, version, arch)
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

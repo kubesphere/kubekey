@@ -50,9 +50,6 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 	if params.Client == nil {
 		return nil, errors.New("client is required when creating a InstanceScope")
 	}
-	//if params.Machine == nil {
-	//	return nil, errors.New("machine is required when creating a InstanceScope")
-	//}
 	if params.Cluster == nil {
 		return nil, errors.New("cluster is required when creating a InstanceScope")
 	}
@@ -102,34 +99,42 @@ type InstanceScope struct {
 	KKInstance   *infrav1.KKInstance
 }
 
+// Name returns the name of the KKInstance.
 func (i *InstanceScope) Name() string {
 	return i.KKInstance.Name
 }
 
+// HostName returns the hostname of the KKInstance corresponding remote host.
 func (i *InstanceScope) HostName() string {
 	return i.KKInstance.Spec.Name
 }
 
+// Namespace returns the namespace of the KKInstance.
 func (i *InstanceScope) Namespace() string {
 	return i.KKInstance.Namespace
 }
 
+// InternalAddress returns the internal address of the KKInstance.
 func (i *InstanceScope) InternalAddress() string {
 	return i.KKInstance.Spec.InternalAddress
 }
 
+// Arch returns the architecture of the KKInstance.
 func (i *InstanceScope) Arch() string {
 	return i.KKInstance.Spec.Arch
 }
 
+// ContainerManager returns the ContainerManager struct of the KKInstance.
 func (i *InstanceScope) ContainerManager() *infrav1.ContainerManager {
 	return &i.KKInstance.Spec.ContainerManager
 }
 
+// KubernetesVersion returns the Kubernetes version of the KKInstance.
 func (i *InstanceScope) KubernetesVersion() string {
 	return *i.Machine.Spec.Version
 }
 
+// GetRawBootstrapDataWithFormat returns the raw bootstrap data from the corresponding machine.spec.bootstrap.
 func (i *InstanceScope) GetRawBootstrapDataWithFormat(ctx context.Context) ([]byte, bootstrapv1.Format, error) {
 	if i.Machine.Spec.Bootstrap.DataSecretName == nil {
 		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
@@ -194,6 +199,7 @@ func (i *InstanceScope) HasFailed() bool {
 	return i.KKInstance.Status.FailureReason != nil || i.KKInstance.Status.FailureMessage != nil
 }
 
+// SetState sets the state of the KKInstance.
 func (i *InstanceScope) SetState(state infrav1.InstanceState) {
 	i.KKInstance.Status.State = state
 }

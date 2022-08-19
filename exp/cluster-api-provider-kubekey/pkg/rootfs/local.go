@@ -22,12 +22,14 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
+// Local is a rootfs for local.
 type Local struct {
 	clusterName string
 	basePath    string
 	fs          filesystem.Interface
 }
 
+// NewLocalRootFs returns a new Local implementation of rootfs interface.
 func NewLocalRootFs(clusterName, basePath string) Interface {
 	if basePath == "" {
 		basePath = DefaultLocalRootFsDir
@@ -39,14 +41,17 @@ func NewLocalRootFs(clusterName, basePath string) Interface {
 	}
 }
 
+// ClusterRootFsDir returns the rootfs directory for the cluster.
 func (l *Local) ClusterRootFsDir() string {
 	return filepath.Join(l.basePath, l.clusterName)
 }
 
+// HostRootFsDir returns the rootfs directory for the host.
 func (l *Local) HostRootFsDir(host string) string {
 	return filepath.Join(l.basePath, l.clusterName, host)
 }
 
+// Fs returns the filesystem interface.
 func (l *Local) Fs() filesystem.Interface {
 	return l.fs
 }

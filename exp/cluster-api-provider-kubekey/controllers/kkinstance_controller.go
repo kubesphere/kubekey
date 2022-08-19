@@ -57,8 +57,8 @@ import (
 
 const (
 	defaultRequeueWait        = 30 * time.Second
-	DefaultKKInstanceInterval = 5 * time.Second
-	DefaultKKInstanceTimeout  = 10 * time.Minute
+	defaultKKInstanceInterval = 5 * time.Second
+	defaultKKInstanceTimeout  = 10 * time.Minute
 )
 
 // KKInstanceReconciler reconciles a KKInstance object
@@ -118,10 +118,10 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	log := ctrl.LoggerFrom(ctx)
 
 	if r.WaitKKInstanceInterval.Nanoseconds() == 0 {
-		r.WaitKKInstanceInterval = DefaultKKInstanceInterval
+		r.WaitKKInstanceInterval = defaultKKInstanceInterval
 	}
 	if r.WaitKKInstanceTimeout.Nanoseconds() == 0 {
-		r.WaitKKInstanceTimeout = DefaultKKInstanceTimeout
+		r.WaitKKInstanceTimeout = defaultKKInstanceTimeout
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
@@ -421,6 +421,8 @@ func (r *KKInstanceReconciler) requestsForCluster(log logr.Logger, namespace, na
 	return result
 }
 
+// KKMachineToKKInstanceMapFunc returns a handler.ToRequestsFunc that watches for
+// KKMachine events and returns reconciliation requests for an KKInstance object.
 func (r *KKInstanceReconciler) KKMachineToKKInstanceMapFunc(log logr.Logger) handler.MapFunc {
 	log.V(4).Info("KKMachineToKKInstanceMapFunc")
 	return func(o client.Object) []reconcile.Request {

@@ -16,6 +16,7 @@
 
 package v1beta1
 
+// Default values.
 const (
 	DockerType             = "docker"
 	DefaultDockerVersion   = "20.10.8"

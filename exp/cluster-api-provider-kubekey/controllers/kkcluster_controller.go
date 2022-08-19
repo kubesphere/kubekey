@@ -180,7 +180,7 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return r.reconcileNormal(ctx, clusterScope)
 }
 
-func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) { //nolint:unparam
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKCluster delete")
 
@@ -205,7 +205,7 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, clusterScope 
 	if _, err := net.LookupIP(kkCluster.Spec.ControlPlaneLoadBalancer.Host); err != nil {
 		conditions.MarkFalse(kkCluster, infrav1.ExternalLoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
 		clusterScope.Info("Waiting on API server DNS name to resolve")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil // nolint:nilerr
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil //nolint:nilerr
 	}
 	conditions.MarkTrue(kkCluster, infrav1.ExternalLoadBalancerReadyCondition)
 

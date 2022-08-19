@@ -17,9 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
-	"net"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
@@ -53,16 +50,7 @@ type KKClusterSpec struct {
 	Registry Registry `json:"registry"`
 }
 
-type ControlPlaneEndPoint struct {
-	// +optional
-	Address string `json:"address"`
-
-	Domain string `json:"domain"`
-
-	// The port on which the API server is serving.
-	Port int32 `json:"port"`
-}
-
+// Nodes represents the information about the nodes available to the cluster
 type Nodes struct {
 	// Auth is the SSH authentication information of all instance. It is a global auth configuration.
 	// +optional
@@ -168,19 +156,4 @@ func (k *KKCluster) SetConditions(conditions clusterv1.Conditions) {
 
 func init() {
 	SchemeBuilder.Register(&KKCluster{}, &KKClusterList{})
-}
-
-// IsZero returns true if both host and port are zero values.
-func (c ControlPlaneEndPoint) IsZero() bool {
-	return c.Address == "" && c.Port == 0
-}
-
-// IsValid returns true if both host and port are non-zero values.
-func (c ControlPlaneEndPoint) IsValid() bool {
-	return c.Address != "" && c.Port != 0
-}
-
-// String returns a formatted version HOST:PORT of this APIEndpoint.
-func (c ControlPlaneEndPoint) String() string {
-	return net.JoinHostPort(c.Address, fmt.Sprintf("%d", c.Port))
 }

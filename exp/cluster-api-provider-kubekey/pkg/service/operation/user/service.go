@@ -20,12 +20,15 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 )
 
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
 type Service struct {
 	SSHClient ssh.Interface
 	Name      string
 	Desc      string
 }
 
+// NewService returns a new service given the remote instance Linux user.
 func NewService(sshClient ssh.Interface, name, desc string) *Service {
 	return &Service{
 		SSHClient: sshClient,

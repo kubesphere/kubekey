@@ -237,13 +237,8 @@ func (r *KKMachineReconciler) reconcileDeleteKKInstance(ctx context.Context, mac
 	return instance, nil
 }
 
-func (r *KKMachineReconciler) reconcileNormal(
-	ctx context.Context,
-	machineScope *scope.MachineScope,
-	clusterScope pkg.ClusterScoper,
-	kkInstanceScope scope.KKInstanceScope,
-) (ctrl.Result, error) {
-
+func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, _ pkg.ClusterScoper,
+	kkInstanceScope scope.KKInstanceScope) (ctrl.Result, error) {
 	machineScope.Info("Reconcile KKMachine normal")
 
 	// If the KKMachine is in an error state, return early.
@@ -332,7 +327,7 @@ func (r *KKMachineReconciler) reconcileNormal(
 		conditions.MarkFalse(machineScope.KKMachine, infrav1.InstanceReadyCondition, infrav1.InstanceCleanedReason, clusterv1.ConditionSeverityWarning, "")
 		return ctrl.Result{Requeue: true}, nil
 	case infrav1.InstanceStateRunning:
-		if err := r.SetNodeProviderID(ctx, machineScope, instance); err != nil {
+		if err := r.setNodeProviderID(ctx, machineScope, instance); err != nil {
 			machineScope.Error(err, "failed to patch the Kubernetes node with the machine providerID")
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
@@ -370,39 +365,23 @@ func (r *KKMachineReconciler) findInstance(ctx context.Context, machineScope *sc
 		if errors.Is(err, noderefutil.ErrEmptyProviderID) {
 			machineScope.Info("KKMachine does not have an instance id")
 			return nil, nil
-		} else {
-			return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
 		}
-	} else {
-		machineScope.V(4).Info("KKMachine has an instance id", "instance-id", pid.ID())
-		// If the ProviderID is populated, describe the instance using the ID.
-		id := pointer.StringPtr(pid.ID())
+		return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
+	}
 
-		obj := client.ObjectKey{
-			Namespace: machineScope.KKMachine.Namespace,
-			Name:      *id,
-		}
-		if err := r.Client.Get(ctx, obj, kkInstance); err != nil {
-			return nil, err
-		}
+	machineScope.V(4).Info("KKMachine has an instance id", "instance-id", pid.ID())
+	// If the ProviderID is populated, describe the instance using the ID.
+	id := pointer.StringPtr(pid.ID())
+
+	obj := client.ObjectKey{
+		Namespace: machineScope.KKMachine.Namespace,
+		Name:      *id,
+	}
+	if err := r.Client.Get(ctx, obj, kkInstance); err != nil {
+		return nil, err
 	}
 	// The only case where the instance is nil here is when the providerId is empty and instance could not be found by tags.
 	return kkInstance, nil
-}
-
-func (r *KKMachineReconciler) getInfraCluster(ctx context.Context, cluster *clusterv1.Cluster, kkMachine *infrav1.KKMachine) (*infrav1.KKCluster, error) {
-	kkCluster := &infrav1.KKCluster{}
-
-	infraClusterName := client.ObjectKey{
-		Namespace: kkMachine.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
-	}
-
-	if err := r.Client.Get(ctx, infraClusterName, kkCluster); err != nil {
-		return nil, nil // nolint:nilerr
-	}
-
-	return kkCluster, nil
 }
 
 func (r *KKMachineReconciler) indexKKMachineByInstanceID(o client.Object) []string {

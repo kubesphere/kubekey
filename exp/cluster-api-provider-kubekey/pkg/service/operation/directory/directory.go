@@ -24,26 +24,29 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
+// Make wraps the Linux command "mkdir -p -m <mode> <path>".
 func (s *Service) Make() error {
-	_, err := s.SSHClient.SudoCmdf("mkdir -p -m %o %s", filesystem.ToChmodPerm(s.Mode), s.Path)
+	_, err := s.sshClient.SudoCmdf("mkdir -p -m %o %s", filesystem.ToChmodPerm(s.mode), s.path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to mkdir -p -m %o %s", filesystem.ToChmodPerm(s.Mode), s.Path)
+		return errors.Wrapf(err, "failed to mkdir -p -m %o %s", filesystem.ToChmodPerm(s.mode), s.path)
 	}
 	return nil
 }
 
+// Chown wraps the linux command "chown <user> -R <path>".
 func (s *Service) Chown(user string) error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("chown %s -R %s", user, s.Path))
+	_, err := s.sshClient.SudoCmd(fmt.Sprintf("chown %s -R %s", user, s.path))
 	if err != nil {
-		return errors.Wrapf(err, "failed to chown %s -R %s", user, s.Path)
+		return errors.Wrapf(err, "failed to chown %s -R %s", user, s.path)
 	}
 	return nil
 }
 
+// Remove wraps the linux command "rm -rf <path>".
 func (s *Service) Remove() error {
-	_, err := s.SSHClient.SudoCmd(fmt.Sprintf("rm -rf %s", s.Path))
+	_, err := s.sshClient.SudoCmd(fmt.Sprintf("rm -rf %s", s.path))
 	if err != nil {
-		return errors.Wrapf(err, "failed to rm -rf %s", s.Path)
+		return errors.Wrapf(err, "failed to rm -rf %s", s.path)
 	}
 	return nil
 }

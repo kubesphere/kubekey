@@ -20,6 +20,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
+// Interface is the interface for rootfs.
 type Interface interface {
 	// ClusterRootFsDir returns the rootfs directory of the cluster.
 	ClusterRootFsDir() string

@@ -79,6 +79,7 @@ func (a *writeFilesAction) getDirectoryService(path string, mode os.FileMode) op
 	return directory.NewService(a.sshClient, path, mode)
 }
 
+// Unmarshal unmarshals the given content into the given encoding.
 func (a *writeFilesAction) Unmarshal(userData []byte) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
 		return errors.Wrapf(err, "error parsing write_files action: %s", userData)
@@ -129,6 +130,7 @@ func (a *writeFilesAction) Commands() ([]commands.Cmd, error) {
 	return cmds, nil
 }
 
+// Run runs the action.
 func (a *writeFilesAction) Run() error {
 	for _, f := range a.Files {
 		// Fix attributes and apply defaults

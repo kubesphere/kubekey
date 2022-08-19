@@ -24,16 +24,20 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning/commands"
 )
 
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
 type Service struct {
 	SSHClient ssh.Interface
 }
 
+// NewService returns a new service.
 func NewService(sshClient ssh.Interface) *Service {
 	return &Service{
 		SSHClient: sshClient,
 	}
 }
 
+// RawBootstrapDataToProvisioningCommands converts raw bootstrap data to provisioning commands.
 func (s *Service) RawBootstrapDataToProvisioningCommands(config []byte) ([]commands.Cmd, error) {
 	// validate cloudConfigScript is a valid yaml, as required by the cloud config specification
 	if err := yaml.Unmarshal(config, &map[string]interface{}{}); err != nil {

@@ -29,6 +29,7 @@ import (
 // log is for logging in this package.
 var kkclustertemplatelog = logf.Log.WithName("kkclustertemplate-resource")
 
+// SetupWebhookWithManager sets up and registers the webhook with the manager.
 func (r *KKClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).

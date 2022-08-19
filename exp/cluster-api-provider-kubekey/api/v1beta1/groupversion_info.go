@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1beta1 contains API Schema definitions for the infrastructure v1beta1 API group
-//+kubebuilder:object:generate=true
-//+groupName=infrastructure.cluster.x-k8s.io
+// +kubebuilder:object:generate=true
+// +groupName=infrastructure.cluster.x-k8s.io
 package v1beta1
 
 import (

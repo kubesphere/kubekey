@@ -24,21 +24,26 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/hash"
 )
 
+// FileSystem is a filesystem implementation
 type FileSystem struct {
 }
 
+// NewFileSystem returns a new CAPKK local filesystem implementation
 func NewFileSystem() Interface {
 	return FileSystem{}
 }
 
+// Stat returns the FileInfo for the given path
 func (f FileSystem) Stat(name string) (os.FileInfo, error) {
 	return os.Stat(name)
 }
 
+// MkdirAll the same as os.MkdirAll().
 func (f FileSystem) MkdirAll(path string) error {
 	return os.MkdirAll(path, os.ModePerm)
 }
 
+// MD5Sum returns the file MD5 sum for the given local path
 func (f FileSystem) MD5Sum(localPath string) string {
 	md5, err := hash.FileMD5(localPath)
 	if err != nil {
@@ -47,6 +52,7 @@ func (f FileSystem) MD5Sum(localPath string) string {
 	return md5
 }
 
+// MkLocalTmpDir creates a temporary directory and returns the path
 func (f FileSystem) MkLocalTmpDir() (string, error) {
 	tempDir, err := ioutil.TempDir(DefaultLocalTmpDir, ".Tmp-")
 	if err != nil {
@@ -55,6 +61,7 @@ func (f FileSystem) MkLocalTmpDir() (string, error) {
 	return tempDir, os.MkdirAll(tempDir, os.ModePerm)
 }
 
+// RemoveAll the same as os.RemoveAll().
 func (f FileSystem) RemoveAll(path ...string) error {
 	for _, fi := range path {
 		err := os.RemoveAll(fi)

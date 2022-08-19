@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// Kubectl info
 const (
 	KubectlName              = "kubectl"
 	KubectlID                = "kubectl"
@@ -32,11 +33,12 @@ const (
 	KubectlDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl"
 )
 
+// NewKubectl returns a new Binary for kubectl
 func NewKubectl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(KubectlID, version, arch)
 
 	fileName := KubectlName
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

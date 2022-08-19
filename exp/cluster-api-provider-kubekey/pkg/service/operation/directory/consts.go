@@ -17,15 +17,18 @@
 package directory
 
 const (
-	TmpDir                       = "/tmp/kubekey"
-	BinDir                       = "/usr/local/bin"
-	KubeConfigDir                = "/etc/kubernetes"
-	KubeAddonsDir                = "/etc/kubernetes/addons"
-	KubeCertDir                  = "/etc/kubernetes/pki"
-	KubeManifestDir              = "/etc/kubernetes/manifests"
-	KubeScriptDir                = "/usr/local/bin/kube-scripts"
+	// TmpDir represents the tmp directory of the remote instance
+	TmpDir = "/tmp/kubekey"
+	// BinDir represents the bin directory of the remote instance
+	BinDir = "/usr/local/bin"
+	// KubeConfigDir represents the normal kubernetes data directory of the remote instance
+	KubeConfigDir = "/etc/kubernetes"
+	// KubeCertDir represents the normal kubernetes cert directory of the remote instance
+	KubeCertDir = "/etc/kubernetes/pki"
+	// KubeManifestDir represents the normal kubernetes manifest directory of the remote instance
+	KubeManifestDir = "/etc/kubernetes/manifests"
+	// KubeScriptDir represents the kubernetes manage tools scripts directory of the remote instance
+	KubeScriptDir = "/usr/local/bin/kube-scripts"
+	// KubeletFlexvolumesPluginsDir represents the kubernetes kubelet plugin volume directory of the remote instance
 	KubeletFlexvolumesPluginsDir = "/usr/libexec/kubernetes/kubelet-plugins/volume/exec"
-	ETCDCertDir                  = "/etc/ssl/etcd/ssl"
-	RegistryCertDir              = "/etc/ssl/registry/ssl"
-	HaproxyDir                   = "/etc/kubekey/haproxy"
 )

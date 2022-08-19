@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// Kubecni info
 const (
 	KubecniName              = "cni-plugins-linux-%s-%s.tgz"
 	KubecniID                = "kubecni"
@@ -33,11 +34,12 @@ const (
 	KubecniDefaultVersion    = "v0.9.1"
 )
 
+// NewKubecni returns a new Binary for kubecni
 func NewKubecni(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(KubecniID, version, arch)
 
 	fileName := fmt.Sprintf(KubecniName, arch, version)
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

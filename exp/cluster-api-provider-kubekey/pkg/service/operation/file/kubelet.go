@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// kubelet info
 const (
 	KubeletName              = "kubelet"
 	KubeletID                = "kubelet"
@@ -32,11 +33,12 @@ const (
 	KubeletDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet"
 )
 
+// NewKubelet returns a new Binary for kubelet
 func NewKubelet(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(KubeletID, version, arch)
 
 	fileName := KubeletName
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

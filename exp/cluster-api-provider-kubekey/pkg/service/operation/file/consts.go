@@ -16,8 +16,8 @@
 
 package file
 
+// Common dir
 const (
-	TmpDir       = "/tmp/kubekey"
 	BinDir       = "/usr/local/bin"
 	OptCniBinDir = "/opt/cni/bin"
 	SystemdDir   = "/etc/systemd/system"

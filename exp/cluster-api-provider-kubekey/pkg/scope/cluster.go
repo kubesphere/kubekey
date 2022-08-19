@@ -111,26 +111,32 @@ func (s *ClusterScope) KubernetesClusterName() string {
 	return s.Cluster.Name
 }
 
+// ControlPlaneEndpoint returns the control plane endpoint.
 func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
 	return s.KKCluster.Spec.ControlPlaneEndpoint
 }
 
+// GlobalRegistry returns the global registry spec.
 func (s *ClusterScope) GlobalRegistry() *infrav1.Registry {
 	return &s.KKCluster.Spec.Registry
 }
 
+// GlobalAuth returns the global auth spec.
 func (s *ClusterScope) GlobalAuth() *infrav1.Auth {
 	return &s.KKCluster.Spec.Nodes.Auth
 }
 
+// GlobalContainerManager returns the global container manager spec.
 func (s *ClusterScope) GlobalContainerManager() *infrav1.ContainerManager {
 	return &s.KKCluster.Spec.Nodes.ContainerManager
 }
 
+// AllInstancesSpec returns the all KKInstance specs.
 func (s *ClusterScope) AllInstancesSpec() []infrav1.KKInstanceSpec {
 	return s.KKCluster.Spec.Nodes.Instances
 }
 
+// GetInstancesSpecByRole returns the KKInstance spec for the given role.
 func (s *ClusterScope) GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKInstanceSpec {
 	var arr []infrav1.KKInstanceSpec
 	for _, v := range s.KKCluster.Spec.Nodes.Instances {
@@ -143,6 +149,7 @@ func (s *ClusterScope) GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKIns
 	return arr
 }
 
+// AllInstances returns all existing KKInstances in the cluster.
 func (s *ClusterScope) AllInstances() ([]*infrav1.KKInstance, error) {
 	// Get all KKInstances linked to this KKCluster.
 	allInstances := &infrav1.KKInstanceList{}

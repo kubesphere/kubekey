@@ -18,10 +18,8 @@ package file
 
 import (
 	"crypto/sha256"
-	"crypto/tls"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"io"
 	"os"
 	"time"
 
@@ -32,6 +30,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// Binary is a binary implementation of Binary interface.
 type Binary struct {
 	*File
 	id       string
@@ -42,37 +41,43 @@ type Binary struct {
 	checksum checksum.Interface
 }
 
+// ID returns the id of the binary.
 func (b *Binary) ID() string {
 	return b.id
 }
 
+// Arch returns the arch of the binary.
 func (b *Binary) Arch() string {
 	return b.arch
 }
 
+// Version returns the version of the binary.
 func (b *Binary) Version() string {
 	return b.version
 }
 
-func (b *Binary) Url() string {
+// URL returns the download url of the binary.
+func (b *Binary) URL() string {
 	return b.url
 }
 
+// SetZone sets the zone of the binary.
 func (b *Binary) SetZone(zone string) {
 	if zone == "cn" {
 		b.url = b.cnURL
 	}
 }
 
+// Get downloads the binary from remote.
 func (b *Binary) Get(timeout time.Duration) error {
 	//todo: should not to skip TLS verify
 	client := &getter.HttpGetter{
 		ReadTimeout: timeout,
-		Client: &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		},
+		//Client: &http.Client{
+		//	Transport: &http.Transport{
+		//		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		//	},
+		//},
 	}
 
 	url, err := urlhelper.Parse(b.url)
@@ -87,6 +92,7 @@ func (b *Binary) Get(timeout time.Duration) error {
 	return nil
 }
 
+// SHA256 calculates the SHA256 of the binary.
 func (b *Binary) SHA256() (string, error) {
 	f, err := os.Open(b.LocalPath())
 	if err != nil {
@@ -94,13 +100,14 @@ func (b *Binary) SHA256() (string, error) {
 	}
 	defer f.Close()
 
-	data, err := ioutil.ReadAll(f)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%x", sha256.Sum256(data)), nil
 }
 
+// CompareChecksum compares the checksum of the binary.
 func (b *Binary) CompareChecksum() error {
 	if err := b.checksum.Get(); err != nil {
 		return errors.Wrapf(err, "%s get checksum failed", b.Name())

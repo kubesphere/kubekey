@@ -25,6 +25,8 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 )
 
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
 type Service struct {
 	SSHClient     ssh.Interface
 	scope         scope.KKInstanceScope
@@ -37,6 +39,7 @@ type Service struct {
 	kubectlFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
 }
 
+// NewService returns a new service given the remote instance.
 func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) *Service {
 	return &Service{
 		SSHClient:     sshClient,

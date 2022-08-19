@@ -16,11 +16,13 @@
 
 package checksum
 
+// Interface is the interface for checksum.
 type Interface interface {
 	Get() error
 	Value() string
 }
 
+// NewChecksum returns a new checksum implementation.
 func NewChecksum(id, version, arch string) Interface {
 	return NewInternalChecksum(id, version, arch)
 }

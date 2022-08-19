@@ -16,6 +16,7 @@
 
 package rootfs
 
+// common dir.
 const (
 	DefaultLocalTmpDir    = "/var/lib/kubekey"
 	DefaultLocalRootFsDir = "/var/lib/kubekey/rootfs"

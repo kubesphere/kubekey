@@ -14,6 +14,7 @@
  limitations under the License.
 */
 
+// Package util implements utilities.
 package util
 
 import (
@@ -29,14 +30,9 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
-func GetInfraCluster(
-	ctx context.Context,
-	c client.Client,
-	log logr.Logger,
-	cluster *clusterv1.Cluster,
-	controllerName string,
+// GetInfraCluster returns the infrastructure cluster object corresponding to a Cluster.
+func GetInfraCluster(ctx context.Context, c client.Client, log logr.Logger, cluster *clusterv1.Cluster, controllerName string,
 	dataDir string) (*scope.ClusterScope, error) {
-
 	kkCluster := &infrav1.KKCluster{}
 	infraClusterName := client.ObjectKey{
 		Namespace: cluster.Spec.InfrastructureRef.Namespace,
@@ -63,6 +59,7 @@ func GetInfraCluster(
 	return clusterScope, nil
 }
 
+// GetOwnerKKMachine returns the Machine object owning the given object.
 func GetOwnerKKMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*infrav1.KKMachine, error) {
 	for _, ref := range obj.OwnerReferences {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)

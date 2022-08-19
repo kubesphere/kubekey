@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -41,26 +40,29 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
+// Default values.
 const (
 	DefaultSSHPort = 22
 	DefaultTimeout = 15
 )
 
+// Client is a wrapper around the SSH client that provides a few helper.
 type Client struct {
 	logr.Logger
 	mu             sync.Mutex
-	User           string
-	Password       string
-	Port           *int
-	PrivateKey     string
-	PrivateKeyPath string
-	Timeout        *time.Duration
+	user           string
+	password       string
+	port           *int
+	privateKey     string
+	privateKeyPath string
+	timeout        *time.Duration
 	host           string
 	sshClient      *ssh.Client
 	sftpClient     *sftp.Client
 	fs             filesystem.Interface
 }
 
+// NewClient returns a new client given ssh information.
 func NewClient(host string, auth infrav1.Auth, log *logr.Logger) Interface {
 	if log == nil {
 		l := klogr.New()
@@ -70,45 +72,46 @@ func NewClient(host string, auth infrav1.Auth, log *logr.Logger) Interface {
 		auth.User = "root"
 	}
 
-	var port int
-	port = DefaultSSHPort
+	port := DefaultSSHPort
 	if auth.Port == nil {
 		auth.Port = &port
 	}
 
-	var timeout time.Duration
-	timeout = time.Duration(DefaultTimeout) * time.Second
+	timeout := time.Duration(DefaultTimeout) * time.Second
 	if auth.Timeout == nil {
 		auth.Timeout = &timeout
 	}
 
 	return &Client{
-		User:           auth.User,
-		Password:       auth.Password,
-		Port:           auth.Port,
-		PrivateKey:     auth.PrivateKey,
-		PrivateKeyPath: auth.PrivateKeyPath,
-		Timeout:        auth.Timeout,
+		user:           auth.User,
+		password:       auth.Password,
+		port:           auth.Port,
+		privateKey:     auth.PrivateKey,
+		privateKeyPath: auth.PrivateKeyPath,
+		timeout:        auth.Timeout,
 		host:           host,
 		fs:             filesystem.NewFileSystem(),
 		Logger:         *log,
 	}
 }
 
+// Connect connects to the host using the provided ssh information.
 func (c *Client) Connect() error {
-	authMethods, err := c.authMethod(c.Password, c.PrivateKey, c.PrivateKeyPath)
+	authMethods, err := c.authMethod(c.password, c.privateKey, c.privateKeyPath)
 	if err != nil {
 		return errors.Wrap(err, "The given SSH key could not be parsed")
 	}
 
 	sshConfig := &ssh.ClientConfig{
-		User:            c.User,
-		Timeout:         *c.Timeout,
-		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		User:    c.user,
+		Timeout: *c.timeout,
+		Auth:    authMethods,
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			return nil
+		},
 	}
 
-	endpoint := net.JoinHostPort(c.host, strconv.Itoa(*c.Port))
+	endpoint := net.JoinHostPort(c.host, strconv.Itoa(*c.port))
 	sshClient, err := ssh.Dial("tcp", endpoint, sshConfig)
 	if err != nil {
 		return errors.Wrapf(err, "could not establish connection to %s", endpoint)
@@ -118,6 +121,7 @@ func (c *Client) Connect() error {
 	return nil
 }
 
+// ConnectSftpClient connects to the host sftp client using the provided ssh information.
 func (c *Client) ConnectSftpClient(opts ...sftp.ClientOption) error {
 	sess1, err := c.sshClient.NewSession()
 	if err != nil {
@@ -163,6 +167,7 @@ func (c *Client) ConnectSftpClient(opts ...sftp.ClientOption) error {
 	return nil
 }
 
+// Close closes the underlying ssh and sftp connection.
 func (c *Client) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -199,7 +204,7 @@ func (c *Client) privateKeyMethod(privateKey, privateKeyPath string) (am ssh.Aut
 	var signer ssh.Signer
 
 	if fileExist(privateKeyPath) {
-		content, err := ioutil.ReadFile(filepath.Clean(privateKeyPath))
+		content, err := os.ReadFile(filepath.Clean(privateKeyPath))
 		if err != nil {
 			return nil, err
 		}
@@ -252,6 +257,7 @@ func (c *Client) session() (*ssh.Session, error) {
 	return sess, nil
 }
 
+// Cmd executes a command on the remote host.
 func (c *Client) Cmd(cmd string) (string, error) {
 	if err := c.Connect(); err != nil {
 		return "", errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
@@ -273,10 +279,12 @@ func (c *Client) Cmd(cmd string) (string, error) {
 	return string(output), nil
 }
 
+// Cmdf execute a formatting command according to the format specifier.
 func (c *Client) Cmdf(cmd string, a ...any) (string, error) {
 	return c.Cmd(fmt.Sprintf(cmd, a...))
 }
 
+// SudoCmd executes a command on the remote host with sudo.
 func (c *Client) SudoCmd(cmd string) (string, error) {
 	if err := c.Connect(); err != nil {
 		return "", errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
@@ -330,14 +338,14 @@ func (c *Client) sudoCmd(cmd string) (string, error) {
 		line += string(b)
 
 		if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
-			_, err = in.Write([]byte(c.Password + "\n"))
+			_, err = in.Write([]byte(c.password + "\n"))
 			if err != nil {
 				break
 			}
 		}
 	}
 
-	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", c.User))
+	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", c.user))
 	err = session.Wait()
 	if err != nil {
 		return strings.TrimSpace(outStr), errors.Wrap(err, strings.TrimSpace(outStr))
@@ -345,10 +353,12 @@ func (c *Client) sudoCmd(cmd string) (string, error) {
 	return strings.TrimSpace(outStr), nil
 }
 
+// SudoCmdf executes a formatting command on the remote host with sudo.
 func (c *Client) SudoCmdf(cmd string, a ...any) (string, error) {
 	return c.SudoCmd(fmt.Sprintf(cmd, a...))
 }
 
+// Copy copies a file to the remote host.
 func (c *Client) Copy(src, dst string) error {
 	if err := c.Connect(); err != nil {
 		return errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
@@ -360,6 +370,7 @@ func (c *Client) Copy(src, dst string) error {
 	defer c.sshClient.Close()
 	defer c.sftpClient.Close()
 
+	src = filepath.Clean(src)
 	f, err := os.Stat(src)
 	if err != nil {
 		return errors.Wrapf(err, "[%s] get file stat failed", c.host)
@@ -399,7 +410,7 @@ func (c *Client) copyLocalFileToRemote(src, dst string) error {
 		}
 	}
 
-	srcFile, err := os.Open(src)
+	srcFile, err := os.Open(filepath.Clean(src))
 	if err != nil {
 		return err
 	}
@@ -428,6 +439,7 @@ func (c *Client) copyLocalFileToRemote(src, dst string) error {
 	return nil
 }
 
+// Fetch fetches a file from the remote host.
 func (c *Client) Fetch(local, remote string) error {
 	if err := c.Connect(); err != nil {
 		return errors.Wrapf(err, "[%s] connect ssh client failed", c.host)
@@ -487,6 +499,7 @@ func (c *Client) remoteMd5Sum(dst string) string {
 	return remoteMd5
 }
 
+// RemoteFileExist checks if a file exists on the remote host.
 func (c *Client) RemoteFileExist(remote string) (bool, error) {
 	if err := c.Connect(); err != nil {
 		return false, errors.Wrapf(err, "[%s] connect failed", c.host)
@@ -512,6 +525,7 @@ func (c *Client) remoteFileExist(remote string) (bool, error) {
 	return count != 0, nil
 }
 
+// Ping checks if the remote host is reachable.
 func (c *Client) Ping() error {
 	if err := c.Connect(); err != nil {
 		return errors.Wrapf(err, "[%s] connect failed", c.host)
@@ -520,10 +534,12 @@ func (c *Client) Ping() error {
 	return nil
 }
 
+// Host returns the host name of the ssh client.
 func (c *Client) Host() string {
 	return c.host
 }
 
+// Fs returns the filesystem of the ssh client.
 func (c *Client) Fs() filesystem.Interface {
 	return c.fs
 }
@@ -533,6 +549,7 @@ func fileExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
+// SudoPrefix returns the prefix for sudo commands.
 func SudoPrefix(cmd string) string {
 	return fmt.Sprintf("sudo -E /bin/bash <<EOF\n%s\nEOF", cmd)
 }

@@ -28,6 +28,8 @@ import (
 //go:embed templates
 var f embed.FS
 
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
 type Service interface {
 	Type() string
 	Version() string
@@ -36,6 +38,7 @@ type Service interface {
 	Install() error
 }
 
+// NewService returns a new service given the remote instance container manager client.
 func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) Service {
 	switch instanceScope.ContainerManager().Type {
 	case file.ContainerdID:

@@ -37,6 +37,7 @@ type actionFactory struct {
 	sshClient ssh.Interface
 }
 
+// NewActionFactory returns a new action factory.
 func NewActionFactory(sshClient ssh.Interface) *actionFactory {
 	return &actionFactory{
 		sshClient: sshClient,

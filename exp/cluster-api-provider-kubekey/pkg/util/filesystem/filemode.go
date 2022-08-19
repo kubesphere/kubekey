@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	s_ISUID = syscall.S_ISUID
-	s_ISGID = syscall.S_ISGID
-	s_ISVTX = syscall.S_ISVTX
+	sIsuid = syscall.S_ISUID
+	sIsgid = syscall.S_ISGID
+	sIsvtx = syscall.S_ISVTX
 )
 
 // ToChmodPerm converts Go permission bits to POSIX permission bits.
@@ -33,17 +33,17 @@ const (
 // setuid, setgid and sticky in m, because we've historically supported those
 // bits, and we mask off any non-permission bits.
 func ToChmodPerm(m os.FileMode) (perm uint32) {
-	const mask = os.ModePerm | s_ISUID | s_ISGID | s_ISVTX
+	const mask = os.ModePerm | sIsuid | sIsgid | sIsvtx
 	perm = uint32(m & mask)
 
 	if m&os.ModeSetuid != 0 {
-		perm |= s_ISUID
+		perm |= sIsuid
 	}
 	if m&os.ModeSetgid != 0 {
-		perm |= s_ISGID
+		perm |= sIsgid
 	}
 	if m&os.ModeSticky != 0 {
-		perm |= s_ISVTX
+		perm |= sIsvtx
 	}
 
 	return perm

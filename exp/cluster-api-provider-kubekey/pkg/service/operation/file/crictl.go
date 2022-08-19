@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
+// Crictl info
 const (
 	CrictlName              = "crictl-%s-linux-%s.tar.gz"
 	CrictlID                = "crictl"
@@ -32,11 +33,12 @@ const (
 	CrictlDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
 )
 
+// NewCrictl returns a new Binary for crictl
 func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
 	internal := checksum.NewChecksum(CrictlID, version, arch)
 
 	fileName := fmt.Sprintf(CrictlName, version, arch)
-	file, err := NewFile(FileParams{
+	file, err := NewFile(Params{
 		SSHClient:      sshClient,
 		RootFs:         rootFs,
 		Type:           FileBinary,

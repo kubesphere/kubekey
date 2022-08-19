@@ -20,6 +20,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 )
 
+// Interface is the interface for ssh client.
 type Interface interface {
 	Connector
 	Command
@@ -29,11 +30,13 @@ type Interface interface {
 	Host() string
 }
 
+// Connector collects the methods for connecting and closing.
 type Connector interface {
 	Connect() error
 	Close()
 }
 
+// Command collects the methods for executing commands.
 type Command interface {
 	Cmd(cmd string) (string, error)
 	Cmdf(cmd string, a ...any) (string, error)
@@ -41,12 +44,14 @@ type Command interface {
 	SudoCmdf(cmd string, a ...any) (string, error)
 }
 
+// Sftp collects the methods for sftp.
 type Sftp interface {
 	Copy(local, remote string) error
 	Fetch(local, remote string) error
 	RemoteFileExist(remote string) (bool, error)
 }
 
+// LocalFileSystem collects the methods for return a local filesystem.
 type LocalFileSystem interface {
 	Fs() filesystem.Interface
 }

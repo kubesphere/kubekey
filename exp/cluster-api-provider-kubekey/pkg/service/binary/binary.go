@@ -29,6 +29,7 @@ import (
 //go:embed templates
 var f embed.FS
 
+// DownloadAll downloads all binaries.
 func (s *Service) DownloadAll(timeout time.Duration) error {
 	kubeadm, err := s.getKubeadmService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {
@@ -62,7 +63,7 @@ func (s *Service) DownloadAll(timeout time.Duration) error {
 		}
 		if needGet {
 			s.instanceScope.V(4).Info("download binary", "binary", b.Name(),
-				"version", b.Version(), "url", b.Url())
+				"version", b.Version(), "url", b.URL())
 			if err := b.Get(timeout); err != nil {
 				return err
 			}
@@ -85,6 +86,7 @@ func (s *Service) DownloadAll(timeout time.Duration) error {
 	return nil
 }
 
+// ConfigureKubelet configures kubelet.
 func (s *Service) ConfigureKubelet() error {
 	kubelet, err := s.getKubeletService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {

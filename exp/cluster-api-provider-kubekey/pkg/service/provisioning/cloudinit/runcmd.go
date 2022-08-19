@@ -42,16 +42,18 @@ func (a *runCmd) Unmarshal(userData []byte) error {
 	return nil
 }
 
+// Commands returns the commands.
 func (a *runCmd) Commands() ([]commands.Cmd, error) {
 	cmds := make([]commands.Cmd, 0)
 	for _, c := range a.Cmds {
-		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
+		// requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
 		c = hackKubeadmIgnoreErrors(c)
 		cmds = append(cmds, c)
 	}
 	return cmds, nil
 }
 
+// Run runs the commands.
 func (a *runCmd) Run() error {
 	return nil
 }

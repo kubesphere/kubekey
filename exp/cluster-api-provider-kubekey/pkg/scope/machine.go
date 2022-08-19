@@ -145,10 +145,12 @@ func (m *MachineScope) SetAddresses(addrs []clusterv1.MachineAddress) {
 	m.KKMachine.Status.Addresses = addrs
 }
 
+// GetRoles returns the KKMachine roles.
 func (m *MachineScope) GetRoles() []infrav1.Role {
 	return m.KKMachine.Spec.Roles
 }
 
+// IsRole returns true if the machine has the given role.
 func (m *MachineScope) IsRole(role infrav1.Role) bool {
 	for _, r := range m.KKMachine.Spec.Roles {
 		if r == role {
@@ -194,10 +196,6 @@ func (m *MachineScope) PatchObject() error {
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
 	applicableConditions := []clusterv1.ConditionType{
 		infrav1.InstanceReadyCondition,
-	}
-
-	if m.IsControlPlane() {
-		//applicableConditions = append(applicableConditions, infrav1.ELBAttachedCondition)
 	}
 
 	conditions.SetSummary(m.KKMachine,

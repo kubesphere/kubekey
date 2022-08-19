@@ -14,6 +14,7 @@
  limitations under the License.
 */
 
+// Package operation define the remote instance operations interface.
 package operation
 
 import (
@@ -22,9 +23,10 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 )
 
+// File interface defines the operations for normal file which needed to be copied to remote.
 type File interface {
 	Name() string
-	Type() file.FileType
+	Type() file.Type
 	LocalPath() string
 	RemotePath() string
 	LocalExist() bool
@@ -34,32 +36,38 @@ type File interface {
 	Chmod(option string) error
 }
 
+// Binary interface defines the operations for Kubernetes needed binaries which usually needed to be copied to remote.
 type Binary interface {
 	File
 	ID() string
 	Arch() string
 	Version() string
-	Url() string
+	URL() string
 	SetZone(zone string)
 	Get(timeout time.Duration) error
 	CompareChecksum() error
 }
 
+// Template interface defines the operations for Kubernetes needed template files (systemd files, config files .e.g)
+// which usually needed to be copied to remote.
 type Template interface {
 	File
 	RenderToLocal() error
 }
 
+// User interface defines the operations for remote instance Linux user.
 type User interface {
 	Add() error
 }
 
+// Directory interface defines the operations for remote instance Linux directory.
 type Directory interface {
 	Make() error
 	Chown(user string) error
 	Remove() error
 }
 
+// Repository interface defines the operations for remote instance Linux repository.
 type Repository interface {
 	Update() error
 	Install(pkg ...string) error

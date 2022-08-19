@@ -22,10 +22,12 @@ import (
 
 // KKCluster condition
 const (
+	// PrincipalPreparedCondition reports whether the principal is prepared.
 	PrincipalPreparedCondition clusterv1.ConditionType = "PrincipalPrepared"
 )
 
 const (
+	// HostReadyCondition reports whether the host is ready to be used.
 	HostReadyCondition clusterv1.ConditionType = "HostReadyCondition"
 )
 
@@ -60,28 +62,38 @@ const (
 
 // KKInstance condition
 const (
+	// KKInstanceBootstrappedCondition reports on current status of the instance. Ready indicates the instance is in a init Bootstrapped state.
 	KKInstanceBootstrappedCondition clusterv1.ConditionType = "InstanceBootstrapped"
-	KKInstanceInitOSFailedReason                            = "InitOSFailed"
+	// KKInstanceInitOSFailedReason used when the instance couldn't initialize os environment.
+	KKInstanceInitOSFailedReason = "InitOSFailed"
 )
 
 const (
+	// KKInstanceBinariesReadyCondition reports on whether successful to download binaries.
 	KKInstanceBinariesReadyCondition clusterv1.ConditionType = "InstanceBinariesReady"
-	KKInstanceGetBinaryFailedReason                          = "GetBinaryFailed"
+	// KKInstanceGetBinaryFailedReason used when the instance couldn't download binaries (or check existed binaries).
+	KKInstanceGetBinaryFailedReason = "GetBinaryFailed"
 )
 
 const (
-	KKInstanceCRIReadyCondition      clusterv1.ConditionType = "InstanceCRIReady"
-	KKInstanceInstallCRIFailedReason                         = "InstallCRIFailed"
+	// KKInstanceCRIReadyCondition reports on whether successful to download and install CRI.
+	KKInstanceCRIReadyCondition clusterv1.ConditionType = "InstanceCRIReady"
+	// KKInstanceInstallCRIFailedReason used when the instance couldn't download and install CRI.
+	KKInstanceInstallCRIFailedReason = "InstallCRIFailed"
 )
 
 const (
-	KKInstanceProvisionedCondition       clusterv1.ConditionType = "InstanceProvisioned"
-	KKInstanceRunCloudConfigFailedReason                         = "RunCloudConfigFailed"
+	// KKInstanceProvisionedCondition reports on whether the instance is provisioned by cloud-init.
+	KKInstanceProvisionedCondition clusterv1.ConditionType = "InstanceProvisioned"
+	// KKInstanceRunCloudConfigFailedReason used when the instance couldn't be provisioned.
+	KKInstanceRunCloudConfigFailedReason = "RunCloudConfigFailed"
 )
 
 const (
-	KKInstanceDeletingBootstrapCondition   clusterv1.ConditionType = "InstanceDeletingBootstrapped"
-	KKInstanceClearEnvironmentFailedReason                         = "ClearEnvironmentFailed"
+	// KKInstanceDeletingBootstrapCondition reports on whether the instance is deleting bootstrap data.
+	KKInstanceDeletingBootstrapCondition clusterv1.ConditionType = "InstanceDeletingBootstrapped"
+	// KKInstanceClearEnvironmentFailedReason used when the instance couldn't be deleting bootstrap data.
+	KKInstanceClearEnvironmentFailedReason = "ClearEnvironmentFailed"
 
 	// CleaningReason (Severity=Info) documents a machine node being cleaned.
 	CleaningReason = "Cleaning"

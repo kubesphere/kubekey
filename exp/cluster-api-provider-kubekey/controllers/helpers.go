@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apiserver/pkg/storage/names"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -36,12 +35,8 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 )
 
-func (r *KKMachineReconciler) createInstance(
-	ctx context.Context,
-	machineScope *scope.MachineScope,
-	kkInstanceScope scope.KKInstanceScope,
-) (*infrav1.KKInstance, error) {
-
+func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *scope.MachineScope,
+	kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstance, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Creating KKInstance")
 
@@ -61,7 +56,7 @@ func (r *KKMachineReconciler) createInstance(
 		instanceSpec.Arch = "amd64"
 	}
 
-	// todo: if it need to append a random suffix to the name string
+	// todo: if it needs to append a random suffix to the name string
 	instanceID := instanceSpec.Name
 
 	gv := infrav1.GroupVersion
@@ -95,10 +90,6 @@ func (r *KKMachineReconciler) createInstance(
 	return instance, nil
 }
 
-func (r *KKMachineReconciler) generateInstanceID(instanceSpec *infrav1.KKInstanceSpec) string {
-	return names.SimpleNameGenerator.GenerateName(instanceSpec.Name + "-")
-}
-
 func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.MachineScope, kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstanceSpec, error) {
 	var instanceSpecs []infrav1.KKInstanceSpec
 	if len(machineScope.GetRoles()) != 0 {
@@ -118,18 +109,19 @@ func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.Mach
 	}
 
 	for _, spec := range instanceSpecs {
-		if _, ok := instancesMap[spec.InternalAddress]; !ok {
-			auth := kkInstanceScope.GlobalAuth().DeepCopy()
-			if err := mergo.Merge(&spec.Auth, auth); err != nil {
-				return nil, err
-			}
-			cm := kkInstanceScope.GlobalContainerManager().DeepCopy()
-			if err := mergo.Merge(&spec.ContainerManager, cm); err != nil {
-				return nil, err
-			}
-
-			return &spec, nil
+		if _, ok := instancesMap[spec.InternalAddress]; ok {
+			continue
 		}
+
+		auth := kkInstanceScope.GlobalAuth().DeepCopy()
+		if err := mergo.Merge(&spec.Auth, auth); err != nil {
+			return nil, err
+		}
+		cm := kkInstanceScope.GlobalContainerManager().DeepCopy()
+		if err := mergo.Merge(&spec.ContainerManager, cm); err != nil {
+			return nil, err
+		}
+		return &spec, nil
 	}
 	return nil, errors.New("unassigned instance not found")
 }
@@ -143,7 +135,7 @@ func (r *KKMachineReconciler) deleteInstance(ctx context.Context, instance *infr
 	return nil
 }
 
-func (r *KKMachineReconciler) SetNodeProviderID(ctx context.Context, machineScope *scope.MachineScope, instance *infrav1.KKInstance) error {
+func (r *KKMachineReconciler) setNodeProviderID(ctx context.Context, machineScope *scope.MachineScope, instance *infrav1.KKInstance) error {
 	// Usually a cloud provider will do this, but there is no kubekey-cloud provider.
 	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.

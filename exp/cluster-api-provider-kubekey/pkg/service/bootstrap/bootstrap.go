@@ -35,6 +35,7 @@ import (
 //go:embed templates
 var f embed.FS
 
+// AddUsers adds a kube user to the Linux.
 func (s *Service) AddUsers() error {
 	userService := s.getUserService("kube", "Kubernetes user")
 
@@ -42,8 +43,9 @@ func (s *Service) AddUsers() error {
 	return userService.Add()
 }
 
+// SetHostname sets the hostname of the machine.
 func (s *Service) SetHostname() error {
-	if _, err := s.SSHClient.SudoCmdf(
+	if _, err := s.sshClient.SudoCmdf(
 		"hostnamectl set-hostname %s && sed -i '/^127.0.1.1/s/.*/127.0.1.1      %s/g' /etc/hosts",
 		s.instanceScope.HostName(),
 		s.instanceScope.HostName()); err != nil {
@@ -52,6 +54,7 @@ func (s *Service) SetHostname() error {
 	return nil
 }
 
+// CreateDirectory creates some common directories.
 func (s *Service) CreateDirectory() error {
 	makeDirs := []string{
 		directory.BinDir,
@@ -90,6 +93,7 @@ func (s *Service) CreateDirectory() error {
 	return nil
 }
 
+// ResetTmpDirectory resets the temporary "/tmp/kubekey" directory.
 func (s *Service) ResetTmpDirectory() error {
 	dirService := s.getDirectoryService(directory.TmpDir, os.FileMode(filesystem.FileMode0755))
 	if err := dirService.Remove(); err != nil {
@@ -101,15 +105,13 @@ func (s *Service) ResetTmpDirectory() error {
 	return nil
 }
 
+// ExecInitScript executes the init script on the remote instance.
 func (s *Service) ExecInitScript() error {
 	var (
 		hostsList []string
 		lbHost    string
 	)
 
-	//if s.scope.ControlPlaneLoadBalancer().Address != "" {
-	//	lbHost = fmt.Sprintf("%s  %s", s.scope.ControlPlaneLoadBalancer().Address, s.scope.ControlPlaneEndpoint().Host)
-	//}
 	for _, host := range s.scope.AllInstancesSpec() {
 		if host.Name != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
@@ -144,14 +146,18 @@ func (s *Service) ExecInitScript() error {
 	if err := svc.Chmod("+x"); err != nil {
 		return err
 	}
-	if _, err := s.SSHClient.SudoCmd(svc.RemotePath()); err != nil {
+	if _, err := s.sshClient.SudoCmd(svc.RemotePath()); err != nil {
 		return err
 	}
 	return nil
 }
 
+// Repository updates the linux package manager and installs some tools.
+// Ex:
+// apt-get update && apt-get install -y socat conntrack ipset ebtables chrony ipvsadm
+// yum clean all && yum makecache && yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
 func (s *Service) Repository() error {
-	output, err := s.SSHClient.SudoCmd("cat /etc/os-release")
+	output, err := s.sshClient.SudoCmd("cat /etc/os-release")
 	if err != nil {
 		return errors.Wrap(err, "failed to get os release")
 	}
@@ -167,6 +173,7 @@ func (s *Service) Repository() error {
 	return nil
 }
 
+// ResetNetwork resets the network configuration.
 func (s *Service) ResetNetwork() error {
 	networkResetCmds := []string{
 		"iptables -F",
@@ -178,11 +185,12 @@ func (s *Service) ResetNetwork() error {
 		"ip link del nodelocaldns",
 	}
 	for _, cmd := range networkResetCmds {
-		_, _ = s.SSHClient.SudoCmd(cmd)
+		_, _ = s.sshClient.SudoCmd(cmd)
 	}
 	return nil
 }
 
+// RemoveFiles removes some directories and files that may have been created by the Kubernetes and other related components.
 func (s *Service) RemoveFiles() error {
 	removeDirs := []string{
 		directory.KubeConfigDir,
@@ -211,8 +219,9 @@ func (s *Service) RemoveFiles() error {
 	return nil
 }
 
+// DaemonReload reloads the systemd daemon and restart the containerd.
 func (s *Service) DaemonReload() error {
-	_, _ = s.SSHClient.SudoCmd("systemctl daemon-reload && exit 0")
-	_, _ = s.SSHClient.SudoCmd("systemctl restart containerd")
+	_, _ = s.sshClient.SudoCmd("systemctl daemon-reload && exit 0")
+	_, _ = s.sshClient.SudoCmd("systemctl restart containerd")
 	return nil
 }
