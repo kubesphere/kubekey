@@ -18,17 +18,14 @@ package kubernetes
 
 import (
 	"fmt"
+
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 )
 
 type Version int
 
 const (
-	V115 Version = iota
-	V116
-	V117
-	V118
-	V119
+	V119 Version = iota
 	V120
 	V121
 	V122
@@ -37,10 +34,6 @@ const (
 )
 
 var VersionList = []Version{
-	V115,
-	V116,
-	V117,
-	V118,
 	V119,
 	V120,
 	V121,
@@ -51,14 +44,6 @@ var VersionList = []Version{
 
 func (v Version) String() string {
 	switch v {
-	case V115:
-		return "v1.15"
-	case V116:
-		return "v1.16"
-	case V117:
-		return "v1.17"
-	case V118:
-		return "v1.18"
 	case V119:
 		return "v1.19"
 	case V120:
@@ -89,22 +74,6 @@ func VersionSupport(version string) bool {
 // SupportedK8sVersionList returns the supported list of Kubernetes
 func SupportedK8sVersionList() []string {
 	return []string{
-		"v1.15.12",
-		"v1.16.8",
-		"v1.16.10",
-		"v1.16.12",
-		"v1.16.13",
-		"v1.17.0",
-		"v1.17.4",
-		"v1.17.5",
-		"v1.17.6",
-		"v1.17.7",
-		"v1.17.8",
-		"v1.17.9",
-		"v1.18.3",
-		"v1.18.5",
-		"v1.18.6",
-		"v1.18.8",
 		"v1.19.0",
 		"v1.19.8",
 		"v1.19.9",
