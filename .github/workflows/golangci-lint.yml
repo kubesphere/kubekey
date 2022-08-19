@@ -14,9 +14,7 @@ jobs:
     strategy:
       matrix:
         working-directory:
-          - ""
-          - test
-          - hack/tools
+          - "exp/cluster-api-provider-kubekey"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
