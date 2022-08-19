@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/k3s"
+	"github.com/kubesphere/kubekey/pkg/k8e"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
@@ -70,6 +71,26 @@ func NewK3sDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
+func NewK8eDeleteClusterPipeline(runtime *common.KubeRuntime) error {
+	m := []module.Module{
+		&precheck.GreetingsModule{},
+		&confirm.DeleteClusterConfirmModule{},
+		&k8e.DeleteClusterModule{},
+		&os.ClearOSEnvironmentModule{},
+		&certs.UninstallAutoRenewCertsModule{},
+	}
+
+	p := pipeline.Pipeline{
+		Name:    "K8eDeleteClusterPipeline",
+		Modules: m,
+		Runtime: runtime,
+	}
+	if err := p.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func DeleteCluster(args common.Argument) error {
 	var loaderType string
 	if args.FilePath != "" {
@@ -86,6 +107,10 @@ func DeleteCluster(args common.Argument) error {
 	switch runtime.Cluster.Kubernetes.Type {
 	case common.K3s:
 		if err := NewK3sDeleteClusterPipeline(runtime); err != nil {
+			return err
+		}
+	case common.K8e:
+		if err := NewK8eDeleteClusterPipeline(runtime); err != nil {
 			return err
 		}
 	case common.Kubernetes:

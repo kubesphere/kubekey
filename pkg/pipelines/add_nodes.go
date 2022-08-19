@@ -18,6 +18,7 @@ package pipelines
 
 import (
 	"fmt"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/artifact"
@@ -36,6 +37,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/hooks"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/k3s"
+	"github.com/kubesphere/kubekey/pkg/k8e"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer"
 )
@@ -151,6 +153,59 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
+func NewK8eAddNodesPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+
+	m := []module.Module{
+		&precheck.GreetingsModule{},
+		&artifact.UnArchiveModule{Skip: noArtifact},
+		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
+		&binaries.K8eNodeBinariesModule{},
+		&os.ConfigureOSModule{},
+		&k8e.StatusModule{},
+		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.CertsModule{},
+		&etcd.InstallETCDBinaryModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&k8e.InstallKubeBinariesModule{},
+		&k8e.JoinNodesModule{},
+		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&kubernetes.ConfigureKubernetesModule{},
+		&filesystem.ChownModule{},
+		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
+	}
+
+	p := pipeline.Pipeline{
+		Name:            "AddNodesPipeline",
+		Modules:         m,
+		Runtime:         runtime,
+		ModulePostHooks: []module.PostHookInterface{&hooks.UpdateCRStatusHook{}},
+	}
+	if err := p.Start(); err != nil {
+		if runtime.Arg.InCluster {
+			if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Failed); err != nil {
+				return err
+			}
+			if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+				return err
+			}
+		}
+		return err
+	}
+
+	if runtime.Arg.InCluster {
+		if err := kubekeycontroller.PatchNodeImportStatus(runtime, kubekeycontroller.Success); err != nil {
+			return err
+		}
+		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func AddNodes(args common.Argument, downloadCmd string) error {
 	args.DownloadCommand = func(path, url string) string {
 		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
@@ -190,6 +245,10 @@ func AddNodes(args common.Argument, downloadCmd string) error {
 	switch runtime.Cluster.Kubernetes.Type {
 	case common.K3s:
 		if err := NewK3sAddNodesPipeline(runtime); err != nil {
+			return err
+		}
+	case common.K8e:
+		if err := NewK8eAddNodesPipeline(runtime); err != nil {
 			return err
 		}
 	case common.Kubernetes:

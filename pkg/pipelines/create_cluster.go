@@ -29,6 +29,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/certs"
 	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/k8e"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/plugins"
 	"github.com/kubesphere/kubekey/pkg/plugins/dns"
@@ -239,6 +240,97 @@ Please check the result using the command:
 	return nil
 }
 
+func NewK8eCreateClusterPipeline(runtime *common.KubeRuntime) error {
+	noArtifact := runtime.Arg.Artifact == ""
+	skipPushImages := runtime.Arg.SKipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
+	skipLocalStorage := true
+	if runtime.Arg.DeployLocalStorage != nil {
+		skipLocalStorage = !*runtime.Arg.DeployLocalStorage
+	} else if runtime.Cluster.KubeSphere.Enabled {
+		skipLocalStorage = false
+	}
+
+	m := []module.Module{
+		&precheck.GreetingsModule{},
+		&artifact.UnArchiveModule{Skip: noArtifact},
+		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
+		&binaries.K8eNodeBinariesModule{},
+		&os.ConfigureOSModule{},
+		&k8e.StatusModule{},
+		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.CertsModule{},
+		&etcd.InstallETCDBinaryModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&loadbalancer.K3sKubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
+		&k8e.InstallKubeBinariesModule{},
+		&k8e.InitClusterModule{},
+		&k8e.StatusModule{},
+		&k8e.JoinNodesModule{},
+		&images.CopyImagesToRegistryModule{Skip: skipPushImages},
+		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
+		&network.DeployNetworkPluginModule{},
+		&kubernetes.ConfigureKubernetesModule{},
+		&filesystem.ChownModule{},
+		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
+		&k8e.SaveKubeConfigModule{},
+		&addons.AddonsModule{},
+		&storage.DeployLocalVolumeModule{Skip: skipLocalStorage},
+		&kubesphere.DeployModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
+		&kubesphere.CheckResultModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
+	}
+
+	p := pipeline.Pipeline{
+		Name:            "K8eCreateClusterPipeline",
+		Modules:         m,
+		Runtime:         runtime,
+		ModulePostHooks: []module.PostHookInterface{&hooks.UpdateCRStatusHook{}},
+	}
+	if err := p.Start(); err != nil {
+		return err
+	}
+
+	if runtime.Cluster.KubeSphere.Enabled {
+
+		fmt.Print(`Installation is complete.
+
+Please check the result using the command:
+
+	kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l 'app in (ks-install, ks-installer)' -o jsonpath='{.items[0].metadata.name}') -f   
+
+`)
+	} else {
+		fmt.Print(`Installation is complete.
+
+Please check the result using the command:
+		
+	kubectl get pod -A
+
+`)
+
+	}
+
+	if runtime.Arg.InCluster {
+		if err := kubekeycontroller.UpdateStatus(runtime); err != nil {
+			return err
+		}
+		kkConfigPath := filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.ObjName))
+		if config, err := ioutil.ReadFile(kkConfigPath); err != nil {
+			return err
+		} else {
+			runtime.Kubeconfig = base64.StdEncoding.EncodeToString(config)
+			if err := kubekeycontroller.UpdateKubeSphereCluster(runtime); err != nil {
+				return err
+			}
+			if err := kubekeycontroller.SaveKubeConfig(runtime); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func CreateCluster(args common.Argument, downloadCmd string) error {
 	args.DownloadCommand = func(path, url string) string {
 		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
@@ -272,6 +364,10 @@ func CreateCluster(args common.Argument, downloadCmd string) error {
 	switch runtime.Cluster.Kubernetes.Type {
 	case common.K3s:
 		if err := NewK3sCreateClusterPipeline(runtime); err != nil {
+			return err
+		}
+	case common.K8e:
+		if err := NewK8eCreateClusterPipeline(runtime); err != nil {
 			return err
 		}
 	case common.Kubernetes:

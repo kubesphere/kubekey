@@ -19,15 +19,16 @@ package files
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -40,6 +41,7 @@ const (
 	amd64      = "amd64"
 	arm64      = "arm64"
 	k3s        = "k3s"
+	k8e        = "k8e"
 	docker     = "docker"
 	crictl     = "crictl"
 	registry   = "registry"
@@ -150,6 +152,13 @@ func NewKubeBinary(name, arch, version, prePath string, getCmd func(path, url st
 		}
 		if component.Zone == "cn" {
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/k3s/releases/download/%s+k3s1/linux/%s/k3s", version, arch)
+		}
+	case k8e:
+		component.Type = KUBE
+		component.FileName = k8e
+		component.Url = fmt.Sprintf("https://github.com/xiaods/k8e/releases/download/%s+k8e2/k8e", version)
+		if arch == arm64 {
+			component.Url = fmt.Sprintf("https://github.com/xiaods/k8e/releases/download/%s+k8e2/k8e-%s", version, arch)
 		}
 	case registry:
 		component.Type = REGISTRY
@@ -726,13 +735,21 @@ var (
 				"v1.21.6": "1f06a2da0e1e8596220a5504291ce69237979ebf520e2458c2d72573945a9c1d",
 			},
 		},
+		k8e: {
+			amd64: {
+				"v1.21.14": "e0b7dfcf3da936859e19684b2a847cb4f5cadf4d21c3373140886c5fa997a6b8",
+			},
+			arm64: {
+				"v1.21.14": "0f863969df8178b12655e884d3095d850dbe63675b5a334878b2c7478fc9fac1",
+			},
+		},
 		docker: {
 			amd64: {
-				"20.10.8": "7ea11ecb100fdc085dbfd9ab1ff380e7f99733c890ed815510a5952e5d6dd7e0",
+				"20.10.8":  "7ea11ecb100fdc085dbfd9ab1ff380e7f99733c890ed815510a5952e5d6dd7e0",
 				"20.10.17": "969210917b5548621a2b541caf00f86cc6963c6cf0fb13265b9731c3b98974d9",
 			},
 			arm64: {
-				"20.10.8": "4eb9d5e2adf718cd7ee59f6951715f3113c9c4ee49c75c9efb9747f2c3457b2b",
+				"20.10.8":  "4eb9d5e2adf718cd7ee59f6951715f3113c9c4ee49c75c9efb9747f2c3457b2b",
 				"20.10.17": "249244024b507a6599084522cc73e73993349d13264505b387593f2b2ed603e6",
 			},
 		},
