@@ -236,7 +236,7 @@ binary:
 		-e GOARCH=amd64 \
 		-e CGO_ENABLED=0 \
 		-e GO111MODULE=on \
-		-w /usr/src/myapp golang:1.17 \
+		-w /usr/src/myapp golang:1.18 \
 		go build $(BUILDFLAGS) -ldflags '$(LDFLAGS)' -v -o output/linux/amd64/kk ./cmd/main.go  # linux
 	sha256sum output/linux/amd64/kk || shasum -a 256 output/linux/amd64/kk
 
@@ -246,7 +246,7 @@ binary:
 		-e GOARCH=arm64 \
 		-e CGO_ENABLED=0 \
 		-e GO111MODULE=on \
-		-w /usr/src/myapp golang:1.17 \
+		-w /usr/src/myapp golang:1.18 \
 		go build $(BUILDFLAGS) -ldflags '$(LDFLAGS)' -v -o output/linux/arm64/kk ./cmd/main.go  # linux
 	sha256sum output/linux/arm64/kk || shasum -a 256 output/linux/arm64/kk
 
