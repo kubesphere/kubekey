@@ -1,0 +1,61 @@
+domain: cluster.x-k8s.io
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: cluster-api-provider-kubekey
+repo: github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: KKCluster
+  path: github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1
+  version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: KKClusterTemplate
+  path: github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1
+  version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: KKMachine
+  path: github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1
+  version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: KKMachineTemplate
+  path: github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1
+  version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: KKInstance
+  path: github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1
+  version: v1beta1
+version: "3"

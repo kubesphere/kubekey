@@ -1,0 +1,324 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.1
+  creationTimestamp: null
+  name: kkclustertemplates.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: KKClusterTemplate
+    listKind: KKClusterTemplateList
+    plural: kkclustertemplates
+    shortNames:
+    - kkct
+    singular: kkclustertemplate
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Time duration since creation of KKClusterTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: KKClusterTemplate is the Schema for the kkclustertemplates API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KKClusterTemplateSpec defines the desired state of KKClusterTemplate
+            properties:
+              template:
+                description: KKClusterTemplateResource Standard object's metadata
+                properties:
+                  metadata:
+                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: 'Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata. They are not queryable
+                          and should be preserved when modifying objects. More info:
+                          http://kubernetes.io/docs/user-guide/annotations'
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: 'Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects. May
+                          match selectors of replication controllers and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        type: object
+                    type: object
+                  spec:
+                    description: KKClusterSpec defines the desired state of KKCluster
+                    properties:
+                      controlPlaneEndpoint:
+                        description: ControlPlaneEndpoint represents the endpoint
+                          used to communicate with the control plane.
+                        properties:
+                          host:
+                            description: The hostname on which the API server is serving.
+                            type: string
+                          port:
+                            description: The port on which the API server is serving.
+                            format: int32
+                            type: integer
+                        required:
+                        - host
+                        - port
+                        type: object
+                      controlPlaneLoadBalancer:
+                        description: ControlPlaneLoadBalancer is optional configuration
+                          for customizing control plane behavior.
+                        properties:
+                          host:
+                            description: The hostname on which the API server is serving.
+                            type: string
+                        type: object
+                      nodes:
+                        description: Nodes represents the information about the nodes
+                          available to the cluster
+                        properties:
+                          auth:
+                            description: Auth is the SSH authentication information
+                              of all instance. It is a global auth configuration.
+                            properties:
+                              password:
+                                description: Password is the password for SSH authentication.
+                                type: string
+                              port:
+                                description: Port is the port for SSH authentication.
+                                type: integer
+                              privateKey:
+                                description: PrivateKey is the value of the private
+                                  key for SSH authentication.
+                                type: string
+                              privateKeyPath:
+                                description: PrivateKeyFile is the path to the private
+                                  key for SSH authentication.
+                                type: string
+                              timeout:
+                                description: Timeout is the timeout for establish
+                                  an SSH connection.
+                                format: int64
+                                type: integer
+                              user:
+                                description: User is the username for SSH authentication.
+                                type: string
+                            type: object
+                          containerManager:
+                            description: ContainerManager is the container manager
+                              config of all instance. It is a global container manager
+                              configuration.
+                            properties:
+                              criSocket:
+                                description: CRISocket is used to connect an existing
+                                  CRIClient.
+                                type: string
+                              type:
+                                description: Type defines the type of ContainerManager.
+                                  "docker", "containerd"
+                                type: string
+                              version:
+                                description: Version defines the version of ContainerManager.
+                                type: string
+                            type: object
+                          instances:
+                            description: Instances defines all instance contained
+                              in kkcluster.
+                            items:
+                              description: KKInstanceSpec defines the desired state
+                                of KKInstance
+                              properties:
+                                address:
+                                  description: Address is the IP address of the machine.
+                                  type: string
+                                arch:
+                                  description: Arch is the architecture of the machine.
+                                    e.g. "amd64", "arm64".
+                                  type: string
+                                auth:
+                                  description: Auth is the SSH authentication information
+                                    of this machine. It will override the global auth
+                                    configuration.
+                                  properties:
+                                    password:
+                                      description: Password is the password for SSH
+                                        authentication.
+                                      type: string
+                                    port:
+                                      description: Port is the port for SSH authentication.
+                                      type: integer
+                                    privateKey:
+                                      description: PrivateKey is the value of the
+                                        private key for SSH authentication.
+                                      type: string
+                                    privateKeyPath:
+                                      description: PrivateKeyFile is the path to the
+                                        private key for SSH authentication.
+                                      type: string
+                                    timeout:
+                                      description: Timeout is the timeout for establish
+                                        an SSH connection.
+                                      format: int64
+                                      type: integer
+                                    user:
+                                      description: User is the username for SSH authentication.
+                                      type: string
+                                  type: object
+                                containerManager:
+                                  description: ContainerManager is the container manager
+                                    config of this machine.
+                                  properties:
+                                    criSocket:
+                                      description: CRISocket is used to connect an
+                                        existing CRIClient.
+                                      type: string
+                                    type:
+                                      description: Type defines the type of ContainerManager.
+                                        "docker", "containerd"
+                                      type: string
+                                    version:
+                                      description: Version defines the version of
+                                        ContainerManager.
+                                      type: string
+                                  type: object
+                                internalAddress:
+                                  description: InternalAddress is the internal IP
+                                    address of the machine.
+                                  type: string
+                                name:
+                                  description: Name is the host name of the machine.
+                                  minLength: 1
+                                  type: string
+                                roles:
+                                  description: Roles is the role of the machine.
+                                  items:
+                                    description: Role represents a role of a node.
+                                    type: string
+                                  type: array
+                              type: object
+                            type: array
+                        required:
+                        - instances
+                        type: object
+                      registry:
+                        description: Registry represents the cluster image registry
+                          used to pull the images.
+                        properties:
+                          apiVersion:
+                            description: 'APIVersion defines the versioned schema
+                              of this representation of an object. Servers should
+                              convert recognized schemas to the latest internal value,
+                              and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                            type: string
+                          auth:
+                            description: Auth defines the auth of this PrivateRegistry.
+                            properties:
+                              caFile:
+                                description: CAFile is an SSL Certificate Authority
+                                  file used to secure etcd communication.
+                                type: string
+                              certFile:
+                                description: CertFile is an SSL certification file
+                                  used to secure etcd communication.
+                                type: string
+                              certsPath:
+                                description: CertsPath defines the path of the certs
+                                  files of this PrivateRegistry.
+                                type: string
+                              insecureSkipVerify:
+                                description: InsecureSkipVerify allow contacting this
+                                  PrivateRegistry over HTTPS with failed TLS verification.
+                                type: boolean
+                              keyFile:
+                                description: KeyFile is an SSL key file used to secure
+                                  etcd communication.
+                                type: string
+                              password:
+                                description: Password defines the password of this
+                                  PrivateRegistry.
+                                type: string
+                              plainHTTP:
+                                description: PlainHTTP allow contacting this PrivateRegistry
+                                  over HTTP.
+                                type: boolean
+                              username:
+                                description: Username defines the username of this
+                                  PrivateRegistry.
+                                type: string
+                            required:
+                            - certsPath
+                            - insecureSkipVerify
+                            - password
+                            - plainHTTP
+                            - username
+                            type: object
+                          insecureRegistries:
+                            description: InsecureRegistries defines the insecure registries
+                              of ContainerManager.
+                            items:
+                              type: string
+                            type: array
+                          kind:
+                            description: 'Kind is a string value representing the
+                              REST resource this object represents. Servers may infer
+                              this from the endpoint the client submits requests to.
+                              Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            type: string
+                          namespaceOverride:
+                            description: NamespaceOverride defines the namespace override
+                              of this PrivateRegistry.
+                            type: string
+                          privateRegistry:
+                            description: PrivateRegistry defines the private registry
+                              address of ContainerManager.
+                            type: string
+                          registryMirrors:
+                            description: RegistryMirrors defines the registry mirrors
+                              of this PrivateRegistry.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - auth
+                        - namespaceOverride
+                        - privateRegistry
+                        type: object
+                      zone:
+                        description: 'ZONE is the zone of the KKCluster where can
+                          get the binaries. If you have problem to access https://storage.googleapis.com,
+                          you can set "zone: cn".'
+                        type: string
+                    required:
+                    - nodes
+                    type: object
+                required:
+                - spec
+                type: object
+            required:
+            - template
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources: {}

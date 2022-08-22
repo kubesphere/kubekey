@@ -1,0 +1,51 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: machine-deployment
+  namespace: default
+spec:
+  clusterName: hello-cluster
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: hello-cluster
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: hello-cluster
+    spec:
+      clusterName: hello-cluster
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: worker
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: KKMachineTemplate
+        name: kkmachine-deployment
+        namespace: default
+      version: v1.23.7
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: worker
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: unix:///var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKMachineTemplate
+metadata:
+  name: kkmachine-deployment
+  namespace: default
+spec:
+  template:
+    spec:
+      roles: [worker]

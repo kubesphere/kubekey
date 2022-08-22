@@ -21,10 +21,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,12 +94,8 @@ func ToOptions(flags *apply.ApplyFlags, manifests []string, version string) (*ap
 		return nil, err
 	}
 
-	discoveryClient, err := flags.Factory.ToDiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
-
-	dryRunVerifier := resource.NewDryRunVerifier(dynamicClient, discoveryClient)
+	dryRunVerifier := resource.NewQueryParamVerifier(dynamicClient, flags.Factory.OpenAPIGetter(), resource.QueryParamDryRun)
+	fieldValidationVerifier := resource.NewQueryParamVerifier(dynamicClient, flags.Factory.OpenAPIGetter(), resource.QueryParamFieldValidation)
 	fieldManager := "client-side-apply"
 
 	// allow for a success message operation to be specified at print time
@@ -128,7 +125,7 @@ func ToOptions(flags *apply.ApplyFlags, manifests []string, version string) (*ap
 	}
 
 	openAPISchema, _ := flags.Factory.OpenAPISchema()
-	validator, err := flags.Factory.Validator(true)
+	validator, err := flags.Factory.Validator("Ignore", fieldValidationVerifier)
 	if err != nil {
 		return nil, err
 	}
