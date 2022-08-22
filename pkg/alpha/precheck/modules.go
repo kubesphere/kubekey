@@ -122,3 +122,65 @@ func (c *UprgadePreCheckModule) Init() {
 		getKubernetesNodesStatus,
 	}
 }
+
+type UpgradeKubeSpherePreCheckModule struct {
+	common.KubeModule
+}
+
+func (c *UpgradeKubeSpherePreCheckModule) Init() {
+	c.Name = "UpgradeKubeSpherePreCheckModule"
+	c.Desc = "Do pre-check on for upgrade kubesphere phase"
+
+	nodePreCheck := &task.RemoteTask{
+		Name:     "NodePreCheck",
+		Desc:     "A pre-check on nodes",
+		Hosts:    c.Runtime.GetAllHosts(),
+		Action:   new(precheck.NodePreCheck),
+		Parallel: true,
+	}
+
+	getKubeConfig := &task.RemoteTask{
+		Name:     "GetKubeConfig",
+		Desc:     "Get KubeConfig file",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(precheck.GetKubeConfig),
+		Parallel: true,
+	}
+
+	getMasterK8sVersion := &task.RemoteTask{
+		Name:    "GetMasterK8sVersion",
+		Desc:    "get the master Kubernetes version",
+		Hosts:   c.Runtime.GetHostsByRole(common.Master),
+		Prepare: new(common.OnlyFirstMaster),
+		Action:  new(GetMasterK8sVersion),
+	}
+
+	ksVersionCheck := &task.RemoteTask{
+		Name:     "KsVersionCheck",
+		Desc:     "Check KubeSphere version",
+		Hosts:    c.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(precheck.KsVersionCheck),
+		Parallel: true,
+	}
+
+	ksPhaseDependencyCheck := &task.RemoteTask{
+		Name:  "ksPhaseDependencyCheck",
+		Desc:  "Check dependency matrix for KubeSphere and Kubernetes in ks phase",
+		Hosts: c.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(precheck.KubeSphereExist),
+		},
+		Action: new(KsPhaseDependencyCheck),
+	}
+
+	c.Tasks = []task.Interface{
+		nodePreCheck,
+		getKubeConfig,
+		getMasterK8sVersion,
+		ksVersionCheck,
+		ksPhaseDependencyCheck,
+	}
+}

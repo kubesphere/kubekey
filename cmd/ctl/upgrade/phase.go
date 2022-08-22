@@ -30,5 +30,7 @@ func NewPhaseCommand() *cobra.Command {
 	cmds.AddCommand(alpha.NewCmdUpgradeBinary())
 	cmds.AddCommand(alpha.NewCmdUpgradeImages())
 	cmds.AddCommand(alpha.NewCmdUpgradeNodes())
+	cmds.AddCommand(alpha.NewCmdUpgradeKubeSphere())
+
 	return cmds
 }
