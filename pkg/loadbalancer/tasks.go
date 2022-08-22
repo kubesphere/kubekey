@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -157,6 +158,10 @@ type GetInterfaceName struct {
 
 func (g *GetInterfaceName) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
+	if g.KubeConf.Cluster.ControlPlaneEndpoint.KubeVip.Mode == "BGP" {
+		host.GetCache().Set("interface", "lo")
+		return nil
+	}
 	cmd := fmt.Sprintf("ip route "+
 		"| grep %s "+
 		"| sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\"", host.GetAddress())
@@ -182,17 +187,29 @@ func (g *GenerateKubevipManifest) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get interface failed")
 	}
-
+	BGPMode := g.KubeConf.Cluster.ControlPlaneEndpoint.KubeVip.Mode == "BGP"
+	hosts := runtime.GetHostsByRole(common.Master)
+	var BGPPeersArr []string
+	for _, value := range hosts {
+		address := value.GetAddress()
+		if address == host.GetAddress() {
+			continue
+		}
+		BGPPeersArr = append(BGPPeersArr, fmt.Sprintf("%s:65000::false", address))
+	}
+	BGPPeers := strings.Join(BGPPeersArr, ",")
 	templateAction := action.Template{
 		Template: templates.KubevipManifest,
 		Dst:      filepath.Join(common.KubeManifestDir, templates.KubevipManifest.Name()),
 		Data: util.Data{
+			"BGPMode":      BGPMode,
 			"VipInterface": interfaceName,
+			"BGPRouterID":  host.GetAddress(),
+			"BGPPeers":     BGPPeers,
 			"KubeVip":      g.KubeConf.Cluster.ControlPlaneEndpoint.Address,
 			"KubevipImage": images.GetImage(runtime, g.KubeConf, "kubevip").ImageName(),
 		},
 	}
-
 	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
@@ -250,21 +267,48 @@ func (g *GenerateK3sKubevipDaemonset) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get interface failed")
 	}
-
+	BGPMode := g.KubeConf.Cluster.ControlPlaneEndpoint.KubeVip.Mode == "BGP"
+	hosts := runtime.GetHostsByRole(common.Master)
+	var BGPPeersArr []string
+	for _, value := range hosts {
+		address := value.GetAddress()
+		if address == host.GetAddress() {
+			continue
+		}
+		BGPPeersArr = append(BGPPeersArr, fmt.Sprintf("%s:65000::false", address))
+	}
+	BGPPeers := strings.Join(BGPPeersArr, ",")
 	templateAction := action.Template{
 		Template: templates.K3sKubevipManifest,
 		Dst:      filepath.Join("/var/lib/rancher/k3s/server/manifests/", templates.K3sKubevipManifest.Name()),
 		Data: util.Data{
+			"BGPMode":        BGPMode,
 			"KubeVipVersion": images.GetImage(runtime, g.KubeConf, "kubevip").Tag,
 			"VipInterface":   interfaceName,
+			"BGPRouterID":    host.GetAddress(),
+			"BGPPeers":       BGPPeers,
 			"KubeVip":        g.KubeConf.Cluster.ControlPlaneEndpoint.Address,
 			"KubevipImage":   images.GetImage(runtime, g.KubeConf, "kubevip").ImageName(),
 		},
 	}
-
 	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
+	}
+	return nil
+}
+
+type DeleteVIP struct {
+	common.KubeAction
+}
+
+func (g *DeleteVIP) Execute(runtime connector.Runtime) error {
+	if g.KubeConf.Cluster.ControlPlaneEndpoint.KubeVip.Mode == "BGP" {
+		cmd := fmt.Sprintf("ip addr del %s dev lo", g.KubeConf.Cluster.ControlPlaneEndpoint.Address)
+		_, err := runtime.GetRunner().SudoCmd(cmd, false)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

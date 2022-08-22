@@ -28,6 +28,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/k3s"
 	"github.com/kubesphere/kubekey/pkg/k8e"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/loadbalancer"
 )
 
 func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
@@ -38,6 +39,7 @@ func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 		&container.UninstallContainerModule{Skip: !runtime.Arg.DeleteCRI},
 		&os.ClearOSEnvironmentModule{},
 		&certs.UninstallAutoRenewCertsModule{},
+		&loadbalancer.DeleteVIPModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 	}
 
 	p := pipeline.Pipeline{
@@ -58,6 +60,7 @@ func NewK3sDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 		&k3s.DeleteClusterModule{},
 		&os.ClearOSEnvironmentModule{},
 		&certs.UninstallAutoRenewCertsModule{},
+		&loadbalancer.DeleteVIPModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 	}
 
 	p := pipeline.Pipeline{

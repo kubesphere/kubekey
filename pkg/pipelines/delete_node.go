@@ -24,6 +24,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/pkg/loadbalancer"
 )
 
 func DeleteNodePipeline(runtime *common.KubeRuntime) error {
@@ -33,6 +34,7 @@ func DeleteNodePipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.CompareConfigAndClusterInfoModule{},
 		&kubernetes.DeleteKubeNodeModule{},
 		&os.ClearNodeOSModule{},
+		&loadbalancer.DeleteVIPModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 	}
 
 	p := pipeline.Pipeline{

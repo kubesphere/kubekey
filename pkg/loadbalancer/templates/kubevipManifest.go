@@ -23,7 +23,79 @@ import (
 )
 
 var KubevipManifest = template.Must(template.New("kube-vip.yaml").Parse(
-	dedent.Dedent(`
+	dedent.Dedent(`{{ if .BGPMode }}
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  name: kube-vip
+  namespace: kube-system
+spec:
+  containers:
+  - args:
+    - manager
+    env:
+    - name: vip_arp
+      value: "false"
+    - name: port
+      value: "6443"
+    - name: vip_interface
+      value: {{ .VipInterface }}
+    - name: vip_cidr
+      value: "32"
+    - name: cp_enable
+      value: "true"
+    - name: cp_namespace
+      value: kube-system
+    - name: vip_ddns
+      value: "false"
+    - name: svc_enable
+      value: "true"
+    - name: bgp_enable
+      value: "true"
+    - name: bgp_routerid
+      value: {{ .BGPRouterID }}
+    - name: bgp_as
+      value: "65000"
+    - name: bgp_peeraddress
+    - name: bgp_peerpass
+    - name: bgp_peeras
+      value: "65000"
+    - name: bgp_peers
+      value: {{ .BGPPeers }}
+    - name: lb_enable
+      value: "true"
+    - name: lb_port
+      value: "6443"
+    - name: lb_fwdmethod
+      value: local
+    - name: address
+      value: {{ .KubeVip }}
+    - name: prometheus_server
+      value: :2112
+    image: {{ .KubevipImage }}
+    imagePullPolicy: Always
+    name: kube-vip
+    resources: {}
+    securityContext:
+      capabilities:
+        add:
+        - NET_ADMIN
+        - NET_RAW
+    volumeMounts:
+    - mountPath: /etc/kubernetes/admin.conf
+      name: kubeconfig
+  hostAliases:
+  - hostnames:
+    - kubernetes
+    ip: 127.0.0.1
+  hostNetwork: true
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/admin.conf
+    name: kubeconfig
+status: {}
+{{ else }}
 apiVersion: v1
 kind: Pod
 metadata:
@@ -88,4 +160,5 @@ spec:
       path: /etc/kubernetes/admin.conf
     name: kubeconfig
 status: {}
+{{ end }}
 `)))
