@@ -1,3 +1,14 @@
+# Download dependencies
+FROM alpine:3.11 as base_os_context
+
+
+ENV OUTDIR=/out
+RUN mkdir -p ${OUTDIR}/usr/local/bin/
+
+WORKDIR /tmp
+
+RUN apk add --no-cache ca-certificates
+
 # Build the manager binary
 FROM golang:1.18 as builder
 
@@ -20,14 +31,13 @@ ARG LDFLAGS
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS}" -o manager ${package}
 ENTRYPOINT ["/workspace/manager" ]
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM ubuntu:20.04
+FROM alpine:3.11
 
 WORKDIR /
 
 RUN mkdir -p /var/lib/kubekey/rootfs
 
+COPY --from=base_os_context /out/ /
 COPY --from=builder /workspace/manager .
 
 ENTRYPOINT ["/manager"]
