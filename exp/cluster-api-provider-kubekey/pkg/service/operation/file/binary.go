@@ -70,14 +70,8 @@ func (b *Binary) SetZone(zone string) {
 
 // Get downloads the binary from remote.
 func (b *Binary) Get(timeout time.Duration) error {
-	//todo: should not to skip TLS verify
 	client := &getter.HttpGetter{
 		ReadTimeout: timeout,
-		//Client: &http.Client{
-		//	Transport: &http.Transport{
-		//		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		//	},
-		//},
 	}
 
 	url, err := urlhelper.Parse(b.url)

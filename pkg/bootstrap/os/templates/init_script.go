@@ -83,7 +83,9 @@ sed -r -i  "s@#{0,}?vm.swappiness ?= ?([0-9]{1,})@vm.swappiness = 1@g" /etc/sysc
 sed -r -i  "s@#{0,}?fs.inotify.max_user_instances ?= ?([0-9]{1,})@fs.inotify.max_user_instances = 524288@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?kernel.pid_max ?= ?([0-9]{1,})@kernel.pid_max = 65535@g" /etc/sysctl.conf
 
-awk ' !x[$0]++{print > "/etc/sysctl.conf"}' /etc/sysctl.conf
+tmpfile="$$.tmp"
+awk ' !x[$0]++{print > "'$tmpfile'"}' /etc/sysctl.conf
+mv $tmpfile /etc/sysctl.conf
 
 systemctl stop firewalld 1>/dev/null 2>/dev/null
 systemctl disable firewalld 1>/dev/null 2>/dev/null
