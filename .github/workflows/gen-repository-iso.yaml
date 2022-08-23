@@ -16,6 +16,8 @@ jobs:
         include:
           - name: centos7-rpms
             dockerfile: dockerfile.centos7
+          - name: almalinux9-rpms
+            dockerfile: dockerfile.almalinux9
           - name: debian9-debs
             dockerfile: dockerfile.debian9
           - name: debian10-debs
