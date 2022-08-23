@@ -19,6 +19,7 @@ package pipelines
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/kubeark"
 	"io/ioutil"
 	"path/filepath"
 
@@ -96,6 +97,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&storage.DeployLocalVolumeModule{Skip: skipLocalStorage},
 		&kubesphere.DeployModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
 		&kubesphere.CheckResultModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
+		&kubeark.KubearkModule{},
 	}
 
 	p := pipeline.Pipeline{
@@ -187,6 +189,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&storage.DeployLocalVolumeModule{Skip: skipLocalStorage},
 		&kubesphere.DeployModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
 		&kubesphere.CheckResultModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
+		&kubeark.KubearkModule{},
 	}
 
 	p := pipeline.Pipeline{
