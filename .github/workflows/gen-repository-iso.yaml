@@ -2,7 +2,7 @@
 name: gen-repository-iso
 on:
   push:
-    tag:
+    tags:
       - 'v*'
   workflow_dispatch:
 
@@ -16,6 +16,8 @@ jobs:
         include:
           - name: centos7-rpms
             dockerfile: dockerfile.centos7
+          - name: almalinux-9.0-rpms
+            dockerfile: dockerfile.almalinux90
           - name: debian9-debs
             dockerfile: dockerfile.debian9
           - name: debian10-debs
