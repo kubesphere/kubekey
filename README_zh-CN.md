@@ -30,19 +30,18 @@
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
 
-> 建议使用 Linux Kernel 版本: `4.15 or later` \
+> 建议使用 Linux Kernel 版本: `4.15 or later` 
 > 可以通过命令 `uname -srm` 查看 Linux Kernel 版本。
 
-### <span id = "KubernetesVersions">Kubernetes 版本</span> 
+### `<span id = "KubernetesVersions">`Kubernetes 版本
 
-* **v1.17**: &ensp; *v1.17.9*
-* **v1.18**: &ensp; *v1.18.8*
 * **v1.19**: &ensp; *v1.19.9*
 * **v1.20**: &ensp; *v1.20.10*
 * **v1.21**: &ensp; *v1.21.13*
 * **v1.22**: &ensp; *v1.22.12*
 * **v1.23**: &ensp; *v1.23.9*   (default)
 * **v1.24**: &ensp; *v1.24.3*
+
 > 查看更多支持的版本[点击这里](./docs/kubernetes-versions.md)
 
 ## 要求和建议
@@ -59,7 +58,7 @@
   * 所有节点的时间同步。
   * `sudo`/`curl`/`openssl` 应在所有节点使用。
   * `docker` 可以自己安装，也可以通过 KubeKey 安装。
-  * `Red Hat` 在其 `Linux` 发行版本中包括了`SELinux`，建议[关闭SELinux](./docs/turn-off-SELinux_zh-CN.md)或者将[SELinux的模式切换](./docs/turn-off-SELinux_zh-CN.md)为Permissive[宽容]工作模式
+  * `Red Hat` 在其 `Linux` 发行版本中包括了 `SELinux`，建议[关闭SELinux](./docs/turn-off-SELinux_zh-CN.md)或者将[SELinux的模式切换](./docs/turn-off-SELinux_zh-CN.md)为Permissive[宽容]工作模式
 
 > * 建议您的操作系统环境足够干净 (不安装任何其他软件)，否则可能会发生冲突。
 > * 如果在从 dockerhub.io 下载镜像时遇到问题，建议准备一个容器镜像仓库 (加速器)。[为 Docker 守护程序配置镜像加速](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon)。
@@ -68,15 +67,15 @@
 
 * 依赖要求:
 
-KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安装版本的不同，您所需要安装的依赖可能也不同。请参考以下表格查看您是否需要提前在节点上安装有关的依赖。
+KubeKey 可以同时安装 Kubernetes 和 KubeSphere。在版本1.18之后，安装kubernetes前需要安装一些依赖。你可以参考下面的列表，提前在你的节点上检查并安装相关依赖。
 
-|             | Kubernetes 版本 ≥ 1.18 | Kubernetes 版本 < 1.18 |
-| ----------- | ---------------------- | ---------------------- |
-| `socat`     | 必须安装               | 可选，但推荐安装       |
-| `conntrack` | 必须安装               | 可选，但推荐安装       |
-| `ebtables`  | 可选，但推荐安装       | 可选，但推荐安装       |
-| `ipset`     | 可选，但推荐安装       | 可选，但推荐安装       |
-| `ipvsadm`   | 可选，但推荐安装       | 可选，但推荐安装       |
+|               | Kubernetes 版本 ≥ 1.18 |
+| ------------- | ----------------------- |
+| `socat`     | 必须安装                |  
+| `conntrack` | 必须安装                |  
+| `ebtables`  | 可选，但推荐安装        |
+| `ipset`     | 可选，但推荐安装        |
+| `ipvsadm`   | 可选，但推荐安装        |
 
 * 网络和 DNS 要求：
   * 确保 `/etc/resolv.conf` 中的 DNS 地址可用。否则，可能会导致集群中出现某些 DNS 问题。
@@ -86,17 +85,16 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 
 ### 获取安装程序可执行文件
 
-* 下载KubeKey可执行文件 [Releases page](https://github.com/kubesphere/kubekey/releases) 
+* 下载KubeKey可执行文件 [Releases page](https://github.com/kubesphere/kubekey/releases)
 
   下载解压后可直接使用。
-
 * 从源代码生成二进制文件
 
-    ```shell script
-    git clone https://github.com/kubesphere/kubekey.git
-    cd kubekey
-    ./build.sh
-    ```
+  ```shell
+  git clone https://github.com/kubesphere/kubekey.git
+  cd kubekey
+  ./build.sh
+  ```
 
 > 注意：
 >
@@ -115,7 +113,7 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 
 > 如果无法访问 `https://storage.googleapis.com`, 请先执行 `export KKZONE=cn`.
 
-```shell script
+```shell
 ./kk create cluster [--with-kubernetes version] [--with-kubesphere version]
 ```
 
@@ -123,26 +121,25 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 
 * 使用默认版本创建一个纯 Kubernetes 集群
 
-    ```shell script
-    ./kk create cluster
-    ```
-
+  ```shell
+  ./kk create cluster
+  ```
 * 创建指定一个（[支持的版本](#KubernetesVersions)）的 Kubernetes 集群
 
-    ```shell script
-    ./kk create cluster --with-kubernetes v1.19.8
-    ```
-
+  ```shell
+  ./kk create cluster --with-kubernetes v1.19.8
+  ```
 * 创建一个部署了 KubeSphere 的 Kubernetes 集群 （例如 `--with-kubesphere v3.1.0`）
 
-    ```shell script
-    ./kk create cluster --with-kubesphere [version]
-    ```
+  ```shell
+  ./kk create cluster --with-kubesphere [version]
+  ```
 * 创建一个指定的 container runtime 的 Kubernetes 集群（docker, crio, containerd and isula）
 
-    ```shell script
-    ./kk create  cluster --container-manager containerd
-    ```
+  ```shell
+  ./kk create  cluster --container-manager containerd
+  ```
+
 #### 高级用法
 
 您可以使用高级安装来控制自定义参数或创建多节点集群。具体来说，通过指定配置文件来创建集群。
@@ -151,33 +148,33 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。根据 KubeSphere 所安�
 
 1. 首先，创建一个示例配置文件
 
-    ```shell script
-    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
-    ```
+   ```shell
+   ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
+   ```
 
    **例子：**
 
    * 使用默认配置创建一个示例配置文件。您也可以指定文件名称或文件所在的文件夹。
 
-        ```shell script
-        ./kk create config [-f ~/myfolder/config-sample.yaml]
-        ```
-
+     ```shell
+     ./kk create config [-f ~/myfolder/config-sample.yaml]
+     ```
    * 同时安装 KubeSphere
 
-        ```shell script
-        ./kk create config --with-kubesphere
-        ```
-
+     ```shell
+     ./kk create config --with-kubesphere
+     ```
 2. 根据您的环境修改配置文件 config-sample.yaml
+
 > 注意： 由于 Kubernetes 暂不支持大写 NodeName， worker 节点名中包含大写字母将导致后续安装过程无法正常结束
 >
 > 当指定安装KubeSphere时，要求集群中有可用的持久化存储。默认使用localVolume，如果需要使用其他持久化存储，请参阅 [addons](./docs/addons.md) 配置。
+
 3. 使用配置文件创建集群。
 
-      ```shell script
-      ./kk create cluster -f ~/myfolder/config-sample.yaml
-      ```
+   ```shell
+   ./kk create cluster -f ~/myfolder/config-sample.yaml
+   ```
 
 ### 启用多集群管理
 
@@ -193,14 +190,15 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 
 将新节点的信息添加到集群配置文件，然后应用更改。
 
-```shell script
+```shell
 ./kk add nodes -f config-sample.yaml
 ```
+
 ### 删除节点
 
 通过以下命令删除节点，nodename指需要删除的节点名。
 
-```shell script
+```shell
 ./kk delete node <nodeName> -f config-sample.yaml
 ```
 
@@ -210,30 +208,37 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 
 * 如果您以快速入门（all-in-one）开始：
 
-```shell script
+```shell
 ./kk delete cluster
 ```
 
 * 如果从高级安装开始（使用配置文件创建的集群）：
 
-```shell script
+```shell
 ./kk delete cluster [-f config-sample.yaml]
 ```
 
 ### 集群升级
+
 #### 单节点集群
+
 升级集群到指定版本。
-```shell script
+
+```shell
 ./kk upgrade [--with-kubernetes version] [--with-kubesphere version] 
 ```
+
 * `--with-kubernetes` 指定kubernetes目标版本。
 * `--with-kubesphere` 指定kubesphere目标版本。
 
 #### 多节点集群
+
 通过指定配置文件对集群进行升级。
-```shell script
+
+```shell
 ./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
 ```
+
 * `--with-kubernetes` 指定kubernetes目标版本。
 * `--with-kubesphere` 指定kubesphere目标版本。
 * `-f` 指定集群安装时创建的配置文件。
@@ -241,12 +246,14 @@ KubeSphere 有多个可插拔功能组件，功能组件的介绍可参考 [配�
 > 注意: 升级多节点集群需要指定配置文件. 如果集群非kubekey创建，或者创建集群时生成的配置文件丢失，需要重新生成配置文件，或使用以下方法生成。
 
 Getting cluster info and generating kubekey's configuration file (optional).
-```shell script
+
+```shell
 ./kk create config [--from-cluster] [(-f | --filename) path] [--kubeconfig path]
 ```
-* `--from-cluster` 根据已存在集群信息生成配置文件. 
+
+* `--from-cluster` 根据已存在集群信息生成配置文件.
 * `-f` 指定生成配置文件路径.
-* `--kubeconfig` 指定集群kubeconfig文件. 
+* `--kubeconfig` 指定集群kubeconfig文件.
 * 由于无法全面获取集群配置，生成配置文件后，请根据集群实际信息补全配置文件。
 
 ### 启用 kubectl 自动补全
@@ -255,7 +262,7 @@ KubeKey 不会启用 kubectl 自动补全功能。请参阅下面的指南并将
 
 **先决条件**：确保已安装 `bash-autocompletion` 并可以正常工作。
 
-```shell script
+```shell
 # 安装 bash-completion
 apt-get install bash-completion
 
@@ -284,8 +291,11 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 欢迎任何形式的贡献! 感谢这些优秀的贡献者，是他们让我们的项目快速成长。
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+
 <!-- prettier-ignore-start -->
+
 <!-- markdownlint-disable -->
+
 <table>
   <tr>
     <td align="center"><a href="https://github.com/pixiake"><img src="https://avatars0.githubusercontent.com/u/22290449?v=4?s=100" width="100px;" alt=""/><br /><sub><b>pixiake</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=pixiake" title="Code">💻</a> <a href="https://github.com/kubesphere/kubekey/commits?author=pixiake" title="Documentation">📖</a></td>
@@ -369,6 +379,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 </table>
 
 <!-- markdownlint-restore -->
+
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->

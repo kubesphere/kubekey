@@ -29,31 +29,34 @@ Use KubeKey in the following three scenarios.
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
 
-> Recommended Linux Kernel Version: `4.15 or later` \
+> Recommended Linux Kernel Version: `4.15 or later` 
 > You can run the `uname -srm` command to check the Linux Kernel Version.
 
-### <span id = "KubernetesVersions">Kubernetes Versions</span> 
+### `<span id = "KubernetesVersions">`Kubernetes Versions
 
-* **v1.17**: &ensp; *v1.17.9*
-* **v1.18**: &ensp; *v1.18.8*
 * **v1.19**: &ensp; *v1.19.9*
 * **v1.20**: &ensp; *v1.20.10*
 * **v1.21**: &ensp; *v1.21.13*
 * **v1.22**: &ensp; *v1.22.12*
 * **v1.23**: &ensp; *v1.23.9*   (default)
 * **v1.24**: &ensp; *v1.24.3*
-> Looking for more supported versions  
-> [Kubernetes Versions](./docs/kubernetes-versions.md)  
-> [K3s Versions](./docs/k3s-versions.md)  
+
+> Looking for more supported versions
+> [Kubernetes Versions](./docs/kubernetes-versions.md)
+> [K3s Versions](./docs/k3s-versions.md)
 
 ### Container Manager
+
 * **Docker** / **containerd** / **CRI-O** / **iSula**
+
 > `Kata Containers` can be set to automatically install and configure runtime class for it when the container manager is containerd or CRI-O.
 
 ### Network Plugins
+
 * **Calico** / **Flannel** / **Cilium** / **Kube-OVN** / **Multus-CNI**
 
 > Kubekey also supports users to set the network plugin to `none` if there is a requirement for custom network plugin.
+
 ## Requirements and Recommendations
 
 * Minimum resource requirements (For Minimal Installation of KubeSphere only)：
@@ -69,22 +72,23 @@ Use KubeKey in the following three scenarios.
   * `sudo`/`curl`/`openssl` should be used in all nodes.
   * `docker` can be installed by yourself or by KubeKey.
   * `Red Hat` includes `SELinux` in its `Linux release`. It is recommended to close SELinux or [switch the mode of SELinux](./docs/turn-off-SELinux.md) to `Permissive`
-> * It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.  
+
+> * It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.
 > * A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
 > * KubeKey will install [OpenEBS](https://openebs.io/) to provision LocalPV for development and testing environment by default, this is convenient for new users. For production, please use NFS / Ceph / GlusterFS  or commercial products as persistent storage, and install the [relevant client](docs/storage-client.md) in all nodes.
-> * If you encounter `Permission denied` when copying, it is recommended to check [SELinux and turn off it](./docs/turn-off-SELinux.md) first 
+> * If you encounter `Permission denied` when copying, it is recommended to check [SELinux and turn off it](./docs/turn-off-SELinux.md) first
 
 * Dependency requirements:
 
-KubeKey can install Kubernetes and KubeSphere together. The dependency that needs to be installed may be different based on the Kubernetes version to be installed. You can refer to the list below to see if you need to install relevant dependencies on your node in advance.
+KubeKey can install Kubernetes and KubeSphere together. Some dependencies need to be installed before installing kubernetes after version 1.18. You can refer to the list below to check and install the relevant dependencies on your node in advance.
 
-|             | Kubernetes Version ≥ 1.18 | Kubernetes Version < 1.18 |
-| ----------- | ------------------------- | ------------------------- |
-| `socat`     | Required                  | Optional but recommended  |
-| `conntrack` | Required                  | Optional but recommended  |
-| `ebtables`  | Optional but recommended  | Optional but recommended  |
-| `ipset`     | Optional but recommended  | Optional but recommended  |
-| `ipvsadm`   | Optional but recommended  | Optional but recommended  |
+|               | Kubernetes Version ≥ 1.18 |
+| ------------- | -------------------------- |
+| `socat`     | Required                   |
+| `conntrack` | Required                   |
+| `ebtables`  | Optional but recommended   |
+| `ipset`     | Optional but recommended   |
+| `ipvsadm`   | Optional but recommended   |
 
 * Networking and DNS requirements:
   * Make sure the DNS address in `/etc/resolv.conf` is available. Otherwise, it may cause some issues of DNS in cluster.
@@ -93,19 +97,21 @@ KubeKey can install Kubernetes and KubeSphere together. The dependency that need
 ## Usage
 
 ### Get the KubeKey Executable File
+
 * The fastest way to get KubeKey is to use the script:
+
   ```
   curl -sfL https://get-kk.kubesphere.io | sh -
   ```
 * Binary downloads of the KubeKey also can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
   Unpack the binary and you are good to go!
-
 * Build Binary from Source Code
-    ```shell script
-    git clone https://github.com/kubesphere/kubekey.git
-    cd kubekey
-    make kk
-    ```
+
+  ```shell
+  git clone https://github.com/kubesphere/kubekey.git
+  cd kubekey
+  make kk
+  ```
 
 ### Create a Cluster
 
@@ -119,7 +125,7 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 
 > If you have problem to access `https://storage.googleapis.com`, execute first `export KKZONE=cn`.
 
-```shell script
+```shell
 ./kk create cluster [--with-kubernetes version] [--with-kubesphere version]
 ```
 
@@ -127,21 +133,19 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 
 * Create a pure Kubernetes cluster with default version (Kubernetes v1.23.7).
 
-    ```shell script
-    ./kk create cluster
-    ```
-
+  ```shell
+  ./kk create cluster
+  ```
 * Create a Kubernetes cluster with a specified version.
 
-    ```shell script
-    ./kk create cluster --with-kubernetes v1.24.1 --container-manager containerd
-    ```
-
+  ```shell
+  ./kk create cluster --with-kubernetes v1.24.1 --container-manager containerd
+  ```
 * Create a Kubernetes cluster with KubeSphere installed.
 
-    ```shell script
-    ./kk create cluster --with-kubesphere v3.2.1
-    ```
+  ```shell
+  ./kk create cluster --with-kubesphere v3.2.1
+  ```
 
 #### Advanced
 
@@ -151,33 +155,34 @@ You have more control to customize parameters or create a multi-node cluster usi
 
 1. First, create an example configuration file
 
-    ```shell script
-    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
-    ```
+   ```shell
+   ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
+   ```
 
    **examples:**
 
    * create an example config file with default configurations. You also can specify the file that could be a different filename, or in different folder.
 
-    ```shell script
-    ./kk create config [-f ~/myfolder/abc.yaml]
-    ```
+   ```shell
+   ./kk create config [-f ~/myfolder/abc.yaml]
+   ```
 
    * with KubeSphere
 
-    ```shell script
-    ./kk create config --with-kubesphere v3.2.1
-    ```
-
+   ```shell
+   ./kk create config --with-kubesphere v3.2.1
+   ```
 2. Modify the file config-sample.yaml according to your environment
+
 > Note:  Since Kubernetes temporarily does not support uppercase NodeName, contains uppercase letters in workerNode`s name will lead to subsequent installation error
-> 
+>
 > A persistent storage is required in the cluster, when kubesphere will be installed. The local volume is used default. If you want to use other persistent storage, please refer to [addons](./docs/addons.md).
+
 3. Create a cluster using the configuration file
 
-    ```shell script
-    ./kk create cluster -f config-sample.yaml
-    ```
+   ```shell
+   ./kk create cluster -f config-sample.yaml
+   ```
 
 ### Enable Multi-cluster Management
 
@@ -189,12 +194,11 @@ KubeSphere has decoupled some core feature components since v2.1.0. These compon
 
 You can enable any of them according to your demands. It is highly recommended that you install these pluggable components to discover the full-stack features and capabilities provided by KubeSphere. Please ensure your machines have sufficient CPU and memory before enabling them. See [Enable Pluggable Components](https://github.com/kubesphere/ks-installer#enable-pluggable-components) for the details.
 
-
 ### Add Nodes
 
 Add new node's information to the cluster config file, then apply the changes.
 
-```shell script
+```shell
 ./kk add nodes -f config-sample.yaml
 ```
 
@@ -202,7 +206,7 @@ Add new node's information to the cluster config file, then apply the changes.
 
 You can delete the node by the following command，the nodeName that needs to be removed.
 
-```shell script
+```shell
 ./kk delete node <nodeName> -f config-sample.yaml
 ```
 
@@ -212,42 +216,52 @@ You can delete the cluster by the following command:
 
 * If you started with the quick start (all-in-one):
 
-```shell script
+```shell
 ./kk delete cluster
 ```
 
 * If you started with the advanced (created with a configuration file):
 
-```shell script
+```shell
 ./kk delete cluster [-f config-sample.yaml]
 ```
+
 ### Upgrade Cluster
+
 #### Allinone
+
 Upgrading cluster with a specified version.
-```shell script
+
+```shell
 ./kk upgrade [--with-kubernetes version] [--with-kubesphere version] 
 ```
+
 * Support upgrading Kubernetes only.
 * Support upgrading KubeSphere only.
 * Support upgrading Kubernetes and KubeSphere.
 
 #### Multi-nodes
+
 Upgrading cluster with a specified configuration file.
-```shell script
+
+```shell
 ./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
 ```
+
 * If `--with-kubernetes` or `--with-kubesphere` is specified, the configuration file will be also updated.
 * Use `-f` to specify the configuration file which was generated for cluster creation.
 
 > Note: Upgrading multi-nodes cluster need a specified configuration file. If the cluster was installed without kubekey or the configuration file for installation was not found, the configuration file needs to be created by yourself or following command.
 
 Getting cluster info and generating kubekey's configuration file (optional).
-```shell script
+
+```shell
 ./kk create config [--from-cluster] [(-f | --filename) path] [--kubeconfig path]
 ```
-* `--from-cluster` means fetching cluster's information from an existing cluster. 
+
+* `--from-cluster` means fetching cluster's information from an existing cluster.
 * `-f` refers to the path where the configuration file is generated.
-* `--kubeconfig` refers to the path where the kubeconfig. 
+* `--kubeconfig` refers to the path where the kubeconfig.
 * After generating the configuration file, some parameters need to be filled in, such as the ssh information of the nodes.
 
 ## Documents
@@ -269,9 +283,13 @@ Getting cluster info and generating kubekey's configuration file (optional).
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+
 <!-- prettier-ignore-start -->
+
 <!-- markdownlint-disable -->
+
 <table>
   <tr>
     <td align="center"><a href="https://github.com/pixiake"><img src="https://avatars0.githubusercontent.com/u/22290449?v=4?s=100" width="100px;" alt=""/><br /><sub><b>pixiake</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=pixiake" title="Code">💻</a> <a href="https://github.com/kubesphere/kubekey/commits?author=pixiake" title="Documentation">📖</a></td>
@@ -355,6 +373,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 </table>
 
 <!-- markdownlint-restore -->
+
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
