@@ -1,0 +1,22 @@
+FROM almalinux:9 as almalinux9
+ARG TARGETARCH
+ENV OS=almalinux
+ENV OS_VERSION=9
+ARG BUILD_TOOLS="dnf-plugins-core createrepo mkisofs epel-release"
+ARG DIR=${OS}${OS_VERSION}-${TARGETARCH}-rpms
+
+RUN dnf install -q -y ${BUILD_TOOLS} \
+    && dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
+    && dnf makecache
+
+WORKDIR package
+COPY packages.yaml .
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+RUN yq eval ".common[],.rpms[],.${OS}[],.${OS}${OS_VERSION}[]" packages.yaml | sed '/^ceph-common$/d' > packages.list
+
+RUN sort -u packages.list | xargs dnf download --resolve --alldeps --downloaddir=${DIR} \
+    && createrepo -d ${DIR} \
+    && mkisofs -r -o ${DIR}.iso ${DIR}
+
+FROM scratch
+COPY --from=almalinux9 /package/*.iso /
