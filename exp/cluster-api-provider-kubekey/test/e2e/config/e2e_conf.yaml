@@ -14,11 +14,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.8.2
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.2.0
+  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.2.1
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.2.0
+  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.2.1
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.2.0
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.2.1
     loadBehavior: tryLoad
   - name: ghcr.io/kube-vip/kube-vip:v0.5.0
     loadBehavior: tryLoad
@@ -27,8 +27,8 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.2.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/core-components.yaml"
+      - name: v1.2.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.1/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -43,8 +43,8 @@ providers:
     files:
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.2.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/bootstrap-components.yaml"
+      - name: v1.2.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.1/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -59,8 +59,8 @@ providers:
     files:
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.2.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/control-plane-components.yaml"
+      - name: v1.2.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
