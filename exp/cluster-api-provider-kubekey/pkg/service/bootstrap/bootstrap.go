@@ -95,7 +95,7 @@ func (s *Service) CreateDirectory() error {
 
 // ResetTmpDirectory resets the temporary "/tmp/kubekey" directory.
 func (s *Service) ResetTmpDirectory() error {
-	dirService := s.getDirectoryService(directory.TmpDir, os.FileMode(filesystem.FileMode0755))
+	dirService := s.getDirectoryService(directory.TmpDir, os.FileMode(filesystem.FileMode0777))
 	if err := dirService.Remove(); err != nil {
 		return err
 	}

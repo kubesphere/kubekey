@@ -113,7 +113,7 @@ func (b *Binary) CompareChecksum() error {
 	}
 
 	if sum != b.checksum.Value() {
-		return errors.New(fmt.Sprintf("SHA256 no match. file: %s sha256: %s not equal checksum: %s", b.Name(), sum, b.checksum.Value()))
+		return errors.Errorf("SHA256 no match. file: %s sha256: %s not equal checksum: %s", b.Name(), sum, b.checksum.Value())
 	}
 	return nil
 }

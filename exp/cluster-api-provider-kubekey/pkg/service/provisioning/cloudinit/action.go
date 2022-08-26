@@ -38,7 +38,7 @@ type actionFactory struct {
 }
 
 // NewActionFactory returns a new action factory.
-func NewActionFactory(sshClient ssh.Interface) *actionFactory {
+func NewActionFactory(sshClient ssh.Interface) *actionFactory { //nolint: golint
 	return &actionFactory{
 		sshClient: sshClient,
 	}
