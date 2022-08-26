@@ -44,6 +44,7 @@
 | v1.23.7  | :white_check_mark: |
 | v1.23.8  | :white_check_mark: |
 | v1.23.9  | :white_check_mark: |
+| v1.23.10 | :white_check_mark: |
 | v1.24.0  | :white_check_mark: |
 | v1.24.1  | :white_check_mark: |
 | v1.24.2  | :white_check_mark: |
@@ -95,6 +96,7 @@
 | v1.23.7  | :white_check_mark: |
 | v1.23.8  | :white_check_mark: |
 | v1.23.9  | :white_check_mark: |
+| v1.23.10 | :white_check_mark: |
 | v1.24.0  | :white_check_mark: |
 | v1.24.1  | :white_check_mark: |
 | v1.24.2  | :white_check_mark: |

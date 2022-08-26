@@ -40,7 +40,7 @@ Use KubeKey in the following three scenarios.
 * **v1.20**: &ensp; *v1.20.10*
 * **v1.21**: &ensp; *v1.21.13*
 * **v1.22**: &ensp; *v1.22.12*
-* **v1.23**: &ensp; *v1.23.9*   (default)
+* **v1.23**: &ensp; *v1.23.10*   (default)
 * **v1.24**: &ensp; *v1.24.3*
 > Looking for more supported versions  
 > [Kubernetes Versions](./docs/kubernetes-versions.md)  
@@ -125,7 +125,7 @@ Quick Start is for `all-in-one` installation which is a good start to get famili
 
 ##### Examples
 
-* Create a pure Kubernetes cluster with default version (Kubernetes v1.23.7).
+* Create a pure Kubernetes cluster with default version (Kubernetes v1.23.10).
 
     ```shell script
     ./kk create cluster

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 v22_patch_max=12
-v23_patch_max=9
+v23_patch_max=10
 v24_patch_max=3
 
 versions=()
