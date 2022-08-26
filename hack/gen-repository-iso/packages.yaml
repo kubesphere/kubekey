@@ -84,6 +84,6 @@ almalinux:
   - containerd.io
   - docker-compose-plugin
 
-almalinux9:
+almalinux90:
   - docker-ce-20.10.17
   - docker-ce-cli-20.10.17
