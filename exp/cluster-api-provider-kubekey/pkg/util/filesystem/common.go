@@ -22,6 +22,8 @@ const (
 )
 
 const (
+	// FileMode0777 represents the file mode 0755
+	FileMode0777 = 0777
 	// FileMode0755 represents the file mode 0755
 	FileMode0755 = 0755
 	// FileMode0644 represents the file mode 0644
