@@ -19,6 +19,7 @@ package file
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
@@ -27,16 +28,19 @@ import (
 
 // Kubectl info
 const (
-	KubectlName              = "kubectl"
-	KubectlID                = "kubectl"
-	KubectlDownloadURLTmpl   = "https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl"
-	KubectlDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl"
+	KubectlName          = "kubectl"
+	KubectlID            = "kubectl"
+	KubectlURLPathTmpl   = "/kubernetes-release/release/%s/bin/linux/%s/kubectl"
+	KubectlURLPathTmplCN = "/release/%s/bin/linux/%s/kubectl"
 )
 
-// NewKubectl returns a new Binary for kubectl
-func NewKubectl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
-	internal := checksum.NewChecksum(KubectlID, version, arch)
+// Kubectl is a Binary for kubectl.
+type Kubectl struct {
+	*Binary
+}
 
+// NewKubectl returns a new Kubectl.
+func NewKubectl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Kubectl, error) {
 	fileName := KubectlName
 	file, err := NewFile(Params{
 		SSHClient:      sshClient,
@@ -50,13 +54,24 @@ func NewKubectl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 		return nil, err
 	}
 
-	return &Binary{
-		file,
-		KubectlID,
-		version,
-		arch,
-		fmt.Sprintf(KubectlDownloadURLTmpl, version, arch),
-		fmt.Sprintf(KubectlDownloadURLTmplCN, version, arch),
-		internal,
-	}, nil
+	u := parseURL(DefaultDownloadHostGoogle, fmt.Sprintf(KubectlURLPathTmpl, version, arch))
+	internal := checksum.NewChecksum(KubectlID, version, arch)
+	binary := NewBinary(BinaryParams{
+		File:     file,
+		ID:       KubectlID,
+		Version:  version,
+		Arch:     arch,
+		URL:      u,
+		Checksum: internal,
+	})
+
+	return &Kubectl{binary}, nil
+}
+
+// SetZone override Binary's SetZone method.
+func (k *Kubectl) SetZone(zone string) {
+	if strings.EqualFold(zone, ZONE) {
+		k.SetHost(DefaultDownloadHostQingStor)
+		k.SetPath(fmt.Sprintf(KubectlURLPathTmplCN, k.version, k.arch))
+	}
 }

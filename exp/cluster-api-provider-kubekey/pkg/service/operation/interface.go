@@ -18,9 +18,11 @@
 package operation
 
 import (
+	"net/url"
 	"time"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 // File interface defines the operations for normal file which needed to be copied to remote.
@@ -42,8 +44,12 @@ type Binary interface {
 	ID() string
 	Arch() string
 	Version() string
-	URL() string
+	URL() *url.URL
+	SetURL(url string)
+	SetHost(host string)
+	SetPath(path string)
 	SetZone(zone string)
+	SetChecksum(checksum checksum.Interface)
 	Get(timeout time.Duration) error
 	CompareChecksum() error
 }

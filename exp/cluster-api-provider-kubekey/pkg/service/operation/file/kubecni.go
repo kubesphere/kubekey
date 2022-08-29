@@ -19,6 +19,7 @@ package file
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
@@ -27,17 +28,21 @@ import (
 
 // Kubecni info
 const (
-	KubecniName              = "cni-plugins-linux-%s-%s.tgz"
-	KubecniID                = "kubecni"
-	KubecniDownloadURLTmpl   = "https://github.com/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
-	KubecniDownloadURLTmplCN = "https://containernetworking.pek3b.qingstor.com/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
-	KubecniDefaultVersion    = "v0.9.1"
+	KubecniName           = "cni-plugins-linux-%s-%s.tgz"
+	KubecniID             = "kubecni"
+	KubecniURLPathTmpl    = "/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
+	KubecniURLCN          = "https://containernetworking.pek3b.qingstor.com"
+	KubecniURLPathTmplCN  = "/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
+	KubecniDefaultVersion = "v0.9.1"
 )
 
-// NewKubecni returns a new Binary for kubecni
-func NewKubecni(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
-	internal := checksum.NewChecksum(KubecniID, version, arch)
+// Kubecni is a Binary for kubecni.
+type Kubecni struct {
+	*Binary
+}
 
+// NewKubecni returns a new Kubecni.
+func NewKubecni(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Kubecni, error) {
 	fileName := fmt.Sprintf(KubecniName, arch, version)
 	file, err := NewFile(Params{
 		SSHClient:      sshClient,
@@ -51,13 +56,24 @@ func NewKubecni(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 		return nil, err
 	}
 
-	return &Binary{
-		file,
-		KubecniID,
-		version,
-		arch,
-		fmt.Sprintf(KubecniDownloadURLTmpl, version, arch, version),
-		fmt.Sprintf(KubecniDownloadURLTmplCN, version, arch, version),
-		internal,
-	}, nil
+	u := parseURL(DefaultDownloadHost, fmt.Sprintf(KubecniURLPathTmpl, version, arch, version))
+	internal := checksum.NewChecksum(KubecniID, version, arch)
+	binary := NewBinary(BinaryParams{
+		File:     file,
+		ID:       KubecniID,
+		Version:  version,
+		Arch:     arch,
+		URL:      u,
+		Checksum: internal,
+	})
+
+	return &Kubecni{binary}, nil
+}
+
+// SetZone override Binary's SetZone method.
+func (k *Kubecni) SetZone(zone string) {
+	if strings.EqualFold(zone, ZONE) {
+		k.SetHost(KubecniURLCN)
+		k.SetPath(fmt.Sprintf(KubecniURLPathTmplCN, k.version, k.arch, k.version))
+	}
 }

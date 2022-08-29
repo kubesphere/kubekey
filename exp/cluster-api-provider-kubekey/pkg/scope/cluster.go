@@ -226,9 +226,28 @@ func (s *ClusterScope) RootFs() rootfs.Interface {
 	return s.rootFs
 }
 
-// Zone returns the KKCluster binaries zone.
-func (s *ClusterScope) Zone() string {
-	return s.KKCluster.Spec.ZONE
+// ComponentZone returns the KKCluster binaries zone.
+func (s *ClusterScope) ComponentZone() string {
+	if s.KKCluster.Spec.Component == nil {
+		return ""
+	}
+	return s.KKCluster.Spec.Component.ZONE
+}
+
+// ComponentHost returns the KKCluster binaries host.
+func (s *ClusterScope) ComponentHost() string {
+	if s.KKCluster.Spec.Component == nil {
+		return ""
+	}
+	return s.KKCluster.Spec.Component.Host
+}
+
+// ComponentOverrides returns the KKCluster binaries overrides.
+func (s *ClusterScope) ComponentOverrides() []infrav1.Override {
+	if s.KKCluster.Spec.Component == nil {
+		return []infrav1.Override{}
+	}
+	return s.KKCluster.Spec.Component.Overrides
 }
 
 // ControlPlaneLoadBalancer returns the KKLoadBalancerSpec.

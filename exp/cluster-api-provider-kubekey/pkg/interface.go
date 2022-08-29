@@ -87,8 +87,6 @@ type ClusterScoper interface {
 	KubernetesClusterName() string
 	// RootFs is the cluster scope rootfs
 	RootFs() rootfs.Interface
-	// Zone returns the cluster zone.
-	Zone() string
 	// PatchObject persists the cluster configuration and status.
 	PatchObject() error
 	// Close closes the current scope persisting the cluster configuration and status.
