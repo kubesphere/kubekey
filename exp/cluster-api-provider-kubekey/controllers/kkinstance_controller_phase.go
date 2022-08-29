@@ -154,6 +154,9 @@ func (r *KKInstanceReconciler) reconcileBinaryService(_ context.Context, sshClie
 	if err := svc.ConfigureKubelet(); err != nil {
 		return err
 	}
+	if err := svc.ConfigureKubeadm(); err != nil {
+		return err
+	}
 	return nil
 }
 

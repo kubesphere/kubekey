@@ -144,3 +144,16 @@ func (s *Service) ConfigureKubelet() error {
 	}
 	return nil
 }
+
+// ConfigureKubeadm configures kubeadm.
+func (s *Service) ConfigureKubeadm() error {
+	kubeadm, err := s.getKubeadmService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.SSHClient.SudoCmdf("ln -snf %s /usr/bin/kubeadm", kubeadm.RemotePath()); err != nil {
+		return err
+	}
+	return nil
+}

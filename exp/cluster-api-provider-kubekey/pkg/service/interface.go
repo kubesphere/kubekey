@@ -40,6 +40,7 @@ type Bootstrap interface {
 type BinaryService interface {
 	DownloadAll(timeout time.Duration) error
 	ConfigureKubelet() error
+	ConfigureKubeadm() error
 }
 
 // ContainerManager is the interface for container manager provision.
