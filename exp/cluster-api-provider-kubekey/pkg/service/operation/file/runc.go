@@ -27,17 +27,19 @@ import (
 
 // runc info
 const (
-	RuncName              = "runc.%s"
-	RuncID                = "runc"
-	RuncDownloadURLTmpl   = "https://github.com/opencontainers/runc/releases/download/%s/runc.%s"
-	RuncDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/%s/runc.%s"
-	RuncDefaultVersion    = "v1.1.1"
+	RuncName           = "runc.%s"
+	RuncID             = "runc"
+	RuncURLPathTmpl    = "/opencontainers/runc/releases/download/%s/runc.%s"
+	RuncDefaultVersion = "v1.1.1"
 )
 
-// NewRunc returns a new Binary for runc
-func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
-	internal := checksum.NewChecksum(RuncID, version, arch)
+// Runc is a Binary for runc.
+type Runc struct {
+	*Binary
+}
 
+// NewRunc returns a new Runc.
+func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Runc, error) {
 	fileName := fmt.Sprintf(RuncName, arch)
 	file, err := NewFile(Params{
 		SSHClient:      sshClient,
@@ -51,13 +53,16 @@ func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch str
 		return nil, err
 	}
 
-	return &Binary{
-		file,
-		RuncID,
-		version,
-		arch,
-		fmt.Sprintf(RuncDownloadURLTmpl, version, arch),
-		fmt.Sprintf(RuncDownloadURLTmplCN, version, arch),
-		internal,
-	}, nil
+	u := parseURL(DefaultDownloadHost, fmt.Sprintf(RuncURLPathTmpl, version, arch))
+	internal := checksum.NewChecksum(RuncID, version, arch)
+	binary := NewBinary(BinaryParams{
+		File:     file,
+		ID:       RuncID,
+		Version:  version,
+		Arch:     arch,
+		URL:      u,
+		Checksum: internal,
+	})
+
+	return &Runc{binary}, nil
 }

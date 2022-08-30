@@ -30,9 +30,6 @@ const (
 
 // KKClusterSpec defines the desired state of KKCluster
 type KKClusterSpec struct {
-	// ZONE is the zone of the KKCluster where can get the binaries.
-	// If you have problem to access https://storage.googleapis.com, you can set "zone: cn".
-	ZONE string `json:"zone,omitempty"`
 
 	// Nodes represents the information about the nodes available to the cluster
 	Nodes Nodes `json:"nodes"`
@@ -44,6 +41,11 @@ type KKClusterSpec struct {
 	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.
 	// +optional
 	ControlPlaneLoadBalancer *KKLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
+
+	// Component is optional configuration for modifying the FTP server
+	// that gets the necessary components for the cluster.
+	// +optional
+	Component *Component `json:"component,omitempty"`
 
 	// Registry represents the cluster image registry used to pull the images.
 	// +optional

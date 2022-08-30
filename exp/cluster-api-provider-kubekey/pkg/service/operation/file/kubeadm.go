@@ -19,6 +19,7 @@ package file
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
@@ -27,16 +28,19 @@ import (
 
 // Kubeadm info
 const (
-	KubeadmName              = "kubeadm"
-	KubeadmID                = "kubeadm"
-	KubeadmDownloadURLTmpl   = "https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm"
-	KubeadmDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm"
+	KubeadmName          = "kubeadm"
+	KubeadmID            = "kubeadm"
+	KubeadmURLPathTmpl   = "/kubernetes-release/release/%s/bin/linux/%s/kubeadm"
+	KubeadmURLPathTmplCN = "/release/%s/bin/linux/%s/kubeadm"
 )
 
-// NewKubeadm returns a new Binary for kubeadm
-func NewKubeadm(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
-	internal := checksum.NewChecksum(KubeadmID, version, arch)
+// Kubeadm is a Binary for kubeadm.
+type Kubeadm struct {
+	*Binary
+}
 
+// NewKubeadm returns a new Kubeadm.
+func NewKubeadm(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Kubeadm, error) {
 	fileName := KubeadmName
 	file, err := NewFile(Params{
 		SSHClient:      sshClient,
@@ -50,13 +54,24 @@ func NewKubeadm(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 		return nil, err
 	}
 
-	return &Binary{
-		file,
-		KubeadmID,
-		version,
-		arch,
-		fmt.Sprintf(KubeadmDownloadURLTmpl, version, arch),
-		fmt.Sprintf(KubeadmDownloadURLTmplCN, version, arch),
-		internal,
-	}, nil
+	u := parseURL(DefaultDownloadHostGoogle, fmt.Sprintf(KubeadmURLPathTmpl, version, arch))
+	internal := checksum.NewChecksum(KubeadmID, version, arch)
+	binary := NewBinary(BinaryParams{
+		File:     file,
+		ID:       KubeadmID,
+		Version:  version,
+		Arch:     arch,
+		URL:      u,
+		Checksum: internal,
+	})
+
+	return &Kubeadm{binary}, nil
+}
+
+// SetZone override Binary's SetZone method.
+func (k *Kubeadm) SetZone(zone string) {
+	if strings.EqualFold(zone, ZONE) {
+		k.SetHost(DefaultDownloadHostQingStor)
+		k.SetPath(fmt.Sprintf(KubeadmURLPathTmplCN, k.version, k.arch))
+	}
 }

@@ -19,6 +19,7 @@ package file
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
@@ -28,17 +29,22 @@ import (
 
 // Docker info
 const (
-	DockerName              = "docker-%s.tgz"
-	DockerID                = "docker"
-	DockerDownloadURLTmpl   = "https://download.docker.com/linux/static/stable/%s/docker-%s.tgz"
-	DockerDownloadURLTmplCN = "https://mirrors.aliyun.com/docker-ce/linux/static/stable/%s/docker-%s.tgz"
-	DockerDefaultVersion    = "20.10.8"
+	DockerName           = "docker-%s.tgz"
+	DockerID             = "docker"
+	DockerURL            = "https://download.docker.com"
+	DockerURLPathTmpl    = "/linux/static/stable/%s/docker-%s.tgz"
+	DockerURLCN          = "https://mirrors.aliyun.com"
+	DockerURLPathTmplCN  = "/docker-ce/linux/static/stable/%s/docker-%s.tgz"
+	DockerDefaultVersion = "20.10.8"
 )
 
-// NewDocker returns a new Binary for docker.
-func NewDocker(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
-	internal := checksum.NewChecksum(DockerID, version, arch)
+// Docker is a Binary for docker.
+type Docker struct {
+	*Binary
+}
 
+// NewDocker returns a new Docker.
+func NewDocker(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Docker, error) {
 	fileName := fmt.Sprintf(DockerName, version)
 	file, err := NewFile(Params{
 		SSHClient:      sshClient,
@@ -52,13 +58,24 @@ func NewDocker(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch s
 		return nil, err
 	}
 
-	return &Binary{
-		file,
-		DockerID,
-		version,
-		arch,
-		fmt.Sprintf(DockerDownloadURLTmpl, util.ArchAlias(arch), version),
-		fmt.Sprintf(DockerDownloadURLTmplCN, util.ArchAlias(arch), version),
-		internal,
-	}, nil
+	u := parseURL(DockerURL, fmt.Sprintf(DockerURLPathTmpl, util.ArchAlias(arch), version))
+	internal := checksum.NewChecksum(DockerID, version, arch)
+	binary := NewBinary(BinaryParams{
+		File:     file,
+		ID:       DockerID,
+		Version:  version,
+		Arch:     arch,
+		URL:      u,
+		Checksum: internal,
+	})
+
+	return &Docker{binary}, nil
+}
+
+// SetZone override Binary's SetZone method.
+func (d *Docker) SetZone(zone string) {
+	if strings.EqualFold(zone, ZONE) {
+		d.SetHost(DockerURLCN)
+		d.SetPath(fmt.Sprintf(DockerURLPathTmplCN, util.ArchAlias(d.arch), d.version))
+	}
 }

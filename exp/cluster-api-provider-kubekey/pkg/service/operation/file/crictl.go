@@ -19,6 +19,7 @@ package file
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
@@ -27,16 +28,19 @@ import (
 
 // Crictl info
 const (
-	CrictlName              = "crictl-%s-linux-%s.tar.gz"
-	CrictlID                = "crictl"
-	CrictlDownloadURLTmpl   = "https://github.com/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
-	CrictlDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
+	CrictlName          = "crictl-%s-linux-%s.tar.gz"
+	CrictlID            = "crictl"
+	CrictlURLPathTmpl   = "/kubernetes-sigs/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
+	CrictlURLPathTmplCN = "/cri-tools/releases/download/%s/crictl-%s-linux-%s.tar.gz"
 )
 
-// NewCrictl returns a new Binary for crictl
-func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
-	internal := checksum.NewChecksum(CrictlID, version, arch)
+// Crictl is a Binary for crictl.
+type Crictl struct {
+	*Binary
+}
 
+// NewCrictl returns a new Crictl.
+func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Crictl, error) {
 	fileName := fmt.Sprintf(CrictlName, version, arch)
 	file, err := NewFile(Params{
 		SSHClient:      sshClient,
@@ -50,13 +54,24 @@ func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch s
 		return nil, err
 	}
 
-	return &Binary{
-		file,
-		CrictlID,
-		version,
-		arch,
-		fmt.Sprintf(CrictlDownloadURLTmpl, version, version, arch),
-		fmt.Sprintf(CrictlDownloadURLTmplCN, version, version, arch),
-		internal,
-	}, nil
+	u := parseURL(DefaultDownloadHost, fmt.Sprintf(CrictlURLPathTmpl, version, version, arch))
+	internal := checksum.NewChecksum(CrictlID, version, arch)
+	binary := NewBinary(BinaryParams{
+		File:     file,
+		ID:       CrictlID,
+		Version:  version,
+		Arch:     arch,
+		URL:      u,
+		Checksum: internal,
+	})
+
+	return &Crictl{binary}, nil
+}
+
+// SetZone override Binary's SetZone method.
+func (c *Crictl) SetZone(zone string) {
+	if strings.EqualFold(zone, ZONE) {
+		c.SetHost(DefaultDownloadHostQingStor)
+		c.SetPath(fmt.Sprintf(CrictlURLPathTmplCN, c.version, c.version, c.arch))
+	}
 }

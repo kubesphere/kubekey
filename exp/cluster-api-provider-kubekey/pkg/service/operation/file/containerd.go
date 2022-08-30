@@ -27,16 +27,18 @@ import (
 
 // Containerd info
 const (
-	ContainerdName              = "containerd-%s-linux-%s.tar.gz"
-	ContainerdID                = "containerd"
-	ContainerdDownloadURLTmpl   = "https://github.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz"
-	ContainerdDownloadURLTmplCN = "https://kubernetes-release.pek3b.qingstor.com/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz"
+	ContainerdName        = "containerd-%s-linux-%s.tar.gz"
+	ContainerdID          = "containerd"
+	ContainerdURLPathTmpl = "/containerd/containerd/releases/download/v%s/containerd-%s-linux-%s.tar.gz"
 )
 
-// NewContainerd returns a new Binary for containerd
-func NewContainerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Binary, error) {
-	internal := checksum.NewChecksum(ContainerdID, version, arch)
+// Containerd is a Binary for containerd.
+type Containerd struct {
+	*Binary
+}
 
+// NewContainerd returns a new Containerd.
+func NewContainerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch string) (*Containerd, error) {
 	fileName := fmt.Sprintf(ContainerdName, version, arch)
 	file, err := NewFile(Params{
 		SSHClient:      sshClient,
@@ -50,13 +52,16 @@ func NewContainerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, ar
 		return nil, err
 	}
 
-	return &Binary{
-		file,
-		ContainerdID,
-		version,
-		arch,
-		fmt.Sprintf(ContainerdDownloadURLTmpl, version, version, arch),
-		fmt.Sprintf(ContainerdDownloadURLTmplCN, version, version, arch),
-		internal,
-	}, nil
+	u := parseURL(DefaultDownloadHost, fmt.Sprintf(ContainerdURLPathTmpl, version, version, arch))
+	internal := checksum.NewChecksum(ContainerdID, version, arch)
+	binary := NewBinary(BinaryParams{
+		File:     file,
+		ID:       ContainerdID,
+		Version:  version,
+		Arch:     arch,
+		URL:      u,
+		Checksum: internal,
+	})
+
+	return &Containerd{binary}, nil
 }

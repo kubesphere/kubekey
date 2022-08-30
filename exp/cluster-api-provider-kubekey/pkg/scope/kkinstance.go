@@ -24,10 +24,17 @@ import (
 // KKInstanceScope is a scope for global KKInstance.
 type KKInstanceScope interface {
 	pkg.ClusterScoper
+	// ComponentZone returns the cluster zone.
+	ComponentZone() string
+	// ComponentHost returns the host to download the binaries.
+	ComponentHost() string
+	// ComponentOverrides returns the component overrides.
+	ComponentOverrides() []infrav1.Override
 	// GlobalAuth returns the global auth configuration of all instances.
 	GlobalAuth() *infrav1.Auth
 	// GlobalContainerManager returns the global container manager configuration of all instances.
 	GlobalContainerManager() *infrav1.ContainerManager
+	// GlobalRegistry returns the global registry configuration of all instances.
 	GlobalRegistry() *infrav1.Registry
 	// AllInstancesSpec returns the KKInstanceSpec
 	AllInstancesSpec() []infrav1.KKInstanceSpec

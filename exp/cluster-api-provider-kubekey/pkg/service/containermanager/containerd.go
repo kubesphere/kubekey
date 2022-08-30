@@ -32,6 +32,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 // ContainerdService is a ContainerManager service implementation for containerd.
@@ -129,15 +130,41 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 		crictl,
 	}
 
+	zone := s.scope.ComponentZone()
+	host := s.scope.ComponentHost()
+	overrideMap := make(map[string]infrav1.Override)
+	for _, o := range s.scope.ComponentOverrides() {
+		overrideMap[o.ID+o.Version+o.Arch] = o
+	}
+
 	for _, b := range binaries {
-		b.SetZone(s.scope.Zone())
-		needGet := true
-		if b.LocalExist() && b.CompareChecksum() == nil {
-			needGet = false
+		if b.RemoteExist() {
+			continue
 		}
-		if needGet {
+
+		if !(b.LocalExist() && b.CompareChecksum() == nil) {
+			// Only the host is an empty string, we can set ip the zone.
+			// Because the URL path which in the QingStor is not the same as the default.
+			if host == "" {
+				b.SetZone(zone)
+			}
+
+			var path, url, checksumStr string
+			// If the override is match, we will use the override to replace the default.
+			if override, ok := overrideMap[b.ID()+b.Version()+b.Arch()]; ok {
+				path = override.Path
+				url = override.URL
+				checksumStr = override.Checksum
+			}
+			// Always try to set the "host, path, url, checksum".
+			// If the these vars are empty strings, it will not make any changes.
+			b.SetHost(host)
+			b.SetPath(path)
+			b.SetURL(url)
+			b.SetChecksum(checksum.NewStringChecksum(checksumStr))
+
 			s.instanceScope.V(4).Info("download binary", "binary", b.Name(),
-				"version", b.Version(), "url", b.URL())
+				"version", b.Version(), "url", b.URL().String())
 			if err := b.Get(timeout); err != nil {
 				return err
 			}
@@ -145,6 +172,7 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 				return err
 			}
 		}
+
 		if err := b.Copy(true); err != nil {
 			return err
 		}
