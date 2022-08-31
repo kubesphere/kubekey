@@ -11,13 +11,7 @@ spec:
     auth:
       user: '${USER_NAME}'
       password: '${PASSWORD}'
-    instances:
-      - name: '${CLUSTER_NAME}-test1'
-        address: '${INSTANCE01_IP}'
-      - name: '${CLUSTER_NAME}-test2'
-        address: '${INSTANCE02_IP}'
-      - name: '${CLUSTER_NAME}-test3'
-        address: '${INSTANCE03_IP}'
+    instances: '${INSTANCES}'
   controlPlaneLoadBalancer:
     host: '${CONTROL_PLANE_ENDPOINT_IP}'
 ---

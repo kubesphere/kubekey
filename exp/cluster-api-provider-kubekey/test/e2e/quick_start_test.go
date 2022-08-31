@@ -35,7 +35,6 @@ var _ = Describe("Cluster Creation using Cluster API quick-start test [PR-Blocki
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			//Flavor:                pointer.String("internal"),
 		}
 	})
 })
