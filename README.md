@@ -24,7 +24,7 @@ Use KubeKey in the following three scenarios.
 
 ### Linux Distributions
 
-* **Ubuntu**  *16.04, 18.04, 20.04*
+* **Ubuntu**  *16.04, 18.04, 20.04, 22.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
@@ -32,7 +32,7 @@ Use KubeKey in the following three scenarios.
 > Recommended Linux Kernel Version: `4.15 or later` 
 > You can run the `uname -srm` command to check the Linux Kernel Version.
 
-### `<span id = "KubernetesVersions">`Kubernetes Versions
+### <span id = "KubernetesVersions">Kubernetes Versions</span>
 
 * **v1.19**: &ensp; *v1.19.9*
 * **v1.20**: &ensp; *v1.20.10*
@@ -41,8 +41,8 @@ Use KubeKey in the following three scenarios.
 * **v1.23**: &ensp; *v1.23.9*   (default)
 * **v1.24**: &ensp; *v1.24.3*
 
-> Looking for more supported versions
-> [Kubernetes Versions](./docs/kubernetes-versions.md)
+> Looking for more supported versions: \
+> [Kubernetes Versions](./docs/kubernetes-versions.md) \
 > [K3s Versions](./docs/k3s-versions.md)
 
 ### Container Manager
