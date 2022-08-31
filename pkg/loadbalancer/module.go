@@ -343,3 +343,25 @@ func (k *K3sKubevipModule) Init() {
 		kubevipDaemonsetK3s,
 	}
 }
+
+type DeleteVIPModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (k *DeleteVIPModule) Init() {
+	k.Name = "DeleteVIPModule"
+	k.Desc = "Delete VIP"
+
+	DeleteVIP := &task.RemoteTask{
+		Name:     "GenerateKubevipManifest",
+		Desc:     "Generate kubevip manifest at other master",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Action:   new(DeleteVIP),
+		Parallel: true,
+	}
+
+	k.Tasks = []task.Interface{
+		DeleteVIP,
+	}
+}

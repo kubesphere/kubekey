@@ -158,10 +158,15 @@ type HostCfg struct {
 
 // ControlPlaneEndpoint defines the control plane endpoint information for cluster.
 type ControlPlaneEndpoint struct {
-	InternalLoadbalancer string `yaml:"internalLoadbalancer" json:"internalLoadbalancer,omitempty"`
-	Domain               string `yaml:"domain" json:"domain,omitempty"`
-	Address              string `yaml:"address" json:"address,omitempty"`
-	Port                 int    `yaml:"port" json:"port,omitempty"`
+	InternalLoadbalancer string  `yaml:"internalLoadbalancer" json:"internalLoadbalancer,omitempty"`
+	Domain               string  `yaml:"domain" json:"domain,omitempty"`
+	Address              string  `yaml:"address" json:"address,omitempty"`
+	Port                 int     `yaml:"port" json:"port,omitempty"`
+	KubeVip              KubeVip `yaml:"kubevip" json:"kubevip,omitempty"`
+}
+
+type KubeVip struct {
+	Mode string `yaml:"mode" json:"mode,omitempty"`
 }
 
 // System defines the system config for each node in cluster.

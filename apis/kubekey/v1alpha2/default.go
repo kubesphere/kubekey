@@ -95,8 +95,9 @@ const (
 	Crio       = "crio"
 	Isula      = "isula"
 
-	Haproxy = "haproxy"
-	Kubevip = "kube-vip"
+	Haproxy            = "haproxy"
+	Kubevip            = "kube-vip"
+	DefaultKubeVipMode = "ARP"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map[string][]*KubeHost) {
@@ -204,6 +205,9 @@ func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*KubeHost, incluster bool) 
 	}
 	if cfg.ControlPlaneEndpoint.Port == 0 {
 		cfg.ControlPlaneEndpoint.Port = DefaultLBPort
+	}
+	if cfg.ControlPlaneEndpoint.KubeVip.Mode == "" {
+		cfg.ControlPlaneEndpoint.KubeVip.Mode = DefaultKubeVipMode
 	}
 	defaultLbCfg := cfg.ControlPlaneEndpoint
 	return defaultLbCfg
