@@ -4,7 +4,11 @@
 
 > [English](README.md) | 中文
 
-从 v3.0.0 开始，[KubeSphere](https://kubesphere.io) 将基于 ansible 的安装程序更改为使用 Go 语言开发的名为 KubeKey 的新安装程序。使用 KubeKey，您可以轻松、高效、灵活地单独或整体安装 Kubernetes 和 KubeSphere。
+KubeKey是一个开源的轻量级工具，用于部署Kubernetes集群。它提供了一种灵活、快速、方便的方式来安装Kubernetes/K3s、Kubernetes/K3s和KubeSphere，以及相关的云原生附加组件。它也是扩展和升级集群的有效工具。
+
+此外，KubeKey还支持定制离线包（artifact），方便用户在离线环境下快速部署集群。
+
+> KubeKey 通过了 [CNCF kubernetes 一致性认证](https://www.cncf.io/certification/software-conformance/)。
 
 有三种情况可以使用 KubeKey。
 
@@ -25,7 +29,7 @@
 
 ### Linux 发行版
 
-* **Ubuntu**  *16.04, 18.04, 20.04*
+* **Ubuntu**  *16.04, 18.04, 20.04, 22.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
 * **SUSE Linux Enterprise Server** *15*
@@ -33,7 +37,7 @@
 > 建议使用 Linux Kernel 版本: `4.15 or later` 
 > 可以通过命令 `uname -srm` 查看 Linux Kernel 版本。
 
-### `<span id = "KubernetesVersions">`Kubernetes 版本
+### <span id = "KubernetesVersions">Kubernetes 版本</span>
 
 * **v1.19**: &ensp; *v1.19.9*
 * **v1.20**: &ensp; *v1.20.10*
@@ -42,7 +46,9 @@
 * **v1.23**: &ensp; *v1.23.9*   (default)
 * **v1.24**: &ensp; *v1.24.3*
 
-> 查看更多支持的版本[点击这里](./docs/kubernetes-versions.md)
+> 查看更多支持的版本： \
+> [Kubernetes 版本](./docs/kubernetes-versions.md) \
+> [K3s 版本](./docs/k3s-versions.md)
 
 ## 要求和建议
 
@@ -85,21 +91,23 @@ KubeKey 可以同时安装 Kubernetes 和 KubeSphere。在版本1.18之后，安
 
 ### 获取安装程序可执行文件
 
+* 使用脚本获取 KubeKey
+  > 如果无法访问 https://github.com, 请先执行 export KKZONE=cn.
+  ```
+  curl -sfL https://get-kk.kubesphere.io | sh -
+  ```
+
 * 下载KubeKey可执行文件 [Releases page](https://github.com/kubesphere/kubekey/releases)
 
   下载解压后可直接使用。
+
 * 从源代码生成二进制文件
 
   ```shell
   git clone https://github.com/kubesphere/kubekey.git
   cd kubekey
-  ./build.sh
+  make kk
   ```
-
-> 注意：
->
-> * 在构建之前，需要先安装 Docker。
-> * 如果无法访问 `https://proxy.golang.org/`，比如在大陆，请执行 `build.sh -p`。
 
 ### 创建集群
 
@@ -277,7 +285,10 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
 
 ## 相关文档
 
+* [特性列表](docs/features.md)
+* [命令手册](docs/commands/kk.md)
 * [配置示例](docs/config-example.md)
+* [离线安装](docs/zh/manifest_and_artifact.md)
 * [高可用集群](docs/ha-mode.md)
 * [自定义插件安装](docs/addons.md)
 * [网络访问](docs/network-access.md)
