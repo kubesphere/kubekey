@@ -159,6 +159,8 @@ spec:
       containers:
         - name: kubeark
           image: 'kubeark/kubeark:latest'
+          cmd: ["python"]
+          args: ["worker.py"]
           env:
           - name: FLASK_ENV
             value: "dev"
@@ -223,6 +225,8 @@ spec:
       containers:
         - name: kubeark
           image: 'kubeark/kubeark:latest'
+          cmd: ["python"]
+          args: ["scheduler.py"]
           env:
           - name: FLASK_ENV
             value: "dev"
