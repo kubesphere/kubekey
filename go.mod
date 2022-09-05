@@ -22,7 +22,7 @@ require (
 	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
 	github.com/pkg/errors v0.9.1
-	github.com/pkg/sftp v1.13.4
+	github.com/pkg/sftp v1.13.5
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
