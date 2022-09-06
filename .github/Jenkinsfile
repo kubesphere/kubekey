@@ -1,0 +1,34 @@
+pipeline {
+  agent {
+    node {
+      label 'go18'
+    }
+  }
+
+  stages {
+    stage('Test') {
+      steps {
+        container('go') {
+          sh 'go mod tidy'
+
+          sh '''
+            if [ -n "$(git status --porcelain)" ]; then
+              echo 'To fix this check, run "go mod tidy"'
+              git status # Show the files that failed to pass the check.
+              exit 1
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Build') {
+      steps {
+        container('go') {
+          sh 'CGO_ENABLED=0 go build -tags=\'containers_image_openpgp\' -v -o output/kk ./cmd/main.go'
+        }
+      }
+    }
+
+  }
+}
