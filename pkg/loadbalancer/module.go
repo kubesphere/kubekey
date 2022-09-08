@@ -353,15 +353,24 @@ func (k *DeleteVIPModule) Init() {
 	k.Name = "DeleteVIPModule"
 	k.Desc = "Delete VIP"
 
+	getInterface := &task.RemoteTask{
+		Name:     "GetNodeInterface",
+		Desc:     "Get Node Interface",
+		Hosts:    k.Runtime.GetHostsByRole(common.Master),
+		Action:   new(GetInterfaceName),
+		Parallel: true,
+	}
+
 	DeleteVIP := &task.RemoteTask{
-		Name:     "GenerateKubevipManifest",
-		Desc:     "Generate kubevip manifest at other master",
+		Name:     "Delete VIP",
+		Desc:     "Delete the VIP",
 		Hosts:    k.Runtime.GetHostsByRole(common.Master),
 		Action:   new(DeleteVIP),
 		Parallel: true,
 	}
 
 	k.Tasks = []task.Interface{
+		getInterface,
 		DeleteVIP,
 	}
 }

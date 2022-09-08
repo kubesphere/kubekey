@@ -303,12 +303,12 @@ type DeleteVIP struct {
 }
 
 func (g *DeleteVIP) Execute(runtime connector.Runtime) error {
-	if g.KubeConf.Cluster.ControlPlaneEndpoint.KubeVip.Mode == "BGP" {
-		cmd := fmt.Sprintf("ip addr del %s dev lo", g.KubeConf.Cluster.ControlPlaneEndpoint.Address)
-		_, err := runtime.GetRunner().SudoCmd(cmd, false)
-		if err != nil {
-			return err
-		}
+	host := runtime.RemoteHost()
+	interfaceName, ok := host.GetCache().GetMustString("interface")
+	if !ok {
+		return errors.New("get interface failed")
 	}
+	cmd := fmt.Sprintf("ip addr del %s dev %s", g.KubeConf.Cluster.ControlPlaneEndpoint.Address, interfaceName)
+	runtime.GetRunner().SudoCmd(cmd, false)
 	return nil
 }
