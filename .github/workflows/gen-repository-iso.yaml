@@ -56,7 +56,7 @@ jobs:
           sha256sum *.iso >  ${{ matrix.name }}.iso.sha256sum.txt
 
       - name: Wait for release workflow to finish
-        uses: lewagon/wait-on-check-action@v1.1.1
+        uses: lewagon/wait-on-check-action@v1.1.2
         with:
           ref: ${{ github.ref }}
           check-name: 'goreleaser'
