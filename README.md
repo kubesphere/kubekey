@@ -36,7 +36,7 @@ Use KubeKey in the following three scenarios.
 
 * **v1.19**: &ensp; *v1.19.9*
 * **v1.20**: &ensp; *v1.20.10*
-* **v1.21**: &ensp; *v1.21.13*
+* **v1.21**: &ensp; *v1.21.14*
 * **v1.22**: &ensp; *v1.22.12*
 * **v1.23**: &ensp; *v1.23.10*   (default)
 * **v1.24**: &ensp; *v1.24.3*
