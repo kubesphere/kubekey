@@ -349,6 +349,10 @@ type DeleteVIPModule struct {
 	Skip bool
 }
 
+func (k *DeleteVIPModule) IsSkip() bool {
+	return k.Skip
+}
+
 func (k *DeleteVIPModule) Init() {
 	k.Name = "DeleteVIPModule"
 	k.Desc = "Delete VIP"
