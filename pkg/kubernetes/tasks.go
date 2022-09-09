@@ -1064,7 +1064,10 @@ func (c *ConfigureKubernetes) Execute(runtime connector.Runtime) error {
 	kubeHost := host.(*kubekeyv1alpha2.KubeHost)
 	for k, v := range kubeHost.Labels {
 		labelCmd := fmt.Sprintf("/usr/local/bin/kubectl label --overwrite node %s %s=%s", host.GetName(), k, v)
-		_, _ = runtime.GetRunner().SudoCmd(labelCmd, true)
+		_, err := runtime.GetRunner().SudoCmd(labelCmd, true)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
