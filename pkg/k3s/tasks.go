@@ -20,10 +20,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/kubesphere/kubekey/pkg/registry"
 	"path/filepath"
 	"strings"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
+	kubekeyregistry "github.com/kubesphere/kubekey/pkg/bootstrap/registry"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -504,6 +506,71 @@ func (s *SaveKubeConfig) Execute(_ connector.Runtime) error {
 		CoreV1().
 		ConfigMaps("kubekey-system").
 		Create(context.TODO(), cm, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+	return nil
+}
+
+type GenerateK3sRegistryConfig struct {
+	common.KubeAction
+}
+
+func (g *GenerateK3sRegistryConfig) Execute(runtime connector.Runtime) error {
+	endpointPrefix := "https://"
+	dockerioMirror := registry.Mirror{}
+	registryConfigs := map[string]registry.RegistryConfig{}
+
+	auths := registry.DockerRegistryAuthEntries(g.KubeConf.Cluster.Registry.Auths)
+	for k, v := range auths {
+		if k == g.KubeConf.Cluster.Registry.PrivateRegistry && v.PlainHTTP {
+			endpointPrefix = "http://"
+		}
+	}
+
+	dockerioMirror.Endpoints = []string{fmt.Sprintf("%s%s", endpointPrefix, g.KubeConf.Cluster.Registry.PrivateRegistry)}
+
+	if g.KubeConf.Cluster.Registry.NamespaceOverride != "" {
+		dockerioMirror.Rewrites = map[string]string{
+			"^rancher/(.*)": fmt.Sprintf("%s/$1", g.KubeConf.Cluster.Registry.NamespaceOverride),
+		}
+	}
+
+	for k, v := range auths {
+		registryConfigs[k] = registry.RegistryConfig{
+			Auth: &registry.AuthConfig{
+				Username: v.Username,
+				Password: v.Password,
+			},
+			TLS: &registry.TLSConfig{
+				CAFile:             v.CAFile,
+				CertFile:           v.CertFile,
+				KeyFile:            v.KeyFile,
+				InsecureSkipVerify: v.SkipTLSVerify,
+			},
+		}
+	}
+
+	_, ok := registryConfigs[kubekeyregistry.RegistryCertificateBaseName]
+
+	if !ok && g.KubeConf.Cluster.Registry.PrivateRegistry == kubekeyregistry.RegistryCertificateBaseName {
+		registryConfigs[g.KubeConf.Cluster.Registry.PrivateRegistry] = registry.RegistryConfig{TLS: &registry.TLSConfig{InsecureSkipVerify: true}}
+	}
+
+	k3sRegistries := registry.Registry{
+		Mirrors: map[string]registry.Mirror{"docker.io": dockerioMirror},
+		Configs: registryConfigs,
+	}
+
+	templateAction := action.Template{
+		Template: templates.K3sRegistryConfigTempl,
+		Dst:      filepath.Join("/etc/rancher/k3s", templates.K3sRegistryConfigTempl.Name()),
+		Data: util.Data{
+			"Registries": k3sRegistries,
+		},
+	}
+
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
 	return nil

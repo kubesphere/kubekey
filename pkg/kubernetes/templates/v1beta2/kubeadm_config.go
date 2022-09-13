@@ -18,7 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
-	"regexp"
+	"github.com/kubesphere/kubekey/pkg/utils"
 	"strings"
 	"text/template"
 
@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	funcMap = template.FuncMap{"toYaml": toYAML, "indent": Indent}
+	funcMap = template.FuncMap{"toYaml": utils.ToYAML, "indent": utils.Indent}
 	// KubeadmConfig defines the template of kubeadm configuration file.
 	KubeadmConfig = template.Must(template.New("kubeadm-config.yaml").Funcs(funcMap).Parse(
 		dedent.Dedent(`
@@ -362,19 +362,4 @@ func GetKubeProxyConfiguration(kubeConf *common.KubeConf) map[string]interface{}
 	}
 
 	return kubeProxyConfiguration
-}
-
-func toYAML(v interface{}) string {
-	data, err := yaml.Marshal(v)
-	if err != nil {
-		// Swallow errors inside of a template.
-		return ""
-	}
-	return strings.TrimSuffix(string(data), "\n")
-}
-
-func Indent(n int, text string) string {
-	startOfLine := regexp.MustCompile(`(?m)^`)
-	indentation := strings.Repeat(" ", n)
-	return startOfLine.ReplaceAllLiteralString(text, indentation)
 }

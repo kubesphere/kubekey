@@ -21,6 +21,9 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
+	"regexp"
+	"strings"
 )
 
 func ResetTmpDir(runtime connector.Runtime) error {
@@ -31,4 +34,19 @@ func ResetTmpDir(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
 	}
 	return nil
+}
+
+func ToYAML(v interface{}) string {
+	data, err := yaml.Marshal(v)
+	if err != nil {
+		// Swallow errors inside of a template.
+		return ""
+	}
+	return strings.TrimSuffix(string(data), "\n")
+}
+
+func Indent(n int, text string) string {
+	startOfLine := regexp.MustCompile(`(?m)^`)
+	indentation := strings.Repeat(" ", n)
+	return startOfLine.ReplaceAllLiteralString(text, indentation)
 }

@@ -59,3 +59,12 @@ func (c *ClusterIsExist) PreCheck(_ connector.Runtime) (bool, error) {
 		return false, errors.New("get k3s cluster status by pipeline cache failed")
 	}
 }
+
+type UsePrivateRegstry struct {
+	common.KubePrepare
+	Not bool
+}
+
+func (c *UsePrivateRegstry) PreCheck(_ connector.Runtime) (bool, error) {
+	return c.KubeConf.Cluster.Registry.PrivateRegistry != "", nil
+}
