@@ -70,7 +70,7 @@ func (i *RegistryCertsModule) Init() {
 	syncCertsToAllNodes := &task.RemoteTask{
 		Name:     "SyncCertsFileToAllNodes",
 		Desc:     "Synchronize certs file to all nodes",
-		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
+		Hosts:    i.Runtime.GetAllHosts(),
 		Action:   new(SyncCertsToAllNodes),
 		Parallel: true,
 		Retry:    1,
