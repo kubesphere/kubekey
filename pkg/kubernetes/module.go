@@ -19,6 +19,7 @@ package kubernetes
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -588,7 +589,8 @@ func (c *ConfigureKubernetesModule) Init() {
 		Desc:     "Configure kubernetes",
 		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
 		Action:   new(ConfigureKubernetes),
-		Retry:    3,
+		Retry:    6,
+		Delay:    10 * time.Second,
 		Parallel: true,
 	}
 
