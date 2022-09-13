@@ -143,7 +143,10 @@ func (i *InitKubernetesModule) Init() {
 			new(common.OnlyFirstMaster),
 			&ClusterIsExist{Not: true},
 		},
-		Action:   &GenerateKubeadmConfig{IsInitConfiguration: true},
+		Action: &GenerateKubeadmConfig{
+			IsInitConfiguration:     true,
+			WithSecurityEnhancement: i.KubeConf.Arg.SecurityEnhancement,
+		},
 		Parallel: true,
 	}
 
@@ -226,7 +229,10 @@ func (j *JoinNodesModule) Init() {
 		Prepare: &prepare.PrepareCollection{
 			&NodeInCluster{Not: true},
 		},
-		Action:   &GenerateKubeadmConfig{IsInitConfiguration: false},
+		Action: &GenerateKubeadmConfig{
+			IsInitConfiguration:     false,
+			WithSecurityEnhancement: j.KubeConf.Arg.SecurityEnhancement,
+		},
 		Parallel: true,
 	}
 
@@ -596,5 +602,49 @@ func (c *ConfigureKubernetesModule) Init() {
 
 	c.Tasks = []task.Interface{
 		configure,
+	}
+}
+
+type SecurityEnhancementModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (s *SecurityEnhancementModule) IsSkip() bool {
+	return s.Skip
+}
+
+func (s *SecurityEnhancementModule) Init() {
+	s.Name = "SecurityEnhancementModule"
+	s.Desc = "Security enhancement for the cluster"
+
+	etcdSecurityEnhancement := &task.RemoteTask{
+		Name:     "EtcdSecurityEnhancementTask",
+		Desc:     "Security enhancement for etcd",
+		Hosts:    s.Runtime.GetHostsByRole(common.ETCD),
+		Action:   new(EtcdSecurityEnhancemenAction),
+		Parallel: true,
+	}
+
+	masterSecurityEnhancement := &task.RemoteTask{
+		Name:     "K8sSecurityEnhancementTask",
+		Desc:     "Security enhancement for kubernetes",
+		Hosts:    s.Runtime.GetHostsByRole(common.Master),
+		Action:   new(MasterSecurityEnhancemenAction),
+		Parallel: true,
+	}
+
+	nodesSecurityEnhancement := &task.RemoteTask{
+		Name:     "K8sSecurityEnhancementTask",
+		Desc:     "Security enhancement for kubernetes",
+		Hosts:    s.Runtime.GetHostsByRole(common.Worker),
+		Action:   new(NodesSecurityEnhancemenAction),
+		Parallel: true,
+	}
+
+	s.Tasks = []task.Interface{
+		etcdSecurityEnhancement,
+		masterSecurityEnhancement,
+		nodesSecurityEnhancement,
 	}
 }

@@ -18,9 +18,10 @@ package v1beta2
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/utils"
 	"strings"
 	"text/template"
+
+	"github.com/kubesphere/kubekey/pkg/utils"
 
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
@@ -157,6 +158,13 @@ var (
 		"ExpandCSIVolumes":               true, //k8s 1.14+
 		"CSIStorageCapacity":             true, //k8s 1.19+
 	}
+	FeatureGatesSecurityDefaultConfiguration = map[string]bool{
+		"RotateKubeletServerCertificate": true, //k8s 1.7+
+		"TTLAfterFinished":               true, //k8s 1.12+
+		"ExpandCSIVolumes":               true, //k8s 1.14+
+		"CSIStorageCapacity":             true, //k8s 1.19+
+		"SeccompDefault":                 true, //kubelet
+	}
 
 	ApiServerArgs = map[string]string{
 		"bind-address":        "0.0.0.0",
@@ -164,14 +172,61 @@ var (
 		"audit-log-maxbackup": "10",
 		"audit-log-maxsize":   "100",
 	}
+	ApiServerSecurityArgs = map[string]string{
+		"bind-address":        "0.0.0.0",
+		"audit-log-maxage":    "30",
+		"audit-log-maxbackup": "10",
+		"audit-log-maxsize":   "100",
+		"authorization-mode":  "Node,RBAC",
+		// --enable-admission-plugins=EventRateLimit must have a configuration file
+		"enable-admission-plugins": "AlwaysPullImages,ServiceAccount,NamespaceLifecycle,NodeRestriction,LimitRanger,ResourceQuota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodNodeSelector,PodSecurity",
+		// "audit-log-path":      "/var/log/apiserver/audit.log", // need audit policy
+		"profiling":              "false",
+		"request-timeout":        "120s",
+		"service-account-lookup": "true",
+		"tls-min-version":        "VersionTLS12",
+		"tls-cipher-suites":      "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+	}
 	ControllermanagerArgs = map[string]string{
 		"bind-address":                          "0.0.0.0",
 		"experimental-cluster-signing-duration": "87600h",
 	}
+	ControllermanagerSecurityArgs = map[string]string{
+		"bind-address":                          "127.0.0.1",
+		"experimental-cluster-signing-duration": "87600h",
+		"profiling":                             "false",
+		"terminated-pod-gc-threshold":           "50",
+		"use-service-account-credentials":       "true",
+	}
 	SchedulerArgs = map[string]string{
 		"bind-address": "0.0.0.0",
 	}
+	SchedulerSecurityArgs = map[string]string{
+		"bind-address": "127.0.0.1",
+		"profiling":    "false",
+	}
 )
+
+func GetApiServerArgs(securityEnhancement bool) map[string]string {
+	if securityEnhancement {
+		return ApiServerSecurityArgs
+	}
+	return ApiServerArgs
+}
+
+func GetControllermanagerArgs(securityEnhancement bool) map[string]string {
+	if securityEnhancement {
+		return ControllermanagerSecurityArgs
+	}
+	return ControllermanagerArgs
+}
+
+func GetSchedulerArgs(securityEnhancement bool) map[string]string {
+	if securityEnhancement {
+		return SchedulerSecurityArgs
+	}
+	return SchedulerArgs
+}
 
 func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.KubeConf) map[string]string {
 	// When kubernetes version is less than 1.21,`CSIStorageCapacity` should not be set.
@@ -197,7 +252,7 @@ func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.Ku
 	return args
 }
 
-func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeConf, criSock string) map[string]interface{} {
+func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeConf, criSock string, securityEnhancement bool) map[string]interface{} {
 	// When kubernetes version is less than 1.21,`CSIStorageCapacity` should not be set.
 	cmp, _ := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.21.0")
 	if cmp == -1 {
@@ -230,6 +285,20 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		"evictionMaxPodGracePeriod":        120,
 		"evictionPressureTransitionPeriod": "30s",
 		"featureGates":                     FeatureGatesDefaultConfiguration,
+	}
+
+	if securityEnhancement {
+		defaultKubeletConfiguration["readOnlyPort"] = 0
+		defaultKubeletConfiguration["protectKernelDefaults"] = true
+		defaultKubeletConfiguration["eventRecordQPS"] = 1
+		defaultKubeletConfiguration["streamingConnectionIdleTimeout"] = "5m"
+		defaultKubeletConfiguration["makeIPTablesUtilChains"] = true
+		defaultKubeletConfiguration["tlsCipherSuites"] = []string{
+			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+			"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+		}
+		defaultKubeletConfiguration["featureGates"] = FeatureGatesSecurityDefaultConfiguration
 	}
 
 	cgroupDriver, err := GetKubeletCgroupDriver(runtime, kubeConf)

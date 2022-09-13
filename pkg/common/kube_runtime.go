@@ -32,27 +32,28 @@ type KubeRuntime struct {
 }
 
 type Argument struct {
-	NodeName           string
-	FilePath           string
-	KubernetesVersion  string
-	KsEnable           bool
-	KsVersion          string
-	Debug              bool
-	IgnoreErr          bool
-	SkipPullImages     bool
-	SKipPushImages     bool
-	DeployLocalStorage *bool
-	DownloadCommand    func(path, url string) string
-	SkipConfirmCheck   bool
-	InCluster          bool
-	ContainerManager   string
-	FromCluster        bool
-	KubeConfig         string
-	Artifact           string
-	InstallPackages    bool
-	ImagesDir          string
-	Namespace          string
-	DeleteCRI          bool
+	NodeName            string
+	FilePath            string
+	KubernetesVersion   string
+	KsEnable            bool
+	KsVersion           string
+	Debug               bool
+	IgnoreErr           bool
+	SkipPullImages      bool
+	SKipPushImages      bool
+	SecurityEnhancement bool
+	DeployLocalStorage  *bool
+	DownloadCommand     func(path, url string) string
+	SkipConfirmCheck    bool
+	InCluster           bool
+	ContainerManager    string
+	FromCluster         bool
+	KubeConfig          string
+	Artifact            string
+	InstallPackages     bool
+	ImagesDir           string
+	Namespace           string
+	DeleteCRI           bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
