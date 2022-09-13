@@ -21,6 +21,7 @@
 | v1.21.11 | :white_check_mark: |
 | v1.21.12 | :white_check_mark: |
 | v1.21.13 | :white_check_mark: |
+| v1.21.14 | :white_check_mark: |
 | v1.22.0  | :white_check_mark: |
 | v1.22.1  | :white_check_mark: |
 | v1.22.2  | :white_check_mark: |
@@ -73,6 +74,7 @@
 | v1.21.11 | :white_check_mark: |
 | v1.21.12 | :white_check_mark: |
 | v1.21.13 | :white_check_mark: |
+| v1.21.14 | :white_check_mark: |
 | v1.22.0  | :white_check_mark: |
 | v1.22.1  | :white_check_mark: |
 | v1.22.2  | :white_check_mark: |
