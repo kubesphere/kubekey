@@ -36,7 +36,7 @@ ExecStart=/usr/local/bin/kube-scripts/k8s-certs-renew.sh
 		dedent.Dedent(`[Unit]
 Description=Timer to renew K8S control plane certificates
 [Timer]
-OnCalendar=Mon *-*-1,2,3,4,5,6,7 03:00:00
+OnCalendar=Mon *-*-* 03:00:00
 Unit=k8s-certs-renew.service
 [Install]
 WantedBy=multi-user.target
