@@ -30,6 +30,6 @@ type LBScope interface {
 	ControlPlaneEndpoint() clusterv1.APIEndpoint
 	// ControlPlaneLoadBalancer returns the KKLoadBalancerSpec
 	ControlPlaneLoadBalancer() *infrav1.KKLoadBalancerSpec
-	// AllInstancesSpec returns the KKInstanceSpec
-	AllInstancesSpec() []infrav1.KKInstanceSpec
+	// AllInstancesInfo returns the instance info.
+	AllInstancesInfo() []infrav1.InstanceInfo
 }

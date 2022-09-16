@@ -17,6 +17,7 @@
 package repository
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
@@ -32,6 +33,23 @@ func NewRPM(sshClient ssh.Interface) *RedhatPackageManager {
 	return &RedhatPackageManager{
 		SSHClient: sshClient,
 	}
+}
+
+// Add adds a local repository using the iso file.
+func (r *RedhatPackageManager) Add(path string) error {
+	content := fmt.Sprintf(`cat << EOF > /etc/yum.repos.d/kubekey.repo
+[base-local]
+name=KubeKey-local
+baseurl=file://%s
+enabled=1
+gpgcheck=0
+EOF
+`, path)
+
+	if _, err := r.SSHClient.SudoCmd(content); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Update updates the repository cache.

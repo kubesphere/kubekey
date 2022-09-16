@@ -17,24 +17,28 @@
 package repository
 
 import (
-	"strings"
-
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/osrelease"
 )
 
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 type Service interface {
+	Add(path string) error
 	Update() error
 	Install(pkg ...string) error
 }
 
 // NewService returns a new service given the remote instance package manager client.
-func NewService(sshClient ssh.Interface, os string) Service {
-	switch strings.ToLower(os) {
-	case "ubuntu", "debian":
+func NewService(sshClient ssh.Interface, os *osrelease.Data) Service {
+	if os == nil {
+		return nil
+	}
+
+	switch {
+	case os.IsLikeDebian():
 		return NewDeb(sshClient)
-	case "centos", "rhel", "fedora":
+	case os.IsLikeFedora():
 		return NewRPM(sshClient)
 	default:
 		return nil

@@ -18,6 +18,7 @@ package file
 
 import (
 	"os"
+	"reflect"
 
 	"github.com/pkg/errors"
 
@@ -49,11 +50,14 @@ type Params struct {
 
 // NewFile returns a new File object given a FileParams.
 func NewFile(params Params) (*File, error) {
-	if params.SSHClient == nil {
+	if reflect.ValueOf(params.SSHClient).IsNil() {
 		return nil, errors.New("ssh client is required when creating a File")
 	}
-	if params.RootFs == nil {
+	if reflect.ValueOf(params.RootFs).IsNil() {
 		return nil, errors.New("rootfs is required when creating a File")
+	}
+	if params.Name == "" {
+		return nil, errors.New("name is required when creating a File")
 	}
 	if params.Type == "" {
 		return nil, errors.New("file type is required when creating a File")

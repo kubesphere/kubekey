@@ -155,6 +155,14 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KKClusterTemplate")
 		os.Exit(1)
 	}
+	if err = (&infrav1.KKMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KKMachine")
+		os.Exit(1)
+	}
+	if err = (&infrav1.KKMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KKMachineTemplate")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {

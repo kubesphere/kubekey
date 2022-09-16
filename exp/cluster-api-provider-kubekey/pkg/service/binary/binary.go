@@ -25,7 +25,7 @@ import (
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/util"
 )
 
 //go:embed templates
@@ -65,45 +65,11 @@ func (s *Service) DownloadAll(timeout time.Duration) error {
 	}
 
 	for _, b := range binaries {
-		if b.RemoteExist() {
-			if err := b.Chmod("+x"); err != nil {
-				return err
-			}
-			continue
-		}
+		s.instanceScope.V(4).Info("download binary", "binary", b.Name(), "version", b.Version(),
+			"url", b.URL().String())
 
-		if !(b.LocalExist() && b.CompareChecksum() == nil) {
-			// Only the host is an empty string, we can set ip the zone.
-			// Because the URL path which in the QingStor is not the same as the default.
-			if host == "" {
-				b.SetZone(zone)
-			}
-
-			var path, url, checksumStr string
-			// If the override is match, we will use the override to replace the default.
-			if override, ok := overrideMap[b.ID()+b.Version()+b.Arch()]; ok {
-				path = override.Path
-				url = override.URL
-				checksumStr = override.Checksum
-			}
-			// Always try to set the "host, path, url, checksum".
-			// If the these vars are empty strings, it will not make any changes.
-			b.SetHost(host)
-			b.SetPath(path)
-			b.SetURL(url)
-			b.SetChecksum(checksum.NewStringChecksum(checksumStr))
-
-			s.instanceScope.V(4).Info("download binary", "binary", b.Name(),
-				"version", b.Version(), "url", b.URL().String())
-			if err := b.Get(timeout); err != nil {
-				return err
-			}
-			if err := b.CompareChecksum(); err != nil {
-				return err
-			}
-		}
-
-		if err := b.Copy(true); err != nil {
+		override := overrideMap[b.ID()+b.Version()+b.Arch()]
+		if err := util.DownloadAndCopy(b, zone, host, override.Path, override.URL, override.Checksum, timeout); err != nil {
 			return err
 		}
 		if err := b.Chmod("+x"); err != nil {

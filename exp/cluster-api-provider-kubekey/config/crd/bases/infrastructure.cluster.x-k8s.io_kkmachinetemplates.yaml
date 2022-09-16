@@ -81,11 +81,34 @@ spec:
                             type: string
                         type: object
                       instanceID:
+                        description: InstanceID is the name of the KKInstance.
                         type: string
                       providerID:
                         description: ProviderID is the unique identifier as specified
                           by the kubekey provider.
                         type: string
+                      repository:
+                        description: Repository is the repository config of this machine.
+                        properties:
+                          iso:
+                            description: 'ISO specifies the ISO file name. There are
+                              3 options: "": empty string means will not install the
+                              packages. "none": no ISO file will be used. And capkk
+                              will use the default repository to install the required
+                              packages. "auto": capkk will detect the ISO file automatically.
+                              Only support Ubuntu/Debian/CentOS. "xxx-20.04-debs-amd64.iso":
+                              use the specified name to get the ISO file name.'
+                            type: string
+                          packages:
+                            description: Packages is a list of packages to be installed.
+                            items:
+                              type: string
+                            type: array
+                          update:
+                            description: Update will update the repository packages
+                              list and cache if it is true.
+                            type: boolean
+                        type: object
                       roles:
                         description: Roles is the role of the machine.
                         items:

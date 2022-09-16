@@ -30,10 +30,18 @@ type Bootstrap interface {
 	CreateDirectory() error
 	ResetTmpDirectory() error
 	ExecInitScript() error
-	Repository() error
 	ResetNetwork() error
 	RemoveFiles() error
 	DaemonReload() error
+}
+
+// Repository is the interface for repository provision.
+type Repository interface {
+	Check() error
+	Get(time time.Duration) error
+	MountISO() error
+	UmountISO() error
+	UpdateAndInstall() error
 }
 
 // BinaryService is the interface for binary provision.

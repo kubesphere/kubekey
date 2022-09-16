@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/klogr"
@@ -126,23 +127,25 @@ func (s *ClusterScope) GlobalAuth() *infrav1.Auth {
 	return &s.KKCluster.Spec.Nodes.Auth
 }
 
-// GlobalContainerManager returns the global container manager spec.
-func (s *ClusterScope) GlobalContainerManager() *infrav1.ContainerManager {
-	return &s.KKCluster.Spec.Nodes.ContainerManager
-}
-
-// AllInstancesSpec returns the all KKInstance specs.
-func (s *ClusterScope) AllInstancesSpec() []infrav1.KKInstanceSpec {
+// AllInstancesInfo returns the all instance specs.
+func (s *ClusterScope) AllInstancesInfo() []infrav1.InstanceInfo {
 	return s.KKCluster.Spec.Nodes.Instances
 }
 
 // GetInstancesSpecByRole returns the KKInstance spec for the given role.
 func (s *ClusterScope) GetInstancesSpecByRole(role infrav1.Role) []infrav1.KKInstanceSpec {
 	var arr []infrav1.KKInstanceSpec
-	for _, v := range s.KKCluster.Spec.Nodes.Instances {
-		for _, r := range v.Roles {
+	for i := range s.KKCluster.Spec.Nodes.Instances {
+		instance := s.KKCluster.Spec.Nodes.Instances[i]
+		for _, r := range instance.Roles {
 			if r == role {
-				arr = append(arr, v)
+				spec := infrav1.KKInstanceSpec{}
+				err := copier.Copy(&spec, &instance)
+				if err != nil {
+					s.Logger.Info("Failed to copy instance spec", "instance", instance, "error", err)
+					continue
+				}
+				arr = append(arr, spec)
 			}
 		}
 	}

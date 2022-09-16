@@ -21,10 +21,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
 
-	osrelease "github.com/dominodatalab/os-release"
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/directory"
@@ -112,7 +110,7 @@ func (s *Service) ExecInitScript() error {
 		lbHost    string
 	)
 
-	for _, host := range s.scope.AllInstancesSpec() {
+	for _, host := range s.scope.AllInstancesInfo() {
 		if host.Name != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
 				host.InternalAddress,
@@ -148,27 +146,6 @@ func (s *Service) ExecInitScript() error {
 	}
 	if _, err := s.sshClient.SudoCmd(svc.RemotePath()); err != nil {
 		return err
-	}
-	return nil
-}
-
-// Repository updates the linux package manager and installs some tools.
-// Ex:
-// apt-get update && apt-get install -y socat conntrack ipset ebtables chrony ipvsadm
-// yum clean all && yum makecache && yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
-func (s *Service) Repository() error {
-	output, err := s.sshClient.SudoCmd("cat /etc/os-release")
-	if err != nil {
-		return errors.Wrap(err, "failed to get os release")
-	}
-
-	osrData := osrelease.Parse(strings.Replace(output, "\r\n", "\n", -1))
-	svc := s.getRepositoryService(osrData.ID)
-	if err := svc.Update(); err != nil {
-		return errors.Wrap(err, "failed to update os repository")
-	}
-	if err := svc.Install(); err != nil {
-		return errors.Wrap(err, "failed to use the repository to install software")
 	}
 	return nil
 }

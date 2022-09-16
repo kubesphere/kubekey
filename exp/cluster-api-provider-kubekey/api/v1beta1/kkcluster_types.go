@@ -39,7 +39,6 @@ type KKClusterSpec struct {
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.
-	// +optional
 	ControlPlaneLoadBalancer *KKLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
 
 	// Component is optional configuration for modifying the FTP server
@@ -49,7 +48,7 @@ type KKClusterSpec struct {
 
 	// Registry represents the cluster image registry used to pull the images.
 	// +optional
-	Registry Registry `json:"registry"`
+	Registry Registry `json:"registry,omitempty"`
 }
 
 // Nodes represents the information about the nodes available to the cluster
@@ -58,12 +57,33 @@ type Nodes struct {
 	// +optional
 	Auth Auth `json:"auth"`
 
-	// ContainerManager is the container manager config of all instance. It is a global container manager configuration.
-	// +optional
-	ContainerManager ContainerManager `json:"containerManager,omitempty"`
-
 	// Instances defines all instance contained in kkcluster.
-	Instances []KKInstanceSpec `json:"instances"`
+	Instances []InstanceInfo `json:"instances"`
+}
+
+// InstanceInfo defines the information about the instance.
+type InstanceInfo struct {
+	// Name is the host name of the machine.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name,omitempty"`
+
+	// Address is the IP address of the machine.
+	Address string `json:"address,omitempty"`
+
+	// InternalAddress is the internal IP address of the machine.
+	InternalAddress string `json:"internalAddress,omitempty"`
+
+	// Roles is the role of the machine.
+	// +optional
+	Roles []Role `json:"roles,omitempty"`
+
+	// Arch is the architecture of the machine. e.g. "amd64", "arm64".
+	// +optional
+	Arch string `json:"arch,omitempty"`
+
+	// Auth is the SSH authentication information of this machine. It will override the global auth configuration.
+	// +optional
+	Auth Auth `json:"auth,omitempty"`
 }
 
 // KKLoadBalancerSpec defines the desired state of an KK load balancer.

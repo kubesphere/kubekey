@@ -9,11 +9,11 @@ replace (
 
 require (
 	github.com/deckarep/golang-set v1.8.0
-	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.8
 	github.com/hashicorp/go-getter v1.6.2
 	github.com/imdario/mergo v0.3.12
+	github.com/jinzhu/copier v0.3.5
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.0
 	github.com/pkg/errors v0.9.1

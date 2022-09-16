@@ -29,6 +29,7 @@ import (
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service"
 )
 
 func (r *KKInstanceReconciler) reconcilePing(_ context.Context, instanceScope *scope.InstanceScope) error {
@@ -119,7 +120,48 @@ func (r *KKInstanceReconciler) reconcileBootstrap(_ context.Context, sshClient s
 	if err := svc.ExecInitScript(); err != nil {
 		return err
 	}
-	if err := svc.Repository(); err != nil {
+	return nil
+}
+
+func (r *KKInstanceReconciler) reconcileRepository(_ context.Context, sshClient ssh.Interface, instanceScope *scope.InstanceScope,
+	scope scope.KKInstanceScope, _ scope.LBScope) (err error) {
+	defer func() {
+		if err != nil {
+			conditions.MarkFalse(
+				instanceScope.KKInstance,
+				infrav1.KKInstanceRepositoryReadyCondition,
+				infrav1.KKInstanceRepositoryFailedReason,
+				clusterv1.ConditionSeverityWarning,
+				err.Error(),
+			)
+		} else {
+			conditions.MarkTrue(instanceScope.KKInstance, infrav1.KKInstanceRepositoryReadyCondition)
+		}
+	}()
+	if conditions.IsTrue(instanceScope.KKInstance, infrav1.KKInstanceRepositoryReadyCondition) {
+		instanceScope.Info("Instance has been repository ready")
+		return nil
+	}
+
+	instanceScope.Info("Reconcile repository")
+
+	svc := r.getRepositoryService(sshClient, scope, instanceScope)
+	if err = svc.Check(); err != nil {
+		return err
+	}
+	if err = svc.Get(r.WaitKKInstanceTimeout); err != nil {
+		return err
+	}
+
+	err = svc.MountISO()
+	defer func(svc service.Repository) {
+		_ = svc.UmountISO()
+	}(svc)
+	if err != nil {
+		return err
+	}
+
+	if err = svc.UpdateAndInstall(); err != nil {
 		return err
 	}
 	return nil

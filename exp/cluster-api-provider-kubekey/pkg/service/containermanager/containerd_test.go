@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func Test_getFirstMajorVersion(t *testing.T) {
+func Test_getFirstMinorVersion(t *testing.T) {
 	tests := []struct {
 		version string
 		want    string
@@ -40,7 +40,7 @@ func Test_getFirstMajorVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			if got := getFirstMajorVersion(tt.version); got != tt.want {
+			if got := getFirstMinorVersion(tt.version); got != tt.want {
 				t.Errorf("getFirstMajorVersion() = %v, want %v", got, tt.want)
 			}
 		})

@@ -45,7 +45,6 @@ func (r *KKClusterTemplate) Default() {
 	kkclustertemplatelog.Info("default", "name", r.Name)
 
 	defaultAuth(&r.Spec.Template.Spec.Nodes.Auth)
-	defaultContainerManager(&r.Spec.Template.Spec)
 	defaultInstance(&r.Spec.Template.Spec)
 }
 

@@ -14,12 +14,5 @@
  limitations under the License.
 */
 
-package file
-
-// Common dir
-const (
-	BinDir       = "/usr/local/bin"
-	OptCniBinDir = "/opt/cni/bin"
-	SystemdDir   = "/etc/systemd/system"
-	MntDir       = "/mnt/kubekey"
-)
+// Package repository contains the repository service.
+package repository

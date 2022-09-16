@@ -52,10 +52,6 @@ func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *
 		return nil, err
 	}
 
-	if instanceSpec.Arch == "" {
-		instanceSpec.Arch = "amd64"
-	}
-
 	// todo: if it needs to append a random suffix to the name string
 	instanceID := instanceSpec.Name
 
@@ -117,10 +113,9 @@ func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.Mach
 		if err := mergo.Merge(&spec.Auth, auth); err != nil {
 			return nil, err
 		}
-		cm := kkInstanceScope.GlobalContainerManager().DeepCopy()
-		if err := mergo.Merge(&spec.ContainerManager, cm); err != nil {
-			return nil, err
-		}
+
+		spec.ContainerManager = *machineScope.KKMachine.Spec.ContainerManager.DeepCopy()
+		spec.Repository = machineScope.KKMachine.Spec.Repository.DeepCopy()
 		return &spec, nil
 	}
 	return nil, errors.New("unassigned instance not found")

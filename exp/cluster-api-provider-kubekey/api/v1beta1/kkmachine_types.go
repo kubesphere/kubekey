@@ -33,6 +33,7 @@ type KKMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the kubekey provider.
 	ProviderID *string `json:"providerID,omitempty"`
 
+	// InstanceID is the name of the KKInstance.
 	InstanceID *string `json:"instanceID,omitempty"`
 
 	// Roles is the role of the machine.
@@ -42,6 +43,10 @@ type KKMachineSpec struct {
 	// ContainerManager is the container manager config of this machine.
 	// +optional
 	ContainerManager ContainerManager `json:"containerManager"`
+
+	// Repository is the repository config of this machine.
+	// +optional
+	Repository *Repository `json:"repository,omitempty"`
 }
 
 // KKMachineStatus defines the observed state of KKMachine

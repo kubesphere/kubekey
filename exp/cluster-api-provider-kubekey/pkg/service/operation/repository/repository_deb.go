@@ -17,6 +17,7 @@
 package repository
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
@@ -27,14 +28,24 @@ type Debian struct {
 	SSHClient ssh.Interface
 }
 
-// NewDeb returns a new Debian repository manager
+// NewDeb returns a new Debian repository manager.
 func NewDeb(sshClient ssh.Interface) *Debian {
 	return &Debian{
 		SSHClient: sshClient,
 	}
 }
 
-// Update updates the repository cache
+// Add adds a local repository using the iso file.
+func (d *Debian) Add(path string) error {
+	if _, err := d.SSHClient.SudoCmd(
+		fmt.Sprintf("echo 'deb [trusted=yes]  file://%s   /' "+
+			"| sudo tee /etc/apt/sources.list.d/kubekey.list > /dev/null", path)); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Update updates the repository cache.
 func (d *Debian) Update() error {
 	if _, err := d.SSHClient.Cmd("sudo apt-get update"); err != nil {
 		return err
@@ -42,7 +53,7 @@ func (d *Debian) Update() error {
 	return nil
 }
 
-// Install installs common packages
+// Install installs common packages.
 func (d *Debian) Install(pkg ...string) error {
 	if len(pkg) == 0 {
 		pkg = []string{"socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
