@@ -14,27 +14,28 @@
  limitations under the License.
 */
 
-package binary
+package os
 
 import (
 	"errors"
-	"fmt"
 
-	"github.com/kubesphere/kubekey/pkg/alpha/precheck"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/os"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
 )
 
-func NewUpgradeBinaryPipeline(runtime *common.KubeRuntime) error {
+func NewConfigOSPipeline(runtime *common.KubeRuntime) error {
 
 	m := []module.Module{
-		&precheck.UprgadePreCheckModule{},
-		&UpgradeBinaryModule{},
+		&precheck.NodePreCheckModule{},
+		&os.RepositoryModule{Skip: !runtime.Arg.InstallPackages},
+		&os.ConfigureOSModule{},
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "UpgradeBinaryPipeline",
+		Name:    "ConfigOSPipeline",
 		Modules: m,
 		Runtime: runtime,
 	}
@@ -44,13 +45,7 @@ func NewUpgradeBinaryPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
-func UpgradeBinary(args common.Argument, downloadCmd string) error {
-	args.DownloadCommand = func(path, url string) string {
-		// this is an extension point for downloading tools, for example users can set the timeout, proxy or retry under
-		// some poor network environment. Or users even can choose another cli, it might be wget.
-		// perhaps we should have a build-in download function instead of totally rely on the external one
-		return fmt.Sprintf(downloadCmd, path, url)
-	}
+func ConfigOS(args common.Argument) error {
 	var loaderType string
 
 	if args.FilePath != "" {
@@ -65,7 +60,7 @@ func UpgradeBinary(args common.Argument, downloadCmd string) error {
 	}
 	switch runtime.Cluster.Kubernetes.Type {
 	case common.Kubernetes:
-		if err := NewUpgradeBinaryPipeline(runtime); err != nil {
+		if err := NewConfigOSPipeline(runtime); err != nil {
 			return err
 		}
 	default:

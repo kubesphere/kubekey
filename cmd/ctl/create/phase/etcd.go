@@ -14,37 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package alpha
+package phase
 
 import (
-	"errors"
-
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/alpha/artifact"
+	"github.com/kubesphere/kubekey/pkg/alpha/etcd"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/spf13/cobra"
 )
 
-type ArtifactImportOptions struct {
-	CommonOptions *options.CommonOptions
-	Artifact      string
+type CreateEtcdOptions struct {
+	CommonOptions  *options.CommonOptions
+	ClusterCfgFile string
 }
 
-func NewArtifactImportOptions() *ArtifactImportOptions {
-	return &ArtifactImportOptions{
+func NewCreateEtcdOptions() *CreateEtcdOptions {
+	return &CreateEtcdOptions{
 		CommonOptions: options.NewCommonOptions(),
 	}
 }
 
-// NewCmdArtifactImport creates a new artifact import command
-func NewCmdArtifactImport() *cobra.Command {
-	o := NewArtifactImportOptions()
+// NewCmdCreateEtcd creates a new install etcd command
+func NewCmdCreateEtcd() *cobra.Command {
+	o := NewCreateEtcdOptions()
 	cmd := &cobra.Command{
-		Use:   "import",
-		Short: "Import a KubeKey offline installation package",
+		Use:   "etcd",
+		Short: "Install the ETCD cluster on the master",
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(o.Validate(args))
 			util.CheckErr(o.Run())
 		},
 	}
@@ -54,21 +51,14 @@ func NewCmdArtifactImport() *cobra.Command {
 	return cmd
 }
 
-func (o *ArtifactImportOptions) Run() error {
+func (o *CreateEtcdOptions) Run() error {
 	arg := common.Argument{
+		FilePath: o.ClusterCfgFile,
 		Debug:    o.CommonOptions.Verbose,
-		Artifact: o.Artifact,
 	}
-	return artifact.ArtifactImport(arg)
+	return etcd.CreateEtcd(arg)
 }
 
-func (o *ArtifactImportOptions) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a artifact gzip")
-}
-
-func (o *ArtifactImportOptions) Validate(_ []string) error {
-	if o.Artifact == "" {
-		return errors.New("artifact path can not be empty")
-	}
-	return nil
+func (o *CreateEtcdOptions) AddFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 }

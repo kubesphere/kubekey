@@ -17,39 +17,29 @@
 package binary
 
 import (
-	"github.com/kubesphere/kubekey/pkg/binaries"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
-type UpgradeBinaryModule struct {
+type SyncBinaryModule struct {
 	common.KubeModule
 }
 
-func (p *UpgradeBinaryModule) Init() {
-	p.Name = "UpgradeBinaryModule"
-	p.Desc = "Download the binary and synchronize kubernetes binaries"
-
-	download := &task.LocalTask{
-		Name:    "DownloadBinaries",
-		Desc:    "Download installation binaries",
-		Prepare: new(kubernetes.NotEqualPlanVersion),
-		Action:  new(binaries.Download),
-	}
+func (p *SyncBinaryModule) Init() {
+	p.Name = "SyncBinaryModule"
+	p.Desc = "synchronize kubernetes binaries"
 
 	syncBinary := &task.RemoteTask{
 		Name:     "SyncKubeBinary",
 		Desc:     "Synchronize kubernetes binaries",
 		Hosts:    p.Runtime.GetHostsByRole(common.K8s),
-		Prepare:  new(kubernetes.NotEqualPlanVersion),
 		Action:   new(kubernetes.SyncKubeBinary),
 		Parallel: true,
 		Retry:    2,
 	}
 
 	p.Tasks = []task.Interface{
-		download,
 		syncBinary,
 	}
 }

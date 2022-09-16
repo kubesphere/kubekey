@@ -13,24 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package upgrade
+package phase
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl/alpha"
 	"github.com/spf13/cobra"
 )
 
 func NewPhaseCommand() *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   "phase",
-		Short: "KubeKey upgrade phase",
-		Long:  `This is the upgrade phase run cmd`,
+		Short: "KubeKey create phase",
+		Long:  `This is the create phase run cmd`,
 	}
-
-	cmds.AddCommand(alpha.NewCmdUpgradeBinary())
-	cmds.AddCommand(alpha.NewCmdUpgradeImages())
-	cmds.AddCommand(alpha.NewCmdUpgradeNodes())
-	cmds.AddCommand(alpha.NewCmdUpgradeKubeSphere())
+	cmds.AddCommand(NewCmdCreateBinary())
+	cmds.AddCommand(NewCmdConfigOS())
+	cmds.AddCommand(NewCmdCreateImages())
+	cmds.AddCommand(NewCmdCreateEtcd())
+	cmds.AddCommand(NewCmdCreateInitCluster())
+	cmds.AddCommand(NewCmdCreateJoinNodes())
+	cmds.AddCommand(NewCmdCreateConfigureKubernetes())
+	cmds.AddCommand(NewCmdCreateKubeSphere())
 
 	return cmds
 }

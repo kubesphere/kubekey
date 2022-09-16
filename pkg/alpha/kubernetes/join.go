@@ -14,28 +14,27 @@
  limitations under the License.
 */
 
-package nodes
+package kubernetes
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/alpha/confirm"
-	"github.com/kubesphere/kubekey/pkg/alpha/precheck"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
-func NewUpgradeNodesPipeline(runtime *common.KubeRuntime) error {
-
+func NewCreateJoinNodesPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
-		&precheck.UprgadePreCheckModule{},
-		&confirm.UpgradeK8sConfirmModule{},
-		&UpgradeNodesModule{},
+		&precheck.NodePreCheckModule{},
+		&kubernetes.StatusModule{},
+		&kubernetes.JoinNodesModule{},
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "UpgradeNodesPipeline",
+		Name:    "CreateJoinNodesPipeline",
 		Modules: m,
 		Runtime: runtime,
 	}
@@ -45,9 +44,8 @@ func NewUpgradeNodesPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
-func UpgradeNodes(args common.Argument) error {
+func CreateJoinNodes(args common.Argument) error {
 	var loaderType string
-
 	if args.FilePath != "" {
 		loaderType = common.File
 	} else {
@@ -58,9 +56,10 @@ func UpgradeNodes(args common.Argument) error {
 	if err != nil {
 		return err
 	}
+
 	switch runtime.Cluster.Kubernetes.Type {
 	case common.Kubernetes:
-		if err := NewUpgradeNodesPipeline(runtime); err != nil {
+		if err := NewCreateJoinNodesPipeline(runtime); err != nil {
 			return err
 		}
 	default:

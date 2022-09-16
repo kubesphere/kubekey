@@ -14,37 +14,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package alpha
+package phase
 
 import (
 	"fmt"
 
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/alpha/nodes"
+	"github.com/kubesphere/kubekey/pkg/alpha/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/spf13/cobra"
 )
 
-type UpgradeNodesOptions struct {
+type CreateJoinNodesOptions struct {
 	CommonOptions  *options.CommonOptions
 	ClusterCfgFile string
+	Artifact       string
 	Kubernetes     string
-	DownloadCmd    string
 }
 
-func NewUpgradeNodesOptions() *UpgradeNodesOptions {
-	return &UpgradeNodesOptions{
+func NewCreateJoinNodesOptions() *CreateJoinNodesOptions {
+	return &CreateJoinNodesOptions{
 		CommonOptions: options.NewCommonOptions(),
 	}
 }
 
 // NewCmdUpgrade creates a new upgrade command
-func NewCmdUpgradeNodes() *cobra.Command {
-	o := NewUpgradeNodesOptions()
+func NewCmdCreateJoinNodes() *cobra.Command {
+	o := NewCreateJoinNodesOptions()
 	cmd := &cobra.Command{
-		Use:   "nodes",
-		Short: "upgrade cluster on master nodes and worker nodes to the version you input",
+		Use:   "join",
+		Short: "Join the control-plane nodes and worker nodes in the k8s cluster",
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(o.Run())
 		},
@@ -52,24 +52,25 @@ func NewCmdUpgradeNodes() *cobra.Command {
 	o.CommonOptions.AddCommonFlag(cmd)
 	o.AddFlags(cmd)
 
-	if err := completionSetting(cmd); err != nil {
+	if err := k8sCompletionSetting(cmd); err != nil {
 		panic(fmt.Sprintf("Got error with the completion setting"))
 	}
 	return cmd
 }
 
-func (o *UpgradeNodesOptions) Run() error {
+func (o *CreateJoinNodesOptions) Run() error {
 	arg := common.Argument{
 		FilePath:          o.ClusterCfgFile,
+		Artifact:          o.Artifact,
 		KubernetesVersion: o.Kubernetes,
 		Debug:             o.CommonOptions.Verbose,
+		Namespace:         o.CommonOptions.Namespace,
 	}
-	return nodes.UpgradeNodes(arg, o.DownloadCmd)
+
+	return kubernetes.CreateJoinNodes(arg)
 }
 
-func (o *UpgradeNodesOptions) AddFlags(cmd *cobra.Command) {
+func (o *CreateJoinNodesOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
-	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
-		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 }

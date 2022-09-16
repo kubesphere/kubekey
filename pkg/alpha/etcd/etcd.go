@@ -14,28 +14,29 @@
  limitations under the License.
 */
 
-package nodes
+package etcd
 
 import (
 	"errors"
 
-	"github.com/kubesphere/kubekey/pkg/alpha/confirm"
-	"github.com/kubesphere/kubekey/pkg/alpha/precheck"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/etcd"
 )
 
-func NewUpgradeNodesPipeline(runtime *common.KubeRuntime) error {
-
+func NewCreateEtcdPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
-		&precheck.UprgadePreCheckModule{},
-		&confirm.UpgradeK8sConfirmModule{},
-		&UpgradeNodesModule{},
+		&PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.CertsModule{},
+		&etcd.InstallETCDBinaryModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
+		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "UpgradeNodesPipeline",
+		Name:    "CreateEtcdPipeline",
 		Modules: m,
 		Runtime: runtime,
 	}
@@ -45,7 +46,7 @@ func NewUpgradeNodesPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
-func UpgradeNodes(args common.Argument) error {
+func CreateEtcd(args common.Argument) error {
 	var loaderType string
 
 	if args.FilePath != "" {
@@ -60,7 +61,7 @@ func UpgradeNodes(args common.Argument) error {
 	}
 	switch runtime.Cluster.Kubernetes.Type {
 	case common.Kubernetes:
-		if err := NewUpgradeNodesPipeline(runtime); err != nil {
+		if err := NewCreateEtcdPipeline(runtime); err != nil {
 			return err
 		}
 	default:

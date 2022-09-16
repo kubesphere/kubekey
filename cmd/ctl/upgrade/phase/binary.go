@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package alpha
+package phase
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func NewCmdUpgradeBinary() *cobra.Command {
 	o := NewUpgradeBinaryOptions()
 	cmd := &cobra.Command{
 		Use:   "binary",
-		Short: "download the binary and synchronize kubernetes binaries",
+		Short: "Download the binary and synchronize kubernetes binaries",
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(o.Run())
 		},
@@ -53,7 +53,7 @@ func NewCmdUpgradeBinary() *cobra.Command {
 
 	o.CommonOptions.AddCommonFlag(cmd)
 	o.AddFlags(cmd)
-	if err := completionSetting(cmd); err != nil {
+	if err := k8sCompletionSetting(cmd); err != nil {
 		panic(fmt.Sprintf("Got error with the completion setting"))
 	}
 	return cmd
@@ -76,7 +76,7 @@ func (o *UpgradeBinaryOptions) AddFlags(cmd *cobra.Command) {
 
 }
 
-func completionSetting(cmd *cobra.Command) (err error) {
+func k8sCompletionSetting(cmd *cobra.Command) (err error) {
 	err = cmd.RegisterFlagCompletionFunc("with-kubernetes", func(cmd *cobra.Command, args []string, toComplete string) (
 		strings []string, directive cobra.ShellCompDirective) {
 		return kubernetes.SupportedK8sVersionList(), cobra.ShellCompDirectiveNoFileComp

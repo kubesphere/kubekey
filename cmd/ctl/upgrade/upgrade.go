@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/cmd/ctl/upgrade/phase"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/pipelines"
@@ -59,7 +60,7 @@ func NewCmdUpgrade() *cobra.Command {
 	}
 	o.CommonOptions.AddCommonFlag(cmd)
 	o.AddFlags(cmd)
-	cmd.AddCommand(NewPhaseCommand())
+	cmd.AddCommand(phase.NewPhaseCommand())
 
 	if err := completionSetting(cmd); err != nil {
 		panic(fmt.Sprintf("Got error with the completion setting"))

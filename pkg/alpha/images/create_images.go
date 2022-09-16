@@ -14,28 +14,31 @@
  limitations under the License.
 */
 
-package nodes
+package images
 
 import (
 	"errors"
 
-	"github.com/kubesphere/kubekey/pkg/alpha/confirm"
-	"github.com/kubesphere/kubekey/pkg/alpha/precheck"
+	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/pkg/common"
+	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/pkg/images"
+	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
-func NewUpgradeNodesPipeline(runtime *common.KubeRuntime) error {
-
+func NewCreateImagesPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
-		&precheck.UprgadePreCheckModule{},
-		&confirm.UpgradeK8sConfirmModule{},
-		&UpgradeNodesModule{},
+		&precheck.NodePreCheckModule{},
+		&kubernetes.StatusModule{},
+		&container.InstallContainerModule{},
+		&images.CopyImagesToRegistryModule{},
+		&images.PullModule{},
 	}
 
 	p := pipeline.Pipeline{
-		Name:    "UpgradeNodesPipeline",
+		Name:    "CreateImagesPipeline",
 		Modules: m,
 		Runtime: runtime,
 	}
@@ -45,7 +48,7 @@ func NewUpgradeNodesPipeline(runtime *common.KubeRuntime) error {
 	return nil
 }
 
-func UpgradeNodes(args common.Argument) error {
+func CreateImages(args common.Argument) error {
 	var loaderType string
 
 	if args.FilePath != "" {
@@ -60,7 +63,7 @@ func UpgradeNodes(args common.Argument) error {
 	}
 	switch runtime.Cluster.Kubernetes.Type {
 	case common.Kubernetes:
-		if err := NewUpgradeNodesPipeline(runtime); err != nil {
+		if err := NewCreateImagesPipeline(runtime); err != nil {
 			return err
 		}
 	default:
