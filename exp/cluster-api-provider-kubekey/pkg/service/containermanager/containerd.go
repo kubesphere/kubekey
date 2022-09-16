@@ -32,7 +32,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/util"
 )
 
 // ContainerdService is a ContainerManager service implementation for containerd.
@@ -120,10 +120,11 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 	if err != nil {
 		return err
 	}
-	crictl, err := s.getCrictlService(s.sshClient, getFirstMajorVersion(s.instanceScope.KubernetesVersion()), s.instanceScope.Arch())
+	crictl, err := s.getCrictlService(s.sshClient, getFirstMinorVersion(s.instanceScope.KubernetesVersion()), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
+
 	binaries := []operation.Binary{
 		containerd,
 		runc,
@@ -138,42 +139,11 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 	}
 
 	for _, b := range binaries {
-		if b.RemoteExist() {
-			continue
-		}
+		s.instanceScope.V(4).Info("download binary", "binary", b.Name(), "version", b.Version(),
+			"url", b.URL().String())
 
-		if !(b.LocalExist() && b.CompareChecksum() == nil) {
-			// Only the host is an empty string, we can set ip the zone.
-			// Because the URL path which in the QingStor is not the same as the default.
-			if host == "" {
-				b.SetZone(zone)
-			}
-
-			var path, url, checksumStr string
-			// If the override is match, we will use the override to replace the default.
-			if override, ok := overrideMap[b.ID()+b.Version()+b.Arch()]; ok {
-				path = override.Path
-				url = override.URL
-				checksumStr = override.Checksum
-			}
-			// Always try to set the "host, path, url, checksum".
-			// If the these vars are empty strings, it will not make any changes.
-			b.SetHost(host)
-			b.SetPath(path)
-			b.SetURL(url)
-			b.SetChecksum(checksum.NewStringChecksum(checksumStr))
-
-			s.instanceScope.V(4).Info("download binary", "binary", b.Name(),
-				"version", b.Version(), "url", b.URL().String())
-			if err := b.Get(timeout); err != nil {
-				return err
-			}
-			if err := b.CompareChecksum(); err != nil {
-				return err
-			}
-		}
-
-		if err := b.Copy(true); err != nil {
+		override := overrideMap[b.ID()+b.Version()+b.Arch()]
+		if err := util.DownloadAndCopy(b, zone, host, override.Path, override.URL, override.Checksum, timeout); err != nil {
 			return err
 		}
 	}
@@ -399,7 +369,7 @@ func hasFile(files []os.DirEntry, name string) bool {
 	return false
 }
 
-func getFirstMajorVersion(version string) string {
+func getFirstMinorVersion(version string) string {
 	semantic := versionutil.MustParseSemantic(version)
 	semantic = semantic.WithPatch(0)
 	return fmt.Sprintf("v%s", semantic.String())

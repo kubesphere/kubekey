@@ -25,7 +25,6 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/directory"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/repository"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/user"
 )
 
@@ -36,10 +35,9 @@ type Service struct {
 	scope         scope.LBScope
 	instanceScope *scope.InstanceScope
 
-	userFactory       func(sshClient ssh.Interface, name, desc string) operation.User
-	directoryFactory  func(sshClient ssh.Interface, path string, mode os.FileMode) operation.Directory
-	templateFactory   func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
-	repositoryFactory func(sshClient ssh.Interface, os string) operation.Repository
+	userFactory      func(sshClient ssh.Interface, name, desc string) operation.User
+	directoryFactory func(sshClient ssh.Interface, path string, mode os.FileMode) operation.Directory
+	templateFactory  func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
 }
 
 // NewService returns a new service given the remote instance kubekey build-in bootstrap provision client.
@@ -70,11 +68,4 @@ func (s *Service) getTemplateService(template *template.Template, data file.Data
 		return s.templateFactory(s.sshClient, template, data, dst)
 	}
 	return file.NewTemplate(s.sshClient, s.scope.RootFs(), template, data, dst)
-}
-
-func (s *Service) getRepositoryService(os string) operation.Repository {
-	if s.repositoryFactory != nil {
-		return s.repositoryFactory(s.sshClient, os)
-	}
-	return repository.NewService(s.sshClient, os)
 }

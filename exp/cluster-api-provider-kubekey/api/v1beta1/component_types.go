@@ -20,12 +20,15 @@ package v1beta1
 type Component struct {
 	// ZONE is the zone of the KKCluster where can get the binaries.
 	// If you have problem to access https://storage.googleapis.com, you can set "zone: cn".
+	// +optional
 	ZONE string `json:"zone,omitempty"`
 
 	// Host is the host to download the binaries.
+	// +optional
 	Host string `json:"host,omitempty"`
 
 	// Overrides is a list of components download information that need to be overridden.
+	// +optional
 	Overrides []Override `json:"overrides,omitempty"`
 }
 
@@ -47,5 +50,6 @@ type Override struct {
 	Path string `json:"path,omitempty"`
 
 	// Checksum is the SHA256 checksum of the binary.
+	// +optional
 	Checksum string `json:"checksum,omitempty"`
 }

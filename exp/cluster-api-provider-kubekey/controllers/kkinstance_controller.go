@@ -52,6 +52,7 @@ import (
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/bootstrap"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/containermanager"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/provisioning"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/repository"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util"
 )
 
@@ -68,6 +69,7 @@ type KKInstanceReconciler struct {
 	Recorder                record.EventRecorder
 	sshClientFactory        func(scope *scope.InstanceScope) ssh.Interface
 	bootstrapFactory        func(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) service.Bootstrap
+	repositoryFactory       func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.Repository
 	binaryFactory           func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService
 	containerManagerFactory func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager
 	provisioningFactory     func(sshClient ssh.Interface, format bootstrapv1.Format) service.Provisioning
@@ -90,6 +92,13 @@ func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scop
 		return r.bootstrapFactory(sshClient, scope, instanceScope)
 	}
 	return bootstrap.NewService(sshClient, scope, instanceScope)
+}
+
+func (r *KKInstanceReconciler) getRepositoryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.Repository {
+	if r.repositoryFactory != nil {
+		return r.repositoryFactory(sshClient, scope, instanceScope)
+	}
+	return repository.NewService(sshClient, scope, instanceScope)
 }
 
 func (r *KKInstanceReconciler) getBinaryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService {
@@ -323,6 +332,7 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 
 	phases := []func(context.Context, ssh.Interface, *scope.InstanceScope, scope.KKInstanceScope, scope.LBScope) error{
 		r.reconcileBootstrap,
+		r.reconcileRepository,
 		r.reconcileBinaryService,
 		r.reconcileContainerManager,
 		r.reconcileProvisioning,

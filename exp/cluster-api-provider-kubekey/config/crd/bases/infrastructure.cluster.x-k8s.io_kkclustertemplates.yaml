@@ -172,29 +172,12 @@ spec:
                                 description: User is the username for SSH authentication.
                                 type: string
                             type: object
-                          containerManager:
-                            description: ContainerManager is the container manager
-                              config of all instance. It is a global container manager
-                              configuration.
-                            properties:
-                              criSocket:
-                                description: CRISocket is used to connect an existing
-                                  CRIClient.
-                                type: string
-                              type:
-                                description: Type defines the type of ContainerManager.
-                                  "docker", "containerd"
-                                type: string
-                              version:
-                                description: Version defines the version of ContainerManager.
-                                type: string
-                            type: object
                           instances:
                             description: Instances defines all instance contained
                               in kkcluster.
                             items:
-                              description: KKInstanceSpec defines the desired state
-                                of KKInstance
+                              description: InstanceInfo defines the information about
+                                the instance.
                               properties:
                                 address:
                                   description: Address is the IP address of the machine.
@@ -230,23 +213,6 @@ spec:
                                       type: integer
                                     user:
                                       description: User is the username for SSH authentication.
-                                      type: string
-                                  type: object
-                                containerManager:
-                                  description: ContainerManager is the container manager
-                                    config of this machine.
-                                  properties:
-                                    criSocket:
-                                      description: CRISocket is used to connect an
-                                        existing CRIClient.
-                                      type: string
-                                    type:
-                                      description: Type defines the type of ContainerManager.
-                                        "docker", "containerd"
-                                      type: string
-                                    version:
-                                      description: Version defines the version of
-                                        ContainerManager.
                                       type: string
                                   type: object
                                 internalAddress:

@@ -69,6 +69,13 @@ const (
 )
 
 const (
+	// KKInstanceRepositoryReadyCondition reports on whether successful to use repository to install packages.
+	KKInstanceRepositoryReadyCondition clusterv1.ConditionType = "InstanceRepositoryReady"
+	// KKInstanceRepositoryFailedReason used when the instance couldn't use repository to install packages.
+	KKInstanceRepositoryFailedReason = "InstanceRepositoryFailed"
+)
+
+const (
 	// KKInstanceBinariesReadyCondition reports on whether successful to download binaries.
 	KKInstanceBinariesReadyCondition clusterv1.ConditionType = "InstanceBinariesReady"
 	// KKInstanceGetBinaryFailedReason used when the instance couldn't download binaries (or check existed binaries).

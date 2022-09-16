@@ -57,7 +57,6 @@ func (k *KKCluster) Default() {
 	kkclusterlog.Info("default", "name", k.Name)
 
 	defaultAuth(&k.Spec.Nodes.Auth)
-	defaultContainerManager(&k.Spec)
 	defaultInstance(&k.Spec)
 }
 
@@ -72,30 +71,6 @@ func defaultAuth(auth *Auth) {
 	if auth.Timeout == nil {
 		t := defaultSSHEstablishTimeout
 		auth.Timeout = &t
-	}
-}
-
-func defaultContainerManager(spec *KKClusterSpec) {
-	// Direct connection to the user-provided CRI socket
-	if spec.Nodes.ContainerManager.CRISocket != "" {
-		return
-	}
-
-	if spec.Nodes.ContainerManager.Type == "" {
-		spec.Nodes.ContainerManager.Type = ContainerdType
-	}
-
-	switch spec.Nodes.ContainerManager.Type {
-	case ContainerdType:
-		if spec.Nodes.ContainerManager.Version == "" {
-			spec.Nodes.ContainerManager.Version = DefaultContainerdVersion
-		}
-		spec.Nodes.ContainerManager.CRISocket = DefaultContainerdCRISocket
-	case DockerType:
-		if spec.Nodes.ContainerManager.Version == "" {
-			spec.Nodes.ContainerManager.Version = DefaultDockerVersion
-		}
-		spec.Nodes.ContainerManager.CRISocket = DefaultDockerCRISocket
 	}
 }
 

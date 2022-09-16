@@ -77,4 +77,5 @@ type Directory interface {
 type Repository interface {
 	Update() error
 	Install(pkg ...string) error
+	Add(path string) error
 }

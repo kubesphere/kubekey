@@ -129,6 +129,21 @@ func (i *InstanceScope) ContainerManager() *infrav1.ContainerManager {
 	return &i.KKInstance.Spec.ContainerManager
 }
 
+// RepositoryEnabled returns whether the repository is enabled.
+func (i *InstanceScope) RepositoryEnabled() bool {
+	return i.KKInstance.Spec.Repository != nil && i.KKInstance.Spec.Repository.ISO != ""
+}
+
+// RepositoryUseISO returns whether the repository uses ISO.
+func (i *InstanceScope) RepositoryUseISO() bool {
+	return i.RepositoryEnabled() && i.KKInstance.Spec.Repository.ISO != infrav1.NONE
+}
+
+// Repository returns the repository of the KKInstance.
+func (i *InstanceScope) Repository() *infrav1.Repository {
+	return i.KKInstance.Spec.Repository
+}
+
 // KubernetesVersion returns the Kubernetes version of the KKInstance.
 func (i *InstanceScope) KubernetesVersion() string {
 	return *i.Machine.Spec.Version

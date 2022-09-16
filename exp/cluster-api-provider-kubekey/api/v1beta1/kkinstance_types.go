@@ -94,6 +94,10 @@ type KKInstanceSpec struct {
 	// ContainerManager is the container manager config of this machine.
 	// +optional
 	ContainerManager ContainerManager `json:"containerManager,omitempty"`
+
+	// Repository is the repository config of this machine.
+	// +optional
+	Repository *Repository `json:"repository,omitempty"`
 }
 
 // KKInstanceStatus defines the observed state of KKInstance

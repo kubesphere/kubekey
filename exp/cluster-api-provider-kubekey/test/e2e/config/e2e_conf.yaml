@@ -103,8 +103,8 @@ variables:
   KKZONE: "cn"
   USER_NAME: "ubuntu"
   PASSWORD: "Qcloud@123"
-  INSTANCES: "[{address: 172.31.50.190}, {address: 172.31.50.197}]"
-  CONTROL_PLANE_ENDPOINT_IP: "172.31.50.252"
+  INSTANCES: "[{address: 192.168.100.3}, {address: 192.168.100.4}]"
+  CONTROL_PLANE_ENDPOINT_IP: "192.168.100.100"
 
 intervals:
   default/wait-controllers: [ "5m", "10s" ]
