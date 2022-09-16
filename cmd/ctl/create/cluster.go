@@ -18,6 +18,8 @@ package create
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/kubesphere/kubekey/cmd/ctl/util"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -25,23 +27,23 @@ import (
 	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 type CreateClusterOptions struct {
 	CommonOptions *options.CommonOptions
 
-	ClusterCfgFile   string
-	Kubernetes       string
-	EnableKubeSphere bool
-	KubeSphere       string
-	LocalStorage     bool
-	SkipPullImages   bool
-	SkipPushImages   bool
-	ContainerManager string
-	DownloadCmd      string
-	Artifact         string
-	InstallPackages  bool
+	ClusterCfgFile      string
+	Kubernetes          string
+	EnableKubeSphere    bool
+	KubeSphere          string
+	LocalStorage        bool
+	SkipPullImages      bool
+	SkipPushImages      bool
+	SecurityEnhancement bool
+	ContainerManager    string
+	DownloadCmd         string
+	Artifact            string
+	InstallPackages     bool
 
 	localStorageChanged bool
 }
@@ -104,20 +106,21 @@ func (o *CreateClusterOptions) Validate(_ *cobra.Command, _ []string) error {
 
 func (o *CreateClusterOptions) Run() error {
 	arg := common.Argument{
-		FilePath:          o.ClusterCfgFile,
-		KubernetesVersion: o.Kubernetes,
-		KsEnable:          o.EnableKubeSphere,
-		KsVersion:         o.KubeSphere,
-		SkipPullImages:    o.SkipPullImages,
-		SKipPushImages:    o.SkipPushImages,
-		InCluster:         o.CommonOptions.InCluster,
-		Debug:             o.CommonOptions.Verbose,
-		IgnoreErr:         o.CommonOptions.IgnoreErr,
-		SkipConfirmCheck:  o.CommonOptions.SkipConfirmCheck,
-		ContainerManager:  o.ContainerManager,
-		Artifact:          o.Artifact,
-		InstallPackages:   o.InstallPackages,
-		Namespace:         o.CommonOptions.Namespace,
+		FilePath:            o.ClusterCfgFile,
+		KubernetesVersion:   o.Kubernetes,
+		KsEnable:            o.EnableKubeSphere,
+		KsVersion:           o.KubeSphere,
+		SkipPullImages:      o.SkipPullImages,
+		SKipPushImages:      o.SkipPushImages,
+		SecurityEnhancement: o.SecurityEnhancement,
+		InCluster:           o.CommonOptions.InCluster,
+		Debug:               o.CommonOptions.Verbose,
+		IgnoreErr:           o.CommonOptions.IgnoreErr,
+		SkipConfirmCheck:    o.CommonOptions.SkipConfirmCheck,
+		ContainerManager:    o.ContainerManager,
+		Artifact:            o.Artifact,
+		InstallPackages:     o.InstallPackages,
+		Namespace:           o.CommonOptions.Namespace,
 	}
 
 	if o.localStorageChanged {
@@ -135,6 +138,7 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.EnableKubeSphere, "with-kubesphere", "", false, fmt.Sprintf("Deploy a specific version of kubesphere (default %s)", kubesphere.Latest().Version))
 	cmd.Flags().BoolVarP(&o.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	cmd.Flags().BoolVarP(&o.SkipPushImages, "skip-push-images", "", false, "Skip pre push images")
+	cmd.Flags().BoolVarP(&o.SecurityEnhancement, "with-security-enhancement", "", false, "Security enhancement")
 	cmd.Flags().StringVarP(&o.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
