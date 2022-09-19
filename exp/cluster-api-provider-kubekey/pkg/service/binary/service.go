@@ -28,7 +28,7 @@ import (
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 type Service struct {
-	SSHClient     ssh.Interface
+	sshClient     ssh.Interface
 	scope         scope.KKInstanceScope
 	instanceScope *scope.InstanceScope
 
@@ -42,7 +42,7 @@ type Service struct {
 // NewService returns a new service given the remote instance.
 func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) *Service {
 	return &Service{
-		SSHClient:     sshClient,
+		sshClient:     sshClient,
 		scope:         scope,
 		instanceScope: instanceScope,
 	}
@@ -50,35 +50,35 @@ func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceSc
 
 func (s *Service) getTemplateService(template *template.Template, data file.Data, dst string) (operation.Template, error) {
 	if s.templateFactory != nil {
-		return s.templateFactory(s.SSHClient, template, data, dst)
+		return s.templateFactory(s.sshClient, template, data, dst)
 	}
-	return file.NewTemplate(s.SSHClient, s.scope.RootFs(), template, data, dst)
+	return file.NewTemplate(s.sshClient, s.scope.RootFs(), template, data, dst)
 }
 
-func (s *Service) getKubeadmService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
+func (s *Service) getKubeadmService(version, arch string) (operation.Binary, error) {
 	if s.kubeadmFactory != nil {
-		return s.kubeadmFactory(sshClient, version, arch)
+		return s.kubeadmFactory(s.sshClient, version, arch)
 	}
-	return file.NewKubeadm(sshClient, s.scope.RootFs(), version, arch)
+	return file.NewKubeadm(s.sshClient, s.scope.RootFs(), version, arch)
 }
 
-func (s *Service) getKubeletService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
+func (s *Service) getKubeletService(version, arch string) (operation.Binary, error) {
 	if s.kubeletFactory != nil {
-		return s.kubeletFactory(sshClient, version, arch)
+		return s.kubeletFactory(s.sshClient, version, arch)
 	}
-	return file.NewKubelet(sshClient, s.scope.RootFs(), version, arch)
+	return file.NewKubelet(s.sshClient, s.scope.RootFs(), version, arch)
 }
 
-func (s *Service) getKubecniService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
+func (s *Service) getKubecniService(version, arch string) (operation.Binary, error) {
 	if s.kubecniFactory != nil {
-		return s.kubecniFactory(sshClient, version, arch)
+		return s.kubecniFactory(s.sshClient, version, arch)
 	}
-	return file.NewKubecni(sshClient, s.scope.RootFs(), version, arch)
+	return file.NewKubecni(s.sshClient, s.scope.RootFs(), version, arch)
 }
 
-func (s *Service) getKubectlService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
+func (s *Service) getKubectlService(version, arch string) (operation.Binary, error) {
 	if s.kubectlFactory != nil {
-		return s.kubectlFactory(sshClient, version, arch)
+		return s.kubectlFactory(s.sshClient, version, arch)
 	}
-	return file.NewKubectl(sshClient, s.scope.RootFs(), version, arch)
+	return file.NewKubectl(s.sshClient, s.scope.RootFs(), version, arch)
 }

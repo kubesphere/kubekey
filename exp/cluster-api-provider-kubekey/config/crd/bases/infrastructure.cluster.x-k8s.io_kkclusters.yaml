@@ -73,7 +73,15 @@ spec:
                           type: string
                         checksum:
                           description: Checksum is the SHA256 checksum of the binary.
-                          type: string
+                          properties:
+                            path:
+                              description: Path defines the URL path, which is the
+                                path of the checksum file.
+                              type: string
+                            value:
+                              description: Value is the checksum string value.
+                              type: string
+                          type: object
                         id:
                           description: ID is the component id name. e.g. kubeadm,
                             kubelet, containerd, etc.

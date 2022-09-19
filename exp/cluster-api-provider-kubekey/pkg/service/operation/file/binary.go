@@ -43,35 +43,38 @@ const (
 
 // BinaryParams represents the parameters of a Binary.
 type BinaryParams struct {
-	File     *File
-	ID       string
-	Version  string
-	Arch     string
-	URL      *url.URL
-	Checksum checksum.Interface
+	File         *File
+	ID           string
+	Version      string
+	Arch         string
+	URL          *url.URL
+	ChecksumList []checksum.Interface
 }
 
 // NewBinary returns a new Binary.
 func NewBinary(params BinaryParams) *Binary {
 	b := &Binary{
-		file:     params.File,
-		id:       params.ID,
-		version:  params.Version,
-		arch:     params.Arch,
-		url:      params.URL,
-		checksum: params.Checksum,
+		file:         params.File,
+		id:           params.ID,
+		version:      params.Version,
+		arch:         params.Arch,
+		url:          params.URL,
+		checksumList: checksum.NewChecksums(checksum.NewInternalChecksum(params.ID, params.Version, params.Arch)),
+	}
+	if len(params.ChecksumList) != 0 {
+		b.checksumList.Append(params.ChecksumList...)
 	}
 	return b
 }
 
 // Binary is a binary implementation of Binary interface.
 type Binary struct {
-	file     *File
-	id       string
-	version  string
-	arch     string
-	url      *url.URL
-	checksum checksum.Interface
+	file         *File
+	id           string
+	version      string
+	arch         string
+	url          *url.URL
+	checksumList checksum.List
 }
 
 // Name returns the name of the Binary file.
@@ -111,11 +114,11 @@ func (b *Binary) RemoteExist() bool {
 		return false
 	}
 
-	if err := b.checksum.Get(); err != nil {
+	if err := b.checksumList.Get(); err != nil {
 		return false
 	}
 
-	if remoteSHA256 != b.checksum.Value() {
+	if remoteSHA256 != b.checksumList.Value() {
 		return false
 	}
 	return true
@@ -200,12 +203,12 @@ func (b *Binary) SetZone(zone string) {
 	}
 }
 
-// SetChecksum sets the checksum of the binary.
-func (b *Binary) SetChecksum(c checksum.Interface) {
+// AppendChecksum appends a checksum to the checksum list.
+func (b *Binary) AppendChecksum(c checksum.Interface) {
 	if reflect.ValueOf(c).IsNil() {
 		return
 	}
-	b.checksum = c
+	b.checksumList.Append(c)
 }
 
 // Get downloads the binary from remote.
@@ -215,7 +218,7 @@ func (b *Binary) Get(timeout time.Duration) error {
 	}
 
 	if err := client.GetFile(b.LocalPath(), b.URL()); err != nil {
-		return errors.Wrapf(err, "failed to http get file: %s", b.LocalPath())
+		return errors.Wrapf(err, "failed to http get file: %s", b.URL())
 	}
 
 	return nil
@@ -238,17 +241,13 @@ func (b *Binary) SHA256() (string, error) {
 
 // CompareChecksum compares the checksum of the binary.
 func (b *Binary) CompareChecksum() error {
-	if err := b.checksum.Get(); err != nil {
+	if err := b.checksumList.Get(); err != nil {
 		return errors.Wrapf(err, "%s get checksum failed", b.Name())
 	}
 
-	sum, err := b.SHA256()
-	if err != nil {
-		return errors.Wrapf(err, "%s caculate SHA256 failed", b.Name())
-	}
-
-	if sum != b.checksum.Value() {
-		return errors.Errorf("SHA256 no match. file: %s sha256: %s not equal checksum: %s", b.Name(), sum, b.checksum.Value())
+	sum := b.file.rootFs.Fs().SHA256Sum(b.LocalPath())
+	if sum != b.checksumList.Value() {
+		return errors.Errorf("SHA256 no match. file: %s sha256: %s not equal checksum: %s", b.Name(), sum, b.checksumList.Value())
 	}
 	return nil
 }

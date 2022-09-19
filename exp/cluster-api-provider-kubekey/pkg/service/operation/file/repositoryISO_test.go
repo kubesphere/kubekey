@@ -14,16 +14,31 @@
  limitations under the License.
 */
 
-package checksum
+package file
 
-// Interface is the interface for checksum.
-type Interface interface {
-	Get() error
-	Value() string
-}
+import (
+	"testing"
+)
 
-// List is the interface of a list of checksums.
-type List interface {
-	Interface
-	Append(checksum ...Interface)
+func Test_generateCheckFileName(t *testing.T) {
+	tests := []struct {
+		isoName string
+		want    string
+	}{
+		{
+			isoName: "centos7-rpms-amd64.iso",
+			want:    "centos7-rpms.iso.sha256sum.txt",
+		},
+		{
+			isoName: "ubuntu-22.04-debs-arm64.iso",
+			want:    "ubuntu-22.04-debs.iso.sha256sum.txt",
+		},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			if got := generateCheckFileName(tt.isoName); got != tt.want {
+				t.Errorf("generateCheckFileName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

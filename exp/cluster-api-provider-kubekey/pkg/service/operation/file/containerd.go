@@ -22,7 +22,6 @@ import (
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 // Containerd info
@@ -53,14 +52,12 @@ func NewContainerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, ar
 	}
 
 	u := parseURL(DefaultDownloadHost, fmt.Sprintf(ContainerdURLPathTmpl, version, version, arch))
-	internal := checksum.NewChecksum(ContainerdID, version, arch)
 	binary := NewBinary(BinaryParams{
-		File:     file,
-		ID:       ContainerdID,
-		Version:  version,
-		Arch:     arch,
-		URL:      u,
-		Checksum: internal,
+		File:    file,
+		ID:      ContainerdID,
+		Version: version,
+		Arch:    arch,
+		URL:     u,
 	})
 
 	return &Containerd{binary}, nil

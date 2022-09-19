@@ -126,6 +126,9 @@ func parseLine(line string) (string, string, error) {
 	value = strings.Replace(value, `\$`, `$`, -1)
 	value = strings.Replace(value, `\\`, `\`, -1)
 	value = strings.Replace(value, "\\`", "`", -1)
+	value = strings.TrimRight(value, "\r\n")
+	value = strings.TrimLeft(value, "\"")
+	value = strings.TrimRight(value, "\"")
 	return key, value, nil
 }
 

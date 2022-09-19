@@ -143,7 +143,7 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 			"url", b.URL().String())
 
 		override := overrideMap[b.ID()+b.Version()+b.Arch()]
-		if err := util.DownloadAndCopy(b, zone, host, override.Path, override.URL, override.Checksum, timeout); err != nil {
+		if err := util.DownloadAndCopy(b, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
 			return err
 		}
 	}

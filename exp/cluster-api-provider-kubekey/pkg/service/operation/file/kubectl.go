@@ -23,7 +23,6 @@ import (
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 // Kubectl info
@@ -55,14 +54,12 @@ func NewKubectl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 	}
 
 	u := parseURL(DefaultDownloadHostGoogle, fmt.Sprintf(KubectlURLPathTmpl, version, arch))
-	internal := checksum.NewChecksum(KubectlID, version, arch)
 	binary := NewBinary(BinaryParams{
-		File:     file,
-		ID:       KubectlID,
-		Version:  version,
-		Arch:     arch,
-		URL:      u,
-		Checksum: internal,
+		File:    file,
+		ID:      KubectlID,
+		Version: version,
+		Arch:    arch,
+		URL:     u,
 	})
 
 	return &Kubectl{binary}, nil

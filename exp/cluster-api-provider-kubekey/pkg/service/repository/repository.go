@@ -18,6 +18,7 @@ package repository
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,8 +26,10 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/api/v1beta1"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/repository"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/util"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/filesystem"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/osrelease"
 )
 
@@ -56,7 +59,8 @@ func (s *Service) Get(timeout time.Duration) error {
 		return nil
 	}
 
-	iso, err := s.getISOService(s.sshClient, s.os, s.instanceScope.Arch(), s.instanceScope.Repository().ISO)
+	s.scope.V(4).Info("os release", "os", s.os)
+	iso, err := s.getISOService(s.os, s.instanceScope.Arch(), s.instanceScope.Repository().ISO)
 	if err != nil {
 		return err
 	}
@@ -72,7 +76,9 @@ func (s *Service) Get(timeout time.Duration) error {
 		"url", iso.URL().String())
 
 	override := overrideMap[iso.ID()+iso.Version()+iso.Arch()]
-	if err := util.DownloadAndCopy(iso, zone, host, override.Path, override.URL, override.Checksum, timeout); err != nil {
+	iso.HTTPChecksum.SetHost(host)
+	iso.HTTPChecksum.SetPath(override.Checksum.Path)
+	if err := util.DownloadAndCopy(iso, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
 		return err
 	}
 	return nil
@@ -84,12 +90,17 @@ func (s *Service) MountISO() error {
 		return nil
 	}
 
-	iso, err := s.getISOService(s.sshClient, s.os, s.instanceScope.Arch(), s.instanceScope.Repository().ISO)
+	mountPath := filepath.Join(file.MntDir, "repository")
+	dirSvc := s.getDirectoryService(mountPath, os.FileMode(filesystem.FileMode0755))
+	if err := dirSvc.Make(); err != nil {
+		return errors.Wrapf(err, "failed to make directory %s", mountPath)
+	}
+
+	iso, err := s.getISOService(s.os, s.instanceScope.Arch(), s.instanceScope.Repository().ISO)
 	if err != nil {
 		return err
 	}
 
-	mountPath := filepath.Join(iso.RemotePath(), "repository")
 	if _, err := s.sshClient.SudoCmd(fmt.Sprintf("sudo mount -t iso9660 -o loop %s %s", iso.RemotePath(), mountPath)); err != nil {
 		return errors.Wrapf(err, "mount %s at %s failed", iso.RemotePath(), mountPath)
 	}
