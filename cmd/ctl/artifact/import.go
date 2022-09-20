@@ -27,8 +27,8 @@ import (
 )
 
 type ArtifactImportOptions struct {
-	CommonOptions   *options.CommonOptions
-	Artifact        string
+	CommonOptions *options.CommonOptions
+	Artifact      string
 }
 
 func NewArtifactImportOptions() *ArtifactImportOptions {
@@ -56,8 +56,8 @@ func NewCmdArtifactImport() *cobra.Command {
 
 func (o *ArtifactImportOptions) Run() error {
 	arg := common.Argument{
-		Debug:           o.CommonOptions.Verbose,
-		Artifact:        o.Artifact,
+		Debug:    o.CommonOptions.Verbose,
+		Artifact: o.Artifact,
 	}
 	return artifact.ArtifactImport(arg)
 }

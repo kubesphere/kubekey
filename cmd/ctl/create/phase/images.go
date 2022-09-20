@@ -29,7 +29,6 @@ import (
 type CreateImagesOptions struct {
 	CommonOptions    *options.CommonOptions
 	ClusterCfgFile   string
-	Artifact         string
 	Kubernetes       string
 	ContainerManager string
 }
@@ -72,7 +71,6 @@ func (o *CreateImagesOptions) Validate(_ *cobra.Command, _ []string) error {
 func (o *CreateImagesOptions) Run() error {
 	arg := common.Argument{
 		FilePath:          o.ClusterCfgFile,
-		Artifact:          o.Artifact,
 		KubernetesVersion: o.Kubernetes,
 		ContainerManager:  o.ContainerManager,
 		Debug:             o.CommonOptions.Verbose,
@@ -83,6 +81,5 @@ func (o *CreateImagesOptions) Run() error {
 func (o *CreateImagesOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
-	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a artifact gzip")
 	cmd.Flags().StringVarP(&o.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")
 }

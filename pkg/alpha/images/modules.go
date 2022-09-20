@@ -17,6 +17,7 @@
 package images
 
 import (
+	"github.com/kubesphere/kubekey/pkg/alpha/binary"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/task"
 	"github.com/kubesphere/kubekey/pkg/images"
@@ -42,5 +43,24 @@ func (p *UpgradeImagesModule) Init() {
 
 	p.Tasks = []task.Interface{
 		pull,
+	}
+}
+
+type setBinaryCacheModule struct {
+	common.KubeModule
+}
+
+func (p *setBinaryCacheModule) Init() {
+	p.Name = "setBinaryCacheModule"
+	p.Desc = "set the docker and containerd binary paths in cache"
+
+	setBinaryCache := &task.LocalTask{
+		Name:   "SetBinaryCache",
+		Desc:   "Set Binary Path in PipelineCache",
+		Action: &binary.GetBinaryPath{Binaries: []string{"docker", "containerd", "runc", "crictl"}},
+	}
+
+	p.Tasks = []task.Interface{
+		setBinaryCache,
 	}
 }

@@ -31,6 +31,7 @@ func NewUpgradeKubeSpherePipeline(runtime *common.KubeRuntime) error {
 
 	m := []module.Module{
 		&precheck.UpgradeKubeSpherePreCheckModule{},
+		&precheck.UpgradeksPhaseDependencyCheckModule{},
 		&confirm.UpgradeKsConfirmModule{},
 		&kubesphere.CleanClusterConfigurationModule{Skip: !runtime.Cluster.KubeSphere.Enabled},
 		&kubesphere.ConvertModule{Skip: !runtime.Cluster.KubeSphere.Enabled},

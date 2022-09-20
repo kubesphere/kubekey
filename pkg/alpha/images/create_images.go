@@ -24,17 +24,15 @@ import (
 	"github.com/kubesphere/kubekey/pkg/container"
 	"github.com/kubesphere/kubekey/pkg/core/module"
 	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 )
 
 func NewCreateImagesPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.NodePreCheckModule{},
+		&setBinaryCacheModule{},
 		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
-		&images.CopyImagesToRegistryModule{},
-		&images.PullModule{},
 	}
 
 	p := pipeline.Pipeline{

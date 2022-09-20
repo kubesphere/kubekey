@@ -88,18 +88,6 @@ func (c *UprgadePreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	dependencyCheck := &task.RemoteTask{
-		Name:  "DependencyCheck",
-		Desc:  "Check dependency matrix for KubeSphere and Kubernetes",
-		Hosts: c.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(precheck.KubeSphereExist),
-		},
-		Action:   new(precheck.DependencyCheck),
-		Parallel: true,
-	}
-
 	getKubernetesNodesStatus := &task.RemoteTask{
 		Name:     "GetKubernetesNodesStatus",
 		Desc:     "Get kubernetes nodes status",
@@ -118,7 +106,6 @@ func (c *UprgadePreCheckModule) Init() {
 		checkDesiredK8sVersion,
 		checkUpgradeK8sVersion,
 		ksVersionCheck,
-		dependencyCheck,
 		getKubernetesNodesStatus,
 	}
 }
@@ -165,6 +152,22 @@ func (c *UpgradeKubeSpherePreCheckModule) Init() {
 		Parallel: true,
 	}
 
+	c.Tasks = []task.Interface{
+		nodePreCheck,
+		getKubeConfig,
+		getMasterK8sVersion,
+		ksVersionCheck,
+	}
+}
+
+type UpgradeksPhaseDependencyCheckModule struct {
+	common.KubeModule
+}
+
+func (c *UpgradeksPhaseDependencyCheckModule) Init() {
+	c.Name = "UpgradeksPhaseDependencyCheckModule"
+	c.Desc = "Check dependency matrix for KubeSphere and Kubernetes in ks phase"
+
 	ksPhaseDependencyCheck := &task.RemoteTask{
 		Name:  "ksPhaseDependencyCheck",
 		Desc:  "Check dependency matrix for KubeSphere and Kubernetes in ks phase",
@@ -177,10 +180,6 @@ func (c *UpgradeKubeSpherePreCheckModule) Init() {
 	}
 
 	c.Tasks = []task.Interface{
-		nodePreCheck,
-		getKubeConfig,
-		getMasterK8sVersion,
-		ksVersionCheck,
 		ksPhaseDependencyCheck,
 	}
 }

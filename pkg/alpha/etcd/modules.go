@@ -32,7 +32,7 @@ func (p *PreCheckModule) Init() {
 	setBinaryCache := &task.LocalTask{
 		Name:   "SetEtcdBinaryCache",
 		Desc:   "Set Etcd Binary Path in PipelineCache",
-		Action: new(binary.GetEtcdBinaryPath),
+		Action: &binary.GetBinaryPath{Binaries: []string{"etcd"}},
 	}
 
 	p.Tasks = []task.Interface{

@@ -29,7 +29,6 @@ import (
 type CreateInitClusterOptions struct {
 	CommonOptions  *options.CommonOptions
 	ClusterCfgFile string
-	Artifact       string
 	Kubernetes     string
 }
 
@@ -61,7 +60,6 @@ func NewCmdCreateInitCluster() *cobra.Command {
 func (o *CreateInitClusterOptions) Run() error {
 	arg := common.Argument{
 		FilePath:          o.ClusterCfgFile,
-		Artifact:          o.Artifact,
 		KubernetesVersion: o.Kubernetes,
 		Debug:             o.CommonOptions.Verbose,
 		Namespace:         o.CommonOptions.Namespace,

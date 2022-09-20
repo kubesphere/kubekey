@@ -54,8 +54,8 @@ func NewCmdConfigOS() *cobra.Command {
 
 func (o *ConfigOSOptions) Run() error {
 	arg := common.Argument{
-		FilePath: o.ClusterCfgFile,
-		Debug:    o.CommonOptions.Verbose,
+		FilePath:        o.ClusterCfgFile,
+		Debug:           o.CommonOptions.Verbose,
 		InstallPackages: o.InstallPackages,
 	}
 	return os.ConfigOS(arg)

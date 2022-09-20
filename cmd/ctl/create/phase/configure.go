@@ -29,7 +29,6 @@ import (
 type CreateConfigureKubernetesOptions struct {
 	CommonOptions  *options.CommonOptions
 	ClusterCfgFile string
-	Artifact       string
 	Kubernetes     string
 	LocalStorage   bool
 
@@ -72,7 +71,6 @@ func NewCmdCreateConfigureKubernetes() *cobra.Command {
 func (o *CreateConfigureKubernetesOptions) Run() error {
 	arg := common.Argument{
 		FilePath:          o.ClusterCfgFile,
-		Artifact:          o.Artifact,
 		KubernetesVersion: o.Kubernetes,
 		Debug:             o.CommonOptions.Verbose,
 		Namespace:         o.CommonOptions.Namespace,
