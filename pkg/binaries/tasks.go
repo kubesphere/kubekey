@@ -276,3 +276,29 @@ func (k *RegistryPackageDownload) Execute(runtime connector.Runtime) error {
 
 	return nil
 }
+
+type CriDownload struct {
+	common.KubeAction
+}
+
+func (d *CriDownload) Execute(runtime connector.Runtime) error {
+	cfg := d.KubeConf.Cluster
+	archMap := make(map[string]bool)
+	for _, host := range cfg.Hosts {
+		switch host.Arch {
+		case "amd64":
+			archMap["amd64"] = true
+		case "arm64":
+			archMap["arm64"] = true
+		default:
+			return errors.New(fmt.Sprintf("Unsupported architecture: %s", host.Arch))
+		}
+	}
+
+	for arch := range archMap {
+		if err := CriDownloadHTTP(d.KubeConf, runtime.GetWorkDir(), arch, d.PipelineCache); err != nil {
+			return err
+		}
+	}
+	return nil
+}

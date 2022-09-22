@@ -18,11 +18,18 @@ package ctl
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
+	"strings"
+	"syscall"
+
 	"github.com/kubesphere/kubekey/cmd/ctl/add"
 	"github.com/kubesphere/kubekey/cmd/ctl/artifact"
 	"github.com/kubesphere/kubekey/cmd/ctl/cert"
 	"github.com/kubesphere/kubekey/cmd/ctl/completion"
 	"github.com/kubesphere/kubekey/cmd/ctl/create"
+	"github.com/kubesphere/kubekey/cmd/ctl/cri"
 	"github.com/kubesphere/kubekey/cmd/ctl/delete"
 	initOs "github.com/kubesphere/kubekey/cmd/ctl/init"
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
@@ -30,11 +37,6 @@ import (
 	"github.com/kubesphere/kubekey/cmd/ctl/upgrade"
 	"github.com/kubesphere/kubekey/cmd/ctl/version"
 	"github.com/spf13/cobra"
-	"os"
-	"os/exec"
-	"runtime"
-	"strings"
-	"syscall"
 )
 
 type KubeKeyOptions struct {
@@ -115,6 +117,8 @@ func NewKubeKeyCommand(o KubeKeyOptions) *cobra.Command {
 
 	cmds.AddCommand(completion.NewCmdCompletion())
 	cmds.AddCommand(version.NewCmdVersion())
+
+	cmds.AddCommand(cri.NewCmdCri())
 	return cmds
 }
 
