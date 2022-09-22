@@ -50,7 +50,7 @@ const (
 	DefaultFlannelVersion       = "v0.12.0"
 	DefaultCniVersion           = "v0.9.1"
 	DefaultCiliumVersion        = "v1.11.6"
-	DefaultKubeovnVersion       = "v1.10.5"
+	DefaultKubeovnVersion       = "v1.10.6"
 	DefalutMultusVersion        = "v3.8"
 	DefaultHelmVersion          = "v3.9.0"
 	DefaultDockerComposeVersion = "v2.2.2"

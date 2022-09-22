@@ -273,7 +273,7 @@ func deployKubeOVN(d *DeployNetworkPluginModule) []task.Interface {
 		Desc:     "Deploy kube-ovn",
 		Hosts:    d.Runtime.GetHostsByRole(common.Master),
 		Prepare:  new(common.OnlyFirstMaster),
-		Action:   new(DeployNetworkPlugin),
+		Action:   new(DeployKubeovnPlugin),
 		Parallel: true,
 		Retry:    5,
 	}
