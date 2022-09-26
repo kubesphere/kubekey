@@ -404,7 +404,14 @@ func (i *InstallPackage) Execute(runtime connector.Runtime) error {
 	}
 	r := repo.(repository.Interface)
 
-	if installErr := r.Install(runtime); installErr != nil {
+	var pkg []string
+	if _, ok := r.(*repository.Debian); ok {
+		pkg = i.KubeConf.Cluster.System.Debs
+	} else if _, ok := r.(*repository.RedhatPackageManager); ok {
+		pkg = i.KubeConf.Cluster.System.Rpms
+	}
+
+	if installErr := r.Install(runtime, pkg...); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "install repository package failed")
 	}
 	return nil

@@ -18,8 +18,9 @@ package repository
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
 
 type Debian struct {
@@ -74,8 +75,11 @@ func (d *Debian) Update(runtime connector.Runtime) error {
 }
 
 func (d *Debian) Install(runtime connector.Runtime, pkg ...string) error {
+	defaultPkg := []string{"socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
 	if len(pkg) == 0 {
-		pkg = []string{"socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
+		pkg = defaultPkg
+	} else {
+		pkg = append(pkg, defaultPkg...)
 	}
 
 	str := strings.Join(pkg, " ")

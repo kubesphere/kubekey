@@ -173,6 +173,8 @@ type KubeVip struct {
 type System struct {
 	NtpServers []string `yaml:"ntpServers" json:"ntpServers,omitempty"`
 	Timezone   string   `yaml:"timezone" json:"timezone,omitempty"`
+	Rpms       []string `yaml:"rpms" json:"rpms,omitempty"`
+	Debs       []string `yaml:"debs" json:"debs,omitempty"`
 }
 
 // RegistryConfig defines the configuration information of the image's repository.
