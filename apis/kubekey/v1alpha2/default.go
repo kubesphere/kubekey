@@ -57,6 +57,7 @@ const (
 	DefaultRegistryVersion      = "2"
 	DefaultHarborVersion        = "v2.5.3"
 	DefaultMaxPods              = 110
+	DefaultPodPidsLimit         = 10000
 	DefaultNodeCidrMaskSize     = 24
 	DefaultIPIPMode             = "Always"
 	DefaultVXLANMode            = "Never"
@@ -123,6 +124,9 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map
 	}
 	if cfg.Kubernetes.MaxPods == 0 {
 		clusterCfg.Kubernetes.MaxPods = DefaultMaxPods
+	}
+	if cfg.Kubernetes.PodPidsLimit == 0 {
+		clusterCfg.Kubernetes.PodPidsLimit = DefaultPodPidsLimit
 	}
 	if cfg.Kubernetes.NodeCidrMaskSize == 0 {
 		clusterCfg.Kubernetes.NodeCidrMaskSize = DefaultNodeCidrMaskSize

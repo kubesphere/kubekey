@@ -157,12 +157,14 @@ var (
 		"TTLAfterFinished":               true, //k8s 1.12+
 		"ExpandCSIVolumes":               true, //k8s 1.14+
 		"CSIStorageCapacity":             true, //k8s 1.19+
+		"SupportPodPidsLimit":            true,
 	}
 	FeatureGatesSecurityDefaultConfiguration = map[string]bool{
 		"RotateKubeletServerCertificate": true, //k8s 1.7+
 		"TTLAfterFinished":               true, //k8s 1.12+
 		"ExpandCSIVolumes":               true, //k8s 1.14+
 		"CSIStorageCapacity":             true, //k8s 1.19+
+		"SupportPodPidsLimit":            true,
 		"SeccompDefault":                 true, //kubelet
 	}
 
@@ -263,6 +265,7 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		"clusterDomain":      kubeConf.Cluster.Kubernetes.DNSDomain,
 		"clusterDNS":         []string{kubeConf.Cluster.ClusterDNS()},
 		"maxPods":            kubeConf.Cluster.Kubernetes.MaxPods,
+		"podPidsLimit":       kubeConf.Cluster.Kubernetes.PodPidsLimit,
 		"rotateCertificates": true,
 		"kubeReserved": map[string]string{
 			"cpu":    "200m",
@@ -274,7 +277,7 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		},
 		"evictionHard": map[string]string{
 			"memory.available": "5%",
-			"pid.available":    "5%",
+			"pid.available":    "10%",
 		},
 		"evictionSoft": map[string]string{
 			"memory.available": "10%",

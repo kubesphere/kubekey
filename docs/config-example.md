@@ -36,6 +36,7 @@ spec:
     autoRenewCerts: true # Whether to install a script which can automatically renew the Kubernetes control plane certificates. [Default: false]
     masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false].
     maxPods: 110  # maxPods is the number of Pods that can run on this Kubelet. [Default: 110]
+    podPidsLimit: 10000 # podPidsLimit is the maximum number of PIDs in any pod. [Default: 10000]
     nodeCidrMaskSize: 24  # The internal network node size allocation. This is the size allocated to each node on your network. [Default: 24]
     proxyMode: ipvs  # Specify which proxy mode to use. [Default: ipvs]
     featureGates: # enable featureGates, [Default: {"ExpandCSIVolumes":true,"RotateKubeletServerCertificate": true,"CSIStorageCapacity":true, "TTLAfterFinished":true}]

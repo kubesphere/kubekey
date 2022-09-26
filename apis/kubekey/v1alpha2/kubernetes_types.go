@@ -27,6 +27,7 @@ type Kubernetes struct {
 	DisableKubeProxy       bool     `yaml:"disableKubeProxy" json:"disableKubeProxy,omitempty"`
 	MasqueradeAll          bool     `yaml:"masqueradeAll" json:"masqueradeAll,omitempty"`
 	MaxPods                int      `yaml:"maxPods" json:"maxPods,omitempty"`
+	PodPidsLimit           int      `yaml:"podPidsLimit" json:"podPidsLimit,omitempty"`
 	NodeCidrMaskSize       int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
 	ApiserverCertExtraSans []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
 	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
