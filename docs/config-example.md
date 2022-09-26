@@ -28,6 +28,10 @@ spec:
       - ntp.aliyun.com
       - node1 # Set the node name in `hosts` as ntp server if no public ntp servers access.
     timezone: "Asia/Shanghai"
+    rpms: # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
+      - nfs-utils
+    debs: # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
+      - nfs-common
   kubernetes:
     version: v1.21.5
     imageRepo: kubesphere
