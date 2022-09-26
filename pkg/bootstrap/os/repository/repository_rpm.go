@@ -18,8 +18,9 @@ package repository
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/core/connector"
 )
 
 type RedhatPackageManager struct {
@@ -82,8 +83,11 @@ func (r *RedhatPackageManager) Update(runtime connector.Runtime) error {
 }
 
 func (r *RedhatPackageManager) Install(runtime connector.Runtime, pkg ...string) error {
+	defaultPkg := []string{"openssl", "socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
 	if len(pkg) == 0 {
-		pkg = []string{"openssl", "socat", "conntrack", "ipset", "ebtables", "chrony", "ipvsadm"}
+		pkg = defaultPkg
+	} else {
+		pkg = append(pkg, defaultPkg...)
 	}
 
 	str := strings.Join(pkg, " ")

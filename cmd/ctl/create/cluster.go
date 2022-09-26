@@ -69,6 +69,7 @@ func NewCmdCreateCluster() *cobra.Command {
 
 	o.CommonOptions.AddCommonFlag(cmd)
 	o.AddFlags(cmd)
+
 	if err := completionSetting(cmd); err != nil {
 		panic(fmt.Sprintf("Got error with the completion setting"))
 	}
