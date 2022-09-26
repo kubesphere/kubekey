@@ -22,8 +22,9 @@ import (
 	"github.com/lithammer/dedent"
 )
 
-var KubeOVN = template.Must(template.New("network-plugin.yaml").Parse(
-	dedent.Dedent(`---
+var (
+	KubeOvnCrd = template.Must(template.New("kube-ovn-crd.yaml").Parse(
+		dedent.Dedent(`---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -1184,7 +1185,10 @@ spec:
     kind: HtbQos
     shortNames:
       - htbqos
----
+`)))
+
+	OVN = template.Must(template.New("ovn.yaml").Parse(
+		dedent.Dedent(`---
 {{ if .DpdkMode }}
 apiVersion: v1
 kind: ServiceAccount
@@ -1580,6 +1584,9 @@ spec:
             - name: OVN_DB_IPS
               value: {{ .Address }}
           volumeMounts:
+            - mountPath: /var/run/netns
+              name: host-ns
+              mountPropagation: HostToContainer
             - mountPath: /lib/modules
               name: host-modules
               readOnly: true
@@ -1648,6 +1655,9 @@ spec:
         - name: host-sys
           hostPath:
             path: /sys
+        - name: host-ns
+          hostPath:
+            path: /var/run/netns
         - name: cni-conf
           hostPath:
             path: /etc/cni/net.d
@@ -2061,6 +2071,9 @@ spec:
             - name: OVN_DB_IPS
               value: {{ .Address }}
           volumeMounts:
+            - mountPath: /var/run/netns
+              name: host-ns
+              mountPropagation: HostToContainer
             - mountPath: /lib/modules
               name: host-modules
               readOnly: true
@@ -2124,6 +2137,9 @@ spec:
         - name: host-sys
           hostPath:
             path: /sys
+        - name: host-ns
+          hostPath:
+            path: /var/run/netns
         - name: cni-conf
           hostPath:
             path: /etc/cni/net.d
@@ -2146,8 +2162,10 @@ spec:
           secret:
             optional: true
             secretName: kube-ovn-tls
-{{ end }}
----
+{{ end }}`)))
+
+	KubeOvn = template.Must(template.New("kube-ovn.yaml").Parse(
+		dedent.Dedent(`---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -2758,5 +2776,5 @@ spec:
     app: kube-ovn-cni
   ports:
     - port: 10665
-      name: metrics
-`)))
+      name: metrics`)))
+)

@@ -112,6 +112,26 @@ func (d *DeployNetworkPlugin) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type DeployKubeovnPlugin struct {
+	common.KubeAction
+}
+
+func (d *DeployKubeovnPlugin) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(
+		"/usr/local/bin/kubectl apply -f /etc/kubernetes/kube-ovn-crd.yaml --force", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "deploy kube-ovn-crd.yaml failed")
+	}
+	if _, err := runtime.GetRunner().SudoCmd(
+		"/usr/local/bin/kubectl apply -f /etc/kubernetes/ovn.yaml --force", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "deploy ovn.yaml failed")
+	}
+	if _, err := runtime.GetRunner().SudoCmd(
+		"/usr/local/bin/kubectl apply -f /etc/kubernetes/kube-ovn.yaml --force", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "deploy kube-ovn.yaml failed")
+	}
+	return nil
+}
+
 type DeployNetworkMultusPlugin struct {
 	common.KubeAction
 }
@@ -202,8 +222,38 @@ func (g *GenerateKubeOVN) Execute(runtime connector.Runtime) error {
 	}
 
 	templateAction := action.Template{
-		Template: templates.KubeOVN,
-		Dst:      filepath.Join(common.KubeConfigDir, templates.KubeOVN.Name()),
+		Template: templates.KubeOvnCrd,
+		Dst:      filepath.Join(common.KubeConfigDir, templates.KubeOvnCrd.Name()),
+	}
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+
+	templateAction = action.Template{
+		Template: templates.OVN,
+		Dst:      filepath.Join(common.KubeConfigDir, templates.OVN.Name()),
+		Data: util.Data{
+			"Address":               address,
+			"Count":                 count,
+			"KubeovnImage":          images.GetImage(runtime, g.KubeConf, "kubeovn").ImageName(),
+			"TunnelType":            g.KubeConf.Cluster.Network.Kubeovn.TunnelType,
+			"DpdkMode":              g.KubeConf.Cluster.Network.Kubeovn.Dpdk.DpdkMode,
+			"DpdkVersion":           g.KubeConf.Cluster.Network.Kubeovn.Dpdk.DpdkVersion,
+			"OvnVersion":            v1alpha2.DefaultKubeovnVersion,
+			"EnableSSL":             g.KubeConf.Cluster.Network.Kubeovn.EnableSSL,
+			"HwOffload":             g.KubeConf.Cluster.Network.Kubeovn.OvsOvn.HwOffload,
+			"SvcYamlIpfamilypolicy": g.KubeConf.Cluster.Network.Kubeovn.SvcYamlIpfamilypolicy,
+		},
+	}
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+
+	templateAction = action.Template{
+		Template: templates.KubeOvn,
+		Dst:      filepath.Join(common.KubeConfigDir, templates.KubeOvn.Name()),
 		Data: util.Data{
 			"Address":               address,
 			"Count":                 count,
@@ -223,16 +273,12 @@ func (g *GenerateKubeOVN) Execute(runtime connector.Runtime) error {
 			"VlanID":                g.KubeConf.Cluster.Network.Kubeovn.KubeOvnController.VlanID,
 			"VlanInterfaceName":     g.KubeConf.Cluster.Network.Kubeovn.KubeOvnController.VlanInterfaceName,
 			"Iface":                 g.KubeConf.Cluster.Network.Kubeovn.KubeOvnCni.Iface,
-			"DpdkMode":              g.KubeConf.Cluster.Network.Kubeovn.Dpdk.DpdkMode,
-			"DpdkVersion":           g.KubeConf.Cluster.Network.Kubeovn.Dpdk.DpdkVersion,
-			"OvnVersion":            v1alpha2.DefaultKubeovnVersion,
 			"EnableSSL":             g.KubeConf.Cluster.Network.Kubeovn.EnableSSL,
 			"EnableMirror":          g.KubeConf.Cluster.Network.Kubeovn.KubeOvnCni.EnableMirror,
 			"EnableLB":              g.KubeConf.Cluster.Network.Kubeovn.KubeovnEnableLB(),
 			"EnableNP":              g.KubeConf.Cluster.Network.Kubeovn.KubeovnEnableNP(),
 			"EnableEipSnat":         g.KubeConf.Cluster.Network.Kubeovn.KubeovnEnableEipSnat(),
 			"EnableExternalVPC":     g.KubeConf.Cluster.Network.Kubeovn.KubeovnEnableExternalVPC(),
-			"HwOffload":             g.KubeConf.Cluster.Network.Kubeovn.OvsOvn.HwOffload,
 			"SvcYamlIpfamilypolicy": g.KubeConf.Cluster.Network.Kubeovn.SvcYamlIpfamilypolicy,
 			"DpdkTunnelIface":       g.KubeConf.Cluster.Network.Kubeovn.Dpdk.DpdkTunnelIface,
 			"CNIConfigPriority":     g.KubeConf.Cluster.Network.Kubeovn.KubeOvnCni.CNIConfigPriority,
@@ -240,11 +286,11 @@ func (g *GenerateKubeOVN) Execute(runtime connector.Runtime) error {
 			"RPMs":                  g.KubeConf.Cluster.Network.Kubeovn.KubeOvnCni.RPMs,
 		},
 	}
-
 	templateAction.Init(nil, nil)
 	if err := templateAction.Execute(runtime); err != nil {
 		return err
 	}
+
 	return nil
 }
 

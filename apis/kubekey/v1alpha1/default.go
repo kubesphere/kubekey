@@ -18,9 +18,10 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"strings"
+
+	"github.com/kubesphere/kubekey/pkg/core/util"
 )
 
 const (
@@ -67,7 +68,7 @@ const (
 	DefaultJoinCIDR            = "100.64.0.0/16"
 	DefaultNetworkType         = "geneve"
 	DefaultVlanID              = "100"
-	DefaultOvnLabel            = "node-role.kubernetes.io/master"
+	DefaultOvnLabel            = "node-role.kubernetes.io/control-plane"
 	DefaultDPDKVersion         = "19.11"
 	DefaultDNSAddress          = "114.114.114.114"
 
