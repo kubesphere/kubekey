@@ -157,14 +157,12 @@ var (
 		"TTLAfterFinished":               true, //k8s 1.12+
 		"ExpandCSIVolumes":               true, //k8s 1.14+
 		"CSIStorageCapacity":             true, //k8s 1.19+
-		"SupportPodPidsLimit":            true,
 	}
 	FeatureGatesSecurityDefaultConfiguration = map[string]bool{
 		"RotateKubeletServerCertificate": true, //k8s 1.7+
 		"TTLAfterFinished":               true, //k8s 1.12+
 		"ExpandCSIVolumes":               true, //k8s 1.14+
 		"CSIStorageCapacity":             true, //k8s 1.19+
-		"SupportPodPidsLimit":            true,
 		"SeccompDefault":                 true, //kubelet
 	}
 
