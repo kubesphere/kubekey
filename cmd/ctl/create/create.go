@@ -17,6 +17,7 @@ limitations under the License.
 package create
 
 import (
+	"github.com/kubesphere/kubekey/cmd/ctl/create/phase"
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
 )
@@ -44,5 +45,6 @@ func NewCmdCreate() *cobra.Command {
 	cmd.AddCommand(NewCmdCreateCluster())
 	cmd.AddCommand(NewCmdCreateConfig())
 	cmd.AddCommand(NewCmdCreateManifest())
+	cmd.AddCommand(phase.NewPhaseCommand())
 	return cmd
 }

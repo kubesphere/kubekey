@@ -71,6 +71,7 @@ const (
 	// PreCheckModule
 	NodePreCheck           = "nodePreCheck"
 	K8sVersion             = "k8sVersion"        // current k8s version
+	MaxK8sVersion          = "maxK8sVersion"     // max k8s version of nodes
 	KubeSphereVersion      = "kubeSphereVersion" // current KubeSphere version
 	ClusterNodeStatus      = "clusterNodeStatus"
 	ClusterNodeCRIRuntimes = "ClusterNodeCRIRuntimes"
