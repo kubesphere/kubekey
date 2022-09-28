@@ -18,6 +18,8 @@ package binaries
 
 import (
 	"fmt"
+	"os/exec"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/cache"
@@ -25,7 +27,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/pkg/errors"
-	"os/exec"
 )
 
 // K8sFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
@@ -143,5 +144,49 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 		}
 	}
 
+	return nil
+}
+
+// CriDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
+func CriDownloadHTTP(kubeConf *common.KubeConf, path, arch string, pipelineCache *cache.Cache) error {
+
+	binaries := []*files.KubeBinary{}
+	switch kubeConf.Arg.Type {
+	case common.Docker:
+		docker := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, kubeConf.Arg.DownloadCommand)
+		binaries = append(binaries, docker)
+	case common.Conatinerd:
+		containerd := files.NewKubeBinary("containerd", arch, kubekeyapiv1alpha2.DefaultContainerdVersion, path, kubeConf.Arg.DownloadCommand)
+		runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, kubeConf.Arg.DownloadCommand)
+		crictl := files.NewKubeBinary("crictl", arch, kubekeyapiv1alpha2.DefaultCrictlVersion, path, kubeConf.Arg.DownloadCommand)
+		binaries = append(binaries, containerd, runc, crictl)
+	default:
+	}
+	binariesMap := make(map[string]*files.KubeBinary)
+	for _, binary := range binaries {
+		if err := binary.CreateBaseDir(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "create file %s base dir failed", binary.FileName)
+		}
+
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.ID, binary.Version)
+
+		binariesMap[binary.ID] = binary
+		if util.IsExist(binary.Path()) {
+			// download it again if it's incorrect
+			if err := binary.SHA256Check(); err != nil {
+				p := binary.Path()
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", p)).Run()
+			} else {
+				logger.Log.Messagef(common.LocalHost, "%s is existed", binary.ID)
+				continue
+			}
+		}
+
+		if err := binary.Download(); err != nil {
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.ID, binary.GetCmd(), err)
+		}
+	}
+
+	pipelineCache.Set(common.KubeBinaries+"-"+arch, binariesMap)
 	return nil
 }

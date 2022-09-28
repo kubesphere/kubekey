@@ -339,3 +339,32 @@ func (c *CheckFile) Execute(runtime connector.Runtime) error {
 	}
 	return nil
 }
+
+type MigrateCri struct {
+	common.KubeAction
+}
+
+func (d *MigrateCri) Execute(runtime connector.Runtime) error {
+	reader := bufio.NewReader(os.Stdin)
+
+	confirmOK := false
+	for !confirmOK {
+		fmt.Printf("Are you sure to Migrate Cri? [yes/no]: ")
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		input = strings.ToLower(strings.TrimSpace(input))
+
+		switch strings.ToLower(input) {
+		case "yes", "y":
+			confirmOK = true
+		case "no", "n":
+			os.Exit(0)
+		default:
+			continue
+		}
+	}
+
+	return nil
+}

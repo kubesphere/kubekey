@@ -159,3 +159,34 @@ func (n *RegistryPackageModule) Init() {
 		download,
 	}
 }
+
+type CriBinariesModule struct {
+	common.KubeModule
+}
+
+func (i *CriBinariesModule) Init() {
+	i.Name = "CriBinariesModule"
+	i.Desc = "Download Cri package"
+	switch i.KubeConf.Arg.Type {
+	case common.Docker:
+		i.Tasks = CriBinaries(i)
+	case common.Conatinerd:
+		i.Tasks = CriBinaries(i)
+	default:
+	}
+
+}
+
+func CriBinaries(p *CriBinariesModule) []task.Interface {
+
+	download := &task.LocalTask{
+		Name:   "DownloadCriPackage",
+		Desc:   "Download Cri package",
+		Action: new(CriDownload),
+	}
+
+	p.Tasks = []task.Interface{
+		download,
+	}
+	return p.Tasks
+}

@@ -127,3 +127,23 @@ func (c *CheckFileExistModule) Init() {
 		check,
 	}
 }
+
+type MigrateCriConfirmModule struct {
+	common.KubeModule
+}
+
+func (d *MigrateCriConfirmModule) Init() {
+	d.Name = "MigrateCriConfirmModule"
+	d.Desc = "Display Migrate Cri form"
+
+	display := &task.LocalTask{
+		Name:   "ConfirmForm",
+		Desc:   "Display confirmation form",
+		Action: &MigrateCri{},
+	}
+
+	d.Tasks = []task.Interface{
+		display,
+	}
+
+}

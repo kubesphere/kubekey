@@ -29,6 +29,7 @@ import (
 	"github.com/kubesphere/kubekey/cmd/ctl/cert"
 	"github.com/kubesphere/kubekey/cmd/ctl/completion"
 	"github.com/kubesphere/kubekey/cmd/ctl/create"
+	"github.com/kubesphere/kubekey/cmd/ctl/cri"
 	"github.com/kubesphere/kubekey/cmd/ctl/delete"
 	initOs "github.com/kubesphere/kubekey/cmd/ctl/init"
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
@@ -116,6 +117,8 @@ func NewKubeKeyCommand(o KubeKeyOptions) *cobra.Command {
 
 	cmds.AddCommand(completion.NewCmdCompletion())
 	cmds.AddCommand(version.NewCmdVersion())
+
+	cmds.AddCommand(cri.NewCmdCri())
 	return cmds
 }
 

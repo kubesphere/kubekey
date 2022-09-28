@@ -54,6 +54,8 @@ type Argument struct {
 	ImagesDir           string
 	Namespace           string
 	DeleteCRI           bool
+	Role                string
+	Type                string
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
