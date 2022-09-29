@@ -49,7 +49,7 @@ type Binary interface {
 	SetHost(host string)
 	SetPath(path string)
 	SetZone(zone string)
-	SetChecksum(checksum checksum.Interface)
+	AppendChecksum(c checksum.Interface)
 	Get(timeout time.Duration) error
 	CompareChecksum() error
 }

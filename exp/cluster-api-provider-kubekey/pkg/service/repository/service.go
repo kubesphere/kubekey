@@ -17,9 +17,12 @@
 package repository
 
 import (
+	"os"
+
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation"
+	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/directory"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/repository"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util/osrelease"
@@ -36,7 +39,8 @@ type Service struct {
 	mountPath string
 
 	repositoryFactory func(sshClient ssh.Interface, os *osrelease.Data) operation.Repository
-	isoFactory        func(sshClient ssh.Interface, arch, isoName string) (operation.Binary, error)
+	isoFactory        func(sshClient ssh.Interface, arch, isoName string) (*file.ISO, error)
+	directoryFactory  func(sshClient ssh.Interface, path string, mode os.FileMode) operation.Directory
 }
 
 // NewService returns a new service given the remote instance kubekey build-in repository client.
@@ -55,9 +59,16 @@ func (s *Service) getRepositoryService(os *osrelease.Data) operation.Repository 
 	return repository.NewService(s.sshClient, os)
 }
 
-func (s *Service) getISOService(sshClient ssh.Interface, os *osrelease.Data, arch string, isoName string) (operation.Binary, error) {
+func (s *Service) getISOService(os *osrelease.Data, arch string, isoName string) (*file.ISO, error) {
 	if s.isoFactory != nil {
-		return s.isoFactory(sshClient, arch, isoName)
+		return s.isoFactory(s.sshClient, arch, isoName)
 	}
-	return file.NewISO(sshClient, s.scope.RootFs(), os, arch, isoName)
+	return file.NewISO(s.sshClient, s.scope.RootFs(), os, arch, isoName)
+}
+
+func (s *Service) getDirectoryService(path string, mode os.FileMode) operation.Directory {
+	if s.directoryFactory != nil {
+		return s.directoryFactory(s.sshClient, path, mode)
+	}
+	return directory.NewService(s.sshClient, path, mode)
 }

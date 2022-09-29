@@ -43,13 +43,22 @@ func (f FileSystem) MkdirAll(path string) error {
 	return os.MkdirAll(path, os.ModePerm)
 }
 
-// MD5Sum returns the file MD5 sum for the given local path
+// MD5Sum returns the file MD5 sum for the given local path.
 func (f FileSystem) MD5Sum(localPath string) string {
 	md5, err := hash.FileMD5(localPath)
 	if err != nil {
 		return ""
 	}
 	return md5
+}
+
+// SHA256Sum returns the file SHA256 sum for the given local path.
+func (f FileSystem) SHA256Sum(localPath string) string {
+	sha256, err := hash.FileSHA256(localPath)
+	if err != nil {
+		return ""
+	}
+	return sha256
 }
 
 // MkLocalTmpDir creates a temporary directory and returns the path
@@ -59,6 +68,16 @@ func (f FileSystem) MkLocalTmpDir() (string, error) {
 		return "", err
 	}
 	return tempDir, os.MkdirAll(tempDir, os.ModePerm)
+}
+
+// MkLocalTmpFile creates a temporary file and returns the path.
+func (f FileSystem) MkLocalTmpFile(dir, pattern string) (string, error) {
+	file, err := ioutil.TempFile(dir, pattern)
+	if err != nil {
+		return "", err
+	}
+	_ = file.Close()
+	return file.Name(), nil
 }
 
 // RemoveAll the same as os.RemoveAll().

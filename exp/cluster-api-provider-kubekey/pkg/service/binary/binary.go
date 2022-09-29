@@ -33,19 +33,19 @@ var f embed.FS
 
 // DownloadAll downloads all binaries.
 func (s *Service) DownloadAll(timeout time.Duration) error {
-	kubeadm, err := s.getKubeadmService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
+	kubeadm, err := s.getKubeadmService(s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
-	kubelet, err := s.getKubeletService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
+	kubelet, err := s.getKubeletService(s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
-	kubecni, err := s.getKubecniService(s.SSHClient, file.KubecniDefaultVersion, s.instanceScope.Arch())
+	kubecni, err := s.getKubecniService(file.KubecniDefaultVersion, s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
-	kubectl, err := s.getKubectlService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
+	kubectl, err := s.getKubectlService(s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (s *Service) DownloadAll(timeout time.Duration) error {
 			"url", b.URL().String())
 
 		override := overrideMap[b.ID()+b.Version()+b.Arch()]
-		if err := util.DownloadAndCopy(b, zone, host, override.Path, override.URL, override.Checksum, timeout); err != nil {
+		if err := util.DownloadAndCopy(b, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
 			return err
 		}
 		if err := b.Chmod("+x"); err != nil {
@@ -77,7 +77,7 @@ func (s *Service) DownloadAll(timeout time.Duration) error {
 		}
 	}
 
-	if _, err := s.SSHClient.SudoCmdf("tar Cxzvf %s %s", filepath.Dir(kubecni.RemotePath()), kubecni.RemotePath()); err != nil {
+	if _, err := s.sshClient.SudoCmdf("tar Cxzvf %s %s", filepath.Dir(kubecni.RemotePath()), kubecni.RemotePath()); err != nil {
 		return err
 	}
 
@@ -86,12 +86,12 @@ func (s *Service) DownloadAll(timeout time.Duration) error {
 
 // ConfigureKubelet configures kubelet.
 func (s *Service) ConfigureKubelet() error {
-	kubelet, err := s.getKubeletService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
+	kubelet, err := s.getKubeletService(s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
 
-	if _, err := s.SSHClient.SudoCmdf("ln -snf %s /usr/bin/kubelet", kubelet.RemotePath()); err != nil {
+	if _, err := s.sshClient.SudoCmdf("ln -snf %s /usr/bin/kubelet", kubelet.RemotePath()); err != nil {
 		return err
 	}
 
@@ -137,7 +137,7 @@ func (s *Service) ConfigureKubelet() error {
 		return err
 	}
 
-	if _, err := s.SSHClient.SudoCmdf("systemctl disable kubelet && systemctl enable kubelet"); err != nil {
+	if _, err := s.sshClient.SudoCmdf("systemctl disable kubelet && systemctl enable kubelet"); err != nil {
 		return err
 	}
 	return nil
@@ -145,12 +145,12 @@ func (s *Service) ConfigureKubelet() error {
 
 // ConfigureKubeadm configures kubeadm.
 func (s *Service) ConfigureKubeadm() error {
-	kubeadm, err := s.getKubeadmService(s.SSHClient, s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
+	kubeadm, err := s.getKubeadmService(s.instanceScope.KubernetesVersion(), s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
 
-	if _, err := s.SSHClient.SudoCmdf("ln -snf %s /usr/bin/kubeadm", kubeadm.RemotePath()); err != nil {
+	if _, err := s.sshClient.SudoCmdf("ln -snf %s /usr/bin/kubeadm", kubeadm.RemotePath()); err != nil {
 		return err
 	}
 	return nil

@@ -22,7 +22,6 @@ import (
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 // runc info
@@ -54,14 +53,12 @@ func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch str
 	}
 
 	u := parseURL(DefaultDownloadHost, fmt.Sprintf(RuncURLPathTmpl, version, arch))
-	internal := checksum.NewChecksum(RuncID, version, arch)
 	binary := NewBinary(BinaryParams{
-		File:     file,
-		ID:       RuncID,
-		Version:  version,
-		Arch:     arch,
-		URL:      u,
-		Checksum: internal,
+		File:    file,
+		ID:      RuncID,
+		Version: version,
+		Arch:    arch,
+		URL:     u,
 	})
 
 	return &Runc{binary}, nil

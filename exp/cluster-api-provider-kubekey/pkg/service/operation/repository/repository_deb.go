@@ -38,7 +38,7 @@ func NewDeb(sshClient ssh.Interface) *Debian {
 // Add adds a local repository using the iso file.
 func (d *Debian) Add(path string) error {
 	if _, err := d.SSHClient.SudoCmd(
-		fmt.Sprintf("echo 'deb [trusted=yes]  file://%s   /' "+
+		fmt.Sprintf("echo 'deb [trusted=yes]  file://%s   ./' "+
 			"| sudo tee /etc/apt/sources.list.d/kubekey.list > /dev/null", path)); err != nil {
 		return err
 	}

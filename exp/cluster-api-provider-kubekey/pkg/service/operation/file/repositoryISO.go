@@ -38,6 +38,7 @@ const (
 // ISO is a Binary for repository ISO file.
 type ISO struct {
 	*Binary
+	HTTPChecksum *checksum.HTTPChecksum
 }
 
 // NewISO returns a new repository ISO.
@@ -73,17 +74,19 @@ func NewISO(sshClient ssh.Interface, rootFs rootfs.Interface, os *osrelease.Data
 	}
 
 	u := parseURL(DefaultDownloadHost, urlPath)
-	internal := checksum.NewChecksum(os.ID, os.VersionID, arch)
 	binary := NewBinary(BinaryParams{
-		File:     file,
-		ID:       os.ID,
-		Version:  os.VersionID,
-		Arch:     arch,
-		URL:      u,
-		Checksum: internal,
+		File:    file,
+		ID:      os.ID,
+		Version: os.VersionID,
+		Arch:    arch,
+		URL:     u,
 	})
 
-	return &ISO{binary}, nil
+	checksumURL := parseURL(DefaultDownloadHost, fmt.Sprintf(ISOURLPathTmpl, generateCheckFileName(binary.Name())))
+	httpChecksum := checksum.NewHTTPChecksum(checksumURL, binary.Name(), binary.file.rootFs)
+	binary.AppendChecksum(httpChecksum)
+
+	return &ISO{binary, httpChecksum}, nil
 }
 
 func generateISOName(os *osrelease.Data, arch string) string {
@@ -95,6 +98,19 @@ func generateISOName(os *osrelease.Data, arch string) string {
 		fileName = fmt.Sprintf(ISOName, strings.Join([]string{os.ID + os.VersionID, "debs", arch}, "-"))
 	case osrelease.CentosID:
 		fileName = fmt.Sprintf(ISOName, strings.Join([]string{os.ID + os.VersionID, "rpms", arch}, "-"))
+	default:
+		fileName = fmt.Sprintf(ISOName, strings.Join([]string{os.ID, os.VersionID, arch}, "-"))
 	}
 	return fileName
+}
+
+func generateCheckFileName(isoName string) string {
+	return isoName[0:strings.LastIndex(isoName, "-")] + ".iso.sha256sum.txt"
+}
+
+// SetZone override Binary's SetZone method.
+func (i *ISO) SetZone(zone string) {
+	if strings.EqualFold(zone, ZONE) {
+		return
+	}
 }

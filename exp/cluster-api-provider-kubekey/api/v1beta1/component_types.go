@@ -51,5 +51,16 @@ type Override struct {
 
 	// Checksum is the SHA256 checksum of the binary.
 	// +optional
-	Checksum string `json:"checksum,omitempty"`
+	Checksum Checksum `json:"checksum,omitempty"`
+}
+
+// Checksum is the SHA256 checksum of the binary.
+type Checksum struct {
+	// Value is the checksum string value.
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// Path defines the URL path, which is the path of the checksum file.
+	// +optional
+	Path string `json:"path,omitempty"`
 }

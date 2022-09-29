@@ -23,7 +23,6 @@ import (
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 )
 
 // Crictl info
@@ -55,14 +54,12 @@ func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch s
 	}
 
 	u := parseURL(DefaultDownloadHost, fmt.Sprintf(CrictlURLPathTmpl, version, version, arch))
-	internal := checksum.NewChecksum(CrictlID, version, arch)
 	binary := NewBinary(BinaryParams{
-		File:     file,
-		ID:       CrictlID,
-		Version:  version,
-		Arch:     arch,
-		URL:      u,
-		Checksum: internal,
+		File:    file,
+		ID:      CrictlID,
+		Version: version,
+		Arch:    arch,
+		URL:     u,
 	})
 
 	return &Crictl{binary}, nil

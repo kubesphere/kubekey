@@ -23,7 +23,6 @@ import (
 
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/rootfs"
-	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/service/operation/file/checksum"
 	"github.com/kubesphere/kubekey/exp/cluster-api-provider-kubekey/pkg/util"
 )
 
@@ -59,14 +58,12 @@ func NewDocker(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch s
 	}
 
 	u := parseURL(DockerURL, fmt.Sprintf(DockerURLPathTmpl, util.ArchAlias(arch), version))
-	internal := checksum.NewChecksum(DockerID, version, arch)
 	binary := NewBinary(BinaryParams{
-		File:     file,
-		ID:       DockerID,
-		Version:  version,
-		Arch:     arch,
-		URL:      u,
-		Checksum: internal,
+		File:    file,
+		ID:      DockerID,
+		Version: version,
+		Arch:    arch,
+		URL:     u,
 	})
 
 	return &Docker{binary}, nil

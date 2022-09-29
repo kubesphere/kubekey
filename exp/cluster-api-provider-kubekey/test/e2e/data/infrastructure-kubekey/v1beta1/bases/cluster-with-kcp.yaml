@@ -50,7 +50,8 @@ spec:
       roles:
         - control-plane
       repository:
-        iso: "none"
+        iso: "auto"
+        update: true
 ---
 # KubeadmControlPlane referenced by the Cluster object with
 # - the label kcp-adoption.step2, because it should be created in the second step of the kcp-adoption test.

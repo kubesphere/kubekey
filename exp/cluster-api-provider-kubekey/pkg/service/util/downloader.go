@@ -29,7 +29,7 @@ func DownloadAndCopy(b operation.Binary, zone, host, path, url, checksumStr stri
 		return nil
 	}
 
-	b.SetChecksum(checksum.NewStringChecksum(checksumStr))
+	b.AppendChecksum(checksum.NewStringChecksum(checksumStr))
 	if !(b.LocalExist() && b.CompareChecksum() == nil) {
 		// Only the host is an empty string, we can set up the zone.
 		// Because the URL path which in the QingStor is not the same as the default.

@@ -28,8 +28,12 @@ type Interface interface {
 	MkdirAll(path string) error
 	// MD5Sum returns the file MD5 sum for the given local path.
 	MD5Sum(localPath string) string
+	// SHA256Sum returns the file SHA256 sum for the given local path.
+	SHA256Sum(localPath string) string
 	// MkLocalTmpDir creates a temporary directory and returns the path.
 	MkLocalTmpDir() (string, error)
+	// MkLocalTmpFile creates a temporary file and returns the path.
+	MkLocalTmpFile(dir, pattern string) (string, error)
 	// RemoveAll the same as os.RemoveAll().
 	RemoveAll(path ...string) error
 }
