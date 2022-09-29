@@ -90,6 +90,7 @@ const (
 	DefaultDNSAddress           = "114.114.114.114"
 	DefaultDpdkTunnelIface      = "br-phy"
 	DefaultCNIConfigPriority    = "01"
+	DefaultOpenEBSBasePath      = "/var/openebs"
 
 	Docker     = "docker"
 	Conatinerd = "containerd"
@@ -110,6 +111,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec(incluster bool) (*ClusterSpec, map
 	roleGroups := clusterCfg.GroupHosts()
 	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, roleGroups[Master], incluster)
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
+	clusterCfg.Storage = SetDefaultStorageCfg(cfg)
 	clusterCfg.System = cfg.System
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
 	clusterCfg.Registry = cfg.Registry
@@ -282,6 +284,14 @@ func SetDefaultNetworkCfg(cfg *ClusterSpec) NetworkConfig {
 	defaultNetworkCfg := cfg.Network
 
 	return defaultNetworkCfg
+}
+
+func SetDefaultStorageCfg(cfg *ClusterSpec) StorageConfig {
+	if cfg.Storage.OpenEBS.BasePath == "" {
+		cfg.Storage.OpenEBS.BasePath = DefaultOpenEBSBasePath
+	}
+	defaultStorageCfg := cfg.Storage
+	return defaultStorageCfg
 }
 
 func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {

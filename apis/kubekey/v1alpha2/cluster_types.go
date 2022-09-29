@@ -47,6 +47,7 @@ type ClusterSpec struct {
 	Etcd                 EtcdCluster          `yaml:"etcd" json:"etcd,omitempty"`
 	Kubernetes           Kubernetes           `yaml:"kubernetes" json:"kubernetes,omitempty"`
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
+	Storage              StorageConfig        `yaml:"storage" json:"storage,omitempty"`
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
 	Addons               []Addon              `yaml:"addons" json:"addons,omitempty"`
 	KubeSphere           KubeSphere           `json:"kubesphere,omitempty"`

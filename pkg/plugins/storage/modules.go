@@ -17,6 +17,8 @@
 package storage
 
 import (
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
@@ -24,7 +26,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/images"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage/templates"
-	"path/filepath"
 )
 
 type DeployLocalVolumeModule struct {
@@ -54,6 +55,7 @@ func (d *DeployLocalVolumeModule) Init() {
 			Data: util.Data{
 				"ProvisionerLocalPVImage": images.GetImage(d.Runtime, d.KubeConf, "provisioner-localpv").ImageName(),
 				"LinuxUtilsImage":         images.GetImage(d.Runtime, d.KubeConf, "linux-utils").ImageName(),
+				"BasePath":                filepath.Join(d.KubeConf.Cluster.Storage.OpenEBS.BasePath, "local"),
 			},
 		},
 		Parallel: true,

@@ -64,6 +64,9 @@ spec:
     ## multus support. https://github.com/k8snetworkplumbingwg/multus-cni
     multusCNI:
       enabled: false
+  storage:
+    openebs:
+      basePath: /var/openebs
   registry:
     privateRegistry: ""
     namespaceOverride: ""

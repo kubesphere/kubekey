@@ -17,8 +17,9 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 // OpenEBS defines the template of openebs' manifests.
@@ -37,7 +38,7 @@ metadata:
       - name: StorageType
         value: "hostpath"
       - name: BasePath
-        value: "/var/openebs/local/"
+        value: "{{ .BasePath }}"
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
