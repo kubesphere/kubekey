@@ -56,12 +56,19 @@ type Argument struct {
 	DeleteCRI           bool
 	Role                string
 	Type                string
+
+	// Extra args
+	ExtraAddon string // addon yaml config
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 	loader := NewLoader(flag, arg)
 	cluster, err := loader.Load()
 	if err != nil {
+		return nil, err
+	}
+
+	if err = loadExtraAddons(cluster, arg.ExtraAddon); err != nil {
 		return nil, err
 	}
 

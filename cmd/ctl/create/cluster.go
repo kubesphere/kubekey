@@ -46,6 +46,8 @@ type CreateClusterOptions struct {
 	InstallPackages     bool
 
 	localStorageChanged bool
+
+	AddonCfgFile string
 }
 
 func NewCreateClusterOptions() *CreateClusterOptions {
@@ -145,6 +147,9 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
+
+	cmd.Flags().StringVarP(&o.AddonCfgFile, "with-addon", "", "", "Path to a extra addons configuration file")
+
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

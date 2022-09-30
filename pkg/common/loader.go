@@ -305,3 +305,40 @@ func normalizedBuildVersion(version string) string {
 	}
 	return ""
 }
+
+// load addon from argument
+func loadExtraAddons(cluster *kubekeyapiv1alpha2.Cluster, addonFile string) error {
+	fp, err := filepath.Abs(addonFile)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Failed to load addon in file: %s", addonFile))
+	}
+
+	file, err := os.Open(fp)
+	if err != nil {
+		return errors.Wrap(err, "Unable to open the given addon config file")
+	}
+	defer file.Close()
+	b1 := bufio.NewReader(file)
+
+	content := make([]byte, b1.Size())
+	_, err = b1.Read(content)
+	if err != nil {
+		return errors.Wrap(err, "Unable to unmarshal the given cluster configuration file")
+	}
+
+	if len(content) == 0 {
+		return nil
+	}
+
+	result := make(map[string][]kubekeyapiv1alpha2.Addon)
+	err = yaml.Unmarshal(content, &result)
+	if err != nil {
+		return errors.Wrap(err, "Unable to read the given cluster configuration file")
+	}
+
+	if len(result["Addons"]) > 0 {
+		cluster.Spec.Addons = append(cluster.Spec.Addons, result["Addons"]...)
+	}
+
+	return nil
+}
