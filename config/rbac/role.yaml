@@ -1,4 +1,3 @@
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -7,196 +6,119 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - admissionregistration.k8s.io
+  - ""
   resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - apiextensions.k8s.io
-  resources:
-  - customresourcedefinitions
-  verbs:
-  - '*'
-- apiGroups:
-  - apiregistration.k8s.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - apps
-  resources:
-  - deployments
+  - events
   verbs:
   - create
-  - delete
   - get
   - list
   - patch
   - update
   - watch
-- apiGroups:
-  - auditing.kubesphere.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - autoscaling
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - batch
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - certificates.k8s.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - cluster.kubesphere.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - config.istio.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
 - apiGroups:
   - ""
   resources:
-  - '*'
+  - namespaces
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
-  - core.kubefed.io
+  - ""
   resources:
-  - '*'
+  - secrets
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
 - apiGroups:
-  - devops.kubesphere.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - events.kubesphere.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - extensions
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - iam.kubesphere.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - installer.kubesphere.io
-  resources:
-  - clusterconfigurations
-  verbs:
-  - '*'
-- apiGroups:
-  - jaegertracing.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - kubekey.kubesphere.io
+  - cluster.x-k8s.io
   resources:
   - clusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kubekey.kubesphere.io
-  resources:
   - clusters/status
   verbs:
   - get
+  - list
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machines
+  - machines/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - kkclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - kkclusters/status
+  verbs:
+  - get
   - patch
   - update
 - apiGroups:
-  - logging.kubesphere.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - '*'
+  - kkinstances
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
-  - monitoring.coreos.com
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - '*'
+  - kkinstances/finalizers
   verbs:
-  - '*'
+  - update
 - apiGroups:
-  - networking.istio.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - '*'
+  - kkinstances/status
   verbs:
-  - '*'
+  - get
+  - patch
+  - update
 - apiGroups:
-  - notification.kubesphere.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - '*'
+  - kkmachines
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
-  - policy
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - '*'
+  - kkmachines/finalizers
   verbs:
-  - '*'
+  - update
 - apiGroups:
-  - rbac.authorization.k8s.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - '*'
+  - kkmachines/status
   verbs:
-  - '*'
-- apiGroups:
-  - storage.k8s.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - storage.kubesphere.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - tenant.kubesphere.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
+  - get
+  - patch
+  - update

@@ -1,262 +1,464 @@
-# VERSION defines the project version for the bundle.
-# Update this value when you upgrade the version of your project.
-# To re-generate a bundle for another specific version without changing the standard setup, you can:
-# - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
-# - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 0.0.1
+# Ensure Make is run with bash shell as some syntax below is bash-specific
+SHELL:=/usr/bin/env bash
 
-# CHANNELS define the bundle channels used in the bundle.
-# Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
-# To re-generate a bundle for other specific channels without changing the standard setup, you can:
-# - use the CHANNELS as arg of the bundle target (e.g make bundle CHANNELS=candidate,fast,stable)
-# - use environment variables to overwrite this value (e.g export CHANNELS="candidate,fast,stable")
-ifneq ($(origin CHANNELS), undefined)
-BUNDLE_CHANNELS := --channels=$(CHANNELS)
-endif
+.DEFAULT_GOAL:=help
 
-# DEFAULT_CHANNEL defines the default channel used in the bundle.
-# Add a new line here if you would like to change its default config. (E.g DEFAULT_CHANNEL = "stable")
-# To re-generate a bundle for any other default channel without changing the default setup, you can:
-# - use the DEFAULT_CHANNEL as arg of the bundle target (e.g make bundle DEFAULT_CHANNEL=stable)
-# - use environment variables to overwrite this value (e.g export DEFAULT_CHANNEL="stable")
-ifneq ($(origin DEFAULT_CHANNEL), undefined)
-BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
-endif
-BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
-
-# IMAGE_TAG_BASE defines the docker.io namespace and part of the image name for remote images.
-# This variable is used to construct full image tags for bundle and catalog images.
 #
-# For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# kubesphere.io/kubekey-bundle:$VERSION and kubesphere.io/kubekey-catalog:$VERSION.
-IMAGE_TAG_BASE ?= kubesphere.io/kubekey
+# Go.
+#
+GO_VERSION ?= 1.18.3
+GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
-# BUNDLE_IMG defines the image:tag used for the bundle.
-# You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
-BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
+# Use GOPROXY environment variable if set
+GOPROXY := $(shell go env GOPROXY)
+ifeq ($(GOPROXY),)
+GOPROXY := https://goproxy.cn,direct
+endif
+export GOPROXY
 
-# Image URL to use all building/pushing image targets
-IMG ?= controller:latest
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.21
+# Active module mode, as we use go modules to manage dependencies
+export GO111MODULE=on
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
+# This option is for running docker manifest command
+export DOCKER_CLI_EXPERIMENTAL := enabled
+
+#
+# Directories.
+#
+# Full directory of where the Makefile resides
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+EXP_DIR := exp
+BIN_DIR := bin
+TEST_DIR := test
+TOOLS_DIR := hack/tools
+TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
+E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
+GO_INSTALL := ./scripts/go_install.sh
+
+export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+
+#
+# Binaries.
+#
+# Note: Need to use abspath so we can invoke these from subdirectories
+KUSTOMIZE_VER := v4.5.2
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+
+SETUP_ENVTEST_VER := v0.0.0-20211110210527-619e6b92dab9
+SETUP_ENVTEST_BIN := setup-envtest
+SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
+SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
+
+CONTROLLER_GEN_VER := v0.9.1
+CONTROLLER_GEN_BIN := controller-gen
+CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
+CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
+
+GOTESTSUM_VER := v1.6.4
+GOTESTSUM_BIN := gotestsum
+GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
+GOTESTSUM_PKG := gotest.tools/gotestsum
+
+HADOLINT_VER := v2.10.0
+HADOLINT_FAILURE_THRESHOLD = warning
+
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN))
+
+# Define Docker related variables. Releases should modify and double check these vars.
+REGISTRY ?= docker.io/kubespheredev
+PROD_REGISTRY ?= docker.io/kubesphere
+
+# capkk
+CAPKK_IMAGE_NAME ?= capkk-manager
+CAPKK_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPKK_IMAGE_NAME)
+
+# It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
+
+TAG ?= dev
+ARCH ?= $(shell go env GOARCH)
+ALL_ARCH = amd64 arm arm64 ppc64le s390x
+
+# Allow overriding the imagePullPolicy
+PULL_POLICY ?= Always
+
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
 endif
 
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
-SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
+# Set build time variables including version details
+LDFLAGS := $(shell hack/version.sh)
 
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
+# Set kk build tags
+BUILDTAGS = exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp
 
-BUILDFLAGS = -tags='containers_image_openpgp'
+.PHONY: all
+all: test managers
 
-all: build
-
-##@ General
-
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
-
+.PHONY: help
 help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-45s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##@ Development
+## --------------------------------------
+## Generate / Manifests
+## --------------------------------------
 
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+##@ generate:
 
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+ALL_GENERATE_MODULES = capkk
 
-fmt: ## Run go fmt against code.
-	go fmt ./...
+.PHONY: generate
+generate: ## Run all generate-manifests-*, generate-go-deepcopy-* targets
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy
 
-vet: ## Run go vet against code.
-	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go vet $(BUILDFLAGS) ./...
+.PHONY: generate-manifests
+generate-manifests: ## Run all generate-manifest-* targets
+	$(MAKE) $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES))
 
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+.PHONY: generate-manifests-capkk
+generate-manifests-capkk: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
+	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases"
+	$(CONTROLLER_GEN) \
+		paths=./api/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=./config/crd/bases \
+		output:webhook:dir=./config/webhook \
+		webhook
 
-##@ Build
+.PHONY: generate-go-deepcopy
+generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
+	$(MAKE) $(addprefix generate-go-deepcopy-,$(ALL_GENERATE_MODULES))
 
-build: generate fmt vet ## Build manager binary.
-	go build $(BUILDFLAGS) -o bin/manager main.go
+.PHONY: generate-go-deepcopy-capkk
+generate-go-deepcopy-capkk: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api"
+	$(CONTROLLER_GEN) \
+		object:headerFile=./hack/boilerplate.go.txt \
+		paths=./api/... \
 
-run: manifests generate fmt vet ## Run a controller from your host.
-	go run $(BUILDFLAGS) ./main.go
+.PHONY: generate-modules
+generate-modules: ## Run go mod tidy to ensure modules are up to date
+	go mod tidy
 
-docker-build: test ## Build docker image with the manager.
-	docker build -t ${IMG} .
+## --------------------------------------
+## Lint / Verify
+## --------------------------------------
 
-docker-push: ## Push docker image with the manager.
-	docker push ${IMG}
+##@ lint and verify:
 
-##@ Deployment
+.PHONY: lint
+lint: $(GOLANGCI_LINT) ## Lint the codebase
+	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+.PHONY: lint-dockerfiles
+lint-dockerfiles:
+	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+
+.PHONY: verify
+verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
+
+.PHONY: verify-modules
+verify-modules: generate-modules  ## Verify go modules are up to date
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
+		git diff; \
+		echo "go module files are out of date"; exit 1; \
+	fi
+	@if (find . -name 'go.mod' | xargs -n1 grep -q -i 'k8s.io/client-go.*+incompatible'); then \
+		find . -name "go.mod" -exec grep -i 'k8s.io/client-go.*+incompatible' {} \; -print; \
+		echo "go module contains an incompatible client-go version"; exit 1; \
+	fi
+
+.PHONY: verify-gen
+verify-gen: generate  ## Verify go generated files are up to date
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "generated files are out of date, run make generate"; exit 1; \
+	fi
+
+## --------------------------------------
+## Binaries
+## --------------------------------------
+
+##@ build:
+
+.PHONY: kk
+kk:
+	CGO_ENABLED=0 go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kk github.com/kubesphere/kubekey/cmd/kk;
+
+ALL_MANAGERS = capkk
+
+.PHONY: managers
+managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
+
+.PHONY: manager-capkk
+manager-capkk: ## Build the capkk manager binary into the ./bin folder
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager github.com/kubesphere/kubekey
+
+.PHONY: docker-pull-prerequisites
+docker-pull-prerequisites:
+	docker pull docker.io/docker/dockerfile:1.4
+	docker pull $(GO_CONTAINER_IMAGE)
+
+.PHONY: docker-build-all
+docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images for all architectures
+
+docker-build-%:
+	$(MAKE) ARCH=$* docker-build
+
+ALL_DOCKER_BUILD = capkk
+
+.PHONY: docker-build-capkk
+docker-build-capkk: ## Build the docker image for capkk
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG)
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-build-e2e
+docker-build-e2e: ## Build the docker image for capkk
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t "$(CAPKK_CONTROLLER_IMG):e2e"
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG) MANIFEST_TAG="e2e" TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+
+## --------------------------------------
+## Deployment
+## --------------------------------------
+
+##@ deployment
+
+ifndef ignore-not-found
+  ignore-not-found = false
+endif
+
+.PHONY: install
+install: generate $(KUSTOMIZE) ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl delete -f -
+.PHONY: uninstall
+uninstall: generate $(KUSTOMIZE) ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+.PHONY: deploy
+deploy: generate $(KUSTOMIZE) ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default | kubectl delete -f -
+.PHONY: undeploy
+undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
+## --------------------------------------
+## Testing
+## --------------------------------------
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.1)
+##@ test:
 
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+ARTIFACTS ?= ${ROOT_DIR}/_artifacts
 
-ENVTEST = $(shell pwd)/bin/setup-envtest
-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
-
-.PHONY: bundle
-bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
-	operator-sdk bundle validate ./bundle
-
-.PHONY: bundle-build
-bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
-
-.PHONY: bundle-push
-bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
-
-.PHONY: opm
-OPM = ./bin/opm
-opm: ## Download opm locally if necessary.
-ifeq (,$(wildcard $(OPM)))
-ifeq (,$(shell which opm 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPM)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.15.1/$${OS}-$${ARCH}-opm ;\
-	chmod +x $(OPM) ;\
-	}
+ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 else
-OPM = $(shell which opm)
-endif
-endif
-
-# A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
-# These images MUST exist in a registry and be pull-able.
-BUNDLE_IMGS ?= $(BUNDLE_IMG)
-
-# The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
-
-# Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
-ifneq ($(origin CATALOG_BASE_IMG), undefined)
-FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 endif
 
-# Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
-# This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
-# https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
-.PHONY: catalog-build
-catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+.PHONY: test
+test: $(SETUP_ENVTEST) ## Run unit and integration tests
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
-# Push the catalog image.
-.PHONY: catalog-push
-catalog-push: ## Push a catalog image.
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+.PHONY: test-verbose
+test-verbose: ## Run unit and integration tests with verbose flag
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
 
-# Build kk binary
-SHELL      = /usr/bin/env bash
+.PHONY: test-junit
+test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report
+	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
+	exit $$(cat $(ARTIFACTS)/junit.exitcode)
 
-GIT_COMMIT = $(shell git rev-parse HEAD)
-GIT_SHA    = $(shell git rev-parse --short HEAD)
-GIT_TAG    = $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
-GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
+.PHONY: test-cover
+test-cover: ## Run unit and integration tests and generate a coverage report
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=out/coverage.out"
+	go tool cover -func=out/coverage.out -o out/coverage.txt
+	go tool cover -html=out/coverage.out -o out/coverage.html
 
-VERSION_METADATA = unreleased
-VERSION = latest
-# Clear the "unreleased" string in BuildMetadata
-ifneq ($(GIT_TAG),)
-	VERSION_METADATA =
-	VERSION = ${GIT_TAG}
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests
+	$(MAKE) -C $(TEST_DIR)/e2e run
+
+## --------------------------------------
+## Release
+## --------------------------------------
+
+##@ release:
+
+## latest git tag for the commit, e.g., v0.3.10
+RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+ifneq (,$(findstring -,$(RELEASE_TAG)))
+    PRE_RELEASE=true
 endif
+# the previous release tag, e.g., v0.3.9, excluding pre-release tags
+PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
+RELEASE_DIR := out
 
-LDFLAGS += -X github.com/kubesphere/kubekey/version.version=${VERSION}
-LDFLAGS += -X github.com/kubesphere/kubekey/version.metadata=${VERSION_METADATA}
-LDFLAGS += -X github.com/kubesphere/kubekey/version.gitCommit=${GIT_COMMIT}
-LDFLAGS += -X github.com/kubesphere/kubekey/version.gitTreeState=${GIT_DIRTY}
+$(RELEASE_DIR):
+	mkdir -p $(RELEASE_DIR)/
 
-# see kk
-binary:
-	docker run --rm \
-		-v $(shell pwd):/usr/src/myapp \
-		-e GOOS=linux \
-		-e GOARCH=amd64 \
+.PHONY: release
+release: clean-release ## Build and push container images using the latest git tag for the commit
+	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
+	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
+	git checkout "${RELEASE_TAG}"
+	## Build binaries first.
+	GIT_VERSION=$(RELEASE_TAG) $(MAKE) release-binaries
+	# Set the manifest image to the production bucket.
+	$(MAKE) manifest-modification REGISTRY=$(PROD_REGISTRY)
+	## Build the manifests
+	$(MAKE) release-manifests
+	## Build the templates
+	$(MAKE) release-templates
+	## Clean the git artifacts modified in the release process
+	$(MAKE) clean-release-git
+
+release-binaries: ## Build the binaries to publish with a release
+	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=amd64 $(MAKE) release-archive
+	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=arm64 $(MAKE) release-archive
+	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=amd64 $(MAKE) release-archive
+	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=arm64 $(MAKE) release-archive
+
+release-binary: $(RELEASE_DIR)
+	docker run \
+		--rm \
 		-e CGO_ENABLED=0 \
-		-e GO111MODULE=on \
-		-w /usr/src/myapp golang:1.18 \
-		go build $(BUILDFLAGS) -ldflags '$(LDFLAGS)' -v -o output/linux/amd64/kk ./cmd/main.go  # linux
-	sha256sum output/linux/amd64/kk || shasum -a 256 output/linux/amd64/kk
+		-e GOOS=$(GOOS) \
+		-e GOARCH=$(GOARCH) \
+		-e GOPROXY=$(GOPROXY) \
+		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
+		-w /workspace \
+		golang:$(GO_VERSION) \
+		go build -a -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS) -extldflags '-static'" \
+		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(RELEASE_BINARY)
 
-	docker run --rm \
-		-v $(shell pwd):/usr/src/myapp \
-		-e GOOS=linux \
-		-e GOARCH=arm64 \
-		-e CGO_ENABLED=0 \
-		-e GO111MODULE=on \
-		-w /usr/src/myapp golang:1.18 \
-		go build $(BUILDFLAGS) -ldflags '$(LDFLAGS)' -v -o output/linux/arm64/kk ./cmd/main.go  # linux
-	sha256sum output/linux/arm64/kk || shasum -a 256 output/linux/arm64/kk
+release-archive: $(RELEASE_DIR)
+	tar -czf $(RELEASE_DIR)/kubekey-$(RELEASE_TAG)-$(GOOS)-$(GOARCH).tar.gz -C $(RELEASE_DIR)/ $(notdir $(RELEASE_BINARY))
+	rm -rf  $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))
 
-# build the binary file of kk
-kk: fmt vet
-	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 GO111MODULE=on go build $(BUILDFLAGS) -ldflags '$(LDFLAGS)' \
-	-o bin/$(GOOS)/$(GOARCH)/kk ./cmd/main.go;
+.PHONY: manifest-modification
+manifest-modification: # Set the manifest images to the staging/production bucket.
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(REGISTRY)/$(CAPKK_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
-go-releaser-test:
-	goreleaser release --rm-dist --skip-publish --snapshot
+.PHONY: release-manifests
+release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the manifests to publish with a release
+	# Build capkk-components.
+	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+
+	# Add metadata to the release artifacts
+	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+
+.PHONY: release-templates
+release-templates: $(RELEASE_DIR) ## Generate release templates
+	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
+
+## --------------------------------------
+## Docker
+## --------------------------------------
+
+.PHONY: docker-push
+docker-push: ## Push the docker images
+	docker push $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: set-manifest-pull-policy
+set-manifest-pull-policy:
+	$(info Updating kustomize pull policy file for manager resources)
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(TARGET_RESOURCE)
+
+.PHONY: set-manifest-image
+set-manifest-image:
+	$(info Updating kustomize image patch file for manager resource)
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' $(TARGET_RESOURCE)
+
+## --------------------------------------
+## Cleanup / Verification
+## --------------------------------------
+
+##@ clean:
+
+.PHONY: clean
+clean: ## Remove all generated files
+	$(MAKE) clean-bin
+
+.PHONY: clean-bin
+clean-bin: ## Remove all generated binaries
+	rm -rf $(BIN_DIR)
+	rm -rf $(TOOLS_BIN_DIR)
+
+.PHONY: clean-release
+clean-release: ## Remove the release folder
+	rm -rf $(RELEASE_DIR)
+
+.PHONY: clean-release-git
+clean-release-git: ## Restores the git files usually modified during a release
+	git restore ./*manager_image_patch.yaml ./*manager_pull_policy.yaml
+
+.PHONY: clean-generated-yaml
+clean-generated-yaml: ## Remove files generated by conversion-gen from the mentioned dirs. Example SRC_DIRS="./api/v1beta1"
+	(IFS=','; for i in $(SRC_DIRS); do find $$i -type f -name '*.yaml' -exec rm -f {} \;; done)
+
+.PHONY: clean-generated-deepcopy
+clean-generated-deepcopy: ## Remove files generated by conversion-gen from the mentioned dirs. Example SRC_DIRS="./api/v1beta1"
+	(IFS=','; for i in $(SRC_DIRS); do find $$i -type f -name 'zz_generated.deepcopy*' -exec rm -f {} \;; done)
+
+## --------------------------------------
+## Hack / Tools
+## --------------------------------------
+
+##@ hack/tools:
+
+.PHONY: $(CONTROLLER_GEN_BIN)
+$(CONTROLLER_GEN_BIN): $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
+
+.PHONY: $(GOTESTSUM_BIN)
+$(GOTESTSUM_BIN): $(GOTESTSUM) ## Build a local copy of gotestsum.
+
+.PHONY: $(KUSTOMIZE_BIN)
+$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
+
+.PHONY: $(SETUP_ENVTEST_BIN)
+$(SETUP_ENVTEST_BIN): $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
+
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
+
+$(CONTROLLER_GEN): # Build controller-gen from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+$(GOTESTSUM): # Build gotestsum from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
+
+$(KUSTOMIZE): # Build kustomize from tools folder.
+	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+
+$(SETUP_ENVTEST): # Build setup-envtest from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
+
+$(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golangci-lint using hack script into tools folder.
+	hack/ensure-golangci-lint.sh \
+		-b $(TOOLS_BIN_DIR) \
+		$(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version | sed 's/.*version: //')
 
 # build the artifact of repository iso
 ISO_ARCH ?= amd64
@@ -274,3 +476,6 @@ $(ISO_BUILD_NAMES):
 		-o type=local,dest=$(ISO_OUTPUT_DIR) \
 		-f $(ISO_BUILD_WORKDIR)/dockerfile.$(subst build-iso-,,$@) \
 		$(ISO_BUILD_WORKDIR)
+
+go-releaser-test:
+	goreleaser release --rm-dist --skip-publish --snapshot
