@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,56 +14,52 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package version implements version handling code.
 package version
 
 import (
+	"fmt"
 	"runtime"
 )
 
 var (
-	// Update this whenever making a new release.
-	// The version is of the format Major.Minor.Patch[-Prerelease][+BuildMetadata]
-	//
-	// Increment major number for new feature additions and behavioral changes.
-	// Increment minor number for bug fixes and performance enhancements.
-	version = "latest"
-
-	// metadata is extra build time data
-	metadata = ""
-	// gitCommit is the git sha1
-	gitCommit = ""
-	// gitTreeState is the state of the git tree
-	gitTreeState = ""
+	gitMajor     string // major version, always numeric
+	gitMinor     string // minor version, numeric possibly followed by "+"
+	gitVersion   string // semantic version, derived by build scripts
+	gitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
+	gitTreeState string // state of git tree, either "clean" or "dirty"
+	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 )
 
-// BuildInfo describes the compile time information.
-type BuildInfo struct {
-	// Version is the current semver.
-	Version string `json:"version,omitempty"`
-	// GitCommit is the git sha1.
-	GitCommit string `json:"git_commit,omitempty"`
-	// GitTreeState is the state of the git tree.
-	GitTreeState string `json:"git_tree_state,omitempty"`
-	// GoVersion is the version of the Go compiler used.
-	GoVersion string `json:"go_version,omitempty"`
+// Info exposes information about the version used for the current running code.
+type Info struct {
+	Major        string `json:"major,omitempty"`
+	Minor        string `json:"minor,omitempty"`
+	GitVersion   string `json:"gitVersion,omitempty"`
+	GitCommit    string `json:"gitCommit,omitempty"`
+	GitTreeState string `json:"gitTreeState,omitempty"`
+	BuildDate    string `json:"buildDate,omitempty"`
+	GoVersion    string `json:"goVersion,omitempty"`
+	Compiler     string `json:"compiler,omitempty"`
+	Platform     string `json:"platform,omitempty"`
 }
 
-// GetVersion returns the semver string of the version
-func GetVersion() string {
-	if metadata == "" {
-		return version
-	}
-	return version + "+" + metadata
-}
-
-// Get returns build info
-func Get() BuildInfo {
-	v := BuildInfo{
-		Version:      GetVersion(),
+// Get returns an Info object with all the information about the current running code.
+func Get() Info {
+	return Info{
+		Major:        gitMajor,
+		Minor:        gitMinor,
+		GitVersion:   gitVersion,
 		GitCommit:    gitCommit,
 		GitTreeState: gitTreeState,
+		BuildDate:    buildDate,
 		GoVersion:    runtime.Version(),
+		Compiler:     runtime.Compiler,
+		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
+}
 
-	return v
+// String returns info as a human-friendly version string.
+func (info Info) String() string {
+	return info.GitVersion
 }
