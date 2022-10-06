@@ -49,7 +49,7 @@ jobs:
         run: |
           make kk
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: github.event_name == 'push'
         with:
           name: kk
