@@ -1,5 +1,5 @@
 # NAME
-**kk create phase**: Create your cluster in phases to a newer version with this command, which is not enough and need to add phase cmds.
+**kk alpha create phase**: Create your cluster in phases to a newer version with this command, which is not enough and need to add phase cmds.
 
 # DESCRIPTION
 Create your cluster in phases to a newer version with this command,  which is not enough and need to add phase cmds.
@@ -8,13 +8,13 @@ Create your cluster in phases to a newer version with this command,  which is no
 
 | Command | Description |
 | - | - |
-| kk create phase binary | Download the binaries on the local. |
-| kk create phase os | Init the os configure. |
-| kk create phase images | Down the container and pull the images before creating your cluster. |
-| kk create phase etcd | Install the etcd on the master. |
-| kk create phase join | Join the control-plane nodes and worker nodes in the k8s cluster. |
-| kk create phase configure | Configure the k8s cluster with plugins, certs and PV. |
-| kk create phase kubesphere | Install the kubesphere with the input version. |
+| kk alpha create phase binary | Download the binaries on the local. |
+| kk alpha create phase os | Init the os configure. |
+| kk alpha create phase images | Down the container and pull the images before creating your cluster. |
+| kk alpha create phase etcd | Install the etcd on the master. |
+| kk alpha create phase join | Join the control-plane nodes and worker nodes in the k8s cluster. |
+| kk alpha create phase configure | Configure the k8s cluster with plugins, certs and PV. |
+| kk alpha create phase kubesphere | Install the kubesphere with the input version. |
 
 # OPTIONS
 
@@ -67,97 +67,97 @@ Skip confirm check. The default is `false`.
 ## Create an `all-in-one` pure Kubernetes cluster with default version
 Download the binarys of creating an `all-in-one` Kubernetes cluster from a default version.
 ```
-$ kk create phase binary
+$ kk alpha create phase binary
 ```
 Init the configure os of creating an `all-in-one` Kubernetes cluster from a default version.
 ```
-$ kk create phase os
+$ kk alpha create phase os
 ```
 Pull the images of creating an `all-in-one` Kubernetes cluster from a default version.
 ```
-$ kk create phase images
+$ kk alpha create phase images
 ```
 Install the etcd of creating an `all-in-one` Kubernetes cluster from a default version.
 ```
-$ kk create phase etcd
+$ kk alpha create phase etcd
 ```
 Init the k8s cluster of creating an `all-in-one` Kubernetes cluster from a default version.
 ```
-$ kk create phase init 
+$ kk alpha create phase init 
 ```
 Join the nodes to the k8s cluster of creating an `all-in-one` Kubernetes cluster from a default version.
 ```
-$ kk create phase join 
+$ kk alpha create phase join 
 ```
 Configure the k8s cluster of creating an `all-in-one` Kubernetes cluster from a default version.
 ```
-$ kk create phase configure
+$ kk alpha create phase configure
 ```
 ## Create an `all-in-one` pure Kubernetes cluster with specified version
 Download the binarys of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase binary --with-kubernetes v1.22.0
+$ kk alpha create phase binary --with-kubernetes v1.22.0
 ```
 Init the configure os of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase os
+$ kk alpha create phase os
 ```
 Pull the images of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase images --with-kubernetes v1.22.0
+$ kk alpha create phase images --with-kubernetes v1.22.0
 ```
 Install the etcd of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase etcd
+$ kk alpha create phase etcd
 ```
 Init the k8s cluster of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase init --with-kubernetes v1.22.0
+$ kk alpha create phase init --with-kubernetes v1.22.0
 ```
 Join the nodes to the k8s cluster of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase join --with-kubernetes v1.22.0
+$ kk alpha create phase join --with-kubernetes v1.22.0
 ```
 Configure the k8s cluster of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase configure --with-kubernetes v1.22.0
+$ kk alpha create phase configure --with-kubernetes v1.22.0
 ```
 Install the k8s cluster of creating an `all-in-one` Kubernetes cluster from a specified version.
 ```
-$ kk create phase kubesphere --with-kubesphere v3.3.0
+$ kk alpha create phase kubesphere --with-kubesphere v3.3.0
 ```
 ## Create a kubernetes cluster from a specified configuration file
 Download the binarys of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase binary -f config-sample.yaml
+$ kk alpha create phase binary -f config-sample.yaml
 ```
 Init the configure os of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase os
+$ kk alpha create phase os
 ```
 Pull the images of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase images -f config-sample.yaml
+$ kk alpha create phase images -f config-sample.yaml
 ```
 Install the etcd of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase etcd -f config-sample.yaml
+$ kk alpha create phase etcd -f config-sample.yaml
 ```
 Init the k8s cluster of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase init -f config-sample.yaml
+$ kk alpha create phase init -f config-sample.yaml
 ```
 Join the nodes to the k8s cluster of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase join -f config-sample.yaml
+$ kk alpha create phase join -f config-sample.yaml
 ```
 Configure the k8s cluster of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase configure -f config-sample.yaml
+$ kk alpha create phase configure -f config-sample.yaml
 ```
 Install the k8s cluster of creating a kubernetes cluster from a specified configuration file.
 ```
-$ kk create phase kubesphere -f config-sample.yaml
+$ kk alpha create phase kubesphere -f config-sample.yaml
 ```
 ## Create a cluster from the specified configuration file and use the artifact to install operating system packages.
 import a KubeKey artifact named `my-artifact.tar.gz`.
@@ -166,33 +166,33 @@ $ kk artifact import -a my-artifact.tar.gz --with-packages
 ```
 Download the binarys of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase binary -f config-sample.yaml
+$ kk alpha create phase binary -f config-sample.yaml
 ```
 Init the configure os of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase os
+$ kk alpha create phase os
 ```
 Pull the images of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase images -f config-sample.yaml
+$ kk alpha create phase images -f config-sample.yaml
 ```
 Install the etcd of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase etcd -f config-sample.yaml
+$ kk alpha create phase etcd -f config-sample.yaml
 ```
 Init the k8s cluster of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase init -f config-sample.yaml
+$ kk alpha create phase init -f config-sample.yaml
 ```
 Join the nodes to the k8s cluster of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase join -f config-sample.yaml
+$ kk alpha create phase join -f config-sample.yaml
 ```
 Configure the k8s cluster of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase configure -f config-sample.yaml
+$ kk alpha create phase configure -f config-sample.yaml
 ```
 Install the k8s cluster of creating a cluster from the specified configuration file and use the artifact to install operating system packages.
 ```
-$ kk create phase kubesphere -f config-sample.yaml
+$ kk alpha create phase kubesphere -f config-sample.yaml
 ```
