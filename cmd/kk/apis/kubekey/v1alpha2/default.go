@@ -90,7 +90,7 @@ const (
 	DefaultDNSAddress           = "114.114.114.114"
 	DefaultDpdkTunnelIface      = "br-phy"
 	DefaultCNIConfigPriority    = "01"
-	DefaultOpenEBSBasePath      = "/var/openebs"
+	DefaultOpenEBSBasePath      = "/var/openebs/local"
 
 	Docker     = "docker"
 	Conatinerd = "containerd"
