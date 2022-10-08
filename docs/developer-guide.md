@@ -23,27 +23,8 @@ The task of installing KubeSphere is added to the task pipeline of the installat
 
 ## Build Binary from Source Code
 
-### Method 1
-
 ```shell script
 git clone https://github.com/kubesphere/kubekey.git
 cd kubekey
-./build.sh
+make kk
 ```
-
-> Note:
->
-> * Docker needs to be installed before building.
-> * If you have problem to access `https://proxy.golang.org/`, excute `build.sh -p` instead.
-
-### Method 2
-
-```shell script
-git clone https://github.com/kubesphere/kubekey.git
-cd kubekey
-make binary
-```
-
-> Note:
->
-> * Docker needs to be installed before building.

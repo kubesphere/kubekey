@@ -25,7 +25,7 @@ pipeline {
     stage('Build') {
       steps {
         container('go') {
-          sh 'CGO_ENABLED=0 go build -tags=\'containers_image_openpgp\' -v -o output/kk ./cmd/main.go'
+          sh 'make kk'
         }
       }
     }

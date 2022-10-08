@@ -1,33 +1,58 @@
+# Download dependencies
+FROM alpine:3.11 as base_os_context
+
+
+ENV OUTDIR=/out
+RUN mkdir -p ${OUTDIR}/usr/local/bin/
+
+WORKDIR /tmp
+
+RUN apk add --no-cache ca-certificates
+
 # Build the manager binary
 FROM golang:1.18 as builder
 
+# Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
+ARG goproxy=https://goproxy.cn,direct
+ENV GOPROXY=$goproxy
+
 WORKDIR /workspace
-# Copy the Go Modules manifests
+
 COPY go.mod go.mod
 COPY go.sum go.sum
-# cache deps before building and copying source so that we don't need to re-download as much
+
+# Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-RUN git clone https://github.com/kubesphere/helm-charts.git
 # Copy the go source
-ADD ./ /workspace
+COPY ./ ./
+
+# Cache the go build into the the Go’s compiler cache folder so we take benefits of compiler caching across docker build calls
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build .
+
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -tags='containers_image_openpgp' -a -o manager main.go
-RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -tags='containers_image_openpgp' -a -o kk cmd/main.go
+ARG package=.
+ARG ARCH
+ARG LDFLAGS
 
-# Build the manager image
-FROM debian:stable
+# Do not force rebuild of up-to-date packages (do not use -a) and use the compiler cache folder
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+    go build -ldflags "${LDFLAGS}" \
+    -o manager ${package}
 
-RUN useradd -m kubekey -u 1000 && apt-get update && apt-get install bash curl -y; apt-get autoclean; rm -rf /var/lib/apt/lists/*
+FROM alpine:3.11
 
-USER kubekey:kubekey
-RUN mkdir -p /home/kubekey/kubekey
+WORKDIR /
 
-WORKDIR /home/kubekey
+RUN mkdir -p /var/lib/kubekey/rootfs
 
-COPY --from=builder /workspace/helm-charts/src/main/nfs-client-provisioner /home/kubekey/addons/nfs-client-provisioner
-COPY --from=builder /workspace/helm-charts/src/test/ks-installer /home/kubekey/addons/ks-installer
-COPY --from=builder /workspace/manager /home/kubekey
-COPY --from=builder /workspace/kk /home/kubekey
+COPY --from=base_os_context /out/ /
+COPY --from=builder /workspace/manager .
 
+ENTRYPOINT ["/manager"]
