@@ -55,6 +55,7 @@ func (d *DeployLocalVolumeModule) Init() {
 			Data: util.Data{
 				"ProvisionerLocalPVImage": images.GetImage(d.Runtime, d.KubeConf, "provisioner-localpv").ImageName(),
 				"LinuxUtilsImage":         images.GetImage(d.Runtime, d.KubeConf, "linux-utils").ImageName(),
+				"BasePath":                d.KubeConf.Cluster.Storage.OpenEBS.BasePath,
 			},
 		},
 		Parallel: true,

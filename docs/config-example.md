@@ -71,6 +71,9 @@ spec:
       vethMTU: 0  # The maximum transmission unit (MTU) setting determines the largest packet size that can be transmitted through your network. By default, MTU is auto-detected. [Default: 0]
     kubePodsCIDR: 10.233.64.0/18
     kubeServiceCIDR: 10.233.0.0/18
+  storage:
+    openebs:
+      basePath: /var/openebs/local # base path of the local PV provisioner
   registry:
     registryMirrors: []
     insecureRegistries: []
