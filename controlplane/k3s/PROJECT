@@ -1,0 +1,36 @@
+domain: cluster.x-k8s.io
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: k3s
+repo: github.com/kubesphere/kubekey/controlplane/k3s
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: controlplane
+  kind: K3sControlPlane
+  path: github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1
+  version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: controlplane
+  kind: K3sControlPlaneTemplate
+  path: github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1
+  version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+version: "3"

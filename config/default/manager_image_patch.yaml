@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: docker.io/kubespheredev/capkk-manager:main
+      - image: docker.io/kubespheredev/capkk-controller:main
         name: manager

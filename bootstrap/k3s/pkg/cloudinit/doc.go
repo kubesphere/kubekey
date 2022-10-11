@@ -14,5 +14,5 @@
  limitations under the License.
 */
 
-// Package binary define the binaries operations on the remote instance.
-package binary
+// Package cloudinit implements kubeadm cloudinit functionality.
+package cloudinit

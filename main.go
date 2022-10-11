@@ -59,7 +59,7 @@ var (
 	metricsAddr             string
 	enableLeaderElection    bool
 	leaderElectionNamespace string
-	probeAddr               string
+	healthAddr              string
 	watchFilterValue        string
 	kkClusterConcurrency    int
 	kkInstanceConcurrency   int
@@ -93,7 +93,7 @@ func main() {
 		SyncPeriod:                 &syncPeriod,
 		Namespace:                  watchNamespace,
 		Port:                       9443,
-		HealthProbeBindAddress:     probeAddr,
+		HealthProbeBindAddress:     healthAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -235,12 +235,10 @@ func initFlags(fs *pflag.FlagSet) {
 		"Number of KKMachines to process simultaneously.",
 	)
 
-	fs.StringVar(
-		&probeAddr,
-		"health-probe-bind-address",
-		":8081",
-		"The address the probe endpoint binds to.",
-	)
+	fs.StringVar(&healthAddr,
+		"health-addr",
+		":9440",
+		"The address the health endpoint binds to.")
 
 	fs.StringVar(
 		&watchFilterValue,

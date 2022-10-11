@@ -2,7 +2,7 @@
 
 images:
   # Use local dev images built source tree;
-  - name: kubespheredev/capkk-manager:e2e
+  - name: kubespheredev/capkk-controller-{ARCH}:e2e
     loadBehavior: mustLoad
 #
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
@@ -73,16 +73,15 @@ providers:
   - name: kubekey
     type: InfrastructureProvider
     versions:
-      - name: v2.3.0
+      - name: v3.0.0
         value: ../../../config/default
         contract: v1beta1
         files:
           - sourcePath: "../data/infrastructure-kubekey/v1beta1/cluster-template.yaml"
           - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
         replacements:
-          # To allow bugs to be catched.
-#          - old: controller:latest
-#            new: docker.io/kubesphere/capkk-controller:e2e
+          - old: docker.io/kubespheredev/capkk-controller:main
+            new: docker.io/kubespheredev/capkk-controller-amd64:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 

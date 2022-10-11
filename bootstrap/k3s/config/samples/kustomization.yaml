@@ -1,0 +1,5 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- bootstrap_v1beta1_k3sconfig.yaml
+- bootstrap_v1beta1_k3sconfigtemplate.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

@@ -44,6 +44,7 @@ var _ webhook.Defaulter = &KKClusterTemplate{}
 func (r *KKClusterTemplate) Default() {
 	kkclustertemplatelog.Info("default", "name", r.Name)
 
+	defaultDistribution(&r.Spec.Template.Spec)
 	defaultAuth(&r.Spec.Template.Spec.Nodes.Auth)
 	defaultInstance(&r.Spec.Template.Spec)
 }
@@ -57,6 +58,7 @@ func (r *KKClusterTemplate) ValidateCreate() error {
 	kkclustertemplatelog.Info("validate create", "name", r.Name)
 
 	var allErrs field.ErrorList
+	allErrs = append(allErrs, validateDistribution(r.Spec.Template.Spec)...)
 	allErrs = append(allErrs, validateClusterNodes(r.Spec.Template.Spec.Nodes)...)
 	allErrs = append(allErrs, validateLoadBalancer(r.Spec.Template.Spec.ControlPlaneLoadBalancer)...)
 

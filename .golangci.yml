@@ -124,14 +124,16 @@ linters-settings:
       # CAPKK
       - pkg: github.com/kubesphere/kubekey/api/v1beta1
         alias: infrav1
+      - pkg: github.com/kubesphere/kubekey/bootstrap/k3s/api/v1beta1
+        alias: infrabootstrapv1
   nolintlint:
     allow-unused: false
     allow-leading-space: false
     require-specific: true
   staticcheck:
-    go: "1.18"
+    go: "1.19"
   stylecheck:
-    go: "1.18"
+    go: "1.19"
   gosec:
     excludes:
     - G307 # Deferring unsafe method "Close" on type "\*os.File"
@@ -156,8 +158,6 @@ linters-settings:
     - commentFormatting
     - filepathJoin
     - commentedOutCode
-  unused:
-    go: "1.18"
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
@@ -166,83 +166,75 @@ issues:
   exclude-use-default: false
   exclude-rules:
   - linters:
-    - revive
+      - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
   - linters:
-    - errcheck
+      - errcheck
     text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-  # Exclude some packages or code to require comments, for example test code, or fake clients.
+  # Exclude revive's exported for certain packages and code, e.g. tests and fake.
   - linters:
-    - revive
+      - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
     source: (func|type).*Fake.*
   - linters:
-    - revive
+      - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
     path: fake_\.go
   - linters:
-    - revive
+      - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: cmd/clusterctl/internal/test/providers.*.go
+    path: .*test/(providers|framework|e2e).*.go
   - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: "(framework|e2e)/.*.go"
-  # Disable unparam "always receives" which might not be really
-  # useful when building libraries.
+      - errcheck
+    text: Error return value is not checked
+    path: _test\.go
   - linters:
-    - unparam
+      - errcheck
+    text: Error return value of (.+) is not checked
+    path: _test\.go
+  - linters:
+      - gosec
+    text: "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+  - linters:
+      - godot
+    text: "Comment should end in a period"
+    path: "(.*)/(v1beta1|v1beta2)/(.*)types.go"
+  - linters:
+      - errcheck
+    text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+    # With Go 1.16, the new embed directive can be used with an un-named import,
+    # revive (previously, golint) only allows these to be imported in a main.go, which wouldn't work for us.
+    # This directive allows the embed package to be imported with an underscore everywhere.
+  - linters:
+      - revive
+    source: _ "embed"
+    # This directive allows the variable in defaults.go files to have underscore
+  - linters:
+      - revive
+    text: "var-naming: don't use underscores in Go names; func (.+) should be (.+)"
+    path: .*/defaults.go
+    # Disable unparam "always receives" which might not be really
+    # useful when building libraries.
+  - linters:
+      - unparam
     text: always receives
-  # Dot imports for gomega or ginkgo are allowed
-  # within test files.
+    # Dot imports for gomega or ginkgo are allowed
+    # within test files.
   - path: _test\.go
     text: should not use dot imports
   - path: (framework|e2e)/.*.go
     text: should not use dot imports
   - path: _test\.go
     text: cyclomatic complexity
-  # Append should be able to assign to a different var/slice.
   - linters:
-    - gocritic
+      - unparam
+    text: (.+) - (`t`|`g`) is unused
+  - path: _test\.go
+    text: cyclomatic complexity
+    # Append should be able to assign to a different var/slice.
+  - linters:
+      - gocritic
     text: "appendAssign: append result not assigned to the same slice"
-  # ifshort flags variables that are only used in the if-statement even though there is
-  # already a SimpleStmt being used in the if-statement in question.
-  - linters:
-    - ifshort
-    text: "variable .* is only used in the if-statement"
-    path: controllers/mdutil/util.go
-  # Disable linters for conversion
-  - linters:
-    - staticcheck
-    text: "SA1019: in.(.+) is deprecated"
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    text: "var-naming: don't use underscores in Go names;"
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    text: "receiver-naming: receiver name"
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  - linters:
-    - stylecheck
-    text: "ST1003: should not use underscores in Go names;"
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - stylecheck
-    text: "ST1016: methods on the same type should have the same receiver name"
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  # hack/tools
-  - linters:
-    - typecheck
-    text: import (".+") is a program, not an importable package
-    path: ^tools\.go$
-
-
   # We don't care about defer in for loops in test files.
   - linters:
     - gocritic
@@ -262,4 +254,3 @@ run:
   - "vendored_openapi\\.go$"
   - "cmd"
   allow-parallel-runners: true
-  go: '1.18'

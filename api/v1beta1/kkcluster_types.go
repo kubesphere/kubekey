@@ -26,10 +26,17 @@ const (
 	// ClusterFinalizer allows ReconcileKKCluster to clean up KK resources associated with KKCluster before
 	// removing it from the apiserver.
 	ClusterFinalizer = "kkcluster.infrastructure.cluster.x-k8s.io"
+
+	// KUBERNETES the Kubernetes distributions
+	KUBERNETES = "kubernetes"
+	// K3S the K3S distributions
+	K3S = "k3s"
 )
 
 // KKClusterSpec defines the desired state of KKCluster
 type KKClusterSpec struct {
+	// Distribution represents the Kubernetes distribution type of the cluster.
+	Distribution string `json:"distribution,omitempty"`
 
 	// Nodes represents the information about the nodes available to the cluster
 	Nodes Nodes `json:"nodes"`

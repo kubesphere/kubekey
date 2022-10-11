@@ -46,9 +46,7 @@ type Repository interface {
 
 // BinaryService is the interface for binary provision.
 type BinaryService interface {
-	DownloadAll(timeout time.Duration) error
-	ConfigureKubelet() error
-	ConfigureKubeadm() error
+	Download(timeout time.Duration) error
 }
 
 // ContainerManager is the interface for container manager provision.

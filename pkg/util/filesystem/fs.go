@@ -18,7 +18,6 @@ package filesystem
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/kubesphere/kubekey/pkg/util/hash"
@@ -63,7 +62,7 @@ func (f FileSystem) SHA256Sum(localPath string) string {
 
 // MkLocalTmpDir creates a temporary directory and returns the path
 func (f FileSystem) MkLocalTmpDir() (string, error) {
-	tempDir, err := ioutil.TempDir(DefaultLocalTmpDir, ".Tmp-")
+	tempDir, err := os.MkdirTemp(DefaultLocalTmpDir, ".Tmp-")
 	if err != nil {
 		return "", err
 	}
@@ -72,7 +71,7 @@ func (f FileSystem) MkLocalTmpDir() (string, error) {
 
 // MkLocalTmpFile creates a temporary file and returns the path.
 func (f FileSystem) MkLocalTmpFile(dir, pattern string) (string, error) {
-	file, err := ioutil.TempFile(dir, pattern)
+	file, err := os.CreateTemp(dir, pattern)
 	if err != nil {
 		return "", err
 	}

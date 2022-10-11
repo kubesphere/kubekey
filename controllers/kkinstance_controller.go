@@ -70,7 +70,7 @@ type KKInstanceReconciler struct {
 	sshClientFactory        func(scope *scope.InstanceScope) ssh.Interface
 	bootstrapFactory        func(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) service.Bootstrap
 	repositoryFactory       func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.Repository
-	binaryFactory           func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService
+	binaryFactory           func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope, distribution string) service.BinaryService
 	containerManagerFactory func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager
 	provisioningFactory     func(sshClient ssh.Interface, format bootstrapv1.Format) service.Provisioning
 	WatchFilterValue        string
@@ -101,11 +101,11 @@ func (r *KKInstanceReconciler) getRepositoryService(sshClient ssh.Interface, sco
 	return repository.NewService(sshClient, scope, instanceScope)
 }
 
-func (r *KKInstanceReconciler) getBinaryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.BinaryService {
+func (r *KKInstanceReconciler) getBinaryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope, distribution string) service.BinaryService {
 	if r.binaryFactory != nil {
-		return r.binaryFactory(sshClient, scope, instanceScope)
+		return r.binaryFactory(sshClient, scope, instanceScope, distribution)
 	}
-	return binary.NewService(sshClient, scope, instanceScope)
+	return binary.NewService(sshClient, scope, instanceScope, distribution)
 }
 
 func (r *KKInstanceReconciler) getContainerManager(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager {
@@ -330,14 +330,7 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 
 	sshClient := r.getSSHClient(instanceScope)
 
-	phases := []func(context.Context, ssh.Interface, *scope.InstanceScope, scope.KKInstanceScope, scope.LBScope) error{
-		r.reconcileBootstrap,
-		r.reconcileRepository,
-		r.reconcileBinaryService,
-		r.reconcileContainerManager,
-		r.reconcileProvisioning,
-	}
-
+	phases := r.phaseFactory(kkInstanceScope)
 	for _, phase := range phases {
 		pollErr := wait.PollImmediate(r.WaitKKInstanceInterval, r.WaitKKInstanceTimeout, func() (done bool, err error) {
 			if err := phase(ctx, sshClient, instanceScope, kkInstanceScope, lbScope); err != nil {

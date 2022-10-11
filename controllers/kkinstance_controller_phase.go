@@ -32,6 +32,29 @@ import (
 	"github.com/kubesphere/kubekey/pkg/service"
 )
 
+func (r *KKInstanceReconciler) phaseFactory(kkInstanceScope scope.KKInstanceScope) []func(context.Context, ssh.Interface,
+	*scope.InstanceScope, scope.KKInstanceScope, scope.LBScope) error {
+	var phases []func(context.Context, ssh.Interface, *scope.InstanceScope, scope.KKInstanceScope, scope.LBScope) error
+	switch kkInstanceScope.Distribution() {
+	case infrav1.KUBERNETES:
+		phases = append(phases,
+			r.reconcileBootstrap,
+			r.reconcileRepository,
+			r.reconcileBinaryService,
+			r.reconcileContainerManager,
+			r.reconcileProvisioning,
+		)
+	case infrav1.K3S:
+		phases = append(phases,
+			r.reconcileBootstrap,
+			r.reconcileRepository,
+			r.reconcileBinaryService,
+			r.reconcileProvisioning,
+		)
+	}
+	return phases
+}
+
 func (r *KKInstanceReconciler) reconcilePing(_ context.Context, instanceScope *scope.InstanceScope) error {
 	instanceScope.Info("Reconcile ping")
 
@@ -189,14 +212,8 @@ func (r *KKInstanceReconciler) reconcileBinaryService(_ context.Context, sshClie
 
 	instanceScope.Info("Reconcile binary service")
 
-	svc := r.getBinaryService(sshClient, kkInstanceScope, instanceScope)
-	if err := svc.DownloadAll(r.WaitKKInstanceTimeout); err != nil {
-		return err
-	}
-	if err := svc.ConfigureKubelet(); err != nil {
-		return err
-	}
-	if err := svc.ConfigureKubeadm(); err != nil {
+	svc := r.getBinaryService(sshClient, kkInstanceScope, instanceScope, kkInstanceScope.Distribution())
+	if err := svc.Download(r.WaitKKInstanceTimeout); err != nil {
 		return err
 	}
 	return nil

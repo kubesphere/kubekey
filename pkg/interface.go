@@ -85,6 +85,8 @@ type ClusterScoper interface {
 	InfraClusterName() string
 	// KubernetesClusterName is the name of the Kubernetes cluster.
 	KubernetesClusterName() string
+	// Distribution returns Kubernetes distribution of the cluster.
+	Distribution() string
 	// RootFs is the cluster scope rootfs
 	RootFs() rootfs.Interface
 	// PatchObject persists the cluster configuration and status.

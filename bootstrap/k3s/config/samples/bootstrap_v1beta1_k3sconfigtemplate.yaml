@@ -1,0 +1,6 @@
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: K3sConfigTemplate
+metadata:
+  name: k3sconfigtemplate-sample
+spec:
+  # TODO(user): Add fields here
