@@ -18,6 +18,7 @@ package pipelines
 
 import (
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/artifact"
+	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/customscripts"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
@@ -35,6 +36,7 @@ func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
 		&os.RepositoryModule{Skip: noArtifact},
 		&os.RepositoryOnlineModule{Skip: !noArtifact},
 		&filesystem.ChownWorkDirModule{},
+		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 	}
 
 	p := pipeline.Pipeline{

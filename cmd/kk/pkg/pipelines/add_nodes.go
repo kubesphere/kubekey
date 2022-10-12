@@ -23,6 +23,7 @@ import (
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/artifact"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/binaries"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/customscripts"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/registry"
@@ -51,6 +52,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{},
+		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 		&registry.RegistryCertsModule{Skip: len(runtime.GetHostsByRole(common.Registry)) == 0},
 		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
@@ -66,6 +68,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.ConfigureKubernetesModule{},
 		&filesystem.ChownModule{},
 		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
+		&customscripts.CustomScriptsModule{Phase: "PostInstall", Scripts: runtime.Cluster.System.PostInstall},
 	}
 
 	p := pipeline.Pipeline{
@@ -89,6 +92,7 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.K3sNodeBinariesModule{},
 		&os.ConfigureOSModule{},
+		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 		&k3s.StatusModule{},
 		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&etcd.CertsModule{},
@@ -101,6 +105,7 @@ func NewK3sAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.ConfigureKubernetesModule{},
 		&filesystem.ChownModule{},
 		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
+		&customscripts.CustomScriptsModule{Phase: "PostInstall", Scripts: runtime.Cluster.System.PostInstall},
 	}
 
 	p := pipeline.Pipeline{
@@ -124,6 +129,7 @@ func NewK8eAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.K8eNodeBinariesModule{},
 		&os.ConfigureOSModule{},
+
 		&k8e.StatusModule{},
 		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&etcd.CertsModule{},
