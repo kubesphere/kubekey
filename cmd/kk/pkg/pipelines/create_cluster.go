@@ -47,7 +47,7 @@ import (
 
 func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
-	skipPushImages := runtime.Arg.SKipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
+	skipPushImages := runtime.Arg.SkipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
 	skipLocalStorage := true
 	if runtime.Arg.DeployLocalStorage != nil {
 		skipLocalStorage = !*runtime.Arg.DeployLocalStorage
@@ -127,7 +127,7 @@ Please check the result using the command:
 
 func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
-	skipPushImages := runtime.Arg.SKipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
+	skipPushImages := runtime.Arg.SkipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
 	skipLocalStorage := true
 	if runtime.Arg.DeployLocalStorage != nil {
 		skipLocalStorage = !*runtime.Arg.DeployLocalStorage
@@ -199,7 +199,7 @@ Please check the result using the command:
 
 func NewK8eCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
-	skipPushImages := runtime.Arg.SKipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
+	skipPushImages := runtime.Arg.SkipPushImages || noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
 	skipLocalStorage := true
 	if runtime.Arg.DeployLocalStorage != nil {
 		skipLocalStorage = !*runtime.Arg.DeployLocalStorage

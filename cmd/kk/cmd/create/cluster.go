@@ -113,7 +113,7 @@ func (o *CreateClusterOptions) Run() error {
 		KsEnable:            o.EnableKubeSphere,
 		KsVersion:           o.KubeSphere,
 		SkipPullImages:      o.SkipPullImages,
-		SKipPushImages:      o.SkipPushImages,
+		SkipPushImages:      o.SkipPushImages,
 		SecurityEnhancement: o.SecurityEnhancement,
 		Debug:               o.CommonOptions.Verbose,
 		IgnoreErr:           o.CommonOptions.IgnoreErr,
