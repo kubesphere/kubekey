@@ -59,7 +59,7 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.1.2
         with:
           ref: ${{ github.ref }}
-          check-name: 'goreleaser'
+          check-name: 'create draft release'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
           allowed-conclusions: success
