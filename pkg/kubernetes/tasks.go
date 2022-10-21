@@ -616,12 +616,15 @@ func (c *CalculateNextVersion) Execute(_ connector.Runtime) error {
 	if !ok {
 		return errors.New("get upgrade plan Kubernetes version failed by pipeline cache")
 	}
-	nextVersionStr := calculateNextStr(currentVersion, planVersion)
+	nextVersionStr, err := calculateNextStr(currentVersion, planVersion)
+	if err != nil {
+		return errors.Wrap(err, "calculate next version failed")
+	}
 	c.KubeConf.Cluster.Kubernetes.Version = nextVersionStr
 	return nil
 }
 
-func calculateNextStr(currentVersion, desiredVersion string) string {
+func calculateNextStr(currentVersion, desiredVersion string) (string, error) {
 	current := versionutil.MustParseSemantic(currentVersion)
 	target := versionutil.MustParseSemantic(desiredVersion)
 	var nextVersionMinor uint
@@ -632,7 +635,10 @@ func calculateNextStr(currentVersion, desiredVersion string) string {
 	}
 
 	if nextVersionMinor == target.Minor() {
-		return desiredVersion
+		if _, ok := files.FileSha256["kubeadm"]["amd64"][desiredVersion]; !ok {
+			return "", errors.Errorf("the target version %s is not supported", desiredVersion)
+		}
+		return desiredVersion, nil
 	} else {
 		nextVersionPatchList := make([]int, 0)
 		for supportVersionStr := range files.FileSha256["kubeadm"]["amd64"] {
@@ -644,9 +650,12 @@ func calculateNextStr(currentVersion, desiredVersion string) string {
 		sort.Ints(nextVersionPatchList)
 
 		nextVersion := current.WithMinor(nextVersionMinor)
+		if len(nextVersionPatchList) == 0 {
+			return "", errors.Errorf("Kubernetes minor version v%d.%d.x is not supported", nextVersion.Major(), nextVersion.Minor())
+		}
 		nextVersion = nextVersion.WithPatch(uint(nextVersionPatchList[len(nextVersionPatchList)-1]))
 
-		return fmt.Sprintf("v%s", nextVersion.String())
+		return fmt.Sprintf("v%s", nextVersion.String()), nil
 	}
 }
 
