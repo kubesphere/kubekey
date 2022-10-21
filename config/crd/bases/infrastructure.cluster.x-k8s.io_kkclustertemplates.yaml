@@ -149,6 +149,10 @@ spec:
                             description: The hostname on which the API server is serving.
                             type: string
                         type: object
+                      distribution:
+                        description: Distribution represents the Kubernetes distribution
+                          type of the cluster.
+                        type: string
                       nodes:
                         description: Nodes represents the information about the nodes
                           available to the cluster

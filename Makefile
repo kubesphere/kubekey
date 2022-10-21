@@ -6,7 +6,7 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.18.3
+GO_VERSION ?= 1.19.2
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Use GOPROXY environment variable if set
@@ -72,8 +72,16 @@ REGISTRY ?= docker.io/kubespheredev
 PROD_REGISTRY ?= docker.io/kubesphere
 
 # capkk
-CAPKK_IMAGE_NAME ?= capkk-manager
+CAPKK_IMAGE_NAME ?= capkk-controller
 CAPKK_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPKK_IMAGE_NAME)
+
+# bootstrap
+K3S_BOOTSTRAP_IMAGE_NAME ?= k3s-bootstrap-controller
+K3S_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(K3S_BOOTSTRAP_IMAGE_NAME)
+
+# control plane
+K3S_CONTROL_PLANE_IMAGE_NAME ?= k3s-control-plane-controller
+K3S_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(K3S_CONTROL_PLANE_IMAGE_NAME)
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
@@ -110,7 +118,7 @@ help: ## Display this help.
 
 ##@ generate:
 
-ALL_GENERATE_MODULES = capkk
+ALL_GENERATE_MODULES = capkk k3s-bootstrap k3s-control-plane
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-* targets
@@ -131,16 +139,54 @@ generate-manifests-capkk: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e
 		output:webhook:dir=./config/webhook \
 		webhook
 
+.PHONY: generate-manifests-k3s-bootstrap
+generate-manifests-k3s-bootstrap: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
+	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/k3s/config/crd/bases"
+	$(CONTROLLER_GEN) \
+		paths=./bootstrap/k3s/api/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=./bootstrap/k3s/config/crd/bases \
+		output:rbac:dir=./bootstrap/k3s/config/rbac \
+		output:webhook:dir=./bootstrap/k3s/config/webhook \
+		webhook
+
+.PHONY: generate-manifests-k3s-control-plane
+generate-manifests-k3s-control-plane: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
+	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/k3s/config/crd/bases"
+	$(CONTROLLER_GEN) \
+		paths=./controlplane/k3s/api/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=./controlplane/k3s/config/crd/bases \
+		output:rbac:dir=./controlplane/k3s/config/rbac \
+		output:webhook:dir=./controlplane/k3s/config/webhook \
+		webhook
+
 .PHONY: generate-go-deepcopy
 generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 	$(MAKE) $(addprefix generate-go-deepcopy-,$(ALL_GENERATE_MODULES))
 
 .PHONY: generate-go-deepcopy-capkk
-generate-go-deepcopy-capkk: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
+generate-go-deepcopy-capkk: $(CONTROLLER_GEN) ## Generate deepcopy go code for capkk
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate.go.txt \
 		paths=./api/... \
+
+.PHONY: generate-go-deepcopy-k3s-bootstrap
+generate-go-deepcopy-k3s-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy go code for k3s-bootstrap
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./bootstrap/k3s/api"
+	$(CONTROLLER_GEN) \
+		object:headerFile=./hack/boilerplate.go.txt \
+		paths=./bootstrap/k3s/api/... \
+
+.PHONY: generate-go-deepcopy-k3s-control-plane
+generate-go-deepcopy-k3s-control-plane: $(CONTROLLER_GEN) ## Generate deepcopy go code for k3s-control-plane
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./controlplane/k3s/api"
+	$(CONTROLLER_GEN) \
+		object:headerFile=./hack/boilerplate.go.txt \
+		paths=./controlplane/k3s/api/... \
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
@@ -194,7 +240,7 @@ verify-gen: generate  ## Verify go generated files are up to date
 kk:
 	CGO_ENABLED=0 go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kk github.com/kubesphere/kubekey/cmd/kk;
 
-ALL_MANAGERS = capkk
+ALL_MANAGERS = capkk k3s-bootstrap k3s-control-plane
 
 .PHONY: managers
 managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
@@ -202,6 +248,14 @@ managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
 .PHONY: manager-capkk
 manager-capkk: ## Build the capkk manager binary into the ./bin folder
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager github.com/kubesphere/kubekey
+
+.PHONY: manager-k3s-bootstrap
+manager-k3s-bootstrap: ## Build the k3s bootstrap manager binary into the ./bin folder
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/k3s-bootstrap-manager github.com/kubesphere/kubekey/bootstrap/k3s
+
+.PHONY: manager-k3s-control-plane
+manager-k3s-control-plane: ## Build the k3s control plane manager binary into the ./bin folder
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/k3s-control-plane-manager github.com/kubesphere/kubekey/controlplane/k3s
 
 .PHONY: docker-pull-prerequisites
 docker-pull-prerequisites:
@@ -214,19 +268,33 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images 
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-ALL_DOCKER_BUILD = capkk
+ALL_DOCKER_BUILD = capkk k3s-bootstrap k3s-control-plane
+
+.PHONY: docker-build
+docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all providers
+	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD))
 
 .PHONY: docker-build-capkk
 docker-build-capkk: ## Build the docker image for capkk
 	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-build-k3s-bootstrap
+docker-build-k3s-bootstrap: ## Build the docker image for k3s bootstrap controller manager
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/k3s --build-arg ldflags="$(LDFLAGS)" . -t $(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-build-k3s-control-plane
+docker-build-k3s-control-plane: ## Build the docker image for k3s control plane controller manager
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/k3s --build-arg ldflags="$(LDFLAGS)" . -t $(K3S_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(K3S_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/k3s/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/k3s/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Build the docker image for capkk
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t "$(CAPKK_CONTROLLER_IMG):e2e"
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG) MANIFEST_TAG="e2e" TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+	$(MAKE) docker-build REGISTRY=docker.io/kubespheredev PULL_POLICY=IfNotPresent TAG=e2e
 
 ## --------------------------------------
 ## Deployment
@@ -292,6 +360,10 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	$(MAKE) -C $(TEST_DIR)/e2e run
+
+.PHONY: test-e2e-k3s
+test-e2e-k3s: ## Run e2e tests
+	$(MAKE) -C $(TEST_DIR)/e2e run-k3s
 
 ## --------------------------------------
 ## Release
@@ -380,6 +452,7 @@ release-templates: $(RELEASE_DIR) ## Generate release templates
 .PHONY: docker-push
 docker-push: ## Push the docker images
 	docker push $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:

@@ -56,8 +56,18 @@ var _ webhook.Defaulter = &KKCluster{}
 func (k *KKCluster) Default() {
 	kkclusterlog.Info("default", "name", k.Name)
 
+	defaultDistribution(&k.Spec)
 	defaultAuth(&k.Spec.Nodes.Auth)
 	defaultInstance(&k.Spec)
+}
+
+func defaultDistribution(spec *KKClusterSpec) {
+	if spec.Distribution == "" {
+		spec.Distribution = "kubernetes"
+	}
+	if spec.Distribution == "k8s" {
+		spec.Distribution = "kubernetes"
+	}
 }
 
 func defaultAuth(auth *Auth) {
@@ -101,6 +111,7 @@ func (k *KKCluster) ValidateCreate() error {
 	kkclusterlog.Info("validate create", "name", k.Name)
 
 	var allErrs field.ErrorList
+	allErrs = append(allErrs, validateDistribution(k.Spec)...)
 	allErrs = append(allErrs, validateClusterNodes(k.Spec.Nodes)...)
 	allErrs = append(allErrs, validateLoadBalancer(k.Spec.ControlPlaneLoadBalancer)...)
 
@@ -141,6 +152,20 @@ func (k *KKCluster) ValidateUpdate(old runtime.Object) error {
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (k *KKCluster) ValidateDelete() error {
 	return nil
+}
+
+func validateDistribution(spec KKClusterSpec) []*field.Error {
+	var errs field.ErrorList
+	path := field.NewPath("spec", "distribution")
+	switch spec.Distribution {
+	case K3S:
+		return errs
+	case KUBERNETES:
+		return errs
+	default:
+		errs = append(errs, field.NotSupported(path, spec.Distribution, []string{K3S, KUBERNETES}))
+	}
+	return errs
 }
 
 func validateLoadBalancer(loadBalancer *KKLoadBalancerSpec) []*field.Error {

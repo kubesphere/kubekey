@@ -14,11 +14,9 @@
  limitations under the License.
 */
 
-package binary
+package k3s
 
 import (
-	"text/template"
-
 	"github.com/kubesphere/kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/pkg/service/operation"
@@ -32,11 +30,8 @@ type Service struct {
 	scope         scope.KKInstanceScope
 	instanceScope *scope.InstanceScope
 
-	templateFactory func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
-	kubeadmFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubeletFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubecniFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubectlFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	k3sFactory     func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	kubecniFactory func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
 }
 
 // NewService returns a new service given the remote instance.
@@ -48,25 +43,11 @@ func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceSc
 	}
 }
 
-func (s *Service) getTemplateService(template *template.Template, data file.Data, dst string) (operation.Template, error) {
-	if s.templateFactory != nil {
-		return s.templateFactory(s.sshClient, template, data, dst)
+func (s *Service) getK3sService(version, arch string) (operation.Binary, error) {
+	if s.k3sFactory != nil {
+		return s.k3sFactory(s.sshClient, version, arch)
 	}
-	return file.NewTemplate(s.sshClient, s.scope.RootFs(), template, data, dst)
-}
-
-func (s *Service) getKubeadmService(version, arch string) (operation.Binary, error) {
-	if s.kubeadmFactory != nil {
-		return s.kubeadmFactory(s.sshClient, version, arch)
-	}
-	return file.NewKubeadm(s.sshClient, s.scope.RootFs(), version, arch)
-}
-
-func (s *Service) getKubeletService(version, arch string) (operation.Binary, error) {
-	if s.kubeletFactory != nil {
-		return s.kubeletFactory(s.sshClient, version, arch)
-	}
-	return file.NewKubelet(s.sshClient, s.scope.RootFs(), version, arch)
+	return file.NewK3s(s.sshClient, s.scope.RootFs(), version, arch)
 }
 
 func (s *Service) getKubecniService(version, arch string) (operation.Binary, error) {
@@ -74,11 +55,4 @@ func (s *Service) getKubecniService(version, arch string) (operation.Binary, err
 		return s.kubecniFactory(s.sshClient, version, arch)
 	}
 	return file.NewKubecni(s.sshClient, s.scope.RootFs(), version, arch)
-}
-
-func (s *Service) getKubectlService(version, arch string) (operation.Binary, error) {
-	if s.kubectlFactory != nil {
-		return s.kubectlFactory(s.sshClient, version, arch)
-	}
-	return file.NewKubectl(s.sshClient, s.scope.RootFs(), version, arch)
 }

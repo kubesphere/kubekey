@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -53,6 +54,10 @@ var (
 	// clusterctlConfig is the file which tests will use as a clusterctl config.
 	// If it is not set, a local clusterctl repository (including a clusterctl config) will be created automatically.
 	clusterctlConfig string
+
+	// alsoLogToFile enables additional logging to the 'ginkgo-log.txt' file in the artifact folder.
+	// These logs also contain timestamps.
+	alsoLogToFile bool
 
 	// skipCleanup prevents cleanup of test resources e.g. for debug purposes.
 	skipCleanup bool
@@ -80,6 +85,7 @@ var (
 func init() {
 	flag.StringVar(&configPath, "e2e.config", "", "path to the e2e config file")
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
+	flag.BoolVar(&alsoLogToFile, "e2e.also-log-to-file", true, "if true, ginkgo logs are additionally written to the `ginkgo-log.txt` file in the artifacts folder (including timestamps)")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.StringVar(&clusterctlConfig, "e2e.clusterctl-config", "", "file which tests will use as a clusterctl config. If it is not set, a local clusterctl repository (including a clusterctl config) will be created automatically.")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
@@ -101,8 +107,13 @@ func TestE2E(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-	junitReporter := framework.CreateJUnitReporterForProw(artifactFolder)
-	RunSpecsWithDefaultAndCustomReporters(t, "capkk-e2e", []Reporter{junitReporter})
+	if alsoLogToFile {
+		w, err := ginkgoextensions.EnableFileLogging(filepath.Join(artifactFolder, "ginkgo-log.txt"))
+		g.Expect(err).ToNot(HaveOccurred())
+		defer w.Close()
+	}
+
+	RunSpecs(t, "capi-e2e")
 }
 
 // Using a SynchronizedBeforeSuite for controlling how to create resources shared across ParallelNodes (~ginkgo threads).

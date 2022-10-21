@@ -6,10 +6,10 @@ metadata:
 spec:
   clusterNetwork:
     services:
-      cidrBlocks: ['${SERVICE_CIDRS}']
+      cidrBlocks: ["10.233.0.0/18"]
     pods:
-      cidrBlocks: ['${POD_CIDRS}']
-    serviceDomain: '${SERVICE_DOMAIN}'
+      cidrBlocks: ["10.233.64.0/18"]
+    serviceDomain: "cluster.local"
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: KKCluster
@@ -38,8 +38,6 @@ kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
-  labels:
-    kcp-adoption.step2: ""
 spec:
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   machineTemplate:

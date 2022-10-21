@@ -81,11 +81,13 @@ cluster-templates-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for v1beta
 ## Testing
 ## --------------------------------------
 
-GINKGO_FOCUS  ?=
+GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
-GINKGO_NODES  ?= 1
-E2E_CONF_FILE  ?= ${REPO_ROOT}/test/e2e/config/e2e_conf.yaml
+GINKGO_NODES ?= 1
+E2E_CONF_FILE ?= ${REPO_ROOT}/test/e2e/config/e2e_conf.yaml
+E2E_K3S_CONF_FILE ?= ${REPO_ROOT}/test/e2e/config/e2e_k3s_conf.yaml
 ARTIFACTS ?= ${REPO_ROOT}/_artifacts
+ARTIFACTS_K3S ?= ${REPO_ROOT}/_artifacts_k3s
 SKIP_RESOURCE_CLEANUP ?= false
 USE_EXISTING_CLUSTER ?= false
 GINKGO_NOCOLOR ?= false
@@ -100,4 +102,11 @@ run: $(GINKGO) $(KIND) cluster-templates ## Run the end-to-end tests
 	$(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) . -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \
+	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
+
+.PHONY: run-k3s
+run-k3s: $(GINKGO) $(KIND) cluster-templates ## Run the end-to-end tests
+	$(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) . -- \
+	    -e2e.artifacts-folder="$(ARTIFACTS_K3S)" \
+	    -e2e.config="$(E2E_K3S_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)

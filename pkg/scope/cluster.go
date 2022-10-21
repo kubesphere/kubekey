@@ -224,6 +224,11 @@ func (s *ClusterScope) ControllerName() string {
 	return s.controllerName
 }
 
+// Distribution returns Kubernetes distribution of the cluster.
+func (s *ClusterScope) Distribution() string {
+	return s.KKCluster.Spec.Distribution
+}
+
 // RootFs returns the CAPKK rootfs interface.
 func (s *ClusterScope) RootFs() rootfs.Interface {
 	return s.rootFs

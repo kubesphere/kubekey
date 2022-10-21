@@ -1,0 +1,5 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- controlplane_v1beta1_k3scontrolplane.yaml
+- controlplane_v1beta1_k3scontrolplanetemplate.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

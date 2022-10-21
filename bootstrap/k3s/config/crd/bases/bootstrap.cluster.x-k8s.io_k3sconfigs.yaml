@@ -1,0 +1,422 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.1
+  creationTimestamp: null
+  name: k3sconfigs.bootstrap.cluster.x-k8s.io
+spec:
+  group: bootstrap.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: K3sConfig
+    listKind: K3sConfigList
+    plural: k3sconfigs
+    singular: k3sconfig
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
+    - description: Time duration since creation of K3sConfig
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: K3sConfig is the Schema for the k3sConfigs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: K3sConfigSpec defines the desired state of K3sConfig
+            properties:
+              agentConfiguration:
+                description: AgentConfiguration defines the k3s agent configuration.
+                properties:
+                  networking:
+                    description: Networking defines the k3s agent networking configuration.
+                    properties:
+                      nodeExternalIP:
+                        description: NodeExternalIP External IP address to advertise
+                          for node.
+                        type: string
+                      nodeIP:
+                        description: NodeIP IP address to advertise for node.
+                        type: string
+                      resolvConf:
+                        description: ResolvConf Path to Kubelet resolv.conf file.
+                        type: string
+                    type: object
+                  node:
+                    description: Node defines the k3s agent node configuration.
+                    properties:
+                      dataDir:
+                        description: DataDir Folder to hold state.
+                        type: string
+                      lbServerPort:
+                        description: 'LBServerPort Local port for supervisor client
+                          load-balancer. If the supervisor and apiserver are not colocated
+                          an additional port 1 less than this port will also be used
+                          for the apiserver client load-balancer. (default: 6444)'
+                        type: integer
+                      nodeLabels:
+                        description: NodeLabels registering and starting kubelet with
+                          set of labels.
+                        items:
+                          type: string
+                        type: array
+                      nodeName:
+                        description: NodeName k3s node name.
+                        type: string
+                      nodeTaints:
+                        description: NodeTaints registering and starting kubelet with
+                          set of taints.
+                        items:
+                          type: string
+                        type: array
+                      seLinux:
+                        description: SeLinux Enable SELinux in containerd
+                        type: boolean
+                    type: object
+                  runtime:
+                    description: Runtime defines the k3s agent runtime configuration.
+                    properties:
+                      containerRuntimeEndpoint:
+                        description: ContainerRuntimeEndpoint Disable embedded containerd
+                          and use alternative CRI implementation.
+                        type: string
+                      pauseImage:
+                        description: PauseImage Customized pause image for containerd
+                          or Docker sandbox.
+                        type: string
+                      privateRegistry:
+                        description: PrivateRegistry Path to a private registry configuration
+                          file.
+                        type: string
+                    type: object
+                type: object
+              cluster:
+                description: Cluster defines the k3s cluster Options.
+                properties:
+                  server:
+                    description: Server which server to connect to, used to join a
+                      cluster.
+                    type: string
+                  token:
+                    description: Token shared secret used to join a server or agent
+                      to a cluster.
+                    type: string
+                  tokenFile:
+                    description: TokenFile file containing the cluster-secret/token.
+                    type: string
+                type: object
+              files:
+                description: Files specifies extra files to be passed to user_data
+                  upon creation.
+                items:
+                  description: File defines the input for generating write_files in
+                    cloud-init.
+                  properties:
+                    append:
+                      description: Append specifies whether to append Content to existing
+                        file if Path exists.
+                      type: boolean
+                    content:
+                      description: Content is the actual content of the file.
+                      type: string
+                    contentFrom:
+                      description: ContentFrom is a referenced source of content to
+                        populate the file.
+                      properties:
+                        secret:
+                          description: Secret represents a secret that should populate
+                            this file.
+                          properties:
+                            key:
+                              description: Key is the key in the secret's data map
+                                for this value.
+                              type: string
+                            name:
+                              description: Name of the secret in the KubeadmBootstrapConfig's
+                                namespace to use.
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                      required:
+                      - secret
+                      type: object
+                    encoding:
+                      description: Encoding specifies the encoding of the file contents.
+                      enum:
+                      - base64
+                      - gzip
+                      - gzip+base64
+                      type: string
+                    owner:
+                      description: Owner specifies the ownership of the file, e.g.
+                        "root:root".
+                      type: string
+                    path:
+                      description: Path specifies the full path on disk where to store
+                        the file.
+                      type: string
+                    permissions:
+                      description: Permissions specifies the permissions to assign
+                        to the file, e.g. "0640".
+                      type: string
+                  required:
+                  - path
+                  type: object
+                type: array
+              postK3sCommands:
+                description: PostK3sCommands specifies extra commands to run after
+                  k3s setup runs
+                items:
+                  type: string
+                type: array
+              preK3sCommands:
+                description: PreK3sCommands specifies extra commands to run before
+                  k3s setup runs
+                items:
+                  type: string
+                type: array
+              serverConfiguration:
+                description: ServerConfiguration defines the k3s server configuration.
+                properties:
+                  agent:
+                    description: Agent is the agent configuration.
+                    properties:
+                      networking:
+                        description: Networking defines the k3s agent networking configuration.
+                        properties:
+                          nodeExternalIP:
+                            description: NodeExternalIP External IP address to advertise
+                              for node.
+                            type: string
+                          nodeIP:
+                            description: NodeIP IP address to advertise for node.
+                            type: string
+                          resolvConf:
+                            description: ResolvConf Path to Kubelet resolv.conf file.
+                            type: string
+                        type: object
+                      node:
+                        description: Node defines the k3s agent node configuration.
+                        properties:
+                          dataDir:
+                            description: DataDir Folder to hold state.
+                            type: string
+                          lbServerPort:
+                            description: 'LBServerPort Local port for supervisor client
+                              load-balancer. If the supervisor and apiserver are not
+                              colocated an additional port 1 less than this port will
+                              also be used for the apiserver client load-balancer.
+                              (default: 6444)'
+                            type: integer
+                          nodeLabels:
+                            description: NodeLabels registering and starting kubelet
+                              with set of labels.
+                            items:
+                              type: string
+                            type: array
+                          nodeName:
+                            description: NodeName k3s node name.
+                            type: string
+                          nodeTaints:
+                            description: NodeTaints registering and starting kubelet
+                              with set of taints.
+                            items:
+                              type: string
+                            type: array
+                          seLinux:
+                            description: SeLinux Enable SELinux in containerd
+                            type: boolean
+                        type: object
+                      runtime:
+                        description: Runtime defines the k3s agent runtime configuration.
+                        properties:
+                          containerRuntimeEndpoint:
+                            description: ContainerRuntimeEndpoint Disable embedded
+                              containerd and use alternative CRI implementation.
+                            type: string
+                          pauseImage:
+                            description: PauseImage Customized pause image for containerd
+                              or Docker sandbox.
+                            type: string
+                          privateRegistry:
+                            description: PrivateRegistry Path to a private registry
+                              configuration file.
+                            type: string
+                        type: object
+                    type: object
+                  database:
+                    description: Database is the database configuration.
+                    properties:
+                      clusterInit:
+                        description: ClusterInit initialize a new cluster using embedded
+                          Etcd.
+                        type: boolean
+                      dataStoreCAFile:
+                        description: DataStoreCAFile TLS Certificate Authority file
+                          used to secure datastore backend communication.
+                        type: string
+                      dataStoreCertFile:
+                        description: DataStoreCertFile TLS certification file used
+                          to secure datastore backend communication.
+                        type: string
+                      dataStoreEndPoint:
+                        description: DataStoreEndPoint specify etcd, Mysql, Postgres,
+                          or Sqlite (default) data source name.
+                        type: string
+                      dataStoreKeyFile:
+                        description: DataStoreKeyFile TLS key file used to secure
+                          datastore backend communication.
+                        type: string
+                    type: object
+                  listener:
+                    description: Listener is the listener configuration.
+                    properties:
+                      advertiseAddress:
+                        description: AdvertiseAddress IP address that apiserver uses
+                          to advertise to members of the cluster.
+                        type: string
+                      advertisePort:
+                        description: 'AdvertisePort Port that apiserver uses to advertise
+                          to members of the cluster (default: listen-port).'
+                        type: integer
+                      bindAddress:
+                        description: BindAddress k3s bind address.
+                        type: string
+                      httpsListenPort:
+                        description: HTTPSListenPort HTTPS listen port.
+                        type: integer
+                      tlsSan:
+                        description: TLSSan Add additional hostname or IP as a Subject
+                          Alternative Name in the TLS cert.
+                        type: string
+                    type: object
+                  networking:
+                    description: Networking is the networking configuration.
+                    properties:
+                      clusterCIDR:
+                        description: ClusterCIDR Network CIDR to use for pod IPs.
+                        type: string
+                      clusterDNS:
+                        description: ClusterDNS cluster IP for coredns service. Should
+                          be in your service-cidr range.
+                        type: string
+                      clusterDomain:
+                        description: ClusterDomain cluster Domain.
+                        type: string
+                      flannelBackend:
+                        description: 'FlannelBackend One of ‘none’, ‘vxlan’, ‘ipsec’,
+                          ‘host-gw’, or ‘wireguard’. (default: vxlan)'
+                        type: string
+                      serviceCIDR:
+                        description: ServiceCIDR Network CIDR to use for services
+                          IPs.
+                        type: string
+                      serviceNodePortRange:
+                        description: ServiceNodePortRange Port range to reserve for
+                          services with NodePort visibility.
+                        type: string
+                    type: object
+                type: object
+              version:
+                description: Version specifies the k3s version
+                type: string
+            type: object
+          status:
+            description: K3sConfigStatus defines the observed state of K3sConfig
+            properties:
+              bootstrapData:
+                format: byte
+                type: string
+              conditions:
+                description: Conditions defines current service state of the K3sConfig.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              dataSecretName:
+                description: DataSecretName is the name of the secret that stores
+                  the bootstrap data script.
+                type: string
+              failureMessage:
+                description: FailureMessage will be set on non-retryable errors
+                type: string
+              failureReason:
+                description: FailureReason will be set on non-retryable errors
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              ready:
+                description: Ready indicates the BootstrapData field is ready to be
+                  consumed
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

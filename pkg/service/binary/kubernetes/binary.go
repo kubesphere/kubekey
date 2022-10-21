@@ -14,7 +14,7 @@
  limitations under the License.
 */
 
-package binary
+package kubernetes
 
 import (
 	"embed"
@@ -30,6 +30,23 @@ import (
 
 //go:embed templates
 var f embed.FS
+
+// Download downloads binaries.
+func (s *Service) Download(timeout time.Duration) error {
+	if err := s.DownloadAll(timeout); err != nil {
+		return err
+	}
+
+	if err := s.ConfigureKubelet(); err != nil {
+		return err
+	}
+
+	if err := s.ConfigureKubeadm(); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // DownloadAll downloads all binaries.
 func (s *Service) DownloadAll(timeout time.Duration) error {

@@ -5,6 +5,7 @@ kind: KKCluster
 metadata:
   name: '${CLUSTER_NAME}'
 spec:
+  distribution: kubernetes
   component:
     zone: '${KKZONE}'
   nodes:
@@ -50,8 +51,7 @@ spec:
       roles:
         - control-plane
       repository:
-        iso: "auto"
-        update: true
+        iso: "none"
 ---
 # KubeadmControlPlane referenced by the Cluster object with
 # - the label kcp-adoption.step2, because it should be created in the second step of the kcp-adoption test.
