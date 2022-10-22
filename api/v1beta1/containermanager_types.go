@@ -18,9 +18,10 @@ package v1beta1
 
 // Default values.
 const (
-	DockerType             = "docker"
-	DefaultDockerVersion   = "20.10.8"
-	DefaultDockerCRISocket = ""
+	DockerType               = "docker"
+	DefaultDockerVersion     = "20.10.8"
+	DefaultCRIDockerdVersion = "0.2.6"
+	DefaultDockerCRISocket   = "unix:///run/cri-dockerd.sock"
 
 	ContainerdType             = "containerd"
 	DefaultContainerdVersion   = "1.6.4"
@@ -39,4 +40,9 @@ type ContainerManager struct {
 
 	// Version defines the version of ContainerManager.
 	Version string `json:"version,omitempty"`
+
+	// CRIDockerdVersion defines the version of cri-dockerd, available only when Type is docker.
+	// https://github.com/Mirantis/cri-dockerd
+	// +optional
+	CRIDockerdVersion string `json:"criDockerdVersion,omitempty"`
 }

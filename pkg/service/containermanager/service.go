@@ -43,6 +43,8 @@ func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceSc
 	switch instanceScope.ContainerManager().Type {
 	case file.ContainerdID:
 		return NewContainerdService(sshClient, scope, instanceScope)
+	case file.DockerID:
+		return NewDockerService(sshClient, scope, instanceScope)
 	default:
 		return NewContainerdService(sshClient, scope, instanceScope)
 	}

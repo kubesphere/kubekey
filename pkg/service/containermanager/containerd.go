@@ -72,7 +72,7 @@ func (s *ContainerdService) getContainerdService(sshClient ssh.Interface, versio
 }
 
 func (s *ContainerdService) getCrictlService(sshClient ssh.Interface, version, arch string) (operation.Binary, error) {
-	if s.containerdFactory != nil {
+	if s.crictlFactory != nil {
 		return s.crictlFactory(sshClient, version, arch)
 	}
 	return file.NewCrictl(sshClient, s.scope.RootFs(), version, arch)

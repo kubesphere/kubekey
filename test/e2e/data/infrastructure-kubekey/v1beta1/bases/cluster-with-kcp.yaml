@@ -47,6 +47,8 @@ metadata:
 spec:
   template:
     spec:
+      containerManager:
+        type: ${CONTAINER_MANAGER_TYPE}
       roles:
         - control-plane
       repository:
@@ -72,6 +74,7 @@ spec:
     clusterConfiguration:
       controllerManager:
         extraArgs: {enable-hostpath-provisioner: 'true'}
+      imageRepository: ${IMAGE_REPOSITORY}
       apiServer:
         # host.docker.internal is required by kubetest when running on macOS because of the way ports are proxied.
         certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
@@ -145,12 +148,12 @@ spec:
         path: /etc/kubernetes/manifests/kube-vip.yaml
     initConfiguration:
       nodeRegistration:
-        criSocket: unix:///var/run/containerd/containerd.sock
+        criSocket: ${CRI_SOCKET}
         kubeletExtraArgs:
           eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
     joinConfiguration:
       nodeRegistration:
-        criSocket: unix:///var/run/containerd/containerd.sock
+        criSocket: ${CRI_SOCKET}
         kubeletExtraArgs:
           eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
   version: "${KUBERNETES_VERSION}"
