@@ -31,6 +31,7 @@ const (
 	arm64      = "arm64"
 	k3s        = "k3s"
 	docker     = "docker"
+	cridockerd = "cri-dockerd"
 	crictl     = "crictl"
 	registry   = "registry"
 	harbor     = "harbor"
@@ -437,6 +438,14 @@ var (
 			arm64: {
 				"20.10.8":  "4eb9d5e2adf718cd7ee59f6951715f3113c9c4ee49c75c9efb9747f2c3457b2b",
 				"20.10.17": "249244024b507a6599084522cc73e73993349d13264505b387593f2b2ed603e6",
+			},
+		},
+		cridockerd: {
+			amd64: {
+				"0.2.6": "5d57b160d5a1f75333149823bec3e291a1a0960383ddc9ddd6e4ff177382c755",
+			},
+			arm64: {
+				"0.2.6": "90122641e45e8ff81dbdd4d84c06fd9744b807b87bff5d0db7f826ded326a9fd",
 			},
 		},
 		containerd: {
