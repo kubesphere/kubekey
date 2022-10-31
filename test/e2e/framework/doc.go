@@ -14,23 +14,5 @@
  limitations under the License.
 */
 
-package e2e
-
-import (
-	"fmt"
-
-	. "github.com/onsi/ginkgo"
-)
-
-// Test suite constants for e2e config variables.
-const (
-	KubernetesVersionManagement = "KUBERNETES_VERSION_MANAGEMENT"
-	CNIPath                     = "CNI"
-	CNIResources                = "CNI_RESOURCES"
-	IPFamily                    = "IP_FAMILY"
-)
-
-// Byf is a wrapper around By that formats its arguments.
-func Byf(format string, a ...interface{}) {
-	By(fmt.Sprintf(format, a...))
-}
+// Package framework implements end to end testing.
+package framework

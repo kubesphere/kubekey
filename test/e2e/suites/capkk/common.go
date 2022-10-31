@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 /*
  Copyright 2022 The KubeSphere Authors.
 
@@ -17,24 +14,23 @@
  limitations under the License.
 */
 
-package e2e
+package capkk
 
 import (
-	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
-	capie2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Describe("Cluster Creation using Cluster API quick-start test [PR-Blocking]", func() {
-	By("Creating single-node control plane with one worker node")
-	capie2e.QuickStartSpec(context.TODO(), func() capie2e.QuickStartSpecInput {
-		return capie2e.QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-		}
-	})
-})
+// Test suite constants for e2e config variables.
+const (
+	KubernetesVersionManagement = "KUBERNETES_VERSION_MANAGEMENT"
+	CNIPath                     = "CNI"
+	CNIResources                = "CNI_RESOURCES"
+	IPFamily                    = "IP_FAMILY"
+)
+
+// Byf is a wrapper around By that formats its arguments.
+func Byf(format string, a ...interface{}) {
+	By(fmt.Sprintf(format, a...))
+}

@@ -202,3 +202,13 @@ func (s *Service) DaemonReload() error {
 	_, _ = s.sshClient.SudoCmd("systemctl restart containerd")
 	return nil
 }
+
+// UninstallK3s uninstalls the k3s.
+func (s *Service) UninstallK3s() error {
+	if s.instanceScope.IsControlPlane() {
+		_, _ = s.sshClient.SudoCmd("/usr/local/bin/k3s-uninstall.sh")
+	} else {
+		_, _ = s.sshClient.SudoCmd("/usr/local/bin/k3s-agent-uninstall.sh")
+	}
+	return nil
+}

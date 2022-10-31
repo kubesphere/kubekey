@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -66,8 +67,12 @@ func defaultK3sControlPlaneSpec(s *K3sControlPlaneSpec, namespace string) {
 		s.Version = "v" + s.Version
 	}
 
-	if s.K3sConfigSpec.ServerConfiguration.Database.DataStoreEndPoint == "" && s.K3sConfigSpec.ServerConfiguration.Database.ClusterInit {
-		s.K3sConfigSpec.ServerConfiguration.Database.ClusterInit = true
+	if s.K3sConfigSpec.ServerConfiguration == nil {
+		s.K3sConfigSpec.ServerConfiguration = &infrabootstrapv1.ServerConfiguration{}
+	}
+
+	if s.K3sConfigSpec.ServerConfiguration.Database.DataStoreEndPoint == "" && s.K3sConfigSpec.ServerConfiguration.Database.ClusterInit == nil {
+		s.K3sConfigSpec.ServerConfiguration.Database.ClusterInit = pointer.Bool(true)
 	}
 
 	infrabootstrapv1.DefaultK3sConfigSpec(&s.K3sConfigSpec)
@@ -105,7 +110,7 @@ func (in *K3sControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, validateServerConfiguration(spec.K3sConfigSpec.ServerConfiguration, nil, field.NewPath("spec", "k3sConfigSpec", "serverConfiguration"))...)
 	allErrs = append(allErrs, spec.K3sConfigSpec.Validate(field.NewPath("spec", "k3sConfigSpec"))...)
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
+		return apierrors.NewInvalid(GroupVersion.WithKind("K3sControlPlane").GroupKind(), in.Name, allErrs)
 	}
 	return nil
 }
@@ -290,7 +295,7 @@ func validateRolloutStrategy(rolloutStrategy *RolloutStrategy, replicas *int32, 
 			allErrs,
 			field.Required(
 				pathPrefix.Child("rollingUpdate"),
-				"when KubeadmControlPlane is configured to scale-in, replica count needs to be at least 3",
+				"when K3sControlPlane is configured to scale-in, replica count needs to be at least 3",
 			),
 		)
 	}
@@ -315,36 +320,42 @@ func validateServerConfiguration(newServerConfiguration, oldServerConfiguration 
 		return allErrs
 	}
 
-	if newServerConfiguration.Database.ClusterInit && newServerConfiguration.Database.DataStoreEndPoint != "" {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				pathPrefix.Child("database", "clusterInit"),
-				"cannot have both external and local etcd",
-			),
-		)
-	}
-
-	// update validations
-	if oldServerConfiguration != nil {
-		if newServerConfiguration.Database.ClusterInit && oldServerConfiguration.Database.DataStoreEndPoint != "" {
+	if newServerConfiguration.Database.ClusterInit != nil {
+		if *newServerConfiguration.Database.ClusterInit && newServerConfiguration.Database.DataStoreEndPoint != "" {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
 					pathPrefix.Child("database", "clusterInit"),
-					"cannot change between external and local etcd",
+					"cannot have both external and local etcd",
 				),
 			)
 		}
+	}
 
-		if newServerConfiguration.Database.DataStoreEndPoint != "" && oldServerConfiguration.Database.ClusterInit {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					pathPrefix.Child("database", "dataStoreEndPoint"),
-					"cannot change between external and local etcd",
-				),
-			)
+	// update validations
+	if oldServerConfiguration != nil {
+		if newServerConfiguration.Database.ClusterInit != nil {
+			if *newServerConfiguration.Database.ClusterInit && oldServerConfiguration.Database.DataStoreEndPoint != "" {
+				allErrs = append(
+					allErrs,
+					field.Forbidden(
+						pathPrefix.Child("database", "clusterInit"),
+						"cannot change between external and local etcd",
+					),
+				)
+			}
+		}
+
+		if oldServerConfiguration.Database.ClusterInit != nil {
+			if newServerConfiguration.Database.DataStoreEndPoint != "" && *oldServerConfiguration.Database.ClusterInit {
+				allErrs = append(
+					allErrs,
+					field.Forbidden(
+						pathPrefix.Child("database", "dataStoreEndPoint"),
+						"cannot change between external and local etcd",
+					),
+				)
+			}
 		}
 	}
 

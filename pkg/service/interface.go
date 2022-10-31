@@ -33,6 +33,7 @@ type Bootstrap interface {
 	ResetNetwork() error
 	RemoveFiles() error
 	DaemonReload() error
+	UninstallK3s() error
 }
 
 // Repository is the interface for repository provision.

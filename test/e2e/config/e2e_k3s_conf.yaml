@@ -38,7 +38,7 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-  - name: kubeadm
+  - name: k3s
     type: BootstrapProvider
     versions:
       - name: v3.0.0
@@ -53,7 +53,7 @@ providers:
             new: --metrics-bind-addr=:8080
           - old: docker.io/kubespheredev/k3s-bootstrap-controller:main
             new: docker.io/kubespheredev/k3s-bootstrap-controller-amd64:e2e
-  - name: kubeadm
+  - name: k3s
     type: ControlPlaneProvider
     versions:
       - name: v3.0.0
@@ -80,7 +80,7 @@ providers:
           - old: docker.io/kubespheredev/capkk-controller:main
             new: docker.io/kubespheredev/capkk-controller-amd64:e2e
         files:
-          - sourcePath: "../data/infrastructure-kubekey/v1beta1/cluster-template.yaml"
+          - sourcePath: "../data/k3s/v1beta1/cluster-template.yaml"
           - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
 
 variables:
@@ -89,18 +89,18 @@ variables:
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
   KUBERNETES_VERSION_MANAGEMENT: "v1.24.0"
-  KUBERNETES_VERSION: "v1.24.0"
-  CNI: "./data/cni/calico.yaml"
+  KUBERNETES_VERSION: "v1.24.7"
+  CNI: "../../data/cni/calico.yaml"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   IP_FAMILY: "IPv4"
   SERVICE_CIDRS: "10.233.0.0/18"
   POD_CIDRS: "10.233.64.0/18"
   SERVICE_DOMAIN: "cluster.local"
-  KKZONE: "cn"
+  KKZONE: ""
   USER_NAME: "ubuntu"
   PASSWORD: "Qcloud@123"
-  INSTANCES: "[{address: 192.168.100.3}, {address: 192.168.100.4}]"
+  INSTANCES: "[{address: 192.168.100.3}, {address: 192.168.100.4}, {address: 192.168.100.5}]"
   CONTROL_PLANE_ENDPOINT_IP: "192.168.100.100"
 
 intervals:

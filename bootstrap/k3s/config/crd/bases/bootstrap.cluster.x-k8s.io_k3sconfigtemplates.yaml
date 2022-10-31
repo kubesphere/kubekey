@@ -51,6 +51,23 @@ spec:
                       agentConfiguration:
                         description: AgentConfiguration defines the k3s agent configuration.
                         properties:
+                          kubernetesAgentProcesses:
+                            description: KubernetesAgentProcesses defines the k3s
+                              agent kubernetes processes configuration.
+                            properties:
+                              kubeProxyArgs:
+                                description: KubeProxyArgs Customized flag for kube-proxy
+                                  process
+                                items:
+                                  type: string
+                                type: array
+                              kubeletArgs:
+                                description: KubeletArgs Customized flag for kubelet
+                                  process
+                                items:
+                                  type: string
+                                type: array
+                            type: object
                           networking:
                             description: Networking defines the k3s agent networking
                               configuration.
@@ -210,6 +227,23 @@ spec:
                           agent:
                             description: Agent is the agent configuration.
                             properties:
+                              kubernetesAgentProcesses:
+                                description: KubernetesAgentProcesses defines the
+                                  k3s agent kubernetes processes configuration.
+                                properties:
+                                  kubeProxyArgs:
+                                    description: KubeProxyArgs Customized flag for
+                                      kube-proxy process
+                                    items:
+                                      type: string
+                                    type: array
+                                  kubeletArgs:
+                                    description: KubeletArgs Customized flag for kubelet
+                                      process
+                                    items:
+                                      type: string
+                                    type: array
+                                type: object
                               networking:
                                 description: Networking defines the k3s agent networking
                                   configuration.
@@ -302,6 +336,49 @@ spec:
                                 description: DataStoreKeyFile TLS key file used to
                                   secure datastore backend communication.
                                 type: string
+                            type: object
+                          kubernetesComponents:
+                            description: KubernetesComponents is the kubernetes components
+                              configuration.
+                            properties:
+                              disable:
+                                description: 'Disable do not deploy packaged components
+                                  and delete any deployed components (valid items:
+                                  coredns, servicelb, traefik,local-storage, metrics-server).'
+                                type: string
+                              disableHelmController:
+                                description: DisableHelmController disable Helm controller.
+                                type: boolean
+                              disableKubeProxy:
+                                description: DisableKubeProxy disable running kube-proxy.
+                                type: boolean
+                              disableNetworkPolicy:
+                                description: DisableNetworkPolicy disable k3s default
+                                  network policy controller.
+                                type: boolean
+                            type: object
+                          kubernetesProcesses:
+                            description: KubernetesProcesses is the kubernetes processes
+                              configuration.
+                            properties:
+                              kubeAPIServerArg:
+                                description: KubeAPIServerArgs is a customized flag
+                                  for kube-apiserver process
+                                items:
+                                  type: string
+                                type: array
+                              kubeControllerManagerArgs:
+                                description: KubeControllerManagerArgs is a customized
+                                  flag for kube-controller-manager process
+                                items:
+                                  type: string
+                                type: array
+                              kubeSchedulerArgs:
+                                description: KubeSchedulerArgs is a customized flag
+                                  for kube-scheduler process
+                                items:
+                                  type: string
+                                type: array
                             type: object
                           listener:
                             description: Listener is the listener configuration.

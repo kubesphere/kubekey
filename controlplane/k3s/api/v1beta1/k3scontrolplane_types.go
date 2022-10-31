@@ -26,7 +26,7 @@ import (
 	infrabootstrapv1 "github.com/kubesphere/kubekey/bootstrap/k3s/api/v1beta1"
 )
 
-// RolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
+// RolloutStrategyType defines the rollout strategies for a K3sControlPlane.
 type RolloutStrategyType string
 
 const (
@@ -73,7 +73,7 @@ type K3sControlPlaneSpec struct {
 
 	// RolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
-	// KubeadmControlPlane.
+	// K3sControlPlane.
 	//
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
@@ -179,7 +179,7 @@ type K3sControlPlaneStatus struct {
 	// +optional
 	Initialized bool `json:"initialized"`
 
-	// Ready denotes that the KubeadmControlPlane API Server is ready to
+	// Ready denotes that the K3sControlPlane API Server is ready to
 	// receive requests.
 	// +optional
 	Ready bool `json:"ready"`
@@ -199,7 +199,7 @@ type K3sControlPlaneStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions defines current service state of the KubeadmControlPlane.
+	// Conditions defines current service state of the K3sControlPlane.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }

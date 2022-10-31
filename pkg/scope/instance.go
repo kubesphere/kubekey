@@ -149,6 +149,14 @@ func (i *InstanceScope) KubernetesVersion() string {
 	return *i.Machine.Spec.Version
 }
 
+// IsControlPlane returns whether the KKInstance is a control plane node.
+func (i *InstanceScope) IsControlPlane() bool {
+	if _, ok := i.Machine.GetLabels()[clusterv1.MachineControlPlaneLabelName]; ok {
+		return true
+	}
+	return false
+}
+
 // GetRawBootstrapDataWithFormat returns the raw bootstrap data from the corresponding machine.spec.bootstrap.
 func (i *InstanceScope) GetRawBootstrapDataWithFormat(ctx context.Context) ([]byte, bootstrapv1.Format, error) {
 	if i.Machine.Spec.Bootstrap.DataSecretName == nil {

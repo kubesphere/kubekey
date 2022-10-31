@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"encoding/json"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,7 +37,7 @@ func MatchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, mach
 			return matchMachineTemplateMetadata(kcp, machine)
 		},
 		collections.MatchesKubernetesVersion(kcp.Spec.Version),
-		MatchesK3sBootstrapConfig(machineConfigs, kcp),
+		//MatchesK3sBootstrapConfig(machineConfigs, kcp),
 		MatchesTemplateClonedFrom(infraConfigs, kcp),
 	)
 }
@@ -83,6 +84,11 @@ func MatchesK3sBootstrapConfig(machineConfigs map[string]*infrabootstrapv1.K3sCo
 			return false
 		}
 
+		// Check if KCP and machine ClusterConfiguration matches, if not return
+		if match := matchClusterConfiguration(kcp, machine); !match {
+			return false
+		}
+
 		bootstrapRef := machine.Spec.Bootstrap.ConfigRef
 		if bootstrapRef == nil {
 			// Missing bootstrap reference should not be considered as unmatching.
@@ -107,6 +113,40 @@ func MatchesK3sBootstrapConfig(machineConfigs map[string]*infrabootstrapv1.K3sCo
 		// on the fact that the machine was the initial control plane node or a joining control plane node.
 		return matchInitOrJoinConfiguration(machineConfig, kcp)
 	}
+}
+
+// matchClusterConfiguration verifies if KCP and machine ClusterConfiguration matches.
+// NOTE: Machines that have K3sClusterConfigurationAnnotation will have to match with KCP ClusterConfiguration.
+// If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes
+// made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
+// Users should use KCP.Spec.RolloutAfter field to force a rollout in this case.
+func matchClusterConfiguration(kcp *infracontrolplanev1.K3sControlPlane, machine *clusterv1.Machine) bool {
+	machineClusterConfigStr, ok := machine.GetAnnotations()[infracontrolplanev1.K3sServerConfigurationAnnotation]
+	if !ok {
+		// We don't have enough information to make a decision; don't' trigger a roll out.
+		return true
+	}
+
+	machineClusterConfig := &infrabootstrapv1.Cluster{}
+	// ClusterConfiguration annotation is not correct, only solution is to rollout.
+	// The call to json.Unmarshal has to take a pointer to the pointer struct defined above,
+	// otherwise we won't be able to handle a nil ClusterConfiguration (that is serialized into "null").
+	// See https://github.com/kubernetes-sigs/cluster-api/issues/3353.
+	if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfig); err != nil {
+		return false
+	}
+
+	// If any of the compared values are nil, treat them the same as an empty ClusterConfiguration.
+	if machineClusterConfig == nil {
+		machineClusterConfig = &infrabootstrapv1.Cluster{}
+	}
+	kcpLocalClusterConfiguration := kcp.Spec.K3sConfigSpec.Cluster
+	if kcpLocalClusterConfiguration == nil {
+		kcpLocalClusterConfiguration = &infrabootstrapv1.Cluster{}
+	}
+
+	// Compare and return.
+	return reflect.DeepEqual(machineClusterConfig, kcpLocalClusterConfiguration)
 }
 
 // matchInitOrJoinConfiguration verifies if KCP and machine ServerConfiguration or AgentConfiguration matches.
@@ -163,27 +203,13 @@ func cleanupConfigFields(kcpConfig *infrabootstrapv1.K3sConfigSpec, machineConfi
 	kcpConfig.Cluster = nil
 	machineConfig.Spec.Cluster = nil
 
+	kcpConfig.ServerConfiguration = nil
+	machineConfig.Spec.ServerConfiguration = nil
+
 	// If KCP JoinConfiguration is not present, set machine JoinConfiguration to nil (nothing can trigger rollout here).
 	// NOTE: this is required because CABPK applies an empty joinConfiguration in case no one is provided.
 	if kcpConfig.AgentConfiguration == nil {
 		machineConfig.Spec.AgentConfiguration = nil
-	}
-
-	// Cleanup JoinConfiguration.Discovery from kcpConfig and machineConfig, because those info are relevant only for
-	// the join process and not for comparing the configuration of the machine.
-	emptyDiscovery := &infrabootstrapv1.Cluster{}
-	if kcpConfig.Cluster != nil {
-		kcpConfig.Cluster = emptyDiscovery
-	}
-	if machineConfig.Spec.Cluster != nil {
-		machineConfig.Spec.Cluster = emptyDiscovery
-	}
-
-	// If KCP JoinConfiguration.ControlPlane is not present, set machine join configuration to nil (nothing can trigger rollout here).
-	// NOTE: this is required because CABPK applies an empty joinConfiguration.ControlPlane in case no one is provided.
-	if kcpConfig.Cluster != nil && kcpConfig.Cluster.Server == "" &&
-		machineConfig.Spec.Cluster != nil {
-		machineConfig.Spec.Cluster.Server = ""
 	}
 }
 

@@ -35,13 +35,13 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrabootstrapv1 "github.com/kubesphere/kubekey/bootstrap/k3s/api/v1beta1"
 	infracontrolplanev1 "github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1"
 	k3sCluster "github.com/kubesphere/kubekey/controlplane/k3s/pkg/cluster"
+	"github.com/kubesphere/kubekey/controlplane/k3s/pkg/kubeconfig"
 	"github.com/kubesphere/kubekey/util/secret"
 )
 

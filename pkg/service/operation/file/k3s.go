@@ -53,13 +53,12 @@ func NewK3s(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch stri
 		return nil, err
 	}
 
-	if arch == "amd64" {
-		arch = ""
-	} else {
-		arch = "-" + arch
+	var urlArchPath string
+	if arch != "amd64" {
+		urlArchPath = "-" + arch
 	}
 
-	u := parseURL(DefaultDownloadHostGoogle, fmt.Sprintf(K3sURLPathTmpl, version, arch))
+	u := parseURL(DefaultDownloadHost, fmt.Sprintf(K3sURLPathTmpl, version, urlArchPath))
 	binary := NewBinary(BinaryParams{
 		File:    file,
 		ID:      K3sID,

@@ -248,10 +248,10 @@ func (r *K3sConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Unlock any locks that might have been set during init process
 	r.K3sInitLock.Unlock(ctx, cluster)
 
-	// if the AgentConfiguration is missing, create a default one
-	if config.Spec.AgentConfiguration == nil {
-		log.Info("Creating default AgentConfiguration")
-		config.Spec.AgentConfiguration = &infrabootstrapv1.AgentConfiguration{}
+	// if the .spec.cluster is missing, create a default one
+	if config.Spec.Cluster == nil {
+		log.Info("Creating default .spec.cluster")
+		config.Spec.Cluster = &infrabootstrapv1.Cluster{}
 	}
 
 	// it's a control plane join
@@ -277,7 +277,7 @@ func (r *K3sConfigReconciler) handleClusterNotInitialized(ctx context.Context, s
 	}
 
 	// if the machine has not ClusterConfiguration and InitConfiguration, requeue
-	if scope.Config.Spec.ServerConfiguration == nil && scope.Config.Spec.AgentConfiguration == nil {
+	if scope.Config.Spec.ServerConfiguration == nil && scope.Config.Spec.Cluster == nil {
 		scope.Info("Control plane is not ready, requeing joining control planes until ready.")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
@@ -317,7 +317,7 @@ func (r *K3sConfigReconciler) handleClusterNotInitialized(ctx context.Context, s
 		ctx,
 		r.Client,
 		util.ObjectKey(scope.Cluster),
-		*metav1.NewControllerRef(scope.Config, bootstrapv1.GroupVersion.WithKind("K3sConfig")),
+		*metav1.NewControllerRef(scope.Config, infrabootstrapv1.GroupVersion.WithKind("K3sConfig")),
 	)
 	if err != nil {
 		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
@@ -377,6 +377,14 @@ func (r *K3sConfigReconciler) handleClusterNotInitialized(ctx context.Context, s
 func (r *K3sConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result, error) {
 	scope.Info("Creating BootstrapData for the worker node")
 
+	machine := &clusterv1.Machine{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(scope.ConfigOwner.Object, machine); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "cannot convert %s to Machine", scope.ConfigOwner.GetKind())
+	}
+
+	// injects into config.Spec values from top level object
+	r.reconcileWorkerTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
+
 	// Ensure that agentConfiguration is properly set for joining node on the current cluster.
 	if res, err := r.reconcileDiscovery(ctx, scope.Cluster, scope.Config); err != nil {
 		return ctrl.Result{}, err
@@ -384,7 +392,11 @@ func (r *K3sConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctr
 		return res, nil
 	}
 
-	joinWorkerData, err := k3stypes.MarshalJoinAgentConfiguration(scope.Config.Spec.AgentConfiguration)
+	if scope.Config.Spec.AgentConfiguration == nil {
+		scope.Config.Spec.AgentConfiguration = &infrabootstrapv1.AgentConfiguration{}
+	}
+
+	joinWorkerData, err := k3stypes.MarshalJoinAgentConfiguration(&scope.Config.Spec)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -432,9 +444,17 @@ func (r *K3sConfigReconciler) joinControlplane(ctx context.Context, scope *Scope
 		return ctrl.Result{}, fmt.Errorf("%s is not a valid control plane kind, only Machine is supported", scope.ConfigOwner.GetKind())
 	}
 
-	if scope.Config.Spec.Cluster == nil {
-		scope.Config.Spec.Cluster = &infrabootstrapv1.Cluster{}
+	if scope.Config.Spec.ServerConfiguration == nil {
+		scope.Config.Spec.ServerConfiguration = &infrabootstrapv1.ServerConfiguration{}
 	}
+
+	machine := &clusterv1.Machine{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(scope.ConfigOwner.Object, machine); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "cannot convert %s to Machine", scope.ConfigOwner.GetKind())
+	}
+
+	// injects into config.ClusterConfiguration values from top level object
+	r.reconcileTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
 
 	// Ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster.
 	if res, err := r.reconcileDiscovery(ctx, scope.Cluster, scope.Config); err != nil {
@@ -443,7 +463,7 @@ func (r *K3sConfigReconciler) joinControlplane(ctx context.Context, scope *Scope
 		return res, nil
 	}
 
-	joinData, err := k3stypes.MarshalJoinServerConfiguration(scope.Config.Spec.ServerConfiguration)
+	joinData, err := k3stypes.MarshalJoinServerConfiguration(&scope.Config.Spec)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -499,7 +519,7 @@ func (r *K3sConfigReconciler) generateAndStoreToken(ctx context.Context, scope *
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: bootstrapv1.GroupVersion.String(),
+					APIVersion: infrabootstrapv1.GroupVersion.String(),
 					Kind:       "K3sConfig",
 					Name:       scope.Config.Name,
 					UID:        scope.Config.UID,
@@ -579,7 +599,7 @@ func (r *K3sConfigReconciler) storeBootstrapData(ctx context.Context, scope *Sco
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: bootstrapv1.GroupVersion.String(),
+					APIVersion: infrabootstrapv1.GroupVersion.String(),
 					Kind:       "K3sConfig",
 					Name:       scope.Config.Name,
 					UID:        scope.Config.UID,
@@ -659,7 +679,7 @@ func (r *K3sConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.
 	}
 
 	var result []ctrl.Request
-	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("K3sConfig") {
+	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == infrabootstrapv1.GroupVersion.WithKind("K3sConfig") {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -676,7 +696,7 @@ func (r *K3sConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []c
 
 	var result []ctrl.Request
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-	if configRef != nil && configRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("K3sConfig").GroupKind() {
+	if configRef != nil && configRef.GroupVersionKind().GroupKind() == infrabootstrapv1.GroupVersion.WithKind("K3sConfig").GroupKind() {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -707,7 +727,7 @@ func (r *K3sConfigReconciler) ClusterToK3sConfigs(o client.Object) []ctrl.Reques
 
 	for _, m := range machineList.Items {
 		if m.Spec.Bootstrap.ConfigRef != nil &&
-			m.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("K3sConfig").GroupKind() {
+			m.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == infrabootstrapv1.GroupVersion.WithKind("K3sConfig").GroupKind() {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}
@@ -721,7 +741,7 @@ func (r *K3sConfigReconciler) ClusterToK3sConfigs(o client.Object) []ctrl.Reques
 
 		for _, mp := range machinePoolList.Items {
 			if mp.Spec.Template.Spec.Bootstrap.ConfigRef != nil &&
-				mp.Spec.Template.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("K3sConfig").GroupKind() {
+				mp.Spec.Template.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == infrabootstrapv1.GroupVersion.WithKind("K3sConfig").GroupKind() {
 				name := client.ObjectKey{Namespace: mp.Namespace, Name: mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name}
 				result = append(result, ctrl.Request{NamespacedName: name})
 			}
@@ -755,6 +775,16 @@ func (r *K3sConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Contex
 			log.V(3).Info("Altering ServerConfiguration.Networking.ClusterCIDR", "ClusterCIDR", config.Spec.ServerConfiguration.Networking.ClusterCIDR)
 		}
 	}
+
+	// If there are no Version settings defined, use Version from machine, if defined
+	if config.Spec.Version == "" && machine.Spec.Version != nil {
+		config.Spec.Version = *machine.Spec.Version
+		log.V(3).Info("Altering Spec.Version", "Version", config.Spec.Version)
+	}
+}
+
+func (r *K3sConfigReconciler) reconcileWorkerTopLevelObjectSettings(ctx context.Context, _ *clusterv1.Cluster, machine *clusterv1.Machine, config *infrabootstrapv1.K3sConfig) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// If there are no Version settings defined, use Version from machine, if defined
 	if config.Spec.Version == "" && machine.Spec.Version != nil {

@@ -26,8 +26,7 @@ import (
 )
 
 const (
-	labelNodeRoleOldControlPlane = "node-role.kubernetes.io/master" // Deprecated: https://github.com/kubernetes/kubeadm/issues/2200
-	labelNodeRoleControlPlane    = "node-role.kubernetes.io/control-plane"
+	labelNodeRoleControlPlane = "node-role.kubernetes.io/master"
 )
 
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
@@ -51,33 +50,30 @@ type Status struct {
 	Nodes int32
 	// ReadyNodes are the count of nodes that are reporting ready
 	ReadyNodes int32
-	// HasK3sConfig will be true if the kubeadm config map has been uploaded, false otherwise.
-	HasK3sConfig bool
 }
 
 func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
 	controlPlaneNodes := &corev1.NodeList{}
 	controlPlaneNodeNames := sets.NewString()
 
-	for _, label := range []string{labelNodeRoleOldControlPlane, labelNodeRoleControlPlane} {
-		nodes := &corev1.NodeList{}
-		if err := w.Client.List(ctx, nodes, ctrlclient.MatchingLabels(map[string]string{
-			label: "",
-		})); err != nil {
-			return nil, err
+	nodes := &corev1.NodeList{}
+	labels := map[string]string{
+		labelNodeRoleControlPlane: "true",
+	}
+	if err := w.Client.List(ctx, nodes, ctrlclient.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	for i := range nodes.Items {
+		node := nodes.Items[i]
+
+		// Continue if we already added that node.
+		if controlPlaneNodeNames.Has(node.Name) {
+			continue
 		}
 
-		for i := range nodes.Items {
-			node := nodes.Items[i]
-
-			// Continue if we already added that node.
-			if controlPlaneNodeNames.Has(node.Name) {
-				continue
-			}
-
-			controlPlaneNodeNames.Insert(node.Name)
-			controlPlaneNodes.Items = append(controlPlaneNodes.Items, node)
-		}
+		controlPlaneNodeNames.Insert(node.Name)
+		controlPlaneNodes.Items = append(controlPlaneNodes.Items, node)
 	}
 
 	return controlPlaneNodes, nil

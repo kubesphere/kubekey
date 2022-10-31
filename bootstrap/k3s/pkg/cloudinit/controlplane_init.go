@@ -17,8 +17,6 @@
 package cloudinit
 
 import (
-	"github.com/pkg/errors"
-
 	"github.com/kubesphere/kubekey/util/secret"
 )
 
@@ -31,7 +29,7 @@ const (
     content: "This placeholder file is used to create the /run/cluster-api sub directory in a way that is compatible with both Linux and Windows (mkdir -p /run/cluster-api does not work with Windows)"
 runcmd:
 {{- template "commands" .PreK3sCommands }}
-  - 'INSTALL_K3S_SKIP_DOWNLOAD=true /usr/local/bin/k3s-install.sh'
+  - "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server' /usr/local/bin/k3s-install.sh"
 {{- template "commands" .PostK3sCommands }}
 `
 )
@@ -49,11 +47,7 @@ func NewInitControlPlane(input *ControlPlaneInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
 	input.WriteFiles = input.Certificates.AsFiles()
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
-	k3sScriptFile, err := generateBootstrapScript(input)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate user data for machine install k3s")
-	}
-	input.WriteFiles = append(input.WriteFiles, *k3sScriptFile)
+	input.WriteFiles = append(input.WriteFiles, input.ConfigFile)
 	input.SentinelFileCommand = sentinelFileCommand
 	userData, err := generate("InitControlplane", controlPlaneCloudInit, input)
 	if err != nil {

@@ -45,16 +45,11 @@ type BaseUserData struct {
 	SentinelFileCommand string
 }
 
-func (input *BaseUserData) prepare() error {
+func (input *BaseUserData) prepare() {
 	input.Header = cloudConfigHeader
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
-	k3sScriptFile, err := generateBootstrapScript(input)
-	if err != nil {
-		return errors.Wrap(err, "failed to generate user data for machine install k3s")
-	}
-	input.WriteFiles = append(input.WriteFiles, *k3sScriptFile)
+	input.WriteFiles = append(input.WriteFiles, input.ConfigFile)
 	input.SentinelFileCommand = sentinelFileCommand
-	return nil
 }
 
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {
@@ -78,22 +73,4 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	}
 
 	return out.Bytes(), nil
-}
-
-var (
-	//go:embed k3s-install.sh
-	k3sBootstrapScript string
-)
-
-func generateBootstrapScript(input interface{}) (*bootstrapv1.File, error) {
-	k3sScript, err := generate("K3sInstallScript", k3sBootstrapScript, input)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to bootstrap script for machine joins")
-	}
-	return &bootstrapv1.File{
-		Path:        "/usr/local/bin/k3s-install.sh",
-		Owner:       "root",
-		Permissions: "0755",
-		Content:     string(k3sScript),
-	}, nil
 }
