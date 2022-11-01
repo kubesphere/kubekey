@@ -1,9 +1,8 @@
 name: Release Drafter
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
+
 
 jobs:
   update_release_draft:

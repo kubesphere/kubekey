@@ -308,6 +308,10 @@ func normalizedBuildVersion(version string) string {
 
 // load addon from argument
 func loadExtraAddons(cluster *kubekeyapiv1alpha2.Cluster, addonFile string) error {
+	if addonFile == "" {
+		return nil
+	}
+
 	fp, err := filepath.Abs(addonFile)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Failed to load addon in file: %s", addonFile))
@@ -323,7 +327,7 @@ func loadExtraAddons(cluster *kubekeyapiv1alpha2.Cluster, addonFile string) erro
 	content := make([]byte, b1.Size())
 	_, err = b1.Read(content)
 	if err != nil {
-		return errors.Wrap(err, "Unable to unmarshal the given cluster configuration file")
+		return errors.Wrap(err, "Unable to unmarshal the given addon configuration file")
 	}
 
 	if len(content) == 0 {
