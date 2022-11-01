@@ -19,7 +19,7 @@ builds:
     - -s
 dist: bin
 archives:
-- name_template: "kubekey-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+- name_template: "kubekey-ext-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
   replacements:
     linux: linux
     amd64: amd64
@@ -37,18 +37,3 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
-nfpms:
-  - file_name_template: "kubekey-v{{ .Version }}-{{.Os}}-{{.Arch}}"
-    homepage: https://github.com/kubesphere/kubekey
-    description: "KubeKey provides a flexible, rapid and convenient way to install Kubernetes only, both Kubernetes and KubeSphere, and related cloud-native add-ons. It is also an efficient tool to scale and upgrade your cluster."
-    maintainer: kubesphere authors
-    license: Apache-2.0
-    vendor: Kubesphere
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/bin
-    replacements:
-      amd64: 64bit
-      arm64: arm64
-      linux: linux
