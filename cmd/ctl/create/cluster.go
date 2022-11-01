@@ -124,6 +124,7 @@ func (o *CreateClusterOptions) Run() error {
 		Artifact:            o.Artifact,
 		InstallPackages:     o.InstallPackages,
 		Namespace:           o.CommonOptions.Namespace,
+		ExtraAddon:          o.AddonCfgFile,
 	}
 
 	if o.localStorageChanged {
