@@ -58,7 +58,7 @@ if [ "x${VERSION}" = "x" ]; then
   exit
 fi
 
-DOWNLOAD_URL="https://github.com/eball/kubekey-ext/releases/download/${VERSION}/kubekey-ext-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
+DOWNLOAD_URL="https://github.com/eball/kubekey-ext/releases/download/${VERSION}/kubekey-ext-v${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
 
 echo ""
 echo "Downloading kubekey-ext ${VERSION} from ${DOWNLOAD_URL} ..."
