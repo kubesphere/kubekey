@@ -1,9 +1,6 @@
 ---
 name: gen-repository-iso
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 jobs:
