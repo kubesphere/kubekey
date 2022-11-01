@@ -46,6 +46,22 @@ spec:
                   agentConfiguration:
                     description: AgentConfiguration defines the k3s agent configuration.
                     properties:
+                      kubernetesAgentProcesses:
+                        description: KubernetesAgentProcesses defines the k3s agent
+                          kubernetes processes configuration.
+                        properties:
+                          kubeProxyArgs:
+                            description: KubeProxyArgs Customized flag for kube-proxy
+                              process
+                            items:
+                              type: string
+                            type: array
+                          kubeletArgs:
+                            description: KubeletArgs Customized flag for kubelet process
+                            items:
+                              type: string
+                            type: array
+                        type: object
                       networking:
                         description: Networking defines the k3s agent networking configuration.
                         properties:
@@ -203,6 +219,23 @@ spec:
                       agent:
                         description: Agent is the agent configuration.
                         properties:
+                          kubernetesAgentProcesses:
+                            description: KubernetesAgentProcesses defines the k3s
+                              agent kubernetes processes configuration.
+                            properties:
+                              kubeProxyArgs:
+                                description: KubeProxyArgs Customized flag for kube-proxy
+                                  process
+                                items:
+                                  type: string
+                                type: array
+                              kubeletArgs:
+                                description: KubeletArgs Customized flag for kubelet
+                                  process
+                                items:
+                                  type: string
+                                type: array
+                            type: object
                           networking:
                             description: Networking defines the k3s agent networking
                               configuration.
@@ -291,6 +324,49 @@ spec:
                             description: DataStoreKeyFile TLS key file used to secure
                               datastore backend communication.
                             type: string
+                        type: object
+                      kubernetesComponents:
+                        description: KubernetesComponents is the kubernetes components
+                          configuration.
+                        properties:
+                          disable:
+                            description: 'Disable do not deploy packaged components
+                              and delete any deployed components (valid items: coredns,
+                              servicelb, traefik,local-storage, metrics-server).'
+                            type: string
+                          disableHelmController:
+                            description: DisableHelmController disable Helm controller.
+                            type: boolean
+                          disableKubeProxy:
+                            description: DisableKubeProxy disable running kube-proxy.
+                            type: boolean
+                          disableNetworkPolicy:
+                            description: DisableNetworkPolicy disable k3s default
+                              network policy controller.
+                            type: boolean
+                        type: object
+                      kubernetesProcesses:
+                        description: KubernetesProcesses is the kubernetes processes
+                          configuration.
+                        properties:
+                          kubeAPIServerArg:
+                            description: KubeAPIServerArgs is a customized flag for
+                              kube-apiserver process
+                            items:
+                              type: string
+                            type: array
+                          kubeControllerManagerArgs:
+                            description: KubeControllerManagerArgs is a customized
+                              flag for kube-controller-manager process
+                            items:
+                              type: string
+                            type: array
+                          kubeSchedulerArgs:
+                            description: KubeSchedulerArgs is a customized flag for
+                              kube-scheduler process
+                            items:
+                              type: string
+                            type: array
                         type: object
                       listener:
                         description: Listener is the listener configuration.
@@ -435,7 +511,7 @@ spec:
               rolloutAfter:
                 description: RolloutAfter is a field to indicate a rollout should
                   be performed after the specified time even if no changes have been
-                  made to the KubeadmControlPlane.
+                  made to the K3sControlPlane.
                 format: date-time
                 type: string
               rolloutStrategy:
@@ -477,7 +553,7 @@ spec:
             description: K3sControlPlaneStatus defines the observed state of K3sControlPlane
             properties:
               conditions:
-                description: Conditions defines current service state of the KubeadmControlPlane.
+                description: Conditions defines current service state of the K3sControlPlane.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -540,8 +616,8 @@ spec:
                 format: int64
                 type: integer
               ready:
-                description: Ready denotes that the KubeadmControlPlane API Server
-                  is ready to receive requests.
+                description: Ready denotes that the K3sControlPlane API Server is
+                  ready to receive requests.
                 type: boolean
               readyReplicas:
                 description: Total number of fully running and ready control plane

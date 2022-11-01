@@ -180,14 +180,14 @@ func (r *K3sControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			if errors.As(err, &connFailure) {
 				log.Info("Could not connect to workload cluster to fetch status", "err", err.Error())
 			} else {
-				log.Error(err, "Failed to update KubeadmControlPlane Status")
+				log.Error(err, "Failed to update K3sControlPlane Status")
 				retErr = kerrors.NewAggregate([]error{retErr, err})
 			}
 		}
 
-		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
+		// Always attempt to Patch the K3sControlPlane object and status after each reconciliation.
 		if err := patchK3sControlPlane(ctx, patchHelper, kcp); err != nil {
-			log.Error(err, "Failed to patch KubeadmControlPlane")
+			log.Error(err, "Failed to patch K3sControlPlane")
 			retErr = kerrors.NewAggregate([]error{retErr, err})
 		}
 
@@ -240,10 +240,10 @@ func patchK3sControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *i
 	)
 }
 
-// reconcile handles KubeadmControlPlane reconciliation.
+// reconcile handles K3sControlPlane reconciliation.
 func (r *K3sControlPlaneReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *infracontrolplanev1.K3sControlPlane) (res ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-	log.Info("Reconcile KubeadmControlPlane")
+	log.Info("Reconcile K3sControlPlane")
 
 	// Make sure to reconcile the external infrastructure reference.
 	if err := r.reconcileExternalReference(ctx, cluster, &kcp.Spec.MachineTemplate.InfrastructureRef); err != nil {
@@ -257,11 +257,6 @@ func (r *K3sControlPlaneReconciler) reconcile(ctx context.Context, cluster *clus
 	}
 
 	// Generate Cluster Certificates if needed
-	config := kcp.Spec.K3sConfigSpec.DeepCopy()
-	config.AgentConfiguration = nil
-	if config.ServerConfiguration == nil {
-		config.ServerConfiguration = &infrabootstrapv1.ServerConfiguration{}
-	}
 	certificates := secret.NewCertificatesForInitialControlPlane()
 	controllerRef := metav1.NewControllerRef(kcp, infracontrolplanev1.GroupVersion.WithKind("K3sControlPlane"))
 	if err := certificates.LookupOrGenerate(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
@@ -373,7 +368,7 @@ func (r *K3sControlPlaneReconciler) reconcile(ctx context.Context, cluster *clus
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *K3sControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *infracontrolplanev1.K3sControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-	log.Info("Reconcile KubeadmControlPlane deletion")
+	log.Info("Reconcile K3sControlPlane deletion")
 
 	// Gets all machines, not just control plane machines.
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, cluster)

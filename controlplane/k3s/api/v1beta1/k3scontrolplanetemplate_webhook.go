@@ -55,7 +55,7 @@ var _ webhook.Validator = &K3sControlPlaneTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *K3sControlPlaneTemplate) ValidateCreate() error {
-	// NOTE: KubeadmControlPlaneTemplate is behind ClusterTopology feature gate flag; the web hook
+	// NOTE: K3sControlPlaneTemplate is behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
 		return field.Forbidden(

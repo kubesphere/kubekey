@@ -99,6 +99,9 @@ func (r *KKInstanceReconciler) reconcileDeletingBootstrap(_ context.Context, ssh
 	if err := svc.DaemonReload(); err != nil {
 		return err
 	}
+	if err := svc.UninstallK3s(); err != nil {
+		return err
+	}
 	return nil
 }
 

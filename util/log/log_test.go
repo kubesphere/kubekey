@@ -123,7 +123,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 			},
 		},
 		{
-			name: "KubeadmControlPlane and Machine owning DockerMachine are added",
+			name: "K3sControlPlane and Machine owning DockerMachine are added",
 			obj: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -137,7 +137,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 							},
 							map[string]interface{}{
 								"apiVersion": clusterv1.GroupVersion.String(),
-								"kind":       "KubeadmControlPlane",
+								"kind":       "K3sControlPlane",
 								"name":       "development-3961-4flkb",
 							},
 						},
@@ -148,7 +148,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 			expectedKeysAndValues: []interface{}{
 				"Machine",
 				klog.ObjectRef{Namespace: metav1.NamespaceDefault, Name: "development-3961-4flkb-gzxnb"},
-				"KubeadmControlPlane",
+				"K3sControlPlane",
 				klog.ObjectRef{Namespace: metav1.NamespaceDefault, Name: "development-3961-4flkb"},
 			},
 		},

@@ -32,7 +32,7 @@ type K3sControlPlaneTemplateResource struct {
 	Spec K3sControlPlaneTemplateResourceSpec `json:"spec"`
 }
 
-// K3sControlPlaneTemplateResourceSpec defines the desired state of KubeadmControlPlane.
+// K3sControlPlaneTemplateResourceSpec defines the desired state of K3sControlPlane.
 // NOTE: K3sControlPlaneTemplateResourceSpec is similar to K3sControlPlaneSpec but
 // omits Replicas and Version fields. These fields do not make sense on the K3sControlPlaneTemplate,
 // because they are calculated by the Cluster topology reconciler during reconciliation and thus cannot
@@ -49,7 +49,7 @@ type K3sControlPlaneTemplateResourceSpec struct {
 
 	// RolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
-	// KubeadmControlPlane.
+	// K3sControlPlane.
 	//
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
@@ -62,11 +62,11 @@ type K3sControlPlaneTemplateResourceSpec struct {
 }
 
 // K3sControlPlaneTemplateMachineTemplate defines the template for Machines
-// in a KubeadmControlPlaneTemplate object.
-// NOTE: KubeadmControlPlaneTemplateMachineTemplate is similar to KubeadmControlPlaneMachineTemplate but
-// omits ObjectMeta and InfrastructureRef fields. These fields do not make sense on the KubeadmControlPlaneTemplate,
+// in a K3sControlPlaneTemplate object.
+// NOTE: K3sControlPlaneTemplateMachineTemplate is similar to K3sControlPlaneMachineTemplate but
+// omits ObjectMeta and InfrastructureRef fields. These fields do not make sense on the K3sControlPlaneTemplate,
 // because they are calculated by the Cluster topology reconciler during reconciliation and thus cannot
-// be configured on the KubeadmControlPlaneTemplate.
+// be configured on the K3sControlPlaneTemplate.
 type K3sControlPlaneTemplateMachineTemplate struct {
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.

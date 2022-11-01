@@ -27,6 +27,12 @@ type ServerConfiguration struct {
 	// Networking is the networking configuration.
 	Networking Networking `json:"networking,omitempty"`
 
+	// KubernetesComponents is the kubernetes components configuration.
+	KubernetesComponents KubernetesComponents `json:"kubernetesComponents,omitempty"`
+
+	// KubernetesProcesses is the kubernetes processes configuration.
+	KubernetesProcesses KubernetesProcesses `json:"kubernetesProcesses,omitempty"`
+
 	// Agent is the agent configuration.
 	Agent AgentConfiguration `json:"agent,omitempty"`
 }
@@ -41,6 +47,9 @@ type AgentConfiguration struct {
 
 	// Networking defines the k3s agent networking configuration.
 	Networking AgentNetworking `json:"networking,omitempty"`
+
+	// KubernetesAgentProcesses defines the k3s agent kubernetes processes configuration.
+	KubernetesAgentProcesses KubernetesAgentProcesses `json:"kubernetesAgentProcesses,omitempty"`
 }
 
 // Database defines the desired state of k3s database configuration.
@@ -58,7 +67,7 @@ type Database struct {
 	DataStoreKeyFile string `json:"dataStoreKeyFile,omitempty"`
 
 	// ClusterInit initialize a new cluster using embedded Etcd.
-	ClusterInit bool `json:"clusterInit,omitempty"`
+	ClusterInit *bool `json:"clusterInit,omitempty"`
 }
 
 // Cluster is the desired state of k3s cluster configuration.
@@ -158,4 +167,46 @@ type AgentNetworking struct {
 
 	// ResolvConf Path to Kubelet resolv.conf file.
 	ResolvConf string `json:"resolvConf,omitempty"`
+}
+
+// KubernetesComponents defines the desired state of k3s kubernetes components configuration.
+type KubernetesComponents struct {
+	// Disable do not deploy packaged components and delete any deployed components
+	// (valid items: coredns, servicelb, traefik,local-storage, metrics-server).
+	Disable string `json:"disable,omitempty"`
+
+	// DisableKubeProxy disable running kube-proxy.
+	DisableKubeProxy bool `json:"disableKubeProxy,omitempty"`
+
+	// DisableNetworkPolicy disable k3s default network policy controller.
+	DisableNetworkPolicy bool `json:"disableNetworkPolicy,omitempty"`
+
+	// DisableHelmController disable Helm controller.
+	DisableHelmController bool `json:"disableHelmController,omitempty"`
+}
+
+// KubernetesProcesses defines the desired state of kubernetes processes configuration.
+type KubernetesProcesses struct {
+	// KubeAPIServerArgs is a customized flag for kube-apiserver process
+	// +optional
+	KubeAPIServerArgs []string `json:"kubeAPIServerArg,omitempty"`
+
+	// KubeControllerManagerArgs is a customized flag for kube-controller-manager process
+	// +optional
+	KubeControllerManagerArgs []string `json:"kubeControllerManagerArgs,omitempty"`
+
+	// KubeSchedulerArgs is a customized flag for kube-scheduler process
+	// +optional
+	KubeSchedulerArgs []string `json:"kubeSchedulerArgs,omitempty"`
+}
+
+// KubernetesAgentProcesses defines the desired state of kubernetes agent processes configuration.
+type KubernetesAgentProcesses struct {
+	// KubeletArgs Customized flag for kubelet process
+	// +optional
+	KubeletArgs []string `json:"kubeletArgs,omitempty"`
+
+	// KubeProxyArgs Customized flag for kube-proxy process
+	// +optional
+	KubeProxyArgs []string `json:"kubeProxyArgs,omitempty"`
 }

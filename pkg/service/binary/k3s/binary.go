@@ -17,7 +17,9 @@
 package k3s
 
 import (
+	"embed"
 	"path/filepath"
+	"text/template"
 	"time"
 
 	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
@@ -26,9 +28,15 @@ import (
 	"github.com/kubesphere/kubekey/pkg/service/util"
 )
 
+//go:embed templates
+var f embed.FS
+
 // Download downloads binaries.
 func (s *Service) Download(timeout time.Duration) error {
 	if err := s.DownloadAll(timeout); err != nil {
+		return err
+	}
+	if err := s.GenerateK3sInstallScript(); err != nil {
 		return err
 	}
 	return nil
@@ -74,5 +82,31 @@ func (s *Service) DownloadAll(timeout time.Duration) error {
 		return err
 	}
 
+	return nil
+}
+
+// GenerateK3sInstallScript generates k3s install script.
+func (s *Service) GenerateK3sInstallScript() error {
+	temp, err := template.ParseFS(f, "templates/k3s-install.sh")
+	if err != nil {
+		return err
+	}
+
+	svc, err := s.getTemplateService(
+		temp,
+		nil,
+		filepath.Join(file.BinDir, temp.Name()))
+	if err != nil {
+		return err
+	}
+	if err := svc.RenderToLocal(); err != nil {
+		return err
+	}
+	if err := svc.Copy(true); err != nil {
+		return err
+	}
+	if err := svc.Chmod("+x"); err != nil {
+		return err
+	}
 	return nil
 }

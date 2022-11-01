@@ -28,10 +28,10 @@ type K3sServerConfiguration struct {
 	DataStoreKeyFile  string `json:"datastore-keyfile,omitempty"`
 
 	// Cluster
-	Token     string `json:"token,omitempty"`
-	TokenFile string `json:"token-file,omitempty"`
-	Server    string `json:"server,omitempty"`
-	CloudInit bool   `json:"cloud-init,omitempty"`
+	Token       string `json:"token,omitempty"`
+	TokenFile   string `json:"token-file,omitempty"`
+	Server      string `json:"server,omitempty"`
+	ClusterInit bool   `json:"cluster-init,omitempty"`
 
 	// Listener
 	// BindAddress k3s bind address.
@@ -58,6 +58,27 @@ type K3sServerConfiguration struct {
 	ClusterDomain string `json:"cluster-domain,omitempty"`
 	// FlannelBackend One of ‘none’, ‘vxlan’, ‘ipsec’, ‘host-gw’, or ‘wireguard’. (default: vxlan)
 	FlannelBackend string `json:"flannel-backend,omitempty"`
+
+	// Kubernetes components
+	// Disable do not deploy packaged components and delete any deployed components
+	// (valid items: coredns, servicelb, traefik,local-storage, metrics-server).
+	Disable string `json:"disable,omitempty"`
+	// DisableKubeProxy disable running kube-proxy.
+	DisableKubeProxy bool `json:"disable-kube-roxy,omitempty"`
+	// DisableNetworkPolicy disable k3s default network policy controller.
+	DisableNetworkPolicy bool `json:"disable-network-policy,omitempty"`
+	// DisableHelmController disable Helm controller.
+	DisableHelmController bool `json:"disable-helm-controller,omitempty"`
+
+	// Kubernetes processes
+	// DisableCloudController Disable k3s default cloud controller manager.
+	DisableCloudController bool `json:"disable-cloud-controller,omitempty"`
+	// KubeAPIServerArgs Customized flag for kube-apiserver process.
+	KubeAPIServerArgs []string `json:"kube-apiserver-arg,omitempty"`
+	// KubeControllerManagerArgs Customized flag for kube-controller-manager process.
+	KubeControllerManagerArgs []string `json:"kube-controller-manager-arg,omitempty"`
+	// KubeSchedulerArgs Customized flag for kube-scheduler process.
+	KubeSchedulerArgs []string `json:"kube-scheduler-args,omitempty"`
 
 	// Agent
 	K3sAgentConfiguration `json:",inline"`
@@ -101,4 +122,10 @@ type K3sAgentConfiguration struct {
 	NodeExternalIP string `json:"node-external-ip,omitempty"`
 	// ResolvConf Path to Kubelet resolv.conf file.
 	ResolvConf string `json:"resolv-conf,omitempty"`
+
+	// Kubernetes
+	// KubeletArgs Customized flag for kubelet process.
+	KubeletArgs []string `json:"kubelet-arg,omitempty"`
+	// KubeProxyArgs Customized flag for kube-proxy process.
+	KubeProxyArgs []string `json:"kube-proxy-arg,omitempty"`
 }

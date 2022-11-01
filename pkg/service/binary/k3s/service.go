@@ -17,6 +17,8 @@
 package k3s
 
 import (
+	"text/template"
+
 	"github.com/kubesphere/kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/pkg/service/operation"
@@ -30,8 +32,9 @@ type Service struct {
 	scope         scope.KKInstanceScope
 	instanceScope *scope.InstanceScope
 
-	k3sFactory     func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
-	kubecniFactory func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	templateFactory func(sshClient ssh.Interface, template *template.Template, data file.Data, dst string) (operation.Template, error)
+	k3sFactory      func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
+	kubecniFactory  func(sshClient ssh.Interface, version, arch string) (operation.Binary, error)
 }
 
 // NewService returns a new service given the remote instance.
@@ -41,6 +44,13 @@ func NewService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceSc
 		scope:         scope,
 		instanceScope: instanceScope,
 	}
+}
+
+func (s *Service) getTemplateService(template *template.Template, data file.Data, dst string) (operation.Template, error) {
+	if s.templateFactory != nil {
+		return s.templateFactory(s.sshClient, template, data, dst)
+	}
+	return file.NewTemplate(s.sshClient, s.scope.RootFs(), template, data, dst)
 }
 
 func (s *Service) getK3sService(version, arch string) (operation.Binary, error) {

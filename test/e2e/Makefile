@@ -70,12 +70,19 @@ $(KIND_BIN): $(KIND) ## Build a local copy of KIND
 ## --------------------------------------
 
 KUBEKEY_TEMPLATES := $(REPO_ROOT)/test/e2e/data/infrastructure-kubekey
+KUBEKEY_K3S_TEMPLATES := $(REPO_ROOT)/test/e2e/data/k3s
 
 .PHONY: cluster-templates
 cluster-templates: $(KUSTOMIZE) cluster-templates-v1beta1 ## Generate cluster templates for all versions
 
+.PHONY: cluster-templates-k3s
+cluster-templates-k3s: $(KUSTOMIZE) cluster-templates-k3s-v1beta1
+
 cluster-templates-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for v1beta1
 	$(KUSTOMIZE) build $(KUBEKEY_TEMPLATES)/v1beta1/cluster-template --load-restrictor LoadRestrictionsNone > $(KUBEKEY_TEMPLATES)/v1beta1/cluster-template.yaml
+
+cluster-templates-k3s-v1beta1: $(KUSTOMIZE)
+	$(KUSTOMIZE) build $(KUBEKEY_K3S_TEMPLATES)/v1beta1/cluster-template --load-restrictor LoadRestrictionsNone > $(KUBEKEY_K3S_TEMPLATES)/v1beta1/cluster-template.yaml
 
 ## --------------------------------------
 ## Testing
@@ -99,14 +106,14 @@ endif
 
 .PHONY: run
 run: $(GINKGO) $(KIND) cluster-templates ## Run the end-to-end tests
-	$(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) . -- \
+	$(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./suites/capkk/... -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
 
 .PHONY: run-k3s
-run-k3s: $(GINKGO) $(KIND) cluster-templates ## Run the end-to-end tests
-	$(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) . -- \
+run-k3s: $(GINKGO) $(KIND) cluster-templates-k3s ## Run the end-to-end tests
+	$(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./suites/k3s/... -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS_K3S)" \
 	    -e2e.config="$(E2E_K3S_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)

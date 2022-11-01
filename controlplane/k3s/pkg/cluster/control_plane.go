@@ -104,12 +104,12 @@ func (c *ControlPlane) FailureDomains() clusterv1.FailureDomains {
 	return c.Cluster.Status.FailureDomains
 }
 
-// Version returns the KThreesControlPlane's version.
+// Version returns the K3sControlPlane's version.
 func (c *ControlPlane) Version() *string {
 	return &c.KCP.Spec.Version
 }
 
-// MachineInfrastructureTemplateRef returns the KubeadmControlPlane's infrastructure template for Machines.
+// MachineInfrastructureTemplateRef returns the K3sControlPlane's infrastructure template for Machines.
 func (c *ControlPlane) MachineInfrastructureTemplateRef() *corev1.ObjectReference {
 	return &c.KCP.Spec.MachineTemplate.InfrastructureRef
 }

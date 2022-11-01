@@ -133,6 +133,7 @@ generate-manifests-capkk: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e
 	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases"
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
+		paths=./controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
@@ -144,6 +145,7 @@ generate-manifests-k3s-bootstrap: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate man
 	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/k3s/config/crd/bases"
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/k3s/api/... \
+		paths=./bootstrap/k3s/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/k3s/config/crd/bases \
@@ -156,6 +158,7 @@ generate-manifests-k3s-control-plane: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate
 	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/k3s/config/crd/bases"
 	$(CONTROLLER_GEN) \
 		paths=./controlplane/k3s/api/... \
+		paths=./controlplane/k3s/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/k3s/config/crd/bases \

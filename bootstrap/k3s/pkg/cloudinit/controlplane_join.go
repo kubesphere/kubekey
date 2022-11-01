@@ -29,16 +29,14 @@ const (
     content: "This placeholder file is used to create the /run/cluster-api sub directory in a way that is compatible with both Linux and Windows (mkdir -p /run/cluster-api does not work with Windows)"
 runcmd:
 {{- template "commands" .PreK3sCommands }}
-  - 'INSTALL_K3S_SKIP_DOWNLOAD=true /usr/local/bin/k3s-install.sh'
+  - "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server' /usr/local/bin/k3s-install.sh"
 {{- template "commands" .PostK3sCommands }}
 `
 )
 
 // NewJoinControlPlane returns the cloudinit string to be used on joining a control plane instance.
 func NewJoinControlPlane(input *ControlPlaneInput) ([]byte, error) {
-	if err := input.prepare(); err != nil {
-		return nil, err
-	}
+	input.prepare()
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate user data for machine joining control plane")

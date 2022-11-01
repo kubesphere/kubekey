@@ -103,17 +103,16 @@ func (r *K3sControlPlaneReconciler) updateStatus(ctx context.Context, kcp *infra
 	if err != nil {
 		return err
 	}
+
+	log.Info("ClusterStatus", "workload", status)
+
 	kcp.Status.ReadyReplicas = status.ReadyNodes
 	kcp.Status.UnavailableReplicas = replicas - status.ReadyNodes
 
-	// This only gets initialized once and does not change if the k3s config map goes away.
-	if status.HasK3sConfig {
-		kcp.Status.Initialized = true
-		conditions.MarkTrue(kcp, infracontrolplanev1.AvailableCondition)
-	}
-
 	if kcp.Status.ReadyReplicas > 0 {
 		kcp.Status.Ready = true
+		kcp.Status.Initialized = true
+		conditions.MarkTrue(kcp, infracontrolplanev1.AvailableCondition)
 	}
 
 	return nil

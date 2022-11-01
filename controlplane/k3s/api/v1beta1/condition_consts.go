@@ -20,19 +20,19 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// Conditions and condition Reasons for the KubeadmControlPlane object.
+// Conditions and condition Reasons for the K3sControlPlane object.
 
 const (
-	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the KubeadmControlPlane.
+	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the K3sControlPlane.
 	MachinesReadyCondition clusterv1.ConditionType = "MachinesReady"
 )
 
 const (
 	// CertificatesAvailableCondition documents that cluster certificates were generated as part of the
-	// processing of a a KubeadmControlPlane object.
+	// processing of a a K3sControlPlane object.
 	CertificatesAvailableCondition clusterv1.ConditionType = "CertificatesAvailable"
 
-	// CertificatesGenerationFailedReason (Severity=Warning) documents a KubeadmControlPlane controller detecting
+	// CertificatesGenerationFailedReason (Severity=Warning) documents a K3sControlPlane controller detecting
 	// an error while generating certificates; those kind of errors are usually temporary and the controller
 	// automatically recover from them.
 	CertificatesGenerationFailedReason = "CertificatesGenerationFailed"
@@ -43,29 +43,29 @@ const (
 	// and so the control plane is available and an API server instance is ready for processing requests.
 	AvailableCondition clusterv1.ConditionType = "Available"
 
-	// WaitingForKubeadmInitReason (Severity=Info) documents a KubeadmControlPlane object waiting for the first
+	// WaitingForKubeadmInitReason (Severity=Info) documents a K3sControlPlane object waiting for the first
 	// control plane instance to complete the kubeadm init operation.
 	WaitingForKubeadmInitReason = "WaitingForKubeadmInit"
 )
 
 const (
 	// MachinesSpecUpToDateCondition documents that the spec of the machines controlled by the K3sControlPlane
-	// is up to date. When this condition is false, the KubeadmControlPlane is executing a rolling upgrade.
+	// is up to date. When this condition is false, the K3sControlPlane is executing a rolling upgrade.
 	MachinesSpecUpToDateCondition clusterv1.ConditionType = "MachinesSpecUpToDate"
 
-	// RollingUpdateInProgressReason (Severity=Warning) documents a KubeadmControlPlane object executing a
+	// RollingUpdateInProgressReason (Severity=Warning) documents a K3sControlPlane object executing a
 	// rolling upgrade for aligning the machines spec to the desired state.
 	RollingUpdateInProgressReason = "RollingUpdateInProgress"
 )
 
 const (
-	// ResizedCondition documents a KubeadmControlPlane that is resizing the set of controlled machines.
+	// ResizedCondition documents a K3sControlPlane that is resizing the set of controlled machines.
 	ResizedCondition clusterv1.ConditionType = "Resized"
 
-	// ScalingUpReason (Severity=Info) documents a KubeadmControlPlane that is increasing the number of replicas.
+	// ScalingUpReason (Severity=Info) documents a K3sControlPlane that is increasing the number of replicas.
 	ScalingUpReason = "ScalingUp"
 
-	// ScalingDownReason (Severity=Info) documents a KubeadmControlPlane that is decreasing the number of replicas.
+	// ScalingDownReason (Severity=Info) documents a K3sControlPlane that is decreasing the number of replicas.
 	ScalingDownReason = "ScalingDown"
 )
 
@@ -121,15 +121,15 @@ const (
 	// when generating the machine object.
 	MachinesCreatedCondition clusterv1.ConditionType = "MachinesCreated"
 
-	// InfrastructureTemplateCloningFailedReason (Severity=Error) documents a KubeadmControlPlane failing to
+	// InfrastructureTemplateCloningFailedReason (Severity=Error) documents a K3sControlPlane failing to
 	// clone the infrastructure template.
 	InfrastructureTemplateCloningFailedReason = "InfrastructureTemplateCloningFailed"
 
-	// BootstrapTemplateCloningFailedReason (Severity=Error) documents a KubeadmControlPlane failing to
+	// BootstrapTemplateCloningFailedReason (Severity=Error) documents a K3sControlPlane failing to
 	// clone the bootstrap template.
 	BootstrapTemplateCloningFailedReason = "BootstrapTemplateCloningFailed"
 
-	// MachineGenerationFailedReason (Severity=Error) documents a KubeadmControlPlane failing to
+	// MachineGenerationFailedReason (Severity=Error) documents a K3sControlPlane failing to
 	// generate a machine object.
 	MachineGenerationFailedReason = "MachineGenerationFailed"
 )
