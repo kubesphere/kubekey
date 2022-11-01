@@ -75,7 +75,7 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ ${ISLINUX} = true ]; then
-  filename="kubekey-ext-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
+  filename="kubekey-ext-v${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
   ret='0'
   command -v tar >/dev/null 2>&1 || { ret='1'; }
   if [ "$ret" -eq 0 ]; then

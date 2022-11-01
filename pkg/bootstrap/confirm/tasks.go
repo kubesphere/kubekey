@@ -125,7 +125,7 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 		os.Exit(1)
 	}
 
-	confirmOK := false
+	confirmOK := true // TODO: force skip
 	for !confirmOK {
 		fmt.Printf("Continue this installation? [yes/no]: ")
 		input, err := reader.ReadString('\n')
