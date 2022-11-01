@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/containerd v1.6.6
-	github.com/containers/image/v5 v5.23.0
+	github.com/containers/image/v5 v5.21.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/estesp/manifest-tool/v2 v2.0.3
@@ -25,7 +25,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/modood/table v0.0.0-20220527013332-8d47e76dad33
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.20.0
+	github.com/onsi/gomega v1.20.1
 	github.com/opencontainers/image-spec v1.1.0-rc1
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.5
@@ -37,12 +37,12 @@ require (
 	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.9.4
-	k8s.io/api v0.25.0
+	k8s.io/api v0.25.3
 	k8s.io/apiextensions-apiserver v0.25.0
-	k8s.io/apimachinery v0.25.0
+	k8s.io/apimachinery v0.25.3
 	k8s.io/apiserver v0.25.0
-	k8s.io/cli-runtime v0.25.0
-	k8s.io/client-go v0.25.0
+	k8s.io/cli-runtime v0.25.3
+	k8s.io/client-go v0.25.3
 	k8s.io/cluster-bootstrap v0.25.0
 	k8s.io/component-base v0.25.0
 	k8s.io/klog/v2 v2.70.1
@@ -128,7 +128,6 @@ require (
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cel-go v0.12.4 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
-	github.com/google/go-containerregistry v0.11.0 // indirect
 	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -160,7 +159,6 @@ require (
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lestrrat-go/strftime v1.0.5 // indirect
-	github.com/letsencrypt/boulder v0.0.0-20220723181115-27de4befb95e // indirect
 	github.com/lib/pq v1.10.6 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
@@ -204,7 +202,6 @@ require (
 	github.com/rubenv/sql-migrate v1.1.1 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/sigstore/sigstore v1.4.2 // indirect
 	github.com/smartystreets/goconvey v1.7.2 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -215,8 +212,6 @@ require (
 	github.com/sylabs/sif/v2 v2.8.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
-	github.com/theupdateframework/go-tuf v0.5.1 // indirect
-	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
@@ -229,6 +224,7 @@ require (
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/net v0.1.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
