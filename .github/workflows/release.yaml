@@ -1,9 +1,7 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - '*'
+  workflow_dispatch:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
