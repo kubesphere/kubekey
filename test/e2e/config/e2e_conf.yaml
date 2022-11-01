@@ -92,6 +92,7 @@ variables:
   # This avoids building node images in the default case which improves the test duration significantly.
   KUBERNETES_VERSION_MANAGEMENT: "v1.24.0"
   KUBERNETES_VERSION: "v1.24.0"
+  IMAGE_REPOSITORY: "k8s.gcr.io"
   CNI: "./data/cni/calico.yaml"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -104,6 +105,8 @@ variables:
   PASSWORD: "Qcloud@123"
   INSTANCES: "[{address: 192.168.100.3}, {address: 192.168.100.4}]"
   CONTROL_PLANE_ENDPOINT_IP: "192.168.100.100"
+  CONTAINER_MANAGER_TYPE: containerd
+  CRI_SOCKET: unix:///var/run/containerd/containerd.sock
 
 intervals:
   default/wait-controllers: [ "5m", "10s" ]

@@ -85,6 +85,10 @@ spec:
                 description: ContainerManager is the container manager config of this
                   machine.
                 properties:
+                  criDockerdVersion:
+                    description: CRIDockerdVersion defines the version of cri-dockerd,
+                      available only when Type is docker. https://github.com/Mirantis/cri-dockerd
+                    type: string
                   criSocket:
                     description: CRISocket is used to connect an existing CRIClient.
                     type: string

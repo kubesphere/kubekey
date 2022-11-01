@@ -64,6 +64,9 @@ func defaultContainerManager(spec *KKMachineSpec) {
 		if spec.ContainerManager.Version == "" {
 			spec.ContainerManager.Version = DefaultDockerVersion
 		}
+		if spec.ContainerManager.CRIDockerdVersion == "" {
+			spec.ContainerManager.CRIDockerdVersion = DefaultCRIDockerdVersion
+		}
 		spec.ContainerManager.CRISocket = DefaultDockerCRISocket
 	}
 }
