@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -306,6 +307,10 @@ func normalizedBuildVersion(version string) string {
 	return ""
 }
 
+type ExtraAddon struct {
+	Addons []kubekeyapiv1alpha2.Addon `yaml:"Addons"`
+}
+
 // load addon from argument
 func loadExtraAddons(cluster *kubekeyapiv1alpha2.Cluster, addonFile string) error {
 	if addonFile == "" {
@@ -317,31 +322,23 @@ func loadExtraAddons(cluster *kubekeyapiv1alpha2.Cluster, addonFile string) erro
 		return errors.Wrap(err, fmt.Sprintf("Failed to load addon in file: %s", addonFile))
 	}
 
-	file, err := os.Open(fp)
+	content, err := ioutil.ReadFile(fp)
 	if err != nil {
 		return errors.Wrap(err, "Unable to open the given addon config file")
-	}
-	defer file.Close()
-	b1 := bufio.NewReader(file)
-
-	content := make([]byte, b1.Size())
-	_, err = b1.Read(content)
-	if err != nil {
-		return errors.Wrap(err, "Unable to unmarshal the given addon configuration file")
 	}
 
 	if len(content) == 0 {
 		return nil
 	}
 
-	result := make(map[string][]kubekeyapiv1alpha2.Addon)
+	var result ExtraAddon
 	err = yaml.Unmarshal(content, &result)
 	if err != nil {
-		return errors.Wrap(err, "Unable to read the given cluster configuration file")
+		return errors.Wrap(err, "Unable to read the given addon configuration file")
 	}
 
-	if len(result["Addons"]) > 0 {
-		cluster.Spec.Addons = append(cluster.Spec.Addons, result["Addons"]...)
+	if len(result.Addons) > 0 {
+		cluster.Spec.Addons = append(cluster.Spec.Addons, result.Addons...)
 	}
 
 	return nil
