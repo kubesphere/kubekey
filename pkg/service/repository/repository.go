@@ -72,13 +72,10 @@ func (s *Service) Get(timeout time.Duration) error {
 		overrideMap[o.ID+o.Version+o.Arch] = o
 	}
 
-	s.instanceScope.V(4).Info("download binary", "binary", iso.Name(), "version", iso.Version(),
-		"url", iso.URL().String())
-
 	override := overrideMap[iso.ID()+iso.Version()+iso.Arch()]
 	iso.HTTPChecksum.SetHost(host)
 	iso.HTTPChecksum.SetPath(override.Checksum.Path)
-	if err := util.DownloadAndCopy(iso, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
+	if err := util.DownloadAndCopy(s.instanceScope, iso, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
 		return err
 	}
 	return nil

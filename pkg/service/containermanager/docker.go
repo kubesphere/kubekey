@@ -140,11 +140,8 @@ func (d *DockerService) Get(timeout time.Duration) error {
 	}
 
 	for _, b := range binaries {
-		d.instanceScope.V(4).Info("download binary", "binary", b.Name(), "version", b.Version(),
-			"url", b.URL().String())
-
 		override := overrideMap[b.ID()+b.Version()+b.Arch()]
-		if err := util.DownloadAndCopy(b, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
+		if err := util.DownloadAndCopy(d.instanceScope, b, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
 			return err
 		}
 	}
