@@ -20,9 +20,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/registry"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/cmd/kk/pkg/registry"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
 	kubekeyregistry "github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/registry"
@@ -204,20 +205,22 @@ func (g *GenerateK3sService) Execute(runtime connector.Runtime) error {
 		Template: templates.K3sService,
 		Dst:      filepath.Join("/etc/systemd/system/", templates.K3sService.Name()),
 		Data: util.Data{
-			"Server":            server,
-			"IsMaster":          host.IsRole(common.Master),
-			"NodeIP":            host.GetInternalAddress(),
-			"HostName":          host.GetName(),
-			"PodSubnet":         g.KubeConf.Cluster.Network.KubePodsCIDR,
-			"ServiceSubnet":     g.KubeConf.Cluster.Network.KubeServiceCIDR,
-			"ClusterDns":        g.KubeConf.Cluster.CorednsClusterIP(),
-			"CertSANs":          g.KubeConf.Cluster.GenerateCertSANs(),
-			"PauseImage":        images.GetImage(runtime, g.KubeConf, "pause").ImageName(),
-			"ApiserverArgs":     kubeApiserverArgs,
-			"ControllerManager": kubeControllerManager,
-			"SchedulerArgs":     kubeSchedulerArgs,
-			"KubeletArgs":       kubeletArgs,
-			"KubeProxyArgs":     kubeProxyArgs,
+			"Server":                   server,
+			"IsMaster":                 host.IsRole(common.Master),
+			"IsDockerRuntime":          g.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker,
+			"ContainerRuntimeEndpoint": g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint,
+			"NodeIP":                   host.GetInternalAddress(),
+			"HostName":                 host.GetName(),
+			"PodSubnet":                g.KubeConf.Cluster.Network.KubePodsCIDR,
+			"ServiceSubnet":            g.KubeConf.Cluster.Network.KubeServiceCIDR,
+			"ClusterDns":               g.KubeConf.Cluster.CorednsClusterIP(),
+			"CertSANs":                 g.KubeConf.Cluster.GenerateCertSANs(),
+			"PauseImage":               images.GetImage(runtime, g.KubeConf, "pause").ImageName(),
+			"ApiserverArgs":            kubeApiserverArgs,
+			"ControllerManager":        kubeControllerManager,
+			"SchedulerArgs":            kubeSchedulerArgs,
+			"KubeletArgs":              kubeletArgs,
+			"KubeProxyArgs":            kubeProxyArgs,
 		},
 	}
 
