@@ -19,12 +19,13 @@ package util
 import (
 	"time"
 
+	"github.com/kubesphere/kubekey/pkg/scope"
 	"github.com/kubesphere/kubekey/pkg/service/operation"
 	"github.com/kubesphere/kubekey/pkg/service/operation/file/checksum"
 )
 
 // DownloadAndCopy downloads and copies files to the remote instance.
-func DownloadAndCopy(b operation.Binary, zone, host, path, url, checksumStr string, timeout time.Duration) error {
+func DownloadAndCopy(instanceScope *scope.InstanceScope, b operation.Binary, zone, host, path, url, checksumStr string, timeout time.Duration) error {
 	if b.RemoteExist() {
 		return nil
 	}
@@ -43,6 +44,8 @@ func DownloadAndCopy(b operation.Binary, zone, host, path, url, checksumStr stri
 		b.SetPath(path)
 		b.SetURL(url)
 
+		instanceScope.V(4).Info("download binary", "binary", b.Name(), "version", b.Version(),
+			"url", b.URL().String())
 		if err := b.Get(timeout); err != nil {
 			return err
 		}
