@@ -42,15 +42,6 @@ jobs:
             exit 1
           fi
 
-#      - name: Build operator manager
-#        run: CGO_ENABLED=0 go build -tags='containers_image_openpgp' -v -o output/manager ./main.go
-
       - name: Build command-line tool
         run: |
           make kk
-
-      - uses: actions/upload-artifact@v2
-        if: github.event_name == 'push'
-        with:
-          name: kk
-          path: output/kk
