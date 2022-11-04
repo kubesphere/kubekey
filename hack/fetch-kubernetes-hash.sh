@@ -1,8 +1,9 @@
 #!/bin/bash
 
-v22_patch_max=12
-v23_patch_max=10
-v24_patch_max=3
+v22_patch_max=15
+v23_patch_max=13
+v24_patch_max=7
+v25_patch_max=3
 
 versions=()
 
@@ -18,6 +19,7 @@ append_k8s_version() {
 append_k8s_version "v1.22." $v22_patch_max
 append_k8s_version "v1.23." $v23_patch_max
 append_k8s_version "v1.24." $v24_patch_max
+append_k8s_version "v1.25." $v25_patch_max
 
 #versions=("v1.22.12" "v1.23.9" "v1.24.3")
 
