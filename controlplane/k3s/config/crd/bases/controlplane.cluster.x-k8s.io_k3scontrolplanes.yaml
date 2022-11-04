@@ -19,7 +19,52 @@ spec:
     singular: k3scontrolplane
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
+    - description: This denotes whether or not the control plane has the uploaded
+        k3s-config configmap
+      jsonPath: .status.initialized
+      name: Initialized
+      type: boolean
+    - description: K3sControlPlane API Server is ready to receive requests
+      jsonPath: .status.ready
+      name: API Server Available
+      type: boolean
+    - description: Total number of machines desired by this control plane
+      jsonPath: .spec.replicas
+      name: Desired
+      priority: 10
+      type: integer
+    - description: Total number of non-terminated machines targeted by this control
+        plane
+      jsonPath: .status.replicas
+      name: Replicas
+      type: integer
+    - description: Total number of fully running and ready control plane machines
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - description: Total number of non-terminated machines targeted by this control
+        plane that have the desired template spec
+      jsonPath: .status.updatedReplicas
+      name: Updated
+      type: integer
+    - description: Total number of unavailable machines targeted by this control plane
+      jsonPath: .status.unavailableReplicas
+      name: Unavailable
+      type: integer
+    - description: Time duration since creation of KubeadmControlPlane
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Kubernetes version associated with this control plane
+      jsonPath: .spec.version
+      name: Version
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: K3sControlPlane is the Schema for the k3scontrolplanes API
@@ -658,4 +703,8 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
       status: {}
