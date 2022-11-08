@@ -280,20 +280,14 @@ docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all pr
 .PHONY: docker-build-capkk
 docker-build-capkk: ## Build the docker image for capkk
 	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPKK_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-k3s-bootstrap
 docker-build-k3s-bootstrap: ## Build the docker image for k3s bootstrap controller manager
 	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/k3s --build-arg ldflags="$(LDFLAGS)" . -t $(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-k3s-control-plane
 docker-build-k3s-control-plane: ## Build the docker image for k3s control plane controller manager
 	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/k3s --build-arg ldflags="$(LDFLAGS)" . -t $(K3S_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(K3S_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/k3s/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/k3s/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Build the docker image for capkk
@@ -434,12 +428,24 @@ manifest-modification: # Set the manifest images to the staging/production bucke
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(REGISTRY)/$(CAPKK_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(REGISTRY)/$(K3S_BOOTSTRAP_CONTROLLER_IMG) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-image \
+    	MANIFEST_IMG=$(REGISTRY)/$(K3S_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./controlplane/k3s/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/k3s/config/default/manager_pull_policy.yaml"
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the manifests to publish with a release
 	# Build capkk-components.
 	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+	# Build bootstrap-components.
+	$(KUSTOMIZE) build bootstrap/k3s/config/default > $(RELEASE_DIR)/bootstrap-components.yaml
+	# Build control-plane-components.
+	$(KUSTOMIZE) build controlplane/k3s/config/default > $(RELEASE_DIR)/control-plane-components.yaml
 
 	# Add metadata to the release artifacts
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
@@ -448,14 +454,49 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the manifests to publish
 release-templates: $(RELEASE_DIR) ## Generate release templates
 	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
 
+.PHONY: release-prod
+release-prod: ## Build and push container images to the prod
+	REGISTRY=$(PROD_REGISTRY) TAG=$(RELEASE_TAG) $(MAKE) docker-build-all docker-push-all
+
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
+
+.PHONY: docker-push-all
+docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
+	$(MAKE) docker-push-manifest-capkk
+	$(MAKE) docker-push-manifest-k3s-bootstrap
+	$(MAKE) docker-push-manifest-k3s-control-plane
+
+docker-push-%:
+	$(MAKE) ARCH=$* docker-push
 
 .PHONY: docker-push
 docker-push: ## Push the docker images
 	docker push $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	docker push $(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(K3S_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: docker-push-manifest-capkk
+docker-push-manifest-capkk: ## Push the multiarch manifest for the capkk docker images
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(CAPKK_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPKK_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CAPKK_CONTROLLER_IMG}:${TAG} ${CAPKK_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(CAPKK_CONTROLLER_IMG):$(TAG)
+
+.PHONY: docker-push-manifest-k3s-bootstrap
+docker-push-manifest-k3s-bootstrap: ## Push the multiarch manifest for the k3s bootstrap docker images
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(K3S_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(K3S_BOOTSTRAP_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${K3S_BOOTSTRAP_CONTROLLER_IMG}:${TAG} ${K3S_BOOTSTRAP_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(K3S_BOOTSTRAP_CONTROLLER_IMG):$(TAG)
+
+.PHONY: docker-push-manifest-k3s-control-plane
+docker-push-manifest-k3s-control-plane: ## Push the multiarch manifest for the k3s control plane docker images
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(K3S_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(K3S_CONTROL_PLANE_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${K3S_CONTROL_PLANE_CONTROLLER_IMG}:${TAG} ${K3S_CONTROL_PLANE_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(K3S_CONTROL_PLANE_CONTROLLER_IMG):$(TAG)
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:

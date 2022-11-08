@@ -1,3 +1,6 @@
+# Build architecture
+ARG ARCH
+
 # Download dependencies
 FROM alpine:3.11 as base_os_context
 
@@ -46,7 +49,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -ldflags "${LDFLAGS}" \
     -o manager ${package}
 
-FROM alpine:3.11
+FROM --platform=${ARCH} alpine:3.16
 
 WORKDIR /
 
