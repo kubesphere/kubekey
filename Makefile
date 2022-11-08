@@ -429,10 +429,10 @@ manifest-modification: # Set the manifest images to the staging/production bucke
 		MANIFEST_IMG=$(REGISTRY)/$(CAPKK_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-image \
-		MANIFEST_IMG=$(REGISTRY)/$(K3S_BOOTSTRAP_CONTROLLER_IMG) MANIFEST_TAG=$(RELEASE_TAG) \
+		MANIFEST_IMG=$(REGISTRY)/$(K3S_BOOTSTRAP_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-image \
-    	MANIFEST_IMG=$(REGISTRY)/$(K3S_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(RELEASE_TAG) \
+    	MANIFEST_IMG=$(REGISTRY)/$(K3S_CONTROL_PLANE_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./controlplane/k3s/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_pull_policy.yaml"
