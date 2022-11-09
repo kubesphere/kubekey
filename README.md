@@ -40,7 +40,7 @@ Use KubeKey in the following three scenarios.
 * **v1.21**: &ensp; *v1.21.14*
 * **v1.22**: &ensp; *v1.22.15*
 * **v1.23**: &ensp; *v1.23.10*   (default)
-* **v1.24**: &ensp; *v1.24.8*
+* **v1.24**: &ensp; *v1.24.7*
 * **v1.25**: &ensp; *v1.25.3*
 
 > Looking for more supported versions: \
