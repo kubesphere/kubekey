@@ -387,6 +387,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
       <td align="center"><a href="https://github.com/77yu77"><img src="https://avatars.githubusercontent.com/u/73932296?v=4?s=100" width="100px;" alt="77yu77"/><br /><sub><b>77yu77</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=77yu77" title="Code">💻</a></td>
       <td align="center"><a href="https://github.com/hzhhong"><img src="https://avatars.githubusercontent.com/u/83079531?v=4?s=100" width="100px;" alt="hzhhong"/><br /><sub><b>hzhhong</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=hzhhong" title="Code">💻</a></td>
       <td align="center"><a href="https://github.com/arugal"><img src="https://avatars.githubusercontent.com/u/26432832?v=4?s=100" width="100px;" alt="zhang-wei"/><br /><sub><b>zhang-wei</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=arugal" title="Code">💻</a></td>
+      <td align="center"><a href="https://twitter.com/xds2000"><img src="https://avatars.githubusercontent.com/u/37678?v=4?s=100" width="100px;" alt="Deshi Xiao"/><br /><sub><b>Deshi Xiao</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=xiaods" title="Code">💻</a> <a href="https://github.com/kubesphere/kubekey/commits?author=xiaods" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>
