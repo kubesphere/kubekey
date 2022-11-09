@@ -575,6 +575,16 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "xiaods",
+      "name": "Deshi Xiao",
+      "avatar_url": "https://avatars.githubusercontent.com/u/37678?v=4",
+      "profile": "https://twitter.com/xds2000",
+      "contributions": [
+        "code",
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
