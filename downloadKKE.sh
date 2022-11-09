@@ -28,7 +28,7 @@ fi
 # Fetch latest version
 if [ "x${VERSION}" = "x" ]; then
   VERSION="$(curl -sL https://api.github.com/repos/eball/kubekey-ext/releases |
-    grep -o 'download/v[0-9]*.[0-9]*.[0-9]*/' |
+    grep -o 'download/[0-9]*.[0-9]*.[0-9]*/' |
     sort --version-sort |
     tail -1 | awk -F'/' '{ print $2}')"
   VERSION="${VERSION##*/}"
