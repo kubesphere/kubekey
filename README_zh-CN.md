@@ -32,6 +32,7 @@ KubeKey是一个开源的轻量级工具，用于部署Kubernetes集群。它提
 * **Ubuntu**  *16.04, 18.04, 20.04, 22.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
+* **AlmaLinux**  *9.0*
 * **SUSE Linux Enterprise Server** *15*
 
 > 建议使用 Linux Kernel 版本: `4.15 or later` 
@@ -39,12 +40,13 @@ KubeKey是一个开源的轻量级工具，用于部署Kubernetes集群。它提
 
 ### <span id = "KubernetesVersions">Kubernetes 版本</span>
 
-* **v1.19**: &ensp; *v1.19.9*
+* **v1.19**: &ensp; *v1.19.15*
 * **v1.20**: &ensp; *v1.20.10*
 * **v1.21**: &ensp; *v1.21.14*
-* **v1.22**: &ensp; *v1.22.12*
+* **v1.22**: &ensp; *v1.22.15*
 * **v1.23**: &ensp; *v1.23.10*   (default)
-* **v1.24**: &ensp; *v1.24.3*
+* **v1.24**: &ensp; *v1.24.8*
+* **v1.25**: &ensp; *v1.25.3*
 
 > 查看更多支持的版本： \
 > [Kubernetes 版本](./docs/kubernetes-versions.md) \
