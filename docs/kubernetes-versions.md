@@ -60,7 +60,7 @@
 | v1.24.4  | :white_check_mark: |
 | v1.24.5  | :white_check_mark: |
 | v1.24.6  | :white_check_mark: |
-| v1.24.8  | :white_check_mark: |
+| v1.24.7  | :white_check_mark: |
 | v1.25.0  | :white_check_mark: |
 | v1.25.1  | :white_check_mark: |
 | v1.25.2  | :white_check_mark: |
