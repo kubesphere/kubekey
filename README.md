@@ -27,6 +27,7 @@ Use KubeKey in the following three scenarios.
 * **Ubuntu**  *16.04, 18.04, 20.04, 22.04*
 * **Debian**  *Buster, Stretch*
 * **CentOS/RHEL**  *7*
+* **AlmaLinux**  *9.0*
 * **SUSE Linux Enterprise Server** *15*
 
 > Recommended Linux Kernel Version: `4.15 or later` 
@@ -34,12 +35,13 @@ Use KubeKey in the following three scenarios.
 
 ### <span id = "KubernetesVersions">Kubernetes Versions</span>
 
-* **v1.19**: &ensp; *v1.19.9*
+* **v1.19**: &ensp; *v1.19.15*
 * **v1.20**: &ensp; *v1.20.10*
 * **v1.21**: &ensp; *v1.21.14*
-* **v1.22**: &ensp; *v1.22.12*
+* **v1.22**: &ensp; *v1.22.15*
 * **v1.23**: &ensp; *v1.23.10*   (default)
-* **v1.24**: &ensp; *v1.24.3*
+* **v1.24**: &ensp; *v1.24.8*
+* **v1.25**: &ensp; *v1.25.3*
 
 > Looking for more supported versions: \
 > [Kubernetes Versions](./docs/kubernetes-versions.md) \
