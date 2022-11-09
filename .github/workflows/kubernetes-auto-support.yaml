@@ -1,0 +1,50 @@
+---
+name: Kubernetes-Auto-Support
+
+#on:
+#  schedule:
+#    - cron: '16 9 * * *'
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  update-kubernetes-version:
+    runs-on: ubuntu-latest
+#    if: github.repository	== 'kubesphere/kubekey'
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install dependiencies
+        run: |
+          apt update
+          apt install skopeo -y 
+          pip install natsort qsctl
+
+      - name: update components.json
+        id: get_new_version
+        run: |
+          pip install natsort
+          python ./hack/auto-update-version.py
+          [ -f version.tmp ] && echo "::set-env name=UPDATE_VERSION::true" || echo "::set-env name=UPDATE_VERSION::false"
+
+      - name: sync kubernetes
+        run: |
+          for v in $(cat version.tmp)
+          do
+            KUBERNETES_VERSION=$v QSCTL_ACCESS_KEY_ID=${secrets.QSCTL_ACCESS_KEY_ID} QSCTL_SECRET_ACCESS_KEY=${secrets.QSCTL_SECRET_ACCESS_KEY} DOCKERHUB_USERNAME=${secrets.DOCKERHUB_USERNAME} DOCKERHUB_PASSWORD=${secrets.DOCKERHUB_PASSWORD} ALIYUNCS_USERNAME=${secrets.ALIYUNCS_USERNAME} ALIYUNCS_PASSWORD=${secrets.ALIYUNCS_PASSWORD} bash hack/sync-components.sh
+          done
+          rm -rf version.tmp
+        if: ${{ env.UPDATE_VERSION }} == true
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          commit-message: Add new kubernetes version
+          committer: GitHub <noreply@github.com>
+          signoff: true
+          branch: master
+          delete-branch: true
+          title: 'Add new kubernetes version'
+        if: ${{ env.UPDATE_VERSION }} == true

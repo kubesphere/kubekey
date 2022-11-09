@@ -18,9 +18,14 @@ limitations under the License.
 package version
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"runtime"
 )
+
+//go:embed components.json
+var Components []byte
 
 var (
 	gitMajor     string // major version, always numeric
@@ -62,4 +67,14 @@ func Get() Info {
 // String returns info as a human-friendly version string.
 func (info Info) String() string {
 	return info.GitVersion
+}
+
+// ParseFilesSha256 Load files' sha256 from components.json
+func ParseFilesSha256(componentsJSON []byte) (map[string]map[string]map[string]string, error) {
+	m := make(map[string]map[string]map[string]string)
+	err := json.Unmarshal(componentsJSON, &m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
