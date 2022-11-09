@@ -389,6 +389,9 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
       <td align="center"><a href="https://github.com/arugal"><img src="https://avatars.githubusercontent.com/u/26432832?v=4?s=100" width="100px;" alt="zhang-wei"/><br /><sub><b>zhang-wei</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=arugal" title="Code">💻</a></td>
       <td align="center"><a href="https://twitter.com/xds2000"><img src="https://avatars.githubusercontent.com/u/37678?v=4?s=100" width="100px;" alt="Deshi Xiao"/><br /><sub><b>Deshi Xiao</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=xiaods" title="Code">💻</a> <a href="https://github.com/kubesphere/kubekey/commits?author=xiaods" title="Documentation">📖</a></td>
     </tr>
+    <tr>
+      <td align="center"><a href="https://besscroft.com"><img src="https://avatars.githubusercontent.com/u/33775809?v=4?s=100" width="100px;" alt="besscroft"/><br /><sub><b>besscroft</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=besscroft" title="Documentation">📖</a></td>
+    </tr>
   </tbody>
 </table>
 

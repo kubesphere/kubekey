@@ -585,6 +585,15 @@
         "code",
         "doc"
       ]
+    },
+    {
+      "login": "besscroft",
+      "name": "besscroft",
+      "avatar_url": "https://avatars.githubusercontent.com/u/33775809?v=4",
+      "profile": "https://besscroft.com",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
