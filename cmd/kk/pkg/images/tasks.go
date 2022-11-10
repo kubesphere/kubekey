@@ -23,17 +23,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
-	coreutil "github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/registry"
-
 	manifestregistry "github.com/estesp/manifest-tool/v2/pkg/registry"
+	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
+	"github.com/pkg/errors"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
-	"github.com/pkg/errors"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
+	coreutil "github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/cmd/kk/pkg/registry"
 )
 
 type PullImage struct {
@@ -96,6 +96,10 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
 		pauseTag = "3.7"
 		corednsTag = "1.8.6"
+	}
+	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.25.0")) {
+		pauseTag = "3.8"
+		corednsTag = "1.9.3"
 	}
 
 	logger.Log.Debugf("pauseTag: %s, corednsTag: %s", pauseTag, corednsTag)

@@ -59,7 +59,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.GreetingsModule{},
 		&precheck.NodePreCheckModule{},
-		&confirm.InstallConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
+		&confirm.InstallConfirmModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.NodeBinariesModule{},

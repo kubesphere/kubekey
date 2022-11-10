@@ -188,15 +188,15 @@ var (
 		"tls-cipher-suites":      "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
 	}
 	ControllermanagerArgs = map[string]string{
-		"bind-address":                          "0.0.0.0",
-		"experimental-cluster-signing-duration": "87600h",
+		"bind-address":             "0.0.0.0",
+		"cluster-signing-duration": "87600h",
 	}
 	ControllermanagerSecurityArgs = map[string]string{
-		"bind-address":                          "127.0.0.1",
-		"experimental-cluster-signing-duration": "87600h",
-		"profiling":                             "false",
-		"terminated-pod-gc-threshold":           "50",
-		"use-service-account-credentials":       "true",
+		"bind-address":                    "127.0.0.1",
+		"cluster-signing-duration":        "87600h",
+		"profiling":                       "false",
+		"terminated-pod-gc-threshold":     "50",
+		"use-service-account-credentials": "true",
 	}
 	SchedulerArgs = map[string]string{
 		"bind-address": "0.0.0.0",
@@ -214,11 +214,19 @@ func GetApiServerArgs(securityEnhancement bool) map[string]string {
 	return ApiServerArgs
 }
 
-func GetControllermanagerArgs(securityEnhancement bool) map[string]string {
+func GetControllermanagerArgs(version string, securityEnhancement bool) map[string]string {
+	var args map[string]string
 	if securityEnhancement {
-		return ControllermanagerSecurityArgs
+		args = copyStringMap(ControllermanagerSecurityArgs)
+	} else {
+		args = copyStringMap(ControllermanagerArgs)
 	}
-	return ControllermanagerArgs
+
+	if versionutil.MustParseSemantic(version).LessThan(versionutil.MustParseSemantic("1.19.0")) {
+		delete(args, "cluster-signing-duration")
+		args["experimental-cluster-signing-duration"] = "87600h"
+	}
+	return args
 }
 
 func GetSchedulerArgs(securityEnhancement bool) map[string]string {
@@ -229,12 +237,6 @@ func GetSchedulerArgs(securityEnhancement bool) map[string]string {
 }
 
 func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.KubeConf) map[string]string {
-	// When kubernetes version is less than 1.21,`CSIStorageCapacity` should not be set.
-	cmp, _ := versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).Compare("v1.21.0")
-	if cmp == -1 {
-		delete(FeatureGatesDefaultConfiguration, "CSIStorageCapacity")
-	}
-
 	var featureGates []string
 
 	for k, v := range kubeConf.Cluster.Kubernetes.FeatureGates {
@@ -242,6 +244,16 @@ func UpdateFeatureGatesConfiguration(args map[string]string, kubeConf *common.Ku
 	}
 
 	for k, v := range FeatureGatesDefaultConfiguration {
+		// When kubernetes version is less than 1.21,`CSIStorageCapacity` should not be set.
+		if k == "CSIStorageCapacity" &&
+			versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).LessThan(versionutil.MustParseSemantic("v1.21.0")) {
+			continue
+		}
+		if k == "TTLAfterFinished" &&
+			versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+			continue
+		}
+
 		if _, ok := kubeConf.Cluster.Kubernetes.FeatureGates[k]; !ok {
 			featureGates = append(featureGates, fmt.Sprintf("%s=%v", k, v))
 		}
@@ -343,13 +355,15 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 	}
 
 	if featureGates, ok := kubeletConfiguration["featureGates"].(map[string]bool); ok {
-		for k, v := range kubeConf.Cluster.Kubernetes.FeatureGates {
-			if _, ok := featureGates[k]; !ok {
-				featureGates[k] = v
-			}
+		if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).LessThan(versionutil.MustParseSemantic("v1.21.0")) {
+			delete(featureGates, "CSIStorageCapacity")
 		}
 
-		for k, v := range FeatureGatesDefaultConfiguration {
+		if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+			delete(featureGates, "TTLAfterFinished")
+		}
+
+		for k, v := range kubeConf.Cluster.Kubernetes.FeatureGates {
 			if _, ok := featureGates[k]; !ok {
 				featureGates[k] = v
 			}
@@ -432,4 +446,13 @@ func GetKubeProxyConfiguration(kubeConf *common.KubeConf) map[string]interface{}
 	}
 
 	return kubeProxyConfiguration
+}
+
+func copyStringMap(m map[string]string) map[string]string {
+	cp := make(map[string]string)
+	for k, v := range m {
+		cp[k] = v
+	}
+
+	return cp
 }
