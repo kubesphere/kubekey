@@ -30,7 +30,7 @@ spec:
     auth:
       user: '${USER_NAME}'
       password: '${PASSWORD}'
-    instances: '${INSTANCES}'
+    instances: ${INSTANCES}
   controlPlaneLoadBalancer:
     host: '${CONTROL_PLANE_ENDPOINT_IP}'
 ---
