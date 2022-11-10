@@ -125,6 +125,10 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 		os.Exit(1)
 	}
 
+	if i.KubeConf.Arg.SkipConfirmCheck {
+		return nil
+	}
+
 	confirmOK := false
 	for !confirmOK {
 		fmt.Printf("Continue this installation? [yes/no]: ")

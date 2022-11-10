@@ -26,8 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/etcd"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,6 +42,7 @@ import (
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/cmd/kk/pkg/etcd"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/files"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/kubernetes/templates"
@@ -250,7 +249,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		}
 
 		_, ApiServerArgs := util.GetArgs(v1beta2.GetApiServerArgs(g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.ApiServerArgs)
-		_, ControllerManagerArgs := util.GetArgs(v1beta2.GetControllermanagerArgs(g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.ControllerManagerArgs)
+		_, ControllerManagerArgs := util.GetArgs(v1beta2.GetControllermanagerArgs(g.KubeConf.Cluster.Kubernetes.Version, g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.ControllerManagerArgs)
 		_, SchedulerArgs := util.GetArgs(v1beta2.GetSchedulerArgs(g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.SchedulerArgs)
 
 		checkCgroupDriver, err := v1beta2.GetKubeletCgroupDriver(runtime, g.KubeConf)
