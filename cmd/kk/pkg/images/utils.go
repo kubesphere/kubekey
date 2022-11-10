@@ -18,12 +18,15 @@ package images
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/image/v5/types"
 	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"strings"
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
 )
 
 var defaultUserAgent = "kubekey"
@@ -166,4 +169,15 @@ func NewManifestSpec(image string, entries []manifesttypes.ManifestEntry) manife
 		Image:     image,
 		Manifests: srcImages,
 	}
+}
+
+func validateImageName(imageFullName string) error {
+	image := strings.Split(imageFullName, "/")
+	if len(image) != 3 {
+		return errors.Errorf("image %s is invalid, only the format \"registry/namespace/name:tag\" is supported", imageFullName)
+	}
+	if len(strings.Split(image[2], ":")) != 2 {
+		return errors.Errorf("image %s is invalid, only the format \"registry/namespace/name:tag\" is supported", imageFullName)
+	}
+	return nil
 }
