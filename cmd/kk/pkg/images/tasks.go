@@ -156,6 +156,9 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 		return errors.Wrapf(errors.WithStack(err), "mkdir %s failed", dirName)
 	}
 	for _, image := range s.Manifest.Spec.Images {
+		if err := validateImageName(image); err != nil {
+			return err
+		}
 		imageFullName := strings.Split(image, "/")
 		repo := imageFullName[0]
 		auth := new(registry.DockerRegistryEntry)
@@ -171,8 +174,8 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 				variant = "-" + variant
 			}
 			// Ex:
-			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver-amd64:v1.21.5
-			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver-arm-v7:v1.21.5
+			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-amd64
+			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-arm-v7
 			destName := fmt.Sprintf("oci:%s:%s:%s-%s%s", dirName, imageFullName[1], imageFullName[2], arch, variant)
 			logger.Log.Infof("Source: %s", srcName)
 			logger.Log.Infof("Destination: %s", destName)
