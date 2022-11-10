@@ -18,14 +18,16 @@ package binaries
 
 import (
 	"fmt"
+	"os/exec"
+
+	"github.com/pkg/errors"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/cache"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/files"
-	"github.com/pkg/errors"
-	"os/exec"
 )
 
 // RegistryPackageDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
@@ -83,15 +85,15 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 
 	if m.Components.Harbor.Version != "" {
 		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, manifest.Arg.DownloadCommand)
-		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present.
 		if arch == "amd64" {
 			binaries = append(binaries, harbor)
+		} else {
+			logger.Log.Warningf("Harbor only supports amd64, the KubeKey artifact will not contain the Harbor %s", arch)
 		}
 	}
 
 	if m.Components.DockerCompose.Version != "" {
 		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, manifest.Arg.DownloadCommand)
-		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present. docker-compose is required only if harbor is installed.
 		containerManager := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, manifest.Arg.DownloadCommand)
 		if arch == "amd64" {
 			binaries = append(binaries, compose)
