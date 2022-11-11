@@ -25,7 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/service/operation/directory"
 	"github.com/kubesphere/kubekey/pkg/service/operation/file"
 	"github.com/kubesphere/kubekey/pkg/service/operation/repository"
-	"github.com/kubesphere/kubekey/pkg/util/osrelease"
+	"github.com/kubesphere/kubekey/util/osrelease"
 )
 
 // Service holds a collection of interfaces.

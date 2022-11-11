@@ -25,7 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/clients/ssh"
 	"github.com/kubesphere/kubekey/pkg/rootfs"
 	"github.com/kubesphere/kubekey/pkg/service/operation/file/checksum"
-	"github.com/kubesphere/kubekey/pkg/util/osrelease"
+	"github.com/kubesphere/kubekey/util/osrelease"
 )
 
 // ISO info

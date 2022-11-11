@@ -21,13 +21,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	osrelease "github.com/dominodatalab/os-release"
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/os/repository"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/utils"
+	"github.com/kubesphere/kubekey/util/osrelease"
 )
 
 type NodeConfigureOS struct {

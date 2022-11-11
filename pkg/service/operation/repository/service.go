@@ -18,7 +18,7 @@ package repository
 
 import (
 	"github.com/kubesphere/kubekey/pkg/clients/ssh"
-	"github.com/kubesphere/kubekey/pkg/util/osrelease"
+	"github.com/kubesphere/kubekey/util/osrelease"
 )
 
 // Service holds a collection of interfaces.

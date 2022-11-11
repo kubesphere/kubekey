@@ -12,7 +12,6 @@ require (
 	github.com/containerd/containerd v1.6.6
 	github.com/containers/image/v5 v5.23.0
 	github.com/deckarep/golang-set v1.8.0
-	github.com/dominodatalab/os-release v0.0.0-20190522011736-bcdb4a3e3c2f
 	github.com/estesp/manifest-tool/v2 v2.0.3
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/go-logr/logr v1.2.3
