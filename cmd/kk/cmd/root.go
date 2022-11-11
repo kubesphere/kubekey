@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/cmd/kk/cmd/add"
+	"github.com/kubesphere/kubekey/cmd/kk/cmd/alpha"
 	"github.com/kubesphere/kubekey/cmd/kk/cmd/artifact"
 	"github.com/kubesphere/kubekey/cmd/kk/cmd/cert"
 	"github.com/kubesphere/kubekey/cmd/kk/cmd/completion"
@@ -106,6 +107,8 @@ func NewKubeKeyCommand(o KubeKeyOptions) *cobra.Command {
 	}
 
 	cmds.AddCommand(initOs.NewCmdInit())
+
+	cmds.AddCommand(alpha.NewAlphaCmd())
 
 	cmds.AddCommand(create.NewCmdCreate())
 	cmds.AddCommand(delete.NewCmdDelete())

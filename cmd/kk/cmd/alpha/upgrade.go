@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright 2022 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,36 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package create
+package alpha
 
 import (
-	"github.com/spf13/cobra"
-
+	"github.com/kubesphere/kubekey/cmd/kk/cmd/upgrade/phase"
 	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
+	"github.com/spf13/cobra"
 )
 
-type CreateOptions struct {
-	CommonOptions *options.CommonOptions
+type UpgradeOptions struct {
+	CommonOptions    *options.CommonOptions
 }
 
-func NewCreateOptions() *CreateOptions {
-	return &CreateOptions{
+func NewUpgradeOptions() *UpgradeOptions {
+	return &UpgradeOptions{
 		CommonOptions: options.NewCommonOptions(),
 	}
 }
 
-// NewCmdCreate creates a new create command
-func NewCmdCreate() *cobra.Command {
-	o := NewCreateOptions()
+// NewCmdUpgrade creates a new upgrade command
+func NewCmdUpgrade() *cobra.Command {
+	o := NewUpgradeOptions()
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a cluster or a cluster configuration file",
+		Use:   "upgrade",
+		Short: "Upgrade your cluster by phase cmd for testing",
 	}
-
 	o.CommonOptions.AddCommonFlag(cmd)
-
-	cmd.AddCommand(NewCmdCreateCluster())
-	cmd.AddCommand(NewCmdCreateConfig())
-	cmd.AddCommand(NewCmdCreateManifest())
+	cmd.AddCommand(phase.NewPhaseCommand())
 	return cmd
 }
+
