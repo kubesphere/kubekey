@@ -4,7 +4,7 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: k3s
+projectName: cluster-api-control-plane-provider-kubekey-k3s
 repo: github.com/kubesphere/kubekey/controlplane/k3s
 resources:
 - api:

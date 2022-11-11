@@ -30,7 +30,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/service/operation/repository"
 	"github.com/kubesphere/kubekey/pkg/service/util"
 	"github.com/kubesphere/kubekey/pkg/util/filesystem"
-	"github.com/kubesphere/kubekey/pkg/util/osrelease"
+	"github.com/kubesphere/kubekey/util/osrelease"
 )
 
 // Check checks the OS release info.
