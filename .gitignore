@@ -3,6 +3,7 @@
 *.dll
 *.so
 *.dylib
+*.tmp
 bin
 hack/tools/bin
 
