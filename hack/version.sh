@@ -17,6 +17,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 version::get_version_vars() {
     # shellcheck disable=SC1083
     GIT_COMMIT="$(git rev-parse HEAD^{commit})"
@@ -85,7 +89,7 @@ version::ldflags() {
         local key=${1}
         local val=${2}
         ldflags+=(
-            "-X 'kubesphere.io/kubekey/version.${key}=${val}'"
+            "-X 'github.com/kubesphere/kubekey/version.${key}=${val}'"
         )
     }
 
