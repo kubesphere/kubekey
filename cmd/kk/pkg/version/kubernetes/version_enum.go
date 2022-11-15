@@ -18,8 +18,9 @@ package kubernetes
 
 import (
 	"fmt"
-
+	"github.com/kubesphere/kubekey/cmd/kk/pkg/files"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"sort"
 )
 
 type Version int
@@ -77,71 +78,14 @@ func VersionSupport(version string) bool {
 
 // SupportedK8sVersionList returns the supported list of Kubernetes
 func SupportedK8sVersionList() []string {
-	return []string{
-		"v1.19.0",
-		"v1.19.8",
-		"v1.19.9",
-		"v1.19.15",
-		"v1.20.4",
-		"v1.20.6",
-		"v1.20.10",
-		"v1.21.0",
-		"v1.21.1",
-		"v1.21.2",
-		"v1.21.3",
-		"v1.21.4",
-		"v1.21.5",
-		"v1.21.6",
-		"v1.21.7",
-		"v1.21.8",
-		"v1.21.9",
-		"v1.21.10",
-		"v1.21.11",
-		"v1.21.12",
-		"v1.21.13",
-		"v1.21.14",
-		"v1.22.0",
-		"v1.22.1",
-		"v1.22.2",
-		"v1.22.3",
-		"v1.22.4",
-		"v1.22.5",
-		"v1.22.6",
-		"v1.22.7",
-		"v1.22.8",
-		"v1.22.9",
-		"v1.22.10",
-		"v1.22.11",
-		"v1.22.12",
-		"v1.22.13",
-		"v1.22.14",
-		"v1.22.15",
-		"v1.23.0",
-		"v1.23.1",
-		"v1.23.2",
-		"v1.23.3",
-		"v1.23.4",
-		"v1.23.5",
-		"v1.23.6",
-		"v1.23.7",
-		"v1.23.8",
-		"v1.23.9",
-		"v1.23.10",
-		"v1.23.11",
-		"v1.23.12",
-		"v1.23.13",
-		"v1.24.0",
-		"v1.24.1",
-		"v1.24.2",
-		"v1.24.3",
-		"v1.24.3",
-		"v1.24.4",
-		"v1.24.5",
-		"v1.24.6",
-		"v1.24.7",
-		"v1.25.0",
-		"v1.25.1",
-		"v1.25.2",
-		"v1.25.3",
+
+	versionsList := make([]string, 0, len(files.FileSha256["kubeadm"]["amd64"]))
+	for k := range files.FileSha256["kubeadm"]["amd64"] {
+		versionsList = append(versionsList, k)
 	}
+	sort.Slice(versionsList, func(i, j int) bool {
+		return versionutil.MustParseSemantic(versionsList[i]).LessThan(versionutil.MustParseSemantic(versionsList[j]))
+	})
+
+	return versionsList
 }
