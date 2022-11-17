@@ -148,6 +148,10 @@ update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || 
 ulimit -u 65535
 ulimit -n 65535
 
+# make dir users
+mkdir -p /var/local/userspace
+mkdir -p /var/local/appdata
+mkdir -p /var/local/charts
     `)))
 
 func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) []string {
