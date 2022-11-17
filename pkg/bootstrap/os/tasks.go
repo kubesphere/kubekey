@@ -220,6 +220,8 @@ func (r *RemoveNodeFiles) Execute(runtime connector.Runtime) error {
 		"/usr/bin/kubelet",
 		"/tmp/kubekey",
 		"/etc/kubekey",
+		"/var/local/userspace",
+		"/var/local/charts",
 	}
 
 	for _, file := range nodeFiles {

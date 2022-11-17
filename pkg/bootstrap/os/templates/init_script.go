@@ -150,7 +150,6 @@ ulimit -n 65535
 
 # make dir users
 mkdir -p /var/local/userspace
-mkdir -p /var/local/appdata
 mkdir -p /var/local/charts
     `)))
 
