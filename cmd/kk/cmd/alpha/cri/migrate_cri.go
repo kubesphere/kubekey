@@ -45,7 +45,7 @@ func NewMigrateCriOptions() *MigrateCriOptions {
 	}
 }
 
-// NewCmdDeleteCluster creates a new delete cluster command
+// NewCmdMigrateCri creates a new delete cluster command
 func NewCmdMigrateCri() *cobra.Command {
 	o := NewMigrateCriOptions()
 	cmd := &cobra.Command{

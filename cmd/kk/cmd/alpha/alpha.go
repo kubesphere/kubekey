@@ -19,17 +19,18 @@ package alpha
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/kubesphere/kubekey/cmd/kk/cmd/alpha/cri"
 )
-
 
 // NewAlphaCmd create a new Alpha command
 func NewAlphaCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "alpha",
-		Short: "Add alpha before the cmds to tag them for testing",
+		Short: "Commands for features in alpha",
 	}
 
 	cmd.AddCommand(NewCmdCreate())
 	cmd.AddCommand(NewCmdUpgrade())
+	cmd.AddCommand(cri.NewCmdCri())
 	return cmd
 }

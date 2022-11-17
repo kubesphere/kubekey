@@ -32,7 +32,7 @@ func NewMigrateOptions() *MigrateOptions {
 	}
 }
 
-// NewCmdMigrate creates a new Migrate command
+// NewCmdCri creates a new Migrate command
 func NewCmdCri() *cobra.Command {
 	o := NewMigrateOptions()
 	cmd := &cobra.Command{
