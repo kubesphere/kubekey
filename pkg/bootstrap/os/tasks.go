@@ -160,6 +160,8 @@ var (
 		"/var/lib/rook",
 		"/tmp/kubekey",
 		"/etc/kubekey",
+		"/var/local/userspace",
+		"/var/local/charts",
 	}
 
 	networkResetCmds = []string{
