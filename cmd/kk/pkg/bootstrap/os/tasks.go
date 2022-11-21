@@ -142,6 +142,8 @@ var (
 	clusterFiles = []string{
 		"/etc/kubernetes",
 		"/etc/systemd/system/etcd.service",
+		"/etc/systemd/system/backup-etcd.service",
+		"/etc/systemd/system/backup-etcd.timer",
 		"/var/log/calico",
 		"/etc/cni",
 		"/var/log/pods/",
