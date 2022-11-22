@@ -18,9 +18,10 @@ package etcd
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/files"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -28,8 +29,8 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/etcd/templates"
+	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/utils"
-	"github.com/pkg/errors"
 )
 
 type EtcdNode struct {
@@ -389,7 +390,7 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 			"Hostname":            runtime.RemoteHost().GetName(),
 			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalAddress()),
 			"Backupdir":           b.KubeConf.Cluster.Etcd.BackupDir,
-			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber,
+			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber + 1,
 			"EtcdBackupPeriod":    b.KubeConf.Cluster.Etcd.BackupPeriod,
 			"EtcdBackupScriptDir": b.KubeConf.Cluster.Etcd.BackupScriptDir,
 			"EtcdBackupHour":      templates.BackupTimeInterval(runtime, b.KubeConf),
