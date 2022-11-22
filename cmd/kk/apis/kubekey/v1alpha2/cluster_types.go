@@ -88,7 +88,7 @@ type KubeVip struct {
 // CustomScripts defines the custom shell scripts for each node to exec before and finished kubernetes install.
 type CustomScripts struct {
 	Name      string   `yaml:"name" json:"name,omitempty"`
-	Bash      string   `yaml:"bash" json:"shell,omitempty"`
+	Bash      string   `yaml:"bash" json:"bash,omitempty"`
 	Materials []string `yaml:"materials" json:"materials,omitempty"`
 }
 
