@@ -74,7 +74,7 @@ const (
 	K8s                         = "k8s"
 	Registry                    = "registry"
 	DefaultEtcdBackupDir        = "/var/backups/kube_etcd"
-	DefaultEtcdBackupPeriod     = 30
+	DefaultEtcdBackupPeriod     = 1440
 	DefaultKeepBackNumber       = 5
 	DefaultEtcdBackupScriptDir  = "/usr/local/bin/kube-scripts"
 	DefaultPodGateway           = "10.233.64.1"

@@ -42,7 +42,7 @@ Description=Timer to backup ETCD
 {{- if .OnCalendarStr }}
 OnCalendar={{ .OnCalendarStr }}
 {{- else }}
-OnCalendar=*-*-* *:*/30:00
+OnCalendar=*-*-* 02:00:00
 {{- end }}
 Unit=backup-etcd.service
 [Install]
@@ -65,7 +65,7 @@ func BackupTimeOnCalendar(period int) string {
 			onCalendar = fmt.Sprintf("*-*-* 00/%s:%s:00", hour, minute)
 		}
 	} else {
-		onCalendar = "*-*-* 00:00:00"
+		onCalendar = "*-*-* 02:00:00"
 	}
 	return onCalendar
 }
