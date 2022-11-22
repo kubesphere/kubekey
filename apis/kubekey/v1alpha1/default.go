@@ -21,8 +21,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kubesphere/kubekey/pkg/util"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/kubesphere/kubekey/pkg/util"
 )
 
 const (
@@ -60,7 +61,7 @@ const (
 	Worker                     = "worker"
 	K8s                        = "k8s"
 	DefaultEtcdBackupDir       = "/var/backups/kube_etcd"
-	DefaultEtcdBackupPeriod    = 30
+	DefaultEtcdBackupPeriod    = 720
 	DefaultKeepBackNumber      = 5
 	DefaultEtcdBackupScriptDir = "/usr/local/bin/kube-scripts"
 	DefaultJoinCIDR            = "100.64.0.0/16"
