@@ -6,15 +6,20 @@ import (
 	"strconv"
 	"text/template"
 
+	"github.com/lithammer/dedent"
+
 	kubekeyapiv1alpha1 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/lithammer/dedent"
 )
 
 // EtcdBackupScriptTmpl defines the template of etcd backup script.
 var EtcdBackupScriptTmpl = template.Must(template.New("etcdBackupScript").Parse(
 	dedent.Dedent(`#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
 ENDPOINTS='{{ .Etcdendpoint }}'
@@ -44,7 +49,7 @@ export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ENDPOINTS" snapshot save $BACKU
 
 sleep 3
 
-cd $BACKUP_DIR/../;ls -lt |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$9}}'|sh
+cd $BACKUP_DIR/../ && ls -lt |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$9}}'|sh
 
 if [[ ! $ETCDBACKUPHOUR ]]; then
   time="*/$ETCDBACKUPPERIOD * * * *"
@@ -82,7 +87,7 @@ func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapiv1alpha1.HostCfg) (s
 		"Hostname":            node.Name,
 		"Etcdendpoint":        fmt.Sprintf("https://%s:2379", node.InternalAddress),
 		"Backupdir":           mgr.Cluster.Kubernetes.EtcdBackupDir,
-		"KeepbackupNumber":    mgr.Cluster.Kubernetes.KeepBackupNumber,
+		"KeepbackupNumber":    mgr.Cluster.Kubernetes.KeepBackupNumber + 1,
 		"EtcdBackupPeriod":    mgr.Cluster.Kubernetes.EtcdBackupPeriod,
 		"EtcdBackupScriptDir": mgr.Cluster.Kubernetes.EtcdBackupScriptDir,
 		"EtcdBackupHour":      etcdBackupHour,
