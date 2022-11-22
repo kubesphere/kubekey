@@ -2,16 +2,22 @@ package tmpl
 
 import (
 	"fmt"
+	"strings"
+	"text/template"
+
+	"github.com/lithammer/dedent"
+
 	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/pkg/util"
 	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/lithammer/dedent"
-	"strings"
-	"text/template"
 )
 
 var EtcdBackupScriptTmpl = template.Must(template.New("etcdBackupScript").Parse(
 	dedent.Dedent(`#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
 ENDPOINTS='{{ .Etcdendpoint }}'
@@ -39,16 +45,16 @@ export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ENDPOINTS" snapshot save $BACKU
 
 sleep 3
 
-cd $BACKUP_DIR/../;ls -lt |awk '{if(NR>14){print "rm -rf "$9}}'|sh
+cd $BACKUP_DIR/../ && ls -lt |awk '{if(NR>14){print "rm -rf "$9}}'|sh
 `)))
 
-func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapi.HostCfg ) (string, error) {
+func EtcdBackupScript(mgr *manager.Manager, node *kubekeyapi.HostCfg) (string, error) {
 	ips := []string{}
 	for _, host := range mgr.EtcdNodes {
 		ips = append(ips, fmt.Sprintf("https://%s:2379", host.InternalAddress))
 	}
 	return util.Render(EtcdBackupScriptTmpl, util.Data{
-		"Hostname": node.Name,
+		"Hostname":     node.Name,
 		"Etcdendpoint": strings.Join(ips, ","),
 	})
 }

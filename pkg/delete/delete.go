@@ -19,18 +19,20 @@ package delete
 import (
 	"bufio"
 	"fmt"
-	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/pkg/config"
-	"github.com/kubesphere/kubekey/pkg/util/executor"
-	"github.com/kubesphere/kubekey/pkg/util/manager"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
+	kubekeyapi "github.com/kubesphere/kubekey/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/pkg/config"
+	"github.com/kubesphere/kubekey/pkg/util/executor"
+	"github.com/kubesphere/kubekey/pkg/util/manager"
 )
 
 func ResetCluster(clusterCfgFile string, logger *log.Logger, verbose bool) error {
@@ -260,6 +262,8 @@ var clusterFiles = []string{
 	"/etc/etcd.env",
 	"/etc/kubernetes",
 	"/etc/systemd/system/etcd.service",
+	"/etc/systemd/system/backup-etcd.service",
+	"/etc/systemd/system/backup-etcd.timer",
 	"/var/log/calico",
 	"/etc/cni",
 	"/var/log/pods/",
