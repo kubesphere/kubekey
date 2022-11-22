@@ -391,7 +391,7 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 			"Hostname":            runtime.RemoteHost().GetName(),
 			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalAddress()),
 			"Backupdir":           b.KubeConf.Cluster.Etcd.BackupDir,
-			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber,
+			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber + 1,
 			"EtcdBackupScriptDir": b.KubeConf.Cluster.Etcd.BackupScriptDir,
 		},
 	}
