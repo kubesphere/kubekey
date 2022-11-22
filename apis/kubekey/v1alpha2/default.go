@@ -73,7 +73,7 @@ const (
 	K8s                         = "k8s"
 	Registry                    = "registry"
 	DefaultEtcdBackupDir        = "/var/backups/kube_etcd"
-	DefaultEtcdBackupPeriod     = 30
+	DefaultEtcdBackupPeriod     = 1440
 	DefaultKeepBackNumber       = 5
 	DefaultEtcdBackupScriptDir  = "/usr/local/bin/kube-scripts"
 	DefaultJoinCIDR             = "100.64.0.0/16"
