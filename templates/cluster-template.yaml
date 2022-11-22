@@ -116,11 +116,9 @@ spec:
         path: /etc/kubernetes/manifests/kube-vip.yaml
     initConfiguration:
       nodeRegistration:
-        name: '{{ ds.meta_data.local_hostname }}'
         criSocket: unix:///var/run/containerd/containerd.sock
     joinConfiguration:
       nodeRegistration:
-        name: '{{ ds.meta_data.local_hostname }}'
         criSocket: unix:///var/run/containerd/containerd.sock
   version: "${KUBERNETES_VERSION}"
 ---
@@ -135,7 +133,7 @@ spec:
         - control-plane
       repository:
         iso: "none"
-        update: true
+        update: false
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -171,7 +169,7 @@ spec:
         - worker
       repository:
         iso: "none"
-        update: true
+        update: false
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
@@ -182,5 +180,4 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration:
-          name: '{{ ds.meta_data.local_hostname }}'
           criSocket: unix:///var/run/containerd/containerd.sock
