@@ -17,17 +17,23 @@
 package templates
 
 import (
+	"strconv"
+	"text/template"
+
+	"github.com/lithammer/dedent"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/lithammer/dedent"
-	"strconv"
-	"text/template"
 )
 
 // EtcdBackupScriptTmpl defines the template of etcd backup script.
 var EtcdBackupScript = template.Must(template.New("etcd-backup.sh").Parse(
 	dedent.Dedent(`#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
 ENDPOINTS='{{ .Etcdendpoint }}'
@@ -57,7 +63,7 @@ export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ENDPOINTS" snapshot save $BACKU
 
 sleep 3
 
-cd $BACKUP_DIR/../;ls -lt |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$9}}'|sh
+cd $BACKUP_DIR/../ && ls -lt |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$9}}'|sh
 
 if [[ ! $ETCDBACKUPHOUR ]]; then
   time="*/$ETCDBACKUPPERIOD * * * *"

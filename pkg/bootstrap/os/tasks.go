@@ -18,14 +18,16 @@ package os
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	osrelease "github.com/dominodatalab/os-release"
+	"github.com/pkg/errors"
+
 	"github.com/kubesphere/kubekey/pkg/bootstrap/os/repository"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/utils"
-	"github.com/pkg/errors"
-	"path/filepath"
-	"strings"
 )
 
 type NodeConfigureOS struct {
@@ -138,6 +140,8 @@ var (
 		"/etc/etcd.env",
 		"/etc/kubernetes",
 		"/etc/systemd/system/etcd.service",
+		"/etc/systemd/system/backup-etcd.service",
+		"/etc/systemd/system/backup-etcd.timer",
 		"/var/log/calico",
 		"/etc/cni",
 		"/var/log/pods/",
