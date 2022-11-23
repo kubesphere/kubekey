@@ -162,6 +162,7 @@ var (
 		"/etc/kubekey",
 		"/var/local/userspace",
 		"/var/local/charts",
+		"/var/local/usertemplate",
 	}
 
 	networkResetCmds = []string{
@@ -224,6 +225,7 @@ func (r *RemoveNodeFiles) Execute(runtime connector.Runtime) error {
 		"/etc/kubekey",
 		"/var/local/userspace",
 		"/var/local/charts",
+		"/var/local/usertemplate",
 	}
 
 	for _, file := range nodeFiles {
