@@ -27,7 +27,7 @@ spec:
       containers:
       - args:
         - "--leader-elect"
-        - "--v=5"
+        - "--v=4"
         image: controller:latest
         name: manager
         securityContext:

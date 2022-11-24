@@ -121,7 +121,7 @@ func (d *DockerService) Get(timeout time.Duration) error {
 	if err != nil {
 		return err
 	}
-	crictl, err := d.getCrictlService(d.sshClient, getFirstMinorVersion(d.instanceScope.KubernetesVersion()), d.instanceScope.Arch())
+	crictl, err := d.getCrictlService(d.sshClient, d.instanceScope.KKInstance.Spec.ContainerManager.CRICTLVersion, d.instanceScope.Arch())
 	if err != nil {
 		return err
 	}

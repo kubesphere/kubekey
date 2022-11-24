@@ -26,6 +26,8 @@ const (
 	ContainerdType             = "containerd"
 	DefaultContainerdVersion   = "1.6.4"
 	DefaultContainerdCRISocket = "unix:///var/run/containerd/containerd.sock"
+
+	DefaultCrictlVersion = "v1.24.0"
 )
 
 // ContainerManager defines the desired state of ContainerManager
@@ -40,6 +42,9 @@ type ContainerManager struct {
 
 	// Version defines the version of ContainerManager.
 	Version string `json:"version,omitempty"`
+
+	// CRICTLVersion defines the version of CRICTL.
+	CRICTLVersion string `json:"crictlVersion,omitempty"`
 
 	// CRIDockerdVersion defines the version of cri-dockerd, available only when Type is docker.
 	// https://github.com/Mirantis/cri-dockerd

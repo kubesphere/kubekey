@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 
 	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/pkg/clients/ssh"
@@ -120,7 +119,7 @@ func (s *ContainerdService) Get(timeout time.Duration) error {
 	if err != nil {
 		return err
 	}
-	crictl, err := s.getCrictlService(s.sshClient, getFirstMinorVersion(s.instanceScope.KubernetesVersion()), s.instanceScope.Arch())
+	crictl, err := s.getCrictlService(s.sshClient, s.instanceScope.KKInstance.Spec.ContainerManager.CRICTLVersion, s.instanceScope.Arch())
 	if err != nil {
 		return err
 	}
@@ -364,10 +363,4 @@ func hasFile(files []os.DirEntry, name string) bool {
 		}
 	}
 	return false
-}
-
-func getFirstMinorVersion(version string) string {
-	semantic := versionutil.MustParseSemantic(version)
-	semantic = semantic.WithPatch(0)
-	return fmt.Sprintf("v%s", semantic.String())
 }

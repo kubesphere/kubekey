@@ -92,6 +92,9 @@ spec:
                   criSocket:
                     description: CRISocket is used to connect an existing CRIClient.
                     type: string
+                  crictlVersion:
+                    description: CRICTLVersion defines the version of CRICTL.
+                    type: string
                   type:
                     description: Type defines the type of ContainerManager. "docker",
                       "containerd"

@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -68,6 +70,16 @@ func defaultContainerManager(spec *KKMachineSpec) {
 			spec.ContainerManager.CRIDockerdVersion = DefaultCRIDockerdVersion
 		}
 		spec.ContainerManager.CRISocket = DefaultDockerCRISocket
+	}
+
+	if spec.ContainerManager.CRICTLVersion == "" {
+		spec.ContainerManager.CRICTLVersion = DefaultCrictlVersion
+	}
+
+	spec.ContainerManager.Version = strings.TrimPrefix(spec.ContainerManager.Version, "v")
+
+	if !strings.HasPrefix(spec.ContainerManager.CRICTLVersion, "v") {
+		spec.ContainerManager.CRICTLVersion = "v" + spec.ContainerManager.CRICTLVersion
 	}
 }
 
