@@ -24,7 +24,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/modood/table v0.0.0-20220527013332-8d47e76dad33
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.20.1
+	github.com/onsi/gomega v1.24.1
 	github.com/opencontainers/image-spec v1.1.0-rc1
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.5
@@ -224,11 +224,11 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.1.0 // indirect
-	golang.org/x/term v0.1.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
