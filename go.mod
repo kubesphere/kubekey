@@ -13,7 +13,7 @@ require (
 	github.com/containers/image/v5 v5.21.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/estesp/manifest-tool/v2 v2.0.3
-	github.com/evanphx/json-patch v4.12.0+incompatible
+	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-getter v1.6.2
@@ -35,7 +35,7 @@ require (
 	github.com/spf13/viper v1.12.0
 	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.9.4
+	helm.sh/helm/v3 v3.10.2
 	k8s.io/api v0.25.4
 	k8s.io/apiextensions-apiserver v0.25.4
 	k8s.io/apimachinery v0.25.4
@@ -198,7 +198,7 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/rubenv/sql-migrate v1.1.1 // indirect
+	github.com/rubenv/sql-migrate v1.1.2 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/smartystreets/goconvey v1.7.2 // indirect
@@ -220,6 +220,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
