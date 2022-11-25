@@ -13,7 +13,7 @@ require (
 	github.com/containers/image/v5 v5.21.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/estesp/manifest-tool/v2 v2.0.3
-	github.com/evanphx/json-patch v4.12.0+incompatible
+	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-getter v1.6.2
