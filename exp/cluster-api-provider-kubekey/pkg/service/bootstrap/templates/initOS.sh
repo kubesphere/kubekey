@@ -39,6 +39,15 @@ echo 'vm.swappiness = 1' >> /etc/sysctl.conf
 echo 'fs.inotify.max_user_instances = 524288' >> /etc/sysctl.conf
 echo 'kernel.pid_max = 65535' >> /etc/sysctl.conf
 
+echo 'net.ipv4.tcp_tw_reuse = 1' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_max_tw_buckets = 32768' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_timestamps = 0' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_syncookies = 1' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_keepalive_time = 1800' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_keepalive_probes = 3' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_keepalive_intvl = 15' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_fin_timeout = 10' >> /etc/sysctl.conf
+
 
 #See https://imroc.io/posts/kubernetes/troubleshooting-with-kubernetes-network/
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
