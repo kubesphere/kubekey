@@ -261,7 +261,7 @@ func (c *Check) Execute(runtime connector.Runtime) error {
 	stop := false
 	for !stop {
 		select {
-		case res := <-ch:
+		case <-ch:
 			fmt.Printf("\033[%dA\033[K", position)
 			// fmt.Println(res)
 			stop = true
