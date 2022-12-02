@@ -18,6 +18,9 @@ package kubesphere
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/prepare"
@@ -25,8 +28,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere/templates"
-	"os"
-	"path/filepath"
 )
 
 type DeployModule struct {
@@ -54,8 +55,12 @@ func (d *DeployModule) Init() {
 			Template: templates.KsInstaller,
 			Dst:      filepath.Join(common.KubeAddonsDir, templates.KsInstaller.Name()),
 			Data: util.Data{
-				"Repo": MirrorRepo(d.KubeConf),
-				"Tag":  d.KubeConf.Cluster.KubeSphere.Version,
+				"Repo": "eball",
+				"Tag":  "v0.1.0-ext",
+
+				// FIXME: multi version supported
+				// "Repo": MirrorRepo(d.KubeConf),
+				// "Tag":  d.KubeConf.Cluster.KubeSphere.Version,
 			},
 		},
 		Parallel: true,

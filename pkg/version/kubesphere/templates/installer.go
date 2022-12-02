@@ -17,13 +17,14 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
-	"text/template"
+  "text/template"
+
+  "github.com/lithammer/dedent"
 )
 
 var (
-	KsInstaller = template.Must(template.New("kubesphere.yaml").Parse(
-		dedent.Dedent(`
+  KsInstaller = template.Must(template.New("kubesphere.yaml").Parse(
+    dedent.Dedent(`
 ---
 apiVersion: v1
 kind: Namespace
@@ -313,7 +314,7 @@ spec:
       serviceAccountName: ks-installer
       containers:
       - name: installer
-        image: {{ .Repo }}/ks-installer:{{ .Tag }}
+        image: {{ .Repo }}/ks-installer-ext:{{ .Tag }}
         imagePullPolicy: Always
         volumeMounts:
         - mountPath: /etc/localtime
