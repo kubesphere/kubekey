@@ -20,6 +20,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
@@ -30,10 +35,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere/templates"
 	"github.com/pkg/errors"
 	yamlV2 "gopkg.in/yaml.v2"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 type AddInstallerConfig struct {
@@ -262,7 +263,7 @@ func (c *Check) Execute(runtime connector.Runtime) error {
 		select {
 		case res := <-ch:
 			fmt.Printf("\033[%dA\033[K", position)
-			fmt.Println(res)
+			// fmt.Println(res)
 			stop = true
 		default:
 			for i := 0; i < 10; i++ {
