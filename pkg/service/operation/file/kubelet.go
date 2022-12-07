@@ -46,7 +46,7 @@ func NewKubelet(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), KubeletID, version, arch, fileName),
 		RemoteFullPath: filepath.Join(BinDir, fileName),
 	})
 	if err != nil {

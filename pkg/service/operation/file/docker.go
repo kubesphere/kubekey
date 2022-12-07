@@ -60,7 +60,7 @@ func NewDocker(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch s
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), DockerID, version, arch, fileName),
 		RemoteFullPath: filepath.Join(directory.BinDir, fileName),
 	})
 	if err != nil {
@@ -100,7 +100,7 @@ func NewCRIDockerd(sshClient ssh.Interface, rootFs rootfs.Interface, version, ar
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), CRIDockerdID, version, arch, fileName),
 		RemoteFullPath: filepath.Join(directory.BinDir, fileName),
 	})
 	if err != nil {

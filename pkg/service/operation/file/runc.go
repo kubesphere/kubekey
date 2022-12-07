@@ -45,7 +45,7 @@ func NewRunc(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch str
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), RuncID, version, arch, fileName),
 		RemoteFullPath: filepath.Join(BinDir, fileName),
 	})
 	if err != nil {

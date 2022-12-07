@@ -48,7 +48,7 @@ func NewKubecni(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch 
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), KubecniID, version, arch, fileName),
 		RemoteFullPath: filepath.Join(OptCniBinDir, fileName),
 	})
 	if err != nil {
