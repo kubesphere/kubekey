@@ -46,7 +46,7 @@ func NewK3s(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch stri
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), K3sID, version, arch, fileName),
 		RemoteFullPath: filepath.Join(BinDir, fileName),
 	})
 	if err != nil {

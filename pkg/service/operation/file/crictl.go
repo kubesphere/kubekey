@@ -46,7 +46,7 @@ func NewCrictl(sshClient ssh.Interface, rootFs rootfs.Interface, version, arch s
 		RootFs:         rootFs,
 		Type:           FileBinary,
 		Name:           fileName,
-		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), fileName),
+		LocalFullPath:  filepath.Join(rootFs.ClusterRootFsDir(), CrictlID, version, arch, fileName),
 		RemoteFullPath: filepath.Join(BinDir, fileName),
 	})
 	if err != nil {
