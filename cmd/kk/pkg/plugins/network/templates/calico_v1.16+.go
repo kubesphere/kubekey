@@ -114,7 +114,9 @@ data:
           "nodename": "__KUBERNETES_NODE_NAME__",
           "mtu": __CNI_MTU__,
           "ipam": {
-              "type": "calico-ipam"
+              "type": "calico-ipam",
+              "assign_ipv4": "true",
+              "assign_ipv6": "true"
           },
           "policy": {
               "type": "k8s"
@@ -4850,6 +4852,8 @@ spec:
               value: "can-reach=$(NODEIP)"
             - name: IP
               value: "autodetect"
+            - name: IP6
+              value: "autodetect"
             # Enable IPIP
             - name: CALICO_IPV4POOL_IPIP
               value: "{{ .IPIPMode }}"
@@ -4889,7 +4893,9 @@ spec:
             # chosen from this range. Changing this value after installation will have
             # no effect.
             - name: CALICO_IPV4POOL_CIDR
-              value: "{{ .KubePodsCIDR }}"
+              value: "{{ .KubePodsV4CIDR }}"
+            - name: CALICO_IPV6POOL_CIDR
+              value: "{{ .KubePodsV6CIDR }}"
             - name: CALICO_IPV4POOL_BLOCK_SIZE
               value: "{{ .NodeCidrMaskSize }}"
 {{- else }}
@@ -4907,7 +4913,7 @@ spec:
               value: "ACCEPT"
             # Disable IPv6 on Kubernetes.
             - name: FELIX_IPV6SUPPORT
-              value: "false"
+              value: "true"
             - name: FELIX_HEALTHENABLED
               value: "true"
             - name: FELIX_DEVICEROUTESOURCEADDRESS

@@ -18,6 +18,7 @@ package network
 
 import (
 	"path/filepath"
+	"strings"
 
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
@@ -131,7 +132,8 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 			Template: templates.CalicoNew,
 			Dst:      filepath.Join(common.KubeConfigDir, templates.CalicoNew.Name()),
 			Data: util.Data{
-				"KubePodsCIDR":            d.KubeConf.Cluster.Network.KubePodsCIDR,
+				"KubePodsV4CIDR":            strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")[0],
+				"KubePodsV6CIDR":            strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")[1],
 				"CalicoCniImage":          images.GetImage(d.Runtime, d.KubeConf, "calico-cni").ImageName(),
 				"CalicoNodeImage":         images.GetImage(d.Runtime, d.KubeConf, "calico-node").ImageName(),
 				"CalicoFlexvolImage":      images.GetImage(d.Runtime, d.KubeConf, "calico-flexvol").ImageName(),
