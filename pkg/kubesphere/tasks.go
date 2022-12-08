@@ -23,7 +23,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -33,6 +32,7 @@ import (
 	ksv3 "github.com/kubesphere/kubekey/pkg/kubesphere/v3"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/version/kubesphere/templates"
+	"github.com/nxadm/tail"
 	"github.com/pkg/errors"
 	yamlV2 "gopkg.in/yaml.v2"
 )
@@ -248,54 +248,109 @@ type Check struct {
 }
 
 func (c *Check) Execute(runtime connector.Runtime) error {
-	var (
-		position = 1
-		notes    = "Please wait for the installation to complete: "
-	)
+	// var (
+	// 	position = 1
+	// 	notes    = "Please wait for the installation to complete: "
+	// )
 
 	ch := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go CheckKubeSphereStatus(ctx, runtime, ch)
 
+	if err := checkInstallerRunning(ctx, runtime); err != nil {
+		return err
+	}
+
+	logFile := "/tmp/.ks-installer.log"
+	_, err := runtime.GetRunner().SudoCmd("cat /dev/null > "+logFile, false) // make sure log file exists
+	if err != nil {
+		return err
+	}
+	go tailInstallerLog(logFile, runtime) // FIXME:
+	config := tail.Config{MustExist: true, Follow: true}
+	tail, err := tail.TailFile(logFile, config)
+	if err != nil {
+		return err
+	}
+
 	stop := false
 	for !stop {
 		select {
 		case <-ch:
-			fmt.Printf("\033[%dA\033[K", position)
-			// fmt.Println(res)
 			stop = true
+		case output := <-tail.Lines:
+			fmt.Println(output.Text)
+		}
+	}
+	tail.Stop()
+	// for !stop {
+	// 	select {
+	// 	case <-ch:
+	// 		fmt.Printf("\033[%dA\033[K", position)
+	// 		// fmt.Println(res)
+	// 		stop = true
+	// 	default:
+	// 		for i := 0; i < 10; i++ {
+	// 			if i < 5 {
+	// 				fmt.Printf("\033[%dA\033[K", position)
+
+	// 				output := fmt.Sprintf(
+	// 					"%s%s%s",
+	// 					notes,
+	// 					strings.Repeat(" ", i),
+	// 					">>--->",
+	// 				)
+
+	// 				fmt.Printf("%s \033[K\n", output)
+	// 				time.Sleep(time.Duration(200) * time.Millisecond)
+	// 			} else {
+	// 				fmt.Printf("\033[%dA\033[K", position)
+
+	// 				output := fmt.Sprintf(
+	// 					"%s%s%s",
+	// 					notes,
+	// 					strings.Repeat(" ", 10-i),
+	// 					"<---<<",
+	// 				)
+
+	// 				fmt.Printf("%s \033[K\n", output)
+	// 				time.Sleep(time.Duration(200) * time.Millisecond)
+	// 			}
+	// 		}
+	// 	}
+	// } // end for
+	return nil
+}
+
+func checkInstallerRunning(ctx context.Context, runtime connector.Runtime) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
 		default:
-			for i := 0; i < 10; i++ {
-				if i < 5 {
-					fmt.Printf("\033[%dA\033[K", position)
-
-					output := fmt.Sprintf(
-						"%s%s%s",
-						notes,
-						strings.Repeat(" ", i),
-						">>--->",
-					)
-
-					fmt.Printf("%s \033[K\n", output)
-					time.Sleep(time.Duration(200) * time.Millisecond)
-				} else {
-					fmt.Printf("\033[%dA\033[K", position)
-
-					output := fmt.Sprintf(
-						"%s%s%s",
-						notes,
-						strings.Repeat(" ", 10-i),
-						"<---<<",
-					)
-
-					fmt.Printf("%s \033[K\n", output)
-					time.Sleep(time.Duration(200) * time.Millisecond)
-				}
+			output, err := runtime.GetRunner().SudoCmd(
+				"/usr/local/bin/kubectl get pod -n kubesphere-system -l app=ks-installer -o jsonpath='{.items[*].status.phase}'", false)
+			if err != nil {
+				return err
+			}
+			if output == "Running" {
+				return nil
 			}
 		}
 	}
-	return nil
+}
+
+func tailInstallerLog(log string, runtime connector.Runtime) error {
+	// TODO: kill when done
+	fmt.Print("start to sync ks-installer's log")
+	output, err := runtime.GetRunner().SudoCmd(
+		"/usr/local/bin/kubectl logs -n kubesphere-system "+
+			"$(kubectl get pod -n kubesphere-system -l app=ks-installer -o jsonpath='{.items[0].metadata.name}') "+
+			"-f > "+log, false)
+
+	fmt.Printf("tail log: %s , [%v]", output, err)
+	return err
 }
 
 func CheckKubeSphereStatus(ctx context.Context, runtime connector.Runtime, stopChan chan string) {

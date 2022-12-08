@@ -17,14 +17,14 @@
 package templates
 
 import (
-  "text/template"
+	"text/template"
 
-  "github.com/lithammer/dedent"
+	"github.com/lithammer/dedent"
 )
 
 var (
-  KsInstaller = template.Must(template.New("kubesphere.yaml").Parse(
-    dedent.Dedent(`
+	KsInstaller = template.Must(template.New("kubesphere.yaml").Parse(
+		dedent.Dedent(`
 ---
 apiVersion: v1
 kind: Namespace
