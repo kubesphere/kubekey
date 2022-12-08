@@ -228,17 +228,19 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	if kubeConf.Cluster.ControlPlaneEndpoint.Address != "" {
 		lbHost = fmt.Sprintf("%s  %s", kubeConf.Cluster.ControlPlaneEndpoint.Address, kubeConf.Cluster.ControlPlaneEndpoint.Domain)
+	} else {
+		lbHost = fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Master)[0].GetInternalIPv4Address(), kubeConf.Cluster.ControlPlaneEndpoint.Domain)
 	}
 
 	for _, host := range runtime.GetAllHosts() {
 		if host.GetName() != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				strings.Split(host.GetInternalAddress(), ",")[0],
+				host.GetInternalIPv4Address(),
 				host.GetName(),
 				kubeConf.Cluster.Kubernetes.ClusterName,
 				host.GetName()))
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				strings.Split(host.GetInternalAddress(), ",")[1],
+				host.GetInternalIPv6Address(),
 				host.GetName(),
 				kubeConf.Cluster.Kubernetes.ClusterName,
 				host.GetName()))

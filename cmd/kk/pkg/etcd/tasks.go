@@ -84,12 +84,12 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 
 		if v, ok := g.PipelineCache.Get(common.ETCDCluster); ok {
 			c := v.(*EtcdCluster)
-			c.peerAddresses = append(c.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
+			c.peerAddresses = append(c.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address()))
 			c.clusterExist = true
 			// type: *EtcdCluster
 			g.PipelineCache.Set(common.ETCDCluster, c)
 		} else {
-			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
+			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address()))
 			cluster.clusterExist = true
 			g.PipelineCache.Set(common.ETCDCluster, cluster)
 		}
@@ -169,7 +169,7 @@ type GenerateAccessAddress struct {
 func (g *GenerateAccessAddress) Execute(runtime connector.Runtime) error {
 	var addrList []string
 	for _, host := range runtime.GetHostsByRole(common.ETCD) {
-		addrList = append(addrList, fmt.Sprintf("https://%s:2379", host.GetInternalAddress()))
+		addrList = append(addrList, fmt.Sprintf("https://%s:2379", host.GetInternalIPv4Address()))
 	}
 
 	accessAddresses := strings.Join(addrList, ",")
@@ -227,7 +227,7 @@ func (g *GenerateConfig) Execute(runtime connector.Runtime) error {
 	if v, ok := g.PipelineCache.Get(common.ETCDCluster); ok {
 		cluster := v.(*EtcdCluster)
 
-		cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalAddress()))
+		cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address()))
 		g.PipelineCache.Set(common.ETCDCluster, cluster)
 
 		if !cluster.clusterExist {
@@ -295,7 +295,7 @@ func refreshConfig(KubeConf *common.KubeConf, runtime connector.Runtime, endpoin
 		Data: util.Data{
 			"Tag":                 kubekeyapiv1alpha2.DefaultEtcdVersion,
 			"Name":                etcdName,
-			"Ip":                  host.GetInternalAddress(),
+			"Ip":                  host.GetInternalIPv4Address(),
 			"Hostname":            host.GetName(),
 			"State":               state,
 			"PeerAddresses":       strings.Join(endpoints, ","),
@@ -341,7 +341,7 @@ func (j *JoinMember) Execute(runtime connector.Runtime) error {
 			"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';"+
 			"%s/etcdctl --endpoints=%s member add %s %s",
 			host.GetName(), host.GetName(), common.BinDir, cluster.accessAddresses, etcdName,
-			fmt.Sprintf("https://%s:2380", host.GetInternalAddress()))
+			fmt.Sprintf("https://%s:2380", host.GetInternalIPv4Address()))
 
 		if _, err := runtime.GetRunner().SudoCmd(joinMemberCmd, true); err != nil {
 			return errors.Wrap(errors.WithStack(err), "add etcd member failed")
@@ -375,7 +375,7 @@ func (c *CheckMember) Execute(runtime connector.Runtime) error {
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "list etcd member failed")
 		}
-		if !strings.Contains(memberList, fmt.Sprintf("https://%s:2379", host.GetInternalAddress())) {
+		if !strings.Contains(memberList, fmt.Sprintf("https://%s:2379", host.GetInternalIPv4Address())) {
 			return errors.Wrap(errors.WithStack(err), "add etcd member failed")
 		}
 	} else {
@@ -405,7 +405,7 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 		Dst:      filepath.Join(b.KubeConf.Cluster.Etcd.BackupScriptDir, "etcd-backup.sh"),
 		Data: util.Data{
 			"Hostname":            runtime.RemoteHost().GetName(),
-			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalAddress()),
+			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalIPv4Address()),
 			"DataDir":             b.KubeConf.Cluster.Etcd.DataDir,
 			"Backupdir":           b.KubeConf.Cluster.Etcd.BackupDir,
 			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber + 1,

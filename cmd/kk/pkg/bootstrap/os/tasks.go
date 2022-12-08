@@ -517,12 +517,12 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 
 		serverAddr := strings.Trim(server, " \"")
 		fmt.Printf("ntpserver: %s, current host: %s\n", serverAddr, currentHost.GetName())
-		if serverAddr == currentHost.GetName() || serverAddr == currentHost.GetInternalAddress() {
+		if serverAddr == currentHost.GetName() || serverAddr == currentHost.GetInternalIPv4Address() {
 			deleteAllowCmd := fmt.Sprintf(`sed -i '/^allow/d' %s`, chronyConfigFile)
 			if _, err := runtime.GetRunner().SudoCmd(deleteAllowCmd, false); err != nil {
 				return errors.Wrapf(err, "delete allow failed, please check file %s", chronyConfigFile)
 			}
-			allowClientCmd := fmt.Sprintf(`echo 'allow 0.0.0.0/0' >> %s`, chronyConfigFile)
+			allowClientCmd := fmt.Sprintf(`echo "allow 0.0.0.0/0" >> %s`, chronyConfigFile)
 			if _, err := runtime.GetRunner().SudoCmd(allowClientCmd, false); err != nil {
 				return errors.Wrapf(err, "change host:%s chronyd conf failed, please check file %s", serverAddr, chronyConfigFile)
 			}
@@ -539,7 +539,7 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 		// use internal ip to client chronyd server
 		for _, host := range runtime.GetAllHosts() {
 			if serverAddr == host.GetName() {
-				serverAddr = host.GetInternalAddress()
+				serverAddr = host.GetInternalIPv4Address()
 				break
 			}
 		}

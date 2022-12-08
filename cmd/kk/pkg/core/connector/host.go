@@ -18,6 +18,7 @@ package connector
 
 import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/cache"
+	"strings"
 )
 
 type BaseHost struct {
@@ -63,6 +64,14 @@ func (b *BaseHost) SetAddress(str string) {
 
 func (b *BaseHost) GetInternalAddress() string {
 	return b.InternalAddress
+}
+
+func (b *BaseHost) GetInternalIPv4Address() string {
+	return strings.Split(b.InternalAddress, ",")[0]
+}
+
+func (b *BaseHost) GetInternalIPv6Address() string {
+	return strings.Split(b.InternalAddress, ",")[1]
 }
 
 func (b *BaseHost) SetInternalAddress(str string) {
