@@ -19,6 +19,7 @@ package templates
 import (
 	"fmt"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
+	"strings"
 	"text/template"
 
 	"github.com/lithammer/dedent"
@@ -232,7 +233,12 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 	for _, host := range runtime.GetAllHosts() {
 		if host.GetName() != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				host.GetInternalAddress(),
+				strings.Split(host.GetInternalAddress(), ",")[0],
+				host.GetName(),
+				kubeConf.Cluster.Kubernetes.ClusterName,
+				host.GetName()))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
+				strings.Split(host.GetInternalAddress(), ",")[1],
 				host.GetName(),
 				kubeConf.Cluster.Kubernetes.ClusterName,
 				host.GetName()))
@@ -241,9 +247,11 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	if len(runtime.GetHostsByRole(common.Registry)) > 0 {
 		if kubeConf.Cluster.Registry.PrivateRegistry != "" {
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), kubeConf.Cluster.Registry.PrivateRegistry))
+		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[0], kubeConf.Cluster.Registry.PrivateRegistry))
+		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[1], kubeConf.Cluster.Registry.PrivateRegistry))
 		} else {
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), registry.RegistryCertificateBaseName))
+		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[0], registry.RegistryCertificateBaseName))
+		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[1], registry.RegistryCertificateBaseName))
 		}
 
 	}
