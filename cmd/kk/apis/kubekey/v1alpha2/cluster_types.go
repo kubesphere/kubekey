@@ -145,7 +145,7 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 		}
 	}
 
-	extraCertSANs = append(extraCertSANs, util.ParseIp(strings.Split(cfg.Network.KubeServiceCIDR, ",")[0])[0], util.ParseIp(strings.Split(cfg.Network.KubeServiceCIDR, ",")[1])[0])
+	extraCertSANs = append(extraCertSANs, util.ParseIp(strings.Split(cfg.Network.KubeServiceCIDR, ",")[0])[0])
 
 	defaultCertSANs = append(defaultCertSANs, extraCertSANs...)
 
