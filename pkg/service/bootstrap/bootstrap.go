@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -113,7 +114,12 @@ func (s *Service) ExecInitScript() error {
 	for _, host := range s.scope.AllInstancesInfo() {
 		if host.Name != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				host.InternalAddress,
+				strings.Split(host.InternalAddress, ",")[0],
+				host.Name,
+				s.scope.KubernetesClusterName(),
+				host.Name))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
+				strings.Split(host.InternalAddress, ",")[1],
 				host.Name,
 				s.scope.KubernetesClusterName(),
 				host.Name))
