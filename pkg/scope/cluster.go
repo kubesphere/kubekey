@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capiutil "sigs.k8s.io/cluster-api/util"
+	capicollections "sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -110,6 +111,41 @@ func (s *ClusterScope) InfraClusterName() string {
 // KubernetesClusterName is the name of the Kubernetes cluster.
 func (s *ClusterScope) KubernetesClusterName() string {
 	return s.Cluster.Name
+}
+
+// GetKKMachines returns the list of KKMachines for a KKCluster.
+func (s *ClusterScope) GetKKMachines(ctx context.Context) (*infrav1.KKMachineList, error) {
+	kkml := &infrav1.KKMachineList{}
+	if err := s.client.List(
+		ctx,
+		kkml,
+		client.InNamespace(s.KKCluster.Namespace),
+		client.MatchingLabels{
+			infrav1.KKClusterLabelName: s.KKCluster.Name,
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed to list KKMachines")
+	}
+
+	return kkml, nil
+}
+
+// GetMachines returns the collections of machines for a KKCluster.
+func (s *ClusterScope) GetMachines(ctx context.Context, filters ...capicollections.Func) (capicollections.Machines, error) {
+	kkml, err := s.GetKKMachines(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get KKMachines")
+	}
+
+	machines := make(capicollections.Machines, len(kkml.Items))
+	for i := range kkml.Items {
+		machine, err := capiutil.GetOwnerMachine(ctx, s.client, kkml.Items[i].ObjectMeta)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get owner machine")
+		}
+		machines.Insert(machine)
+	}
+	return machines.Filter(filters...), nil
 }
 
 // ControlPlaneEndpoint returns the control plane endpoint.

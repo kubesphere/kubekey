@@ -28,6 +28,18 @@ spec:
       jsonPath: .spec.address
       name: Address
       type: string
+    - description: KKInstance state
+      jsonPath: .status.instanceState
+      name: State
+      type: string
+    - description: Time duration since creation of KKInstance
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Kubernetes version associated with this KKInstance
+      jsonPath: .status.nodeInfo.kubeletVersion
+      name: Version
+      type: string
     name: v1beta1
     schema:
       openAPIV3Schema:
@@ -220,6 +232,96 @@ spec:
               instanceState:
                 description: The current state of the instance.
                 type: string
+              nodeInfo:
+                description: 'NodeInfo is a set of ids/uuids to uniquely identify
+                  the node. More info: https://kubernetes.io/docs/concepts/nodes/node/#info'
+                properties:
+                  architecture:
+                    description: The Architecture reported by the node
+                    type: string
+                  bootID:
+                    description: Boot ID reported by the node.
+                    type: string
+                  containerRuntimeVersion:
+                    description: ContainerRuntime Version reported by the node through
+                      runtime remote API (e.g. containerd://1.4.2).
+                    type: string
+                  kernelVersion:
+                    description: Kernel Version reported by the node from 'uname -r'
+                      (e.g. 3.16.0-0.bpo.4-amd64).
+                    type: string
+                  kubeProxyVersion:
+                    description: KubeProxy Version reported by the node.
+                    type: string
+                  kubeletVersion:
+                    description: Kubelet Version reported by the node.
+                    type: string
+                  machineID:
+                    description: 'MachineID reported by the node. For unique machine
+                      identification in the cluster this field is preferred. Learn
+                      more from man(5) machine-id: http://man7.org/linux/man-pages/man5/machine-id.5.html'
+                    type: string
+                  operatingSystem:
+                    description: The Operating System reported by the node
+                    type: string
+                  osImage:
+                    description: OS Image reported by the node from /etc/os-release
+                      (e.g. Debian GNU/Linux 7 (wheezy)).
+                    type: string
+                  systemUUID:
+                    description: SystemUUID reported by the node. For unique machine
+                      identification MachineID is preferred. This field is specific
+                      to Red Hat hosts https://access.redhat.com/documentation/en-us/red_hat_subscription_management/1/html/rhsm/uuid
+                    type: string
+                required:
+                - architecture
+                - bootID
+                - containerRuntimeVersion
+                - kernelVersion
+                - kubeProxyVersion
+                - kubeletVersion
+                - machineID
+                - operatingSystem
+                - osImage
+                - systemUUID
+                type: object
+              nodeRef:
+                description: NodeRef will point to the corresponding Node if it exists.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
             type: object
         type: object
     served: true

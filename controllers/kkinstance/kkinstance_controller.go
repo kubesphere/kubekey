@@ -1,28 +1,28 @@
 /*
-Copyright 2022 The KubeSphere Authors.
+ Copyright 2022 The KubeSphere Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
 */
 
-package controllers
+package kkinstance
 
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	cutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -53,20 +54,30 @@ import (
 	"github.com/kubesphere/kubekey/pkg/service/containermanager"
 	"github.com/kubesphere/kubekey/pkg/service/provisioning"
 	"github.com/kubesphere/kubekey/pkg/service/repository"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/util"
 )
 
 const (
+	controllerName = "kkinstance-controller"
+
 	defaultRequeueWait        = 30 * time.Second
 	defaultKKInstanceInterval = 5 * time.Second
 	defaultKKInstanceTimeout  = 10 * time.Minute
 )
 
-// KKInstanceReconciler reconciles a KKInstance object
-type KKInstanceReconciler struct {
+// Locker is a lock that is used around.
+type Locker interface {
+	Lock(ctx context.Context, cluster *clusterv1.Cluster, kkInstance *infrav1.KKInstance) bool
+	Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool
+}
+
+// Reconciler reconciles a KKInstance object
+type Reconciler struct {
 	client.Client
 	Scheme                  *runtime.Scheme
+	Tracker                 *remote.ClusterCacheTracker
 	Recorder                record.EventRecorder
+	Lock                    Locker
 	sshClientFactory        func(scope *scope.InstanceScope) ssh.Interface
 	bootstrapFactory        func(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) service.Bootstrap
 	repositoryFactory       func(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.Repository
@@ -80,42 +91,42 @@ type KKInstanceReconciler struct {
 	WaitKKInstanceTimeout  time.Duration
 }
 
-func (r *KKInstanceReconciler) getSSHClient(scope *scope.InstanceScope) ssh.Interface {
+func (r *Reconciler) getSSHClient(scope *scope.InstanceScope) ssh.Interface {
 	if r.sshClientFactory != nil {
 		return r.sshClientFactory(scope)
 	}
 	return ssh.NewClient(scope.KKInstance.Spec.Address, scope.KKInstance.Spec.Auth, &scope.Logger)
 }
 
-func (r *KKInstanceReconciler) getBootstrapService(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) service.Bootstrap {
+func (r *Reconciler) getBootstrapService(sshClient ssh.Interface, scope scope.LBScope, instanceScope *scope.InstanceScope) service.Bootstrap {
 	if r.bootstrapFactory != nil {
 		return r.bootstrapFactory(sshClient, scope, instanceScope)
 	}
 	return bootstrap.NewService(sshClient, scope, instanceScope)
 }
 
-func (r *KKInstanceReconciler) getRepositoryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.Repository {
+func (r *Reconciler) getRepositoryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.Repository {
 	if r.repositoryFactory != nil {
 		return r.repositoryFactory(sshClient, scope, instanceScope)
 	}
 	return repository.NewService(sshClient, scope, instanceScope)
 }
 
-func (r *KKInstanceReconciler) getBinaryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope, distribution string) service.BinaryService {
+func (r *Reconciler) getBinaryService(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope, distribution string) service.BinaryService {
 	if r.binaryFactory != nil {
 		return r.binaryFactory(sshClient, scope, instanceScope, distribution)
 	}
 	return binary.NewService(sshClient, scope, instanceScope, distribution)
 }
 
-func (r *KKInstanceReconciler) getContainerManager(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager {
+func (r *Reconciler) getContainerManager(sshClient ssh.Interface, scope scope.KKInstanceScope, instanceScope *scope.InstanceScope) service.ContainerManager {
 	if r.containerManagerFactory != nil {
 		return r.containerManagerFactory(sshClient, scope, instanceScope)
 	}
 	return containermanager.NewService(sshClient, scope, instanceScope)
 }
 
-func (r *KKInstanceReconciler) getProvisioningService(sshClient ssh.Interface, format bootstrapv1.Format) service.Provisioning {
+func (r *Reconciler) getProvisioningService(sshClient ssh.Interface, format bootstrapv1.Format) service.Provisioning {
 	if r.provisioningFactory != nil {
 		return r.provisioningFactory(sshClient, format)
 	}
@@ -123,9 +134,12 @@ func (r *KKInstanceReconciler) getProvisioningService(sshClient ssh.Interface, f
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
+	if r.Lock == nil {
+		r.Lock = NewMutex(mgr.GetClient())
+	}
 	if r.WaitKKInstanceInterval.Nanoseconds() == 0 {
 		r.WaitKKInstanceInterval = defaultKKInstanceInterval
 	}
@@ -144,7 +158,7 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			&source.Kind{Type: &infrav1.KKCluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKInstances(log)),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(log, r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
@@ -165,7 +179,7 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldInstance.ObjectMeta.ResourceVersion = ""
 					newInstance.ObjectMeta.ResourceVersion = ""
 
-					if cmp.Equal(oldInstance, newInstance) {
+					if reflect.DeepEqual(oldInstance, newInstance) {
 						log.V(4).Info("oldInstance and newInstance are equaled, skip")
 						return false
 					}
@@ -191,11 +205,13 @@ func (r *KKInstanceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return nil
 }
 
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkinstances,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkinstances/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkinstances/finalizers,verbs=update
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkinstances;kkinstances/status;kkinstances/finalizers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;patch
 
-func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 	// Fetch the KKInstance.
 	kkInstance := &infrav1.KKInstance{}
@@ -238,11 +254,6 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, kkInstance) {
-		log.Info("KKInstance or linked Cluster is marked as paused. Won't reconcile")
-		return ctrl.Result{}, nil
-	}
-
 	log = log.WithValues("cluster", cluster.Name)
 
 	infraCluster, err := util.GetInfraCluster(ctx, r.Client, log, cluster, "kkinstance", r.DataDir)
@@ -259,6 +270,7 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Cluster:      cluster,
 		Machine:      machine,
 		InfraCluster: infraCluster,
+		KKMachine:    kkMachine,
 		KKInstance:   kkInstance,
 	})
 	if err != nil {
@@ -285,9 +297,14 @@ func (r *KKInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.reconcileNormal(ctx, instanceScope, infraCluster, infraCluster)
 }
 
-func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKInstance delete")
+
+	if annotations.IsPaused(instanceScope.Cluster, instanceScope.KKInstance) {
+		log.Info("KKInstance or linked Cluster is marked as paused. Won't reconcile")
+		return ctrl.Result{}, nil
+	}
 
 	if conditions.Get(instanceScope.KKInstance, infrav1.KKInstanceDeletingBootstrapCondition) == nil {
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.KKInstanceDeletingBootstrapCondition,
@@ -311,7 +328,7 @@ func (r *KKInstanceReconciler) reconcileDelete(ctx context.Context, instanceScop
 	return ctrl.Result{}, nil
 }
 
-func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope, kkInstanceScope scope.KKInstanceScope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileNormal(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope, kkInstanceScope scope.KKInstanceScope) (ctrl.Result, error) {
 	instanceScope.Info("Reconcile KKInstance normal")
 
 	// If the KKInstance is in an error state, return early.
@@ -319,6 +336,12 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 		instanceScope.Info("Error state detected, skipping reconciliation")
 		return ctrl.Result{}, nil
 	}
+
+	if instanceScope.KKInstance.Labels == nil {
+		instanceScope.KKInstance.Labels = make(map[string]string)
+	}
+
+	instanceScope.KKInstance.Labels[infrav1.KKClusterLabelName] = instanceScope.InfraCluster.InfraClusterName()
 
 	// If the KKMachine doesn't have our finalizer, add it.
 	controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
@@ -346,11 +369,44 @@ func (r *KKInstanceReconciler) reconcileNormal(ctx context.Context, instanceScop
 
 	instanceScope.SetState(infrav1.InstanceStateRunning)
 	instanceScope.Info("Reconcile KKInstance normal successful")
+
+	if res, err := r.reconcileNode(ctx, instanceScope); !res.IsZero() || err != nil {
+		return res, err
+	}
+
+	if _, ok := instanceScope.KKInstance.GetAnnotations()[infrav1.InPlaceUpgradeVersionAnnotation]; ok {
+		return r.reconcileInPlaceUpgrade(ctx, instanceScope, kkInstanceScope)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) reconcileInPlaceUpgrade(ctx context.Context, instanceScope *scope.InstanceScope, kkInstanceScope scope.KKInstanceScope) (ctrl.Result, error) {
+	instanceScope.V(4).Info("Reconcile KKInstance in-place upgrade")
+
+	// check node is ready
+	if instanceScope.KKInstance.Status.NodeRef == nil {
+		return ctrl.Result{RequeueAfter: defaultRequeueWait}, nil
+	}
+
+	phases := []func(context.Context, *scope.InstanceScope) (ctrl.Result, error){
+		func(ctx context.Context, instanceScope *scope.InstanceScope) (ctrl.Result, error) {
+			return r.reconcileInPlaceBinaryService(ctx, instanceScope, kkInstanceScope)
+		},
+		r.reconcileInPlaceKubeadmUpgrade,
+	}
+
+	for _, phase := range phases {
+		// Call the inner reconciliation methods.
+		if phaseResult, err := phase(ctx, instanceScope); !phaseResult.IsZero() || err != nil {
+			return phaseResult, err
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
 // KKClusterToKKInstances is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation of KKInstance.
-func (r *KKInstanceReconciler) KKClusterToKKInstances(log logr.Logger) handler.MapFunc {
+func (r *Reconciler) KKClusterToKKInstances(log logr.Logger) handler.MapFunc {
 	log.V(4).Info("KKClusterToKKInstances")
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.KKCluster)
@@ -380,7 +436,7 @@ func (r *KKInstanceReconciler) KKClusterToKKInstances(log logr.Logger) handler.M
 	}
 }
 
-func (r *KKInstanceReconciler) requeueKKInstancesForUnpausedCluster(log logr.Logger) handler.MapFunc {
+func (r *Reconciler) requeueKKInstancesForUnpausedCluster(log logr.Logger) handler.MapFunc {
 	log.V(4).Info("requeueKKInstancesForUnpausedCluster")
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
@@ -400,7 +456,7 @@ func (r *KKInstanceReconciler) requeueKKInstancesForUnpausedCluster(log logr.Log
 	}
 }
 
-func (r *KKInstanceReconciler) requestsForCluster(log logr.Logger, namespace, name string) []ctrl.Request {
+func (r *Reconciler) requestsForCluster(log logr.Logger, namespace, name string) []ctrl.Request {
 	labels := map[string]string{clusterv1.ClusterLabelName: name}
 	kkMachineList := &infrav1.KKMachineList{}
 	if err := r.Client.List(context.TODO(), kkMachineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
@@ -426,7 +482,7 @@ func (r *KKInstanceReconciler) requestsForCluster(log logr.Logger, namespace, na
 
 // KKMachineToKKInstanceMapFunc returns a handler.ToRequestsFunc that watches for
 // KKMachine events and returns reconciliation requests for an KKInstance object.
-func (r *KKInstanceReconciler) KKMachineToKKInstanceMapFunc(log logr.Logger) handler.MapFunc {
+func (r *Reconciler) KKMachineToKKInstanceMapFunc(log logr.Logger) handler.MapFunc {
 	log.V(4).Info("KKMachineToKKInstanceMapFunc")
 	return func(o client.Object) []reconcile.Request {
 		m, ok := o.(*infrav1.KKMachine)

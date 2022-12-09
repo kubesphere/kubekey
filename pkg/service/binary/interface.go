@@ -30,6 +30,7 @@ import (
 // Binary defines the interface for the binaries operations.
 type Binary interface {
 	Download(timeout time.Duration) error
+	UpgradeDownload(timeout time.Duration) error
 }
 
 // NewService returns a new service for the binaries operations.

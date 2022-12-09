@@ -169,3 +169,52 @@ func (s *Service) ConfigureKubeadm() error {
 	}
 	return nil
 }
+
+// UpgradeDownload downloads upgrade binaries.
+func (s *Service) UpgradeDownload(timeout time.Duration) error {
+	return s.downloadUpgradeBinaries(timeout)
+}
+
+// downloadUpgradeBinaries downloads kubeadm, kubelet and kubectl.
+func (s *Service) downloadUpgradeBinaries(timeout time.Duration) error {
+	kubeadm, err := s.getKubeadmService(s.instanceScope.InPlaceUpgradeVersion(), s.instanceScope.Arch())
+	if err != nil {
+		return err
+	}
+	kubelet, err := s.getKubeletService(s.instanceScope.InPlaceUpgradeVersion(), s.instanceScope.Arch())
+	if err != nil {
+		return err
+	}
+	kubectl, err := s.getKubectlService(s.instanceScope.InPlaceUpgradeVersion(), s.instanceScope.Arch())
+	if err != nil {
+		return err
+	}
+
+	binaries := []operation.Binary{
+		kubeadm,
+		kubelet,
+		kubectl,
+	}
+
+	zone := s.scope.ComponentZone()
+	host := s.scope.ComponentHost()
+	overrideMap := make(map[string]infrav1.Override)
+	for _, o := range s.scope.ComponentOverrides() {
+		overrideMap[o.ID+o.Version+o.Arch] = o
+	}
+
+	for _, b := range binaries {
+		override := overrideMap[b.ID()+b.Version()+b.Arch()]
+		if err := util.DownloadAndCopy(s.instanceScope, b, zone, host, override.Path, override.URL, override.Checksum.Value, timeout); err != nil {
+			return err
+		}
+		if err := b.Chmod("+x"); err != nil {
+			return err
+		}
+		if _, err := s.sshClient.SudoCmdf("ln -snf %s /usr/bin/%s", b.RemotePath(), b.Name()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

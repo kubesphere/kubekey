@@ -30,6 +30,7 @@ type Bootstrap interface {
 	CreateDirectory() error
 	ResetTmpDirectory() error
 	ExecInitScript() error
+	KubeadmReset(criSocket string) error
 	ResetNetwork() error
 	RemoveFiles() error
 	DaemonReload() error
@@ -48,6 +49,7 @@ type Repository interface {
 // BinaryService is the interface for binary provision.
 type BinaryService interface {
 	Download(timeout time.Duration) error
+	UpgradeDownload(timeout time.Duration) error
 }
 
 // ContainerManager is the interface for container manager provision.

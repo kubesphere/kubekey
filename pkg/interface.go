@@ -18,8 +18,12 @@
 package pkg
 
 import (
-	"github.com/go-logr/logr"
+	"context"
 
+	"github.com/go-logr/logr"
+	capicollections "sigs.k8s.io/cluster-api/util/collections"
+
+	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/pkg/rootfs"
 )
 
@@ -85,6 +89,10 @@ type ClusterScoper interface {
 	InfraClusterName() string
 	// KubernetesClusterName is the name of the Kubernetes cluster.
 	KubernetesClusterName() string
+	// GetKKMachines returns the list of KKMachines for a KKCluster.
+	GetKKMachines(ctx context.Context) (*infrav1.KKMachineList, error)
+	// GetMachines returns the collections of machines for a KKCluster.
+	GetMachines(ctx context.Context, filters ...capicollections.Func) (capicollections.Machines, error)
 	// Distribution returns Kubernetes distribution of the cluster.
 	Distribution() string
 	// RootFs is the cluster scope rootfs

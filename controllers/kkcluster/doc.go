@@ -14,19 +14,5 @@
  limitations under the License.
 */
 
-// Package util implements utilities.
-package util
-
-// ArchAlias returns the alias of cpu's architecture.
-// amd64: x86_64
-// arm64: aarch64
-func ArchAlias(arch string) string {
-	switch arch {
-	case "amd64":
-		return "x86_64"
-	case "arm64":
-		return "aarch64"
-	default:
-		return ""
-	}
-}
+// Package kkcluster implements kkcluster controllers.
+package kkcluster

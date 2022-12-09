@@ -24,10 +24,12 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/storage/names"
+	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -59,6 +61,7 @@ func (k *KKCluster) Default() {
 	defaultDistribution(&k.Spec)
 	defaultAuth(&k.Spec.Nodes.Auth)
 	defaultInstance(&k.Spec)
+	defaultInPlaceUpgradeAnnotation(k.GetAnnotations())
 }
 
 func defaultDistribution(spec *KKClusterSpec) {
@@ -99,6 +102,17 @@ func defaultInstance(spec *KKClusterSpec) {
 		if len(instance.Roles) == 0 {
 			instance.Roles = []Role{ControlPlane, Worker}
 		}
+	}
+}
+
+func defaultInPlaceUpgradeAnnotation(annotation map[string]string) {
+	upgradeVersion, ok := annotation[InPlaceUpgradeVersionAnnotation]
+	if !ok {
+		return
+	}
+
+	if !strings.HasPrefix(upgradeVersion, "v") {
+		annotation[InPlaceUpgradeVersionAnnotation] = "v" + upgradeVersion
 	}
 }
 
@@ -146,6 +160,7 @@ func (k *KKCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	allErrs = append(allErrs, validateClusterNodes(k.Spec.Nodes)...)
+	allErrs = append(allErrs, validateInPlaceUpgrade(k.GetAnnotations())...)
 	return aggregateObjErrors(k.GroupVersionKind().GroupKind(), k.Name, allErrs)
 }
 
@@ -213,4 +228,20 @@ func validateClusterNodes(nodes Nodes) []*field.Error {
 		}
 	}
 	return errs
+}
+
+func validateInPlaceUpgrade(newAnnotation map[string]string) []*field.Error {
+	var allErrs field.ErrorList
+
+	if v, ok := newAnnotation[InPlaceUpgradeVersionAnnotation]; ok {
+		_, err := version.ParseMajorMinorPatch(v)
+		if err != nil {
+			allErrs = append(allErrs,
+				field.InternalError(
+					field.NewPath("metadata", "annotations"),
+					errors.Wrapf(err, "failed to parse in-place upgrade version: %s", InPlaceUpgradeVersionAnnotation)),
+			)
+		}
+	}
+	return allErrs
 }

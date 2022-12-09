@@ -150,6 +150,16 @@ func (s *Service) ExecInitScript() error {
 	return nil
 }
 
+// KubeadmReset resets the Kubernetes by using kubeadm.
+func (s *Service) KubeadmReset(criSocket string) error {
+	cmd := "kubeadm reset -f"
+	if criSocket != "" {
+		cmd = cmd + " --cri-socket " + criSocket
+	}
+	_, _ = s.sshClient.SudoCmd(cmd)
+	return nil
+}
+
 // ResetNetwork resets the network configuration.
 func (s *Service) ResetNetwork() error {
 	networkResetCmds := []string{

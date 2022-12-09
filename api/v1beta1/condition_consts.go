@@ -39,6 +39,20 @@ const (
 	WaitForDNSNameResolveReason = "WaitForDNSNameResolve"
 )
 
+const (
+	// CallKKInstanceInPlaceUpgradeCondition reports whether set up the InPlaceUpgradeVersionAnnotation annotation on all the KKInstance conditions.
+	CallKKInstanceInPlaceUpgradeCondition clusterv1.ConditionType = "CallKKInstanceInPlaceUpgrade"
+
+	// KKInstanceObjectNotUpdatedReason used when the KKInstance is not updated.
+	KKInstanceObjectNotUpdatedReason = "KKInstanceObjectNotUpdated"
+
+	// AllKKInstancesUpgradeCompletedCondition reports whether all the KKInstances are upgraded.
+	AllKKInstancesUpgradeCompletedCondition clusterv1.ConditionType = "AllKKInstancesUpgradeCompleted"
+
+	// WaitingForKKInstancesUpgradeReason used when the KKCluster is waiting for all KKInstance to be upgrading completed.
+	WaitingForKKInstancesUpgradeReason = "WaitingForKKInstancesUpgrade"
+)
+
 // KKMachine condition
 const (
 	// InstanceReadyCondition reports on current status of the SSH instance. Ready indicates the instance is in a Running state.
@@ -50,6 +64,8 @@ const (
 	InstanceCleanedReason = "InstanceCleaned"
 	// InstanceNotReadyReason used when the instance is in a pending state.
 	InstanceNotReadyReason = "InstanceNotReady"
+	// InstanceInPlaceUpgradingReason used when the instance is in a InstanceStateInPlaceUpgrading state.
+	InstanceInPlaceUpgradingReason = "InstanceInPlaceUpgrading"
 	// InstanceBootstrapStartedReason set when the provisioning of an instance started.
 	InstanceBootstrapStartedReason = "InstanceBootstrapStarted"
 	// InstanceBootstrapFailedReason used for failures during instance provisioning.
@@ -104,4 +120,16 @@ const (
 
 	// CleaningReason (Severity=Info) documents a machine node being cleaned.
 	CleaningReason = "Cleaning"
+)
+
+const (
+	// KKInstanceInPlaceUpgradedCondition reports on whether the instance is in place upgrade succeed.
+	KKInstanceInPlaceUpgradedCondition clusterv1.ConditionType = "KKInstanceInPlaceUpgraded"
+)
+
+const (
+	// KKInstanceInPlaceUpgradeBinariesCondition reports on whether the instance is in place upgrade download binaries succeed.
+	KKInstanceInPlaceUpgradeBinariesCondition clusterv1.ConditionType = "KKInstanceInPlaceUpgradeBinaries"
+	// KKInstanceInPlaceGetBinaryFailedReason used when the instance couldn't download binaries (or check existed binaries).
+	KKInstanceInPlaceGetBinaryFailedReason = "KKInstanceInPlaceUpgradeGetBinaryFailed"
 )

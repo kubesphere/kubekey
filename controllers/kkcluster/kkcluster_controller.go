@@ -1,20 +1,20 @@
 /*
-Copyright 2022 The KubeSphere Authors.
+ Copyright 2022 The KubeSphere Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
 */
 
-package controllers
+package kkcluster
 
 import (
 	"context"
@@ -47,10 +47,16 @@ import (
 
 	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
 	"github.com/kubesphere/kubekey/pkg/scope"
+	"github.com/kubesphere/kubekey/util/collections"
 )
 
-// KKClusterReconciler reconciles a KKCluster object
-type KKClusterReconciler struct {
+const (
+	// upgradeCheckFailedRequeueAfter is how long to wait before requeuing a cluster for which the upgrade check failed.
+	upgradeCheckFailedRequeueAfter = 30 * time.Second
+)
+
+// Reconciler reconciles a KKCluster object
+type Reconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
 	Scheme           *runtime.Scheme
@@ -59,12 +65,12 @@ type KKClusterReconciler struct {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *KKClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.KKCluster{}).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(log, r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
@@ -100,11 +106,16 @@ func (r *KKClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	)
 }
 
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkclusters,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kkclusters/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinedeployments/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets;machinesets/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;patch
 
-func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	kkCluster := &infrav1.KKCluster{}
@@ -124,11 +135,6 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")
-		return reconcile.Result{}, nil
-	}
-
-	if annotations.IsPaused(cluster, kkCluster) {
-		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
 		return reconcile.Result{}, nil
 	}
 
@@ -180,16 +186,21 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return r.reconcileNormal(ctx, clusterScope)
 }
 
-func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) { //nolint:unparam
+func (r *Reconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) { //nolint:unparam
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKCluster delete")
+
+	if annotations.IsPaused(clusterScope.Cluster, clusterScope.KKCluster) {
+		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
+		return reconcile.Result{}, nil
+	}
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterScope.KKCluster, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
 
-func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *Reconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKCluster normal")
 
@@ -215,10 +226,66 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, clusterScope 
 	}
 
 	kkCluster.Status.Ready = true
+
+	if res, err := r.reconcileInPlaceUpgrade(ctx, clusterScope); !res.IsZero() || err != nil {
+		return res, err
+	}
+
+	if res, err := r.reconcilePatchAnnotations(ctx, clusterScope); !res.IsZero() || err != nil {
+		return res, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
-func (r *KKClusterReconciler) requeueKKClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {
+func (r *Reconciler) reconcileInPlaceUpgrade(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+	kkCluster := clusterScope.KKCluster
+	if _, ok := kkCluster.GetAnnotations()[infrav1.InPlaceUpgradeVersionAnnotation]; !ok {
+		return ctrl.Result{}, nil
+	}
+
+	clusterScope.Info("Reconcile KKCluster in-place upgrade")
+
+	if !kkCluster.Status.Ready {
+		return ctrl.Result{}, nil
+	}
+
+	cluster := clusterScope.Cluster
+	phases := []func(context.Context, *scope.ClusterScope) (ctrl.Result, error){
+		// pause the cluster
+		func(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+			return r.reconcilePausedCluster(ctx, clusterScope, true)
+		},
+		// set up the KKInstance annotations
+		func(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+			return r.reconcileKKInstanceInPlaceUpgrade(ctx, clusterScope, collections.ActiveKKInstances,
+				collections.OwnedKKInstances(kkCluster),
+				collections.ControlPlaneKKInstances(cluster.Name))
+		},
+		func(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+			return r.reconcileKKInstanceInPlaceUpgrade(ctx, clusterScope, collections.ActiveKKInstances,
+				collections.OwnedKKInstances(kkCluster),
+				collections.Not(collections.ControlPlaneKKInstances(cluster.Name)))
+		},
+		r.reconcileKKInstanceUpgradeCheck,
+		// patch the cluster-api resource .spec.version
+		r.reconcilePatchResourceSpecVersion,
+		// if upgrade is done, unpause the cluster
+		func(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+			return r.reconcilePausedCluster(ctx, clusterScope, false)
+		},
+	}
+
+	for _, phase := range phases {
+		// Call the inner reconciliation methods.
+		if phaseResult, err := phase(ctx, clusterScope); !phaseResult.IsZero() || err != nil {
+			return phaseResult, err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) requeueKKClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
