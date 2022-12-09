@@ -28,3 +28,13 @@ jobs:
         with:
           draft: true
           files: out/*
+      - name: Synchronize artifacts to OSS
+        run: |
+          wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
+          tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
+          mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
+          echo "access_key_id: ${{secrets.QSCTL_SECRET_ACCESS_KEY}}" > qsctl-config.yaml
+          echo "secret_access_key: ${{ secrets.QSCTL_ACCESS_KEY_ID }}" >> qsctl-config.yaml
+          qsctl cp kubekey-${{ github.ref }}-linux-amd64.tar.gz  qs://kubernetes/kubekey/releases/download/${{ github.ref }}/kubekey-${{ github.ref }}-linux-amd64.tar.gz -c qsctl-config.yaml
+          qsctl cp kubekey-${{ github.ref }}-linux-arm64.tar.gz  qs://kubernetes/kubekey/releases/download/${{ github.ref }}/kubekey-${{ github.ref }}-linux-arm64.tar.gz -c qsctl-config.yaml
+          rm -rf qsctl-config.yaml
