@@ -26,7 +26,6 @@ import (
 	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
 	"github.com/kubesphere/kubekey/cmd/kk/cmd/util"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/artifact"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
 	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/pipeline"
@@ -122,7 +121,6 @@ func newImagesPushPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
 
 	m := []module.Module{
-		&precheck.GreetingsModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&images.CopyImagesToRegistryModule{ImagePath: runtime.Arg.ImagesDir},
 		&filesystem.ChownWorkDirModule{},
