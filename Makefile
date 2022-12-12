@@ -313,7 +313,10 @@ uninstall: generate $(KUSTOMIZE) ## Uninstall CRDs from the K8s cluster specifie
 
 .PHONY: deploy
 deploy: generate $(KUSTOMIZE) ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(REGISTRY)/$(CAPKK_IMAGE_NAME)-$(ARCH) MANIFEST_TAG=$(TAG) \
+		TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+	cd config/manager
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy

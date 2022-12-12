@@ -14,7 +14,7 @@
  limitations under the License.
 */
 
-package controllers
+package kkmachine
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/scope"
 )
 
-func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *scope.MachineScope,
+func (r *Reconciler) createInstance(ctx context.Context, machineScope *scope.MachineScope,
 	kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstance, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Creating KKInstance")
@@ -52,17 +52,17 @@ func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *
 		return nil, err
 	}
 
-	// todo: if it needs to append a random suffix to the name string
 	instanceID := instanceSpec.Name
-
 	gv := infrav1.GroupVersion
+	labels := machineScope.Machine.Labels
+	labels[infrav1.KKClusterLabelName] = kkInstanceScope.InfraClusterName()
 	instance := &infrav1.KKInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            instanceID,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineScope.KKMachine, kkMachineKind)},
 			Namespace:       machineScope.KKMachine.Namespace,
 			// todo: if need to use the kkmachine labels?
-			Labels:      machineScope.Machine.Labels,
+			Labels:      labels,
 			Annotations: machineScope.KKMachine.Annotations,
 		},
 		TypeMeta: metav1.TypeMeta{
@@ -86,7 +86,7 @@ func (r *KKMachineReconciler) createInstance(ctx context.Context, machineScope *
 	return instance, nil
 }
 
-func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.MachineScope, kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstanceSpec, error) {
+func (r *Reconciler) getUnassignedInstanceSpec(machineScope *scope.MachineScope, kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstanceSpec, error) {
 	var instanceSpecs []infrav1.KKInstanceSpec
 	if len(machineScope.GetRoles()) != 0 {
 		for _, role := range machineScope.GetRoles() {
@@ -121,7 +121,7 @@ func (r *KKMachineReconciler) getUnassignedInstanceSpec(machineScope *scope.Mach
 	return nil, errors.New("unassigned instance not found")
 }
 
-func (r *KKMachineReconciler) deleteInstance(ctx context.Context, instance *infrav1.KKInstance) error {
+func (r *Reconciler) deleteInstance(ctx context.Context, instance *infrav1.KKInstance) error {
 	if err := r.Client.Delete(ctx, instance); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
@@ -130,7 +130,7 @@ func (r *KKMachineReconciler) deleteInstance(ctx context.Context, instance *infr
 	return nil
 }
 
-func (r *KKMachineReconciler) setNodeProviderID(ctx context.Context, machineScope *scope.MachineScope, instance *infrav1.KKInstance) error {
+func (r *Reconciler) setNodeProviderID(ctx context.Context, machineScope *scope.MachineScope, instance *infrav1.KKInstance) error {
 	// Usually a cloud provider will do this, but there is no kubekey-cloud provider.
 	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.

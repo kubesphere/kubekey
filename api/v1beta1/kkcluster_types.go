@@ -31,6 +31,9 @@ const (
 	KUBERNETES = "kubernetes"
 	// K3S the K3S distributions
 	K3S = "k3s"
+
+	// InPlaceUpgradeVersionAnnotation is the annotation that stores the version of the cluster used for in-place upgrade.
+	InPlaceUpgradeVersionAnnotation = "kkcluster.infrastructure.cluster.x-k8s.io/in-place-upgrade-version"
 )
 
 // KKClusterSpec defines the desired state of KKCluster

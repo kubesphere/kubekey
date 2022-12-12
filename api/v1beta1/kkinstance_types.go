@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -44,6 +45,9 @@ var (
 	// InstanceStateRunning is the string representing an instance in a running state.
 	InstanceStateRunning = InstanceState("running")
 
+	// InstanceStateInPlaceUpgrading is the string representing an instance in an in-place-upgrading state.
+	InstanceStateInPlaceUpgrading = InstanceState("InPlaceUpgrading")
+
 	// InstanceStateCleaning is the string representing an instance in a cleaning state.
 	InstanceStateCleaning = InstanceState("cleaning")
 
@@ -57,12 +61,13 @@ var (
 		string(InstanceStateRunning),
 	)
 
-	// InstanceKnownStates represents all known EC2 instance states.
+	// InstanceKnownStates represents all known KKInstance states.
 	InstanceKnownStates = InstanceRunningStates.Union(
 		sets.NewString(
 			string(InstanceStateBootstrapping),
 			string(InstanceStateCleaning),
 			string(InstanceStateCleaned),
+			string(InstanceStateInPlaceUpgrading),
 		),
 	)
 )
@@ -104,6 +109,15 @@ type KKInstanceSpec struct {
 type KKInstanceStatus struct {
 	// The current state of the instance.
 	State InstanceState `json:"instanceState,omitempty"`
+
+	// NodeRef will point to the corresponding Node if it exists.
+	// +optional
+	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
+
+	// NodeInfo is a set of ids/uuids to uniquely identify the node.
+	// More info: https://kubernetes.io/docs/concepts/nodes/node/#info
+	// +optional
+	NodeInfo *corev1.NodeSystemInfo `json:"nodeInfo,omitempty"`
 
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
@@ -154,6 +168,9 @@ type KKInstanceStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Hostname",type="string",JSONPath=".spec.name",description="kubekey instance hostname"
 // +kubebuilder:printcolumn:name="Address",type="string",JSONPath=".spec.address",description="kubekey instance address"
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.instanceState",description="KKInstance state"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KKInstance"
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.nodeInfo.kubeletVersion",description="Kubernetes version associated with this KKInstance"
 // +k8s:defaulter-gen=true
 
 // KKInstance is the Schema for the kkinstances API

@@ -41,6 +41,7 @@ type InstanceScopeParams struct {
 	Cluster      *clusterv1.Cluster
 	InfraCluster *ClusterScope
 	Machine      *clusterv1.Machine
+	KKMachine    *infrav1.KKMachine
 	KKInstance   *infrav1.KKInstance
 }
 
@@ -57,10 +58,13 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 		return nil, errors.New("machine is required when creating a InstanceScope")
 	}
 	if params.InfraCluster == nil {
-		return nil, errors.New("kk cluster is required when creating a InstanceScope")
+		return nil, errors.New("KKCluster is required when creating a InstanceScope")
+	}
+	if params.KKMachine == nil {
+		return nil, errors.New("KKMachine is required when creating a InstanceScope")
 	}
 	if params.KKInstance == nil {
-		return nil, errors.New("kk instance is required when creating a InstanceScope")
+		return nil, errors.New("KKInstance is required when creating a InstanceScope")
 	}
 
 	if params.Logger == nil {
@@ -82,6 +86,7 @@ func NewInstanceScope(params InstanceScopeParams) (*InstanceScope, error) {
 		Cluster:      params.Cluster,
 		Machine:      params.Machine,
 		InfraCluster: params.InfraCluster,
+		KKMachine:    params.KKMachine,
 		KKInstance:   params.KKInstance,
 	}, nil
 }
@@ -147,6 +152,11 @@ func (i *InstanceScope) Repository() *infrav1.Repository {
 // KubernetesVersion returns the Kubernetes version of the KKInstance.
 func (i *InstanceScope) KubernetesVersion() string {
 	return *i.Machine.Spec.Version
+}
+
+// InPlaceUpgradeVersion returns the in-place upgrade version of the KKInstance.
+func (i *InstanceScope) InPlaceUpgradeVersion() string {
+	return i.KKInstance.GetAnnotations()[infrav1.InPlaceUpgradeVersionAnnotation]
 }
 
 // IsControlPlane returns whether the KKInstance is a control plane node.

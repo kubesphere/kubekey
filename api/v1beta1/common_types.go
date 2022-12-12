@@ -14,19 +14,9 @@
  limitations under the License.
 */
 
-// Package util implements utilities.
-package util
+package v1beta1
 
-// ArchAlias returns the alias of cpu's architecture.
-// amd64: x86_64
-// arm64: aarch64
-func ArchAlias(arch string) string {
-	switch arch {
-	case "amd64":
-		return "x86_64"
-	case "arm64":
-		return "aarch64"
-	default:
-		return ""
-	}
-}
+const (
+	// KKClusterLabelName is the label set on KKMachines and KKInstances linked to a kkCluster.
+	KKClusterLabelName = "kkcluster.infrastructure.cluster.x-k8s.io/cluster-name"
+)

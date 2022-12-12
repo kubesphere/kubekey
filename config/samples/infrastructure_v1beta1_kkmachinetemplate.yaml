@@ -1,6 +1,0 @@
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: KKMachineTemplate
-metadata:
-  name: kkmachinetemplate-sample
-spec:
-  # TODO(user): Add fields here
