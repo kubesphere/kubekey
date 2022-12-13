@@ -167,6 +167,10 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KKMachineTemplate")
 		os.Exit(1)
 	}
+	if err = (&infrav1.KKInstance{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KKInstance")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
