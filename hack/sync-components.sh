@@ -93,7 +93,7 @@ if [ $KUBERNETES_VERSION ]; then
 
        qsctl cp binaries/kube/$KUBERNETES_VERSION/$arch/$binary \
              qs://kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary \
-             -c qsctl-config.yaml --force
+             -c qsctl-config.yaml
      done
    done
 
@@ -118,11 +118,11 @@ if [ $HELM_VERSION ]; then
 
      qsctl cp $KUBERNETES_VERSION/$arch/linux-$arch/helm \
            qs://kubernetes-helm/linux-$arch/$HELM_VERSION/helm \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
 
      qsctl cp binaries/helm/$HELM_VERSION/$arch/helm-$HELM_VERSION-linux-$arch.tar.gz \
            qs://kubernetes-helm/linux-$arch/$HELM_VERSION/helm-$HELM_VERSION-linux-$arch.tar.gz \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries
@@ -140,7 +140,7 @@ if [ $ETCD_VERSION ]; then
 
      qsctl cp binaries/etcd/$ETCD_VERSION/$arch/etcd-$ETCD_VERSION-linux-$arch.tar.gz \
            qs://kubernetes-release/etcd/release/download/$ETCD_VERSION/etcd-$ETCD_VERSION-linux-$arch.tar.gz \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries
@@ -158,7 +158,7 @@ if [ $CNI_VERSION ]; then
 
      qsctl cp binaries/etcd/$CNI_VERSION/$arch/cni-plugins-linux-$arch-$CNI_VERSION.tgz \
            qs://containernetworking/plugins/releases/download/$CNI_VERSION/cni-plugins-linux-$arch-$CNI_VERSION.tgz \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries
@@ -179,7 +179,7 @@ if [ $CRICTL_VERSION ]; then
 
      qsctl cp binaries/crictl/$CRICTL_VERSION/$arch/crictl-$CRICTL_VERSION-linux-$arch.tar.gz \
            qs://kubernetes-release/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-$arch.tar.gz \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries
@@ -200,7 +200,7 @@ if [ $K3S_VERSION ]; then
      fi
      qsctl cp binaries/k3s/$K3S_VERSION/$arch/k3s \
            qs://kubernetes-release/k3s/releases/download/$K3S_VERSION+k3s1/linux/$arch/k3s \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries
@@ -218,7 +218,7 @@ if [ $CONTAINERD_VERSION ]; then
 
      qsctl cp binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
            qs://kubernetes-releas/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries
@@ -236,7 +236,7 @@ if [ $RUNC_VERSION ]; then
 
      qsctl cp binaries/runc/$RUNC_VERSION/$arch/runc.$arch \
            qs://kubernetes-release/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$arch \
-           -c qsctl-config.yaml --force
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries
@@ -254,7 +254,7 @@ if [ $RUNC_VERSION ]; then
 
         qsctl cp binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-x86_64 \
               qs://kubernetes-release/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-x86_64 \
-              -c qsctl-config.yaml --force
+              -c qsctl-config.yaml
 
      elif [ $arch == "arm64" ]; then
         curl -L -o binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-aarch64 \
@@ -262,7 +262,7 @@ if [ $RUNC_VERSION ]; then
 
         qsctl cp binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-aarch64 \
               qs://kubernetes-release/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-aarch64 \
-              -c qsctl-config.yaml --force
+              -c qsctl-config.yaml
 
      fi
    done
