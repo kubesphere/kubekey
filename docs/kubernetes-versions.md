@@ -40,6 +40,7 @@
 | v1.22.14 | :white_check_mark: |
 | v1.22.15 | :white_check_mark: |
 | v1.22.16 | :white_check_mark: |
+| v1.22.17 | :white_check_mark: |
 | v1.23.0 | :white_check_mark: |
 | v1.23.1 | :white_check_mark: |
 | v1.23.2 | :white_check_mark: |
@@ -55,6 +56,7 @@
 | v1.23.12 | :white_check_mark: |
 | v1.23.13 | :white_check_mark: |
 | v1.23.14 | :white_check_mark: |
+| v1.23.15 | :white_check_mark: |
 | v1.24.0 | :white_check_mark: |
 | v1.24.1 | :white_check_mark: |
 | v1.24.2 | :white_check_mark: |
@@ -64,8 +66,11 @@
 | v1.24.6 | :white_check_mark: |
 | v1.24.7 | :white_check_mark: |
 | v1.24.8 | :white_check_mark: |
+| v1.24.9 | :white_check_mark: |
 | v1.25.0 | :white_check_mark: |
 | v1.25.1 | :white_check_mark: |
 | v1.25.2 | :white_check_mark: |
 | v1.25.3 | :white_check_mark: |
 | v1.25.4 | :white_check_mark: |
+| v1.25.5 | :white_check_mark: |
+| v1.26.0 | :white_check_mark: |
