@@ -28,6 +28,10 @@ jobs:
         with:
           draft: true
           files: out/*
+          
+      - name: Get Version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
       - name: Synchronize artifacts to OSS
         run: |
           rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
@@ -36,6 +40,6 @@ jobs:
           mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
           echo "access_key_id: ${{secrets.QSCTL_SECRET_ACCESS_KEY}}" > qsctl-config.yaml
           echo "secret_access_key: ${{ secrets.QSCTL_ACCESS_KEY_ID }}" >> qsctl-config.yaml
-          qsctl cp kubekey-${{ github.ref }}-linux-amd64.tar.gz  qs://kubernetes/kubekey/releases/download/${{ github.ref }}/kubekey-${{ github.ref }}-linux-amd64.tar.gz -c qsctl-config.yaml
-          qsctl cp kubekey-${{ github.ref }}-linux-arm64.tar.gz  qs://kubernetes/kubekey/releases/download/${{ github.ref }}/kubekey-${{ github.ref }}-linux-arm64.tar.gz -c qsctl-config.yaml
+          qsctl cp kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz  qs://kubernetes/kubekey/releases/download/${{ steps.get_version.outputs.VERSION }}/kubekey-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz -c qsctl-config.yaml
+          qsctl cp kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz  qs://kubernetes/kubekey/releases/download/${{ steps.get_version.outputs.VERSION }}/kubekey-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz -c qsctl-config.yaml
           rm -rf qsctl-config.yaml
