@@ -239,7 +239,7 @@ func validateInPlaceUpgrade(newAnnotation map[string]string) []*field.Error {
 			allErrs = append(allErrs,
 				field.InternalError(
 					field.NewPath("metadata", "annotations"),
-					errors.Wrapf(err, "failed to parse in-place upgrade version: %s", InPlaceUpgradeVersionAnnotation)),
+					errors.Wrapf(err, "failed to parse in-place upgrade version: %s", v)),
 			)
 		}
 	}

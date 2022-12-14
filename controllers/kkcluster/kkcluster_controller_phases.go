@@ -94,7 +94,9 @@ func (r *Reconciler) reconcileKKInstanceInPlaceUpgrade(ctx context.Context, clus
 				clusterScope.Error(err, "failed to patch annotation for kkInstance %s", kkiCopy.Name)
 				conditions.MarkFalse(kkCluster, infrav1.CallKKInstanceInPlaceUpgradeCondition, infrav1.KKInstanceObjectNotUpdatedReason,
 					clusterv1.ConditionSeverityWarning, "Failed to update annotation for kkInstance %s", kkiCopy.Name)
-				return ctrl.Result{}, err
+				r.Recorder.Eventf(kkCluster, corev1.EventTypeWarning, "FailedUpdateKKInstance",
+					"Failed to update kkInstance %s annotation: %v", kkiCopy.Name, err)
+				return ctrl.Result{RequeueAfter: 15 * time.Second}, err
 			}
 		}
 	}
@@ -155,7 +157,7 @@ func (r *Reconciler) upgradeChecks(_ context.Context, clusterScope *scope.Cluste
 	if len(kkInstanceErrors) > 0 {
 		aggregatedError := kerrors.NewAggregate(kkInstanceErrors)
 		r.Recorder.Eventf(clusterScope.KKCluster, corev1.EventTypeWarning, "KKInstanceInPlaceUpgradeUnFinished",
-			"Waiting for the KKInstance to pass upgrade checks to continue reconciliation: %v", aggregatedError)
+			"Waiting for all KKInstances to pass upgrade checks")
 		clusterScope.Info("Waiting for KKInstance to pass upgrade checks", "failures", aggregatedError.Error())
 
 		return ctrl.Result{RequeueAfter: upgradeCheckFailedRequeueAfter}, nil
