@@ -24,7 +24,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/certs/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
@@ -96,32 +95,9 @@ func (r *RenewCertsModule) Init() {
 		Retry:    2,
 	}
 
-	fetchKubeConfig := &task.RemoteTask{
-		Name:     "FetchKubeConfig",
-		Desc:     "Fetch kube config file from control-plane",
-		Hosts:    r.Runtime.GetHostsByRole(common.Master),
-		Prepare:  new(common.OnlyFirstMaster),
-		Action:   new(FetchKubeConfig),
-		Parallel: true,
-	}
-
-	syncKubeConfig := &task.RemoteTask{
-		Name:  "SyncKubeConfig",
-		Desc:  "Synchronize kube config to worker",
-		Hosts: r.Runtime.GetHostsByRole(common.Worker),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyWorker),
-		},
-		Action:   new(SyneKubeConfigToWorker),
-		Parallel: true,
-		Retry:    3,
-	}
-
 	r.Tasks = []task.Interface{
 		renew,
 		copyKubeConfig,
-		fetchKubeConfig,
-		syncKubeConfig,
 	}
 }
 

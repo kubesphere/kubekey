@@ -375,66 +375,10 @@ type AddWorkerLabel struct {
 }
 
 func (a *AddWorkerLabel) Execute(runtime connector.Runtime) error {
-	host := runtime.RemoteHost()
-
-	cmd := fmt.Sprintf(
-		"/usr/local/bin/kubectl label --overwrite node %s node-role.kubernetes.io/worker=",
-		host.GetName())
-
-	if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "add master NoSchedule taint failed")
-	}
-	return nil
-}
-
-type SyncKubeConfigToWorker struct {
-	common.KubeAction
-}
-
-func (s *SyncKubeConfigToWorker) Execute(runtime connector.Runtime) error {
-	if v, ok := s.PipelineCache.Get(common.ClusterStatus); ok {
-		cluster := v.(*K3sStatus)
-
-		createConfigDirCmd := "mkdir -p /root/.kube"
-		if _, err := runtime.GetRunner().SudoCmd(createConfigDirCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "create .kube dir failed")
-		}
-
-		oldServer := "server: https://127.0.0.1:6443"
-		newServer := fmt.Sprintf("server: https://%s:%d",
-			s.KubeConf.Cluster.ControlPlaneEndpoint.Domain,
-			s.KubeConf.Cluster.ControlPlaneEndpoint.Port)
-		newKubeConfig := strings.Replace(cluster.KubeConfig, oldServer, newServer, -1)
-
-		syncKubeConfigForRootCmd := fmt.Sprintf("echo '%s' > %s", newKubeConfig, "/root/.kube/config")
-		if _, err := runtime.GetRunner().SudoCmd(syncKubeConfigForRootCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "sync kube config for root failed")
-		}
-
-		userConfigDirCmd := "mkdir -p $HOME/.kube"
-		if _, err := runtime.GetRunner().Cmd(userConfigDirCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "user mkdir $HOME/.kube failed")
-		}
-
-		syncKubeConfigForUserCmd := fmt.Sprintf("echo '%s' > %s", newKubeConfig, "$HOME/.kube/config")
-		if _, err := runtime.GetRunner().Cmd(syncKubeConfigForUserCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "sync kube config for normal user failed")
-		}
-
-		userId, err := runtime.GetRunner().Cmd("echo $(id -u)", false)
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), "get user id failed")
-		}
-
-		userGroupId, err := runtime.GetRunner().Cmd("echo $(id -g)", false)
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), "get user group id failed")
-		}
-
-		chownKubeConfig := fmt.Sprintf("chown -R %s:%s -R $HOME/.kube", userId, userGroupId)
-		if _, err := runtime.GetRunner().SudoCmd(chownKubeConfig, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "chown user kube config failed")
-		}
+	if _, err := runtime.GetRunner().SudoCmd(
+		"/usr/local/bin/kubectl label nodes --selector='!node-role.kubernetes.io/worker' node-role.kubernetes.io/worker=",
+		true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "add worker label failed")
 	}
 	return nil
 }
