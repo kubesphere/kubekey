@@ -19,8 +19,8 @@ package directory
 import (
 	"os"
 
-	"github.com/kubesphere/kubekey/pkg/clients/ssh"
-	"github.com/kubesphere/kubekey/pkg/util/filesystem"
+	"github.com/kubesphere/kubekey/v3/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/v3/pkg/util/filesystem"
 )
 
 // Service holds a collection of interfaces.

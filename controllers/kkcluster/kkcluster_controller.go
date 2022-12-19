@@ -45,9 +45,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg/scope"
-	"github.com/kubesphere/kubekey/util/collections"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg/scope"
+	"github.com/kubesphere/kubekey/v3/util/collections"
 )
 
 const (

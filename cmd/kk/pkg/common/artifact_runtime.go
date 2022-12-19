@@ -24,8 +24,8 @@ import (
 	"github.com/pkg/errors"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
 
 type ArtifactArgument struct {

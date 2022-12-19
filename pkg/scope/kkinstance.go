@@ -17,8 +17,8 @@
 package scope
 
 import (
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg"
 )
 
 // KKInstanceScope is a scope for global KKInstance.

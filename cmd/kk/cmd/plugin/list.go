@@ -29,7 +29,7 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/util/i18n"
 
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
 )
 
 type PluginListOptions struct {

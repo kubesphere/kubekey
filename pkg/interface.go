@@ -23,8 +23,8 @@ import (
 	"github.com/go-logr/logr"
 	capicollections "sigs.k8s.io/cluster-api/util/collections"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg/rootfs"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg/rootfs"
 )
 
 // ScopeUsage is used to indicate which controller is using a scope.

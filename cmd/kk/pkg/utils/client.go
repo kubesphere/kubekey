@@ -17,11 +17,12 @@
 package utils
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"path/filepath"
 )
 
 func NewClient(config string) (*kubernetes.Clientset, error) {

@@ -35,8 +35,8 @@ import (
 	"golang.org/x/crypto/ssh"
 	"k8s.io/klog/v2/klogr"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg/util/filesystem"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg/util/filesystem"
 )
 
 // Default values.

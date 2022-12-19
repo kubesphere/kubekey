@@ -19,7 +19,7 @@ package alpha
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/alpha/cri"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/alpha/cri"
 )
 
 // NewAlphaCmd create a new Alpha command

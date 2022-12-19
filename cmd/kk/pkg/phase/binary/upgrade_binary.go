@@ -20,11 +20,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/binaries"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/phase/precheck"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/binaries"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/phase/precheck"
 )
 
 func NewUpgradeBinaryPipeline(runtime *common.KubeRuntime) error {

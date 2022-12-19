@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg/scope"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg/scope"
 )
 
 func (r *Reconciler) reconcileInPlaceBinaryService(_ context.Context, instanceScope *scope.InstanceScope, kkInstanceScope scope.KKInstanceScope) (ctrl.Result, error) {

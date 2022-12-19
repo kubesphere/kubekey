@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/v3/pkg/clients/ssh"
 )
 
 // getActions parses the cloud config yaml into a slice of actions to run.

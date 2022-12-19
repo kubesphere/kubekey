@@ -47,10 +47,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrabootstrapv1 "github.com/kubesphere/kubekey/bootstrap/k3s/api/v1beta1"
-	infracontrolplanev1 "github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1"
-	k3sCluster "github.com/kubesphere/kubekey/controlplane/k3s/pkg/cluster"
-	"github.com/kubesphere/kubekey/util/secret"
+	infrabootstrapv1 "github.com/kubesphere/kubekey/v3/bootstrap/k3s/api/v1beta1"
+	infracontrolplanev1 "github.com/kubesphere/kubekey/v3/controlplane/k3s/api/v1beta1"
+	k3sCluster "github.com/kubesphere/kubekey/v3/controlplane/k3s/pkg/cluster"
+	"github.com/kubesphere/kubekey/v3/util/secret"
 )
 
 // K3sControlPlaneReconciler reconciles a K3sControlPlane object

@@ -44,8 +44,8 @@ import (
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infracontrolplanev1 "github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1"
-	"github.com/kubesphere/kubekey/test/e2e/framework/internal/log"
+	infracontrolplanev1 "github.com/kubesphere/kubekey/v3/controlplane/k3s/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework/internal/log"
 )
 
 const (

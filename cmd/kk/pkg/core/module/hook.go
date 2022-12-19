@@ -17,8 +17,8 @@
 package module
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/ending"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/hook"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/ending"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/hook"
 )
 
 type PostHookInterface interface {

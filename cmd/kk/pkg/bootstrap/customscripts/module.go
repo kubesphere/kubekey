@@ -19,9 +19,9 @@ package customscripts
 import (
 	"fmt"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/task"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 )
 
 type CustomScriptsModule struct {
@@ -44,7 +44,7 @@ func (m *CustomScriptsModule) Init() {
 			Hosts:    m.Runtime.GetAllHosts(),
 			Action:   &CustomScriptTask{taskDir: taskDir, script: script},
 			Parallel: true,
-			Retry: 1,
+			Retry:    1,
 		}
 
 		m.Tasks = append(m.Tasks, task)

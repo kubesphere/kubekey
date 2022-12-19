@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kubesphere/kubekey/pkg/util/hash"
+	"github.com/kubesphere/kubekey/v3/pkg/util/hash"
 )
 
 // FileSystem is a filesystem implementation

@@ -19,9 +19,9 @@ package util
 import (
 	"time"
 
-	"github.com/kubesphere/kubekey/pkg/scope"
-	"github.com/kubesphere/kubekey/pkg/service/operation"
-	"github.com/kubesphere/kubekey/pkg/service/operation/file/checksum"
+	"github.com/kubesphere/kubekey/v3/pkg/scope"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/file/checksum"
 )
 
 // DownloadAndCopy downloads and copies files to the remote instance.

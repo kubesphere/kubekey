@@ -18,9 +18,11 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/files"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"sort"
+
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
 )
 
 type Version int

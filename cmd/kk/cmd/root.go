@@ -26,18 +26,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/add"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/alpha"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/artifact"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/cert"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/completion"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/create"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/delete"
-	initOs "github.com/kubesphere/kubekey/cmd/kk/cmd/init"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/plugin"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/upgrade"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/version"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/add"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/alpha"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/artifact"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/cert"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/completion"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/create"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/delete"
+	initOs "github.com/kubesphere/kubekey/v3/cmd/kk/cmd/init"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/plugin"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/upgrade"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/version"
 )
 
 type KubeKeyOptions struct {

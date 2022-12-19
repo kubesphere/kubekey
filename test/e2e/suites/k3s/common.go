@@ -27,7 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 
-	"github.com/kubesphere/kubekey/test/e2e/framework"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework"
 )
 
 // Test suite constants for e2e config variables.

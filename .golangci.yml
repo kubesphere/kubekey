@@ -122,11 +122,11 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
         alias: runtimewebhooks
       # CAPKK
-      - pkg: github.com/kubesphere/kubekey/api/v1beta1
+      - pkg: github.com/kubesphere/kubekey/v3/api/v1beta1
         alias: infrav1
-      - pkg: github.com/kubesphere/kubekey/bootstrap/k3s/api/v1beta1
+      - pkg: github.com/kubesphere/kubekey/v3/bootstrap/k3s/api/v1beta1
         alias: infrabootstrapv1
-      - pkg: github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1
+      - pkg: github.com/kubesphere/kubekey/v3/controlplane/k3s/api/v1beta1
         alias: infracontrolplanev1
   nolintlint:
     allow-unused: false

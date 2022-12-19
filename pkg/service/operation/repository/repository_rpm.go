@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kubesphere/kubekey/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/v3/pkg/clients/ssh"
 )
 
 // RedhatPackageManager is a repository manager implementation for Redhat, Centos.

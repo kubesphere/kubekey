@@ -27,9 +27,9 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 
-	infracontrolplanev1 "github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1"
-	"github.com/kubesphere/kubekey/test/e2e/framework"
-	"github.com/kubesphere/kubekey/test/e2e/framework/internal/log"
+	infracontrolplanev1 "github.com/kubesphere/kubekey/v3/controlplane/k3s/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework/internal/log"
 )
 
 // InitManagementClusterAndWatchControllerLogsInput is the input type for InitManagementClusterAndWatchControllerLogs.

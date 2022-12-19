@@ -20,7 +20,7 @@ package service
 import (
 	"time"
 
-	"github.com/kubesphere/kubekey/pkg/service/provisioning/commands"
+	"github.com/kubesphere/kubekey/v3/pkg/service/provisioning/commands"
 )
 
 // Bootstrap is the interface for bootstrap provision.

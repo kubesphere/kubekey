@@ -17,9 +17,10 @@
 package containerruntime
 
 import (
-	"github.com/pkg/errors"
 	"os"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const (

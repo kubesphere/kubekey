@@ -21,7 +21,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/util/conditions"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
 )
 
 // KKInstances is a set of KKInstances.

@@ -19,7 +19,7 @@ package create
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
 )
 
 type CreateOptions struct {

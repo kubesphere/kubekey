@@ -17,9 +17,11 @@
 package templates
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/utils"
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
 )
 
 var (

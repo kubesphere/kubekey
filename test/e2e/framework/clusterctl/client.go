@@ -30,8 +30,8 @@ import (
 	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	clusterctllog "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 
-	"github.com/kubesphere/kubekey/test/e2e/framework/clusterctl/logger"
-	"github.com/kubesphere/kubekey/test/e2e/framework/internal/log"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework/clusterctl/logger"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework/internal/log"
 )
 
 // Provide E2E friendly wrappers for the clusterctl client library.

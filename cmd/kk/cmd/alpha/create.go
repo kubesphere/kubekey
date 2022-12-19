@@ -19,8 +19,8 @@ package alpha
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/create/phase"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/create/phase"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
 )
 
 type CreateOptions struct {
@@ -42,6 +42,6 @@ func NewCmdCreate() *cobra.Command {
 	}
 
 	o.CommonOptions.AddCommonFlag(cmd)
-    cmd.AddCommand(phase.NewPhaseCommand())
+	cmd.AddCommand(phase.NewPhaseCommand())
 	return cmd
 }

@@ -18,10 +18,11 @@ package images
 
 import (
 	"context"
+	"os"
+
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
-	"os"
 )
 
 type CopyImageOptions struct {

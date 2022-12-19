@@ -17,8 +17,9 @@
 package task
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
 	"testing"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
 
 func TestTask_calculateConcurrency(t1 *testing.T) {

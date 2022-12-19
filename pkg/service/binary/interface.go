@@ -20,11 +20,11 @@ package binary
 import (
 	"time"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg/clients/ssh"
-	"github.com/kubesphere/kubekey/pkg/scope"
-	"github.com/kubesphere/kubekey/pkg/service/binary/k3s"
-	"github.com/kubesphere/kubekey/pkg/service/binary/kubernetes"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/v3/pkg/scope"
+	"github.com/kubesphere/kubekey/v3/pkg/service/binary/k3s"
+	"github.com/kubesphere/kubekey/v3/pkg/service/binary/kubernetes"
 )
 
 // Binary defines the interface for the binaries operations.

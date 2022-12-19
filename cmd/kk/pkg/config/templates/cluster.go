@@ -21,7 +21,7 @@ import (
 
 	"github.com/lithammer/dedent"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 )
 
 // Cluster defines the template of cluster configuration file default.

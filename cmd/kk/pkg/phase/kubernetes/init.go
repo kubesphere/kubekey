@@ -19,13 +19,13 @@ package kubernetes
 import (
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/kubernetes"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/phase/confirm"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/plugins/dns"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/phase/confirm"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns"
 )
 
 func NewCreateInitClusterPipeline(runtime *common.KubeRuntime) error {

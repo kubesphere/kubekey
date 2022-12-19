@@ -30,7 +30,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/service/operation/file/checksum"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/file/checksum"
 )
 
 // Default

@@ -20,20 +20,22 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
-	ksv2 "github.com/kubesphere/kubekey/cmd/kk/pkg/kubesphere/v2"
-	ksv3 "github.com/kubesphere/kubekey/cmd/kk/pkg/kubesphere/v3"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/version/kubesphere"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/version/kubesphere/templates"
-	"github.com/pkg/errors"
-	yamlV2 "gopkg.in/yaml.v2"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	yamlV2 "gopkg.in/yaml.v2"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
+	ksv2 "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere/v2"
+	ksv3 "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere/v3"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere/templates"
 )
 
 type AddInstallerConfig struct {

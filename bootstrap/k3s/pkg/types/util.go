@@ -23,7 +23,7 @@ import (
 	"github.com/jinzhu/copier"
 	kubeyaml "sigs.k8s.io/yaml"
 
-	infrabootstrapv1 "github.com/kubesphere/kubekey/bootstrap/k3s/api/v1beta1"
+	infrabootstrapv1 "github.com/kubesphere/kubekey/v3/bootstrap/k3s/api/v1beta1"
 )
 
 // MarshalInitServerConfiguration marshals the ServerConfiguration object into a string.

@@ -17,9 +17,10 @@
 package kubesphere
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/version/kubesphere"
 	"reflect"
 	"testing"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere"
 )
 
 func Test_mirrorRepo(t *testing.T) {

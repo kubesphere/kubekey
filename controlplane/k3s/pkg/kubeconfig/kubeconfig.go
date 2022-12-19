@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/kubekey/util/secret"
+	"github.com/kubesphere/kubekey/v3/util/secret"
 )
 
 var (
