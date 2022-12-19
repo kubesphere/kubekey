@@ -21,10 +21,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubesphere/kubekey/pkg/clients/ssh"
-	"github.com/kubesphere/kubekey/pkg/rootfs"
-	"github.com/kubesphere/kubekey/pkg/service/operation/directory"
-	"github.com/kubesphere/kubekey/pkg/util"
+	"github.com/kubesphere/kubekey/v3/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/v3/pkg/rootfs"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/directory"
+	"github.com/kubesphere/kubekey/v3/pkg/util"
 )
 
 // Docker info

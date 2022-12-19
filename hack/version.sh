@@ -89,7 +89,7 @@ version::ldflags() {
         local key=${1}
         local val=${2}
         ldflags+=(
-            "-X 'github.com/kubesphere/kubekey/version.${key}=${val}'"
+            "-X 'github.com/kubesphere/kubekey/v3/version.${key}=${val}'"
         )
     }
 

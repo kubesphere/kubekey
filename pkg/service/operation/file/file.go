@@ -22,8 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/clients/ssh"
-	"github.com/kubesphere/kubekey/pkg/rootfs"
+	"github.com/kubesphere/kubekey/v3/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/v3/pkg/rootfs"
 )
 
 // Type represents the type of file.

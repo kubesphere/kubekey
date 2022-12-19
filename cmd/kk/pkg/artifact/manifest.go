@@ -27,15 +27,14 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/artifact/templates"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/client/kubernetes"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/artifact/templates"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/client/kubernetes"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 )
 
 func CreateManifest(arg common.Argument, name string) error {

@@ -25,9 +25,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/service/operation/directory"
-	"github.com/kubesphere/kubekey/pkg/service/operation/file"
-	"github.com/kubesphere/kubekey/pkg/util/filesystem"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/directory"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/file"
+	"github.com/kubesphere/kubekey/v3/pkg/util/filesystem"
 )
 
 //go:embed templates

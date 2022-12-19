@@ -29,12 +29,12 @@ import (
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
-	coreutil "github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/registry"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
+	coreutil "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
 )
 
 type PullImage struct {

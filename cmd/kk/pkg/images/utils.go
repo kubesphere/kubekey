@@ -26,7 +26,7 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 )
 
 var defaultUserAgent = "kubekey"

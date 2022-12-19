@@ -21,11 +21,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/files"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/utils"
 	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
 )
 
 type SyncCertsFile struct {

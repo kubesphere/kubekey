@@ -26,11 +26,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/cmd/kk/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/action"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 )
 
 type CustomScriptTask struct {
@@ -38,8 +38,6 @@ type CustomScriptTask struct {
 	taskDir string
 	script  kubekeyapiv1alpha2.CustomScripts
 }
-
-
 
 func (t *CustomScriptTask) Execute(runtime connector.Runtime) error {
 
@@ -111,7 +109,7 @@ func (t *CustomScriptTask) Execute(runtime connector.Runtime) error {
 		if _, err := runtime.GetRunner().SudoCmd(cleanCmd, false); err != nil {
 			return errors.Wrapf(err, "Exec cmd:%s err:%s", cleanCmd, err)
 		}
-	}else {
+	} else {
 		// keep the Materials for debug
 		fmt.Printf("Exec Bash:%s done, take %s, output:\n%s", RunBash, time.Since(start), out)
 	}

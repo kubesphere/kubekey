@@ -17,13 +17,14 @@ limitations under the License.
 package alpha
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/upgrade/phase"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/upgrade/phase"
 )
 
 type UpgradeOptions struct {
-	CommonOptions    *options.CommonOptions
+	CommonOptions *options.CommonOptions
 }
 
 func NewUpgradeOptions() *UpgradeOptions {
@@ -43,4 +44,3 @@ func NewCmdUpgrade() *cobra.Command {
 	cmd.AddCommand(phase.NewPhaseCommand())
 	return cmd
 }
-

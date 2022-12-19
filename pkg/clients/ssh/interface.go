@@ -17,7 +17,7 @@
 package ssh
 
 import (
-	"github.com/kubesphere/kubekey/pkg/util/filesystem"
+	"github.com/kubesphere/kubekey/v3/pkg/util/filesystem"
 )
 
 // Interface is the interface for ssh client.

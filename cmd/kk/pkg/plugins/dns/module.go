@@ -19,13 +19,13 @@ package dns
 import (
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/action"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/task"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/images"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/plugins/dns/templates"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns/templates"
 )
 
 type ClusterDNSModule struct {

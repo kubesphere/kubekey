@@ -17,10 +17,11 @@
 package binaries
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/task"
 	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 )
 
 type NodeBinariesModule struct {

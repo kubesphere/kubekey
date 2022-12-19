@@ -17,10 +17,10 @@
 package precheck
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/task"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 )
 
 type UpgradePreCheckModule struct {

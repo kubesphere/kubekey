@@ -21,8 +21,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/kubesphere/kubekey/pkg/service/operation/file"
-	"github.com/kubesphere/kubekey/pkg/service/operation/file/checksum"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/file"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/file/checksum"
 )
 
 // File interface defines the operations for normal file which needed to be copied to remote.

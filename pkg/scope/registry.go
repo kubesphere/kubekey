@@ -17,7 +17,7 @@
 package scope
 
 import (
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
 )
 
 // RegistryScope is the scope for global registry.

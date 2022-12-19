@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/service/provisioning/commands"
+	"github.com/kubesphere/kubekey/v3/pkg/service/provisioning/commands"
 )
 
 type unknown struct {

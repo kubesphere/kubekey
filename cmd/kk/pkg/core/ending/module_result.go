@@ -17,9 +17,10 @@
 package ending
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
 	"time"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
 
 type ModuleResult struct {

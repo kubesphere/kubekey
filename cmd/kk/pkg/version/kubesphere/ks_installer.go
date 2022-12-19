@@ -23,8 +23,8 @@ import (
 
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/version/kubesphere/templates"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere/templates"
 )
 
 type KsInstaller struct {

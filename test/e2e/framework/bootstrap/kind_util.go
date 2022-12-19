@@ -29,8 +29,8 @@ import (
 	kindnodes "sigs.k8s.io/kind/pkg/cluster/nodes"
 	kindnodesutils "sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
-	"github.com/kubesphere/kubekey/test/e2e/framework/clusterctl"
-	"github.com/kubesphere/kubekey/test/e2e/framework/internal/log"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework/clusterctl"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework/internal/log"
 )
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.

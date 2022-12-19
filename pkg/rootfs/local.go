@@ -19,7 +19,7 @@ package rootfs
 import (
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/pkg/util/filesystem"
+	"github.com/kubesphere/kubekey/v3/pkg/util/filesystem"
 )
 
 // Local is a rootfs for local.

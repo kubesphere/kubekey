@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/kubekey/test/e2e/framework/internal/log"
+	"github.com/kubesphere/kubekey/v3/test/e2e/framework/internal/log"
 )
 
 const (

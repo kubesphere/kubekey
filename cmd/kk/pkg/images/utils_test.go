@@ -17,9 +17,10 @@
 package images
 
 import (
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"reflect"
 	"testing"
+
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 func TestParseArchVariant(t *testing.T) {

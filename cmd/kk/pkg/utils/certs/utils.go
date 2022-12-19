@@ -22,13 +22,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/pkg/errors"
-	certutil "k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/keyutil"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
+	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 )
 
 // CertOrKeyExist returns a boolean whether the cert or the key exists

@@ -45,16 +45,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg/clients/ssh"
-	"github.com/kubesphere/kubekey/pkg/scope"
-	"github.com/kubesphere/kubekey/pkg/service"
-	"github.com/kubesphere/kubekey/pkg/service/binary"
-	"github.com/kubesphere/kubekey/pkg/service/bootstrap"
-	"github.com/kubesphere/kubekey/pkg/service/containermanager"
-	"github.com/kubesphere/kubekey/pkg/service/provisioning"
-	"github.com/kubesphere/kubekey/pkg/service/repository"
-	"github.com/kubesphere/kubekey/util"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg/clients/ssh"
+	"github.com/kubesphere/kubekey/v3/pkg/scope"
+	"github.com/kubesphere/kubekey/v3/pkg/service"
+	"github.com/kubesphere/kubekey/v3/pkg/service/binary"
+	"github.com/kubesphere/kubekey/v3/pkg/service/bootstrap"
+	"github.com/kubesphere/kubekey/v3/pkg/service/containermanager"
+	"github.com/kubesphere/kubekey/v3/pkg/service/provisioning"
+	"github.com/kubesphere/kubekey/v3/pkg/service/repository"
+	"github.com/kubesphere/kubekey/v3/util"
 )
 
 const (

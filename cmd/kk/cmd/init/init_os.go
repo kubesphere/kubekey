@@ -19,10 +19,10 @@ package init
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/options"
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/util"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/pipelines"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/pipelines"
 )
 
 type InitOsOptions struct {

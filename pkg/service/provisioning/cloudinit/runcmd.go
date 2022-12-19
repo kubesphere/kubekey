@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubesphere/kubekey/pkg/service/provisioning/commands"
+	"github.com/kubesphere/kubekey/v3/pkg/service/provisioning/commands"
 )
 
 // runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init rundcmd module.

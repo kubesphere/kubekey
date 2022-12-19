@@ -19,11 +19,11 @@ package kubernetes
 import (
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 )
 
 func NewCreateJoinNodesPipeline(runtime *common.KubeRuntime) error {

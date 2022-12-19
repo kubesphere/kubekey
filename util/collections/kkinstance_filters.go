@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
 )
 
 // Func is the functon definition for a filter.

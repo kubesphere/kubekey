@@ -19,7 +19,7 @@ package cluster
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	infracontrolplanev1 "github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1"
+	infracontrolplanev1 "github.com/kubesphere/kubekey/v3/controlplane/k3s/api/v1beta1"
 )
 
 // ControlPlaneMachineLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.

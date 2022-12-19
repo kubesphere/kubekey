@@ -19,8 +19,8 @@ package scope
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg"
 )
 
 // LBScope is a scope for LB.

@@ -17,14 +17,14 @@
 package pipelines
 
 import (
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/artifact"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/customscripts"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/os"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/filesystem"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/artifact"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/customscripts"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/filesystem"
 )
 
 func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {

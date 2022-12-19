@@ -22,10 +22,10 @@ import (
 	"text/template"
 	"time"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
-	"github.com/kubesphere/kubekey/pkg/service/operation"
-	"github.com/kubesphere/kubekey/pkg/service/operation/file"
-	"github.com/kubesphere/kubekey/pkg/service/util"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation"
+	"github.com/kubesphere/kubekey/v3/pkg/service/operation/file"
+	"github.com/kubesphere/kubekey/v3/pkg/service/util"
 )
 
 //go:embed templates

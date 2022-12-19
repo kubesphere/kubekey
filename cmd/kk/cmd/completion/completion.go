@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kubesphere/kubekey/cmd/kk/cmd/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/util"
 )
 
 // CompletionOptions is the option of completion command

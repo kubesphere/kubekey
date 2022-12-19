@@ -19,11 +19,11 @@ package nodes
 import (
 	"errors"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/phase/confirm"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/phase/precheck"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/phase/confirm"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/phase/precheck"
 )
 
 func NewUpgradeNodesPipeline(runtime *common.KubeRuntime) error {

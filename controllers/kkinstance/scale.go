@@ -28,7 +28,7 @@ import (
 	capicollections "sigs.k8s.io/cluster-api/util/collections"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/kubesphere/kubekey/pkg/scope"
+	"github.com/kubesphere/kubekey/v3/pkg/scope"
 )
 
 func (r *Reconciler) inPlaceUpgradeControlPlane(ctx context.Context, instanceScope *scope.InstanceScope) (_ ctrl.Result, retErr error) {

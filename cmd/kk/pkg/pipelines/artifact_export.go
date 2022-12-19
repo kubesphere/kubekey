@@ -21,14 +21,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/artifact"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/binaries"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/module"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/filesystem"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/images"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/artifact"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/binaries"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/filesystem"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 )
 
 func NewArtifactExportPipeline(runtime *common.ArtifactRuntime) error {

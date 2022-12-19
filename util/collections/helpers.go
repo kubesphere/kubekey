@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "github.com/kubesphere/kubekey/api/v1beta1"
+	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
 )
 
 // GetFilteredKKInstancesForKKCluster returns a list of kkInstances that can be filtered or not.

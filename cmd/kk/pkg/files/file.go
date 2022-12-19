@@ -19,8 +19,6 @@ package files
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/kubesphere/kubekey/version"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -28,8 +26,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/logger"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/util"
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/version"
 )
 
 const (

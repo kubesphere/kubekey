@@ -24,8 +24,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	infracontrolplanev1 "github.com/kubesphere/kubekey/controlplane/k3s/api/v1beta1"
-	k3sCluster "github.com/kubesphere/kubekey/controlplane/k3s/pkg/cluster"
+	infracontrolplanev1 "github.com/kubesphere/kubekey/v3/controlplane/k3s/api/v1beta1"
+	k3sCluster "github.com/kubesphere/kubekey/v3/controlplane/k3s/pkg/cluster"
 )
 
 func (r *K3sControlPlaneReconciler) upgradeControlPlane(

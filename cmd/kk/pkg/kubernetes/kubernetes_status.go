@@ -18,13 +18,15 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/cmd/kk/pkg/core/connector"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
 
 type KubernetesStatus struct {
