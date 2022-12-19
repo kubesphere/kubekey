@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	manifestregistry "github.com/estesp/manifest-tool/v2/pkg/registry"
@@ -260,9 +261,21 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			Image:    image.ImageName(),
 			Platform: p,
 		}
+
+		skip := false
 		if v, ok := manifestList[uniqueImage]; ok {
-			v = append(v, entry)
-			manifestList[uniqueImage] = v
+			// skip if the image already copied
+			for _, old := range v {
+				if reflect.DeepEqual(old, entry) {
+					skip = true
+					break
+				}
+			}
+
+			if !skip {
+				v = append(v, entry)
+				manifestList[uniqueImage] = v
+			}
 		} else {
 			entryArr := make([]manifesttypes.ManifestEntry, 0)
 			manifestList[uniqueImage] = append(entryArr, entry)
