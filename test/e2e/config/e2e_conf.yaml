@@ -93,7 +93,7 @@ variables:
   KUBERNETES_VERSION_MANAGEMENT: "v1.24.0"
   KUBERNETES_VERSION: "v1.24.0"
   IMAGE_REPOSITORY: "k8s.gcr.io"
-  CNI: "./data/cni/calico.yaml"
+  CNI: "../../data/cni/calico.yaml"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   IP_FAMILY: "IPv4"
