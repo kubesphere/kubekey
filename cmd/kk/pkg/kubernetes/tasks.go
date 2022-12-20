@@ -491,7 +491,7 @@ type FindNode struct {
 func (f *FindNode) Execute(runtime connector.Runtime) error {
 	var resArr []string
 	res, err := runtime.GetRunner().Cmd(
-		"sudo -E /usr/local/bin/kubectl get nodes | grep -v NAME | grep -v 'master\\|control-plane' | awk '{print $1}'",
+		"sudo -E /usr/local/bin/kubectl get nodes | awk '$3 !~ /master|control-plane|ROLES/ {print $1}'",
 		true)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "kubectl get nodes failed")
