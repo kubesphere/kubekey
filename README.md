@@ -374,6 +374,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     </tr>
     <tr>
       <td align="center"><a href="https://besscroft.com"><img src="https://avatars.githubusercontent.com/u/33775809?v=4?s=100" width="100px;" alt="besscroft"/><br /><sub><b>besscroft</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=besscroft" title="Documentation">📖</a></td>
+      <td align="center"><a href="https://github.com/zhangzhiqiangcs"><img src="https://avatars.githubusercontent.com/u/8319897?v=4?s=100" width="100px;" alt="张志强"/><br /><sub><b>张志强</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=zhangzhiqiangcs" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
