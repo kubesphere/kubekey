@@ -37,6 +37,7 @@ jobs:
           rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
           wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
           tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
           mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
           echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > qsctl-config.yaml
           echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml

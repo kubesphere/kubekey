@@ -26,6 +26,7 @@ jobs:
           wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
           tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
           mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
 
       - name: update components.json
         id: get_new_version
