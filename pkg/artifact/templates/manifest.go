@@ -17,10 +17,12 @@
 package templates
 
 import (
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
+
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 // Manifest defines the template of manifest file.

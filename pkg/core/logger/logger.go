@@ -25,7 +25,7 @@ import (
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubesphere/kubekey/pkg/core/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/common"
 )
 
 var Log *KubeKeyLog

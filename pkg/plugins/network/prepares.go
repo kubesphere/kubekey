@@ -17,9 +17,10 @@
 package network
 
 import (
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
 )
 
 type OldK8sVersion struct {

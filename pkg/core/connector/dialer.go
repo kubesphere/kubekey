@@ -17,9 +17,10 @@
 package connector
 
 import (
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"sync"
 	"time"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
 )
 
 type Dialer struct {

@@ -27,10 +27,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	coreutil "github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
+	coreutil "github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 type DownloadISOFile struct {

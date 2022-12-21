@@ -24,19 +24,20 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/kubesphere/kubekey/cmd/ctl/add"
-	"github.com/kubesphere/kubekey/cmd/ctl/artifact"
-	"github.com/kubesphere/kubekey/cmd/ctl/cert"
-	"github.com/kubesphere/kubekey/cmd/ctl/completion"
-	"github.com/kubesphere/kubekey/cmd/ctl/create"
-	"github.com/kubesphere/kubekey/cmd/ctl/cri"
-	"github.com/kubesphere/kubekey/cmd/ctl/delete"
-	initOs "github.com/kubesphere/kubekey/cmd/ctl/init"
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
-	"github.com/kubesphere/kubekey/cmd/ctl/plugin"
-	"github.com/kubesphere/kubekey/cmd/ctl/upgrade"
-	"github.com/kubesphere/kubekey/cmd/ctl/version"
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/add"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/artifact"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/cert"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/completion"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/create"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/cri"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/delete"
+	initOs "github.com/kubesphere/kubekey/v2/cmd/ctl/init"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/plugin"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/upgrade"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/version"
 )
 
 type KubeKeyOptions struct {

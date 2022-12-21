@@ -18,12 +18,14 @@ package images
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/image/v5/types"
 	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"strings"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
 )
 
 var defaultUserAgent = "kubekey"

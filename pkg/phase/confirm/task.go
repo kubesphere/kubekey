@@ -7,13 +7,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
 )
 
 type UpgradeK8sConfirm struct {

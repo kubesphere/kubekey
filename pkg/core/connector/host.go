@@ -17,7 +17,7 @@
 package connector
 
 import (
-	"github.com/kubesphere/kubekey/pkg/core/cache"
+	"github.com/kubesphere/kubekey/v2/pkg/core/cache"
 )
 
 type BaseHost struct {

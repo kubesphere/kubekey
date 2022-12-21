@@ -19,10 +19,10 @@ package precheck
 import (
 	"time"
 
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/module"
+	"github.com/kubesphere/kubekey/v2/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
 )
 
 type GreetingsModule struct {

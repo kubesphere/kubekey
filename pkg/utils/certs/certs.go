@@ -19,15 +19,17 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/sets"
-	certutil "k8s.io/client-go/util/cert"
 	"math"
 	"math/big"
 	"net"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/sets"
+	certutil "k8s.io/client-go/util/cert"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
 )
 
 const (

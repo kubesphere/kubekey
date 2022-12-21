@@ -21,12 +21,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/pkg/errors"
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 	"io"
 	"io/ioutil"
 	"net"
@@ -37,6 +31,14 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 type Cfg struct {

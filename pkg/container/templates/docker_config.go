@@ -21,8 +21,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/lithammer/dedent"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
 )
 
 var DockerConfig = template.Must(template.New("daemon.json").Parse(

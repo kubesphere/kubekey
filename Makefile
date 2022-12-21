@@ -223,10 +223,10 @@ ifneq ($(GIT_TAG),)
 	VERSION = ${GIT_TAG}
 endif
 
-LDFLAGS += -X github.com/kubesphere/kubekey/version.version=${VERSION}
-LDFLAGS += -X github.com/kubesphere/kubekey/version.metadata=${VERSION_METADATA}
-LDFLAGS += -X github.com/kubesphere/kubekey/version.gitCommit=${GIT_COMMIT}
-LDFLAGS += -X github.com/kubesphere/kubekey/version.gitTreeState=${GIT_DIRTY}
+LDFLAGS += -X github.com/kubesphere/kubekey/v2/version.version=${VERSION}
+LDFLAGS += -X github.com/kubesphere/kubekey/v2/version.metadata=${VERSION_METADATA}
+LDFLAGS += -X github.com/kubesphere/kubekey/v2/version.gitCommit=${GIT_COMMIT}
+LDFLAGS += -X github.com/kubesphere/kubekey/v2/version.gitTreeState=${GIT_DIRTY}
 
 # see kk
 binary:

@@ -19,11 +19,12 @@ package artifact
 import (
 	"errors"
 
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
-	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/phase/artifact"
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/util"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/phase/artifact"
 )
 
 type ArtifactImportOptions struct {

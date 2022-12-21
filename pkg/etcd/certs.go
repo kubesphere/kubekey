@@ -19,20 +19,22 @@ package etcd
 import (
 	"crypto/x509"
 	"fmt"
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/utils/certs"
-	"github.com/pkg/errors"
 	"io/ioutil"
-	"k8s.io/client-go/util/cert"
-	certutil "k8s.io/client-go/util/cert"
-	netutils "k8s.io/utils/net"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
+	"k8s.io/client-go/util/cert"
+	certutil "k8s.io/client-go/util/cert"
+	netutils "k8s.io/utils/net"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/utils/certs"
 )
 
 // KubekeyCertEtcdCA is the definition of the root CA used by the hosted etcd server.

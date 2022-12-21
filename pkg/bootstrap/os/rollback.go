@@ -18,12 +18,14 @@ package os
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/os/repository"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/ending"
-	"github.com/pkg/errors"
 	"path/filepath"
+
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/os/repository"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/ending"
 )
 
 type RollbackUmount struct {

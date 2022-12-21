@@ -16,7 +16,7 @@
 
 package prepare
 
-import "github.com/kubesphere/kubekey/pkg/core/connector"
+import "github.com/kubesphere/kubekey/v2/pkg/core/connector"
 
 type FileExist struct {
 	BasePrepare

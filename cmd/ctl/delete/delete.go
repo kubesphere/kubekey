@@ -17,8 +17,9 @@ limitations under the License.
 package delete
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
 )
 
 type DeleteOptions struct {

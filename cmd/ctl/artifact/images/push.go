@@ -17,19 +17,21 @@
 package images
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
-	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/artifact"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
-	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/filesystem"
-	"github.com/kubesphere/kubekey/pkg/images"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/util"
+	"github.com/kubesphere/kubekey/v2/pkg/artifact"
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/module"
+	"github.com/kubesphere/kubekey/v2/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v2/pkg/filesystem"
+	"github.com/kubesphere/kubekey/v2/pkg/images"
 )
 
 type ArtifactImagesPushOptions struct {

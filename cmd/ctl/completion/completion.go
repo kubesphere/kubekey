@@ -18,8 +18,10 @@ package completion
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/cmd/ctl/util"
+
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/util"
 )
 
 // CompletionOptions is the option of completion command

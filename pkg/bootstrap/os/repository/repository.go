@@ -18,8 +18,9 @@ package repository
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"strings"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
 )
 
 type Interface interface {

@@ -33,9 +33,9 @@ import (
 	"gopkg.in/yaml.v2"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubesphere"
 )
 
 var (

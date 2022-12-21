@@ -20,12 +20,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
-	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/common"
-	alpha "github.com/kubesphere/kubekey/pkg/phase/kubesphere"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/util"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	alpha "github.com/kubesphere/kubekey/v2/pkg/phase/kubesphere"
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubesphere"
 )
 
 type UpgradeKubeSphereOptions struct {

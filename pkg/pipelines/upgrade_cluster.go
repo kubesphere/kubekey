@@ -21,17 +21,17 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/artifact"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/confirm"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/pkg/certs"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
-	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/filesystem"
-	"github.com/kubesphere/kubekey/pkg/kubernetes"
-	"github.com/kubesphere/kubekey/pkg/kubesphere"
-	"github.com/kubesphere/kubekey/pkg/loadbalancer"
+	"github.com/kubesphere/kubekey/v2/pkg/artifact"
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/confirm"
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v2/pkg/certs"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/module"
+	"github.com/kubesphere/kubekey/v2/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v2/pkg/filesystem"
+	"github.com/kubesphere/kubekey/v2/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/v2/pkg/kubesphere"
+	"github.com/kubesphere/kubekey/v2/pkg/loadbalancer"
 )
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {

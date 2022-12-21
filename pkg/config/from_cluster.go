@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/utils"
 	"net"
 	"os"
 	"os/exec"
@@ -29,12 +28,14 @@ import (
 	"strings"
 	"text/template"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/utils"
 )
 
 var (

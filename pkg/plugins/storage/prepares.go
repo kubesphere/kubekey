@@ -17,11 +17,13 @@
 package storage
 
 import (
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/pkg/errors"
 	"regexp"
+
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
 )
 
 type CheckDefaultStorageClass struct {

@@ -17,8 +17,8 @@
 package common
 
 import (
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/rollback"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/rollback"
 )
 
 type KubeRollback struct {

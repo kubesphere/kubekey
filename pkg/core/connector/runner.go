@@ -19,11 +19,12 @@ package connector
 import (
 	"errors"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/common"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"os"
 	"path/filepath"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 type Runner struct {

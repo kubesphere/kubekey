@@ -24,10 +24,10 @@ import (
 	osrelease "github.com/dominodatalab/os-release"
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/bootstrap/os/repository"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/utils"
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/os/repository"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/utils"
 )
 
 type NodeConfigureOS struct {

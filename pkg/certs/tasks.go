@@ -19,21 +19,23 @@ package certs
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/certs/templates"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/utils"
+	"os"
+	"path/filepath"
+	"strings"
+	"text/tabwriter"
+	"time"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdlatest "k8s.io/client-go/tools/clientcmd/api/latest"
 	certutil "k8s.io/client-go/util/cert"
-	"os"
-	"path/filepath"
-	"strings"
-	"text/tabwriter"
-	"time"
+
+	"github.com/kubesphere/kubekey/v2/pkg/certs/templates"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/utils"
 )
 
 type Certificate struct {

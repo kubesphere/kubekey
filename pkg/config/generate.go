@@ -28,11 +28,11 @@ import (
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/config/templates"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/config/templates"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubesphere"
 )
 
 // GenerateKubeKeyConfig is used to generate cluster configuration file

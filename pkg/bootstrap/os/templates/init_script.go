@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/kubesphere/kubekey/pkg/bootstrap/registry"
-
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/lithammer/dedent"
+
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/registry"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
 )
 
 var InitOsScriptTmpl = template.Must(template.New("initOS.sh").Parse(

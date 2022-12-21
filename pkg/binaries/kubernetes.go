@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"os/exec"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/cache"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/pkg/errors"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/cache"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/files"
 )
 
 // K8sFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.

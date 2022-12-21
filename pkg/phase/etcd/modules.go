@@ -1,10 +1,10 @@
 package etcd
 
 import (
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/task"
-	"github.com/kubesphere/kubekey/pkg/etcd"
-	"github.com/kubesphere/kubekey/pkg/phase/binary"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/etcd"
+	"github.com/kubesphere/kubekey/v2/pkg/phase/binary"
 )
 
 type PreCheckModule struct {

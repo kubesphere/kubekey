@@ -23,13 +23,13 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/binaries"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/task"
-	"github.com/kubesphere/kubekey/pkg/images"
-	"github.com/kubesphere/kubekey/pkg/kubernetes/templates"
+	"github.com/kubesphere/kubekey/v2/pkg/binaries"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/action"
+	"github.com/kubesphere/kubekey/v2/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/images"
+	"github.com/kubesphere/kubekey/v2/pkg/kubernetes/templates"
 )
 
 type StatusModule struct {

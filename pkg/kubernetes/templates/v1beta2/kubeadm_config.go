@@ -21,17 +21,15 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kubesphere/kubekey/pkg/utils"
-
-	versionutil "k8s.io/apimachinery/pkg/util/version"
-
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v2/pkg/utils"
 )
 
 var (

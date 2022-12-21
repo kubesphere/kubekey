@@ -18,16 +18,18 @@ package create
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
-	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/artifact"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"k8s.io/client-go/util/homedir"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/util"
+	"github.com/kubesphere/kubekey/v2/pkg/artifact"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
 )
 
 type CreateManifestOptions struct {

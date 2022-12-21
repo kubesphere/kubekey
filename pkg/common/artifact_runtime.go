@@ -18,12 +18,14 @@ package common
 
 import (
 	"encoding/json"
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/pkg/errors"
 	"io/ioutil"
-	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"path/filepath"
+
+	"github.com/pkg/errors"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
+
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
 )
 
 type ArtifactArgument struct {

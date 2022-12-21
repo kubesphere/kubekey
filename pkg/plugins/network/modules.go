@@ -19,15 +19,16 @@ package network
 import (
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/task"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/images"
-	"github.com/kubesphere/kubekey/pkg/plugins/network/templates"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/action"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v2/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/images"
+	"github.com/kubesphere/kubekey/v2/pkg/plugins/network/templates"
 )
 
 type DeployNetworkPluginModule struct {

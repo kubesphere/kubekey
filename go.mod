@@ -1,4 +1,4 @@
-module github.com/kubesphere/kubekey
+module github.com/kubesphere/kubekey/v2
 
 go 1.18
 

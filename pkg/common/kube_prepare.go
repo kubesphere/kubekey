@@ -17,8 +17,8 @@
 package common
 
 import (
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/prepare"
 )
 
 type KubePrepare struct {
