@@ -17,9 +17,9 @@
 package hooks
 
 import (
-	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
+	kubekeycontroller "github.com/kubesphere/kubekey/v2/controllers/kubekey"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/module"
 )
 
 type UpdateCRStatusHook struct {

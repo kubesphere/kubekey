@@ -23,15 +23,15 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/cache"
-	"github.com/kubesphere/kubekey/pkg/core/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/ending"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/rollback"
-	"github.com/kubesphere/kubekey/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/core/action"
+	"github.com/kubesphere/kubekey/v2/pkg/core/cache"
+	"github.com/kubesphere/kubekey/v2/pkg/core/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/ending"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v2/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v2/pkg/core/rollback"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 type LocalTask struct {

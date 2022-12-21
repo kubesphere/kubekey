@@ -18,13 +18,15 @@ package common
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
+
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 type LocalRuntime struct {

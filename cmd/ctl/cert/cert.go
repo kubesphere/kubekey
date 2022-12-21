@@ -17,8 +17,9 @@ limitations under the License.
 package cert
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
 )
 
 type CertOptions struct {

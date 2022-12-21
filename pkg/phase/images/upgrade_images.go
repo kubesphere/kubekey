@@ -19,10 +19,10 @@ package images
 import (
 	"errors"
 
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
-	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/phase/precheck"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/module"
+	"github.com/kubesphere/kubekey/v2/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v2/pkg/phase/precheck"
 )
 
 func NewUpgradeImagesPipeline(runtime *common.KubeRuntime) error {

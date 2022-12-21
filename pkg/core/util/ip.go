@@ -18,11 +18,13 @@ package util
 
 import (
 	"encoding/binary"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
-	"github.com/pkg/errors"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
 )
 
 func ParseIp(ip string) []string {

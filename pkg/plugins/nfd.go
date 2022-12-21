@@ -14,16 +14,18 @@
 package plugins
 
 import (
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/task"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/images"
-	"github.com/lithammer/dedent"
-	"github.com/pkg/errors"
 	"path/filepath"
 	"text/template"
+
+	"github.com/lithammer/dedent"
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/action"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/images"
 )
 
 // NodeFeatureDiscovery detects hardware features available on each node in a Kubernetes cluster, and advertises those

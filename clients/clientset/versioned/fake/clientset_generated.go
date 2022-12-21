@@ -18,11 +18,11 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha1"
-	fakekubekeyv1alpha1 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha1/fake"
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha2"
-	fakekubekeyv1alpha2 "github.com/kubesphere/kubekey/clients/clientset/versioned/typed/kubekey/v1alpha2/fake"
+	clientset "github.com/kubesphere/kubekey/v2/clients/clientset/versioned"
+	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v2/clients/clientset/versioned/typed/kubekey/v1alpha1"
+	fakekubekeyv1alpha1 "github.com/kubesphere/kubekey/v2/clients/clientset/versioned/typed/kubekey/v1alpha1/fake"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v2/clients/clientset/versioned/typed/kubekey/v1alpha2"
+	fakekubekeyv1alpha2 "github.com/kubesphere/kubekey/v2/clients/clientset/versioned/typed/kubekey/v1alpha2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

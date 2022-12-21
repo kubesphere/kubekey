@@ -18,11 +18,13 @@ package kubesphere
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere/templates"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"os"
 	"text/template"
+
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubesphere/templates"
 )
 
 type KsInstaller struct {

@@ -25,29 +25,28 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"time"
 
-	kubekeyv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	yamlV2 "gopkg.in/yaml.v2"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/yaml"
 
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
+	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
 )
 
 const (

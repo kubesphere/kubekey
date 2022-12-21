@@ -18,11 +18,13 @@ package action
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/pkg/errors"
 	"path/filepath"
 	"text/template"
+
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 type Template struct {

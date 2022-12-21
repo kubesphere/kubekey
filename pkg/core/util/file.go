@@ -21,14 +21,15 @@ import (
 	"compress/gzip"
 	"crypto/md5"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/common"
-	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"io"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/logger"
 )
 
 func IsExist(path string) bool {

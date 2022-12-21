@@ -18,9 +18,9 @@ limitations under the License.
 package kubekey
 
 import (
-	internalinterfaces "github.com/kubesphere/kubekey/clients/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/kubesphere/kubekey/clients/informers/externalversions/kubekey/v1alpha1"
-	v1alpha2 "github.com/kubesphere/kubekey/clients/informers/externalversions/kubekey/v1alpha2"
+	internalinterfaces "github.com/kubesphere/kubekey/v2/clients/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubesphere/kubekey/v2/clients/informers/externalversions/kubekey/v1alpha1"
+	v1alpha2 "github.com/kubesphere/kubekey/v2/clients/informers/externalversions/kubekey/v1alpha2"
 )
 
 // Interface provides access to each of this group's versions.

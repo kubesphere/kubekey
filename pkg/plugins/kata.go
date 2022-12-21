@@ -14,16 +14,18 @@
 package plugins
 
 import (
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/core/task"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/images"
-	"github.com/lithammer/dedent"
-	"github.com/pkg/errors"
 	"path/filepath"
 	"text/template"
+
+	"github.com/lithammer/dedent"
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/action"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/images"
 )
 
 // Kata Containers is an open source community working to build a secure container runtime with lightweight virtual

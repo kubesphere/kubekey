@@ -17,9 +17,9 @@
 package common
 
 import (
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
-	"github.com/kubesphere/kubekey/pkg/core/module"
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	kubekeyclientset "github.com/kubesphere/kubekey/v2/clients/clientset/versioned"
+	"github.com/kubesphere/kubekey/v2/pkg/core/module"
 )
 
 type KubeConf struct {

@@ -17,9 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl"
 	"os"
 	"os/exec"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl"
 )
 
 // Using a separate entry-point can reduce the size of the binary file

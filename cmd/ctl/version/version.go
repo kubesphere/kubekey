@@ -18,11 +18,13 @@ package version
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/version/kubernetes"
-	"github.com/kubesphere/kubekey/version"
-	"github.com/spf13/cobra"
 	"io"
 	"strings"
+
+	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubernetes"
+	"github.com/kubesphere/kubekey/v2/version"
 )
 
 type VersionOptions struct {

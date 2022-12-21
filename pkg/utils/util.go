@@ -18,12 +18,14 @@ package utils
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
 )
 
 func ResetTmpDir(runtime connector.Runtime) error {

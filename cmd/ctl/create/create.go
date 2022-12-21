@@ -17,9 +17,10 @@ limitations under the License.
 package create
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl/create/phase"
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/create/phase"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
 )
 
 type CreateOptions struct {

@@ -19,17 +19,17 @@ package kubernetes
 import (
 	"github.com/pkg/errors"
 
-	"github.com/kubesphere/kubekey/pkg/addons"
-	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/pkg/certs"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/module"
-	"github.com/kubesphere/kubekey/pkg/core/pipeline"
-	"github.com/kubesphere/kubekey/pkg/filesystem"
-	"github.com/kubesphere/kubekey/pkg/kubernetes"
-	"github.com/kubesphere/kubekey/pkg/plugins"
-	"github.com/kubesphere/kubekey/pkg/plugins/network"
-	"github.com/kubesphere/kubekey/pkg/plugins/storage"
+	"github.com/kubesphere/kubekey/v2/pkg/addons"
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v2/pkg/certs"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/module"
+	"github.com/kubesphere/kubekey/v2/pkg/core/pipeline"
+	"github.com/kubesphere/kubekey/v2/pkg/filesystem"
+	"github.com/kubesphere/kubekey/v2/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/v2/pkg/plugins"
+	"github.com/kubesphere/kubekey/v2/pkg/plugins/network"
+	"github.com/kubesphere/kubekey/v2/pkg/plugins/storage"
 )
 
 func NewCreateConfigureKubernetesPipeline(runtime *common.KubeRuntime) error {

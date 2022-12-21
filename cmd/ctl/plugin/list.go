@@ -25,10 +25,11 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/util/i18n"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
 )
 
 type PluginListOptions struct {

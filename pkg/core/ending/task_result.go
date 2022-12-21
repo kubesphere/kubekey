@@ -18,10 +18,12 @@ package ending
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/pkg/errors"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
+
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
 )
 
 type TaskResult struct {

@@ -18,15 +18,16 @@ package kubesphere
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/action"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/task"
-	"github.com/kubesphere/kubekey/pkg/core/util"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere/templates"
 	"os"
 	"path/filepath"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/action"
+	"github.com/kubesphere/kubekey/v2/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubesphere"
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubesphere/templates"
 )
 
 type DeployModule struct {

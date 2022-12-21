@@ -17,15 +17,15 @@ limitations under the License.
 package create
 
 import (
-	"github.com/kubesphere/kubekey/cmd/ctl/options"
-	"github.com/kubesphere/kubekey/cmd/ctl/util"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/config"
-	"github.com/kubesphere/kubekey/pkg/version/kubesphere"
-
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/options"
+	"github.com/kubesphere/kubekey/v2/cmd/ctl/util"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/config"
+	"github.com/kubesphere/kubekey/v2/pkg/version/kubesphere"
 )
 
 type CreateConfigOptions struct {

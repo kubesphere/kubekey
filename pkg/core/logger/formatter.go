@@ -19,11 +19,12 @@ package logger
 import (
 	"bytes"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Formatter struct {

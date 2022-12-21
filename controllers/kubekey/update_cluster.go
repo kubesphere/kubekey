@@ -22,15 +22,8 @@ import (
 	"fmt"
 	"text/template"
 
-	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/pkg/addons"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/ending"
-	"github.com/pkg/errors"
-
-	kubekeyclientset "github.com/kubesphere/kubekey/clients/clientset/versioned"
-	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/lithammer/dedent"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +32,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v2/apis/kubekey/v1alpha2"
+	kubekeyclientset "github.com/kubesphere/kubekey/v2/clients/clientset/versioned"
+	"github.com/kubesphere/kubekey/v2/pkg/addons"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/ending"
+	"github.com/kubesphere/kubekey/v2/pkg/core/util"
 )
 
 const (

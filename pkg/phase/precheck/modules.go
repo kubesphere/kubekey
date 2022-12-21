@@ -13,13 +13,14 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 */
+
 package precheck
 
 import (
-	"github.com/kubesphere/kubekey/pkg/bootstrap/precheck"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/prepare"
-	"github.com/kubesphere/kubekey/pkg/core/task"
+	"github.com/kubesphere/kubekey/v2/pkg/bootstrap/precheck"
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/prepare"
+	"github.com/kubesphere/kubekey/v2/pkg/core/task"
 )
 
 type UprgadePreCheckModule struct {

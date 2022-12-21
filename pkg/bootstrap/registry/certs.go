@@ -19,16 +19,18 @@ package registry
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/kubesphere/kubekey/pkg/common"
-	"github.com/kubesphere/kubekey/pkg/core/connector"
-	"github.com/kubesphere/kubekey/pkg/utils/certs"
+	"net"
+	"path/filepath"
+	"strings"
+
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/cert"
 	certutil "k8s.io/client-go/util/cert"
 	netutils "k8s.io/utils/net"
-	"net"
-	"path/filepath"
-	"strings"
+
+	"github.com/kubesphere/kubekey/v2/pkg/common"
+	"github.com/kubesphere/kubekey/v2/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v2/pkg/utils/certs"
 )
 
 const (
