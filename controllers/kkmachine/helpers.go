@@ -28,7 +28,6 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "github.com/kubesphere/kubekey/v3/api/v1beta1"
@@ -37,8 +36,7 @@ import (
 
 func (r *Reconciler) createInstance(ctx context.Context, machineScope *scope.MachineScope,
 	kkInstanceScope scope.KKInstanceScope) (*infrav1.KKInstance, error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Creating KKInstance")
+	machineScope.Info("Creating KKInstance")
 
 	if machineScope.Machine.Spec.Version == nil {
 		err := errors.New("Machine's spec.version must be defined")

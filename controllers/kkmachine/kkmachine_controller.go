@@ -19,6 +19,7 @@ package kkmachine
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -62,6 +63,7 @@ const (
 // Reconciler reconciles a KKMachine object
 type Reconciler struct {
 	client.Client
+	mutex            sync.Mutex
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
 	Tracker          *remote.ClusterCacheTracker
@@ -163,6 +165,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Create the machine scope
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
 		Client:       r.Client,
+		Logger:       &log,
 		Cluster:      cluster,
 		Machine:      machine,
 		InfraCluster: infraCluster,
@@ -291,7 +294,12 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, machineScope *scope.Ma
 			}
 		}
 
+		if !r.mutex.TryLock() {
+			machineScope.V(4).Info("Waiting for the last KKInstance to be created")
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+		}
 		instance, err = r.createInstance(ctx, machineScope, kkInstanceScope)
+		r.mutex.Unlock()
 		if err != nil {
 			machineScope.Error(err, "unable to create kkInstance")
 			r.Recorder.Eventf(machineScope.KKMachine, corev1.EventTypeWarning, "FailedCreate", "Failed to create kkInstance: %v", err)
@@ -379,7 +387,7 @@ func (r *Reconciler) findInstance(ctx context.Context, machineScope *scope.Machi
 
 	machineScope.V(4).Info("KKMachine has an instance id", "instance-id", pid.ID())
 	// If the ProviderID is populated, describe the instance using the ID.
-	id := pointer.StringPtr(pid.ID())
+	id := pointer.String(pid.ID())
 
 	obj := client.ObjectKey{
 		Namespace: machineScope.KKMachine.Namespace,

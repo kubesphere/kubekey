@@ -267,6 +267,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	instanceScope, err := scope.NewInstanceScope(scope.InstanceScopeParams{
 		Client:       r.Client,
+		Logger:       &log,
 		Cluster:      cluster,
 		Machine:      machine,
 		InfraCluster: infraCluster,
