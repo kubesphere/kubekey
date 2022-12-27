@@ -512,6 +512,10 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 		return errors.Wrapf(err, "delete old servers failed, please check file %s", chronyConfigFile)
 	}
 
+	poolDisableCmd := fmt.Sprintf(`sed -i 's/^pool /#pool /g' %s`, chronyConfigFile)
+	if _, err := runtime.GetRunner().SudoCmd(poolDisableCmd, false); err != nil {
+		return errors.Wrapf(err, "set pool disable failed")
+	}
 	// if NtpServers was configured
 	for _, server := range n.KubeConf.Cluster.System.NtpServers {
 
@@ -522,7 +526,7 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 			if _, err := runtime.GetRunner().SudoCmd(deleteAllowCmd, false); err != nil {
 				return errors.Wrapf(err, "delete allow failed, please check file %s", chronyConfigFile)
 			}
-			allowClientCmd := fmt.Sprintf(`echo "allow 0.0.0.0/0" >> %s`, chronyConfigFile)
+			allowClientCmd := fmt.Sprintf(`echo 'allow 0.0.0.0/0' >> %s`, chronyConfigFile)
 			if _, err := runtime.GetRunner().SudoCmd(allowClientCmd, false); err != nil {
 				return errors.Wrapf(err, "change host:%s chronyd conf failed, please check file %s", serverAddr, chronyConfigFile)
 			}
