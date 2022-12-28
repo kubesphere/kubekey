@@ -17,9 +17,19 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+// KKMachineTemplateStatus defines a status for an KKMachineTemplate.
+type KKMachineTemplateStatus struct {
+	// Capacity defines the resource capacity for this machine.
+	// This value is used for autoscaling from zero operations as defined in:
+	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+	// +optional
+	Capacity corev1.ResourceList `json:"capacity,omitempty"`
+}
 
 // KKMachineTemplateSpec defines the desired state of KKMachineTemplate
 type KKMachineTemplateSpec struct {
@@ -37,15 +47,19 @@ type KKMachineTemplateResource struct {
 	Spec KKMachineSpec `json:"spec"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=kkmachinetemplates,scope=Namespaced,categories=cluster-api,shortName=kkmt
+// +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KKMachineTemplate"
+// +k8s:defaulter-gen=true
 
 // KKMachineTemplate is the Schema for the kkmachinetemplates API
 type KKMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec KKMachineTemplateSpec `json:"spec,omitempty"`
+	Spec   KKMachineTemplateSpec   `json:"spec,omitempty"`
+	Status KKMachineTemplateStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
