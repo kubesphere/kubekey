@@ -223,6 +223,7 @@ func (r *RemoveNodeFiles) Execute(runtime connector.Runtime) error {
 		"/usr/bin/kubelet",
 		"/tmp/kubekey",
 		"/etc/kubekey",
+		"/var/openebs",
 		"/var/local/userspace",
 		"/var/local/charts",
 		"/var/local/usertemplate",
