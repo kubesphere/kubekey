@@ -18,6 +18,7 @@ package create
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kubesphere/kubekey/cmd/ctl/options"
@@ -48,6 +49,10 @@ type CreateClusterOptions struct {
 	localStorageChanged bool
 
 	AddonCfgFile string
+
+	RegistryMirrors string
+
+	OsNameservers string
 }
 
 func NewCreateClusterOptions() *CreateClusterOptions {
@@ -108,6 +113,11 @@ func (o *CreateClusterOptions) Validate(_ *cobra.Command, _ []string) error {
 }
 
 func (o *CreateClusterOptions) Run() error {
+	var nameServes []string
+	if o.OsNameservers != "" {
+		nameServes = strings.Split(o.OsNameservers, ",")
+	}
+
 	arg := common.Argument{
 		FilePath:            o.ClusterCfgFile,
 		KubernetesVersion:   o.Kubernetes,
@@ -125,6 +135,8 @@ func (o *CreateClusterOptions) Run() error {
 		InstallPackages:     o.InstallPackages,
 		Namespace:           o.CommonOptions.Namespace,
 		ExtraAddon:          o.AddonCfgFile,
+		RegistryMirrors:     o.RegistryMirrors,
+		OsNameservers:       nameServes,
 	}
 
 	if o.localStorageChanged {
@@ -150,7 +162,8 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
 
 	cmd.Flags().StringVarP(&o.AddonCfgFile, "with-addon", "", "", "Path to a extra addons configuration file")
-
+	cmd.Flags().StringVarP(&o.RegistryMirrors, "registry-mirrors", "", "", "Docker Container registry mirrors, multiple mirrors are separated by commas")
+	cmd.Flags().StringVarP(&o.OsNameservers, "os-nameservers", "", "", "Operating system nameserver, multiple mirrors are separated by commas")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

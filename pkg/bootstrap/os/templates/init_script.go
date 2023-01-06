@@ -162,6 +162,14 @@ mkdir -p /var/local/userspace
 mkdir -p /var/local/charts
 mkdir -p /var/local/usertemplate
 
+# add dns nameservers
+{{- if .Nameservers }}
+cat > /etc/resolv.conf <<_END
+{{- range .Nameservers }}
+nameserver {{ . }}
+{{- end }}
+_END
+{{ end }}
     `)))
 
 func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) []string {
