@@ -165,7 +165,8 @@ func (g *GetInterfaceName) Execute(runtime connector.Runtime) error {
 	}
 	cmd := fmt.Sprintf("ip route "+
 		"| grep ' %s ' "+
-		"| sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\"", host.GetAddress())
+		"| sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\""+
+		"| uniq ", host.GetAddress())
 	interfaceName, err := runtime.GetRunner().SudoCmd(cmd, false)
 	if err != nil {
 		return err
