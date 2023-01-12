@@ -310,6 +310,13 @@ func (g *DeleteVIP) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return errors.New("get interface failed")
 	}
+	
+	address := host.GetAddress()
+	internalAddress := host.GetInternalAddress()
+	if address == g.KubeConf.Cluster.ControlPlaneEndpoint.Address || internalAddress == internalAddress {
+		return nil
+	}
+	
 	cmd := fmt.Sprintf("ip addr del %s dev %s", g.KubeConf.Cluster.ControlPlaneEndpoint.Address, interfaceName)
 	runtime.GetRunner().SudoCmd(cmd, false)
 	return nil
