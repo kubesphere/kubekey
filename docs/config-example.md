@@ -64,6 +64,14 @@ spec:
     #   enabled: true
     # nodeFeatureDiscovery
     #   enabled: true
+    # additional kube-proxy configurations
+    kubeProxyConfiguration:
+      ipvs:
+        # CIDR's to exclude when cleaning up IPVS rules.
+        # necessary to put node cidr here when internalLoadbalancer=kube-vip and proxyMode=ipvs
+        # refer to: https://github.com/kubesphere/kubekey/issues/1702
+        excludeCIDRs:
+          - 172.16.0.2/24
   etcd:
     type: kubekey  # Specify the type of etcd used by the cluster. When the cluster type is k3s, setting this parameter to kubeadm is invalid. [kubekey | kubeadm | external] [Default: kubekey]
     ## The following parameters need to be added only when the type is set to external.
