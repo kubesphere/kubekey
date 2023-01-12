@@ -75,11 +75,13 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&kubernetes.InstallKubeBinariesModule{},
+		// init kubeVip on first master
 		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 		&kubernetes.InitKubernetesModule{},
 		&dns.ClusterDNSModule{},
 		&kubernetes.StatusModule{},
 		&kubernetes.JoinNodesModule{},
+		// deploy kubeVip on other masters
 		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
