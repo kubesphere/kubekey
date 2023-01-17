@@ -37,7 +37,7 @@ func NewInitRegistryPipeline(runtime *common.KubeRuntime) error {
 		&precheck.GreetingsModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&binaries.RegistryPackageModule{},
-		&os.ConfigureOSModule{},
+		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
 		&registry.RegistryCertsModule{},
 		&registry.InstallRegistryModule{},
 		&filesystem.ChownWorkDirModule{},

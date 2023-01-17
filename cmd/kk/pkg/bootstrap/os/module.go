@@ -29,6 +29,11 @@ import (
 
 type ConfigureOSModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (c *ConfigureOSModule) IsSkip() bool {
+	return c.Skip
 }
 
 func (c *ConfigureOSModule) Init() {

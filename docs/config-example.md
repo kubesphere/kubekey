@@ -42,7 +42,8 @@ spec:
     #  - name: clean tmps files
     #    bash: |
     #       rm -fr /tmp/kubekey/*
-    
+    #skipConfigureOS: true # Do not pre-configure the host OS (e.g. kernel modules, /etc/hosts, sysctl.conf, NTP servers, etc). You will have to set these things up via other methods before using KubeKey.
+
   kubernetes:
     version: v1.21.5
     imageRepo: kubesphere
