@@ -34,6 +34,7 @@ const (
 	V321
 	V330
 	V331
+	V332
 )
 
 var VersionList = []Version{
@@ -45,6 +46,7 @@ var VersionList = []Version{
 	V321,
 	V330,
 	V331,
+	V332,
 }
 
 var VersionMap = map[string]*KsInstaller{
@@ -56,6 +58,7 @@ var VersionMap = map[string]*KsInstaller{
 	V321.String(): KsV321,
 	V330.String(): KsV330,
 	V331.String(): KsV331,
+	V332.String(): KsV332,
 }
 
 var CNSource = map[string]bool{
@@ -65,6 +68,7 @@ var CNSource = map[string]bool{
 	V321.String(): true,
 	V330.String(): true,
 	V331.String(): true,
+	V332.String(): true,
 }
 
 func (v Version) String() string {
@@ -85,6 +89,8 @@ func (v Version) String() string {
 		return "v3.3.0"
 	case V331:
 		return "v3.3.1"
+	case V332:
+		return "v3.3.2"
 	default:
 		return "invalid option"
 	}
