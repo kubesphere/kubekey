@@ -17,8 +17,9 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 // K3sKillallScript defines the template of k3s-killall script.
@@ -71,12 +72,17 @@ getshims() {
 killtree $({ set +x; } 2>/dev/null; getshims; set -x)
 
 do_unmount_and_remove() {
-    awk -v path="$1" '$2 ~ ("^" path) { print $2 }' /proc/self/mounts | sort -r | xargs -r -t -n 1 sh -c 'umount "$0" && rm -rf "$0"'
+    set +x
+    while read -r _ path _; do
+        case "$path" in $1*) echo "$path" ;; esac
+    done < /proc/self/mounts | sort -r | xargs -r -t -n 1 sh -c 'umount "$0" && rm -rf "$0"'
+    set -x
 }
 
 do_unmount_and_remove '/run/k3s'
 do_unmount_and_remove '/var/lib/rancher/k3s'
 do_unmount_and_remove '/var/lib/kubelet/pods'
+do_unmount_and_remove '/var/lib/kubelet/plugins'
 do_unmount_and_remove '/run/netns/cni-'
 
 # Remove CNI namespaces
@@ -89,6 +95,15 @@ ip link show 2>/dev/null | grep 'master cni0' | while read ignore iface ignore; 
 done
 ip link delete cni0
 ip link delete flannel.1
+ip link delete flannel-v6.1
+ip link delete kube-ipvs0
+ip link delete flannel-wg
+ip link delete flannel-wg-v6
+ip link delete nodelocaldns
+ip link delete cilium_host
+ip link delete cilium_vxlan
+ip -br link show | grep 'cali[a-f0-9]*' | awk -F '@' '{print $1}' | xargs -r -t -n 1 ip link delete
 rm -rf /var/lib/cni/
-iptables-save | grep -v KUBE- | grep -v CNI- | iptables-restore
+iptables-save | grep -v KUBE- | grep -v CNI- | grep -iv flannel | iptables-restore
+ip6tables-save | grep -v KUBE- | grep -v CNI- | grep -iv flannel | ip6tables-restore
     `)))
