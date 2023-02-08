@@ -104,7 +104,7 @@ func (i *InstallRegistryModule) Init() {
 func InstallRegistry(i *InstallRegistryModule) []task.Interface {
 	installRegistryBinary := &task.RemoteTask{
 		Name:     "InstallRegistryBinary",
-		Desc:     "Install local registry",
+		Desc:     "Install registry binary",
 		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
 		Action:   new(InstallRegistryBinary),
 		Parallel: true,
@@ -139,7 +139,7 @@ func InstallRegistry(i *InstallRegistryModule) []task.Interface {
 		Retry:    1,
 	}
 
-	startRgistryService := &task.RemoteTask{
+	startRegistryService := &task.RemoteTask{
 		Name:     "StartRegistryService",
 		Desc:     "Start registry service",
 		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
@@ -152,7 +152,7 @@ func InstallRegistry(i *InstallRegistryModule) []task.Interface {
 		installRegistryBinary,
 		generateRegistryService,
 		generateRegistryConfig,
-		startRgistryService,
+		startRegistryService,
 	}
 }
 
