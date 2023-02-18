@@ -180,8 +180,6 @@ func (g *GenerateK8eService) Execute(runtime connector.Runtime) error {
 	}
 
 	defaultKubeletArs := map[string]string{
-		"cni-conf-dir":    "/etc/cni/net.d",
-		"cni-bin-dir":     "/opt/cni/bin",
 		"kube-reserved":   "cpu=200m,memory=250Mi,ephemeral-storage=1Gi",
 		"system-reserved": "cpu=200m,memory=250Mi,ephemeral-storage=1Gi",
 		"eviction-hard":   "memory.available<5%,nodefs.available<10%",
