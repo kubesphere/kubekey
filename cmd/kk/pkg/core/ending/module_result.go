@@ -36,10 +36,7 @@ func NewModuleResult() *ModuleResult {
 }
 
 func (m *ModuleResult) IsFailed() bool {
-	if m.Status == FAILED {
-		return true
-	}
-	return false
+	return m.Status == FAILED
 }
 
 func (m *ModuleResult) AppendHostResult(p Interface) {
