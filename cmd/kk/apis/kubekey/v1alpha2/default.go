@@ -39,7 +39,7 @@ const (
 	DefaultDNSDomain            = "cluster.local"
 	DefaultArch                 = "amd64"
 	DefaultSSHTimeout           = 30
-	DefaultEtcdVersion          = "v3.4.13"
+	DefaultEtcdVersion          = "v3.4.24"
 	DefaultEtcdPort             = "2379"
 	DefaultDockerVersion        = "20.10.8"
 	DefaultContainerdVersion    = "1.6.4"
