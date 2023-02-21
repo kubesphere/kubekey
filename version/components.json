@@ -528,10 +528,12 @@
     },
     "k8e": {
         "amd64": {
-            "v1.21.14": "e0b7dfcf3da936859e19684b2a847cb4f5cadf4d21c3373140886c5fa997a6b8"
+            "v1.21.14": "e0b7dfcf3da936859e19684b2a847cb4f5cadf4d21c3373140886c5fa997a6b8",
+            "v1.25.5": "0913de7c371f0386c0e5e99924acab8fa4b18aa6ff4a376c200f9f39cbffead0"
         },
         "arm64": {
-            "v1.21.14": "0f863969df8178b12655e884d3095d850dbe63675b5a334878b2c7478fc9fac1"
+            "v1.21.14": "0f863969df8178b12655e884d3095d850dbe63675b5a334878b2c7478fc9fac1",
+            "v1.25.5": "d58cf3a0c03b0c0fc01eb5406de65c1c85bff5683c7b6ef9ad99f46616d58525"
         }
     },
     "docker": {
