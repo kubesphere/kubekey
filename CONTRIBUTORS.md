@@ -93,6 +93,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/zhangzhiqiangcs"><img src="https://avatars.githubusercontent.com/u/8319897?v=4?s=100" width="100px;" alt="张志强"/><br /><sub><b>张志强</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=zhangzhiqiangcs" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/lwabish"><img src="https://avatars.githubusercontent.com/u/7044019?v=4?s=100" width="100px;" alt="lwabish"/><br /><sub><b>lwabish</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=lwabish" title="Code">💻</a> <a href="https://github.com/kubesphere/kubekey/commits?author=lwabish" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/qyz87"><img src="https://avatars.githubusercontent.com/u/36068894?v=4?s=100" width="100px;" alt="qyz87"/><br /><sub><b>qyz87</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=qyz87" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/fangzhengjin"><img src="https://avatars.githubusercontent.com/u/12680972?v=4?s=100" width="100px;" alt="ZhengJin Fang"/><br /><sub><b>ZhengJin Fang</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=fangzhengjin" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
