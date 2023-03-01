@@ -387,6 +387,7 @@ func MigrateSelfNodeCriTasks(runtime connector.Runtime, kubeAction common.KubeAc
 					"Mirrors":            templates.Mirrors(kubeAction.KubeConf),
 					"InsecureRegistries": templates.InsecureRegistries(kubeAction.KubeConf),
 					"DataRoot":           templates.DataRoot(kubeAction.KubeConf),
+					"Bip":                templates.Bip(kubeAction.KubeConf),
 				},
 			},
 			Parallel: false,

@@ -32,6 +32,9 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
     "max-size": "5m",
     "max-file":"3"
   },
+  {{- if .Bip }}
+  "bip": {{ .Bip }},
+  {{- end}}
   {{- if .DataRoot }}
   "data-root": {{ .DataRoot }},
   {{- end}}
@@ -75,4 +78,12 @@ func DataRoot(kubeConf *common.KubeConf) string {
 		dataRoot = fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.DataRoot)
 	}
 	return dataRoot
+}
+
+func Bip(kubeConf *common.KubeConf) string {
+	var bip string
+	if kubeConf.Cluster.Registry.Bip != "" {
+		bip = fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.Bip)
+	}
+	return bip
 }

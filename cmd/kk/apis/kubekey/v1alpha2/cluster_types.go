@@ -108,6 +108,7 @@ type RegistryConfig struct {
 	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
 	DataRoot           string               `yaml:"dataRoot" json:"dataRoot,omitempty"`
+	Bip                string               `yaml:"bip" json:"bip,omitempty"`
 	NamespaceOverride  string               `yaml:"namespaceOverride" json:"namespaceOverride,omitempty"`
 	Auths              runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
 }
