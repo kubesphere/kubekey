@@ -24,22 +24,60 @@ import (
 // EtcdEnv defines the template of etcd's env.
 var EtcdEnv = template.Must(template.New("etcd.env").Parse(
 	dedent.Dedent(`# Environment file for etcd {{ .Tag }}
+{{- if .DataDir }}
+ETCD_DATA_DIR={{ .DataDir }}
+{{- else }}
 ETCD_DATA_DIR=/var/lib/etcd
+{{- end }}
 ETCD_ADVERTISE_CLIENT_URLS=https://{{ .Ip }}:2379
 ETCD_INITIAL_ADVERTISE_PEER_URLS=https://{{ .Ip }}:2380
 ETCD_INITIAL_CLUSTER_STATE={{ .State }}
 ETCD_METRICS=basic
 ETCD_LISTEN_CLIENT_URLS=https://{{ .Ip }}:2379,https://127.0.0.1:2379
-ETCD_ELECTION_TIMEOUT=5000
-ETCD_HEARTBEAT_INTERVAL=250
 ETCD_INITIAL_CLUSTER_TOKEN=k8s_etcd
 ETCD_LISTEN_PEER_URLS=https://{{ .Ip }}:2380
 ETCD_NAME={{ .Name }}
 ETCD_PROXY=off
 ETCD_ENABLE_V2=true
-ETCD_INITIAL_CLUSTER={{ .peerAddresses }}
+ETCD_INITIAL_CLUSTER={{ .PeerAddresses }}
+{{- if .ElectionTimeout }}
+ETCD_ELECTION_TIMEOUT={{ .ElectionTimeout }}
+{{- else }}
+ETCD_ELECTION_TIMEOUT=5000
+{{- end }}
+{{- if .HeartbeatInterval }}
+ETCD_HEARTBEAT_INTERVAL={{ .HeartbeatInterval }}
+{{- else }}
+ETCD_HEARTBEAT_INTERVAL=250
+{{- end }}
+{{- if .CompactionRetention  }}
+ETCD_AUTO_COMPACTION_RETENTION={{ .CompactionRetention }}
+{{- else }}
 ETCD_AUTO_COMPACTION_RETENTION=8
+{{- end }}
+{{- if .SnapshotCount }}
+ETCD_SNAPSHOT_COUNT={{ .SnapshotCount }}
+{{- else }}
 ETCD_SNAPSHOT_COUNT=10000
+{{- end }}
+{{- if .Metrics }}
+ETCD_METRICS={{ .Metrics }}
+{{- end }}
+{{- if .QuotaBackendBytes }}
+ETCD_QUOTA_BACKEND_BYTES={{ .QuotaBackendBytes }}
+{{- end }}
+{{- if .MaxRequestBytes }}
+ETCD_MAX_REQUEST_BYTES={{ .MaxRequestBytes }}
+{{- end }}
+{{- if .MaxSnapshots }}
+ETCD_MAX_SNAPSHOTS={{ .MaxSnapshots }}
+{{- end }}
+{{- if .MaxWals }}
+ETCD_MAX_WALS={{ .MaxWals }}
+{{- end }}
+{{- if .LogLevel }}
+ETCD_LOG_LEVEL={{ .LogLevel }}
+{{- end }}
 {{- if .UnsupportedArch }}
 ETCD_UNSUPPORTED_ARCH={{ .Arch }}
 {{ end }}

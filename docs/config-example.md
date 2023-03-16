@@ -5,9 +5,14 @@ metadata:
   name: sample
 spec:
   hosts:
-  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, port: 8022, user: ubuntu, password: "Qcloud@123"} # Assume that the default port for SSH is 22. Otherwise, add the port number after the IP address. If you install Kubernetes on ARM, add "arch: arm64". For example, {...user: ubuntu, password: Qcloud@123, arch: arm64}.
-  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, password: "Qcloud@123"}  # For default root user.
-  - {name: node3, address: 172.16.0.4, internalAddress: 172.16.0.4, privateKeyPath: "~/.ssh/id_rsa"} # For password-less login with SSH keys.
+  # Assume that the default port for SSH is 22. Otherwise, add the port number after the IP address. 
+  # If you install Kubernetes on ARM, add "arch: arm64". For example, {...user: ubuntu, password: Qcloud@123, arch: arm64}.
+  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, port: 8022, user: ubuntu, password: "Qcloud@123"}
+  # For default root user.
+  # Kubekey will parse `labels` field and automatically label the node.
+  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, password: "Qcloud@123", labels: {disk: SSD, role: backend}}
+  # For password-less login with SSH keys.
+  - {name: node3, address: 172.16.0.4, internalAddress: 172.16.0.4, privateKeyPath: "~/.ssh/id_rsa"}
   roleGroups:
     etcd:
     - node1 # All the nodes in your cluster that serve as the etcd nodes.
@@ -18,19 +23,24 @@ spec:
     - node1
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
   controlPlaneEndpoint:
-    internalLoadbalancer: haproxy #Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
+    #Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
+    internalLoadbalancer: haproxy 
     domain: lb.kubesphere.local
-    address: ""      # The IP address of your load balancer. If you use internalLoadblancer in "kube-vip" mode, a VIP is required here.
+    # The IP address of your load balancer. If you use internalLoadblancer in "kube-vip" mode, a VIP is required here.
+    address: ""      
     port: 6443
   system:
-    ntpServers: #  The ntp servers of chrony.
+    # The ntp servers of chrony.
+    ntpServers:
       - time1.cloud.tencent.com
       - ntp.aliyun.com
       - node1 # Set the node name in `hosts` as ntp server if no public ntp servers access.
     timezone: "Asia/Shanghai"
-    rpms: # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
+    # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
+    rpms:
       - nfs-utils
-    debs: # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
+    # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
+    debs: 
       - nfs-common
     #preInstall:  # Specify custom init shell scripts for each nodes, and execute according to the list order.
     #  - name: format and mount disk  
@@ -46,16 +56,27 @@ spec:
 
   kubernetes:
     version: v1.21.5
-    imageRepo: kubesphere
-    containerManager: docker # Container Runtime, support: containerd, cri-o, isula. [Default: docker]
+    # Optional extra Subject Alternative Names (SANs) to use for the API Server serving certificate. Can be both IP addresses and DNS names.
+    apiserverCertExtraSans:  
+      - 192.168.8.8
+      - lb.kubespheredev.local
+    # Container Runtime, support: containerd, cri-o, isula. [Default: docker]
+    containerManager: docker
     clusterName: cluster.local
-    autoRenewCerts: true # Whether to install a script which can automatically renew the Kubernetes control plane certificates. [Default: false]
-    masqueradeAll: false  # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false].
-    maxPods: 110  # maxPods is the number of Pods that can run on this Kubelet. [Default: 110]
-    podPidsLimit: 10000 # podPidsLimit is the maximum number of PIDs in any pod. [Default: 10000]
-    nodeCidrMaskSize: 24  # The internal network node size allocation. This is the size allocated to each node on your network. [Default: 24]
-    proxyMode: ipvs  # Specify which proxy mode to use. [Default: ipvs]
-    featureGates: # enable featureGates, [Default: {"ExpandCSIVolumes":true,"RotateKubeletServerCertificate": true,"CSIStorageCapacity":true, "TTLAfterFinished":true}]
+    # Whether to install a script which can automatically renew the Kubernetes control plane certificates. [Default: false]
+    autoRenewCerts: true
+    # masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode. [Default: false].
+    masqueradeAll: false
+    # maxPods is the number of Pods that can run on this Kubelet. [Default: 110]
+    maxPods: 110
+    # podPidsLimit is the maximum number of PIDs in any pod. [Default: 10000]
+    podPidsLimit: 10000
+    # The internal network node size allocation. This is the size allocated to each node on your network. [Default: 24]
+    nodeCidrMaskSize: 24
+    # Specify which proxy mode to use. [Default: ipvs]
+    proxyMode: ipvs
+    # enable featureGates, [Default: {"ExpandCSIVolumes":true,"RotateKubeletServerCertificate": true,"CSIStorageCapacity":true, "TTLAfterFinished":true}]
+    featureGates: 
       CSIStorageCapacity: true
       ExpandCSIVolumes: true
       RotateKubeletServerCertificate: true
@@ -74,7 +95,8 @@ spec:
         excludeCIDRs:
           - 172.16.0.2/24
   etcd:
-    type: kubekey  # Specify the type of etcd used by the cluster. When the cluster type is k3s, setting this parameter to kubeadm is invalid. [kubekey | kubeadm | external] [Default: kubekey]
+    # Specify the type of etcd used by the cluster. When the cluster type is k3s, setting this parameter to kubeadm is invalid. [kubekey | kubeadm | external] [Default: kubekey]
+    type: kubekey  
     ## The following parameters need to be added only when the type is set to external.
     ## caFile, certFile and keyFile need not be set, if TLS authentication is not enabled for the existing etcd.
     # external:
@@ -83,6 +105,32 @@ spec:
     #   caFile: /pki/etcd/ca.crt
     #   certFile: /pki/etcd/etcd.crt
     #   keyFile: /pki/etcd/etcd.key
+    dataDir: "/var/lib/etcd"
+    # Time (in milliseconds) of a heartbeat interval.
+    heartbeatInterval: "250"
+    # Time (in milliseconds) for an election to timeout. 
+    electionTimeout: "5000"
+    # Number of committed transactions to trigger a snapshot to disk.
+    snapshotCount: "10000"
+    # Auto compaction retention for mvcc key value store in hour. 0 means disable auto compaction.
+    autoCompactionRetention: "8"
+    # Set level of detail for etcd exported metrics, specify 'extensive' to include histogram metrics.
+    metrics: basic
+    ## Etcd has a default of 2G for its space quota. If you put a value in etcd_memory_limit which is less than
+    ## etcd_quota_backend_bytes, you may encounter out of memory terminations of the etcd cluster. Please check
+    ## etcd documentation for more information.
+    # 8G is a suggested maximum size for normal environments and etcd warns at startup if the configured value exceeds it.
+    quotaBackendBytes: "2147483648" 
+    # Maximum client request size in bytes the server will accept.
+    # etcd is designed to handle small key value pairs typical for metadata.
+    # Larger requests will work, but may increase the latency of other requests
+    maxRequestBytes: "1572864"
+    # Maximum number of snapshot files to retain (0 is unlimited)
+    maxSnapshots: 5
+    # Maximum number of wal files to retain (0 is unlimited)
+    maxWals: 5
+    # Configures log level. Only supports debug, info, warn, error, panic, or fatal.
+    logLevel: info
   network:
     plugin: calico
     calico:
@@ -108,123 +156,4 @@ spec:
         certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
   addons: [] # You can install cloud-native addons (Chart or YAML) by using this field.
 
----
-apiVersion: installer.kubesphere.io/v1alpha1
-kind: ClusterConfiguration
-metadata:
-  name: ks-installer
-  namespace: kubesphere-system
-  labels:
-    version: v3.1.0
-spec:
-  persistence:
-    storageClass: ""        # If there is no default StorageClass in your cluster, you need to specify an existing StorageClass here.
-  authentication:
-    jwtSecret: ""           # Keep the jwtSecret consistent with the Host Cluster. Retrieve the jwtSecret by executing "kubectl -n kubesphere-system get cm kubesphere-config -o yaml | grep -v "apiVersion" | grep jwtSecret" on the Host Cluster.
-  local_registry: ""        # Add your private registry address if it is needed.
-  etcd:
-    monitoring: false       # Enable or disable etcd monitoring dashboard installation. You have to create a Secret for etcd before you enable it.
-    endpointIps: localhost  # etcd cluster EndpointIps. It can be a bunch of IPs here.
-    port: 2379              # etcd port.
-    tlsEnable: true
-  common:
-    redis:
-      enabled: false
-    openldap:
-      enabled: false
-    minioVolumeSize: 20Gi # Minio PVC size.
-    openldapVolumeSize: 2Gi   # openldap PVC size.
-    redisVolumSize: 2Gi # Redis PVC size.
-    monitoring:
-      endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090 # Prometheus endpoint to get metrics data.
-    es:   # Storage backend for logging, events and auditing.
-      # elasticsearchMasterReplicas: 1   # The total number of master nodes. Even numbers are not allowed.
-      # elasticsearchDataReplicas: 1     # The total number of data nodes.
-      elasticsearchMasterVolumeSize: 4Gi   # The volume size of Elasticsearch master nodes.
-      elasticsearchDataVolumeSize: 20Gi    # The volume size of Elasticsearch data nodes.
-      logMaxAge: 7                     # Log retention time in built-in Elasticsearch. It is 7 days by default.
-      elkPrefix: logstash              # The string making up index names. The index name will be formatted as ks-<elk_prefix>-log.
-      basicAuth:
-        enabled: false
-        username: ""
-        password: ""
-      externalElasticsearchUrl: ""
-      externalElasticsearchPort: ""
-  console:
-    enableMultiLogin: true  # Enable or disable simultaneous logins. It allows different users to log in with the same account at the same time.
-    port: 30880
-  alerting:                # (CPU: 0.1 Core, Memory: 100 MiB) It enables users to customize alerting policies to send messages to receivers in time with different time intervals and alerting levels to choose from.
-    enabled: false         # Enable or disable the KubeSphere Alerting System.
-    # thanosruler:
-    #   replicas: 1
-    #   resources: {}
-  auditing:                # Provide a security-relevant chronological set of records，recording the sequence of activities happening on the platform, initiated by different tenants.
-    enabled: false         # Enable or disable the KubeSphere Auditing Log System. 
-  devops:                  # (CPU: 0.47 Core, Memory: 8.6 G) Provide an out-of-the-box CI/CD system based on Jenkins, and automated workflow tools including Source-to-Image & Binary-to-Image.
-    enabled: false             # Enable or disable the KubeSphere DevOps System.
-    jenkinsMemoryLim: 2Gi      # Jenkins memory limit.
-    jenkinsMemoryReq: 1500Mi   # Jenkins memory request.
-    jenkinsVolumeSize: 8Gi     # Jenkins volume size.
-    jenkinsJavaOpts_Xms: 512m  # The following three fields are JVM parameters.
-    jenkinsJavaOpts_Xmx: 512m
-    jenkinsJavaOpts_MaxRAM: 2g
-  events:                  # Provide a graphical web console for Kubernetes Events exporting, filtering and alerting in multi-tenant Kubernetes clusters.
-    enabled: false         # Enable or disable the KubeSphere Events System.
-    ruler:
-      enabled: true
-      replicas: 2
-  logging:                 # (CPU: 57 m, Memory: 2.76 G) Flexible logging functions are provided for log query, collection and management in a unified console. Additional log collectors can be added, such as Elasticsearch, Kafka and Fluentd.
-    enabled: false         # Enable or disable the KubeSphere Logging System.
-    logsidecar:
-      enabled: true
-      replicas: 2
-  metrics_server:                    # (CPU: 56 m, Memory: 44.35 MiB) It enables HPA (Horizontal Pod Autoscaler).
-    enabled: false                   # Enable or disable metrics-server.
-  monitoring:
-    storageClass: ""                 # If there is an independent StorageClass you need for Prometheus, you can specify it here. The default StorageClass is used by default.
-    # prometheusReplicas: 1          # Prometheus replicas are responsible for monitoring different segments of data source and providing high availability.
-    prometheusMemoryRequest: 400Mi   # Prometheus request memory.
-    prometheusVolumeSize: 20Gi       # Prometheus PVC size.
-    # alertmanagerReplicas: 1          # AlertManager Replicas.
-  multicluster:
-    clusterRole: none  # host | member | none  # You can install a solo cluster, or specify it as the Host or Member Cluster.
-  network:
-    networkpolicy: # Network policies allow network isolation within the same cluster, which means firewalls can be set up between certain instances (Pods).
-      # Make sure that the CNI network plugin used by the cluster supports NetworkPolicy. There are a number of CNI network plugins that support NetworkPolicy, including Calico, Cilium, Kube-router, Romana and Weave Net.
-      enabled: false # Enable or disable network policies.
-    ippool: # Use Pod IP Pools to manage the Pod network address space. Pods to be created can be assigned IP addresses from a Pod IP Pool.
-      type: none # Specify "calico" for this field if Calico is used as your CNI plugin. "none" means that Pod IP Pools are disabled.
-    topology: # Use Service Topology to view Service-to-Service communication based on Weave Scope.
-      type: none # Specify "weave-scope" for this field to enable Service Topology. "none" means that Service Topology is disabled.
-  openpitrix: # An App Store that is accessible to all platform tenants. You can use it to manage apps across their entire lifecycle.
-    store:
-      enabled: false # Enable or disable the KubeSphere App Store.
-  servicemesh:         # (0.3 Core, 300 MiB) Provide fine-grained traffic management, observability and tracing, and visualized traffic topology.
-    enabled: false     # Base component (pilot). Enable or disable KubeSphere Service Mesh (Istio-based).
-  kubeedge:          # Add edge nodes to your cluster and deploy workloads on edge nodes.
-    enabled: false   # Enable or disable KubeEdge.
-    cloudCore:
-      nodeSelector: {"node-role.kubernetes.io/worker": ""}
-      tolerations: []
-      cloudhubPort: "10000"
-      cloudhubQuicPort: "10001"
-      cloudhubHttpsPort: "10002"
-      cloudstreamPort: "10003"
-      tunnelPort: "10004"
-      cloudHub:
-        advertiseAddress: # At least a public IP address or an IP address which can be accessed by edge nodes must be provided.
-          - ""            # Note that once KubeEdge is enabled, CloudCore will malfunction if the address is not provided.
-        nodeLimit: "100"
-      service:
-        cloudhubNodePort: "30000"
-        cloudhubQuicNodePort: "30001"
-        cloudhubHttpsNodePort: "30002"
-        cloudstreamNodePort: "30003"
-        tunnelNodePort: "30004"
-    edgeWatcher:
-      nodeSelector: {"node-role.kubernetes.io/worker": ""}
-      tolerations: []
-      edgeWatcherAgent:
-        nodeSelector: {"node-role.kubernetes.io/worker": ""}
-        tolerations: []
 ```

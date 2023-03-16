@@ -26,11 +26,22 @@ type EtcdCluster struct {
 	// Type of etcd cluster, can be set to 'kubekey' 'kubeadm' 'external'
 	Type string `yaml:"type" json:"type,omitempty"`
 	// ExternalEtcd describes how to connect to an external etcd cluster when type is set to external
-	External         ExternalEtcd `yaml:"external" json:"external,omitempty"`
-	BackupDir        string       `yaml:"backupDir" json:"backupDir,omitempty"`
-	BackupPeriod     int          `yaml:"backupPeriod" json:"backupPeriod,omitempty"`
-	KeepBackupNumber int          `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
-	BackupScriptDir  string       `yaml:"backupScript" json:"backupScript,omitempty"`
+	External                ExternalEtcd `yaml:"external" json:"external,omitempty"`
+	BackupDir               string       `yaml:"backupDir" json:"backupDir,omitempty"`
+	BackupPeriod            int          `yaml:"backupPeriod" json:"backupPeriod,omitempty"`
+	KeepBackupNumber        int          `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
+	BackupScriptDir         string       `yaml:"backupScript" json:"backupScript,omitempty"`
+	DataDir                 *string      `yaml:"dataDir" json:"dataDir,omitempty"`
+	HeartbeatInterval       *int         `yaml:"heartbeatInterval" json:"heartbeatInterval,omitempty"`
+	ElectionTimeout         *int         `yaml:"electionTimeout" json:"electionTimeout,omitempty"`
+	SnapshotCount           *int         `yaml:"snapshotCount" json:"snapshotCount,omitempty"`
+	AutoCompactionRetention *int         `yaml:"autoCompactionRetention" json:"autoCompactionRetention,omitempty"`
+	Metrics                 *string      `yaml:"metrics" json:"metrics,omitempty"`
+	QuotaBackendBytes       *int64       `yaml:"quotaBackendBytes" json:"quotaBackendBytes,omitempty"`
+	MaxRequestBytes         *int64       `yaml:"maxRequestBytes" json:"maxRequestBytes,omitempty"`
+	MaxSnapshots            *int         `yaml:"maxSnapshots" json:"maxSnapshots,omitempty"`
+	MaxWals                 *int         `yaml:"maxWals" json:"maxWals,omitempty"`
+	LogLevel                *string      `yaml:"logLevel" json:"logLevel"`
 }
 
 // ExternalEtcd describes how to connect to an external etcd cluster
