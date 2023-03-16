@@ -241,7 +241,7 @@ verify-gen: generate  ## Verify go generated files are up to date
 
 .PHONY: kk
 kk:
-	CGO_ENABLED=0 go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kk github.com/kubesphere/kubekey/v3/cmd/kk;
+	CGO_ENABLED=0 go build -trimpath -buildmode=pie -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS) -extldflags '-static' -s -w" -o $(BIN_DIR)/kk github.com/kubesphere/kubekey/v3/cmd/kk;
 
 ALL_MANAGERS = capkk k3s-bootstrap k3s-control-plane
 
@@ -419,7 +419,7 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \
-		go build -a -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS) -extldflags '-static'" \
+		go build -a -trimpath -buildmode=pie -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS) -extldflags '-static' -s -w" \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(RELEASE_BINARY)
 
 release-archive: $(RELEASE_DIR)
