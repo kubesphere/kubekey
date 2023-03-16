@@ -89,7 +89,7 @@ func (p *DockerLoginRegistry) Execute(runtime connector.Runtime) error {
 		if len(entry.Username) == 0 || len(entry.Password) == 0 {
 			continue
 		}
-		cmd := fmt.Sprintf("docker login --username \"%s\" --password \"%s\" %s", entry.Username, entry.Password, repo)
+		cmd := fmt.Sprintf("docker login --username '%s' --password '%s' %s", escapeSpecialCharacters(entry.Username), escapeSpecialCharacters(entry.Password), repo)
 		if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
 			return errors.Wrapf(err, "login registry failed, cmd: %v, err:%v", cmd, err)
 		}
@@ -138,4 +138,11 @@ func (d *DisableDocker) Execute(runtime connector.Runtime) error {
 		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
 	}
 	return nil
+}
+
+func escapeSpecialCharacters(str string) string {
+	newStr := strings.ReplaceAll(str, "$", "\\$")
+	newStr = strings.ReplaceAll(newStr, "&", "\\&")
+	newStr = strings.ReplaceAll(newStr, "*", "\\*")
+	return newStr
 }
