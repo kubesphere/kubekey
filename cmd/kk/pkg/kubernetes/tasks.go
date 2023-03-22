@@ -154,13 +154,13 @@ func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]*files.K
 	return nil
 }
 
-type SyncKubelet struct {
+type ChmodKubelet struct {
 	common.KubeAction
 }
 
-func (s *SyncKubelet) Execute(runtime connector.Runtime) error {
+func (c *ChmodKubelet) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("chmod +x /usr/local/bin/kubelet", false); err != nil {
-		return errors.Wrap(errors.WithStack(err), "sync kubelet service failed")
+		return errors.Wrap(errors.WithStack(err), "change kubelet mode failed")
 	}
 	return nil
 }
@@ -771,12 +771,12 @@ func (k *KubeadmUpgrade) Execute(runtime connector.Runtime) error {
 
 func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
-	syncKubelet := &task.RemoteTask{
-		Name:     "SyncKubelet",
-		Desc:     "synchronize kubelet",
+	chmodKubelet := &task.RemoteTask{
+		Name:     "ChownKubelet",
+		Desc:     "Change kubelet owner",
 		Hosts:    []connector.Host{host},
 		Prepare:  new(NotEqualDesiredVersion),
-		Action:   new(SyncKubelet),
+		Action:   new(ChmodKubelet),
 		Parallel: false,
 		Retry:    2,
 	}
@@ -792,7 +792,7 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 	}
 
 	tasks := []task.Interface{
-		syncKubelet,
+		chmodKubelet,
 		enableKubelet,
 	}
 

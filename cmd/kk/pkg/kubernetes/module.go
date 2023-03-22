@@ -75,12 +75,12 @@ func (i *InstallKubeBinariesModule) Init() {
 		Retry:    2,
 	}
 
-	syncKubelet := &task.RemoteTask{
-		Name:     "SyncKubelet",
-		Desc:     "Synchronize kubelet",
+	chmodKubelet := &task.RemoteTask{
+		Name:     "ChmodKubelet",
+		Desc:     "Change kubelet mode",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
 		Prepare:  &NodeInCluster{Not: true},
-		Action:   new(SyncKubelet),
+		Action:   new(ChmodKubelet),
 		Parallel: true,
 		Retry:    2,
 	}
@@ -120,7 +120,7 @@ func (i *InstallKubeBinariesModule) Init() {
 
 	i.Tasks = []task.Interface{
 		syncBinary,
-		syncKubelet,
+		chmodKubelet,
 		generateKubeletService,
 		enableKubelet,
 		generateKubeletEnv,

@@ -18,12 +18,12 @@ func (i *InstallKubeletModule) Init() {
 	i.Name = "InstallKubeletModule"
 	i.Desc = "Install kubernetes cluster"
 
-	syncKubelet := &task.RemoteTask{
-		Name:     "SyncKubelet",
-		Desc:     "Synchronize kubelet",
+	chmodKubelet := &task.RemoteTask{
+		Name:     "ChmodKubelet",
+		Desc:     "Change kubelet mode",
 		Hosts:    i.Runtime.GetHostsByRole(common.K8s),
 		Prepare:  &kubernetes.NodeInCluster{Not: true},
-		Action:   new(kubernetes.SyncKubelet),
+		Action:   new(kubernetes.ChmodKubelet),
 		Parallel: true,
 		Retry:    2,
 	}
@@ -62,7 +62,7 @@ func (i *InstallKubeletModule) Init() {
 	}
 
 	i.Tasks = []task.Interface{
-		syncKubelet,
+		chmodKubelet,
 		generateKubeletService,
 		enableKubelet,
 		generateKubeletEnv,
