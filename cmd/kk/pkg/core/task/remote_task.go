@@ -50,7 +50,6 @@ type RemoteTask struct {
 	PipelineCache *cache.Cache
 	ModuleCache   *cache.Cache
 	Runtime       connector.Runtime
-	tag           string
 	IgnoreError   bool
 	TaskResult    *ending.TaskResult
 }

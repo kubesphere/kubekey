@@ -114,10 +114,7 @@ func (t *TaskResult) AppendErr(host connector.Host, err error) {
 func (t *TaskResult) IsFailed() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if t.Status == FAILED {
-		return true
-	}
-	return false
+	return t.Status == FAILED
 }
 
 func (t *TaskResult) CombineErr() error {

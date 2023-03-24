@@ -139,7 +139,7 @@ func (p *Pipeline) RunModule(m module.Module) *ending.ModuleResult {
 			result.LocalErrResult(err)
 			return result
 		}
-		if stop == nil || *stop == true {
+		if stop == nil || *stop {
 			break
 		}
 	}
