@@ -379,6 +379,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/qyz87"><img src="https://avatars.githubusercontent.com/u/36068894?v=4?s=100" width="100px;" alt="qyz87"/><br /><sub><b>qyz87</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=qyz87" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/fangzhengjin"><img src="https://avatars.githubusercontent.com/u/12680972?v=4?s=100" width="100px;" alt="ZhengJin Fang"/><br /><sub><b>ZhengJin Fang</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=fangzhengjin" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://lhr.wiki"><img src="https://avatars.githubusercontent.com/u/6327311?v=4?s=100" width="100px;" alt="Eric_Lian"/><br /><sub><b>Eric_Lian</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=ExerciseBook" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nicognaW"><img src="https://avatars.githubusercontent.com/u/66731869?v=4?s=100" width="100px;" alt="nicognaw"/><br /><sub><b>nicognaw</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=nicognaW" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
