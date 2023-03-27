@@ -304,9 +304,9 @@ func RefineDockerVersion(version string) (string, error) {
 	numbers, _ := parts[1], parts[2]
 	components := strings.Split(numbers, ".")
 
-	for index, c := range components {
+	for _, c := range components {
 		newVersion := strings.TrimPrefix(c, "0")
-		if index == len(components)-1 && newVersion == "" {
+		if newVersion == "" {
 			newVersion = "0"
 		}
 		newVersionComponents = append(newVersionComponents, newVersion)
