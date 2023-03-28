@@ -231,11 +231,11 @@ func (g *GenerateConfig) Execute(runtime connector.Runtime) error {
 		g.PipelineCache.Set(common.ETCDCluster, cluster)
 
 		if !cluster.clusterExist {
-			if err := refreshConfig(runtime, cluster.peerAddresses, NewCluster, etcdName); err != nil {
+			if err := refreshConfig(g.KubeConf, runtime, cluster.peerAddresses, NewCluster, etcdName); err != nil {
 				return err
 			}
 		} else {
-			if err := refreshConfig(runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
+			if err := refreshConfig(g.KubeConf, runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
 				return err
 			}
 		}
@@ -261,18 +261,18 @@ func (r *RefreshConfig) Execute(runtime connector.Runtime) error {
 		cluster := v.(*EtcdCluster)
 
 		if r.ToExisting {
-			if err := refreshConfig(runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
+			if err := refreshConfig(r.KubeConf, runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
 				return err
 			}
 			return nil
 		}
 
 		if !cluster.clusterExist {
-			if err := refreshConfig(runtime, cluster.peerAddresses, NewCluster, etcdName); err != nil {
+			if err := refreshConfig(r.KubeConf, runtime, cluster.peerAddresses, NewCluster, etcdName); err != nil {
 				return err
 			}
 		} else {
-			if err := refreshConfig(runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
+			if err := refreshConfig(r.KubeConf, runtime, cluster.peerAddresses, ExistCluster, etcdName); err != nil {
 				return err
 			}
 		}
@@ -281,7 +281,7 @@ func (r *RefreshConfig) Execute(runtime connector.Runtime) error {
 	return errors.New("get etcd cluster status by pipeline cache failed")
 }
 
-func refreshConfig(runtime connector.Runtime, endpoints []string, state, etcdName string) error {
+func refreshConfig(KubeConf *common.KubeConf, runtime connector.Runtime, endpoints []string, state, etcdName string) error {
 	host := runtime.RemoteHost()
 
 	UnsupportedArch := false
@@ -293,14 +293,25 @@ func refreshConfig(runtime connector.Runtime, endpoints []string, state, etcdNam
 		Template: templates.EtcdEnv,
 		Dst:      filepath.Join("/etc/", templates.EtcdEnv.Name()),
 		Data: util.Data{
-			"Tag":             kubekeyapiv1alpha2.DefaultEtcdVersion,
-			"Name":            etcdName,
-			"Ip":              host.GetInternalAddress(),
-			"Hostname":        host.GetName(),
-			"State":           state,
-			"peerAddresses":   strings.Join(endpoints, ","),
-			"UnsupportedArch": UnsupportedArch,
-			"Arch":            host.GetArch(),
+			"Tag":                 kubekeyapiv1alpha2.DefaultEtcdVersion,
+			"Name":                etcdName,
+			"Ip":                  host.GetInternalAddress(),
+			"Hostname":            host.GetName(),
+			"State":               state,
+			"PeerAddresses":       strings.Join(endpoints, ","),
+			"UnsupportedArch":     UnsupportedArch,
+			"Arch":                host.GetArch(),
+			"DataDir":             KubeConf.Cluster.Etcd.DataDir,
+			"CompactionRetention": KubeConf.Cluster.Etcd.AutoCompactionRetention,
+			"SnapshotCount":       KubeConf.Cluster.Etcd.SnapshotCount,
+			"Metrics":             KubeConf.Cluster.Etcd.Metrics,
+			"QuotaBackendBytes":   KubeConf.Cluster.Etcd.QuotaBackendBytes,
+			"MaxRequestBytes":     KubeConf.Cluster.Etcd.MaxRequestBytes,
+			"LogLevel":            KubeConf.Cluster.Etcd.LogLevel,
+			"MaxSnapshots":        KubeConf.Cluster.Etcd.MaxSnapshots,
+			"MaxWals":             KubeConf.Cluster.Etcd.MaxWals,
+			"ElectionTimeout":     KubeConf.Cluster.Etcd.ElectionTimeout,
+			"HeartbeatInterval":   KubeConf.Cluster.Etcd.HeartbeatInterval,
 		},
 	}
 
