@@ -47,7 +47,7 @@ func (r *ReleaseCiliumChart) Execute(runtime connector.Runtime) error {
 	if err != nil {
 		return err
 	}
-	chartFile, err := f.Open("cilium-1.11.6.tgz")
+	chartFile, err := f.Open("cilium-1.11.7.tgz")
 	if err != nil {
 		return err
 	}
