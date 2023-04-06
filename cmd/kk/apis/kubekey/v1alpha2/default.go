@@ -50,7 +50,7 @@ const (
 	DefaultFlannelVersion          = "v0.21.3"
 	DefaultFlannelCniPluginVersion = "v1.1.2"
 	DefaultCniVersion              = "v1.2.0"
-	DefaultCiliumVersion           = "v1.11.6"
+	DefaultCiliumVersion           = "v1.11.7"
 	DefaultKubeovnVersion          = "v1.10.6"
 	DefalutMultusVersion           = "v3.8"
 	DefaultHelmVersion             = "v3.9.0"
@@ -92,7 +92,6 @@ const (
 	DefaultDpdkTunnelIface         = "br-phy"
 	DefaultCNIConfigPriority       = "01"
 	DefaultOpenEBSBasePath         = "/var/openebs/local"
-
 
 	Docker     = "docker"
 	Conatinerd = "containerd"
