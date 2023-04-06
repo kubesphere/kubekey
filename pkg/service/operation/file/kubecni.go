@@ -32,7 +32,7 @@ const (
 	KubecniURLPathTmpl    = "/containernetworking/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
 	KubecniURLCN          = "https://containernetworking.pek3b.qingstor.com"
 	KubecniURLPathTmplCN  = "/plugins/releases/download/%s/cni-plugins-linux-%s-%s.tgz"
-	KubecniDefaultVersion = "v0.9.1"
+	KubecniDefaultVersion = "v1.2.0"
 )
 
 // Kubecni is a Binary for kubecni.
