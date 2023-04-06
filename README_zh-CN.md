@@ -400,6 +400,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/deqingLv"><img src="https://avatars.githubusercontent.com/u/6064297?v=4?s=100" width="100px;" alt="吕德庆"/><br /><sub><b>吕德庆</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=deqingLv" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/littleplus"><img src="https://avatars.githubusercontent.com/u/11694750?v=4?s=100" width="100px;" alt="littleplus"/><br /><sub><b>littleplus</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=littleplus" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
