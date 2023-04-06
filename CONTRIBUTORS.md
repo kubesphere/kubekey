@@ -97,6 +97,9 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
       <td align="center" valign="top" width="14.28%"><a href="http://lhr.wiki"><img src="https://avatars.githubusercontent.com/u/6327311?v=4?s=100" width="100px;" alt="Eric_Lian"/><br /><sub><b>Eric_Lian</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=ExerciseBook" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/nicognaW"><img src="https://avatars.githubusercontent.com/u/66731869?v=4?s=100" width="100px;" alt="nicognaw"/><br /><sub><b>nicognaw</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=nicognaW" title="Code">💻</a></td>
     </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/deqingLv"><img src="https://avatars.githubusercontent.com/u/6064297?v=4?s=100" width="100px;" alt="吕德庆"/><br /><sub><b>吕德庆</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=deqingLv" title="Code">💻</a></td>
+    </tr>
   </tbody>
 </table>
 
