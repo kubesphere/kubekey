@@ -34,7 +34,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/network/templates"
 )
 
-//go:embed cilium-1.11.6.tgz
+//go:embed cilium-1.11.7.tgz
 
 var f embed.FS
 
