@@ -181,6 +181,7 @@ func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {
 			Data: util.Data{
 				"KubePodsCIDR": d.KubeConf.Cluster.Network.KubePodsCIDR,
 				"FlannelImage": images.GetImage(d.Runtime, d.KubeConf, "flannel").ImageName(),
+				"FlannelPluginImage": images.GetImage(d.Runtime, d.KubeConf, "flannel-cni-plugin").ImageName(),
 				"BackendMode":  d.KubeConf.Cluster.Network.Flannel.BackendMode,
 			},
 		},
