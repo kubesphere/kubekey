@@ -60,6 +60,10 @@ debian10:
   - docker-ce=5:20.10.8~3-0~debian-buster
   - docker-ce-cli=5:20.10.8~3-0~debian-buster
 
+debian11:
+  - docker-ce=5:20.10.8~3-0~debian-bullseye
+  - docker-ce-cli=5:20.10.8~3-0~debian-bullseye
+
 ubuntu:
   - containerd.io
 
