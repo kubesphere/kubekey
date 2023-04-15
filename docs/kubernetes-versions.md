@@ -89,3 +89,4 @@
 | v1.26.3 | :white_check_mark: |
 | v1.26.4 | :white_check_mark: |
 | v1.27.0 | :white_check_mark: |
+| v1.27.1 | :white_check_mark: |
