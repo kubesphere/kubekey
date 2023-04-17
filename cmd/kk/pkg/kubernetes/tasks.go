@@ -400,9 +400,9 @@ type AddWorkerLabel struct {
 }
 
 func (a *AddWorkerLabel) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
-		"/usr/local/bin/kubectl label --overwrite node %s node-role.kubernetes.io/worker=",
-		runtime.RemoteHost().GetName()), true); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd(
+		"/usr/local/bin/kubectl label nodes --selector='!node-role.kubernetes.io/worker' node-role.kubernetes.io/worker=",
+		true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "add worker label failed")
 	}
 	return nil
@@ -421,52 +421,6 @@ func (j *JoinNode) Execute(runtime connector.Runtime) error {
 		}
 		_, _ = runtime.GetRunner().SudoCmd(resetCmd, true)
 		return errors.Wrap(errors.WithStack(err), "join node failed")
-	}
-	return nil
-}
-
-type SyncKubeConfigToWorker struct {
-	common.KubeAction
-}
-
-func (s *SyncKubeConfigToWorker) Execute(runtime connector.Runtime) error {
-	if v, ok := s.PipelineCache.Get(common.ClusterStatus); ok {
-		cluster := v.(*KubernetesStatus)
-
-		createConfigDirCmd := "mkdir -p /root/.kube"
-		if _, err := runtime.GetRunner().SudoCmd(createConfigDirCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "create .kube dir failed")
-		}
-
-		syncKubeConfigForRootCmd := fmt.Sprintf("echo '%s' > %s", cluster.KubeConfig, "/root/.kube/config")
-		if _, err := runtime.GetRunner().SudoCmd(syncKubeConfigForRootCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "sync kube config for root failed")
-		}
-
-		userConfigDirCmd := "mkdir -p $HOME/.kube"
-		if _, err := runtime.GetRunner().Cmd(userConfigDirCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "user mkdir $HOME/.kube failed")
-		}
-
-		syncKubeConfigForUserCmd := fmt.Sprintf("echo '%s' > %s", cluster.KubeConfig, "$HOME/.kube/config")
-		if _, err := runtime.GetRunner().Cmd(syncKubeConfigForUserCmd, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "sync kube config for normal user failed")
-		}
-
-		userId, err := runtime.GetRunner().Cmd("echo $(id -u)", false)
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), "get user id failed")
-		}
-
-		userGroupId, err := runtime.GetRunner().Cmd("echo $(id -g)", false)
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), "get user group id failed")
-		}
-
-		chownKubeConfig := fmt.Sprintf("chown -R %s:%s -R $HOME/.kube", userId, userGroupId)
-		if _, err := runtime.GetRunner().SudoCmd(chownKubeConfig, false); err != nil {
-			return errors.Wrap(errors.WithStack(err), "chown user kube config failed")
-		}
 	}
 	return nil
 }
@@ -705,10 +659,6 @@ func (u *UpgradeKubeWorker) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("restart kubelet failed: %s", host.GetName()))
 	}
 	time.Sleep(10 * time.Second)
-
-	if err := SyncKubeConfigTask(runtime, u.KubeAction); err != nil {
-		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync kube config to worker failed: %s", host.GetName()))
-	}
 	return nil
 }
 
@@ -794,35 +744,6 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 	tasks := []task.Interface{
 		chmodKubelet,
 		enableKubelet,
-	}
-
-	for i := range tasks {
-		t := tasks[i]
-		t.Init(runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
-		if res := t.Execute(); res.IsFailed() {
-			return res.CombineErr()
-		}
-	}
-	return nil
-}
-
-func SyncKubeConfigTask(runtime connector.Runtime, kubeAction common.KubeAction) error {
-	host := runtime.RemoteHost()
-	syncKubeConfig := &task.RemoteTask{
-		Name:  "SyncKubeConfig",
-		Desc:  "synchronize kube config to worker",
-		Hosts: []connector.Host{host},
-		Prepare: &prepare.PrepareCollection{
-			new(NotEqualDesiredVersion),
-			new(common.OnlyWorker),
-		},
-		Action:   new(SyncKubeConfigToWorker),
-		Parallel: true,
-		Retry:    3,
-	}
-
-	tasks := []task.Interface{
-		syncKubeConfig,
 	}
 
 	for i := range tasks {
@@ -1069,13 +990,16 @@ type ConfigureKubernetes struct {
 }
 
 func (c *ConfigureKubernetes) Execute(runtime connector.Runtime) error {
-	host := runtime.RemoteHost()
-	kubeHost := host.(*kubekeyv1alpha2.KubeHost)
-	for k, v := range kubeHost.Labels {
-		labelCmd := fmt.Sprintf("/usr/local/bin/kubectl label --overwrite node %s %s=%s", host.GetName(), k, v)
-		_, err := runtime.GetRunner().SudoCmd(labelCmd, true)
-		if err != nil {
-			return err
+	hosts := runtime.GetHostsByRole(common.K8s)
+
+	for j := 0; j < len(hosts); j++ {
+		kubeHost := hosts[j].(*kubekeyv1alpha2.KubeHost)
+		for k, v := range kubeHost.Labels {
+			labelCmd := fmt.Sprintf("/usr/local/bin/kubectl label --overwrite node %s %s=%s", hosts[j].GetName(), k, v)
+			_, err := runtime.GetRunner().SudoCmd(labelCmd, true)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

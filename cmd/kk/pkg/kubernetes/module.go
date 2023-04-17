@@ -19,7 +19,6 @@ package kubernetes
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -286,43 +285,13 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabelToMaster := &task.RemoteTask{
-		Name:  "AddWorkerLabelToMaster",
-		Desc:  "Add worker label to master",
-		Hosts: j.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			&NodeInCluster{Not: true},
-			new(common.IsWorker),
-		},
-		Action:   new(AddWorkerLabel),
-		Parallel: true,
-		Retry:    5,
-	}
-
-	syncKubeConfig := &task.RemoteTask{
-		Name:  "SyncKubeConfig",
-		Desc:  "Synchronize kube config to worker",
-		Hosts: j.Runtime.GetHostsByRole(common.Worker),
-		Prepare: &prepare.PrepareCollection{
-			&NodeInCluster{Not: true},
-			new(common.OnlyWorker),
-		},
-		Action:   new(SyncKubeConfigToWorker),
-		Parallel: true,
-		Retry:    3,
-	}
-
-	addWorkerLabelToWorker := &task.RemoteTask{
-		Name:  "AddWorkerLabelToWorker",
-		Desc:  "Add worker label to worker",
-		Hosts: j.Runtime.GetHostsByRole(common.Worker),
-		Prepare: &prepare.PrepareCollection{
-			&NodeInCluster{Not: true},
-			new(common.OnlyWorker),
-		},
-		Action:   new(AddWorkerLabel),
-		Parallel: true,
-		Retry:    5,
+	addWorkerLabelToNode := &task.RemoteTask{
+		Name:    "addWorkerLabelToNode",
+		Desc:    "Add worker label to all nodes",
+		Hosts:   j.Runtime.GetHostsByRole(common.Master),
+		Prepare: new(common.OnlyFirstMaster),
+		Action:  new(AddWorkerLabel),
+		Retry:   3,
 	}
 
 	j.Tasks = []task.Interface{
@@ -331,9 +300,7 @@ func (j *JoinNodesModule) Init() {
 		joinWorkerNode,
 		copyKubeConfig,
 		removeMasterTaint,
-		addWorkerLabelToMaster,
-		syncKubeConfig,
-		addWorkerLabelToWorker,
+		addWorkerLabelToNode,
 	}
 }
 
@@ -591,13 +558,12 @@ func (c *ConfigureKubernetesModule) Init() {
 	c.Desc = "Configure kubernetes"
 
 	configure := &task.RemoteTask{
-		Name:     "ConfigureKubernetes",
-		Desc:     "Configure kubernetes",
-		Hosts:    c.Runtime.GetHostsByRole(common.K8s),
-		Action:   new(ConfigureKubernetes),
-		Retry:    6,
-		Delay:    10 * time.Second,
-		Parallel: true,
+		Name:    "ConfigureKubernetes",
+		Desc:    "Configure kubernetes",
+		Hosts:   c.Runtime.GetHostsByRole(common.Master),
+		Prepare: new(common.OnlyFirstMaster),
+		Action:  new(ConfigureKubernetes),
+		Retry:   3,
 	}
 
 	c.Tasks = []task.Interface{

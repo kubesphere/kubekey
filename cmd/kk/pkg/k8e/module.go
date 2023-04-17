@@ -258,18 +258,6 @@ func (j *JoinNodesModule) Init() {
 		Parallel: true,
 	}
 
-	syncKubeConfigToWorker := &task.RemoteTask{
-		Name:  "SyncKubeConfigToWorker",
-		Desc:  "Synchronize kube config to worker",
-		Hosts: j.Runtime.GetHostsByRole(common.Worker),
-		Prepare: &prepare.PrepareCollection{
-			&NodeInCluster{Not: true},
-			new(common.OnlyWorker),
-		},
-		Action:   new(SyncKubeConfigToWorker),
-		Parallel: true,
-	}
-
 	addMasterTaint := &task.RemoteTask{
 		Name:  "AddMasterTaint",
 		Desc:  "Add master taint",
@@ -283,17 +271,13 @@ func (j *JoinNodesModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabel := &task.RemoteTask{
-		Name:  "AddWorkerLabel",
-		Desc:  "Add worker label",
-		Hosts: j.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&NodeInCluster{Not: true},
-			new(common.IsWorker),
-		},
-		Action:   new(AddWorkerLabel),
-		Parallel: true,
-		Retry:    5,
+	addWorkerLabelToNode := &task.RemoteTask{
+		Name:    "addWorkerLabelToNode",
+		Desc:    "Add worker label to all nodes",
+		Hosts:   j.Runtime.GetHostsByRole(common.Master),
+		Prepare: new(common.OnlyFirstMaster),
+		Action:  new(AddWorkerLabel),
+		Retry:   3,
 	}
 
 	j.Tasks = []task.Interface{
@@ -301,9 +285,8 @@ func (j *JoinNodesModule) Init() {
 		k8eEnv,
 		enableK8e,
 		copyKubeConfigForMaster,
-		syncKubeConfigToWorker,
 		addMasterTaint,
-		addWorkerLabel,
+		addWorkerLabelToNode,
 	}
 }
 
