@@ -36,7 +36,7 @@ func (c *ClusterDNSModule) Init() {
 	c.Name = "ClusterDNSModule"
 	c.Desc = "Deploy cluster dns"
 
-	generateCoreDNDSvc := &task.RemoteTask{
+	generateCoreDNSSvc := &task.RemoteTask{
 		Name:  "GenerateCoreDNSSvc",
 		Desc:  "Generate coredns service",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
@@ -125,7 +125,7 @@ func (c *ClusterDNSModule) Init() {
 	}
 
 	c.Tasks = []task.Interface{
-		generateCoreDNDSvc,
+		generateCoreDNSSvc,
 		override,
 		generateNodeLocalDNS,
 		applyNodeLocalDNS,
