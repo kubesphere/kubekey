@@ -422,6 +422,10 @@ func (i *InstallPackage) Execute(runtime connector.Runtime) error {
 		pkg = i.KubeConf.Cluster.System.Rpms
 	}
 
+	if installErr := r.Update(runtime); installErr != nil {
+		return errors.Wrap(errors.WithStack(installErr), "update repository failed")
+	}
+
 	if installErr := r.Install(runtime, pkg...); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "install repository package failed")
 	}

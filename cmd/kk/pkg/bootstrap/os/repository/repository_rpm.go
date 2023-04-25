@@ -58,14 +58,14 @@ func (r *RedhatPackageManager) Add(runtime connector.Runtime, path string) error
 
 	content := fmt.Sprintf(`cat << EOF > /etc/yum.repos.d/CentOS-local.repo
 [base-local]
-name=CentOS7.6-local
+name=rpms-local
 
 baseurl=file://%s
 
 enabled=1 
 
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+gpgcheck=0
+
 EOF
 `, path)
 	if _, err := runtime.GetRunner().SudoCmd(content, false); err != nil {
