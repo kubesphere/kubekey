@@ -51,11 +51,6 @@ centos7:
 debian:
   - containerd.io
 
-# The latest version of docker-ce on debian 9 is 19.03.15
-debian9:
-  - docker-ce=5:19.03.15~3-0~debian-stretch
-  - docker-ce-cli=5:19.03.15~3-0~debian-stretch
-
 debian10:
   - docker-ce=5:20.10.8~3-0~debian-buster
   - docker-ce-cli=5:20.10.8~3-0~debian-buster
