@@ -785,7 +785,7 @@ spec:
 func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAction) error {
 	host := runtime.RemoteHost()
 
-	generateCoreDNDSvc := &task.RemoteTask{
+	generateCoreDNSSvc := &task.RemoteTask{
 		Name:  "GenerateCoreDNSSvc",
 		Desc:  "generate coredns service",
 		Hosts: []connector.Host{host},
@@ -873,7 +873,7 @@ func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAct
 
 	tasks := []task.Interface{
 		override,
-		generateCoreDNDSvc,
+		generateCoreDNSSvc,
 		override,
 		generateNodeLocalDNS,
 		applyNodeLocalDNS,
