@@ -676,6 +676,15 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "kiragoo",
+      "name": "kiragoo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7400711?v=4",
+      "profile": "https://kiragoo.github.io",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
