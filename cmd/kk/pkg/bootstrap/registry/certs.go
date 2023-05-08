@@ -54,17 +54,17 @@ func KubekeyCertRegistryCA() *certs.KubekeyCert {
 }
 
 // KubekeyCertEtcdAdmin is the definition of the cert for etcd admin.
-func KubekeyCertRegistryServer(altNames *certutil.AltNames) *certs.KubekeyCert {
+func KubekeyCertRegistryServer(baseName string, altNames *certutil.AltNames) *certs.KubekeyCert {
 	return &certs.KubekeyCert{
 		Name:     "registry-server",
 		LongName: "certificate for registry server",
-		BaseName: RegistryCertificateBaseName,
+		BaseName: baseName,
 		CAName:   "registry-ca",
 		Config: certs.CertConfig{
 			Config: certutil.Config{
 				Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 				AltNames:   *altNames,
-				CommonName: RegistryCertificateBaseName,
+				CommonName: baseName,
 			},
 		},
 	}
@@ -105,19 +105,19 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 
 	var altName cert.AltNames
 
-	dnsList := []string{"localhost", RegistryCertificateBaseName, runtime.GetHostsByRole(common.Registry)[0].GetName()}
+	dnsList := []string{"localhost", g.KubeConf.Cluster.Registry.PrivateRegistry, runtime.GetHostsByRole(common.Registry)[0].GetName()}
 	ipList := []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback, netutils.ParseIPSloppy(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress())}
 
 	altName.DNSNames = dnsList
 	altName.IPs = ipList
 
-	files := []string{"ca.pem", "ca-key.pem", fmt.Sprintf("%s.pem", RegistryCertificateBaseName), fmt.Sprintf("%s-key.pem", RegistryCertificateBaseName)}
+	files := []string{"ca.pem", "ca-key.pem", fmt.Sprintf("%s.pem", g.KubeConf.Cluster.Registry.PrivateRegistry), fmt.Sprintf("%s-key.pem", g.KubeConf.Cluster.Registry.PrivateRegistry)}
 
 	// CA
 	certsList := []*certs.KubekeyCert{KubekeyCertRegistryCA()}
 
 	// Certs
-	certsList = append(certsList, KubekeyCertRegistryServer(&altName))
+	certsList = append(certsList, KubekeyCertRegistryServer(g.KubeConf.Cluster.Registry.PrivateRegistry, &altName))
 
 	var lastCACert *certs.KubekeyCert
 	for _, c := range certsList {

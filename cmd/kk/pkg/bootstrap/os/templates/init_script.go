@@ -22,7 +22,6 @@ import (
 
 	"github.com/lithammer/dedent"
 
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
@@ -171,7 +170,7 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 	}
 
 	if len(runtime.GetHostsByRole(common.Registry)) > 0 {
-		hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), registry.RegistryCertificateBaseName))
+		hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), kubeConf.Cluster.Registry.PrivateRegistry))
 	}
 
 	hostsList = append(hostsList, lbHost)
