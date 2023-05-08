@@ -102,6 +102,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/littleplus"><img src="https://avatars.githubusercontent.com/u/11694750?v=4?s=100" width="100px;" alt="littleplus"/><br /><sub><b>littleplus</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=littleplus" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://www.linkedin.com/in/%D0%BA%D0%BE%D0%BD%D1%81%D1%82%D0%B0%D0%BD%D1%82%D0%B8%D0%BD-%D0%B0%D0%BA%D0%B0%D0%BA%D0%B8%D0%B5%D0%B2-13130b1b4/"><img src="https://avatars.githubusercontent.com/u/82488489?v=4?s=100" width="100px;" alt="Konstantin"/><br /><sub><b>Konstantin</b></sub></a><br /><a href="#ideas-Nello-Angelo" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://kiragoo.github.io"><img src="https://avatars.githubusercontent.com/u/7400711?v=4?s=100" width="100px;" alt="kiragoo"/><br /><sub><b>kiragoo</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=kiragoo" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jojotong"><img src="https://avatars.githubusercontent.com/u/100849526?v=4?s=100" width="100px;" alt="jojotong"/><br /><sub><b>jojotong</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=jojotong" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
