@@ -34,7 +34,7 @@ import (
 func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.GreetingsModule{},
-		&confirm.DeleteClusterConfirmModule{},
+		&confirm.DeleteClusterConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&kubernetes.ResetClusterModule{},
 		&container.UninstallContainerModule{Skip: !runtime.Arg.DeleteCRI},
 		&os.ClearOSEnvironmentModule{},

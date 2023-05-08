@@ -48,6 +48,11 @@ func (i *InstallConfirmModule) Init() {
 
 type DeleteClusterConfirmModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (d *DeleteClusterConfirmModule) IsSkip() bool {
+	return d.Skip
 }
 
 func (d *DeleteClusterConfirmModule) Init() {

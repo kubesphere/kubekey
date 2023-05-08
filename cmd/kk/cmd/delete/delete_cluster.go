@@ -60,6 +60,7 @@ func (o *DeleteClusterOptions) Run() error {
 		Debug:             o.CommonOptions.Verbose,
 		KubernetesVersion: o.Kubernetes,
 		DeleteCRI:         o.DeleteCRI,
+		SkipConfirmCheck:  o.CommonOptions.SkipConfirmCheck,
 	}
 	return pipelines.DeleteCluster(arg)
 }
