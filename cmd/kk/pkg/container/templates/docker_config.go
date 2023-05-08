@@ -18,6 +18,7 @@ package templates
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"text/template"
 
@@ -40,6 +41,9 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
   {{- end}}
   {{- if .InsecureRegistries }}
   "insecure-registries": [{{ .InsecureRegistries }}],
+  {{- end}}
+  {{- if .BridgeBip }}
+  "bip": {{ .BridgeBip }},
   {{- end}}
   "exec-opts": ["native.cgroupdriver=systemd"]
 }
@@ -75,4 +79,28 @@ func DataRoot(kubeConf *common.KubeConf) string {
 		dataRoot = fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.DataRoot)
 	}
 	return dataRoot
+}
+
+func BridgeIP(kubeConf *common.KubeConf) string {
+	var bip string
+	if kubeConf.Cluster.Registry.BridgeIP != "" {
+		bip = "172.17.0.1/16"
+		_, cidr, err := net.ParseCIDR(kubeConf.Cluster.Registry.BridgeIP)
+		if err != nil {
+			return bip
+		}
+		ip4 := cidr.IP.To4()
+		if ip4 == nil {
+			return bip
+		}
+		bridge0 := net.IPv4(ip4[0], ip4[1], ip4[2], ip4[3]+1)
+		if !cidr.Contains(bridge0) {
+			return bip
+		}
+		ones, _ := cidr.Mask.Size()
+
+		bip = fmt.Sprintf("\"%s/%d\"", bridge0.String(), ones)
+	}
+
+	return bip
 }
