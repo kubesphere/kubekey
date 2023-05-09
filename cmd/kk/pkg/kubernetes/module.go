@@ -188,26 +188,11 @@ func (i *InitKubernetesModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabel := &task.RemoteTask{
-		Name:  "AddWorkerLabel",
-		Desc:  "Add worker label",
-		Hosts: i.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			&ClusterIsExist{Not: true},
-			new(common.IsWorker),
-		},
-		Action:   new(AddWorkerLabel),
-		Parallel: true,
-		Retry:    5,
-	}
-
 	i.Tasks = []task.Interface{
 		generateKubeadmConfig,
 		kubeadmInit,
 		copyKubeConfig,
 		removeMasterTaint,
-		addWorkerLabel,
 	}
 }
 
