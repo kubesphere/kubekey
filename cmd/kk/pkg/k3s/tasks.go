@@ -374,11 +374,16 @@ type AddWorkerLabel struct {
 }
 
 func (a *AddWorkerLabel) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd(
-		"/usr/local/bin/kubectl label nodes --selector='!node-role.kubernetes.io/worker' node-role.kubernetes.io/worker=",
-		true); err != nil {
-		return errors.Wrap(errors.WithStack(err), "add worker label failed")
+	for _, host := range runtime.GetAllHosts() {
+		if host.IsRole(common.Worker) {
+			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
+				"/usr/local/bin/kubectl label --overwrite node %s node-role.kubernetes.io/worker=",
+				host.GetName()), true); err != nil {
+				return errors.Wrap(errors.WithStack(err), "add worker label failed")
+			}
+		}
 	}
+
 	return nil
 }
 

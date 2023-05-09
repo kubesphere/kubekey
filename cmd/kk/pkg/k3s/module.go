@@ -195,20 +195,6 @@ func (i *InitClusterModule) Init() {
 		Retry:    5,
 	}
 
-	addWorkerLabel := &task.RemoteTask{
-		Name:  "AddWorkerLabel",
-		Desc:  "Add worker label",
-		Hosts: i.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			&ClusterIsExist{Not: true},
-			new(common.IsWorker),
-		},
-		Action:   new(AddWorkerLabel),
-		Parallel: true,
-		Retry:    5,
-	}
-
 	i.Tasks = []task.Interface{
 		k3sService,
 		k3sEnv,
@@ -216,7 +202,6 @@ func (i *InitClusterModule) Init() {
 		enableK3s,
 		copyKubeConfig,
 		addMasterTaint,
-		addWorkerLabel,
 	}
 }
 
