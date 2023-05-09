@@ -31,7 +31,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
-	kubekeyregistry "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
@@ -497,9 +496,9 @@ func (g *GenerateK3sRegistryConfig) Execute(runtime connector.Runtime) error {
 		}
 	}
 
-	_, ok := registryConfigs[kubekeyregistry.RegistryCertificateBaseName]
+	_, ok := registryConfigs[g.KubeConf.Cluster.Registry.PrivateRegistry]
 
-	if !ok && g.KubeConf.Cluster.Registry.PrivateRegistry == kubekeyregistry.RegistryCertificateBaseName {
+	if !ok {
 		registryConfigs[g.KubeConf.Cluster.Registry.PrivateRegistry] = registry.RegistryConfig{TLS: &registry.TLSConfig{InsecureSkipVerify: true}}
 	}
 

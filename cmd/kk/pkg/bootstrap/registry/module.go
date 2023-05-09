@@ -131,8 +131,8 @@ func InstallRegistry(i *InstallRegistryModule) []task.Interface {
 			Template: templates.RegistryConfigTempl,
 			Dst:      "/etc/kubekey/registry/config.yaml",
 			Data: util.Data{
-				"Certificate": fmt.Sprintf("%s.pem", RegistryCertificateBaseName),
-				"Key":         fmt.Sprintf("%s-key.pem", RegistryCertificateBaseName),
+				"Certificate": fmt.Sprintf("%s.pem", i.KubeConf.Cluster.Registry.PrivateRegistry),
+				"Key":         fmt.Sprintf("%s-key.pem", i.KubeConf.Cluster.Registry.PrivateRegistry),
 			},
 		},
 		Parallel: true,
@@ -257,9 +257,9 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 			Template: templates.HarborConfigTempl,
 			Dst:      "/opt/harbor/harbor.yml",
 			Data: util.Data{
-				"Domain":      RegistryCertificateBaseName,
-				"Certificate": fmt.Sprintf("%s.pem", RegistryCertificateBaseName),
-				"Key":         fmt.Sprintf("%s-key.pem", RegistryCertificateBaseName),
+				"Domain":      i.KubeConf.Cluster.Registry.PrivateRegistry,
+				"Certificate": fmt.Sprintf("%s.pem", i.KubeConf.Cluster.Registry.PrivateRegistry),
+				"Key":         fmt.Sprintf("%s-key.pem", i.KubeConf.Cluster.Registry.PrivateRegistry),
 			},
 		},
 		Parallel: true,

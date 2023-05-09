@@ -85,7 +85,7 @@ func (s *SyncCertsToAllNodes) Execute(runtime connector.Runtime) error {
 			}
 		}
 
-		if err := runtime.GetRunner().SudoScp(filepath.Join(dir, fileName), filepath.Join(filepath.Join("/etc/docker/certs.d", RegistryCertificateBaseName), dstFileName)); err != nil {
+		if err := runtime.GetRunner().SudoScp(filepath.Join(dir, fileName), filepath.Join(filepath.Join("/etc/docker/certs.d", s.KubeConf.Cluster.Registry.PrivateRegistry), dstFileName)); err != nil {
 			return errors.Wrap(errors.WithStack(err), "scp registry certs file to /etc/docker/certs.d/ failed")
 		}
 
@@ -140,7 +140,7 @@ func (g *StartRegistryService) Execute(runtime connector.Runtime) error {
 	}
 
 	fmt.Println()
-	fmt.Println("Local image registry created successfully. Address: dockerhub.kubekey.local")
+	fmt.Println(fmt.Sprintf("Local image registry created successfully. Address: %s", g.KubeConf.Cluster.Registry.PrivateRegistry))
 	fmt.Println()
 
 	return nil
@@ -223,7 +223,7 @@ func (g *StartHarbor) Execute(runtime connector.Runtime) error {
 	}
 
 	fmt.Println()
-	fmt.Println("Local image registry created successfully. Address: dockerhub.kubekey.local")
+	fmt.Println(fmt.Sprintf("Local image registry created successfully. Address: %s", g.KubeConf.Cluster.Registry.PrivateRegistry))
 	fmt.Println()
 
 	return nil
