@@ -349,6 +349,12 @@ func (j *JoinMember) Execute(runtime connector.Runtime) error {
 	} else {
 		return errors.New("get etcd cluster status by pipeline cache failed")
 	}
+
+	// After adding a new member for etcd, it is necessary to start the new member as the etcd cluster may experience abnormal behavior.
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart etcd && systemctl enable etcd", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "start etcd failed")
+	}
+
 	return nil
 }
 
