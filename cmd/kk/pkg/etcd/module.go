@@ -311,15 +311,6 @@ func handleExistCluster(c *ConfigureModule) []task.Interface {
 		Parallel: false,
 	}
 
-	restart := &task.RemoteTask{
-		Name:     "RestartETCD",
-		Desc:     "Restart etcd",
-		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
-		Prepare:  &NodeETCDExist{Not: true},
-		Action:   new(RestartETCD),
-		Parallel: true,
-	}
-
 	newETCDNodeHealthCheck := &task.RemoteTask{
 		Name:     "NewETCDNodeHealthCheck",
 		Desc:     "Health check on new etcd",
@@ -360,7 +351,6 @@ func handleExistCluster(c *ConfigureModule) []task.Interface {
 		existETCDHealthCheck,
 		generateETCDConfig,
 		joinMember,
-		restart,
 		newETCDNodeHealthCheck,
 		checkMember,
 		allRefreshETCDConfig,
