@@ -72,9 +72,10 @@ func (o *DeleteNodeOptions) Validate() error {
 
 func (o *DeleteNodeOptions) Run() error {
 	arg := common.Argument{
-		FilePath: o.ClusterCfgFile,
-		Debug:    o.CommonOptions.Verbose,
-		NodeName: o.nodeName,
+		FilePath:         o.ClusterCfgFile,
+		Debug:            o.CommonOptions.Verbose,
+		NodeName:         o.nodeName,
+		SkipConfirmCheck: o.CommonOptions.SkipConfirmCheck,
 	}
 	return pipelines.DeleteNode(arg)
 }

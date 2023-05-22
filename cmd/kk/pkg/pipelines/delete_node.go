@@ -30,7 +30,7 @@ import (
 func DeleteNodePipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.GreetingsModule{},
-		&confirm.DeleteNodeConfirmModule{},
+		&confirm.DeleteNodeConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&kubernetes.CompareConfigAndClusterInfoModule{},
 		&kubernetes.DeleteKubeNodeModule{},
 		&os.ClearNodeOSModule{},
