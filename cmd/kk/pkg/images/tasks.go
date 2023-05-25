@@ -316,8 +316,14 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			},
 		}
 
-		if err := o.Copy(); err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("copy image %s to %s failed", srcName, destName))
+		retry, maxRetry := 0, 5
+		for ; retry < maxRetry; retry++ {
+			if err := o.Copy(); err == nil {
+				break
+			}
+		}
+		if retry >= maxRetry {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("copy image %s to %s failed, retry %d", srcName, destName, maxRetry))
 		}
 	}
 
