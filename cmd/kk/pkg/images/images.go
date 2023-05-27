@@ -110,7 +110,7 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 			host.IsRole(common.ETCD) && image.Group == kubekeyapiv1alpha2.Etcd && image.Enable:
 
 			logger.Log.Messagef(host.GetName(), "downloading image: %s", image.ImageName())
-			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), false); err != nil {
+			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s --platform %s", pullCmd, image.ImageName(), host.GetArch()), false); err != nil {
 				return errors.Wrap(err, "pull image failed")
 			}
 		default:
