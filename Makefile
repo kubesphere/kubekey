@@ -241,7 +241,7 @@ verify-gen: generate  ## Verify go generated files are up to date
 
 .PHONY: kk
 kk:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kk github.com/kubesphere/kubekey/v3/cmd/kk;
+	CGO_ENABLED=0 go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kk github.com/kubesphere/kubekey/v3/cmd/kk;
 
 ALL_MANAGERS = capkk k3s-bootstrap k3s-control-plane
 
