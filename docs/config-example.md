@@ -55,6 +55,10 @@ spec:
     #skipConfigureOS: true # Do not pre-configure the host OS (e.g. kernel modules, /etc/hosts, sysctl.conf, NTP servers, etc). You will have to set these things up via other methods before using KubeKey.
 
   kubernetes:
+    #kubelet start arguments
+    #kubeletArgs:
+      # Directory path for managing kubelet files (volume mounts, etc).
+    #  - --root-dir=/var/lib/kubelet
     version: v1.21.5
     # Optional extra Subject Alternative Names (SANs) to use for the API Server serving certificate. Can be both IP addresses and DNS names.
     apiserverCertExtraSans:  

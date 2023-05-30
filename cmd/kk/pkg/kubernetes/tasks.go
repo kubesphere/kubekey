@@ -191,6 +191,7 @@ func (g *GenerateKubeletEnv) Execute(runtime connector.Runtime) error {
 			"NodeIP":           host.GetInternalAddress(),
 			"Hostname":         host.GetName(),
 			"ContainerRuntime": "",
+			"KubeletArgs":      g.KubeConf.Cluster.Kubernetes.KubeletArgs,
 		},
 	}
 
