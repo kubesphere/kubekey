@@ -383,7 +383,7 @@ func GetKubeletCgroupDriver(runtime connector.Runtime, kubeConf *common.KubeConf
 	case common.Crio:
 		cmd = "crio config | grep cgroup_manager"
 	case common.Conatinerd:
-		cmd = "containerd config dump | grep -i systemd |grep -i cgroup"
+		cmd = "containerd config dump | grep -i systemd |grep -i cgroup || echo 'SystemdCgroup = false'"
 	case common.Isula:
 		cmd = "isula info | grep 'Cgroup Driver'"
 	default:
