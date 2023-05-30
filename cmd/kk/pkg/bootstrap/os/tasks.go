@@ -179,6 +179,8 @@ var (
 		"ip link del flannel-wg-v6",
 		"ip link del cilium_host",
 		"ip link del cilium_vxlan",
+		"ip link del vxlan.calico",
+		"ip link del vxlan-v6.calico",
 		"ip -br link show | grep 'cali[a-f0-9]*' | awk -F '@' '{print $1}' | xargs -r -t -n 1 ip link del",
 		"ip netns show 2>/dev/null | grep cni- | xargs -r -t -n 1 ip netns del",
 	}
