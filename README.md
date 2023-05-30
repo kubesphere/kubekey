@@ -25,7 +25,7 @@ Use KubeKey in the following three scenarios.
 ### Linux Distributions
 
 * **Ubuntu**  *16.04, 18.04, 20.04, 22.04*
-* **Debian**  *Buster, Stretch*
+* **Debian**  *Bullseye, Buster, Stretch*
 * **CentOS/RHEL**  *7*
 * **AlmaLinux**  *9.0*
 * **SUSE Linux Enterprise Server** *15*
