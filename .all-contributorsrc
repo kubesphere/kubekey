@@ -501,7 +501,8 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/1879641?v=4",
       "profile": "https://github.com/yjqg6666",
       "contributions": [
-        "doc"
+        "doc",
+        "code"
       ]
     },
     {
@@ -697,5 +698,6 @@
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitType": "docs"
 }
