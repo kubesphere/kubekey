@@ -64,7 +64,7 @@ type LocalTaskChown struct {
 
 func (l *LocalTaskChown) Execute(runtime connector.Runtime) error {
 	if exist := util.IsExist(l.Path); exist {
-		if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("chown -R ${SUDO_UID}:${SUDO_GID} %s", l.Path)).Run(); err != nil {
+		if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("chown -R $(id -u):$(id -g) %s", l.Path)).Run(); err != nil {
 			return errors.Wrapf(errors.WithStack(err), "chown %s failed", l.Path)
 		}
 	}
