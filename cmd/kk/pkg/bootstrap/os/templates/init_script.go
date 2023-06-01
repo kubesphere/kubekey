@@ -67,6 +67,10 @@ echo 'vm.max_map_count = 262144' >> /etc/sysctl.conf
 echo 'vm.swappiness = 1' >> /etc/sysctl.conf
 echo 'fs.inotify.max_user_instances = 524288' >> /etc/sysctl.conf
 echo 'kernel.pid_max = 65535' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_tw_reuse = 0' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_tw_recycle = 0' >> /etc/sysctl.conf
+echo 'net.ipv4.conf.all.rp_filter = 0' >> /etc/sysctl.conf
+echo 'net.ipv4.conf.default.rp_filter = 0' >> /etc/sysctl.conf
 
 
 #See https://imroc.io/posts/kubernetes/troubleshooting-with-kubernetes-network/
