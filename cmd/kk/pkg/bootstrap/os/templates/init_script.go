@@ -89,12 +89,14 @@ echo 'net.ipv4.tcp_max_tw_buckets = 1048576' >> /etc/sysctl.conf
 echo 'net.ipv4.tcp_max_orphans = 65535' >> /etc/sysctl.conf
 echo 'net.ipv4.udp_rmem_min = 131072' >> /etc/sysctl.conf
 echo 'net.ipv4.udp_wmem_min = 131072' >> /etc/sysctl.conf
+echo 'net.ipv4.conf.all.arp_ignore = 1' >> /etc/sysctl.conf
+echo 'net.ipv4.conf.default.arp_ignore = 1' >> /etc/sysctl.conf
 
 #See https://help.aliyun.com/document_detail/118806.html#uicontrol-e50-ddj-w0y
-sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1|2)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_reuse ?= ?(0|1)@net.ipv4.tcp_tw_reuse = 0@g" /etc/sysctl.conf
-sed -r -i "s@#{0,}?net.ipv4.conf.all.rp_filter ?= ?(0|1)@net.ipv4.conf.all.rp_filter = 1@g" /etc/sysctl.conf
-sed -r -i "s@#{0,}?net.ipv4.conf.default.rp_filter ?= ?(0|1)@net.ipv4.conf.default.rp_filter = 1@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv4.conf.all.rp_filter ?= ?(0|1|2)@net.ipv4.conf.all.rp_filter = 1@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv4.conf.default.rp_filter ?= ?(0|1|2)@net.ipv4.conf.default.rp_filter = 1@g" /etc/sysctl.conf
 
 sed -r -i  "s@#{0,}?net.ipv4.ip_forward ?= ?(0|1)@net.ipv4.ip_forward = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-arptables ?= ?(0|1)@net.bridge.bridge-nf-call-arptables = 1@g" /etc/sysctl.conf
@@ -105,7 +107,7 @@ sed -r -i  "s@#{0,}?vm.max_map_count ?= ?([0-9]{1,})@vm.max_map_count = 262144@g
 sed -r -i  "s@#{0,}?vm.swappiness ?= ?([0-9]{1,})@vm.swappiness = 0@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?fs.inotify.max_user_instances ?= ?([0-9]{1,})@fs.inotify.max_user_instances = 524288@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?kernel.pid_max ?= ?([0-9]{1,})@kernel.pid_max = 65535@g" /etc/sysctl.conf
-sed -r -i "s@#{0,}?vm.overcommit_memory ?= ?(0|1)@vm.overcommit_memory = 0@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?vm.overcommit_memory ?= ?(0|1|2)@vm.overcommit_memory = 0@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?fs.inotify.max_user_watches ?= ?([0-9]{1,})@fs.inotify.max_user_watches = 524288@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?fs.pipe-max-size ?= ?([0-9]{1,})@fs.pipe-max-size = 4194304@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.core.netdev_max_backlog ?= ?([0-9]{1,})@net.core.netdev_max_backlog = 65535@g" /etc/sysctl.conf
@@ -123,6 +125,8 @@ sed -r -i  "s@#{0,}?net.ipv4.tcp_max_tw_buckets ?= ?([0-9]{1,})@net.ipv4.tcp_max
 sed -r -i  "s@#{0,}?net.ipv4.tcp_max_orphans ?= ?([0-9]{1,})@net.ipv4.tcp_max_orphans = 65535@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.ipv4.udp_rmem_min ?= ?([0-9]{1,})@net.ipv4.udp_rmem_min = 131072@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.ipv4.udp_wmem_min ?= ?([0-9]{1,})@net.ipv4.udp_wmem_min = 131072@g" /etc/sysctl.conf
+sed -r -i  "s@#{0,}?net.ipv4.conf.all.arp_ignore ?= ??(0|1|2)@net.ipv4.conf.all.arp_ignore = 1@g" /etc/sysctl.conf
+sed -r -i  "s@#{0,}?net.ipv4.conf.default.arp_ignore ?= ??(0|1|2)@net.ipv4.conf.default.arp_ignore = 1@g" /etc/sysctl.conf
 
 # ulimit
 echo "* soft nofile 1048576" >> /etc/security/limits.conf
