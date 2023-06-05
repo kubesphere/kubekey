@@ -84,7 +84,7 @@ apiServer:
 {{ toYaml .ApiServerArgs | indent 4}}
   certSANs:
     {{- range .CertSANs }}
-    - {{ . }}
+    - "{{ . }}"
     {{- end }}
 controllerManager:
   extraArgs:
