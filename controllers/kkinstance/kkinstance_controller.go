@@ -265,11 +265,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, kkInstance) {
-		log.Info("KKInstance or linked Cluster is marked as paused. Won't reconcile")
-		return ctrl.Result{}, nil
-	}
-
 	instanceScope, err := scope.NewInstanceScope(scope.InstanceScopeParams{
 		Client:       r.Client,
 		Logger:       &log,
@@ -306,6 +301,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 func (r *Reconciler) reconcileDelete(ctx context.Context, instanceScope *scope.InstanceScope, lbScope scope.LBScope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKInstance delete")
+
+	if annotations.IsPaused(instanceScope.Cluster, instanceScope.KKInstance) {
+		log.Info("KKInstance or linked Cluster is marked as paused. Won't reconcile")
+		return ctrl.Result{}, nil
+	}
 
 	if conditions.Get(instanceScope.KKInstance, infrav1.KKInstanceDeletingBootstrapCondition) == nil {
 		conditions.MarkFalse(instanceScope.KKInstance, infrav1.KKInstanceDeletingBootstrapCondition,
@@ -345,11 +345,12 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, instanceScope *scope.I
 	instanceScope.KKInstance.Labels[infrav1.KKClusterLabelName] = instanceScope.InfraCluster.InfraClusterName()
 
 	// If the KKMachine doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
-	// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
-	if err := instanceScope.PatchObject(); err != nil {
-		instanceScope.Error(err, "unable to patch object")
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer) {
+		// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
+		if err := instanceScope.PatchObject(); err != nil {
+			instanceScope.Error(err, "unable to patch object")
+			return ctrl.Result{}, err
+		}
 	}
 
 	sshClient := r.getSSHClient(instanceScope)

@@ -138,11 +138,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, kkCluster) {
-		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
-		return reconcile.Result{}, nil
-	}
-
 	log = log.WithValues("cluster", cluster.Name)
 	helper, err := patch.NewHelper(kkCluster, r.Client)
 	if err != nil {
@@ -195,6 +190,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, clusterScope *scope.Cl
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKCluster delete")
 
+	if annotations.IsPaused(clusterScope.Cluster, clusterScope.KKCluster) {
+		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
+		return reconcile.Result{}, nil
+	}
+
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterScope.KKCluster, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
@@ -207,10 +207,11 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, clusterScope *scope.Cl
 	kkCluster := clusterScope.KKCluster
 
 	// If the KKCluster doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(kkCluster, infrav1.ClusterFinalizer)
-	// Register the finalizer immediately to avoid orphaning KK resources on delete
-	if err := clusterScope.PatchObject(); err != nil {
-		return reconcile.Result{}, err
+	if controllerutil.AddFinalizer(kkCluster, infrav1.ClusterFinalizer) {
+		// Register the finalizer immediately to avoid orphaning KK resources on delete
+		if err := clusterScope.PatchObject(); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	if _, err := net.LookupIP(kkCluster.Spec.ControlPlaneLoadBalancer.Host); err != nil {
