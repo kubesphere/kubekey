@@ -19,6 +19,7 @@ package kkmachine
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sync"
 	"time"
 
@@ -34,7 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	cutil "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"

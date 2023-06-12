@@ -138,6 +138,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
+	if annotations.IsPaused(cluster, kkCluster) {
+		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
+		return reconcile.Result{}, nil
+	}
+
 	log = log.WithValues("cluster", cluster.Name)
 	helper, err := patch.NewHelper(kkCluster, r.Client)
 	if err != nil {
@@ -189,11 +194,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 func (r *Reconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) { //nolint:unparam
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile KKCluster delete")
-
-	if annotations.IsPaused(clusterScope.Cluster, clusterScope.KKCluster) {
-		log.Info("KKCluster or linked Cluster is marked as paused. Won't reconcile")
-		return reconcile.Result{}, nil
-	}
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterScope.KKCluster, infrav1.ClusterFinalizer)
