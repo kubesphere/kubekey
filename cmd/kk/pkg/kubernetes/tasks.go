@@ -444,6 +444,59 @@ func (k *KubeadmReset) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type FilterFirstMaster struct {
+	common.KubeAction
+}
+
+func (f *FilterFirstMaster) Execute(runtime connector.Runtime) error {
+	firstMaster := runtime.GetHostsByRole(common.Master)[0].GetName()
+	//kubectl get node
+	var nodes []string
+	res, err := runtime.GetRunner().Cmd(
+		"sudo -E /usr/local/bin/kubectl get nodes | awk '{print $1}'",
+		true)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "kubectl get nodes failed")
+	}
+
+	if !strings.Contains(res, "\r\n") {
+		nodes = append(nodes, res)
+	} else {
+		nodes = strings.Split(res, "\r\n")
+	}
+	//nodes filter first master
+	j := 0
+	for _, v := range nodes {
+		if v != firstMaster {
+			nodes[j] = v
+			j++
+		}
+	}
+	resArr := nodes[:j]
+	workerName := make(map[string]struct{})
+	for j := 0; j < len(runtime.GetHostsByRole(common.Worker)); j++ {
+		workerName[runtime.GetHostsByRole(common.Worker)[j].GetName()] = struct{}{}
+	}
+	//make sure node is not the first master node name
+	var node string
+	for i := 0; i < len(resArr); i++ {
+		if _, ok := workerName[resArr[i]]; ok && resArr[i] == f.KubeConf.Arg.NodeName {
+			node = resArr[i]
+			break
+		}
+	}
+
+	if node == "" {
+		return errors.New("" +
+			"1. check the node name in the config-sample.yaml\n" +
+			"2. check the node name in the Kubernetes cluster\n" +
+			"3. check the node name is the first master node name\n")
+	}
+
+	f.PipelineCache.Set("dstNode", node)
+	return nil
+}
+
 type FindNode struct {
 	common.KubeAction
 }
@@ -616,6 +669,23 @@ func calculateNextStr(currentVersion, desiredVersion string) (string, error) {
 
 		return fmt.Sprintf("v%s", nextVersion.String()), nil
 	}
+}
+
+type RestartKubelet struct {
+	common.KubeAction
+	ModuleName string
+}
+
+func (r *RestartKubelet) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	if _, err := runtime.GetRunner().SudoCmd("systemctl stop kubelet", false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
+	}
+	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart kubelet", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("restart kubelet failed: %s", host.GetName()))
+	}
+	time.Sleep(10 * time.Second)
+	return nil
 }
 
 type UpgradeKubeMaster struct {

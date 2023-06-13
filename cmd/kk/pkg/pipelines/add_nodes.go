@@ -54,6 +54,9 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
 		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 		&registry.RegistryCertsModule{Skip: len(runtime.GetHostsByRole(common.Registry)) == 0},
+		//for one master to multi master kube-vip
+		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
+		&kubernetes.RestartKubeletModule{},
 		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
 		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
