@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -187,7 +186,7 @@ func validateOptions(cfg Cfg) (Cfg, error) {
 	}
 
 	if len(cfg.PrivateKey) == 0 && len(cfg.KeyFile) > 0 {
-		content, err := ioutil.ReadFile(cfg.KeyFile)
+		content, err := os.ReadFile(cfg.KeyFile)
 		if err != nil {
 			return cfg, errors.Wrapf(err, "Failed to read keyfile %q", cfg.KeyFile)
 		}
@@ -462,7 +461,7 @@ func (c *connection) Scp(src, dst string, host Host) error {
 }
 
 func (c *connection) copyDirToRemote(src, dst string, scrErr *scpErr, host Host) {
-	localFiles, err := ioutil.ReadDir(src)
+	localFiles, err := os.ReadDir(src)
 	if err != nil {
 		logger.Log.Errorf("read local path dir %s failed %v", src, err)
 		scrErr.err = err
