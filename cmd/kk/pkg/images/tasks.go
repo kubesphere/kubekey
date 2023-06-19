@@ -19,7 +19,7 @@ package images
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -227,7 +227,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		imagesPath = filepath.Join(runtime.GetWorkDir(), "images")
 	}
 
-	indexFile, err := ioutil.ReadFile(filepath.Join(imagesPath, "index.json"))
+	indexFile, err := os.ReadFile(filepath.Join(imagesPath, "index.json"))
 	if err != nil {
 		return errors.Errorf("read index.json failed: %s", err)
 	}

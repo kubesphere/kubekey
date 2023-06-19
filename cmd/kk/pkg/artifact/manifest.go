@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -171,7 +170,7 @@ func CreateManifest(arg common.Argument, name string) error {
 
 	manifestStr, err := templates.RenderManifest(options)
 
-	if err := ioutil.WriteFile(arg.FilePath, []byte(manifestStr), 0644); err != nil {
+	if err := os.WriteFile(arg.FilePath, []byte(manifestStr), 0644); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("write file %s failed", arg.FilePath))
 	}
 

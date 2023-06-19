@@ -18,7 +18,7 @@ package k8e
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -117,7 +117,7 @@ func (k *K8eStatus) LoadKubeConfig(runtime connector.Runtime, kubeConf *common.K
 	newServer := fmt.Sprintf("server: https://%s:%d", kubeConf.Cluster.ControlPlaneEndpoint.Address, kubeConf.Cluster.ControlPlaneEndpoint.Port)
 	newKubeConfigStr := strings.Replace(k.KubeConfig, oldServer, newServer, -1)
 
-	if err := ioutil.WriteFile(kubeConfigPath, []byte(newKubeConfigStr), 0644); err != nil {
+	if err := os.WriteFile(kubeConfigPath, []byte(newKubeConfigStr), 0644); err != nil {
 		return err
 	}
 	return nil

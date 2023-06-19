@@ -19,7 +19,6 @@ package artifact
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -141,7 +140,7 @@ func (m *Md5Check) Execute(runtime connector.Runtime) error {
 		return nil
 	}
 
-	oldMd5, err := ioutil.ReadFile(oldFile)
+	oldMd5, err := os.ReadFile(oldFile)
 	if err != nil {
 		return errors.Wrapf(errors.WithStack(err), "read old md5 file %s failed", oldFile)
 	}

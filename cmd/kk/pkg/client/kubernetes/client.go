@@ -17,13 +17,13 @@
 package kubernetes
 
 import (
-	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
 )
 
 func NewClient(kubeConfig string) (*kubernetes.Clientset, error) {
-	data, err := ioutil.ReadFile(kubeConfig)
+	data, err := os.ReadFile(kubeConfig)
 	if err != nil {
 		return nil, err
 	}

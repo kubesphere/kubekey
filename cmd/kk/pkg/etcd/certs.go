@@ -19,7 +19,6 @@ package etcd
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -245,12 +244,12 @@ func (f *FetchCertsForExternalEtcd) Execute(runtime connector.Runtime) error {
 			dstCert := fmt.Sprintf("%s/%s", pkiPath, dstCertFileName)
 			dstCertsFiles = append(dstCertsFiles, dstCertFileName)
 
-			data, err := ioutil.ReadFile(certPath)
+			data, err := os.ReadFile(certPath)
 			if err != nil {
 				return errors.Wrap(err, "failed to copy certificate content")
 			}
 
-			if err := ioutil.WriteFile(dstCert, data, 0600); err != nil {
+			if err := os.WriteFile(dstCert, data, 0600); err != nil {
 				return errors.Wrap(err, "failed to copy certificate content")
 			}
 		}
