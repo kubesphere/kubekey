@@ -103,6 +103,15 @@ type ClearNodeOSModule struct {
 func (c *ClearNodeOSModule) Init() {
 	c.Name = "ClearNodeOSModule"
 
+	stopKubelet := &task.RemoteTask{
+		Name:     "StopKubelet",
+		Desc:     "Stop Kubelet",
+		Hosts:    c.Runtime.GetHostsByRole(common.Worker),
+		Prepare:  new(DeleteNode),
+		Action:   new(StopKubelet),
+		Parallel: true,
+	}
+
 	resetNetworkConfig := &task.RemoteTask{
 		Name:     "ResetNetworkConfig",
 		Desc:     "Reset os network config",
@@ -131,6 +140,7 @@ func (c *ClearNodeOSModule) Init() {
 	}
 
 	c.Tasks = []task.Interface{
+		stopKubelet,
 		resetNetworkConfig,
 		removeFiles,
 		daemonReload,

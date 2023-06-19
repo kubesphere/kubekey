@@ -197,6 +197,15 @@ func (r *ResetNetworkConfig) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type StopKubelet struct {
+	common.KubeAction
+}
+
+func (s *StopKubelet) Execute(runtime connector.Runtime) error {
+	_, _ = runtime.GetRunner().SudoCmd("systemctl disable kubelet && systemctl stop kubelet && exit 0", false)
+	return nil
+}
+
 type UninstallETCD struct {
 	common.KubeAction
 }
