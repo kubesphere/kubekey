@@ -37,8 +37,14 @@ func K3sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	kubecni := files.NewKubeBinary("kubecni", arch, kubekeyapiv1alpha2.DefaultCniVersion, path, kubeConf.Arg.DownloadCommand)
 	helm := files.NewKubeBinary("helm", arch, kubekeyapiv1alpha2.DefaultHelmVersion, path, kubeConf.Arg.DownloadCommand)
 	k3s := files.NewKubeBinary("k3s", arch, version, path, kubeConf.Arg.DownloadCommand)
+	calicoctl := files.NewKubeBinary("calicoctl", arch, kubekeyapiv1alpha2.DefaultCalicoVersion, path, kubeConf.Arg.DownloadCommand)
 
 	binaries := []*files.KubeBinary{k3s, helm, kubecni, etcd}
+
+	if kubeConf.Cluster.Network.Plugin == "calico" {
+		binaries = append(binaries, calicoctl)
+	}
+
 	binariesMap := make(map[string]*files.KubeBinary)
 	for _, binary := range binaries {
 		if err := binary.CreateBaseDir(); err != nil {
