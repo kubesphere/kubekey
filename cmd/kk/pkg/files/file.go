@@ -50,6 +50,7 @@ const (
 	compose    = "compose"
 	containerd = "containerd"
 	runc       = "runc"
+	calicoctl  = "calicoctl"
 )
 
 // KubeBinary Type field const
@@ -207,6 +208,13 @@ func NewKubeBinary(name, arch, version, prePath string, getCmd func(path, url st
 		component.Url = fmt.Sprintf("https://github.com/opencontainers/runc/releases/download/%s/runc.%s", version, arch)
 		if component.Zone == "cn" {
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/%s/runc.%s", version, arch)
+		}
+	case calicoctl:
+		component.Type = CNI
+		component.FileName = calicoctl
+		component.Url = fmt.Sprintf("https://github.com/projectcalico/calico/releases/download/%s/calicoctl-linux-%s", version, arch)
+		if component.Zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/projectcalico/calico/releases/download/%s/calicoctl-linux-%s", version, arch)
 		}
 	default:
 		logger.Log.Fatalf("unsupported kube binaries %s", name)

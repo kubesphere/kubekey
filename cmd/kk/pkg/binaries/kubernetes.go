@@ -43,6 +43,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	crictl := files.NewKubeBinary("crictl", arch, kubekeyapiv1alpha2.DefaultCrictlVersion, path, kubeConf.Arg.DownloadCommand)
 	containerd := files.NewKubeBinary("containerd", arch, kubekeyapiv1alpha2.DefaultContainerdVersion, path, kubeConf.Arg.DownloadCommand)
 	runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, kubeConf.Arg.DownloadCommand)
+	calicoctl := files.NewKubeBinary("calicoctl", arch, kubekeyapiv1alpha2.DefaultCalicoVersion, path, kubeConf.Arg.DownloadCommand)
 
 	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, crictl, etcd}
 
@@ -50,6 +51,10 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 		binaries = append(binaries, docker)
 	} else if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Conatinerd {
 		binaries = append(binaries, containerd, runc)
+	}
+
+	if kubeConf.Cluster.Network.Plugin == "calico" {
+		binaries = append(binaries, calicoctl)
 	}
 
 	binariesMap := make(map[string]*files.KubeBinary)
