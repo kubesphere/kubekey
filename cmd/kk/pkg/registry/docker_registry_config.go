@@ -18,7 +18,6 @@ package registry
 
 import (
 	"encoding/json"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,16 +84,8 @@ func LookupCertsFile(path string) (ca string, cert string, key string, err error
 	if err != nil {
 		return ca, cert, key, err
 	}
-	fs := make([]fs.FileInfo, 0, len(entries))
-	for _, entry := range entries {
-		info, err := entry.Info()
-		if err != nil {
-			return ca, cert, key, err
-		}
-		fs = append(fs, info)
-	}
 
-	for _, f := range fs {
+	for _, f := range entries {
 		fullPath := filepath.Join(path, f.Name())
 		if strings.HasSuffix(f.Name(), ".crt") {
 			logger.Log.Debugf(" crt: %s", fullPath)
@@ -104,7 +95,7 @@ func LookupCertsFile(path string) (ca string, cert string, key string, err error
 			certName := f.Name()
 			keyName := certName[:len(certName)-5] + ".key"
 			logger.Log.Debugf(" cert: %s", fullPath)
-			if !hasFile(fs, keyName) {
+			if !hasFile(entries, keyName) {
 				return ca, cert, key, errors.Errorf("missing key %s for client certificate %s. Note that CA certificates should use the extension .crt", keyName, certName)
 			}
 			cert = fullPath
@@ -113,7 +104,7 @@ func LookupCertsFile(path string) (ca string, cert string, key string, err error
 			keyName := f.Name()
 			certName := keyName[:len(keyName)-4] + ".cert"
 			logger.Log.Debugf(" key: %s", fullPath)
-			if !hasFile(fs, certName) {
+			if !hasFile(entries, certName) {
 				return ca, cert, key, errors.Errorf("missing client certificate %s for key %s", certName, keyName)
 			}
 			key = fullPath
@@ -122,7 +113,7 @@ func LookupCertsFile(path string) (ca string, cert string, key string, err error
 	return ca, cert, key, nil
 }
 
-func hasFile(files []os.FileInfo, name string) bool {
+func hasFile(files []os.DirEntry, name string) bool {
 	for _, f := range files {
 		if f.Name() == name {
 			return true
