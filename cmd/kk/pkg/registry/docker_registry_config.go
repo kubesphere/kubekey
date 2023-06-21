@@ -18,7 +18,7 @@ package registry
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,9 +81,17 @@ func LookupCertsFile(path string) (ca string, cert string, key string, err error
 		return
 	}
 	logger.Log.Debugf("Looking for TLS certificates and private keys in abs path %s", absPath)
-	fs, err := ioutil.ReadDir(absPath)
+	entries, err := os.ReadDir(absPath)
 	if err != nil {
 		return ca, cert, key, err
+	}
+	fs := make([]fs.FileInfo, 0, len(entries))
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			return ca, cert, key, err
+		}
+		fs = append(fs, info)
 	}
 
 	for _, f := range fs {
