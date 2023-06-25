@@ -137,9 +137,7 @@ func ArtifactExport(args common.ArtifactArgument, downloadCmd string) error {
 			return err
 		}
 	case common.Kubernetes:
-		if err := NewArtifactExportPipeline(runtime); err != nil {
-			return err
-		}
+		fallthrough
 	default:
 		if err := NewArtifactExportPipeline(runtime); err != nil {
 			return err

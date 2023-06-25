@@ -308,9 +308,7 @@ func CreateCluster(args common.Argument, downloadCmd string) error {
 			return err
 		}
 	case common.Kubernetes:
-		if err := NewCreateClusterPipeline(runtime); err != nil {
-			return err
-		}
+		fallthrough
 	default:
 		if err := NewCreateClusterPipeline(runtime); err != nil {
 			return err
