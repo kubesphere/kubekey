@@ -276,11 +276,12 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, machineScope *scope.Ma
 	}
 
 	// If the KKMachine doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(machineScope.KKMachine, infrav1.MachineFinalizer)
-	// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
-	if err := machineScope.PatchObject(); err != nil {
-		machineScope.Error(err, "unable to patch object")
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(machineScope.KKMachine, infrav1.MachineFinalizer) {
+		// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
+		if err := machineScope.PatchObject(); err != nil {
+			machineScope.Error(err, "unable to patch object")
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Create new instance from KKCluster since providerId is nils.

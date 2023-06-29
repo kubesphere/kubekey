@@ -207,10 +207,11 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, clusterScope *scope.Cl
 	kkCluster := clusterScope.KKCluster
 
 	// If the KKCluster doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(kkCluster, infrav1.ClusterFinalizer)
-	// Register the finalizer immediately to avoid orphaning KK resources on delete
-	if err := clusterScope.PatchObject(); err != nil {
-		return reconcile.Result{}, err
+	if controllerutil.AddFinalizer(kkCluster, infrav1.ClusterFinalizer) {
+		// Register the finalizer immediately to avoid orphaning KK resources on delete
+		if err := clusterScope.PatchObject(); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	if _, err := net.LookupIP(kkCluster.Spec.ControlPlaneLoadBalancer.Host); err != nil {

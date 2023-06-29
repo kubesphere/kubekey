@@ -345,11 +345,12 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, instanceScope *scope.I
 	instanceScope.KKInstance.Labels[infrav1.KKClusterLabelName] = instanceScope.InfraCluster.InfraClusterName()
 
 	// If the KKMachine doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
-	// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
-	if err := instanceScope.PatchObject(); err != nil {
-		instanceScope.Error(err, "unable to patch object")
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer) {
+		// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
+		if err := instanceScope.PatchObject(); err != nil {
+			instanceScope.Error(err, "unable to patch object")
+			return ctrl.Result{}, err
+		}
 	}
 
 	sshClient := r.getSSHClient(instanceScope)
