@@ -44,7 +44,7 @@ K3S_VERSION=${K3S_VERSION}
 CONTAINERD_VERSION=${CONTAINERD_VERSION}
 RUNC_VERSION=${RUNC_VERSION}
 COMPOSE_VERSION=${COMPOSE_VERSION}
-CALICO_VERSION=${COMPOSE_VERSION}
+CALICO_VERSION=${CALICO_VERSION}
 
 # qsctl
 QSCTL_ACCESS_KEY_ID=${QSCTL_ACCESS_KEY_ID}
@@ -176,7 +176,7 @@ if [ $CALICO_VERSION ]; then
                 https://github.com/projectcalico/calico/releases/download/$CALICO_VERSION/calicoctl-linux-$arch
 
      qsctl cp binaries/calicoctl/$CALICO_VERSION/$arch/calicoctl-linux-$arch \
-           qs://containernetworking/plugins/releases/download/$CNI_VERSION/calicoctl-linux-$arch \
+           qs://kubernetes-release/projectcalico/calico/releases/download/$CALICO_VERSION/calicoctl-linux-$arch \
            -c qsctl-config.yaml
    done
 

@@ -46,6 +46,7 @@ type Kubernetes struct {
 	FeatureGates             map[string]bool      `yaml:"featureGates" json:"featureGates,omitempty"`
 	KubeletConfiguration     runtime.RawExtension `yaml:"kubeletConfiguration" json:"kubeletConfiguration,omitempty"`
 	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration" json:"kubeProxyConfiguration,omitempty"`
+	Audit                    Audit                `yaml:"audit" json:"audit,omitempty"`
 }
 
 // Kata contains the configuration for the kata in cluster
@@ -55,6 +56,11 @@ type Kata struct {
 
 // NodeFeatureDiscovery contains the configuration for the node-feature-discovery in cluster
 type NodeFeatureDiscovery struct {
+	Enabled *bool `yaml:"enabled" json:"enabled,omitempty"`
+}
+
+// Audit contains the configuration for the kube-apiserver audit in cluster
+type Audit struct {
 	Enabled *bool `yaml:"enabled" json:"enabled,omitempty"`
 }
 
@@ -82,8 +88,17 @@ func (k *Kubernetes) EnableNodeFeatureDiscovery() bool {
 	return *k.NodeFeatureDiscovery.Enabled
 }
 
+// EnableAutoRenewCerts is used to determine whether to enable AutoRenewCerts.
 func (k *Kubernetes) EnableAutoRenewCerts() bool {
 	if k.AutoRenewCerts == nil {
+		return false
+	}
+	return *k.AutoRenewCerts
+}
+
+// EnableAudit is used to determine whether to enable kube-apiserver audit.
+func (k *Kubernetes) EnableAudit() bool {
+	if k.Audit.Enabled == nil {
 		return false
 	}
 	return *k.AutoRenewCerts

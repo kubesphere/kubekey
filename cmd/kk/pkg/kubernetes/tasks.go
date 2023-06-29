@@ -252,7 +252,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 			}
 		}
 
-		_, ApiServerArgs := util.GetArgs(v1beta2.GetApiServerArgs(g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.ApiServerArgs)
+		_, ApiServerArgs := util.GetArgs(v1beta2.GetApiServerArgs(g.WithSecurityEnhancement, g.KubeConf.Cluster.Kubernetes.EnableAudit()), g.KubeConf.Cluster.Kubernetes.ApiServerArgs)
 		_, ControllerManagerArgs := util.GetArgs(v1beta2.GetControllermanagerArgs(g.KubeConf.Cluster.Kubernetes.Version, g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.ControllerManagerArgs)
 		_, SchedulerArgs := util.GetArgs(v1beta2.GetSchedulerArgs(g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.SchedulerArgs)
 
@@ -300,6 +300,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"NodeCidrMaskSize":       g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
 				"CriSock":                g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint,
 				"ApiServerArgs":          v1beta2.UpdateFeatureGatesConfiguration(ApiServerArgs, g.KubeConf),
+				"EnableAudit":            g.KubeConf.Cluster.Kubernetes.EnableAudit(),
 				"ControllerManagerArgs":  v1beta2.UpdateFeatureGatesConfiguration(ControllerManagerArgs, g.KubeConf),
 				"SchedulerArgs":          v1beta2.UpdateFeatureGatesConfiguration(SchedulerArgs, g.KubeConf),
 				"KubeletConfiguration":   v1beta2.GetKubeletConfiguration(runtime, g.KubeConf, g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint, g.WithSecurityEnhancement),
@@ -923,7 +924,7 @@ func (s *SaveKubeConfig) Execute(runtime connector.Runtime) error {
 
 	clusterPublicAddress := s.KubeConf.Cluster.ControlPlaneEndpoint.Address
 	master1 := runtime.GetHostsByRole(common.Master)[0]
-	if clusterPublicAddress == master1.GetInternalAddress() {
+	if clusterPublicAddress == master1.GetInternalAddress() || clusterPublicAddress == "" {
 		clusterPublicAddress = master1.GetAddress()
 	}
 
