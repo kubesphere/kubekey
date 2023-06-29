@@ -149,6 +149,40 @@ func (i *InitKubernetesModule) Init() {
 		Parallel: true,
 	}
 
+	generateAuditPolicy := &task.RemoteTask{
+		Name:  "GenerateAduitPolicy",
+		Desc:  "Generate audit policy",
+		Hosts: i.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.EnableAudit),
+			new(common.OnlyFirstMaster),
+			&ClusterIsExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.AuditPolicy,
+			Dst:      filepath.Join("/etc/kubernetes/audit", templates.AuditPolicy.Name()),
+		},
+		Parallel: true,
+		Retry:    2,
+	}
+
+	generateAuditWebhook := &task.RemoteTask{
+		Name:  "GenerateAduitWebhook",
+		Desc:  "Generate audit webhook",
+		Hosts: i.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.EnableAudit),
+			new(common.OnlyFirstMaster),
+			&ClusterIsExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.AuditWebhook,
+			Dst:      filepath.Join("/etc/kubernetes/audit", templates.AuditWebhook.Name()),
+		},
+		Parallel: true,
+		Retry:    2,
+	}
+
 	kubeadmInit := &task.RemoteTask{
 		Name:  "KubeadmInit",
 		Desc:  "Init cluster using kubeadm",
@@ -190,6 +224,8 @@ func (i *InitKubernetesModule) Init() {
 
 	i.Tasks = []task.Interface{
 		generateKubeadmConfig,
+		generateAuditPolicy,
+		generateAuditWebhook,
 		kubeadmInit,
 		copyKubeConfig,
 		removeMasterTaint,
@@ -218,6 +254,38 @@ func (j *JoinNodesModule) Init() {
 			WithSecurityEnhancement: j.KubeConf.Arg.SecurityEnhancement,
 		},
 		Parallel: true,
+	}
+
+	generateAuditPolicy := &task.RemoteTask{
+		Name:  "GenerateAduitPolicy",
+		Desc:  "Generate audit policy",
+		Hosts: j.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.EnableAudit),
+			&NodeInCluster{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.AuditPolicy,
+			Dst:      filepath.Join("/etc/kubernetes/audit", templates.AuditPolicy.Name()),
+		},
+		Parallel: true,
+		Retry:    2,
+	}
+
+	generateAuditWebhook := &task.RemoteTask{
+		Name:  "GenerateAduitWebhook",
+		Desc:  "Generate audit webhook",
+		Hosts: j.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.EnableAudit),
+			&NodeInCluster{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.AuditWebhook,
+			Dst:      filepath.Join("/etc/kubernetes/audit", templates.AuditWebhook.Name()),
+		},
+		Parallel: true,
+		Retry:    2,
 	}
 
 	joinMasterNode := &task.RemoteTask{
@@ -281,6 +349,8 @@ func (j *JoinNodesModule) Init() {
 
 	j.Tasks = []task.Interface{
 		generateKubeadmConfig,
+		generateAuditPolicy,
+		generateAuditWebhook,
 		joinMasterNode,
 		joinWorkerNode,
 		copyKubeConfig,

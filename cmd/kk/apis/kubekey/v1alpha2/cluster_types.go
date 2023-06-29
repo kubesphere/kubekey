@@ -127,7 +127,10 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	extraCertSANs := make([]string, 0)
 
 	extraCertSANs = append(extraCertSANs, cfg.ControlPlaneEndpoint.Domain)
-	extraCertSANs = append(extraCertSANs, cfg.ControlPlaneEndpoint.Address)
+
+	if cfg.ControlPlaneEndpoint.Address != "" {
+		extraCertSANs = append(extraCertSANs, cfg.ControlPlaneEndpoint.Address)
+	}
 
 	for _, host := range cfg.Hosts {
 		extraCertSANs = append(extraCertSANs, host.Name)
