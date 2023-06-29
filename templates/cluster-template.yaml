@@ -51,7 +51,6 @@ spec:
           apiVersion: v1
           kind: Pod
           metadata:
-            creationTimestamp: null
             name: kube-vip
             namespace: kube-system
           spec:
@@ -138,6 +137,9 @@ spec:
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
+  annotations:
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "3"
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "0"
   name: "${CLUSTER_NAME}-md-0"
 spec:
   clusterName: "${CLUSTER_NAME}"
@@ -181,3 +183,113 @@ spec:
       joinConfiguration:
         nodeRegistration:
           criSocket: unix:///var/run/containerd/containerd.sock
+
+---
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  labels:
+    app: cluster-autoscaler
+spec:
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+    spec:
+      containers:
+        - image: registry.k8s.io/autoscaling/cluster-autoscaler:v1.26.3
+          name: default
+          command:
+            - /cluster-autoscaler
+          args:
+            - --cloud-provider=clusterapi
+            - --kubeconfig=/tmp/kubeconfig/workload.conf
+            - --clusterapi-cloud-config-authoritative
+            - --node-group-auto-discovery=clusterapi:namespace=${NAMESPACE}
+            - --scale-down-enabled=false
+          volumeMounts:
+            - mountPath: /tmp/kubeconfig
+              name: workload-kubeconfig
+      serviceAccountName: cluster-autoscaler
+      terminationGracePeriodSeconds: 10
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+      volumes:
+        - name: workload-kubeconfig
+          secret:
+            secretName: '${CLUSTER_NAME}-kubeconfig'
+            optional: true
+            items:
+              - key: value
+                path: workload.conf
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-autoscaler-management
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cluster-autoscaler-management
+subjects:
+  - kind: ServiceAccount
+    name: cluster-autoscaler
+    namespace: '${NAMESPACE}'
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-autoscaler
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-autoscaler-management
+rules:
+  - apiGroups:
+      - cluster.x-k8s.io
+    resources:
+      - machinedeployments
+      - machinedeployments/scale
+      - machines
+      - machinesets
+    verbs:
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+    resources:
+      - kkmachinetemplates
+    verbs:
+      - get
+      - list
+      - update
+      - watch
+
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineHealthCheck
+metadata:
+  name: '${CLUSTER_NAME}-mhc'
+spec:
+  clusterName: '${CLUSTER_NAME}'
+  maxUnhealthy: 100%
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: '${CLUSTER_NAME}'
+  unhealthyConditions:
+    - type: Ready
+      status: Unknown
+      timeout: 300s
+    - type: Ready
+      status: "False"
+      timeout: 300s
