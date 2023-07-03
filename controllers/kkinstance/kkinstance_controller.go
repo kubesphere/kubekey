@@ -19,6 +19,8 @@ package kkinstance
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"reflect"
 	"time"
 
@@ -94,6 +96,19 @@ type Reconciler struct {
 func (r *Reconciler) getSSHClient(scope *scope.InstanceScope) ssh.Interface {
 	if r.sshClientFactory != nil {
 		return r.sshClientFactory(scope)
+	}
+	if scope.KKInstance.Spec.Auth.Secret != "" {
+		secret := &corev1.Secret{}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		defer cancel()
+		if err := r.Get(ctx, types.NamespacedName{Namespace: scope.Cluster.Namespace, Name: scope.KKInstance.Spec.Auth.Secret}, secret); err == nil {
+			if scope.KKInstance.Spec.Auth.PrivateKey == "" { // replace PrivateKey by secret
+				scope.KKInstance.Spec.Auth.PrivateKey = string(secret.Data["privateKey"])
+			}
+			if scope.KKInstance.Spec.Auth.Password == "" { // replace password by secret
+				scope.KKInstance.Spec.Auth.Password = string(secret.Data["password"])
+			}
+		}
 	}
 	return ssh.NewClient(scope.KKInstance.Spec.Address, scope.KKInstance.Spec.Auth, &scope.Logger)
 }

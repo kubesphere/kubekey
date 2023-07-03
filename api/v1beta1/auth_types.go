@@ -42,6 +42,12 @@ type Auth struct {
 	// +optional
 	PrivateKeyPath string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
 
+	// Secret is the secret of the PrivateKey or Password for SSH authentication.It should in the same namespace as capkk.
+	// When Password is empty, replace it with data.password.
+	// When PrivateKey is empty, replace it with data.privateKey
+	// +optional
+	Secret string `yaml:"secret,omitempty" json:"secret,omitempty"`
+
 	// Timeout is the timeout for establish an SSH connection.
 	// +optional
 	Timeout *time.Duration `yaml:"timeout,omitempty" json:"timeout,omitempty"`
