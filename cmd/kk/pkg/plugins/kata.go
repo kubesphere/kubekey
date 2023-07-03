@@ -81,7 +81,7 @@ spec:
       containers:
       - name: kube-kata
         image: {{ .KataDeployImage }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         lifecycle:
           preStop:
             exec:

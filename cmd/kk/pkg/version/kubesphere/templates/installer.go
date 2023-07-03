@@ -315,7 +315,7 @@ spec:
       containers:
       - name: installer
         image: {{ .Repo }}/ks-installer:{{ .Tag }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         volumeMounts:
         - mountPath: /etc/localtime
           name: host-time
