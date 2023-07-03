@@ -195,7 +195,7 @@ func validateLoadBalancer(loadBalancer *KKLoadBalancerSpec) []*field.Error {
 func validateClusterNodes(nodes Nodes) []*field.Error {
 	var errs field.ErrorList
 
-	if nodes.Auth.Password == "" && nodes.Auth.PrivateKey == "" && nodes.Auth.PrivateKeyPath == "" {
+	if nodes.Auth.Password == "" && nodes.Auth.PrivateKey == "" && nodes.Auth.PrivateKeyPath == "" && nodes.Auth.Secret == "" {
 		errs = append(errs, field.Required(field.NewPath("spec", "nodes", "auth"), "password and privateKey can't both be empty"))
 	}
 
