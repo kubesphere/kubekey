@@ -92,6 +92,7 @@ type CustomScripts struct {
 
 // System defines the system config for each node in cluster.
 type System struct {
+	Initials        []CustomScripts `yaml:"initials" json:"initials,omitempty"`
 	NtpServers      []string        `yaml:"ntpServers" json:"ntpServers,omitempty"`
 	Timezone        string          `yaml:"timezone" json:"timezone,omitempty"`
 	Rpms            []string        `yaml:"rpms" json:"rpms,omitempty"`

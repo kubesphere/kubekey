@@ -42,7 +42,16 @@ spec:
     # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
     debs: 
       - nfs-common
-    #preInstall:  # Specify custom init shell scripts for each nodes, and execute according to the list order.
+    # initials:
+    #   - name: Install hd tool
+    #     bash: curl https://gitee.com/linuxsuren/tools/raw/master/install-zh.sh|bash
+    #   - name: Install packages
+    #     bash: |
+    #       hd setup --proxy ghproxy.com --provider gitee
+    #       hd i chrony
+    #       hd i conntrack
+    #       hd i socat
+    #preInstall:  # Specify custom init shell scripts for each nodes, and execute according to the list order before install container runtime.
     #  - name: format and mount disk  
     #    bash: /bin/bash -x setup-disk.sh
     #    materials: # scripts can has some dependency materials. those will copy to the node        

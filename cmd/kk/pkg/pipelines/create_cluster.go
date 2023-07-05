@@ -58,6 +58,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 
 	m := []module.Module{
 		&precheck.GreetingsModule{},
+		&customscripts.CustomScriptsModule{Phase: "Initial", Scripts: runtime.Cluster.System.Initials},
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
