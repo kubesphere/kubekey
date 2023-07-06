@@ -61,7 +61,7 @@ func GenerateKubeKeyConfig(arg common.Argument, name string) error {
 
 	if k8sVersion, err := versionutil.ParseGeneric(opt.KubeVersion); err == nil {
 		if k8sVersion.AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
-			opt.ContainerManager = common.Conatinerd
+			opt.ContainerManager = common.Containerd
 		} else {
 			opt.ContainerManager = common.Docker
 		}

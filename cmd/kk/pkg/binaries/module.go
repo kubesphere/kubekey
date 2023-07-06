@@ -171,7 +171,7 @@ func (i *CriBinariesModule) Init() {
 	switch i.KubeConf.Arg.Type {
 	case common.Docker:
 		i.Tasks = CriBinaries(i)
-	case common.Conatinerd:
+	case common.Containerd:
 		i.Tasks = CriBinaries(i)
 	default:
 	}

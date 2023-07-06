@@ -62,7 +62,7 @@ const (
 
 	Docker     = "docker"
 	Crictl     = "crictl"
-	Conatinerd = "containerd"
+	Containerd = "containerd"
 	Crio       = "crio"
 	Isula      = "isula"
 	Runc       = "runc"
