@@ -4594,6 +4594,13 @@ spec:
             # Enable or Disable VXLAN on the default IP pool.
             - name: CALICO_IPV4POOL_VXLAN
               value: "{{ .VXLANMode }}"
+{{- if .IPV4POOLNATOUTGOING }}
+            - name: CALICO_IPV4POOL_NAT_OUTGOING
+              value: "true"
+{{- else }}
+            - name: CALICO_IPV4POOL_NAT_OUTGOING
+              value: "false"
+{{- end }}
             # Enable or Disable VXLAN on the default IPv6 IP pool.
             - name: CALICO_IPV6POOL_VXLAN
               value: "Never"
@@ -4833,6 +4840,5 @@ spec:
 
 ---
 # Source: calico/templates/configure-canal.yaml
-
 
     `)))

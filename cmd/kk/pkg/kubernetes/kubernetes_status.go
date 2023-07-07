@@ -142,6 +142,9 @@ func (k *KubernetesStatus) LoadKubeConfig(runtime connector.Runtime, kubeConf *c
 	kubeConfigStr := k.KubeConfig
 
 	oldServer := fmt.Sprintf("server: https://%s:%d", kubeConf.Cluster.ControlPlaneEndpoint.Domain, kubeConf.Cluster.ControlPlaneEndpoint.Port)
+	if kubeConf.Cluster.ControlPlaneEndpoint.Address == "" {
+		kubeConf.Cluster.ControlPlaneEndpoint.Address = runtime.GetHostsByRole(common.Master)[0].GetAddress()
+	}
 	newServer := fmt.Sprintf("server: https://%s:%d", kubeConf.Cluster.ControlPlaneEndpoint.Address, kubeConf.Cluster.ControlPlaneEndpoint.Port)
 	newKubeConfigStr := strings.Replace(kubeConfigStr, oldServer, newServer, -1)
 

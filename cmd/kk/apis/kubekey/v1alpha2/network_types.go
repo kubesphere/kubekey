@@ -27,9 +27,10 @@ type NetworkConfig struct {
 }
 
 type CalicoCfg struct {
-	IPIPMode  string `yaml:"ipipMode" json:"ipipMode,omitempty"`
-	VXLANMode string `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
-	VethMTU   int    `yaml:"vethMTU" json:"vethMTU,omitempty"`
+	IPIPMode        string `yaml:"ipipMode" json:"ipipMode,omitempty"`
+	VXLANMode       string `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
+	VethMTU         int    `yaml:"vethMTU" json:"vethMTU,omitempty"`
+	Ipv4NatOutgoing *bool  `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
 }
 
 type FlannelCfg struct {
@@ -132,4 +133,12 @@ func (n *NetworkConfig) EnableMultusCNI() bool {
 		return false
 	}
 	return *n.MultusCNI.Enabled
+}
+
+// EnableIPV4POOL_NAT_OUTGOING is used to determine whether to enable CALICO_IPV4POOL_NAT_OUTGOING.
+func (c *CalicoCfg) EnableIPV4POOL_NAT_OUTGOING() bool {
+	if c.Ipv4NatOutgoing == nil {
+		return true
+	}
+	return *c.Ipv4NatOutgoing
 }
