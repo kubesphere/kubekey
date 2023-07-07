@@ -52,7 +52,7 @@ func (s *SyncContainerd) Execute(runtime connector.Runtime) error {
 	}
 	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
 
-	containerd, ok := binariesMap[common.Conatinerd]
+	containerd, ok := binariesMap[common.Containerd]
 	if !ok {
 		return errors.New("get KubeBinary key containerd by pipeline cache failed")
 	}
@@ -226,7 +226,7 @@ func (i *RestartCri) Execute(runtime connector.Runtime) error {
 		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("systemctl daemon-reload && systemctl restart docker "), true); err != nil {
 			return errors.Wrap(err, "restart docker")
 		}
-	case common.Conatinerd:
+	case common.Containerd:
 		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("systemctl daemon-reload && systemctl restart containerd"), true); err != nil {
 			return errors.Wrap(err, "restart containerd")
 		}
@@ -249,7 +249,7 @@ func (i *EditKubeletCri) Execute(runtime connector.Runtime) error {
 			true); err != nil {
 			return errors.Wrap(err, "Change KubeletTo Containerd failed")
 		}
-	case common.Conatinerd:
+	case common.Containerd:
 		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 			"sed -i 's#--network-plugin=cni --pod#--network-plugin=cni --container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock --pod#' /var/lib/kubelet/kubeadm-flags.env"),
 			true); err != nil {
@@ -333,7 +333,7 @@ func MigrateSelfNodeCriTasks(runtime connector.Runtime, kubeAction common.KubeAc
 			Parallel: false,
 		}
 		tasks = append(tasks, CordonNode, DrainNode, Uninstall)
-	case common.Conatinerd:
+	case common.Containerd:
 		Uninstall := &task.RemoteTask{
 			Name:  "UninstallContainerd",
 			Desc:  "Uninstall containerd",
@@ -418,7 +418,7 @@ func MigrateSelfNodeCriTasks(runtime connector.Runtime, kubeAction common.KubeAc
 		tasks = append(tasks, syncBinaries, generateDockerService, generateDockerConfig, enableDocker, dockerLoginRegistry,
 			RestartCri, EditKubeletCri, RestartKubeletNode, UnCordonNode)
 	}
-	if kubeAction.KubeConf.Arg.Type == common.Conatinerd {
+	if kubeAction.KubeConf.Arg.Type == common.Containerd {
 		syncContainerd := &task.RemoteTask{
 			Name:  "SyncContainerd",
 			Desc:  "Sync containerd binaries",

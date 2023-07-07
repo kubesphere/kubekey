@@ -94,7 +94,7 @@ func (o *MigrateCriOptions) Validate() error {
 	if o.Type == "" {
 		return errors.New("cri Type can not be empty")
 	}
-	if o.Type != common.Docker && o.Type != common.Conatinerd {
+	if o.Type != common.Docker && o.Type != common.Containerd {
 		return errors.Errorf("cri Type is invalid: %s", o.Type)
 	}
 	if o.ClusterCfgFile == "" {
