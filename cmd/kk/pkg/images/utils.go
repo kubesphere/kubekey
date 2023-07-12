@@ -173,11 +173,18 @@ func NewManifestSpec(image string, entries []manifesttypes.ManifestEntry) manife
 
 func validateImageName(imageFullName string) error {
 	image := strings.Split(imageFullName, "/")
-	if len(image) != 3 {
-		return errors.Errorf("image %s is invalid, only the format \"registry/namespace/name:tag\" is supported", imageFullName)
+	if len(image) < 3 {
+		return errors.Errorf("image %s is invalid, image PATH need contain at least two slash-separated", imageFullName)
 	}
-	if len(strings.Split(image[2], ":")) != 2 {
-		return errors.Errorf("image %s is invalid, only the format \"registry/namespace/name:tag\" is supported", imageFullName)
+	if len(strings.Split(image[len(image)-1], ":")) != 2 {
+		return errors.Errorf(`image %s is invalid, image PATH need contain ":"`, imageFullName)
 	}
 	return nil
+}
+
+func suffixImageName(imageFullName []string) string {
+	if len(imageFullName) >= 2 {
+		return strings.Join(imageFullName, "/")
+	}
+	return imageFullName[0]
 }
