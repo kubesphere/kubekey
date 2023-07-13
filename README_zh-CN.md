@@ -407,6 +407,9 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/littleBlackHouse"><img src="https://avatars.githubusercontent.com/u/54946465?v=4?s=100" width="100px;" alt="littleBlackHouse"/><br /><sub><b>littleBlackHouse</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=littleBlackHouse" title="Code">💻</a> <a href="https://github.com/kubesphere/kubekey/commits?author=littleBlackHouse" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/testwill"><img src="https://avatars.githubusercontent.com/u/8717479?v=4?s=100" width="100px;" alt="guangwu"/><br /><sub><b>guangwu</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=testwill" title="Code">💻</a> <a href="https://github.com/kubesphere/kubekey/commits?author=testwill" title="Documentation">📖</a></td>
     </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/wongearl"><img src="https://avatars.githubusercontent.com/u/36498442?v=4?s=100" width="100px;" alt="wongearl"/><br /><sub><b>wongearl</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=wongearl" title="Code">💻</a></td>
+    </tr>
   </tbody>
 </table>
 
