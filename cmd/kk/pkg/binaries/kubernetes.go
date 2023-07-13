@@ -108,7 +108,8 @@ func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path,
 	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, manifest.Arg.DownloadCommand)
 	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, manifest.Arg.DownloadCommand)
 	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, manifest.Arg.DownloadCommand)
-	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd}
+	calicoctl := files.NewKubeBinary("calicoctl", arch, m.Components.Calicoctl.Version, path, manifest.Arg.DownloadCommand)
+	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd, calicoctl}
 
 	containerManagerArr := make([]*files.KubeBinary, 0, 0)
 	containerManagerVersion := make(map[string]struct{})

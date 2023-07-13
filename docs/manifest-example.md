@@ -37,6 +37,8 @@ spec:
       version: v0.9.1
     etcd:
       version: v3.4.13
+    calicoctl:
+      version: v3.23.2
     containerRuntimes:
     - type: docker
       version: 20.10.8
@@ -49,10 +51,10 @@ spec:
     docker-compose:
       version: v2.2.2
   images:
-  - docker.io/calico/cni:v3.20.0
-  - docker.io/calico/kube-controllers:v3.20.0
-  - docker.io/calico/node:v3.20.0
-  - docker.io/calico/pod2daemon-flexvol:v3.20.0
+  - docker.io/calico/cni:v3.23.2
+  - docker.io/calico/kube-controllers:v3.23.2
+  - docker.io/calico/node:v3.23.2
+  - docker.io/calico/pod2daemon-flexvol:v3.23.2
   - docker.io/coredns/coredns:1.8.0
   - docker.io/kubesphere/k8s-dns-node-cache:1.15.12
   - docker.io/kubesphere/kube-apiserver:v1.21.5

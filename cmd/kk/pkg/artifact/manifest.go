@@ -163,6 +163,7 @@ func CreateManifest(arg common.Argument, name string) error {
 			CNI:               kubekeyv1alpha2.CNI{Version: kubekeyv1alpha2.DefaultCniVersion},
 			ETCD:              kubekeyv1alpha2.ETCD{Version: kubekeyv1alpha2.DefaultEtcdVersion},
 			Crictl:            kubekeyv1alpha2.Crictl{Version: kubekeyv1alpha2.DefaultCrictlVersion},
+			Calicoctl:         kubekeyv1alpha2.Calicoctl{Version: kubekeyv1alpha2.DefaultCalicoVersion},
 			ContainerRuntimes: containerArr,
 		},
 		Images: imageArr,
