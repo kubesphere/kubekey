@@ -23,8 +23,11 @@ spec:
     - node1
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
   controlPlaneEndpoint:
-    #Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
-    internalLoadbalancer: haproxy 
+    # Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
+    internalLoadbalancer: haproxy
+    # Determines whether to use external dns to resolve the control-plane domain. 
+    # If 'externalDNS' is set to 'true', the 'address' needs to be set to "".
+    externalDNS: false  
     domain: lb.kubesphere.local
     # The IP address of your load balancer. If you use internalLoadblancer in "kube-vip" mode, a VIP is required here.
     address: ""      
