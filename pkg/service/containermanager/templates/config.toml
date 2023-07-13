@@ -70,5 +70,5 @@ state = "/run/containerd"
               ca_file = {{ .Auth.CAFile }}
               cert_file = {{ .Auth.CertFile }}
               key_file = {{ .Auth.KeyFile }}
-              insecure_skip_verify = {{ .Auth.SkipTLSVerify }}
+              insecure_skip_verify = {{ .Auth.InsecureSkipVerify }}
         {{- end}}
