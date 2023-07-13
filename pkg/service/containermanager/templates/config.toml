@@ -64,11 +64,17 @@ state = "/run/containerd"
         {{- if .PrivateRegistry }}
         [plugins."io.containerd.grpc.v1.cri".registry.configs]
           [plugins."io.containerd.grpc.v1.cri".registry.configs.{{ .PrivateRegistry }}.auth]
-            username = {{ .Auth.Username }}
-            password = {{ .Auth.Password}}
+            username = "{{ .Auth.Username }}"
+            password = "{{ .Auth.Password}}"
             [plugins."io.containerd.grpc.v1.cri".registry.configs.{{ .PrivateRegistry }}.tls]
-              ca_file = {{ .Auth.CAFile }}
-              cert_file = {{ .Auth.CertFile }}
-              key_file = {{ .Auth.KeyFile }}
+            {{- if .Auth.CAFile }}
+              ca_file = "{{ .Auth.CAFile }}"
+            {{- end}}
+            {{- if .Auth.CertFile }}
+              cert_file = "{{ .Auth.CertFile }}"
+            {{- end}}
+            {{- if .Auth.KeyFile }}
+              key_file = "{{ .Auth.KeyFile }}"
+            {{- end}}
               insecure_skip_verify = {{ .Auth.InsecureSkipVerify }}
         {{- end}}
