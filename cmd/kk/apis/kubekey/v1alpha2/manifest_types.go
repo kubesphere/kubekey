@@ -81,6 +81,10 @@ type DockerCompose struct {
 	Version string `yaml:"version" json:"version"`
 }
 
+type Calicoctl struct {
+	Version string `yaml:"version" json:"version"`
+}
+
 type Components struct {
 	Helm              Helm               `yaml:"helm" json:"helm"`
 	CNI               CNI                `yaml:"cni" json:"cni"`
@@ -90,6 +94,7 @@ type Components struct {
 	DockerRegistry    DockerRegistry     `yaml:"docker-registry" json:"docker-registry"`
 	Harbor            Harbor             `yaml:"harbor" json:"harbor"`
 	DockerCompose     DockerCompose      `yaml:"docker-compose" json:"docker-compose"`
+	Calicoctl         Calicoctl          `yaml:"calicoctl" json:"calicoctl"`
 }
 
 type ManifestRegistry struct {
