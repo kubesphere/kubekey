@@ -95,7 +95,9 @@ func CreateManifest(arg common.Argument, name string) error {
 		case "ubuntu":
 			id = "ubuntu"
 			v := strings.Split(osImageArr[1], ".")
-			version = fmt.Sprintf("%s.%s", v[0], v[1])
+			if len(v) >= 2 {
+				version = fmt.Sprintf("%s.%s", v[0], v[1])
+			}
 		case "centos":
 			id = "centos"
 			version = osImageArr[2]
