@@ -62,7 +62,7 @@ func NewCmdCreateImages() *cobra.Command {
 
 func (o *CreateImagesOptions) Validate(_ *cobra.Command, _ []string) error {
 	switch o.ContainerManager {
-	case common.Docker, common.Conatinerd, common.Crio, common.Isula:
+	case common.Docker, common.Containerd, common.Crio, common.Isula:
 	default:
 		return fmt.Errorf("unsupport container runtime [%s]", o.ContainerManager)
 	}

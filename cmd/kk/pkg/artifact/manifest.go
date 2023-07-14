@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -96,7 +95,9 @@ func CreateManifest(arg common.Argument, name string) error {
 		case "ubuntu":
 			id = "ubuntu"
 			v := strings.Split(osImageArr[1], ".")
-			version = fmt.Sprintf("%s.%s", v[0], v[1])
+			if len(v) >= 2 {
+				version = fmt.Sprintf("%s.%s", v[0], v[1])
+			}
 		case "centos":
 			id = "centos"
 			version = osImageArr[2]
@@ -164,6 +165,7 @@ func CreateManifest(arg common.Argument, name string) error {
 			CNI:               kubekeyv1alpha2.CNI{Version: kubekeyv1alpha2.DefaultCniVersion},
 			ETCD:              kubekeyv1alpha2.ETCD{Version: kubekeyv1alpha2.DefaultEtcdVersion},
 			Crictl:            kubekeyv1alpha2.Crictl{Version: kubekeyv1alpha2.DefaultCrictlVersion},
+			Calicoctl:         kubekeyv1alpha2.Calicoctl{Version: kubekeyv1alpha2.DefaultCalicoVersion},
 			ContainerRuntimes: containerArr,
 		},
 		Images: imageArr,
@@ -171,7 +173,7 @@ func CreateManifest(arg common.Argument, name string) error {
 
 	manifestStr, err := templates.RenderManifest(options)
 
-	if err := ioutil.WriteFile(arg.FilePath, []byte(manifestStr), 0644); err != nil {
+	if err := os.WriteFile(arg.FilePath, []byte(manifestStr), 0644); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("write file %s failed", arg.FilePath))
 	}
 

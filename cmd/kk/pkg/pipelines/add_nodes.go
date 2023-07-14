@@ -189,9 +189,7 @@ func AddNodes(args common.Argument, downloadCmd string) error {
 			return err
 		}
 	case common.Kubernetes:
-		if err := NewAddNodesPipeline(runtime); err != nil {
-			return err
-		}
+		fallthrough
 	default:
 		if err := NewAddNodesPipeline(runtime); err != nil {
 			return err

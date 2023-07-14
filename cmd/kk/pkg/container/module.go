@@ -48,7 +48,7 @@ func (i *InstallContainerModule) Init() {
 	switch i.KubeConf.Cluster.Kubernetes.ContainerManager {
 	case common.Docker:
 		i.Tasks = InstallDocker(i)
-	case common.Conatinerd:
+	case common.Containerd:
 		i.Tasks = InstallContainerd(i)
 	case common.Crio:
 		// TODO: Add the steps of cri-o's installation.
@@ -263,7 +263,7 @@ func (i *UninstallContainerModule) Init() {
 	switch i.KubeConf.Cluster.Kubernetes.ContainerManager {
 	case common.Docker:
 		i.Tasks = UninstallDocker(i)
-	case common.Conatinerd:
+	case common.Containerd:
 		i.Tasks = UninstallContainerd(i)
 	case common.Crio:
 		// TODO: Add the steps of cri-o's installation.

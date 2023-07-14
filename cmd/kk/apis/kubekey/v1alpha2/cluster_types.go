@@ -74,6 +74,7 @@ type HostCfg struct {
 type ControlPlaneEndpoint struct {
 	InternalLoadbalancer string  `yaml:"internalLoadbalancer" json:"internalLoadbalancer,omitempty"`
 	Domain               string  `yaml:"domain" json:"domain,omitempty"`
+	ExternalDNS          *bool   `yaml:"externalDNS" json:"externalDNS"`
 	Address              string  `yaml:"address" json:"address,omitempty"`
 	Port                 int     `yaml:"port" json:"port,omitempty"`
 	KubeVip              KubeVip `yaml:"kubevip" json:"kubevip,omitempty"`
@@ -127,7 +128,10 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 	extraCertSANs := make([]string, 0)
 
 	extraCertSANs = append(extraCertSANs, cfg.ControlPlaneEndpoint.Domain)
-	extraCertSANs = append(extraCertSANs, cfg.ControlPlaneEndpoint.Address)
+
+	if cfg.ControlPlaneEndpoint.Address != "" {
+		extraCertSANs = append(extraCertSANs, cfg.ControlPlaneEndpoint.Address)
+	}
 
 	for _, host := range cfg.Hosts {
 		extraCertSANs = append(extraCertSANs, host.Name)
@@ -292,4 +296,12 @@ func (c ControlPlaneEndpoint) IsInternalLBEnabled() bool {
 
 func (c ControlPlaneEndpoint) IsInternalLBEnabledVip() bool {
 	return c.InternalLoadbalancer == Kubevip
+}
+
+// EnableExternalDNS is used to determine whether to use external dns to resolve kube-apiserver domain.
+func (c *ControlPlaneEndpoint) EnableExternalDNS() bool {
+	if c.ExternalDNS == nil {
+		return false
+	}
+	return *c.ExternalDNS
 }

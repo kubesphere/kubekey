@@ -23,8 +23,11 @@ spec:
     - node1
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
   controlPlaneEndpoint:
-    #Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
-    internalLoadbalancer: haproxy 
+    # Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
+    internalLoadbalancer: haproxy
+    # Determines whether to use external dns to resolve the control-plane domain. 
+    # If 'externalDNS' is set to 'true', the 'address' needs to be set to "".
+    externalDNS: false  
     domain: lb.kubesphere.local
     # The IP address of your load balancer. If you use internalLoadblancer in "kube-vip" mode, a VIP is required here.
     address: ""      
@@ -111,24 +114,24 @@ spec:
     #   keyFile: /pki/etcd/etcd.key
     dataDir: "/var/lib/etcd"
     # Time (in milliseconds) of a heartbeat interval.
-    heartbeatInterval: "250"
+    heartbeatInterval: 250
     # Time (in milliseconds) for an election to timeout. 
-    electionTimeout: "5000"
+    electionTimeout: 5000
     # Number of committed transactions to trigger a snapshot to disk.
-    snapshotCount: "10000"
+    snapshotCount: 10000
     # Auto compaction retention for mvcc key value store in hour. 0 means disable auto compaction.
-    autoCompactionRetention: "8"
+    autoCompactionRetention: 8
     # Set level of detail for etcd exported metrics, specify 'extensive' to include histogram metrics.
     metrics: basic
     ## Etcd has a default of 2G for its space quota. If you put a value in etcd_memory_limit which is less than
     ## etcd_quota_backend_bytes, you may encounter out of memory terminations of the etcd cluster. Please check
     ## etcd documentation for more information.
     # 8G is a suggested maximum size for normal environments and etcd warns at startup if the configured value exceeds it.
-    quotaBackendBytes: "2147483648" 
+    quotaBackendBytes: 2147483648 
     # Maximum client request size in bytes the server will accept.
     # etcd is designed to handle small key value pairs typical for metadata.
     # Larger requests will work, but may increase the latency of other requests
-    maxRequestBytes: "1572864"
+    maxRequestBytes: 1572864
     # Maximum number of snapshot files to retain (0 is unlimited)
     maxSnapshots: 5
     # Maximum number of wal files to retain (0 is unlimited)

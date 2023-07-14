@@ -24,8 +24,10 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -94,6 +96,19 @@ type Reconciler struct {
 func (r *Reconciler) getSSHClient(scope *scope.InstanceScope) ssh.Interface {
 	if r.sshClientFactory != nil {
 		return r.sshClientFactory(scope)
+	}
+	if scope.KKInstance.Spec.Auth.Secret != "" {
+		secret := &corev1.Secret{}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		defer cancel()
+		if err := r.Get(ctx, types.NamespacedName{Namespace: scope.Cluster.Namespace, Name: scope.KKInstance.Spec.Auth.Secret}, secret); err == nil {
+			if scope.KKInstance.Spec.Auth.PrivateKey == "" { // replace PrivateKey by secret
+				scope.KKInstance.Spec.Auth.PrivateKey = string(secret.Data["privateKey"])
+			}
+			if scope.KKInstance.Spec.Auth.Password == "" { // replace password by secret
+				scope.KKInstance.Spec.Auth.Password = string(secret.Data["password"])
+			}
+		}
 	}
 	return ssh.NewClient(scope.KKInstance.Spec.Address, scope.KKInstance.Spec.Auth, &scope.Logger)
 }
@@ -345,11 +360,12 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, instanceScope *scope.I
 	instanceScope.KKInstance.Labels[infrav1.KKClusterLabelName] = instanceScope.InfraCluster.InfraClusterName()
 
 	// If the KKMachine doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer)
-	// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
-	if err := instanceScope.PatchObject(); err != nil {
-		instanceScope.Error(err, "unable to patch object")
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer) {
+		// Register the finalizer after first read operation from KK to avoid orphaning KK resources on delete
+		if err := instanceScope.PatchObject(); err != nil {
+			instanceScope.Error(err, "unable to patch object")
+			return ctrl.Result{}, err
+		}
 	}
 
 	sshClient := r.getSSHClient(instanceScope)

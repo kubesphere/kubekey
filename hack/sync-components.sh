@@ -44,6 +44,7 @@ K3S_VERSION=${K3S_VERSION}
 CONTAINERD_VERSION=${CONTAINERD_VERSION}
 RUNC_VERSION=${RUNC_VERSION}
 COMPOSE_VERSION=${COMPOSE_VERSION}
+CALICO_VERSION=${CALICO_VERSION}
 
 # qsctl
 QSCTL_ACCESS_KEY_ID=${QSCTL_ACCESS_KEY_ID}
@@ -156,8 +157,26 @@ if [ $CNI_VERSION ]; then
      curl -L -o binaries/cni/$CNI_VERSION/$arch/cni-plugins-linux-$arch-$CNI_VERSION.tgz \
                 https://github.com/containernetworking/plugins/releases/download/$CNI_VERSION/cni-plugins-linux-$arch-$CNI_VERSION.tgz
 
-     qsctl cp binaries/etcd/$CNI_VERSION/$arch/cni-plugins-linux-$arch-$CNI_VERSION.tgz \
+     qsctl cp binaries/cni/$CNI_VERSION/$arch/cni-plugins-linux-$arch-$CNI_VERSION.tgz \
            qs://containernetworking/plugins/releases/download/$CNI_VERSION/cni-plugins-linux-$arch-$CNI_VERSION.tgz \
+           -c qsctl-config.yaml
+   done
+
+   rm -rf binaries
+fi
+
+# Sync CALICOCTL Binary
+if [ $CALICO_VERSION ]; then
+   for arch in ${ARCHS[@]}
+   do
+     mkdir -p binaries/calicoctl/$CALICO_VERSION/$arch
+     echo "Synchronizing calicoctl-$arch"
+
+     curl -L -o binaries/calicoctl/$CALICO_VERSION/$arch/calicoctl-linux-$arch \
+                https://github.com/projectcalico/calico/releases/download/$CALICO_VERSION/calicoctl-linux-$arch
+
+     qsctl cp binaries/calicoctl/$CALICO_VERSION/$arch/calicoctl-linux-$arch \
+           qs://kubernetes-release/projectcalico/calico/releases/download/$CALICO_VERSION/calicoctl-linux-$arch \
            -c qsctl-config.yaml
    done
 

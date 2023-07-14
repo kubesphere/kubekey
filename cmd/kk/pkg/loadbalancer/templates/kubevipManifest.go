@@ -74,7 +74,7 @@ spec:
     - name: prometheus_server
       value: :2112
     image: {{ .KubevipImage }}
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     name: kube-vip
     resources: {}
     securityContext:
@@ -138,7 +138,7 @@ spec:
     - name: address
       value: {{ .KubeVip }}
     image: {{ .KubevipImage }}
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     name: kube-vip
     resources: {}
     securityContext:

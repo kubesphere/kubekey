@@ -86,6 +86,13 @@ apiServer:
     {{- range .CertSANs }}
     - "{{ . }}"
     {{- end }}
+{{- if .EnableAudit }} 
+  extraVolumes:
+  - name: k8s-audit
+    hostPath: /etc/kubernetes/audit
+    mountPath: /etc/kubernetes/audit
+    pathType: DirectoryOrCreate
+{{- end }}
 controllerManager:
   extraArgs:
     node-cidr-mask-size: "{{ .NodeCidrMaskSize }}"
@@ -165,17 +172,11 @@ var (
 	}
 
 	ApiServerArgs = map[string]string{
-		"bind-address":        "0.0.0.0",
-		"audit-log-maxage":    "30",
-		"audit-log-maxbackup": "10",
-		"audit-log-maxsize":   "100",
+		"bind-address": "0.0.0.0",
 	}
 	ApiServerSecurityArgs = map[string]string{
-		"bind-address":        "0.0.0.0",
-		"audit-log-maxage":    "30",
-		"audit-log-maxbackup": "10",
-		"audit-log-maxsize":   "100",
-		"authorization-mode":  "Node,RBAC",
+		"bind-address":       "0.0.0.0",
+		"authorization-mode": "Node,RBAC",
 		// --enable-admission-plugins=EventRateLimit must have a configuration file
 		"enable-admission-plugins": "AlwaysPullImages,ServiceAccount,NamespaceLifecycle,NodeRestriction,LimitRanger,ResourceQuota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodNodeSelector,PodSecurity",
 		// "audit-log-path":      "/var/log/apiserver/audit.log", // need audit policy
@@ -184,6 +185,13 @@ var (
 		"service-account-lookup": "true",
 		"tls-min-version":        "VersionTLS12",
 		"tls-cipher-suites":      "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+	}
+	auditArgs = map[string]string{
+		"audit-log-format":          "json",
+		"audit-log-maxbackup":       "2",
+		"audit-log-maxsize":         "200",
+		"audit-policy-file":         "/etc/kubernetes/audit/audit-policy.yaml",
+		"audit-webhook-config-file": "/etc/kubernetes/audit/audit-webhook.yaml",
 	}
 	ControllermanagerArgs = map[string]string{
 		"bind-address":             "0.0.0.0",
@@ -205,10 +213,22 @@ var (
 	}
 )
 
-func GetApiServerArgs(securityEnhancement bool) map[string]string {
+func GetApiServerArgs(securityEnhancement bool, enableAudit bool) map[string]string {
 	if securityEnhancement {
+		if enableAudit {
+			for k, v := range auditArgs {
+				ApiServerSecurityArgs[k] = v
+			}
+		}
 		return ApiServerSecurityArgs
 	}
+
+	if enableAudit {
+		for k, v := range auditArgs {
+			ApiServerArgs[k] = v
+		}
+	}
+
 	return ApiServerArgs
 }
 
@@ -382,7 +402,7 @@ func GetKubeletCgroupDriver(runtime connector.Runtime, kubeConf *common.KubeConf
 		cmd = "docker info | grep 'Cgroup Driver'"
 	case common.Crio:
 		cmd = "crio config | grep cgroup_manager"
-	case common.Conatinerd:
+	case common.Containerd:
 		cmd = "containerd config dump | grep SystemdCgroup || echo 'SystemdCgroup = false'"
 	case common.Isula:
 		cmd = "isula info | grep 'Cgroup Driver'"

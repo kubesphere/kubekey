@@ -117,9 +117,7 @@ func DeleteCluster(args common.Argument) error {
 			return err
 		}
 	case common.Kubernetes:
-		if err := NewDeleteClusterPipeline(runtime); err != nil {
-			return err
-		}
+		fallthrough
 	default:
 		if err := NewDeleteClusterPipeline(runtime); err != nil {
 			return err

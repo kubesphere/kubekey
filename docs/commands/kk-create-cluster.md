@@ -68,3 +68,7 @@ Create a cluster from the specified configuration file and use the artifact to i
 ```
 $ kk create cluster -f config-sample.yaml -a kubekey-artifact.tar.gz --with-packages
 ```
+Create a cluster with the specified download command.
+```
+$ kk create cluster --download-cmd 'hd get -t 8 -o %s %s'
+```

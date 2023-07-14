@@ -113,6 +113,7 @@ func (d *DefaultLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 		Worker:   {hostname},
 		Registry: {hostname},
 	}
+	allInOne.Spec.ControlPlaneEndpoint.Address = "127.0.0.1"
 	if ver := normalizedBuildVersion(d.KubernetesVersion); ver != "" {
 		s := strings.Split(ver, "-")
 		if len(s) > 1 {

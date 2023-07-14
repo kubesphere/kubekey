@@ -25,7 +25,7 @@ func (d *DeployPluginsModule) Init() {
 	d.Name = "DeployPluginsModule"
 	d.Desc = "Deploy plugins for cluster"
 
-	if d.KubeConf.Cluster.Kubernetes.EnableKataDeploy() && (d.KubeConf.Cluster.Kubernetes.ContainerManager == common.Conatinerd || d.KubeConf.Cluster.Kubernetes.ContainerManager == common.Crio) {
+	if d.KubeConf.Cluster.Kubernetes.EnableKataDeploy() && (d.KubeConf.Cluster.Kubernetes.ContainerManager == common.Containerd || d.KubeConf.Cluster.Kubernetes.ContainerManager == common.Crio) {
 		d.Tasks = append(d.Tasks, DeployKataTasks(d)...)
 	}
 

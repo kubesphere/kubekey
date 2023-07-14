@@ -42,7 +42,7 @@ spec:
   containers:
   - name: haproxy
     image: {{ .HaproxyImage }}
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     resources:
       requests:
         cpu: 25m

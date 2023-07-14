@@ -97,19 +97,22 @@ func (s *SyncKubeBinary) Execute(runtime connector.Runtime) error {
 	}
 	binariesMap := binariesMapObj.(map[string]*files.KubeBinary)
 
-	if err := SyncKubeBinaries(runtime, binariesMap); err != nil {
+	if err := SyncKubeBinaries(s, runtime, binariesMap); err != nil {
 		return err
 	}
 	return nil
 }
 
 // SyncKubeBinaries is used to sync kubernetes' binaries to each node.
-func SyncKubeBinaries(runtime connector.Runtime, binariesMap map[string]*files.KubeBinary) error {
+func SyncKubeBinaries(s *SyncKubeBinary, runtime connector.Runtime, binariesMap map[string]*files.KubeBinary) error {
 	if err := utils.ResetTmpDir(runtime); err != nil {
 		return err
 	}
 
 	binaryList := []string{"k3s", "helm", "kubecni"}
+	if s.KubeConf.Cluster.Network.Plugin == "calico" {
+		binaryList = append(binaryList, "calicoctl")
+	}
 	for _, name := range binaryList {
 		binary, ok := binariesMap[name]
 		if !ok {

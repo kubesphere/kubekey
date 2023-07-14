@@ -19,7 +19,7 @@ package images
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -179,7 +179,7 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 			// Ex:
 			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-amd64
 			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-arm-v7
-			destName := fmt.Sprintf("oci:%s:%s:%s-%s%s", dirName, imageFullName[1], imageFullName[2], arch, variant)
+			destName := fmt.Sprintf("oci:%s:%s:%s-%s%s", dirName, imageFullName[1], suffixImageName(imageFullName[2:]), arch, variant)
 			logger.Log.Infof("Source: %s", srcName)
 			logger.Log.Infof("Destination: %s", destName)
 
@@ -227,7 +227,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		imagesPath = filepath.Join(runtime.GetWorkDir(), "images")
 	}
 
-	indexFile, err := ioutil.ReadFile(filepath.Join(imagesPath, "index.json"))
+	indexFile, err := os.ReadFile(filepath.Join(imagesPath, "index.json"))
 	if err != nil {
 		return errors.Errorf("read index.json failed: %s", err)
 	}
