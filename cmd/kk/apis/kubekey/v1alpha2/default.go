@@ -185,9 +185,9 @@ func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {
 
 func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*KubeHost) ControlPlaneEndpoint {
 	//Check whether LB should be configured
-	if len(masterGroup) >= 2 && !cfg.ControlPlaneEndpoint.IsInternalLBEnabled() && cfg.ControlPlaneEndpoint.Address == "" {
+	if len(masterGroup) >= 2 && !cfg.ControlPlaneEndpoint.IsInternalLBEnabled() && cfg.ControlPlaneEndpoint.Address == "" && !cfg.ControlPlaneEndpoint.EnableExternalDNS() {
 		fmt.Println()
-		fmt.Println("Warning: When there are at least two nodes in the control-plane, you should set the value of the LB address or enable the internal loadbalancer, if the 'ControlPlaneEndpoint.Domain' cannot be resolved in your dns server.")
+		fmt.Println("Warning: When there are at least two nodes in the control-plane, you should set the value of the LB address or enable the internal loadbalancer, or set 'controlPlaneEndpoint.externalDNS' to 'true' if the 'controlPlaneEndpoint.domain' can be resolved in your dns server.")
 		fmt.Println()
 	}
 
@@ -197,7 +197,7 @@ func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*KubeHost) ControlPlaneEndp
 		os.Exit(0)
 	}
 
-	if cfg.ControlPlaneEndpoint.Address == "127.0.0.1" {
+	if (cfg.ControlPlaneEndpoint.Address == "" && !cfg.ControlPlaneEndpoint.EnableExternalDNS()) || cfg.ControlPlaneEndpoint.Address == "127.0.0.1" {
 		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
 	}
 	if cfg.ControlPlaneEndpoint.Domain == "" {
