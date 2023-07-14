@@ -393,11 +393,32 @@ func (c *CompareConfigAndClusterInfoModule) Init() {
 		Desc:    "Find information about nodes that are expected to be deleted",
 		Hosts:   c.Runtime.GetHostsByRole(common.Master),
 		Prepare: new(common.OnlyFirstMaster),
-		Action:  new(FindNode),
+		//Action:  new(FindNode),
+		Action: new(FilterFirstMaster),
 	}
 
 	c.Tasks = []task.Interface{
 		check,
+	}
+}
+
+type RestartKubeletModule struct {
+	common.KubeModule
+}
+
+func (r *RestartKubeletModule) init() {
+	r.Name = "RestartKubeletModule"
+	r.Desc = "restart node kubelet service "
+	restart := &task.RemoteTask{
+		Name:   "RestartKubelet",
+		Desc:   "Restart kubelet service",
+		Hosts:  r.Runtime.GetHostsByRole(common.Master),
+		Action: new(RestartKubelet),
+		Retry:  5,
+	}
+
+	r.Tasks = []task.Interface{
+		restart,
 	}
 }
 
