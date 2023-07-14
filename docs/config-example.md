@@ -42,22 +42,13 @@ spec:
     # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
     debs: 
       - nfs-common
-    # initials:
-    #   - name: Install hd tool
-    #     bash: curl https://gitee.com/linuxsuren/tools/raw/master/install-zh.sh|bash
-    #   - name: Install packages
-    #     bash: |
-    #       hd setup --proxy ghproxy.com --provider gitee
-    #       hd i chrony
-    #       hd i conntrack
-    #       hd i socat
-    #preInstall:  # Specify custom init shell scripts for each nodes, and execute according to the list order before install container runtime.
+    #preInstall:  # Specify custom init shell scripts for each nodes, and execute according to the list order at the first stage.
     #  - name: format and mount disk  
     #    bash: /bin/bash -x setup-disk.sh
     #    materials: # scripts can has some dependency materials. those will copy to the node        
     #      - ./setup-disk.sh # the script which shell execute need
     #      -  xxx            # other tools materials need by this script
-    #postInstall: # Specify custom finish clean up shell scripts for each nodes after the kubernetes install.
+    #postInstall: # Specify custom finish clean up shell scripts for each nodes after the Kubernetes install.
     #  - name: clean tmps files
     #    bash: |
     #       rm -fr /tmp/kubekey/*
