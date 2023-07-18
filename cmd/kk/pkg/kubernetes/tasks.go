@@ -452,6 +452,18 @@ type FilterFirstMaster struct {
 	common.KubeAction
 }
 
+func filterString(filter string, nodes []string) []string {
+	j := 0
+	for _, v := range nodes {
+		if v != filter {
+			nodes[j] = v
+			j++
+		}
+	}
+	resArr := nodes[:j]
+	return resArr
+}
+
 func (f *FilterFirstMaster) Execute(runtime connector.Runtime) error {
 	firstMaster := runtime.GetHostsByRole(common.Master)[0].GetName()
 	//kubectl get node
@@ -469,19 +481,17 @@ func (f *FilterFirstMaster) Execute(runtime connector.Runtime) error {
 		nodes = strings.Split(res, "\r\n")
 	}
 	//nodes filter first master
-	j := 0
-	for _, v := range nodes {
-		if v != firstMaster {
-			nodes[j] = v
-			j++
-		}
+	resArr := filterString(firstMaster, nodes)
+	//nodes filter etcd nodes
+	for i := 0; i < len(runtime.GetHostsByRole(common.ETCD)); i++ {
+		etcdName := runtime.GetHostsByRole(common.ETCD)[i].GetName()
+		resArr = filterString(etcdName, resArr)
 	}
-	resArr := nodes[:j]
 	workerName := make(map[string]struct{})
 	for j := 0; j < len(runtime.GetHostsByRole(common.Worker)); j++ {
 		workerName[runtime.GetHostsByRole(common.Worker)[j].GetName()] = struct{}{}
 	}
-	//make sure node is not the first master node name
+	//make sure node is not the first master and etcd node name
 	var node string
 	for i := 0; i < len(resArr); i++ {
 		if _, ok := workerName[resArr[i]]; ok && resArr[i] == f.KubeConf.Arg.NodeName {
@@ -494,7 +504,7 @@ func (f *FilterFirstMaster) Execute(runtime connector.Runtime) error {
 		return errors.New("" +
 			"1. check the node name in the config-sample.yaml\n" +
 			"2. check the node name in the Kubernetes cluster\n" +
-			"3. check the node name is the first master node name\n")
+			"3. check the node name is the first master and etcd node name\n")
 	}
 
 	f.PipelineCache.Set("dstNode", node)
