@@ -45,13 +45,13 @@ spec:
     # Specify additional packages to be installed. The ISO file which is contained in the artifact is required.
     debs: 
       - nfs-common
-    #preInstall:  # Specify custom init shell scripts for each nodes, and execute according to the list order.
+    #preInstall:  # Specify custom init shell scripts for each nodes, and execute according to the list order at the first stage.
     #  - name: format and mount disk  
     #    bash: /bin/bash -x setup-disk.sh
     #    materials: # scripts can has some dependency materials. those will copy to the node        
     #      - ./setup-disk.sh # the script which shell execute need
     #      -  xxx            # other tools materials need by this script
-    #postInstall: # Specify custom finish clean up shell scripts for each nodes after the kubernetes install.
+    #postInstall: # Specify custom finish clean up shell scripts for each nodes after the Kubernetes install.
     #  - name: clean tmps files
     #    bash: |
     #       rm -fr /tmp/kubekey/*
