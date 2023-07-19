@@ -110,6 +110,7 @@ type RegistryConfig struct {
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
 	DataRoot           string               `yaml:"dataRoot" json:"dataRoot,omitempty"`
 	NamespaceOverride  string               `yaml:"namespaceOverride" json:"namespaceOverride,omitempty"`
+	NamespacePreappend string               `yaml:"namespacePreappend" json:"namespacePreappend,omitempty"`
 	BridgeIP           string               `yaml:"bridgeIP" json:"bridgeIP,omitempty"`
 	Auths              runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
 }

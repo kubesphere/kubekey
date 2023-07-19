@@ -19,6 +19,7 @@ package images
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -35,13 +36,14 @@ const (
 
 // Image defines image's info.
 type Image struct {
-	RepoAddr          string
-	Namespace         string
-	NamespaceOverride string
-	Repo              string
-	Tag               string
-	Group             string
-	Enable            bool
+	RepoAddr           string
+	Namespace          string
+	NamespaceOverride  string
+	NamespacePreappend string
+	Repo               string
+	Tag                string
+	Group              string
+	Enable             bool
 }
 
 // Images contains a list of Image
@@ -80,6 +82,13 @@ func (image Image) ImageRepo() string {
 			}
 		} else {
 			prefix = fmt.Sprintf("%s/%s/", image.RepoAddr, image.NamespaceOverride)
+		}
+
+		if image.NamespacePreappend != "" {
+			tmpPart := strings.TrimPrefix(prefix, image.RepoAddr)
+			if !strings.HasPrefix(tmpPart, fmt.Sprintf("/%s", image.NamespacePreappend)) {
+				prefix = fmt.Sprintf("%s/%s%s", image.RepoAddr, image.NamespacePreappend, tmpPart)
+			}
 		}
 	}
 

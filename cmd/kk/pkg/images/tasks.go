@@ -144,6 +144,9 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 	if kubeConf.Cluster.Registry.NamespaceOverride != "" {
 		image.NamespaceOverride = kubeConf.Cluster.Registry.NamespaceOverride
 	}
+	if kubeConf.Cluster.Registry.NamespacePreappend != "" {
+		image.NamespacePreappend = kubeConf.Cluster.Registry.NamespacePreappend
+	}
 	return image
 }
 
@@ -251,11 +254,12 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		}
 
 		image := Image{
-			RepoAddr:          c.KubeConf.Cluster.Registry.PrivateRegistry,
-			Namespace:         nameArr[0],
-			NamespaceOverride: c.KubeConf.Cluster.Registry.NamespaceOverride,
-			Repo:              nameArr[1],
-			Tag:               nameArr[2],
+			RepoAddr:           c.KubeConf.Cluster.Registry.PrivateRegistry,
+			Namespace:          nameArr[0],
+			NamespaceOverride:  c.KubeConf.Cluster.Registry.NamespaceOverride,
+			NamespacePreappend: c.KubeConf.Cluster.Registry.NamespacePreappend,
+			Repo:               nameArr[1],
+			Tag:                nameArr[2],
 		}
 
 		uniqueImage, p := ParseImageWithArchTag(image.ImageName())
