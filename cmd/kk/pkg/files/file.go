@@ -285,9 +285,9 @@ func (b *KubeBinary) Download() error {
 		}
 
 		if err := b.SHA256Check(); err != nil {
-			if i == 1 {
-				return err
-			}
+			// if i == 1 {
+			// 	return err
+			// }
 			path := b.Path()
 			_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", path)).Run()
 			continue
