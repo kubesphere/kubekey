@@ -125,15 +125,11 @@ spec:
     #   resources: {}
   devops:
     enabled: false
-    ci:
-      enabled: false
-    cd:
-      enabled: false
-      type: argocd
-    # resources: {}
-    jenkinsMemoryLim: 8Gi
+    jenkinsCpuReq: 0.5
+    jenkinsCpuLim: 1
     jenkinsMemoryReq: 4Gi
-    jenkinsVolumeSize: 8Gi
+    jenkinsMemoryLim: 4Gi
+    jenkinsVolumeSize: 16Gi
   events:
     enabled: false
     # operator:
