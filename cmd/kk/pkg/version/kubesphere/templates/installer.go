@@ -255,6 +255,7 @@ rules:
   - '*'
 - apiGroups:
   - kubeedge.kubesphere.io
+  - edgeruntime.kubesphere.io
   resources:
   - '*'
   verbs:
