@@ -250,7 +250,8 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		// calico:cni:v3.20.0-amd64
 		nameArr := strings.Split(ref, ":")
 		if len(nameArr) != 3 {
-			return errors.Errorf("invalid ref name: %s", ref)
+			//return errors.Errorf("invalid ref name: %s", ref)
+			continue
 		}
 
 		image := Image{
