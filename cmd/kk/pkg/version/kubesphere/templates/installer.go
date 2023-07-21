@@ -278,6 +278,12 @@ rules:
   - '*'
   verbs:
   - '*'
+- apiGroups:
+  - alerting.kubesphere.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
 
 ---
 kind: ClusterRoleBinding
