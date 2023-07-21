@@ -637,6 +637,12 @@ func (u *UpgradeKubeMaster) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
 
+	if versionutil.MustParseSemantic(u.KubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+		if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --network-plugin=cni / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
+		}
+	}
+
 	if err := SetKubeletTasks(runtime, u.KubeAction); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set kubelet failed: %s", host.GetName()))
 	}
@@ -661,6 +667,11 @@ func (u *UpgradeKubeWorker) Execute(runtime connector.Runtime) error {
 	}
 	if _, err := runtime.GetRunner().SudoCmd("systemctl stop kubelet", true); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
+	}
+	if versionutil.MustParseSemantic(u.KubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+		if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --network-plugin=cni / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
+		}
 	}
 	if err := SetKubeletTasks(runtime, u.KubeAction); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("set kubelet failed: %s", host.GetName()))

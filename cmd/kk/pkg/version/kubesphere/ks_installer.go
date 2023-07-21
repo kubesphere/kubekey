@@ -236,7 +236,5 @@ var KsV340 = &KsInstaller{
 		V332.String(),
 		V331.String(),
 		V330.String(),
-		V320.String(),
-		V321.String(),
 	},
 }
