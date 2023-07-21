@@ -136,7 +136,7 @@ var (
 	etcdFiles = []string{
 		"/usr/local/bin/etcd",
 		"/etc/ssl/etcd",
-		"/var/lib/etcd",
+		"/var/lib/etcd/*",
 		"/etc/etcd.env",
 	}
 	clusterFiles = []string{
@@ -149,7 +149,7 @@ var (
 		"/var/log/pods/",
 		"/var/lib/cni",
 		"/var/lib/calico",
-		"/var/lib/kubelet",
+		"/var/lib/kubelet/*",
 		"/run/calico",
 		"/run/flannel",
 		"/etc/flannel",
@@ -231,7 +231,7 @@ func (r *RemoveNodeFiles) Execute(runtime connector.Runtime) error {
 		"/var/log/pods/",
 		"/var/lib/cni",
 		"/var/lib/calico",
-		"/var/lib/kubelet",
+		"/var/lib/kubelet/*",
 		"/run/calico",
 		"/run/flannel",
 		"/etc/flannel",
