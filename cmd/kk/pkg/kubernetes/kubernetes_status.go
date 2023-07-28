@@ -65,7 +65,7 @@ func (k *KubernetesStatus) SearchJoinInfo(runtime connector.Runtime) error {
 		return nil
 	}
 
-	uploadCertsCmd := "/usr/local/bin/kubeadm init phase upload-certs --upload-certs"
+	uploadCertsCmd := "/usr/local/bin/kubeadm init phase upload-certs --upload-certs --config /etc/kubernetes/kubeadm-config.yaml"
 	output, err := runtime.GetRunner().SudoCmd(uploadCertsCmd, true)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to upload kubeadm certs")
