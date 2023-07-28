@@ -469,8 +469,23 @@ func (s *SetUpgradePlanModule) Init() {
 		Action: &SetUpgradePlan{Step: s.Step},
 	}
 
+	generateKubeadmConfigInit := &task.RemoteTask{
+		Name:  "GenerateKubeadmConfig",
+		Desc:  "Generate kubeadm config",
+		Hosts: s.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+		},
+		Action: &GenerateKubeadmConfig{
+			IsInitConfiguration:     true,
+			WithSecurityEnhancement: s.KubeConf.Arg.SecurityEnhancement,
+		},
+		Parallel: true,
+	}
+
 	s.Tasks = []task.Interface{
 		plan,
+		generateKubeadmConfigInit,
 	}
 }
 

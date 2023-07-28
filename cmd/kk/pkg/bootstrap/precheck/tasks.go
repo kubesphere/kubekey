@@ -241,9 +241,11 @@ func (k *KsVersionCheck) Execute(runtime connector.Runtime) error {
 	ccKsVersionStr, ccErr := runtime.GetRunner().SudoCmd(
 		"/usr/local/bin/kubectl get ClusterConfiguration ks-installer -n  kubesphere-system  -o jsonpath='{.metadata.labels.version}'",
 		false)
-	if ccErr == nil && ksVersionStr == "v3.1.0" {
+
+	if ccErr == nil && versionutil.MustParseSemantic(ccKsVersionStr).AtLeast(versionutil.MustParseSemantic("v3.1.0")) {
 		ksVersionStr = ccKsVersionStr
 	}
+
 	k.PipelineCache.Set(common.KubeSphereVersion, ksVersionStr)
 	return nil
 }
