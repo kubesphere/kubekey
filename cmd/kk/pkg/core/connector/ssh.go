@@ -36,7 +36,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/pkg/core/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 )
