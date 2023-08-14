@@ -24,6 +24,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/loadbalancer"
 )
 
 func NewCreateJoinNodesPipeline(runtime *common.KubeRuntime) error {
@@ -31,6 +32,7 @@ func NewCreateJoinNodesPipeline(runtime *common.KubeRuntime) error {
 		&precheck.NodePreCheckModule{},
 		&kubernetes.StatusModule{},
 		&kubernetes.JoinNodesModule{},
+		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 	}
 
 	p := pipeline.Pipeline{
