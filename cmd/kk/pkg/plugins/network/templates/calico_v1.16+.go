@@ -4639,6 +4639,11 @@ spec:
               value: "false"
             - name: FELIX_HEALTHENABLED
               value: "true"
+            - name: FELIX_DEVICEROUTESOURCEADDRESS
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
           securityContext:
             privileged: true
           resources:
