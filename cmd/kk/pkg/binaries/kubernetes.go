@@ -72,7 +72,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 				p := binary.Path()
 				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", p)).Run()
 			} else {
-				logger.Log.Messagef(common.LocalHost, "%s is existed", binary.ID)
+				logger.Log.Messagef(common.LocalHost, "%s exists", binary.ID)
 				continue
 			}
 		}
@@ -184,7 +184,7 @@ func CriDownloadHTTP(kubeConf *common.KubeConf, path, arch string, pipelineCache
 				p := binary.Path()
 				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", p)).Run()
 			} else {
-				logger.Log.Messagef(common.LocalHost, "%s is existed", binary.ID)
+				logger.Log.Messagef(common.LocalHost, "%s exists", binary.ID)
 				continue
 			}
 		}
