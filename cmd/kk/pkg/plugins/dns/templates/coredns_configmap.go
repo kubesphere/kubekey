@@ -22,34 +22,32 @@ import (
 	"text/template"
 )
 
-var NodeLocalDNSConfigMap = template.Must(template.New("nodelocaldns-configmap.yaml").Funcs(utils.FuncMap).Parse(
-	dedent.Dedent(`---
+var (
+	CorednsConfigMap = template.Must(template.New("coredns-configmap.yaml").Funcs(utils.FuncMap).Parse(
+		dedent.Dedent(`---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nodelocaldns
+  name: coredns
   namespace: kube-system
   labels:
-    addonmanager.kubernetes.io/mode: EnsureExists
-
+      addonmanager.kubernetes.io/mode: EnsureExists
 data:
   Corefile: |
 {{- if .ExternalZones }}
 {{- range .ExternalZones }}
-{{ range .Zones }}{{ . | indent 4 }} {{ end}} {
+{{ range .Zones }}{{ . | indent 4 }} {{ end }}{
+        log
         errors
-        cache {{ .Cache }}
-        reload
 {{- if .Rewrite }}
 {{- range .Rewrite }}
         rewrite {{ . }}
 {{- end }}
 {{- end }}
-        loop
-        bind 169.254.25.10
-        forward . {{ range .Nameservers }} {{ . }}{{ end }}
-        prometheus :9253
-        log
+        forward .{{ range .Nameservers }} {{ . }}{{ end}}
+        loadbalance
+        cache {{ .Cache }}
+        reload
 {{- if $.DNSEtcHosts }}
         hosts /etc/coredns/hosts {
           fallthrough
@@ -58,51 +56,32 @@ data:
     }
 {{- end }}
 {{- end }}
-    {{ .DNSDomain }}:53 {
-        errors
-        cache {
-            success 9984 30
-            denial 9984 5
-        }
-        reload
-        loop
-        bind 169.254.25.10
-        forward . {{ .ForwardTarget }} {
-            force_tcp
-        }
-        prometheus :9253
-        health 169.254.25.10:9254
-    }
-    in-addr.arpa:53 {
-        errors
-        cache 30
-        reload
-        loop
-        bind 169.254.25.10
-        forward . {{ .ForwardTarget }} {
-            force_tcp
-        }
-        prometheus :9253
-    }
-    ip6.arpa:53 {
-        errors
-        cache 30
-        reload
-        loop
-        bind 169.254.25.10
-        forward . {{ .ForwardTarget }} {
-            force_tcp
-        }
-        prometheus :9253
-    }
     .:53 {
+{{- if .AdditionalConfigs }}
+{{  .AdditionalConfigs | indent 8 }}
+{{- end }}
         errors
+        health {
+          lameduck 5s
+        }
+{{- if .RewriteBlock }}
+{{ .RewriteBlock | indent 8 }}
+{{- end }}
+        ready
+        kubernetes {{ .ClusterDomain }} in-addr.arpa ip6.arpa {
+          pods insecure
+          fallthrough in-addr.arpa ip6.arpa
+          ttl 30
+        }
+        prometheus :9153
+        forward . {{ if .UpstreamDNSServers }}{{ range .UpstreamDNSServers }}{{ . }} {{ end }}{{else}}/etc/resolv.conf{{ end }} {
+          prefer_udp
+          max_concurrent 1000
+        }
         cache 30
-        reload
         loop
-        bind 169.254.25.10
-        forward . /etc/resolv.conf
-        prometheus :9253
+        reload
+        loadbalance
 {{- if .DNSEtcHosts }}
         hosts /etc/coredns/hosts {
           fallthrough
@@ -111,6 +90,8 @@ data:
     }
 {{- if .DNSEtcHosts }}
   hosts: |
-{{ .DNSEtcHosts | indent 4}}
+{{ .DNSEtcHosts | indent 4 }}
 {{- end }}
-`)))
+
+    `)))
+)

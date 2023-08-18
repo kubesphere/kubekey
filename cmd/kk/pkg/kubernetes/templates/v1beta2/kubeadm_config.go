@@ -23,7 +23,7 @@ import (
 
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
@@ -33,9 +33,8 @@ import (
 )
 
 var (
-	funcMap = template.FuncMap{"toYaml": utils.ToYAML, "indent": utils.Indent}
 	// KubeadmConfig defines the template of kubeadm configuration file.
-	KubeadmConfig = template.Must(template.New("kubeadm-config.yaml").Funcs(funcMap).Parse(
+	KubeadmConfig = template.Must(template.New("kubeadm-config.yaml").Funcs(utils.FuncMap).Parse(
 		dedent.Dedent(`
 {{- if .IsInitCluster -}}
 ---

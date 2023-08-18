@@ -18,6 +18,8 @@ package kubernetes
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -29,6 +31,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes/templates"
+	dnsTemplates "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns/templates"
 )
 
 type StatusModule struct {
@@ -552,6 +555,59 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Parallel: false,
 	}
 
+	generateCoreDNS := &task.RemoteTask{
+		Name:  "GenerateCoreDNS",
+		Desc:  "Generate coredns manifests",
+		Hosts: p.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+		},
+		Action:   new(dns.GenerateCorednsmanifests),
+		Parallel: true,
+	}
+
+	applyCoredns := &task.RemoteTask{
+		Name:  "DeployCoreDNS",
+		Desc:  "Deploy coredns",
+		Hosts: p.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+		},
+		Action:   new(dns.DeployCoreDNS),
+		Parallel: true,
+	}
+
+	generateNodeLocalDNS := &task.RemoteTask{
+		Name:  "GenerateNodeLocalDNS",
+		Desc:  "Generate nodelocaldns",
+		Hosts: p.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(dns.EnableNodeLocalDNS),
+		},
+		Action: &action.Template{
+			Template: dnsTemplates.NodeLocalDNSService,
+			Dst:      filepath.Join(common.KubeConfigDir, dnsTemplates.NodeLocalDNSService.Name()),
+			Data: util.Data{
+				"NodelocaldnsImage": images.GetImage(p.Runtime, p.KubeConf, "k8s-dns-node-cache").ImageName(),
+				"DNSEtcHosts":       p.KubeConf.Cluster.DNS.DNSEtcHosts,
+			},
+		},
+		Parallel: true,
+	}
+
+	applyNodeLocalDNS := &task.RemoteTask{
+		Name:  "DeployNodeLocalDNS",
+		Desc:  "Deploy nodelocaldns",
+		Hosts: p.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(dns.EnableNodeLocalDNS)},
+		Action:   new(dns.DeployNodeLocalDNS),
+		Parallel: true,
+		Retry:    5,
+	}
+
 	upgradeKubeWorker := &task.RemoteTask{
 		Name:  "UpgradeClusterOnWorker",
 		Desc:  "Upgrade cluster on worker",
@@ -561,18 +617,6 @@ func (p *ProgressiveUpgradeModule) Init() {
 			new(common.OnlyWorker),
 		},
 		Action:   &UpgradeKubeWorker{ModuleName: p.Name},
-		Parallel: false,
-	}
-
-	reconfigureDNS := &task.RemoteTask{
-		Name:  "ReconfigureCoreDNS",
-		Desc:  "Reconfigure CoreDNS",
-		Hosts: p.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(NotEqualPlanVersion),
-		},
-		Action:   &ReconfigureDNS{ModuleName: p.Name},
 		Parallel: false,
 	}
 
@@ -591,7 +635,10 @@ func (p *ProgressiveUpgradeModule) Init() {
 		upgradeKubeMaster,
 		clusterStatus,
 		upgradeKubeWorker,
-		reconfigureDNS,
+		generateCoreDNS,
+		applyCoredns,
+		generateNodeLocalDNS,
+		applyNodeLocalDNS,
 		currentVersion,
 	}
 }

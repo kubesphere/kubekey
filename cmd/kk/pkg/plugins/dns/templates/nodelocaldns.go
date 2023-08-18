@@ -52,6 +52,8 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9253'
     spec:
+      nodeSelector:
+        kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       serviceAccountName: nodelocaldns
       hostNetwork: true
@@ -68,7 +70,7 @@ spec:
         image: {{ .NodelocaldnsImage }}
         resources:
           limits:
-            memory: 170Mi
+            memory: 200Mi
           requests:
             cpu: 100m
             memory: 70Mi
@@ -115,6 +117,10 @@ spec:
             items:
             - key: Corefile
               path: Corefile
+{{- if .DNSEtcHosts }}
+            - key: hosts
+              path: hosts
+{{ end }}
         - name: xtables-lock
           hostPath:
             path: /run/xtables.lock

@@ -38,6 +38,7 @@ type ClusterSpec struct {
 	ControlPlaneEndpoint ControlPlaneEndpoint `yaml:"controlPlaneEndpoint" json:"controlPlaneEndpoint,omitempty"`
 	System               System               `yaml:"system" json:"system,omitempty"`
 	Etcd                 EtcdCluster          `yaml:"etcd" json:"etcd,omitempty"`
+	DNS                  DNS                  `yaml:"dns" json:"dns,omitempty"`
 	Kubernetes           Kubernetes           `yaml:"kubernetes" json:"kubernetes,omitempty"`
 	Network              NetworkConfig        `yaml:"network" json:"network,omitempty"`
 	Storage              StorageConfig        `yaml:"storage" json:"storage,omitempty"`

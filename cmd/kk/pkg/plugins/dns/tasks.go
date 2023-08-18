@@ -17,10 +17,9 @@
 package dns
 
 import (
-	"path/filepath"
-	"strings"
-
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/pkg/errors"
+	"path/filepath"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
@@ -29,19 +28,52 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns/templates"
 )
 
-type OverrideCoreDNS struct {
+type GenerateCorednsmanifests struct {
 	common.KubeAction
 }
 
-func (o *OverrideCoreDNS) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl delete -n kube-system svc kube-dns", true); err != nil {
-		if !strings.Contains(err.Error(), "NotFound") {
-			return errors.Wrap(errors.WithStack(err), "delete kube-dns failed")
-		}
+func (g *GenerateCorednsmanifests) Execute(runtime connector.Runtime) error {
+	templateAction := action.Template{
+		Template: templates.Coredns,
+		Dst:      filepath.Join(common.KubeConfigDir, templates.Coredns.Name()),
+		Data: util.Data{
+			"ClusterIP":    g.KubeConf.Cluster.CorednsClusterIP(),
+			"CorednsImage": images.GetImage(runtime, g.KubeConf, "coredns").ImageName(),
+			"DNSEtcHosts":  g.KubeConf.Cluster.DNS.DNSEtcHosts,
+		},
 	}
 
-	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/coredns-svc.yaml", true); err != nil {
-		return errors.Wrap(errors.WithStack(err), "create coredns service failed")
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+	return nil
+}
+
+type DeployCoreDNS struct {
+	common.KubeAction
+}
+
+func (o *DeployCoreDNS) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl delete svc -n kube-system --field-selector metadata.name=kube-dns", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "remove old coredns svc")
+	}
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/coredns.yaml", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "update coredns failed")
+	}
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl -n kube-system rollout restart deploy coredns", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "restart coredns failed")
+	}
+	return nil
+}
+
+type ApplyCorednsConfigMap struct {
+	common.KubeAction
+}
+
+func (o *ApplyCorednsConfigMap) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/coredns-configmap.yaml", true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "create coredns configmap failed")
 	}
 	return nil
 }
@@ -77,6 +109,8 @@ func (g *GenerateNodeLocalDNSConfigMap) Execute(runtime connector.Runtime) error
 		Data: util.Data{
 			"ForwardTarget": clusterIP,
 			"DNSDomain":     g.KubeConf.Cluster.Kubernetes.DNSDomain,
+			"ExternalZones": g.KubeConf.Cluster.DNS.NodeLocalDNS.ExternalZones,
+			"DNSEtcHosts":   g.KubeConf.Cluster.DNS.DNSEtcHosts,
 		},
 	}
 
@@ -92,7 +126,7 @@ type ApplyNodeLocalDNSConfigMap struct {
 }
 
 func (a *ApplyNodeLocalDNSConfigMap) Execute(runtime connector.Runtime) error {
-	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/nodelocaldnsConfigmap.yaml", true); err != nil {
+	if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/nodelocaldns-configmap.yaml", true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "apply nodelocaldns configmap failed")
 	}
 	return nil

@@ -30,7 +30,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
@@ -212,13 +212,13 @@ func (f FileLoader) Load() (*kubekeyapiv1alpha2.Cluster, error) {
 			if err := json.Unmarshal(contentToJson, &clusterCfg); err != nil {
 				return nil, errors.Wrap(err, "Failed to unmarshal configuration")
 			}
-			metadata := result["metadata"].(map[interface{}]interface{})
+			metadata := result["metadata"].(map[string]interface{})
 			objName = metadata["name"].(string)
 		}
 
 		if result["kind"] == "ConfigMap" || result["kind"] == "ClusterConfiguration" {
-			metadata := result["metadata"].(map[interface{}]interface{})
-			labels := metadata["labels"].(map[interface{}]interface{})
+			metadata := result["metadata"].(map[string]interface{})
+			labels := metadata["labels"].(map[string]interface{})
 			clusterCfg.Spec.KubeSphere.Enabled = true
 
 			v, ok := labels["version"]
