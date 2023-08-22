@@ -39,7 +39,7 @@ const (
 	CertsFileList               = "certsFileList"
 )
 
-// KubekeyCertEtcdCA is the definition of the root CA used by the hosted etcd server.
+// KubekeyCertRegistryCA is the definition of the root CA used by the hosted etcd server.
 func KubekeyCertRegistryCA() *certs.KubekeyCert {
 	return &certs.KubekeyCert{
 		Name:     "registry-ca",
@@ -53,7 +53,7 @@ func KubekeyCertRegistryCA() *certs.KubekeyCert {
 	}
 }
 
-// KubekeyCertEtcdAdmin is the definition of the cert for etcd admin.
+// KubekeyCertRegistryServer is the definition of the cert for etcd admin.
 func KubekeyCertRegistryServer(baseName string, altNames *certutil.AltNames) *certs.KubekeyCert {
 	return &certs.KubekeyCert{
 		Name:     "registry-server",
