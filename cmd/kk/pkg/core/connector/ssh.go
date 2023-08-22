@@ -36,6 +36,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 )
@@ -584,6 +585,9 @@ func (c *connection) MkDirAll(path string, mode string, host Host) error {
 		mode = "775"
 	}
 	mkDstDir := fmt.Sprintf("mkdir -p -m %s %s || true", mode, path)
+	if strings.Contains(path, common.TmpDir) {
+		mkDstDir = fmt.Sprintf("mkdir -p  %s && chmod -R  %s  %s || true", path, mode, common.TmpDir)
+	}
 	if _, _, err := c.Exec(SudoPrefix(mkDstDir), host); err != nil {
 		return err
 	}
