@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 	"github.com/kubesphere/kubekey/v3/version"

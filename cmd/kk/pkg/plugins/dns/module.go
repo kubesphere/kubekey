@@ -36,34 +36,85 @@ func (c *ClusterDNSModule) Init() {
 	c.Name = "ClusterDNSModule"
 	c.Desc = "Deploy cluster dns"
 
-	generateCoreDNSSvc := &task.RemoteTask{
-		Name:  "GenerateCoreDNSSvc",
-		Desc:  "Generate coredns service",
+	generateCorednsConfigMap := &task.RemoteTask{
+		Name:  "GenerateCorednsConfigMap",
+		Desc:  "Generate coredns configmap",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
 			new(common.OnlyFirstMaster),
-			&CoreDNSExist{Not: true},
 		},
 		Action: &action.Template{
-			Template: templates.CorednsService,
-			Dst:      filepath.Join(common.KubeConfigDir, templates.CorednsService.Name()),
+			Template: templates.CorednsConfigMap,
+			Dst:      filepath.Join(common.KubeConfigDir, templates.CorednsConfigMap.Name()),
 			Data: util.Data{
-				"ClusterIP": c.KubeConf.Cluster.CorednsClusterIP(),
+				"DNSEtcHosts":        c.KubeConf.Cluster.DNS.DNSEtcHosts,
+				"ExternalZones":      c.KubeConf.Cluster.DNS.CoreDNS.ExternalZones,
+				"AdditionalConfigs":  c.KubeConf.Cluster.DNS.CoreDNS.AdditionalConfigs,
+				"RewriteBlock":       c.KubeConf.Cluster.DNS.CoreDNS.RewriteBlock,
+				"ClusterDomain":      c.KubeConf.Cluster.Kubernetes.DNSDomain,
+				"UpstreamDNSServers": c.KubeConf.Cluster.DNS.CoreDNS.UpstreamDNSServers,
 			},
 		},
 		Parallel: true,
 	}
 
-	override := &task.RemoteTask{
-		Name:  "OverrideCoreDNSService",
-		Desc:  "Override coredns service",
+	applyCorednsConfigMap := &task.RemoteTask{
+		Name:  "ApplyCorednsConfigMap",
+		Desc:  "Apply coredns configmap",
 		Hosts: c.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
 			new(common.OnlyFirstMaster),
-			&CoreDNSExist{Not: true},
 		},
-		Action:   new(OverrideCoreDNS),
+		Action:   new(ApplyCorednsConfigMap),
 		Parallel: true,
+		Retry:    5,
+	}
+
+	generateCoreDNS := &task.RemoteTask{
+		Name:  "GenerateCoreDNS",
+		Desc:  "Generate coredns manifests",
+		Hosts: c.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+		},
+		Action:   new(GenerateCorednsmanifests),
+		Parallel: true,
+	}
+
+	deployCoredns := &task.RemoteTask{
+		Name:  "DeployCoreDNS",
+		Desc:  "Deploy coredns",
+		Hosts: c.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+		},
+		Action:   new(DeployCoreDNS),
+		Parallel: true,
+	}
+
+	generateNodeLocalDNSConfigMap := &task.RemoteTask{
+		Name:  "GenerateNodeLocalDNSConfigMap",
+		Desc:  "Generate nodelocaldns configmap",
+		Hosts: c.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(EnableNodeLocalDNS),
+		},
+		Action:   new(GenerateNodeLocalDNSConfigMap),
+		Parallel: true,
+	}
+
+	applyNodeLocalDNSConfigMap := &task.RemoteTask{
+		Name:  "ApplyNodeLocalDNSConfigMap",
+		Desc:  "Apply nodelocaldns configmap",
+		Hosts: c.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			new(EnableNodeLocalDNS),
+		},
+		Action:   new(ApplyNodeLocalDNSConfigMap),
+		Parallel: true,
+		Retry:    5,
 	}
 
 	generateNodeLocalDNS := &task.RemoteTask{
@@ -79,6 +130,7 @@ func (c *ClusterDNSModule) Init() {
 			Dst:      filepath.Join(common.KubeConfigDir, templates.NodeLocalDNSService.Name()),
 			Data: util.Data{
 				"NodelocaldnsImage": images.GetImage(c.Runtime, c.KubeConf, "k8s-dns-node-cache").ImageName(),
+				"DNSEtcHosts":       c.KubeConf.Cluster.DNS.DNSEtcHosts,
 			},
 		},
 		Parallel: true,
@@ -97,39 +149,14 @@ func (c *ClusterDNSModule) Init() {
 		Retry:    5,
 	}
 
-	generateNodeLocalDNSConfigMap := &task.RemoteTask{
-		Name:  "GenerateNodeLocalDNSConfigMap",
-		Desc:  "Generate nodelocaldns configmap",
-		Hosts: c.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(EnableNodeLocalDNS),
-			new(NodeLocalDNSConfigMapNotExist),
-		},
-		Action:   new(GenerateNodeLocalDNSConfigMap),
-		Parallel: true,
-	}
-
-	applyNodeLocalDNSConfigMap := &task.RemoteTask{
-		Name:  "ApplyNodeLocalDNSConfigMap",
-		Desc:  "Apply nodelocaldns configmap",
-		Hosts: c.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(EnableNodeLocalDNS),
-			new(NodeLocalDNSConfigMapNotExist),
-		},
-		Action:   new(ApplyNodeLocalDNSConfigMap),
-		Parallel: true,
-		Retry:    5,
-	}
-
 	c.Tasks = []task.Interface{
-		generateCoreDNSSvc,
-		override,
-		generateNodeLocalDNS,
-		applyNodeLocalDNS,
+		generateCorednsConfigMap,
+		applyCorednsConfigMap,
+		generateCoreDNS,
+		deployCoredns,
 		generateNodeLocalDNSConfigMap,
 		applyNodeLocalDNSConfigMap,
+		generateNodeLocalDNS,
+		applyNodeLocalDNS,
 	}
 }

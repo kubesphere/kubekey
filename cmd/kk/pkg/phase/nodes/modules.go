@@ -64,18 +64,9 @@ func (p *UpgradeNodesModule) Init() {
 		Parallel: false,
 	}
 
-	reconfigureDNS := &task.RemoteTask{
-		Name:     "ReconfigureCoreDNS",
-		Desc:     "Reconfigure CoreDNS",
-		Hosts:    p.Runtime.GetHostsByRole(common.Master),
-		Action:   &kubernetes.ReconfigureDNS{ModuleName: p.Name},
-		Parallel: false,
-	}
-
 	p.Tasks = []task.Interface{
 		upgradeKubeMaster,
 		clusterStatus,
 		upgradeNodes,
-		reconfigureDNS,
 	}
 }

@@ -115,6 +115,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*Kub
 	clusterCfg.Storage = SetDefaultStorageCfg(cfg)
 	clusterCfg.System = cfg.System
 	clusterCfg.Kubernetes = SetDefaultClusterCfg(cfg)
+	clusterCfg.DNS = cfg.DNS
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
 	clusterCfg.KubeSphere = cfg.KubeSphere

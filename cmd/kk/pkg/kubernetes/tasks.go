@@ -39,7 +39,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/etcd"
@@ -47,8 +46,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes/templates/v1beta2"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns"
-	dnsTemplates "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
 )
 
@@ -709,6 +706,7 @@ type UpgradeKubeMaster struct {
 
 func (u *UpgradeKubeMaster) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
+
 	if err := KubeadmUpgradeTasks(runtime, u); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("upgrade cluster using kubeadm failed: %s", host.GetName()))
 	}
@@ -807,6 +805,7 @@ type KubeadmUpgrade struct {
 
 func (k *KubeadmUpgrade) Execute(runtime connector.Runtime) error {
 	host := runtime.RemoteHost()
+	fmt.Println(k.KubeConf.Cluster.Kubernetes.Version)
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 		"timeout -k 600s 600s /usr/local/bin/kubeadm upgrade apply %s -y "+
 			"--ignore-preflight-errors=all "+
@@ -857,140 +856,128 @@ func SetKubeletTasks(runtime connector.Runtime, kubeAction common.KubeAction) er
 	return nil
 }
 
-type ReconfigureDNS struct {
-	common.KubeAction
-	ModuleName string
-}
-
-func (r *ReconfigureDNS) Execute(runtime connector.Runtime) error {
-	patchCorednsCmd := `/usr/local/bin/kubectl patch deploy -n kube-system coredns -p \" 
-spec:
-    template:
-       spec:
-           volumes:
-           - name: config-volume
-             configMap:
-                 name: coredns
-                 items:
-                 - key: Corefile
-                   path: Corefile\"`
-	if _, err := runtime.GetRunner().SudoCmd(patchCorednsCmd, true); err != nil {
-		return errors.Wrap(errors.WithStack(err), "patch the coredns failed")
-	}
-	if err := OverrideCoreDNSService(runtime, r.KubeAction); err != nil {
-		return errors.Wrap(errors.WithStack(err), "re-config coredns failed")
-	}
-	return nil
-}
-
-func OverrideCoreDNSService(runtime connector.Runtime, kubeAction common.KubeAction) error {
-	host := runtime.RemoteHost()
-
-	generateCoreDNSSvc := &task.RemoteTask{
-		Name:  "GenerateCoreDNSSvc",
-		Desc:  "generate coredns service",
-		Hosts: []connector.Host{host},
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-		},
-		Action: &action.Template{
-			Template: dnsTemplates.CorednsService,
-			Dst:      filepath.Join(common.KubeConfigDir, dnsTemplates.CorednsService.Name()),
-			Data: util.Data{
-				"ClusterIP": kubeAction.KubeConf.Cluster.CorednsClusterIP(),
-			},
-		},
-		Parallel: true,
-	}
-
-	override := &task.RemoteTask{
-		Name:  "OverrideCoreDNSService",
-		Desc:  "override coredns service",
-		Hosts: []connector.Host{host},
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-		},
-		Action:   new(dns.OverrideCoreDNS),
-		Parallel: false,
-	}
-
-	generateNodeLocalDNS := &task.RemoteTask{
-		Name:  "GenerateNodeLocalDNS",
-		Desc:  "generate nodelocaldns",
-		Hosts: []connector.Host{host},
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(dns.EnableNodeLocalDNS),
-		},
-		Action: &action.Template{
-			Template: dnsTemplates.NodeLocalDNSService,
-			Dst:      filepath.Join(common.KubeConfigDir, dnsTemplates.NodeLocalDNSService.Name()),
-			Data: util.Data{
-				"NodelocaldnsImage": images.GetImage(runtime, kubeAction.KubeConf, "k8s-dns-node-cache").ImageName(),
-			},
-		},
-		Parallel: true,
-	}
-
-	applyNodeLocalDNS := &task.RemoteTask{
-		Name:  "DeployNodeLocalDNS",
-		Desc:  "deploy nodelocaldns",
-		Hosts: []connector.Host{host},
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(dns.EnableNodeLocalDNS),
-		},
-		Action:   new(dns.DeployNodeLocalDNS),
-		Parallel: true,
-		Retry:    5,
-	}
-
-	generateNodeLocalDNSConfigMap := &task.RemoteTask{
-		Name:  "GenerateNodeLocalDNSConfigMap",
-		Desc:  "generate nodelocaldns configmap",
-		Hosts: []connector.Host{host},
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(dns.EnableNodeLocalDNS),
-			new(dns.NodeLocalDNSConfigMapNotExist),
-		},
-		Action:   new(dns.GenerateNodeLocalDNSConfigMap),
-		Parallel: true,
-	}
-
-	applyNodeLocalDNSConfigMap := &task.RemoteTask{
-		Name:  "ApplyNodeLocalDNSConfigMap",
-		Desc:  "apply nodelocaldns configmap",
-		Hosts: []connector.Host{host},
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(dns.EnableNodeLocalDNS),
-			new(dns.NodeLocalDNSConfigMapNotExist),
-		},
-		Action:   new(dns.ApplyNodeLocalDNSConfigMap),
-		Parallel: true,
-		Retry:    5,
-	}
-
-	tasks := []task.Interface{
-		override,
-		generateCoreDNSSvc,
-		override,
-		generateNodeLocalDNS,
-		applyNodeLocalDNS,
-		generateNodeLocalDNSConfigMap,
-		applyNodeLocalDNSConfigMap,
-	}
-
-	for i := range tasks {
-		t := tasks[i]
-		t.Init(runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
-		if res := t.Execute(); res.IsFailed() {
-			return res.CombineErr()
-		}
-	}
-	return nil
-}
+//type UpgradeDNS struct {
+//	common.KubeAction
+//	ModuleName string
+//}
+//
+//func (r *UpgradeDNS) Execute(runtime connector.Runtime) error {
+//	if err := UpgradeCoredns(runtime, r.KubeAction); err != nil {
+//		return errors.Wrap(errors.WithStack(err), "re-config coredns failed")
+//	}
+//	return nil
+//}
+//
+//func UpgradeCoredns(runtime connector.Runtime, kubeAction common.KubeAction) error {
+//	host := runtime.RemoteHost()
+//
+//	generateCoreDNSSvc := &task.RemoteTask{
+//		Name:  "GenerateCoreDNS",
+//		Desc:  "generate coredns manifests",
+//		Hosts: []connector.Host{host},
+//		Prepare: &prepare.PrepareCollection{
+//			new(common.OnlyFirstMaster),
+//		},
+//		Action: &action.Template{
+//			Template: dnsTemplates.Coredns,
+//			Dst:      filepath.Join(common.KubeConfigDir, dnsTemplates.Coredns.Name()),
+//			Data: util.Data{
+//				"ClusterIP":    kubeAction.KubeConf.Cluster.CorednsClusterIP(),
+//				"CorednsImage": images.GetImage(runtime, kubeAction.KubeConf, "coredns").ImageName(),
+//				"DNSEtchHsts":  kubeAction.KubeConf.Cluster.DNS.DNSEtcHosts,
+//			},
+//		},
+//		Parallel: true,
+//	}
+//
+//	override := &task.RemoteTask{
+//		Name:  "UpgradeCoreDNS",
+//		Desc:  "upgrade coredns",
+//		Hosts: []connector.Host{host},
+//		Prepare: &prepare.PrepareCollection{
+//			new(common.OnlyFirstMaster),
+//		},
+//		Action:   new(dns.DeployCoreDNS),
+//		Parallel: false,
+//	}
+//
+//	generateNodeLocalDNS := &task.RemoteTask{
+//		Name:  "GenerateNodeLocalDNS",
+//		Desc:  "generate nodelocaldns",
+//		Hosts: []connector.Host{host},
+//		Prepare: &prepare.PrepareCollection{
+//			new(common.OnlyFirstMaster),
+//			new(dns.EnableNodeLocalDNS),
+//		},
+//		Action: &action.Template{
+//			Template: dnsTemplates.NodeLocalDNSService,
+//			Dst:      filepath.Join(common.KubeConfigDir, dnsTemplates.NodeLocalDNSService.Name()),
+//			Data: util.Data{
+//				"NodelocaldnsImage": images.GetImage(runtime, kubeAction.KubeConf, "k8s-dns-node-cache").ImageName(),
+//			},
+//		},
+//		Parallel: true,
+//	}
+//
+//	applyNodeLocalDNS := &task.RemoteTask{
+//		Name:  "DeployNodeLocalDNS",
+//		Desc:  "deploy nodelocaldns",
+//		Hosts: []connector.Host{host},
+//		Prepare: &prepare.PrepareCollection{
+//			new(common.OnlyFirstMaster),
+//			new(dns.EnableNodeLocalDNS),
+//		},
+//		Action:   new(dns.DeployNodeLocalDNS),
+//		Parallel: true,
+//		Retry:    5,
+//	}
+//
+//	generateNodeLocalDNSConfigMap := &task.RemoteTask{
+//		Name:  "GenerateNodeLocalDNSConfigMap",
+//		Desc:  "generate nodelocaldns configmap",
+//		Hosts: []connector.Host{host},
+//		Prepare: &prepare.PrepareCollection{
+//			new(common.OnlyFirstMaster),
+//			new(dns.EnableNodeLocalDNS),
+//			new(dns.NodeLocalDNSConfigMapNotExist),
+//		},
+//		Action:   new(dns.GenerateNodeLocalDNSConfigMap),
+//		Parallel: true,
+//	}
+//
+//	applyNodeLocalDNSConfigMap := &task.RemoteTask{
+//		Name:  "ApplyNodeLocalDNSConfigMap",
+//		Desc:  "apply nodelocaldns configmap",
+//		Hosts: []connector.Host{host},
+//		Prepare: &prepare.PrepareCollection{
+//			new(common.OnlyFirstMaster),
+//			new(dns.EnableNodeLocalDNS),
+//			new(dns.NodeLocalDNSConfigMapNotExist),
+//		},
+//		Action:   new(dns.ApplyNodeLocalDNSConfigMap),
+//		Parallel: true,
+//		Retry:    5,
+//	}
+//
+//	tasks := []task.Interface{
+//		override,
+//		generateCoreDNSSvc,
+//		override,
+//		generateNodeLocalDNS,
+//		applyNodeLocalDNS,
+//		generateNodeLocalDNSConfigMap,
+//		applyNodeLocalDNSConfigMap,
+//	}
+//
+//	for i := range tasks {
+//		t := tasks[i]
+//		t.Init(runtime, kubeAction.ModuleCache, kubeAction.PipelineCache)
+//		if res := t.Execute(); res.IsFailed() {
+//			return res.CombineErr()
+//		}
+//	}
+//	return nil
+//}
 
 type SetCurrentK8sVersion struct {
 	common.KubeAction

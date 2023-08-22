@@ -168,6 +168,8 @@ func (g *GetAllNodesK8sVersion) Execute(runtime connector.Runtime) error {
 	nodeK8sVersion = strings.Split(kubeletVersionInfo, " ")[1]
 
 	host := runtime.RemoteHost()
+	host.GetCache().Set(common.NodeK8sVersion, nodeK8sVersion)
+
 	if host.IsRole(common.Master) {
 		apiserverVersion, err := runtime.GetRunner().SudoCmd(
 			"cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep 'image:' | rev | cut -d ':' -f1 | rev",
@@ -175,9 +177,22 @@ func (g *GetAllNodesK8sVersion) Execute(runtime connector.Runtime) error {
 		if err != nil {
 			return errors.Wrap(err, "get current kube-apiserver version failed")
 		}
-		nodeK8sVersion = apiserverVersion
+
+		apiserverSemanticVersion, err := versionutil.ParseSemantic(apiserverVersion)
+		if err != nil {
+			return errors.Wrap(err, "parse kube-apiserver version failed")
+		}
+
+		kubeletSemanticVersion, err := versionutil.ParseSemantic(nodeK8sVersion)
+		if err != nil {
+			return errors.Wrap(err, "parse kubelet version failed")
+		}
+
+		if apiserverSemanticVersion.LessThan(kubeletSemanticVersion) {
+			host.GetCache().Set(common.NodeK8sVersion, apiserverVersion)
+		}
 	}
-	host.GetCache().Set(common.NodeK8sVersion, nodeK8sVersion)
+
 	return nil
 }
 

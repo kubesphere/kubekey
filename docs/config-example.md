@@ -162,5 +162,71 @@ spec:
         plainHTTP: false # Allow contacting registries over HTTP.
         certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
   addons: [] # You can install cloud-native addons (Chart or YAML) by using this field.
+  #dns:
+  #  ## Optional hosts file content to coredns use as /etc/hosts file.
+  #  dnsEtcHosts: |
+  #    192.168.0.100 api.example.com
+  #    192.168.0.200 ingress.example.com
+  #  coredns:
+  #    ## additionalConfigs adds any extra configuration to coredns
+  #    additionalConfigs: |
+  #      whoami
+  #      log
+  #    ## Array of optional external zones to coredns forward queries to. It's injected into coredns' config file before
+  #    ## default kubernetes zone. Use it as an optimization for well-known zones and/or internal-only domains, i.e. VPN for internal networks (default is unset)
+  #    externalZones:
+  #    - zones:
+  #      - example.com
+  #      - example.io:1053
+  #      nameservers:
+  #      - 1.1.1.1
+  #      - 2.2.2.2
+  #      cache: 5
+  #    - zones:
+  #      - mycompany.local:4453
+  #      nameservers:
+  #      - 192.168.0.53
+  #      cache: 10
+  #    - zones:
+  #      - mydomain.tld
+  #      nameservers:
+  #      - 10.233.0.3
+  #      cache: 5
+  #      rewrite:
+  #      - name substring website.tld website.namespace.svc.cluster.local
+  #    ## Rewrite plugin block to perform internal message rewriting.
+  #    rewriteBlock: |
+  #      rewrite stop {
+  #        name regex (.*)\.my\.domain {1}.svc.cluster.local
+  #        answer name (.*)\.svc\.cluster\.local {1}.my.domain
+  #      }
+  #    ## DNS servers to be added *after* the cluster DNS. These serve as backup
+  #    ## DNS servers in early cluster deployment when no cluster DNS is available yet.
+  #    upstreamDNSServers:
+  #    - 8.8.8.8
+  #    - 1.2.4.8
+  #    - 114.114.114.114
+  #  nodelocaldns:
+  #    ## It's possible to extent the nodelocaldns' configuration by adding an array of external zones.
+  #    externalZones:
+  #    - zones:
+  #      - example.com
+  #      - example.io:1053
+  #      nameservers:
+  #      - 1.1.1.1
+  #      - 2.2.2.2
+  #      cache: 5
+  #    - zones:
+  #      - mycompany.local:4453
+  #      nameservers:
+  #      - 192.168.0.53
+  #      cache: 10
+  #    - zones:
+  #      - mydomain.tld
+  #      nameservers:
+  #      - 10.233.0.3
+  #      cache: 5
+  #      rewrite:
+  #      - name substring website.tld website.namespace.svc.cluster.local
 
 ```

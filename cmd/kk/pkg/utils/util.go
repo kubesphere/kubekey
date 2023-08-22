@@ -20,13 +20,16 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
+
+var FuncMap = template.FuncMap{"toYaml": ToYAML, "indent": Indent}
 
 func ResetTmpDir(runtime connector.Runtime) error {
 	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
@@ -50,5 +53,5 @@ func ToYAML(v interface{}) string {
 func Indent(n int, text string) string {
 	startOfLine := regexp.MustCompile(`(?m)^`)
 	indentation := strings.Repeat(" ", n)
-	return startOfLine.ReplaceAllLiteralString(text, indentation)
+	return strings.TrimRight(startOfLine.ReplaceAllLiteralString(text, indentation), " ")
 }
