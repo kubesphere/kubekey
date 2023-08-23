@@ -1034,10 +1034,12 @@
     },
     "calicoctl": {
         "amd64": {
-            "v3.23.2": "3784200cdfc0106c9987df2048d219bb91147f0cc3fa365b36279ac82ea37c7a"
+            "v3.23.2": "3784200cdfc0106c9987df2048d219bb91147f0cc3fa365b36279ac82ea37c7a",
+            "v3.26.1": "c8f61c1c8e2504410adaff4a7255c65785fe7805eebfd63340ccd3c472aa42cf"
         },
         "arm64": {
-            "v3.23.2": "232b992e6767c68c8c832cc7027a0d9aacb29901a9b5e8871e25baedbbb9c64c"
+            "v3.23.2": "232b992e6767c68c8c832cc7027a0d9aacb29901a9b5e8871e25baedbbb9c64c",
+            "v3.26.1": "bba2fbdd6d2998bca144ae12c2675d65c4fbf51c0944d69b1b2f20e08cd14c22"
         }
     }
 }
