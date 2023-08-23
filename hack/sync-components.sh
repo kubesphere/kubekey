@@ -304,11 +304,11 @@ fi
 
 # Sync Calico Images
 if [ $CALICO_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/calico/calico-kube-controllers:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/calico-kube-controllers:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/calico-cni:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/calico-cni:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/calico-node:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/calico-node:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/calico-flexvol:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/calico-flexvol:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/calico-typha:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/calico-typha:$CALICO_VERSION --all
+   skopeo sync --src docker --dest docker docker.io/calico/kube-controllers:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/kube-controllers:$CALICO_VERSION --all
+   skopeo sync --src docker --dest docker docker.io/calico/cni:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/cni:$CALICO_VERSION --all
+   skopeo sync --src docker --dest docker docker.io/calico/node:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/node:$CALICO_VERSION --all
+   skopeo sync --src docker --dest docker docker.io/calico/pod2daemon-flexvol:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/pod2daemon-flexvol:$CALICO_VERSION --all
+   skopeo sync --src docker --dest docker docker.io/calico/typha:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/typha:$CALICO_VERSION --all
 fi
 
 # Sync Kube-OVN Images
