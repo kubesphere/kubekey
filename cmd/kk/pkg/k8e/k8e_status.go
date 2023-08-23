@@ -92,19 +92,21 @@ func (k *K8eStatus) SearchNodesInfo(_ connector.Runtime) error {
 		return err
 	}
 	tmp := strings.Split(k.ClusterInfo, "\r\n")
-	if len(tmp) >= 1 {
-		for i := 0; i < len(tmp); i++ {
-			if ipv4 := ipv4Regexp.FindStringSubmatch(tmp[i]); len(ipv4) != 0 {
-				k.NodesInfo[ipv4[0]] = ipv4[0]
-			}
-			if ipv6 := ipv6Regexp.FindStringSubmatch(tmp[i]); len(ipv6) != 0 {
-				k.NodesInfo[ipv6[0]] = ipv6[0]
-			}
-			if len(strings.Fields(tmp[i])) > 3 {
-				k.NodesInfo[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[1]
-			} else {
-				k.NodesInfo[strings.Fields(tmp[i])[0]] = ""
-			}
+	if len(tmp) < 1 || len(tmp) == 1 && tmp[0] == "" {
+		return errors.New("search K8e node info failed")
+	}
+
+	for i := 0; i < len(tmp); i++ {
+		if ipv4 := ipv4Regexp.FindStringSubmatch(tmp[i]); len(ipv4) != 0 {
+			k.NodesInfo[ipv4[0]] = ipv4[0]
+		}
+		if ipv6 := ipv6Regexp.FindStringSubmatch(tmp[i]); len(ipv6) != 0 {
+			k.NodesInfo[ipv6[0]] = ipv6[0]
+		}
+		if len(strings.Fields(tmp[i])) > 3 {
+			k.NodesInfo[strings.Fields(tmp[i])[0]] = strings.Fields(tmp[i])[1]
+		} else {
+			k.NodesInfo[strings.Fields(tmp[i])[0]] = ""
 		}
 	}
 	return nil
