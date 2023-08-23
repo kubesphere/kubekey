@@ -19,11 +19,12 @@ package network
 import (
 	"embed"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
+	"strings"
+	"time"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
@@ -34,7 +35,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/network/templates"
 )
 
-//go:embed cilium-1.11.7.tgz
+//go:embed cilium-1.11.7.tgz hybridnet-0.6.6.tgz
 
 var f embed.FS
 
@@ -303,6 +304,120 @@ func (c *ChmodKubectlKo) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd(
 		fmt.Sprintf("chmod +x %s", filepath.Join(common.BinDir, templates.KubectlKo.Name())), false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "chmod +x kubectl-ko failed")
+	}
+	return nil
+}
+
+// ReleaseHybridnetChart is used to release hybridnet chart to local path
+type ReleaseHybridnetChart struct {
+	common.KubeAction
+}
+
+func (r *ReleaseHybridnetChart) Execute(runtime connector.Runtime) error {
+	fs, err := os.Create(fmt.Sprintf("%s/hybridnet.tgz", runtime.GetWorkDir()))
+	if err != nil {
+		return err
+	}
+	chartFile, err := f.Open("hybridnet-0.6.6.tgz")
+	if err != nil {
+		return err
+	}
+	defer chartFile.Close()
+
+	_, err = io.Copy(fs, chartFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SyncHybridnetChart is used to sync hybridnet chart to contronplane
+type SyncHybridnetChart struct {
+	common.KubeAction
+}
+
+func (s *SyncHybridnetChart) Execute(runtime connector.Runtime) error {
+	src := filepath.Join(runtime.GetWorkDir(), "hybridnet.tgz")
+	dst := filepath.Join(common.TmpDir, "hybridnet.tgz")
+	if err := runtime.GetRunner().Scp(src, dst); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("sync hybridnet chart failed"))
+	}
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("mv %s/hybridnet.tgz /etc/kubernetes", common.TmpDir), true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "sync hybrident chart failed")
+	}
+	return nil
+}
+
+type DeployHybridnet struct {
+	common.KubeAction
+}
+
+func (d *DeployHybridnet) Execute(runtime connector.Runtime) error {
+
+	cmd := fmt.Sprintf("/usr/local/bin/helm upgrade --install hybridnet /etc/kubernetes/hybridnet.tgz --namespace kube-system "+
+		"--set images.hybridnet.image=%s/%s "+
+		"--set images.hybridnet.tag=%s "+
+		"--set images.registryURL=%s ",
+		images.GetImage(runtime, d.KubeConf, "hybridnet").ImageNamespace(),
+		images.GetImage(runtime, d.KubeConf, "hybridnet").Repo,
+		images.GetImage(runtime, d.KubeConf, "hybridnet").Tag,
+		images.GetImage(runtime, d.KubeConf, "hybridnet").ImageRegistryAddr(),
+	)
+
+	if d.KubeConf.Cluster.Network.Hybridnet.EnableInit() {
+		cmd = fmt.Sprintf("%s --set init.cidr=%s", cmd, d.KubeConf.Cluster.Network.KubePodsCIDR)
+	} else {
+		cmd = fmt.Sprintf("%s --set init=null", cmd)
+	}
+
+	if !d.KubeConf.Cluster.Network.Hybridnet.NetworkPolicy() {
+		cmd = fmt.Sprintf("%s --set daemon.enableNetworkPolicy=false", cmd)
+	}
+
+	if d.KubeConf.Cluster.Network.Hybridnet.PreferBGPInterfaces != "" {
+		cmd = fmt.Sprintf("%s --set daemon.preferBGPInterfaces=%s", cmd, d.KubeConf.Cluster.Network.Hybridnet.PreferBGPInterfaces)
+	}
+
+	if d.KubeConf.Cluster.Network.Hybridnet.PreferVlanInterfaces != "" {
+		cmd = fmt.Sprintf("%s --set daemon.preferVlanInterfaces=%s", cmd, d.KubeConf.Cluster.Network.Hybridnet.PreferVlanInterfaces)
+	}
+
+	if d.KubeConf.Cluster.Network.Hybridnet.PreferVxlanInterfaces != "" {
+		cmd = fmt.Sprintf("%s --set daemon.preferVxlanInterfaces=%s", cmd, d.KubeConf.Cluster.Network.Hybridnet.PreferVxlanInterfaces)
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(cmd, true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "deploy hybridnet failed")
+	}
+
+	if len(d.KubeConf.Cluster.Network.Hybridnet.Networks) != 0 {
+		templateAction := action.Template{
+			Template: templates.HybridnetNetworks,
+			Dst:      filepath.Join(common.KubeConfigDir, templates.HybridnetNetworks.Name()),
+			Data: util.Data{
+				"Networks": d.KubeConf.Cluster.Network.Hybridnet.Networks,
+			},
+		}
+
+		templateAction.Init(nil, nil)
+		if err := templateAction.Execute(runtime); err != nil {
+			return err
+		}
+
+		for i := 0; i < 30; i++ {
+			fmt.Println("Waiting for hybridnet webhook running ... ", i+1)
+			time.Sleep(10 * time.Second)
+			output, _ := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl get pod -n kube-system -l  app=hybridnet,component=webhook | grep Running", false)
+			if strings.Contains(output, "1/1") {
+				time.Sleep(50 * time.Second)
+				break
+			}
+		}
+
+		if _, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl apply -f /etc/kubernetes/hybridnet-networks.yaml", true); err != nil {
+			return errors.Wrap(errors.WithStack(err), "apply hybridnet networks failed")
+		}
 	}
 	return nil
 }

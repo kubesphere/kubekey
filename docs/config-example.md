@@ -1,3 +1,4 @@
+# Cluster Configuration Sample
 ```yaml
 apiVersion: kubekey.kubesphere.io/v1alpha2
 kind: Cluster
@@ -229,4 +230,59 @@ spec:
   #      rewrite:
   #      - name substring website.tld website.namespace.svc.cluster.local
 
+```
+
+# Network Configuration sample
+## Hybridnet
+To learn more about hybridnet, check out https://github.com/alibaba/hybridnet
+```yaml
+  network:
+    plugin: hybridnet
+    hybridnet:
+      defaultNetworkType: Overlay
+      enableNetworkPolicy: false
+      init: false
+      preferVxlanInterfaces: eth0
+      preferVlanInterfaces: eth0
+      preferBGPInterfaces: eth0
+      networks:
+      - name: "net1"
+        type: Underlay
+        nodeSelector:
+          network: "net1"
+        subnets:
+          - name: "subnet-10"
+            netID: 10
+            cidr: "192.168.10.0/24"
+            gateway: "192.168.10.1"
+          - name: "subnet-11"
+            netID: 11
+            cidr: "192.168.11.0/24"
+            gateway: "192.168.11.1"
+      - name: "net2"
+        type: Underlay
+        nodeSelector:
+          network: "net2"
+        subnets:
+          - name: "subnet-30"
+            netID: 30
+            cidr: "192.168.30.0/24"
+            gateway: "192.168.30.1"
+          - name: "subnet-31"
+            netID: 31
+            cidr: "192.168.31.0/24"
+            gateway: "192.168.31.1"
+      - name: "net3"
+        type: Underlay
+        netID: 0
+        nodeSelector:
+          network: "net3"
+        subnets:
+          - name: "subnet-50"
+            cidr: "192.168.50.0/24"
+            gateway: "192.168.50.1"
+            start: "192.168.50.100"
+            end: "192.168.50.200"
+            reservedIPs: ["192.168.50.101","192.168.50.102"]
+            excludeIPs: ["192.168.50.111","192.168.50.112"]
 ```
