@@ -142,6 +142,7 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 				"VXLANMode":               d.KubeConf.Cluster.Network.Calico.VXLANMode,
 				"ConatinerManagerIsIsula": d.KubeConf.Cluster.Kubernetes.ContainerManager == "isula",
 				"IPV4POOLNATOUTGOING":     d.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),
+				"DefaultIPPOOL":           d.KubeConf.Cluster.Network.Calico.EnableDefaultIPPOOL(),
 			},
 		},
 		Parallel: true,
