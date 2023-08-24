@@ -109,6 +109,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/wongearl"><img src="https://avatars.githubusercontent.com/u/36498442?v=4?s=100" width="100px;" alt="wongearl"/><br /><sub><b>wongearl</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=wongearl" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/wenwenxiong"><img src="https://avatars.githubusercontent.com/u/10548812?v=4?s=100" width="100px;" alt="wenwenxiong"/><br /><sub><b>wenwenxiong</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=wenwenxiong" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://baimeow.cn/"><img src="https://avatars.githubusercontent.com/u/38121125?v=4?s=100" width="100px;" alt="柏喵Sakura"/><br /><sub><b>柏喵Sakura</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=BaiMeow" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
