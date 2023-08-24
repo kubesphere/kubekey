@@ -48,6 +48,8 @@ func (d *DeployNetworkPluginModule) Init() {
 		d.Tasks = deployCilium(d)
 	case common.Kubeovn:
 		d.Tasks = deployKubeOVN(d)
+	case common.Hybridnet:
+		d.Tasks = deployHybridnet(d)
 	default:
 		return
 	}
@@ -239,8 +241,8 @@ func deployCilium(d *DeployNetworkPluginModule) []task.Interface {
 	}
 
 	syncCiliumChart := &task.RemoteTask{
-		Name:     "SyncKubeBinary",
-		Desc:     "Synchronize kubernetes binaries",
+		Name:     "SyncCiliumChart",
+		Desc:     "Synchronize cilium chart",
 		Hosts:    d.Runtime.GetHostsByRole(common.Master),
 		Prepare:  new(common.OnlyFirstMaster),
 		Action:   new(SyncCiliumChart),
@@ -332,6 +334,41 @@ func deployKubeOVN(d *DeployNetworkPluginModule) []task.Interface {
 		deploy,
 		kubectlKo,
 		chmod,
+	}
+}
+
+func deployHybridnet(d *DeployNetworkPluginModule) []task.Interface {
+
+	releaseHybridnetChart := &task.LocalTask{
+		Name:   "GenerateHybridnetChart",
+		Desc:   "Generate hybridnet chart",
+		Action: new(ReleaseHybridnetChart),
+	}
+
+	syncHybridnetChart := &task.RemoteTask{
+		Name:     "SyncHybridnetChart",
+		Desc:     "Synchronize hybridnet chart",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(SyncHybridnetChart),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	deploy := &task.RemoteTask{
+		Name:     "DeployHybridnet",
+		Desc:     "Deploy hybridnet",
+		Hosts:    d.Runtime.GetHostsByRole(common.Master),
+		Prepare:  new(common.OnlyFirstMaster),
+		Action:   new(DeployHybridnet),
+		Parallel: true,
+		Retry:    5,
+	}
+
+	return []task.Interface{
+		releaseHybridnetChart,
+		syncHybridnetChart,
+		deploy,
 	}
 }
 

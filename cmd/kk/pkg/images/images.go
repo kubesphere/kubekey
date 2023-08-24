@@ -54,6 +54,35 @@ func (image Image) ImageName() string {
 	return fmt.Sprintf("%s:%s", image.ImageRepo(), image.Tag)
 }
 
+// ImageNamespace is used to get image's namespace
+func (image Image) ImageNamespace() string {
+	if os.Getenv("KKZONE") == "cn" {
+		if image.RepoAddr == "" || image.RepoAddr == cnRegistry {
+			image.NamespaceOverride = cnNamespaceOverride
+		}
+	}
+
+	if image.NamespaceOverride != "" {
+		return image.NamespaceOverride
+	} else {
+		return image.Namespace
+	}
+}
+
+// ImageRegistryAddr is used to get image's registry address.
+func (image Image) ImageRegistryAddr() string {
+	if os.Getenv("KKZONE") == "cn" {
+		if image.RepoAddr == "" || image.RepoAddr == cnRegistry {
+			image.RepoAddr = cnRegistry
+		}
+	}
+	if image.RepoAddr != "" {
+		return image.RepoAddr
+	} else {
+		return "docker.io"
+	}
+}
+
 // ImageRepo is used to generate image's repo address.
 func (image Image) ImageRepo() string {
 	var prefix string

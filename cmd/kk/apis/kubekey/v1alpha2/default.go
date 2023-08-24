@@ -51,6 +51,7 @@ const (
 	DefaultFlannelCniPluginVersion = "v1.1.2"
 	DefaultCniVersion              = "v1.2.0"
 	DefaultCiliumVersion           = "v1.11.7"
+	DefaulthybridnetVersion        = "v0.8.6"
 	DefaultKubeovnVersion          = "v1.10.6"
 	DefalutMultusVersion           = "v3.8"
 	DefaultHelmVersion             = "v3.9.0"

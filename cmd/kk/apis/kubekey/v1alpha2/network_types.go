@@ -17,13 +17,14 @@
 package v1alpha2
 
 type NetworkConfig struct {
-	Plugin          string     `yaml:"plugin" json:"plugin,omitempty"`
-	KubePodsCIDR    string     `yaml:"kubePodsCIDR" json:"kubePodsCIDR,omitempty"`
-	KubeServiceCIDR string     `yaml:"kubeServiceCIDR" json:"kubeServiceCIDR,omitempty"`
-	Calico          CalicoCfg  `yaml:"calico" json:"calico,omitempty"`
-	Flannel         FlannelCfg `yaml:"flannel" json:"flannel,omitempty"`
-	Kubeovn         KubeovnCfg `yaml:"kubeovn" json:"kubeovn,omitempty"`
-	MultusCNI       MultusCNI  `yaml:"multusCNI" json:"multusCNI,omitempty"`
+	Plugin          string       `yaml:"plugin" json:"plugin,omitempty"`
+	KubePodsCIDR    string       `yaml:"kubePodsCIDR" json:"kubePodsCIDR,omitempty"`
+	KubeServiceCIDR string       `yaml:"kubeServiceCIDR" json:"kubeServiceCIDR,omitempty"`
+	Calico          CalicoCfg    `yaml:"calico" json:"calico,omitempty"`
+	Flannel         FlannelCfg   `yaml:"flannel" json:"flannel,omitempty"`
+	Kubeovn         KubeovnCfg   `yaml:"kubeovn" json:"kubeovn,omitempty"`
+	MultusCNI       MultusCNI    `yaml:"multusCNI" json:"multusCNI,omitempty"`
+	Hybridnet       HybridnetCfg `yaml:"hybridnet" json:"hybridnet,omitempty"`
 }
 
 type CalicoCfg struct {
@@ -90,6 +91,36 @@ type KubeOvnPinger struct {
 	PingerExternalDomain  string `yaml:"pingerExternalDomain" json:"pingerExternalDomain,omitempty"`
 }
 
+type HybridnetCfg struct {
+	DefaultNetworkType    string             `yaml:"defaultNetworkType" json:"defaultNetworkType,omitempty"`
+	EnableNetworkPolicy   *bool              `yaml:"enableNetworkPolicy" json:"enableNetworkPolicy,omitempty"`
+	Init                  *bool              `yaml:"init" json:"init,omitempty"`
+	PreferVxlanInterfaces string             `yaml:"preferVxlanInterfaces" json:"preferVxlanInterfaces,omitempty"`
+	PreferVlanInterfaces  string             `yaml:"preferVlanInterfaces" json:"preferVlanInterfaces,omitempty"`
+	PreferBGPInterfaces   string             `yaml:"preferBGPInterfaces" json:"preferBGPInterfaces,omitempty"`
+	Networks              []HybridnetNetwork `yaml:"networks" json:"networks,omitempty"`
+}
+
+type HybridnetNetwork struct {
+	Name         string            `yaml:"name" json:"name,omitempty"`
+	NetID        *int              `yaml:"netID" json:"netID,omitempty"`
+	Type         string            `yaml:"type" json:"type,omitempty"`
+	Mode         string            `yaml:"mode" json:"mode,omitempty"`
+	NodeSelector map[string]string `yaml:"nodeSelector" json:"nodeSelector,omitempty"`
+	Subnets      []HybridnetSubnet `yaml:"subnets" json:"subnets,omitempty"`
+}
+
+type HybridnetSubnet struct {
+	Name        string   `yaml:"name" json:"name,omitempty"`
+	NetID       *int     `yaml:"netID" json:"netID,omitempty"`
+	CIDR        string   `yaml:"cidr" json:"cidr,omitempty"`
+	Gateway     string   `yaml:"gateway" json:"gateway,omitempty"`
+	Start       string   `yaml:"start" json:"start,omitempty"`
+	End         string   `yaml:"end" json:"end,omitempty"`
+	ReservedIPs []string `yaml:"reservedIPs" json:"reservedIPs,omitempty"`
+	ExcludeIPs  []string `yaml:"excludeIPs" json:"excludeIPs,omitempty"`
+}
+
 func (k *KubeovnCfg) KubeovnCheckGateway() bool {
 	if k.KubeOvnController.CheckGateway == nil {
 		return true
@@ -150,4 +181,20 @@ func (c *CalicoCfg) EnableDefaultIPPOOL() bool {
 		return true
 	}
 	return *c.DefaultIPPOOL
+}
+
+// EnableInit is used to determine whether to create default network
+func (h *HybridnetCfg) EnableInit() bool {
+	if h.Init == nil {
+		return true
+	}
+	return *h.Init
+}
+
+// NetworkPolicy is used to determine whether to enable network policy
+func (h *HybridnetCfg) NetworkPolicy() bool {
+	if h.EnableNetworkPolicy == nil {
+		return true
+	}
+	return *h.EnableNetworkPolicy
 }
