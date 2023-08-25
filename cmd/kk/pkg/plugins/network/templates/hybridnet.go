@@ -72,7 +72,7 @@ spec:
 {{- end }}
 {{- if .ExcludeIPs }}
     excludeIPs:
-{{ toYaml .ReservedIPs | indent 4 }}
+{{ toYaml .ExcludeIPs | indent 4 }}
 {{- end }}
 {{- end }}
 {{- end }}
