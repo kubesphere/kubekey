@@ -375,6 +375,10 @@ func (d *DeployHybridnet) Execute(runtime connector.Runtime) error {
 		cmd = fmt.Sprintf("%s --set daemon.enableNetworkPolicy=false", cmd)
 	}
 
+	if d.KubeConf.Cluster.Network.Hybridnet.DefaultNetworkType != "" {
+		cmd = fmt.Sprintf("%s --set defaultNetworkType=%s", cmd, d.KubeConf.Cluster.Network.Hybridnet.DefaultNetworkType)
+	}
+
 	if d.KubeConf.Cluster.Network.Hybridnet.PreferBGPInterfaces != "" {
 		cmd = fmt.Sprintf("%s --set daemon.preferBGPInterfaces=%s", cmd, d.KubeConf.Cluster.Network.Hybridnet.PreferBGPInterfaces)
 	}
