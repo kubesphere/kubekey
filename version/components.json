@@ -776,7 +776,8 @@
             "20.10.22": "945c3a3ddcb79ee7307496c2f39eb3d8372466e8654e63d60bbb462e4a3c1427",
             "20.10.23": "0ee39f72cc434137d294c14d30897826bad6e24979e421f51a252769ad37e6d1",
             "23.0.0": "6a03bbda96845b7451be2f6aba69c3816c60a97de318e83fd1b39d1be262d8af",
-            "23.0.1": "ec8a71e79125d3ca76f7cc295f35eea225f4450e0ffe0775f103e2952ff580f6"
+            "23.0.1": "ec8a71e79125d3ca76f7cc295f35eea225f4450e0ffe0775f103e2952ff580f6",
+            "24.0.6": "99792dec613df93169a118b05312a722a63604b868e4c941b1b436abcf3bb70f"
         },
         "arm64": {
             "20.10.2": "9ea59f249ae92bbaa9831a22f2affa2edc9e824f9daaba831ca51d6d22ef2df5",
@@ -802,7 +803,8 @@
             "20.10.22": "2c75cd6c3dc9b81cb5bde664c882e4339a2054e09cf09606f9f7dd6970e7f078",
             "20.10.23": "5c40bb7dcd1aad94be49ad75d24e7fd409119ed0eaad04f5d13c4fddfb397c8a",
             "23.0.0": "2919ff3448187d4f13cfbe2332707cff3f6dcf2baaac42a34bea8dd21f434f4a",
-            "23.0.1": "3865f837dbd951b19eeb5f7d87aada2e865b2017e9462fe389f0e5d9a438324d"
+            "23.0.1": "3865f837dbd951b19eeb5f7d87aada2e865b2017e9462fe389f0e5d9a438324d",
+            "24.0.6": "d9f58aecc42451503e82e6e0562cafa1812b334c92186a7f486e111e70a0f5bd"
         }
     },
     "containerd": {
