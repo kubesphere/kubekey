@@ -35,8 +35,6 @@ import (
 
 const (
 	RegistryCertificateBaseName = "dockerhub.kubekey.local"
-	HttpPort                    = "8081"
-	HttpsPort                   = "443"
 	LocalCertsDir               = "localCertsDir"
 	CertsFileList               = "certsFileList"
 )
