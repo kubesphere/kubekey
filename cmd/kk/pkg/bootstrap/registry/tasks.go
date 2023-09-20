@@ -18,6 +18,9 @@ package registry
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry/templates"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"path/filepath"
 	"strings"
 
@@ -209,6 +212,31 @@ func (g *SyncHarborPackage) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), "unzip harbor package failed")
 	}
 
+	return nil
+}
+
+type GenerateHarborConfig struct {
+	common.KubeAction
+}
+
+func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	templateAction := action.Template{
+		Template: templates.HarborConfigTempl,
+		Dst:      "/opt/harbor/harbor.yml",
+		Data: util.Data{
+			"Domain":      host.GetName(),
+			"HttpPort":    HttpPort,
+			"HttpsPort":   HttpsPort,
+			"Certificate": fmt.Sprintf("%s.pem", RegistryCertificateBaseName),
+			"Key":         fmt.Sprintf("%s-key.pem", RegistryCertificateBaseName),
+			"Password":    templates.Password(g.KubeConf, RegistryCertificateBaseName),
+		},
+	}
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
 	return nil
 }
 

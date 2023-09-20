@@ -35,6 +35,8 @@ import (
 
 const (
 	RegistryCertificateBaseName = "dockerhub.kubekey.local"
+	HttpPort                    = "8081"
+	HttpsPort                   = "443"
 	LocalCertsDir               = "localCertsDir"
 	CertsFileList               = "certsFileList"
 )
@@ -105,9 +107,13 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 
 	var altName cert.AltNames
 
-	dnsList := []string{"localhost", g.KubeConf.Cluster.Registry.PrivateRegistry, runtime.GetHostsByRole(common.Registry)[0].GetName()}
-	ipList := []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback, netutils.ParseIPSloppy(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress())}
+	dnsList := []string{"localhost", RegistryCertificateBaseName}
+	ipList := []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
 
+	for _, h := range runtime.GetHostsByRole(common.Registry) {
+		dnsList = append(dnsList, h.GetName())
+		ipList = append(ipList, netutils.ParseIPSloppy(h.GetInternalAddress()))
+	}
 	altName.DNSNames = dnsList
 	altName.IPs = ipList
 
