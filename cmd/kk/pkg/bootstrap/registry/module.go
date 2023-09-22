@@ -250,18 +250,10 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 	}
 
 	generateHarborConfig := &task.RemoteTask{
-		Name:  "GenerateHarborConfig",
-		Desc:  "Generate harbor config",
-		Hosts: i.Runtime.GetHostsByRole(common.Registry),
-		Action: &action.Template{
-			Template: templates.HarborConfigTempl,
-			Dst:      "/opt/harbor/harbor.yml",
-			Data: util.Data{
-				"Domain":      i.KubeConf.Cluster.Registry.PrivateRegistry,
-				"Certificate": fmt.Sprintf("%s.pem", i.KubeConf.Cluster.Registry.PrivateRegistry),
-				"Key":         fmt.Sprintf("%s-key.pem", i.KubeConf.Cluster.Registry.PrivateRegistry),
-			},
-		},
+		Name:   "GenerateHarborConfig",
+		Desc:   "Generate harbor config",
+		Hosts:  i.Runtime.GetHostsByRole(common.Registry),
+		Action: new(GenerateHarborConfig),
 		Parallel: true,
 		Retry:    1,
 	}

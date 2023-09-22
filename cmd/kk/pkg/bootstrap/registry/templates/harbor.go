@@ -14,6 +14,9 @@ limitations under the License.
 package templates
 
 import (
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
+	"strings"
 	"text/template"
 
 	"github.com/lithammer/dedent"
@@ -133,3 +136,14 @@ proxy:
 
     `)))
 )
+
+func Password(kubeConf *common.KubeConf, domain string) string {
+	auths := registry.DockerRegistryAuthEntries(kubeConf.Cluster.Registry.Auths)
+	for repo, entry := range auths {
+		if strings.Contains(repo, domain) {
+			return entry.Password
+		}
+	}
+
+	return "Harbor12345"
+}
