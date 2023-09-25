@@ -36,6 +36,7 @@ type Chart struct {
 	Version    string   `yaml:"version" json:"version,omitempty"`
 	ValuesFile string   `yaml:"valuesFile" json:"valuesFile,omitempty"`
 	Values     []string `yaml:"values" json:"values,omitempty"`
+	Wait       bool     `yaml:"wait" json:"wait,omitempty"`
 }
 
 type Yaml struct {

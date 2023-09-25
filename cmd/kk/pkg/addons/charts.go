@@ -93,6 +93,7 @@ func InstallChart(kubeConf *common.KubeConf, addon *kubekeyapiv1alpha2.Addon, ku
 	client.Keyring = defaultKeyring()
 	client.RepoURL = addon.Sources.Chart.Repo
 	client.Version = addon.Sources.Chart.Version
+	client.Wait = addon.Sources.Chart.Wait
 	//client.Force = true
 
 	if client.Version == "" && client.Devel {
