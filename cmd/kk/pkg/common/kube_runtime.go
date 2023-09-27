@@ -62,10 +62,18 @@ func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
 		return nil, err
 	}
 
-	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), arg.Debug, arg.IgnoreErr)
+	var isBackend bool
+	_, ok := cluster.Labels["type.kubekey.kubesphere.io/backend"]
+	if ok {
+		isBackend = true
+	}
+	base := connector.NewBaseRuntime(cluster.Name, connector.NewDialer(), arg.Debug, arg.IgnoreErr, isBackend)
 
 	clusterSpec := &cluster.Spec
-	defaultCluster, roleGroups := clusterSpec.SetDefaultClusterSpec()
+	defaultCluster, roleGroups, err := clusterSpec.SetDefaultClusterSpec(isBackend)
+	if err != nil {
+		return nil, err
+	}
 
 	hostSet := make(map[string]struct{})
 	for _, role := range roleGroups {

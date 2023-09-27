@@ -95,7 +95,7 @@ ETCD_PEER_CLIENT_CERT_AUTH=True
 
 # CLI settings
 ETCDCTL_ENDPOINTS=https://127.0.0.1:2379
-ETCDCTL_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
-ETCDCTL_KEY_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem
-ETCDCTL_CERT_FILE=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
+ETCDCTL_CACERT=/etc/ssl/etcd/ssl/ca.pem
+ETCDCTL_KEY=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem
+ETCDCTL_CERT=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem
     `)))

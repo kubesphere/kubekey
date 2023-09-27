@@ -18,16 +18,17 @@ package pipelines
 
 import (
 	"fmt"
-
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/artifact"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/binaries"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/precheck"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/filesystem"
+	"github.com/pkg/errors"
 )
 
 func NewInitRegistryPipeline(runtime *common.KubeRuntime) error {
@@ -72,6 +73,10 @@ func InitRegistry(args common.Argument, downloadCmd string) error {
 	runtime, err := common.NewKubeRuntime(loaderType, args)
 	if err != nil {
 		return err
+	}
+
+	if len(runtime.GetHostsByRole("registry")) <= 0 {
+		logger.Log.Fatal(errors.New("The number of registry must be greater then 0."))
 	}
 
 	if err := NewInitRegistryPipeline(runtime); err != nil {

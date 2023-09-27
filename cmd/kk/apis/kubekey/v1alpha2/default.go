@@ -41,7 +41,7 @@ const (
 	DefaultSSHTimeout              = 30
 	DefaultEtcdVersion             = "v3.5.6"
 	DefaultEtcdPort                = "2379"
-	DefaultDockerVersion           = "20.10.8"
+	DefaultDockerVersion           = "24.0.6"
 	DefaultContainerdVersion       = "1.6.4"
 	DefaultRuncVersion             = "v1.1.1"
 	DefaultCrictlVersion           = "v1.24.0"
@@ -104,13 +104,16 @@ const (
 	DefaultKubeVipMode = "ARP"
 )
 
-func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*KubeHost) {
+func (cfg *ClusterSpec) SetDefaultClusterSpec(isBackend bool) (*ClusterSpec, map[string][]*KubeHost, error) {
 	clusterCfg := ClusterSpec{}
 
 	clusterCfg.Hosts = SetDefaultHostsCfg(cfg)
 	clusterCfg.RoleGroups = cfg.RoleGroups
 	clusterCfg.Etcd = SetDefaultEtcdCfg(cfg)
-	roleGroups := clusterCfg.GroupHosts()
+	roleGroups, err := clusterCfg.GroupHosts(isBackend)
+	if err != nil {
+		return nil, nil, err
+	}
 	clusterCfg.ControlPlaneEndpoint = SetDefaultLBCfg(cfg, roleGroups[Master])
 	clusterCfg.Network = SetDefaultNetworkCfg(cfg)
 	clusterCfg.Storage = SetDefaultStorageCfg(cfg)
@@ -139,7 +142,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*Kub
 	if cfg.Kubernetes.ProxyMode == "" {
 		clusterCfg.Kubernetes.ProxyMode = DefaultProxyMode
 	}
-	return &clusterCfg, roleGroups
+	return &clusterCfg, roleGroups, nil
 }
 
 func SetDefaultHostsCfg(cfg *ClusterSpec) []HostCfg {

@@ -45,7 +45,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes/templates"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes/templates/v1beta2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
 )
 
@@ -249,11 +248,11 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 			}
 		}
 
-		_, ApiServerArgs := util.GetArgs(v1beta2.GetApiServerArgs(g.WithSecurityEnhancement, g.KubeConf.Cluster.Kubernetes.EnableAudit()), g.KubeConf.Cluster.Kubernetes.ApiServerArgs)
-		_, ControllerManagerArgs := util.GetArgs(v1beta2.GetControllermanagerArgs(g.KubeConf.Cluster.Kubernetes.Version, g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.ControllerManagerArgs)
-		_, SchedulerArgs := util.GetArgs(v1beta2.GetSchedulerArgs(g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.SchedulerArgs)
+		_, ApiServerArgs := util.GetArgs(templates.GetApiServerArgs(g.WithSecurityEnhancement, g.KubeConf.Cluster.Kubernetes.EnableAudit()), g.KubeConf.Cluster.Kubernetes.ApiServerArgs)
+		_, ControllerManagerArgs := util.GetArgs(templates.GetControllermanagerArgs(g.KubeConf.Cluster.Kubernetes.Version, g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.ControllerManagerArgs)
+		_, SchedulerArgs := util.GetArgs(templates.GetSchedulerArgs(g.WithSecurityEnhancement), g.KubeConf.Cluster.Kubernetes.SchedulerArgs)
 
-		checkCgroupDriver, err := v1beta2.GetKubeletCgroupDriver(runtime, g.KubeConf)
+		checkCgroupDriver, err := templates.GetKubeletCgroupDriver(runtime, g.KubeConf)
 		if err != nil {
 			return err
 		}
@@ -273,8 +272,8 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		}
 
 		templateAction := action.Template{
-			Template: v1beta2.KubeadmConfig,
-			Dst:      filepath.Join(common.KubeConfigDir, v1beta2.KubeadmConfig.Name()),
+			Template: templates.KubeadmConfig,
+			Dst:      filepath.Join(common.KubeConfigDir, templates.KubeadmConfig.Name()),
 			Data: util.Data{
 				"IsInitCluster":          g.IsInitConfiguration,
 				"ImageRepo":              strings.TrimSuffix(images.GetImage(runtime, g.KubeConf, "kube-apiserver").ImageRepo(), "/kube-apiserver"),
@@ -296,12 +295,13 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"ExternalEtcd":           externalEtcd,
 				"NodeCidrMaskSize":       g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
 				"CriSock":                g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint,
-				"ApiServerArgs":          v1beta2.UpdateFeatureGatesConfiguration(ApiServerArgs, g.KubeConf),
+				"ApiServerArgs":          templates.UpdateFeatureGatesConfiguration(ApiServerArgs, g.KubeConf),
 				"EnableAudit":            g.KubeConf.Cluster.Kubernetes.EnableAudit(),
-				"ControllerManagerArgs":  v1beta2.UpdateFeatureGatesConfiguration(ControllerManagerArgs, g.KubeConf),
-				"SchedulerArgs":          v1beta2.UpdateFeatureGatesConfiguration(SchedulerArgs, g.KubeConf),
-				"KubeletConfiguration":   v1beta2.GetKubeletConfiguration(runtime, g.KubeConf, g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint, g.WithSecurityEnhancement),
-				"KubeProxyConfiguration": v1beta2.GetKubeProxyConfiguration(g.KubeConf),
+				"ControllerManagerArgs":  templates.UpdateFeatureGatesConfiguration(ControllerManagerArgs, g.KubeConf),
+				"SchedulerArgs":          templates.UpdateFeatureGatesConfiguration(SchedulerArgs, g.KubeConf),
+				"KubeletConfiguration":   templates.GetKubeletConfiguration(runtime, g.KubeConf, g.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint, g.WithSecurityEnhancement),
+				"KubeProxyConfiguration": templates.GetKubeProxyConfiguration(g.KubeConf),
+				"IsV1beta3":              versionutil.MustParseSemantic(g.KubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.22.0")),
 				"IsControlPlane":         host.IsRole(common.Master),
 				"CgroupDriver":           checkCgroupDriver,
 				"BootstrapToken":         bootstrapToken,

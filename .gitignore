@@ -36,3 +36,7 @@ _artifacts
 # Used during parts of the build process. Files _should_ get cleaned up automatically.
 # This is also a good location for any temporary manfiests used during development
 tmp
+
+# kubekey-console node_modules and package-lock.json files
+console/node_modules
+console/package-lock.json
