@@ -1,0 +1,190 @@
+kind: Cluster
+apiVersion: kubekey.kubesphere.io/v1alpha2
+metadata:
+    generatename: ""
+    namespace: ""
+    selflink: ""
+    uid: ""
+    resourceversion: ""
+    generation: 0
+    creationtimestamp: "0001-01-01T00:00:00Z"
+    deletiontimestamp: null
+    deletiongraceperiodseconds: null
+    annotations: {}
+    ownerreferences: []
+    finalizers: []
+    managedfields: []
+    name: cluster.local3
+    labels:
+        type.kubekey.kubesphere.io/backend: "true"
+spec:
+    hosts:
+        - name: node3
+          address: 106.14.69.170
+          internalAddress: 172.19.1.27
+          user: root
+          password: Jalon1999
+    roleGroups:
+        etcd:
+            - node3
+        master:
+            - node3
+        worker:
+            - node3
+    controlPlaneEndpoint:
+        internalLoadbalancer: ""
+        domain: lb.kubesphere.local
+        externalDNS: null
+        address: ""
+        port: 6443
+        kubevip:
+            mode: ""
+    system:
+        ntpServers: []
+        timezone: ""
+        rpms: []
+        debs: []
+        preInstall: []
+        postInstall: []
+        skipConfigureOS: false
+    etcd:
+        type: kubekey
+        external:
+            endpoints: []
+            caFile: ""
+            certFile: ""
+            keyFile: ""
+        backupDir: ""
+        backupPeriod: 0
+        keepBackupNumber: 0
+        backupScript: ""
+        dataDir: null
+        heartbeatInterval: null
+        electionTimeout: null
+        snapshotCount: null
+        autoCompactionRetention: null
+        metrics: null
+        quotaBackendBytes: null
+        maxRequestBytes: null
+        maxSnapshots: null
+        maxWals: null
+        logLevel: null
+    dns:
+        dnsEtcHosts: ""
+        coredns:
+            additionalConfigs: ""
+            externalZones: []
+            rewriteBlock: ""
+            upstreamDNSServers: []
+        nodelocaldns:
+            externalZones: []
+    kubernetes:
+        type: ""
+        version: v1.23.16
+        clusterName: cluster.local3
+        dnsDomain: ""
+        disableKubeProxy: false
+        masqueradeAll: false
+        maxPods: 110
+        podPidsLimit: 0
+        nodeCidrMaskSize: 24
+        apiserverCertExtraSans: []
+        proxyMode: ipvs
+        autoRenewCerts: true
+        nodelocaldns: null
+        containerManager: docker
+        containerRuntimeEndpoint: ""
+        nodeFeatureDiscovery:
+            enabled: null
+        kata:
+            enabled: null
+        apiserverArgs: []
+        controllerManagerArgs: []
+        schedulerArgs: []
+        kubeletArgs: []
+        kubeProxyArgs: []
+        featureGates: {}
+    #     kubeletConfiguration:
+    #         raw: []
+    #         object: null
+    #     kubeProxyConfiguration:
+    #         raw: []
+    #         object: null
+        audit:
+            enabled: null
+    network:
+        plugin: calico
+        kubePodsCIDR: 10.233.64.0/18
+        kubeServiceCIDR: 10.233.0.0/18
+        calico:
+            ipipMode: ""
+            vxlanMode: ""
+            vethMTU: 0
+            ipv4NatOutgoing: null
+            defaultIPPOOL: null
+        flannel:
+            backendMode: ""
+            directRouting: false
+        kubeovn:
+            enableSSL: false
+            joinCIDR: ""
+            label: ""
+            tunnelType: ""
+            svcYamlIpfamilypolicy: ""
+            dpdk:
+                dpdkMode: false
+                dpdkTunnelIface: ""
+                dpdkVersion: ""
+            ovs-ovn:
+                hwOffload: false
+            kube-ovn-controller:
+                podGateway: ""
+                checkGateway: null
+                logicalGateway: false
+                excludeIps: ""
+                networkType: ""
+                vlanInterfaceName: ""
+                vlanID: ""
+                podNicType: ""
+                enableLB: null
+                enableNP: null
+                enableEipSnat: null
+                enableExternalVPC: null
+            kube-ovn-cni:
+                enableMirror: false
+                iface: ""
+                CNIConfigPriority: ""
+                modules: ""
+                RPMs: ""
+            kube-ovn-pinger:
+                pingerExternalAddress: ""
+                pingerExternalDomain: ""
+        multusCNI:
+            enabled: null
+        hybridnet:
+            defaultNetworkType: ""
+            enableNetworkPolicy: null
+            init: null
+            preferVxlanInterfaces: ""
+            preferVlanInterfaces: ""
+            preferBGPInterfaces: ""
+            networks: []
+    storage:
+        openebs:
+            basePath: /var/openebs/local
+    registry:
+        type: ""
+        registryMirrors: []
+        insecureRegistries: []
+        privateRegistry: ""
+        dataRoot: ""
+        namespaceOverride: ""
+        bridgeIP: ""
+        # auths:
+        #     raw: []
+        #     object: null
+    addons: []
+    kubesphere:
+        enabled: false
+        version: ""
+        configurations: ""

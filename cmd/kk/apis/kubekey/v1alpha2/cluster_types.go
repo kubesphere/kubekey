@@ -112,7 +112,7 @@ type RegistryConfig struct {
 	DataRoot           string               `yaml:"dataRoot" json:"dataRoot,omitempty"`
 	NamespaceOverride  string               `yaml:"namespaceOverride" json:"namespaceOverride,omitempty"`
 	BridgeIP           string               `yaml:"bridgeIP" json:"bridgeIP,omitempty"`
-	Auths              runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
+	Auths              runtime.RawExtension `yaml:"auths,omitempty" json:"auths,omitempty"`
 }
 
 // KubeSphere defines the configuration information of the KubeSphere.
@@ -157,7 +157,7 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 }
 
 // GroupHosts is used to group hosts according to the configuration file.s
-func (cfg *ClusterSpec) GroupHosts() map[string][]*KubeHost {
+func (cfg *ClusterSpec) GroupHosts(isBackend bool) (map[string][]*KubeHost, error) {
 	hostMap := make(map[string]*KubeHost)
 	for _, hostCfg := range cfg.Hosts {
 		host := toHosts(hostCfg)
@@ -168,18 +168,29 @@ func (cfg *ClusterSpec) GroupHosts() map[string][]*KubeHost {
 
 	//Check that the parameters under roleGroups are incorrect
 	if len(roleGroups[Master]) == 0 && len(roleGroups[ControlPlane]) == 0 {
-		logger.Log.Fatal(errors.New("The number of master/control-plane cannot be 0"))
+		err := errors.New("The number of master/control-plane cannot be 0")
+		if isBackend {
+			logger.Log.Errorln(err)
+			return nil, err
+		} else {
+			logger.Log.Fatal(err)
+		}
 	}
 	if len(roleGroups[Etcd]) == 0 && cfg.Etcd.Type == KubeKey {
-		logger.Log.Fatal(errors.New("The number of etcd cannot be 0"))
+		err := errors.New("The number of etcd cannot be 0")
+		if isBackend {
+			logger.Log.Errorln(err)
+			return nil, err
+		} else {
+			logger.Log.Fatal(err)
+		}
 	}
 
 	for _, host := range roleGroups[ControlPlane] {
 		host.SetRole(Master)
 		roleGroups[Master] = append(roleGroups[Master], host)
 	}
-
-	return roleGroups
+	return roleGroups, nil
 }
 
 // +kubebuilder:object:generate=false

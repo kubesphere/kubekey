@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/console"
 	"os"
 	"os/exec"
 	"runtime"
@@ -48,6 +49,7 @@ type KubeKeyOptions struct {
 }
 
 func NewDefaultKubeKeyCommand() *cobra.Command {
+	//fmt.Println("进入root.go中的NewDefaultKubeKeyCommand")
 	return NewDefaultKubeKeyCommandWithArgs(KubeKeyOptions{
 		PluginHandler: NewDefaultPluginHandler(plugin.ValidPluginFilenamePrefixes),
 		Arguments:     os.Args,
@@ -108,6 +110,8 @@ func NewKubeKeyCommand(o KubeKeyOptions) *cobra.Command {
 	cmds.AddCommand(initOs.NewCmdInit())
 
 	cmds.AddCommand(alpha.NewAlphaCmd())
+
+	cmds.AddCommand(console.NewCmdConsole())
 
 	cmds.AddCommand(create.NewCmdCreate())
 	cmds.AddCommand(delete.NewCmdDelete())

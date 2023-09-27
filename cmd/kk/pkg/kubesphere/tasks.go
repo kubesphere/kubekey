@@ -250,8 +250,9 @@ type Check struct {
 
 func (c *Check) Execute(runtime connector.Runtime) error {
 	var (
-		position = 1
-		notes    = "Please wait for the installation to complete: "
+		position       = 1
+		notes          = "Please wait for the installation to complete: "
+		isBackendNotes = "Please wait for the installation to complete. "
 	)
 
 	ch := make(chan string)
@@ -260,38 +261,49 @@ func (c *Check) Execute(runtime connector.Runtime) error {
 	go CheckKubeSphereStatus(ctx, runtime, ch)
 
 	stop := false
-	for !stop {
-		select {
-		case res := <-ch:
-			fmt.Printf("\033[%dA\033[K", position)
-			fmt.Println(res)
-			stop = true
-		default:
-			for i := 0; i < 10; i++ {
-				if i < 5 {
-					fmt.Printf("\033[%dA\033[K", position)
+	if runtime.GetIsBackend() {
+		fmt.Println(isBackendNotes)
+		for !stop {
+			select {
+			case res := <-ch:
+				fmt.Println(res)
+				stop = true
+			}
+		}
+	} else {
+		for !stop {
+			select {
+			case res := <-ch:
+				fmt.Printf("\033[%dA\033[K", position)
+				fmt.Println(res)
+				stop = true
+			default:
+				for i := 0; i < 10; i++ {
+					if i < 5 {
+						fmt.Printf("\033[%dA\033[K", position)
 
-					output := fmt.Sprintf(
-						"%s%s%s",
-						notes,
-						strings.Repeat(" ", i),
-						">>--->",
-					)
+						output := fmt.Sprintf(
+							"%s%s%s",
+							notes,
+							strings.Repeat(" ", i),
+							">>--->",
+						)
 
-					fmt.Printf("%s \033[K\n", output)
-					time.Sleep(time.Duration(200) * time.Millisecond)
-				} else {
-					fmt.Printf("\033[%dA\033[K", position)
+						fmt.Printf("%s \033[K\n", output)
+						time.Sleep(time.Duration(200) * time.Millisecond)
+					} else {
+						fmt.Printf("\033[%dA\033[K", position)
 
-					output := fmt.Sprintf(
-						"%s%s%s",
-						notes,
-						strings.Repeat(" ", 10-i),
-						"<---<<",
-					)
+						output := fmt.Sprintf(
+							"%s%s%s",
+							notes,
+							strings.Repeat(" ", 10-i),
+							"<---<<",
+						)
 
-					fmt.Printf("%s \033[K\n", output)
-					time.Sleep(time.Duration(200) * time.Millisecond)
+						fmt.Printf("%s \033[K\n", output)
+						time.Sleep(time.Duration(200) * time.Millisecond)
+					}
 				}
 			}
 		}
