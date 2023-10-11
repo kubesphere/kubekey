@@ -73,6 +73,21 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		Retry:    2,
 	}
 
+	generateContainerdService := &task.RemoteTask{
+		Name:  "GenerateContainerdService",
+		Desc:  "Generate containerd service",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.ContainerdService,
+			Dst:      filepath.Join("/etc/systemd/system", templates.ContainerdService.Name()),
+		},
+		Parallel: true,
+	}
+
 	generateDockerService := &task.RemoteTask{
 		Name:  "GenerateDockerService",
 		Desc:  "Generate docker service",
@@ -109,6 +124,18 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
+	enableContainerdForDocker := &task.RemoteTask{
+		Name:  "EnableContainerd",
+		Desc:  "Enable containerd",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action:   new(EnableContainerdForDocker),
+		Parallel: true,
+	}
+
 	enableDocker := &task.RemoteTask{
 		Name:  "EnableDocker",
 		Desc:  "Enable docker",
@@ -136,8 +163,10 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 
 	return []task.Interface{
 		syncBinaries,
+		generateContainerdService,
 		generateDockerService,
 		generateDockerConfig,
+		enableContainerdForDocker,
 		enableDocker,
 		dockerLoginRegistry,
 	}
