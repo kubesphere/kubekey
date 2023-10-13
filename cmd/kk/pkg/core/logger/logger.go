@@ -18,6 +18,8 @@ package logger
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -36,7 +38,7 @@ type KubeKeyLog struct {
 	Verbose    bool
 }
 
-func NewLogger(outputPath string, verbose bool) *KubeKeyLog {
+func NewLogger(outputPath string, verbose bool, isBackend bool) *KubeKeyLog {
 	logger := logrus.New()
 
 	formatter := &Formatter{
@@ -54,18 +56,24 @@ func NewLogger(outputPath string, verbose bool) *KubeKeyLog {
 		rotatelogs.WithLinkName(path),
 		rotatelogs.WithRotationTime(24*time.Hour),
 	)
+	var logWriter io.Writer
+	if isBackend {
+		logWriter = io.MultiWriter(os.Stdout, writer)
+	} else {
+		logWriter = writer
+	}
 
 	logWriters := lfshook.WriterMap{
-		logrus.InfoLevel:  writer,
-		logrus.WarnLevel:  writer,
-		logrus.ErrorLevel: writer,
-		logrus.FatalLevel: writer,
-		logrus.PanicLevel: writer,
+		logrus.InfoLevel:  logWriter,
+		logrus.WarnLevel:  logWriter,
+		logrus.ErrorLevel: logWriter,
+		logrus.FatalLevel: logWriter,
+		logrus.PanicLevel: logWriter,
 	}
 
 	if verbose {
 		logger.SetLevel(logrus.DebugLevel)
-		logWriters[logrus.DebugLevel] = writer
+		logWriters[logrus.DebugLevel] = logWriter
 	} else {
 		logger.SetLevel(logrus.InfoLevel)
 	}

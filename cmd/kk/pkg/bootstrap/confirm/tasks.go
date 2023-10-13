@@ -86,16 +86,25 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 		for _, host := range results {
 			if host.Sudo == "" {
 				logger.Log.Errorf("%s: sudo is required.", host.Name)
+				if runtime.GetIsBackend() {
+					fmt.Printf("%s: sudo is required.\n", host.Name)
+				}
 				stopFlag = true
 			}
 
 			if host.Conntrack == "" {
 				logger.Log.Errorf("%s: conntrack is required.", host.Name)
+				if runtime.GetIsBackend() {
+					fmt.Printf("%s: conntrack is required.\n", host.Name)
+				}
 				stopFlag = true
 			}
 
 			if host.Socat == "" {
 				logger.Log.Errorf("%s: socat is required.", host.Name)
+				if runtime.GetIsBackend() {
+					fmt.Printf("%s: socat is required.\n", host.Name)
+				}
 				stopFlag = true
 			}
 		}
@@ -122,7 +131,11 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	}
 
 	if stopFlag {
-		os.Exit(1)
+		if runtime.GetIsBackend() {
+			return errors.New("安装失败！")
+		} else {
+			os.Exit(1)
+		}
 	}
 
 	if i.KubeConf.Arg.SkipConfirmCheck {

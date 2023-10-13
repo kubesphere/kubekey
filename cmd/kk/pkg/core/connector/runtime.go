@@ -1,7 +1,7 @@
 /*
  Copyright 2021 The KubeSphere Authors.
 
- Licensed under the Apache License, Version 2.0 (the "License");
+ Licensed under the Apache License, Version 2.0 (the "License")
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
 
@@ -38,9 +38,14 @@ type BaseRuntime struct {
 	allHosts        []Host
 	roleHosts       map[string][]Host
 	deprecatedHosts map[string]string
+	isBackend       bool
 }
 
-func NewBaseRuntime(name string, connector Connector, verbose bool, ignoreErr bool) BaseRuntime {
+func (b *BaseRuntime) GetIsBackend() bool {
+	return b.isBackend
+}
+
+func NewBaseRuntime(name string, connector Connector, verbose bool, ignoreErr bool, isBackend bool) BaseRuntime {
 	base := BaseRuntime{
 		ObjName:         name,
 		connector:       connector,
@@ -49,6 +54,7 @@ func NewBaseRuntime(name string, connector Connector, verbose bool, ignoreErr bo
 		allHosts:        make([]Host, 0, 0),
 		roleHosts:       make(map[string][]Host),
 		deprecatedHosts: make(map[string]string),
+		isBackend:       isBackend,
 	}
 	if err := base.GenerateWorkDir(); err != nil {
 		fmt.Printf("[ERRO]: Failed to create KubeKey work dir: %s\n", err)
@@ -178,7 +184,7 @@ func (b *BaseRuntime) InitLogger() error {
 		}
 	}
 	logDir := filepath.Join(b.GetWorkDir(), "logs")
-	logger.Log = logger.NewLogger(logDir, b.verbose)
+	logger.Log = logger.NewLogger(logDir, b.verbose, b.isBackend)
 	return nil
 }
 

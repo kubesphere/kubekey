@@ -44,8 +44,8 @@ type Kubernetes struct {
 	KubeletArgs              []string             `yaml:"kubeletArgs" json:"kubeletArgs,omitempty"`
 	KubeProxyArgs            []string             `yaml:"kubeProxyArgs" json:"kubeProxyArgs,omitempty"`
 	FeatureGates             map[string]bool      `yaml:"featureGates" json:"featureGates,omitempty"`
-	KubeletConfiguration     runtime.RawExtension `yaml:"kubeletConfiguration" json:"kubeletConfiguration,omitempty"`
-	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration" json:"kubeProxyConfiguration,omitempty"`
+	KubeletConfiguration     runtime.RawExtension `yaml:"kubeletConfiguration,omitempty" json:"kubeletConfiguration,omitempty"`
+	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration,omitempty" json:"kubeProxyConfiguration,omitempty"`
 	Audit                    Audit                `yaml:"audit" json:"audit,omitempty"`
 }
 

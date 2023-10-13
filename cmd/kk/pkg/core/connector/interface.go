@@ -62,6 +62,7 @@ type Runtime interface {
 	RemoteHost() Host
 	Copy() Runtime
 	ModuleRuntime
+	GetIsBackend() bool
 }
 
 type Host interface {
