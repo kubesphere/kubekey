@@ -1,10 +1,11 @@
-module github.com/kubesphere/kubekey/v3
+module github.com/tangyouzzz/kubekey/v3/
 
 go 1.19
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/docker => github.com/moby/moby v20.10.14+incompatible
+	github.com/kubesphere/kubekey/v3/ => github.com/tangyouzzz/kubekey/v3/ dev
 )
 
 require (
