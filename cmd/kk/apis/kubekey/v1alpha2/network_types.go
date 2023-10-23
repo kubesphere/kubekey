@@ -139,7 +139,7 @@ func (n *NetworkConfig) EnableMultusCNI() bool {
 // EnableIPV4POOL_NAT_OUTGOING is used to determine whether to enable CALICO_IPV4POOL_NAT_OUTGOING.
 func (c *CalicoCfg) EnableIPV4POOL_NAT_OUTGOING() bool {
 	if c.Ipv4NatOutgoing == nil {
-		return false
+		return true
 	}
 	return *c.Ipv4NatOutgoing
 }
