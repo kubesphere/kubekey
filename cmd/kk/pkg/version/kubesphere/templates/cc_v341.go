@@ -135,9 +135,9 @@ spec:
     #   resources: {}
     # exporter:
     #   resources: {}
-	ruler:
-		enabled: true
-		replicas: 2
+    ruler:
+      enabled: true
+      replicas: 2
     #   resources: {}
   logging:
     enabled: false
