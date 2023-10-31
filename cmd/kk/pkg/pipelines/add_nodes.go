@@ -46,13 +46,13 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 
 	m := []module.Module{
 		&precheck.GreetingsModule{},
+		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
-		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 		&registry.RegistryCertsModule{Skip: len(runtime.GetHostsByRole(common.Registry)) == 0},
 		//for one master to multi master kube-vip
 		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},

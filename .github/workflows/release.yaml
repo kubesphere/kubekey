@@ -31,7 +31,7 @@ jobs:
           
       - name: Get Version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
       - name: Synchronize artifacts to OSS
         run: |
           rm -rf qsctl_v2.4.3_linux_amd64.tar.gz

@@ -185,9 +185,6 @@ func (cfg *ClusterSpec) GroupHosts(isBackend bool) (map[string][]*KubeHost, erro
 			logger.Log.Fatal(err)
 		}
 	}
-	if len(roleGroups[Registry]) > 1 {
-		logger.Log.Fatal(errors.New("The number of registry node cannot be greater than 1."))
-	}
 
 	for _, host := range roleGroups[ControlPlane] {
 		host.SetRole(Master)
