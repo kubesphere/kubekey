@@ -243,6 +243,10 @@ verify-gen: generate  ## Verify go generated files are up to date
 kk:
 	CGO_ENABLED=0 go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kk github.com/kubesphere/kubekey/v3/cmd/kk;
 
+.PHONY: console
+console:
+	cd console; npm install; npm run build; cp -r ./build/ ../cmd/kk/cmd/console/router/templates
+
 ALL_MANAGERS = capkk k3s-bootstrap k3s-control-plane
 
 .PHONY: managers

@@ -39,4 +39,3 @@ tmp
 
 # kubekey-console node_modules and package-lock.json files
 console/node_modules
-console/package-lock.json

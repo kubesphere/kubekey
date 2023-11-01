@@ -25,6 +25,11 @@ jobs:
           go-version: 1.19
         id: go
 
+      - name: Set up Node 14.19.2
+        uses: actions/setup-node@v3
+        with:
+          node-version: v14.19.2
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
         with:
@@ -41,6 +46,10 @@ jobs:
             git status # Show the files that failed to pass the check.
             exit 1
           fi
+
+      - name: Build Web Console
+        run: |
+          make console
 
       - name: Build command-line tool
         run: |
