@@ -49,7 +49,10 @@ jobs:
 
       - name: Build Web Console
         run: |
+          set -e
           make console
+
+
 
       - name: Build command-line tool
         run: |
