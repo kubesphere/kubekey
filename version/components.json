@@ -1031,7 +1031,8 @@
             "v1.24.1": "4006d3af110b144865be0d308145e1f90f7b40dfa0b208d82d3d1d25f3b7bf97",
             "v1.24.2": "53432dd365f7bf045c1e65ee2e44c74df6a0a8f0a798f640a945c8e07ad8682e",
             "v1.25.0": "86ab210c007f521ac4cdcbcf0ae3fb2e10923e65f16de83e0e1db191a07f0235",
-            "v1.26.0": "cda5e2143bf19f6b548110ffba0fe3565e03e8743fadd625fee3d62fc4134eed"
+            "v1.26.0": "cda5e2143bf19f6b548110ffba0fe3565e03e8743fadd625fee3d62fc4134eed",
+            "v1.28.0": "8dc78774f7cbeaf787994d386eec663f0a3cf24de1ea4893598096cb39ef2508"
         },
         "arm64": {
             "v1.22.0": "a713c37fade0d96a989bc15ebe906e08ef5c8fe5e107c2161b0665e9963b770e",
@@ -1040,7 +1041,8 @@
             "v1.24.1": "02cc96f03fcd6fbf36746fe9cc29566bf5ddd223b4fcb7e3f948566cee45e6ca",
             "v1.24.2": "c1410b15d5009287c94eabcc63b14dba68726771fa87fef743867df2eea0a6d5",
             "v1.25.0": "651c939eca010bbf48cc3932516b194028af0893025f9e366127f5b50ad5c4f4",
-            "v1.26.0": "b632ca705a98edc8ad7806f4279feaff956ac83aa109bba8a85ed81e6b900599"
+            "v1.26.0": "b632ca705a98edc8ad7806f4279feaff956ac83aa109bba8a85ed81e6b900599",
+            "v1.28.0": "06e9224e42bc5e23085751e93cccdac89f7930ba6f7a45b8f8fc70ef663c37c4"
         }
     },
     "registry": {
