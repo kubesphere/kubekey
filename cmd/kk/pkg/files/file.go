@@ -320,9 +320,9 @@ func sha256sum(path string) (string, error) {
 	}
 	defer file.Close()
 
-	data, err := io.ReadAll(file)
-	if err != nil {
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%x", sha256.Sum256(data)), nil
+	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }
