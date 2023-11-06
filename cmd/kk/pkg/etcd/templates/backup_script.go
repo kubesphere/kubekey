@@ -32,7 +32,11 @@ set -o pipefail
 
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
 ENDPOINTS='{{ .Etcdendpoint }}'
+{{- if .DataDir }}
+ETCD_DATA_DIR="{{ .DataDir }}"
+{{- else }}
 ETCD_DATA_DIR="/var/lib/etcd"
+{{- end }}
 BACKUP_DIR="{{ .Backupdir }}/etcd-$(date +%Y-%m-%d-%H-%M-%S)"
 KEEPBACKUPNUMBER='{{ .KeepbackupNumber }}'
 ETCDBACKUPSCIPT='{{ .EtcdBackupScriptDir }}'
