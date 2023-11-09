@@ -89,7 +89,7 @@ func (p *DockerLoginRegistry) Execute(runtime connector.Runtime) error {
 		if len(entry.Username) == 0 || len(entry.Password) == 0 {
 			continue
 		}
-		cmd := fmt.Sprintf("docker login --username '%s' --password '%s' %s", escapeSpecialCharacters(entry.Username), escapeSpecialCharacters(entry.Password), repo)
+		cmd := fmt.Sprintf("HOME=$HOME docker login --username '%s' --password '%s' %s", escapeSpecialCharacters(entry.Username), escapeSpecialCharacters(entry.Password), repo)
 		if _, err := runtime.GetRunner().SudoCmd(cmd, false); err != nil {
 			return errors.Wrapf(err, "login registry failed, cmd: %v, err:%v", cmd, err)
 		}
