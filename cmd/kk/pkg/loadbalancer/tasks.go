@@ -165,6 +165,7 @@ func (g *GetInterfaceName) Execute(runtime connector.Runtime) error {
 	}
 	cmd := fmt.Sprintf("ip route "+
 		"| grep ' %s ' "+
+                "| grep 'proto kernel scope link src'"+
 		"| sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\""+
 		"| uniq ", host.GetAddress())
 	interfaceName, err := runtime.GetRunner().SudoCmd(cmd, false)
