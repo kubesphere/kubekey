@@ -751,6 +751,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "liuxu623",
+      "name": "刘旭",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9653438?v=4",
+      "profile": "https://github.com/liuxu623",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
