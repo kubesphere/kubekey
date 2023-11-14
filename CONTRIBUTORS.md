@@ -111,6 +111,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/wenwenxiong"><img src="https://avatars.githubusercontent.com/u/10548812?v=4?s=100" width="100px;" alt="wenwenxiong"/><br /><sub><b>wenwenxiong</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=wenwenxiong" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://baimeow.cn/"><img src="https://avatars.githubusercontent.com/u/38121125?v=4?s=100" width="100px;" alt="柏喵Sakura"/><br /><sub><b>柏喵Sakura</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=BaiMeow" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://dashen.tech"><img src="https://avatars.githubusercontent.com/u/15921519?v=4?s=100" width="100px;" alt="cui fliter"/><br /><sub><b>cui fliter</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=cuishuang" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/liuxu623"><img src="https://avatars.githubusercontent.com/u/9653438?v=4?s=100" width="100px;" alt="刘旭"/><br /><sub><b>刘旭</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=liuxu623" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
