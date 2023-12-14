@@ -120,3 +120,4 @@
 | v1.28.2 | :white_check_mark: |
 | v1.28.3 | :white_check_mark: |
 | v1.28.4 | :white_check_mark: |
+| v1.29.0 | :white_check_mark: |
