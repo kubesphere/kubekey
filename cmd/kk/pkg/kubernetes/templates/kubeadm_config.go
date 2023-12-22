@@ -14,7 +14,7 @@
  limitations under the License.
 */
 
-package v1beta2
+package templates
 
 import (
 	"fmt"
@@ -38,7 +38,7 @@ var (
 		dedent.Dedent(`
 {{- if .IsInitCluster -}}
 ---
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/{{ if .IsV1beta3 }}v1beta3{{ else }}v1beta2{{ end }}
 kind: ClusterConfiguration
 etcd:
 {{- if .EtcdTypeIsKubeadm }}
@@ -106,7 +106,7 @@ scheduler:
 {{ toYaml .SchedulerArgs | indent 4 }}
 
 ---
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/{{ if .IsV1beta3 }}v1beta3{{ else }}v1beta2{{ end }}
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: {{ .AdvertiseAddress }}
@@ -128,7 +128,7 @@ kind: KubeletConfiguration
 
 {{- else -}}
 ---
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/{{ if .IsV1beta3 }}v1beta3{{ else }}v1beta2{{ end }}
 kind: JoinConfiguration
 discovery:
   bootstrapToken:
@@ -159,14 +159,10 @@ var (
 	FeatureGatesDefaultConfiguration = map[string]bool{
 		"RotateKubeletServerCertificate": true, //k8s 1.7+
 		"TTLAfterFinished":               true, //k8s 1.12+
-		"ExpandCSIVolumes":               true, //k8s 1.14+
-		"CSIStorageCapacity":             true, //k8s 1.19+
 	}
 	FeatureGatesSecurityDefaultConfiguration = map[string]bool{
 		"RotateKubeletServerCertificate": true, //k8s 1.7+
 		"TTLAfterFinished":               true, //k8s 1.12+
-		"ExpandCSIVolumes":               true, //k8s 1.14+
-		"CSIStorageCapacity":             true, //k8s 1.19+
 		"SeccompDefault":                 true, //kubelet
 	}
 

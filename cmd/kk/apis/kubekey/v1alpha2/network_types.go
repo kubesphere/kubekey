@@ -33,6 +33,7 @@ type CalicoCfg struct {
 	VethMTU         int    `yaml:"vethMTU" json:"vethMTU,omitempty"`
 	Ipv4NatOutgoing *bool  `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
 	DefaultIPPOOL   *bool  `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
+	EnableTypha     *bool  `yaml:"enableTypha" json:"enableTypha,omitempty"`
 }
 
 type FlannelCfg struct {
@@ -181,6 +182,14 @@ func (c *CalicoCfg) EnableDefaultIPPOOL() bool {
 		return true
 	}
 	return *c.DefaultIPPOOL
+}
+
+// Typha is used to determine whether to enable calico Typha
+func (c *CalicoCfg) Typha() bool {
+	if c.EnableTypha == nil {
+		return false
+	}
+	return *c.EnableTypha
 }
 
 // EnableInit is used to determine whether to create default network
