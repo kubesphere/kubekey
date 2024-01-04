@@ -1,0 +1,36 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.role }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "common.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - configs
+  - inventories
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubekey.kubesphere.io
+  resources:
+  - pipelines
+  - pipelines/status
+  verbs:
+  - "*"
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - "*"
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - "*"

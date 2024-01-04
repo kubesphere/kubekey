@@ -1,0 +1,57 @@
+/*
+Copyright 2023 The KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package modules
+
+import (
+	"io/fs"
+	"os"
+	"path/filepath"
+
+	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+)
+
+// findPath from roles/roleSub dir, playbook dir or current dir
+func findPath(fs fs.FS, roleSub string, src *string, options ExecOptions) *string {
+	if src == nil || filepath.IsAbs(*src) {
+		return src
+	}
+
+	findFile := []string{}
+	absPlaybook := options.Pipeline.Spec.Playbook
+	if !filepath.IsAbs(absPlaybook) {
+		absPlaybook = filepath.Join(_const.GetWorkDir(), _const.ProjectDir, options.Pipeline.Spec.Project.Name, absPlaybook)
+	}
+	baseDir := filepath.Dir(filepath.Dir(absPlaybook))
+	// findFile from roles/files
+	if role := options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]; role != "" {
+		findFile = append(findFile, filepath.Join(baseDir, _const.ProjectRolesDir, role, roleSub, *src))
+	}
+	// find from playbook dir
+	findFile = append(findFile, filepath.Join(filepath.Dir(absPlaybook), *src))
+	// find from current dir
+	if dir, err := os.Getwd(); err == nil {
+		findFile = append(findFile, filepath.Join(dir, *src))
+	}
+
+	for _, s := range findFile {
+		if _, err := os.Stat(s); err == nil {
+			return &s
+		}
+	}
+	return nil
+}
