@@ -29,7 +29,7 @@ type DockerExist struct {
 }
 
 func (d *DockerExist) PreCheck(runtime connector.Runtime) (bool, error) {
-	output, err := runtime.GetRunner().SudoCmd("if [ -z $(which docker) ] || [ ! -e /var/run/docker.sock ]; "+
+	output, err := runtime.GetRunner().SudoCmd("if [ -z $(command -v docker) ] || [ ! -e /var/run/docker.sock ]; "+
 		"then echo 'not exist'; "+
 		"fi", false)
 	if err != nil {
@@ -48,7 +48,7 @@ type CrictlExist struct {
 
 func (c *CrictlExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	output, err := runtime.GetRunner().SudoCmd(
-		"if [ -z $(which crictl) ]; "+
+		"if [ -z $(command -v crictl) ]; "+
 			"then echo 'not exist'; "+
 			"fi", false)
 	if err != nil {
@@ -68,7 +68,7 @@ type ContainerdExist struct {
 
 func (c *ContainerdExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	output, err := runtime.GetRunner().SudoCmd(
-		"if [ -z $(which containerd) ] || [ ! -e /run/containerd/containerd.sock ]; "+
+		"if [ -z $(command -v containerd) ] || [ ! -e /run/containerd/containerd.sock ]; "+
 			"then echo 'not exist'; "+
 			"fi", false)
 	if err != nil {
