@@ -61,7 +61,7 @@ func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e
 func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
 
 // Get implements ctrlclient.Reader
-func (m *Management) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (m *Management) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	return m.Client.Get(ctx, key, obj)
 }
 
@@ -81,7 +81,7 @@ func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clu
 	selectors := []client.ListOption{
 		client.InNamespace(cluster.GetNamespace()),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: cluster.GetName(),
+			clusterv1.ClusterNameLabel: cluster.GetName(),
 		},
 	}
 	machinePoolList := &expv1.MachinePoolList{}

@@ -20,14 +20,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
+func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) (admission.Warnings, error) {
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		gk,
 		name,
 		allErrs,

@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -54,7 +55,7 @@ func (r *KKClusterTemplate) Default() {
 var _ webhook.Validator = &KKClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *KKClusterTemplate) ValidateCreate() error {
+func (r *KKClusterTemplate) ValidateCreate() (admission.Warnings, error) {
 	kkclustertemplatelog.Info("validate create", "name", r.Name)
 
 	var allErrs field.ErrorList
@@ -66,17 +67,17 @@ func (r *KKClusterTemplate) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *KKClusterTemplate) ValidateUpdate(old runtime.Object) error {
+func (r *KKClusterTemplate) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	kkclustertemplatelog.Info("validate update", "name", r.Name)
 
 	oldC := old.(*KKClusterTemplate)
 	if !cmp.Equal(r.Spec, oldC.Spec) {
-		return apierrors.NewBadRequest("KKClusterTemplate.Spec is immutable")
+		return nil, apierrors.NewBadRequest("KKClusterTemplate.Spec is immutable")
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *KKClusterTemplate) ValidateDelete() error {
-	return nil
+func (r *KKClusterTemplate) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

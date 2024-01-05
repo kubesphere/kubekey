@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -121,7 +123,7 @@ func defaultInPlaceUpgradeAnnotation(annotation map[string]string) {
 var _ webhook.Validator = &KKCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (k *KKCluster) ValidateCreate() error {
+func (k *KKCluster) ValidateCreate() (admission.Warnings, error) {
 	kkclusterlog.Info("validate create", "name", k.Name)
 
 	var allErrs field.ErrorList
@@ -133,13 +135,13 @@ func (k *KKCluster) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (k *KKCluster) ValidateUpdate(old runtime.Object) error {
+func (k *KKCluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	kkclusterlog.Info("validate update", "name", k.Name)
 
 	var allErrs field.ErrorList
 	oldC, ok := old.(*KKCluster)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected an KKCluster but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an KKCluster but got a %T", old))
 	}
 
 	newLoadBalancer := &KKLoadBalancerSpec{}
@@ -165,8 +167,8 @@ func (k *KKCluster) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (k *KKCluster) ValidateDelete() error {
-	return nil
+func (k *KKCluster) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 func validateDistribution(spec KKClusterSpec) []*field.Error {

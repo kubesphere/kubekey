@@ -166,11 +166,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithOptions(options).
 		For(&infrav1.KKInstance{}).
 		Watches(
-			&source.Kind{Type: &infrav1.KKMachine{}},
+			&infrav1.KKMachine{},
 			handler.EnqueueRequestsFromMapFunc(r.KKMachineToKKInstanceMapFunc(log)),
 		).
 		Watches(
-			&source.Kind{Type: &infrav1.KKCluster{}},
+			&infrav1.KKCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.KKClusterToKKInstances(log)),
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(log, r.WatchFilterValue)).
@@ -209,7 +209,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(r.requeueKKInstancesForUnpausedCluster(log)),
 		predicates.ClusterUnpausedAndInfrastructureReady(log),
 	)
@@ -357,7 +357,7 @@ func (r *Reconciler) reconcileNormal(ctx context.Context, instanceScope *scope.I
 		instanceScope.KKInstance.Labels = make(map[string]string)
 	}
 
-	instanceScope.KKInstance.Labels[infrav1.KKClusterLabelName] = instanceScope.InfraCluster.InfraClusterName()
+	instanceScope.KKInstance.Labels[infrav1.ClusterNameLabel] = instanceScope.InfraCluster.InfraClusterName()
 
 	// If the KKMachine doesn't have our finalizer, add it.
 	if controllerutil.AddFinalizer(instanceScope.KKInstance, infrav1.InstanceFinalizer) {
@@ -425,7 +425,7 @@ func (r *Reconciler) reconcileInPlaceUpgrade(ctx context.Context, instanceScope 
 // KKClusterToKKInstances is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation of KKInstance.
 func (r *Reconciler) KKClusterToKKInstances(log logr.Logger) handler.MapFunc {
 	log.V(4).Info("KKClusterToKKInstances")
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.KKCluster)
 		if !ok {
 			panic(fmt.Sprintf("Expected a KKCluster but got a %T", o))
@@ -455,7 +455,7 @@ func (r *Reconciler) KKClusterToKKInstances(log logr.Logger) handler.MapFunc {
 
 func (r *Reconciler) requeueKKInstancesForUnpausedCluster(log logr.Logger) handler.MapFunc {
 	log.V(4).Info("requeueKKInstancesForUnpausedCluster")
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
@@ -474,7 +474,7 @@ func (r *Reconciler) requeueKKInstancesForUnpausedCluster(log logr.Logger) handl
 }
 
 func (r *Reconciler) requestsForCluster(log logr.Logger, namespace, name string) []ctrl.Request {
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 	kkMachineList := &infrav1.KKMachineList{}
 	if err := r.Client.List(context.TODO(), kkMachineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "Failed to get owned Machines, skipping mapping.")
@@ -501,7 +501,7 @@ func (r *Reconciler) requestsForCluster(log logr.Logger, namespace, name string)
 // KKMachine events and returns reconciliation requests for an KKInstance object.
 func (r *Reconciler) KKMachineToKKInstanceMapFunc(log logr.Logger) handler.MapFunc {
 	log.V(4).Info("KKMachineToKKInstanceMapFunc")
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		m, ok := o.(*infrav1.KKMachine)
 		if !ok {
 			return nil

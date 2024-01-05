@@ -24,6 +24,8 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -124,7 +126,7 @@ func main() {
 		Scheme:           mgr.GetScheme(),
 		WatchFilterValue: watchFilterValue,
 		DataDir:          dataDir,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkClusterConcurrency, RecoverPanic: true}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKCluster")
 		os.Exit(1)
 	}
@@ -135,7 +137,7 @@ func main() {
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 		DataDir:          dataDir,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkMachineConcurrency, RecoverPanic: true}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkMachineConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKMachine")
 		os.Exit(1)
 	}
@@ -146,7 +148,7 @@ func main() {
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 		DataDir:          dataDir,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkInstanceConcurrency, RecoverPanic: true}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: kkInstanceConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KKInstance")
 		os.Exit(1)
 	}

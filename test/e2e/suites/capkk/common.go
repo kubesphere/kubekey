@@ -31,6 +31,6 @@ const (
 )
 
 // Byf is a wrapper around By that formats its arguments.
-func Byf(format string, a ...interface{}) {
+func Byf(format string, a ...any) {
 	By(fmt.Sprintf(format, a...))
 }

@@ -82,7 +82,7 @@ func (r *K3sControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ct
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(r.ClusterToK3sControlPlane),
 		predicates.All(ctrl.LoggerFrom(ctx),
 			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
@@ -516,7 +516,7 @@ func (r *K3sControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *infr
 
 func (r *K3sControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, kcp *infracontrolplanev1.K3sControlPlane, currentOwner *infrabootstrapv1.K3sConfig, clusterName string) error {
 	secrets := corev1.SecretList{}
-	if err := r.Client.List(ctx, &secrets, client.InNamespace(kcp.Namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}); err != nil {
+	if err := r.Client.List(ctx, &secrets, client.InNamespace(kcp.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName}); err != nil {
 		return errors.Wrap(err, "error finding secrets for adoption")
 	}
 
@@ -578,7 +578,7 @@ func (r *K3sControlPlaneReconciler) reconcileControlPlaneConditions(ctx context.
 
 // ClusterToK3sControlPlane is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for K3sControlPlane based on updates to a Cluster.
-func (r *K3sControlPlaneReconciler) ClusterToK3sControlPlane(o client.Object) []ctrl.Request {
+func (r *K3sControlPlaneReconciler) ClusterToK3sControlPlane(ctx context.Context, o client.Object) []ctrl.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))

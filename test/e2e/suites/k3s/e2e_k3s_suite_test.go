@@ -33,9 +33,9 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/kubesphere/kubekey/v3/test/e2e/framework"
-	"github.com/kubesphere/kubekey/v3/test/e2e/framework/bootstrap"
-	"github.com/kubesphere/kubekey/v3/test/e2e/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 // Test suite flags.

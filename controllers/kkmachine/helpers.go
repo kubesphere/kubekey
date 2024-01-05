@@ -53,7 +53,7 @@ func (r *Reconciler) createInstance(ctx context.Context, machineScope *scope.Mac
 	instanceID := instanceSpec.Name
 	gv := infrav1.GroupVersion
 	labels := machineScope.Machine.Labels
-	labels[infrav1.KKClusterLabelName] = kkInstanceScope.InfraClusterName()
+	labels[infrav1.ClusterNameLabel] = kkInstanceScope.InfraClusterName()
 	instance := &infrav1.KKInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            instanceID,

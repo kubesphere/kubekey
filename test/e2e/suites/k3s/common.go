@@ -27,7 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 
-	"github.com/kubesphere/kubekey/v3/test/e2e/framework"
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 // Test suite constants for e2e config variables.
@@ -40,7 +40,7 @@ const (
 )
 
 // Byf is a wrapper around By that formats its arguments.
-func Byf(format string, a ...interface{}) {
+func Byf(format string, a ...any) {
 	By(fmt.Sprintf(format, a...))
 }
 

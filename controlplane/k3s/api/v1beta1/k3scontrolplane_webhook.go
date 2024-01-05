@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	"github.com/blang/semver"
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
@@ -104,15 +106,15 @@ func defaultRolloutStrategy(rolloutStrategy *RolloutStrategy) *RolloutStrategy {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (in *K3sControlPlane) ValidateCreate() error {
+func (in *K3sControlPlane) ValidateCreate() (admission.Warnings, error) {
 	spec := in.Spec
 	allErrs := validateK3sControlPlaneSpec(spec, in.Namespace, field.NewPath("spec"))
 	allErrs = append(allErrs, validateServerConfiguration(spec.K3sConfigSpec.ServerConfiguration, nil, field.NewPath("spec", "k3sConfigSpec", "serverConfiguration"))...)
 	allErrs = append(allErrs, spec.K3sConfigSpec.Validate(field.NewPath("spec", "k3sConfigSpec"))...)
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("K3sControlPlane").GroupKind(), in.Name, allErrs)
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("K3sControlPlane").GroupKind(), in.Name, allErrs)
 	}
-	return nil
+	return nil, nil
 }
 
 const (
@@ -124,7 +126,7 @@ const (
 )
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (in *K3sControlPlane) ValidateUpdate(old runtime.Object) error {
+func (in *K3sControlPlane) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	// add a * to indicate everything beneath is ok.
 	// For example, {"spec", "*"} will allow any path under "spec" to change.
 	allowedPaths := [][]string{
@@ -148,25 +150,25 @@ func (in *K3sControlPlane) ValidateUpdate(old runtime.Object) error {
 
 	prev, ok := old.(*K3sControlPlane)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expecting K3sControlPlane but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expecting K3sControlPlane but got a %T", old))
 	}
 
 	originalJSON, err := json.Marshal(prev)
 	if err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 	modifiedJSON, err := json.Marshal(in)
 	if err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 
 	diff, err := jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
 	if err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 	jsonPatch := map[string]interface{}{}
 	if err := json.Unmarshal(diff, &jsonPatch); err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 	// Build a list of all paths that are trying to change
 	diffpaths := paths([]string{}, jsonPatch)
@@ -190,10 +192,10 @@ func (in *K3sControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, in.Spec.K3sConfigSpec.Validate(field.NewPath("spec", "K3sConfigSpec"))...)
 
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("K3sControlPlane").GroupKind(), in.Name, allErrs)
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("K3sControlPlane").GroupKind(), in.Name, allErrs)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func validateK3sControlPlaneSpec(s K3sControlPlaneSpec, namespace string, pathPrefix *field.Path) field.ErrorList {
@@ -467,6 +469,6 @@ func (in *K3sControlPlane) validateVersion(previousVersion string) (allErrs fiel
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (in *K3sControlPlane) ValidateDelete() error {
-	return nil
+func (in *K3sControlPlane) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

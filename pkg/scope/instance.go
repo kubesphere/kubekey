@@ -19,11 +19,12 @@ package scope
 import (
 	"context"
 
+	"k8s.io/klog/v2/klogr"
+
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -161,7 +162,7 @@ func (i *InstanceScope) InPlaceUpgradeVersion() string {
 
 // IsControlPlane returns whether the KKInstance is a control plane node.
 func (i *InstanceScope) IsControlPlane() bool {
-	if _, ok := i.Machine.GetLabels()[clusterv1.MachineControlPlaneLabelName]; ok {
+	if _, ok := i.Machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
 		return true
 	}
 	return false

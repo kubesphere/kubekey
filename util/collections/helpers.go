@@ -34,7 +34,7 @@ func GetFilteredKKInstancesForKKCluster(ctx context.Context, c client.Reader, kk
 		ml,
 		client.InNamespace(kkCluster.Namespace),
 		client.MatchingLabels{
-			infrav1.KKClusterLabelName: kkCluster.Name,
+			infrav1.ClusterNameLabel: kkCluster.Name,
 		},
 	); err != nil {
 		return nil, errors.Wrap(err, "failed to list machines")

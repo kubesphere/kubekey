@@ -175,7 +175,7 @@ func (r *Reconciler) patchMachineSet(ctx context.Context, clusterScope *scope.Cl
 
 	if err := r.Client.List(ctx, machineSets,
 		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels{clusterv1.ClusterLabelName: cluster.Name}); err != nil {
+		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name}); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -215,7 +215,7 @@ func (r *Reconciler) patchMachineDeployment(ctx context.Context, clusterScope *s
 
 	if err := r.Client.List(ctx, machineDeployments,
 		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels{clusterv1.ClusterLabelName: cluster.Name}); err != nil {
+		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name}); err != nil {
 		return ctrl.Result{}, err
 	}
 

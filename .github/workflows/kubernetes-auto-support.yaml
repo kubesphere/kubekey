@@ -12,21 +12,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Go 1.19
+      - name: Set up Go 1.21
         uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: 1.21
         id: go
 
       - name: install dependiencies
         run: |
           sudo apt update
-          sudo apt install skopeo -y 
           pip install natsort
           wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
           tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
           mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
           rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+
+          VERSION="1.1.0"
+          curl -LO "https://github.com/oras-project/oras/releases/download/v${VERSION}/oras_${VERSION}_linux_amd64.tar.gz"
+          mkdir -p oras-install/
+          tar -zxf oras_${VERSION}_*.tar.gz -C oras-install/
+          sudo mv oras-install/oras /usr/local/bin/
+          rm -rf oras_${VERSION}_*.tar.gz oras-install/
 
       - name: update components.json
         id: get_new_version

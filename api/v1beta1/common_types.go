@@ -17,6 +17,6 @@
 package v1beta1
 
 const (
-	// KKClusterLabelName is the label set on KKMachines and KKInstances linked to a kkCluster.
-	KKClusterLabelName = "kkcluster.infrastructure.cluster.x-k8s.io/cluster-name"
+	// KKClusterNameLabel is the label set on KKMachines and KKInstances linked to a kkCluster.
+	ClusterNameLabel = "kkcluster.infrastructure.cluster.x-k8s.io/cluster-name"
 )

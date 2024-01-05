@@ -360,7 +360,7 @@ func (p *PushManifest) Execute(_ connector.Runtime) error {
 		logger.Log.Infof("Push multi-arch manifest list: %s", imageName)
 		// todo: the function can't support specify a certs dir
 		digest, length, err := manifestregistry.PushManifestList(auth.Username, auth.Password, manifestSpec,
-			false, true, auth.PlainHTTP, "")
+			false, true, auth.PlainHTTP, manifesttypes.OCI, "")
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("push image %s multi-arch manifest failed", imageName))
 		}

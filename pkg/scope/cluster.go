@@ -121,7 +121,7 @@ func (s *ClusterScope) GetKKMachines(ctx context.Context) (*infrav1.KKMachineLis
 		kkml,
 		client.InNamespace(s.KKCluster.Namespace),
 		client.MatchingLabels{
-			infrav1.KKClusterLabelName: s.KKCluster.Name,
+			infrav1.ClusterNameLabel: s.KKCluster.Name,
 		},
 	); err != nil {
 		return nil, errors.Wrap(err, "failed to list KKMachines")

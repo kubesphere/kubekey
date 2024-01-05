@@ -100,7 +100,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	return c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(r.requeueKKClusterForUnpausedCluster(ctx, log)),
 		predicates.ClusterUnpaused(log),
 	)
@@ -287,7 +287,7 @@ func (r *Reconciler) reconcileInPlaceUpgrade(ctx context.Context, clusterScope *
 }
 
 func (r *Reconciler) requeueKKClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			panic(fmt.Sprintf("Expected a Cluster but got a %T", o))

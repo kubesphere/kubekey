@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *K3sConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -44,28 +45,28 @@ func (r *K3sConfigTemplate) Default() {
 var _ webhook.Validator = &K3sConfigTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *K3sConfigTemplate) ValidateCreate() error {
+func (r *K3sConfigTemplate) ValidateCreate() (admission.Warnings, error) {
 	return r.Spec.validate(r.Name)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *K3sConfigTemplate) ValidateUpdate(old runtime.Object) error {
+func (r *K3sConfigTemplate) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	return r.Spec.validate(r.Name)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *K3sConfigTemplate) ValidateDelete() error {
-	return nil
+func (r *K3sConfigTemplate) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
-func (r *K3sConfigTemplateSpec) validate(name string) error {
+func (r *K3sConfigTemplateSpec) validate(name string) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.Template.Spec.Validate(field.NewPath("spec", "template", "spec"))...)
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(GroupVersion.WithKind("K3sConfigTemplate").GroupKind(), name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("K3sConfigTemplate").GroupKind(), name, allErrs)
 }

@@ -114,7 +114,7 @@ func (r *K3sControlPlaneReconciler) reconcileExternalReference(ctx context.Conte
 		return nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return err
 	}
 
@@ -153,7 +153,7 @@ func (r *K3sControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.C
 	}
 
 	// Clone the infrastructure template
-	infraRef, err := external.CloneTemplate(ctx, &external.CloneTemplateInput{
+	infraRef, err := external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 		Client:      r.Client,
 		TemplateRef: &kcp.Spec.MachineTemplate.InfrastructureRef,
 		Namespace:   kcp.Namespace,

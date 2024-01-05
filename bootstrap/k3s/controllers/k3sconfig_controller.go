@@ -93,13 +93,13 @@ func (r *K3sConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		For(&infrabootstrapv1.K3sConfig{}).
 		WithOptions(options).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
-			&source.Kind{Type: &expv1.MachinePool{}},
+			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
 		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
 	}
@@ -110,7 +110,7 @@ func (r *K3sConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(r.ClusterToK3sConfigs),
 		predicates.All(ctrl.LoggerFrom(ctx),
 			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
@@ -515,7 +515,7 @@ func (r *K3sConfigReconciler) generateAndStoreToken(ctx context.Context, scope *
 			Name:      fmt.Sprintf("%s-token", scope.Cluster.Name),
 			Namespace: scope.Config.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: scope.Cluster.Name,
+				clusterv1.ClusterNameLabel: scope.Cluster.Name,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -595,7 +595,7 @@ func (r *K3sConfigReconciler) storeBootstrapData(ctx context.Context, scope *Sco
 			Name:      scope.Config.Name,
 			Namespace: scope.Config.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: scope.Cluster.Name,
+				clusterv1.ClusterNameLabel: scope.Cluster.Name,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -672,7 +672,7 @@ func (r *K3sConfigReconciler) reconcileDiscovery(ctx context.Context, cluster *c
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of K3sConfig.
-func (r *K3sConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *K3sConfigReconciler) MachineToBootstrapMapFunc(cxt context.Context, o client.Object) []ctrl.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
@@ -688,7 +688,7 @@ func (r *K3sConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of K3sConfig.
-func (r *K3sConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *K3sConfigReconciler) MachinePoolToBootstrapMapFunc(cxt context.Context, o client.Object) []ctrl.Request {
 	m, ok := o.(*expv1.MachinePool)
 	if !ok {
 		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
@@ -705,7 +705,7 @@ func (r *K3sConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []c
 
 // ClusterToK3sConfigs is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of K3sConfig.
-func (r *K3sConfigReconciler) ClusterToK3sConfigs(o client.Object) []ctrl.Request {
+func (r *K3sConfigReconciler) ClusterToK3sConfigs(cxt context.Context, o client.Object) []ctrl.Request {
 	var result []ctrl.Request
 
 	c, ok := o.(*clusterv1.Cluster)
@@ -716,7 +716,7 @@ func (r *K3sConfigReconciler) ClusterToK3sConfigs(o client.Object) []ctrl.Reques
 	selectors := []client.ListOption{
 		client.InNamespace(c.Namespace),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: c.Name,
+			clusterv1.ClusterNameLabel: c.Name,
 		},
 	}
 

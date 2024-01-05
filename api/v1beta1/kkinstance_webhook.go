@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -49,13 +50,13 @@ func (k *KKInstance) Default() {
 var _ webhook.Validator = &KKInstance{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (k *KKInstance) ValidateCreate() error {
+func (k *KKInstance) ValidateCreate() (admission.Warnings, error) {
 	kkinstancelog.Info("validate create", "name", k.Name)
-	return nil
+	return admission.Warnings{}, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (k *KKInstance) ValidateUpdate(old runtime.Object) error {
+func (k *KKInstance) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	kkinstancelog.Info("validate update", "name", k.Name)
 
 	var allErrs field.ErrorList
@@ -106,7 +107,7 @@ func (k *KKInstance) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (k *KKInstance) ValidateDelete() error {
+func (k *KKInstance) ValidateDelete() (admission.Warnings, error) {
 	kkinstancelog.Info("validate delete", "name", k.Name)
-	return nil
+	return nil, nil
 }
