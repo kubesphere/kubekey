@@ -32,12 +32,12 @@ func ParseBool(v variable.VariableData, inputs []string) (bool, error) {
 		// first convert.
 		intql, err := pongo2.FromString(input)
 		if err != nil {
-			klog.Errorf("failed to get string: %v", err)
+			klog.ErrorS(err, "Failed to get string")
 			return false, err
 		}
 		inres, err := intql.Execute(pongo2.Context(v))
 		if err != nil {
-			klog.Errorf("failed to execute string: %v", err)
+			klog.ErrorS(err, "Failed to execute string")
 			return false, err
 		}
 
@@ -48,15 +48,15 @@ func ParseBool(v variable.VariableData, inputs []string) (bool, error) {
 		// second convert.
 		tql, err := pongo2.FromString(inres)
 		if err != nil {
-			klog.Errorf("failed to get string: %v", err)
+			klog.ErrorS(err, "failed to get string")
 			return false, err
 		}
 		result, err := tql.Execute(pongo2.Context(v))
 		if err != nil {
-			klog.Errorf("failed to execute string: %v", err)
+			klog.ErrorS(err, "failed to execute string")
 			return false, err
 		}
-		klog.V(4).Infof("the template parse result: %s", result)
+		klog.V(4).InfoS(" parse template succeed", "result", result)
 		if result != "True" {
 			return false, nil
 		}
@@ -68,29 +68,29 @@ func ParseBool(v variable.VariableData, inputs []string) (bool, error) {
 func ParseString(v variable.VariableData, input string) (string, error) {
 	tql, err := pongo2.FromString(input)
 	if err != nil {
-		klog.Errorf("failed to get string: %v", err)
+		klog.ErrorS(err, "Failed to get string")
 		return input, err
 	}
 	result, err := tql.Execute(pongo2.Context(v))
 	if err != nil {
-		klog.Errorf("failed to execute string: %v", err)
+		klog.ErrorS(err, "Failed to execute string")
 		return input, err
 	}
-	klog.V(4).Infof("the template parse result: %s", result)
+	klog.V(4).InfoS(" parse template succeed", "result", result)
 	return result, nil
 }
 
 func ParseFile(v variable.VariableData, file []byte) (string, error) {
 	tql, err := pongo2.FromBytes(file)
 	if err != nil {
-		klog.Errorf("transfer file to pongo2 template error %v", err)
+		klog.ErrorS(err, "Transfer file to template error")
 		return "", err
 	}
 	result, err := tql.Execute(pongo2.Context(v))
 	if err != nil {
-		klog.Errorf("exec pongo2 template error %v", err)
+		klog.ErrorS(err, "exec template error")
 		return "", err
 	}
-	klog.V(4).Infof("the template file: %s", result)
+	klog.V(4).InfoS(" parse template succeed", "result", result)
 	return result, nil
 }

@@ -40,7 +40,7 @@ type Watcher interface {
 func New(path string) (Source, error) {
 	if _, err := os.Stat(path); err != nil {
 		if err := os.MkdirAll(path, fs.ModePerm); err != nil {
-			klog.Errorf("create source path %s error: %v", path, err)
+			klog.ErrorS(err, "create source path error", "path", path)
 			return nil, err
 		}
 	}

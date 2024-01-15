@@ -20,7 +20,7 @@ import (
 	"context"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	"github.com/kubesphere/kubekey/v4/pkg/cache"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
 // Manager shared dependencies such as Addr and , and provides them to Runnable.
@@ -40,7 +40,7 @@ func NewCommandManager(o CommandManagerOptions) Manager {
 		Pipeline:  o.Pipeline,
 		Config:    o.Config,
 		Inventory: o.Inventory,
-		Client:    cache.NewDelegatingClient(nil),
+		Client:    proxy.NewDelegatingClient(nil),
 	}
 }
 

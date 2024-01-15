@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
@@ -47,7 +46,6 @@ var module = make(map[string]ModuleExecFunc)
 
 func RegisterModule(moduleName string, exec ModuleExecFunc) error {
 	if _, ok := module[moduleName]; ok {
-		klog.Errorf("module %s is exist", moduleName)
 		return fmt.Errorf("module %s is exist", moduleName)
 	}
 	module[moduleName] = exec

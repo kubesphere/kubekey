@@ -41,20 +41,19 @@ func (c *localConnector) Close(ctx context.Context) error {
 
 func (c *localConnector) CopyFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error {
 	// create remote file
-	if _, err := os.Stat(filepath.Dir(remoteFile)); err != nil {
-		klog.Warningf("Failed to stat dir %s: %v create it", filepath.Dir(remoteFile), err)
+	if _, err := os.Stat(filepath.Dir(remoteFile)); err != nil && os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(remoteFile), mode); err != nil {
-			klog.Errorf("Failed to create dir %s: %v", filepath.Dir(remoteFile), err)
+			klog.ErrorS(err, "Failed to create remote dir", "remote_file", remoteFile)
 			return err
 		}
 	}
 	rf, err := os.Create(remoteFile)
 	if err != nil {
-		klog.Errorf("Failed to create file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to create remote file", "remote_file", remoteFile)
 		return err
 	}
 	if _, err := rf.Write(local); err != nil {
-		klog.Errorf("Failed to write file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to write content to remote file", "remote_file", remoteFile)
 		return err
 	}
 	return rf.Chmod(mode)
@@ -64,11 +63,11 @@ func (c *localConnector) FetchFile(ctx context.Context, remoteFile string, local
 	var err error
 	file, err := os.Open(remoteFile)
 	if err != nil {
-		klog.Errorf("Failed to read file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to read remote file failed", "remote_file", remoteFile)
 		return err
 	}
 	if _, err := io.Copy(local, file); err != nil {
-		klog.Errorf("Failed to copy file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to copy remote file to local", "remote_file", remoteFile)
 		return err
 	}
 	return nil
@@ -76,25 +75,4 @@ func (c *localConnector) FetchFile(ctx context.Context, remoteFile string, local
 
 func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	return c.Cmd.CommandContext(ctx, cmd).CombinedOutput()
-}
-
-func (c *localConnector) copyFile(sourcePath, destinationPath string) error {
-	sourceFile, err := os.Open(sourcePath)
-	if err != nil {
-		return err
-	}
-	defer sourceFile.Close()
-
-	destinationFile, err := os.Create(destinationPath)
-	if err != nil {
-		return err
-	}
-	defer destinationFile.Close()
-
-	_, err = io.Copy(destinationFile, sourceFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

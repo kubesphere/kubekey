@@ -48,23 +48,23 @@ func MarshalPlaybook(baseFS fs.FS, pbPath string) (*kkcorev1.Playbook, error) {
 	// convert playbook to kkcorev1.Playbook
 	pb := &kkcorev1.Playbook{}
 	if err := loadPlaybook(baseFS, pbPath, pb); err != nil {
-		klog.Errorf(" load playbook with include %s failed: %v", pbPath, err)
+		klog.ErrorS(err, "Load playbook failed", "playbook", pbPath)
 		return nil, err
 	}
 
 	// convertRoles
 	if err := convertRoles(baseFS, pbPath, pb); err != nil {
-		klog.Errorf("convertRoles error %v", err)
+		klog.ErrorS(err, "ConvertRoles error", "playbook", pbPath)
 		return nil, err
 	}
 
 	if err := convertIncludeTasks(baseFS, pbPath, pb); err != nil {
-		klog.Errorf("convertIncludeTasks error %v", err)
+		klog.ErrorS(err, "ConvertIncludeTasks error", "playbook", pbPath)
 		return nil, err
 	}
 
 	if err := pb.Validate(); err != nil {
-		klog.Errorf("validate playbook %s failed: %v", pbPath, err)
+		klog.ErrorS(err, "Validate playbook failed", "playbook", pbPath)
 		return nil, err
 	}
 	return pb, nil
@@ -75,12 +75,12 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 	// baseDir is the local ansible project dir which playbook belong to
 	pbData, err := fs.ReadFile(baseFS, pbPath)
 	if err != nil {
-		klog.Errorf("read playbook %s failed: %v", pbPath, err)
+		klog.ErrorS(err, "Read playbook failed", "playbook", pbPath)
 		return err
 	}
 	var plays []kkcorev1.Play
 	if err := yaml.Unmarshal(pbData, &plays); err != nil {
-		klog.Errorf("unmarshal playbook %s failed: %v", pbPath, err)
+		klog.ErrorS(err, "Unmarshal playbook failed", "playbook", pbPath)
 		return err
 	}
 
@@ -108,12 +108,12 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 
 			rdata, err := fs.ReadFile(baseFS, mainTask)
 			if err != nil {
-				klog.Errorf("read role %s failed: %v", mainTask, err)
+				klog.ErrorS(err, "Read role failed", "playbook", pbPath, "role", r.Role)
 				return err
 			}
 			var blocks []kkcorev1.Block
 			if err := yaml.Unmarshal(rdata, &blocks); err != nil {
-				klog.Errorf("unmarshal role %s failed: %v", r.Role, err)
+				klog.ErrorS(err, "Unmarshal role failed", "playbook", pbPath, "role", r.Role)
 				return err
 			}
 			p.Roles[i].Block = blocks
@@ -141,12 +141,12 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 
 			rdata, err := fs.ReadFile(baseFS, mainTask)
 			if err != nil {
-				klog.Errorf("read role %s failed: %v", mainTask, err)
+				klog.ErrorS(err, "Read role failed", "playbook", pbPath, "role", r.Role)
 				return err
 			}
 			var blocks []kkcorev1.Block
 			if err := yaml.Unmarshal(rdata, &blocks); err != nil {
-				klog.Errorf("unmarshal role %s failed: %v", r.Role, err)
+				klog.ErrorS(err, "Unmarshal role failed", "playbook", pbPath, "role", r.Role)
 				return err
 			}
 			p.Roles[i].Block = blocks
@@ -156,12 +156,12 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 			if mainDefault != "" {
 				mainData, err := fs.ReadFile(baseFS, mainDefault)
 				if err != nil {
-					klog.Errorf("read defaults variable for role %s error: %v", r.Role, err)
+					klog.ErrorS(err, "Read defaults variable for role error", "playbook", pbPath, "role", r.Role)
 					return err
 				}
 				var vars variable.VariableData
 				if err := yaml.Unmarshal(mainData, &vars); err != nil {
-					klog.Errorf("unmarshal defaults variable for role %s error: %v", r.Role, err)
+					klog.ErrorS(err, "Unmarshal defaults variable for role error", "playbook", pbPath, "role", r.Role)
 					return err
 				}
 				p.Roles[i].Vars = vars
@@ -177,18 +177,22 @@ func convertIncludeTasks(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) err
 	var pbBase = filepath.Dir(filepath.Dir(pbPath))
 	for _, play := range pb.Play {
 		if err := fileToBlock(baseFS, pbBase, play.PreTasks); err != nil {
+			klog.ErrorS(err, "Convert pre_tasks error", "playbook", pbPath)
 			return err
 		}
 		if err := fileToBlock(baseFS, pbBase, play.Tasks); err != nil {
+			klog.ErrorS(err, "Convert tasks error", "playbook", pbPath)
 			return err
 		}
 		if err := fileToBlock(baseFS, pbBase, play.PostTasks); err != nil {
+			klog.ErrorS(err, "Convert post_tasks error", "playbook", pbPath)
 			return err
 		}
 
 		for _, r := range play.Roles {
 			roleBase := project.GetRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
 			if err := fileToBlock(baseFS, filepath.Join(roleBase, _const.ProjectRolesTasksDir), r.Block); err != nil {
+				klog.ErrorS(err, "Convert role error", "playbook", pbPath, "role", r.Role)
 				return err
 			}
 		}
@@ -201,24 +205,27 @@ func fileToBlock(baseFS fs.FS, baseDir string, blocks []kkcorev1.Block) error {
 		if b.IncludeTasks != "" {
 			data, err := fs.ReadFile(baseFS, filepath.Join(baseDir, b.IncludeTasks))
 			if err != nil {
-				klog.Errorf("readFile %s error %v", filepath.Join(baseDir, b.IncludeTasks), err)
+				klog.ErrorS(err, "Read includeTask file error", "name", b.Name, "file_path", filepath.Join(baseDir, b.IncludeTasks))
 				return err
 			}
 			var bs []kkcorev1.Block
 			if err := yaml.Unmarshal(data, &bs); err != nil {
-				klog.Errorf("unmarshal data %s to []Block error %v", filepath.Join(baseDir, b.IncludeTasks), err)
+				klog.ErrorS(err, "Unmarshal  includeTask data error", "name", b.Name, "file_path", filepath.Join(baseDir, b.IncludeTasks))
 				return err
 			}
 			b.Block = bs
 			blocks[i] = b
 		}
 		if err := fileToBlock(baseFS, baseDir, b.Block); err != nil {
+			klog.ErrorS(err, "Convert block error", "name", b.Name)
 			return err
 		}
 		if err := fileToBlock(baseFS, baseDir, b.Rescue); err != nil {
+			klog.ErrorS(err, "Convert rescue error", "name", b.Name)
 			return err
 		}
 		if err := fileToBlock(baseFS, baseDir, b.Always); err != nil {
+			klog.ErrorS(err, "Convert always error", "name", b.Name)
 			return err
 		}
 	}
@@ -247,7 +254,7 @@ func MarshalBlock(ctx context.Context, block kkcorev1.Block, owner ctrlclient.Ob
 	task := &kubekeyv1alpha1.Task{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Task",
-			APIVersion: "kubekey.kubesphere.io/v1alpha1",
+			APIVersion: kubekeyv1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              fmt.Sprintf("%s-%s", owner.GetName(), rand.String(12)),
@@ -273,10 +280,9 @@ func MarshalBlock(ctx context.Context, block kkcorev1.Block, owner ctrlclient.Ob
 			Hosts:       hosts,
 			IgnoreError: block.IgnoreErrors,
 			Retries:     block.Retries,
-			//Loop:        block.Loop,
-			When:       when,
-			FailedWhen: block.FailedWhen.Data,
-			Register:   block.Register,
+			When:        when,
+			FailedWhen:  block.FailedWhen.Data,
+			Register:    block.Register,
 		},
 		Status: kubekeyv1alpha1.TaskStatus{
 			Phase: kubekeyv1alpha1.TaskPhasePending,
@@ -285,7 +291,7 @@ func MarshalBlock(ctx context.Context, block kkcorev1.Block, owner ctrlclient.Ob
 	if len(block.Loop) != 0 {
 		data, err := json.Marshal(block.Loop)
 		if err != nil {
-			klog.Errorf("marshal loop %v error: %v", block.Loop, err)
+			klog.ErrorS(err, "Marshal loop failed", "task", task.Name, "block", block.Name)
 		}
 		task.Spec.Loop = runtime.RawExtension{Raw: data}
 	}
@@ -313,7 +319,7 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 			if strings.HasSuffix(a.(string), "%") {
 				b, err := strconv.Atoi(strings.TrimSuffix(a.(string), "%"))
 				if err != nil {
-					klog.Errorf("convert serial %s to int failed: %v", a.(string), err)
+					klog.ErrorS(err, "Convert serial to int failed", "serial", a.(string))
 					return nil, err
 				}
 				if sp+int(math.Ceil(float64(len(hosts)*b)/100.0)) > len(hosts)-1 {
@@ -325,7 +331,7 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 			} else {
 				b, err := strconv.Atoi(a.(string))
 				if err != nil {
-					klog.Errorf("convert serial %s to int failed: %v", a.(string), err)
+					klog.ErrorS(err, "Convert serial to int failed", "serial", a.(string))
 					return nil, err
 				}
 				if sp+b > len(hosts)-1 {
@@ -355,7 +361,7 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 				if strings.HasSuffix(a.(string), "%") {
 					b, err := strconv.Atoi(strings.TrimSuffix(a.(string), "%"))
 					if err != nil {
-						klog.Errorf("convert serial %s to int failed: %v", a.(string), err)
+						klog.ErrorS(err, "Convert serial to int failed", "serial", a.(string))
 						return nil, err
 					}
 					if sp+int(math.Ceil(float64(len(hosts)*b)/100.0)) > len(hosts)-1 {
@@ -367,7 +373,7 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 				} else {
 					b, err := strconv.Atoi(a.(string))
 					if err != nil {
-						klog.Errorf("convert serial %s to int failed: %v", a.(string), err)
+						klog.ErrorS(err, "Convert serial to int failed", "serial", a.(string))
 						return nil, err
 					}
 					if sp+b > len(hosts)-1 {

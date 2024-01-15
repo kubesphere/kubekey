@@ -34,11 +34,12 @@ func ModuleDebug(ctx context.Context, options ExecOptions) (string, string) {
 			LocationUID: string(options.Task.UID),
 		})
 		if err != nil {
+			klog.ErrorS(err, "Failed to get location vars")
 			return "", err.Error()
 		}
 		result, err := tmpl.ParseString(lg.(variable.VariableData), fmt.Sprintf("{{ %s }}", *v))
 		if err != nil {
-			klog.Errorf("failed to get var %v", err)
+			klog.ErrorS(err, "Failed to get var")
 			return "", err.Error()
 		}
 		return result, ""
@@ -50,11 +51,12 @@ func ModuleDebug(ctx context.Context, options ExecOptions) (string, string) {
 			LocationUID: string(options.Task.UID),
 		})
 		if err != nil {
+			klog.ErrorS(err, "Failed to get location vars")
 			return "", err.Error()
 		}
 		result, err := tmpl.ParseString(lg.(variable.VariableData), *v)
 		if err != nil {
-			klog.Errorf("failed to get var %v", err)
+			klog.ErrorS(err, "Failed to get var")
 			return "", err.Error()
 		}
 		return result, ""

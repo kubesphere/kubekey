@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -57,6 +58,7 @@ func (c *sshConnector) Init(ctx context.Context) error {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
+		klog.ErrorS(err, "Dial ssh server failed", "host", c.Host, "port", *c.Port)
 		return err
 	}
 	c.client = sshClient
@@ -72,27 +74,26 @@ func (c *sshConnector) CopyFile(ctx context.Context, src []byte, remoteFile stri
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
-		klog.Errorf("Failed to create sftp client: %v", err)
+		klog.ErrorS(err, "Failed to create sftp client")
 		return err
 	}
 	defer sftpClient.Close()
 	// create remote file
-	if _, err := sftpClient.Stat(filepath.Dir(remoteFile)); err != nil {
-		klog.Warningf("Failed to stat dir %s: %v create it", filepath.Dir(remoteFile), err)
+	if _, err := sftpClient.Stat(filepath.Dir(remoteFile)); err != nil && os.IsNotExist(err) {
 		if err := sftpClient.MkdirAll(filepath.Dir(remoteFile)); err != nil {
-			klog.Errorf("Failed to create dir %s: %v", filepath.Dir(remoteFile), err)
+			klog.ErrorS(err, "Failed to create remote dir", "remote_file", remoteFile)
 			return err
 		}
 	}
 	rf, err := sftpClient.Create(remoteFile)
 	if err != nil {
-		klog.Errorf("Failed to create file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to  create remote file", "remote_file", remoteFile)
 		return err
 	}
 	defer rf.Close()
 
 	if _, err = rf.Write(src); err != nil {
-		klog.Errorf("Failed to write file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to write content to remote file", "remote_file", remoteFile)
 		return err
 	}
 	return rf.Chmod(mode)
@@ -102,18 +103,18 @@ func (c *sshConnector) FetchFile(ctx context.Context, remoteFile string, local i
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
-		klog.Errorf("Failed to create sftp client: %v", err)
+		klog.ErrorS(err, "Failed to create sftp client", "remote_file", remoteFile)
 		return err
 	}
 	defer sftpClient.Close()
 	rf, err := sftpClient.Open(remoteFile)
 	if err != nil {
-		klog.Errorf("Failed to open file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to open file", "remote_file", remoteFile)
 		return err
 	}
 	defer rf.Close()
 	if _, err := io.Copy(local, rf); err != nil {
-		klog.Errorf("Failed to copy file %s: %v", remoteFile, err)
+		klog.ErrorS(err, "Failed to copy file", "remote_file", remoteFile)
 		return err
 	}
 	return nil
@@ -123,6 +124,7 @@ func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, 
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {
+		klog.ErrorS(err, "Failed to create ssh session")
 		return nil, err
 	}
 	defer session.Close()
