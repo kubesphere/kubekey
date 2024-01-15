@@ -19,6 +19,7 @@ package util
 import (
 	"encoding/binary"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 
@@ -159,10 +160,20 @@ func GetLocalIP() (string, error) {
 	return "", errors.New("valid local IP not found!")
 }
 
-func LocalIP() string {
-	localIp, err := GetLocalIP()
+func isValidIPv4(v string) bool {
+	ip := net.ParseIP(v)
+	return ip != nil && ip.To4() != nil && !ip.IsLoopback() && ip.IsGlobalUnicast()
+}
+
+func LocalIP() (localIp string) {
+	if localIp = os.Getenv("KKLOCALIP"); localIp != "" && isValidIPv4(localIp) {
+		return
+	}
+
+	var err error
+	localIp, err = GetLocalIP()
 	if err != nil {
 		logger.Log.Fatalf("Failed to get Local IP: %v", err)
 	}
-	return localIp
+	return
 }
