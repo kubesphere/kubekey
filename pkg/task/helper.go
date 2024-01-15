@@ -32,12 +32,12 @@ import (
 func getGatherFact(ctx context.Context, hostname string, vars variable.Variable) (variable.VariableData, error) {
 	v, err := vars.Get(variable.HostVars{HostName: hostname})
 	if err != nil {
-		klog.Errorf("get host %s all variable error %v", hostname, err)
+		klog.ErrorS(err, "Get host variable error", "hostname", hostname)
 		return nil, err
 	}
 	conn := connector.NewConnector(hostname, v.(variable.VariableData))
 	if err := conn.Init(ctx); err != nil {
-		klog.Errorf("init connection error %v", err)
+		klog.ErrorS(err, "Init connection error", "hostname", hostname)
 		return nil, err
 	}
 	defer conn.Close(ctx)
@@ -46,25 +46,25 @@ func getGatherFact(ctx context.Context, hostname string, vars variable.Variable)
 	osVars := make(variable.VariableData)
 	var osRelease bytes.Buffer
 	if err := conn.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
-		klog.Errorf("fetch os-release error %v", err)
+		klog.ErrorS(err, "Fetch os-release error", "hostname", hostname)
 		return nil, err
 	}
 	osVars["release"] = convertBytesToMap(osRelease.Bytes(), "=")
 	kernel, err := conn.ExecuteCommand(ctx, "uname -r")
 	if err != nil {
-		klog.Errorf("get kernel version error %v", err)
+		klog.ErrorS(err, "Get kernel version error", "hostname", hostname)
 		return nil, err
 	}
 	osVars["kernelVersion"] = string(bytes.TrimSuffix(kernel, []byte("\n")))
 	hn, err := conn.ExecuteCommand(ctx, "hostname")
 	if err != nil {
-		klog.Errorf("get hostname error %v", err)
+		klog.ErrorS(err, "Get hostname error", "hostname", hostname)
 		return nil, err
 	}
 	osVars["hostname"] = string(bytes.TrimSuffix(hn, []byte("\n")))
 	arch, err := conn.ExecuteCommand(ctx, "arch")
 	if err != nil {
-		klog.Errorf("get arch error %v", err)
+		klog.ErrorS(err, "Get arch error", "hostname", hostname)
 		return nil, err
 	}
 	osVars["architecture"] = string(bytes.TrimSuffix(arch, []byte("\n")))
@@ -73,13 +73,13 @@ func getGatherFact(ctx context.Context, hostname string, vars variable.Variable)
 	procVars := make(variable.VariableData)
 	var cpu bytes.Buffer
 	if err := conn.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
-		klog.Errorf("fetch cpu error %v", err)
+		klog.ErrorS(err, "Fetch cpuinfo error", "hostname", hostname)
 		return nil, err
 	}
 	procVars["cpuInfo"] = convertBytesToSlice(cpu.Bytes(), ":")
 	var mem bytes.Buffer
 	if err := conn.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
-		klog.Errorf("fetch os-release error %v", err)
+		klog.ErrorS(err, "Fetch meminfo error", "hostname", hostname)
 		return nil, err
 	}
 	procVars["memInfo"] = convertBytesToMap(mem.Bytes(), ":")

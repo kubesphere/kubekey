@@ -66,7 +66,7 @@ func RuntimeDirFromObject(obj runtime.Object) string {
 	mo, ok := obj.(metav1.Object)
 
 	if !ok {
-		klog.Errorf("failed convert to  metav1.Object: %s", obj.GetObjectKind().GroupVersionKind().String())
+		klog.Errorf("Failed convert to metav1.Object: %s", obj.GetObjectKind().GroupVersionKind().String())
 		return ""
 	}
 	return filepath.Join(workDir, RuntimeDir, mo.GetNamespace(), resource, mo.GetName())

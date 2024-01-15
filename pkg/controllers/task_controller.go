@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	cgcache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -31,7 +32,6 @@ import (
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/v4/pkg/cache"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
@@ -42,7 +42,7 @@ type TaskReconciler struct {
 	// Client to resources
 	ctrlclient.Client
 	// VariableCache to store variable
-	VariableCache cache.Cache
+	VariableCache cgcache.Store
 }
 
 type taskReconcileOptions struct {
@@ -52,18 +52,18 @@ type taskReconcileOptions struct {
 }
 
 func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	klog.V(5).Infof("[Task %s] start reconcile", request.String())
-	defer klog.V(5).Infof("[Task %s] finish reconcile", request.String())
+	klog.V(5).InfoS("start task reconcile", "task", request.String())
+	defer klog.V(5).InfoS("finish task reconcile", "task", request.String())
 	// get task
 	var task = &kubekeyv1alpha1.Task{}
 	if err := r.Client.Get(ctx, request.NamespacedName, task); err != nil {
-		klog.Errorf("get task %s error %v", request, err)
+		klog.ErrorS(err, "get task error", "task", request.String())
 		return ctrl.Result{}, nil
 	}
 
 	// if task is deleted, skip
 	if task.DeletionTimestamp != nil {
-		klog.V(5).Infof("[Task %s] task is deleted, skip", request.String())
+		klog.V(5).InfoS("task is deleted, skip", "task", request.String())
 		return ctrl.Result{}, nil
 	}
 
@@ -72,11 +72,11 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 	for _, ref := range task.OwnerReferences {
 		if ref.Kind == "Pipeline" {
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: task.Namespace, Name: ref.Name}, pipeline); err != nil {
-				klog.Errorf("[Task %s] get pipeline %s error %v", request.String(), types.NamespacedName{Namespace: task.Namespace, Name: ref.Name}.String(), err)
 				if errors.IsNotFound(err) {
-					klog.V(4).Infof("[Task %s] pipeline is deleted, skip", request.String())
+					klog.V(5).InfoS("pipeline is deleted, skip", "task", request.String())
 					return ctrl.Result{}, nil
 				}
+				klog.ErrorS(err, "get pipeline error", "task", request.String(), "pipeline", types.NamespacedName{Namespace: task.Namespace, Name: ref.Name}.String())
 				return ctrl.Result{}, err
 			}
 			break
@@ -84,33 +84,41 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 	}
 
 	if _, ok := pipeline.Annotations[kubekeyv1.PauseAnnotation]; ok {
-		klog.V(5).Infof("[Task %s] pipeline is paused, skip", request.String())
+		klog.V(5).InfoS("pipeline is paused, skip", "task", request.String())
 		return ctrl.Result{}, nil
 	}
 
 	// get variable
 	var v variable.Variable
-	if vc, ok := r.VariableCache.Get(string(pipeline.UID)); !ok {
-		// create new variable
+	vars, ok, err := r.VariableCache.GetByKey(string(pipeline.UID))
+	if err != nil {
+		klog.ErrorS(err, "get variable error", "task", request.String())
+		return ctrl.Result{}, err
+	}
+	if ok {
+		v = vars.(variable.Variable)
+	} else {
 		nv, err := variable.New(variable.Options{
 			Ctx:      ctx,
 			Client:   r.Client,
 			Pipeline: *pipeline,
 		})
 		if err != nil {
+			klog.ErrorS(err, "create variable error", "task", request.String())
 			return ctrl.Result{}, err
 		}
-		r.VariableCache.Put(string(pipeline.UID), nv)
+		if err := r.VariableCache.Add(nv); err != nil {
+			klog.ErrorS(err, "add variable to store error", "task", request.String())
+			return ctrl.Result{}, err
+		}
 		v = nv
-	} else {
-		v = vc.(variable.Variable)
 	}
 
 	defer func() {
 		var nsTasks = &kubekeyv1alpha1.TaskList{}
-		klog.V(5).Infof("[Task %s] update pipeline %s status", ctrlclient.ObjectKeyFromObject(task).String(), ctrlclient.ObjectKeyFromObject(pipeline).String())
+		klog.V(5).InfoS("update pipeline status", "task", request.String(), "pipeline", ctrlclient.ObjectKeyFromObject(pipeline).String())
 		if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(task.Namespace)); err != nil {
-			klog.Errorf("[Task %s] list task error %v", ctrlclient.ObjectKeyFromObject(task).String(), err)
+			klog.ErrorS(err, "list task error", "task", request.String())
 			return
 		}
 		// filter by ownerReference
@@ -129,7 +137,7 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 		cp := pipeline.DeepCopy()
 		converter.CalculatePipelineStatus(nsTasks, pipeline)
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(cp)); err != nil {
-			klog.Errorf("[Task %s] update pipeline %s status error %v", ctrlclient.ObjectKeyFromObject(task).String(), pipeline.Name, err)
+			klog.ErrorS(err, "update pipeline status error", "task", request.String(), "pipeline", ctrlclient.ObjectKeyFromObject(pipeline).String())
 		}
 	}()
 
@@ -139,7 +147,7 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 			task.Status.Phase = kubekeyv1alpha1.TaskPhasePending
 			task.Status.RestartCount++
 			if err := r.Client.Update(ctx, task); err != nil {
-				klog.Errorf("update task %s error %v", task.Name, err)
+				klog.ErrorS(err, "update task error", "task", request.String())
 				return ctrl.Result{}, err
 			}
 		}
@@ -169,18 +177,18 @@ func (r *TaskReconciler) dealPendingTask(ctx context.Context, options taskReconc
 		LocationUID: string(options.Task.UID),
 	})
 	if err != nil {
-		klog.Errorf("[Task %s] find dependency error %v", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
+		klog.ErrorS(err, "find dependency error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String())
 		return ctrl.Result{}, err
 	}
 	dt, ok := dl.(variable.DependencyTask)
 	if !ok {
-		klog.Errorf("[Task %s] failed to convert dependency", ctrlclient.ObjectKeyFromObject(options.Task).String())
+		klog.ErrorS(err, "failed to convert dependency", "task", ctrlclient.ObjectKeyFromObject(options.Task).String())
 		return ctrl.Result{}, fmt.Errorf("[Task %s] failed to convert dependency", ctrlclient.ObjectKeyFromObject(options.Task).String())
 	}
 
 	var nsTasks = &kubekeyv1alpha1.TaskList{}
 	if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(options.Task.Namespace)); err != nil {
-		klog.Errorf("[Task %s] list task error %v", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
+		klog.ErrorS(err, "list task error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
 		return ctrl.Result{}, err
 	}
 	// filter by ownerReference
@@ -210,13 +218,13 @@ func (r *TaskReconciler) dealPendingTask(ctx context.Context, options taskReconc
 		// update task phase to running
 		options.Task.Status.Phase = kubekeyv1alpha1.TaskPhaseRunning
 		if err := r.Client.Update(ctx, options.Task); err != nil {
-			klog.Errorf("[Task %s] update task to Running error %v", ctrlclient.ObjectKeyFromObject(options.Task), err)
+			klog.ErrorS(err, "update task to Running error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 		}
 		return ctrl.Result{Requeue: true}, nil
 	case kubekeyv1alpha1.TaskPhaseSkipped:
 		options.Task.Status.Phase = kubekeyv1alpha1.TaskPhaseSkipped
 		if err := r.Client.Update(ctx, options.Task); err != nil {
-			klog.Errorf("[Task %s] update task to Skipped error %v", ctrlclient.ObjectKeyFromObject(options.Task), err)
+			klog.ErrorS(err, "update task to Skipped error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 		}
 		return ctrl.Result{}, nil
 	default:
@@ -226,13 +234,11 @@ func (r *TaskReconciler) dealPendingTask(ctx context.Context, options taskReconc
 
 func (r *TaskReconciler) dealRunningTask(ctx context.Context, options taskReconcileOptions) (ctrl.Result, error) {
 	// find task in location
-	klog.Infof("[Task %s] dealRunningTask begin", ctrlclient.ObjectKeyFromObject(options.Task))
-	defer func() {
-		klog.Infof("[Task %s] dealRunningTask end, task phase: %s", ctrlclient.ObjectKeyFromObject(options.Task), options.Task.Status.Phase)
-	}()
+	klog.InfoS("dealRunningTask begin", "task", ctrlclient.ObjectKeyFromObject(options.Task))
+	defer klog.Info("dealRunningTask end, task phase", "task", ctrlclient.ObjectKeyFromObject(options.Task), "phase", options.Task.Status.Phase)
 
 	if err := r.executeTask(ctx, options); err != nil {
-		klog.Errorf("[Task %s] execute task error %v", ctrlclient.ObjectKeyFromObject(options.Task), err)
+		klog.ErrorS(err, "execute task error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
@@ -246,7 +252,7 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 		cd.EndTimestamp = metav1.Now()
 		options.Task.Status.Conditions = append(options.Task.Status.Conditions, cd)
 		if err := r.Client.Update(ctx, options.Task); err != nil {
-			klog.Errorf("[Task %s] update task status error %v", ctrlclient.ObjectKeyFromObject(options.Task), err)
+			klog.ErrorS(err, "update task status error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 		}
 	}()
 
@@ -270,7 +276,7 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 				if options.Task.Spec.Register != "" {
 					puid, err := options.Variable.Get(variable.ParentLocation{LocationUID: string(options.Task.UID)})
 					if err != nil {
-						klog.Errorf("[Task %s] get location error %v", ctrlclient.ObjectKeyFromObject(options.Task), err)
+						klog.ErrorS(err, "get location error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 						return
 					}
 					// set variable to parent location
@@ -284,7 +290,7 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 							},
 						},
 					}); err != nil {
-						klog.Errorf("[Task %s] register error %v", ctrlclient.ObjectKeyFromObject(options.Task), err)
+						klog.ErrorS(err, "register task result to variable error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 						return
 					}
 				}
@@ -295,6 +301,7 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 				LocationUID: string(options.Task.UID),
 			})
 			if err != nil {
+				klog.ErrorS(err, "get location variable error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 				stderr = err.Error()
 				return
 			}
@@ -302,6 +309,7 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 			if len(options.Task.Spec.When) > 0 {
 				ok, err := tmpl.ParseBool(lg.(variable.VariableData), options.Task.Spec.When)
 				if err != nil {
+					klog.ErrorS(err, "parse when condition error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 					stderr = err.Error()
 					return
 				}
@@ -326,6 +334,7 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 					case string:
 						item, err = tmpl.ParseString(lg.(variable.VariableData), item.(string))
 						if err != nil {
+							klog.ErrorS(err, "parse loop vars error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 							stderr = err.Error()
 							return
 						}
@@ -333,6 +342,7 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 						for k, v := range item.(variable.VariableData) {
 							sv, err := tmpl.ParseString(lg.(variable.VariableData), v.(string))
 							if err != nil {
+								klog.ErrorS(err, "parse loop vars error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 								stderr = err.Error()
 								return
 							}
@@ -392,7 +402,7 @@ func (r *TaskReconciler) executeModule(ctx context.Context, task *kubekeyv1alpha
 		LocationUID: string(task.UID),
 	})
 	if err != nil {
-		klog.Errorf("[Task %s] get location variable error %v", ctrlclient.ObjectKeyFromObject(task), err)
+		klog.ErrorS(err, "get location variable error", "task", ctrlclient.ObjectKeyFromObject(task))
 		return "", err.Error()
 	}
 
@@ -400,7 +410,7 @@ func (r *TaskReconciler) executeModule(ctx context.Context, task *kubekeyv1alpha
 	if len(task.Spec.FailedWhen) > 0 {
 		ok, err := tmpl.ParseBool(lg.(variable.VariableData), task.Spec.FailedWhen)
 		if err != nil {
-			klog.Errorf("[Task %s] validate FailedWhen condition error %v", ctrlclient.ObjectKeyFromObject(task), err)
+			klog.ErrorS(err, "validate FailedWhen condition error", "task", ctrlclient.ObjectKeyFromObject(task))
 			return "", err.Error()
 		}
 		if ok {

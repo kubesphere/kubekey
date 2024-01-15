@@ -41,23 +41,21 @@ type PipelineReconciler struct {
 }
 
 func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	klog.Infof("[Pipeline %s] begin reconcile", req.NamespacedName.String())
-	defer func() {
-		klog.Infof("[Pipeline %s] end reconcile", req.NamespacedName.String())
-	}()
-
+	klog.V(5).InfoS("start pipeline reconcile", "pipeline", req.String())
+	defer klog.V(5).InfoS("finish pipeline reconcile", "pipeline", req.String())
+	// get pipeline
 	pipeline := &kubekeyv1.Pipeline{}
 	err := r.Client.Get(ctx, req.NamespacedName, pipeline)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			klog.V(5).Infof("[Pipeline %s] pipeline not found", req.NamespacedName.String())
+			klog.V(5).InfoS("pipeline not found", "pipeline", req.String())
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
 	if pipeline.DeletionTimestamp != nil {
-		klog.V(5).Infof("[Pipeline %s] pipeline is deleting", req.NamespacedName.String())
+		klog.V(5).InfoS("pipeline is deleting", "pipeline", req.String())
 		return ctrl.Result{}, nil
 	}
 
@@ -66,14 +64,14 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		excepted := pipeline.DeepCopy()
 		pipeline.Status.Phase = kubekeyv1.PipelinePhasePending
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
-			klog.Errorf("[Pipeline %s] update pipeline error: %v", ctrlclient.ObjectKeyFromObject(pipeline), err)
+			klog.ErrorS(err, "update pipeline error", "pipeline", req.String())
 			return ctrl.Result{}, err
 		}
 	case kubekeyv1.PipelinePhasePending:
 		excepted := pipeline.DeepCopy()
 		pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
-			klog.Errorf("[Pipeline %s] update pipeline error: %v", ctrlclient.ObjectKeyFromObject(pipeline), err)
+			klog.ErrorS(err, "update pipeline error", "pipeline", req.String())
 			return ctrl.Result{}, err
 		}
 	case kubekeyv1.PipelinePhaseRunning:
@@ -89,7 +87,7 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *kubekeyv1.Pipeline) (ctrl.Result, error) {
 	if _, ok := pipeline.Annotations[kubekeyv1.PauseAnnotation]; ok {
 		// if pipeline is paused, do nothing
-		klog.V(5).Infof("[Pipeline %s] pipeline is paused", ctrlclient.ObjectKeyFromObject(pipeline))
+		klog.V(5).InfoS("pipeline is paused", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return ctrl.Result{}, nil
 	}
 
@@ -97,14 +95,14 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 	defer func() {
 		// update pipeline status
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(cp)); err != nil {
-			klog.Errorf("[Pipeline %s] update pipeline error: %v", ctrlclient.ObjectKeyFromObject(pipeline), err)
+			klog.ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		}
 	}()
 
 	if err := r.TaskController.AddTasks(ctx, task.AddTaskOptions{
 		Pipeline: pipeline,
 	}); err != nil {
-		klog.Errorf("[Pipeline %s] add task error: %v", ctrlclient.ObjectKeyFromObject(pipeline), err)
+		klog.ErrorS(err, "add task error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
 		pipeline.Status.Reason = fmt.Sprintf("add task to controller failed: %v", err)
 		return ctrl.Result{}, err
@@ -116,10 +114,10 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 // clean runtime directory
 func (r *PipelineReconciler) clean(ctx context.Context, pipeline *kubekeyv1.Pipeline) {
 	if !pipeline.Spec.Debug && pipeline.Status.Phase == kubekeyv1.PipelinePhaseSucceed {
-		klog.Infof("[Pipeline %s] clean runtimeDir", ctrlclient.ObjectKeyFromObject(pipeline))
+		klog.V(5).InfoS("clean runtimeDir", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		// clean runtime directory
 		if err := os.RemoveAll(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir)); err != nil {
-			klog.Errorf("clean runtime directory %s error: %v", filepath.Join(_const.GetWorkDir(), _const.RuntimeDir), err)
+			klog.ErrorS(err, "clean runtime directory error", "runtime dir", filepath.Join(_const.GetWorkDir(), _const.RuntimeDir), "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		}
 	}
 }
@@ -127,7 +125,7 @@ func (r *PipelineReconciler) clean(ctx context.Context, pipeline *kubekeyv1.Pipe
 // SetupWithManager sets up the controller with the Manager.
 func (r *PipelineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options Options) error {
 	if !options.IsControllerEnabled("pipeline") {
-		klog.V(5).Infof("pipeline controller is disabled")
+		klog.V(5).InfoS("controller is disabled", "controller", "pipeline")
 		return nil
 	}
 

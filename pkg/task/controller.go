@@ -20,12 +20,13 @@ import (
 	"context"
 
 	"golang.org/x/time/rate"
+	cgcache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	"github.com/kubesphere/kubekey/v4/pkg/cache"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -47,6 +48,7 @@ type ControllerOptions struct {
 	MaxConcurrent int
 	ctrlclient.Client
 	TaskReconciler reconcile.Reconciler
+	VariableCache  cgcache.Store
 }
 
 func NewController(o ControllerOptions) (Controller, error) {
@@ -54,7 +56,7 @@ func NewController(o ControllerOptions) (Controller, error) {
 		o.MaxConcurrent = 1
 	}
 	if o.Client == nil {
-		o.Client = cache.NewDelegatingClient(nil)
+		o.Client = proxy.NewDelegatingClient(nil)
 	}
 
 	return &taskController{
@@ -62,5 +64,6 @@ func NewController(o ControllerOptions) (Controller, error) {
 		wq:             workqueue.NewRateLimitingQueue(&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
 		client:         o.Client,
 		taskReconciler: o.TaskReconciler,
+		variableCache:  o.VariableCache,
 	}, nil
 }

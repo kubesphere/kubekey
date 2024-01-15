@@ -3,7 +3,6 @@ module github.com/kubesphere/kubekey/v4
 go 1.20
 
 require (
-	github.com/evanphx/json-patch v5.7.0+incompatible
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/google/gops v0.3.28
@@ -37,6 +36,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect

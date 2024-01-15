@@ -29,6 +29,10 @@ type testVariable struct {
 	err   error
 }
 
+func (v testVariable) Key() string {
+	return "testModule"
+}
+
 func (v testVariable) Get(option variable.GetOption) (any, error) {
 	return v.value, v.err
 }

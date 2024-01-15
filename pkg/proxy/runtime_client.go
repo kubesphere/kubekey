@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cache
+package proxy
 
 import (
 	"context"
@@ -22,15 +22,11 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
-	jsonpatch "github.com/evanphx/json-patch"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -49,7 +45,7 @@ type delegatingClient struct {
 func NewDelegatingClient(client ctrlclient.Client) ctrlclient.Client {
 	scheme := runtime.NewScheme()
 	if err := kubekeyv1.AddToScheme(scheme); err != nil {
-		klog.Errorf("failed to add scheme: %v", err)
+		klog.ErrorS(err, "failed to add scheme", "gv", kubekeyv1.SchemeGroupVersion)
 	}
 	kubekeyv1.SchemeBuilder.Register(&kubekeyv1alpha1.Task{}, &kubekeyv1alpha1.TaskList{})
 	return &delegatingClient{
@@ -70,11 +66,11 @@ func (d delegatingClient) Get(ctx context.Context, key ctrlclient.ObjectKey, obj
 	path := filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, key.Namespace, resource, key.Name, key.Name+".yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		klog.Errorf("failed to read yaml file: %v", err)
+		klog.ErrorS(err, "failed to read yaml file", "path", path)
 		return err
 	}
 	if err := yaml.Unmarshal(data, obj); err != nil {
-		klog.Errorf("unmarshal file %s error %v", path, err)
+		klog.ErrorS(err, "failed to unmarshal yaml file", "path", path)
 		return err
 	}
 	return nil
@@ -92,7 +88,7 @@ func (d delegatingClient) List(ctx context.Context, list ctrlclient.ObjectList, 
 	var objects []runtime.Object
 	runtimeDirEntries, err := os.ReadDir(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir))
 	if err != nil && !os.IsNotExist(err) {
-		klog.Errorf("readDir %s error %v", filepath.Join(_const.GetWorkDir(), _const.RuntimeDir), err)
+		klog.ErrorS(err, "failed to read dir", "path", filepath.Join(_const.GetWorkDir(), _const.RuntimeDir))
 		return err
 	}
 	for _, re := range runtimeDirEntries {
@@ -103,7 +99,7 @@ func (d delegatingClient) List(ctx context.Context, list ctrlclient.ObjectList, 
 				if os.IsNotExist(err) {
 					continue
 				}
-				klog.Errorf("readDir %s error %v", resourceDir, err)
+				klog.ErrorS(err, "failed to read dir", "path", resourceDir)
 				return err
 			}
 			for _, e := range entries {
@@ -116,7 +112,7 @@ func (d delegatingClient) List(ctx context.Context, list ctrlclient.ObjectList, 
 					if os.IsNotExist(err) {
 						continue
 					}
-					klog.Errorf("read file %s error: %v", resourceFile, err)
+					klog.ErrorS(err, "failed to read file", "path", resourceFile)
 					return err
 				}
 				var obj runtime.Object
@@ -131,7 +127,7 @@ func (d delegatingClient) List(ctx context.Context, list ctrlclient.ObjectList, 
 					obj = &kubekeyv1alpha1.Task{}
 				}
 				if err := yaml.Unmarshal(data, &obj); err != nil {
-					klog.Errorf("unmarshal file %s error: %v", resourceFile, err)
+					klog.ErrorS(err, "failed to unmarshal yaml file", "path", resourceFile)
 					return err
 				}
 				objects = append(objects, obj)
@@ -152,6 +148,7 @@ func (d delegatingClient) List(ctx context.Context, list ctrlclient.ObjectList, 
 	}
 
 	if err := apimeta.SetList(list, objects); err != nil {
+		klog.ErrorS(err, "failed to set list")
 		return err
 	}
 	return nil
@@ -168,11 +165,11 @@ func (d delegatingClient) Create(ctx context.Context, obj ctrlclient.Object, opt
 
 	data, err := yaml.Marshal(obj)
 	if err != nil {
-		klog.Errorf("failed to marshal object: %v", err)
+		klog.ErrorS(err, "failed to marshal object")
 		return err
 	}
 	if err := os.MkdirAll(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName()), fs.ModePerm); err != nil {
-		klog.Errorf("create dir %s error: %v", filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName()), err)
+		klog.ErrorS(err, "failed to create dir", "path", filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName()))
 		return err
 	}
 	return os.WriteFile(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName(), obj.GetName()+".yaml"), data, fs.ModePerm)
@@ -218,16 +215,16 @@ func (d delegatingClient) Patch(ctx context.Context, obj ctrlclient.Object, patc
 
 	patchData, err := patch.Data(obj)
 	if err != nil {
-		klog.Errorf("failed to get patch data: %v", err)
+		klog.ErrorS(err, "failed to get patch data")
 		return err
 	}
 	if len(patchData) == 0 {
-		klog.V(4).Infof("nothing to patch, skip")
+		klog.V(4).Info("nothing to patch, skip")
 		return nil
 	}
 	data, err := yaml.Marshal(obj)
 	if err != nil {
-		klog.Errorf("failed to marshal object: %v", err)
+		klog.ErrorS(err, "failed to marshal object")
 		return err
 	}
 	return os.WriteFile(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName(), obj.GetName()+".yaml"), data, fs.ModePerm)
@@ -301,7 +298,7 @@ func (d delegatingSubResourceWriter) Create(ctx context.Context, obj ctrlclient.
 
 	data, err := yaml.Marshal(obj)
 	if err != nil {
-		klog.Errorf("failed to marshal object: %v", err)
+		klog.ErrorS(err, "failed to marshal object")
 		return err
 	}
 	return os.WriteFile(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName(), obj.GetName()+".yaml"), data, fs.ModePerm)
@@ -319,7 +316,7 @@ func (d delegatingSubResourceWriter) Update(ctx context.Context, obj ctrlclient.
 
 	data, err := yaml.Marshal(obj)
 	if err != nil {
-		klog.Errorf("failed to marshal object: %v", err)
+		klog.ErrorS(err, "failed to marshal object")
 		return err
 	}
 	return os.WriteFile(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName(), obj.GetName()+".yaml"), data, fs.ModePerm)
@@ -336,51 +333,17 @@ func (d delegatingSubResourceWriter) Patch(ctx context.Context, obj ctrlclient.O
 
 	patchData, err := patch.Data(obj)
 	if err != nil {
-		klog.Errorf("failed to get patch data: %v", err)
+		klog.ErrorS(err, "failed to get patch data")
 		return err
 	}
 	if len(patchData) == 0 {
-		klog.V(4).Infof("nothing to patch, skip")
+		klog.V(4).Info("nothing to patch, skip")
 		return nil
 	}
 	data, err := yaml.Marshal(obj)
 	if err != nil {
-		klog.Errorf("failed to marshal object: %v", err)
+		klog.ErrorS(err, "failed to marshal object")
 		return err
 	}
 	return os.WriteFile(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir, obj.GetNamespace(), resource, obj.GetName(), obj.GetName()+".yaml"), data, fs.ModePerm)
-}
-
-func getPatchedJSON(patchType types.PatchType, originalJS, patchJS []byte, gvk schema.GroupVersionKind, creater runtime.ObjectCreater) ([]byte, error) {
-	switch patchType {
-	case types.JSONPatchType:
-		patchObj, err := jsonpatch.DecodePatch(patchJS)
-		if err != nil {
-			return nil, err
-		}
-		bytes, err := patchObj.Apply(originalJS)
-		// TODO: This is pretty hacky, we need a better structured error from the json-patch
-		if err != nil && strings.Contains(err.Error(), "doc is missing key") {
-			msg := err.Error()
-			ix := strings.Index(msg, "key:")
-			key := msg[ix+5:]
-			return bytes, fmt.Errorf("Object to be patched is missing field (%s)", key)
-		}
-		return bytes, err
-
-	case types.MergePatchType:
-		return jsonpatch.MergePatch(originalJS, patchJS)
-
-	case types.StrategicMergePatchType:
-		// get a typed object for this GVK if we need to apply a strategic merge patch
-		obj, err := creater.New(gvk)
-		if err != nil {
-			return nil, fmt.Errorf("cannot apply strategic merge patch for %s locally, try --type merge", gvk.String())
-		}
-		return strategicpatch.StrategicMergePatch(originalJS, patchJS, obj)
-
-	default:
-		// only here as a safety net - go-restful filters content-type
-		return nil, fmt.Errorf("unknown Content-Type header for patch: %v", patchType)
-	}
 }

@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"strings"
 
+	cgcache "k8s.io/client-go/tools/cache"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,6 +38,7 @@ import (
 )
 
 type Variable interface {
+	Key() string
 	Get(option GetOption) (any, error)
 	Merge(option ...MergeOption) error
 }
@@ -51,22 +54,23 @@ func New(o Options) (Variable, error) {
 	// new source
 	s, err := source.New(filepath.Join(_const.RuntimeDirFromObject(&o.Pipeline), _const.RuntimePipelineVariableDir))
 	if err != nil {
-		klog.Errorf("create file source failed: %v", err)
+		klog.ErrorS(err, "create file source failed", "path", filepath.Join(_const.RuntimeDirFromObject(&o.Pipeline), _const.RuntimePipelineVariableDir), "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	// get config
 	var config = &kubekeyv1.Config{}
 	if err := o.Client.Get(o.Ctx, types.NamespacedName{o.Pipeline.Spec.ConfigRef.Namespace, o.Pipeline.Spec.ConfigRef.Name}, config); err != nil {
-		klog.Errorf("get config from pipeline error %v", err)
+		klog.ErrorS(err, "get config from pipeline error", "config", o.Pipeline.Spec.ConfigRef, "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	// get inventory
 	var inventory = &kubekeyv1.Inventory{}
 	if err := o.Client.Get(o.Ctx, types.NamespacedName{o.Pipeline.Spec.InventoryRef.Namespace, o.Pipeline.Spec.InventoryRef.Name}, inventory); err != nil {
-		klog.Errorf("get inventory from pipeline error %v", err)
+		klog.ErrorS(err, "get inventory from pipeline error", "inventory", o.Pipeline.Spec.InventoryRef, "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	v := &variable{
+		key:    string(o.Pipeline.UID),
 		source: s,
 		value: &value{
 			Config:    *config,
@@ -77,21 +81,21 @@ func New(o Options) (Variable, error) {
 	// read data from source
 	data, err := v.source.Read()
 	if err != nil {
-		klog.Errorf("read data from source error %v", err)
+		klog.ErrorS(err, "read data from source error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	for k, d := range data {
 		if k == _const.RuntimePipelineVariableLocationFile {
 			// set location
 			if err := json.Unmarshal(d, &v.value.Location); err != nil {
-				klog.Errorf("unmarshal location error %v", err)
+				klog.ErrorS(err, "unmarshal location error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 				return nil, err
 			}
 		} else {
 			// set hosts
 			h := host{}
 			if err := json.Unmarshal(d, &h); err != nil {
-				klog.Errorf("unmarshal host error %v", err)
+				klog.ErrorS(err, "unmarshal host error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 				return nil, err
 			}
 			v.value.Hosts[strings.TrimSuffix(k, ".json")] = h
@@ -252,7 +256,7 @@ func (g Hostnames) filter(data value) (any, error) {
 		if match := regex.FindStringSubmatch(n); match != nil {
 			index, err := strconv.Atoi(match[2])
 			if err != nil {
-				klog.Errorf("convert index %s to int failed: %v", match[2], err)
+				klog.ErrorS(err, "convert index to int error", "index", match[2])
 				return nil, err
 			}
 			for gn, gv := range data.Inventory.Spec.Groups {
@@ -549,3 +553,12 @@ func (t LocationMerge) mergeTo(v *value) error {
 
 	return nil
 }
+
+// Cache is a cache for variable
+var Cache = cgcache.NewStore(func(obj interface{}) (string, error) {
+	v, ok := obj.(Variable)
+	if !ok {
+		return "", fmt.Errorf("cannot convert %v to variable", obj)
+	}
+	return v.Key(), nil
+})

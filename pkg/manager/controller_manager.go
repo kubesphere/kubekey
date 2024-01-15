@@ -28,9 +28,10 @@ import (
 	ctrlmanager "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	"github.com/kubesphere/kubekey/v4/pkg/cache"
 	"github.com/kubesphere/kubekey/v4/pkg/controllers"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 	"github.com/kubesphere/kubekey/v4/pkg/task"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 type controllerManager struct {
@@ -44,43 +45,48 @@ func (c controllerManager) Run(ctx context.Context) error {
 	scheme := runtime.NewScheme()
 	// add default scheme
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		klog.Errorf("add default scheme error: %v", err)
+		klog.ErrorS(err, "Add default scheme error")
 		return err
 	}
-	// add kubekey scheme
+	// add kubekey scheme,
+	// exclude task resource,Because will manager in local
 	if err := kubekeyv1.AddToScheme(scheme); err != nil {
-		klog.Errorf("add kubekey scheme error: %v", err)
+		klog.ErrorS(err, "Add kk scheme error")
 		return err
 	}
+
 	mgr, err := ctrl.NewManager(config.GetConfigOrDie(), ctrlmanager.Options{
 		Scheme:           scheme,
 		LeaderElection:   c.LeaderElection,
 		LeaderElectionID: "controller-leader-election-kk",
 	})
 	if err != nil {
-		klog.Errorf("create manager error: %v", err)
+		klog.ErrorS(err, "Create manager error")
 		return err
 	}
 
 	taskController, err := task.NewController(task.ControllerOptions{
+		VariableCache: variable.Cache,
 		MaxConcurrent: c.MaxConcurrentReconciles,
-		Client:        cache.NewDelegatingClient(mgr.GetClient()),
+		Client:        proxy.NewDelegatingClient(mgr.GetClient()),
 		TaskReconciler: &controllers.TaskReconciler{
-			Client:        cache.NewDelegatingClient(mgr.GetClient()),
-			VariableCache: cache.LocalVariable,
+			Client:        proxy.NewDelegatingClient(mgr.GetClient()),
+			VariableCache: variable.Cache,
 		},
 	})
 	if err != nil {
-		klog.Errorf("create task controller error: %v", err)
+		klog.ErrorS(err, "Create task controller error")
 		return err
 	}
+
+	// add task controller to manager
 	if err := mgr.Add(taskController); err != nil {
-		klog.Errorf("add task controller error: %v", err)
+		klog.ErrorS(err, "Add task controller error")
 		return err
 	}
 
 	if err := (&controllers.PipelineReconciler{
-		Client:         cache.NewDelegatingClient(mgr.GetClient()),
+		Client:         proxy.NewDelegatingClient(mgr.GetClient()),
 		EventRecorder:  mgr.GetEventRecorderFor("pipeline"),
 		TaskController: taskController,
 	}).SetupWithManager(ctx, mgr, controllers.Options{
@@ -89,7 +95,7 @@ func (c controllerManager) Run(ctx context.Context) error {
 			MaxConcurrentReconciles: c.MaxConcurrentReconciles,
 		},
 	}); err != nil {
-		klog.Errorf("create pipeline controller error: %v", err)
+		klog.ErrorS(err, "create pipeline controller error")
 		return err
 	}
 

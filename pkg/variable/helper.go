@@ -80,12 +80,12 @@ func hostsInGroup(inv kubekeyv1.Inventory, groupName string) []string {
 func StringVar(vars VariableData, key string) *string {
 	value, ok := vars[key]
 	if !ok {
-		klog.V(4).Infof("cannot find variable %s", key)
+		klog.V(4).InfoS("cannot find variable", "key", key)
 		return nil
 	}
 	sv, ok := value.(string)
 	if !ok {
-		klog.V(4).Infof("variable %s is not string", key)
+		klog.V(4).InfoS("variable is not string", "key", key)
 		return nil
 	}
 	return &sv
@@ -95,13 +95,13 @@ func StringVar(vars VariableData, key string) *string {
 func IntVar(vars VariableData, key string) *int {
 	value, ok := vars[key]
 	if !ok {
-		klog.V(4).Infof("cannot find variable %s", key)
+		klog.V(4).InfoS("cannot find variable", "key", key)
 		return nil
 	}
 	// default convert to float64
 	number, ok := value.(float64)
 	if !ok {
-		klog.V(4).Infof("variable %s is not string", key)
+		klog.V(4).InfoS("variable is not number", "key", key)
 		return nil
 	}
 	vi := int(number)
@@ -112,19 +112,19 @@ func IntVar(vars VariableData, key string) *int {
 func StringSliceVar(vars VariableData, key string) []string {
 	value, ok := vars[key]
 	if !ok {
-		klog.V(4).Infof("cannot find variable %s", key)
+		klog.V(4).InfoS("cannot find variable", "key", key)
 		return nil
 	}
 	sv, ok := value.([]any)
 	if !ok {
-		klog.V(4).Infof("variable %s is not slice", key)
+		klog.V(4).InfoS("variable is not string slice", "key", key)
 		return nil
 	}
 	var ss []string
 	for _, a := range sv {
 		av, ok := a.(string)
 		if !ok {
-			klog.V(4).Infof("value in variable %s is not string", key)
+			klog.V(4).InfoS("variable is not string", "key", key)
 			return nil
 		}
 		ss = append(ss, av)
@@ -139,7 +139,7 @@ func Extension2Variables(ext runtime.RawExtension) VariableData {
 
 	var data VariableData
 	if err := yaml.Unmarshal(ext.Raw, &data); err != nil {
-		klog.Errorf("failed to unmarshal extension to variables: %v", err)
+		klog.ErrorS(err, "failed to unmarshal extension to variables")
 	}
 	return data
 }
@@ -151,7 +151,7 @@ func Extension2Slice(ext runtime.RawExtension) []any {
 
 	var data []any
 	if err := yaml.Unmarshal(ext.Raw, &data); err != nil {
-		klog.Errorf("failed to unmarshal extension to any: %v", err)
+		klog.ErrorS(err, "failed to unmarshal extension to slice")
 	}
 	return data
 }

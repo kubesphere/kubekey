@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
+	cgcache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,7 +33,6 @@ import (
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/v4/pkg/cache"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
@@ -44,6 +44,8 @@ type taskController struct {
 	client         ctrlclient.Client
 	taskReconciler reconcile.Reconciler
 
+	variableCache cgcache.Store
+
 	wq            workqueue.RateLimitingInterface
 	MaxConcurrent int
 }
@@ -52,7 +54,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 	var nsTasks = &kubekeyv1alpha1.TaskList{}
 
 	if err := c.client.List(ctx, nsTasks, ctrlclient.InNamespace(o.Pipeline.Namespace)); err != nil {
-		klog.Errorf("[Pipeline %s] list tasks error: %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), err)
+		klog.ErrorS(err, "List tasks error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
 		return err
 	}
 	defer func() {
@@ -78,28 +80,36 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 	}
 
 	if len(nsTasks.Items) == 0 {
+		vars, ok, err := c.variableCache.GetByKey(string(o.Pipeline.UID))
+		if err != nil {
+			klog.ErrorS(err, "Get variable from store error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
+			return err
+		}
 		// if tasks has not generated. generate tasks from pipeline
-		vars, ok := cache.LocalVariable.Get(string(o.Pipeline.UID))
+		//vars, ok := cache.LocalVariable.Get(string(o.Pipeline.UID))
 		if ok {
 			o.variable = vars.(variable.Variable)
 		} else {
-			newVars, err := variable.New(variable.Options{
+			nv, err := variable.New(variable.Options{
 				Ctx:      ctx,
 				Client:   c.client,
 				Pipeline: *o.Pipeline,
 			})
 			if err != nil {
-				klog.Errorf("[Pipeline %s] create variable failed: %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), err)
+				klog.ErrorS(err, "Create variable error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
 				return err
 			}
-			cache.LocalVariable.Put(string(o.Pipeline.UID), newVars)
-			o.variable = newVars
+			if err := c.variableCache.Add(nv); err != nil {
+				klog.ErrorS(err, "Add variable to store error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
+				return err
+			}
+			o.variable = nv
 		}
 
-		klog.V(4).Infof("[Pipeline %s] deal project", ctrlclient.ObjectKeyFromObject(o.Pipeline))
+		klog.V(4).InfoS("deal project", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
 		projectFs, err := project.New(project.Options{Pipeline: o.Pipeline}).FS(ctx, true)
 		if err != nil {
-			klog.Errorf("[Pipeline %s] deal project error: %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), err)
+			klog.ErrorS(err, "Deal project error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
 			return err
 		}
 
@@ -116,7 +126,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 			// convert Hosts (group or host) to all hosts
 			ahn, err := o.variable.Get(variable.Hostnames{Name: play.PlayHost.Hosts})
 			if err != nil {
-				klog.Errorf("[Pipeline %s] get all host name error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), err)
+				klog.ErrorS(err, "Get all host name error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
 				return err
 			}
 
@@ -125,7 +135,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 				for _, h := range ahn.([]string) {
 					gfv, err := getGatherFact(ctx, h, o.variable)
 					if err != nil {
-						klog.Errorf("[Pipeline %s] get gather fact from host %s error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), h, err)
+						klog.ErrorS(err, "Get gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "host", h)
 						return err
 					}
 					if err := o.variable.Merge(variable.HostMerge{
@@ -133,7 +143,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 						LocationUID: "",
 						Data:        gfv,
 					}); err != nil {
-						klog.Errorf("[Pipeline %s] merge gather fact from host %s error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), h, err)
+						klog.ErrorS(err, "Merge gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "host", h)
 						return err
 					}
 				}
@@ -147,7 +157,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 				// group hosts by serial. run the playbook by serial
 				hs, err = converter.GroupHostBySerial(ahn.([]string), play.Serial.Data)
 				if err != nil {
-					klog.Errorf("[Pipeline %s] convert host by serial error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), err)
+					klog.ErrorS(err, "Group host by serial error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
 					return err
 				}
 			}
@@ -167,7 +177,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 				// generate task from pre tasks
 				preTasks, err := c.block2Task(hctx, o, play.PreTasks, nil, puid, variable.BlockLocation)
 				if err != nil {
-					klog.Errorf("[Pipeline %s] get pre task from  play %s error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), play.Name, err)
+					klog.ErrorS(err, "Get pre task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "play", play.Name)
 					return err
 				}
 				nsTasks.Items = append(nsTasks.Items, preTasks...)
@@ -185,7 +195,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 					}
 					roleTasks, err := c.block2Task(context.WithValue(hctx, _const.CtxBlockRole, role.Role), o, role.Block, role.When.Data, ruid, variable.BlockLocation)
 					if err != nil {
-						klog.Errorf("[Pipeline %s] get role from play %s error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), puid, err)
+						klog.ErrorS(err, "Get role task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "play", play.Name, "role", role.Role)
 						return err
 					}
 					nsTasks.Items = append(nsTasks.Items, roleTasks...)
@@ -193,14 +203,14 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 				// generate task from tasks
 				tasks, err := c.block2Task(hctx, o, play.Tasks, nil, puid, variable.BlockLocation)
 				if err != nil {
-					klog.Errorf("[Pipeline %s] get pre task from  play %s error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), puid, err)
+					klog.ErrorS(err, "Get task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "play", play.Name)
 					return err
 				}
 				nsTasks.Items = append(nsTasks.Items, tasks...)
 				// generate task from post tasks
 				postTasks, err := c.block2Task(hctx, o, play.Tasks, nil, puid, variable.BlockLocation)
 				if err != nil {
-					klog.Errorf("[Pipeline %s] get pre task from  play %s error %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), puid, err)
+					klog.ErrorS(err, "Get post task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "play", play.Name)
 					return err
 				}
 				nsTasks.Items = append(nsTasks.Items, postTasks...)
@@ -209,7 +219,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 
 		for _, task := range nsTasks.Items {
 			if err := c.client.Create(ctx, &task); err != nil {
-				klog.Errorf("[Pipeline %s] create task %s error: %v", ctrlclient.ObjectKeyFromObject(o.Pipeline), task.Name, err)
+				klog.ErrorS(err, "Create task error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "task", task.Name)
 				return err
 			}
 		}
@@ -234,31 +244,35 @@ func (k *taskController) block2Task(ctx context.Context, o AddTaskOptions, ats [
 			Name:     at.Name,
 			Vars:     at.Vars,
 		}); err != nil {
+			klog.ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "block", at.Name)
 			return nil, err
 		}
 		atWhen := append(when, at.When.Data...)
 
 		if len(at.Block) != 0 {
 			// add block
-			bt, err := k.block2Task(ctx, o, at.Block, atWhen, buid, variable.BlockLocation)
+			block, err := k.block2Task(ctx, o, at.Block, atWhen, buid, variable.BlockLocation)
 			if err != nil {
+				klog.ErrorS(err, "Get block task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "block", at.Name)
 				return nil, err
 			}
-			tasks = append(tasks, bt...)
+			tasks = append(tasks, block...)
 
 			if len(at.Always) != 0 {
-				at, err := k.block2Task(ctx, o, at.Always, atWhen, buid, variable.AlwaysLocation)
+				always, err := k.block2Task(ctx, o, at.Always, atWhen, buid, variable.AlwaysLocation)
 				if err != nil {
+					klog.ErrorS(err, "Get always task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "block", at.Name)
 					return nil, err
 				}
-				tasks = append(tasks, at...)
+				tasks = append(tasks, always...)
 			}
 			if len(at.Rescue) != 0 {
-				rt, err := k.block2Task(ctx, o, at.Rescue, atWhen, buid, variable.RescueLocation)
+				rescue, err := k.block2Task(ctx, o, at.Rescue, atWhen, buid, variable.RescueLocation)
 				if err != nil {
+					klog.ErrorS(err, "Get rescue task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "block", at.Name)
 					return nil, err
 				}
-				tasks = append(tasks, rt...)
+				tasks = append(tasks, rescue...)
 			}
 		} else {
 			task := converter.MarshalBlock(context.WithValue(context.WithValue(ctx, _const.CtxBlockWhen, atWhen), _const.CtxBlockTaskUID, buid),
@@ -267,6 +281,7 @@ func (k *taskController) block2Task(ctx context.Context, o AddTaskOptions, ats [
 			for n, a := range at.UnknownFiled {
 				data, err := json.Marshal(a)
 				if err != nil {
+					klog.ErrorS(err, "Marshal unknown field error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline), "block", at.Name, "field", n)
 					return nil, err
 				}
 				if m := modules.FindModule(n); m != nil {
@@ -328,7 +343,7 @@ func (k *taskController) processNextWorkItem(ctx context.Context) bool {
 	switch {
 	case err != nil:
 		k.wq.AddRateLimited(req)
-		klog.Errorf("Reconciler error: %v", err)
+		klog.ErrorS(err, "Reconciler error", "request", req)
 	case result.RequeueAfter > 0:
 		// The result.RequeueAfter request will be lost, if it is returned
 		// along with a non-nil error. But this is intended as

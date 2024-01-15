@@ -31,10 +31,13 @@ import (
 )
 
 type variable struct {
+	// key is the unique Identifier of the variable. usually the UID of the pipeline.
+	key string
+	// source is where the variable is stored
 	source source.Source
-
+	// value is the data of the variable, which store in memory
 	value *value
-
+	// lock is the lock for value
 	sync.Mutex
 }
 
@@ -111,7 +114,7 @@ type VariableData map[string]any
 func (v VariableData) String() string {
 	data, err := json.Marshal(v)
 	if err != nil {
-		klog.Errorf("marshal in error: %v", err)
+		klog.ErrorS(err, "marshal in error", "data", v)
 		return ""
 	}
 	return string(data)
@@ -120,6 +123,10 @@ func (v VariableData) String() string {
 type host struct {
 	Vars        VariableData            `json:"vars"`
 	RuntimeVars map[string]VariableData `json:"runtime"`
+}
+
+func (v *variable) Key() string {
+	return v.key
 }
 
 func (v *variable) Get(option GetOption) (any, error) {
@@ -139,14 +146,14 @@ func (v *variable) Merge(mo ...MergeOption) error {
 
 	if !reflect.DeepEqual(old.Location, v.value.Location) {
 		if err := v.syncLocation(); err != nil {
-			klog.Errorf("sync location error %v", err)
+			klog.ErrorS(err, "sync location error")
 		}
 	}
 
 	for hn, hv := range v.value.Hosts {
 		if !reflect.DeepEqual(old.Hosts[hn], hv) {
 			if err := v.syncHosts(hn); err != nil {
-				klog.Errorf("sync group error %v", err)
+				klog.ErrorS(err, "sync host error", "hostname", hn)
 			}
 		}
 	}
@@ -157,11 +164,11 @@ func (v *variable) Merge(mo ...MergeOption) error {
 func (v *variable) syncLocation() error {
 	data, err := json.MarshalIndent(v.value.Location, "", "  ")
 	if err != nil {
-		klog.Errorf("marshal location data failed: %v", err)
+		klog.ErrorS(err, "marshal location data error")
 		return err
 	}
 	if err := v.source.Write(data, _const.RuntimePipelineVariableLocationFile); err != nil {
-		klog.Errorf("write location data to local file %s error %v", _const.RuntimePipelineVariableLocationFile, err)
+		klog.ErrorS(err, "write location data to local file error", "filename", _const.RuntimePipelineVariableLocationFile)
 		return err
 	}
 	return nil
@@ -173,11 +180,11 @@ func (v *variable) syncHosts(hostname ...string) error {
 		if hv, ok := v.value.Hosts[hn]; ok {
 			data, err := json.MarshalIndent(hv, "", "  ")
 			if err != nil {
-				klog.Errorf("marshal host %s data failed: %v", hn, err)
+				klog.ErrorS(err, "marshal host data error", "hostname", hn)
 				return err
 			}
 			if err := v.source.Write(data, fmt.Sprintf("%s.json", hn)); err != nil {
-				klog.Errorf("write host data to local file %s.json error %v", hn, err)
+				klog.ErrorS(err, "write host data to local file error", "hostname", hn, "filename", fmt.Sprintf("%s.json", hn))
 			}
 		}
 	}

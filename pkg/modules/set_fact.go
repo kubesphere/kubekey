@@ -32,7 +32,7 @@ func ModuleSetFact(ctx context.Context, options ExecOptions) (string, string) {
 		LocationUID: string(options.Task.UID),
 	})
 	if err != nil {
-		klog.Errorf("failed to get location vars %v", err)
+		klog.ErrorS(err, "failed to get location vars")
 		return "", err.Error()
 	}
 
@@ -42,7 +42,7 @@ func ModuleSetFact(ctx context.Context, options ExecOptions) (string, string) {
 		case string:
 			factVars[k], err = tmpl.ParseString(lv.(variable.VariableData), v.(string))
 			if err != nil {
-				klog.Errorf("template parse %s error: %v", v.(string), err)
+				klog.ErrorS(err, "template parse error", "input", v)
 				return "", err.Error()
 			}
 		default:
@@ -55,7 +55,7 @@ func ModuleSetFact(ctx context.Context, options ExecOptions) (string, string) {
 		LocationUID: "",
 		Data:        factVars,
 	}); err != nil {
-		klog.Errorf("merge fact error: %v", err)
+		klog.ErrorS(err, "merge fact error")
 		return "", err.Error()
 	}
 	return "success", ""

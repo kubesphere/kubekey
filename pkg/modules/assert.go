@@ -62,13 +62,13 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 				return "False", r
 			}
 		}
-		//if v := variable.StringVar(args, "msg"); v != nil {
-		//	if r, err := tmpl.ParseString(lg.(variable.VariableData), *v); err != nil {
-		//		return "", err.Error()
-		//	} else {
-		//		return "False", r
-		//	}
-		//}
+		if v := variable.StringVar(args, "msg"); v != nil {
+			if r, err := tmpl.ParseString(lg.(variable.VariableData), *v); err != nil {
+				return "", err.Error()
+			} else {
+				return "False", r
+			}
+		}
 		return "False", "False"
 	}
 }
