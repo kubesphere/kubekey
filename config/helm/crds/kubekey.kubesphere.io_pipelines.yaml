@@ -1,0 +1,225 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  name: pipelines.kubekey.kubesphere.io
+spec:
+  group: kubekey.kubesphere.io
+  names:
+    kind: Pipeline
+    listKind: PipelineList
+    plural: pipelines
+    singular: pipeline
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.playbook
+      name: Playbook
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.taskResult.total
+      name: Total
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              configRef:
+                description: ConfigRef is the global variable configuration for playbook
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              debug:
+                description: Debug mode, after a successful execution of Pipeline,
+                  will retain runtime data, which includes task execution status and
+                  parameters.
+                type: boolean
+              inventoryRef:
+                description: InventoryRef is the node configuration for playbook
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              playbook:
+                description: Playbook which to execute.
+                type: string
+              project:
+                description: Project is storage for executable packages
+                properties:
+                  addr:
+                    description: Addr is the storage for executable packages (in Ansible
+                      file format). When starting with http or https, it will be obtained
+                      from a Git repository. When starting with file path, it will
+                      be obtained from the local path.
+                    type: string
+                  branch:
+                    description: Branch is the git branch of the git Addr.
+                    type: string
+                  insecureSkipTLS:
+                    description: InsecureSkipTLS skip tls or not when git addr is
+                      https.
+                    type: boolean
+                  name:
+                    description: Name is the project name base project
+                    type: string
+                  tag:
+                    description: Tag is the git branch of the git Addr.
+                    type: string
+                  token:
+                    description: Token of Authorization for http request
+                    type: string
+                type: object
+              skipTags:
+                description: SkipTags is the tags of playbook which skip execute
+                items:
+                  type: string
+                type: array
+              tags:
+                description: Tags is the tags of playbook which to execute
+                items:
+                  type: string
+                type: array
+            required:
+            - playbook
+            type: object
+          status:
+            properties:
+              failedDetail:
+                description: FailedDetail will record the failed tasks.
+                items:
+                  properties:
+                    hosts:
+                      description: failed Hosts Result of failed task.
+                      items:
+                        properties:
+                          host:
+                            description: Host name of failed task.
+                            type: string
+                          stdErr:
+                            description: StdErr of failed task.
+                            type: string
+                          stdout:
+                            description: Stdout of failed task.
+                            type: string
+                        type: object
+                      type: array
+                    task:
+                      description: Task name of failed task.
+                      type: string
+                  type: object
+                type: array
+              phase:
+                description: Phase of pipeline.
+                type: string
+              reason:
+                description: failed Reason of pipeline.
+                type: string
+              taskResult:
+                description: TaskResult total related tasks execute result.
+                properties:
+                  failed:
+                    description: Failed number of tasks.
+                    type: integer
+                  ignored:
+                    description: Ignored number of tasks.
+                    type: integer
+                  skipped:
+                    description: Skipped number of tasks.
+                    type: integer
+                  success:
+                    description: Success number of tasks.
+                    type: integer
+                  total:
+                    description: Total number of tasks.
+                    type: integer
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

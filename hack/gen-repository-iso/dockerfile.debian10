@@ -1,0 +1,38 @@
+FROM debian:10 as debian10
+ARG TARGETARCH
+ARG OS_RELEASE=buster
+ARG OS_VERSION=10
+ARG DIR=debian-10-${TARGETARCH}-debs
+ARG PKGS=.common[],.debs[],.debian[],.debian10[]
+ARG BUILD_TOOLS="apt-transport-https software-properties-common ca-certificates curl wget gnupg dpkg-dev genisoimage dirmngr"
+ENV DEBIAN_FRONTEND=noninteractive
+
+# dump system package list
+RUN dpkg --get-selections | grep -v deinstall | cut -f1 | cut -d ':' -f1 > packages.list
+RUN ARCH=$(dpkg --print-architecture) \
+    && apt update -qq \
+    && apt install -y --no-install-recommends $BUILD_TOOLS \
+    && if [ "$TARGETARCH" = "amd64" ]; then \
+        curl -fsSL https://download.gluster.org/pub/gluster/glusterfs/7/rsa.pub | apt-key add - ; \
+        echo deb https://download.gluster.org/pub/gluster/glusterfs/7/LATEST/Debian/${OS_VERSION}/amd64/apt ${OS_RELEASE} main > /etc/apt/sources.list.d/gluster.list ; \
+       fi \
+    && curl -fsSL "https://download.docker.com/linux/debian/gpg" | apt-key add -qq - \
+    && echo "deb [arch=$TARGETARCH] https://download.docker.com/linux/debian ${OS_RELEASE} stable" > /etc/apt/sources.list.d/docker.list \
+    && apt update -qq
+
+WORKDIR /package
+COPY packages.yaml .
+
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+RUN yq eval "${PKGS}" packages.yaml >> packages.list \
+    && sort -u packages.list | xargs apt-get install --yes --reinstall --print-uris | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls
+
+RUN mkdir -p ${DIR} \
+    && wget -q -x -P ${DIR} -i packages.urls \
+    && cd ${DIR} \
+    && dpkg-scanpackages ./ /dev/null | gzip -9c > ./Packages.gz
+
+RUN genisoimage -r -o ${DIR}.iso ${DIR}
+
+FROM scratch
+COPY --from=debian10 /package/*.iso /

@@ -1,0 +1,84 @@
+## @section Common parameters
+##
+# the role which operator pod need
+role: "kk-operator"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "kk-operator"
+
+
+operator:
+  # tolerations of operator pod
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 60
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 60
+  # affinity of operator pod
+  affinity: { }
+  # nodeSelector of operator pod
+  nodeSelector: { }
+  # dnsPolicy of operator pod
+  dnsPolicy: Default
+  # restartPolicy of operator pod
+  restartPolicy: Always
+  # schedulerName of operator pod
+  schedulerName: default-scheduler
+  # terminationGracePeriodSeconds of operator pod
+  terminationGracePeriodSeconds: 30
+  # replica of operator deployment
+  replicaCount: 1
+  ## Optionally specify an array of imagePullSecrets.
+  ## Secrets must be manually created in the namespace.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ## e.g:
+  ## pullSecrets:
+  ##   - myRegistryKeySecretName
+  pullSecrets: []
+  image:
+    registry: ""
+    repository: kubesphere/kubekey-operator
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+    ##
+  ## @param resources.limits The resources limits for the haproxy containers
+  ## @param resources.requests The requested resources for the haproxy containers
+  ##
+  resources:
+    limits:
+      cpu: 1
+      memory: 1000Mi
+    requests:
+      cpu: 30m
+      memory: 50Mi
+  ## @param command Override default container command (useful when using custom images)
+  ##
+  command:
+    - controller-manager
+    - --logtostderr=true
+    - --leader-election=true
+    - --controllers=*
+  ## @param extraEnvVars Array with extra environment variables to add to haproxy nodes
+  ##
+  extraEnvVars: []
+  ## @param extraVolumeMounts Optionally specify extra list of additional volumeMounts for the haproxy container(s)
+  ##
+  extraVolumeMounts: []
+  ## @param extraVolumes Optionally specify extra list of additional volumes for the haproxy pod(s)
+  ##
+  extraVolumes: []

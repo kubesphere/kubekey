@@ -1,0 +1,7 @@
+---
+- hosts:
+    - k8s_cluster
+    - etcd
+  gather_facts: true
+  roles:
+    - {role: precheck}
