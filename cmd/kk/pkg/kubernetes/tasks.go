@@ -1131,11 +1131,11 @@ func (k *MasterSecurityEnhancemenAction) Execute(runtime connector.Runtime) erro
 	chmodKubernetesConfigCmd := "chmod 600 -R /etc/kubernetes"
 	chownKubernetesConfigCmd := "chown root:root -R /etc/kubernetes/*"
 
-	chmodKubenretesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
-	chownKubenretesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
+	chmodKubernetesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
+	chownKubernetesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
 
-	chmodKubenretesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
-	chownKubenretesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
+	chmodKubernetesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
+	chownKubernetesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
 
 	// node Security Enhancemen
 	chmodCniConfigDir := "chmod 600 -R /etc/cni/net.d"
@@ -1159,11 +1159,11 @@ func (k *MasterSecurityEnhancemenAction) Execute(runtime connector.Runtime) erro
 	chmodCertsRenew := "chmod 640 /etc/systemd/system/k8s-certs-renew*"
 	chownCertsRenew := "chown root:root /etc/systemd/system/k8s-certs-renew*"
 
-	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubenretesManifestsDirCmd, chmodKubenretesCertsDirCmd}
+	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubernetesManifestsDirCmd, chmodKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chmodMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}
-	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubenretesManifestsDirCmd, chownKubenretesCertsDirCmd}
+	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubernetesManifestsDirCmd, chownKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chownMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}
@@ -1193,11 +1193,11 @@ func (n *NodesSecurityEnhancemenAction) Execute(runtime connector.Runtime) error
 	chmodKubernetesConfigCmd := "chmod 600 -R /etc/kubernetes"
 	chownKubernetesConfigCmd := "chown root:root -R /etc/kubernetes"
 
-	chmodKubenretesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
-	chownKubenretesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
+	chmodKubernetesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
+	chownKubernetesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
 
-	chmodKubenretesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
-	chownKubenretesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
+	chmodKubernetesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
+	chownKubernetesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
 
 	// node Security Enhancemen
 	chmodCniConfigDir := "chmod 600 -R /etc/cni/net.d"
@@ -1218,11 +1218,11 @@ func (n *NodesSecurityEnhancemenAction) Execute(runtime connector.Runtime) error
 	chmodKubeletConfig := "chmod 640 /var/lib/kubelet/config.yaml && chmod 640 -R /etc/systemd/system/kubelet.service*"
 	chownKubeletConfig := "chown root:root /var/lib/kubelet/config.yaml && chown root:root -R /etc/systemd/system/kubelet.service*"
 
-	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubenretesManifestsDirCmd, chmodKubenretesCertsDirCmd}
+	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubernetesManifestsDirCmd, chmodKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chmodMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}
-	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubenretesManifestsDirCmd, chownKubenretesCertsDirCmd}
+	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubernetesManifestsDirCmd, chownKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chownMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}
