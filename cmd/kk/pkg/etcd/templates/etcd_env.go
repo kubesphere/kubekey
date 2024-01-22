@@ -17,8 +17,9 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 // EtcdEnv defines the template of etcd's env.
@@ -91,7 +92,7 @@ ETCD_CLIENT_CERT_AUTH=true
 ETCD_PEER_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
 ETCD_PEER_CERT_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}.pem
 ETCD_PEER_KEY_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}-key.pem
-ETCD_PEER_CLIENT_CERT_AUTH=True
+ETCD_PEER_CLIENT_CERT_AUTH=true
 
 # CLI settings
 ETCDCTL_ENDPOINTS=https://127.0.0.1:2379
