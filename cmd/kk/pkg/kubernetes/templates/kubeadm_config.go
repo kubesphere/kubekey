@@ -66,7 +66,9 @@ etcd:
 {{- end }}
 {{- end }}
 dns:
+  {{- if not .IsV1beta3 }}
   type: CoreDNS
+  {{- end }}
   imageRepository: {{ .CorednsRepo }}
   imageTag: {{ .CorednsTag }}
 imageRepository: {{ .ImageRepo }}
