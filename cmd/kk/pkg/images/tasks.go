@@ -321,6 +321,8 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		for ; retry < maxRetry; retry++ {
 			if err := o.Copy(); err == nil {
 				break
+			} else {
+				fmt.Println(errors.WithStack(err))
 			}
 		}
 		if retry >= maxRetry {

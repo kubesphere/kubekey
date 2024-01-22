@@ -64,6 +64,19 @@ func (s *SyncDockerBinaries) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type EnableContainerdForDocker struct {
+	common.KubeAction
+}
+
+func (e *EnableContainerdForDocker) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(
+		"systemctl daemon-reload && systemctl enable containerd &&  systemctl start containerd",
+		false); err != nil {
+		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("enable and start containerd failed"))
+	}
+	return nil
+}
+
 type EnableDocker struct {
 	common.KubeAction
 }

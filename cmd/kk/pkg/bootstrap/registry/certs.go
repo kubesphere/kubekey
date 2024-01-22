@@ -105,7 +105,7 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 
 	var altName cert.AltNames
 
-	dnsList := []string{"localhost", RegistryCertificateBaseName}
+	dnsList := []string{"localhost", g.KubeConf.Cluster.Registry.PrivateRegistry}
 	ipList := []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
 
 	for _, h := range runtime.GetHostsByRole(common.Registry) {
