@@ -18,11 +18,12 @@ package registry
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
-	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -220,15 +221,21 @@ type GenerateHarborConfig struct {
 }
 
 func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
-	host := runtime.RemoteHost()
+	registryDomain := g.KubeConf.Cluster.Registry.PrivateRegistry
+
+	if g.KubeConf.Cluster.Registry.Type == "harbor-ha" {
+		host := runtime.RemoteHost()
+		registryDomain = host.GetName()
+	}
+
 	templateAction := action.Template{
 		Template: templates.HarborConfigTempl,
 		Dst:      "/opt/harbor/harbor.yml",
 		Data: util.Data{
-			"Domain":      host.GetName(),
-			"Certificate": fmt.Sprintf("%s.pem", RegistryCertificateBaseName),
-			"Key":         fmt.Sprintf("%s-key.pem", RegistryCertificateBaseName),
-			"Password":    templates.Password(g.KubeConf, RegistryCertificateBaseName),
+			"Domain":      registryDomain,
+			"Certificate": fmt.Sprintf("%s.pem", g.KubeConf.Cluster.Registry.PrivateRegistry),
+			"Key":         fmt.Sprintf("%s-key.pem", g.KubeConf.Cluster.Registry.PrivateRegistry),
+			"Password":    templates.Password(g.KubeConf, g.KubeConf.Cluster.Registry.PrivateRegistry),
 		},
 	}
 	templateAction.Init(nil, nil)
