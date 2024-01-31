@@ -23,7 +23,7 @@ const UpgradeCluster = () => {
             <Columns>
                 <Column className="is-1"></Column>
                 <Column className="is-2">
-                    <h2>升级集群</h2>
+                    <h2>集群升级</h2>
                 </Column>
                 <Column className={'is-8'}>
                     <Columns>

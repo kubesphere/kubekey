@@ -19,24 +19,24 @@ const ClusterTableDataWrapper= ({ children,clusterData }) => {
             <Menu>
                 <Menu.MenuItem key="upgradeCluster" >
                     <Link to={`/UpgradeCluster/${record.metadata.name}`}>
-                    升级集群
+                    集群升级
                     </Link>
                 </Menu.MenuItem>
-                <Menu.MenuItem key="deleteCluster" >
-                    <Link to={`/DeleteCluster/${record.metadata.name}`}>
-                        删除集群
-                    </Link>
-                </Menu.MenuItem>
+                {/*<Menu.MenuItem key="deleteCluster" >*/}
+                {/*    <Link to={`/DeleteCluster/${record.metadata.name}`}>*/}
+                {/*        删除集群*/}
+                {/*    </Link>*/}
+                {/*</Menu.MenuItem>*/}
                 <Menu.MenuItem key="addNode">
                     <Link to={`/addNode/${record.metadata.name}`}>
-                    增加节点
+                    集群扩容
                     </Link>
                 </Menu.MenuItem>
-                    <Menu.MenuItem key="deleteNode">
-                        <Link to={`/deleteNode/${record.metadata.name}`}>
-                            删除节点
-                        </Link>
-                    </Menu.MenuItem>
+                    {/*<Menu.MenuItem key="deleteNode">*/}
+                    {/*    <Link to={`/deleteNode/${record.metadata.name}`}>*/}
+                    {/*        删除节点*/}
+                    {/*    </Link>*/}
+                    {/*</Menu.MenuItem>*/}
 
             </Menu>}>
             <Button type="control" size='small'>操作</Button>
@@ -52,8 +52,8 @@ const ClusterTableDataWrapper= ({ children,clusterData }) => {
     const initialColumns = [
         {
             children: [
-                { title: '集群名',  width: '14%',dataIndex: 'metadata.name', sorter: true, search: true },
-                { title: '节点数', width: '8%',render:(_, record) => record.spec.hosts.length},
+                { title: '集群名称',  width: '14%',dataIndex: 'metadata.name', sorter: true, search: true },
+                { title: '节点数量', width: '8%',render:(_, record) => record.spec.hosts.length},
                 { title: 'Kubernetes 版本', dataIndex: 'spec.kubernetes.version', width: '13%' },
                 {
                     title: '自动续费证书',
@@ -69,7 +69,7 @@ const ClusterTableDataWrapper= ({ children,clusterData }) => {
                 // {title: '证书有效期', dataIndex: '', width: '14%',render:certExpiraionColumn},
                 {title: '网络插件', dataIndex: 'spec.network.plugin', width: '13%'},
                 {title: '容器运行时', dataIndex: 'spec.kubernetes.containerManager', width: '13%'},
-                {title: '本地存储', width: '18%',render:storageColumn},
+                // {title: '本地存储', width: '18%',render:storageColumn},
                 {title: '操作', dataIndex: '', width: '18%', render: MenuColumn},
             ],
         },

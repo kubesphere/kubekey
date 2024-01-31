@@ -28,24 +28,57 @@ const HostTableDataWrapper= ({ children }) => {
             </div>
         )
     }
+
+    const labelColumn = (_,record) => {
+        return(
+               <>
+                   {
+                       record.hasOwnProperty('labels') && Object.entries(record.labels).map((label, index) => {
+                           if (label[0] === undefined) {
+                                 return <> </>;
+                           } else {
+                               return (
+                                   <div style={{ marginBottom: "5px" }}>
+                                       <Tag key={index} type="info">{`${label[0]}: ${label[1]}`}</Tag>
+                                   </div>
+                               )
+                           }
+                       })
+                   }
+               </>
+        )
+    }
+
     const initialColumns = [
         {
             children: [
-                { title: 'Name', dataIndex: 'name', sorter: true, search: true ,width: '10%'},
-                { title: 'Address', dataIndex: 'address', width: '10%' },
-                { title: 'InternalAddress', dataIndex: 'internalAddress', width: '13%' },
+                { title: '主机名', dataIndex: 'name', sorter: true, search: true ,width: '8%'},
+                { title: 'SSH 地址', dataIndex: 'address', width: '8%' },
+                { title: '节点 IP 地址', dataIndex: 'internalAddress', width: '8%' },
+                { title: '用户名', dataIndex: 'user', width: '6%' },
+                {
+                    title: 'CPU 架构',
+                    dataIndex: 'arch',
+                    width: '8%',
+                    search: true,
+                    // render:archColumn
+                },
                 {
                     title: '角色',
                     dataIndex: 'role',
-                    width: '20%',
+                    width: '15%',
                     search: true,
                     render:roleColumn
                 },
-                { title: '用户名', dataIndex: 'user', width: '12%' },
-                { title: '密码', dataIndex: 'password', width: '15%' },
-                { title: 'id_rsa路径', dataIndex: 'privateKeyPath', width: '20%' },
-                {title:'操作', dataIndex:'', width: '13%', render:menuColumn}
+                {
+                    title: '标签',
+                    dataIndex: 'role',
+                    width: '21%',
+                    search: true,
+                    render:labelColumn
+                },
 
+                { title:'操作', dataIndex:'', width: '10%', render:menuColumn }
             ],
         },
     ];

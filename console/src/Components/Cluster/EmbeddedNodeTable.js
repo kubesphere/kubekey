@@ -23,7 +23,7 @@ const EmbeddedNodeTable = ({curClusterData}) => {
             }}>
                 <InputSearch style={{
                     flex: 1
-                }} placeholder="输入节点名搜索" onSearch={name => fetchList({
+                }} placeholder="主机名" onSearch={name => fetchList({
                     name
                 })} />
                 <Button style={{

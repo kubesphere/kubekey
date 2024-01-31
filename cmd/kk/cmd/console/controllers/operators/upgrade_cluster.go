@@ -2,21 +2,24 @@ package operators
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/gin-gonic/gin"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/console/console_common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/pipelines"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
 )
 
 func UpgradeCluster(c *gin.Context, targetDir string, tmpDir string) {
 	//  升级连接
 	clusterName := c.DefaultQuery("clusterName", "")
-	ksVersion := c.DefaultQuery("ksVersion", "")
-	clientConn, err := console_common.Upgrader.Upgrade(c.Writer, c.Request, nil)
+	//ksVersion := c.DefaultQuery("ksVersion", "")
+	ksVersion := ""
+	clientConn, err := console_common.Upgrader.Upgrade(c.Writer,
+		c.Request, nil)
 	if err != nil {
 		log.Fatalf("Failed to set websocket upgrade: %v", err)
 		return

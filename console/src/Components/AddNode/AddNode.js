@@ -20,7 +20,7 @@ const AddNode = () => {
             <Columns>
                 <Column className="is-1"></Column>
                 <Column className="is-2">
-                    <h2>新增节点</h2>
+                    <h2>集群扩容</h2>
                 </Column>
                 <Column className={'is-8'}>
                     <Columns>

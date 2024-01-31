@@ -32,7 +32,7 @@ const ClusterTable = () => {
                     }}>
                         <InputSearch style={{
                             flex: 1
-                        }} placeholder="please input a word" onSearch={name => fetchList({
+                        }} placeholder="集群名称" onSearch={name => fetchList({
                             name
                         })} />
                         <Button style={{

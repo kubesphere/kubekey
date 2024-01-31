@@ -39,7 +39,7 @@ const InstallForm = () => {
 
     const handlePrev = () => {
         setPage(prev => {
-            return +prev-1
+            return prev <= 0? 0 : +prev-1
         })
     }
 
@@ -67,7 +67,7 @@ const InstallForm = () => {
                     <Columns>
                         <Column className='is-5'/>
                         <Column>
-                            {page !== 0 && <Button onClick={handlePrev} disabled={disablePrev}>上一步</Button>}
+                            {page > 0  && <Button onClick={handlePrev} disabled={disablePrev}>上一步</Button>}
                         </Column>
                     </Columns>
                 </Column>

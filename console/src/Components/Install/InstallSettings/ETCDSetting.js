@@ -5,6 +5,14 @@ import {Select, Tag} from "@kubed/components"
 const EtcdSetting = () => {
     const { data, handleChange } = useInstallFormContext()
 
+    const initEtcdNodes = () => {
+        let etcdNodes = []
+        data.spec.hosts.map(host=>{
+            if (data.spec.roleGroups.master.includes(host.name)) etcdNodes.push(host.name)
+        })
+        return etcdNodes
+    }
+
     const ETCDTypeOptions = [{
         value: 'kubekey',
         label: 'kubekey'
@@ -33,10 +41,10 @@ const EtcdSetting = () => {
     return (
         <div>
             <Columns>
-                <Column className={'is-2'}>ETCD部署节点：</Column>
+                <Column className={'is-2'}>ETCD 部署节点：</Column>
                 <Column>
                     <div style={{display:`flex`}}>
-                        <Select style={{minWidth:'400px'}} value={data.spec.roleGroups.etcd} onChange={ETCDChangeHandler} placeholder="请选择ETCD部署节点" mode="multiple" showSearch allowClear showArrow optionLabelProp="label">
+                        <Select style={{minWidth:'400px'}} defaultValue={initEtcdNodes} onChange={ETCDChangeHandler} placeholder="请选择ETCD部署节点" mode="multiple" showSearch allowClear showArrow optionLabelProp="label">
                             {data.spec.hosts.map(host=>ETCDOptionContent(host))}
                         </Select>
                     </div>
@@ -45,7 +53,7 @@ const EtcdSetting = () => {
                 </Column>
             </Columns>
             <Columns>
-                <Column className={'is-2'}>ETCD类型：</Column>
+                <Column className={'is-2'}>ETCD 部署类型：</Column>
                 <Column >
                     <RadioGroup options={ETCDTypeOptions} value={data.spec.etcd.type} onChange={ETCDTypeChangeHandler} />
                 </Column>

@@ -1,7 +1,16 @@
 import React, {useState} from 'react';
-import {Button, CheckboxGroup, Column, Columns, Input, InputPassword} from "@kube-design/components";
+import {
+    Button,
+    Column,
+    Columns,
+    Input,
+    InputPassword,
+    RadioButton,
+    RadioGroup, Select
+} from "@kube-design/components";
 import {Modal} from "@kubed/components";
 import useAddNodeFormContext from "../../hooks/useAddNodeFormContext";
+import {MinusSquare, PlusSquare} from "@kubed/icons";
 
 const AddNodeModal = () => {
     const {setCurCluster} = useAddNodeFormContext()
@@ -17,8 +26,41 @@ const AddNodeModal = () => {
         internalAddress : '',
         user : '',
         password : '',
-        privateKeyPath : ''
+        privateKeyPath : '',
+        arch: '',
+        labels: {}
     })
+
+    const [sshAuthenticationType,setSshAuthenticationType] = useState('password')
+
+    const [labels, setLabels] = useState([new Map()]);
+
+    const onChangeLabelsHandler = e => {
+        if (e.target.name.includes('key-')) {
+            const index = e.target.name.split('-')[1]
+            const newLabels = [...labels]
+            newLabels[index] = new Map([[e.target.value, newLabels[index].values().next().value]])
+
+            setLabels(newLabels)
+        }
+
+        if (e.target.name.includes('value-')) {
+            const index = e.target.name.split('-')[1]
+            const newLabels = [...labels]
+            newLabels[index]= new Map([[newLabels[index].keys().next().value, e.target.value]])
+            setLabels(newLabels)
+        }
+    }
+
+    const addLabel = () => {
+        setLabels([...labels, new Map()]);
+    }
+
+    const removeLabel = (index) => {
+        const updetaLabels = [...labels];
+        updetaLabels.splice(index, 1);
+        setLabels(updetaLabels);
+    }
 
     const ref = React.createRef();
     const openModal = () => {
@@ -32,41 +74,97 @@ const AddNodeModal = () => {
             internalAddress : '',
             user : '',
             password : '',
-            privateKeyPath : ''
+            privateKeyPath : '',
+            arch: '',
+            labels: {}
         })
         setCurRole([])
         setVisible(false);
     };
+
     const roleOptions = [
         {
-            value:'Master',
-            label:'Master'
+            value: 'master',
+            label:'master'
         },
         {
-            value:'Worker',
-            label:'Worker'
+            value: 'worker',
+            label:'worker'
         }
     ]
-    const onChangeHandler = e => {
+
+    const archOptions = [
+        {
+            value: 'amd64',
+            label:'amd64'
+        },
+        {
+            value: 'arm64',
+            label:'arm64'
+        }
+    ]
+
+    const sshAuthenticationOptions = [
+        {
+            value: 'password',
+            label:'密码'
+        },
+        {
+            value: 'privateKey',
+            label:'密钥'
+        },
+        {
+            value: 'privateKeyPath',
+            label:'密钥路径'
+        }
+    ]
+
+    const onChangeRoleHandler = e => {
         if(Array.isArray(e)) {
             setCurRole(e)
+        }
+    }
+
+    const onChangeHandler = e => {
+        if (e === 'amd64' || e === 'arm64') {
+            setNewHost(prevState => {
+                return ({...prevState, arch: e})
+            })
         } else {
             setNewHost(prevState => {
-                // console.log({...prevState,[e.target.name]:e.target.value})
-                return ({...prevState,[e.target.name]:e.target.value})
+                return ({...prevState, [e.target.name]: e.target.value})
             })
         }
     }
+
+    const onChangeSshAuthenticationTypeHandler = e => {
+        if (e === 'password') {
+            setSshAuthenticationType('password')
+        } else if (e === 'privateKey') {
+            setSshAuthenticationType('privateKey')
+        } else if (e === 'privateKeyPath') {
+            setSshAuthenticationType('privateKeyPath')
+        }
+    }
+
     const onOKHandler = () => {
+        const labelsMap = () => {
+            const labels = {}
+            for (let i = 0; i < labels.length; i++) {
+                labels[Array.from(labels[i].keys())[0]] = Array.from(labels[i].values())[0]
+            }
+            return labels
+        }
+        newHost.labels = labelsMap()
         setCurCluster(prev=>{
             const newCluster = {...prev}
             newCluster.spec.hosts = [...prev.spec.hosts,newHost]
             if(curRole.length===2){
                 newCluster.spec.roleGroups.master = [...prev.spec.roleGroups.master,newHost.name]
                 newCluster.spec.roleGroups.worker = [...prev.spec.roleGroups.worker,newHost.name]
-            } else if(curRole[0]==='Master') {
+            } else if(curRole[0]==='master') {
                 newCluster.spec.roleGroups.master = [...prev.spec.roleGroups.master,newHost.name]
-            } else if(curRole[0]==='Worker') {
+            } else if(curRole[0]==='worker') {
                 newCluster.spec.roleGroups.worker = [...prev.spec.roleGroups.worker,newHost.name]
             }
             return newCluster
@@ -77,11 +175,13 @@ const AddNodeModal = () => {
             internalAddress : '',
             user : '',
             password : '',
-            privateKeyPath : ''
+            privateKeyPath : '',
+            arch: ''
         })
         setCurRole([])
         setVisible(false);
     }
+
     const modalContent = (
         <div>
             <Columns>
@@ -89,57 +189,137 @@ const AddNodeModal = () => {
                     主机名：
                 </Column>
                 <Column>
-                    <Input name='name' value={newHost.name} onChange={onChangeHandler}></Input>
+                    <Input name='name' value={newHost.name} onChange={onChangeHandler} placeholder='必填，设置节点名称'></Input>
                 </Column>
             </Columns>
             <Columns>
                 <Column className={'is-2'}>
-                    Address：
+                    SSH 地址：
                 </Column>
                 <Column>
-                    <Input name='address' value={newHost.address} onChange={onChangeHandler}></Input>
+                    <Input name='address' value={newHost.address} onChange={onChangeHandler} placeholder='必填，节点 SSH 链接地址'></Input>
                 </Column>
             </Columns>
             <Columns>
                 <Column className={'is-2'}>
-                    InternalAddress：
+                    节点 IP：
                 </Column>
                 <Column>
-                    <Input name='internalAddress' value={newHost.internalAddress} onChange={onChangeHandler}></Input>
+                    <Input name='internalAddress' value={newHost.internalAddress} onChange={onChangeHandler} placeholder='必填，节点 IP 地址'></Input>
                 </Column>
             </Columns>
             <Columns>
                 <Column className={'is-2'}>
-                    角色：
+                    节点角色：
                 </Column>
                 <Column>
-                    <CheckboxGroup name='role' value={curRole} options={roleOptions} onChange={onChangeHandler} ></CheckboxGroup>
+                    <Select multi name='role' value={curRole}  options={roleOptions} onChange={onChangeRoleHandler} placeholder='选择节点角色' ></Select>
                 </Column>
             </Columns>
             <Columns>
                 <Column className={'is-2'}>
-                    用户名：
+                    CPU 架构：
                 </Column>
                 <Column>
-                    <Input name='user' value={newHost.user} onChange={onChangeHandler}></Input>
+                    <RadioGroup buttonWidth={100} wrapClassName="radio-group-button" defaultValue={newHost.arch}>
+                        {
+                            archOptions.map(option => <RadioButton key={option.value}  value={option.value}>{option.label}</RadioButton>)
+                        }
+                    </RadioGroup>
                 </Column>
             </Columns>
             <Columns>
                 <Column className={'is-2'}>
-                    密码：
+                    SSH 用户：
                 </Column>
                 <Column>
-                    <InputPassword name='password' value={newHost.password} onChange={onChangeHandler}></InputPassword>
+                    <Input name='user' value={newHost.user} onChange={onChangeHandler} placeholder='用户应具有 sudo 权限'></Input>
                 </Column>
             </Columns>
             <Columns>
                 <Column className={'is-2'}>
-                    id_rsa路径：
+                    SSH 认证：
                 </Column>
                 <Column>
-                    <Input name='privateKeyPath' value={newHost.privateKeyPath} onChange={onChangeHandler}></Input>
+                    <RadioGroup buttonWidth={120} wrapClassName="radio-group-button" onChange={onChangeSshAuthenticationTypeHandler} defaultValue={sshAuthenticationType}>
+                        {
+                            sshAuthenticationOptions.map(option => <RadioButton key={option.value}  value={option.value}>{option.label}</RadioButton>)
+                        }
+                    </RadioGroup>
                 </Column>
             </Columns>
+            {
+                sshAuthenticationType === 'password' && (
+                    <>
+                        <Columns>
+                            <Column className={'is-2'}>
+                                SSH 密码：
+                            </Column>
+                            <Column>
+                                <InputPassword name='password' value={newHost.password} onChange={onChangeHandler} placeholder='SSH认证方式任选其一，节点 SSH 密码' disabled={sshAuthenticationType === 'password' ? false : true}></InputPassword>
+                            </Column>
+                        </Columns>
+                    </>
+                )
+            }
+            {
+                sshAuthenticationType === 'privateKey' && (
+                    <Columns>
+                        <Column className={'is-2'}>
+                            SSH 密钥：
+                        </Column>
+                        <Column>
+                            <InputPassword name='privateKey' value={newHost.privateKey} onChange={onChangeHandler} placeholder='SSH认证方式任选其一，节点 SSH 密钥' disabled={sshAuthenticationType === 'privateKey' ? false : true}></InputPassword>
+                        </Column>
+                    </Columns>
+                )
+            }
+            {
+                sshAuthenticationType === 'privateKeyPath' && (
+                    <Columns>
+                        <Column className={'is-2'}>
+                            密钥文件：
+                        </Column>
+                        <Column>
+                            <Input name='privateKeyPath' value={newHost.privateKeyPath} onChange={onChangeHandler} placeholder='SSH认证方式任选其一，节点 SSH 密钥文件路径' disabled={sshAuthenticationType === 'privateKeyPath' ? false : true}></Input>
+                        </Column>
+                    </Columns>
+                )
+            }
+            {
+                labels.map((label, index) => (
+                        <>
+                            <Columns>
+                                <Column className={'is-2'}>
+                                    {
+                                        index === 0 ? '标签：' : ''
+                                    }
+                                </Column>
+                                <Column>
+                                    {
+                                        index === 0 ? (
+                                            <>
+                                                <Input style={{width: '188px'}} name={'key-'+index} value={label.size === 0 ? '' : Array.from(label.keys())[0]} onChange={onChangeLabelsHandler} placeholder='键'></Input>
+                                                <Input style={{width: '188px'}} name={'value-'+index} value={label.size === 0 ? '' : Array.from(label.values())[0]} onChange={onChangeLabelsHandler} placeholder='值'></Input>
+                                                <PlusSquare onClick={addLabel} style={{marginLeft: '10px'}} />
+                                            </>
+                                        ):(
+                                            <>
+                                                <Input style={{width: '188px'}} name={'key-'+index} defaultValue={label.size === 0 ? '' : Array.from(label.keys())[0]} onChange={onChangeLabelsHandler} placeholder='键'></Input>
+                                                <Input style={{width: '188px'}} name={'value-'+index} defaultValue={label.size === 0 ? '' : Array.from(label.values())[0]} onChange={onChangeLabelsHandler} placeholder='值'></Input>
+                                                <PlusSquare onClick={addLabel} style={{marginLeft: '10px'}} />
+                                                <MinusSquare onClick={() => removeLabel(index)} />
+                                            </>
+                                        )
+                                    }
+
+                                </Column>
+                            </Columns>
+                        </>
+                    )
+
+                )
+            }
 
         </div>
     )
@@ -154,7 +334,9 @@ const AddNodeModal = () => {
                 onCancel={closeModal}
                 onOk={onOKHandler}
             >
-                {modalContent}
+                <div style={{ paddingTop: '20px', paddingLeft: '30px', paddingBottom: '20px', paddingRight: '0px' }}>
+                    {modalContent}
+                </div>
             </Modal>
         </>
     );

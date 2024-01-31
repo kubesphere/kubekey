@@ -8,7 +8,7 @@ export const AddNodeFormProvider = ({children}) => {
     const [curCluster,setCurCluster] = useState({});
     const [buttonDisabled,setButtonDisabled] = useState(false)
     const title = {
-        0:'输入节点信息',
+        0:'新增节点',
         1:'ETCD设置',
         2:'确认新增',
     }

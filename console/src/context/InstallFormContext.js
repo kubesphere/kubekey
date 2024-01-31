@@ -15,10 +15,11 @@ export const InstallFormProvider = ({children}) => {
         1:'ETCD设置',
         2:'集群设置',
         3:'网络设置',
-        4:'存储设置',
-        5:'镜像仓库设置',
-        6:'KubeSphere 设置',
-        7:'确认安装'
+        // 4:'存储设置',
+        4:'镜像仓库设置',
+        // 6:'KubeSphere 设置',
+        5:'扩展组件设置',
+        6:'确认安装'
     }
     const [page,setPage] = useState(0)
     const {backendIP} = useGlobalContext();
@@ -33,33 +34,41 @@ export const InstallFormProvider = ({children}) => {
         },
         spec:{
             hosts:[{
-                name : 'node1',
-                address : '192.168.6.1',
-                internalAddress : '192.168.6.1',
-                user: 'root',
-                password : '123456',
-                privateKeyPath: '/var/root/.ssh/id_rsa'
-            },
-                {
-                name : 'node2',
-                address : '192.168.6.2',
-                internalAddress : '192.168.6.2',
-                user : 'root',
-                password : '123456',
-                privateKeyPath: '/var/root/.ssh/id_rsa'
+                    name : 'node1',
+                    address : '192.168.6.1',
+                    internalAddress : '192.168.6.1',
+                    user: 'root',
+                    password : '',
+                    privateKeyPath: '',
+                    privateKey: '',
+                    arch: 'amd64'
                 },
                 {
-                name : 'node3',
-                address : '192.168.6.3',
-                internalAddress : '192.168.6.3',
-                user : 'root',
-                password : '123456',
-                privateKeyPath: '/var/root/.ssh/id_rsa'
+                    name : 'node2',
+                    address : '192.168.6.2',
+                    internalAddress : '192.168.6.2',
+                    user : 'root',
+                    password : '',
+                    privateKeyPath: '',
+                    privateKey: '',
+                    arch: 'amd64',
+                    labels: {"node-role.kubernetes.io/worker": "true"}
+                },
+                {
+                    name : 'node3',
+                    address : '192.168.6.3',
+                    internalAddress : '192.168.6.3',
+                    user : 'root',
+                    password : '',
+                    privateKeyPath: '',
+                    privateKey: '',
+                    arch: 'amd64',
+                    labels: {"disk": "ssd", "node-role.kubernetes.io/worker": "true"}
                 }],
             roleGroups: {
-                etcd: [],
-                master: ['node1','node2'],
-                worker: ['node2','node3'],
+                etcd: ['node1'],
+                master: ['node1'],
+                worker: ['node1','node2','node3'],
             },
             controlPlaneEndpoint: {
                 // internalLoadbalancer: 'haproxy',
@@ -146,7 +155,20 @@ export const InstallFormProvider = ({children}) => {
                 //     },
                 // },
             },
-            addons: [],
+            addons: [
+                {
+                    name: 'kubesphere',
+                    namespace: 'kubesphere-system',
+                    sources: {
+                        yaml: {
+                            path: [
+                                "addons/kubesphere/kubesphere-installer.yaml",
+                                "addons/kubesphere/cluster-configuration.yaml",
+                            ]
+                        },
+                    }
+                }
+            ],
         },
     })
     const jsyaml = require('js-yaml');

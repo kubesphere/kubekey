@@ -7,6 +7,7 @@ import StorageSetting from "./InstallSettings/StorageSetting";
 import RegistrySetting from "./InstallSettings/RegistrySetting";
 import KubesphereSetting from "./InstallSettings/KubesphereSetting";
 import ConfirmInstallSetting from "./InstallSettings/ConfirmInstallSetting";
+import AddonsSetting from "./InstallSettings/AddonsSetting/AddonsSetting";
 
 const InstallFormInputs = () => {
 
@@ -17,10 +18,11 @@ const InstallFormInputs = () => {
         1: <EtcdSetting/>,
         2: <ClusterSetting/>,
         3: <NetworkSetting/>,
-        4: <StorageSetting/>,
-        5: <RegistrySetting/>,
-        6: <KubesphereSetting/>,
-        7: <ConfirmInstallSetting/>
+        // 4: <StorageSetting/>,
+        4: <RegistrySetting/>,
+        // 6: <KubesphereSetting/>,
+        5: <AddonsSetting/>,
+        6: <ConfirmInstallSetting/>
     }
 
     return (

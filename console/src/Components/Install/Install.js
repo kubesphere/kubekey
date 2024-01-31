@@ -12,7 +12,7 @@ const Install = () => {
                 <Columns>
                     <Column className="is-1"></Column>
                     <Column className="is-2">
-                        <h2>安装集群</h2>
+                        <h2>新建集群</h2>
                     </Column>
                     <Column className={'is-8'}>
                         <Columns>

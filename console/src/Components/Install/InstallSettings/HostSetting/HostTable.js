@@ -22,7 +22,7 @@ const HostTable = () => {
             }}>
                 <InputSearch style={{
                     flex: 1
-                }} placeholder="please input a word" onSearch={name => fetchList({
+                }} placeholder="主机名" onSearch={name => fetchList({
                     name
                 })} />
                 <Button style={{

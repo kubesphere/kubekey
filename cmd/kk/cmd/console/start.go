@@ -2,12 +2,13 @@ package console
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/console/router"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
-	"github.com/spf13/cobra"
 	"log"
 	"os/exec"
 	"runtime"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/console/router"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
+	"github.com/spf13/cobra"
 )
 
 type ConsoleStartOptions struct {

@@ -1,7 +1,8 @@
 import React from 'react';
 import {Button, Modal} from "@kubed/components";
-import useInstallFormContext from "../../hooks/useInstallFormContext";
+
 import {Column, Columns} from "@kube-design/components";
+import useInstallFormContext from "../../hooks/useInstallFormContext";
 
 
 const HostDeleteConfirmModal = ({record}) => {

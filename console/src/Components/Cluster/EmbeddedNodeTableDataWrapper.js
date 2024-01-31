@@ -13,26 +13,55 @@ const EmbeddedNodeTableDataWrapper= ({ children,curClusterData }) => {
             </div>
         )
     }
+
+    const labelColumn = (_,record) => {
+        return(
+            <>
+                {
+                    record.hasOwnProperty('labels') && Object.entries(record.labels).map((label, index) => {
+                        if (label[0] === undefined) {
+                            return <> </>;
+                        } else {
+                            return (
+                                <div style={{ marginBottom: "5px" }}>
+                                    <Tag key={index} type="info">{`${label[0]}: ${label[1]}`}</Tag>
+                                </div>
+                            )
+                        }
+                    })
+                }
+            </>
+        )
+    }
+
     const initialColumns = [
         {
             children: [
-                { title: 'Name', dataIndex: 'name',width:'13%', sorter: true, search: true },
-                { title: 'Address', dataIndex: 'address', width: '12%' },
-                { title: 'InternalAddress', dataIndex: 'internalAddress', width: '12%' },
+                { title: '主机名', dataIndex: 'name', sorter: true, search: true ,width: '15%'},
+                { title: 'SSH 地址', dataIndex: 'address', width: '8%' },
+                { title: '节点 IP 地址', dataIndex: 'internalAddress', width: '8%' },
+                { title: '用户名', dataIndex: 'user', width: '6%' },
+                {
+                    title: 'CPU 架构',
+                    dataIndex: 'arch',
+                    width: '8%',
+                    search: true,
+                    // render:archColumn
+                },
                 {
                     title: '角色',
                     dataIndex: 'role',
                     width: '15%',
-                    // filters: [
-                    //     { text: 'MASTER', value: 'Master' },
-                    //     { text: 'WORKER', value: ['Worker'] },
-                    // ],
                     search: true,
-                    render:roleColumn
+                    render: roleColumn
                 },
-                { title: '用户名', dataIndex: 'user', width: '12%' },
-                { title: '密码', dataIndex: 'password', width: '15%' },
-                { title: 'id_rsa路径', dataIndex: 'privateKeyPath', width: '20%' },
+                {
+                    title: '标签',
+                    dataIndex: 'role',
+                    width: '21%',
+                    search: true,
+                    render: labelColumn
+                }
             ],
         },
     ];

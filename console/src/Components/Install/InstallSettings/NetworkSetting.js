@@ -8,26 +8,26 @@ const NetworkSetting = () => {
             value:'calico',
             label:'calico'
         },
-        // {
-        //     value:'flannel',
-        //     label:'flannel'
-        // },
-        // {
-        //     value:'cilium',
-        //     label:'cilium'
-        // },
-        // {
-        //     value:'hybridnet',
-        //     label:'hybridnet'
-        // },
-        // {
-        //     value:'Kube-OVN',
-        //     label:'Kube-OVN'
-        // },
-        // {
-        //     value:'',
-        //     label:'不启用'
-        // }
+        {
+            value:'flannel',
+            label:'flannel'
+        },
+        {
+            value:'cilium',
+            label:'cilium'
+        },
+        {
+            value:'hybridnet',
+            label:'hybridnet'
+        },
+        {
+            value:'Kube-OVN',
+            label:'kube-ovn'
+        },
+        {
+            value:'',
+            label:'不启用'
+        }
     ]
 
     const { data, handleChange } = useInstallFormContext()
