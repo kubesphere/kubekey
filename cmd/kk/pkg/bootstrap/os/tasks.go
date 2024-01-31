@@ -258,6 +258,9 @@ func (r *RemoveFiles) Execute(runtime connector.Runtime) error {
 	for _, file := range clusterFiles {
 		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
 	}
+	// remove pki/etcd Path if it exists, otherwise it will cause the etcd reinstallation to fail if ip change
+	pkiPath := fmt.Sprintf("%s/pki/etcd", runtime.GetWorkDir())
+	_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", pkiPath), true)
 	return nil
 }
 
