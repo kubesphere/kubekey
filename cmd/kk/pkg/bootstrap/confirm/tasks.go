@@ -23,16 +23,16 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
-	"github.com/modood/table"
-	"github.com/pkg/errors"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
-
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
+	"github.com/mitchellh/mapstructure"
+	"github.com/modood/table"
+	"github.com/pkg/errors"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
 )
 
 // PreCheckResults defines the items to be checked.
@@ -107,18 +107,17 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	fmt.Println("https://github.com/kubesphere/kubekey#requirements-and-recommendations")
 	fmt.Println("")
 
-	if k8sVersion, err := versionutil.ParseGeneric(i.KubeConf.Cluster.Kubernetes.Version); err == nil {
-		if k8sVersion.AtLeast(versionutil.MustParseSemantic("v1.24.0")) && i.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
-			fmt.Println("[Notice]")
-			fmt.Println("Incorrect runtime. Please specify a container runtime other than Docker to install Kubernetes v1.24 or later.")
-			fmt.Println("You can set \"spec.kubernetes.containerManager\" in the configuration file to \"containerd\" or add \"--container-manager containerd\" to the \"./kk create cluster\" command.")
-			fmt.Println("For more information, see:")
-			fmt.Println("https://github.com/kubesphere/kubekey/blob/master/docs/commands/kk-create-cluster.md")
-			fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
-			fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
-			fmt.Println("")
-			stopFlag = true
-		}
+	if kubernetes.IsAtLeastV124(i.KubeConf.Cluster.Kubernetes.Version) && i.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker &&
+		i.KubeConf.Cluster.Kubernetes.Type != common.Kubernetes {
+		fmt.Println("[Notice]")
+		fmt.Println("Incorrect runtime. Please specify a container runtime other than Docker to install Kubernetes v1.24 or later.")
+		fmt.Println("You can set \"spec.kubernetes.containerManager\" in the configuration file to \"containerd\" or add \"--container-manager containerd\" to the \"./kk create cluster\" command.")
+		fmt.Println("For more information, see:")
+		fmt.Println("https://github.com/kubesphere/kubekey/blob/master/docs/commands/kk-create-cluster.md")
+		fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
+		fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
+		fmt.Println("")
+		stopFlag = true
 	}
 
 	if stopFlag {

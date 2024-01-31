@@ -44,6 +44,7 @@ const (
 	k3s        = "k3s"
 	k8e        = "k8e"
 	docker     = "docker"
+	cridockerd = "cri-dockerd"
 	crictl     = "crictl"
 	registry   = "registry"
 	harbor     = "harbor"
@@ -58,6 +59,7 @@ const (
 	CNI        = "cni"
 	CRICTL     = "crictl"
 	DOCKER     = "docker"
+	CRIDOCKERD = "cri-dockerd"
 	ETCD       = "etcd"
 	HELM       = "helm"
 	KUBE       = "kube"
@@ -147,6 +149,10 @@ func NewKubeBinary(name, arch, version, prePath string, getCmd func(path, url st
 		if component.Zone == "cn" {
 			component.Url = fmt.Sprintf("https://mirrors.aliyun.com/docker-ce/linux/static/stable/%s/docker-%s.tgz", util.ArchAlias(arch), version)
 		}
+	case cridockerd:
+		component.Type = CRIDOCKERD
+		component.FileName = fmt.Sprintf("cri-dockerd-%s.tgz", version)
+		component.Url = fmt.Sprintf("https://github.com/Mirantis/cri-dockerd/releases/download/v%s/cri-dockerd-%s.%s.tgz", version, version, arch)
 	case crictl:
 		component.Type = CRICTL
 		component.FileName = fmt.Sprintf("crictl-%s-linux-%s.tar.gz", version, arch)

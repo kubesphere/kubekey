@@ -41,6 +41,24 @@ func (d *DockerExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	return !d.Not, nil
 }
 
+type CriDockerdExist struct {
+	common.KubePrepare
+	Not bool
+}
+
+func (d *CriDockerdExist) PreCheck(runtime connector.Runtime) (bool, error) {
+	output, err := runtime.GetRunner().SudoCmd("if [ -z $(command -v cri-dockerd) ] || [ ! -e /var/run/cri-dockerd.sock ]; "+
+		"then echo 'not exist'; "+
+		"fi", false)
+	if err != nil {
+		return false, err
+	}
+	if strings.Contains(output, "not exist") {
+		return d.Not, nil
+	}
+	return !d.Not, nil
+}
+
 type CrictlExist struct {
 	common.KubePrepare
 	Not bool

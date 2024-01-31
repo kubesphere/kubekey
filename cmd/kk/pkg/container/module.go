@@ -30,6 +30,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
+	versionk8s "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 )
 
 type InstallContainerModule struct {
@@ -69,6 +70,19 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 			&DockerExist{Not: true},
 		},
 		Action:   new(SyncDockerBinaries),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	syncCriDockerdBinaries := &task.RemoteTask{
+		Name:  "SyncCriDockerdBinaries",
+		Desc:  "Sync cri-dockerd binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&CriDockerdExist{Not: true},
+		},
+		Action:   new(SyncCriDockerdBinaries),
 		Parallel: true,
 		Retry:    2,
 	}
@@ -159,6 +173,48 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		},
 		Action:   new(DockerLoginRegistry),
 		Parallel: true,
+	}
+
+	generateCriDockerdService := &task.RemoteTask{
+		Name:  "GenerateCriDockerdService",
+		Desc:  "Generate cri-dockerd service",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&CriDockerdExist{Not: true},
+		},
+		Action: &action.Template{
+			Template: templates.CriDockerService,
+			Dst:      filepath.Join("/etc/systemd/system", templates.CriDockerService.Name()),
+		},
+		Parallel: true,
+	}
+
+	enableCriDockerd := &task.RemoteTask{
+		Name:  "EnableCriDockerd",
+		Desc:  "Enable cri-dockerd",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&CriDockerdExist{Not: true},
+		},
+		Action:   new(EnableCriDockerd),
+		Parallel: true,
+	}
+
+	if versionk8s.IsAtLeastV124(m.KubeConf.Cluster.Kubernetes.Version) && m.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
+		return []task.Interface{
+			syncBinaries,
+			syncCriDockerdBinaries,
+			generateContainerdService,
+			generateDockerService,
+			generateDockerConfig,
+			enableContainerdForDocker,
+			enableDocker,
+			dockerLoginRegistry,
+			generateCriDockerdService,
+			enableCriDockerd,
+		}
 	}
 
 	return []task.Interface{

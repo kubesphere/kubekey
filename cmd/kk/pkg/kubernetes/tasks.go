@@ -46,6 +46,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 )
 
 type GetClusterStatus struct {
@@ -715,9 +716,14 @@ func (u *UpgradeKubeMaster) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
 
-	if versionutil.MustParseSemantic(u.KubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+	if kubernetes.IsAtLeastV124(u.KubeConf.Cluster.Kubernetes.Version){
 		if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --network-plugin=cni / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
+		}
+		if u.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
+			if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --container-runtime=remote / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
+				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
+			}
 		}
 	}
 
