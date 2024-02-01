@@ -89,6 +89,7 @@ type KubeVip struct {
 type CustomScripts struct {
 	Name      string   `yaml:"name" json:"name,omitempty"`
 	Bash      string   `yaml:"bash" json:"bash,omitempty"`
+	Role      string   `yaml:"role" json:"role,omitempty"`
 	Materials []string `yaml:"materials" json:"materials,omitempty"`
 }
 
