@@ -17,12 +17,12 @@
 package utils
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
+	"path/filepath"
 )
 
 func NewClient(config string) (*kubernetes.Clientset, error) {
@@ -41,13 +41,8 @@ func NewClient(config string) (*kubernetes.Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(configCluster)
-	if err != nil {
-		return nil, err
-	}
 
-	return clientset, nil
+	return newForClient(configCluster)
 }
 
 func homeDir() string {
@@ -55,4 +50,34 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE")
+}
+
+func KubeConfigFormByte(data []byte) (*rest.Config, error) {
+	ClientConfig, err := clientcmd.NewClientConfigFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	restConfig, err := ClientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	return restConfig, nil
+}
+
+func NewClientForCluster(kubeConfig []byte) (*kubernetes.Clientset, error) {
+
+	forClientConfig, err := KubeConfigFormByte(kubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return newForClient(forClientConfig)
+}
+
+func newForClient(config *rest.Config) (*kubernetes.Clientset, error) {
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
