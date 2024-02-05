@@ -88,6 +88,7 @@ func (n *NodePreCheckModule) Init() {
 
 type ClusterPreCheckModule struct {
 	common.KubeModule
+	SkipDependencyCheck bool
 }
 
 func (c *ClusterPreCheckModule) Init() {
@@ -159,13 +160,25 @@ func (c *ClusterPreCheckModule) Init() {
 		Parallel: true,
 	}
 
-	c.Tasks = []task.Interface{
-		getKubeConfig,
-		getAllNodesK8sVersion,
-		calculateMinK8sVersion,
-		checkDesiredK8sVersion,
-		ksVersionCheck,
-		dependencyCheck,
-		getKubernetesNodesStatus,
+	if !c.SkipDependencyCheck {
+		c.Tasks = []task.Interface{
+			getKubeConfig,
+			getAllNodesK8sVersion,
+			calculateMinK8sVersion,
+			checkDesiredK8sVersion,
+			ksVersionCheck,
+			dependencyCheck,
+			getKubernetesNodesStatus,
+		}
+	} else {
+		c.Tasks = []task.Interface{
+			getKubeConfig,
+			getAllNodesK8sVersion,
+			calculateMinK8sVersion,
+			checkDesiredK8sVersion,
+			ksVersionCheck,
+			getKubernetesNodesStatus,
+		}
 	}
+
 }
