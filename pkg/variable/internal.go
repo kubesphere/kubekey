@@ -114,7 +114,7 @@ type VariableData map[string]any
 func (v VariableData) String() string {
 	data, err := json.Marshal(v)
 	if err != nil {
-		klog.ErrorS(err, "marshal in error", "data", v)
+		klog.V(4).ErrorS(err, "marshal in error", "data", v)
 		return ""
 	}
 	return string(data)
@@ -168,7 +168,7 @@ func (v *variable) syncLocation() error {
 		return err
 	}
 	if err := v.source.Write(data, _const.RuntimePipelineVariableLocationFile); err != nil {
-		klog.ErrorS(err, "write location data to local file error", "filename", _const.RuntimePipelineVariableLocationFile)
+		klog.V(4).ErrorS(err, "write location data to local file error", "filename", _const.RuntimePipelineVariableLocationFile)
 		return err
 	}
 	return nil

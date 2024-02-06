@@ -19,7 +19,10 @@ package manager
 import (
 	"context"
 
+	"k8s.io/klog/v2"
+
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
@@ -35,13 +38,19 @@ type CommandManagerOptions struct {
 	*kubekeyv1.Inventory
 }
 
-func NewCommandManager(o CommandManagerOptions) Manager {
+func NewCommandManager(o CommandManagerOptions) (Manager, error) {
+	client, err := proxy.NewLocalClient()
+	if err != nil {
+		klog.V(4).ErrorS(err, "Failed to create local client")
+		return nil, err
+	}
 	return &commandManager{
 		Pipeline:  o.Pipeline,
 		Config:    o.Config,
 		Inventory: o.Inventory,
-		Client:    proxy.NewDelegatingClient(nil),
-	}
+		Client:    client,
+		Scheme:    _const.Scheme,
+	}, nil
 }
 
 type ControllerManagerOptions struct {

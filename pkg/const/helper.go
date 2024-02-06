@@ -19,13 +19,6 @@ package _const
 import (
 	"path/filepath"
 	"sync"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2"
-
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 )
 
 var workDirOnce = &sync.Once{}
@@ -42,32 +35,7 @@ func GetWorkDir() string {
 	return workDir
 }
 
-func ResourceFromObject(obj runtime.Object) string {
-	switch obj.(type) {
-	case *kubekeyv1.Pipeline, *kubekeyv1.PipelineList:
-		return RuntimePipelineDir
-	case *kubekeyv1.Config, *kubekeyv1.ConfigList:
-		return RuntimeConfigDir
-	case *kubekeyv1.Inventory, *kubekeyv1.InventoryList:
-		return RuntimeInventoryDir
-	case *kubekeyv1alpha1.Task, *kubekeyv1alpha1.TaskList:
-		return RuntimePipelineTaskDir
-	default:
-		return ""
-	}
-}
-
-func RuntimeDirFromObject(obj runtime.Object) string {
-	resource := ResourceFromObject(obj)
-	if resource == "" {
-		klog.Errorf("unsupported object type: %s", obj.GetObjectKind().GroupVersionKind().String())
-		return ""
-	}
-	mo, ok := obj.(metav1.Object)
-
-	if !ok {
-		klog.Errorf("Failed convert to metav1.Object: %s", obj.GetObjectKind().GroupVersionKind().String())
-		return ""
-	}
-	return filepath.Join(workDir, RuntimeDir, mo.GetNamespace(), resource, mo.GetName())
+// GetRuntimeDir returns the absolute path of the runtime directory.
+func GetRuntimeDir() string {
+	return filepath.Join(workDir, RuntimeDir)
 }

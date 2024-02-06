@@ -20,10 +20,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 )
 
 func TestWorkDir(t *testing.T) {
@@ -35,16 +31,4 @@ func TestWorkDir(t *testing.T) {
 	// should not set workdir again
 	SetWorkDir("/tmp2")
 	assert.Equal(t, "/tmp", GetWorkDir())
-}
-
-func TestResourceFromObject(t *testing.T) {
-	assert.Equal(t, RuntimePipelineDir, ResourceFromObject(&kubekeyv1.Pipeline{}))
-	assert.Equal(t, RuntimePipelineDir, ResourceFromObject(&kubekeyv1.PipelineList{}))
-	assert.Equal(t, RuntimeConfigDir, ResourceFromObject(&kubekeyv1.Config{}))
-	assert.Equal(t, RuntimeConfigDir, ResourceFromObject(&kubekeyv1.ConfigList{}))
-	assert.Equal(t, RuntimeInventoryDir, ResourceFromObject(&kubekeyv1.Inventory{}))
-	assert.Equal(t, RuntimeInventoryDir, ResourceFromObject(&kubekeyv1.InventoryList{}))
-	assert.Equal(t, RuntimePipelineTaskDir, ResourceFromObject(&kubekeyv1alpha1.Task{}))
-	assert.Equal(t, RuntimePipelineTaskDir, ResourceFromObject(&kubekeyv1alpha1.TaskList{}))
-	assert.Equal(t, "", ResourceFromObject(&unstructured.Unstructured{}))
 }

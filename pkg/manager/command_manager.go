@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"syscall"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,13 +41,11 @@ type commandManager struct {
 	*kubekeyv1.Inventory
 
 	ctrlclient.Client
+	*runtime.Scheme
 }
 
 func (m *commandManager) Run(ctx context.Context) error {
 	// create config, inventory and pipeline
-	klog.Infof("[Pipeline %s] start", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-	defer klog.Infof("[Pipeline %s] finish", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-
 	if err := m.Client.Create(ctx, m.Config); err != nil {
 		klog.ErrorS(err, "Create config error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		return err
@@ -60,24 +58,30 @@ func (m *commandManager) Run(ctx context.Context) error {
 		klog.ErrorS(err, "Create pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		return err
 	}
-
+	klog.Infof("[Pipeline %s] start", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 	defer func() {
+		klog.Infof("[Pipeline %s] finish", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		// update pipeline status
-		if err := m.Client.Update(ctx, m.Pipeline); err != nil {
+		if err := m.Client.Status().Update(ctx, m.Pipeline); err != nil {
 			klog.ErrorS(err, "Update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		}
 
 		if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kubekeyv1.PipelinePhaseSucceed {
 			klog.Infof("[Pipeline %s] clean runtime directory", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 			// clean runtime directory
-			if err := os.RemoveAll(filepath.Join(_const.GetWorkDir(), _const.RuntimeDir)); err != nil {
-				klog.ErrorS(err, "Clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", filepath.Join(_const.GetWorkDir(), _const.RuntimeDir))
+			if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
+				klog.ErrorS(err, "Clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())
 			}
+		}
+		// kill by signal
+		if err := syscall.Kill(os.Getpid(), syscall.SIGTERM); err != nil {
+			klog.ErrorS(err, "Kill process error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		}
 	}()
 
 	klog.Infof("[Pipeline %s] start task controller", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 	kd, err := task.NewController(task.ControllerOptions{
+		Scheme:        m.Scheme,
 		VariableCache: variable.Cache,
 		Client:        m.Client,
 		TaskReconciler: &controllers.TaskReconciler{
@@ -102,7 +106,7 @@ func (m *commandManager) Run(ctx context.Context) error {
 		return err
 	}
 	// update pipeline status
-	if err := m.Client.Update(ctx, m.Pipeline); err != nil {
+	if err := m.Client.Status().Update(ctx, m.Pipeline); err != nil {
 		klog.ErrorS(err, "Update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		return err
 	}
@@ -119,11 +123,6 @@ func (m *commandManager) Run(ctx context.Context) error {
 		}
 		return false, nil
 	})
-	// kill by signal
-	if err := syscall.Kill(os.Getpid(), syscall.SIGTERM); err != nil {
-		klog.ErrorS(err, "Kill process error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-		return err
-	}
 
 	return nil
 }

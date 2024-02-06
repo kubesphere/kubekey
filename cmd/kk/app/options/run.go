@@ -21,11 +21,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/rand"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
@@ -109,16 +106,10 @@ func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
 
 func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, error) {
 	kk := &kubekeyv1.Pipeline{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pipeline",
-			APIVersion: "kubekey.kubesphere.io/v1alpha1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              fmt.Sprintf("run-command-%s", rand.String(6)),
-			Namespace:         metav1.NamespaceDefault,
-			UID:               types.UID(uuid.NewString()),
-			CreationTimestamp: metav1.Now(),
-			Annotations:       map[string]string{},
+			GenerateName: "run-",
+			Namespace:    metav1.NamespaceDefault,
+			Annotations:  map[string]string{},
 		},
 	}
 	// complete playbook. now only support one playbook

@@ -25,9 +25,8 @@ import (
 	"strconv"
 	"strings"
 
-	cgcache "k8s.io/client-go/tools/cache"
-
 	"k8s.io/apimachinery/pkg/types"
+	cgcache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -52,21 +51,21 @@ type Options struct {
 // New variable. generate value from config args. and render to source.
 func New(o Options) (Variable, error) {
 	// new source
-	s, err := source.New(filepath.Join(_const.RuntimeDirFromObject(&o.Pipeline), _const.RuntimePipelineVariableDir))
+	s, err := source.New(RuntimeDirFromPipeline(o.Pipeline))
 	if err != nil {
-		klog.ErrorS(err, "create file source failed", "path", filepath.Join(_const.RuntimeDirFromObject(&o.Pipeline), _const.RuntimePipelineVariableDir), "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+		klog.V(4).ErrorS(err, "create file source failed", "path", filepath.Join(RuntimeDirFromPipeline(o.Pipeline)), "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	// get config
 	var config = &kubekeyv1.Config{}
 	if err := o.Client.Get(o.Ctx, types.NamespacedName{o.Pipeline.Spec.ConfigRef.Namespace, o.Pipeline.Spec.ConfigRef.Name}, config); err != nil {
-		klog.ErrorS(err, "get config from pipeline error", "config", o.Pipeline.Spec.ConfigRef, "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+		klog.V(4).ErrorS(err, "get config from pipeline error", "config", o.Pipeline.Spec.ConfigRef, "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	// get inventory
 	var inventory = &kubekeyv1.Inventory{}
 	if err := o.Client.Get(o.Ctx, types.NamespacedName{o.Pipeline.Spec.InventoryRef.Namespace, o.Pipeline.Spec.InventoryRef.Name}, inventory); err != nil {
-		klog.ErrorS(err, "get inventory from pipeline error", "inventory", o.Pipeline.Spec.InventoryRef, "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+		klog.V(4).ErrorS(err, "get inventory from pipeline error", "inventory", o.Pipeline.Spec.InventoryRef, "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	v := &variable{
@@ -81,21 +80,21 @@ func New(o Options) (Variable, error) {
 	// read data from source
 	data, err := v.source.Read()
 	if err != nil {
-		klog.ErrorS(err, "read data from source error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+		klog.V(4).ErrorS(err, "read data from source error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 		return nil, err
 	}
 	for k, d := range data {
 		if k == _const.RuntimePipelineVariableLocationFile {
 			// set location
 			if err := json.Unmarshal(d, &v.value.Location); err != nil {
-				klog.ErrorS(err, "unmarshal location error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+				klog.V(4).ErrorS(err, "unmarshal location error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 				return nil, err
 			}
 		} else {
 			// set hosts
 			h := host{}
 			if err := json.Unmarshal(d, &h); err != nil {
-				klog.ErrorS(err, "unmarshal host error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+				klog.V(4).ErrorS(err, "unmarshal host error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
 				return nil, err
 			}
 			v.value.Hosts[strings.TrimSuffix(k, ".json")] = h
@@ -256,7 +255,7 @@ func (g Hostnames) filter(data value) (any, error) {
 		if match := regex.FindStringSubmatch(n); match != nil {
 			index, err := strconv.Atoi(match[2])
 			if err != nil {
-				klog.ErrorS(err, "convert index to int error", "index", match[2])
+				klog.V(4).ErrorS(err, "convert index to int error", "index", match[2])
 				return nil, err
 			}
 			for gn, gv := range data.Inventory.Spec.Groups {
@@ -484,67 +483,67 @@ const (
 
 // LocationMerge merge variable to location
 type LocationMerge struct {
-	Uid      string
-	ParentID string
-	Type     LocationType
-	Name     string
-	Vars     VariableData
+	UID       string
+	ParentUID string
+	Type      LocationType
+	Name      string
+	Vars      VariableData
 }
 
 func (t LocationMerge) mergeTo(v *value) error {
-	if t.ParentID == "" {
+	if t.ParentUID == "" {
 		v.Location = append(v.Location, location{
 			Name: t.Name,
-			PUID: t.ParentID,
-			UID:  t.Uid,
+			PUID: t.ParentUID,
+			UID:  t.UID,
 			Vars: t.Vars,
 		})
 		return nil
 	}
 	// find parent graph
-	parentLocation := findLocation(v.Location, t.ParentID)
+	parentLocation := findLocation(v.Location, t.ParentUID)
 	if parentLocation == nil {
-		return fmt.Errorf("cannot find parent location %s", t.ParentID)
+		return fmt.Errorf("cannot find parent location %s", t.ParentUID)
 	}
 
 	switch t.Type {
 	case BlockLocation:
 		for _, loc := range parentLocation.Block {
-			if loc.UID == t.Uid {
-				klog.Warningf("task graph %s already exist", t.Uid)
+			if loc.UID == t.UID {
+				klog.Warningf("task graph %s already exist", t.UID)
 				return nil
 			}
 		}
 		parentLocation.Block = append(parentLocation.Block, location{
 			Name: t.Name,
-			PUID: t.ParentID,
-			UID:  t.Uid,
+			PUID: t.ParentUID,
+			UID:  t.UID,
 			Vars: t.Vars,
 		})
 	case AlwaysLocation:
 		for _, loc := range parentLocation.Always {
-			if loc.UID == t.Uid {
-				klog.Warningf("task graph %s already exist", t.Uid)
+			if loc.UID == t.UID {
+				klog.Warningf("task graph %s already exist", t.UID)
 				return nil
 			}
 		}
 		parentLocation.Always = append(parentLocation.Always, location{
 			Name: t.Name,
-			PUID: t.ParentID,
-			UID:  t.Uid,
+			PUID: t.ParentUID,
+			UID:  t.UID,
 			Vars: t.Vars,
 		})
 	case RescueLocation:
 		for _, loc := range parentLocation.Rescue {
-			if loc.UID == t.Uid {
-				klog.Warningf("task graph %s already exist", t.Uid)
+			if loc.UID == t.UID {
+				klog.Warningf("task graph %s already exist", t.UID)
 				return nil
 			}
 		}
 		parentLocation.Rescue = append(parentLocation.Rescue, location{
 			Name: t.Name,
-			PUID: t.ParentID,
-			UID:  t.Uid,
+			PUID: t.ParentUID,
+			UID:  t.UID,
 			Vars: t.Vars,
 		})
 	default:

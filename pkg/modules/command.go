@@ -36,7 +36,7 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		conn = connector.NewConnector(options.Host, ha.(variable.VariableData))
 	}
 	if err := conn.Init(ctx); err != nil {
-		klog.ErrorS(err, "failed to init connector")
+		klog.V(4).ErrorS(err, "failed to init connector")
 		return "", err.Error()
 	}
 	defer conn.Close(ctx)

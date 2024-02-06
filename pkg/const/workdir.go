@@ -31,24 +31,24 @@ workdir/
 |   |   |   |   |-- files/
 |   |
 |   |-- ansible-project2/
-|   |
+|   |-- ...
 |
 |-- runtime/
-|   |-- namespace/
+|-- group/version/
 |   |   |-- pipelines/
-|   |   |   |-- pipelineName/
+|   |   |   |-- namespace/
 |   |   |   |   |-- pipeline.yaml
-|   |   |   |   |-- variable/
+|   |   |   |   |-- /pipelineName/variable/
 |   |   |   |   |   |-- location.json
 |   |   |   |   |   |-- hostname.json
 |   |   |-- tasks/
-|   |   |   |-- taskName/
+|   |   |   |-- namespace/
 |   |   |   |   |-- task.yaml
 |   |   |-- configs/
-|   |   |   |-- configName/
-|   |   |   |   |-- config.yaml
+|   |   |   |-- namespace/
+|   |   |   |   |   |-- config.yaml
 |   |   |-- inventories/
-|   |   |   |-- inventoryName/
+|   |   |   |-- namespace/
 |   |   |   |   |-- inventory.yaml
 */
 
@@ -89,12 +89,11 @@ const ProjectRolesFilesDir = "files"
 // RuntimeDir is a fixed directory name under workdir, used to store the runtime data of the current task execution.
 const RuntimeDir = "runtime"
 
-// namespace is the namespace for resource of Pipeline,Task,Config,Inventory.
+// the resources dir store as etcd key.
+// like: /prefix/group/version/resource/namespace/name
 
 // RuntimePipelineDir store Pipeline resources
 const RuntimePipelineDir = "pipelines"
-
-// pipelineName is the name of Pipeline resource
 
 // pipeline.yaml is the data of Pipeline resource
 
@@ -104,25 +103,17 @@ const RuntimePipelineVariableDir = "variable"
 // RuntimePipelineVariableLocationFile is a location variable file under RuntimePipelineVariableDir
 const RuntimePipelineVariableLocationFile = "location.json"
 
-// hostname.json is host variable file under RuntimePipelineVariableDir. Each host has a separate file.
-
 // RuntimePipelineTaskDir is a fixed directory name under runtime, used to store the task execution status.
 const RuntimePipelineTaskDir = "tasks"
-
-// taskName is the name of Task resource
 
 // task.yaml is the data of Task resource
 
 // RuntimeConfigDir store Config resources
 const RuntimeConfigDir = "configs"
 
-// configName is the name of Config resource
-
 // config.yaml is the data of Config resource
 
 // RuntimeInventoryDir store Inventory resources
 const RuntimeInventoryDir = "inventories"
-
-// inventoryName is the name of Inventory resource
 
 // inventory.yaml is the data of Inventory resource
