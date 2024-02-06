@@ -77,11 +77,11 @@ func run(ctx context.Context, kk *kubekeyv1.Pipeline, configFile string, invento
 	config := &kubekeyv1.Config{}
 	cdata, err := os.ReadFile(configFile)
 	if err != nil {
-		klog.Errorf("read config file error %v", err)
+		klog.ErrorS(err, "read config file error")
 		return err
 	}
 	if err := yaml.Unmarshal(cdata, config); err != nil {
-		klog.Errorf("unmarshal config file error %v", err)
+		klog.ErrorS(err, "unmarshal config file error")
 		return err
 	}
 	if config.Namespace == "" {
@@ -100,7 +100,7 @@ func run(ctx context.Context, kk *kubekeyv1.Pipeline, configFile string, invento
 	inventory := &kubekeyv1.Inventory{}
 	idata, err := os.ReadFile(inventoryFile)
 	if err := yaml.Unmarshal(idata, inventory); err != nil {
-		klog.Errorf("unmarshal inventory file error %v", err)
+		klog.ErrorS(err, "unmarshal inventory file error")
 		return err
 	}
 	if inventory.Namespace == "" {
@@ -114,9 +114,14 @@ func run(ctx context.Context, kk *kubekeyv1.Pipeline, configFile string, invento
 		APIVersion:      inventory.APIVersion,
 		ResourceVersion: inventory.ResourceVersion,
 	}
-	return manager.NewCommandManager(manager.CommandManagerOptions{
+	mgr, err := manager.NewCommandManager(manager.CommandManagerOptions{
 		Pipeline:  kk,
 		Config:    config,
 		Inventory: inventory,
-	}).Run(ctx)
+	})
+	if err != nil {
+		klog.ErrorS(err, "Create command manager error")
+		return err
+	}
+	return mgr.Run(ctx)
 }

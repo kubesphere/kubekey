@@ -17,6 +17,7 @@ limitations under the License.
 package variable
 
 import (
+	"path/filepath"
 	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +25,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // mergeVariables merge multiple variables into one variable
@@ -139,7 +141,7 @@ func Extension2Variables(ext runtime.RawExtension) VariableData {
 
 	var data VariableData
 	if err := yaml.Unmarshal(ext.Raw, &data); err != nil {
-		klog.ErrorS(err, "failed to unmarshal extension to variables")
+		klog.V(4).ErrorS(err, "failed to unmarshal extension to variables")
 	}
 	return data
 }
@@ -151,7 +153,7 @@ func Extension2Slice(ext runtime.RawExtension) []any {
 
 	var data []any
 	if err := yaml.Unmarshal(ext.Raw, &data); err != nil {
-		klog.ErrorS(err, "failed to unmarshal extension to slice")
+		klog.V(4).ErrorS(err, "failed to unmarshal extension to slice")
 	}
 	return data
 }
@@ -165,4 +167,9 @@ func Extension2String(ext runtime.RawExtension) string {
 		return ns
 	}
 	return string(ext.Raw)
+}
+
+func RuntimeDirFromPipeline(obj kubekeyv1.Pipeline) string {
+	return filepath.Join(_const.GetRuntimeDir(), kubekeyv1.SchemeGroupVersion.String(),
+		_const.RuntimePipelineDir, obj.Namespace, obj.Name, _const.RuntimePipelineVariableDir)
 }

@@ -48,17 +48,17 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 		LocationUID: string(options.Task.UID),
 	})
 	if err != nil {
-		klog.ErrorS(err, "failed to get location vars")
+		klog.V(4).ErrorS(err, "failed to get location vars")
 		return "", err.Error()
 	}
 	srcStr, err := tmpl.ParseString(lv.(variable.VariableData), *src)
 	if err != nil {
-		klog.ErrorS(err, "template parse src error", "input", *src)
+		klog.V(4).ErrorS(err, "template parse src error", "input", *src)
 		return "", err.Error()
 	}
 	destStr, err := tmpl.ParseString(lv.(variable.VariableData), *dest)
 	if err != nil {
-		klog.ErrorS(err, "template parse dest error", "input", *dest)
+		klog.V(4).ErrorS(err, "template parse dest error", "input", *dest)
 		return "", err.Error()
 	}
 
@@ -68,7 +68,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 	} else {
 		projectFs, err := project.New(project.Options{Pipeline: &options.Pipeline}).FS(ctx, false)
 		if err != nil {
-			klog.ErrorS(err, "failed to get project fs")
+			klog.V(4).ErrorS(err, "failed to get project fs")
 			return "", err.Error()
 		}
 		baseFS = projectFs
@@ -76,7 +76,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 	roleName := options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]
 	flPath := project.GetTemplatesFromPlayBook(baseFS, options.Pipeline.Spec.Playbook, roleName, srcStr)
 	if _, err := fs.Stat(baseFS, flPath); err != nil {
-		klog.ErrorS(err, "find src error")
+		klog.V(4).ErrorS(err, "find src error")
 		return "", err.Error()
 	}
 
@@ -87,13 +87,13 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 		// get connector
 		ha, err := options.Variable.Get(variable.HostVars{HostName: options.Host})
 		if err != nil {
-			klog.ErrorS(err, "failed to get host vars")
+			klog.V(4).ErrorS(err, "failed to get host vars")
 			return "", err.Error()
 		}
 		conn = connector.NewConnector(options.Host, ha.(variable.VariableData))
 	}
 	if err := conn.Init(ctx); err != nil {
-		klog.ErrorS(err, "failed to init connector")
+		klog.V(4).ErrorS(err, "failed to init connector")
 		return "", err.Error()
 	}
 	defer conn.Close(ctx)
@@ -104,18 +104,18 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 		LocationUID: string(options.Task.UID),
 	})
 	if err != nil {
-		klog.ErrorS(err, "failed to get location vars")
+		klog.V(4).ErrorS(err, "failed to get location vars")
 		return "", err.Error()
 	}
 
 	data, err := fs.ReadFile(baseFS, flPath)
 	if err != nil {
-		klog.ErrorS(err, "failed to read src file", "file_path", flPath)
+		klog.V(4).ErrorS(err, "failed to read src file", "file_path", flPath)
 		return "", err.Error()
 	}
 	result, err := tmpl.ParseFile(lg.(variable.VariableData), data)
 	if err != nil {
-		klog.ErrorS(err, "failed to parse file", "file_path", flPath)
+		klog.V(4).ErrorS(err, "failed to parse file", "file_path", flPath)
 		return "", err.Error()
 	}
 
@@ -125,7 +125,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 		mode = fs.FileMode(*v)
 	}
 	if err := conn.CopyFile(ctx, []byte(result), destStr, mode); err != nil {
-		klog.ErrorS(err, "failed to copy file", "src", flPath, "dest", destStr)
+		klog.V(4).ErrorS(err, "failed to copy file", "src", flPath, "dest", destStr)
 		return "", err.Error()
 	}
 	return "success", ""

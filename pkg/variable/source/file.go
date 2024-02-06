@@ -31,7 +31,7 @@ type fileSource struct {
 func (f *fileSource) Read() (map[string][]byte, error) {
 	de, err := os.ReadDir(f.path)
 	if err != nil {
-		klog.ErrorS(err, "read dir error", "path", f.path)
+		klog.V(4).ErrorS(err, "read dir error", "path", f.path)
 		return nil, err
 	}
 	var result map[string][]byte
@@ -46,7 +46,7 @@ func (f *fileSource) Read() (map[string][]byte, error) {
 		if strings.HasSuffix(entry.Name(), ".json") {
 			data, err := os.ReadFile(filepath.Join(f.path, entry.Name()))
 			if err != nil {
-				klog.ErrorS(err, "read file error", "filename", entry.Name())
+				klog.V(4).ErrorS(err, "read file error", "filename", entry.Name())
 				return nil, err
 			}
 			result[entry.Name()] = data
@@ -59,12 +59,12 @@ func (f *fileSource) Read() (map[string][]byte, error) {
 func (f *fileSource) Write(data []byte, filename string) error {
 	file, err := os.Create(filepath.Join(f.path, filename))
 	if err != nil {
-		klog.ErrorS(err, "create file error", "filename", filename)
+		klog.V(4).ErrorS(err, "create file error", "filename", filename)
 		return err
 	}
 	defer file.Close()
 	if _, err := file.Write(data); err != nil {
-		klog.ErrorS(err, "write file error", "filename", filename)
+		klog.V(4).ErrorS(err, "write file error", "filename", filename)
 		return err
 	}
 	return nil

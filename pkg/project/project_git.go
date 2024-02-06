@@ -41,7 +41,7 @@ func (r gitProject) FS(ctx context.Context, update bool) (fs.FS, error) {
 		return os.DirFS(r.localDir), nil
 	}
 	if err := r.init(ctx); err != nil {
-		klog.ErrorS(err, "Init git project error", "project_addr", r.Pipeline.Spec.Project.Addr)
+		klog.V(4).ErrorS(err, "Init git project error", "project_addr", r.Pipeline.Spec.Project.Addr)
 		return nil, err
 	}
 	return os.DirFS(r.localDir), nil
@@ -75,12 +75,12 @@ func (r gitProject) gitClone(ctx context.Context) error {
 func (r gitProject) gitPull(ctx context.Context) error {
 	open, err := git.PlainOpen(r.localDir)
 	if err != nil {
-		klog.ErrorS(err, "git open error", "local_dir", r.localDir)
+		klog.V(4).ErrorS(err, "git open error", "local_dir", r.localDir)
 		return err
 	}
 	wt, err := open.Worktree()
 	if err != nil {
-		klog.ErrorS(err, "git open worktree error", "local_dir", r.localDir)
+		klog.V(4).ErrorS(err, "git open worktree error", "local_dir", r.localDir)
 		return err
 	}
 	if err := wt.PullContext(ctx, &git.PullOptions{
@@ -90,7 +90,7 @@ func (r gitProject) gitPull(ctx context.Context) error {
 		Auth:            &http.TokenAuth{r.Pipeline.Spec.Project.Token},
 		InsecureSkipTLS: false,
 	}); err != nil && err != git.NoErrAlreadyUpToDate {
-		klog.ErrorS(err, "git pull error", "local_dir", r.localDir)
+		klog.V(4).ErrorS(err, "git pull error", "local_dir", r.localDir)
 		return err
 	}
 

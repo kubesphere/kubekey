@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"golang.org/x/time/rate"
+	"k8s.io/apimachinery/pkg/runtime"
 	cgcache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,6 +46,7 @@ type AddTaskOptions struct {
 }
 
 type ControllerOptions struct {
+	*runtime.Scheme
 	MaxConcurrent int
 	ctrlclient.Client
 	TaskReconciler reconcile.Reconciler
@@ -56,10 +58,15 @@ func NewController(o ControllerOptions) (Controller, error) {
 		o.MaxConcurrent = 1
 	}
 	if o.Client == nil {
-		o.Client = proxy.NewDelegatingClient(nil)
+		var err error
+		o.Client, err = proxy.NewLocalClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &taskController{
+		schema:         o.Scheme,
 		MaxConcurrent:  o.MaxConcurrent,
 		wq:             workqueue.NewRateLimitingQueue(&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
 		client:         o.Client,

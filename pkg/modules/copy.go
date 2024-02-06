@@ -49,12 +49,12 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 		LocationUID: string(options.Task.UID),
 	})
 	if err != nil {
-		klog.ErrorS(err, "failed to get location vars")
+		klog.V(4).ErrorS(err, "failed to get location vars")
 		return "", err.Error()
 	}
 	destStr, err := tmpl.ParseString(lv.(variable.VariableData), *dest)
 	if err != nil {
-		klog.ErrorS(err, "template parse dest error")
+		klog.V(4).ErrorS(err, "template parse dest error")
 		return "", err.Error()
 	}
 
@@ -65,13 +65,13 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 		// get connector
 		ha, err := options.Variable.Get(variable.HostVars{HostName: options.Host})
 		if err != nil {
-			klog.ErrorS(err, "failed to get host vars")
+			klog.V(4).ErrorS(err, "failed to get host vars")
 			return "", err.Error()
 		}
 		conn = connector.NewConnector(options.Host, ha.(variable.VariableData))
 	}
 	if err := conn.Init(ctx); err != nil {
-		klog.ErrorS(err, "failed to init connector")
+		klog.V(4).ErrorS(err, "failed to init connector")
 		return "", err.Error()
 	}
 	defer conn.Close(ctx)
@@ -80,7 +80,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 		// convert src
 		srcStr, err := tmpl.ParseString(lv.(variable.VariableData), *src)
 		if err != nil {
-			klog.ErrorS(err, "template parse src error")
+			klog.V(4).ErrorS(err, "template parse src error")
 			return "", err.Error()
 		}
 		var baseFS fs.FS
@@ -89,7 +89,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 		} else {
 			projectFs, err := project.New(project.Options{Pipeline: &options.Pipeline}).FS(ctx, false)
 			if err != nil {
-				klog.ErrorS(err, "failed to get project fs")
+				klog.V(4).ErrorS(err, "failed to get project fs")
 				return "", err.Error()
 			}
 			baseFS = projectFs
@@ -98,19 +98,19 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 		flPath := project.GetFilesFromPlayBook(baseFS, options.Pipeline.Spec.Playbook, roleName, srcStr)
 		fileInfo, err := fs.Stat(baseFS, flPath)
 		if err != nil {
-			klog.ErrorS(err, "failed to get src file in local")
+			klog.V(4).ErrorS(err, "failed to get src file in local")
 			return "", err.Error()
 		}
 		if fileInfo.IsDir() {
 			// src is dir
 			if err := fs.WalkDir(baseFS, flPath, func(path string, info fs.DirEntry, err error) error {
 				if err != nil {
-					klog.ErrorS(err, "failed to walk dir")
+					klog.V(4).ErrorS(err, "failed to walk dir")
 					return err
 				}
 				rel, err := filepath.Rel(srcStr, path)
 				if err != nil {
-					klog.ErrorS(err, "failed to get relative path")
+					klog.V(4).ErrorS(err, "failed to get relative path")
 					return err
 				}
 				if info.IsDir() {
@@ -118,7 +118,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 				}
 				fi, err := info.Info()
 				if err != nil {
-					klog.ErrorS(err, "failed to get file info")
+					klog.V(4).ErrorS(err, "failed to get file info")
 					return err
 				}
 				mode := fi.Mode()
@@ -127,30 +127,30 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 				}
 				data, err := fs.ReadFile(baseFS, rel)
 				if err != nil {
-					klog.ErrorS(err, "failed to read file")
+					klog.V(4).ErrorS(err, "failed to read file")
 					return err
 				}
 				if err := conn.CopyFile(ctx, data, filepath.Join(destStr, rel), mode); err != nil {
-					klog.ErrorS(err, "failed to copy file", "src", srcStr, "dest", destStr)
+					klog.V(4).ErrorS(err, "failed to copy file", "src", srcStr, "dest", destStr)
 					return err
 				}
 				return nil
 			}); err != nil {
-				klog.ErrorS(err, "failed to walk dir")
+				klog.V(4).ErrorS(err, "failed to walk dir")
 				return "", err.Error()
 			}
 		} else {
 			// src is file
 			data, err := fs.ReadFile(baseFS, flPath)
 			if err != nil {
-				klog.ErrorS(err, "failed to read file")
+				klog.V(4).ErrorS(err, "failed to read file")
 				return "", err.Error()
 			}
 			if strings.HasSuffix(destStr, "/") {
 				destStr = destStr + filepath.Base(srcStr)
 			}
 			if err := conn.CopyFile(ctx, data, destStr, fileInfo.Mode()); err != nil {
-				klog.ErrorS(err, "failed to copy file", "src", srcStr, "dest", destStr)
+				klog.V(4).ErrorS(err, "failed to copy file", "src", srcStr, "dest", destStr)
 				return "", err.Error()
 			}
 			return "success", ""

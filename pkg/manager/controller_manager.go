@@ -19,15 +19,12 @@ package manager
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
-	ctrlmanager "sigs.k8s.io/controller-runtime/pkg/manager"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/controllers"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 	"github.com/kubesphere/kubekey/v4/pkg/task"
@@ -42,21 +39,16 @@ type controllerManager struct {
 
 func (c controllerManager) Run(ctx context.Context) error {
 	ctrl.SetLogger(klog.NewKlogr())
-	scheme := runtime.NewScheme()
-	// add default scheme
-	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		klog.ErrorS(err, "Add default scheme error")
-		return err
-	}
-	// add kubekey scheme,
-	// exclude task resource,Because will manager in local
-	if err := kubekeyv1.AddToScheme(scheme); err != nil {
-		klog.ErrorS(err, "Add kk scheme error")
-		return err
-	}
 
-	mgr, err := ctrl.NewManager(config.GetConfigOrDie(), ctrlmanager.Options{
-		Scheme:           scheme,
+	restconfig := config.GetConfigOrDie()
+	proxyTransport, err := proxy.NewProxyTransport(false)
+	if err != nil {
+		klog.ErrorS(err, "Create proxy transport error")
+		return err
+	}
+	restconfig.Transport = proxyTransport
+	mgr, err := ctrl.NewManager(restconfig, ctrl.Options{
+		Scheme:           _const.Scheme,
 		LeaderElection:   c.LeaderElection,
 		LeaderElectionID: "controller-leader-election-kk",
 	})
@@ -66,11 +58,12 @@ func (c controllerManager) Run(ctx context.Context) error {
 	}
 
 	taskController, err := task.NewController(task.ControllerOptions{
+		Scheme:        mgr.GetScheme(),
 		VariableCache: variable.Cache,
 		MaxConcurrent: c.MaxConcurrentReconciles,
-		Client:        proxy.NewDelegatingClient(mgr.GetClient()),
+		Client:        mgr.GetClient(),
 		TaskReconciler: &controllers.TaskReconciler{
-			Client:        proxy.NewDelegatingClient(mgr.GetClient()),
+			Client:        mgr.GetClient(),
 			VariableCache: variable.Cache,
 		},
 	})
@@ -86,7 +79,7 @@ func (c controllerManager) Run(ctx context.Context) error {
 	}
 
 	if err := (&controllers.PipelineReconciler{
-		Client:         proxy.NewDelegatingClient(mgr.GetClient()),
+		Client:         mgr.GetClient(),
 		EventRecorder:  mgr.GetEventRecorderFor("pipeline"),
 		TaskController: taskController,
 	}).SetupWithManager(ctx, mgr, controllers.Options{

@@ -20,8 +20,7 @@ package _const
 
 // use in marshal playbook.Block
 const (
-	CtxBlockHosts   = "block-hosts"
-	CtxBlockRole    = "block-role"
-	CtxBlockWhen    = "block-when"
-	CtxBlockTaskUID = "block-task-uid"
+	CtxBlockHosts = "block-hosts"
+	CtxBlockRole  = "block-role"
+	CtxBlockWhen  = "block-when"
 )

@@ -116,3 +116,7 @@ func (t Task) IsSucceed() bool {
 func (t Task) IsFailed() bool {
 	return t.Status.Phase == TaskPhaseFailed && t.Spec.Retries <= t.Status.RestartCount
 }
+
+func init() {
+	SchemeBuilder.Register(&Task{}, &TaskList{})
+}
