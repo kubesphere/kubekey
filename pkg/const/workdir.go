@@ -50,6 +50,8 @@ workdir/
 |   |   |-- inventories/
 |   |   |   |-- namespace/
 |   |   |   |   |-- inventory.yaml
+|
+|-- artifact/
 */
 
 // workDir is the user-specified working directory. By default, it is the same as the directory where the kubekey command is executed.
@@ -104,16 +106,17 @@ const RuntimePipelineVariableDir = "variable"
 const RuntimePipelineVariableLocationFile = "location.json"
 
 // RuntimePipelineTaskDir is a fixed directory name under runtime, used to store the task execution status.
-const RuntimePipelineTaskDir = "tasks"
 
 // task.yaml is the data of Task resource
 
 // RuntimeConfigDir store Config resources
-const RuntimeConfigDir = "configs"
 
 // config.yaml is the data of Config resource
 
 // RuntimeInventoryDir store Inventory resources
-const RuntimeInventoryDir = "inventories"
 
 // inventory.yaml is the data of Inventory resource
+
+// "artifact" is the default directory name under the working directory. It is used to store
+// files required when executing the kubekey command (such as: docker, etcd, image packages, etc.).
+// These files will be downloaded locally and distributed to remote nodes.

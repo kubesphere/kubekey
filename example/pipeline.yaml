@@ -3,7 +3,7 @@ kind: Pipeline
 metadata:
   name: precheck-example
   annotations:
-    "kubekey.kubesphere.io/builtins-repo": ""
+    "kubekey.kubesphere.io/uiltins-project": ""
 spec:
   playbook: playbooks/precheck.yaml
   inventoryRef:

@@ -17,14 +17,11 @@ limitations under the License.
 package options
 
 import (
-	"flag"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
@@ -79,14 +76,6 @@ func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
 	gfs.StringVar(&o.ConfigFile, "config", o.ConfigFile, "the config file path. support *.yaml ")
 	gfs.StringVar(&o.InventoryFile, "inventory", o.InventoryFile, "the host list file path. support *.ini")
 	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
-
-	kfs := fss.FlagSet("klog")
-	local := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(local)
-	local.VisitAll(func(fl *flag.Flag) {
-		fl.Name = strings.Replace(fl.Name, "_", "-", -1)
-		kfs.AddGoFlag(fl)
-	})
 
 	gitfs := fss.FlagSet("project")
 	gitfs.StringVar(&o.ProjectAddr, "project-addr", o.ProjectAddr, "the storage for executable packages (in Ansible format)."+

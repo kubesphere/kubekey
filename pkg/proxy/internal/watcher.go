@@ -101,7 +101,7 @@ func (w *fileWatcher) watch() {
 	for {
 		select {
 		case event := <-w.watcher.Events:
-			klog.V(4).InfoS("receive watcher event", "event", event)
+			klog.V(6).InfoS("receive watcher event", "event", event)
 			// if the change is namespace dir.
 			entry, err := os.Stat(event.Name)
 			if err != nil {

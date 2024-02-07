@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/utils/exec"
 
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -58,7 +59,7 @@ func NewConnector(host string, vars variable.VariableData) Connector {
 		}
 	default:
 		localHost, _ := os.Hostname()
-		if localHost == host {
+		if host == _const.LocalHostName || localHost == host {
 			return &localConnector{Cmd: exec.New()}
 		}
 

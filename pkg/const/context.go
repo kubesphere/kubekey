@@ -24,3 +24,6 @@ const (
 	CtxBlockRole  = "block-role"
 	CtxBlockWhen  = "block-when"
 )
+
+// LocalHostName is the  default local host name in inventory.
+const LocalHostName = "localhost"
