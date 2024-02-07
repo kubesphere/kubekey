@@ -37,9 +37,13 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// when delete resource, add suffix deleteTag to the file name.
-// after delete event is handled, the file will be deleted from disk.
-const deleteTag = "-deleted"
+const (
+	// when delete resource, add suffix deleteTagSuffix to the file name.
+	// after delete event is handled, the file will be deleted from disk.
+	deleteTagSuffix = "-deleted"
+	// the file type of resource will store local.
+	yamlSuffix = ".yaml"
+)
 
 func newFileStorage(prefix string, resource schema.GroupResource, codec runtime.Codec, newFunc func() runtime.Object) (apistorage.Interface, factory.DestroyFunc, error) {
 	return &fileStorage{
@@ -103,7 +107,7 @@ func (s fileStorage) Create(ctx context.Context, key string, obj, out runtime.Ob
 		}
 	}
 	// render to file
-	if err := os.WriteFile(key+".yaml", data, os.ModePerm); err != nil {
+	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
 		klog.V(4).ErrorS(err, "failed to create resource file", "path", key)
 		return err
 	}
@@ -132,7 +136,7 @@ func (s fileStorage) Delete(ctx context.Context, key string, out runtime.Object,
 
 	// delete object
 	// rename file to trigger watcher
-	if err := os.Rename(key+".yaml", key+".yaml"+deleteTag); err != nil {
+	if err := os.Rename(key+yamlSuffix, key+yamlSuffix+deleteTagSuffix); err != nil {
 		klog.V(4).ErrorS(err, "failed to rename resource file", "path", key)
 		return err
 	}
@@ -140,11 +144,11 @@ func (s fileStorage) Delete(ctx context.Context, key string, out runtime.Object,
 }
 
 func (s fileStorage) Watch(ctx context.Context, key string, opts apistorage.ListOptions) (watch.Interface, error) {
-	return newFileWatcher(s.resource, s.codec, key)
+	return newFileWatcher(s.prefix, key, s.codec, s.newFunc)
 }
 
 func (s fileStorage) Get(ctx context.Context, key string, opts apistorage.GetOptions, out runtime.Object) error {
-	data, err := os.ReadFile(key + ".yaml")
+	data, err := os.ReadFile(key + yamlSuffix)
 	if err != nil {
 		klog.V(4).ErrorS(err, "failed to read resource file", "path", key)
 		return err
@@ -176,7 +180,7 @@ func (s fileStorage) GetList(ctx context.Context, key string, opts apistorage.Li
 	}
 	var continueKeyMatchRule = func(key string) bool {
 		// default rule
-		return strings.HasSuffix(key, ".yaml")
+		return strings.HasSuffix(key, yamlSuffix)
 	}
 
 	switch {
@@ -312,9 +316,6 @@ func (s fileStorage) GetList(ctx context.Context, key string, opts apistorage.Li
 			}
 			data, err := os.ReadFile(currentKey)
 			if err != nil {
-				if os.IsNotExist(err) {
-					continue
-				}
 				klog.V(4).ErrorS(err, "failed to read resource file", "path", currentKey)
 				return err
 			}
@@ -424,7 +425,7 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 		}
 	}
 	// render to file
-	if err := os.WriteFile(key+".yaml", data, os.ModePerm); err != nil {
+	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
 		klog.V(4).ErrorS(err, "failed to create resource file", "path", key)
 		return err
 	}
@@ -432,7 +433,50 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 }
 
 func (s fileStorage) Count(key string) (int64, error) {
-	return 0, nil
+	switch len(filepath.SplitList(strings.TrimPrefix(key, s.prefix))) {
+	case 0: // count all namespace's resources
+		var count int64
+		rootEntries, err := os.ReadDir(key)
+		if err != nil && !os.IsNotExist(err) {
+			klog.V(4).ErrorS(err, "failed to read runtime dir", "path", key)
+			return 0, err
+		}
+		for _, ns := range rootEntries {
+			if !ns.IsDir() {
+				continue
+			}
+			// the next dir is namespace.
+			nsDir := filepath.Join(key, ns.Name())
+			entries, err := os.ReadDir(nsDir)
+			if err != nil {
+				klog.V(4).ErrorS(err, "failed to read namespaces dir", "path", nsDir)
+				return 0, err
+			}
+			// count the file
+			for _, entry := range entries {
+				if !entry.IsDir() && strings.HasSuffix(entry.Name(), yamlSuffix) {
+					count++
+				}
+			}
+		}
+		return count, nil
+	case 1: // count a namespace's resources
+		var count int64
+		rootEntries, err := os.ReadDir(key)
+		if err != nil && !os.IsNotExist(err) {
+			klog.V(4).ErrorS(err, "failed to read runtime dir", "path", key)
+			return 0, err
+		}
+		for _, entry := range rootEntries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), yamlSuffix) {
+				count++
+			}
+		}
+		return count, nil
+	default:
+		klog.V(4).ErrorS(nil, "key is invalid", "key", key)
+		return 0, fmt.Errorf("key is invalid: %s", key)
+	}
 }
 
 func (s fileStorage) RequestWatchProgress(ctx context.Context) error {
