@@ -39,6 +39,7 @@ type Argument struct {
 	IgnoreErr           bool
 	SkipPullImages      bool
 	SkipPushImages      bool
+	SkipDependencyCheck bool
 	SecurityEnhancement bool
 	DeployLocalStorage  *bool
 	DownloadCommand     func(path, url string) string

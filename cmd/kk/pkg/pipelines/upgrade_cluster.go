@@ -40,7 +40,7 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.GreetingsModule{},
 		&precheck.NodePreCheckModule{},
-		&precheck.ClusterPreCheckModule{},
+		&precheck.ClusterPreCheckModule{SkipDependencyCheck: runtime.Arg.SkipDependencyCheck},
 		&confirm.UpgradeConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV121},
