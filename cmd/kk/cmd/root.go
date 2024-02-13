@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/clusterinfo"
 	"os"
 	"os/exec"
 	"runtime"
@@ -120,7 +121,7 @@ func NewKubeKeyCommand(o KubeKeyOptions) *cobra.Command {
 
 	cmds.AddCommand(completion.NewCmdCompletion())
 	cmds.AddCommand(version.NewCmdVersion())
-
+	cmds.AddCommand(clusterinfo.NewCmdClusterInfo())
 	return cmds
 }
 
