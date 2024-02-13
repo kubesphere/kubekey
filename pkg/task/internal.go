@@ -108,7 +108,7 @@ func (c *taskController) AddTasks(ctx context.Context, o AddTaskOptions) error {
 			o.variable = nv
 		}
 
-		klog.V(4).InfoS("deal project", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
+		klog.V(6).InfoS("deal project", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))
 		projectFs, err := project.New(project.Options{Pipeline: o.Pipeline}).FS(ctx, true)
 		if err != nil {
 			klog.V(4).ErrorS(err, "Deal project error", "pipeline", ctrlclient.ObjectKeyFromObject(o.Pipeline))

@@ -4,4 +4,10 @@
     - etcd
   gather_facts: true
   roles:
-    - {role: precheck}
+    - precheck/env_check
+
+- hosts:
+    - localhost
+  roles:
+    - role: precheck/artifact_check
+      when: artifact_file | defined

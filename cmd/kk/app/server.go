@@ -17,7 +17,12 @@ limitations under the License.
 package app
 
 import (
+	"flag"
+	"strings"
+
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"k8s.io/klog/v2"
 )
 
 func NewKubeKeyCommand() *cobra.Command {
@@ -34,6 +39,7 @@ func NewKubeKeyCommand() *cobra.Command {
 
 	flags := cmd.PersistentFlags()
 	addProfilingFlags(flags)
+	addKlogFlags(flags)
 
 	cmd.AddCommand(newRunCommand())
 	cmd.AddCommand(newVersionCommand())
@@ -41,4 +47,13 @@ func NewKubeKeyCommand() *cobra.Command {
 	// internal command
 	cmd.AddCommand(newPreCheckCommand())
 	return cmd
+}
+
+func addKlogFlags(fs *pflag.FlagSet) {
+	local := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(local)
+	local.VisitAll(func(fl *flag.Flag) {
+		fl.Name = strings.Replace(fl.Name, "_", "-", -1)
+		fs.AddGoFlag(fl)
+	})
 }

@@ -56,7 +56,7 @@ func ParseBool(v variable.VariableData, inputs []string) (bool, error) {
 			klog.V(4).ErrorS(err, "failed to execute string")
 			return false, err
 		}
-		klog.V(4).InfoS(" parse template succeed", "result", result)
+		klog.V(6).InfoS(" parse template succeed", "result", result)
 		if result != "True" {
 			return false, nil
 		}
@@ -76,7 +76,7 @@ func ParseString(v variable.VariableData, input string) (string, error) {
 		klog.V(4).ErrorS(err, "Failed to execute string")
 		return input, err
 	}
-	klog.V(4).InfoS(" parse template succeed", "result", result)
+	klog.V(6).InfoS(" parse template succeed", "result", result)
 	return result, nil
 }
 
@@ -91,6 +91,6 @@ func ParseFile(v variable.VariableData, file []byte) (string, error) {
 		klog.V(4).ErrorS(err, "exec template error")
 		return "", err
 	}
-	klog.V(4).InfoS(" parse template succeed", "result", result)
+	klog.V(6).InfoS(" parse template succeed", "result", result)
 	return result, nil
 }

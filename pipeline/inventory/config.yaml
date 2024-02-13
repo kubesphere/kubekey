@@ -1,0 +1,43 @@
+apiVersion: kubekey.kubesphere.io/v1
+kind: Config
+metadata:
+  name: example
+spec:
+# [ variable for precheck ]
+  # It is possible to deploy etcd with three methods.
+  # external: Deploy etcd cluster with external etcd cluster.
+  # internal: Deploy etcd cluster by static pod.
+  etcd_deployment_type: external'
+  # the support os.Release nodes which to be installed
+  # support ubuntu, centos.
+  supported_os_distributions: [ ubuntu ]
+  # the network plugin to be installed.
+  # support: flannel, calico
+  kube_network_plugin: flannel
+  # the version of kubernetes to be installed.
+  # should be greater than or equal to kube_version_min_required.
+  kube_version: 1.23.15
+  # the minimal version of kubernetes to be installed.
+  kube_version_min_required: 1.19.10
+  # memory size for each kube_control_plane node.(unit kB)
+  # should be greater than or equal to minimal_master_memory_mb.
+  minimal_master_memory_mb: 10
+  # memory size for each kube_node node.(unit kB)
+  # should be greater than or equal to minimal_node_memory_mb.
+  minimal_node_memory_mb: 10
+  # Set the Pod CIDR size of a node.
+  kube_network_node_prefix: 24
+  # the cri to be installed.
+  # support: containerd,docker,crio
+  container_manager: containerd
+  # when the container_manager is containerd, the version of containerd to be installed.
+  containerd_version: v1.7.0
+  # the minimal required version of containerd to be installed.
+  containerd_min_version_required: v1.6.0
+# [ init-os ]
+  # offline artifact package for kk.
+  artifact_file: /tmp/kubekey.tar.gz
+  # the md5_file of artifact_file.
+  artifact_MD5: /tmp/artifact.md5
+  # workDir is the directory where the artifact is extracted.
+  workDir: /var/lib/kubekey/artifact/

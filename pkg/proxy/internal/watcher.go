@@ -23,22 +23,19 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/klog/v2"
-
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 type fileWatcher struct {
-	resource    schema.GroupResource
+	prefix      string
 	codec       runtime.Codec
 	newFunc     func() runtime.Object
 	watcher     *fsnotify.Watcher
 	watchEvents chan watch.Event
 }
 
-func newFileWatcher(resource schema.GroupResource, codec runtime.Codec, path string) (watch.Interface, error) {
+func newFileWatcher(prefix, path string, codec runtime.Codec, newFunc func() runtime.Object) (watch.Interface, error) {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(path, os.ModePerm); err != nil {
@@ -59,10 +56,29 @@ func newFileWatcher(resource schema.GroupResource, codec runtime.Codec, path str
 		klog.V(4).ErrorS(err, "failed to add path to file watcher", "path", path)
 		return nil, err
 	}
+	// add namespace dir to watcher
+	if prefix == path {
+		entry, err := os.ReadDir(prefix)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to read dir", "dir", path)
+			return nil, err
+		}
+		for _, e := range entry {
+			if e.IsDir() {
+				if err := watcher.Add(filepath.Join(prefix, e.Name())); err != nil {
+					klog.V(4).ErrorS(err, "failed to add namespace dir to file watcher", "dir", e.Name())
+					return nil, err
+				}
+			}
+		}
+	}
+
 	w := &fileWatcher{
-		resource: resource,
-		codec:    codec,
-		watcher:  watcher,
+		prefix:      prefix,
+		codec:       codec,
+		watcher:     watcher,
+		newFunc:     newFunc,
+		watchEvents: make(chan watch.Event),
 	}
 
 	go w.watch()
@@ -85,21 +101,37 @@ func (w *fileWatcher) watch() {
 	for {
 		select {
 		case event := <-w.watcher.Events:
-			// filter resource type
-			klog.V(4).InfoS("receive watcher event", "event", event)
-			relPath, err := filepath.Rel(_const.GetRuntimeDir(), event.Name)
+			klog.V(6).InfoS("receive watcher event", "event", event)
+			// if the change is namespace dir.
+			entry, err := os.Stat(event.Name)
 			if err != nil {
+				klog.V(4).ErrorS(err, "failed to stat resource file", "event", event)
 				continue
 			}
-			// the second element is the resource name
-			pl := filepath.SplitList(relPath)
-			if len(pl) < 2 || pl[1] != w.resource.Resource {
+			if entry.IsDir() && len(filepath.SplitList(strings.TrimPrefix(event.Name, w.prefix))) == 1 {
+				// the dir is namespace dir
+				switch event.Op {
+				case fsnotify.Create:
+					if err := w.watcher.Add(event.Name); err != nil {
+						klog.V(4).ErrorS(err, "failed to add namespace dir to file watcher", "event", event)
+					}
+				case fsnotify.Remove:
+					if err := w.watcher.Remove(event.Name); err != nil {
+						klog.V(4).ErrorS(err, "failed to remove namespace dir to file watcher", "event", event)
+					}
+				}
 				continue
 			}
-			data, err := os.ReadFile(event.Name)
-			if err != nil {
-				klog.V(4).ErrorS(err, "failed to read resource file", "event", event)
-				continue
+
+			// change is resource file
+			var data []byte
+			if strings.HasSuffix(event.Name, yamlSuffix) {
+				var err error
+				data, err = os.ReadFile(event.Name)
+				if err != nil {
+					klog.V(4).ErrorS(err, "failed to read resource file", "event", event)
+					continue
+				}
 			}
 			switch event.Op {
 			case fsnotify.Create:
@@ -118,7 +150,7 @@ func (w *fileWatcher) watch() {
 					klog.V(4).ErrorS(err, "failed to decode resource file", "event", event)
 					continue
 				}
-				if strings.HasSuffix(filepath.Base(event.Name), deleteTag) {
+				if strings.HasSuffix(filepath.Base(event.Name), deleteTagSuffix) {
 					// delete event
 					w.watchEvents <- watch.Event{
 						Type:   watch.Deleted,

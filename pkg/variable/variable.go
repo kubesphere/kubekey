@@ -74,7 +74,9 @@ func New(o Options) (Variable, error) {
 		value: &value{
 			Config:    *config,
 			Inventory: *inventory,
-			Hosts:     make(map[string]host),
+			Hosts: map[string]host{
+				_const.LocalHostName: {}, // set default host
+			},
 		},
 	}
 	// read data from source
