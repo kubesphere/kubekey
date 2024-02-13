@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 )
 
 const (
@@ -42,6 +43,7 @@ const (
 	DefaultEtcdVersion             = "v3.5.6"
 	DefaultEtcdPort                = "2379"
 	DefaultDockerVersion           = "24.0.6"
+	DefaultCriDockerdVersion        = "0.3.9"
 	DefaultContainerdVersion       = "1.7.12"
 	DefaultRuncVersion             = "v1.1.11"
 	DefaultCrictlVersion           = "v1.29.0"
@@ -68,6 +70,7 @@ const (
 	DefaultProxyMode               = "ipvs"
 	DefaultCrioEndpoint            = "unix:///var/run/crio/crio.sock"
 	DefaultContainerdEndpoint      = "unix:///run/containerd/containerd.sock"
+	DefaultCriDockerdEndpoint      = "unix:///var/run/cri-dockerd.sock"
 	DefaultIsulaEndpoint           = "unix:///var/run/isulad.sock"
 	Etcd                           = "etcd"
 	Master                         = "master"
@@ -315,7 +318,11 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.ContainerRuntimeEndpoint == "" {
 		switch cfg.Kubernetes.ContainerManager {
 		case Docker:
-			cfg.Kubernetes.ContainerRuntimeEndpoint = ""
+			if kubernetes.IsAtLeastV124(cfg.Kubernetes.Version){
+				cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultCriDockerdEndpoint
+			} else {
+				cfg.Kubernetes.ContainerRuntimeEndpoint = ""
+			}
 		case Crio:
 			cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultCrioEndpoint
 		case Containerd:
