@@ -85,8 +85,7 @@ func (m *commandManager) Run(ctx context.Context) error {
 		VariableCache: variable.Cache,
 		Client:        m.Client,
 		TaskReconciler: &controllers.TaskReconciler{
-			Client:        m.Client,
-			VariableCache: variable.Cache,
+			Client: m.Client,
 		},
 	})
 	if err != nil {
@@ -97,9 +96,7 @@ func (m *commandManager) Run(ctx context.Context) error {
 	}
 	// init pipeline status
 	m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
-	if err := kd.AddTasks(ctx, task.AddTaskOptions{
-		Pipeline: m.Pipeline,
-	}); err != nil {
+	if err := kd.AddTasks(ctx, m.Pipeline); err != nil {
 		klog.ErrorS(err, "Add task error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
 		m.Pipeline.Status.Reason = fmt.Sprintf("add task to controller failed: %v", err)

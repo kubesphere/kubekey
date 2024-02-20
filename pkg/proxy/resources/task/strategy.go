@@ -136,7 +136,7 @@ func OwnerPipelineIndexFunc(obj interface{}) ([]string, error) {
 // Indexers returns the indexers for pod storage.
 func Indexers() *cache.Indexers {
 	return &cache.Indexers{
-		apistorage.FieldIndex("ownerReferences:pipeline"): OwnerPipelineIndexFunc,
+		apistorage.FieldIndex(kubekeyv1alpha1.TaskOwnerField): OwnerPipelineIndexFunc,
 	}
 }
 
@@ -146,7 +146,7 @@ func MatchTask(label labels.Selector, field fields.Selector) apistorage.Selectio
 		Label:       label,
 		Field:       field,
 		GetAttrs:    GetAttrs,
-		IndexFields: []string{"ownerReferences:pipeline"},
+		IndexFields: []string{kubekeyv1alpha1.TaskOwnerField},
 	}
 }
 
@@ -169,7 +169,7 @@ func ToSelectableFields(task *kubekeyv1alpha1.Task) fields.Set {
 	taskSpecificFieldsSet := make(fields.Set, 10)
 	for _, reference := range task.OwnerReferences {
 		if reference.Kind == "Pipeline" {
-			taskSpecificFieldsSet["ownerReferences:pipeline"] = types.NamespacedName{
+			taskSpecificFieldsSet[kubekeyv1alpha1.TaskOwnerField] = types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,
 			}.String()

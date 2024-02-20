@@ -271,15 +271,6 @@ func (g Hostnames) filter(data value) (any, error) {
 	return hs, nil
 }
 
-const (
-	// FailedExecute If dependency tasks has failed. execute current task. otherwise skip it
-	FailedExecute = "failed-exec"
-	// SucceedExecute If dependency tasks succeeded. execute current task. otherwise skip it
-	SucceedExecute = "succeed-exec"
-	// AlwaysExecute always execute current task.
-	AlwaysExecute = "always-exec"
-)
-
 type DependencyTasks struct {
 	LocationUID string
 }
@@ -563,3 +554,31 @@ var Cache = cgcache.NewStore(func(obj interface{}) (string, error) {
 	}
 	return v.Key(), nil
 })
+
+func GetVariable(o Options) (Variable, error) {
+	vars, ok, err := Cache.GetByKey(string(o.Pipeline.UID))
+	if err != nil {
+		klog.V(5).ErrorS(err, "get variable error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+		return nil, err
+	}
+	if ok {
+		return vars.(Variable), nil
+	}
+	// add new variable to cache
+	nv, err := New(o)
+	if err != nil {
+		klog.V(5).ErrorS(err, "create variable error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+		return nil, err
+	}
+	if err := Cache.Add(nv); err != nil {
+		klog.V(5).ErrorS(err, "add variable to store error", "pipeline", ctrlclient.ObjectKeyFromObject(&o.Pipeline))
+		return nil, err
+	}
+	return nv, nil
+}
+
+func CleanVariable(p *kubekeyv1.Pipeline) {
+	if _, ok, err := Cache.GetByKey(string(p.UID)); err == nil && ok {
+		Cache.Delete(string(p.UID))
+	}
+}
