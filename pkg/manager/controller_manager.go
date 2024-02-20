@@ -63,8 +63,7 @@ func (c controllerManager) Run(ctx context.Context) error {
 		MaxConcurrent: c.MaxConcurrentReconciles,
 		Client:        mgr.GetClient(),
 		TaskReconciler: &controllers.TaskReconciler{
-			Client:        mgr.GetClient(),
-			VariableCache: variable.Cache,
+			Client: mgr.GetClient(),
 		},
 	})
 	if err != nil {

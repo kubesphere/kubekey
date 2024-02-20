@@ -98,7 +98,7 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 		AttrFunc:    GetAttrs,
-		TriggerFunc: map[string]apistorage.IndexerFunc{"ownerReferences:pipeline": OwnerPipelineTriggerFunc},
+		TriggerFunc: map[string]apistorage.IndexerFunc{kubekeyv1alpha1.TaskOwnerField: OwnerPipelineTriggerFunc},
 		Indexers:    Indexers(),
 	}
 	if err := store.CompleteWithOptions(options); err != nil {

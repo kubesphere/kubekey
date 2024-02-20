@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	cgcache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,8 +40,6 @@ import (
 type TaskReconciler struct {
 	// Client to resources
 	ctrlclient.Client
-	// VariableCache to store variable
-	VariableCache cgcache.Store
 }
 
 type taskReconcileOptions struct {
@@ -89,29 +86,13 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 	}
 
 	// get variable
-	var v variable.Variable
-	vars, ok, err := r.VariableCache.GetByKey(string(pipeline.UID))
+	v, err := variable.GetVariable(variable.Options{
+		Ctx:      ctx,
+		Client:   r.Client,
+		Pipeline: *pipeline,
+	})
 	if err != nil {
-		klog.V(5).ErrorS(err, "get variable error", "task", request.String())
 		return ctrl.Result{}, err
-	}
-	if ok {
-		v = vars.(variable.Variable)
-	} else {
-		nv, err := variable.New(variable.Options{
-			Ctx:      ctx,
-			Client:   r.Client,
-			Pipeline: *pipeline,
-		})
-		if err != nil {
-			klog.V(5).ErrorS(err, "create variable error", "task", request.String())
-			return ctrl.Result{}, err
-		}
-		if err := r.VariableCache.Add(nv); err != nil {
-			klog.V(5).ErrorS(err, "add variable to store error", "task", request.String())
-			return ctrl.Result{}, err
-		}
-		v = nv
 	}
 
 	defer func() {
@@ -120,8 +101,8 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 		}
 		var nsTasks = &kubekeyv1alpha1.TaskList{}
 		klog.V(5).InfoS("update pipeline status", "task", request.String(), "pipeline", ctrlclient.ObjectKeyFromObject(pipeline).String())
-		if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(task.Namespace), ctrlclient.MatchingFields{
-			"ownerReferences:pipeline": ctrlclient.ObjectKeyFromObject(pipeline).String(),
+		if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(pipeline.Namespace), ctrlclient.MatchingFields{
+			kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(pipeline).String(),
 		}); err != nil {
 			klog.V(5).ErrorS(err, "list task error", "task", request.String())
 			return
@@ -179,8 +160,8 @@ func (r *TaskReconciler) dealPendingTask(ctx context.Context, options taskReconc
 	}
 
 	var nsTasks = &kubekeyv1alpha1.TaskList{}
-	if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(options.Task.Namespace), ctrlclient.MatchingFields{
-		"ownerReferences:pipeline": ctrlclient.ObjectKeyFromObject(options.Pipeline).String(),
+	if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(options.Pipeline.Namespace), ctrlclient.MatchingFields{
+		kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(options.Pipeline).String(),
 	}); err != nil {
 		klog.V(5).ErrorS(err, "list task error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
 		return ctrl.Result{}, err

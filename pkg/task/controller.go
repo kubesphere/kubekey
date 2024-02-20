@@ -28,7 +28,6 @@ import (
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
-	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 // Controller is the interface for running tasks
@@ -36,13 +35,7 @@ type Controller interface {
 	// Start the controller
 	Start(ctx context.Context) error
 	// AddTasks adds tasks to the controller
-	AddTasks(ctx context.Context, o AddTaskOptions) error
-}
-
-type AddTaskOptions struct {
-	*kubekeyv1.Pipeline
-	// set by AddTask function
-	variable variable.Variable
+	AddTasks(ctx context.Context, pipeline *kubekeyv1.Pipeline) error
 }
 
 type ControllerOptions struct {
@@ -68,9 +61,8 @@ func NewController(o ControllerOptions) (Controller, error) {
 	return &taskController{
 		schema:         o.Scheme,
 		MaxConcurrent:  o.MaxConcurrent,
-		wq:             workqueue.NewRateLimitingQueue(&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
+		taskqueue:      workqueue.NewRateLimitingQueue(&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
 		client:         o.Client,
 		taskReconciler: o.TaskReconciler,
-		variableCache:  o.VariableCache,
 	}, nil
 }

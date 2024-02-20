@@ -33,6 +33,7 @@ import (
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/task"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 const (
@@ -124,9 +125,7 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 		}
 	}()
 
-	if err := r.TaskController.AddTasks(ctx, task.AddTaskOptions{
-		Pipeline: pipeline,
-	}); err != nil {
+	if err := r.TaskController.AddTasks(ctx, pipeline); err != nil {
 		klog.V(5).ErrorS(err, "add task error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
 		pipeline.Status.Reason = fmt.Sprintf("add task to controller failed: %v", err)
@@ -141,10 +140,16 @@ func (r *PipelineReconciler) clean(ctx context.Context, pipeline *kubekeyv1.Pipe
 	klog.V(5).InfoS("clean runtimeDir", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 	// delete reference task
 	taskList := &kubekeyv1alpha1.TaskList{}
-	if err := r.Client.List(ctx, taskList, ctrlclient.MatchingFields{}); err != nil {
+	if err := r.Client.List(ctx, taskList, ctrlclient.InNamespace(pipeline.Namespace), ctrlclient.MatchingFields{
+		kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(pipeline).String(),
+	}); err != nil {
 		klog.V(5).ErrorS(err, "list task error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return
 	}
+
+	// clean variable cache
+	variable.CleanVariable(pipeline)
+
 	if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
 		klog.V(5).ErrorS(err, "clean runtime directory error", "runtime dir", _const.GetRuntimeDir(), "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 	}

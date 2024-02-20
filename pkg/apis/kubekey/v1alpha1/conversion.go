@@ -22,6 +22,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// TaskOwnerField is the field name of the owner reference in the task.
+// It defined in proxy transport. Not applicable in kube-apiserver.
+const TaskOwnerField = "ownerReferences:pipeline"
+
 // AddConversionFuncs adds the conversion functions to the given scheme.
 // NOTE: ownerReferences:pipeline is valid in proxy client.
 func AddConversionFuncs(scheme *runtime.Scheme) error {
@@ -29,7 +33,7 @@ func AddConversionFuncs(scheme *runtime.Scheme) error {
 		SchemeGroupVersion.WithKind("Task"),
 		func(label, value string) (string, string, error) {
 			switch label {
-			case "metadata.name", "metadata.namespace", "ownerReferences:pipeline":
+			case "metadata.name", "metadata.namespace", TaskOwnerField:
 				return label, value, nil
 			default:
 				return "", "", fmt.Errorf("field label %q not supported for Task", label)
