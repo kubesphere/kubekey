@@ -67,6 +67,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
 		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
+		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker"},
 		&images.CopyImagesToRegistryModule{Skip: skipPushImages},
 		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
 		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},

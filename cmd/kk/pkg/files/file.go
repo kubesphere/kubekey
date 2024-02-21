@@ -153,6 +153,9 @@ func NewKubeBinary(name, arch, version, prePath string, getCmd func(path, url st
 		component.Type = CRIDOCKERD
 		component.FileName = fmt.Sprintf("cri-dockerd-%s.tgz", version)
 		component.Url = fmt.Sprintf("https://github.com/Mirantis/cri-dockerd/releases/download/v%s/cri-dockerd-%s.%s.tgz", version, version, arch)
+		if component.Zone == "cn" {
+			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/cri-dockerd/releases/download/v%s/cri-dockerd-%s.%s.tgz", version, version, arch)
+		}
 	case crictl:
 		component.Type = CRICTL
 		component.FileName = fmt.Sprintf("crictl-%s-linux-%s.tar.gz", version, arch)

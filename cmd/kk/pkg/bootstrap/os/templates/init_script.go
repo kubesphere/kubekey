@@ -18,9 +18,9 @@ package templates
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
-	"strings"
 	"text/template"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
 
 	"github.com/lithammer/dedent"
 
@@ -249,11 +249,16 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	if len(runtime.GetHostsByRole(common.Registry)) > 0 {
 		if kubeConf.Cluster.Registry.PrivateRegistry != "" {
-		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[0], kubeConf.Cluster.Registry.PrivateRegistry))
-		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[1], kubeConf.Cluster.Registry.PrivateRegistry))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), kubeConf.Cluster.Registry.PrivateRegistry))
+			if runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address() != "" {
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address(), kubeConf.Cluster.Registry.PrivateRegistry))
+			}
+
 		} else {
-		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[0], registry.RegistryCertificateBaseName))
-		        hostsList = append(hostsList, fmt.Sprintf("%s  %s", strings.Split(runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(),",")[1], registry.RegistryCertificateBaseName))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), registry.RegistryCertificateBaseName))
+			if runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address() != "" {
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address(), registry.RegistryCertificateBaseName))
+			}
 		}
 
 	}
