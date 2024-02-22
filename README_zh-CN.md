@@ -414,6 +414,10 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
       <td align="center" valign="top" width="14.28%"><a href="https://dashen.tech"><img src="https://avatars.githubusercontent.com/u/15921519?v=4?s=100" width="100px;" alt="cui fliter"/><br /><sub><b>cui fliter</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=cuishuang" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/liuxu623"><img src="https://avatars.githubusercontent.com/u/9653438?v=4?s=100" width="100px;" alt="刘旭"/><br /><sub><b>刘旭</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=liuxu623" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/yzxiu"><img src="https://avatars.githubusercontent.com/u/13790023?v=4?s=100" width="100px;" alt="yuyu"/><br /><sub><b>yuyu</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=yzxiu" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/chilianyi"><img src="https://avatars.githubusercontent.com/u/5917832?v=4?s=100" width="100px;" alt="chilianyi"/><br /><sub><b>chilianyi</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=chilianyi" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/xrwang8"><img src="https://avatars.githubusercontent.com/u/68765051?v=4?s=100" width="100px;" alt="Ronald Fletcher"/><br /><sub><b>Ronald Fletcher</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=xrwang8" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

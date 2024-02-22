@@ -258,6 +258,9 @@ func (r *RemoveFiles) Execute(runtime connector.Runtime) error {
 	for _, file := range clusterFiles {
 		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
 	}
+	// remove pki/etcd Path if it exists, otherwise it will cause the etcd reinstallation to fail if ip change
+	pkiPath := fmt.Sprintf("%s/pki/etcd", runtime.GetWorkDir())
+	_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", pkiPath), true)
 	return nil
 }
 
@@ -504,14 +507,32 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 		chronyService = "chrony.service"
 	}
 
+	clearOldServerCmd := fmt.Sprintf(`sed -i '/^server/d' %s`, chronyConfigFile)
+	if _, err := runtime.GetRunner().SudoCmd(clearOldServerCmd, false); err != nil {
+		return errors.Wrapf(err, "delete old servers failed, please check file %s", chronyConfigFile)
+	}
+
 	// if NtpServers was configured
 	for _, server := range n.KubeConf.Cluster.System.NtpServers {
 
 		serverAddr := strings.Trim(server, " \"")
+		fmt.Printf("ntpserver: %s, current host: %s\n", serverAddr, currentHost.GetName())
 		if serverAddr == currentHost.GetName() || serverAddr == currentHost.GetInternalAddress() {
-			allowClientCmd := fmt.Sprintf(`sed -i '/#allow/ a\allow 0.0.0.0/0' %s`, chronyConfigFile)
+			deleteAllowCmd := fmt.Sprintf(`sed -i '/^allow/d' %s`, chronyConfigFile)
+			if _, err := runtime.GetRunner().SudoCmd(deleteAllowCmd, false); err != nil {
+				return errors.Wrapf(err, "delete allow failed, please check file %s", chronyConfigFile)
+			}
+			allowClientCmd := fmt.Sprintf(`echo 'allow 0.0.0.0/0' >> %s`, chronyConfigFile)
 			if _, err := runtime.GetRunner().SudoCmd(allowClientCmd, false); err != nil {
 				return errors.Wrapf(err, "change host:%s chronyd conf failed, please check file %s", serverAddr, chronyConfigFile)
+			}
+			deleteLocalCmd := fmt.Sprintf(`sed -i '/^local/d' %s`, chronyConfigFile)
+			if _, err := runtime.GetRunner().SudoCmd(deleteLocalCmd, false); err != nil {
+				return errors.Wrapf(err, "delete local stratum failed, please check file %s", chronyConfigFile)
+			}
+			AddLocalCmd := fmt.Sprintf(`echo 'local stratum 10' >> %s`, chronyConfigFile)
+			if _, err := runtime.GetRunner().SudoCmd(AddLocalCmd, false); err != nil {
+				return errors.Wrapf(err, "Add local stratum 10 conf failed, please check file %s", chronyConfigFile)
 			}
 		}
 

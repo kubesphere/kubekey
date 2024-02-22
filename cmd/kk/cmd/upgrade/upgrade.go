@@ -31,14 +31,15 @@ import (
 )
 
 type UpgradeOptions struct {
-	CommonOptions    *options.CommonOptions
-	ClusterCfgFile   string
-	Kubernetes       string
-	EnableKubeSphere bool
-	KubeSphere       string
-	SkipPullImages   bool
-	DownloadCmd      string
-	Artifact         string
+	CommonOptions       *options.CommonOptions
+	ClusterCfgFile      string
+	Kubernetes          string
+	EnableKubeSphere    bool
+	KubeSphere          string
+	SkipPullImages      bool
+	SkipDependencyCheck bool
+	DownloadCmd         string
+	Artifact            string
 }
 
 func NewUpgradeOptions() *UpgradeOptions {
@@ -80,14 +81,15 @@ func (o *UpgradeOptions) Complete(cmd *cobra.Command, args []string) error {
 
 func (o *UpgradeOptions) Run() error {
 	arg := common.Argument{
-		FilePath:          o.ClusterCfgFile,
-		KubernetesVersion: o.Kubernetes,
-		KsEnable:          o.EnableKubeSphere,
-		KsVersion:         o.KubeSphere,
-		SkipPullImages:    o.SkipPullImages,
-		Debug:             o.CommonOptions.Verbose,
-		SkipConfirmCheck:  o.CommonOptions.SkipConfirmCheck,
-		Artifact:          o.Artifact,
+		FilePath:            o.ClusterCfgFile,
+		KubernetesVersion:   o.Kubernetes,
+		KsEnable:            o.EnableKubeSphere,
+		KsVersion:           o.KubeSphere,
+		SkipPullImages:      o.SkipPullImages,
+		Debug:               o.CommonOptions.Verbose,
+		SkipConfirmCheck:    o.CommonOptions.SkipConfirmCheck,
+		Artifact:            o.Artifact,
+		SkipDependencyCheck: o.SkipDependencyCheck,
 	}
 	return pipelines.UpgradeCluster(arg, o.DownloadCmd)
 }
@@ -100,6 +102,7 @@ func (o *UpgradeOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
+	cmd.Flags().BoolVarP(&o.SkipDependencyCheck, "skip-dependency-check", "", false, "Skip kubernetes and kubesphere dependency version check")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

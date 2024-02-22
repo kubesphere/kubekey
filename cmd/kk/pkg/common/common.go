@@ -62,6 +62,7 @@ const (
 	Hybridnet = "hybridnet"
 
 	Docker     = "docker"
+	CriDockerd = "cri-dockerd"
 	Crictl     = "crictl"
 	Containerd = "containerd"
 	Crio       = "crio"
