@@ -140,12 +140,16 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 		if host.Address != cfg.ControlPlaneEndpoint.Address {
 			extraCertSANs = append(extraCertSANs, host.Address)
 		}
-		InternalIPv4Address := strings.Split(host.InternalAddress, ",")[0]
-		InternalIPv6Address := strings.Split(host.InternalAddress, ",")[1]
+
+		nodeAddresses := strings.Split(host.InternalAddress, ",")
+		InternalIPv4Address := nodeAddresses[0]
 		if InternalIPv4Address != host.Address && InternalIPv4Address != cfg.ControlPlaneEndpoint.Address {
 			extraCertSANs = append(extraCertSANs, InternalIPv4Address)
 		}
-		extraCertSANs = append(extraCertSANs, InternalIPv6Address)
+		if len(nodeAddresses)==2 {
+			InternalIPv6Address := nodeAddresses[1]
+			extraCertSANs = append(extraCertSANs, InternalIPv6Address)
+		}
 	}
 
 	extraCertSANs = append(extraCertSANs, util.ParseIp(strings.Split(cfg.Network.KubeServiceCIDR, ",")[0])[0])

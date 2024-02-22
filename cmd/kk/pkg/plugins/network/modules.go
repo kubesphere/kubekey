@@ -133,7 +133,7 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 			Dst:      filepath.Join(common.KubeConfigDir, templates.CalicoNew.Name()),
 			Data: util.Data{
 				"KubePodsV4CIDR":            strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")[0],
-				"KubePodsV6CIDR":            strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")[1],
+				"KubePodsV6CIDR":            GetKubePodsV6CIDR(d),
 				"CalicoCniImage":          images.GetImage(d.Runtime, d.KubeConf, "calico-cni").ImageName(),
 				"CalicoNodeImage":         images.GetImage(d.Runtime, d.KubeConf, "calico-node").ImageName(),
 				"CalicoFlexvolImage":      images.GetImage(d.Runtime, d.KubeConf, "calico-flexvol").ImageName(),
@@ -173,6 +173,15 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 			deploy,
 		}
 	}
+}
+
+func GetKubePodsV6CIDR(d *DeployNetworkPluginModule) string {
+	kubePodsV6CIDR := ""
+	kubePodsCIDR := strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")
+	if len(kubePodsCIDR)==2 {
+		kubePodsV6CIDR = kubePodsCIDR[1]
+	}
+	return kubePodsV6CIDR
 }
 
 func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {

@@ -71,7 +71,12 @@ func (b *BaseHost) GetInternalIPv4Address() string {
 }
 
 func (b *BaseHost) GetInternalIPv6Address() string {
-	return strings.Split(b.InternalAddress, ",")[1]
+	internalIPv6Address := ""
+	nodeAddresses := strings.Split(b.InternalAddress, ",")
+	if len(nodeAddresses) == 2 {
+		internalIPv6Address = nodeAddresses[1]
+	}
+	return internalIPv6Address
 }
 
 func (b *BaseHost) SetInternalAddress(str string) {
