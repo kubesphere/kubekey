@@ -307,6 +307,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"CgroupDriver":           checkCgroupDriver,
 				"BootstrapToken":         bootstrapToken,
 				"CertificateKey":         certificateKey,
+				"IPv6Support":            host.GetInternalIPv6Address()!="",
 			},
 		}
 

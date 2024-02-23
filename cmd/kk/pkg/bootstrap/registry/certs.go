@@ -110,7 +110,7 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 
 	for _, h := range runtime.GetHostsByRole(common.Registry) {
 		dnsList = append(dnsList, h.GetName())
-		ipList = append(ipList, netutils.ParseIPSloppy(h.GetInternalAddress()))
+		ipList = append(ipList, netutils.ParseIPSloppy(h.GetInternalIPv4Address()))
 	}
 	altName.DNSNames = dnsList
 	altName.IPs = ipList

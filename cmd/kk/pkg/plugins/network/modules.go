@@ -147,6 +147,7 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 				"ConatinerManagerIsIsula": d.KubeConf.Cluster.Kubernetes.ContainerManager == "isula",
 				"IPV4POOLNATOUTGOING":     d.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),
 				"DefaultIPPOOL":           d.KubeConf.Cluster.Network.Calico.EnableDefaultIPPOOL(),
+				"IPv6Support":             GetKubeIPv6Support(d),
 			},
 		},
 		Parallel: true,
@@ -173,6 +174,15 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 			deploy,
 		}
 	}
+}
+
+func GetKubeIPv6Support(d *DeployNetworkPluginModule) bool {
+	IPv6Support := false
+	kubePodsCIDR := strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")
+	if len(kubePodsCIDR)==2 {
+		IPv6Support = true
+	}
+	return IPv6Support
 }
 
 func GetKubePodsV6CIDR(d *DeployNetworkPluginModule) string {

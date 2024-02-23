@@ -4852,8 +4852,10 @@ spec:
               value: "can-reach=$(NODEIP)"
             - name: IP
               value: "autodetect"
+{{- if .IPv6Support }}
             - name: IP6
               value: "autodetect"
+{{- end }}
             # Enable IPIP
             - name: CALICO_IPV4POOL_IPIP
               value: "{{ .IPIPMode }}"
