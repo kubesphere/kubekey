@@ -118,11 +118,6 @@ func (s *Service) ExecInitScript() error {
 				host.Name,
 				s.scope.KubernetesClusterName(),
 				host.Name))
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				strings.Split(host.InternalAddress, ",")[1],
-				host.Name,
-				s.scope.KubernetesClusterName(),
-				host.Name))
 		}
 	}
 	hostsList = append(hostsList, lbHost)
