@@ -18,6 +18,7 @@ package network
 
 import (
 	"path/filepath"
+	"strings"
 
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 
@@ -131,7 +132,8 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 			Template: templates.CalicoNew,
 			Dst:      filepath.Join(common.KubeConfigDir, templates.CalicoNew.Name()),
 			Data: util.Data{
-				"KubePodsCIDR":            d.KubeConf.Cluster.Network.KubePodsCIDR,
+				"KubePodsV4CIDR":            strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")[0],
+				"KubePodsV6CIDR":            GetKubePodsV6CIDR(d),
 				"CalicoCniImage":          images.GetImage(d.Runtime, d.KubeConf, "calico-cni").ImageName(),
 				"CalicoNodeImage":         images.GetImage(d.Runtime, d.KubeConf, "calico-node").ImageName(),
 				"CalicoFlexvolImage":      images.GetImage(d.Runtime, d.KubeConf, "calico-flexvol").ImageName(),
@@ -145,6 +147,7 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 				"ConatinerManagerIsIsula": d.KubeConf.Cluster.Kubernetes.ContainerManager == "isula",
 				"IPV4POOLNATOUTGOING":     d.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),
 				"DefaultIPPOOL":           d.KubeConf.Cluster.Network.Calico.EnableDefaultIPPOOL(),
+				"IPv6Support":             GetKubeIPv6Support(d),
 			},
 		},
 		Parallel: true,
@@ -171,6 +174,24 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 			deploy,
 		}
 	}
+}
+
+func GetKubeIPv6Support(d *DeployNetworkPluginModule) bool {
+	IPv6Support := false
+	kubePodsCIDR := strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")
+	if len(kubePodsCIDR)==2 {
+		IPv6Support = true
+	}
+	return IPv6Support
+}
+
+func GetKubePodsV6CIDR(d *DeployNetworkPluginModule) string {
+	kubePodsV6CIDR := ""
+	kubePodsCIDR := strings.Split(d.KubeConf.Cluster.Network.KubePodsCIDR, ",")
+	if len(kubePodsCIDR)==2 {
+		kubePodsV6CIDR = kubePodsCIDR[1]
+	}
+	return kubePodsV6CIDR
 }
 
 func deployFlannel(d *DeployNetworkPluginModule) []task.Interface {

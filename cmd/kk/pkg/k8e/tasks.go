@@ -203,7 +203,7 @@ func (g *GenerateK8eService) Execute(runtime connector.Runtime) error {
 		Data: util.Data{
 			"Server":            server,
 			"IsMaster":          host.IsRole(common.Master),
-			"NodeIP":            host.GetInternalAddress(),
+			"NodeIP":            host.GetInternalIPv4Address(),
 			"HostName":          host.GetName(),
 			"PodSubnet":         g.KubeConf.Cluster.Network.KubePodsCIDR,
 			"ServiceSubnet":     g.KubeConf.Cluster.Network.KubeServiceCIDR,
@@ -253,7 +253,7 @@ func (g *GenerateK8eServiceEnv) Execute(runtime connector.Runtime) error {
 		}
 	default:
 		for _, node := range runtime.GetHostsByRole(common.ETCD) {
-			endpoint := fmt.Sprintf("https://%s:%s", node.GetInternalAddress(), kubekeyapiv1alpha2.DefaultEtcdPort)
+			endpoint := fmt.Sprintf("https://%s:%s", node.GetInternalIPv4Address(), kubekeyapiv1alpha2.DefaultEtcdPort)
 			endpointsList = append(endpointsList, endpoint)
 		}
 		externalEtcd.Endpoints = endpointsList

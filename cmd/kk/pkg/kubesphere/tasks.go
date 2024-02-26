@@ -88,7 +88,7 @@ func (s *Setup) Execute(runtime connector.Runtime) error {
 	switch s.KubeConf.Cluster.Etcd.Type {
 	case kubekeyapiv1alpha2.KubeKey:
 		for _, host := range runtime.GetHostsByRole(common.ETCD) {
-			addrList = append(addrList, host.GetInternalAddress())
+			addrList = append(addrList, host.GetInternalIPv4Address())
 		}
 
 		caFile := "/etc/ssl/etcd/ssl/ca.pem"
@@ -105,7 +105,7 @@ func (s *Setup) Execute(runtime connector.Runtime) error {
 		}
 	case kubekeyapiv1alpha2.Kubeadm:
 		for _, host := range runtime.GetHostsByRole(common.Master) {
-			addrList = append(addrList, host.GetInternalAddress())
+			addrList = append(addrList, host.GetInternalIPv4Address())
 		}
 
 		caFile := "/etc/kubernetes/pki/etcd/ca.crt"

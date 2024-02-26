@@ -512,12 +512,16 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 		return errors.Wrapf(err, "delete old servers failed, please check file %s", chronyConfigFile)
 	}
 
+	poolDisableCmd := fmt.Sprintf(`sed -i 's/^pool /#pool /g' %s`, chronyConfigFile)
+	if _, err := runtime.GetRunner().SudoCmd(poolDisableCmd, false); err != nil {
+		return errors.Wrapf(err, "set pool disable failed")
+	}
 	// if NtpServers was configured
 	for _, server := range n.KubeConf.Cluster.System.NtpServers {
 
 		serverAddr := strings.Trim(server, " \"")
 		fmt.Printf("ntpserver: %s, current host: %s\n", serverAddr, currentHost.GetName())
-		if serverAddr == currentHost.GetName() || serverAddr == currentHost.GetInternalAddress() {
+		if serverAddr == currentHost.GetName() || serverAddr == currentHost.GetInternalIPv4Address() {
 			deleteAllowCmd := fmt.Sprintf(`sed -i '/^allow/d' %s`, chronyConfigFile)
 			if _, err := runtime.GetRunner().SudoCmd(deleteAllowCmd, false); err != nil {
 				return errors.Wrapf(err, "delete allow failed, please check file %s", chronyConfigFile)
@@ -539,7 +543,7 @@ func (n *NodeConfigureNtpServer) Execute(runtime connector.Runtime) error {
 		// use internal ip to client chronyd server
 		for _, host := range runtime.GetAllHosts() {
 			if serverAddr == host.GetName() {
-				serverAddr = host.GetInternalAddress()
+				serverAddr = host.GetInternalIPv4Address()
 				break
 			}
 		}

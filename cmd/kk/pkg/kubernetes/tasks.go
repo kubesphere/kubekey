@@ -225,7 +225,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		switch g.KubeConf.Cluster.Etcd.Type {
 		case kubekeyv1alpha2.KubeKey:
 			for _, host := range runtime.GetHostsByRole(common.ETCD) {
-				endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalAddress(), kubekeyv1alpha2.DefaultEtcdPort)
+				endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalIPv4Address(), kubekeyv1alpha2.DefaultEtcdPort)
 				endpointsList = append(endpointsList, endpoint)
 			}
 			externalEtcd.Endpoints = endpointsList
@@ -287,7 +287,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"Version":                g.KubeConf.Cluster.Kubernetes.Version,
 				"ClusterName":            g.KubeConf.Cluster.Kubernetes.ClusterName,
 				"DNSDomain":              g.KubeConf.Cluster.Kubernetes.DNSDomain,
-				"AdvertiseAddress":       host.GetInternalAddress(),
+				"AdvertiseAddress":       host.GetInternalIPv4Address(),
 				"BindPort":               kubekeyv1alpha2.DefaultApiserverPort,
 				"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", g.KubeConf.Cluster.ControlPlaneEndpoint.Domain, g.KubeConf.Cluster.ControlPlaneEndpoint.Port),
 				"PodSubnet":              g.KubeConf.Cluster.Network.KubePodsCIDR,
@@ -307,6 +307,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"CgroupDriver":           checkCgroupDriver,
 				"BootstrapToken":         bootstrapToken,
 				"CertificateKey":         certificateKey,
+				"IPv6Support":            host.GetInternalIPv6Address()!="",
 			},
 		}
 
