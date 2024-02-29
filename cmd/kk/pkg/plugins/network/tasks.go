@@ -19,12 +19,14 @@ package network
 import (
 	"embed"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
@@ -35,7 +37,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/network/templates"
 )
 
-//go:embed cilium-1.11.7.tgz hybridnet-0.6.6.tgz
+//go:embed cilium-1.11.7.tgz hybridnet-0.6.6.tgz templates/calico.tmpl
 
 var f embed.FS
 
@@ -423,5 +425,54 @@ func (d *DeployHybridnet) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(errors.WithStack(err), "apply hybridnet networks failed")
 		}
 	}
+	return nil
+}
+
+type GenerateCalicoManifests struct {
+	common.KubeAction
+}
+
+func (g *GenerateCalicoManifests) Execute(runtime connector.Runtime) error {
+	calicoContent, err := f.ReadFile("templates/calico.tmpl")
+	if err != nil {
+		return err
+	}
+	calico := template.Must(template.New("network-plugin.yaml").Parse(string(calicoContent)))
+
+	IPv6Support := false
+	kubePodsV6CIDR := ""
+	kubePodsCIDR := strings.Split(g.KubeConf.Cluster.Network.KubePodsCIDR, ",")
+	if len(kubePodsCIDR) == 2 {
+		IPv6Support = true
+		kubePodsV6CIDR = kubePodsCIDR[1]
+	}
+
+	templateAction := action.Template{
+		Template: calico,
+		Dst:      filepath.Join(common.KubeConfigDir, calico.Name()),
+		Data: util.Data{
+			"KubePodsV4CIDR":          strings.Split(g.KubeConf.Cluster.Network.KubePodsCIDR, ",")[0],
+			"KubePodsV6CIDR":          kubePodsV6CIDR,
+			"CalicoCniImage":          images.GetImage(runtime, g.KubeConf, "calico-cni").ImageName(),
+			"CalicoNodeImage":         images.GetImage(runtime, g.KubeConf, "calico-node").ImageName(),
+			"CalicoFlexvolImage":      images.GetImage(runtime, g.KubeConf, "calico-flexvol").ImageName(),
+			"CalicoControllersImage":  images.GetImage(runtime, g.KubeConf, "calico-kube-controllers").ImageName(),
+			"CalicoTyphaImage":        images.GetImage(runtime, g.KubeConf, "calico-typha").ImageName(),
+			"TyphaEnabled":            len(runtime.GetHostsByRole(common.K8s)) > 50 || g.KubeConf.Cluster.Network.Calico.Typha(),
+			"VethMTU":                 g.KubeConf.Cluster.Network.Calico.VethMTU,
+			"NodeCidrMaskSize":        g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
+			"IPIPMode":                g.KubeConf.Cluster.Network.Calico.IPIPMode,
+			"VXLANMode":               g.KubeConf.Cluster.Network.Calico.VXLANMode,
+			"ConatinerManagerIsIsula": g.KubeConf.Cluster.Kubernetes.ContainerManager == "isula",
+			"IPV4POOLNATOUTGOING":     g.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),
+			"DefaultIPPOOL":           g.KubeConf.Cluster.Network.Calico.EnableDefaultIPPOOL(),
+			"IPv6Support":             IPv6Support,
+		},
+	}
+	templateAction.Init(nil, nil)
+	if err := templateAction.Execute(runtime); err != nil {
+		return err
+	}
+
 	return nil
 }
