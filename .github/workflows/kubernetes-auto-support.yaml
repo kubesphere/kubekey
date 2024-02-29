@@ -56,7 +56,7 @@ jobs:
         if: steps.get_new_version.outputs.UPDATE_VERSION == 'true'
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v6
         with:
           commit-message: Add new kubernetes version
           committer: GitHub <noreply@github.com>
