@@ -27,7 +27,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 	"github.com/pkg/errors"
 )
 
@@ -188,7 +187,7 @@ func (d *DisableDocker) Execute(runtime connector.Runtime) error {
 		filepath.Join("/etc/docker", templates.DockerConfig.Name()),
 	}
 
-	if kubernetes.IsAtLeastV124(d.KubeConf.Cluster.Kubernetes.Version) && d.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
+	if d.KubeConf.Cluster.Kubernetes.IsAtLeastV124() && d.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
 		if _, err := runtime.GetRunner().SudoCmd("systemctl disable cri-docker && systemctl stop cri-docker",
 			false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("disable and stop cri-docker failed"))

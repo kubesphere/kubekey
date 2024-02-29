@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 )
 
 const (
@@ -43,7 +42,7 @@ const (
 	DefaultEtcdVersion             = "v3.5.6"
 	DefaultEtcdPort                = "2379"
 	DefaultDockerVersion           = "24.0.9"
-	DefaultCriDockerdVersion       = "0.3.9"
+	DefaultCriDockerdVersion       = "0.3.10"
 	DefaultContainerdVersion       = "1.7.12"
 	DefaultRuncVersion             = "v1.1.11"
 	DefaultCrictlVersion           = "v1.29.0"
@@ -318,7 +317,7 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.ContainerRuntimeEndpoint == "" {
 		switch cfg.Kubernetes.ContainerManager {
 		case Docker:
-			if kubernetes.IsAtLeastV124(cfg.Kubernetes.Version) {
+			if cfg.Kubernetes.IsAtLeastV124() {
 				cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultCriDockerdEndpoint
 			} else {
 				cfg.Kubernetes.ContainerRuntimeEndpoint = ""

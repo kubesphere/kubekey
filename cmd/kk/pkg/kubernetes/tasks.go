@@ -46,7 +46,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 )
 
 type GetClusterStatus struct {
@@ -307,7 +306,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"CgroupDriver":           checkCgroupDriver,
 				"BootstrapToken":         bootstrapToken,
 				"CertificateKey":         certificateKey,
-				"IPv6Support":            host.GetInternalIPv6Address()!="",
+				"IPv6Support":            host.GetInternalIPv6Address() != "",
 			},
 		}
 
@@ -717,14 +716,9 @@ func (u *UpgradeKubeMaster) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
 
-	if kubernetes.IsAtLeastV124(u.KubeConf.Cluster.Kubernetes.Version){
-		if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --network-plugin=cni / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
+	if u.KubeConf.Cluster.Kubernetes.IsAtLeastV124() {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("echo 'KUBELET_KUBEADM_ARGS=\\\"--container-runtime-endpoint=%s\\\"' > /var/lib/kubelet/kubeadm-flags.env", u.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint), false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
-		}
-		if u.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
-			if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --container-runtime=remote / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
-				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
-			}
 		}
 	}
 
@@ -753,8 +747,8 @@ func (u *UpgradeKubeWorker) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("systemctl stop kubelet", true); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
-	if versionutil.MustParseSemantic(u.KubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
-		if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --network-plugin=cni / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
+	if u.KubeConf.Cluster.Kubernetes.IsAtLeastV124() {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("echo 'KUBELET_KUBEADM_ARGS=\\\"--container-runtime-endpoint=%s\\\"' > /var/lib/kubelet/kubeadm-flags.env", u.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint), false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
 		}
 	}

@@ -29,7 +29,7 @@ Documentation=https://docs.mirantis.com
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/cri-dockerd --pod-infra-container-image docker.io/kubesphere/pause:3.8
+ExecStart=/usr/bin/cri-dockerd --pod-infra-container-image {{ .SandBoxImage }}
 ExecReload=/bin/kill -s HUP $MAINPID
 TimeoutSec=0
 RestartSec=2

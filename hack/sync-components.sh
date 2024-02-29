@@ -45,6 +45,7 @@ CONTAINERD_VERSION=${CONTAINERD_VERSION}
 RUNC_VERSION=${RUNC_VERSION}
 COMPOSE_VERSION=${COMPOSE_VERSION}
 CALICO_VERSION=${CALICO_VERSION}
+CRI_DOCKER_VERSION=${CRI_DOCKER_VERSION}
 
 # qsctl
 QSCTL_ACCESS_KEY_ID=${QSCTL_ACCESS_KEY_ID}
@@ -292,6 +293,26 @@ if [ $COMPOSE_VERSION ]; then
               -c qsctl-config.yaml
 
      fi
+   done
+
+   rm -rf binaries
+fi
+
+# Sync CRI_DDOCKER Binary
+if [ $CRI_DOCKER_VERSION ]; then
+   for arch in ${ARCHS[@]}
+   do
+     mkdir -p binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch
+     echo "Synchronizing cri-dockerd-$arch"
+
+     curl -L -o binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz \
+                https://github.com/Mirantis/cri-dockerd/releases/download/v$CRI_DOCKER_VERSION/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz
+
+     sha256sum binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz
+
+     qsctl cp binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz \
+           qs://kubernetes-release/cri-dockerd/releases/download/v$CRI_DOCKER_VERSION/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz \
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries

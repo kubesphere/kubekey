@@ -19,6 +19,10 @@ package pipelines
 import (
 	"fmt"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/binaries"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/container"
+
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/artifact"
@@ -43,6 +47,8 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&precheck.ClusterPreCheckModule{SkipDependencyCheck: runtime.Arg.SkipDependencyCheck},
 		&confirm.UpgradeConfirmModule{Skip: runtime.Arg.SkipConfirmCheck},
 		&artifact.UnArchiveModule{Skip: noArtifact},
+		&binaries.NodeBinariesModule{},
+		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker"},
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV121},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
