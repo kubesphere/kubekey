@@ -66,6 +66,8 @@ spec:
     - type: {{ $v.Type }}
       version: {{ $v.Version }}
     {{- end}}
+    calicoctl:
+      version: {{ .Options.Components.Calicoctl.Version }}
     crictl: 
       version: {{ .Options.Components.Crictl.Version }}
     ## 

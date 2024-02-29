@@ -224,7 +224,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		switch g.KubeConf.Cluster.Etcd.Type {
 		case kubekeyv1alpha2.KubeKey:
 			for _, host := range runtime.GetHostsByRole(common.ETCD) {
-				endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalAddress(), kubekeyv1alpha2.DefaultEtcdPort)
+				endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalIPv4Address(), kubekeyv1alpha2.DefaultEtcdPort)
 				endpointsList = append(endpointsList, endpoint)
 			}
 			externalEtcd.Endpoints = endpointsList
@@ -286,7 +286,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"Version":                g.KubeConf.Cluster.Kubernetes.Version,
 				"ClusterName":            g.KubeConf.Cluster.Kubernetes.ClusterName,
 				"DNSDomain":              g.KubeConf.Cluster.Kubernetes.DNSDomain,
-				"AdvertiseAddress":       host.GetInternalAddress(),
+				"AdvertiseAddress":       host.GetInternalIPv4Address(),
 				"BindPort":               kubekeyv1alpha2.DefaultApiserverPort,
 				"ControlPlaneEndpoint":   fmt.Sprintf("%s:%d", g.KubeConf.Cluster.ControlPlaneEndpoint.Domain, g.KubeConf.Cluster.ControlPlaneEndpoint.Port),
 				"PodSubnet":              g.KubeConf.Cluster.Network.KubePodsCIDR,
@@ -306,6 +306,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"CgroupDriver":           checkCgroupDriver,
 				"BootstrapToken":         bootstrapToken,
 				"CertificateKey":         certificateKey,
+				"IPv6Support":            host.GetInternalIPv6Address() != "",
 			},
 		}
 
@@ -715,8 +716,8 @@ func (u *UpgradeKubeMaster) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
 
-	if versionutil.MustParseSemantic(u.KubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
-		if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --network-plugin=cni / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
+	if u.KubeConf.Cluster.Kubernetes.IsAtLeastV124() {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("echo 'KUBELET_KUBEADM_ARGS=\\\"--container-runtime-endpoint=%s\\\"' > /var/lib/kubelet/kubeadm-flags.env", u.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint), false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
 		}
 	}
@@ -746,8 +747,8 @@ func (u *UpgradeKubeWorker) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("systemctl stop kubelet", true); err != nil {
 		return errors.Wrap(errors.WithStack(err), fmt.Sprintf("stop kubelet failed: %s", host.GetName()))
 	}
-	if versionutil.MustParseSemantic(u.KubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
-		if _, err := runtime.GetRunner().SudoCmd("sed -i 's/ --network-plugin=cni / /g' /var/lib/kubelet/kubeadm-flags.env", false); err != nil {
+	if u.KubeConf.Cluster.Kubernetes.IsAtLeastV124() {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("echo 'KUBELET_KUBEADM_ARGS=\\\"--container-runtime-endpoint=%s\\\"' > /var/lib/kubelet/kubeadm-flags.env", u.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint), false); err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("update kubelet config failed: %s", host.GetName()))
 		}
 	}
@@ -1131,11 +1132,11 @@ func (k *MasterSecurityEnhancemenAction) Execute(runtime connector.Runtime) erro
 	chmodKubernetesConfigCmd := "chmod 600 -R /etc/kubernetes"
 	chownKubernetesConfigCmd := "chown root:root -R /etc/kubernetes/*"
 
-	chmodKubenretesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
-	chownKubenretesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
+	chmodKubernetesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
+	chownKubernetesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
 
-	chmodKubenretesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
-	chownKubenretesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
+	chmodKubernetesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
+	chownKubernetesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
 
 	// node Security Enhancemen
 	chmodCniConfigDir := "chmod 600 -R /etc/cni/net.d"
@@ -1159,11 +1160,11 @@ func (k *MasterSecurityEnhancemenAction) Execute(runtime connector.Runtime) erro
 	chmodCertsRenew := "chmod 640 /etc/systemd/system/k8s-certs-renew*"
 	chownCertsRenew := "chown root:root /etc/systemd/system/k8s-certs-renew*"
 
-	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubenretesManifestsDirCmd, chmodKubenretesCertsDirCmd}
+	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubernetesManifestsDirCmd, chmodKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chmodMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}
-	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubenretesManifestsDirCmd, chownKubenretesCertsDirCmd}
+	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubernetesManifestsDirCmd, chownKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chownMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}
@@ -1193,11 +1194,11 @@ func (n *NodesSecurityEnhancemenAction) Execute(runtime connector.Runtime) error
 	chmodKubernetesConfigCmd := "chmod 600 -R /etc/kubernetes"
 	chownKubernetesConfigCmd := "chown root:root -R /etc/kubernetes"
 
-	chmodKubenretesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
-	chownKubenretesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
+	chmodKubernetesManifestsDirCmd := "chmod 644 /etc/kubernetes/manifests"
+	chownKubernetesManifestsDirCmd := "chown root:root /etc/kubernetes/manifests"
 
-	chmodKubenretesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
-	chownKubenretesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
+	chmodKubernetesCertsDirCmd := "chmod 644 /etc/kubernetes/pki"
+	chownKubernetesCertsDirCmd := "chown root:root /etc/kubernetes/pki"
 
 	// node Security Enhancemen
 	chmodCniConfigDir := "chmod 600 -R /etc/cni/net.d"
@@ -1218,11 +1219,11 @@ func (n *NodesSecurityEnhancemenAction) Execute(runtime connector.Runtime) error
 	chmodKubeletConfig := "chmod 640 /var/lib/kubelet/config.yaml && chmod 640 -R /etc/systemd/system/kubelet.service*"
 	chownKubeletConfig := "chown root:root /var/lib/kubelet/config.yaml && chown root:root -R /etc/systemd/system/kubelet.service*"
 
-	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubenretesManifestsDirCmd, chmodKubenretesCertsDirCmd}
+	chmodMasterCmds := []string{chmodKubernetesConfigCmd, chmodKubernetesDirCmd, chmodKubernetesManifestsDirCmd, chmodKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chmodMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}
-	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubenretesManifestsDirCmd, chownKubenretesCertsDirCmd}
+	chownMasterCmds := []string{chownKubernetesConfigCmd, chownKubernetesDirCmd, chownKubernetesManifestsDirCmd, chownKubernetesCertsDirCmd}
 	if _, err := runtime.GetRunner().SudoCmd(strings.Join(chownMasterCmds, " && "), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Updating permissions failed.")
 	}

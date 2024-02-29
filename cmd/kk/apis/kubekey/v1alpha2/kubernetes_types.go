@@ -16,7 +16,10 @@
 
 package v1alpha2
 
-import "k8s.io/apimachinery/pkg/runtime"
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+	versionutil "k8s.io/apimachinery/pkg/util/version"
+)
 
 // Kubernetes contains the configuration for the cluster
 type Kubernetes struct {
@@ -102,4 +105,18 @@ func (k *Kubernetes) EnableAudit() bool {
 		return false
 	}
 	return *k.AutoRenewCerts
+}
+
+// IsAtLeastV124 is used to determine whether the k8s version is greater than v1.24.
+func (k *Kubernetes) IsAtLeastV124() bool {
+	parsedVersion, err := versionutil.ParseGeneric(k.Version)
+	if err != nil {
+		return false
+	}
+
+	if parsedVersion.AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
+		return true
+	}
+
+	return false
 }

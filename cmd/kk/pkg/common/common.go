@@ -62,6 +62,7 @@ const (
 	Hybridnet = "hybridnet"
 
 	Docker     = "docker"
+	CriDockerd = "cri-dockerd"
 	Crictl     = "crictl"
 	Containerd = "containerd"
 	Crio       = "crio"
@@ -76,6 +77,7 @@ const (
 	KubeSphereVersion      = "kubeSphereVersion" // current KubeSphere version
 	ClusterNodeStatus      = "clusterNodeStatus"
 	ClusterNodeCRIRuntimes = "ClusterNodeCRIRuntimes"
+	ClusterFeatureGates    = "ClusterFeatureGates"
 	DesiredK8sVersion      = "desiredK8sVersion"
 	PlanK8sVersion         = "planK8sVersion"
 	NodeK8sVersion         = "NodeK8sVersion"

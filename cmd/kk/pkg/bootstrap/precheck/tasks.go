@@ -332,5 +332,11 @@ func (g *GetKubernetesNodesStatus) Execute(runtime connector.Runtime) error {
 		return err
 	}
 	g.PipelineCache.Set(common.ClusterNodeCRIRuntimes, cri)
+
+	featureGates, err := runtime.GetRunner().SudoCmd("cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep feature-gates", false)
+	if err != nil {
+		return err
+	}
+	g.PipelineCache.Set(common.ClusterFeatureGates, featureGates)
 	return nil
 }

@@ -18,11 +18,11 @@ jobs:
           - test
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v5
         with:
           go-version: 1.19
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3.6.0
+        uses: golangci/golangci-lint-action@v4.0.0
         with:
           version: v1.50.1
           working-directory: ${{matrix.working-directory}}

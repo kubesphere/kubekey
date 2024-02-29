@@ -41,11 +41,12 @@ const (
 	DefaultSSHTimeout              = 30
 	DefaultEtcdVersion             = "v3.5.6"
 	DefaultEtcdPort                = "2379"
-	DefaultDockerVersion           = "24.0.6"
-	DefaultContainerdVersion       = "1.7.8"
-	DefaultRuncVersion             = "v1.1.10"
-	DefaultCrictlVersion           = "v1.24.0"
-	DefaultKubeVersion             = "v1.23.10"
+	DefaultDockerVersion           = "24.0.9"
+	DefaultCriDockerdVersion       = "0.3.10"
+	DefaultContainerdVersion       = "1.7.12"
+	DefaultRuncVersion             = "v1.1.11"
+	DefaultCrictlVersion           = "v1.29.0"
+	DefaultKubeVersion             = "v1.23.15"
 	DefaultCalicoVersion           = "v3.26.1"
 	DefaultFlannelVersion          = "v0.21.3"
 	DefaultFlannelCniPluginVersion = "v1.1.2"
@@ -54,7 +55,7 @@ const (
 	DefaulthybridnetVersion        = "v0.8.6"
 	DefaultKubeovnVersion          = "v1.10.6"
 	DefalutMultusVersion           = "v3.8"
-	DefaultHelmVersion             = "v3.9.0"
+	DefaultHelmVersion             = "v3.13.3"
 	DefaultDockerComposeVersion    = "v2.2.2"
 	DefaultRegistryVersion         = "2"
 	DefaultHarborVersion           = "v2.5.3"
@@ -68,6 +69,7 @@ const (
 	DefaultProxyMode               = "ipvs"
 	DefaultCrioEndpoint            = "unix:///var/run/crio/crio.sock"
 	DefaultContainerdEndpoint      = "unix:///run/containerd/containerd.sock"
+	DefaultCriDockerdEndpoint      = "unix:///var/run/cri-dockerd.sock"
 	DefaultIsulaEndpoint           = "unix:///var/run/isulad.sock"
 	Etcd                           = "etcd"
 	Master                         = "master"
@@ -200,7 +202,7 @@ func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*KubeHost) ControlPlaneEndp
 	}
 
 	if (cfg.ControlPlaneEndpoint.Address == "" && !cfg.ControlPlaneEndpoint.EnableExternalDNS()) || cfg.ControlPlaneEndpoint.Address == "127.0.0.1" {
-		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
+		cfg.ControlPlaneEndpoint.Address = masterGroup[0].GetInternalIPv4Address()
 	}
 	if cfg.ControlPlaneEndpoint.Domain == "" {
 		cfg.ControlPlaneEndpoint.Domain = DefaultLBDomain
@@ -315,7 +317,11 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.ContainerRuntimeEndpoint == "" {
 		switch cfg.Kubernetes.ContainerManager {
 		case Docker:
-			cfg.Kubernetes.ContainerRuntimeEndpoint = ""
+			if cfg.Kubernetes.IsAtLeastV124() {
+				cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultCriDockerdEndpoint
+			} else {
+				cfg.Kubernetes.ContainerRuntimeEndpoint = ""
+			}
 		case Crio:
 			cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultCrioEndpoint
 		case Containerd:

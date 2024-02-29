@@ -8,12 +8,12 @@ spec:
   hosts:
   # Assume that the default port for SSH is 22. Otherwise, add the port number after the IP address. 
   # If you install Kubernetes on ARM, add "arch: arm64". For example, {...user: ubuntu, password: Qcloud@123, arch: arm64}.
-  - {name: node1, address: 172.16.0.2, internalAddress: 172.16.0.2, port: 8022, user: ubuntu, password: "Qcloud@123"}
+  - {name: node1, address: 172.16.0.2, internalAddress: "172.16.0.2,2022::2", port: 8022, user: ubuntu, password: "Qcloud@123"}
   # For default root user.
   # Kubekey will parse `labels` field and automatically label the node.
-  - {name: node2, address: 172.16.0.3, internalAddress: 172.16.0.3, password: "Qcloud@123", labels: {disk: SSD, role: backend}}
+  - {name: node2, address: 172.16.0.3, internalAddress: "172.16.0.3,2022::3", password: "Qcloud@123", labels: {disk: SSD, role: backend}}
   # For password-less login with SSH keys.
-  - {name: node3, address: 172.16.0.4, internalAddress: 172.16.0.4, privateKeyPath: "~/.ssh/id_rsa"}
+  - {name: node3, address: 172.16.0.4, internalAddress: "172.16.0.4,2022::4", privateKeyPath: "~/.ssh/id_rsa"}
   roleGroups:
     etcd:
     - node1 # All the nodes in your cluster that serve as the etcd nodes.
@@ -145,15 +145,15 @@ spec:
       ipipMode: Always  # IPIP Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, vxlanMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Always]
       vxlanMode: Never  # VXLAN Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, ipipMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Never]
       vethMTU: 0  # The maximum transmission unit (MTU) setting determines the largest packet size that can be transmitted through your network. By default, MTU is auto-detected. [Default: 0]
-    kubePodsCIDR: 10.233.64.0/18
-    kubeServiceCIDR: 10.233.0.0/18
+    kubePodsCIDR: 10.233.64.0/18,fc00::/48
+    kubeServiceCIDR: 10.233.0.0/18,fd00::/108
   storage:
     openebs:
       basePath: /var/openebs/local # base path of the local PV provisioner
   registry:
     registryMirrors: []
     insecureRegistries: []
-    privateRegistry: ""
+    privateRegistry: "dockerhub.kubekey.local"
     namespaceOverride: ""
     auths: # if docker add by `docker login`, if containerd append to `/etc/containerd/config.toml`
       "dockerhub.kubekey.local":

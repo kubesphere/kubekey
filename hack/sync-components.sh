@@ -45,6 +45,7 @@ CONTAINERD_VERSION=${CONTAINERD_VERSION}
 RUNC_VERSION=${RUNC_VERSION}
 COMPOSE_VERSION=${COMPOSE_VERSION}
 CALICO_VERSION=${CALICO_VERSION}
+CRI_DOCKER_VERSION=${CRI_DOCKER_VERSION}
 
 # qsctl
 QSCTL_ACCESS_KEY_ID=${QSCTL_ACCESS_KEY_ID}
@@ -94,13 +95,13 @@ if [ $KUBERNETES_VERSION ]; then
 
        qsctl cp binaries/kube/$KUBERNETES_VERSION/$arch/$binary \
              qs://kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary \
-             -c qsctl-config.yaml
+             -c qsctl-config.yaml -f
      done
    done
 
    chmod +x binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list | xargs -I {} skopeo sync --src docker --dest docker {} docker.io/$DOCKERHUB_NAMESPACE/${image##} --all
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list | xargs -I {} skopeo sync --src docker --dest docker {} registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/${image##} --all
+   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} skopeo sync --src docker --dest docker {} docker.io/$DOCKERHUB_NAMESPACE/${image##} --all
+   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} skopeo sync --src docker --dest docker {} registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/${image##} --all
 
    rm -rf binaries
 fi
@@ -116,6 +117,8 @@ if [ $HELM_VERSION ]; then
                 https://get.helm.sh/helm-$HELM_VERSION-linux-$arch.tar.gz
 
      tar -zxf binaries/helm/$HELM_VERSION/$arch/helm-$HELM_VERSION-linux-$arch.tar.gz -C binaries/helm/$HELM_VERSION/$arch
+
+     sha256sum binaries/helm/$HELM_VERSION/$arch/linux-$arch/helm
 
      qsctl cp $KUBERNETES_VERSION/$arch/linux-$arch/helm \
            qs://kubernetes-helm/linux-$arch/$HELM_VERSION/helm \
@@ -193,6 +196,8 @@ if [ $CRICTL_VERSION ]; then
      mkdir -p binaries/crictl/$CRICTL_VERSION/$arch
      echo "Synchronizing crictl-$arch"
 
+     sha256sum binaries/crictl/$CRICTL_VERSION/$arch/crictl-$CRICTL_VERSION-linux-$arch.tar.gz
+
      curl -L -o binaries/crictl/$CRICTL_VERSION/$arch/crictl-$CRICTL_VERSION-linux-$arch.tar.gz \
                 https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-$arch.tar.gz
 
@@ -232,11 +237,13 @@ if [ $CONTAINERD_VERSION ]; then
      mkdir -p binaries/containerd/$CONTAINERD_VERSION/$arch
      echo "Synchronizing containerd-$arch"
 
+     sha256sum binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz
+
      curl -L -o binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
                 https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz
 
      qsctl cp binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
-           qs://kubernetes-releas/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
+           qs://kubernetes-release/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
            -c qsctl-config.yaml
    done
 
@@ -250,6 +257,8 @@ if [ $RUNC_VERSION ]; then
      mkdir -p binaries/runc/$RUNC_VERSION/$arch
      echo "Synchronizing runc-$arch"
 
+     sha256sum binaries/runc/$RUNC_VERSION/$arch/runc.$arch
+
      curl -L -o binaries/runc/$RUNC_VERSION/$arch/runc.$arch \
                 https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$arch
 
@@ -262,7 +271,7 @@ if [ $RUNC_VERSION ]; then
 fi
 
 # Sync docker-compose Binary
-if [ $RUNC_VERSION ]; then
+if [ $COMPOSE_VERSION ]; then
    for arch in ${ARCHS[@]}
    do
      mkdir -p binaries/compose/$COMPOSE_VERSION/$arch
@@ -284,6 +293,26 @@ if [ $RUNC_VERSION ]; then
               -c qsctl-config.yaml
 
      fi
+   done
+
+   rm -rf binaries
+fi
+
+# Sync CRI_DDOCKER Binary
+if [ $CRI_DOCKER_VERSION ]; then
+   for arch in ${ARCHS[@]}
+   do
+     mkdir -p binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch
+     echo "Synchronizing cri-dockerd-$arch"
+
+     curl -L -o binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz \
+                https://github.com/Mirantis/cri-dockerd/releases/download/v$CRI_DOCKER_VERSION/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz
+
+     sha256sum binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz
+
+     qsctl cp binaries/cri-dockerd/$CRI_DOCKER_VERSION/$arch/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz \
+           qs://kubernetes-release/cri-dockerd/releases/download/v$CRI_DOCKER_VERSION/cri-dockerd-$CRI_DOCKER_VERSION.$arch.tgz \
+           -c qsctl-config.yaml
    done
 
    rm -rf binaries

@@ -20,14 +20,13 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/pkg/errors"
-
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/cache"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
+	"github.com/pkg/errors"
 )
 
 // K8sFilesDownloadHTTP defines the kubernetes' binaries that need to be downloaded in advance and downloads them.
@@ -40,6 +39,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	kubecni := files.NewKubeBinary("kubecni", arch, kubekeyapiv1alpha2.DefaultCniVersion, path, kubeConf.Arg.DownloadCommand)
 	helm := files.NewKubeBinary("helm", arch, kubekeyapiv1alpha2.DefaultHelmVersion, path, kubeConf.Arg.DownloadCommand)
 	docker := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, kubeConf.Arg.DownloadCommand)
+	criDockerd := files.NewKubeBinary("cri-dockerd", arch, kubekeyapiv1alpha2.DefaultCriDockerdVersion, path, kubeConf.Arg.DownloadCommand)
 	crictl := files.NewKubeBinary("crictl", arch, kubekeyapiv1alpha2.DefaultCrictlVersion, path, kubeConf.Arg.DownloadCommand)
 	containerd := files.NewKubeBinary("containerd", arch, kubekeyapiv1alpha2.DefaultContainerdVersion, path, kubeConf.Arg.DownloadCommand)
 	runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, kubeConf.Arg.DownloadCommand)
@@ -49,6 +49,9 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 
 	if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Docker {
 		binaries = append(binaries, docker)
+		if kubeConf.Cluster.Kubernetes.IsAtLeastV124() && kubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
+			binaries = append(binaries, criDockerd)
+		}
 	} else if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Containerd {
 		binaries = append(binaries, containerd, runc)
 	}

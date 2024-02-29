@@ -59,6 +59,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&kubernetes.RestartKubeletModule{},
 		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
+		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker"},
 		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
 		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
 		&etcd.CertsModule{},

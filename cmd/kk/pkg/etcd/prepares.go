@@ -38,7 +38,7 @@ func (f *FirstETCDNode) PreCheck(runtime connector.Runtime) (bool, error) {
 	cluster := v.(*EtcdCluster)
 
 	if (!cluster.clusterExist && runtime.GetHostsByRole(common.ETCD)[0].GetName() == runtime.RemoteHost().GetName()) ||
-		(cluster.clusterExist && strings.Contains(cluster.peerAddresses[0], runtime.RemoteHost().GetInternalAddress())) {
+		(cluster.clusterExist && strings.Contains(cluster.peerAddresses[0], runtime.RemoteHost().GetInternalIPv4Address())) {
 		return !f.Not, nil
 	}
 	return f.Not, nil

@@ -140,12 +140,19 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 		if host.Address != cfg.ControlPlaneEndpoint.Address {
 			extraCertSANs = append(extraCertSANs, host.Address)
 		}
-		if host.InternalAddress != host.Address && host.InternalAddress != cfg.ControlPlaneEndpoint.Address {
-			extraCertSANs = append(extraCertSANs, host.InternalAddress)
+
+		nodeAddresses := strings.Split(host.InternalAddress, ",")
+		InternalIPv4Address := nodeAddresses[0]
+		if InternalIPv4Address != host.Address && InternalIPv4Address != cfg.ControlPlaneEndpoint.Address {
+			extraCertSANs = append(extraCertSANs, InternalIPv4Address)
+		}
+		if len(nodeAddresses)==2 {
+			InternalIPv6Address := nodeAddresses[1]
+			extraCertSANs = append(extraCertSANs, InternalIPv6Address)
 		}
 	}
 
-	extraCertSANs = append(extraCertSANs, util.ParseIp(cfg.Network.KubeServiceCIDR)[0])
+	extraCertSANs = append(extraCertSANs, util.ParseIp(strings.Split(cfg.Network.KubeServiceCIDR, ",")[0])[0])
 
 	defaultCertSANs = append(defaultCertSANs, extraCertSANs...)
 
@@ -210,12 +217,12 @@ func toHosts(cfg HostCfg) *KubeHost {
 
 // ClusterIP is used to get the kube-apiserver service address inside the cluster.
 func (cfg *ClusterSpec) ClusterIP() string {
-	return util.ParseIp(cfg.Network.KubeServiceCIDR)[0]
+	return util.ParseIp(strings.Split(cfg.Network.KubeServiceCIDR, ",")[0])[0]
 }
 
 // CorednsClusterIP is used to get the coredns service address inside the cluster.
 func (cfg *ClusterSpec) CorednsClusterIP() string {
-	return util.ParseIp(cfg.Network.KubeServiceCIDR)[2]
+	return util.ParseIp(strings.Split(cfg.Network.KubeServiceCIDR, ",")[0])[2]
 }
 
 // ClusterDNS is used to get the dns server address inside the cluster.
