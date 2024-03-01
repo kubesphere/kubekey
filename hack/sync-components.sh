@@ -178,6 +178,8 @@ if [ $CALICO_VERSION ]; then
      curl -L -o binaries/calicoctl/$CALICO_VERSION/$arch/calicoctl-linux-$arch \
                 https://github.com/projectcalico/calico/releases/download/$CALICO_VERSION/calicoctl-linux-$arch
 
+     sha256sum binaries/calicoctl/$CALICO_VERSION/$arch/calicoctl-linux-$arch
+
      qsctl cp binaries/calicoctl/$CALICO_VERSION/$arch/calicoctl-linux-$arch \
            qs://kubernetes-release/projectcalico/calico/releases/download/$CALICO_VERSION/calicoctl-linux-$arch \
            -c qsctl-config.yaml
@@ -237,10 +239,10 @@ if [ $CONTAINERD_VERSION ]; then
      mkdir -p binaries/containerd/$CONTAINERD_VERSION/$arch
      echo "Synchronizing containerd-$arch"
 
-     sha256sum binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz
-
      curl -L -o binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
                 https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz
+
+     sha256sum binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz
 
      qsctl cp binaries/containerd/$CONTAINERD_VERSION/$arch/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
            qs://kubernetes-release/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-$arch.tar.gz \
@@ -257,10 +259,10 @@ if [ $RUNC_VERSION ]; then
      mkdir -p binaries/runc/$RUNC_VERSION/$arch
      echo "Synchronizing runc-$arch"
 
-     sha256sum binaries/runc/$RUNC_VERSION/$arch/runc.$arch
-
      curl -L -o binaries/runc/$RUNC_VERSION/$arch/runc.$arch \
                 https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$arch
+
+     sha256sum binaries/runc/$RUNC_VERSION/$arch/runc.$arch
 
      qsctl cp binaries/runc/$RUNC_VERSION/$arch/runc.$arch \
            qs://kubernetes-release/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$arch \
