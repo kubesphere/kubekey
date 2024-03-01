@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 )
 
 const (
@@ -43,12 +42,12 @@ const (
 	DefaultEtcdVersion             = "v3.5.6"
 	DefaultEtcdPort                = "2379"
 	DefaultDockerVersion           = "24.0.9"
-	DefaultCriDockerdVersion       = "0.3.9"
-	DefaultContainerdVersion       = "1.7.12"
-	DefaultRuncVersion             = "v1.1.11"
+	DefaultCriDockerdVersion       = "0.3.10"
+	DefaultContainerdVersion       = "1.7.13"
+	DefaultRuncVersion             = "v1.1.12"
 	DefaultCrictlVersion           = "v1.29.0"
 	DefaultKubeVersion             = "v1.23.15"
-	DefaultCalicoVersion           = "v3.26.1"
+	DefaultCalicoVersion           = "v3.27.2"
 	DefaultFlannelVersion          = "v0.21.3"
 	DefaultFlannelCniPluginVersion = "v1.1.2"
 	DefaultCniVersion              = "v1.2.0"
@@ -203,7 +202,7 @@ func SetDefaultLBCfg(cfg *ClusterSpec, masterGroup []*KubeHost) ControlPlaneEndp
 	}
 
 	if (cfg.ControlPlaneEndpoint.Address == "" && !cfg.ControlPlaneEndpoint.EnableExternalDNS()) || cfg.ControlPlaneEndpoint.Address == "127.0.0.1" {
-		cfg.ControlPlaneEndpoint.Address = masterGroup[0].InternalAddress
+		cfg.ControlPlaneEndpoint.Address = masterGroup[0].GetInternalIPv4Address()
 	}
 	if cfg.ControlPlaneEndpoint.Domain == "" {
 		cfg.ControlPlaneEndpoint.Domain = DefaultLBDomain
@@ -318,7 +317,7 @@ func SetDefaultClusterCfg(cfg *ClusterSpec) Kubernetes {
 	if cfg.Kubernetes.ContainerRuntimeEndpoint == "" {
 		switch cfg.Kubernetes.ContainerManager {
 		case Docker:
-			if kubernetes.IsAtLeastV124(cfg.Kubernetes.Version) {
+			if cfg.Kubernetes.IsAtLeastV124() {
 				cfg.Kubernetes.ContainerRuntimeEndpoint = DefaultCriDockerdEndpoint
 			} else {
 				cfg.Kubernetes.ContainerRuntimeEndpoint = ""

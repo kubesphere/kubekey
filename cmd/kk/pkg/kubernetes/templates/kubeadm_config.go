@@ -96,7 +96,12 @@ apiServer:
 {{- end }}
 controllerManager:
   extraArgs:
+{{- if .IPv6Support }}
+    node-cidr-mask-size-ipv4: "{{ .NodeCidrMaskSize }}"
+    node-cidr-mask-size-ipv6: "64"
+{{- else }}
     node-cidr-mask-size: "{{ .NodeCidrMaskSize }}"
+{{- end }}
 {{ toYaml .ControllerManagerArgs | indent 4 }}
   extraVolumes:
   - name: host-time

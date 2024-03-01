@@ -103,16 +103,3 @@ func SupportedK8sVersionList() []string {
 
 	return versionsList
 }
-
-func IsAtLeastV124(clusterVersion string) bool {
-	parsedVersion, err := versionutil.ParseGeneric(clusterVersion)
-	if err != nil {
-		return false
-	}
-
-	if parsedVersion.AtLeast(versionutil.MustParseSemantic("v1.24.0")) {
-		return true
-	}
-
-	return false
-}

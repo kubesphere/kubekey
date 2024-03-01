@@ -103,6 +103,10 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 		pauseTag = "3.8"
 		corednsTag = "1.9.3"
 	}
+	if versionutil.MustParseSemantic(kubeConf.Cluster.Kubernetes.Version).AtLeast(versionutil.MustParseSemantic("v1.26.0")) {
+		pauseTag = "3.9"
+		corednsTag = "1.9.3"
+	}
 
 	logger.Log.Debugf("pauseTag: %s, corednsTag: %s", pauseTag, corednsTag)
 

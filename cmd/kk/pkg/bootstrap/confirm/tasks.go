@@ -28,7 +28,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
 	"github.com/pkg/errors"
@@ -107,17 +106,18 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	fmt.Println("https://github.com/kubesphere/kubekey#requirements-and-recommendations")
 	fmt.Println("")
 
-	if kubernetes.IsAtLeastV124(i.KubeConf.Cluster.Kubernetes.Version) && i.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker &&
-		i.KubeConf.Cluster.Kubernetes.Type != common.Kubernetes {
+	if i.KubeConf.Cluster.Kubernetes.IsAtLeastV124() && i.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
 		fmt.Println("[Notice]")
-		fmt.Println("Incorrect runtime. Please specify a container runtime other than Docker to install Kubernetes v1.24 or later.")
+		fmt.Println("For Kubernetes v1.24 and later, dockershim has been deprecated.")
+		fmt.Println("Current runtime is set to Docker and `cri-dockerd` will be installed to support Kubernetes v1.24 and later.")
+		fmt.Println("Yoc can also specify a container runtime other than Docker to install Kubernetes v1.24 or later.")
 		fmt.Println("You can set \"spec.kubernetes.containerManager\" in the configuration file to \"containerd\" or add \"--container-manager containerd\" to the \"./kk create cluster\" command.")
 		fmt.Println("For more information, see:")
 		fmt.Println("https://github.com/kubesphere/kubekey/blob/master/docs/commands/kk-create-cluster.md")
 		fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
 		fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
+		fmt.Println("https://github.com/Mirantis/cri-dockerd")
 		fmt.Println("")
-		stopFlag = true
 	}
 
 	if stopFlag {
@@ -260,14 +260,29 @@ Warning:
 			k8sV124 := versionutil.MustParseSemantic("v1.24.0")
 			if k8sVersion.AtLeast(k8sV124) && versionutil.MustParseSemantic(currentK8sVersion).LessThan(k8sV124) && strings.Contains(cri, "docker") {
 				fmt.Println("[Notice]")
-				fmt.Println("Pre-upgrade check failed. The container runtime of the current cluster is Docker.")
-				fmt.Println("Kubernetes v1.24 and later no longer support dockershim and Docker.")
-				fmt.Println("Make sure you have completed the migration from Docker to other container runtimes that are compatible with the Kubernetes CRI.")
+				fmt.Println("For Kubernetes v1.24 and later, dockershim has been deprecated.")
+				fmt.Println("The container runtime of the current cluster is Docker, `cri-dockerd` will be installed to support Kubernetes v1.24 and later.")
+				fmt.Println("You can also migrate container runtime from Docker to other runtimes that are compatible with the Kubernetes CRI.")
 				fmt.Println("For more information, see:")
 				fmt.Println("https://kubernetes.io/docs/setup/production-environment/container-runtimes/#container-runtimes")
 				fmt.Println("https://kubernetes.io/blog/2022/02/17/dockershim-faq/")
+				fmt.Println("https://github.com/Mirantis/cri-dockerd")
+				fmt.Println("https://kubernetes.io/docs/tasks/administer-cluster/migrating-from-dockershim/change-runtime-containerd/")
 				fmt.Println("")
 			}
+		}
+	}
+
+	if featureGates, ok := u.PipelineCache.GetMustString(common.ClusterFeatureGates); ok {
+		if featureGates != "" {
+			fmt.Println("[Notice]")
+			fmt.Println("The feature-gates in the cluster is as follow:")
+			fmt.Println("")
+			fmt.Printf("         %s\n", featureGates)
+			fmt.Println("")
+			fmt.Println("Please ensure that there are no deprecated feature-gate in the target version.")
+			fmt.Println("You can modify the feature-gates in `kubeadm-config` and `kubelet-config` configmaps in the kube-system namespace.")
+			fmt.Println("")
 		}
 	}
 

@@ -30,7 +30,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
-	versionk8s "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 )
 
 type InstallContainerModule struct {
@@ -70,19 +69,6 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 			&DockerExist{Not: true},
 		},
 		Action:   new(SyncDockerBinaries),
-		Parallel: true,
-		Retry:    2,
-	}
-
-	syncCriDockerdBinaries := &task.RemoteTask{
-		Name:  "SyncCriDockerdBinaries",
-		Desc:  "Sync cri-dockerd binaries",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&CriDockerdExist{Not: true},
-		},
-		Action:   new(SyncCriDockerdBinaries),
 		Parallel: true,
 		Retry:    2,
 	}
@@ -175,48 +161,6 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
-	generateCriDockerdService := &task.RemoteTask{
-		Name:  "GenerateCriDockerdService",
-		Desc:  "Generate cri-dockerd service",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&CriDockerdExist{Not: true},
-		},
-		Action: &action.Template{
-			Template: templates.CriDockerService,
-			Dst:      filepath.Join("/etc/systemd/system", templates.CriDockerService.Name()),
-		},
-		Parallel: true,
-	}
-
-	enableCriDockerd := &task.RemoteTask{
-		Name:  "EnableCriDockerd",
-		Desc:  "Enable cri-dockerd",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&CriDockerdExist{Not: true},
-		},
-		Action:   new(EnableCriDockerd),
-		Parallel: true,
-	}
-
-	if versionk8s.IsAtLeastV124(m.KubeConf.Cluster.Kubernetes.Version) && m.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
-		return []task.Interface{
-			syncBinaries,
-			syncCriDockerdBinaries,
-			generateContainerdService,
-			generateDockerService,
-			generateDockerConfig,
-			enableContainerdForDocker,
-			enableDocker,
-			dockerLoginRegistry,
-			generateCriDockerdService,
-			enableCriDockerd,
-		}
-	}
-
 	return []task.Interface{
 		syncBinaries,
 		generateContainerdService,
@@ -238,19 +182,6 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 			&ContainerdExist{Not: true},
 		},
 		Action:   new(SyncContainerd),
-		Parallel: true,
-		Retry:    2,
-	}
-
-	syncCrictlBinaries := &task.RemoteTask{
-		Name:  "SyncCrictlBinaries",
-		Desc:  "Sync crictl binaries",
-		Hosts: m.Runtime.GetHostsByRole(common.K8s),
-		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&CrictlExist{Not: true},
-		},
-		Action:   new(SyncCrictlBinaries),
 		Parallel: true,
 		Retry:    2,
 	}
@@ -292,6 +223,31 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
+	enableContainerd := &task.RemoteTask{
+		Name:  "EnableContainerd",
+		Desc:  "Enable containerd",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action:   new(EnableContainerd),
+		Parallel: true,
+	}
+
+	syncCrictlBinaries := &task.RemoteTask{
+		Name:  "SyncCrictlBinaries",
+		Desc:  "Sync crictl binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&CrictlExist{Not: true},
+		},
+		Action:   new(SyncCrictlBinaries),
+		Parallel: true,
+		Retry:    2,
+	}
+
 	generateCrictlConfig := &task.RemoteTask{
 		Name:  "GenerateCrictlConfig",
 		Desc:  "Generate crictl config",
@@ -310,25 +266,104 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
-	enableContainerd := &task.RemoteTask{
-		Name:  "EnableContainerd",
-		Desc:  "Enable containerd",
+	return []task.Interface{
+		syncContainerd,
+		generateContainerdService,
+		generateContainerdConfig,
+		enableContainerd,
+		syncCrictlBinaries,
+		generateCrictlConfig,
+	}
+}
+
+type InstallCriDockerdModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (m *InstallCriDockerdModule) Init() {
+	m.Name = "InstallCriDockerdModule"
+	m.Desc = "Install cri-dockerd"
+
+	syncCriDockerdBinaries := &task.RemoteTask{
+		Name:  "SyncCriDockerdBinaries",
+		Desc:  "Sync cri-dockerd binaries",
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
 		Prepare: &prepare.PrepareCollection{
-			&kubernetes.NodeInCluster{Not: true},
-			&ContainerdExist{Not: true},
+			&CriDockerdExist{Not: true},
+			&common.AtLeastV124{},
 		},
-		Action:   new(EnableContainerd),
+		Action:   new(SyncCriDockerdBinaries),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	generateCriDockerdService := &task.RemoteTask{
+		Name:  "GenerateCriDockerdService",
+		Desc:  "Generate cri-dockerd service",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&CriDockerdExist{Not: true},
+			&common.AtLeastV124{},
+		},
+		Action: &action.Template{
+			Template: templates.CriDockerService,
+			Dst:      filepath.Join("/etc/systemd/system", templates.CriDockerService.Name()),
+			Data: util.Data{
+				"SandBoxImage": images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
+			},
+		},
 		Parallel: true,
 	}
 
-	return []task.Interface{
-		syncContainerd,
+	enableCriDockerd := &task.RemoteTask{
+		Name:  "EnableCriDockerd",
+		Desc:  "Enable cri-dockerd",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&CriDockerdExist{Not: true},
+			&common.AtLeastV124{},
+		},
+		Action:   new(EnableCriDockerd),
+		Parallel: true,
+	}
+
+	syncCrictlBinaries := &task.RemoteTask{
+		Name:  "SyncCrictlBinaries",
+		Desc:  "Sync crictl binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&CrictlExist{Not: true},
+			&common.AtLeastV124{},
+		},
+		Action:   new(SyncCrictlBinaries),
+		Parallel: true,
+		Retry:    2,
+	}
+
+	generateCrictlConfig := &task.RemoteTask{
+		Name:  "GenerateCrictlConfig",
+		Desc:  "Generate crictl config",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&common.AtLeastV124{},
+		},
+		Action: &action.Template{
+			Template: templates.CrictlConfig,
+			Dst:      filepath.Join("/etc/", templates.CrictlConfig.Name()),
+			Data: util.Data{
+				"Endpoint": m.KubeConf.Cluster.Kubernetes.ContainerRuntimeEndpoint,
+			},
+		},
+		Parallel: true,
+	}
+
+	m.Tasks = []task.Interface{
+		syncCriDockerdBinaries,
+		generateCriDockerdService,
+		enableCriDockerd,
 		syncCrictlBinaries,
-		generateContainerdService,
-		generateContainerdConfig,
 		generateCrictlConfig,
-		enableContainerd,
 	}
 }
 

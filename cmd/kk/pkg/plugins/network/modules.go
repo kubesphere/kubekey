@@ -92,34 +92,7 @@ func deployMultus(d *DeployNetworkPluginModule) []task.Interface {
 }
 
 func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
-	generateCalicoOld := &task.RemoteTask{
-		Name:  "GenerateCalico",
-		Desc:  "Generate calico",
-		Hosts: d.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			new(OldK8sVersion),
-		},
-		Action: &action.Template{
-			Template: templates.CalicoOld,
-			Dst:      filepath.Join(common.KubeConfigDir, templates.CalicoOld.Name()),
-			Data: util.Data{
-				"KubePodsCIDR":           d.KubeConf.Cluster.Network.KubePodsCIDR,
-				"CalicoCniImage":         images.GetImage(d.Runtime, d.KubeConf, "calico-cni").ImageName(),
-				"CalicoNodeImage":        images.GetImage(d.Runtime, d.KubeConf, "calico-node").ImageName(),
-				"CalicoFlexvolImage":     images.GetImage(d.Runtime, d.KubeConf, "calico-flexvol").ImageName(),
-				"CalicoControllersImage": images.GetImage(d.Runtime, d.KubeConf, "calico-kube-controllers").ImageName(),
-				"TyphaEnabled":           len(d.Runtime.GetHostsByRole(common.K8s)) > 50 || d.KubeConf.Cluster.Network.Calico.Typha(),
-				"VethMTU":                d.KubeConf.Cluster.Network.Calico.VethMTU,
-				"NodeCidrMaskSize":       d.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
-				"IPIPMode":               d.KubeConf.Cluster.Network.Calico.IPIPMode,
-				"VXLANMode":              d.KubeConf.Cluster.Network.Calico.VXLANMode,
-			},
-		},
-		Parallel: true,
-	}
-
-	generateCalicoNew := &task.RemoteTask{
+	generateCalicoManifests := &task.RemoteTask{
 		Name:  "GenerateCalico",
 		Desc:  "Generate calico",
 		Hosts: d.Runtime.GetHostsByRole(common.Master),
@@ -127,26 +100,7 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 			new(common.OnlyFirstMaster),
 			&OldK8sVersion{Not: true},
 		},
-		Action: &action.Template{
-			Template: templates.CalicoNew,
-			Dst:      filepath.Join(common.KubeConfigDir, templates.CalicoNew.Name()),
-			Data: util.Data{
-				"KubePodsCIDR":            d.KubeConf.Cluster.Network.KubePodsCIDR,
-				"CalicoCniImage":          images.GetImage(d.Runtime, d.KubeConf, "calico-cni").ImageName(),
-				"CalicoNodeImage":         images.GetImage(d.Runtime, d.KubeConf, "calico-node").ImageName(),
-				"CalicoFlexvolImage":      images.GetImage(d.Runtime, d.KubeConf, "calico-flexvol").ImageName(),
-				"CalicoControllersImage":  images.GetImage(d.Runtime, d.KubeConf, "calico-kube-controllers").ImageName(),
-				"CalicoTyphaImage":        images.GetImage(d.Runtime, d.KubeConf, "calico-typha").ImageName(),
-				"TyphaEnabled":            len(d.Runtime.GetHostsByRole(common.K8s)) > 50 || d.KubeConf.Cluster.Network.Calico.Typha(),
-				"VethMTU":                 d.KubeConf.Cluster.Network.Calico.VethMTU,
-				"NodeCidrMaskSize":        d.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
-				"IPIPMode":                d.KubeConf.Cluster.Network.Calico.IPIPMode,
-				"VXLANMode":               d.KubeConf.Cluster.Network.Calico.VXLANMode,
-				"ConatinerManagerIsIsula": d.KubeConf.Cluster.Kubernetes.ContainerManager == "isula",
-				"IPV4POOLNATOUTGOING":     d.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),
-				"DefaultIPPOOL":           d.KubeConf.Cluster.Network.Calico.EnableDefaultIPPOOL(),
-			},
-		},
+		Action:   new(GenerateCalicoManifests),
 		Parallel: true,
 	}
 
@@ -160,16 +114,9 @@ func deployCalico(d *DeployNetworkPluginModule) []task.Interface {
 		Retry:    5,
 	}
 
-	if K8sVersionAtLeast(d.KubeConf.Cluster.Kubernetes.Version, "v1.16.0") {
-		return []task.Interface{
-			generateCalicoNew,
-			deploy,
-		}
-	} else {
-		return []task.Interface{
-			generateCalicoOld,
-			deploy,
-		}
+	return []task.Interface{
+		generateCalicoManifests,
+		deploy,
 	}
 }
 

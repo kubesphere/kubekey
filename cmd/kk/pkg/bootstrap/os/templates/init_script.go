@@ -18,8 +18,9 @@ package templates
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
 	"text/template"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
 
 	"github.com/lithammer/dedent"
 
@@ -93,6 +94,12 @@ echo 'fs.aio-max-nr = 262144' >> /etc/sysctl.conf
 echo 'kernel.pid_max = 65535' >> /etc/sysctl.conf
 echo 'kernel.watchdog_thresh = 5' >> /etc/sysctl.conf
 echo 'kernel.hung_task_timeout_secs = 5' >> /etc/sysctl.conf
+
+#add for ipv6
+echo 'net.ipv6.conf.all.disable_ipv6 = 0' >> /etc/sysctl.conf
+echo 'net.ipv6.conf.default.disable_ipv6 = 0' >> /etc/sysctl.conf
+echo 'net.ipv6.conf.lo.disable_ipv6 = 0' >> /etc/sysctl.conf
+echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
 
 #See https://help.aliyun.com/document_detail/118806.html#uicontrol-e50-ddj-w0y
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1|2)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
@@ -221,12 +228,19 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	if kubeConf.Cluster.ControlPlaneEndpoint.Address != "" {
 		lbHost = fmt.Sprintf("%s  %s", kubeConf.Cluster.ControlPlaneEndpoint.Address, kubeConf.Cluster.ControlPlaneEndpoint.Domain)
+	} else {
+		lbHost = fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Master)[0].GetInternalIPv4Address(), kubeConf.Cluster.ControlPlaneEndpoint.Domain)
 	}
 
 	for _, host := range runtime.GetAllHosts() {
 		if host.GetName() != "" {
 			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				host.GetInternalAddress(),
+				host.GetInternalIPv4Address(),
+				host.GetName(),
+				kubeConf.Cluster.Kubernetes.ClusterName,
+				host.GetName()))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
+				host.GetInternalIPv6Address(),
 				host.GetName(),
 				kubeConf.Cluster.Kubernetes.ClusterName,
 				host.GetName()))
@@ -235,9 +249,16 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	if len(runtime.GetHostsByRole(common.Registry)) > 0 {
 		if kubeConf.Cluster.Registry.PrivateRegistry != "" {
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), kubeConf.Cluster.Registry.PrivateRegistry))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), kubeConf.Cluster.Registry.PrivateRegistry))
+			if runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address() != "" {
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address(), kubeConf.Cluster.Registry.PrivateRegistry))
+			}
+
 		} else {
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalAddress(), registry.RegistryCertificateBaseName))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), registry.RegistryCertificateBaseName))
+			if runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address() != "" {
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address(), registry.RegistryCertificateBaseName))
+			}
 		}
 
 	}

@@ -26,7 +26,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
 	"github.com/pkg/errors"
 )
 
@@ -50,7 +49,7 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 
 	if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Docker {
 		binaries = append(binaries, docker)
-		if kubernetes.IsAtLeastV124(kubeConf.Cluster.Kubernetes.Version) && kubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
+		if kubeConf.Cluster.Kubernetes.IsAtLeastV124() && kubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
 			binaries = append(binaries, criDockerd)
 		}
 	} else if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Containerd {

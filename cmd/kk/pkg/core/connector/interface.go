@@ -70,6 +70,8 @@ type Host interface {
 	GetAddress() string
 	SetAddress(str string)
 	GetInternalAddress() string
+	GetInternalIPv4Address() string
+	GetInternalIPv6Address() string
 	SetInternalAddress(str string)
 	GetPort() int
 	SetPort(port int)
