@@ -105,7 +105,7 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 
 	var altName cert.AltNames
 
-	dnsList := []string{"localhost", g.KubeConf.Cluster.Registry.PrivateRegistry}
+	dnsList := []string{"localhost", g.KubeConf.Cluster.Registry.GetHost()}
 	ipList := []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
 
 	for _, h := range runtime.GetHostsByRole(common.Registry) {
@@ -115,13 +115,13 @@ func (g *GenerateCerts) Execute(runtime connector.Runtime) error {
 	altName.DNSNames = dnsList
 	altName.IPs = ipList
 
-	files := []string{"ca.pem", "ca-key.pem", fmt.Sprintf("%s.pem", g.KubeConf.Cluster.Registry.PrivateRegistry), fmt.Sprintf("%s-key.pem", g.KubeConf.Cluster.Registry.PrivateRegistry)}
+	files := []string{"ca.pem", "ca-key.pem", fmt.Sprintf("%s.pem", g.KubeConf.Cluster.Registry.GetHost()), fmt.Sprintf("%s-key.pem", g.KubeConf.Cluster.Registry.GetHost())}
 
 	// CA
 	certsList := []*certs.KubekeyCert{KubekeyCertRegistryCA()}
 
 	// Certs
-	certsList = append(certsList, KubekeyCertRegistryServer(g.KubeConf.Cluster.Registry.PrivateRegistry, &altName))
+	certsList = append(certsList, KubekeyCertRegistryServer(g.KubeConf.Cluster.Registry.GetHost(), &altName))
 
 	var lastCACert *certs.KubekeyCert
 	for _, c := range certsList {
