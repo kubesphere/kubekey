@@ -74,5 +74,6 @@ func (c *localConnector) FetchFile(ctx context.Context, remoteFile string, local
 }
 
 func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
-	return c.Cmd.CommandContext(ctx, cmd).CombinedOutput()
+	klog.V(4).InfoS("exec local command", "cmd", cmd)
+	return c.Cmd.CommandContext(ctx, "/bin/sh", "-c", cmd).CombinedOutput()
 }

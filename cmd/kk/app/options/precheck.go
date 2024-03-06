@@ -18,47 +18,39 @@ package options
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
 
-type PreCheckOptions struct {
-	// Playbook which to execute.
-	Playbook string
-	// HostFile is the path of host file
-	InventoryFile string
-	// ConfigFile is the path of config file
-	ConfigFile string
-	// WorkDir is the baseDir which command find any resource (project etc.)
-	WorkDir string
-	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
-	Debug bool
-}
-
-func NewPreCheckOption() *PreCheckOptions {
-	o := &PreCheckOptions{
-		WorkDir: "/var/lib/kubekey",
+func NewPreCheckOptions() *PreCheckOptions {
+	// set default value
+	o := &PreCheckOptions{}
+	wd, err := os.Getwd()
+	if err != nil {
+		klog.ErrorS(err, "get current dir error")
+		o.WorkDir = "/tmp/kk"
+	} else {
+		o.WorkDir = wd
 	}
 	return o
 }
 
-func (o *PreCheckOptions) Flags() cliflag.NamedFlagSets {
-	fss := cliflag.NamedFlagSets{}
-	gfs := fss.FlagSet("generic")
-	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
-	gfs.StringVar(&o.ConfigFile, "config", o.ConfigFile, "the config file path. support *.yaml ")
-	gfs.StringVar(&o.InventoryFile, "inventory", o.InventoryFile, "the host list file path. support *.ini")
-	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
-
-	return fss
+type PreCheckOptions struct {
+	CommonOptions
 }
 
-func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, error) {
-	kk := &kubekeyv1.Pipeline{
+func (o *PreCheckOptions) Flags() cliflag.NamedFlagSets {
+	return o.CommonOptions.Flags()
+}
+
+func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, *kubekeyv1.Config, *kubekeyv1.Inventory, error) {
+	pipeline := &kubekeyv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "precheck-",
 			Namespace:    metav1.NamespaceDefault,
@@ -72,12 +64,19 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv
 	if len(args) == 1 {
 		o.Playbook = args[0]
 	} else {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 
-	kk.Spec = kubekeyv1.PipelineSpec{
+	pipeline.Spec = kubekeyv1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
-	return kk, nil
+	config, inventory, err := completeRef(pipeline, o.ConfigFile, o.InventoryFile)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err := config.SetValue("work_dir", o.WorkDir); err != nil {
+		return nil, nil, nil, err
+	}
+	return pipeline, config, inventory, nil
 }

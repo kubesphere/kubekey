@@ -184,6 +184,7 @@ func (p ParentLocation) filter(data value) (any, error) {
 // LocationVars get all variable for location
 type LocationVars struct {
 	// HostName which host obtain the variable
+	// if HostName is empty. get value from global
 	HostName string
 	// LocationUID locate which variable belong to
 	LocationUID string
@@ -191,31 +192,31 @@ type LocationVars struct {
 
 func (b LocationVars) filter(data value) (any, error) {
 	var result VariableData
-	// find from host runtime
-	if v, ok := data.Hosts[b.HostName].RuntimeVars[b.LocationUID]; ok {
-		result = mergeVariables(result, v)
-	}
-	// find
-
-	// merge location variable
-	var mergeLocationVarsFunc func(uid string)
-	mergeLocationVarsFunc = func(uid string) {
-		// find value from task
-		if v, ok := data.Hosts[b.HostName].RuntimeVars[uid]; ok {
+	if b.HostName != "" {
+		// find from host runtime
+		if v, ok := data.Hosts[b.HostName].RuntimeVars[b.LocationUID]; ok {
 			result = mergeVariables(result, v)
-
 		}
-		if loc := findLocation(data.Location, uid); loc != nil {
-			result = mergeVariables(result, loc.Vars)
-			if loc.PUID != "" {
-				mergeLocationVarsFunc(loc.PUID)
+
+		// merge location variable
+		var mergeLocationVarsFunc func(uid string)
+		mergeLocationVarsFunc = func(uid string) {
+			// find value from task
+			if v, ok := data.Hosts[b.HostName].RuntimeVars[uid]; ok {
+				result = mergeVariables(result, v)
+			}
+			if loc := findLocation(data.Location, uid); loc != nil {
+				result = mergeVariables(result, loc.Vars)
+				if loc.PUID != "" {
+					mergeLocationVarsFunc(loc.PUID)
+				}
 			}
 		}
-	}
-	mergeLocationVarsFunc(b.LocationUID)
+		mergeLocationVarsFunc(b.LocationUID)
 
-	// get value from host
-	result = mergeVariables(result, data.Hosts[b.HostName].Vars)
+		// get value from host
+		result = mergeVariables(result, data.Hosts[b.HostName].Vars)
+	}
 
 	// get value from global
 	result = mergeVariables(result, data.getGlobalVars(b.HostName))
@@ -300,6 +301,9 @@ func (f DependencyTasks) getDependencyLocationUIDS(data value, loc *location) (D
 
 	// if tasks has failed. execute current task.
 	failedExecuteStrategy := func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
+		if len(tasks) == 0 { // non-dependency
+			return kubekeyv1alpha1.TaskPhaseRunning
+		}
 		skip := true
 		for _, t := range tasks {
 			if !t.IsComplete() {
@@ -320,6 +324,9 @@ func (f DependencyTasks) getDependencyLocationUIDS(data value, loc *location) (D
 
 	// If dependency tasks has failed. skip it.
 	succeedExecuteStrategy := func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
+		if len(tasks) == 0 { // non-dependency
+			return kubekeyv1alpha1.TaskPhaseRunning
+		}
 		skip := true
 		for _, t := range tasks {
 			if !t.IsComplete() {
@@ -341,6 +348,9 @@ func (f DependencyTasks) getDependencyLocationUIDS(data value, loc *location) (D
 	// If dependency tasks is not complete. waiting.
 	// If dependency tasks is skipped. skip.
 	alwaysExecuteStrategy := func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
+		if len(tasks) == 0 { // non-dependency
+			return kubekeyv1alpha1.TaskPhaseRunning
+		}
 		skip := true
 		for _, t := range tasks {
 			if !t.IsComplete() {

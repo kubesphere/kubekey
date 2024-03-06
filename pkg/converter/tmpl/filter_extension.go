@@ -32,7 +32,8 @@ func init() {
 	pongo2.RegisterFilter("version", filterVersion)
 	pongo2.RegisterFilter("pow", filterPow)
 	pongo2.RegisterFilter("match", filterMatch)
-	pongo2.RegisterFilter("basename", filterBasename)
+	pongo2.RegisterFilter("base", filterBasename)
+	pongo2.RegisterFilter("trim", filterTrim)
 }
 
 func filterDefined(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
@@ -98,4 +99,8 @@ func filterMatch(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.
 
 func filterBasename(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	return pongo2.AsValue(filepath.Base(in.String())), nil
+}
+
+func filterTrim(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+	return pongo2.AsValue(strings.TrimPrefix(in.String(), param.String())), nil
 }

@@ -222,7 +222,20 @@ func (k *taskController) createTasks(ctx context.Context, v variable.Variable, p
 
 		uid := uuid.NewString()
 		atWhen := append(when, at.When.Data...)
-		if len(at.Block) != 0 {
+		switch {
+		case len(at.Block) != 0: // block
+			// add location variable
+			if err := v.Merge(variable.LocationMerge{
+				UID:       uid,
+				ParentUID: puid,
+				Type:      locationType,
+				Name:      at.Name,
+				Vars:      at.Vars,
+			}); err != nil {
+				klog.V(4).ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				return nil, err
+			}
+
 			// add block
 			block, err := k.createTasks(ctx, v, pipeline, at.Block, atWhen, uid, variable.BlockLocation)
 			if err != nil {
@@ -247,7 +260,22 @@ func (k *taskController) createTasks(ctx context.Context, v variable.Variable, p
 				}
 				tasks = append(tasks, rescue...)
 			}
-		} else {
+		case at.IncludeTasks != "": // include_task
+			// do nothing
+			at.Name = at.IncludeTasks
+
+			// add location variable
+			if err := v.Merge(variable.LocationMerge{
+				UID:       uid,
+				ParentUID: puid,
+				Type:      locationType,
+				Name:      at.Name,
+				Vars:      at.Vars,
+			}); err != nil {
+				klog.V(4).ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				return nil, err
+			}
+		default: // task
 			task := converter.MarshalBlock(context.WithValue(ctx, _const.CtxBlockWhen, atWhen), at)
 			// complete by pipeline
 			task.GenerateName = pipeline.Name + "-"
@@ -280,18 +308,20 @@ func (k *taskController) createTasks(ctx context.Context, v variable.Variable, p
 			}
 			uid = string(task.UID)
 			tasks = append(tasks, *task)
+
+			// add location variable
+			if err := v.Merge(variable.LocationMerge{
+				UID:       uid,
+				ParentUID: puid,
+				Type:      locationType,
+				Name:      at.Name,
+				Vars:      at.Vars,
+			}); err != nil {
+				klog.V(4).ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				return nil, err
+			}
 		}
-		// add block vars to location variable
-		if err := v.Merge(variable.LocationMerge{
-			UID:       uid,
-			ParentUID: puid,
-			Type:      locationType,
-			Name:      at.Name,
-			Vars:      at.Vars,
-		}); err != nil {
-			klog.V(4).ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
-			return nil, err
-		}
+
 	}
 	return tasks, nil
 }

@@ -86,12 +86,12 @@
     that: inventory_hostname | match:regex
     fail_msg: "Hostname must consist of lower case alphanumeric characters, '.' or '-', and must start and end with an alphanumeric character"
 
-- name: Stop if etcd deployment type is not host, docker or kubeadm
+- name: Stop if etcd deployment type is not kubekey, external or kubeadm
   vars:
     require_etcd_deployment_type: ['kubekey', 'external', 'kubeadm']
   assert:
     that: etcd_deployment_type in require_etcd_deployment_type
-    fail_msg: "The etcd deployment type, 'etcd_deployment_type', must be host, docker or kubeadm"
+    fail_msg: "The etcd deployment type, 'etcd_deployment_type', must be kubekey, external or kubeadm"
   when:
     - inventory_hostname in groups['etcd']
 

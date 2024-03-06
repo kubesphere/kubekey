@@ -123,6 +123,7 @@ func (c *sshConnector) FetchFile(ctx context.Context, remoteFile string, local i
 }
 
 func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
+	klog.V(4).InfoS("exec ssh command", "cmd", cmd)
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {

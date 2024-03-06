@@ -19,6 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"regexp"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,7 +100,7 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 
 	defer func() {
 		if task.IsComplete() {
-			klog.Infof("[Task %s] is complete.Result is: %s", request.String(), task.Status.Phase)
+			klog.Infof("[Task %s] \"%s\" is complete.Result is: %s", request.String(), task.Spec.Name, task.Status.Phase)
 		}
 		var nsTasks = &kubekeyv1alpha1.TaskList{}
 		klog.V(5).InfoS("update pipeline status", "task", request.String(), "pipeline", ctrlclient.ObjectKeyFromObject(pipeline).String())
@@ -160,14 +163,16 @@ func (r *TaskReconciler) dealPendingTask(ctx context.Context, options taskReconc
 	}
 
 	var nsTasks = &kubekeyv1alpha1.TaskList{}
-	if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(options.Pipeline.Namespace), ctrlclient.MatchingFields{
-		kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(options.Pipeline).String(),
-	}); err != nil {
-		klog.V(5).ErrorS(err, "list task error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
-		return ctrl.Result{}, err
+	if len(dt.Tasks) != 0 {
+		if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(options.Pipeline.Namespace), ctrlclient.MatchingFields{
+			kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(options.Pipeline).String(),
+		}); err != nil {
+			klog.V(5).ErrorS(err, "list task error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
+			return ctrl.Result{}, err
+		}
 	}
 	var dts []kubekeyv1alpha1.Task
-	for _, t := range nsTasks.Items {
+	for _, t := range nsTasks.Items { // if dependency tasks is empty, skip
 		if slices.Contains(dt.Tasks, string(t.UID)) {
 			dts = append(dts, t)
 		}
@@ -195,12 +200,129 @@ func (r *TaskReconciler) dealPendingTask(ctx context.Context, options taskReconc
 }
 
 func (r *TaskReconciler) dealRunningTask(ctx context.Context, options taskReconcileOptions) (ctrl.Result, error) {
+	if err := r.prepareTask(ctx, options); err != nil {
+		klog.V(5).ErrorS(err, "prepare task error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
+		return ctrl.Result{}, nil
+	}
 	// find task in location
 	if err := r.executeTask(ctx, options); err != nil {
 		klog.V(5).ErrorS(err, "execute task error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *TaskReconciler) prepareTask(ctx context.Context, options taskReconcileOptions) error {
+	// trans variable to location
+	// if variable contains template syntax. parse it and store in host.
+	for _, h := range options.Task.Spec.Hosts {
+		host := h
+		lg, err := options.Variable.Get(variable.LocationVars{
+			HostName:    host,
+			LocationUID: string(options.Task.UID),
+		})
+		if err != nil {
+			klog.V(5).ErrorS(err, "get location variable error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
+			options.Task.Status.Phase = kubekeyv1alpha1.TaskPhaseFailed
+			options.Task.Status.FailedDetail = append(options.Task.Status.FailedDetail, kubekeyv1alpha1.TaskFailedDetail{
+				Host:   host,
+				StdErr: "parse variable error",
+			})
+			return err
+		}
+
+		var curVariable = lg.(variable.VariableData)
+		if pt := variable.BoolVar(curVariable, "prepareTask"); pt != nil && *pt {
+			klog.InfoS("prepareTask is true, skip", "task", ctrlclient.ObjectKeyFromObject(options.Task), "host", host)
+			continue
+		}
+
+		var parseTmpl = func(tmplStr string) (string, error) {
+			return tmpl.ParseString(curVariable, tmplStr)
+		}
+		// parse variable with three time. ( support 3 level reference.)
+		for i := 0; i < 3; i++ {
+			if err := r.parseVariable(ctx, curVariable, parseTmpl); err != nil {
+				klog.V(5).ErrorS(err, "parse variable error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
+				options.Task.Status.Phase = kubekeyv1alpha1.TaskPhaseFailed
+				options.Task.Status.FailedDetail = append(options.Task.Status.FailedDetail, kubekeyv1alpha1.TaskFailedDetail{
+					Host:   host,
+					StdErr: fmt.Sprintf("parse variable error: %s", err.Error()),
+				})
+				return err
+			}
+		}
+
+		// set prepareTask to true
+		curVariable["prepareTask"] = true
+		options.Variable.Merge(variable.HostMerge{
+			HostNames:   []string{h},
+			LocationUID: string(options.Task.UID),
+			Data:        curVariable,
+		})
+	}
+	return nil
+}
+
+func (r *TaskReconciler) parseVariable(ctx context.Context, in variable.VariableData, parseTmplFunc func(string) (string, error)) error {
+	for k, v := range in {
+		switch reflect.TypeOf(v).Kind() {
+		case reflect.String:
+			if r.isTmplSyntax(v.(string)) {
+				newValue, err := parseTmplFunc(v.(string))
+				if err != nil {
+					return err
+				}
+				in[k] = newValue
+			}
+		case reflect.Map:
+			// variable.VariableData has one more String() method than map[string]any,
+			// so variable.VariableData and map[string]any cannot be converted to each other.
+			if vv, ok := v.(map[string]interface{}); ok {
+				if err := r.parseVariable(ctx, vv, parseTmplFunc); err != nil {
+					return err
+				}
+			}
+			if vv, ok := v.(variable.VariableData); ok {
+				if err := r.parseVariable(ctx, vv, parseTmplFunc); err != nil {
+					return err
+				}
+			}
+		case reflect.Slice:
+			for i := 0; i < reflect.ValueOf(v).Len(); i++ {
+				elem := reflect.ValueOf(v).Index(i)
+				switch elem.Kind() {
+				case reflect.String:
+					if r.isTmplSyntax(elem.Interface().(string)) {
+						newValue, err := parseTmplFunc(elem.Interface().(string))
+						if err != nil {
+							return err
+						}
+						reflect.ValueOf(v).Index(i).SetString(newValue)
+					}
+				case reflect.Map:
+					// variable.VariableData has one more String() method than map[string]any,
+					// so variable.VariableData and map[string]any cannot be converted to each other.
+					if vv, ok := v.(map[string]interface{}); ok {
+						if err := r.parseVariable(ctx, vv, parseTmplFunc); err != nil {
+							return err
+						}
+					}
+					if vv, ok := v.(variable.VariableData); ok {
+						if err := r.parseVariable(ctx, vv, parseTmplFunc); err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (r *TaskReconciler) isTmplSyntax(s string) bool {
+	return (strings.Contains(s, "{{") && strings.Contains(s, "}}")) ||
+		(strings.Contains(s, "{%") && strings.Contains(s, "%}"))
 }
 
 func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileOptions) error {
@@ -278,8 +400,47 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 				}
 			}
 
-			data := variable.Extension2Slice(options.Task.Spec.Loop)
-			if len(data) == 0 {
+			// execute module with loop
+			loop, err := r.execLoop(ctx, host, options)
+			if err != nil {
+				klog.V(5).ErrorS(err, "parse loop vars error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
+				stderr = err.Error()
+				return
+			}
+
+			for _, item := range loop {
+				switch item.(type) {
+				case nil:
+					// do nothing
+				case string:
+					item, err = tmpl.ParseString(lg.(variable.VariableData), item.(string))
+					if err != nil {
+						klog.V(5).ErrorS(err, "parse loop vars error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
+						stderr = err.Error()
+						return
+					}
+				case variable.VariableData:
+					for k, v := range item.(variable.VariableData) {
+						sv, err := tmpl.ParseString(lg.(variable.VariableData), v.(string))
+						if err != nil {
+							klog.V(5).ErrorS(err, "parse loop vars error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
+							stderr = err.Error()
+							return
+						}
+						item.(map[string]any)[k] = sv
+					}
+				default:
+					stderr = "unknown loop vars, only support string or map[string]string"
+					return
+				}
+				// set item to runtime variable
+				options.Variable.Merge(variable.HostMerge{
+					HostNames:   []string{h},
+					LocationUID: string(options.Task.UID),
+					Data: variable.VariableData{
+						"item": item,
+					},
+				})
 				stdout, stderr = r.executeModule(ctx, options.Task, modules.ExecOptions{
 					Args:     options.Task.Spec.Module.Args,
 					Host:     host,
@@ -287,46 +448,6 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 					Task:     *options.Task,
 					Pipeline: *options.Pipeline,
 				})
-			} else {
-				for _, item := range data {
-					switch item.(type) {
-					case string:
-						item, err = tmpl.ParseString(lg.(variable.VariableData), item.(string))
-						if err != nil {
-							klog.V(5).ErrorS(err, "parse loop vars error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
-							stderr = err.Error()
-							return
-						}
-					case variable.VariableData:
-						for k, v := range item.(variable.VariableData) {
-							sv, err := tmpl.ParseString(lg.(variable.VariableData), v.(string))
-							if err != nil {
-								klog.V(5).ErrorS(err, "parse loop vars error", "task", ctrlclient.ObjectKeyFromObject(options.Task))
-								stderr = err.Error()
-								return
-							}
-							item.(map[string]any)[k] = sv
-						}
-					default:
-						stderr = "unknown loop vars, only support string or map[string]string"
-						return
-					}
-					// set item to runtime variable
-					options.Variable.Merge(variable.HostMerge{
-						HostNames:   []string{h},
-						LocationUID: string(options.Task.UID),
-						Data: variable.VariableData{
-							"item": item,
-						},
-					})
-					stdout, stderr = r.executeModule(ctx, options.Task, modules.ExecOptions{
-						Args:     options.Task.Spec.Module.Args,
-						Host:     host,
-						Variable: options.Variable,
-						Task:     *options.Task,
-						Pipeline: *options.Pipeline,
-					})
-				}
 			}
 		})
 	}
@@ -353,6 +474,50 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 	}
 
 	return nil
+}
+
+func (r *TaskReconciler) execLoop(ctx context.Context, host string, options taskReconcileOptions) ([]any, error) {
+	switch {
+	case options.Task.Spec.Loop.Raw == nil:
+		// loop is not set. add one element to execute once module.
+		return []any{nil}, nil
+	case variable.Extension2Slice(options.Task.Spec.Loop) != nil:
+		return variable.Extension2Slice(options.Task.Spec.Loop), nil
+	case variable.Extension2String(options.Task.Spec.Loop) != "":
+		value := variable.Extension2String(options.Task.Spec.Loop)
+		// parse value by pongo2. if
+		data, err := options.Variable.Get(variable.LocationVars{
+			HostName:    host,
+			LocationUID: string(options.Task.UID),
+		})
+		if err != nil {
+			return nil, err
+		}
+		sv, err := tmpl.ParseString(data.(variable.VariableData), value)
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case regexp.MustCompile(`^<\[\](.*?) Value>$`).MatchString(sv):
+			// in pongo2 we cannot get slice value. add extension filter value.
+			vdata, err := options.Variable.Get(variable.KeyPath{
+				HostName:    host,
+				LocationUID: string(options.Task.UID),
+				Path: strings.Split(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(value, "{{"), "}}")),
+					"."),
+			})
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := vdata.([]any); ok {
+				return vdata.([]any), nil
+			}
+		default:
+			// value is simple string
+			return []any{sv}, nil
+		}
+	}
+	return nil, fmt.Errorf("unsupport loop value")
 }
 
 func (r *TaskReconciler) executeModule(ctx context.Context, task *kubekeyv1alpha1.Task, opts modules.ExecOptions) (string, string) {

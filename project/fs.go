@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pipeline
+package project
 
 import (
 	"embed"
 )
 
-//go:embed playbooks roles
+//go:embed inventory playbooks roles
 var InternalPipeline embed.FS

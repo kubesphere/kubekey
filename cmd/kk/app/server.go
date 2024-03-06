@@ -30,6 +30,9 @@ func NewKubeKeyCommand() *cobra.Command {
 		Use:  "kk",
 		Long: "kubekey is a daemon that execute command in a node",
 		PersistentPreRunE: func(*cobra.Command, []string) error {
+			if err := initGOPS(); err != nil {
+				return err
+			}
 			return initProfiling()
 		},
 		PersistentPostRunE: func(*cobra.Command, []string) error {
@@ -40,12 +43,14 @@ func NewKubeKeyCommand() *cobra.Command {
 	flags := cmd.PersistentFlags()
 	addProfilingFlags(flags)
 	addKlogFlags(flags)
+	addGOPSFlags(flags)
 
 	cmd.AddCommand(newRunCommand())
 	cmd.AddCommand(newVersionCommand())
 
 	// internal command
 	cmd.AddCommand(newPreCheckCommand())
+	cmd.AddCommand(newCreateCommand())
 	return cmd
 }
 

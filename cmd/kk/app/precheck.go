@@ -28,13 +28,14 @@ import (
 )
 
 func newPreCheckCommand() *cobra.Command {
-	o := options.NewPreCheckOption()
+	o := options.NewPreCheckOptions()
 
 	cmd := &cobra.Command{
 		Use:   "precheck",
-		Short: "kk precheck for cluster",
+		Short: "Check if the nodes is eligible for cluster deployment.",
+		Long:  "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			kk, err := o.Complete(cmd, []string{"playbooks/precheck.yaml"})
+			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/precheck.yaml"})
 			if err != nil {
 				return err
 			}
@@ -46,7 +47,7 @@ func newPreCheckCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), kk, o.ConfigFile, o.InventoryFile)
+			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
 		},
 	}
 

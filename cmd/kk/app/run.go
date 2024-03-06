@@ -18,15 +18,13 @@ package app
 
 import (
 	"context"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 	"io/fs"
 	"os"
 
-	"github.com/google/gops/agent"
 	"github.com/spf13/cobra"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
-	"sigs.k8s.io/yaml"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
@@ -39,16 +37,9 @@ func newRunCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "run [playbook]",
-		Short: "run a playbook",
+		Short: "run a playbook by playbook file. the file source can be git or local",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if o.GOPSEnabled {
-				// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
-				// Bind to a random port on address 127.0.0.1
-				if err := agent.Listen(agent.Options{}); err != nil {
-					return err
-				}
-			}
-			kk, err := o.Complete(cmd, args)
+			kk, config, inventory, err := o.Complete(cmd, args)
 			if err != nil {
 				return err
 			}
@@ -60,8 +51,7 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 			}
-			// convert option to kubekeyv1.Pipeline
-			return run(signals.SetupSignalHandler(), kk, o.ConfigFile, o.InventoryFile)
+			return run(signals.SetupSignalHandler(), kk, config, inventory)
 		},
 	}
 
@@ -72,48 +62,11 @@ func newRunCommand() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, kk *kubekeyv1.Pipeline, configFile string, inventoryFile string) error {
-	// convert configFile
-	config := &kubekeyv1.Config{}
-	cdata, err := os.ReadFile(configFile)
-	if err != nil {
-		klog.ErrorS(err, "read config file error")
+func run(ctx context.Context, kk *kubekeyv1.Pipeline, config *kubekeyv1.Config, inventory *kubekeyv1.Inventory) error {
+	if err := proxy.Init(); err != nil {
 		return err
-	}
-	if err := yaml.Unmarshal(cdata, config); err != nil {
-		klog.ErrorS(err, "unmarshal config file error")
-		return err
-	}
-	if config.Namespace == "" {
-		config.Namespace = corev1.NamespaceDefault
-	}
-	kk.Spec.ConfigRef = &corev1.ObjectReference{
-		Kind:            config.Kind,
-		Namespace:       config.Namespace,
-		Name:            config.Name,
-		UID:             config.UID,
-		APIVersion:      config.APIVersion,
-		ResourceVersion: config.ResourceVersion,
 	}
 
-	// convert inventoryFile
-	inventory := &kubekeyv1.Inventory{}
-	idata, err := os.ReadFile(inventoryFile)
-	if err := yaml.Unmarshal(idata, inventory); err != nil {
-		klog.ErrorS(err, "unmarshal inventory file error")
-		return err
-	}
-	if inventory.Namespace == "" {
-		inventory.Namespace = corev1.NamespaceDefault
-	}
-	kk.Spec.InventoryRef = &corev1.ObjectReference{
-		Kind:            inventory.Kind,
-		Namespace:       inventory.Namespace,
-		Name:            inventory.Name,
-		UID:             inventory.UID,
-		APIVersion:      inventory.APIVersion,
-		ResourceVersion: inventory.ResourceVersion,
-	}
 	mgr, err := manager.NewCommandManager(manager.CommandManagerOptions{
 		Pipeline:  kk,
 		Config:    config,
