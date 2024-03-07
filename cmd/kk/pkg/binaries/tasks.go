@@ -168,6 +168,10 @@ func (a *ArtifactDownload) Execute(runtime connector.Runtime) error {
 			}
 		}
 
+		if err := KubernetesComponentBinariesDownload(a.Manifest, basePath, arch); err != nil {
+			return err
+		}
+
 		if err := RegistryBinariesDownload(a.Manifest, basePath, arch); err != nil {
 			return err
 		}
