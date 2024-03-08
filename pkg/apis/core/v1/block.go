@@ -52,7 +52,7 @@ type Task struct {
 	ChangedWhen When        `yaml:"changed_when,omitempty"`
 	Delay       int         `yaml:"delay,omitempty"`
 	FailedWhen  When        `yaml:"failed_when,omitempty"`
-	Loop        []any       `yaml:"loop,omitempty"`
+	Loop        any         `yaml:"loop,omitempty"`
 	LoopControl LoopControl `yaml:"loop_control,omitempty"`
 	Poll        int         `yaml:"poll,omitempty"`
 	Register    string      `yaml:"register,omitempty"`

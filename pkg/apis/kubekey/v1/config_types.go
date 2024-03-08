@@ -19,6 +19,7 @@ package v1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 // +genclient
@@ -42,4 +43,19 @@ type ConfigList struct {
 
 func init() {
 	SchemeBuilder.Register(&Config{}, &ConfigList{})
+}
+
+func (c *Config) SetValue(key string, value any) error {
+	configMap := make(map[string]any)
+	if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
+		return err
+	}
+	// set value
+	configMap[key] = value
+	data, err := json.Marshal(configMap)
+	if err != nil {
+		return err
+	}
+	c.Spec.Raw = data
+	return nil
 }

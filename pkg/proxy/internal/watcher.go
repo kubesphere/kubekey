@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/klog/v2"
@@ -124,46 +125,63 @@ func (w *fileWatcher) watch() {
 			}
 
 			// change is resource file
-			var data []byte
 			if strings.HasSuffix(event.Name, yamlSuffix) {
-				var err error
-				data, err = os.ReadFile(event.Name)
+				data, err := os.ReadFile(event.Name)
 				if err != nil {
 					klog.V(4).ErrorS(err, "failed to read resource file", "event", event)
 					continue
 				}
-			}
-			switch event.Op {
-			case fsnotify.Create:
-				obj, _, err := w.codec.Decode(data, nil, w.newFunc())
-				if err != nil {
-					klog.V(4).ErrorS(err, "failed to decode resource file", "event", event)
-					continue
-				}
-				w.watchEvents <- watch.Event{
-					Type:   watch.Added,
-					Object: obj,
-				}
-			case fsnotify.Write:
-				obj, _, err := w.codec.Decode(data, nil, w.newFunc())
-				if err != nil {
-					klog.V(4).ErrorS(err, "failed to decode resource file", "event", event)
-					continue
-				}
-				if strings.HasSuffix(filepath.Base(event.Name), deleteTagSuffix) {
-					// delete event
+
+				switch event.Op {
+				case fsnotify.Create:
+					obj, _, err := w.codec.Decode(data, nil, w.newFunc())
+					if err != nil {
+						klog.V(4).ErrorS(err, "failed to decode resource file", "event", event)
+						continue
+					}
+					metaObj, err := meta.Accessor(obj)
+					if err != nil {
+						klog.V(4).ErrorS(err, "failed to convert to metaObject", "event", event)
+						continue
+					}
+					if metaObj.GetName() == "" && metaObj.GetGenerateName() == "" { // ignore unknown file
+						klog.V(4).InfoS("name is empty. ignore", "event", event)
+						continue
+					}
 					w.watchEvents <- watch.Event{
-						Type:   watch.Deleted,
+						Type:   watch.Added,
 						Object: obj,
 					}
-					if err := os.Remove(event.Name); err != nil {
-						klog.ErrorS(err, "failed to remove file", "event", event)
+				case fsnotify.Write:
+					obj, _, err := w.codec.Decode(data, nil, w.newFunc())
+					if err != nil {
+						klog.V(4).ErrorS(err, "failed to decode resource file", "event", event)
+						continue
 					}
-				} else {
-					// update event
-					w.watchEvents <- watch.Event{
-						Type:   watch.Modified,
-						Object: obj,
+					metaObj, err := meta.Accessor(obj)
+					if err != nil {
+						klog.V(4).ErrorS(err, "failed to convert to metaObject", "event", event)
+						continue
+					}
+					if metaObj.GetName() == "" && metaObj.GetGenerateName() == "" { // ignore unknown file
+						klog.V(4).InfoS("name is empty. ignore", "event", event)
+						continue
+					}
+					if strings.HasSuffix(filepath.Base(event.Name), deleteTagSuffix) {
+						// delete event
+						w.watchEvents <- watch.Event{
+							Type:   watch.Deleted,
+							Object: obj,
+						}
+						if err := os.Remove(event.Name); err != nil {
+							klog.ErrorS(err, "failed to remove file", "event", event)
+						}
+					} else {
+						// update event
+						w.watchEvents <- watch.Event{
+							Type:   watch.Modified,
+							Object: obj,
+						}
 					}
 				}
 			}

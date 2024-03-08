@@ -27,8 +27,6 @@ import (
 )
 
 type KubekeyRunOptions struct {
-	// Enable gops or not.
-	GOPSEnabled bool
 	// WorkDir is the baseDir which command find any resource (project etc.)
 	WorkDir string
 	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
@@ -61,17 +59,14 @@ type KubekeyRunOptions struct {
 }
 
 func NewKubeKeyRunOptions() *KubekeyRunOptions {
-	o := &KubekeyRunOptions{
-		WorkDir: "/var/lib/kubekey",
-	}
+	// add default values
+	o := &KubekeyRunOptions{}
 	return o
 }
 
 func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
-	gfs.BoolVar(&o.GOPSEnabled, "gops", o.GOPSEnabled, "Whether to enable gops or not.  When enabled this option, "+
-		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
 	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 	gfs.StringVar(&o.ConfigFile, "config", o.ConfigFile, "the config file path. support *.yaml ")
 	gfs.StringVar(&o.InventoryFile, "inventory", o.InventoryFile, "the host list file path. support *.ini")
@@ -93,8 +88,8 @@ func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, error) {
-	kk := &kubekeyv1.Pipeline{
+func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, *kubekeyv1.Config, *kubekeyv1.Inventory, error) {
+	pipeline := &kubekeyv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "run-",
 			Namespace:    metav1.NamespaceDefault,
@@ -105,10 +100,10 @@ func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubeke
 	if len(args) == 1 {
 		o.Playbook = args[0]
 	} else {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 
-	kk.Spec = kubekeyv1.PipelineSpec{
+	pipeline.Spec = kubekeyv1.PipelineSpec{
 		Project: kubekeyv1.PipelineProject{
 			Addr:            o.ProjectAddr,
 			Name:            o.ProjectName,
@@ -122,6 +117,12 @@ func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubeke
 		SkipTags: o.SkipTags,
 		Debug:    o.Debug,
 	}
-
-	return kk, nil
+	config, inventory, err := completeRef(pipeline, o.ConfigFile, o.InventoryFile)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err := config.SetValue("work_dir", o.WorkDir); err != nil {
+		return nil, nil, nil, err
+	}
+	return pipeline, config, inventory, nil
 }

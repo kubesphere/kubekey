@@ -27,3 +27,11 @@ const (
 
 // LocalHostName is the  default local host name in inventory.
 const LocalHostName = "localhost"
+
+// the file in builtinProject
+const (
+	// default config file
+	BuiltinConfigFile = "inventory/config.yaml"
+	// default inventory file
+	BuiltinInventoryFile = "inventory/inventory.yaml"
+)

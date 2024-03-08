@@ -23,8 +23,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/v4/pipeline"
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	"github.com/kubesphere/kubekey/v4/project"
 )
 
 type localProject struct {
@@ -35,7 +35,7 @@ type localProject struct {
 
 func (r localProject) FS(ctx context.Context, update bool) (fs.FS, error) {
 	if _, ok := r.Pipeline.Annotations[kubekeyv1.BuiltinsProjectAnnotation]; ok {
-		return pipeline.InternalPipeline, nil
+		return project.InternalPipeline, nil
 	}
 	if filepath.IsAbs(r.Pipeline.Spec.Playbook) {
 		return os.DirFS("/"), nil

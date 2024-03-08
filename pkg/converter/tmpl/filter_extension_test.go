@@ -106,6 +106,14 @@ func TestFilter(t *testing.T) {
 			},
 			except: "True",
 		},
+		{
+			name:  "trim",
+			input: "{{ test | trim:'v' }}",
+			ctx: map[string]any{
+				"test": "v1.7.0",
+			},
+			except: "1.7.0",
+		},
 	}
 
 	for _, tc := range testcases {

@@ -110,6 +110,21 @@ func IntVar(vars VariableData, key string) *int {
 	return &vi
 }
 
+func BoolVar(vars VariableData, key string) *bool {
+	value, ok := vars[key]
+	if !ok {
+		klog.V(6).InfoS("cannot find variable", "key", key)
+		return nil
+	}
+	// default convert to float64
+	b, ok := value.(bool)
+	if !ok {
+		klog.V(6).InfoS("variable is not bool", "key", key)
+		return nil
+	}
+	return &b
+}
+
 // StringSliceVar get string slice value by key
 func StringSliceVar(vars VariableData, key string) []string {
 	value, ok := vars[key]

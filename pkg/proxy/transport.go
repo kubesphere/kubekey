@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,14 +54,25 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/task"
 )
 
+var proxyTransport http.RoundTripper
+var initOnce sync.Once
+
+func Init() error {
+	var err error
+	initOnce.Do(func() {
+		proxyTransport, err = NewProxyTransport(true)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to create local transport")
+			return
+		}
+	})
+
+	return err
+}
+
 func NewLocalClient() (ctrlclient.Client, error) {
-	lt, err := NewProxyTransport(true)
-	if err != nil {
-		klog.V(4).ErrorS(err, "failed to create local transport")
-		return nil, err
-	}
 	return ctrlclient.New(&rest.Config{
-		Transport: lt,
+		Transport: proxyTransport,
 	}, ctrlclient.Options{
 		Scheme: _const.Scheme,
 	})

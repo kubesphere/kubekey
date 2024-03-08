@@ -263,7 +263,7 @@ func MarshalBlock(ctx context.Context, block kkcorev1.Block) *kubekeyv1alpha1.Ta
 			Register:    block.Register,
 		},
 	}
-	if len(block.Loop) != 0 {
+	if block.Loop != nil {
 		data, err := json.Marshal(block.Loop)
 		if err != nil {
 			klog.V(4).ErrorS(err, "Marshal loop failed", "task", task.Name, "block", block.Name)
