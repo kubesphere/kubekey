@@ -41,14 +41,26 @@ func mergeVariables(v1, v2 VariableData) VariableData {
 	return mergedVars
 }
 
-func findLocation(loc []location, uid string) *location {
-	for i := range loc {
-		if uid == loc[i].UID {
-			return &loc[i]
+func findLocation(loc *location, uid string) *location {
+	if uid == loc.UID {
+		return loc
+	}
+	// find from block
+	for i := range loc.Block {
+		if r := findLocation(&loc.Block[i], uid); r != nil {
+			return r
 		}
-		// find in block,always,rescue
-		if l := findLocation(append(append(loc[i].Block, loc[i].Always...), loc[i].Rescue...), uid); l != nil {
-			return l
+	}
+	// find from always
+	for i := range loc.Always {
+		if r := findLocation(&loc.Always[i], uid); r != nil {
+			return r
+		}
+	}
+	// find from rescue
+	for i := range loc.Rescue {
+		if r := findLocation(&loc.Rescue[i], uid); r != nil {
+			return r
 		}
 	}
 	return nil

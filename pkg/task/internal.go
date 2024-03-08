@@ -34,7 +34,6 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
@@ -94,6 +93,15 @@ func (c *taskController) AddTasks(ctx context.Context, pipeline *kubekeyv1.Pipel
 		return err
 	}
 
+	// set pipeline location
+	if err := v.Merge(variable.LocationMerge{
+		UID:  string(pipeline.UID),
+		Name: pipeline.Name,
+	}); err != nil {
+		klog.V(4).ErrorS(err, "set top location for pipeline", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+		return err
+	}
+
 	for _, play := range pb.Play {
 		if !play.Taggable.IsEnabled(pipeline.Spec.Tags, pipeline.Spec.SkipTags) {
 			// if not match the tags. skip
@@ -119,9 +127,8 @@ func (c *taskController) AddTasks(ctx context.Context, pipeline *kubekeyv1.Pipel
 				}
 				// merge host information to runtime variable
 				if err := v.Merge(variable.HostMerge{
-					HostNames:   []string{h},
-					LocationUID: "",
-					Data:        gfv,
+					HostNames: []string{h},
+					Data:      gfv,
 				}); err != nil {
 					klog.V(4).ErrorS(err, "Merge gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "host", h)
 					return err
@@ -150,22 +157,31 @@ func (c *taskController) AddTasks(ctx context.Context, pipeline *kubekeyv1.Pipel
 				klog.V(4).ErrorS(nil, "Host is empty", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 				return fmt.Errorf("host is empty")
 			}
-			hctx := context.WithValue(ctx, _const.CtxBlockHosts, serials)
 
-			// generate playbook uid which set in location variable.
-			puid := uuid.NewString()
-			// merge play's vars in location variable.
+			// generate playbook uid.
+			uid := uuid.NewString()
+			// set play location
 			if err := v.Merge(variable.LocationMerge{
-				UID:  puid,
-				Name: play.Name,
-				Type: variable.BlockLocation,
-				Vars: play.Vars,
+				ParentUID: string(pipeline.UID),
+				UID:       uid,
+				Name:      play.Name,
+				Type:      variable.BlockLocation,
+				Vars:      play.Vars,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Merge play to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name)
+				klog.V(4).ErrorS(err, "set block location for play", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name)
 				return err
 			}
 			// generate task from pre tasks
-			preTasks, err := c.createTasks(hctx, v, pipeline, play.PreTasks, nil, puid, variable.BlockLocation)
+			preTasks, err := c.createTasks(ctx, createTasksOptions{
+				variable:     v,
+				pipeline:     pipeline,
+				hosts:        serials,
+				blocks:       play.PreTasks,
+				uid:          uid,
+				role:         "",
+				when:         nil,
+				locationType: variable.BlockLocation,
+			})
 			if err != nil {
 				klog.V(4).ErrorS(err, "Get pre task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name)
 				return err
@@ -174,18 +190,27 @@ func (c *taskController) AddTasks(ctx context.Context, pipeline *kubekeyv1.Pipel
 			nsTasks.Items = append(nsTasks.Items, preTasks...)
 			// generate task from role
 			for _, role := range play.Roles {
-				ruid := uuid.NewString()
+				roleuid := uuid.NewString()
 				if err := v.Merge(variable.LocationMerge{
-					ParentUID: puid,
-					UID:       ruid,
-					Name:      play.Name,
+					ParentUID: uid,
+					UID:       roleuid,
+					Name:      role.Role,
 					Type:      variable.BlockLocation,
 					Vars:      role.Vars,
 				}); err != nil {
-					klog.V(4).ErrorS(err, "Merge role to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name, "role", role.Role)
+					klog.V(4).ErrorS(err, "set block location for role", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name, "role", role.Role)
 					return err
 				}
-				roleTasks, err := c.createTasks(context.WithValue(hctx, _const.CtxBlockRole, role.Role), v, pipeline, role.Block, role.When.Data, ruid, variable.BlockLocation)
+				roleTasks, err := c.createTasks(ctx, createTasksOptions{
+					variable:     v,
+					pipeline:     pipeline,
+					hosts:        serials,
+					blocks:       role.Block,
+					uid:          roleuid,
+					role:         role.Role,
+					when:         role.When.Data,
+					locationType: variable.BlockLocation,
+				})
 				if err != nil {
 					klog.V(4).ErrorS(err, "Get role task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name, "role", role.Role)
 					return err
@@ -193,14 +218,32 @@ func (c *taskController) AddTasks(ctx context.Context, pipeline *kubekeyv1.Pipel
 				nsTasks.Items = append(nsTasks.Items, roleTasks...)
 			}
 			// generate task from tasks
-			tasks, err := c.createTasks(hctx, v, pipeline, play.Tasks, nil, puid, variable.BlockLocation)
+			tasks, err := c.createTasks(ctx, createTasksOptions{
+				variable:     v,
+				pipeline:     pipeline,
+				hosts:        serials,
+				blocks:       play.Tasks,
+				uid:          uid,
+				role:         "",
+				when:         nil,
+				locationType: variable.BlockLocation,
+			})
 			if err != nil {
 				klog.V(4).ErrorS(err, "Get task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name)
 				return err
 			}
 			nsTasks.Items = append(nsTasks.Items, tasks...)
 			// generate task from post tasks
-			postTasks, err := c.createTasks(hctx, v, pipeline, play.Tasks, nil, puid, variable.BlockLocation)
+			postTasks, err := c.createTasks(ctx, createTasksOptions{
+				variable:     v,
+				pipeline:     pipeline,
+				hosts:        serials,
+				blocks:       play.Tasks,
+				uid:          uid,
+				role:         "",
+				when:         nil,
+				locationType: variable.BlockLocation,
+			})
 			if err != nil {
 				klog.V(4).ErrorS(err, "Get post task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "play", play.Name)
 				return err
@@ -212,83 +255,121 @@ func (c *taskController) AddTasks(ctx context.Context, pipeline *kubekeyv1.Pipel
 	return nil
 }
 
+type createTasksOptions struct {
+	// pipeline level config
+	variable variable.Variable
+	pipeline *kubekeyv1.Pipeline
+	// playbook level config
+	hosts []string // which hosts will run playbook
+	// blocks level config
+	blocks       []kkcorev1.Block
+	uid          string                // the parent location uid for blocks
+	role         string                // role name of blocks
+	when         []string              // when condition for blocks
+	locationType variable.LocationType // location type for blocks
+}
+
 // createTasks convert ansible block to task
-func (k *taskController) createTasks(ctx context.Context, v variable.Variable, pipeline *kubekeyv1.Pipeline, ats []kkcorev1.Block, when []string, puid string, locationType variable.LocationType) ([]kubekeyv1alpha1.Task, error) {
+func (k *taskController) createTasks(ctx context.Context, options createTasksOptions) ([]kubekeyv1alpha1.Task, error) {
 	var tasks []kubekeyv1alpha1.Task
-	for _, at := range ats {
-		if !at.Taggable.IsEnabled(pipeline.Spec.Tags, pipeline.Spec.SkipTags) {
+	for _, at := range options.blocks {
+		if !at.Taggable.IsEnabled(options.pipeline.Spec.Tags, options.pipeline.Spec.SkipTags) {
 			continue
 		}
 
-		uid := uuid.NewString()
-		atWhen := append(when, at.When.Data...)
 		switch {
-		case len(at.Block) != 0: // block
-			// add location variable
-			if err := v.Merge(variable.LocationMerge{
+		case len(at.Block) != 0:
+			uid := uuid.NewString()
+			// set block location
+			if err := options.variable.Merge(variable.LocationMerge{
 				UID:       uid,
-				ParentUID: puid,
-				Type:      locationType,
+				ParentUID: options.uid,
+				Type:      options.locationType,
 				Name:      at.Name,
 				Vars:      at.Vars,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				klog.V(4).ErrorS(err, "set block location for block", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 				return nil, err
 			}
 
 			// add block
-			block, err := k.createTasks(ctx, v, pipeline, at.Block, atWhen, uid, variable.BlockLocation)
+			blockTasks, err := k.createTasks(ctx, createTasksOptions{
+				hosts:        options.hosts,
+				role:         options.role,
+				variable:     options.variable,
+				pipeline:     options.pipeline,
+				blocks:       at.Block,
+				when:         append(options.when, at.When.Data...),
+				uid:          uid,
+				locationType: variable.BlockLocation,
+			})
 			if err != nil {
-				klog.V(4).ErrorS(err, "Get block task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				klog.V(4).ErrorS(err, "Get block task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 				return nil, err
 			}
-			tasks = append(tasks, block...)
+			tasks = append(tasks, blockTasks...)
 
 			if len(at.Always) != 0 {
-				always, err := k.createTasks(ctx, v, pipeline, at.Always, atWhen, uid, variable.AlwaysLocation)
+				alwaysTasks, err := k.createTasks(ctx, createTasksOptions{
+					variable:     options.variable,
+					pipeline:     options.pipeline,
+					hosts:        options.hosts,
+					blocks:       at.Always,
+					uid:          uid,
+					role:         options.role,
+					when:         append(options.when, at.When.Data...),
+					locationType: variable.AlwaysLocation,
+				})
 				if err != nil {
-					klog.V(4).ErrorS(err, "Get always task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+					klog.V(4).ErrorS(err, "Get always task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 					return nil, err
 				}
-				tasks = append(tasks, always...)
+				tasks = append(tasks, alwaysTasks...)
 			}
 			if len(at.Rescue) != 0 {
-				rescue, err := k.createTasks(ctx, v, pipeline, at.Rescue, atWhen, uid, variable.RescueLocation)
+				rescueTasks, err := k.createTasks(ctx, createTasksOptions{
+					variable:     options.variable,
+					pipeline:     options.pipeline,
+					hosts:        options.hosts,
+					blocks:       at.Rescue,
+					uid:          uid,
+					role:         options.role,
+					when:         append(options.when, at.When.Data...),
+					locationType: variable.RescueLocation,
+				})
 				if err != nil {
-					klog.V(4).ErrorS(err, "Get rescue task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+					klog.V(4).ErrorS(err, "Get rescue task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 					return nil, err
 				}
-				tasks = append(tasks, rescue...)
+				tasks = append(tasks, rescueTasks...)
 			}
-		case at.IncludeTasks != "": // include_task
+		case at.IncludeTasks != "":
 			// do nothing
-			at.Name = at.IncludeTasks
-
-			// add location variable
-			if err := v.Merge(variable.LocationMerge{
-				UID:       uid,
-				ParentUID: puid,
-				Type:      locationType,
-				Name:      at.Name,
+			// set includeTask location
+			if err := options.variable.Merge(variable.LocationMerge{
+				UID:       uuid.NewString(),
+				ParentUID: options.uid,
+				Type:      options.locationType,
+				Name:      at.IncludeTasks,
 				Vars:      at.Vars,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				klog.V(4).ErrorS(err, "set block location for includeTask", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 				return nil, err
 			}
-		default: // task
-			task := converter.MarshalBlock(context.WithValue(ctx, _const.CtxBlockWhen, atWhen), at)
+		default:
+			task := converter.MarshalBlock(ctx, options.role, options.hosts, append(options.when, at.When.Data...), at)
 			// complete by pipeline
-			task.GenerateName = pipeline.Name + "-"
-			task.Namespace = pipeline.Namespace
-			if err := controllerutil.SetControllerReference(pipeline, task, k.schema); err != nil {
-				klog.V(4).ErrorS(err, "Set controller reference error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+			task.GenerateName = options.pipeline.Name + "-"
+			task.Namespace = options.pipeline.Namespace
+			if err := controllerutil.SetControllerReference(options.pipeline, task, k.schema); err != nil {
+				klog.V(4).ErrorS(err, "Set controller reference error", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 				return nil, err
 			}
 			// complete module by unknown field
 			for n, a := range at.UnknownFiled {
 				data, err := json.Marshal(a)
 				if err != nil {
-					klog.V(4).ErrorS(err, "Marshal unknown field error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name, "field", n)
+					klog.V(4).ErrorS(err, "Marshal unknown field error", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name, "field", n)
 					return nil, err
 				}
 				if m := modules.FindModule(n); m != nil {
@@ -298,30 +379,28 @@ func (k *taskController) createTasks(ctx context.Context, v variable.Variable, p
 				}
 			}
 			if task.Spec.Module.Name == "" { // action is necessary for a task
-				klog.V(4).ErrorS(nil, "No module/action detected in task", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				klog.V(4).ErrorS(nil, "No module/action detected in task", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 				return nil, fmt.Errorf("no module/action detected in task: %s", task.Name)
 			}
 			// create task
 			if err := k.client.Create(ctx, task); err != nil {
-				klog.V(4).ErrorS(err, "Create task error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				klog.V(4).ErrorS(err, "Create task error", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 				return nil, err
 			}
-			uid = string(task.UID)
 			tasks = append(tasks, *task)
 
-			// add location variable
-			if err := v.Merge(variable.LocationMerge{
-				UID:       uid,
-				ParentUID: puid,
-				Type:      locationType,
+			// set task location
+			if err := options.variable.Merge(variable.LocationMerge{
+				UID:       string(task.UID),
+				ParentUID: options.uid,
+				Type:      options.locationType,
 				Name:      at.Name,
 				Vars:      at.Vars,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Merge block to variable error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline), "block", at.Name)
+				klog.V(4).ErrorS(err, "set block location for task", "pipeline", ctrlclient.ObjectKeyFromObject(options.pipeline), "block", at.Name)
 				return nil, err
 			}
 		}
-
 	}
 	return tasks, nil
 }

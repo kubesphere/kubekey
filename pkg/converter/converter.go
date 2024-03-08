@@ -229,19 +229,7 @@ func fileToBlock(baseFS fs.FS, baseDir string, blocks []kkcorev1.Block) error {
 }
 
 // MarshalBlock marshal block to task
-func MarshalBlock(ctx context.Context, block kkcorev1.Block) *kubekeyv1alpha1.Task {
-	var role string
-	if v := ctx.Value(_const.CtxBlockRole); v != nil {
-		role = v.(string)
-	}
-	hosts := ctx.Value(_const.CtxBlockHosts).([]string)
-	if block.RunOnce { // if run_once. execute on the first task
-		hosts = hosts[:1]
-	}
-	var when []string
-	if v := ctx.Value(_const.CtxBlockWhen); v != nil {
-		when = v.([]string)
-	}
+func MarshalBlock(ctx context.Context, role string, hosts []string, when []string, block kkcorev1.Block) *kubekeyv1alpha1.Task {
 	task := &kubekeyv1alpha1.Task{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Task",

@@ -16,15 +16,6 @@ limitations under the License.
 
 package _const
 
-// key in context
-
-// use in marshal playbook.Block
-const (
-	CtxBlockHosts = "block-hosts"
-	CtxBlockRole  = "block-role"
-	CtxBlockWhen  = "block-when"
-)
-
 // LocalHostName is the  default local host name in inventory.
 const LocalHostName = "localhost"
 

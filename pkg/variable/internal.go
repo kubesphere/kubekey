@@ -50,7 +50,7 @@ type value struct {
 	// Location is the complete location index.
 	// This index can help us determine the specific location of the task,
 	// enabling us to retrieve the task's parameters and establish the execution order.
-	Location []location `json:"location"`
+	Location *location `json:"location"`
 }
 
 func (v value) deepCopy() value {
@@ -118,6 +118,14 @@ func (v VariableData) String() string {
 		return ""
 	}
 	return string(data)
+}
+
+func (v VariableData) DeepCopy() VariableData {
+	nv := make(VariableData)
+	for k, vv := range v {
+		nv[k] = vv
+	}
+	return nv
 }
 
 type host struct {
