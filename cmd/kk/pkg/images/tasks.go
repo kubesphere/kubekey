@@ -289,7 +289,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		}
 
 		auth := new(registry.DockerRegistryEntry)
-		if config, ok := auths[c.KubeConf.Cluster.Registry.PrivateRegistry]; ok {
+		if config, ok := auths[c.KubeConf.Cluster.Registry.GetHost()]; ok {
 			auth = config
 		}
 

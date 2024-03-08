@@ -249,9 +249,9 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	if len(runtime.GetHostsByRole(common.Registry)) > 0 {
 		if kubeConf.Cluster.Registry.PrivateRegistry != "" {
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), kubeConf.Cluster.Registry.PrivateRegistry))
+			hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), kubeConf.Cluster.Registry.GetHost()))
 			if runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address() != "" {
-				hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address(), kubeConf.Cluster.Registry.PrivateRegistry))
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv6Address(), kubeConf.Cluster.Registry.GetHost()))
 			}
 
 		} else {

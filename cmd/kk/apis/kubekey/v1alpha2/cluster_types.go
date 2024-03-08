@@ -146,7 +146,7 @@ func (cfg *ClusterSpec) GenerateCertSANs() []string {
 		if InternalIPv4Address != host.Address && InternalIPv4Address != cfg.ControlPlaneEndpoint.Address {
 			extraCertSANs = append(extraCertSANs, InternalIPv4Address)
 		}
-		if len(nodeAddresses)==2 {
+		if len(nodeAddresses) == 2 {
 			InternalIPv6Address := nodeAddresses[1]
 			extraCertSANs = append(extraCertSANs, InternalIPv6Address)
 		}
@@ -309,4 +309,11 @@ func (c *ControlPlaneEndpoint) EnableExternalDNS() bool {
 		return false
 	}
 	return *c.ExternalDNS
+}
+
+func (r *RegistryConfig) GetHost() string {
+	if r.PrivateRegistry == "" {
+		return ""
+	}
+	return strings.Split(r.PrivateRegistry, "/")[0]
 }
