@@ -272,98 +272,91 @@ func (g Hostnames) filter(data value) (any, error) {
 	return hs, nil
 }
 
-type DependencyTasks struct {
+// Infer the next phase of the task.by it dependency.
+// NOTE: To optimize performance, check only one dependency of a task instead of all dependencies.
+// Therefore, do not assign roles without tasks.
+type InferPhase struct {
 	LocationUID string
+	Tasks       []kubekeyv1alpha1.Task
 }
 
-type DependencyTask struct {
-	Tasks    []string
-	Strategy func([]kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase
-}
-
-func (f DependencyTasks) filter(data value) (any, error) {
+func (f InferPhase) filter(data value) (any, error) {
 	loc := findLocation(data.Location, f.LocationUID)
 	if loc == nil {
 		return nil, fmt.Errorf("cannot found location %s", f.LocationUID)
-
 	}
 	return f.getDependencyLocationUIDS(data, loc)
 }
 
-func (f DependencyTasks) getDependencyLocationUIDS(data value, loc *location) (DependencyTask, error) {
-	if loc.PUID == "" {
-		return DependencyTask{
-			Strategy: func([]kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
-				return kubekeyv1alpha1.TaskPhaseRunning
-			},
-		}, nil
+// If dependency tasks is not complete. waiting.
+var succeedExecuteStrategy = func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
+	if len(tasks) == 0 { // non-dependency
+		return kubekeyv1alpha1.TaskPhaseRunning
 	}
-
-	// if tasks has failed. execute current task.
-	failedExecuteStrategy := func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
-		if len(tasks) == 0 { // non-dependency
-			return kubekeyv1alpha1.TaskPhaseRunning
+	skip := true
+	for _, t := range tasks {
+		if !t.IsComplete() {
+			return kubekeyv1alpha1.TaskPhasePending
 		}
-		skip := true
-		for _, t := range tasks {
-			if !t.IsComplete() {
-				return kubekeyv1alpha1.TaskPhasePending
-			}
-			if t.IsFailed() {
-				return kubekeyv1alpha1.TaskPhaseRunning
-			}
-			if !t.IsSkipped() {
-				skip = false
-			}
+		if t.IsFailed() {
+			return kubekeyv1alpha1.TaskPhaseSkipped
 		}
-		if skip {
-			return kubekeyv1alpha1.TaskPhaseRunning
+		if !t.IsSkipped() {
+			skip = false
 		}
+	}
+	if skip {
 		return kubekeyv1alpha1.TaskPhaseSkipped
 	}
+	return kubekeyv1alpha1.TaskPhaseRunning
+}
 
-	// If dependency tasks has failed. skip it.
-	succeedExecuteStrategy := func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
-		if len(tasks) == 0 { // non-dependency
-			return kubekeyv1alpha1.TaskPhaseRunning
-		}
-		skip := true
-		for _, t := range tasks {
-			if !t.IsComplete() {
-				return kubekeyv1alpha1.TaskPhasePending
-			}
-			if t.IsFailed() {
-				return kubekeyv1alpha1.TaskPhaseSkipped
-			}
-			if !t.IsSkipped() {
-				skip = false
-			}
-		}
-		if skip {
-			return kubekeyv1alpha1.TaskPhaseSkipped
-		}
+// if tasks has failed. execute current task.
+var failedExecuteStrategy = func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
+	if len(tasks) == 0 { // non-dependency
 		return kubekeyv1alpha1.TaskPhaseRunning
 	}
-
-	// If dependency tasks is not complete. waiting.
-	// If dependency tasks is skipped. skip.
-	alwaysExecuteStrategy := func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
-		if len(tasks) == 0 { // non-dependency
+	skip := true
+	for _, t := range tasks {
+		if !t.IsComplete() {
+			return kubekeyv1alpha1.TaskPhasePending
+		}
+		if t.IsFailed() {
 			return kubekeyv1alpha1.TaskPhaseRunning
 		}
-		skip := true
-		for _, t := range tasks {
-			if !t.IsComplete() {
-				return kubekeyv1alpha1.TaskPhasePending
-			}
-			if !t.IsSkipped() {
-				skip = false
-			}
+		if !t.IsSkipped() {
+			skip = false
 		}
-		if skip {
-			return kubekeyv1alpha1.TaskPhaseSkipped
-		}
+	}
+	if skip {
 		return kubekeyv1alpha1.TaskPhaseRunning
+	}
+	return kubekeyv1alpha1.TaskPhaseSkipped
+}
+
+// If dependency tasks is skipped. skip.
+var alwaysExecuteStrategy = func(tasks []kubekeyv1alpha1.Task) kubekeyv1alpha1.TaskPhase {
+	if len(tasks) == 0 { // non-dependency
+		return kubekeyv1alpha1.TaskPhaseRunning
+	}
+	skip := true
+	for _, t := range tasks {
+		if !t.IsComplete() {
+			return kubekeyv1alpha1.TaskPhasePending
+		}
+		if !t.IsSkipped() {
+			skip = false
+		}
+	}
+	if skip {
+		return kubekeyv1alpha1.TaskPhaseSkipped
+	}
+	return kubekeyv1alpha1.TaskPhaseRunning
+}
+
+func (f InferPhase) getDependencyLocationUIDS(data value, loc *location) (kubekeyv1alpha1.TaskPhase, error) {
+	if loc.PUID == "" {
+		return kubekeyv1alpha1.TaskPhaseRunning, nil
 	}
 
 	// Find the parent location and, based on where the current location is within the parent location, retrieve the dependent tasks.
@@ -374,17 +367,11 @@ func (f DependencyTasks) getDependencyLocationUIDS(data value, loc *location) (D
 		if l.UID == loc.UID {
 			// When location is the first element, it is necessary to check the dependency of its parent location.
 			if i == 0 {
-				if data, err := f.getDependencyLocationUIDS(data, ploc); err != nil {
-					return DependencyTask{}, err
-				} else {
-					return data, nil
-				}
+				return f.getDependencyLocationUIDS(data, ploc)
 			}
+
 			// When location is not the first element, dependency location is the preceding element in the same array.
-			return DependencyTask{
-				Tasks:    f.findAllTasks(ploc.Block[i-1]),
-				Strategy: succeedExecuteStrategy,
-			}, nil
+			return succeedExecuteStrategy(f.findAllTasks(ploc.Block[i-1], f.Tasks)), nil
 		}
 	}
 
@@ -393,15 +380,10 @@ func (f DependencyTasks) getDependencyLocationUIDS(data value, loc *location) (D
 		if l.UID == loc.UID {
 			// When location is the first element, dependency location is all task of sibling block array.
 			if i == 0 {
-				return DependencyTask{
-					Tasks:    f.findAllTasks(ploc.Block[len(ploc.Block)-1]),
-					Strategy: failedExecuteStrategy,
-				}, nil
+				return failedExecuteStrategy(f.findAllTasks(ploc.Block[len(ploc.Block)-1], f.Tasks)), nil
 			}
 			// When location is not the first element, dependency location is the preceding element in the same array
-			return DependencyTask{
-				Tasks:    f.findAllTasks(ploc.Rescue[i-1]),
-				Strategy: succeedExecuteStrategy}, nil
+			return failedExecuteStrategy(f.findAllTasks(ploc.Rescue[i-1], f.Tasks)), nil
 		}
 	}
 
@@ -410,36 +392,33 @@ func (f DependencyTasks) getDependencyLocationUIDS(data value, loc *location) (D
 		if l.UID == loc.UID {
 			// When location is the first element, dependency location is all task of sibling block array
 			if i == 0 {
-				return DependencyTask{
-					Tasks:    f.findAllTasks(ploc.Block[len(ploc.Block)-1]),
-					Strategy: alwaysExecuteStrategy,
-				}, nil
+				return alwaysExecuteStrategy(f.findAllTasks(ploc.Block[len(ploc.Block)-1], f.Tasks)), nil
 			}
 			// When location is not the first element, dependency location is the preceding element in the same array
-			return DependencyTask{
-				Tasks:    f.findAllTasks(ploc.Always[i-1]),
-				Strategy: alwaysExecuteStrategy,
-			}, nil
-
+			return alwaysExecuteStrategy(f.findAllTasks(ploc.Always[i-1], f.Tasks)), nil
 		}
 	}
 
-	return DependencyTask{}, fmt.Errorf("connot find location %s in parent %s", loc.UID, loc.PUID)
+	return "", fmt.Errorf("connot find location %s in parent %s", loc.UID, loc.PUID)
 }
 
-func (f DependencyTasks) findAllTasks(loc location) []string {
-	if len(loc.Block) == 0 {
-		return []string{loc.UID}
+func (f InferPhase) findAllTasks(loc location, allTasks []kubekeyv1alpha1.Task) []kubekeyv1alpha1.Task {
+	if len(loc.Block) == 0 { // if block is empty the location is task graph
+		for _, task := range allTasks {
+			if string(task.UID) == loc.UID {
+				return []kubekeyv1alpha1.Task{task}
+			}
+		}
 	}
-	var result = make([]string, 0)
+	var result = make([]kubekeyv1alpha1.Task, 0)
 	for _, l := range loc.Block {
-		result = append(result, f.findAllTasks(l)...)
+		result = append(result, f.findAllTasks(l, allTasks)...)
 	}
 	for _, l := range loc.Rescue {
-		result = append(result, f.findAllTasks(l)...)
+		result = append(result, f.findAllTasks(l, allTasks)...)
 	}
 	for _, l := range loc.Always {
-		result = append(result, f.findAllTasks(l)...)
+		result = append(result, f.findAllTasks(l, allTasks)...)
 	}
 
 	return result
@@ -494,13 +473,13 @@ type LocationMerge struct {
 }
 
 func (t LocationMerge) mergeTo(v *value) error {
-	if t.ParentUID == "" {
-		v.Location = append(v.Location, location{
+	if t.ParentUID == "" { // set the top location
+		v.Location = &location{
 			Name: t.Name,
 			PUID: t.ParentUID,
 			UID:  t.UID,
 			Vars: t.Vars,
-		})
+		}
 		return nil
 	}
 	// find parent graph

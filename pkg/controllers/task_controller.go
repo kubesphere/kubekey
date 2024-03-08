@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -148,37 +147,27 @@ func (r *TaskReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 }
 
 func (r *TaskReconciler) dealPendingTask(ctx context.Context, options taskReconcileOptions) (ctrl.Result, error) {
-	// find dependency tasks
-	dl, err := options.Variable.Get(variable.DependencyTasks{
+	var nsTasks = &kubekeyv1alpha1.TaskList{}
+	if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(options.Pipeline.Namespace), ctrlclient.MatchingFields{
+		kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(options.Pipeline).String(),
+	}); err != nil {
+		klog.V(5).ErrorS(err, "list task error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
+		return ctrl.Result{}, err
+	}
+
+	// Infer the current task's phase from its dependent tasks.
+	dl, err := options.Variable.Get(variable.InferPhase{
 		LocationUID: string(options.Task.UID),
+		Tasks:       nsTasks.Items,
 	})
+	klog.InfoS("infer phase", "phase", dl, "task-name", options.Task.Spec.Name)
 	if err != nil {
 		klog.V(5).ErrorS(err, "find dependency error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String())
 		return ctrl.Result{}, err
 	}
-	dt, ok := dl.(variable.DependencyTask)
-	if !ok {
-		klog.V(5).ErrorS(err, "failed to convert dependency", "task", ctrlclient.ObjectKeyFromObject(options.Task).String())
-		return ctrl.Result{}, fmt.Errorf("[Task %s] failed to convert dependency", ctrlclient.ObjectKeyFromObject(options.Task).String())
-	}
 
-	var nsTasks = &kubekeyv1alpha1.TaskList{}
-	if len(dt.Tasks) != 0 {
-		if err := r.Client.List(ctx, nsTasks, ctrlclient.InNamespace(options.Pipeline.Namespace), ctrlclient.MatchingFields{
-			kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(options.Pipeline).String(),
-		}); err != nil {
-			klog.V(5).ErrorS(err, "list task error", "task", ctrlclient.ObjectKeyFromObject(options.Task).String(), err)
-			return ctrl.Result{}, err
-		}
-	}
-	var dts []kubekeyv1alpha1.Task
-	for _, t := range nsTasks.Items { // if dependency tasks is empty, skip
-		if slices.Contains(dt.Tasks, string(t.UID)) {
-			dts = append(dts, t)
-		}
-	}
 	// Based on the results of the executed tasks dependent on, infer the next phase of the current task.
-	switch dt.Strategy(dts) {
+	switch dl.(kubekeyv1alpha1.TaskPhase) {
 	case kubekeyv1alpha1.TaskPhasePending:
 		return ctrl.Result{Requeue: true}, nil
 	case kubekeyv1alpha1.TaskPhaseRunning:
@@ -231,7 +220,7 @@ func (r *TaskReconciler) prepareTask(ctx context.Context, options taskReconcileO
 			return err
 		}
 
-		var curVariable = lg.(variable.VariableData)
+		var curVariable = lg.(variable.VariableData).DeepCopy()
 		if pt := variable.BoolVar(curVariable, "prepareTask"); pt != nil && *pt {
 			klog.InfoS("prepareTask is true, skip", "task", ctrlclient.ObjectKeyFromObject(options.Task), "host", host)
 			continue
@@ -255,11 +244,13 @@ func (r *TaskReconciler) prepareTask(ctx context.Context, options taskReconcileO
 
 		// set prepareTask to true
 		curVariable["prepareTask"] = true
-		options.Variable.Merge(variable.HostMerge{
+		if err := options.Variable.Merge(variable.HostMerge{
 			HostNames:   []string{h},
 			LocationUID: string(options.Task.UID),
 			Data:        curVariable,
-		})
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -434,13 +425,16 @@ func (r *TaskReconciler) executeTask(ctx context.Context, options taskReconcileO
 					return
 				}
 				// set item to runtime variable
-				options.Variable.Merge(variable.HostMerge{
+				if err := options.Variable.Merge(variable.HostMerge{
 					HostNames:   []string{h},
 					LocationUID: string(options.Task.UID),
 					Data: variable.VariableData{
 						"item": item,
 					},
-				})
+				}); err != nil {
+					stderr = "set loop item to variable error"
+					return
+				}
 				stdout, stderr = r.executeModule(ctx, options.Task, modules.ExecOptions{
 					Args:     options.Task.Spec.Module.Args,
 					Host:     host,
