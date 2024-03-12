@@ -79,4 +79,7 @@ func (o *ControllerManagerServerOptions) Flags() cliflag.NamedFlagSets {
 
 func (o *ControllerManagerServerOptions) Complete(cmd *cobra.Command, args []string) {
 	// do nothing
+	if o.MaxConcurrentReconciles == 0 {
+		o.MaxConcurrentReconciles = 1
+	}
 }

@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"os"
 
+	"k8s.io/klog/v2"
 	"k8s.io/utils/exec"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -43,34 +44,71 @@ type Connector interface {
 }
 
 // NewConnector creates a new connector
-func NewConnector(host string, vars variable.VariableData) Connector {
+// if set connector to local, use local connector
+// if set connector to ssh, use ssh connector
+// if connector is not set. when host is localhost, use local connector, else use ssh connector
+// vars contains all inventory for host. It's best to define the connector info in inventory file.
+func NewConnector(host string, vars map[string]any) (Connector, error) {
 	switch vars["connector"] {
 	case "local":
-		return &localConnector{Cmd: exec.New()}
+		return &localConnector{Cmd: exec.New()}, nil
 	case "ssh":
-		if variable.StringVar(vars, "ssh_host") != nil {
-			host = *variable.StringVar(vars, "ssh_host")
+		hostParam, err := variable.StringVar(nil, vars, "ssh_host")
+		if err != nil {
+			return nil, err
+		}
+
+		portParam, err := variable.IntVar(nil, vars, "ssh_port")
+		if err != nil { // default port 22
+			klog.InfoS("get ssh port failed use default port 22", "error", err)
+			portParam = 22
+		}
+
+		userParam, err := variable.StringVar(nil, vars, "ssh_user")
+		if err != nil {
+			return nil, err
+		}
+
+		passParam, err := variable.StringVar(nil, vars, "ssh_password")
+		if err != nil {
+			return nil, err
 		}
 		return &sshConnector{
-			Host:     host,
-			Port:     variable.IntVar(vars, "ssh_port"),
-			User:     variable.StringVar(vars, "ssh_user"),
-			Password: variable.StringVar(vars, "ssh_password"),
-		}
+			Host:     hostParam,
+			Port:     portParam,
+			User:     userParam,
+			Password: passParam,
+		}, nil
 	default:
 		localHost, _ := os.Hostname()
 		if host == _const.LocalHostName || localHost == host {
-			return &localConnector{Cmd: exec.New()}
+			return &localConnector{Cmd: exec.New()}, nil
 		}
 
-		if variable.StringVar(vars, "ssh_host") != nil {
-			host = *variable.StringVar(vars, "ssh_host")
+		hostParam, err := variable.StringVar(nil, vars, "ssh_host")
+		if err != nil {
+			return nil, err
+		}
+
+		portParam, err := variable.IntVar(nil, vars, "ssh_port")
+		if err != nil {
+			return nil, err
+		}
+
+		userParam, err := variable.StringVar(nil, vars, "ssh_user")
+		if err != nil {
+			return nil, err
+		}
+
+		passParam, err := variable.StringVar(nil, vars, "ssh_password")
+		if err != nil {
+			return nil, err
 		}
 		return &sshConnector{
-			Host:     host,
-			Port:     variable.IntVar(vars, "ssh_port"),
-			User:     variable.StringVar(vars, "ssh_user"),
-			Password: variable.StringVar(vars, "ssh_password"),
-		}
+			Host:     hostParam,
+			Port:     portParam,
+			User:     userParam,
+			Password: passParam,
+		}, nil
 	}
 }

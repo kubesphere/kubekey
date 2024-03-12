@@ -19,35 +19,34 @@ package modules
 import (
 	"context"
 
+	"k8s.io/klog/v2"
+
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
-	args := variable.Extension2Variables(options.Args)
-	that := variable.StringSliceVar(args, "that")
-	if that == nil {
-		st := variable.StringVar(args, "that")
-		if st == nil {
-			return "", "\"that\" should be []string or string"
-		}
-		that = []string{*st}
-	}
-	lg, err := options.Variable.Get(variable.LocationVars{
-		HostName:    options.Host,
-		LocationUID: string(options.Task.UID),
-	})
+	// get host variable
+	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
+		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
 		return "", err.Error()
 	}
-	ok, err := tmpl.ParseBool(lg.(variable.VariableData), that)
+
+	args := variable.Extension2Variables(options.Args)
+	thatParam, err := variable.StringSliceVar(ha.(map[string]any), args, "that")
+	if err != nil {
+		return "", "\"that\" should be []string or string"
+	}
+
+	ok, err := tmpl.ParseBool(ha.(map[string]any), thatParam)
 	if err != nil {
 		return "", err.Error()
 	}
 
 	if ok {
-		if v := variable.StringVar(args, "success_msg"); v != nil {
-			if r, err := tmpl.ParseString(lg.(variable.VariableData), *v); err != nil {
+		if successMsgParam, err := variable.StringVar(ha.(map[string]any), args, "success_msg"); err == nil {
+			if r, err := tmpl.ParseString(ha.(map[string]any), successMsgParam); err != nil {
 				return "", err.Error()
 			} else {
 				return r, ""
@@ -55,15 +54,15 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 		}
 		return "True", ""
 	} else {
-		if v := variable.StringVar(args, "fail_msg"); v != nil {
-			if r, err := tmpl.ParseString(lg.(variable.VariableData), *v); err != nil {
+		if failMsgParam, err := variable.StringVar(ha.(map[string]any), args, "fail_msg"); err == nil {
+			if r, err := tmpl.ParseString(ha.(map[string]any), failMsgParam); err != nil {
 				return "", err.Error()
 			} else {
 				return "False", r
 			}
 		}
-		if v := variable.StringVar(args, "msg"); v != nil {
-			if r, err := tmpl.ParseString(lg.(variable.VariableData), *v); err != nil {
+		if msgParam, err := variable.StringVar(ha.(map[string]any), args, "msg"); err == nil {
+			if r, err := tmpl.ParseString(ha.(map[string]any), msgParam); err != nil {
 				return "", err.Error()
 			} else {
 				return "False", r

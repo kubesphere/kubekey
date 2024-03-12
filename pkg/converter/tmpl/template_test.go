@@ -19,32 +19,40 @@ package tmpl
 import (
 	"testing"
 
+	"github.com/flosch/pongo2/v6"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 func TestParseBool(t *testing.T) {
 	testcases := []struct {
 		name      string
 		condition []string
-		variable  variable.VariableData
+		variable  pongo2.Context
 		excepted  bool
 	}{
 		{
 			name:      "parse success",
 			condition: []string{"foo == \"bar\""},
-			variable: variable.VariableData{
+			variable: pongo2.Context{
 				"foo": "bar",
 			},
 			excepted: true,
 		},
 		{
-			name:      "in",
+			name:      "in array",
 			condition: []string{"test in inArr"},
-			variable: variable.VariableData{
+			variable: pongo2.Context{
 				"test":  "a",
 				"inArr": []string{"a", "b"},
+			},
+			excepted: true,
+		},
+		{
+			name:      "container string",
+			condition: []string{"test in instr"},
+			variable: pongo2.Context{
+				"test":  "a1",
+				"instr": "vda hjilsa1 sdte",
 			},
 			excepted: true,
 		},
@@ -61,16 +69,40 @@ func TestParseString(t *testing.T) {
 	testcases := []struct {
 		name     string
 		input    string
-		variable variable.VariableData
+		variable pongo2.Context
 		excepted string
 	}{
 		{
 			name:  "parse success",
 			input: "{{foo}}",
-			variable: map[string]any{
+			variable: pongo2.Context{
 				"foo": "bar",
 			},
 			excepted: "bar",
+		},
+		{
+			name:  "parse in map",
+			input: "{% for _,v in value %}{{v.a}}{% endfor %}",
+			variable: pongo2.Context{
+				"value": pongo2.Context{
+					"foo": pongo2.Context{
+						"a": "b",
+					},
+				},
+			},
+			excepted: "b",
+		},
+		{
+			name:  "parse in",
+			input: "{% set k=value['foo'] %}{{ k.a }}",
+			variable: pongo2.Context{
+				"value": pongo2.Context{
+					"foo": pongo2.Context{
+						"a": "b",
+					},
+				},
+			},
+			excepted: "b",
 		},
 	}
 
@@ -85,12 +117,12 @@ func TestParseString(t *testing.T) {
 func TestParseFile(t *testing.T) {
 	testcases := []struct {
 		name     string
-		variable variable.VariableData
+		variable pongo2.Context
 		excepted string
 	}{
 		{
 			name: "parse success",
-			variable: map[string]any{
+			variable: pongo2.Context{
 				"foo": "bar",
 			},
 			excepted: "foo: bar",

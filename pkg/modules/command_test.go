@@ -40,7 +40,7 @@ func TestCommand(t *testing.T) {
 				Variable: &testVariable{},
 			},
 			ctx:          context.Background(),
-			exceptStderr: "host is not set",
+			exceptStderr: "cannot find variable \"ssh_host\"",
 		},
 		{
 			name: "exec command success",

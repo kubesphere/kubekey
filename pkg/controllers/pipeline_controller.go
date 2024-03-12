@@ -18,7 +18,8 @@ package controllers
 
 import (
 	"context"
-	"fmt"
+	"github.com/kubesphere/kubekey/v4/pkg/executor"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +33,6 @@ import (
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/task"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -41,10 +41,9 @@ const (
 )
 
 type PipelineReconciler struct {
+	*runtime.Scheme
 	ctrlclient.Client
 	record.EventRecorder
-
-	TaskController task.Controller
 
 	ctrlfinalizer.Finalizers
 }
@@ -111,11 +110,11 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *kubekeyv1.Pipeline) (ctrl.Result, error) {
-	if _, ok := pipeline.Annotations[kubekeyv1.PauseAnnotation]; ok {
-		// if pipeline is paused, do nothing
-		klog.V(5).InfoS("pipeline is paused", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-		return ctrl.Result{}, nil
-	}
+	//if _, ok := pipeline.Annotations[kubekeyv1.PauseAnnotation]; ok {
+	//	// if pipeline is paused, do nothing
+	//	klog.V(5).InfoS("pipeline is paused", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+	//	return ctrl.Result{}, nil
+	//}
 
 	cp := pipeline.DeepCopy()
 	defer func() {
@@ -125,11 +124,9 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 		}
 	}()
 
-	if err := r.TaskController.AddTasks(ctx, pipeline); err != nil {
-		klog.V(5).ErrorS(err, "add task error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-		pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
-		pipeline.Status.Reason = fmt.Sprintf("add task to controller failed: %v", err)
-		return ctrl.Result{}, err
+	if err := executor.NewTaskExecutor(r.Scheme, r.Client, pipeline).Exec(ctx); err != nil {
+		klog.ErrorS(err, "Create task controller error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil

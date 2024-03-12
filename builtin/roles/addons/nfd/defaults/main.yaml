@@ -1,0 +1,3 @@
+nfd:
+  enabled: false
+  image: kubesphere/node-feature-discovery:v0.10.0

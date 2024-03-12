@@ -18,7 +18,6 @@ package app
 
 import (
 	"context"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 	"io/fs"
 	"os"
 
@@ -30,6 +29,7 @@ import (
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/manager"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
 func newRunCommand() *cobra.Command {
@@ -51,18 +51,17 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), kk, config, inventory)
+			return run(signals.SetupSignalHandler(), kk, config, inventory, o.CommonOptions)
 		},
 	}
 
-	fs := cmd.Flags()
 	for _, f := range o.Flags().FlagSets {
-		fs.AddFlagSet(f)
+		cmd.Flags().AddFlagSet(f)
 	}
 	return cmd
 }
 
-func run(ctx context.Context, kk *kubekeyv1.Pipeline, config *kubekeyv1.Config, inventory *kubekeyv1.Inventory) error {
+func run(ctx context.Context, kk *kubekeyv1.Pipeline, config *kubekeyv1.Config, inventory *kubekeyv1.Inventory, o options.CommonOptions) error {
 	if err := proxy.Init(); err != nil {
 		return err
 	}

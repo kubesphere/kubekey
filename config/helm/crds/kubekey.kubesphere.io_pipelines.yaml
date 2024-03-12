@@ -207,9 +207,6 @@ spec:
                   ignored:
                     description: Ignored number of tasks.
                     type: integer
-                  skipped:
-                    description: Skipped number of tasks.
-                    type: integer
                   success:
                     description: Success number of tasks.
                     type: integer

@@ -1,0 +1,65 @@
+---
+- name: Check image registry if installed
+  ignore_errors: true
+  command: systemctl status registry.service
+  register: image_registry_service
+
+- name: Sync registry image to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/image-registry/registry/{{ registry_version }}/{{ binary_type.stdout }}/registry-{{ registry_version }}-linux-{{ binary_type.stdout }}.tgz"
+    dest: "/opt/registry/{{ registry_version }}/registry-{{ registry_version }}-linux-{{ binary_type.stdout }}.tgz"
+  when: image_registry_service.stderr != ""
+
+- name: Mount NFS dir
+  command: |
+    if [ {{ os.release.ID_LIKE }} == 'debian' ]; then
+      yum update && yum install -y nfs-utils
+    elif [ {{ os.release.ID_LIKE }} == 'rhel fedora' ]
+      apt update && apt install -y nfs-common
+    fi
+    nfsHostName={{ groups['nfs']|first }}
+    {% set hv=inventory_hosts['$nfsHostName'] %}
+    mount -t nfs {{ hv.internal_ipv4 }}:{{ image_registry.registry.storage.filesystem.nfs_mount }} {{ image_registryregistry.storage.filesystem.rootdirectory }}
+  when:
+    - image_registry.registry.storage.filesystem.nfs_mount | defined
+    - groups['nfs']|length == 1
+    - image_registry_service.stderr != ""
+
+- name: Load registry image
+  command: |
+    docker load -i /opt/registry/{{ registry_version }}/registry-{{ registry_version }}-linux-{{ binary_type.stdout }}.tgz
+  when: image_registry_service.stderr != ""
+
+- name: Sync image registry cert file to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/pki/image_registry.crt"
+    dest: "/opt/registry/{{ registry_version }}/ssl/server.crt"
+  when: image_registry_service.stderr != ""
+
+- name: Sync image registry key file to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/pki/image_registry.key"
+    dest: "/opt/registry/{{ registry_version }}/ssl/server.key"
+  when: image_registry_service.stderr != ""
+
+- name: Generate registry docker compose
+  template:
+    src: "registry.docker-compose"
+    dest: "/opt/registry/{{ registry_version }}/docker-compose.yml"
+  when: image_registry_service.stderr != ""
+
+- name: Generate registry config
+  template:
+    src: "registry.config"
+    dest: "/opt/registry/{{ registry_version }}/config.yml"
+  when: image_registry_service.stderr != ""
+
+- name: Register registry service
+  copy:
+    src: "registry.service"
+    dest: "/etc/systemd/system/registry.service"
+  when: image_registry_service.stderr != ""
+
+- name: Start registry service
+  command: systemctl daemon-reload && systemctl start registry.service && systemctl enable registry.service
+  when: image_registry_service.stderr != ""

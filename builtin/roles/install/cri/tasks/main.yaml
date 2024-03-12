@@ -1,0 +1,19 @@
+---
+# install crictl
+- include_tasks: install_crictl.yaml
+
+# install docker
+- include_tasks: install_docker.yaml
+  when: cri.container_manager == "docker"
+
+    # install containerd
+- include_tasks: install_containerd.yaml
+  when: cri.container_manager == "containerd"
+
+# install cridockerd
+- include_tasks: install_cridockerd.yaml
+  when:
+  - cri.container_manager == "docker"
+  - kube_version|version:'>=v1.24.0'
+
+

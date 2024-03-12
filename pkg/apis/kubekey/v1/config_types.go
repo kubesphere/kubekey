@@ -20,6 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
+	"reflect"
+	"strings"
 )
 
 // +genclient
@@ -51,11 +53,32 @@ func (c *Config) SetValue(key string, value any) error {
 		return err
 	}
 	// set value
-	configMap[key] = value
-	data, err := json.Marshal(configMap)
+	var f func(input map[string]any, key []string, value any) any
+	f = func(input map[string]any, key []string, value any) any {
+		if len(key) == 1 {
+			input[key[0]] = value
+		} else if len(key) > 1 {
+			if v, ok := input[key[0]]; ok && reflect.TypeOf(v).Kind() == reflect.Map {
+				input[key[0]] = f(v.(map[string]any), key[1:], value)
+			} else {
+				input[key[0]] = f(make(map[string]any), key[1:], value)
+			}
+		}
+		return input
+	}
+	data, err := json.Marshal(f(configMap, strings.Split(key, "."), value))
 	if err != nil {
 		return err
 	}
 	c.Spec.Raw = data
 	return nil
+}
+
+func (c *Config) GetValue(key string) (any, error) {
+	configMap := make(map[string]any)
+	if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
+		return nil, err
+	}
+	// get value
+	return configMap[key], nil
 }

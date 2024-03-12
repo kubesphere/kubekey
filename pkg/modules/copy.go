@@ -18,6 +18,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -26,147 +27,162 @@ import (
 	"k8s.io/klog/v2"
 
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
-	"github.com/kubesphere/kubekey/v4/pkg/connector"
-	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
-	// check args
-	args := variable.Extension2Variables(options.Args)
-	src := variable.StringVar(args, "src")
-	content := variable.StringVar(args, "content")
-	if src == nil && content == nil {
-		return "", "\"src\" or \"content\" in args should be string"
-	}
-	dest := variable.StringVar(args, "dest")
-	if dest == nil {
-		return "", "\"dest\" in args should be string"
-	}
-	lv, err := options.Variable.Get(variable.LocationVars{
-		HostName:    options.Host,
-		LocationUID: string(options.Task.UID),
-	})
+	// get host variable
+	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get location vars")
-		return "", err.Error()
-	}
-	destStr, err := tmpl.ParseString(lv.(variable.VariableData), *dest)
-	if err != nil {
-		klog.V(4).ErrorS(err, "template parse dest error")
+		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
 		return "", err.Error()
 	}
 
-	var conn connector.Connector
-	if v := ctx.Value("connector"); v != nil {
-		conn = v.(connector.Connector)
-	} else {
-		// get connector
-		ha, err := options.Variable.Get(variable.HostVars{HostName: options.Host})
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to get host vars")
-			return "", err.Error()
-		}
-		conn = connector.NewConnector(options.Host, ha.(variable.VariableData))
+	// check args
+	// todo should add policy?
+	args := variable.Extension2Variables(options.Args)
+	srcParam, _ := variable.StringVar(ha.(map[string]any), args, "src")
+	contentParam, _ := variable.StringVar(ha.(map[string]any), args, "content")
+	if srcParam == "" && contentParam == "" {
+		return "", "\"src\" or \"content\" in args should be string"
 	}
-	if err := conn.Init(ctx); err != nil {
-		klog.V(4).ErrorS(err, "failed to init connector")
+	destParam, err := variable.StringVar(ha.(map[string]any), args, "dest")
+	if err != nil {
+		return "", "\"dest\" in args should be string"
+	}
+
+	// get connector
+	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
+	if err != nil {
 		return "", err.Error()
 	}
 	defer conn.Close(ctx)
 
-	if src != nil {
-		// convert src
-		srcStr, err := tmpl.ParseString(lv.(variable.VariableData), *src)
-		if err != nil {
-			klog.V(4).ErrorS(err, "template parse src error")
-			return "", err.Error()
-		}
-		var baseFS fs.FS
-		if filepath.IsAbs(srcStr) {
-			baseFS = os.DirFS("/")
-		} else {
-			projectFs, err := project.New(project.Options{Pipeline: &options.Pipeline}).FS(ctx, false)
+	switch {
+	case srcParam != "": // copy local file to remote
+		if filepath.IsAbs(srcParam) { // if src is absolute path. find it in local path
+			fileInfo, err := os.Stat(srcParam)
 			if err != nil {
-				klog.V(4).ErrorS(err, "failed to get project fs")
-				return "", err.Error()
+				return "", fmt.Sprintf(" get src file %s in local path error: %v", srcParam, err)
 			}
-			baseFS = projectFs
-		}
-		roleName := options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]
-		flPath := project.GetFilesFromPlayBook(baseFS, options.Pipeline.Spec.Playbook, roleName, srcStr)
-		fileInfo, err := fs.Stat(baseFS, flPath)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to get src file in local")
-			return "", err.Error()
-		}
-		if fileInfo.IsDir() {
-			// src is dir
-			if err := fs.WalkDir(baseFS, flPath, func(path string, info fs.DirEntry, err error) error {
-				if err != nil {
-					klog.V(4).ErrorS(err, "failed to walk dir")
-					return err
-				}
-				rel, err := filepath.Rel(srcStr, path)
-				if err != nil {
-					klog.V(4).ErrorS(err, "failed to get relative path")
-					return err
-				}
-				if info.IsDir() {
+
+			if fileInfo.IsDir() { // src is dir
+				if err := filepath.WalkDir(srcParam, func(path string, d fs.DirEntry, err error) error {
+					if d.IsDir() { // only copy file
+						return nil
+					}
+					if err != nil {
+						return fmt.Errorf("walk dir %s error: %v", srcParam, err)
+					}
+
+					// get file old mode
+					info, err := d.Info()
+					if err != nil {
+						return fmt.Errorf("get file info error: %v", err)
+					}
+					mode := info.Mode()
+					if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
+						mode = os.FileMode(modeParam)
+					}
+					// read file
+					data, err := os.ReadFile(path)
+					if err != nil {
+						return fmt.Errorf("read file error: %v", err)
+					}
+					// copy file to remote
+					if err := conn.CopyFile(ctx, data, path, mode); err != nil {
+						return fmt.Errorf("copy file error: %v", err)
+					}
 					return nil
+				}); err != nil {
+					return "", fmt.Sprintf(" walk dir %s in local path error: %v", srcParam, err)
 				}
-				fi, err := info.Info()
+			} else { // src is file
+				data, err := os.ReadFile(srcParam)
 				if err != nil {
-					klog.V(4).ErrorS(err, "failed to get file info")
-					return err
+					return "", fmt.Sprintf("read file error: %v", err)
 				}
-				mode := fi.Mode()
-				if variable.IntVar(args, "mode") != nil {
-					mode = os.FileMode(*variable.IntVar(args, "mode"))
+				if strings.HasSuffix(destParam, "/") {
+					destParam = destParam + filepath.Base(srcParam)
 				}
-				data, err := fs.ReadFile(baseFS, rel)
-				if err != nil {
-					klog.V(4).ErrorS(err, "failed to read file")
-					return err
+				mode := fileInfo.Mode()
+				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
+					mode = os.FileMode(modeParam)
 				}
-				if err := conn.CopyFile(ctx, data, filepath.Join(destStr, rel), mode); err != nil {
-					klog.V(4).ErrorS(err, "failed to copy file", "src", srcStr, "dest", destStr)
-					return err
+				if err := conn.CopyFile(ctx, data, destParam, mode); err != nil {
+					return "", fmt.Sprintf("copy file error: %v", err)
 				}
-				return nil
-			}); err != nil {
-				klog.V(4).ErrorS(err, "failed to walk dir")
-				return "", err.Error()
 			}
-		} else {
-			// src is file
-			data, err := fs.ReadFile(baseFS, flPath)
+		} else { // if src is not absolute path. find file in project
+			pj, err := project.New(options.Pipeline, false)
 			if err != nil {
-				klog.V(4).ErrorS(err, "failed to read file")
-				return "", err.Error()
+				return "", fmt.Sprintf("get project error: %v", err)
 			}
-			if strings.HasSuffix(destStr, "/") {
-				destStr = destStr + filepath.Base(srcStr)
+			fileInfo, err := pj.Stat(srcParam, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+			if err != nil {
+				return "", fmt.Sprintf("get file %s from project error %v", srcParam, err)
 			}
-			if err := conn.CopyFile(ctx, data, destStr, fileInfo.Mode()); err != nil {
-				klog.V(4).ErrorS(err, "failed to copy file", "src", srcStr, "dest", destStr)
-				return "", err.Error()
+
+			if fileInfo.IsDir() {
+				if err := pj.WalkDir(srcParam, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]}, func(path string, d fs.DirEntry, err error) error {
+					if d.IsDir() { // only copy file
+						return nil
+					}
+					if err != nil {
+						return fmt.Errorf("walk dir %s error: %v", srcParam, err)
+					}
+
+					info, err := d.Info()
+					if err != nil {
+						return fmt.Errorf("get file info error: %v", err)
+					}
+					mode := info.Mode()
+					if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
+						mode = os.FileMode(modeParam)
+					}
+					data, err := pj.ReadFile(path, project.GetFileOption{Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+					if err != nil {
+						return fmt.Errorf("read file error: %v", err)
+					}
+					if err := conn.CopyFile(ctx, data, path, mode); err != nil {
+						return fmt.Errorf("copy file error: %v", err)
+					}
+					return nil
+				}); err != nil {
+					return "", fmt.Sprintf("")
+				}
+			} else {
+				data, err := pj.ReadFile(srcParam, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+				if err != nil {
+					return "", fmt.Sprintf("read file error: %v", err)
+				}
+				if strings.HasSuffix(destParam, "/") {
+					destParam = destParam + filepath.Base(srcParam)
+				}
+				mode := fileInfo.Mode()
+				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
+					mode = os.FileMode(modeParam)
+				}
+				if err := conn.CopyFile(ctx, data, destParam, mode); err != nil {
+					return "", fmt.Sprintf("copy file error: %v", err)
+				}
 			}
-			return "success", ""
 		}
-	} else if content != nil {
-		if strings.HasSuffix(destStr, "/") {
+
+	case contentParam != "": // convert content param and copy to remote
+		if strings.HasSuffix(destParam, "/") {
 			return "", "\"content\" should copy to a file"
 		}
 		mode := os.ModePerm
-		if v := variable.IntVar(args, "mode"); v != nil {
-			mode = os.FileMode(*v)
+		if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
+			mode = os.FileMode(modeParam)
 		}
 
-		if err := conn.CopyFile(ctx, []byte(*content), destStr, mode); err != nil {
+		if err := conn.CopyFile(ctx, []byte(contentParam), destParam, mode); err != nil {
 			return "", err.Error()
 		}
 	}
 	return "success", ""
+
 }

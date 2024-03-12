@@ -1,23 +1,27 @@
-BaseDir := $(CURDIR)/..
-playbooks := bootstrap-os.yaml
+BaseDir?=$(CURDIR)
+GOOS?=$(shell go env GOOS)
+GOARCH?=$(shell go env GOARCH)
 
 .PHONY: build
 build:
-	go build -o $(BaseDir)/example -gcflags all=-N  github.com/kubesphere/kubekey/v4/cmd/kk
+	GOOS=$(GOOS);GOARCH=$(GOARCH) go build -o $(BaseDir)/kk-alpha -tags builtin -gcflags all=-N  github.com/kubesphere/kubekey/v4/cmd/kk
 
 .PHONY: run-playbook
 run-playbook: build
 	@for pb in $(playbooks); do \
-		$(BaseDir)/example/kk  run --work-dir=$(BaseDir)/example/test \
+		$(BaseDir)/kk-alpha  run --work-dir=$(BaseDir)/test \
 			--project-addr=git@github.com:littleBlackHouse/kse-installer.git \
-			--project-branch=demo --inventory=$(BaseDir)/example/inventory.yaml \
-			--config=$(BaseDir)/example/config.yaml \
+			--project-branch=demo  \
 			--debug playbooks/$$pb;\
     done
 
 .PHONY: precheck
 precheck: build
-	$(BaseDir)/example/kk precheck --work-dir=$(BaseDir)/example/test \
-	 --inventory=$(BaseDir)/example/inventory.yaml \
-	 --config=$(BaseDir)/example/config.yaml
+	$(BaseDir)/example/kk-alpha precheck --work-dir=$(BaseDir)/test \
+	 --inventory=$(BaseDir)/inventory.yaml --debug
 
+.PHONY: create-cluster
+create-cluster: build
+	$(BaseDir)/example/kk-alpha create cluster --work-dir=$(BaseDir)/test \
+	 --inventory=$(BaseDir)/inventory.yaml \
+	--debug

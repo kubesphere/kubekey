@@ -1,0 +1,12 @@
+cri:
+  # support: systemd, cgroupfs
+  cgroup_driver: systemd
+  sandbox_image: "k8s.gcr.io/pause:3.5"
+  # support: containerd,docker,crio
+  container_manager: docker
+  # the endpoint of containerd
+  cri_socket: "{% if (cri.container_manager=='containerd') %}unix:///var/run/containerd.sock{% endif %}"
+#  containerd:
+#    data_root: /var/lib/containerd
+  docker:
+    data_root: /var/lib/docker

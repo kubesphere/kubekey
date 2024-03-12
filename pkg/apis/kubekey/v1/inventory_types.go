@@ -51,7 +51,6 @@ type Inventory struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec InventorySpec `json:"spec,omitempty"`
-	//Status InventoryStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

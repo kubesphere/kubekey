@@ -103,10 +103,11 @@ func (w *fileWatcher) watch() {
 		select {
 		case event := <-w.watcher.Events:
 			klog.V(6).InfoS("receive watcher event", "event", event)
-			// if the change is namespace dir.
+			// Adjust the listening range. a watcher for a namespace.
+			// the watcher contains all resources in the namespace.
 			entry, err := os.Stat(event.Name)
 			if err != nil {
-				klog.V(4).ErrorS(err, "failed to stat resource file", "event", event)
+				klog.V(6).ErrorS(err, "failed to stat resource file", "event", event)
 				continue
 			}
 			if entry.IsDir() && len(filepath.SplitList(strings.TrimPrefix(event.Name, w.prefix))) == 1 {
@@ -114,11 +115,11 @@ func (w *fileWatcher) watch() {
 				switch event.Op {
 				case fsnotify.Create:
 					if err := w.watcher.Add(event.Name); err != nil {
-						klog.V(4).ErrorS(err, "failed to add namespace dir to file watcher", "event", event)
+						klog.V(6).ErrorS(err, "failed to add namespace dir to file watcher", "event", event)
 					}
 				case fsnotify.Remove:
 					if err := w.watcher.Remove(event.Name); err != nil {
-						klog.V(4).ErrorS(err, "failed to remove namespace dir to file watcher", "event", event)
+						klog.V(6).ErrorS(err, "failed to remove namespace dir to file watcher", "event", event)
 					}
 				}
 				continue
@@ -128,7 +129,7 @@ func (w *fileWatcher) watch() {
 			if strings.HasSuffix(event.Name, yamlSuffix) {
 				data, err := os.ReadFile(event.Name)
 				if err != nil {
-					klog.V(4).ErrorS(err, "failed to read resource file", "event", event)
+					klog.V(6).ErrorS(err, "failed to read resource file", "event", event)
 					continue
 				}
 
@@ -136,16 +137,16 @@ func (w *fileWatcher) watch() {
 				case fsnotify.Create:
 					obj, _, err := w.codec.Decode(data, nil, w.newFunc())
 					if err != nil {
-						klog.V(4).ErrorS(err, "failed to decode resource file", "event", event)
+						klog.V(6).ErrorS(err, "failed to decode resource file", "event", event)
 						continue
 					}
 					metaObj, err := meta.Accessor(obj)
 					if err != nil {
-						klog.V(4).ErrorS(err, "failed to convert to metaObject", "event", event)
+						klog.V(6).ErrorS(err, "failed to convert to metaObject", "event", event)
 						continue
 					}
 					if metaObj.GetName() == "" && metaObj.GetGenerateName() == "" { // ignore unknown file
-						klog.V(4).InfoS("name is empty. ignore", "event", event)
+						klog.V(6).InfoS("name is empty. ignore", "event", event)
 						continue
 					}
 					w.watchEvents <- watch.Event{
@@ -155,16 +156,16 @@ func (w *fileWatcher) watch() {
 				case fsnotify.Write:
 					obj, _, err := w.codec.Decode(data, nil, w.newFunc())
 					if err != nil {
-						klog.V(4).ErrorS(err, "failed to decode resource file", "event", event)
+						klog.V(6).ErrorS(err, "failed to decode resource file", "event", event)
 						continue
 					}
 					metaObj, err := meta.Accessor(obj)
 					if err != nil {
-						klog.V(4).ErrorS(err, "failed to convert to metaObject", "event", event)
+						klog.V(6).ErrorS(err, "failed to convert to metaObject", "event", event)
 						continue
 					}
 					if metaObj.GetName() == "" && metaObj.GetGenerateName() == "" { // ignore unknown file
-						klog.V(4).InfoS("name is empty. ignore", "event", event)
+						klog.V(6).InfoS("name is empty. ignore", "event", event)
 						continue
 					}
 					if strings.HasSuffix(filepath.Base(event.Name), deleteTagSuffix) {

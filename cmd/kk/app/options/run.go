@@ -27,10 +27,7 @@ import (
 )
 
 type KubekeyRunOptions struct {
-	// WorkDir is the baseDir which command find any resource (project etc.)
-	WorkDir string
-	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
-	Debug bool
+	CommonOptions
 	// ProjectAddr is the storage for executable packages (in Ansible format).
 	// When starting with http or https, it will be obtained from a Git repository.
 	// When starting with file path, it will be obtained from the local path.
@@ -44,14 +41,8 @@ type KubekeyRunOptions struct {
 	ProjectTag string
 	// ProjectInsecureSkipTLS skip tls or not when git addr is https.
 	ProjectInsecureSkipTLS bool
-	// ProjectToken auther
+	// ProjectToken to clone and pull git project
 	ProjectToken string
-	// Playbook which to execute.
-	Playbook string
-	// HostFile is the path of host file
-	InventoryFile string
-	// ConfigFile is the path of config file
-	ConfigFile string
 	// Tags is the tags of playbook which to execute
 	Tags []string
 	// SkipTags is the tags of playbook which skip execute
@@ -60,18 +51,14 @@ type KubekeyRunOptions struct {
 
 func NewKubeKeyRunOptions() *KubekeyRunOptions {
 	// add default values
-	o := &KubekeyRunOptions{}
+	o := &KubekeyRunOptions{
+		CommonOptions: newCommonOptions(),
+	}
 	return o
 }
 
 func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
-	fss := cliflag.NamedFlagSets{}
-	gfs := fss.FlagSet("generic")
-	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
-	gfs.StringVar(&o.ConfigFile, "config", o.ConfigFile, "the config file path. support *.yaml ")
-	gfs.StringVar(&o.InventoryFile, "inventory", o.InventoryFile, "the host list file path. support *.ini")
-	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
-
+	fss := o.CommonOptions.Flags()
 	gitfs := fss.FlagSet("project")
 	gitfs.StringVar(&o.ProjectAddr, "project-addr", o.ProjectAddr, "the storage for executable packages (in Ansible format)."+
 		" When starting with http or https, it will be obtained from a Git repository."+
@@ -117,12 +104,10 @@ func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubeke
 		SkipTags: o.SkipTags,
 		Debug:    o.Debug,
 	}
-	config, inventory, err := completeRef(pipeline, o.ConfigFile, o.InventoryFile)
+	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if err := config.SetValue("work_dir", o.WorkDir); err != nil {
-		return nil, nil, nil, err
-	}
+
 	return pipeline, config, inventory, nil
 }

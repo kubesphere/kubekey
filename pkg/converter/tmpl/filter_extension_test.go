@@ -17,6 +17,7 @@ limitations under the License.
 package tmpl
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/flosch/pongo2/v6"
@@ -64,7 +65,7 @@ func TestFilter(t *testing.T) {
 		},
 		{
 			name:  "version_greater",
-			input: "{{ test | version:'>=,v1.19.0'  }}",
+			input: "{{ test | version:'>=v1.19.0'  }}",
 			ctx: map[string]any{
 				"test": "v1.23.10",
 			},
@@ -91,9 +92,9 @@ func TestFilter(t *testing.T) {
 		},
 		{
 			name:  "split",
-			input: "{{ kernelVersion | split:'-' | first }}",
+			input: "{{ kernel_version | split:'-' | first }}",
 			ctx: map[string]any{
-				"kernelVersion": "5.15.0-89-generic",
+				"kernel_version": "5.15.0-89-generic",
 			},
 			except: "5.15.0",
 		},
@@ -107,12 +108,38 @@ func TestFilter(t *testing.T) {
 			except: "True",
 		},
 		{
-			name:  "trim",
-			input: "{{ test | trim:'v' }}",
+			name:  "to_json",
+			input: "{{ test|to_json|safe }}",
 			ctx: map[string]any{
-				"test": "v1.7.0",
+				"test": []string{"a", "b"},
 			},
-			except: "1.7.0",
+			except: "[\"a\",\"b\"]",
+		},
+		{
+			name:  "to_yaml",
+			input: "{{ test | to_yaml:4 }}",
+			ctx: map[string]any{
+				"test": map[string]string{
+					"a": "b/c/d:123",
+				},
+			},
+			except: "    a: b/c/d:123\n    ",
+		},
+		{
+			name:  "bool",
+			input: "{% if test %}a{% else %}b{% endif %}",
+			ctx: map[string]any{
+				"test": true,
+			},
+			except: "a",
+		},
+		{
+			name:  "number",
+			input: "a = {{ test }}",
+			ctx: map[string]any{
+				"test": "23",
+			},
+			except: "a = 23",
 		},
 	}
 
@@ -125,6 +152,12 @@ func TestFilter(t *testing.T) {
 			result, err := tql.Execute(tc.ctx)
 			if err != nil {
 				t.Fatal(err)
+			}
+			var v []string
+			if err := json.Unmarshal([]byte("[\""+result+"\"]"), &v); err != nil {
+				assert.Equal(t, tc.except, result)
+			} else {
+				assert.Equal(t, tc.except, v[0])
 			}
 			assert.Equal(t, tc.except, result)
 		})

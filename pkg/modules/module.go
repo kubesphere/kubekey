@@ -19,6 +19,8 @@ package modules
 import (
 	"context"
 	"fmt"
+	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -61,7 +63,27 @@ func init() {
 	RegisterModule("command", ModuleCommand)
 	RegisterModule("shell", ModuleCommand)
 	RegisterModule("copy", ModuleCopy)
+	RegisterModule("fetch", ModuleFetch)
 	RegisterModule("debug", ModuleDebug)
 	RegisterModule("template", ModuleTemplate)
 	RegisterModule("set_fact", ModuleSetFact)
+	RegisterModule("gen_cert", ModuleGenCert)
+}
+
+func getConnector(ctx context.Context, host string, data map[string]any) (connector.Connector, error) {
+	var conn connector.Connector
+	var err error
+	if v := ctx.Value("connector"); v != nil {
+		conn = v.(connector.Connector)
+	} else {
+		conn, err = connector.NewConnector(host, data)
+		if err != nil {
+			return conn, err
+		}
+	}
+	if err = conn.Init(ctx); err != nil {
+		klog.V(4).ErrorS(err, "failed to init connector")
+		return conn, err
+	}
+	return conn, nil
 }

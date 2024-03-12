@@ -1,0 +1,16 @@
+---
+- include_tasks: install_docker.yaml
+
+- include_tasks: install_docker_compose.yaml
+
+- include_tasks: install_keepalived.yaml
+  when: image_registry.ha_vip | defined
+
+- name: Install image registry
+  block:
+  - include_tasks: install_registry.yaml
+    when: image_registry.type == 'registry'
+  - include_tasks: install_harbor.yaml
+    when: image_registry.type == 'harbor'
+
+- include_tasks: load_images.yaml

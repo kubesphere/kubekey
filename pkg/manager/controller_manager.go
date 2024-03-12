@@ -27,8 +27,6 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/controllers"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
-	"github.com/kubesphere/kubekey/v4/pkg/task"
-	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 type controllerManager struct {
@@ -57,30 +55,10 @@ func (c controllerManager) Run(ctx context.Context) error {
 		return err
 	}
 
-	taskController, err := task.NewController(task.ControllerOptions{
-		Scheme:        mgr.GetScheme(),
-		VariableCache: variable.Cache,
-		MaxConcurrent: c.MaxConcurrentReconciles,
-		Client:        mgr.GetClient(),
-		TaskReconciler: &controllers.TaskReconciler{
-			Client: mgr.GetClient(),
-		},
-	})
-	if err != nil {
-		klog.ErrorS(err, "Create task controller error")
-		return err
-	}
-
-	// add task controller to manager
-	if err := mgr.Add(taskController); err != nil {
-		klog.ErrorS(err, "Add task controller error")
-		return err
-	}
-
 	if err := (&controllers.PipelineReconciler{
-		Client:         mgr.GetClient(),
-		EventRecorder:  mgr.GetEventRecorderFor("pipeline"),
-		TaskController: taskController,
+		Client:        mgr.GetClient(),
+		EventRecorder: mgr.GetEventRecorderFor("pipeline"),
+		Scheme:        mgr.GetScheme(),
 	}).SetupWithManager(ctx, mgr, controllers.Options{
 		ControllerGates: c.ControllerGates,
 		Options: ctrlcontroller.Options{

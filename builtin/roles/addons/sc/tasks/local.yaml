@@ -1,0 +1,9 @@
+---
+- name: Generate local manifest
+  template:
+    src: "local-volume.yaml"
+    dest: "/etc/kubernetes/addons/local-volume.yaml"
+
+- name: deploy local
+  command: |
+    /usr/local/bin/kubectl apply -f /etc/kubernetes/addons/local-volume.yaml

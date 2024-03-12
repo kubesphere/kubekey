@@ -1,0 +1,40 @@
+---
+- name: Check if docker is installed
+  ignore_errors: true
+  command: docker --version
+  register: docker_install_version
+
+- name: Sync docker binary to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/docker/{{ docker_version }}/{{ binary_type.stdout }}/docker-{{ docker_version }}.tgz"
+    dest: "/tmp/kubekey/docker-{{ docker_version }}.tgz"
+  when: docker_install_version.stderr != ""
+
+- name: Generate docker config file
+  template:
+    src: "docker.config"
+    dest: "/etc/docker/daemon.json"
+  when: docker_install_version.stderr != ""
+
+- name: Unpackage docker binary
+  command: |
+    tar -C /usr/local/bin/ --strip-components=1 -xvf /tmp/kubekey/docker-{{ docker_version }}.tgz --wildcards docker/*
+  when: docker_install_version.stderr != ""
+
+- name: Generate docker service file
+  copy:
+    src: "docker.service"
+    dest: "/etc/systemd/system/docker.service"
+  when: docker_install_version.stderr != ""
+
+- name: Generate containerd service file
+  copy:
+    src: "containerd.service"
+    dest: "/etc/systemd/system/containerd.service"
+  when: docker_install_version.stderr != ""
+
+- name: Start docker service
+  command: |
+    systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
+    systemctl daemon-reload && systemctl start docker.service && systemctl enable docker.service
+  when: docker_install_version.stderr != ""

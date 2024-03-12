@@ -1,0 +1,12 @@
+sc:
+  local:
+    enabled: true
+    default: true
+    provisioner_image: openebs/provisioner-localpv:3.3.0
+    linux_utils_image: openebs/linux-utils:3.3.0
+    path: /var/openebs/local
+  nfs: # each k8s_cluster node should install nfs-utils
+    enabled: false
+    default: false
+    server: "{{ groups['nfs']|first }}"
+    path: /share/kubernetes

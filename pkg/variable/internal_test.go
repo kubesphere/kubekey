@@ -20,45 +20,77 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
 
-func TestMergeGroup(t *testing.T) {
+func TestGetAllVariable(t *testing.T) {
 	testcases := []struct {
 		name   string
-		g1     []string
-		g2     []string
-		except []string
+		value  value
+		except map[string]any
 	}{
 		{
-			name: "non-repeat",
-			g1: []string{
-				"h1", "h2", "h3",
+			name: "global override runtime variable",
+			value: value{
+				Config: kubekeyv1.Config{
+					Spec: runtime.RawExtension{
+						Raw: []byte(`
+artifact:
+  images:
+   - abc
+`),
+					},
+				},
+				Inventory: kubekeyv1.Inventory{},
+				Hosts: map[string]host{
+					"test": {
+						RuntimeVars: map[string]any{
+							"artifact": map[string]any{
+								"k1": "v1",
+								"k2": 2,
+								"k3": true,
+								"k4": map[string]any{
+									"k41": "v41",
+								},
+							},
+						},
+					},
+				},
 			},
-			g2: []string{
-				"h4", "h5",
-			},
-			except: []string{
-				"h1", "h2", "h3", "h4", "h5",
-			},
-		},
-		{
-			name: "repeat value",
-			g1: []string{
-				"h1", "h2", "h3",
-			},
-			g2: []string{
-				"h3", "h4", "h5",
-			},
-			except: []string{
-				"h1", "h2", "h3", "h4", "h5",
+			except: map[string]any{
+				"artifact": map[string]any{
+					"k1": "v1",
+					"k2": 2,
+					"k3": true,
+					"k4": map[string]any{
+						"k41": "v41",
+					},
+					"images": []any{"abc"},
+				},
+				"groups": map[string]interface{}{"all": []string{"localhost"}},
+				"inventory_hosts": map[string]interface{}{
+					"test": map[string]interface{}{
+						"artifact": map[string]interface{}{
+							"images": []interface{}{"abc"},
+						},
+						"inventory_name": "test",
+					},
+				},
+				"inventory_name": "test",
 			},
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ac := mergeSlice(tc.g1, tc.g2)
-			assert.Equal(t, tc.except, ac)
+			v := variable{value: &tc.value}
+			result, err := v.Get(GetAllVariable("test"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.except, result)
 		})
 	}
 }

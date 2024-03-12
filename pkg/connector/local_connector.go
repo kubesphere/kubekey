@@ -43,17 +43,17 @@ func (c *localConnector) CopyFile(ctx context.Context, local []byte, remoteFile 
 	// create remote file
 	if _, err := os.Stat(filepath.Dir(remoteFile)); err != nil && os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(remoteFile), mode); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create remote dir", "remote_file", remoteFile)
+			klog.V(4).ErrorS(err, "Failed to create local dir", "remote_file", remoteFile)
 			return err
 		}
 	}
 	rf, err := os.Create(remoteFile)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to create remote file", "remote_file", remoteFile)
+		klog.V(4).ErrorS(err, "Failed to create local file", "remote_file", remoteFile)
 		return err
 	}
 	if _, err := rf.Write(local); err != nil {
-		klog.V(4).ErrorS(err, "Failed to write content to remote file", "remote_file", remoteFile)
+		klog.V(4).ErrorS(err, "Failed to write content to local file", "remote_file", remoteFile)
 		return err
 	}
 	return rf.Chmod(mode)

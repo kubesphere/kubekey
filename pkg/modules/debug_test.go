@@ -35,8 +35,9 @@ func TestDebug(t *testing.T) {
 		{
 			name: "non-var and non-msg",
 			opt: ExecOptions{
-				Args: runtime.RawExtension{},
-				Host: "local",
+				Args:     runtime.RawExtension{},
+				Host:     "local",
+				Variable: &testVariable{},
 			},
 			exceptStderr: "unknown args for debug. only support var or msg",
 		},
