@@ -38,6 +38,7 @@ type CreateClusterOptions struct {
 	EnableKubeSphere    bool
 	KubeSphere          string
 	LocalStorage        bool
+	SkipInstallAddons   bool
 	SkipPullImages      bool
 	SkipPushImages      bool
 	SecurityEnhancement bool
@@ -112,6 +113,7 @@ func (o *CreateClusterOptions) Run() error {
 		KubernetesVersion:   o.Kubernetes,
 		KsEnable:            o.EnableKubeSphere,
 		KsVersion:           o.KubeSphere,
+		SkipInstallAddons:   o.SkipInstallAddons,
 		SkipPullImages:      o.SkipPullImages,
 		SkipPushImages:      o.SkipPushImages,
 		SecurityEnhancement: o.SecurityEnhancement,
@@ -137,6 +139,7 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
 	cmd.Flags().BoolVarP(&o.LocalStorage, "with-local-storage", "", false, "Deploy a local PV provisioner")
 	cmd.Flags().BoolVarP(&o.EnableKubeSphere, "with-kubesphere", "", false, fmt.Sprintf("Deploy a specific version of kubesphere (default %s)", kubesphere.Latest().Version))
+	cmd.Flags().BoolVarP(&o.SkipInstallAddons, "skip-install-addons", "", false, "Skip install addons")
 	cmd.Flags().BoolVarP(&o.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	cmd.Flags().BoolVarP(&o.SkipPushImages, "skip-push-images", "", false, "Skip pre push images")
 	cmd.Flags().BoolVarP(&o.SecurityEnhancement, "with-security-enhancement", "", false, "Security enhancement")

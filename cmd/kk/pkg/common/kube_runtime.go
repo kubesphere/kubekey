@@ -37,6 +37,7 @@ type Argument struct {
 	KsVersion           string
 	Debug               bool
 	IgnoreErr           bool
+	SkipInstallAddons   bool
 	SkipPullImages      bool
 	SkipPushImages      bool
 	SkipDependencyCheck bool
