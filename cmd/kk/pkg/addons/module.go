@@ -17,6 +17,9 @@
 package addons
 
 import (
+	"fmt"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 )
@@ -41,6 +44,26 @@ func (a *AddonsModule) Init() {
 	}
 
 	a.Tasks = []task.Interface{
+		install,
+	}
+}
+
+type AddonModule struct {
+	common.KubeModule
+	addon *kubekeyapiv1alpha2.Addon
+}
+
+func (s *AddonModule) Init() {
+	s.Name = "AddonModule"
+	s.Desc = fmt.Sprintf("Install addon %s", s.addon.Name)
+
+	install := &task.LocalTask{
+		Name:   "InstallAddon",
+		Desc:   fmt.Sprintf("Install addon %s", s.addon.Name),
+		Action: &InstallAddon{addon: s.addon},
+	}
+
+	s.Tasks = []task.Interface{
 		install,
 	}
 }
