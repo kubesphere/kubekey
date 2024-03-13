@@ -26,7 +26,7 @@ func NewCmdApplyAddons() *cobra.Command {
 		Use:   "addons",
 		Short: "Apply cluster addons",
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(o.Run())
+			util.CheckErr(o.Run(args))
 		},
 	}
 
@@ -35,10 +35,11 @@ func NewCmdApplyAddons() *cobra.Command {
 	return cmd
 }
 
-func (o *ApplyAddonsOptions) Run() error {
+func (o *ApplyAddonsOptions) Run(args []string) error {
 	arg := common.Argument{
-		FilePath: o.ClusterCfgFile,
-		Debug:    o.CommonOptions.Verbose,
+		FilePath:      o.ClusterCfgFile,
+		Debug:         o.CommonOptions.Verbose,
+		EnabledAddons: args,
 	}
 	return addons.ApplyClusterAddons(arg)
 }
