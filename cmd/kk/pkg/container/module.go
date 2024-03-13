@@ -281,6 +281,10 @@ type InstallCriDockerdModule struct {
 	Skip bool
 }
 
+func (m *InstallCriDockerdModule) IsSkip() bool {
+	return m.Skip
+}
+
 func (m *InstallCriDockerdModule) Init() {
 	m.Name = "InstallCriDockerdModule"
 	m.Desc = "Install cri-dockerd"
