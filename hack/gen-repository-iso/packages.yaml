@@ -39,6 +39,9 @@ debs:
   - openssh-server
   - software-properties-common
   - sudo
+  - cuda-toolkit-12-4
+  - nvidia-driver-550-open
+  - cuda-drivers-550
 
 centos:
   - containerd.io

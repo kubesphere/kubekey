@@ -89,7 +89,7 @@ func (s *SyncCertsToAllNodes) Execute(runtime connector.Runtime) error {
 			}
 		}
 
-		if err := runtime.GetRunner().SudoScp(filepath.Join(dir, fileName), filepath.Join(filepath.Join("/etc/docker/certs.d", s.KubeConf.Cluster.Registry.PrivateRegistry), dstFileName)); err != nil {
+		if err := runtime.GetRunner().SudoScp(filepath.Join(dir, fileName), filepath.Join(filepath.Join("/etc/docker/certs.d", s.KubeConf.Cluster.Registry.GetHost()), dstFileName)); err != nil {
 			return errors.Wrap(errors.WithStack(err), "scp registry certs file to /etc/docker/certs.d/ failed")
 		}
 
@@ -144,7 +144,7 @@ func (g *StartRegistryService) Execute(runtime connector.Runtime) error {
 	}
 
 	fmt.Println()
-	fmt.Println(fmt.Sprintf("Local image registry created successfully. Address: %s", g.KubeConf.Cluster.Registry.PrivateRegistry))
+	fmt.Println(fmt.Sprintf("Local image registry created successfully. Address: %s", g.KubeConf.Cluster.Registry.GetHost()))
 	fmt.Println()
 
 	return nil
@@ -221,7 +221,7 @@ type GenerateHarborConfig struct {
 }
 
 func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
-	registryDomain := g.KubeConf.Cluster.Registry.PrivateRegistry
+	registryDomain := g.KubeConf.Cluster.Registry.GetHost()
 
 	if g.KubeConf.Cluster.Registry.Type == "harbor-ha" {
 		host := runtime.RemoteHost()
@@ -233,9 +233,9 @@ func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
 		Dst:      "/opt/harbor/harbor.yml",
 		Data: util.Data{
 			"Domain":      registryDomain,
-			"Certificate": fmt.Sprintf("%s.pem", g.KubeConf.Cluster.Registry.PrivateRegistry),
-			"Key":         fmt.Sprintf("%s-key.pem", g.KubeConf.Cluster.Registry.PrivateRegistry),
-			"Password":    templates.Password(g.KubeConf, g.KubeConf.Cluster.Registry.PrivateRegistry),
+			"Certificate": fmt.Sprintf("%s.pem", g.KubeConf.Cluster.Registry.GetHost()),
+			"Key":         fmt.Sprintf("%s-key.pem", g.KubeConf.Cluster.Registry.GetHost()),
+			"Password":    templates.Password(g.KubeConf, g.KubeConf.Cluster.Registry.GetHost()),
 		},
 	}
 	templateAction.Init(nil, nil)
@@ -256,7 +256,7 @@ func (g *StartHarbor) Execute(runtime connector.Runtime) error {
 	}
 
 	fmt.Println()
-	fmt.Println(fmt.Sprintf("Local image registry created successfully. Address: %s", g.KubeConf.Cluster.Registry.PrivateRegistry))
+	fmt.Println(fmt.Sprintf("Local image registry created successfully. Address: %s", g.KubeConf.Cluster.Registry.GetHost()))
 	fmt.Println()
 
 	return nil

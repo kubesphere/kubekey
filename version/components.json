@@ -979,10 +979,10 @@
     },
     "cri-dockerd": {
         "amd64": {
-            "0.3.10": "46bc9594c634e1bae9b4c7dfaba1b4b34917b407c3275c08425f93d193024dab"
+            "0.3.10": "3e19ef525e02d2d1dfd42e8d661ee45b4bc8a49a6dcafd8baa578bdb3a23aeb6"
         },
         "arm64": {
-            "0.3.10": "8684425e696dc52c3a10086af34af1ce6a7412de0ef819c3994f11e0e17d7fb9"
+            "0.3.10": "24d2d9cdbb4ed4bda4b0838edb52104ac7a4e2212a0ee05b177de0ae5b6a4a9a"
         }
     },
     "containerd": {
