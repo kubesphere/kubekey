@@ -121,16 +121,15 @@ func KubernetesComponentBinariesDownload(manifest *common.ArtifactManifest, path
 		binaries = append(binaries, files.NewKubeBinary("calicoctl", arch, m.Components.Calicoctl.Version, path, manifest.Arg.DownloadCommand))
 	}
 
-	containerManagerArr := make([]*files.KubeBinary, 0, 0)
 	containerManagerVersion := make(map[string]struct{})
 	for _, c := range m.Components.ContainerRuntimes {
 		if _, ok := containerManagerVersion[c.Type+c.Version]; !ok {
 			containerManagerVersion[c.Type+c.Version] = struct{}{}
 			containerManager := files.NewKubeBinary(c.Type, arch, c.Version, path, manifest.Arg.DownloadCommand)
-			containerManagerArr = append(containerManagerArr, containerManager)
+			binaries = append(binaries, containerManager)
 			if c.Type == "containerd" {
 				runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, manifest.Arg.DownloadCommand)
-				containerManagerArr = append(containerManagerArr, runc)
+				binaries = append(binaries, runc)
 			}
 		}
 	}
