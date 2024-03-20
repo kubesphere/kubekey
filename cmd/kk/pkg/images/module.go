@@ -86,14 +86,7 @@ func (c *CopyImagesToRegistryModule) Init() {
 		Action: &CopyImagesToRegistry{ImagesPath: c.ImagePath},
 	}
 
-	pushManifest := &task.LocalTask{
-		Name:   "PushManifest",
-		Desc:   "Push multi-arch manifest to private registry",
-		Action: new(PushManifest),
-	}
-
 	c.Tasks = []task.Interface{
 		copyImage,
-		pushManifest,
 	}
 }

@@ -17,7 +17,18 @@
 package images
 
 import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
+	"github.com/kubesphere/kubekey/v3/version"
+	"net/http"
+	"oras.land/oras-go/v2"
+	"oras.land/oras-go/v2/content/oci"
+	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/auth"
+	"os"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
@@ -52,9 +63,54 @@ func (d *dockerImageOptions) systemContext() *types.SystemContext {
 	return ctx
 }
 
+func (d *dockerImageOptions) AuthClient() (*auth.Client, error) {
+	config := &tls.Config{
+		InsecureSkipVerify: d.SkipTLSVerify,
+	}
+
+	if d.dockerCertPath != "" {
+		ca, cert, key, err := registry.LookupCertsFile(d.dockerCertPath)
+		if err != nil {
+			return nil, err
+		}
+		keyPair, err := tls.LoadX509KeyPair(cert, key)
+		if err != nil {
+			return nil, err
+		}
+		config.Certificates = append(config.Certificates, keyPair)
+		pool := x509.NewCertPool()
+		file, err := os.ReadFile(ca)
+		if err != nil {
+			return nil, err
+		}
+		pool.AppendCertsFromPEM(file)
+		config.RootCAs = pool
+	}
+
+	client := &auth.Client{
+		Client: &http.Client{Transport: &http.Transport{TLSClientConfig: config}},
+		Cache:  auth.NewCache(),
+		Credential: func(ctx context.Context, hostport string) (auth.Credential, error) {
+			if d.username == "" && d.password == "" {
+				return auth.EmptyCredential, nil
+			}
+			if d.username == "" {
+				return auth.Credential{RefreshToken: d.password}, nil
+			}
+			return auth.Credential{
+				Username: d.username,
+				Password: d.password,
+			}, nil
+		},
+	}
+	client.SetUserAgent(fmt.Sprintf("%s/%s", defaultUserAgent, version.Get().String()))
+	return client, nil
+}
+
 type srcImageOptions struct {
 	dockerImage   dockerImageOptions
 	imageName     string
+	inputPath     string
 	sharedBlobDir string
 }
 
@@ -70,9 +126,51 @@ func (s *srcImageOptions) systemContext() *types.SystemContext {
 	return ctx
 }
 
+func (s *srcImageOptions) NewSrcTagger() (oras.ReadOnlyGraphTarget, error) {
+	if s.inputPath == "" {
+		return s.dockerImage.NewRepository(s.imageName)
+	}
+	if s.inputPath != "" {
+		_, err := os.Stat(s.inputPath)
+		if err != nil {
+			return nil, err
+		}
+
+		return oci.New(s.inputPath)
+
+	}
+
+	return nil, fmt.Errorf("unknown path type %s", s.imageName)
+}
+
+func (d *destImageOptions) NewDestTagger() (oras.GraphTarget, error) {
+	if d.outputPath == "" {
+		return d.dockerImage.NewRepository(d.imageName)
+	}
+	return oci.New(d.outputPath)
+
+}
+
+func (d *dockerImageOptions) NewRepository(path string) (*remote.Repository, error) {
+
+	repository, err := remote.NewRepository(path)
+	if err != nil {
+		return nil, err
+	}
+	client, err := d.AuthClient()
+	if err != nil {
+		return nil, err
+	}
+	repository.Client = client
+
+	return repository, nil
+
+}
+
 type destImageOptions struct {
 	dockerImage dockerImageOptions
 	imageName   string
+	outputPath  string
 }
 
 func (d *destImageOptions) systemContext() *types.SystemContext {

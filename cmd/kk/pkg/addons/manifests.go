@@ -142,7 +142,6 @@ func ToOptions(flags *apply.ApplyFlags, manifests []string, version string) (*ap
 		All:             flags.All,
 		Overwrite:       flags.Overwrite,
 		OpenAPIPatch:    flags.OpenAPIPatch,
-		PruneWhitelist:  flags.PruneWhitelist,
 
 		Recorder:         recorder,
 		Namespace:        namespace,
