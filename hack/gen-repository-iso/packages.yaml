@@ -39,9 +39,6 @@ debs:
   - openssh-server
   - software-properties-common
   - sudo
-  - cuda-toolkit-12-4
-  - nvidia-driver-550-open
-  - cuda-drivers-550
 
 centos:
   - containerd.io
@@ -64,10 +61,6 @@ debian11:
 
 ubuntu:
   - containerd.io
-
-ubuntu1604:
-  - docker-ce=5:20.10.8~3-0~ubuntu-xenial
-  - docker-ce-cli=5:20.10.8~3-0~ubuntu-xenial
 
 ubuntu1804:
   - docker-ce=5:20.10.8~3-0~ubuntu-bionic
