@@ -19,6 +19,7 @@ package images
 import (
 	"encoding/json"
 	"fmt"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -174,23 +175,19 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 			auth = v
 		}
 
-		srcName := fmt.Sprintf("docker://%s", image)
 		for _, platform := range s.Manifest.Spec.Arches {
 			arch, variant := ParseArchVariant(platform)
-			// placeholder
+
+			destName := fmt.Sprintf("%s-%s-%s", imageFullName[1], suffixImageName(imageFullName[2:]), arch)
 			if variant != "" {
-				variant = "-" + variant
+				destName = fmt.Sprintf("%s:%s", destName, variant)
 			}
-			// Ex:
-			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-amd64
-			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-arm-v7
-			destName := fmt.Sprintf("oci:%s:%s:%s-%s%s", dirName, imageFullName[1], suffixImageName(imageFullName[2:]), arch, variant)
-			logger.Log.Infof("Source: %s", srcName)
-			logger.Log.Infof("Destination: %s", destName)
+			logger.Log.Infof("Source: %s", image)
+			logger.Log.Infof("Destination: %s/%s", dirName, destName)
 
 			o := &CopyImageOptions{
 				srcImage: &srcImageOptions{
-					imageName: srcName,
+					imageName: image,
 					dockerImage: dockerImageOptions{
 						arch:           arch,
 						variant:        variant,
@@ -202,7 +199,8 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 					},
 				},
 				destImage: &destImageOptions{
-					imageName: destName,
+					imageName:  destName,
+					outputPath: dirName,
 					dockerImage: dockerImageOptions{
 						arch:    arch,
 						variant: variant,
@@ -211,7 +209,7 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 				},
 			}
 
-			if err := o.Copy(); err != nil {
+			if err := o.OrasCopy(); err != nil {
 				return err
 			}
 		}
@@ -243,49 +241,27 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 	}
 
 	auths := registry.DockerRegistryAuthEntries(c.KubeConf.Cluster.Registry.Auths)
-
-	manifestList := make(map[string][]manifesttypes.ManifestEntry)
+	var manifestList = make(map[string][]manifesttypes.ManifestEntry)
 	for _, m := range index.Manifests {
 		ref := m.Annotations.RefName
 
 		// Ex:
-		// calico:cni:v3.20.0-amd64
-		nameArr := strings.Split(ref, ":")
-		if len(nameArr) != 3 {
+		// library-bash:5.1.16-amd64:v1
+		nameArr := strings.Split(ref, "-")
+		if len(nameArr) < 3 {
 			return errors.Errorf("invalid ref name: %s", ref)
 		}
 
+		regTag := strings.Split(nameArr[len(nameArr)-2], ":")
+		if len(regTag) != 2 {
+			return errors.Errorf("invalid tag name: %s", ref)
+		}
 		image := Image{
 			RepoAddr:          c.KubeConf.Cluster.Registry.PrivateRegistry,
 			Namespace:         nameArr[0],
 			NamespaceOverride: c.KubeConf.Cluster.Registry.NamespaceOverride,
-			Repo:              nameArr[1],
-			Tag:               nameArr[2],
-		}
-
-		uniqueImage, p := ParseImageWithArchTag(image.ImageName())
-		entry := manifesttypes.ManifestEntry{
-			Image:    image.ImageName(),
-			Platform: p,
-		}
-
-		skip := false
-		if v, ok := manifestList[uniqueImage]; ok {
-			// skip if the image already copied
-			for _, old := range v {
-				if reflect.DeepEqual(old, entry) {
-					skip = true
-					break
-				}
-			}
-
-			if !skip {
-				v = append(v, entry)
-				manifestList[uniqueImage] = v
-			}
-		} else {
-			entryArr := make([]manifesttypes.ManifestEntry, 0)
-			manifestList[uniqueImage] = append(entryArr, entry)
+			Repo:              regTag[0],
+			Tag:               regTag[1],
 		}
 
 		auth := new(registry.DockerRegistryEntry)
@@ -293,25 +269,61 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			auth = config
 		}
 
-		srcName := fmt.Sprintf("oci:%s:%s", imagesPath, ref)
-		destName := fmt.Sprintf("docker://%s", image.ImageName())
+		arch, v := ParseArchVariant(strings.ReplaceAll(nameArr[len(nameArr)-1], ":", "/"))
+
+		srcName := fmt.Sprintf("oci:%s/%s", imagesPath, ref)
+		destName := fmt.Sprintf("%s-%s", image.ImageName(), arch)
+		if v != "" {
+			destName = fmt.Sprintf("%s-%s", destName, v)
+		}
 		logger.Log.Infof("Source: %s", srcName)
 		logger.Log.Infof("Destination: %s", destName)
 
+		entry := manifesttypes.ManifestEntry{
+			Image: destName,
+			Platform: ocispec.Platform{
+				Architecture: arch,
+				OS:           "linux",
+				Variant:      v,
+			},
+		}
+
+		skip := false
+		if entries, ok := manifestList[image.ImageName()]; ok {
+
+			for _, old := range v {
+				if reflect.DeepEqual(old, entry) {
+					skip = true
+					break
+				}
+			}
+			if !skip {
+				entries = append(entries, entry)
+				manifestList[image.ImageName()] = entries
+			}
+
+		} else {
+
+			entryArr := make([]manifesttypes.ManifestEntry, 0)
+			manifestList[image.ImageName()] = append(entryArr, entry)
+
+		}
+
 		o := &CopyImageOptions{
 			srcImage: &srcImageOptions{
-				imageName: srcName,
+				imageName: ref,
+				inputPath: imagesPath,
 				dockerImage: dockerImageOptions{
-					arch:    p.Architecture,
-					variant: p.Variant,
+					arch:    m.Platform.Architecture,
+					variant: m.Platform.Variant,
 					os:      "linux",
 				},
 			},
 			destImage: &destImageOptions{
 				imageName: destName,
 				dockerImage: dockerImageOptions{
-					arch:           p.Architecture,
-					variant:        p.Variant,
+					arch:           m.Platform.Architecture,
+					variant:        m.Platform.Variant,
 					os:             "linux",
 					username:       auth.Username,
 					password:       auth.Password,
@@ -323,7 +335,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 
 		retry, maxRetry := 0, 5
 		for ; retry < maxRetry; retry++ {
-			if err := o.Copy(); err == nil {
+			if err := o.OrasCopy(); err == nil {
 				break
 			} else {
 				fmt.Println(errors.WithStack(err))
@@ -333,9 +345,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("copy image %s to %s failed, retry %d", srcName, destName, maxRetry))
 		}
 	}
-
 	c.ModuleCache.Set("manifestList", manifestList)
-
 	return nil
 }
 
@@ -355,8 +365,8 @@ func (p *PushManifest) Execute(_ connector.Runtime) error {
 
 	auths := registry.DockerRegistryAuthEntries(p.KubeConf.Cluster.Registry.Auths)
 	auth := new(registry.DockerRegistryEntry)
-	if _, ok := auths[p.KubeConf.Cluster.Registry.PrivateRegistry]; ok {
-		auth = auths[p.KubeConf.Cluster.Registry.PrivateRegistry]
+	if _, ok := auths[p.KubeConf.Cluster.Registry.GetHost()]; ok {
+		auth = auths[p.KubeConf.Cluster.Registry.GetHost()]
 	}
 
 	for imageName, platforms := range list {
