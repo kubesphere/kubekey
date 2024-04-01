@@ -95,7 +95,7 @@ if [ $KUBERNETES_VERSION ]; then
 
        qsctl cp binaries/kube/$KUBERNETES_VERSION/$arch/$binary \
              qs://kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary \
-             -c qsctl-config.yaml -f
+             -c qsctl-config.yaml
      done
    done
 

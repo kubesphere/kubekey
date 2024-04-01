@@ -1,5 +1,6 @@
 FROM ubuntu:22.04 as ubuntu2204
 ARG TARGETARCH
+ARG DISTRO=ubuntu2204
 ARG OS_RELEASE=jammy
 ARG DIR=ubuntu-22.04-${TARGETARCH}-debs
 ARG PKGS=.common[],.debs[],.ubuntu[],.ubuntu2204[]

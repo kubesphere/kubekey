@@ -563,6 +563,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Desc:  "Generate coredns manifests",
 		Hosts: p.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
+			new(NotEqualPlanVersion),
 			new(common.OnlyFirstMaster),
 		},
 		Action:   new(dns.GenerateCorednsmanifests),
@@ -574,6 +575,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Desc:  "Deploy coredns",
 		Hosts: p.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
+			new(NotEqualPlanVersion),
 			new(common.OnlyFirstMaster),
 		},
 		Action:   new(dns.DeployCoreDNS),
@@ -585,6 +587,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Desc:  "Generate nodelocaldns",
 		Hosts: p.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
+			new(NotEqualPlanVersion),
 			new(common.OnlyFirstMaster),
 			new(dns.EnableNodeLocalDNS),
 		},
@@ -604,6 +607,7 @@ func (p *ProgressiveUpgradeModule) Init() {
 		Desc:  "Deploy nodelocaldns",
 		Hosts: p.Runtime.GetHostsByRole(common.Master),
 		Prepare: &prepare.PrepareCollection{
+			new(NotEqualPlanVersion),
 			new(common.OnlyFirstMaster),
 			new(dns.EnableNodeLocalDNS)},
 		Action:   new(dns.DeployNodeLocalDNS),

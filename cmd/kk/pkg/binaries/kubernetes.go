@@ -101,37 +101,68 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	return nil
 }
 
-func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch, k8sVersion string) error {
+func KubernetesComponentBinariesDownload(manifest *common.ArtifactManifest, path, arch string) error {
 	m := manifest.Spec
+	var binaries []*files.KubeBinary
 
-	etcd := files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, manifest.Arg.DownloadCommand)
-	kubeadm := files.NewKubeBinary("kubeadm", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
-	kubelet := files.NewKubeBinary("kubelet", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
-	kubectl := files.NewKubeBinary("kubectl", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
-	kubecni := files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, manifest.Arg.DownloadCommand)
-	helm := files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, manifest.Arg.DownloadCommand)
-	crictl := files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, manifest.Arg.DownloadCommand)
-	calicoctl := files.NewKubeBinary("calicoctl", arch, m.Components.Calicoctl.Version, path, manifest.Arg.DownloadCommand)
-	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, etcd, calicoctl}
+	if m.Components.ETCD.Version != "" {
+		binaries = append(binaries, files.NewKubeBinary("etcd", arch, m.Components.ETCD.Version, path, manifest.Arg.DownloadCommand))
+	}
+	if m.Components.CNI.Version != "" {
+		binaries = append(binaries, files.NewKubeBinary("kubecni", arch, m.Components.CNI.Version, path, manifest.Arg.DownloadCommand))
+	}
+	if m.Components.Helm.Version != "" {
+		binaries = append(binaries, files.NewKubeBinary("helm", arch, m.Components.Helm.Version, path, manifest.Arg.DownloadCommand))
+	}
+	if m.Components.Crictl.Version != "" {
+		binaries = append(binaries, files.NewKubeBinary("crictl", arch, m.Components.Crictl.Version, path, manifest.Arg.DownloadCommand))
+	}
+	if m.Components.Calicoctl.Version != "" {
+		binaries = append(binaries, files.NewKubeBinary("calicoctl", arch, m.Components.Calicoctl.Version, path, manifest.Arg.DownloadCommand))
+	}
 
-	containerManagerArr := make([]*files.KubeBinary, 0, 0)
 	containerManagerVersion := make(map[string]struct{})
 	for _, c := range m.Components.ContainerRuntimes {
 		if _, ok := containerManagerVersion[c.Type+c.Version]; !ok {
 			containerManagerVersion[c.Type+c.Version] = struct{}{}
 			containerManager := files.NewKubeBinary(c.Type, arch, c.Version, path, manifest.Arg.DownloadCommand)
-			containerManagerArr = append(containerManagerArr, containerManager)
+			binaries = append(binaries, containerManager)
 			if c.Type == "containerd" {
 				runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, manifest.Arg.DownloadCommand)
-				containerManagerArr = append(containerManagerArr, runc)
+				binaries = append(binaries, runc)
 			}
 		}
 	}
 
-	binaries = append(binaries, containerManagerArr...)
-	if m.Components.Crictl.Version != "" {
-		binaries = append(binaries, crictl)
+	for _, binary := range binaries {
+		if err := binary.CreateBaseDir(); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "create file %s base dir failed", binary.FileName)
+		}
+
+		logger.Log.Messagef(common.LocalHost, "downloading %s %s %s ...", arch, binary.ID, binary.Version)
+
+		if util.IsExist(binary.Path()) {
+			// download it again if it's incorrect
+			if err := binary.SHA256Check(); err != nil {
+				_ = exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f %s", binary.Path())).Run()
+			} else {
+				continue
+			}
+		}
+
+		if err := binary.Download(); err != nil {
+			return fmt.Errorf("Failed to download %s binary: %s error: %w ", binary.ID, binary.GetCmd(), err)
+		}
 	}
+
+	return nil
+}
+
+func KubernetesArtifactBinariesDownload(manifest *common.ArtifactManifest, path, arch, k8sVersion string) error {
+	kubeadm := files.NewKubeBinary("kubeadm", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
+	kubelet := files.NewKubeBinary("kubelet", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
+	kubectl := files.NewKubeBinary("kubectl", arch, k8sVersion, path, manifest.Arg.DownloadCommand)
+	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl}
 
 	for _, binary := range binaries {
 		if err := binary.CreateBaseDir(); err != nil {

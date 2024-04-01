@@ -117,7 +117,7 @@ func ArtifactExport(args common.ArtifactArgument, downloadCmd string) error {
 	}
 
 	if len(runtime.Spec.KubernetesDistributions) == 0 {
-		return errors.New("the length of kubernetes distributions can't be 0")
+		return NewArtifactExportPipeline(runtime)
 	}
 
 	pre := runtime.Spec.KubernetesDistributions[0].Type

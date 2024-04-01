@@ -1,0 +1,46 @@
+name: Issue Comment WeCom Webhook
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  send_to_webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+      - run: npm install axios
+      - name: Send issue/comment to WeCom webhook
+        uses: actions/github-script@v7
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        with:
+          script: |
+            console.log(JSON.stringify(context, null, 2));
+            if (context.payload.sender.login === "ks-ci-bot") return;
+            if (context.payload.sender.type === 'Bot') return;
+            if (context.payload.issue.html_url.indexOf('/pull/') > 0) return;
+            const issue = context.payload.issue;
+            const comment = context.payload.comment;
+            var subject = {};
+            var action = '';
+            if (comment) {
+              action = "comment";
+              subject = comment;
+            } else {
+              action = "issue";
+              subject = issue;
+            };
+            const webhook_body = {
+              msgtype: 'markdown',
+              markdown: {
+                content: `[${context.payload.sender.login}](${context.payload.sender.html_url}) ${context.payload.action} ${action} [${issue.title}](${subject.html_url})\n${subject.body}`,
+              },
+            };
+            console.log(JSON.stringify(webhook_body, null, 2));
+            const axios = require('axios');
+            await axios.post(process.env.WEBHOOK_URL, webhook_body);

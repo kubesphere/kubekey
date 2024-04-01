@@ -89,9 +89,7 @@ data:
           "nodename": "__KUBERNETES_NODE_NAME__",
           "mtu": __CNI_MTU__,
           "ipam": {
-              "type": "calico-ipam",
-              "assign_ipv4": "true",
-              "assign_ipv6": "true"
+              "type": "calico-ipam"
           },
           "policy": {
               "type": "k8s"
@@ -4982,9 +4980,19 @@ spec:
             - name: CALICO_IPV4POOL_NAT_OUTGOING
               value: "false"
 {{- end }}
+{{- if .IPv6Support }}
+            # Enable or Disable VXLAN on the default IPv6 IP pool.
+            - name: CALICO_IPV6POOL_VXLAN
+              value: "Always"
+            - name: CALICO_IPV6POOL_NAT_OUTGOING
+              value: "true"
+{{- else }}
             # Enable or Disable VXLAN on the default IPv6 IP pool.
             - name: CALICO_IPV6POOL_VXLAN
               value: "Never"
+            - name: CALICO_IPV6POOL_NAT_OUTGOING
+              value: "false"
+{{- end }}
             # Set MTU for tunnel device used if ipip is enabled
             - name: FELIX_IPINIPMTU
               valueFrom:
@@ -5014,6 +5022,8 @@ spec:
 {{- if .IPv6Support }}
             - name: CALICO_IPV6POOL_CIDR
               value: "{{ .KubePodsV6CIDR }}"
+            - name: CALICO_IPV6POOL_BLOCK_SIZE
+              value: "120"
 {{- end }}
 {{- else }}
             - name: NO_DEFAULT_POOLS
@@ -5033,10 +5043,10 @@ spec:
             # Disable IPv6 on Kubernetes.
 {{- if .IPv6Support }}
             - name: FELIX_IPV6SUPPORT
-              value: "false"
+              value: "true"
 {{- else }}
             - name: FELIX_IPV6SUPPORT
-              value: "true"
+              value: "false"
 {{- end }}
             - name: FELIX_HEALTHENABLED
               value: "true"
