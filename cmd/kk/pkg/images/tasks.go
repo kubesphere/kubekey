@@ -178,9 +178,9 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 		for _, platform := range s.Manifest.Spec.Arches {
 			arch, variant := ParseArchVariant(platform)
 
-			destName := fmt.Sprintf("%s-%s-%s", imageFullName[1], suffixImageName(imageFullName[2:]), arch)
+			destName := fmt.Sprintf("%s:%s-%s", imageFullName[1], suffixImageName(imageFullName[2:]), arch)
 			if variant != "" {
-				destName = fmt.Sprintf("%s:%s", destName, variant)
+				destName = fmt.Sprintf("%s@%s", destName, variant)
 			}
 			logger.Log.Infof("Source: %s", image)
 			logger.Log.Infof("Destination: %s/%s", dirName, destName)
@@ -246,22 +246,23 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		ref := m.Annotations.RefName
 
 		// Ex:
-		// library-bash:5.1.16-amd64:v1
-		nameArr := strings.Split(ref, "-")
+		// kubesphere:kube-apiserver:v1.23.15-beta.v1.0-amd64@v1
+		nameArr := strings.Split(ref, ":")
 		if len(nameArr) < 3 {
 			return errors.Errorf("invalid ref name: %s", ref)
 		}
-
-		regTag := strings.Split(nameArr[len(nameArr)-2], ":")
-		if len(regTag) != 2 {
+		//v1.23.15-beta.v1.0-amd64@v1
+		regTag := strings.Split(nameArr[len(nameArr)-1], "-")
+		if len(regTag) < 2 {
 			return errors.Errorf("invalid tag name: %s", ref)
 		}
+
 		image := Image{
 			RepoAddr:          c.KubeConf.Cluster.Registry.PrivateRegistry,
 			Namespace:         nameArr[0],
 			NamespaceOverride: c.KubeConf.Cluster.Registry.NamespaceOverride,
-			Repo:              regTag[0],
-			Tag:               regTag[1],
+			Repo:              nameArr[1],
+			Tag:               strings.Join(regTag[:len(regTag)-1], "-"),
 		}
 
 		auth := new(registry.DockerRegistryEntry)
@@ -269,7 +270,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			auth = config
 		}
 
-		arch, v := ParseArchVariant(strings.ReplaceAll(nameArr[len(nameArr)-1], ":", "/"))
+		arch, v := ParseArchVariant(strings.ReplaceAll(regTag[len(regTag)-1], "@", "/"))
 
 		srcName := fmt.Sprintf("oci:%s/%s", imagesPath, ref)
 		destName := fmt.Sprintf("%s-%s", image.ImageName(), arch)
@@ -314,16 +315,16 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 				imageName: ref,
 				inputPath: imagesPath,
 				dockerImage: dockerImageOptions{
-					arch:    m.Platform.Architecture,
-					variant: m.Platform.Variant,
+					arch:    arch,
+					variant: v,
 					os:      "linux",
 				},
 			},
 			destImage: &destImageOptions{
 				imageName: destName,
 				dockerImage: dockerImageOptions{
-					arch:           m.Platform.Architecture,
-					variant:        m.Platform.Variant,
+					arch:           arch,
+					variant:        v,
 					os:             "linux",
 					username:       auth.Username,
 					password:       auth.Password,
