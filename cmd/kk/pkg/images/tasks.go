@@ -209,9 +209,18 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 				},
 			}
 
-			if err := o.OrasCopy(); err != nil {
-				return err
+			retry, maxRetry := 0, 5
+			for ; retry < maxRetry; retry++ {
+				if err := o.OrasCopy(); err == nil {
+					break
+				} else {
+					fmt.Println(errors.WithStack(err))
+				}
 			}
+			if retry >= maxRetry {
+				return fmt.Errorf("copy image %s to %s failed, retry %d", image, destName, maxRetry)
+			}
+
 		}
 	}
 	return nil
