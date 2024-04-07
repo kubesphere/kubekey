@@ -254,7 +254,7 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		Hosts: m.Runtime.GetHostsByRole(common.K8s),
 		Prepare: &prepare.PrepareCollection{
 			&kubernetes.NodeInCluster{Not: true},
-			&ContainerdExist{Not: true},
+			&CrictlExist{Not: false},
 		},
 		Action: &action.Template{
 			Template: templates.CrictlConfig,

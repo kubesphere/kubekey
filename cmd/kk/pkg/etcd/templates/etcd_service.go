@@ -17,8 +17,9 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 var (
@@ -31,6 +32,8 @@ After=network.target
 [Service]
 User=root
 Type=notify
+Nice=-20
+OOMScoreAdjust=-1000
 EnvironmentFile=/etc/etcd.env
 ExecStart=/usr/local/bin/etcd
 NotifyAccess=all

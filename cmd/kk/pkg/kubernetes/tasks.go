@@ -1027,7 +1027,8 @@ func (s *SaveKubeConfig) Execute(runtime connector.Runtime) error {
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "kubekey-system",
+			Name:   "kubekey-system",
+			Labels: map[string]string{"kubesphere.io/workspace": "system-workspace"},
 		},
 	}
 	if _, err := clientsetForCluster.

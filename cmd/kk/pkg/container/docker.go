@@ -182,7 +182,7 @@ func (d *DisableDocker) Execute(runtime connector.Runtime) error {
 		"/usr/bin/runc",
 		"/usr/bin/ctr",
 		"/usr/bin/docker*",
-		"/usr/bin/containerd*",
+		"/usr/bin/containerd-shim-runc-v2",
 		filepath.Join("/etc/systemd/system", templates.DockerService.Name()),
 		filepath.Join("/etc/docker", templates.DockerConfig.Name()),
 	}
@@ -193,6 +193,7 @@ func (d *DisableDocker) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("disable and stop cri-docker failed"))
 		}
 		files = append(files, filepath.Join("/etc/systemd/system", templates.CriDockerService.Name()))
+		files = append(files, "/var/run/cri-dockerd.sock")
 	}
 
 	if d.KubeConf.Cluster.Registry.DataRoot != "" {
