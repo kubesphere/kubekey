@@ -26,6 +26,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
+
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
@@ -437,7 +439,7 @@ func (g *GenerateCalicoManifests) Execute(runtime connector.Runtime) error {
 	if err != nil {
 		return err
 	}
-	calico := template.Must(template.New("network-plugin.yaml").Parse(string(calicoContent)))
+	calico := template.Must(template.New("network-plugin.yaml").Funcs(utils.FuncMap).Parse(string(calicoContent)))
 
 	IPv6Support := false
 	kubePodsV6CIDR := ""
@@ -467,6 +469,8 @@ func (g *GenerateCalicoManifests) Execute(runtime connector.Runtime) error {
 			"IPV4POOLNATOUTGOING":     g.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),
 			"DefaultIPPOOL":           g.KubeConf.Cluster.Network.Calico.EnableDefaultIPPOOL(),
 			"IPv6Support":             IPv6Support,
+			"Replicas":                g.KubeConf.Cluster.Network.Calico.Replicas,
+			"NodeSelector":            g.KubeConf.Cluster.Network.Calico.NodeSelector,
 		},
 	}
 	templateAction.Init(nil, nil)
