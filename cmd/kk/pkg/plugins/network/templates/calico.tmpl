@@ -5171,7 +5171,7 @@ metadata:
     k8s-app: calico-kube-controllers
 spec:
   # The controllers can only have a single active instance.
-  replicas: 1
+  replicas: {{ if .Replicas }}{{ .Replicas }}{{ else }}1{{ end }}
   selector:
     matchLabels:
       k8s-app: calico-kube-controllers
@@ -5186,6 +5186,9 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
+{{ if .NodeSelector }}
+        {{- toYaml .NodeSelector | indent 8 }}
+{{- end }}
       tolerations:
         # Mark the pod as a critical add-on for rescheduling.
         - key: CriticalAddonsOnly
@@ -5194,6 +5197,20 @@ spec:
           effect: NoSchedule
         - key: node-role.kubernetes.io/control-plane
           effect: NoSchedule
+{{ if .NodeSelector }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: k8s-app
+                      operator: In
+                      values:
+                        - calico-kube-controllers
+                topologyKey: kubernetes.io/hostname
+{{- end }}
       serviceAccountName: calico-kube-controllers
       priorityClassName: system-cluster-critical
       containers:
@@ -5241,7 +5258,7 @@ spec:
   # We recommend using Typha if you have more than 50 nodes. Above 100 nodes it is essential
   # (when using the Kubernetes datastore). Use one replica for every 100-200 nodes. In
   # production, we recommend running at least 3 replicas to reduce the impact of rolling upgrade.
-  replicas: 1
+  replicas: {{ if .Replicas }}{{ .Replicas }}{{ else }}1{{ end }}
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -5268,10 +5285,27 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
+{{ if .NodeSelector }}
+        {{- toYaml .NodeSelector | indent 8 }}
+{{- end }}
       hostNetwork: true
       # Typha supports graceful shut down, disconnecting clients slowly during the grace period.
       # The TYPHA_SHUTDOWNTIMEOUTSECS env var should be kept in sync with this value.
       terminationGracePeriodSeconds: 300
+{{ if .NodeSelector }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: k8s-app
+                      operator: In
+                      values:
+                        - calico-typha
+                topologyKey: kubernetes.io/hostname
+{{- end }}
       tolerations:
         # Mark the pod as a critical add-on for rescheduling.
         - key: CriticalAddonsOnly

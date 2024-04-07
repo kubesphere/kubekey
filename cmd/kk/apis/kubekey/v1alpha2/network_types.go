@@ -28,12 +28,14 @@ type NetworkConfig struct {
 }
 
 type CalicoCfg struct {
-	IPIPMode        string `yaml:"ipipMode" json:"ipipMode,omitempty"`
-	VXLANMode       string `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
-	VethMTU         int    `yaml:"vethMTU" json:"vethMTU,omitempty"`
-	Ipv4NatOutgoing *bool  `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
-	DefaultIPPOOL   *bool  `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
-	EnableTypha     *bool  `yaml:"enableTypha" json:"enableTypha,omitempty"`
+	IPIPMode        string            `yaml:"ipipMode" json:"ipipMode,omitempty"`
+	VXLANMode       string            `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
+	VethMTU         int               `yaml:"vethMTU" json:"vethMTU,omitempty"`
+	Ipv4NatOutgoing *bool             `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
+	DefaultIPPOOL   *bool             `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
+	EnableTypha     *bool             `yaml:"enableTypha" json:"enableTypha,omitempty"`
+	Replicas        int               `yaml:"replicas" json:"replicas,omitempty"`
+	NodeSelector    map[string]string `yaml:"nodeSelector" json:"nodeSelector,omitempty"`
 }
 
 type FlannelCfg struct {
