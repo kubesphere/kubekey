@@ -193,6 +193,7 @@ func (d *DisableDocker) Execute(runtime connector.Runtime) error {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("disable and stop cri-docker failed"))
 		}
 		files = append(files, filepath.Join("/etc/systemd/system", templates.CriDockerService.Name()))
+		files = append(files, "/var/run/cri-dockerd.sock")
 	}
 
 	if d.KubeConf.Cluster.Registry.DataRoot != "" {
