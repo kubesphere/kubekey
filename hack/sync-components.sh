@@ -120,7 +120,7 @@ if [ $HELM_VERSION ]; then
 
      sha256sum binaries/helm/$HELM_VERSION/$arch/linux-$arch/helm
 
-     qsctl cp $KUBERNETES_VERSION/$arch/linux-$arch/helm \
+     qsctl cp binaries/helm/$HELM_VERSION/$arch/linux-$arch/helm \
            qs://kubernetes-helm/linux-$arch/$HELM_VERSION/helm \
            -c qsctl-config.yaml
 
@@ -284,6 +284,8 @@ if [ $COMPOSE_VERSION ]; then
         curl -L -o binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-x86_64 \
                    https://github.com/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-x86_64
 
+        sha256sum binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-x86_64
+
         qsctl cp binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-x86_64 \
               qs://kubernetes-release/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-x86_64 \
               -c qsctl-config.yaml
@@ -292,10 +294,11 @@ if [ $COMPOSE_VERSION ]; then
         curl -L -o binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-aarch64 \
                    https://github.com/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-aarch64
 
+        sha256sum binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-aarch64
+
         qsctl cp binaries/compose/$COMPOSE_VERSION/$arch/docker-compose-linux-aarch64 \
               qs://kubernetes-release/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-aarch64 \
               -c qsctl-config.yaml
-
      fi
    done
 
