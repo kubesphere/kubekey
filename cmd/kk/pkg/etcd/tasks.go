@@ -227,7 +227,17 @@ func (g *GenerateConfig) Execute(runtime connector.Runtime) error {
 	if v, ok := g.PipelineCache.Get(common.ETCDCluster); ok {
 		cluster := v.(*EtcdCluster)
 
-		cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address()))
+		peerAddressesMap := make(map[string]string, len(cluster.peerAddresses))
+		for _, v := range cluster.peerAddresses {
+			peerAddressesMap[v] = v
+		}
+
+		newPeerAddress := fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address())
+
+		if _, ok := peerAddressesMap[newPeerAddress]; !ok {
+			cluster.peerAddresses = append(cluster.peerAddresses, newPeerAddress)
+		}
+
 		g.PipelineCache.Set(common.ETCDCluster, cluster)
 
 		if !cluster.clusterExist {
@@ -276,8 +286,15 @@ func (r *RefreshConfig) Execute(runtime connector.Runtime) error {
 				return err
 			}
 		}
+
+		// After refresh config for etcd, it is necessary to restart etcd.
+		if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart etcd && systemctl enable etcd", true); err != nil {
+			return errors.Wrap(errors.WithStack(err), "start etcd failed")
+		}
+
 		return nil
 	}
+
 	return errors.New("get etcd cluster status by pipeline cache failed")
 }
 
