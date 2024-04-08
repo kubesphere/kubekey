@@ -19,6 +19,9 @@ package pipelines
 import (
 	"fmt"
 
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/etcd"
+
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/binaries"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/container"
@@ -40,7 +43,7 @@ import (
 
 func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
-
+	skipUpgradeETCD := (runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey) || (runtime.Arg.EtcdUpgrade == false)
 	m := []module.Module{
 		&precheck.GreetingsModule{},
 		&precheck.NodePreCheckModule{},
@@ -49,6 +52,11 @@ func NewUpgradeClusterPipeline(runtime *common.KubeRuntime) error {
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&binaries.NodeBinariesModule{},
 		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker"},
+		&etcd.PreCheckModule{Skip: skipUpgradeETCD},
+		&etcd.CertsModule{Skip: skipUpgradeETCD},
+		&etcd.InstallETCDBinaryModule{Skip: skipUpgradeETCD},
+		&etcd.ConfigureModule{Skip: skipUpgradeETCD},
+		&etcd.BackupModule{Skip: skipUpgradeETCD},
 		&kubernetes.SetUpgradePlanModule{Step: kubernetes.ToV121},
 		&kubernetes.ProgressiveUpgradeModule{Step: kubernetes.ToV121},
 		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},

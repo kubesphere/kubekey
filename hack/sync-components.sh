@@ -142,6 +142,8 @@ if [ $ETCD_VERSION ]; then
      curl -L -o binaries/etcd/$ETCD_VERSION/$arch/etcd-$ETCD_VERSION-linux-$arch.tar.gz \
                 https://github.com/coreos/etcd/releases/download/$ETCD_VERSION/etcd-$ETCD_VERSION-linux-$arch.tar.gz
 
+     sha256sum binaries/etcd/$ETCD_VERSION/$arch/etcd-$ETCD_VERSION-linux-$arch.tar.gz
+
      qsctl cp binaries/etcd/$ETCD_VERSION/$arch/etcd-$ETCD_VERSION-linux-$arch.tar.gz \
            qs://kubernetes-release/etcd/release/download/$ETCD_VERSION/etcd-$ETCD_VERSION-linux-$arch.tar.gz \
            -c qsctl-config.yaml

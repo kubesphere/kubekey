@@ -157,15 +157,17 @@ func (i *InstallETCDBinaryModule) Init() {
 		Name:     "InstallETCDBinary",
 		Desc:     "Install etcd using binary",
 		Hosts:    i.Runtime.GetHostsByRole(common.ETCD),
+		Prepare:  new(InstallOrUpgradeETCD),
 		Action:   new(InstallETCDBinary),
 		Parallel: true,
 		Retry:    1,
 	}
 
 	generateETCDService := &task.RemoteTask{
-		Name:  "GenerateETCDService",
-		Desc:  "Generate etcd service",
-		Hosts: i.Runtime.GetHostsByRole(common.ETCD),
+		Name:    "GenerateETCDService",
+		Desc:    "Generate etcd service",
+		Hosts:   i.Runtime.GetHostsByRole(common.ETCD),
+		Prepare: new(InstallOrUpgradeETCD),
 		Action: &action.Template{
 			Template: templates.ETCDService,
 			Dst:      "/etc/systemd/system/etcd.service",
@@ -334,6 +336,7 @@ func handleExistCluster(c *ConfigureModule) []task.Interface {
 		Name:     "AllRefreshETCDConfig",
 		Desc:     "Refresh etcd.env config on all etcd",
 		Hosts:    c.Runtime.GetHostsByRole(common.ETCD),
+		Prepare:  &InstallOrUpgradeETCD{Not: false},
 		Action:   new(RefreshConfig),
 		Parallel: false,
 	}

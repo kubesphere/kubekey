@@ -59,3 +59,19 @@ func (n *NodeETCDExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	}
 	return false, errors.New("get etcd node status by host label failed")
 }
+
+type InstallOrUpgradeETCD struct {
+	common.KubePrepare
+	Not bool
+}
+
+func (n *InstallOrUpgradeETCD) PreCheck(runtime connector.Runtime) (bool, error) {
+	host := runtime.RemoteHost()
+	if v, ok := host.GetCache().GetMustBool(common.ETCDExist); ok {
+		if !v || n.KubeConf.Arg.EtcdUpgrade {
+			return !n.Not, nil
+		}
+		return n.Not, nil
+	}
+	return false, errors.New("get etcd node status by host label failed")
+}

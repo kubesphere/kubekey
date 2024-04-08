@@ -38,6 +38,7 @@ type UpgradeOptions struct {
 	KubeSphere          string
 	SkipPullImages      bool
 	SkipDependencyCheck bool
+	EtcdUpgrade         bool
 	DownloadCmd         string
 	Artifact            string
 }
@@ -90,6 +91,7 @@ func (o *UpgradeOptions) Run() error {
 		SkipConfirmCheck:    o.CommonOptions.SkipConfirmCheck,
 		Artifact:            o.Artifact,
 		SkipDependencyCheck: o.SkipDependencyCheck,
+		EtcdUpgrade:         o.EtcdUpgrade,
 	}
 	return pipelines.UpgradeCluster(arg, o.DownloadCmd)
 }
@@ -103,6 +105,7 @@ func (o *UpgradeOptions) AddFlags(cmd *cobra.Command) {
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.SkipDependencyCheck, "skip-dependency-check", "", false, "Skip kubernetes and kubesphere dependency version check")
+	cmd.Flags().BoolVarP(&o.EtcdUpgrade, "with-etcd", "", false, "Upgrade etcd")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {
