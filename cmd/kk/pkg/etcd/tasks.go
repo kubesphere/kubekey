@@ -287,11 +287,6 @@ func (r *RefreshConfig) Execute(runtime connector.Runtime) error {
 			}
 		}
 
-		// After refresh config for etcd, it is necessary to restart etcd.
-		if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl restart etcd && systemctl enable etcd", true); err != nil {
-			return errors.Wrap(errors.WithStack(err), "start etcd failed")
-		}
-
 		return nil
 	}
 

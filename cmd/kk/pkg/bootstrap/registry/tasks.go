@@ -17,9 +17,11 @@
 package registry
 
 import (
+	"embed"
 	"fmt"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
@@ -32,6 +34,10 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
 )
+
+//go:embed templates/harbor.yml.tmpl
+
+var f embed.FS
 
 type SyncCertsFile struct {
 	common.KubeAction
@@ -221,6 +227,12 @@ type GenerateHarborConfig struct {
 }
 
 func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
+	harborContent, err := f.ReadFile("templates/harbor.yml.tmpl")
+	if err != nil {
+		return err
+	}
+	harbor := template.Must(template.New("harbor.yml").Parse(string(harborContent)))
+
 	registryDomain := g.KubeConf.Cluster.Registry.GetHost()
 
 	if g.KubeConf.Cluster.Registry.Type == "harbor-ha" {
@@ -229,7 +241,7 @@ func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
 	}
 
 	templateAction := action.Template{
-		Template: templates.HarborConfigTempl,
+		Template: harbor,
 		Dst:      "/opt/harbor/harbor.yml",
 		Data: util.Data{
 			"Domain":      registryDomain,
@@ -250,7 +262,7 @@ type StartHarbor struct {
 }
 
 func (g *StartHarbor) Execute(runtime connector.Runtime) error {
-	startCmd := "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh --with-notary --with-trivy --with-chartmuseum && systemctl daemon-reload && systemctl enable harbor && systemctl restart harbor"
+	startCmd := "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh --with-trivy && systemctl daemon-reload && systemctl enable harbor && systemctl restart harbor"
 	if _, err := runtime.GetRunner().SudoCmd(startCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "start harbor failed")
 	}
