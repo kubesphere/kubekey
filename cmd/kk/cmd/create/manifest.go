@@ -38,6 +38,9 @@ type CreateManifestOptions struct {
 	Name       string
 	KubeConfig string
 	FileName   string
+	Kubernetes string
+	registry   bool
+	Arch       []string
 }
 
 func NewCreateManifestOptions() *CreateManifestOptions {
@@ -86,11 +89,17 @@ func (o *CreateManifestOptions) Run() error {
 		FilePath:   o.FileName,
 		KubeConfig: o.KubeConfig,
 	}
-	return artifact.CreateManifest(arg, o.Name)
+	if o.Kubernetes != "" {
+		return artifact.CreateManifestSpecifyVersion(arg, o.Name, o.Kubernetes, o.registry, o.Arch)
+	}
+	return artifact.CreateManifest(arg, o.Name, o.registry)
 }
 
 func (o *CreateManifestOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.Name, "name", "", "sample", "Specify a name of manifest object")
 	cmd.Flags().StringVarP(&o.FileName, "filename", "f", "", "Specify a manifest file path")
 	cmd.Flags().StringVar(&o.KubeConfig, "kubeconfig", "", "Specify a kubeconfig file")
+	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
+	cmd.Flags().BoolVar(&o.registry, "with-registry", false, "Specify a supported registry components")
+	cmd.Flags().StringArrayVar(&o.Arch, "arch", []string{"amd64"}, "Specify a supported arch")
 }
