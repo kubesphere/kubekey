@@ -29,12 +29,13 @@ import (
 )
 
 type ArtifactArgument struct {
-	ManifestFile    string
-	Output          string
-	CriSocket       string
-	Debug           bool
-	IgnoreErr       bool
-	DownloadCommand func(path, url string) string
+	ManifestFile       string
+	Output             string
+	CriSocket          string
+	Debug              bool
+	IgnoreErr          bool
+	DownloadCommand    func(path, url string) string
+	SkipRemoveArtifact bool
 }
 
 type ArtifactRuntime struct {
