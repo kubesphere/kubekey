@@ -70,13 +70,14 @@ spec:
       version: {{ .Options.Components.Calicoctl.Version }}
     crictl: 
       version: {{ .Options.Components.Crictl.Version }}
-    ## 
-    # docker-registry:
-    #   version: "2"
-    # harbor:
-    #   version: v2.4.1
-    # docker-compose:
-    #   version: v2.2.2
+    {{ if .Options.Components.DockerRegistry.Version -}}
+    docker-registry:
+      version: "{{ .Options.Components.DockerRegistry.Version }}"
+    harbor:
+      version: {{ .Options.Components.Harbor.Version }}
+    docker-compose:
+      version: {{ .Options.Components.DockerCompose.Version }}
+	{{- end }}
   images:
   {{- range .Options.Images }}
   - {{ . }}
