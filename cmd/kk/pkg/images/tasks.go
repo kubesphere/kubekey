@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	manifestregistry "github.com/estesp/manifest-tool/v2/pkg/registry"
 	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
@@ -138,7 +139,7 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 		"linux-utils":         {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "openebs", Repo: "linux-utils", Tag: "3.3.0", Group: kubekeyv1alpha2.Worker, Enable: false},
 		// load balancer
 		"haproxy": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "library", Repo: "haproxy", Tag: "2.9.6-alpine", Group: kubekeyv1alpha2.Worker, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
-		"kubevip": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "plndr", Repo: "kube-vip", Tag: "v0.5.0", Group: kubekeyv1alpha2.Master, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
+		"kubevip": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "plndr", Repo: "kube-vip", Tag: "v0.7.2", Group: kubekeyv1alpha2.Master, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 		// kata-deploy
 		"kata-deploy": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyv1alpha2.DefaultKubeImageNamespace, Repo: "kata-deploy", Tag: "stable", Group: kubekeyv1alpha2.Worker, Enable: kubeConf.Cluster.Kubernetes.EnableKataDeploy()},
 		// node-feature-discovery
@@ -211,8 +212,18 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 				},
 			}
 
-			if err := o.Copy(); err != nil {
-				return err
+			// Copy image
+			// retry 3 times
+			for i := 0; i < 3; i++ {
+				if err := o.Copy(); err != nil {
+					if i == 2 {
+						return errors.Wrapf(err, "copy image %s failed", srcName)
+					}
+					logger.Log.Warnf("copy image %s failed, retrying", srcName)
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				break
 			}
 		}
 	}
@@ -366,7 +377,7 @@ func (p *PushManifest) Execute(_ connector.Runtime) error {
 		logger.Log.Infof("Push multi-arch manifest list: %s", imageName)
 		// todo: the function can't support specify a certs dir
 		digest, length, err := manifestregistry.PushManifestList(auth.Username, auth.Password, manifestSpec,
-			false, true, auth.PlainHTTP, "")
+			true, true, auth.PlainHTTP, "")
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("push image %s multi-arch manifest failed", imageName))
 		}

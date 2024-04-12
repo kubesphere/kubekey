@@ -127,6 +127,10 @@ func KubernetesComponentBinariesDownload(manifest *common.ArtifactManifest, path
 			containerManagerVersion[c.Type+c.Version] = struct{}{}
 			containerManager := files.NewKubeBinary(c.Type, arch, c.Version, path, manifest.Arg.DownloadCommand)
 			binaries = append(binaries, containerManager)
+			if c.Type == "docker" {
+				criDockerd := files.NewKubeBinary("cri-dockerd", arch, kubekeyapiv1alpha2.DefaultCriDockerdVersion, path, manifest.Arg.DownloadCommand)
+				binaries = append(binaries, criDockerd)
+			}
 			if c.Type == "containerd" {
 				runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, manifest.Arg.DownloadCommand)
 				binaries = append(binaries, runc)
