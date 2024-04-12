@@ -109,6 +109,11 @@ func (a *ArchiveDependencies) Execute(runtime connector.Runtime) error {
 		return errors.Wrapf(errors.WithStack(err), "archive %s failed", src)
 	}
 
+	// skip remove artifact if --skip-remove-artifact
+	if a.Manifest.Arg.SkipRemoveArtifact {
+		return nil
+	}
+
 	// remove the src directory
 	if err := os.RemoveAll(src); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "remove %s failed", src)
