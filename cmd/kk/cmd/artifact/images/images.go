@@ -43,6 +43,7 @@ func NewCmdArtifactImages() *cobra.Command {
 
 	o.CommonOptions.AddCommonFlag(cmd)
 	cmd.AddCommand(NewCmdArtifactImagesPush())
+	cmd.AddCommand(NewCmdArtifactImagesList())
 
 	return cmd
 }
