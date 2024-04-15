@@ -81,7 +81,7 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	table.OutputA(results)
 	reader := bufio.NewReader(os.Stdin)
 
-	if i.KubeConf.Arg.Artifact == "" {
+	if !i.KubeConf.Arg.InstallPackages {
 		for _, host := range results {
 			if host.Sudo == "" {
 				logger.Log.Errorf("%s: sudo is required.", host.Name)
