@@ -245,11 +245,14 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 				host.GetName(),
 				kubeConf.Cluster.Kubernetes.ClusterName,
 				host.GetName()))
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				host.GetInternalIPv6Address(),
-				host.GetName(),
-				kubeConf.Cluster.Kubernetes.ClusterName,
-				host.GetName()))
+
+			if host.GetInternalIPv6Address() != "" {
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
+					host.GetInternalIPv6Address(),
+					host.GetName(),
+					kubeConf.Cluster.Kubernetes.ClusterName,
+					host.GetName()))
+			}
 		}
 	}
 
