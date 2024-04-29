@@ -23,6 +23,18 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
 
+type WithBuildxPlugin struct {
+	common.KubePrepare
+}
+
+func (w *WithBuildxPlugin) PreCheck(runtime connector.Runtime) (bool, error) {
+	if w.KubeConf.Arg.WithBuildx {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
 type DockerExist struct {
 	common.KubePrepare
 	Not bool

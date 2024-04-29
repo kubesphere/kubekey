@@ -69,6 +69,8 @@ const (
 	Isula      = "isula"
 	Runc       = "runc"
 
+	Buildx = "buildx"
+
 	// global cache key
 	// PreCheckModule
 	NodePreCheck           = "nodePreCheck"

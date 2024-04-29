@@ -55,6 +55,7 @@ type Argument struct {
 	Role                string
 	Type                string
 	EtcdUpgrade         bool
+	WithBuildx          bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
