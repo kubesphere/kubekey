@@ -30,6 +30,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	coreutil "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
 )
 
 type DownloadISOFile struct {
@@ -44,6 +45,16 @@ func (d *DownloadISOFile) Execute(runtime connector.Runtime) error {
 
 		fileName := fmt.Sprintf("%s-%s-%s.iso", sys.Id, sys.Version, sys.Arch)
 		filePath := filepath.Join(runtime.GetWorkDir(), fileName)
+
+		checksumEqual, err := files.SHA256CheckEqual(filePath, sys.Repository.Iso.Checksum)
+		if err != nil {
+			return err
+		}
+		if checksumEqual {
+			logger.Log.Infof("Skip download exists iso file %s", fileName)
+			continue
+		}
+
 		getCmd := d.Manifest.Arg.DownloadCommand(filePath, sys.Repository.Iso.Url)
 
 		cmd := exec.Command("/bin/sh", "-c", getCmd)

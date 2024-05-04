@@ -322,6 +322,23 @@ func (b *KubeBinary) SHA256Check() error {
 	return nil
 }
 
+func SHA256CheckEqual(filePath string, checksum string) (bool, error) {
+	if strings.TrimSpace(checksum) == "" {
+		return false, nil
+	}
+
+	if !util.IsExist(filePath) {
+		return false, nil
+	}
+
+	output, err := sha256sum(filePath)
+	if err != nil {
+		return false, errors.Wrap(err, fmt.Sprintf("Failed to check SHA256 of %s", filePath))
+	}
+
+	return output == checksum, nil
+}
+
 func sha256sum(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
