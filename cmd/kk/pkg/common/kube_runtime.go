@@ -48,6 +48,7 @@ type Argument struct {
 	FromCluster         bool
 	KubeConfig          string
 	Artifact            string
+	ImageTransport      string
 	InstallPackages     bool
 	ImagesDir           string
 	Namespace           string

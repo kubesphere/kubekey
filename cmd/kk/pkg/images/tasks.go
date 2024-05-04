@@ -233,7 +233,8 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 
 type CopyImagesToRegistry struct {
 	common.KubeAction
-	ImagesPath string
+	ImagesPath     string
+	ImageTransport string
 }
 
 func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
@@ -306,7 +307,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		}
 
 		srcName := fmt.Sprintf("oci:%s:%s", imagesPath, ref)
-		destName := fmt.Sprintf("docker://%s", image.ImageName())
+		destName := formatImageName(c.ImageTransport, image.ImageName())
 		logger.Log.Infof("Source: %s", srcName)
 		logger.Log.Infof("Destination: %s", destName)
 

@@ -69,8 +69,9 @@ func (c *CopyImagesToLocalModule) Init() {
 
 type CopyImagesToRegistryModule struct {
 	common.KubeModule
-	Skip      bool
-	ImagePath string
+	Skip           bool
+	ImagePath      string
+	ImageTransport string
 }
 
 func (c *CopyImagesToRegistryModule) IsSkip() bool {
@@ -84,7 +85,7 @@ func (c *CopyImagesToRegistryModule) Init() {
 	copyImage := &task.LocalTask{
 		Name:   "CopyImagesToRegistry",
 		Desc:   "Copy images to a private registry from an artifact OCI Path",
-		Action: &CopyImagesToRegistry{ImagesPath: c.ImagePath},
+		Action: &CopyImagesToRegistry{ImagesPath: c.ImagePath, ImageTransport: c.ImageTransport},
 	}
 
 	pushManifest := &task.LocalTask{
