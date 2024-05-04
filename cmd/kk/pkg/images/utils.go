@@ -26,6 +26,7 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 )
 
@@ -187,4 +188,15 @@ func suffixImageName(imageFullName []string) string {
 		return strings.Join(imageFullName, "/")
 	}
 	return imageFullName[0]
+}
+
+func formatImageName(transport string, imageFullName string) string {
+	switch transport {
+	case common.DockerDaemon:
+		return fmt.Sprintf("docker-daemon:%s", imageFullName)
+	case common.Docker:
+		fallthrough
+	default:
+		return fmt.Sprintf("docker://%s", imageFullName)
+	}
 }
