@@ -183,7 +183,19 @@ func validateImageName(imageFullName string) error {
 	return nil
 }
 
-func suffixImageName(imageFullName []string) string {
+func parseImageFullName(imageFullName string) (string, string, string, string, error) {
+	if err := validateImageName(imageFullName); err != nil {
+		return "", "", "", "", err
+	}
+	image := strings.Split(imageFullName, "/")
+	partsNum := len(image)
+	repoAddr := image[0]
+	namespace := concatImageName(image[1 : partsNum-1])
+	nameAndTag := strings.Split(image[partsNum-1], ":")
+	return repoAddr, namespace, nameAndTag[0], nameAndTag[1], nil
+}
+
+func concatImageName(imageFullName []string) string {
 	if len(imageFullName) >= 2 {
 		return strings.Join(imageFullName, "/")
 	}
