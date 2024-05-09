@@ -52,6 +52,7 @@ func (d *DownloadISOFile) Execute(runtime connector.Runtime) error {
 		}
 		if checksumEqual {
 			logger.Log.Infof("Skip download exists iso file %s", fileName)
+			d.Manifest.Spec.OperatingSystems[i].Repository.Iso.LocalPath = filePath
 			continue
 		}
 
