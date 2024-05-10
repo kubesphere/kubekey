@@ -39,7 +39,7 @@ func NewUpgradeImagesOptions() *UpgradeImagesOptions {
 	}
 }
 
-// NewCmdUpgrade creates a new upgrade command
+// NewCmdUpgradeImages creates a new upgrade command
 func NewCmdUpgradeImages() *cobra.Command {
 	o := NewUpgradeImagesOptions()
 	cmd := &cobra.Command{
