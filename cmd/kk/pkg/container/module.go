@@ -60,6 +60,19 @@ func (i *InstallContainerModule) Init() {
 }
 
 func InstallDocker(m *InstallContainerModule) []task.Interface {
+
+	syncBuildxPluginBinaries := &task.RemoteTask{
+		Name:  "SyncDockerBuildxBinaries",
+		Desc:  "Sync docker buildx binaries",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&WithBuildxPlugin{},
+		},
+		Action:   new(SyncDockerBuildxPluginBinaries),
+		Parallel: true,
+		Retry:    2,
+	}
+
 	syncBinaries := &task.RemoteTask{
 		Name:  "SyncDockerBinaries",
 		Desc:  "Sync docker binaries",
@@ -169,6 +182,7 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 		enableContainerdForDocker,
 		enableDocker,
 		dockerLoginRegistry,
+		syncBuildxPluginBinaries,
 	}
 }
 
