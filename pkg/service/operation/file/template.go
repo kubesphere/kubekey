@@ -71,6 +71,7 @@ func (t *Template) RenderToLocal() error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	if err := t.template.Execute(f, t.data); err != nil {
 		return err
