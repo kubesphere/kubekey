@@ -134,6 +134,7 @@
 | v1.28.7 | :white_check_mark: |
 | v1.28.8 | :white_check_mark: |
 | v1.28.9 | :white_check_mark: |
+| v1.28.10 | :white_check_mark: |
 | v1.29.0 | :white_check_mark: |
 | v1.29.1 | :white_check_mark: |
 | v1.29.2 | :white_check_mark: |
