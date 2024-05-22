@@ -1,0 +1,25 @@
+cluster_require:
+  allow_unsupported_distribution_setup: false
+  # support ubuntu, centos.
+  supported_os_distributions: ['ubuntu', 'centos']
+  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
+  # the minimal version of kubernetes to be installed.
+  kube_version_min_required: v1.19.10
+  # memory size for each kube_control_plane node.(unit kB)
+  # should be greater than or equal to minimal_master_memory_mb.
+  minimal_master_memory_mb: 10
+  # memory size for each kube_worker node.(unit kB)
+  # should be greater than or equal to minimal_node_memory_mb.
+  minimal_node_memory_mb: 10
+  require_etcd_deployment_type: ['internal','external']
+  require_container_manager: ['docker', 'containerd']
+  require_containerd_version: ['latest', 'edge', 'stable']
+  # the minimal required version of containerd to be installed.
+  containerd_min_version_required: v1.6.0
+  supported_architectures:
+    amd64:
+      - amd64
+      - x86_64
+    arm64:
+      - arm64
+      - aarch64

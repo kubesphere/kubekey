@@ -20,47 +20,49 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
 func TestMergeVariable(t *testing.T) {
 	testcases := []struct {
 		name     string
-		v1       VariableData
-		v2       VariableData
-		excepted VariableData
+		v1       map[string]any
+		v2       map[string]any
+		excepted map[string]any
 	}{
 		{
 			name: "primary variables value is empty",
 			v1:   nil,
-			v2: VariableData{
+			v2: map[string]any{
 				"a1": "v1",
 			},
-			excepted: VariableData{
+			excepted: map[string]any{
 				"a1": "v1",
 			},
 		},
 		{
 			name: "auxiliary variables value is empty",
-			v1: VariableData{
+			v1: map[string]any{
 				"p1": "v1",
 			},
 			v2: nil,
-			excepted: VariableData{
+			excepted: map[string]any{
 				"p1": "v1",
 			},
 		},
 		{
 			name: "non-repeat value",
-			v1: VariableData{
+			v1: map[string]any{
 				"p1": "v1",
 				"p2": map[string]any{
 					"p21": "v21",
 				},
 			},
-			v2: VariableData{
+			v2: map[string]any{
 				"a1": "v1",
 			},
-			excepted: VariableData{
+			excepted: map[string]any{
 				"p1": "v1",
 				"p2": map[string]any{
 					"p21": "v21",
@@ -70,14 +72,14 @@ func TestMergeVariable(t *testing.T) {
 		},
 		{
 			name: "repeat value",
-			v1: VariableData{
+			v1: map[string]any{
 				"p1": "v1",
 				"p2": map[string]any{
 					"p21": "v21",
 					"p22": "v22",
 				},
 			},
-			v2: VariableData{
+			v2: map[string]any{
 				"a1": "v1",
 				"p1": "v2",
 				"p2": map[string]any{
@@ -85,11 +87,48 @@ func TestMergeVariable(t *testing.T) {
 					"a21": "v21",
 				},
 			},
-			excepted: VariableData{
+			excepted: map[string]any{
 				"a1": "v1",
 				"p1": "v2",
 				"p2": map[string]any{
 					"p21": "v22",
+					"a21": "v21",
+					"p22": "v22",
+				},
+			},
+		},
+		{
+			name: "repeat deep value",
+			v1: map[string]any{
+				"p1": map[string]string{
+					"p11": "v11",
+				},
+				"p2": map[string]any{
+					"p21": "v21",
+					"p22": "v22",
+				},
+			},
+			v2: map[string]any{
+				"p1": map[string]string{
+					"p21": "v21",
+				},
+				"p2": map[string]any{
+					"p21": map[string]any{
+						"p211": "v211",
+					},
+					"a21": "v21",
+				},
+			},
+			excepted: map[string]any{
+				"p1": map[string]any{
+					"p11": "v11",
+					"p21": "v21",
+				},
+				"p2": map[string]any{
+					"p21": map[string]any{
+						"p211": "v211",
+					},
+					"p22": "v22",
 					"a21": "v21",
 				},
 			},
@@ -98,8 +137,130 @@ func TestMergeVariable(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			v := mergeVariables(tc.v1, tc.v2)
+			v := combineVariables(tc.v1, tc.v2)
 			assert.Equal(t, tc.excepted, v)
+		})
+	}
+}
+
+func TestMergeGroup(t *testing.T) {
+	testcases := []struct {
+		name   string
+		g1     []string
+		g2     []string
+		except []string
+	}{
+		{
+			name: "non-repeat",
+			g1: []string{
+				"h1", "h2", "h3",
+			},
+			g2: []string{
+				"h4", "h5",
+			},
+			except: []string{
+				"h1", "h2", "h3", "h4", "h5",
+			},
+		},
+		{
+			name: "repeat value",
+			g1: []string{
+				"h1", "h2", "h3",
+			},
+			g2: []string{
+				"h3", "h4", "h5",
+			},
+			except: []string{
+				"h1", "h2", "h3", "h4", "h5",
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			ac := mergeSlice(tc.g1, tc.g2)
+			assert.Equal(t, tc.except, ac)
+		})
+	}
+}
+
+func TestParseVariable(t *testing.T) {
+	testcases := []struct {
+		name   string
+		data   map[string]any
+		base   map[string]any
+		except map[string]any
+	}{
+		{
+			name: "parse string",
+			data: map[string]any{
+				"a": "{{ a }}",
+			},
+			base: map[string]any{
+				"a": "b",
+			},
+			except: map[string]any{
+				"a": "b",
+			},
+		},
+		{
+			name: "parse map",
+			data: map[string]any{
+				"a": "{{ a.b }}",
+			},
+			base: map[string]any{
+				"a": map[string]any{
+					"b": "c",
+				},
+			},
+			except: map[string]any{
+				"a": "c",
+			},
+		},
+		{
+			name: "parse slice",
+			data: map[string]any{
+				"a": []string{"{{ b }}"},
+			},
+			base: map[string]any{
+				"b": "c",
+			},
+			except: map[string]any{
+				"a": []string{"c"},
+			},
+		},
+		{
+			name: "parse map in slice",
+			data: map[string]any{
+				"a": []map[string]any{
+					{
+						"a1": []any{"{{ b }}"},
+					},
+				},
+			},
+			base: map[string]any{
+				"b": "c",
+			},
+			except: map[string]any{
+				"a": []map[string]any{
+					{
+						"a1": []any{"c"},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := parseVariable(tc.data, func(s string) (string, error) {
+				// parse use total variable. the task variable should not contain template syntax.
+				return tmpl.ParseString(combineVariables(tc.data, tc.base), s)
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.except, tc.data)
 		})
 	}
 }

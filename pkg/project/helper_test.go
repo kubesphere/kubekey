@@ -22,6 +22,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 func TestGetPlaybookBaseFromAbsPlaybook(t *testing.T) {
@@ -53,7 +55,7 @@ func TestGetPlaybookBaseFromAbsPlaybook(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.except, GetPlaybookBaseFromPlaybook(os.DirFS("testdata"), tc.basePlaybook, tc.playbook))
+			assert.Equal(t, tc.except, getPlaybookBaseFromPlaybook(os.DirFS("testdata"), tc.basePlaybook, tc.playbook))
 		})
 	}
 }
@@ -87,80 +89,9 @@ func TestGetRoleBaseFromAbsPlaybook(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.except, GetRoleBaseFromPlaybook(os.DirFS("testdata"), tc.basePlaybook, tc.roleName))
+			assert.Equal(t, tc.except, getRoleBaseFromPlaybook(os.DirFS("testdata"), tc.basePlaybook, tc.roleName))
 		})
 	}
-}
-
-func TestGetFilesFromPlayBook(t *testing.T) {
-	testcases := []struct {
-		name     string
-		pbPath   string
-		role     string
-		filePath string
-		excepted string
-	}{
-		{
-			name:     "absolute filePath",
-			filePath: "/tmp",
-			excepted: "/tmp",
-		},
-		{
-			name:     "empty role",
-			pbPath:   "playbooks/test.yaml",
-			filePath: "tmp",
-			excepted: "playbooks/files/tmp",
-		},
-		{
-			name:     "not empty role",
-			pbPath:   "playbooks/test.yaml",
-			role:     "role1",
-			filePath: "tmp",
-			excepted: "roles/role1/files/tmp",
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.excepted, GetFilesFromPlayBook(os.DirFS("testdata"), tc.pbPath, tc.role, tc.filePath))
-		})
-	}
-}
-
-func TestGetTemplatesFromPlayBook(t *testing.T) {
-	testcases := []struct {
-		name     string
-		pbPath   string
-		role     string
-		filePath string
-		excepted string
-	}{
-		{
-			name:     "absolute filePath",
-			filePath: "/tmp",
-			excepted: "/tmp",
-		},
-		{
-			name:     "empty role",
-			pbPath:   "playbooks/test.yaml",
-			filePath: "tmp",
-			excepted: "playbooks/templates/tmp",
-		},
-		{
-			name:     "not empty role",
-			pbPath:   "playbooks/test.yaml",
-			role:     "role1",
-			filePath: "tmp",
-			excepted: "roles/role1/templates/tmp",
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.excepted, GetTemplatesFromPlayBook(os.DirFS("testdata"), tc.pbPath, tc.role, tc.filePath))
-		})
-	}
-
 }
 
 func TestGetYamlFile(t *testing.T) {
@@ -188,7 +119,114 @@ func TestGetYamlFile(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.except, GetYamlFile(os.DirFS("testdata"), tc.base))
+			assert.Equal(t, tc.except, getYamlFile(os.DirFS("testdata"), tc.base))
+		})
+	}
+}
+
+func TestMarshalPlaybook(t *testing.T) {
+	testcases := []struct {
+		name   string
+		file   string
+		except *kkcorev1.Playbook
+	}{
+		{
+			name: "marshal playbook",
+			file: "playbooks/playbook1.yaml",
+			except: &kkcorev1.Playbook{[]kkcorev1.Play{
+				{
+					Base:     kkcorev1.Base{Name: "play1"},
+					PlayHost: kkcorev1.PlayHost{Hosts: []string{"localhost"}},
+					Roles: []kkcorev1.Role{
+						{kkcorev1.RoleInfo{
+							Role: "role1",
+							Block: []kkcorev1.Block{
+								{
+									BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "role1 | block1"}},
+									Task: kkcorev1.Task{UnknownFiled: map[string]any{
+										"debug": map[string]any{
+											"msg": "echo \"hello world\"",
+										},
+									}},
+								},
+							},
+						}},
+					},
+					Handlers: nil,
+					PreTasks: []kkcorev1.Block{
+						{
+							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | pre_block1"}},
+							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+								"debug": map[string]any{
+									"msg": "echo \"hello world\"",
+								},
+							}},
+						},
+					},
+					PostTasks: []kkcorev1.Block{
+						{
+							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | post_block1"}},
+							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+								"debug": map[string]any{
+									"msg": "echo \"hello world\"",
+								},
+							}},
+						},
+					},
+					Tasks: []kkcorev1.Block{
+						{
+							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block1"}},
+							BlockInfo: kkcorev1.BlockInfo{Block: []kkcorev1.Block{
+								{
+									BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block1 | block1"}},
+									Task: kkcorev1.Task{UnknownFiled: map[string]any{
+										"debug": map[string]any{
+											"msg": "echo \"hello world\"",
+										},
+									}},
+								},
+								{
+									BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block1 | block2"}},
+									Task: kkcorev1.Task{UnknownFiled: map[string]any{
+										"debug": map[string]any{
+											"msg": "echo \"hello world\"",
+										},
+									}},
+								},
+							}},
+						},
+						{
+							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block2"}},
+							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+								"debug": map[string]any{
+									"msg": "echo \"hello world\"",
+								},
+							}},
+						},
+					},
+				},
+				{
+					Base:     kkcorev1.Base{Name: "play2"},
+					PlayHost: kkcorev1.PlayHost{Hosts: []string{"localhost"}},
+					Tasks: []kkcorev1.Block{
+						{
+							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play2 | block1"}},
+							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+								"debug": map[string]any{
+									"msg": "echo \"hello world\"",
+								},
+							}},
+						},
+					},
+				},
+			}},
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			pb, err := marshalPlaybook(os.DirFS("testdata"), tc.file)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.except, pb)
 		})
 	}
 }

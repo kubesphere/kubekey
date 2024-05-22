@@ -1,0 +1,44 @@
+---
+- name: Check binaries for cilium
+  command: |
+    artifact_name={{ artifact.artifact_url.cilium|split:"/"|last }}
+    artifact_path={{ work_dir }}/kubekey/cni
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      cd $artifact_path && helm pull {{ artifact.artifact_url.cilium }}
+    fi
+  when: cilium_version | defined
+
+- name: Check binaries for kubeovn
+  command: |
+    artifact_name={{ artifact.artifact_url.kubeovn|split:"/"|last }}
+    artifact_path={{ work_dir }}/kubekey/cni
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      cd $artifact_path && helm pull {{ artifact.artifact_url.kubeovn }}
+    fi
+  when: kubeovn_version | defined
+
+- name: Check binaries for hybridnet
+  command: |
+    artifact_name={{ artifact.artifact_url.hybridnet|split:"/"|last }}
+    artifact_path={{ work_dir }}/kubekey/cni
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      cd $artifact_path && helm pull {{ artifact.artifact_url.hybridnet }}
+    fi
+  when: hybridnet_version | defined
+
+- name: Check binaries for nfs_provisioner
+  command: |
+    artifact_name={{ artifact.artifact_url.nfs_provisioner|split:"/"|last }}
+    artifact_path={{ work_dir }}/kubekey/sc
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      cd $artifact_path && helm pull {{ artifact.artifact_url.nfs_provisioner }}
+    fi
+  when: nfs_provisioner_version| defined

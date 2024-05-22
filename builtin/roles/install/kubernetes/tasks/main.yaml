@@ -1,0 +1,64 @@
+---
+- name: Check kubernetes if installed
+  ignore_errors: true
+  command: kubectl get node --field-selector metadata.name={{ inventory_name }}
+  register: kube_node_info_important
+
+- include_tasks: install_kube_binaries.yaml
+
+- include_tasks: deploy_kube_vip.yaml
+  when:
+    - kubernetes.kube_vip.enabled
+    - inventory_name in groups['kube_control_plane']
+
+- name: Select init kubernetes node
+  run_once: true
+  set_fact:
+    init_kubernetes_node: "{{ groups['kube_control_plane']|first }}"
+
+- name: Init kubernetes
+  when: inventory_name == init_kubernetes_node
+  block:
+    - include_tasks: init_kubernetes.yaml
+      when: kube_node_info_important.stderr != ""
+    - include_tasks: deploy_cluster_dns.yaml
+    - name: Fetch kubeconfig to local
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ work_dir }}/kubekey/kubeconfig"
+    - name: Generate certificate key
+      block:
+        - name: Generate certificate key by kubeadm
+          command: /usr/local/bin/kubeadm certs certificate-key
+          register: kubeadm_cert_result
+        - name: Set_Fact certificate key to all hosts
+          set_fact:
+            kubeadm_cert: "{{ kubeadm_cert_result.stdout }}"
+    - name: Generate kubeadm token
+      block:
+        - name: Generate token by kubeadm
+          command: /usr/local/bin/kubeadm token create
+          register: kubeadm_token_result
+        - name: Set_Fact token to all hosts
+          set_fact:
+            kubeadm_token: "{{ kubeadm_token_result.stdout }}"
+    - name: Set_Fact init endpoint
+      set_fact:
+        init_kubernetes_endpoint: "{{ inventory_name }}"
+
+- include_tasks: join_kubernetes.yaml
+  when:
+    - kube_node_info_important.stderr != ""
+    - inventory_name != init_kubernetes_node
+
+- include_tasks: deploy_haproxy.yaml
+  when:
+    - kubernetes.haproxy.enabled
+    - inventory_name in groups['kube_worker']
+
+- name: Add custom label to cluster
+  command: |
+    {% for k,v in kubernetes.custom_label %}
+    /usr/local/bin/kubectl label --overwrite node {{ inventory_name }} {{ k }}={{ v }}
+    {% endfor %}
+  when: kubernetes.custom_label | length > 0

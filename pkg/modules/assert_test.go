@@ -35,8 +35,9 @@ func TestAssert(t *testing.T) {
 		{
 			name: "non-that",
 			opt: ExecOptions{
-				Host: "local",
-				Args: runtime.RawExtension{},
+				Host:     "local",
+				Variable: &testVariable{},
+				Args:     runtime.RawExtension{},
 			},
 			exceptStderr: "\"that\" should be []string or string",
 		},

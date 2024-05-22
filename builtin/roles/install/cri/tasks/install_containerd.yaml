@@ -1,0 +1,45 @@
+---
+- name: Check if runc is installed
+  ignore_errors: true
+  command: runc --version
+  register: runc_install_version
+
+- name: Sync Runc Binary to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/runc/{{ runc_version }}/{{ binary_type.stdout }}/runc.{{ binary_type.stdout }}"
+    dest: "/usr/local/bin/runc"
+    mode: 0755
+  when: runc_install_version.stderr != ""
+
+- name: Check if Containerd is installed
+  ignore_errors: true
+  command: containerd --version
+  register: containerd_install_version
+
+- name: Sync Containerd Binary to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/containerd/{{ containerd_version }}/{{ binary_type.stdout }}/containerd-{{ containerd_version|slice:'1:' }}-linux-{{ binary_type.stdout }}.tar.gz"
+    dest: "/tmp/kubekey/containerd-{{ containerd_version|slice:'1:' }}-linux-{{ binary_type.stdout }}.tar.gz"
+  when: containerd_install_version.stderr != ""
+
+- name: Unpackage Containerd binary
+  command: |
+    tar -xvf /tmp/kubekey/containerd-{{ containerd_version|slice:'1:' }}-linux-{{ binary_type.stdout }}.tar.gz -C /usr/local/bin/
+  when: containerd_install_version.stderr != ""
+
+- name: Generate Containerd config file
+  template:
+    src: containerd.config
+    dest: /etc/containerd/config.toml
+  when: containerd_install_version.stderr != ""
+
+- name: Generate Containerd Service file
+  copy:
+    src: containerd.service
+    dest: /etc/systemd/system/containerd.service
+  when: containerd_install_version.stderr != ""
+
+- name: Start Containerd
+  command: |
+    systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
+  when: containerd_install_version.stderr != ""

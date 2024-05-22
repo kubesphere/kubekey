@@ -23,20 +23,18 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 )
 
 type sshConnector struct {
 	Host     string
-	Port     *int
-	User     *string
-	Password *string
+	Port     int
+	User     string
+	Password string
 	client   *ssh.Client
 }
 
@@ -44,23 +42,20 @@ func (c *sshConnector) Init(ctx context.Context) error {
 	if c.Host == "" {
 		return fmt.Errorf("host is not set")
 	}
-	if c.Port == nil {
-		c.Port = pointer.Int(22)
-	}
 	var auth []ssh.AuthMethod
-	if c.Password != nil {
+	if c.Password != "" {
 		auth = []ssh.AuthMethod{
-			ssh.Password(*c.Password),
+			ssh.Password(c.Password),
 		}
 	}
-	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", c.Host, strconv.Itoa(*c.Port)), &ssh.ClientConfig{
-		User:            pointer.StringDeref(c.User, ""),
+	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%v", c.Host, c.Port), &ssh.ClientConfig{
+		User:            c.User,
 		Auth:            auth,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         30 * time.Second,
 	})
 	if err != nil {
-		klog.V(4).ErrorS(err, "Dial ssh server failed", "host", c.Host, "port", *c.Port)
+		klog.V(4).ErrorS(err, "Dial ssh server failed", "host", c.Host, "port", c.Port)
 		return err
 	}
 	c.client = sshClient
@@ -109,12 +104,14 @@ func (c *sshConnector) FetchFile(ctx context.Context, remoteFile string, local i
 		return err
 	}
 	defer sftpClient.Close()
+
 	rf, err := sftpClient.Open(remoteFile)
 	if err != nil {
 		klog.V(4).ErrorS(err, "Failed to open file", "remote_file", remoteFile)
 		return err
 	}
 	defer rf.Close()
+
 	if _, err := io.Copy(local, rf); err != nil {
 		klog.V(4).ErrorS(err, "Failed to copy file", "remote_file", remoteFile)
 		return err
@@ -123,7 +120,7 @@ func (c *sshConnector) FetchFile(ctx context.Context, remoteFile string, local i
 }
 
 func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
-	klog.V(4).InfoS("exec ssh command", "cmd", cmd)
+	klog.V(4).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {

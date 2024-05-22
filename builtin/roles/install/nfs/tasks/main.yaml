@@ -1,0 +1,6 @@
+---
+- include_tasks: debian.yaml
+  when: os.release.ID_LIKE == 'debian'
+
+- include_tasks: rhel.yaml
+  when: os.release.ID_LIKE == 'rhel fedora'

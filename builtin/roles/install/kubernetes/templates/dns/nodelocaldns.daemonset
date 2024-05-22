@@ -1,0 +1,237 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nodelocaldns
+  namespace: kube-system
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nodelocaldns
+  namespace: kube-system
+  labels:
+    k8s-app: kube-dns
+    addonmanager.kubernetes.io/mode: Reconcile
+spec:
+  selector:
+    matchLabels:
+      k8s-app: nodelocaldns
+  template:
+    metadata:
+      labels:
+        k8s-app: nodelocaldns
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9253'
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      serviceAccountName: nodelocaldns
+      hostNetwork: true
+      dnsPolicy: Default  # Don't use cluster DNS.
+      tolerations:
+      - effect: NoSchedule
+        operator: "Exists"
+      - effect: NoExecute
+        operator: "Exists"
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+      containers:
+      - name: node-cache
+        image: {{ kubernetes.networking.dns_cache_image }}
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 70Mi
+        args: [ "-localip", "169.254.25.10", "-conf", "/etc/coredns/Corefile", "-upstreamsvc", "coredns" ]
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        - containerPort: 9253
+          name: metrics
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            host: 169.254.25.10
+            path: /health
+            port: 9254
+            scheme: HTTP
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
+        readinessProbe:
+          httpGet:
+            host: 169.254.25.10
+            path: /health
+            port: 9254
+            scheme: HTTP
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/coredns
+        - name: xtables-lock
+          mountPath: /run/xtables.lock
+      volumes:
+        - name: config-volume
+          configMap:
+            name: nodelocaldns
+            items:
+            - key: Corefile
+              path: Corefile
+{{- if .DNSEtcHosts }}
+            - key: hosts
+              path: hosts
+{{ end }}
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: FileOrCreate
+      # Minimize downtime during a rolling upgrade or deletion; tell Kubernetes to do a "force
+      # deletion": https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods.
+      terminationGracePeriodSeconds: 0
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 20%
+    type: RollingUpdate
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nodelocaldns
+  namespace: kube-system
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+
+data:
+  Corefile: |
+{% for ez in kubernetes.coredns.external_zones %}
+{{ ez.zones|join:"   " }}{
+        log
+        errors
+        loadbalance
+        cache {{ ez.cache }}
+        reload
+        loop
+        bind 169.254.25.10
+        prometheus :9253
+
+{% for r in ez.rewrite %}
+        rewrite {{ r.rule }} {
+          {{ r.field }} {{ r.type }} {{ r.value }}
+          {{ r.options }}
+        }
+{% endfor %}
+
+{% for f in ez.forward %}
+        forward {{ f.from }} {{ f.to|join:" " }} {
+{% if (f.except|length > 0)  %}
+            except {{ f.except|join:" " }}
+{% endif %}
+{% if (f.force_tcp) %}
+            force_tcp
+{% endif %}
+{% if (f.prefer_udp) %}
+            prefer_udp
+{% endif %}
+            max_fails {{ f.max_fails|default_if_none:2 }}
+            expire {{ f.expire|default_if_none:"10s" }}
+{% if (f.tls|defined) %}
+            tls {{ f.tls.cert_file|default_if_none:'""' }} {{ f.tls.key_file|default_if_none:'""' }} {{ f.tls.ca_file|default_if_none:'""' }}
+{% endif %}
+{% if (f.tls_servername|defined) %}
+            tls_servername {{ f.tls_servername }}
+{% endif %}
+{% if (f.policy|defined) %}
+            policy {{ f.policy }}
+{% endif %}
+{% if (f.health_check|defined) %}
+            health_check {{ f.health_check }}
+{% endif %}
+{% if (f.max_concurrent|defined) %}
+            max_concurrent {{ f.max_concurrent }}
+{% endif %}
+        }
+{% endfor %}
+
+{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+        hosts /etc/coredns/hosts {
+          fallthrough
+        }
+{% endif %}
+    }
+{% endfor %}
+
+
+    {{ kubernetes.networking.dns_domain }}:53 {
+        errors
+        cache {
+            success 9984 30
+            denial 9984 5
+        }
+        reload
+        loop
+        bind 169.254.25.10
+        forward . {% if (core_dns_ip.stdout!='') %}core_dns_ip.stdout{% else %}{{ kubernetes.networking.service_cidr|ip_range|slice:":3"|last }}{% endif %} {
+            force_tcp
+        }
+        prometheus :9253
+        health 169.254.25.10:9254
+    }
+    in-addr.arpa:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind 169.254.25.10
+        forward . {% if (core_dns_ip.stdout!='') %}core_dns_ip.stdout{% else %}{{ kubernetes.networking.service_cidr|ip_range|slice:":3"|last }}{% endif %} {
+            force_tcp
+        }
+        prometheus :9253
+    }
+    ip6.arpa:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind 169.254.25.10
+        forward . {% if (core_dns_ip.stdout!='') %}core_dns_ip.stdout{% else %}{{ kubernetes.networking.service_cidr|ip_range|slice:":3"|last }}{% endif %} {
+            force_tcp
+        }
+        prometheus :9253
+    }
+    .:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind 169.254.25.10
+        forward . /etc/resolv.conf
+        prometheus :9253
+{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+        hosts /etc/coredns/hosts {
+          fallthrough
+        }
+{% endif %}
+    }
+{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+  hosts: |
+{% for h in kubernetes.coredns.dns_etc_hosts %}
+    {{ h }}
+{% endfor %}
+{% endif %}

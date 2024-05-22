@@ -1,0 +1,15 @@
+---
+- name: Generate haproxy config
+  template:
+    src: haproxy/haproxy.cfg
+    dest: /etc/kubekey/haproxy/haproxy.cfg
+
+- name: Get md5 for haproxy config
+  command: |
+    md5sum /etc/kubekey/haproxy/haproxy.cfg | cut -d\" \" -f1
+  register: cfg_md5
+
+- name: Genrate haproxy manifest
+  template:
+    src: haproxy/haproxy.yaml
+    dest: /etc/kubernetes/manifests/haproxy.yaml

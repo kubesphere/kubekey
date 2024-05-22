@@ -1,0 +1,42 @@
+---
+- name: Configure ntp server
+  command: |
+    chronyConfigFile="/etc/chrony.conf"
+    if [ {{ os.release.ID }} = "ubuntu" ] || [ {{ os.release.ID_LIKE }} = "debian" ]; then
+      chronyConfigFile="/etc/chrony/chrony.conf"
+    fi
+    # clear old server
+    sed -i '/^server/d' $chronyConfigFile
+    # disable pool
+    sed -i 's/^pool /#pool /g' $chronyConfigFile
+    # delete allow
+    sed -i '/^allow/d' $chronyConfigFile
+    # allow client
+    echo "allow 0.0.0.0/0" >> $chronyConfigFile
+    # delete local
+    sed -i '/^local/d' $chronyConfigFile
+    # add local
+    echo "local stratum 10" >> $chronyConfigFile
+    # add server
+    {% for server in ntp_servers %}
+      {% for _,v in inventory_hosts %}
+      {% if (v.inventory_name == server) %}{% set server = v.internal_ipv4%}{% endif %}
+      {% endfor %}
+    grep -q '^server {{ server }} iburst' $chronyConfigFile||sed '1a server {{ server }} iburst' -i $chronyConfigFile
+    {% endfor %}
+
+- name: Set timezone
+  command: |
+    timedatectl set-timezone {{ timezone }}
+    timedatectl set-ntp true
+  when: timezone | defined
+
+- name: Restart ntp server
+  command: |
+    chronyService="chronyd.service"
+    if [ {{ os.release.ID }} = "ubuntu" ] || [ {{ os.release.ID_LIKE }} = "debian" ]; then
+    chronyService="chrony.service"
+    fi
+    systemctl restart $chronyService
+  when:
+    - ntp_servers | defined or timezone | defined

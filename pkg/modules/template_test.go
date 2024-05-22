@@ -47,7 +47,7 @@ func TestTemplate(t *testing.T) {
 			opt: ExecOptions{
 				Args:     runtime.RawExtension{},
 				Host:     "local",
-				Variable: nil,
+				Variable: &testVariable{},
 			},
 			ctx:          context.Background(),
 			exceptStderr: "\"src\" should be string",
@@ -59,7 +59,7 @@ func TestTemplate(t *testing.T) {
 					Raw: []byte(fmt.Sprintf(`{"src": %s}`, absPath)),
 				},
 				Host:     "local",
-				Variable: nil,
+				Variable: &testVariable{},
 			},
 			ctx:          context.Background(),
 			exceptStderr: "\"dest\" should be string",

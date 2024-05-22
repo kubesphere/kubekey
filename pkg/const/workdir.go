@@ -102,9 +102,6 @@ const RuntimePipelineDir = "pipelines"
 // RuntimePipelineVariableDir is a fixed directory name under runtime, used to store the task execution parameters.
 const RuntimePipelineVariableDir = "variable"
 
-// RuntimePipelineVariableLocationFile is a location variable file under RuntimePipelineVariableDir
-const RuntimePipelineVariableLocationFile = "location.json"
-
 // RuntimePipelineTaskDir is a fixed directory name under runtime, used to store the task execution status.
 
 // task.yaml is the data of Task resource

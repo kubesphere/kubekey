@@ -1,0 +1,49 @@
+cni:
+  kube_proxy: "{{ kubernetes.kube_proxy.enabled|default_if_none:true }}"
+  # apiVersion for policy may be changed for difference kubernetes version. https://kube-api.ninja
+  api_version_policy: "{%if (kube_version|version:'<v1.21') %}policy/v1beta1{% else %}policy/v1{% endif %}"
+  kube_network_plugin: "{{ kubernetes.kube_network_plugin | default_if_none:'calico' }}"
+  # ip cidr config.
+  # dual stack. support ipv4/ipv6
+  ipv6_support: "{% if (kubernetes.networking.pod_cidr|split:','|length>1) %}true{% else %}false{% endif %}"
+  kube_pods_v4_cidr: "{{ kubernetes.networking.pod_cidr|default_if_none:'10.233.64.0/18'|split:','|first }}"
+  kube_pods_v6_cidr: "{{ kubernetes.networking.pod_cidr|default_if_none:'10.233.64.0/18'|split:','|last }}"
+  node_cidr_mask_size: "{{ kubernetes.controller_manager.kube_network_node_prefix|default_if_none:24 }}"
+  kube_svc_cidr: "{{ kubernetes.networking.service_cidr|default_if_none:'10.233.0.0/18' }}"
+  multus:
+    enabled: false
+    image: kubesphere/multus-cni:v3.8
+  calico:
+    # when cluster node > 50. it default true.
+    typha: "{%if (groups['k8s_cluster']|length > 50) %}true{% else %}false{% endif %}"
+    veth_mtu: 0
+    ipip_mode: Always
+    vxlan_mode: Never
+    # true is enabled
+    ipv4pool_nat_outgoing: true
+    # true is enabled
+    default_ip_pool: true
+    # image
+    cni_image: "calico/cni:{{ calico_version }}"
+    node_image: "calico/node:{{ calico_version }}"
+    kube_controller_image: "calico/kube-controllers:{{ calico_version }}"
+    typha_image: "calico/typha:{{ calico_version }}"
+    replicas: 1
+    node_selector: {}
+  flannel:
+    # https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md
+    backend: vxlan
+    cni_plugin_image: docker.io/flannel/flannel-cni-plugin:v1.4.0-flannel1
+    flannel_image: "docker.io/flannel/flannel:{{ flannel_version }}"
+  cilium:
+    operator_image: cilium/operator-generic:1.15.3
+    cilium_image: cilium/cilium:1.15.3
+    k8s_endpoint: "{% if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint }}{% else %}{{ groups['kube_control_plane']|first }}{% endif %}"
+    k8s_port: "{{ kubernetes.apiserver.port|default_if_none:6443 }}"
+  kubeovn:
+    replica: 1
+    registry: docker.io/kubeovn
+  hybridnet:
+    registryURL: docker.io
+#    hybridnet_image: hybridnetdev/hybridnet
+#    hybridnet_tag: v0.8.8

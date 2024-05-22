@@ -39,9 +39,11 @@ func TestCopy(t *testing.T) {
 			opt: ExecOptions{
 				Args:     runtime.RawExtension{},
 				Host:     "local",
-				Variable: nil,
+				Variable: &testVariable{},
 			},
-			ctx:          context.Background(),
+			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+				output: []byte("success"),
+			}),
 			exceptStderr: "\"src\" or \"content\" in args should be string",
 		},
 		{
@@ -51,9 +53,11 @@ func TestCopy(t *testing.T) {
 					Raw: []byte(`{"content": "hello world"}`),
 				},
 				Host:     "local",
-				Variable: nil,
+				Variable: &testVariable{},
 			},
-			ctx:          context.Background(),
+			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+				output: []byte("success"),
+			}),
 			exceptStderr: "\"dest\" in args should be string",
 		},
 		{

@@ -1,0 +1,38 @@
+---
+- name: Generate kubeadm join config
+  template:
+    src: kubeadm/{% if (kube_version|version:">=v1.24.0") %}kubeadm-join.v1beta3{% else %}kubeadm-join.v1beta2{% endif %}
+    dest: /etc/kubernetes/kubeadm-config.yaml
+
+- name: Sync audit policy file to remote
+  copy:
+    src: "audit"
+    dest: "/etc/kubernetes/audit/"
+  when:
+    - kubernetes.audit
+
+- name: Join kubernetes cluster
+  block:
+    - name: Join kubernetes by kubeadm
+      command: |
+        /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
+  rescue:
+    - name: Reset kubeadm if init failed
+      command: kubeadm reset -f {% if (cri.cri_socket|defined && cri.cri_socket != "") %}--cri-socket {{ cri.cri_socket }}{% endif %}
+
+- name: Sync kubeconfig to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/kubeconfig"
+    dest: /root/.kube/config
+
+- name: Remote master taint
+  ignore_errors: true
+  command: |
+    /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
+    /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
+  when: inventory_name in groups['kube_control_plane']
+    
+- name: Add work label
+  command: |
+    /usr/local/bin/kubectl label --overwrite node {{ inventory_name }} node-role.kubernetes.io/worker=
+  when: inventory_name in groups['kube_worker']

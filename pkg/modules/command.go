@@ -22,41 +22,36 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
-	ha, _ := options.Variable.Get(variable.HostVars{HostName: options.Host})
-	var conn connector.Connector
-	if v := ctx.Value("connector"); v != nil {
-		conn = v.(connector.Connector)
-	} else {
-		conn = connector.NewConnector(options.Host, ha.(variable.VariableData))
-	}
-	if err := conn.Init(ctx); err != nil {
-		klog.V(4).ErrorS(err, "failed to init connector")
+	// get host variable
+	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
+	if err != nil {
+		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
 		return "", err.Error()
 	}
-	defer conn.Close(ctx)
-
-	// convert command template to string
-	arg := variable.Extension2String(options.Args)
-	lg, err := options.Variable.Get(variable.LocationVars{
-		HostName:    options.Host,
-		LocationUID: string(options.Task.UID),
-	})
+	// args
+	commandParam, err := variable.Extension2String(ha.(map[string]any), options.Args)
 	if err != nil {
 		return "", err.Error()
 	}
-	result, err := tmpl.ParseString(lg.(variable.VariableData), arg)
+	// get connector
+	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
+	if err != nil {
+		return "", err.Error()
+	}
+	defer conn.Close(ctx)
+	// execute command
+	command, err := tmpl.ParseString(ha.(map[string]any), commandParam)
 	if err != nil {
 		return "", err.Error()
 	}
 	// execute command
 	var stdout, stderr string
-	data, err := conn.ExecuteCommand(ctx, result)
+	data, err := conn.ExecuteCommand(ctx, command)
 	if err != nil {
 		stderr = err.Error()
 	}

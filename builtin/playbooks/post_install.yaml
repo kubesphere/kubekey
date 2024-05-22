@@ -1,0 +1,19 @@
+---
+- name: Execute post install scripts
+  hosts:
+    - all
+  tasks:
+    - name: Copy post install scripts to remote
+      ignore_errors: yes
+      copy:
+        src: "{{ work_dir }}/scripts/post_install_{{ inventory_name }}.sh"
+        dest: "/etc/kubekey/scripts/post_install_{{ inventory_name }}.sh"
+    - name: Execute post install scripts
+      command: |
+        for file in /etc/kubekey/scripts/post_install_*.sh; do
+          if [ -f $file ]; then
+            # execute file
+            chmod +x $file
+            $file
+          fi
+        done

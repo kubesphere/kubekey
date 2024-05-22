@@ -18,27 +18,17 @@ package options
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
 
 func NewPreCheckOptions() *PreCheckOptions {
 	// set default value
-	o := &PreCheckOptions{}
-	wd, err := os.Getwd()
-	if err != nil {
-		klog.ErrorS(err, "get current dir error")
-		o.WorkDir = "/tmp/kk"
-	} else {
-		o.WorkDir = wd
-	}
-	return o
+	return &PreCheckOptions{CommonOptions: newCommonOptions()}
 }
 
 type PreCheckOptions struct {
@@ -71,12 +61,10 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
-	config, inventory, err := completeRef(pipeline, o.ConfigFile, o.InventoryFile)
+	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if err := config.SetValue("work_dir", o.WorkDir); err != nil {
-		return nil, nil, nil, err
-	}
+
 	return pipeline, config, inventory, nil
 }

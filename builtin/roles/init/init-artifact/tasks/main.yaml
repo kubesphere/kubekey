@@ -1,0 +1,28 @@
+---
+- name: Create work_dir
+  command: |
+    if [ ! -d "{{ work_dir }}" ]; then
+      mkdir -p {{ work_dir }}
+    fi
+
+- name: Extract artifact to work_dir
+  command: |
+    if [ ! -f "{{ artifact.artifact_file }}" ]; then
+      tar -zxvf {{ artifact.artifact_file }} -C {{ work_dir }}
+    fi
+  when: artifact.artifact_file | defined
+
+- name: Download binaries
+  block:
+    # the binaries which download by curl
+    - include_tasks: download_by_curl.yaml
+    # the binaries which download by helm
+    - include_tasks: download_by_helm.yaml
+    # download image package by oras
+    - include_tasks: download_by_oras.yaml
+
+- include_tasks: pki.yaml
+
+- name: Chown work_dir to sudo
+  command: |
+    chown -R ${SUDO_UID}:${SUDO_GID} {{ work_dir }}

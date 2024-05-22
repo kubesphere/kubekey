@@ -17,33 +17,43 @@ limitations under the License.
 package project
 
 import (
-	"context"
 	"io/fs"
-	"path/filepath"
+	"os"
 	"strings"
 
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
+var builtinProjectFunc func(kubekeyv1.Pipeline) (Project, error)
+
+// todo should be more clear defined.
+// such as the project represent location of actutal project.
+// get project file should base on it
 type Project interface {
-	FS(ctx context.Context, update bool) (fs.FS, error)
+	MarshalPlaybook() (*kkcorev1.Playbook, error)
+	Stat(path string, option GetFileOption) (os.FileInfo, error)
+	WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error
+	ReadFile(path string, option GetFileOption) ([]byte, error)
 }
 
-type Options struct {
-	*kubekeyv1.Pipeline
+type GetFileOption struct {
+	Role       string
+	IsTemplate bool
+	IsFile     bool
 }
 
-func New(o Options) Project {
-	if strings.HasPrefix(o.Pipeline.Spec.Project.Addr, "https://") ||
-		strings.HasPrefix(o.Pipeline.Spec.Project.Addr, "http://") ||
-		strings.HasPrefix(o.Pipeline.Spec.Project.Addr, "git@") {
-		// git clone to project dir
-		if o.Pipeline.Spec.Project.Name == "" {
-			o.Pipeline.Spec.Project.Name = strings.TrimSuffix(o.Pipeline.Spec.Project.Addr[strings.LastIndex(o.Pipeline.Spec.Project.Addr, "/")+1:], ".git")
-		}
-		return &gitProject{Pipeline: *o.Pipeline, localDir: filepath.Join(_const.GetWorkDir(), _const.ProjectDir, o.Spec.Project.Name)}
+func New(pipeline kubekeyv1.Pipeline, update bool) (Project, error) {
+	if strings.HasPrefix(pipeline.Spec.Project.Addr, "https://") ||
+		strings.HasPrefix(pipeline.Spec.Project.Addr, "http://") ||
+		strings.HasPrefix(pipeline.Spec.Project.Addr, "git@") {
+
+		return newGitProject(pipeline, update)
 	}
-	return &localProject{Pipeline: *o.Pipeline}
 
+	if _, ok := pipeline.Annotations[kubekeyv1.BuiltinsProjectAnnotation]; ok {
+		return builtinProjectFunc(pipeline)
+	}
+
+	return newLocalProject(pipeline)
 }

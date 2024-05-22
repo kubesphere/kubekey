@@ -28,7 +28,6 @@ const (
 	TaskPhaseRunning TaskPhase = "Running"
 	TaskPhaseSuccess TaskPhase = "Success"
 	TaskPhaseFailed  TaskPhase = "Failed"
-	TaskPhaseSkipped TaskPhase = "Skipped"
 	TaskPhaseIgnored TaskPhase = "Ignored"
 )
 
@@ -103,11 +102,7 @@ type TaskList struct {
 }
 
 func (t Task) IsComplete() bool {
-	return t.IsSucceed() || t.IsFailed() || t.IsSkipped()
-}
-
-func (t Task) IsSkipped() bool {
-	return t.Status.Phase == TaskPhaseSkipped
+	return t.IsSucceed() || t.IsFailed()
 }
 
 func (t Task) IsSucceed() bool {

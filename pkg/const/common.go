@@ -19,10 +19,11 @@ package _const
 // LocalHostName is the  default local host name in inventory.
 const LocalHostName = "localhost"
 
-// the file in builtinProject
+// variable specific key of top level
 const (
-	// default config file
-	BuiltinConfigFile = "inventory/config.yaml"
-	// default inventory file
-	BuiltinInventoryFile = "inventory/inventory.yaml"
+	VariableHostName = "inventory_name"
+	// VariableGlobalHosts the key is host_name, the value is host_var which defined in inventory.
+	VariableGlobalHosts = "inventory_hosts"
+	// VariableGroups the key is group's name, the value is a host_name slice
+	VariableGroups = "groups"
 )

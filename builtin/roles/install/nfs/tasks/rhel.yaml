@@ -1,0 +1,28 @@
+---
+- name: Check if nfs is installed
+  ignore_errors: true
+  command: systemctl status nfs-server
+  register: nfs_server_install
+
+- name: Install nfs
+  command: yum update && yum install -y nfs-utils
+  when: nfs_server_install.stderr != ""
+
+- name: Create nfs share directory
+  command: |
+    if [ ! -d {{ item }} ]; then
+      mkdir -p {{ item }}
+      chmod -R 0755 {{ item }}
+      chown nobody:nobody {{ item }}
+    fi
+  loop: "{{ nfs.share_dir }}"
+
+- name: Generate nfs config
+  template:
+    src: exports
+    dest: /etc/exports
+
+- name: Export share directory and start nfs server
+  command: |
+    exportfs -a
+    systemctl enabled nfs-server.service &&  systemctl restart nfs-server.service

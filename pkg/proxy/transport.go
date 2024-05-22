@@ -78,6 +78,10 @@ func NewLocalClient() (ctrlclient.Client, error) {
 	})
 }
 
+// NewProxyTransport return a new http.RoundTripper use in ctrl.client.
+// if the resources group version is kubekey.kubesphere.io/v1alpha. store it in local.
+// if the resources group version is kubekey.kubesphere.io/v1 and isLocal is true. store it in local.
+// if the resources group version is kubekey.kubesphere.io/v1 and isLocal is true. send remote s http request.
 func NewProxyTransport(isLocal bool) (http.RoundTripper, error) {
 	lt := &transport{
 		isLocal:          isLocal,
@@ -108,6 +112,7 @@ func NewProxyTransport(isLocal bool) (http.RoundTripper, error) {
 	if err := lt.registerResources(kkv1alpha1); err != nil {
 		klog.V(4).ErrorS(err, "failed to register resources")
 	}
+
 	if isLocal {
 		// register kubekeyv1 resources
 		kkv1 := newApiIResources(kubekeyv1.SchemeGroupVersion)

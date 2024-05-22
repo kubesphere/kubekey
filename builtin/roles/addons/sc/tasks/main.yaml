@@ -1,0 +1,6 @@
+---
+- include_tasks: local.yaml
+  when: sc.local.enabled
+
+- include_tasks: nfs.yaml
+  when: sc.nfs.enabled

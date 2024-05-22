@@ -32,7 +32,7 @@ func newFakeLocalConnector(runCmd string, output string) *localConnector {
 	return &localConnector{
 		Cmd: &testingexec.FakeExec{CommandScript: []testingexec.FakeCommandAction{
 			func(cmd string, args ...string) exec.Cmd {
-				if strings.TrimSpace(fmt.Sprintf("%s %s", cmd, strings.Join(args, " "))) == runCmd {
+				if strings.TrimSpace(fmt.Sprintf("%s %s", cmd, strings.Join(args, " "))) == fmt.Sprintf("/bin/sh -c %s", runCmd) {
 					return &testingexec.FakeCmd{
 						CombinedOutputScript: []testingexec.FakeAction{func() ([]byte, []byte, error) {
 							return []byte(output), nil, nil

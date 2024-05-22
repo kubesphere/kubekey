@@ -27,39 +27,29 @@ import (
 )
 
 func ModuleDebug(ctx context.Context, options ExecOptions) (string, string) {
+	// get host variable
+	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
+	if err != nil {
+		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
+		return "", err.Error()
+	}
+
 	args := variable.Extension2Variables(options.Args)
-	if v := variable.StringVar(args, "var"); v != nil {
-		lg, err := options.Variable.Get(variable.LocationVars{
-			HostName:    options.Host,
-			LocationUID: string(options.Task.UID),
-		})
+	// var is defined. return the value of var
+	if varParam, err := variable.StringVar(ha.(map[string]any), args, "var"); err == nil {
+		result, err := tmpl.ParseString(ha.(map[string]any), fmt.Sprintf("{{ %s }}", varParam))
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to get location vars")
-			return "", err.Error()
-		}
-		result, err := tmpl.ParseString(lg.(variable.VariableData), fmt.Sprintf("{{ %s }}", *v))
-		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to get var")
+			klog.V(4).ErrorS(err, "Failed to parse var")
 			return "", err.Error()
 		}
 		return result, ""
 	}
-
-	if v := variable.StringVar(args, "msg"); v != nil {
-		lg, err := options.Variable.Get(variable.LocationVars{
-			HostName:    options.Host,
-			LocationUID: string(options.Task.UID),
-		})
-		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to get location vars")
-			return "", err.Error()
-		}
-		result, err := tmpl.ParseString(lg.(variable.VariableData), *v)
-		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to get var")
-			return "", err.Error()
-		}
-		return result, ""
+	// msg is defined. return the actual msg
+	if msgParam, err := variable.StringVar(ha.(map[string]any), args, "msg"); err == nil {
+		return msgParam, ""
+	}
+	if err != nil {
+		return "", err.Error()
 	}
 
 	return "", "unknown args for debug. only support var or msg"

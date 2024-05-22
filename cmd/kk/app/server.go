@@ -25,6 +25,18 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var internalCommand = []*cobra.Command{}
+
+func registerInternalCommand(command *cobra.Command) {
+	for _, c := range internalCommand {
+		if c.Name() == command.Name() {
+			// command has register. skip
+			return
+		}
+	}
+	internalCommand = append(internalCommand, command)
+}
+
 func NewKubeKeyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "kk",
@@ -40,6 +52,8 @@ func NewKubeKeyCommand() *cobra.Command {
 		},
 	}
 
+	// todo add --set override the config.yaml data.
+
 	flags := cmd.PersistentFlags()
 	addProfilingFlags(flags)
 	addKlogFlags(flags)
@@ -49,8 +63,7 @@ func NewKubeKeyCommand() *cobra.Command {
 	cmd.AddCommand(newVersionCommand())
 
 	// internal command
-	cmd.AddCommand(newPreCheckCommand())
-	cmd.AddCommand(newCreateCommand())
+	cmd.AddCommand(internalCommand...)
 	return cmd
 }
 

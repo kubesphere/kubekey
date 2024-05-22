@@ -1,0 +1,10 @@
+---
+- import_playbook: pre_install.yaml
+
+- import_playbook: precheck.yaml
+
+- import_playbook: init.yaml
+
+- import_playbook: install.yaml
+
+- import_playbook: post_install.yaml

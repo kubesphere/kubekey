@@ -25,7 +25,7 @@ import (
 )
 
 type testVariable struct {
-	value variable.VariableData
+	value map[string]any
 	err   error
 }
 
@@ -33,12 +33,12 @@ func (v testVariable) Key() string {
 	return "testModule"
 }
 
-func (v testVariable) Get(option variable.GetOption) (any, error) {
+func (v testVariable) Get(f variable.GetFunc) (any, error) {
 	return v.value, v.err
 }
 
-func (v testVariable) Merge(option ...variable.MergeOption) error {
-	v.value = variable.VariableData{
+func (v testVariable) Merge(f variable.MergeFunc) error {
+	v.value = map[string]any{
 		"k": "v",
 	}
 	return nil

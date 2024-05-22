@@ -1,0 +1,13 @@
+---
+- name: Check if docker-compose is installed
+  ignore_errors: true
+  command: docker-compose --version
+  register: dockercompose_install_version
+
+- name: Sync docker-compose to remote
+  copy:
+    src: "{{ work_dir }}/kubekey/image-registry/docker-compose/{{ dockercompose_version }}/{{ binary_type.stdout }}/docker-compose"
+    dest: "/usr/local/bin/docker-compose"
+    mode: 0755
+  when:
+    - dockercompose_install_version.stderr != ""

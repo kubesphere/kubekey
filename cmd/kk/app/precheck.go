@@ -1,3 +1,6 @@
+//go:build builtin
+// +build builtin
+
 /*
 Copyright 2023 The KubeSphere Authors.
 
@@ -47,7 +50,7 @@ func newPreCheckCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+			return run(signals.SetupSignalHandler(), pipeline, config, inventory, o.CommonOptions)
 		},
 	}
 
@@ -56,4 +59,8 @@ func newPreCheckCommand() *cobra.Command {
 		flags.AddFlagSet(f)
 	}
 	return cmd
+}
+
+func init() {
+	registerInternalCommand(newPreCheckCommand())
 }

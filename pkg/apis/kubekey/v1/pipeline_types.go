@@ -33,8 +33,8 @@ const (
 const (
 	// BuiltinsProjectAnnotation use builtins project of KubeKey
 	BuiltinsProjectAnnotation = "kubekey.kubesphere.io/builtins-project"
-	// PauseAnnotation pause the pipeline
-	PauseAnnotation = "kubekey.kubesphere.io/pause"
+	//// PauseAnnotation pause the pipeline
+	//PauseAnnotation = "kubekey.kubesphere.io/pause"
 )
 
 type PipelineSpec struct {
@@ -101,8 +101,6 @@ type PipelineTaskResult struct {
 	Success int `json:"success,omitempty"`
 	// Failed number of tasks.
 	Failed int `json:"failed,omitempty"`
-	// Skipped number of tasks.
-	Skipped int `json:"skipped,omitempty"`
 	// Ignored number of tasks.
 	Ignored int `json:"ignored,omitempty"`
 }

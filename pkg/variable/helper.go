@@ -17,8 +17,13 @@ limitations under the License.
 package variable
 
 import (
+	"encoding/json"
+	"fmt"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -26,49 +31,41 @@ import (
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
-// mergeVariables merge multiple variables into one variable
+// combineVariables merge multiple variables into one variable
 // v2 will override v1 if variable is repeated
-func mergeVariables(v1, v2 VariableData) VariableData {
-	mergedVars := make(VariableData)
+func combineVariables(v1, v2 map[string]any) map[string]any {
+	var f func(val1, val2 any) any
+	f = func(val1, val2 any) any {
+		if val1 != nil && reflect.TypeOf(val1).Kind() == reflect.Map &&
+			val2 != nil && reflect.TypeOf(val2).Kind() == reflect.Map {
+			mergedVars := make(map[string]any)
+			for _, k := range reflect.ValueOf(val1).MapKeys() {
+				mergedVars[k.String()] = reflect.ValueOf(val1).MapIndex(k).Interface()
+			}
+			for _, k := range reflect.ValueOf(val2).MapKeys() {
+				mergedVars[k.String()] = f(mergedVars[k.String()], reflect.ValueOf(val2).MapIndex(k).Interface())
+			}
+			return mergedVars
+		}
+		return val2
+	}
+	mv := make(map[string]any)
 	for k, v := range v1 {
-		mergedVars[k] = v
+		mv[k] = v
 	}
 	for k, v := range v2 {
-		mergedVars[k] = v
+		mv[k] = f(mv[k], v)
 	}
-	return mergedVars
+	return mv
+
 }
 
-func findLocation(loc *location, uid string) *location {
-	if uid == loc.UID {
-		return loc
-	}
-	// find from block
-	for i := range loc.Block {
-		if r := findLocation(&loc.Block[i], uid); r != nil {
-			return r
-		}
-	}
-	// find from always
-	for i := range loc.Always {
-		if r := findLocation(&loc.Always[i], uid); r != nil {
-			return r
-		}
-	}
-	// find from rescue
-	for i := range loc.Rescue {
-		if r := findLocation(&loc.Rescue[i], uid); r != nil {
-			return r
-		}
-	}
-	return nil
-}
-
-func convertGroup(inv kubekeyv1.Inventory) VariableData {
-	groups := make(VariableData)
-	all := make([]string, 0)
+func convertGroup(inv kubekeyv1.Inventory) map[string]any {
+	groups := make(map[string]any)
+	all := []string{"localhost"} // set default host
 	for hn := range inv.Spec.Hosts {
 		all = append(all, hn)
 	}
@@ -90,113 +87,228 @@ func hostsInGroup(inv kubekeyv1.Inventory, groupName string) []string {
 	return nil
 }
 
+// mergeSlice with skip repeat value
+func mergeSlice(g1, g2 []string) []string {
+	uniqueValues := make(map[string]bool)
+	mg := []string{}
+
+	// Add values from the first slice
+	for _, v := range g1 {
+		if !uniqueValues[v] {
+			uniqueValues[v] = true
+			mg = append(mg, v)
+		}
+	}
+
+	// Add values from the second slice
+	for _, v := range g2 {
+		if !uniqueValues[v] {
+			uniqueValues[v] = true
+			mg = append(mg, v)
+		}
+	}
+
+	return mg
+}
+
 // StringVar get string value by key
-func StringVar(vars VariableData, key string) *string {
-	value, ok := vars[key]
+func StringVar(d map[string]any, args map[string]any, key string) (string, error) {
+	val, ok := args[key]
 	if !ok {
-		klog.V(6).InfoS("cannot find variable", "key", key)
-		return nil
+		return "", fmt.Errorf("cannot find variable \"%s\"", key)
 	}
-	sv, ok := value.(string)
-	if !ok {
-		klog.V(6).InfoS("variable is not string", "key", key)
-		return nil
-	}
-	return &sv
-}
 
-// IntVar get int value by key
-func IntVar(vars VariableData, key string) *int {
-	value, ok := vars[key]
+	sv, ok := val.(string)
 	if !ok {
-		klog.V(6).InfoS("cannot find variable", "key", key)
-		return nil
+		return "", fmt.Errorf("variable \"%s\" is not string", key)
 	}
-	// default convert to float64
-	number, ok := value.(float64)
-	if !ok {
-		klog.V(6).InfoS("variable is not number", "key", key)
-		return nil
-	}
-	vi := int(number)
-	return &vi
-}
-
-func BoolVar(vars VariableData, key string) *bool {
-	value, ok := vars[key]
-	if !ok {
-		klog.V(6).InfoS("cannot find variable", "key", key)
-		return nil
-	}
-	// default convert to float64
-	b, ok := value.(bool)
-	if !ok {
-		klog.V(6).InfoS("variable is not bool", "key", key)
-		return nil
-	}
-	return &b
+	return tmpl.ParseString(d, sv)
 }
 
 // StringSliceVar get string slice value by key
-func StringSliceVar(vars VariableData, key string) []string {
-	value, ok := vars[key]
+func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string, error) {
+	val, ok := vars[key]
 	if !ok {
-		klog.V(6).InfoS("cannot find variable", "key", key)
-		return nil
+		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
 	}
-	sv, ok := value.([]any)
-	if !ok {
-		klog.V(6).InfoS("variable is not string slice", "key", key)
-		return nil
-	}
-	var ss []string
-	for _, a := range sv {
-		av, ok := a.(string)
-		if !ok {
-			klog.V(6).InfoS("variable is not string", "key", key)
-			return nil
+	switch val.(type) {
+	case []any:
+		var ss []string
+		for _, a := range val.([]any) {
+			av, ok := a.(string)
+			if !ok {
+				klog.V(6).InfoS("variable is not string", "key", key)
+				return nil, nil
+			}
+			as, err := tmpl.ParseString(d, av)
+			if err != nil {
+				return nil, err
+			}
+			ss = append(ss, as)
 		}
-		ss = append(ss, av)
+		return ss, nil
+	case string:
+		as, err := tmpl.ParseString(d, val.(string))
+		if err != nil {
+			return nil, err
+		}
+		var ss []string
+		if err := json.Unmarshal([]byte(as), &ss); err != nil {
+			// if is not json format. only return a value contains this
+			return []string{as}, nil
+		}
+		return ss, nil
+	default:
+		return nil, fmt.Errorf("unsupport variable \"%s\" type", key)
 	}
-	return ss
 }
 
-func Extension2Variables(ext runtime.RawExtension) VariableData {
+// IntVar get int value by key
+func IntVar(d map[string]any, vars map[string]any, key string) (int, error) {
+	val, ok := vars[key]
+	if !ok {
+		return 0, fmt.Errorf("cannot find variable \"%s\"", key)
+	}
+	// default convert to float64
+	switch val.(type) {
+	case float64:
+		return int(val.(float64)), nil
+	case string:
+		vs, err := tmpl.ParseString(d, val.(string))
+		if err != nil {
+			return 0, err
+		}
+		return strconv.Atoi(vs)
+	default:
+		return 0, fmt.Errorf("unsupport variable \"%s\" type", key)
+	}
+}
+
+// Extension2Variables convert extension to variables
+func Extension2Variables(ext runtime.RawExtension) map[string]any {
 	if len(ext.Raw) == 0 {
 		return nil
 	}
 
-	var data VariableData
+	var data map[string]any
 	if err := yaml.Unmarshal(ext.Raw, &data); err != nil {
 		klog.V(4).ErrorS(err, "failed to unmarshal extension to variables")
 	}
 	return data
 }
 
-func Extension2Slice(ext runtime.RawExtension) []any {
+// Extension2Slice convert extension to slice
+func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
 	if len(ext.Raw) == 0 {
 		return nil
 	}
 
 	var data []any
-	if err := yaml.Unmarshal(ext.Raw, &data); err != nil {
-		klog.V(4).ErrorS(err, "failed to unmarshal extension to slice")
+	if err := yaml.Unmarshal(ext.Raw, &data); err == nil {
+		return data
 	}
+
+	val, err := Extension2String(d, ext)
+	if err != nil {
+		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
+	}
+	// parse value by pongo2. if
+	switch {
+	case regexp.MustCompile(`^<\[\](.*?) Value>$`).MatchString(val):
+		// in pongo2 cannot get slice value. add extension filter value.
+		var input = string(ext.Raw)
+		// try to escape string
+		if ns, err := strconv.Unquote(string(ext.Raw)); err == nil {
+			input = ns
+		}
+		vv := GetValue(d, input)
+		if _, ok := vv.([]any); ok {
+			return vv.([]any)
+		}
+	default:
+		// value is simple string
+		return []any{val}
+	}
+
 	return data
 }
 
-func Extension2String(ext runtime.RawExtension) string {
+func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error) {
 	if len(ext.Raw) == 0 {
-		return ""
+		return "", nil
 	}
+	var input = string(ext.Raw)
 	// try to escape string
 	if ns, err := strconv.Unquote(string(ext.Raw)); err == nil {
-		return ns
+		input = ns
 	}
-	return string(ext.Raw)
+
+	result, err := tmpl.ParseString(d, input)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
 }
 
 func RuntimeDirFromPipeline(obj kubekeyv1.Pipeline) string {
 	return filepath.Join(_const.GetRuntimeDir(), kubekeyv1.SchemeGroupVersion.String(),
 		_const.RuntimePipelineDir, obj.Namespace, obj.Name, _const.RuntimePipelineVariableDir)
+}
+
+// GetValue from VariableData by key path
+func GetValue(value map[string]any, keys string) any {
+	switch {
+	case strings.HasPrefix(keys, "{{") && strings.HasSuffix(keys, "}}"):
+		// the keys like {{ a.b.c }}. return value[a][b][c]
+		var result any = value
+		for _, k := range strings.Split(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(keys, "{{"), "}}")), ".") {
+			result = result.(map[string]any)[k]
+		}
+		return result
+	default:
+		return nil
+	}
+}
+
+// parseVariable parse all string values to the actual value.
+func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
+	switch reflect.ValueOf(v).Kind() {
+	case reflect.Map:
+		for _, kv := range reflect.ValueOf(v).MapKeys() {
+			val := reflect.ValueOf(v).MapIndex(kv)
+			if vv, ok := val.Interface().(string); ok {
+				if tmpl.IsTmplSyntax(vv) {
+					newValue, err := parseTmplFunc(vv)
+					if err != nil {
+						return err
+					}
+					reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(newValue))
+				}
+			} else {
+				if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
+					return err
+				}
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < reflect.ValueOf(v).Len(); i++ {
+			val := reflect.ValueOf(v).Index(i)
+			if vv, ok := val.Interface().(string); ok {
+				if tmpl.IsTmplSyntax(vv) {
+					newValue, err := parseTmplFunc(vv)
+					if err != nil {
+						return err
+					}
+					val.Set(reflect.ValueOf(newValue))
+				}
+			} else {
+				if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }

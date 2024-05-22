@@ -1,0 +1,3 @@
+kata:
+  enabled: false
+  image: kubesphere/kata-deploy:stable

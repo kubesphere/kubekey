@@ -67,19 +67,19 @@ func newApiIResources(gv schema.GroupVersion) *apiResources {
 	}
 }
 
-func (a *apiResources) AddResource(o resourceOptions) error {
+func (r *apiResources) AddResource(o resourceOptions) error {
 	if o.admit == nil {
 		// set default admit
 		o.admit = newAlwaysAdmit()
 	}
-	a.resourceOptions = append(a.resourceOptions, o)
+	r.resourceOptions = append(r.resourceOptions, o)
 	storageVersionProvider, isStorageVersionProvider := o.storage.(apirest.StorageVersionProvider)
 	var apiResource metav1.APIResource
 	if utilfeature.DefaultFeatureGate.Enabled(features.StorageVersionHash) &&
 		isStorageVersionProvider &&
 		storageVersionProvider.StorageVersion() != nil {
 		versioner := storageVersionProvider.StorageVersion()
-		gvk, err := getStorageVersionKind(versioner, o.storage, a.typer)
+		gvk, err := getStorageVersionKind(versioner, o.storage, r.typer)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to get storage version kind", "storage", reflect.TypeOf(o.storage))
 			return err
@@ -109,14 +109,14 @@ func (a *apiResources) AddResource(o resourceOptions) error {
 		}
 		apiResource.SingularName = singularNameProvider.GetSingularName()
 	}
-	a.list = append(a.list, apiResource)
+	r.list = append(r.list, apiResource)
 	return nil
 }
 
-func (s *apiResources) handlerApiResources() http.HandlerFunc {
+func (r *apiResources) handlerApiResources() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		responsewriters.WriteObjectNegotiated(s.serializer, negotiation.DefaultEndpointRestrictions, schema.GroupVersion{}, writer, request, http.StatusOK,
-			&metav1.APIResourceList{GroupVersion: s.gv.String(), APIResources: s.list}, false)
+		responsewriters.WriteObjectNegotiated(r.serializer, negotiation.DefaultEndpointRestrictions, schema.GroupVersion{}, writer, request, http.StatusOK,
+			&metav1.APIResourceList{GroupVersion: r.gv.String(), APIResources: r.list}, false)
 	}
 }
 
