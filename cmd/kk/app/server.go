@@ -52,8 +52,6 @@ func NewKubeKeyCommand() *cobra.Command {
 		},
 	}
 
-	// todo add --set override the config.yaml data.
-
 	flags := cmd.PersistentFlags()
 	addProfilingFlags(flags)
 	addKlogFlags(flags)
