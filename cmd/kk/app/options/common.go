@@ -1,5 +1,5 @@
 /*
-Copyright 2024 The KubeSphere Authors.
+Copyright 2023 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,178 +17,133 @@ limitations under the License.
 package options
 
 import (
-	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
+	"os/signal"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-	cliflag "k8s.io/component-base/cli/flag"
+	"github.com/google/gops/agent"
+	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/yaml"
-
-	"github.com/kubesphere/kubekey/v4/builtin"
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
 
-type CommonOptions struct {
-	// Playbook which to execute.
-	Playbook string
-	// HostFile is the path of host file
-	InventoryFile string
-	// ConfigFile is the path of config file
-	ConfigFile string
-	// Set value in config
-	Set []string
-	// WorkDir is the baseDir which command find any resource (project etc.)
-	WorkDir string
-	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
-	Debug bool
+// ======================================================================================
+//                                     PROFILING
+// ======================================================================================
+
+var (
+	profileName   string
+	profileOutput string
+)
+
+func AddProfilingFlags(flags *pflag.FlagSet) {
+	flags.StringVar(&profileName, "profile", "none", "Name of profile to capture. One of (none|cpu|heap|goroutine|threadcreate|block|mutex)")
+	flags.StringVar(&profileOutput, "profile-output", "profile.pprof", "Name of the file to write the profile to")
 }
 
-func newCommonOptions() CommonOptions {
-	o := CommonOptions{}
-	wd, err := os.Getwd()
-	if err != nil {
-		klog.ErrorS(err, "get current dir error")
-		o.WorkDir = "/tmp/kk"
-	} else {
-		o.WorkDir = wd
-	}
-	return o
-}
-
-func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
-	fss := cliflag.NamedFlagSets{}
-	gfs := fss.FlagSet("generic")
-	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
-	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
-	gfs.StringSliceVar(&o.Set, "set", o.Set, "set value in config. format --set key=val")
-	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.ini")
-	gfs.BoolVarP(&o.Debug, "debug", "d", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
-	return fss
-}
-
-func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Config, *kubekeyv1.Inventory, error) {
-	if !filepath.IsAbs(o.WorkDir) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, nil, fmt.Errorf("get current dir error: %v", err)
-		}
-		o.WorkDir = filepath.Join(wd, o.WorkDir)
-	}
-
-	config, err := genConfig(o.ConfigFile)
-	if err != nil {
-		return nil, nil, fmt.Errorf("generate config error: %v", err)
-	}
-	if wd, err := config.GetValue("work_dir"); err == nil && wd != nil {
-		// if work_dir is defined in config, use it. otherwise use current dir.
-		o.WorkDir = wd.(string)
-	} else if err := config.SetValue("work_dir", o.WorkDir); err != nil {
-		return nil, nil, fmt.Errorf("work_dir to config error: %v", err)
-	}
-	for _, s := range o.Set {
-		ss := strings.Split(s, "=")
-		if len(ss) != 2 {
-			return nil, nil, fmt.Errorf("--set value should be k=v")
-		}
-		if err := setValue(config, ss[0], ss[1]); err != nil {
-			return nil, nil, fmt.Errorf("--set value to config error: %v", err)
-		}
-	}
-
-	pipeline.Spec.ConfigRef = &corev1.ObjectReference{
-		Kind:            config.Kind,
-		Namespace:       config.Namespace,
-		Name:            config.Name,
-		UID:             config.UID,
-		APIVersion:      config.APIVersion,
-		ResourceVersion: config.ResourceVersion,
-	}
-
-	inventory, err := genInventory(o.InventoryFile)
-	if err != nil {
-		return nil, nil, fmt.Errorf("generate inventory error: %v", err)
-	}
-	pipeline.Spec.InventoryRef = &corev1.ObjectReference{
-		Kind:            inventory.Kind,
-		Namespace:       inventory.Namespace,
-		Name:            inventory.Name,
-		UID:             inventory.UID,
-		APIVersion:      inventory.APIVersion,
-		ResourceVersion: inventory.ResourceVersion,
-	}
-
-	return config, inventory, nil
-}
-
-func genConfig(configFile string) (*kubekeyv1.Config, error) {
+func InitProfiling() error {
 	var (
-		config = &kubekeyv1.Config{}
-		cdata  []byte
-		err    error
+		f   *os.File
+		err error
 	)
-	if configFile != "" {
-		cdata, err = os.ReadFile(configFile)
-	} else {
-		cdata = builtin.DefaultConfig
-	}
-	if err != nil {
-		return nil, fmt.Errorf("read config file error: %v", err)
-	}
-	if err := yaml.Unmarshal(cdata, config); err != nil {
-		return nil, fmt.Errorf("unmarshal config file error: %v", err)
-	}
-	if config.Namespace == "" {
-		config.Namespace = corev1.NamespaceDefault
-	}
-	return config, nil
-}
-
-func genInventory(inventoryFile string) (*kubekeyv1.Inventory, error) {
-	var (
-		inventory = &kubekeyv1.Inventory{}
-		cdata     []byte
-		err       error
-	)
-	if inventoryFile != "" {
-		cdata, err = os.ReadFile(inventoryFile)
-	} else {
-		cdata = builtin.DefaultInventory
-	}
-	if err != nil {
-		klog.V(4).ErrorS(err, "read config file error")
-		return nil, err
-	}
-	if err := yaml.Unmarshal(cdata, inventory); err != nil {
-		klog.V(4).ErrorS(err, "unmarshal config file error")
-		return nil, err
-	}
-	if inventory.Namespace == "" {
-		inventory.Namespace = corev1.NamespaceDefault
-	}
-	return inventory, nil
-}
-
-func setValue(config *kubekeyv1.Config, key, val string) error {
-	switch {
-	case strings.HasPrefix(val, "{") && strings.HasSuffix(val, "{"):
-		var value map[string]any
-		err := json.Unmarshal([]byte(val), &value)
+	switch profileName {
+	case "none":
+		return nil
+	case "cpu":
+		f, err = os.Create(profileOutput)
 		if err != nil {
 			return err
 		}
-		return config.SetValue(key, value)
-	case strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]"):
-		var value []any
-		err := json.Unmarshal([]byte(val), &value)
+		err = pprof.StartCPUProfile(f)
 		if err != nil {
 			return err
 		}
-		return config.SetValue(key, value)
+	// Block and mutex profiles need a call to Set{Block,Mutex}ProfileRate to
+	// output anything. We choose to sample all events.
+	case "block":
+		runtime.SetBlockProfileRate(1)
+	case "mutex":
+		runtime.SetMutexProfileFraction(1)
 	default:
-		return config.SetValue(key, val)
+		// Check the profile name is valid.
+		if profile := pprof.Lookup(profileName); profile == nil {
+			return fmt.Errorf("unknown profile '%s'", profileName)
+		}
 	}
+
+	// If the command is interrupted before the end (ctrl-c), flush the
+	// profiling files
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		f.Close()
+		FlushProfiling()
+		os.Exit(0)
+	}()
+
+	return nil
+}
+
+func FlushProfiling() error {
+	switch profileName {
+	case "none":
+		return nil
+	case "cpu":
+		pprof.StopCPUProfile()
+	case "heap":
+		runtime.GC()
+		fallthrough
+	default:
+		profile := pprof.Lookup(profileName)
+		if profile == nil {
+			return nil
+		}
+		f, err := os.Create(profileOutput)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		profile.WriteTo(f, 0)
+	}
+
+	return nil
+}
+
+// ======================================================================================
+//                                         GOPS
+// ======================================================================================
+
+var gops bool
+
+func AddGOPSFlags(flags *pflag.FlagSet) {
+	flags.BoolVar(&gops, "gops", false, "Whether to enable gops or not.  When enabled this option, "+
+		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
+}
+
+func InitGOPS() error {
+	if gops {
+		// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
+		// Bind to a random port on address 127.0.0.1
+		if err := agent.Listen(agent.Options{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ======================================================================================
+//                                       KLOG
+// ======================================================================================
+
+func AddKlogFlags(fs *pflag.FlagSet) {
+	local := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(local)
+	local.VisitAll(func(fl *flag.Flag) {
+		fl.Name = strings.Replace(fl.Name, "_", "-", -1)
+		fs.AddGoFlag(fl)
+	})
 }

@@ -25,7 +25,7 @@ import (
 )
 
 func main() {
-	command := app.NewKubeKeyCommand()
+	command := app.NewRootCommand()
 	code := cli.Run(command)
 	os.Exit(code)
 }

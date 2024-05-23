@@ -19,13 +19,13 @@ package modules
 import (
 	"context"
 	"fmt"
-	"github.com/kubesphere/kubekey/v4/pkg/connector"
-	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -70,10 +70,12 @@ func init() {
 	RegisterModule("gen_cert", ModuleGenCert)
 }
 
+var ConnKey = struct{}{}
+
 func getConnector(ctx context.Context, host string, data map[string]any) (connector.Connector, error) {
 	var conn connector.Connector
 	var err error
-	if v := ctx.Value("connector"); v != nil {
+	if v := ctx.Value(ConnKey); v != nil {
 		conn = v.(connector.Connector)
 	} else {
 		conn, err = connector.NewConnector(host, data)

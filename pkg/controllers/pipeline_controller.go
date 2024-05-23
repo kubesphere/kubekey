@@ -18,26 +18,31 @@ package controllers
 
 import (
 	"context"
-	"github.com/kubesphere/kubekey/v4/pkg/executor"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	ctrlfinalizer "sigs.k8s.io/controller-runtime/pkg/finalizer"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 const (
-	pipelineFinalizer = "kubekey.kubesphere.io/pipeline"
+	labelJob              = "kubekey.kubesphere.io/job"
+	defaultExecutorImage  = "hub.kubesphere.com.cn/kubekey/executor:latest"
+	defaultPullPolicy     = "IfNotPresent"
+	defaultServiceAccount = "kk-executor"
 )
 
 type PipelineReconciler struct {
@@ -46,40 +51,25 @@ type PipelineReconciler struct {
 	record.EventRecorder
 
 	ctrlfinalizer.Finalizers
+	MaxConcurrentReconciles int
 }
 
 func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	klog.V(5).InfoS("start pipeline reconcile", "pipeline", req.String())
-	defer klog.V(5).InfoS("finish pipeline reconcile", "pipeline", req.String())
 	// get pipeline
 	pipeline := &kubekeyv1.Pipeline{}
 	err := r.Client.Get(ctx, req.NamespacedName, pipeline)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			klog.V(5).InfoS("pipeline not found", "pipeline", req.String())
+			klog.V(5).InfoS("pipeline not found", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
 	if pipeline.DeletionTimestamp != nil {
-		klog.V(5).InfoS("pipeline is deleting", "pipeline", req.String())
-		if controllerutil.ContainsFinalizer(pipeline, pipelineFinalizer) {
-			r.clean(ctx, pipeline)
-			// remove finalizer
-
-		}
+		klog.V(5).InfoS("pipeline is deleting", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 
 		return ctrl.Result{}, nil
-	}
-
-	if !controllerutil.ContainsFinalizer(pipeline, pipelineFinalizer) {
-		excepted := pipeline.DeepCopy()
-		controllerutil.AddFinalizer(pipeline, pipelineFinalizer)
-		if err := r.Client.Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
-			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", req.String())
-			return ctrl.Result{}, err
-		}
 	}
 
 	switch pipeline.Status.Phase {
@@ -87,14 +77,14 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		excepted := pipeline.DeepCopy()
 		pipeline.Status.Phase = kubekeyv1.PipelinePhasePending
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
-			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", req.String())
+			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 			return ctrl.Result{}, err
 		}
 	case kubekeyv1.PipelinePhasePending:
 		excepted := pipeline.DeepCopy()
 		pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
-			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", req.String())
+			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 			return ctrl.Result{}, err
 		}
 	case kubekeyv1.PipelinePhaseRunning:
@@ -102,20 +92,12 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	case kubekeyv1.PipelinePhaseFailed:
 		// do nothing
 	case kubekeyv1.PipelinePhaseSucceed:
-		if !pipeline.Spec.Debug {
-			r.clean(ctx, pipeline)
-		}
+		// do nothing
 	}
 	return ctrl.Result{}, nil
 }
 
 func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *kubekeyv1.Pipeline) (ctrl.Result, error) {
-	//if _, ok := pipeline.Annotations[kubekeyv1.PauseAnnotation]; ok {
-	//	// if pipeline is paused, do nothing
-	//	klog.V(5).InfoS("pipeline is paused", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-	//	return ctrl.Result{}, nil
-	//}
-
 	cp := pipeline.DeepCopy()
 	defer func() {
 		// update pipeline status
@@ -124,43 +106,133 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 		}
 	}()
 
-	if err := executor.NewTaskExecutor(r.Scheme, r.Client, pipeline).Exec(ctx); err != nil {
-		klog.ErrorS(err, "Create task controller error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+	// check if running executor exist
+	if jobName, ok := pipeline.Labels[labelJob]; ok {
+		if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: jobName}, cp); err == nil {
+			// job is have create
+			return ctrl.Result{}, nil
+		} else if !errors.IsNotFound(err) {
+			// get job failed
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
+	}
+
+	// get image from env
+	image, ok := os.LookupEnv("EXECUTOR_IMAGE")
+	if !ok {
+		image = defaultExecutorImage
+	}
+	// get image from env
+	imagePullPolicy, ok := os.LookupEnv("EXECUTOR_IMAGE_PULLPOLICY")
+	if !ok {
+		imagePullPolicy = defaultPullPolicy
+	}
+	// get ServiceAccount name for executor pod
+	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
+	if !ok {
+		saName = defaultServiceAccount
+	}
+
+	var sa = &corev1.ServiceAccount{}
+	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, sa); err != nil {
+		if !errors.IsNotFound(err) {
+			klog.ErrorS(err, "get service account", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+			return ctrl.Result{}, err
+		}
+		// create sa
+		if err := r.Client.Create(ctx, &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Name: saName, Namespace: pipeline.Namespace},
+		}); err != nil {
+			klog.ErrorS(err, "create service account error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+			return ctrl.Result{}, err
+		}
+	}
+
+	var rb = &rbacv1.ClusterRoleBinding{}
+	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, rb); err != nil {
+		if !errors.IsNotFound(err) {
+			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+			return ctrl.Result{}, err
+		}
+		//create rolebinding
+		if err := r.Client.Create(ctx, &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Namespace: pipeline.Namespace, Name: saName},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: rbacv1.GroupName,
+				Kind:     "ClusterRole",
+				Name:     saName,
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					APIGroup:  corev1.GroupName,
+					Kind:      "ServiceAccount",
+					Name:      saName,
+					Namespace: pipeline.Namespace,
+				},
+			},
+		}); err != nil {
+			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+			return ctrl.Result{}, err
+		}
+	}
+
+	// create a job to executor the pipeline
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: pipeline.Name + "-",
+			Namespace:    pipeline.Namespace,
+		},
+		Spec: batchv1.JobSpec{
+			Parallelism:  ptr.To[int32](1),
+			Completions:  ptr.To[int32](1),
+			BackoffLimit: ptr.To[int32](0),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: saName,
+					RestartPolicy:      "Never",
+					Containers: []corev1.Container{
+						{
+							Name:            "executor",
+							Image:           image,
+							ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
+							Command:         []string{"kk"},
+							Args: []string{"pipeline",
+								"--name", pipeline.Name,
+								"--namespace", pipeline.Namespace},
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := controllerutil.SetOwnerReference(pipeline, job, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	err := r.Create(ctx, job)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// add job label to pipeline
+	cp = pipeline.DeepCopy()
+	metav1.SetMetaDataLabel(&pipeline.ObjectMeta, labelJob, job.Name)
+	// update pipeline status
+	if err := r.Client.Patch(ctx, pipeline, ctrlclient.MergeFrom(cp)); err != nil {
+		klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-// clean runtime directory
-func (r *PipelineReconciler) clean(ctx context.Context, pipeline *kubekeyv1.Pipeline) {
-	klog.V(5).InfoS("clean runtimeDir", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-	// delete reference task
-	taskList := &kubekeyv1alpha1.TaskList{}
-	if err := r.Client.List(ctx, taskList, ctrlclient.InNamespace(pipeline.Namespace), ctrlclient.MatchingFields{
-		kubekeyv1alpha1.TaskOwnerField: ctrlclient.ObjectKeyFromObject(pipeline).String(),
-	}); err != nil {
-		klog.V(5).ErrorS(err, "list task error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-		return
-	}
-
-	// clean variable cache
-	variable.CleanVariable(pipeline)
-
-	if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
-		klog.V(5).ErrorS(err, "clean runtime directory error", "runtime dir", _const.GetRuntimeDir(), "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-	}
-}
-
 // SetupWithManager sets up the controller with the Manager.
-func (r *PipelineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options Options) error {
-	if !options.IsControllerEnabled("pipeline") {
-		klog.V(5).InfoS("controller is disabled", "controller", "pipeline")
-		return nil
-	}
-
+func (r *PipelineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(options.Options).
+		WithOptions(ctrlcontroller.Options{
+			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
+		}).
 		For(&kubekeyv1.Pipeline{}).
 		Complete(r)
 }

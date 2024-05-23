@@ -167,7 +167,7 @@ func (s fileStorage) GetList(ctx context.Context, key string, opts apistorage.Li
 	}
 	v, err := conversion.EnforcePtr(listPtr)
 	if err != nil || v.Kind() != reflect.Slice {
-		return fmt.Errorf("need ptr to slice: %v", err)
+		return fmt.Errorf("need ptr to slice: %w", err)
 	}
 
 	// lastKey in result.
@@ -190,7 +190,7 @@ func (s fileStorage) GetList(ctx context.Context, key string, opts apistorage.Li
 		continueKey, _, err := apistorage.DecodeContinue(opts.Predicate.Continue, key)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to parse continueKey", "continueKey", opts.Predicate.Continue)
-			return fmt.Errorf("invalid continue token: %v", err)
+			return fmt.Errorf("invalid continue token: %w", err)
 		}
 		startReadOnce := sync.Once{}
 		continueKeyMatchRule = func(key string) bool {
@@ -206,7 +206,7 @@ func (s fileStorage) GetList(ctx context.Context, key string, opts apistorage.Li
 	case len(opts.ResourceVersion) > 0:
 		parsedRV, err := s.versioner.ParseResourceVersion(opts.ResourceVersion)
 		if err != nil {
-			return fmt.Errorf("invalid resource version: %v", err)
+			return fmt.Errorf("invalid resource version: %w", err)
 		}
 		switch opts.ResourceVersionMatch {
 		case metav1.ResourceVersionMatchNotOlderThan:
@@ -487,7 +487,7 @@ func (s fileStorage) RequestWatchProgress(ctx context.Context) error {
 // On success, objPtr would be set to the object.
 func decode(codec runtime.Codec, value []byte, objPtr runtime.Object) error {
 	if _, err := conversion.EnforcePtr(objPtr); err != nil {
-		return fmt.Errorf("unable to convert output object to pointer: %v", err)
+		return fmt.Errorf("unable to convert output object to pointer: %w", err)
 	}
 	_, _, err := codec.Decode(value, nil, objPtr)
 	if err != nil {

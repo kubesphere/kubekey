@@ -33,8 +33,6 @@ const (
 const (
 	// BuiltinsProjectAnnotation use builtins project of KubeKey
 	BuiltinsProjectAnnotation = "kubekey.kubesphere.io/builtins-project"
-	//// PauseAnnotation pause the pipeline
-	//PauseAnnotation = "kubekey.kubesphere.io/pause"
 )
 
 type PipelineSpec struct {
@@ -130,6 +128,7 @@ type PipelineFailedDetailHost struct {
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 // +kubebuilder:printcolumn:name="Total",type="integer",JSONPath=".status.taskResult.total"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Job",type="string",JSONPath=".metadata.labels['kubekey\\.kubesphere\\.io/job']"
 
 type Pipeline struct {
 	metav1.TypeMeta   `json:",inline"`

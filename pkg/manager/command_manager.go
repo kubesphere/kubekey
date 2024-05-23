@@ -20,7 +20,6 @@ import (
 	"context"
 	"os"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -35,31 +34,17 @@ type commandManager struct {
 	*kubekeyv1.Inventory
 
 	ctrlclient.Client
-	*runtime.Scheme
 }
 
 func (m *commandManager) Run(ctx context.Context) error {
-	// create config, inventory and pipeline
-	if err := m.Client.Create(ctx, m.Config); err != nil {
-		klog.ErrorS(err, "Create config error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-		return err
-	}
-	if err := m.Client.Create(ctx, m.Inventory); err != nil {
-		klog.ErrorS(err, "Create inventory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-		return err
-	}
-	if err := m.Client.Create(ctx, m.Pipeline); err != nil {
-		klog.ErrorS(err, "Create pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-		return err
-	}
-
 	klog.Infof("[Pipeline %s] start", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+	cp := m.Pipeline.DeepCopy()
 	defer func() {
 		klog.Infof("[Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v", ctrlclient.ObjectKeyFromObject(m.Pipeline),
 			m.Pipeline.Status.TaskResult.Total, m.Pipeline.Status.TaskResult.Success, m.Pipeline.Status.TaskResult.Ignored, m.Pipeline.Status.TaskResult.Failed)
 		// update pipeline status
-		if err := m.Client.Status().Update(ctx, m.Pipeline); err != nil {
-			klog.ErrorS(err, "Update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+		if err := m.Client.Status().Patch(ctx, m.Pipeline, ctrlclient.MergeFrom(cp)); err != nil {
+			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		}
 
 		if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kubekeyv1.PipelinePhaseSucceed {
@@ -72,7 +57,7 @@ func (m *commandManager) Run(ctx context.Context) error {
 	}()
 
 	klog.Infof("[Pipeline %s] start task controller", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-	if err := executor.NewTaskExecutor(m.Scheme, m.Client, m.Pipeline).Exec(ctx); err != nil {
+	if err := executor.NewTaskExecutor(m.Client, m.Pipeline).Exec(ctx); err != nil {
 		klog.ErrorS(err, "Create task controller error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		return err
 	}

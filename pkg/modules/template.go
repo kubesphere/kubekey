@@ -69,13 +69,13 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 					return nil
 				}
 				if err != nil {
-					return fmt.Errorf("walk dir %s error: %v", srcParam, err)
+					return fmt.Errorf("walk dir %s error: %w", srcParam, err)
 				}
 
 				// get file old mode
 				info, err := d.Info()
 				if err != nil {
-					return fmt.Errorf("get file info error: %v", err)
+					return fmt.Errorf("get file info error: %w", err)
 				}
 				mode := info.Mode()
 				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
@@ -84,15 +84,15 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				// read file
 				data, err := os.ReadFile(path)
 				if err != nil {
-					return fmt.Errorf("read file error: %v", err)
+					return fmt.Errorf("read file error: %w", err)
 				}
 				result, err := tmpl.ParseFile(ha.(map[string]any), data)
 				if err != nil {
-					return fmt.Errorf("parse file error: %v", err)
+					return fmt.Errorf("parse file error: %w", err)
 				}
 				// copy file to remote
 				if err := conn.CopyFile(ctx, []byte(result), path, mode); err != nil {
-					return fmt.Errorf("copy file error: %v", err)
+					return fmt.Errorf("copy file error: %w", err)
 				}
 				return nil
 			}); err != nil {

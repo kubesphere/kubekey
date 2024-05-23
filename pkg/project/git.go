@@ -54,12 +54,12 @@ func newGitProject(pipeline kubekeyv1.Pipeline, update bool) (Project, error) {
 	if _, err := os.Stat(p.projectDir); os.IsNotExist(err) {
 		// git clone
 		if err := p.gitClone(context.Background()); err != nil {
-			return nil, fmt.Errorf("clone git project error: %v", err)
+			return nil, fmt.Errorf("clone git project error: %w", err)
 		}
 	} else if update {
 		// git pull
 		if err := p.gitPull(context.Background()); err != nil {
-			return nil, fmt.Errorf("pull git project error: %v", err)
+			return nil, fmt.Errorf("pull git project error: %w", err)
 		}
 	}
 	return p, nil

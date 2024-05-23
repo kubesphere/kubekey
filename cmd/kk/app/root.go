@@ -17,12 +17,9 @@ limitations under the License.
 package app
 
 import (
-	"flag"
-	"strings"
-
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"k8s.io/klog/v2"
+
+	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
 var internalCommand = []*cobra.Command{}
@@ -37,39 +34,31 @@ func registerInternalCommand(command *cobra.Command) {
 	internalCommand = append(internalCommand, command)
 }
 
-func NewKubeKeyCommand() *cobra.Command {
+func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "kk",
 		Long: "kubekey is a daemon that execute command in a node",
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			if err := initGOPS(); err != nil {
+			if err := options.InitGOPS(); err != nil {
 				return err
 			}
-			return initProfiling()
+			return options.InitProfiling()
 		},
 		PersistentPostRunE: func(*cobra.Command, []string) error {
-			return flushProfiling()
+			return options.FlushProfiling()
 		},
 	}
 
+	// add common flag
 	flags := cmd.PersistentFlags()
-	addProfilingFlags(flags)
-	addKlogFlags(flags)
-	addGOPSFlags(flags)
+	options.AddProfilingFlags(flags)
+	options.AddKlogFlags(flags)
+	options.AddGOPSFlags(flags)
 
 	cmd.AddCommand(newRunCommand())
+	cmd.AddCommand(newPipelineCommand())
 	cmd.AddCommand(newVersionCommand())
-
 	// internal command
 	cmd.AddCommand(internalCommand...)
 	return cmd
-}
-
-func addKlogFlags(fs *pflag.FlagSet) {
-	local := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(local)
-	local.VisitAll(func(fl *flag.Flag) {
-		fl.Name = strings.Replace(fl.Name, "_", "-", -1)
-		fs.AddGoFlag(fl)
-	})
 }

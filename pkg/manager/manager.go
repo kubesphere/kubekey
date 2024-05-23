@@ -19,11 +19,9 @@ package manager
 import (
 	"context"
 
-	"k8s.io/klog/v2"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
 // Manager shared dependencies such as Addr and , and provides them to Runnable.
@@ -36,32 +34,26 @@ type CommandManagerOptions struct {
 	*kubekeyv1.Pipeline
 	*kubekeyv1.Config
 	*kubekeyv1.Inventory
+
+	ctrlclient.Client
 }
 
-func NewCommandManager(o CommandManagerOptions) (Manager, error) {
-	client, err := proxy.NewLocalClient()
-	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to create local client")
-		return nil, err
-	}
+func NewCommandManager(o CommandManagerOptions) Manager {
 	return &commandManager{
 		Pipeline:  o.Pipeline,
 		Config:    o.Config,
 		Inventory: o.Inventory,
-		Client:    client,
-		Scheme:    _const.Scheme,
-	}, nil
+		Client:    o.Client,
+	}
 }
 
 type ControllerManagerOptions struct {
-	ControllerGates         []string
 	MaxConcurrentReconciles int
 	LeaderElection          bool
 }
 
 func NewControllerManager(o ControllerManagerOptions) Manager {
 	return &controllerManager{
-		ControllerGates:         o.ControllerGates,
 		MaxConcurrentReconciles: o.MaxConcurrentReconciles,
 		LeaderElection:          o.LeaderElection,
 	}

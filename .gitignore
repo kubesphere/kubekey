@@ -4,8 +4,6 @@
 *.so
 *.dylib
 *.tmp
-bin
-hack/tools/bin
 
 # Test binary, build with `go test -c`
 *.test
@@ -39,3 +37,4 @@ tmp
 
 # Used by current object
 /example/test/
+/_output/

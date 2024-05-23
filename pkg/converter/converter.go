@@ -84,13 +84,13 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 			if strings.HasSuffix(a.(string), "%") {
 				b, err := strconv.ParseFloat(a.(string)[:len(a.(string))-1], 64)
 				if err != nil {
-					return nil, fmt.Errorf("convert serial %v to float error", a)
+					return nil, fmt.Errorf("convert serial %v to float error: %w", a, err)
 				}
 				sis[i] = int(math.Ceil(float64(len(hosts)) * b / 100.0))
 			} else {
 				b, err := strconv.Atoi(a.(string))
 				if err != nil {
-					return nil, fmt.Errorf("convert serial %v to int faiiled", a)
+					return nil, fmt.Errorf("convert serial %v to int error: %w", a, err)
 				}
 				sis[i] = b
 			}

@@ -41,7 +41,7 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
 				output: []byte("success"),
 			}),
 			exceptStderr: "\"src\" or \"content\" in args should be string",
@@ -55,7 +55,7 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
 				output: []byte("success"),
 			}),
 			exceptStderr: "\"dest\" in args should be string",
@@ -69,7 +69,7 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
 				output: []byte("success"),
 			}),
 			exceptStderr: "\"content\" should copy to a file",
@@ -83,7 +83,7 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
 				output: []byte("success"),
 			}),
 			exceptStdout: "success",
@@ -97,7 +97,7 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
 				copyErr: fmt.Errorf("copy failed"),
 			}),
 			exceptStderr: "copy failed",

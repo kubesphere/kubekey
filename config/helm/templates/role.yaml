@@ -2,35 +2,86 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Values.role }}
+  name: kk-operator
   namespace: {{ .Release.Namespace }}
   labels: {{- include "common.labels" . | nindent 4 }}
 rules:
 - apiGroups:
-  - kubekey.kubesphere.io
+    - kubekey.kubesphere.io
   resources:
-  - configs
-  - inventories
+    - configs
+    - inventories
   verbs:
-  - get
-  - list
-  - watch
+    - get
+    - list
+    - watch
 - apiGroups:
-  - kubekey.kubesphere.io
+    - kubekey.kubesphere.io
   resources:
-  - pipelines
-  - pipelines/status
+    - pipelines
+    - pipelines/status
   verbs:
-  - "*"
+    - "*"
 - apiGroups:
-  - coordination.k8s.io
+    - coordination.k8s.io
   resources:
-  - leases
+    - leases
   verbs:
-  - "*"
+    - "*"
 - apiGroups:
-  - ""
+    - ""
   resources:
-  - events
+    - events
   verbs:
-  - "*"
+    - "*"
+- apiGroups:
+    - batch
+  resources:
+    - jobs
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+- apiGroups:
+    - ""
+  resources:
+    - serviceaccounts
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+- apiGroups:
+    - "rbac.authorization.k8s.io"
+  resources:
+    - clusterrolebindings
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kk-executor
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "common.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - kubekey.kubesphere.io
+    resources:
+      - configs
+      - inventories
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - kubekey.kubesphere.io
+    resources:
+      - pipelines
+      - pipelines/status
+    verbs:
+      - "*"

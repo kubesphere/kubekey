@@ -14,29 +14,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package options
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 
+	"github.com/google/gops/agent"
 	"github.com/spf13/pflag"
+	"k8s.io/klog/v2"
 )
+
+// ======================================================================================
+//                                     PROFILING
+// ======================================================================================
 
 var (
 	profileName   string
 	profileOutput string
 )
 
-func addProfilingFlags(flags *pflag.FlagSet) {
+func AddProfilingFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&profileName, "profile", "none", "Name of profile to capture. One of (none|cpu|heap|goroutine|threadcreate|block|mutex)")
 	flags.StringVar(&profileOutput, "profile-output", "profile.pprof", "Name of the file to write the profile to")
 }
 
-func initProfiling() error {
+func InitProfiling() error {
 	var (
 		f   *os.File
 		err error
@@ -73,14 +81,14 @@ func initProfiling() error {
 	go func() {
 		<-c
 		f.Close()
-		flushProfiling()
+		FlushProfiling()
 		os.Exit(0)
 	}()
 
 	return nil
 }
 
-func flushProfiling() error {
+func FlushProfiling() error {
 	switch profileName {
 	case "none":
 		return nil
@@ -103,4 +111,39 @@ func flushProfiling() error {
 	}
 
 	return nil
+}
+
+// ======================================================================================
+//                                         GOPS
+// ======================================================================================
+
+var gops bool
+
+func AddGOPSFlags(flags *pflag.FlagSet) {
+	flags.BoolVar(&gops, "gops", false, "Whether to enable gops or not.  When enabled this option, "+
+		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
+}
+
+func InitGOPS() error {
+	if gops {
+		// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
+		// Bind to a random port on address 127.0.0.1
+		if err := agent.Listen(agent.Options{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ======================================================================================
+//                                       KLOG
+// ======================================================================================
+
+func AddKlogFlags(fs *pflag.FlagSet) {
+	local := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(local)
+	local.VisitAll(func(fl *flag.Flag) {
+		fl.Name = strings.Replace(fl.Name, "_", "-", -1)
+		fs.AddGoFlag(fl)
+	})
 }

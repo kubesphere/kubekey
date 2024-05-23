@@ -79,7 +79,7 @@ func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubeke
 	pipeline := &kubekeyv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "run-",
-			Namespace:    metav1.NamespaceDefault,
+			Namespace:    o.Namespace,
 			Annotations:  map[string]string{},
 		},
 	}

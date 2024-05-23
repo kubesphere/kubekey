@@ -19,7 +19,6 @@ package variable
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -30,7 +29,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
@@ -249,11 +247,6 @@ func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error
 	}
 
 	return result, nil
-}
-
-func RuntimeDirFromPipeline(obj kubekeyv1.Pipeline) string {
-	return filepath.Join(_const.GetRuntimeDir(), kubekeyv1.SchemeGroupVersion.String(),
-		_const.RuntimePipelineDir, obj.Namespace, obj.Name, _const.RuntimePipelineVariableDir)
 }
 
 // GetValue from VariableData by key path

@@ -14,30 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package app
 
-import ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
+import (
+	"github.com/spf13/cobra"
 
-type Options struct {
-	ControllerGates []string
+	"github.com/kubesphere/kubekey/v4/version"
+)
 
-	ctrlcontroller.Options
-}
-
-// IsControllerEnabled check if a specified controller enabled or not.
-func (o Options) IsControllerEnabled(name string) bool {
-	hasStar := false
-	for _, ctrl := range o.ControllerGates {
-		if ctrl == name {
-			return true
-		}
-		if ctrl == "-"+name {
-			return false
-		}
-		if ctrl == "*" {
-			hasStar = true
-		}
+func newVersionCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print the version of KubeSphere controller-manager",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Println(version.Get())
+		},
 	}
-
-	return hasStar
 }

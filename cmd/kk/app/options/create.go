@@ -19,10 +19,11 @@ package options
 import (
 	"fmt"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cliflag "k8s.io/component-base/cli/flag"
+
+	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
 
 func NewCreateClusterOptions() *CreateClusterOptions {
@@ -53,7 +54,7 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kub
 	pipeline := &kubekeyv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "create-cluster-",
-			Namespace:    metav1.NamespaceDefault,
+			Namespace:    o.Namespace,
 			Annotations: map[string]string{
 				kubekeyv1.BuiltinsProjectAnnotation: "",
 			},

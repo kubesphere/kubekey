@@ -18,11 +18,13 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -51,7 +53,7 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), kk, config, inventory, o.CommonOptions)
+			return run(signals.SetupSignalHandler(), kk, config, inventory)
 		},
 	}
 
@@ -61,19 +63,36 @@ func newRunCommand() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, kk *kubekeyv1.Pipeline, config *kubekeyv1.Config, inventory *kubekeyv1.Inventory, o options.CommonOptions) error {
-	if err := proxy.Init(); err != nil {
+func run(ctx context.Context, pipeline *kubekeyv1.Pipeline, config *kubekeyv1.Config, inventory *kubekeyv1.Inventory) error {
+	restconfig, err := proxy.NewConfig()
+	if err != nil {
+		return fmt.Errorf("could not get rest config: %w", err)
+	}
+	client, err := ctrlclient.New(restconfig, ctrlclient.Options{
+		Scheme: _const.Scheme,
+	})
+	if err != nil {
+		return fmt.Errorf("could not get runtime-client: %w", err)
+	}
+
+	// create config, inventory and pipeline
+	if err := client.Create(ctx, config); err != nil {
+		klog.ErrorS(err, "Create config error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+		return err
+	}
+	if err := client.Create(ctx, inventory); err != nil {
+		klog.ErrorS(err, "Create inventory error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+		return err
+	}
+	if err := client.Create(ctx, pipeline); err != nil {
+		klog.ErrorS(err, "Create pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return err
 	}
 
-	mgr, err := manager.NewCommandManager(manager.CommandManagerOptions{
-		Pipeline:  kk,
+	return manager.NewCommandManager(manager.CommandManagerOptions{
+		Pipeline:  pipeline,
 		Config:    config,
 		Inventory: inventory,
-	})
-	if err != nil {
-		klog.ErrorS(err, "Create command manager error")
-		return err
-	}
-	return mgr.Run(ctx)
+		Client:    client,
+	}).Run(ctx)
 }

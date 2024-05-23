@@ -61,7 +61,7 @@ func filterVersion(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 		if err != nil {
 			return pongo2.AsValue(nil), &pongo2.Error{
 				Sender:    "filter:version",
-				OrigError: fmt.Errorf("converter second param error: %v", err),
+				OrigError: fmt.Errorf("converter second param error: %w", err),
 			}
 		}
 		return pongo2.AsValue(ci >= 0), nil
@@ -71,7 +71,7 @@ func filterVersion(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 		if err != nil {
 			return pongo2.AsValue(nil), &pongo2.Error{
 				Sender:    "filter:version",
-				OrigError: fmt.Errorf("converter second param error: %v", err),
+				OrigError: fmt.Errorf("converter second param error: %w", err),
 			}
 		}
 		return pongo2.AsValue(ci <= 0), nil
@@ -81,7 +81,7 @@ func filterVersion(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 		if err != nil {
 			return pongo2.AsValue(nil), &pongo2.Error{
 				Sender:    "filter:version",
-				OrigError: fmt.Errorf("converter second param error: %v", err),
+				OrigError: fmt.Errorf("converter second param error: %w", err),
 			}
 		}
 		return pongo2.AsValue(ci == 0), nil
@@ -91,7 +91,7 @@ func filterVersion(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 		if err != nil {
 			return pongo2.AsValue(nil), &pongo2.Error{
 				Sender:    "filter:version",
-				OrigError: fmt.Errorf("converter second param error: %v", err),
+				OrigError: fmt.Errorf("converter second param error: %w", err),
 			}
 		}
 		return pongo2.AsValue(ci == 1), nil
@@ -101,14 +101,14 @@ func filterVersion(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 		if err != nil {
 			return pongo2.AsValue(nil), &pongo2.Error{
 				Sender:    "filter:version",
-				OrigError: fmt.Errorf("converter second param error: %v", err),
+				OrigError: fmt.Errorf("converter second param error: %w", err),
 			}
 		}
 		return pongo2.AsValue(ci == -1), nil
 	default:
 		return pongo2.AsValue(nil), &pongo2.Error{
 			Sender:    "filter:version",
-			OrigError: fmt.Errorf("converter first param error: %v", err),
+			OrigError: fmt.Errorf("converter first param error: %w", err),
 		}
 	}
 }
@@ -130,7 +130,7 @@ func filterToJson(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2
 	if err != nil {
 		return pongo2.AsValue(nil), &pongo2.Error{
 			Sender:    "to_json",
-			OrigError: fmt.Errorf("parse in to json: %v", err),
+			OrigError: fmt.Errorf("parse in to json: %w", err),
 		}
 	}
 	result := string(data)
@@ -148,7 +148,7 @@ func filterToYaml(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2
 	if err != nil {
 		return pongo2.AsValue(nil), &pongo2.Error{
 			Sender:    "to_yaml",
-			OrigError: fmt.Errorf("parse in to json: %v", err),
+			OrigError: fmt.Errorf("parse in to json: %w", err),
 		}
 	}
 	result := string(data)

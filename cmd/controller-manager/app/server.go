@@ -21,7 +21,6 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/google/gops/agent"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -36,15 +35,16 @@ func NewControllerManagerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "controller-manager",
 		Short: "kubekey controller manager",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if o.GOPSEnabled {
-				// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
-				// Bind to a random port on address 127.0.0.1
-				if err := agent.Listen(agent.Options{}); err != nil {
-					return err
-				}
+		PersistentPreRunE: func(*cobra.Command, []string) error {
+			if err := options.InitGOPS(); err != nil {
+				return err
 			}
-
+			return options.InitProfiling()
+		},
+		PersistentPostRunE: func(*cobra.Command, []string) error {
+			return options.FlushProfiling()
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			o.Complete(cmd, args)
 			// create workdir directory,if not exists
 			_const.SetWorkDir(o.WorkDir)
@@ -57,16 +57,23 @@ func NewControllerManagerCommand() *cobra.Command {
 		},
 	}
 
+	// add common flag
+	flags := cmd.PersistentFlags()
+	options.AddProfilingFlags(flags)
+	options.AddKlogFlags(flags)
+	options.AddGOPSFlags(flags)
+
 	fs := cmd.Flags()
 	for _, f := range o.Flags().FlagSets {
 		fs.AddFlagSet(f)
 	}
+
+	cmd.AddCommand(newVersionCommand())
 	return cmd
 }
 
 func run(ctx context.Context, o *options.ControllerManagerServerOptions) error {
 	return manager.NewControllerManager(manager.ControllerManagerOptions{
-		ControllerGates:         o.ControllerGates,
 		MaxConcurrentReconciles: o.MaxConcurrentReconciles,
 		LeaderElection:          o.LeaderElection,
 	}).Run(ctx)

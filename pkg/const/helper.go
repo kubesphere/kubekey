@@ -19,6 +19,8 @@ package _const
 import (
 	"path/filepath"
 	"sync"
+
+	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
 
 var workDirOnce = &sync.Once{}
@@ -38,4 +40,9 @@ func GetWorkDir() string {
 // GetRuntimeDir returns the absolute path of the runtime directory.
 func GetRuntimeDir() string {
 	return filepath.Join(workDir, RuntimeDir)
+}
+
+func RuntimeDirFromPipeline(obj kubekeyv1.Pipeline) string {
+	return filepath.Join(GetRuntimeDir(), kubekeyv1.SchemeGroupVersion.String(),
+		RuntimePipelineDir, obj.Namespace, obj.Name)
 }
