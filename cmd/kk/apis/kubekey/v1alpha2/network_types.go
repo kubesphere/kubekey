@@ -28,14 +28,24 @@ type NetworkConfig struct {
 }
 
 type CalicoCfg struct {
-	IPIPMode        string            `yaml:"ipipMode" json:"ipipMode,omitempty"`
-	VXLANMode       string            `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
-	VethMTU         int               `yaml:"vethMTU" json:"vethMTU,omitempty"`
-	Ipv4NatOutgoing *bool             `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
-	DefaultIPPOOL   *bool             `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
-	EnableTypha     *bool             `yaml:"enableTypha" json:"enableTypha,omitempty"`
-	Replicas        int               `yaml:"replicas" json:"replicas,omitempty"`
-	NodeSelector    map[string]string `yaml:"nodeSelector" json:"nodeSelector,omitempty"`
+	IPIPMode        string     `yaml:"ipipMode" json:"ipipMode,omitempty"`
+	VXLANMode       string     `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
+	VethMTU         int        `yaml:"vethMTU" json:"vethMTU,omitempty"`
+	Ipv4NatOutgoing *bool      `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
+	DefaultIPPOOL   *bool      `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
+	Typha           Typha      `yaml:"typha" json:"typha,omitempty"`
+	Controller      Controller `yaml:"controller" json:"controller,omitempty"`
+}
+
+type Typha struct {
+	Replicas     int               `yaml:"replicas" json:"replicas,omitempty"`
+	NodeSelector map[string]string `yaml:"nodeSelector" json:"nodeSelector,omitempty"`
+	Enabled      *bool             `yaml:"enabled" json:"enabled,omitempty"`
+}
+
+type Controller struct {
+	Replicas     int               `yaml:"replicas" json:"replicas,omitempty"`
+	NodeSelector map[string]string `yaml:"nodeSelector" json:"nodeSelector,omitempty"`
 }
 
 type FlannelCfg struct {
@@ -186,12 +196,12 @@ func (c *CalicoCfg) EnableDefaultIPPOOL() bool {
 	return *c.DefaultIPPOOL
 }
 
-// Typha is used to determine whether to enable calico Typha
-func (c *CalicoCfg) Typha() bool {
-	if c.EnableTypha == nil {
+// EnableTypha is used to determine whether to enable calico Typha
+func (c *CalicoCfg) EnableTypha() bool {
+	if c.Typha.Enabled == nil {
 		return false
 	}
-	return *c.EnableTypha
+	return *c.Typha.Enabled
 }
 
 // EnableInit is used to determine whether to create default network

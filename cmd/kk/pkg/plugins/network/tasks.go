@@ -460,7 +460,7 @@ func (g *GenerateCalicoManifests) Execute(runtime connector.Runtime) error {
 			"CalicoFlexvolImage":      images.GetImage(runtime, g.KubeConf, "calico-flexvol").ImageName(),
 			"CalicoControllersImage":  images.GetImage(runtime, g.KubeConf, "calico-kube-controllers").ImageName(),
 			"CalicoTyphaImage":        images.GetImage(runtime, g.KubeConf, "calico-typha").ImageName(),
-			"TyphaEnabled":            len(runtime.GetHostsByRole(common.K8s)) > 50 || g.KubeConf.Cluster.Network.Calico.Typha(),
+			"TyphaEnabled":            len(runtime.GetHostsByRole(common.K8s)) > 50 || g.KubeConf.Cluster.Network.Calico.EnableTypha(),
 			"VethMTU":                 g.KubeConf.Cluster.Network.Calico.VethMTU,
 			"NodeCidrMaskSize":        g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
 			"IPIPMode":                g.KubeConf.Cluster.Network.Calico.IPIPMode,
@@ -469,8 +469,10 @@ func (g *GenerateCalicoManifests) Execute(runtime connector.Runtime) error {
 			"IPV4POOLNATOUTGOING":     g.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),
 			"DefaultIPPOOL":           g.KubeConf.Cluster.Network.Calico.EnableDefaultIPPOOL(),
 			"IPv6Support":             IPv6Support,
-			"Replicas":                g.KubeConf.Cluster.Network.Calico.Replicas,
-			"NodeSelector":            g.KubeConf.Cluster.Network.Calico.NodeSelector,
+			"TyphaReplicas":           g.KubeConf.Cluster.Network.Calico.Typha.Replicas,
+			"TyphaNodeSelector":       g.KubeConf.Cluster.Network.Calico.Typha.NodeSelector,
+			"ControllerReplicas":      g.KubeConf.Cluster.Network.Calico.Controller.Replicas,
+			"ControllerNodeSelector":  g.KubeConf.Cluster.Network.Calico.Controller.NodeSelector,
 		},
 	}
 	templateAction.Init(nil, nil)

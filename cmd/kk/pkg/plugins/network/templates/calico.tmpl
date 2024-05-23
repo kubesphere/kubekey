@@ -5171,7 +5171,7 @@ metadata:
     k8s-app: calico-kube-controllers
 spec:
   # The controllers can only have a single active instance.
-  replicas: {{ if .Replicas }}{{ .Replicas }}{{ else }}1{{ end }}
+  replicas: {{ if .ControllerReplicas }}{{ .ControllerReplicas }}{{ else }}1{{ end }}
   selector:
     matchLabels:
       k8s-app: calico-kube-controllers
@@ -5186,8 +5186,8 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-{{ if .NodeSelector }}
-        {{- toYaml .NodeSelector | indent 8 }}
+{{ if .ControllerNodeSelector }}
+        {{- toYaml .ControllerNodeSelector | indent 8 }}
 {{- end }}
       tolerations:
         # Mark the pod as a critical add-on for rescheduling.
@@ -5197,7 +5197,7 @@ spec:
           effect: NoSchedule
         - key: node-role.kubernetes.io/control-plane
           effect: NoSchedule
-{{ if .NodeSelector }}
+{{ if .ControllerNodeSelector }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -5258,7 +5258,7 @@ spec:
   # We recommend using Typha if you have more than 50 nodes. Above 100 nodes it is essential
   # (when using the Kubernetes datastore). Use one replica for every 100-200 nodes. In
   # production, we recommend running at least 3 replicas to reduce the impact of rolling upgrade.
-  replicas: {{ if .Replicas }}{{ .Replicas }}{{ else }}1{{ end }}
+  replicas: {{ if .TyphaReplicas }}{{ .TyphaReplicas }}{{ else }}1{{ end }}
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -5285,14 +5285,14 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-{{ if .NodeSelector }}
-        {{- toYaml .NodeSelector | indent 8 }}
+{{ if .TyphaNodeSelector }}
+        {{- toYaml .TyphaNodeSelector | indent 8 }}
 {{- end }}
       hostNetwork: true
       # Typha supports graceful shut down, disconnecting clients slowly during the grace period.
       # The TYPHA_SHUTDOWNTIMEOUTSECS env var should be kept in sync with this value.
       terminationGracePeriodSeconds: 300
-{{ if .NodeSelector }}
+{{ if .TyphaNodeSelector }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
