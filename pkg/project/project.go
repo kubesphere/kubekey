@@ -27,8 +27,7 @@ import (
 
 var builtinProjectFunc func(kubekeyv1.Pipeline) (Project, error)
 
-// todo should be more clear defined.
-// such as the project represent location of actutal project.
+// Project represent location of actual project.
 // get project file should base on it
 type Project interface {
 	MarshalPlaybook() (*kkcorev1.Playbook, error)
