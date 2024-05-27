@@ -99,4 +99,7 @@ const (
 
 	// Artifact pipeline
 	Artifact = "artifact"
+
+	// Image Copy Transports
+	DockerDaemon = "docker-daemon"
 )
