@@ -96,8 +96,9 @@ func (t *CustomScriptTask) Execute(runtime connector.Runtime) error {
 		RunBash = "/bin/bash " + targetPath
 	}
 
+	cd_cmd := fmt.Sprintf("cd %s;", remoteTaskHome)
 	start := time.Now()
-	out, err := runtime.GetRunner().SudoCmd(RunBash, false)
+	out, err := runtime.GetRunner().SudoCmd(cd_cmd+RunBash, false)
 	if err != nil {
 		return errors.Errorf("Exec Bash: %s err:%s", RunBash, err)
 	}
