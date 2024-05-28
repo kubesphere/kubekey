@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"slices"
 	"strings"
 
 	versionK8S "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
@@ -36,6 +35,7 @@ import (
 	"github.com/modood/table"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/utils/strings/slices"
 )
 
 // PreCheckResults defines the items to be checked.
@@ -114,11 +114,12 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	k8sVersion := i.KubeConf.Cluster.Kubernetes.Version
 	if k8sVersion != kubekeyapiv1alpha2.DefaultKubeVersion {
 		suppportVersions := versionK8S.SupportedK8sVersionList()
-		if !slices.ContainsFunc(suppportVersions, func(s string) bool {
-			return strings.Contains(s, k8sVersion)
-		}) {
-			fmt.Printf("The Kubernetes version :%s isn't support.\n", k8sVersion)
-			fmt.Println("Use kk version --show-supported-k8s, show support k8s versions")
+		if !strings.HasPrefix(k8sVersion, "v") {
+			k8sVersion = "v" + k8sVersion
+		}
+		if !slices.Contains(suppportVersions, k8sVersion) {
+			fmt.Printf("The Kubernetes version: %s isn't supported.\n", k8sVersion)
+			fmt.Println("Use kk version --show-supported-k8s,show supported k8s versions")
 			fmt.Println("")
 			stopFlag = true
 		} else {
