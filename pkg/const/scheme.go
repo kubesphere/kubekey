@@ -17,6 +17,9 @@ limitations under the License.
 package _const
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
@@ -41,6 +44,9 @@ var (
 
 func newScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
+	batchv1.AddToScheme(s)
+	corev1.AddToScheme(s)
+	rbacv1.AddToScheme(s)
 	kubekeyv1.AddToScheme(s)
 	kubekeyv1alpha1.AddToScheme(s)
 	kubekeyv1alpha1.AddConversionFuncs(s)

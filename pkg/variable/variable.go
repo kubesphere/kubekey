@@ -29,6 +29,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
 
@@ -45,9 +46,9 @@ type Variable interface {
 // New variable. generate value from config args. and render to source.
 func New(client ctrlclient.Client, pipeline kubekeyv1.Pipeline) (Variable, error) {
 	// new source
-	s, err := source.New(RuntimeDirFromPipeline(pipeline))
+	s, err := source.New(filepath.Join(_const.RuntimeDirFromPipeline(pipeline), _const.RuntimePipelineVariableDir))
 	if err != nil {
-		klog.V(4).ErrorS(err, "create file source failed", "path", filepath.Join(RuntimeDirFromPipeline(pipeline)), "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+		klog.V(4).ErrorS(err, "create file source failed", "path", filepath.Join(_const.RuntimeDirFromPipeline(pipeline), _const.RuntimePipelineVariableDir), "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
 		return nil, err
 	}
 	// get config

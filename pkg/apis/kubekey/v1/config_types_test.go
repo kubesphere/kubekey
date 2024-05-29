@@ -17,9 +17,10 @@ limitations under the License.
 package v1
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
-	"testing"
 )
 
 func TestSetValue(t *testing.T) {

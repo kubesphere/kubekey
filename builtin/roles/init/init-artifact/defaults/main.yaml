@@ -1,3 +1,4 @@
+work_dir: /kubekey
 artifact:
   arch: [ "amd64" ]
   # offline artifact package for kk.

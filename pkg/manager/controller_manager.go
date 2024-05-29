@@ -18,11 +18,10 @@ package manager
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/controllers"
@@ -30,7 +29,6 @@ import (
 )
 
 type controllerManager struct {
-	ControllerGates         []string
 	MaxConcurrentReconciles int
 	LeaderElection          bool
 }
@@ -38,33 +36,25 @@ type controllerManager struct {
 func (c controllerManager) Run(ctx context.Context) error {
 	ctrl.SetLogger(klog.NewKlogr())
 
-	restconfig := config.GetConfigOrDie()
-	proxyTransport, err := proxy.NewProxyTransport(false)
+	restconfig, err := proxy.NewConfig()
 	if err != nil {
-		klog.ErrorS(err, "Create proxy transport error")
-		return err
+		return fmt.Errorf("could not get rest config: %w", err)
 	}
-	restconfig.Transport = proxyTransport
 	mgr, err := ctrl.NewManager(restconfig, ctrl.Options{
 		Scheme:           _const.Scheme,
 		LeaderElection:   c.LeaderElection,
 		LeaderElectionID: "controller-leader-election-kk",
 	})
 	if err != nil {
-		klog.ErrorS(err, "Create manager error")
-		return err
+		return fmt.Errorf("could not create controller manager: %w", err)
 	}
 
 	if err := (&controllers.PipelineReconciler{
-		Client:        mgr.GetClient(),
-		EventRecorder: mgr.GetEventRecorderFor("pipeline"),
-		Scheme:        mgr.GetScheme(),
-	}).SetupWithManager(ctx, mgr, controllers.Options{
-		ControllerGates: c.ControllerGates,
-		Options: ctrlcontroller.Options{
-			MaxConcurrentReconciles: c.MaxConcurrentReconciles,
-		},
-	}); err != nil {
+		Client:                  mgr.GetClient(),
+		EventRecorder:           mgr.GetEventRecorderFor("pipeline"),
+		Scheme:                  mgr.GetScheme(),
+		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
+	}).SetupWithManager(mgr); err != nil {
 		klog.ErrorS(err, "create pipeline controller error")
 		return err
 	}

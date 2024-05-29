@@ -32,12 +32,10 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -46,19 +44,7 @@ type TaskExecutor interface {
 	Exec(ctx context.Context) error
 }
 
-func NewTaskExecutor(schema *runtime.Scheme, client ctrlclient.Client, pipeline *kubekeyv1.Pipeline) TaskExecutor {
-	if schema == nil {
-		schema = _const.Scheme
-	}
-
-	if client == nil {
-		cli, err := proxy.NewLocalClient()
-		if err != nil {
-			return nil
-		}
-		client = cli
-	}
-
+func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline) TaskExecutor {
 	// get variable
 	v, err := variable.GetVariable(client, *pipeline)
 	if err != nil {
@@ -67,7 +53,6 @@ func NewTaskExecutor(schema *runtime.Scheme, client ctrlclient.Client, pipeline 
 	}
 
 	return &executor{
-		schema:   schema,
 		client:   client,
 		pipeline: pipeline,
 		variable: v,
@@ -75,7 +60,6 @@ func NewTaskExecutor(schema *runtime.Scheme, client ctrlclient.Client, pipeline 
 }
 
 type executor struct {
-	schema *runtime.Scheme
 	client ctrlclient.Client
 
 	pipeline *kubekeyv1.Pipeline
@@ -287,7 +271,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			// complete by pipeline
 			task.GenerateName = e.pipeline.Name + "-"
 			task.Namespace = e.pipeline.Namespace
-			if err := controllerutil.SetControllerReference(e.pipeline, task, e.schema); err != nil {
+			if err := controllerutil.SetControllerReference(e.pipeline, task, e.client.Scheme()); err != nil {
 				klog.V(4).ErrorS(err, "Set controller reference error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return err
 			}

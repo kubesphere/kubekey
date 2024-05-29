@@ -5,4 +5,8 @@
 3. 支持connector扩展
 4. 支持云原生方式自动化批量任务管理
 
-# 示例
+# 安装kubekey
+## kubernetes中安装
+```shell
+helm upgrade --install --create-namespace -n kubekey-system kubekey oci://hub.kubesphere.com.cn/kubekey/kubekey
+```

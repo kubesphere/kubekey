@@ -1,17 +1,9 @@
 ## @section Common parameters
 ##
-# the role which operator pod need
-role: "kk-operator"
-
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: "kk-operator"
-
+global:
+  imageRegistry: hub.kubesphere.com.cn/kubekey
+  tag: ""
+  imagePullSecrets: []
 
 operator:
   # tolerations of operator pod
@@ -51,13 +43,13 @@ operator:
   pullSecrets: []
   image:
     registry: ""
-    repository: kubesphere/kubekey-operator
+    repository: controller-manager
     tag: ""
     digest: ""
     pullPolicy: IfNotPresent
     ##
-  ## @param resources.limits The resources limits for the haproxy containers
-  ## @param resources.requests The requested resources for the haproxy containers
+  ## @param resources.limits The resources limits for the operator containers
+  ## @param resources.requests The requested resources for the operator containers
   ##
   resources:
     limits:
@@ -72,7 +64,6 @@ operator:
     - controller-manager
     - --logtostderr=true
     - --leader-election=true
-    - --controllers=*
   ## @param extraEnvVars Array with extra environment variables to add to haproxy nodes
   ##
   extraEnvVars: []
@@ -82,3 +73,11 @@ operator:
   ## @param extraVolumes Optionally specify extra list of additional volumes for the haproxy pod(s)
   ##
   extraVolumes: []
+
+executor:
+  image:
+    registry: ""
+    repository: executor
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent

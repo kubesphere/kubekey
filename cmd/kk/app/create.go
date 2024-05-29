@@ -58,7 +58,7 @@ func newCreateClusterCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory, o.CommonOptions)
+			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
 		},
 	}
 

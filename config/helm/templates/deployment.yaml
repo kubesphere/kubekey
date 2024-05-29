@@ -22,7 +22,7 @@ spec:
       labels: {{ include "common.labels" .  | nindent 8 }}
         app: kk-operator
     spec:
-      serviceAccountName: {{ .Values.serviceAccount.name }}
+      serviceAccountName: kk-operator
       {{- if .Values.operator.pullSecrets }}
       imagePullSecrets: {{ .Values.operator.pullSecrets }}
       {{- end }}
@@ -41,7 +41,7 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.operator.terminationGracePeriodSeconds }}
       containers:
         - name: ks-controller-manager
-          image: {{ template "common.image" . }}
+          image: {{ template "operator.image" . }}
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           {{- if .Values.operator.command }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.operator.command "context" $) | nindent 12 }}
@@ -50,6 +50,12 @@ spec:
             {{- if .Values.operator.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.operator.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
+            - name: EXECUTOR_IMAGE
+              value: {{ template "executor.image" . }}
+            - name: EXECUTOR_IMAGE_PULLPOLICY
+              value: {{ .Values.executor.image.pullPolicy }}
+            - name: EXECUTOR_SERVICEACCOUNT
+              value: kk-executor
           {{- if .Values.operator.resources }}
           resources: {{- toYaml .Values.operator.resources | nindent 12 }}
           {{- end }}

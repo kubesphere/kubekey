@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"sync"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +40,7 @@ import (
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
@@ -54,40 +53,40 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/task"
 )
 
-var proxyTransport http.RoundTripper
-var initOnce sync.Once
-
-func Init() error {
-	var err error
-	initOnce.Do(func() {
-		proxyTransport, err = NewProxyTransport(true)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to create local transport")
-			return
-		}
-	})
-
-	return err
-}
-
-func NewLocalClient() (ctrlclient.Client, error) {
-	return ctrlclient.New(&rest.Config{
-		Transport: proxyTransport,
-	}, ctrlclient.Options{
-		Scheme: _const.Scheme,
-	})
+func NewConfig() (*rest.Config, error) {
+	restconfig, err := ctrl.GetConfig()
+	if err != nil {
+		klog.Infof("kubeconfig in empty, store resources local")
+		restconfig = &rest.Config{}
+	}
+	restconfig.Transport, err = newProxyTransport(restconfig)
+	if err != nil {
+		return nil, fmt.Errorf("create proxy transport error: %w", err)
+	}
+	restconfig.TLSClientConfig = rest.TLSClientConfig{}
+	return restconfig, nil
 }
 
 // NewProxyTransport return a new http.RoundTripper use in ctrl.client.
-// if the resources group version is kubekey.kubesphere.io/v1alpha. store it in local.
-// if the resources group version is kubekey.kubesphere.io/v1 and isLocal is true. store it in local.
-// if the resources group version is kubekey.kubesphere.io/v1 and isLocal is true. send remote s http request.
-func NewProxyTransport(isLocal bool) (http.RoundTripper, error) {
+// when restConfig is not empty: should connect a kubernetes cluster and store some resources in there.
+// such as: pipeline.kubekey.kubesphere.io/v1, inventory.kubekey.kubesphere.io/v1, config.kubekey.kubesphere.io/v1
+// when restConfig is empty: store all resource in local.
+//
+// SPECIFICALLY: since tasks is running data, which is reentrant and large in quantity,
+// they should always store in local.
+func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 	lt := &transport{
-		isLocal:          isLocal,
 		authz:            authorizerfactory.NewAlwaysAllowAuthorizer(),
 		handlerChainFunc: defaultHandlerChain,
 	}
+	if restConfig.Host != "" {
+		clientFor, err := rest.HTTPClientFor(restConfig)
+		if err != nil {
+			return nil, err
+		}
+		lt.restClient = clientFor
+	}
+
 	// register kubekeyv1alpha1 resources
 	kkv1alpha1 := newApiIResources(kubekeyv1alpha1.SchemeGroupVersion)
 	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(kubekeyv1alpha1.SchemeGroupVersion))
@@ -113,7 +112,8 @@ func NewProxyTransport(isLocal bool) (http.RoundTripper, error) {
 		klog.V(4).ErrorS(err, "failed to register resources")
 	}
 
-	if isLocal {
+	// when restConfig is null. should store all resource local
+	if restConfig.Host == "" {
 		// register kubekeyv1 resources
 		kkv1 := newApiIResources(kubekeyv1.SchemeGroupVersion)
 		// add config
@@ -190,8 +190,8 @@ func (r *responseWriter) WriteHeader(statusCode int) {
 }
 
 type transport struct {
-	// isLocal represent the transport use local file client or http client
-	isLocal bool
+	// use to connect remote
+	restClient *http.Client
 
 	authz authorizer.Authorizer
 	// routers is a list of routers
@@ -202,10 +202,10 @@ type transport struct {
 }
 
 func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
-	// kubekey.v1alpha1 always use local client
-	if !l.isLocal && !strings.HasPrefix(request.URL.Path, "/apis/"+kubekeyv1alpha1.SchemeGroupVersion.String()+"/") {
-		return http.DefaultTransport.RoundTrip(request)
+	if l.restClient != nil && !strings.HasPrefix(request.URL.Path, "/apis/"+kubekeyv1alpha1.SchemeGroupVersion.String()) {
+		return l.restClient.Transport.RoundTrip(request)
 	}
+
 	response := &http.Response{
 		Proto:  "local",
 		Header: make(http.Header),
