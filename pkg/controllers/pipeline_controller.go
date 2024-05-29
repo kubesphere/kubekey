@@ -36,6 +36,7 @@ import (
 	ctrlfinalizer "sigs.k8s.io/controller-runtime/pkg/finalizer"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 const (
@@ -188,7 +189,6 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 			Completions:  ptr.To[int32](1),
 			BackoffLimit: ptr.To[int32](0),
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: saName,
 					RestartPolicy:      "Never",
@@ -207,8 +207,17 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 			},
 		},
 	}
+	// add ownerReference
 	if err := controllerutil.SetOwnerReference(pipeline, job, r.Scheme); err != nil {
 		return ctrl.Result{}, err
+	}
+	// add work-dir volume
+	if pipeline.Spec.WorkVolume != nil {
+		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, *pipeline.Spec.WorkVolume)
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      pipeline.Spec.WorkVolume.Name,
+			MountPath: _const.GetWorkDir(),
+		})
 	}
 	err := r.Create(ctx, job)
 	if err != nil {
