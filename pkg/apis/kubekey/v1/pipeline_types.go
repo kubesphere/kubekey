@@ -56,6 +56,9 @@ type PipelineSpec struct {
 	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
 	// +optional
 	Debug bool `json:"debug,omitempty"`
+	// WorkVolume for work dir. valid in job pod.
+	// +optional
+	WorkVolume *corev1.Volume `json:"workVolume,omitempty"`
 }
 
 type PipelineProject struct {
