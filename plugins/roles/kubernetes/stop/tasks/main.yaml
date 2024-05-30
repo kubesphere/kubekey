@@ -1,0 +1,14 @@
+---
+- name: Stop kubelet in kubernetes
+  command: systemctl stop kubelet
+
+- name: Stop cri in kubernetes
+  block:
+    - name: Stop docker in kubernetes
+      command: |
+        systemctl stop docker
+      when: cri.container_manager == 'docker'
+    - name: Stop containerd in kubernetes
+      command: |
+        systemctl stop containerd
+      when: cri.container_manager == 'containerd'

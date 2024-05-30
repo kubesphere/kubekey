@@ -27,8 +27,6 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-var builtinProjectFS fs.FS
-
 func newLocalProject(pipeline kubekeyv1.Pipeline) (Project, error) {
 	if !filepath.IsAbs(pipeline.Spec.Playbook) {
 		if pipeline.Spec.Project.Addr == "" {
