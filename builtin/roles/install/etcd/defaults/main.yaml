@@ -9,6 +9,7 @@ etcd:
     compaction_retention: 8
     snapshot_count: 10000
     data_dir: /var/lib/etcd
+    token: k8s_etcd
 #    metrics: basic
 #    quota_backend_bytes: 100
 #    max_request_bytes: 100

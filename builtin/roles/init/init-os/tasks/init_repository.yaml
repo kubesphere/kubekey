@@ -39,7 +39,7 @@
           mv /etc/apt/sources.list.kubekey.bak /etc/apt/sources.list
           mv /etc/apt/sources.list.d.kubekey.bak /etc/apt/sources.list.d
         else
-          apt install -y socat conntrack ipset ebtables chrony ipvsadm
+          apt-get update && apt install -y socat conntrack ipset ebtables chrony ipvsadm
         fi
       when: os.release.ID_LIKE == "debian"
     - name: Init rhel repository
