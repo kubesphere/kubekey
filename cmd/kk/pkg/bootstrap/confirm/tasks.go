@@ -23,6 +23,9 @@ import (
 	"regexp"
 	"strings"
 
+	versionK8S "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubernetes"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
@@ -32,6 +35,7 @@ import (
 	"github.com/modood/table"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/utils/strings/slices"
 )
 
 // PreCheckResults defines the items to be checked.
@@ -105,6 +109,27 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	fmt.Println("Before installation, ensure that your machines meet all requirements specified at")
 	fmt.Println("https://github.com/kubesphere/kubekey#requirements-and-recommendations")
 	fmt.Println("")
+
+	// check k8s version is supported
+	k8sVersion := i.KubeConf.Cluster.Kubernetes.Version
+	if k8sVersion != kubekeyapiv1alpha2.DefaultKubeVersion {
+		suppportVersions := versionK8S.SupportedK8sVersionList()
+		if !strings.HasPrefix(k8sVersion, "v") {
+			k8sVersion = "v" + k8sVersion
+		}
+		if !slices.Contains(suppportVersions, k8sVersion) {
+			fmt.Printf("The Kubernetes version: %s isn't supported.\n", k8sVersion)
+			fmt.Println("Use kk version --show-supported-k8s,show supported k8s versions")
+			fmt.Println("")
+			stopFlag = true
+		} else {
+			fmt.Println("Install k8s with specify version: ", k8sVersion)
+			fmt.Println("")
+		}
+	} else {
+		fmt.Println("Install k8s with default version: ", kubekeyapiv1alpha2.DefaultKubeVersion)
+		fmt.Println("")
+	}
 
 	if i.KubeConf.Cluster.Kubernetes.IsAtLeastV124() && i.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
 		fmt.Println("[Notice]")
