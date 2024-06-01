@@ -39,7 +39,7 @@ func NewCreateInitClusterOptions() *CreateInitClusterOptions {
 	}
 }
 
-// NewCmdUpgrade creates a new upgrade command
+// NewCmdCreateInitCluster creates a new upgrade command
 func NewCmdCreateInitCluster() *cobra.Command {
 	o := NewCreateInitClusterOptions()
 	cmd := &cobra.Command{

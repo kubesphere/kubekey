@@ -24,6 +24,7 @@ import (
 type Iso struct {
 	LocalPath string `yaml:"localPath" json:"localPath"`
 	Url       string `yaml:"url" json:"url"`
+	Checksum  string `yaml:"checksum" json:"checksum"`
 }
 
 type Repository struct {

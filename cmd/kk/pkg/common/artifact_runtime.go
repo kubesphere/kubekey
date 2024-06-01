@@ -36,6 +36,7 @@ type ArtifactArgument struct {
 	IgnoreErr          bool
 	DownloadCommand    func(path, url string) string
 	ImageStartIndex    int
+	ImageTransport     string
 	SkipRemoveArtifact bool
 }
 

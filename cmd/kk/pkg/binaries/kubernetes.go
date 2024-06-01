@@ -45,12 +45,17 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 	runc := files.NewKubeBinary("runc", arch, kubekeyapiv1alpha2.DefaultRuncVersion, path, kubeConf.Arg.DownloadCommand)
 	calicoctl := files.NewKubeBinary("calicoctl", arch, kubekeyapiv1alpha2.DefaultCalicoVersion, path, kubeConf.Arg.DownloadCommand)
 
+	buildx := files.NewKubeBinary(common.Buildx, arch, kubekeyapiv1alpha2.DefaultBuildxVersion, path, kubeConf.Arg.DownloadCommand)
+
 	binaries := []*files.KubeBinary{kubeadm, kubelet, kubectl, helm, kubecni, crictl, etcd}
 
 	if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Docker {
 		binaries = append(binaries, docker)
 		if kubeConf.Cluster.Kubernetes.IsAtLeastV124() && kubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
 			binaries = append(binaries, criDockerd)
+		}
+		if kubeConf.Arg.WithBuildx {
+			binaries = append(binaries, buildx)
 		}
 	} else if kubeConf.Cluster.Kubernetes.ContainerManager == kubekeyapiv1alpha2.Containerd {
 		binaries = append(binaries, containerd, runc)

@@ -419,6 +419,7 @@ kubectl completion bash >/etc/bash_completion.d/kubectl
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/xrwang8"><img src="https://avatars.githubusercontent.com/u/68765051?v=4?s=100" width="100px;" alt="Ronald Fletcher"/><br /><sub><b>Ronald Fletcher</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=xrwang8" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/baikjy0215"><img src="https://avatars.githubusercontent.com/u/110450904?v=4?s=100" width="100px;" alt="baikjy0215"/><br /><sub><b>baikjy0215</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=baikjy0215" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/knowmost"><img src="https://avatars.githubusercontent.com/u/167442703?v=4?s=100" width="100px;" alt="knowmost"/><br /><sub><b>knowmost</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=knowmost" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>

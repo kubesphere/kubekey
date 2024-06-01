@@ -69,6 +69,8 @@ const (
 	Isula      = "isula"
 	Runc       = "runc"
 
+	Buildx = "buildx"
+
 	// global cache key
 	// PreCheckModule
 	NodePreCheck           = "nodePreCheck"
@@ -97,4 +99,7 @@ const (
 
 	// Artifact pipeline
 	Artifact = "artifact"
+
+	// Image Copy Transports
+	DockerDaemon = "docker-daemon"
 )

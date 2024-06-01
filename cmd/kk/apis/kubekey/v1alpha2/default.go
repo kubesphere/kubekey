@@ -43,6 +43,7 @@ const (
 	DefaultEtcdPort                = "2379"
 	DefaultDockerVersion           = "24.0.9"
 	DefaultCriDockerdVersion       = "0.3.10"
+	DefaultBuildxVersion           = "v0.14.0"
 	DefaultContainerdVersion       = "1.7.13"
 	DefaultRuncVersion             = "v1.1.12"
 	DefaultCrictlVersion           = "v1.29.0"

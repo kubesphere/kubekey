@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 )
@@ -38,10 +39,18 @@ func (m *CustomScriptsModule) Init() {
 
 		taskName := fmt.Sprintf("Phase:%s(%d/%d) script:%s", m.Phase, idx, len(m.Scripts), script.Name)
 		taskDir := fmt.Sprintf("%s-%d-script", m.Phase, idx)
+
+		var hosts []connector.Host
+		if len(script.Role) > 0 {
+			hosts = m.Runtime.GetHostsByRole(script.Role)
+		} else {
+			hosts = m.Runtime.GetAllHosts()
+		}
+
 		task := &task.RemoteTask{
 			Name:     taskName,
 			Desc:     taskName,
-			Hosts:    m.Runtime.GetAllHosts(),
+			Hosts:    hosts,
 			Action:   &CustomScriptTask{taskDir: taskDir, script: script},
 			Parallel: true,
 			Retry:    1,

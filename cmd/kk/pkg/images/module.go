@@ -50,6 +50,7 @@ func (p *PullModule) Init() {
 type CopyImagesToLocalModule struct {
 	common.ArtifactModule
 	ImageStartIndex int
+	ImageTransport string
 }
 
 func (c *CopyImagesToLocalModule) Init() {
@@ -59,7 +60,7 @@ func (c *CopyImagesToLocalModule) Init() {
 	copyImage := &task.LocalTask{
 		Name:   "SaveImages",
 		Desc:   "Copy images to a local OCI path from registries",
-		Action: &SaveImages{ImageStartIndex: c.ImageStartIndex},
+		Action: &SaveImages{ImageStartIndex: c.ImageStartIndex, ImageTransport: c.ImageTransport},
 	}
 
 	c.Tasks = []task.Interface{
@@ -69,8 +70,9 @@ func (c *CopyImagesToLocalModule) Init() {
 
 type CopyImagesToRegistryModule struct {
 	common.KubeModule
-	Skip      bool
-	ImagePath string
+	Skip           bool
+	ImagePath      string
+	ImageTransport string
 }
 
 func (c *CopyImagesToRegistryModule) IsSkip() bool {
@@ -84,13 +86,14 @@ func (c *CopyImagesToRegistryModule) Init() {
 	copyImage := &task.LocalTask{
 		Name:   "CopyImagesToRegistry",
 		Desc:   "Copy images to a private registry from an artifact OCI Path",
-		Action: &CopyImagesToRegistry{ImagesPath: c.ImagePath},
+		Action: &CopyImagesToRegistry{ImagesPath: c.ImagePath, ImageTransport: c.ImageTransport},
 	}
 
 	pushManifest := &task.LocalTask{
-		Name:   "PushManifest",
-		Desc:   "Push multi-arch manifest to private registry",
-		Action: new(PushManifest),
+		Name:    "PushManifest",
+		Desc:    "Push multi-arch manifest to private registry",
+		Prepare: &ShouldPushManifest{ImageTransport: c.ImageTransport},
+		Action:  new(PushManifest),
 	}
 
 	c.Tasks = []task.Interface{
