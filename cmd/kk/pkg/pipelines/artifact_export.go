@@ -34,7 +34,7 @@ import (
 func NewArtifactExportPipeline(runtime *common.ArtifactRuntime) error {
 	m := []module.Module{
 		&confirm.CheckFileExistModule{FileName: runtime.Arg.Output},
-		&images.CopyImagesToLocalModule{},
+		&images.CopyImagesToLocalModule{ImageTransport: runtime.Arg.ImageTransport},
 		&binaries.ArtifactBinariesModule{},
 		&artifact.RepositoryModule{},
 		&artifact.ArchiveModule{},

@@ -37,6 +37,7 @@ type ArtifactImagesPushOptions struct {
 	CommonOptions *options.CommonOptions
 
 	ImageDirPath   string
+	ImageTransport string
 	Artifact       string
 	ClusterCfgFile string
 }
@@ -89,11 +90,12 @@ func (o *ArtifactImagesPushOptions) Validate(_ []string) error {
 
 func (o *ArtifactImagesPushOptions) Run() error {
 	arg := common.Argument{
-		ImagesDir: o.ImageDirPath,
-		Artifact:  o.Artifact,
-		FilePath:  o.ClusterCfgFile,
-		Debug:     o.CommonOptions.Verbose,
-		IgnoreErr: o.CommonOptions.IgnoreErr,
+		ImagesDir:      o.ImageDirPath,
+		Artifact:       o.Artifact,
+		FilePath:       o.ClusterCfgFile,
+		ImageTransport: o.ImageTransport,
+		Debug:          o.CommonOptions.Verbose,
+		IgnoreErr:      o.CommonOptions.IgnoreErr,
 	}
 	return runPush(arg)
 }
@@ -102,6 +104,7 @@ func (o *ArtifactImagesPushOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ImageDirPath, "images-dir", "", "", "Path to a KubeKey artifact images directory")
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
+	cmd.Flags().StringVarP(&o.ImageTransport, "image-transport", "", "", "Image transport to push to, take values from [docker, docker-daemon]")
 }
 
 func runPush(arg common.Argument) error {
@@ -122,7 +125,8 @@ func newImagesPushPipeline(runtime *common.KubeRuntime) error {
 
 	m := []module.Module{
 		&artifact.UnArchiveModule{Skip: noArtifact},
-		&images.CopyImagesToRegistryModule{ImagePath: runtime.Arg.ImagesDir},
+		&images.CopyImagesToRegistryModule{ImagePath: runtime.Arg.ImagesDir,
+			ImageTransport: runtime.Arg.ImageTransport},
 		&filesystem.ChownWorkDirModule{},
 	}
 
