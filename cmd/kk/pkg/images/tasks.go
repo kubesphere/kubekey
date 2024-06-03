@@ -155,6 +155,7 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 
 type SaveImages struct {
 	common.ArtifactAction
+	ImageStartIndex int
 	ImageTransport string
 }
 
@@ -165,7 +166,10 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 	if err := coreutil.Mkdir(dirName); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "mkdir %s failed", dirName)
 	}
-	for _, image := range s.Manifest.Spec.Images {
+	for index, image := range s.Manifest.Spec.Images {
+		if s.ImageStartIndex > index {
+			continue
+		}
 		if err := validateImageName(image); err != nil {
 			return err
 		}
@@ -187,8 +191,8 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 			// oci:./kubekey/artifact/images:docker.io/kubesphere/kube-apiserver:v1.21.5-amd64
 			// oci:./kubekey/artifact/images:docker.io/kubesphere/kube-apiserver:v1.21.5-arm-v7
 			destName := fmt.Sprintf("oci:%s:%s-%s%s", dirName, image, arch, variant)
-			logger.Log.Infof("Source: %s", srcName)
-			logger.Log.Infof("Destination: %s", destName)
+			logger.Log.Infof("[%d]Source: %s", index, srcName)
+			logger.Log.Infof("[%d]Destination: %s", index, destName)
 
 			o := &CopyImageOptions{
 				srcImage: &srcImageOptions{
