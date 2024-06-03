@@ -51,10 +51,13 @@ type Pipeline struct {
 	PipelineCache   *cache.Cache
 	ModuleCachePool sync.Pool
 	ModulePostHooks []module.PostHookInterface
+	SkipPrintLogo   bool
 }
 
 func (p *Pipeline) Init() error {
-	fmt.Print(logo)
+	if !p.SkipPrintLogo {
+		fmt.Print(logo)
+	}
 	p.PipelineCache = cache.NewCache()
 	p.SpecHosts = len(p.Runtime.GetAllHosts())
 	//if err := p.Runtime.GenerateWorkDir(); err != nil {

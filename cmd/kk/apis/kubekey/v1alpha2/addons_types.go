@@ -17,11 +17,13 @@
 package v1alpha2
 
 type Addon struct {
-	Name      string  `yaml:"name" json:"name,omitempty"`
-	Namespace string  `yaml:"namespace" json:"namespace,omitempty"`
-	Sources   Sources `yaml:"sources" json:"sources,omitempty"`
-	Retries   int     `yaml:"retries" json:"retries,omitempty"`
-	Delay     int     `yaml:"delay" json:"delay,omitempty"`
+	Name        string          `yaml:"name" json:"name,omitempty"`
+	Namespace   string          `yaml:"namespace" json:"namespace,omitempty"`
+	PreInstall  []CustomScripts `yaml:"preInstall" json:"preInstall,omitempty"`
+	Sources     Sources         `yaml:"sources" json:"sources,omitempty"`
+	PostInstall []CustomScripts `yaml:"postInstall" json:"postInstall,omitempty"`
+	Retries     int             `yaml:"retries" json:"retries,omitempty"`
+	Delay       int             `yaml:"delay" json:"delay,omitempty"`
 }
 
 type Sources struct {
