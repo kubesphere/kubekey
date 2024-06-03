@@ -53,12 +53,69 @@ type PipelineSpec struct {
 	// SkipTags is the tags of playbook which skip execute
 	// +optional
 	SkipTags []string `json:"skipTags,omitempty"`
-	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
+	// If Debug mode is true, It will retain runtime data after a successful execution of Pipeline,
+	// which includes task execution status and parameters.
 	// +optional
 	Debug bool `json:"debug,omitempty"`
-	// WorkVolume for work dir. valid in job pod.
+	// when execute in kubernetes, pipeline will create ob or cornJob to execute.
 	// +optional
-	WorkVolume *corev1.Volume `json:"workVolume,omitempty"`
+	JobSpec PipelineJobSpec `json:"jobSpec,omitempty"`
+}
+
+// PipelineJobSpec set the spec of the job that allows configuration
+// Each time the pipeline is executed, usually only one pod is created and will not be re-executed after failure.
+type PipelineJobSpec struct {
+	// when Schedule is not empty, pipeline will create CornJob, otherwise pipeline will create Job.
+	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
+	// +optional
+	Schedule string `json:"schedule,omitempty"`
+
+	// The number of successful finished jobs to retain. Value must be non-negative integer.
+	// Defaults to 3.
+	// +optional
+	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+
+	// The number of failed finished jobs to retain. Value must be non-negative integer.
+	// Defaults to 1.
+	// +optional
+	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
+
+	// suspend specifies whether the Job controller should create Pods or not. If
+	// a Job is created with suspend set to true, no Pods are created by the Job
+	// controller. If a Job is suspended after creation (i.e. the flag goes from
+	// false to true), the Job controller will delete all active Pods associated
+	// with this Job. Users must design their workload to gracefully handle this.
+	// Suspending a Job will reset the StartTime field of the Job, effectively
+	// resetting the ActiveDeadlineSeconds timer too. Defaults to false.
+	//
+	// +optional
+	Suspend *bool `json:"suspend,omitempty"`
+
+	// Specifies the duration in seconds relative to the startTime that the job
+	// may be continuously active before the system tries to terminate it; value
+	// must be positive integer. If a Job is suspended (at creation or through an
+	// update), this timer will effectively be stopped and reset when the Job is
+	// resumed again.
+	// +optional
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
+
+	// ttlSecondsAfterFinished limits the lifetime of a Job that has finished
+	// execution (either Complete or Failed). If this field is set,
+	// ttlSecondsAfterFinished after the Job finishes, it is eligible to be
+	// automatically deleted. When the Job is being deleted, its lifecycle
+	// guarantees (e.g. finalizers) will be honored. If this field is unset,
+	// the Job won't be automatically deleted. If this field is set to zero,
+	// the Job becomes eligible to be deleted immediately after it finishes.
+	// +optional
+	TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
+
+	// Volumes in job pod.
+	// +optional
+	Volumes []corev1.Volume `json:"workVolume,omitempty"`
+
+	// VolumeMounts in job pod.
+	// +optional
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 
 type PipelineProject struct {
@@ -131,7 +188,6 @@ type PipelineFailedDetailHost struct {
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 // +kubebuilder:printcolumn:name="Total",type="integer",JSONPath=".status.taskResult.total"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:printcolumn:name="Job",type="string",JSONPath=".metadata.labels['kubekey\\.kubesphere\\.io/job']"
 
 type Pipeline struct {
 	metav1.TypeMeta   `json:",inline"`

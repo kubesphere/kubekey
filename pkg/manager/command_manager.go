@@ -42,23 +42,30 @@ func (m *commandManager) Run(ctx context.Context) error {
 	defer func() {
 		klog.Infof("[Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v", ctrlclient.ObjectKeyFromObject(m.Pipeline),
 			m.Pipeline.Status.TaskResult.Total, m.Pipeline.Status.TaskResult.Success, m.Pipeline.Status.TaskResult.Ignored, m.Pipeline.Status.TaskResult.Failed)
-		// update pipeline status
-		if err := m.Client.Status().Patch(ctx, m.Pipeline, ctrlclient.MergeFrom(cp)); err != nil {
-			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-		}
-
 		if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kubekeyv1.PipelinePhaseSucceed {
 			klog.Infof("[Pipeline %s] clean runtime directory", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 			// clean runtime directory
 			if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
-				klog.ErrorS(err, "Clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())
+				klog.ErrorS(err, "clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())
 			}
 		}
+
+		if m.Pipeline.Spec.JobSpec.Schedule != "" { // if pipeline is cornJob. it's always running.
+			m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
+		}
+		// update pipeline status
+		if err := m.Client.Status().Patch(ctx, m.Pipeline, ctrlclient.MergeFrom(cp)); err != nil {
+			klog.ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+		}
+
 	}()
 
 	klog.Infof("[Pipeline %s] start task controller", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+	m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseSucceed
 	if err := executor.NewTaskExecutor(m.Client, m.Pipeline).Exec(ctx); err != nil {
-		klog.ErrorS(err, "Create task controller error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+		klog.ErrorS(err, "executor tasks error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+		m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
+		m.Pipeline.Status.Reason = err.Error()
 		return err
 	}
 

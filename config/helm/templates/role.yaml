@@ -38,11 +38,13 @@ rules:
     - batch
   resources:
     - jobs
+    - cronjobs
   verbs:
     - get
     - list
     - watch
     - create
+    - update
 - apiGroups:
     - ""
   resources:
@@ -75,13 +77,14 @@ rules:
     resources:
       - configs
       - inventories
+      - pipelines
     verbs:
       - get
       - list
   - apiGroups:
       - kubekey.kubesphere.io
     resources:
-      - pipelines
       - pipelines/status
     verbs:
-      - "*"
+      - update
+      - patch

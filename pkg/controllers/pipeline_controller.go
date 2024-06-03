@@ -36,11 +36,9 @@ import (
 	ctrlfinalizer "sigs.k8s.io/controller-runtime/pkg/finalizer"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 const (
-	labelJob              = "kubekey.kubesphere.io/job"
 	defaultExecutorImage  = "hub.kubesphere.com.cn/kubekey/executor:latest"
 	defaultPullPolicy     = "IfNotPresent"
 	defaultServiceAccount = "kk-executor"
@@ -99,36 +97,101 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *kubekeyv1.Pipeline) (ctrl.Result, error) {
-	cp := pipeline.DeepCopy()
-	defer func() {
-		// update pipeline status
-		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(cp)); err != nil {
-			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-		}
-	}()
+	if err := r.checkServiceAccount(ctx, *pipeline); err != nil {
+		return ctrl.Result{}, err
+	}
 
-	// check if running executor exist
-	if jobName, ok := pipeline.Labels[labelJob]; ok {
-		if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: jobName}, cp); err == nil {
-			// job is have create
-			return ctrl.Result{}, nil
-		} else if !errors.IsNotFound(err) {
-			// get job failed
+	// check if job is exist
+	switch pipeline.Spec.JobSpec.Schedule {
+	case "": // pipeline will create job
+		jobs := &batchv1.JobList{}
+		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace)); err != nil {
+			if !errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+		} else {
+			for _, job := range jobs.Items {
+				for _, ownerReference := range job.OwnerReferences {
+					if ownerReference.APIVersion == kubekeyv1.SchemeGroupVersion.String() && ownerReference.Kind == "Pipeline" &&
+						ownerReference.UID == pipeline.UID && ownerReference.Name == pipeline.Name {
+						return ctrl.Result{}, nil
+					}
+				}
+			}
+		}
+
+		// create job
+		job := &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: pipeline.Name + "-",
+				Namespace:    pipeline.Namespace,
+			},
+			Spec: r.GenerateJobSpec(*pipeline),
+		}
+		if err := controllerutil.SetControllerReference(pipeline, job, r.Scheme); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+
+		if err := r.Client.Create(ctx, job); err != nil {
+			return ctrl.Result{}, err
+		}
+	default: // pipeline will create cronJob
+		jobs := &batchv1.CronJobList{}
+		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace)); err != nil {
+			if !errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+		} else {
+			for _, job := range jobs.Items {
+				for _, ownerReference := range job.OwnerReferences {
+					if ownerReference.APIVersion == kubekeyv1.SchemeGroupVersion.String() && ownerReference.Kind == "Pipeline" &&
+						ownerReference.UID == pipeline.UID && ownerReference.Name == pipeline.Name {
+						// update cronJob from pipeline, the pipeline status should always be running.
+						if pipeline.Spec.JobSpec.Suspend != job.Spec.Suspend {
+							cp := job.DeepCopy()
+							job.Spec.Suspend = pipeline.Spec.JobSpec.Suspend
+							// update pipeline status
+							if err := r.Client.Status().Patch(ctx, &job, ctrlclient.MergeFrom(cp)); err != nil {
+								klog.V(5).ErrorS(err, "update corn job error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline),
+									"cronJob", ctrlclient.ObjectKeyFromObject(&job))
+							}
+						}
+						return ctrl.Result{}, nil
+					}
+				}
+			}
+		}
+
+		// create cornJob
+		cornJob := &batchv1.CronJob{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: pipeline.Name + "-",
+				Namespace:    pipeline.Namespace,
+			},
+			Spec: batchv1.CronJobSpec{
+				Schedule: pipeline.Spec.JobSpec.Schedule,
+				JobTemplate: batchv1.JobTemplateSpec{
+					Spec: r.GenerateJobSpec(*pipeline),
+				},
+				Suspend:                    pipeline.Spec.JobSpec.Suspend,
+				SuccessfulJobsHistoryLimit: pipeline.Spec.JobSpec.SuccessfulJobsHistoryLimit,
+				FailedJobsHistoryLimit:     pipeline.Spec.JobSpec.FailedJobsHistoryLimit,
+			},
+		}
+		if err := controllerutil.SetControllerReference(pipeline, cornJob, r.Scheme); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := r.Client.Create(ctx, cornJob); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	// get image from env
-	image, ok := os.LookupEnv("EXECUTOR_IMAGE")
-	if !ok {
-		image = defaultExecutorImage
-	}
-	// get image from env
-	imagePullPolicy, ok := os.LookupEnv("EXECUTOR_IMAGE_PULLPOLICY")
-	if !ok {
-		imagePullPolicy = defaultPullPolicy
-	}
+	return ctrl.Result{}, nil
+}
+
+// checkServiceAccount when ServiceAccount is not exist, create it.
+func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline kubekeyv1.Pipeline) error {
 	// get ServiceAccount name for executor pod
 	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
 	if !ok {
@@ -138,23 +201,23 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 	var sa = &corev1.ServiceAccount{}
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, sa); err != nil {
 		if !errors.IsNotFound(err) {
-			klog.ErrorS(err, "get service account", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-			return ctrl.Result{}, err
+			klog.ErrorS(err, "get service account", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+			return err
 		}
 		// create sa
 		if err := r.Client.Create(ctx, &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{Name: saName, Namespace: pipeline.Namespace},
 		}); err != nil {
-			klog.ErrorS(err, "create service account error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-			return ctrl.Result{}, err
+			klog.ErrorS(err, "create service account error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+			return err
 		}
 	}
 
 	var rb = &rbacv1.ClusterRoleBinding{}
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, rb); err != nil {
 		if !errors.IsNotFound(err) {
-			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-			return ctrl.Result{}, err
+			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+			return err
 		}
 		//create rolebinding
 		if err := r.Client.Create(ctx, &rbacv1.ClusterRoleBinding{
@@ -173,67 +236,56 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 				},
 			},
 		}); err != nil {
-			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-			return ctrl.Result{}, err
+			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+			return err
 		}
 	}
+	return nil
+}
 
-	// create a job to executor the pipeline
-	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: pipeline.Name + "-",
-			Namespace:    pipeline.Namespace,
-		},
-		Spec: batchv1.JobSpec{
-			Parallelism:  ptr.To[int32](1),
-			Completions:  ptr.To[int32](1),
-			BackoffLimit: ptr.To[int32](0),
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					ServiceAccountName: saName,
-					RestartPolicy:      "Never",
-					Containers: []corev1.Container{
-						{
-							Name:            "executor",
-							Image:           image,
-							ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
-							Command:         []string{"kk"},
-							Args: []string{"pipeline",
-								"--name", pipeline.Name,
-								"--namespace", pipeline.Namespace},
-						},
+func (r *PipelineReconciler) GenerateJobSpec(pipeline kubekeyv1.Pipeline) batchv1.JobSpec {
+	// get ServiceAccount name for executor pod
+	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
+	if !ok {
+		saName = defaultServiceAccount
+	}
+	// get image from env
+	image, ok := os.LookupEnv("EXECUTOR_IMAGE")
+	if !ok {
+		image = defaultExecutorImage
+	}
+	// get image from env
+	imagePullPolicy, ok := os.LookupEnv("EXECUTOR_IMAGE_PULLPOLICY")
+	if !ok {
+		imagePullPolicy = defaultPullPolicy
+	}
+
+	// create a job spec
+	jobSpec := batchv1.JobSpec{
+		Parallelism:  ptr.To[int32](1),
+		Completions:  ptr.To[int32](1),
+		BackoffLimit: ptr.To[int32](0),
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				ServiceAccountName: saName,
+				RestartPolicy:      "Never",
+				Volumes:            pipeline.Spec.JobSpec.Volumes,
+				Containers: []corev1.Container{
+					{
+						Name:            "executor",
+						Image:           image,
+						ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
+						Command:         []string{"kk"},
+						Args: []string{"pipeline",
+							"--name", pipeline.Name,
+							"--namespace", pipeline.Namespace},
+						VolumeMounts: pipeline.Spec.JobSpec.VolumeMounts,
 					},
 				},
 			},
 		},
 	}
-	// add ownerReference
-	if err := controllerutil.SetOwnerReference(pipeline, job, r.Scheme); err != nil {
-		return ctrl.Result{}, err
-	}
-	// add work-dir volume
-	if pipeline.Spec.WorkVolume != nil {
-		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, *pipeline.Spec.WorkVolume)
-		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      pipeline.Spec.WorkVolume.Name,
-			MountPath: _const.GetWorkDir(),
-		})
-	}
-	err := r.Create(ctx, job)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// add job label to pipeline
-	cp = pipeline.DeepCopy()
-	metav1.SetMetaDataLabel(&pipeline.ObjectMeta, labelJob, job.Name)
-	// update pipeline status
-	if err := r.Client.Patch(ctx, pipeline, ctrlclient.MergeFrom(cp)); err != nil {
-		klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
+	return jobSpec
 }
 
 // SetupWithManager sets up the controller with the Manager.

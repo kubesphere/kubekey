@@ -84,6 +84,7 @@ func run(ctx context.Context, pipeline *kubekeyv1.Pipeline, config *kubekeyv1.Co
 		klog.ErrorS(err, "Create inventory error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return err
 	}
+	pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
 	if err := client.Create(ctx, pipeline); err != nil {
 		klog.ErrorS(err, "Create pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return err
