@@ -76,20 +76,10 @@ type execBlockOptions struct {
 }
 
 func (e executor) Exec(ctx context.Context) error {
-	e.pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
-	defer func() {
-		// update pipeline phase
-		e.pipeline.Status.Phase = kubekeyv1.PipelinePhaseSucceed
-		if len(e.pipeline.Status.FailedDetail) != 0 {
-			e.pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
-		}
-	}()
-
 	klog.V(6).InfoS("deal project", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 	pj, err := project.New(*e.pipeline, true)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Deal project error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-		return err
+		return fmt.Errorf("deal project error: %w", err)
 	}
 
 	// convert to transfer.Playbook struct
@@ -99,8 +89,7 @@ func (e executor) Exec(ctx context.Context) error {
 	}
 	pb, err := pj.MarshalPlaybook()
 	if err != nil {
-		klog.V(4).ErrorS(nil, "convert playbook error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-		return err
+		return fmt.Errorf("convert playbook error: %w", err)
 	}
 
 	for _, play := range pb.Play {
@@ -123,13 +112,12 @@ func (e executor) Exec(ctx context.Context) error {
 			for _, h := range hosts {
 				gfv, err := getGatherFact(ctx, h, e.variable)
 				if err != nil {
-					klog.V(4).ErrorS(err, "Get gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "host", h)
-					return err
+					return fmt.Errorf("get gather fact error: %w", err)
 				}
 				// merge host information to runtime variable
 				if err := e.variable.Merge(variable.MergeRemoteVariable(h, gfv)); err != nil {
 					klog.V(4).ErrorS(err, "Merge gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "host", h)
-					return err
+					return fmt.Errorf("merge gather fact error: %w", err)
 				}
 			}
 		}
@@ -143,8 +131,7 @@ func (e executor) Exec(ctx context.Context) error {
 			// group hosts by serial. run the playbook by serial
 			batchHosts, err = converter.GroupHostBySerial(hosts, play.Serial.Data)
 			if err != nil {
-				klog.V(4).ErrorS(err, "Group host by serial error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-				return err
+				return fmt.Errorf("group host by serial error: %w", err)
 			}
 		}
 
@@ -157,8 +144,7 @@ func (e executor) Exec(ctx context.Context) error {
 			}
 
 			if err := e.mergeVariable(ctx, e.variable, play.Vars, serials...); err != nil {
-				klog.V(4).ErrorS(err, "merge variable error", "pipeline", e.pipeline, "block", play.Name)
-				return err
+				return fmt.Errorf("merge variable error: %w", err)
 			}
 
 			// generate task from pre tasks
@@ -166,15 +152,13 @@ func (e executor) Exec(ctx context.Context) error {
 				hosts:  serials,
 				blocks: play.PreTasks,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Get pre task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "play", play.Name)
-				return err
+				return fmt.Errorf("execute pre-tasks from play error: %w", err)
 			}
 
 			// generate task from role
 			for _, role := range play.Roles {
 				if err := e.mergeVariable(ctx, e.variable, role.Vars, serials...); err != nil {
-					klog.V(4).ErrorS(err, "merge variable error", "pipeline", e.pipeline, "block", role.Name)
-					return err
+					return fmt.Errorf("merge variable error: %w", err)
 				}
 
 				if err := e.execBlock(ctx, execBlockOptions{
@@ -183,8 +167,7 @@ func (e executor) Exec(ctx context.Context) error {
 					role:   role.Role,
 					when:   role.When.Data,
 				}); err != nil {
-					klog.V(4).ErrorS(err, "Get role task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "play", play.Name, "role", role.Role)
-					return err
+					return fmt.Errorf("execute role-tasks error: %w", err)
 				}
 			}
 			// generate task from tasks
@@ -192,16 +175,14 @@ func (e executor) Exec(ctx context.Context) error {
 				hosts:  serials,
 				blocks: play.Tasks,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Get task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "play", play.Name)
-				return err
+				return fmt.Errorf("execute tasks error: %w", err)
 			}
 			// generate task from post tasks
 			if err := e.execBlock(ctx, execBlockOptions{
 				hosts:  serials,
 				blocks: play.Tasks,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Get post task from  play error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "play", play.Name)
-				return err
+				return fmt.Errorf("execute post-tasks error: %w", err)
 			}
 		}
 	}
@@ -233,7 +214,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 				blocks: at.Block,
 				when:   append(options.when, at.When.Data...),
 			}); err != nil {
-				klog.V(4).ErrorS(err, "Get block task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+				klog.V(4).ErrorS(err, "execute tasks from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return err
 			}
 
@@ -245,7 +226,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					role:   options.role,
 					when:   append(options.when, at.When.Data...),
 				}); err != nil {
-					klog.V(4).ErrorS(err, "Get rescue task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+					klog.V(4).ErrorS(err, "execute tasks from rescue error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
 				}
 			}
@@ -258,7 +239,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					role:   options.role,
 					when:   append(options.when, at.When.Data...),
 				}); err != nil {
-					klog.V(4).ErrorS(err, "Get always task from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+					klog.V(4).ErrorS(err, "execute tasks from always error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
 				}
 			}
@@ -344,11 +325,9 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					Hosts: hostReason,
 				})
 				e.pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
-				e.pipeline.Status.Reason = fmt.Sprintf("task %s run failed", task.Name)
-				return fmt.Errorf("task %s run failed", task.Name)
+				return fmt.Errorf("task %s run failed", task.Spec.Name)
 			}
 		}
-
 	}
 	return nil
 }
