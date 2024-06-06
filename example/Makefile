@@ -17,11 +17,19 @@ run-playbook: build
 
 .PHONY: precheck
 precheck: build
-	$(BaseDir)/example/kk-alpha precheck --work-dir=$(BaseDir)/test \
-	 --inventory=$(BaseDir)/inventory.yaml --debug
+	$(BaseDir)/kk-alpha precheck --work-dir=$(BaseDir)/example/test \
+	 --inventory=$(BaseDir)/example/inventory.yaml --debug
 
 .PHONY: create-cluster
 create-cluster: build
-	$(BaseDir)/example/kk-alpha create cluster --work-dir=$(BaseDir)/test \
-	 --inventory=$(BaseDir)/inventory.yaml \
+	$(BaseDir)/kk-alpha create cluster --work-dir=$(BaseDir)/example/test \
+	 --inventory=$(BaseDir)/example/inventory.yaml \
 	--debug
+
+.PHONY: run-plugin
+run-local: build
+	@$(BaseDir)/kk-alpha  run --work-dir=$(BaseDir)/example/test \
+     	--project-addr=$(BaseDir)/plugins \
+     	--inventory=$(BaseDir)/example/inventory.yaml \
+     	--set sonobuoy.plugins.kube_bench.enabled=true \
+     	playbooks/sonobuoy.yaml

@@ -96,3 +96,7 @@ func (p builtinProject) ReadFile(path string, option GetFileOption) ([]byte, err
 func (p builtinProject) MarshalPlaybook() (*kkcorev1.Playbook, error) {
 	return marshalPlaybook(p.FS, p.playbook)
 }
+
+func (p builtinProject) Rel(root string, path string, option GetFileOption) (string, error) {
+	return filepath.Rel(p.getFilePath(root, option), path)
+}

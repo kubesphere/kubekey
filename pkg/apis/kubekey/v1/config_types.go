@@ -50,8 +50,10 @@ func init() {
 
 func (c *Config) SetValue(key string, value any) error {
 	configMap := make(map[string]any)
-	if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
-		return err
+	if c.Spec.Raw != nil {
+		if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
+			return err
+		}
 	}
 	// set value
 	var f func(input map[string]any, key []string, value any) any

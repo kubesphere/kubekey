@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -33,19 +32,14 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
 		return "", err.Error()
 	}
-	// args
-	commandParam, err := variable.Extension2String(ha.(map[string]any), options.Args)
-	if err != nil {
-		return "", err.Error()
-	}
 	// get connector
 	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
 	if err != nil {
 		return "", err.Error()
 	}
 	defer conn.Close(ctx)
-	// execute command
-	command, err := tmpl.ParseString(ha.(map[string]any), commandParam)
+	// command string
+	command, err := variable.Extension2String(ha.(map[string]any), options.Args)
 	if err != nil {
 		return "", err.Error()
 	}

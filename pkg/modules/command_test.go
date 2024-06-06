@@ -44,7 +44,7 @@ func TestCommand(t *testing.T) {
 		},
 		{
 			name: "exec command success",
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
 				output: []byte("success"),
 			}),
 			opt: ExecOptions{
@@ -56,7 +56,7 @@ func TestCommand(t *testing.T) {
 		},
 		{
 			name: "exec command failed",
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
+			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
 				commandErr: fmt.Errorf("failed"),
 			}),
 			opt: ExecOptions{

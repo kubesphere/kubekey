@@ -1,7 +1,7 @@
 apiVersion: kubekey.kubesphere.io/v1
 kind: Config
 metadata:
-  name: example
+  name: default
 spec:
   # zone for kk. how to download files
 #  kkzone: cn

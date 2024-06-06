@@ -39,7 +39,7 @@ func (c *localConnector) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *localConnector) CopyFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error {
+func (c *localConnector) PutFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error {
 	// create remote file
 	if _, err := os.Stat(filepath.Dir(remoteFile)); err != nil && os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(remoteFile), mode); err != nil {

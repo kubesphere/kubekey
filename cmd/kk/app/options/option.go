@@ -29,9 +29,21 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubesphere/kubekey/v4/builtin"
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 )
+
+var defaultConfig = &kubekeyv1.Config{
+	TypeMeta: metav1.TypeMeta{
+		APIVersion: kubekeyv1.SchemeGroupVersion.String(),
+		Kind:       "Config",
+	},
+	ObjectMeta: metav1.ObjectMeta{Name: "default"}}
+var defaultInventory = &kubekeyv1.Inventory{
+	TypeMeta: metav1.TypeMeta{
+		APIVersion: kubekeyv1.SchemeGroupVersion.String(),
+		Kind:       "Inventory",
+	},
+	ObjectMeta: metav1.ObjectMeta{Name: "default"}}
 
 type CommonOptions struct {
 	// Playbook which to execute.
@@ -69,7 +81,7 @@ func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	gfs := fss.FlagSet("generic")
 	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
-	gfs.StringSliceVar(&o.Set, "set", o.Set, "set value in config. format --set key=val")
+	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val")
 	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.ini")
 	gfs.BoolVarP(&o.Debug, "debug", "d", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
 	gfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "the namespace which pipeline will be executed, all reference resources(pipeline, config, inventory, task) should in the same namespace")
@@ -132,45 +144,34 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 }
 
 func genConfig(configFile string) (*kubekeyv1.Config, error) {
-	var (
-		config = &kubekeyv1.Config{}
-		cdata  []byte
-		err    error
-	)
 	if configFile != "" {
-		cdata, err = os.ReadFile(configFile)
-	} else {
-		cdata = builtin.DefaultConfig
+		cdata, err := os.ReadFile(configFile)
+		if err != nil {
+			return nil, fmt.Errorf("read config file error: %w", err)
+		}
+		if err := yaml.Unmarshal(cdata, defaultConfig); err != nil {
+			return nil, fmt.Errorf("unmarshal config file error: %w", err)
+		}
+
 	}
-	if err != nil {
-		return nil, fmt.Errorf("read config file error: %w", err)
-	}
-	if err := yaml.Unmarshal(cdata, config); err != nil {
-		return nil, fmt.Errorf("unmarshal config file error: %w", err)
-	}
-	return config, nil
+
+	return defaultConfig, nil
 }
 
 func genInventory(inventoryFile string) (*kubekeyv1.Inventory, error) {
-	var (
-		inventory = &kubekeyv1.Inventory{}
-		cdata     []byte
-		err       error
-	)
 	if inventoryFile != "" {
-		cdata, err = os.ReadFile(inventoryFile)
-	} else {
-		cdata = builtin.DefaultInventory
+		cdata, err := os.ReadFile(inventoryFile)
+		if err != nil {
+			klog.V(4).ErrorS(err, "read config file error")
+			return nil, err
+		}
+		if err := yaml.Unmarshal(cdata, defaultInventory); err != nil {
+			klog.V(4).ErrorS(err, "unmarshal config file error")
+			return nil, err
+		}
 	}
-	if err != nil {
-		klog.V(4).ErrorS(err, "read config file error")
-		return nil, err
-	}
-	if err := yaml.Unmarshal(cdata, inventory); err != nil {
-		klog.V(4).ErrorS(err, "unmarshal config file error")
-		return nil, err
-	}
-	return inventory, nil
+
+	return defaultInventory, nil
 }
 
 func setValue(config *kubekeyv1.Config, key, val string) error {
@@ -189,6 +190,10 @@ func setValue(config *kubekeyv1.Config, key, val string) error {
 			return err
 		}
 		return config.SetValue(key, value)
+	case strings.ToUpper(val) == "TRUE" || strings.ToUpper(val) == "YES" || strings.ToUpper(val) == "Y":
+		return config.SetValue(key, true)
+	case strings.ToUpper(val) == "FALSE" || strings.ToUpper(val) == "NO" || strings.ToUpper(val) == "N":
+		return config.SetValue(key, false)
 	default:
 		return config.SetValue(key, val)
 	}

@@ -70,6 +70,7 @@ func init() {
 	RegisterModule("gen_cert", ModuleGenCert)
 }
 
+// ConnKey for connector which store in context
 var ConnKey = struct{}{}
 
 func getConnector(ctx context.Context, host string, data map[string]any) (connector.Connector, error) {

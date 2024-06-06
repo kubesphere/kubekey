@@ -39,6 +39,8 @@ import (
 )
 
 const (
+	// jobLabel set in job or cronJob. value is which pipeline belongs to.
+	jobLabel              = "kubekey.kubesphere.io/pipeline"
 	defaultExecutorImage  = "hub.kubesphere.com.cn/kubekey/executor:latest"
 	defaultPullPolicy     = "IfNotPresent"
 	defaultServiceAccount = "kk-executor"
@@ -67,7 +69,6 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if pipeline.DeletionTimestamp != nil {
 		klog.V(5).InfoS("pipeline is deleting", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-
 		return ctrl.Result{}, nil
 	}
 
@@ -105,19 +106,13 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 	switch pipeline.Spec.JobSpec.Schedule {
 	case "": // pipeline will create job
 		jobs := &batchv1.JobList{}
-		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace)); err != nil {
-			if !errors.IsNotFound(err) {
-				return ctrl.Result{}, err
-			}
-		} else {
-			for _, job := range jobs.Items {
-				for _, ownerReference := range job.OwnerReferences {
-					if ownerReference.APIVersion == kubekeyv1.SchemeGroupVersion.String() && ownerReference.Kind == "Pipeline" &&
-						ownerReference.UID == pipeline.UID && ownerReference.Name == pipeline.Name {
-						return ctrl.Result{}, nil
-					}
-				}
-			}
+		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace), ctrlclient.MatchingLabels{
+			jobLabel: pipeline.Name,
+		}); err != nil && !errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		} else if len(jobs.Items) != 0 {
+			// could find exist job
+			return ctrl.Result{}, nil
 		}
 
 		// create job
@@ -125,6 +120,9 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: pipeline.Name + "-",
 				Namespace:    pipeline.Namespace,
+				Labels: map[string]string{
+					jobLabel: pipeline.Name,
+				},
 			},
 			Spec: r.GenerateJobSpec(*pipeline),
 		}
@@ -137,29 +135,26 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 		}
 	default: // pipeline will create cronJob
 		jobs := &batchv1.CronJobList{}
-		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace)); err != nil {
-			if !errors.IsNotFound(err) {
-				return ctrl.Result{}, err
-			}
-		} else {
+		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace), ctrlclient.MatchingLabels{
+			jobLabel: pipeline.Name,
+		}); err != nil && !errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+
+		} else if len(jobs.Items) != 0 {
+			// could find exist cronJob
 			for _, job := range jobs.Items {
-				for _, ownerReference := range job.OwnerReferences {
-					if ownerReference.APIVersion == kubekeyv1.SchemeGroupVersion.String() && ownerReference.Kind == "Pipeline" &&
-						ownerReference.UID == pipeline.UID && ownerReference.Name == pipeline.Name {
-						// update cronJob from pipeline, the pipeline status should always be running.
-						if pipeline.Spec.JobSpec.Suspend != job.Spec.Suspend {
-							cp := job.DeepCopy()
-							job.Spec.Suspend = pipeline.Spec.JobSpec.Suspend
-							// update pipeline status
-							if err := r.Client.Status().Patch(ctx, &job, ctrlclient.MergeFrom(cp)); err != nil {
-								klog.V(5).ErrorS(err, "update corn job error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline),
-									"cronJob", ctrlclient.ObjectKeyFromObject(&job))
-							}
-						}
-						return ctrl.Result{}, nil
+				// update cronJob from pipeline, the pipeline status should always be running.
+				if pipeline.Spec.JobSpec.Suspend != job.Spec.Suspend {
+					cp := job.DeepCopy()
+					job.Spec.Suspend = pipeline.Spec.JobSpec.Suspend
+					// update pipeline status
+					if err := r.Client.Status().Patch(ctx, &job, ctrlclient.MergeFrom(cp)); err != nil {
+						klog.V(5).ErrorS(err, "update corn job error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline),
+							"cronJob", ctrlclient.ObjectKeyFromObject(&job))
 					}
 				}
 			}
+			return ctrl.Result{}, nil
 		}
 
 		// create cornJob
@@ -167,6 +162,9 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: pipeline.Name + "-",
 				Namespace:    pipeline.Namespace,
+				Labels: map[string]string{
+					jobLabel: pipeline.Name,
+				},
 			},
 			Spec: batchv1.CronJobSpec{
 				Schedule: pipeline.Spec.JobSpec.Schedule,

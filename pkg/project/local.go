@@ -63,6 +63,9 @@ type localProject struct {
 }
 
 func (p localProject) getFilePath(path string, o GetFileOption) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
 	var find []string
 	switch {
 	case o.IsFile:
@@ -106,4 +109,8 @@ func (p localProject) ReadFile(path string, option GetFileOption) ([]byte, error
 
 func (p localProject) MarshalPlaybook() (*kkcorev1.Playbook, error) {
 	return marshalPlaybook(os.DirFS(p.projectDir), p.playbook)
+}
+
+func (p localProject) Rel(root string, path string, option GetFileOption) (string, error) {
+	return filepath.Rel(p.getFilePath(root, option), path)
 }
