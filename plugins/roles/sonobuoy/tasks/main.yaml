@@ -54,7 +54,7 @@
       {% if (plugins.e2e_ks.enabled) %}-p /opt/sonobuoy/plugins/{{ item.name }}/e2e-ks.yaml {% endif %}\
       {% if (plugins.kube_bench.enabled) %}-p /opt/sonobuoy/plugins/{{ item.name }}/kube-bench.yaml -p /opt/sonobuoy/plugins/{{ item.name }}/kube-bench-master.yaml {% endif %}\
     # get result
-    sonobuoy retrieve -f {{ work_dir }}/results/sonobuoy/{{ item.name }}_result.tar.gz --kubeconfig {{ item.kubeconfig }}
+    cd {{ work_dir }} && sonobuoy retrieve -f results/sonobuoy/{{ item.name }}_result.tar.gz --kubeconfig {{ item.kubeconfig }}
     # clear
     sonobuoy delete --kubeconfig {{ item.kubeconfig }}
   loop: "{{ clusters }}"
