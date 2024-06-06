@@ -67,7 +67,7 @@ func (c *sshConnector) Close(ctx context.Context) error {
 	return c.client.Close()
 }
 
-func (c *sshConnector) CopyFile(ctx context.Context, src []byte, remoteFile string, mode fs.FileMode) error {
+func (c *sshConnector) PutFile(ctx context.Context, src []byte, remoteFile string, mode fs.FileMode) error {
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {

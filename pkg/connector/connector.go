@@ -35,8 +35,8 @@ type Connector interface {
 	Init(ctx context.Context) error
 	// Close closes the connection
 	Close(ctx context.Context) error
-	// CopyFile copies a file from local to remote
-	CopyFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error
+	// PutFile copies a file from local to remote
+	PutFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error
 	// FetchFile copies a file from remote to local
 	FetchFile(ctx context.Context, remoteFile string, local io.Writer) error
 	// ExecuteCommand executes a command on the remote host

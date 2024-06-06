@@ -34,6 +34,7 @@ type Project interface {
 	Stat(path string, option GetFileOption) (os.FileInfo, error)
 	WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error
 	ReadFile(path string, option GetFileOption) ([]byte, error)
+	Rel(root string, path string, option GetFileOption) (string, error)
 }
 
 type GetFileOption struct {

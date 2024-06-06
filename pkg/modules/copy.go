@@ -91,7 +91,15 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 						return fmt.Errorf("read file error: %w", err)
 					}
 					// copy file to remote
-					if err := conn.CopyFile(ctx, data, path, mode); err != nil {
+					var destFilename = destParam
+					if strings.HasSuffix(destParam, "/") {
+						rel, err := filepath.Rel(srcParam, path)
+						if err != nil {
+							return fmt.Errorf("get relative file path error: %w", err)
+						}
+						destFilename = filepath.Join(destParam, rel)
+					}
+					if err := conn.PutFile(ctx, data, destFilename, mode); err != nil {
 						return fmt.Errorf("copy file error: %w", err)
 					}
 					return nil
@@ -110,7 +118,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
 					mode = os.FileMode(modeParam)
 				}
-				if err := conn.CopyFile(ctx, data, destParam, mode); err != nil {
+				if err := conn.PutFile(ctx, data, destParam, mode); err != nil {
 					return "", fmt.Sprintf("copy file error: %v", err)
 				}
 			}
@@ -145,7 +153,15 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 					if err != nil {
 						return fmt.Errorf("read file error: %v", err)
 					}
-					if err := conn.CopyFile(ctx, data, path, mode); err != nil {
+					var destFilename = destParam
+					if strings.HasSuffix(destParam, "/") {
+						rel, err := pj.Rel(srcParam, path, project.GetFileOption{Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+						if err != nil {
+							return fmt.Errorf("get relative file path error: %w", err)
+						}
+						destFilename = filepath.Join(destParam, rel)
+					}
+					if err := conn.PutFile(ctx, data, destFilename, mode); err != nil {
 						return fmt.Errorf("copy file error: %v", err)
 					}
 					return nil
@@ -164,7 +180,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
 					mode = os.FileMode(modeParam)
 				}
-				if err := conn.CopyFile(ctx, data, destParam, mode); err != nil {
+				if err := conn.PutFile(ctx, data, destParam, mode); err != nil {
 					return "", fmt.Sprintf("copy file error: %v", err)
 				}
 			}
@@ -179,7 +195,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 			mode = os.FileMode(modeParam)
 		}
 
-		if err := conn.CopyFile(ctx, []byte(contentParam), destParam, mode); err != nil {
+		if err := conn.PutFile(ctx, []byte(contentParam), destParam, mode); err != nil {
 			return "", err.Error()
 		}
 	}

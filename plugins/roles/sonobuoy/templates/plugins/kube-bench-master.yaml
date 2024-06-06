@@ -1,0 +1,86 @@
+podSpec:
+  containers: []
+  dnsPolicy: ClusterFirstWithHostNet
+  hostIPC: true
+  hostNetwork: true
+  hostPID: true
+  serviceAccountName: sonobuoy-serviceaccount
+  tolerations:
+    - operator: Exists
+  volumes:
+    - name: var-lib-etcd
+      hostPath:
+        path: "/var/lib/etcd"
+    - name: var-lib-kubelet
+      hostPath:
+        path: "/var/lib/kubelet"
+    - name: lib-systemd
+      hostPath:
+        path: "/lib/systemd"
+    - name: etc-systemd
+      hostPath:
+        path: "/etc/systemd"
+    - name: etc-kubernetes
+      hostPath:
+        path: "/etc/kubernetes"
+  # Uncomment this volume definition if you wish to use Kubernetes version auto-detection in kube-bench.
+  # - name: usr-bin
+  #   hostPath:
+  #     path: "/usr/bin"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
+sonobuoy-config:
+  driver: DaemonSet
+  plugin-name: kube-bench-master
+  result-format: junit
+spec:
+  command:
+    - /bin/sh
+  args:
+    - -c
+    - /run-kube-bench.sh; while true; do echo "Sleeping for 1h to avoid daemonset restart"; sleep 3600; done
+  env:
+    - name: KUBERNETES_VERSION
+      value: {{ item.version }}
+    - name: TARGET_MASTER
+      value: "true"
+    - name: TARGET_NODE
+      value: "false"
+    - name: TARGET_CONTROLPLANE
+      value: "false"
+    - name: TARGET_ETCD
+      value: "false"
+    - name: TARGET_POLICIES
+      value: "false"
+  image: {{ plugins.kube_bench.image }}
+  name: plugin
+  resources: {}
+  volumeMounts:
+    - mountPath: /tmp/sonobuoy/results
+      name: results
+    - name: var-lib-etcd
+      mountPath: /var/lib/etcd
+      readOnly: true
+    - name: var-lib-kubelet
+      mountPath: /var/lib/kubelet
+      readOnly: true
+    - name: etc-systemd
+      mountPath: /etc/systemd
+      readOnly: true
+    - name: lib-systemd
+      mountPath: /lib/systemd
+      readOnly: true
+    - name: etc-kubernetes
+      mountPath: /etc/kubernetes
+      readOnly: true
+  # /usr/bin from the host is mounted to access kubectl / kubelet, used by kube-bench for auto-detecting the Kubernetes version.
+  # It is mounted at the path /usr/local/mount-from-host/bin to avoid overwriting /usr/bin within the container.
+  # You can omit this mount if you provide the version using the KUBERNETES_VERSION environment variable.
+  # - name: usr-bin
+  #   mountPath: /usr/local/mount-from-host/bin
+  #   readOnly: true

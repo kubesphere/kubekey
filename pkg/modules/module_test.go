@@ -66,7 +66,7 @@ func (t testConnector) Close(ctx context.Context) error {
 	return t.closeErr
 }
 
-func (t testConnector) CopyFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error {
+func (t testConnector) PutFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error {
 	return t.copyErr
 }
 

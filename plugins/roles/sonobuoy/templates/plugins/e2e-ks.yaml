@@ -1,0 +1,47 @@
+podSpec:
+  containers: [ ]
+  nodeSelector:
+    kubernetes.io/os: linux
+  restartPolicy: Never
+  serviceAccountName: sonobuoy-serviceaccount
+  tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - key: kubernetes.io/e2e-evict-taint-key
+      operator: Exists
+  sonobuoy-config:
+    driver: Job
+    plugin-name: e2e-ks
+    result-format: junit
+  spec:
+    command:
+      - /run_e2e.sh
+    env:
+      - name: E2E_EXTRA_ARGS
+        value: --progress-report-url=http://localhost:8099/progress
+      - name: E2E_FOCUS
+        value: \[Conformance\]
+      - name: E2E_PARALLEL
+        value: "false"
+      - name: E2E_USE_GO_RUNNER
+        value: "true"
+      - name: RESULTS_DIR
+        value: /tmp/sonobuoy/results
+      - name: SONOBUOY_K8S_VERSION
+        value: {{ item.version }}
+      - name: SONOBUOY_PROGRESS_PORT
+        value: "8099"
+      - name: SONOBUOY
+        value: "true"
+      - name: SONOBUOY_CONFIG_DIR
+        value: /tmp/sonobuoy/config
+      - name: SONOBUOY_RESULTS_DIR
+        value: /tmp/sonobuoy/results
+    image: {{ plugins.e2e_ks.image_registry }}/conformance:{{ item.version }}
+    name: e2e-ks
+    volumeMounts:
+      - mountPath: /tmp/sonobuoy/results
+        name: results

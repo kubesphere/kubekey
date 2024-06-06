@@ -25,3 +25,9 @@ import (
 
 //go:embed playbooks roles
 var BuiltinPipeline embed.FS
+
+//go:embed inventory/inventory.yaml
+var DefaultInventory []byte
+
+//go:embed inventory/config.yaml
+var DefaultConfig []byte

@@ -159,3 +159,7 @@ func (p gitProject) gitPull(ctx context.Context) error {
 
 	return nil
 }
+
+func (p gitProject) Rel(root string, path string, option GetFileOption) (string, error) {
+	return filepath.Rel(p.getFilePath(root, option), path)
+}
