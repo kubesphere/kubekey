@@ -121,7 +121,7 @@ var gops bool
 
 func AddGOPSFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&gops, "gops", false, "Whether to enable gops or not.  When enabled this option, "+
-		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
+		"kk will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the kk currently running.")
 }
 
 func InitGOPS() error {
