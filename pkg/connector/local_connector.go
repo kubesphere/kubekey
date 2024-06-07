@@ -39,35 +39,27 @@ func (c *localConnector) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *localConnector) PutFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error {
-	// create remote file
-	if _, err := os.Stat(filepath.Dir(remoteFile)); err != nil && os.IsNotExist(err) {
-		if err := os.MkdirAll(filepath.Dir(remoteFile), mode); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "remote_file", remoteFile)
+// PutFile copy src file to dst file. src is the local filename, dst is the local filename.
+func (c *localConnector) PutFile(ctx context.Context, src []byte, dst string, mode fs.FileMode) error {
+	if _, err := os.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(dst), mode); err != nil {
+			klog.V(4).ErrorS(err, "Failed to create local dir", "dst_file", dst)
 			return err
 		}
 	}
-	rf, err := os.Create(remoteFile)
-	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to create local file", "remote_file", remoteFile)
-		return err
-	}
-	if _, err := rf.Write(local); err != nil {
-		klog.V(4).ErrorS(err, "Failed to write content to local file", "remote_file", remoteFile)
-		return err
-	}
-	return rf.Chmod(mode)
+	return os.WriteFile(dst, src, mode)
 }
 
-func (c *localConnector) FetchFile(ctx context.Context, remoteFile string, local io.Writer) error {
+// FetchFile copy src file to dst writer. src is the local filename, dst is the local writer.
+func (c *localConnector) FetchFile(ctx context.Context, src string, dst io.Writer) error {
 	var err error
-	file, err := os.Open(remoteFile)
+	file, err := os.Open(src)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to read remote file failed", "remote_file", remoteFile)
+		klog.V(4).ErrorS(err, "Failed to read local file failed", "src_file", src)
 		return err
 	}
-	if _, err := io.Copy(local, file); err != nil {
-		klog.V(4).ErrorS(err, "Failed to copy remote file to local", "remote_file", remoteFile)
+	if _, err := io.Copy(dst, file); err != nil {
+		klog.V(4).ErrorS(err, "Failed to copy local file", "src_file", src)
 		return err
 	}
 	return nil
