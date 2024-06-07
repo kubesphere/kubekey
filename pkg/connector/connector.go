@@ -35,17 +35,18 @@ type Connector interface {
 	Init(ctx context.Context) error
 	// Close closes the connection
 	Close(ctx context.Context) error
-	// PutFile copies a file from local to remote
-	PutFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error
-	// FetchFile copies a file from remote to local
-	FetchFile(ctx context.Context, remoteFile string, local io.Writer) error
+	// PutFile copies a file from src to dst with mode.
+	PutFile(ctx context.Context, src []byte, dst string, mode fs.FileMode) error
+	// FetchFile copies a file from src to dst writer.
+	FetchFile(ctx context.Context, src string, dst io.Writer) error
 	// ExecuteCommand executes a command on the remote host
 	ExecuteCommand(ctx context.Context, cmd string) ([]byte, error)
 }
 
 // NewConnector creates a new connector
-// if set connector to local, use local connector
-// if set connector to ssh, use ssh connector
+// if set connector to "local", use local connector
+// if set connector to "ssh", use ssh connector
+// if set connector to "kubernetes", use kubernetes connector
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
 func NewConnector(host string, vars map[string]any) (Connector, error) {
@@ -79,6 +80,12 @@ func NewConnector(host string, vars map[string]any) (Connector, error) {
 			User:     userParam,
 			Password: passParam,
 		}, nil
+	case "kubernetes":
+		kubeconfig, err := variable.StringVar(nil, vars, "kubeconfig")
+		if err != nil {
+			return nil, err
+		}
+		return &kubernetesConnector{Cmd: exec.New(), clusterName: host, kubeconfig: kubeconfig}, nil
 	default:
 		localHost, _ := os.Hostname()
 		if host == _const.LocalHostName || localHost == host {

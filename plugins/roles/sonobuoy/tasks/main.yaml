@@ -1,61 +1,23 @@
 ---
-- name: Check sonobuoy is exist
-  ignore_errors: true
-  command: sonobuoy version
-  register: sonobuoy_install_version
-
-- name: Get os binary
-  vars:
-    supported_architectures:
-      amd64:
-        - amd64
-        - x86_64
-      arm64:
-        - arm64
-        - aarch64
-  debug:
-    msg: "{% if (os.architecture in supported_architectures.amd64) %}amd64{% else %}arm64{% endif %}"
-  register: binary_type
-
-- name: Check binaries for sonobuoy
-  command: |
-    artifact_name={{ sonobuoy[binary_type.stdout]|split:"/"|last }}
-    artifact_path={{ work_dir }}/kubekey/sonobuoy/{{ sonobuoy_version }}/{{ binary_type.stdout }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-        mkdir -p $artifact_path
-        # download online
-        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ sonobuoy[binary_type.stdout] }})
-        if [ $http_code != 200 ]; then
-          echo "http code is $http_code"
-          exit 1
-        fi
-        curl -L -o $artifact_path/$artifact_name {{ sonobuoy[binary_type.stdout] }}
-    fi
-  when:
-    - sonobuoy_version | defined && sonobuoy_version != ""
-
-- name: Unpackage binary
-  command: |
-    tar -zxvf {{ work_dir }}/kubekey/sonobuoy/{{ sonobuoy_version }}/{{ binary_type.stdout }}/sonobuoy_{{ sonobuoy_version|slice:'1:' }}_linux_{{ binary_type.stdout }}.tar.gz -C /usr/local/bin/ sonobuoy
-  when: sonobuoy_install_version.stderr != ""
-
 - name: Generate sonobuoy plugins
   template:
     src: plugins/
-    dest: /opt/sonobuoy/plugins/{{ item.name }}/
-  loop: "{{ clusters }}"
+    dest: "{{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/"
 
 - name: Run sonobuoy
   command: |
     # run and waiting
-    sonobuoy run --kubeconfig {{ item.kubeconfig }} --wait \
+    sonobuoy run --wait \
       {% if (plugins.systemd_logs.enabled) %}-p systemd-logs {% endif %}\
       {% if (plugins.e2e.enabled) %}-p e2e {% endif %}\
-      {% if (plugins.e2e_ks.enabled) %}-p /opt/sonobuoy/plugins/{{ item.name }}/e2e-ks.yaml {% endif %}\
-      {% if (plugins.kube_bench.enabled) %}-p /opt/sonobuoy/plugins/{{ item.name }}/kube-bench.yaml -p /opt/sonobuoy/plugins/{{ item.name }}/kube-bench-master.yaml {% endif %}\
-    # get result
-    cd {{ work_dir }} && sonobuoy retrieve -f results/sonobuoy/{{ item.name }}_result.tar.gz --kubeconfig {{ item.kubeconfig }}
-    # clear
-    sonobuoy delete --kubeconfig {{ item.kubeconfig }}
-  loop: "{{ clusters }}"
+      {% if (plugins.e2e_ks.enabled) %}-p {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/e2e-ks.yaml {% endif %}\
+      {% if (plugins.kube_bench.enabled) %}-p {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/kube-bench.yaml -p {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/kube-bench-master.yaml {% endif %}\
+
+- name: Retrieve result
+  command: |
+    cd {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/ && sonobuoy retrieve
+
+- name: Clean sonobuoy
+  command: |
+    sonobuoy delete 
 

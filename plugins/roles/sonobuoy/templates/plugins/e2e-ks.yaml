@@ -31,7 +31,7 @@ podSpec:
       - name: RESULTS_DIR
         value: /tmp/sonobuoy/results
       - name: SONOBUOY_K8S_VERSION
-        value: {{ item.version }}
+        value: {{ kube_version }}
       - name: SONOBUOY_PROGRESS_PORT
         value: "8099"
       - name: SONOBUOY
@@ -40,7 +40,7 @@ podSpec:
         value: /tmp/sonobuoy/config
       - name: SONOBUOY_RESULTS_DIR
         value: /tmp/sonobuoy/results
-    image: {{ plugins.e2e_ks.image_registry }}/conformance:{{ item.version }}
+    image: {{ plugins.e2e_ks.image }}
     name: e2e-ks
     volumeMounts:
       - mountPath: /tmp/sonobuoy/results

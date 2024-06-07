@@ -46,7 +46,7 @@ spec:
   - /run-kube-bench.sh; while true; do echo "Sleeping for 1h to avoid daemonset restart"; /bin/sleep 3600; done
   env:
     - name: KUBERNETES_VERSION
-      value: {{ item.version }}
+      value: {{ kube_version }}
     - name: TARGET_MASTER
       value: "false"
     - name: TARGET_NODE

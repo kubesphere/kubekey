@@ -67,7 +67,8 @@ func (c *sshConnector) Close(ctx context.Context) error {
 	return c.client.Close()
 }
 
-func (c *sshConnector) PutFile(ctx context.Context, src []byte, remoteFile string, mode fs.FileMode) error {
+// PutFile to remote node. src is the file bytes. dst is the remote filename
+func (c *sshConnector) PutFile(ctx context.Context, src []byte, dst string, mode fs.FileMode) error {
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
@@ -76,44 +77,45 @@ func (c *sshConnector) PutFile(ctx context.Context, src []byte, remoteFile strin
 	}
 	defer sftpClient.Close()
 	// create remote file
-	if _, err := sftpClient.Stat(filepath.Dir(remoteFile)); err != nil && os.IsNotExist(err) {
-		if err := sftpClient.MkdirAll(filepath.Dir(remoteFile)); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create remote dir", "remote_file", remoteFile)
+	if _, err := sftpClient.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
+		if err := sftpClient.MkdirAll(filepath.Dir(dst)); err != nil {
+			klog.V(4).ErrorS(err, "Failed to create remote dir", "remote_file", dst)
 			return err
 		}
 	}
-	rf, err := sftpClient.Create(remoteFile)
+	rf, err := sftpClient.Create(dst)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to  create remote file", "remote_file", remoteFile)
+		klog.V(4).ErrorS(err, "Failed to  create remote file", "remote_file", dst)
 		return err
 	}
 	defer rf.Close()
 
 	if _, err = rf.Write(src); err != nil {
-		klog.V(4).ErrorS(err, "Failed to write content to remote file", "remote_file", remoteFile)
+		klog.V(4).ErrorS(err, "Failed to write content to remote file", "remote_file", dst)
 		return err
 	}
 	return rf.Chmod(mode)
 }
 
-func (c *sshConnector) FetchFile(ctx context.Context, remoteFile string, local io.Writer) error {
+// FetchFile from remote node. src is the remote filename, dst is the local writer.
+func (c *sshConnector) FetchFile(ctx context.Context, src string, dst io.Writer) error {
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to create sftp client", "remote_file", remoteFile)
+		klog.V(4).ErrorS(err, "Failed to create sftp client", "remote_file", src)
 		return err
 	}
 	defer sftpClient.Close()
 
-	rf, err := sftpClient.Open(remoteFile)
+	rf, err := sftpClient.Open(src)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to open file", "remote_file", remoteFile)
+		klog.V(4).ErrorS(err, "Failed to open file", "remote_file", src)
 		return err
 	}
 	defer rf.Close()
 
-	if _, err := io.Copy(local, rf); err != nil {
-		klog.V(4).ErrorS(err, "Failed to copy file", "remote_file", remoteFile)
+	if _, err := io.Copy(dst, rf); err != nil {
+		klog.V(4).ErrorS(err, "Failed to copy file", "remote_file", src)
 		return err
 	}
 	return nil
