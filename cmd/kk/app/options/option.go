@@ -149,10 +149,11 @@ func genConfig(configFile string) (*kubekeyv1.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("read config file error: %w", err)
 		}
-		if err := yaml.Unmarshal(cdata, defaultConfig); err != nil {
+		config := &kubekeyv1.Config{}
+		if err := yaml.Unmarshal(cdata, config); err != nil {
 			return nil, fmt.Errorf("unmarshal config file error: %w", err)
 		}
-
+		return config, nil
 	}
 
 	return defaultConfig, nil
@@ -165,10 +166,12 @@ func genInventory(inventoryFile string) (*kubekeyv1.Inventory, error) {
 			klog.V(4).ErrorS(err, "read config file error")
 			return nil, err
 		}
-		if err := yaml.Unmarshal(cdata, defaultInventory); err != nil {
+		inventory := &kubekeyv1.Inventory{}
+		if err := yaml.Unmarshal(cdata, inventory); err != nil {
 			klog.V(4).ErrorS(err, "unmarshal config file error")
 			return nil, err
 		}
+		return inventory, nil
 	}
 
 	return defaultInventory, nil
