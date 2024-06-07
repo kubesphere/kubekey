@@ -19,8 +19,10 @@ package executor
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 
+	"github.com/schollz/progressbar/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -348,11 +350,18 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 		host := h
 		wg.StartWithContext(ctx, func(ctx context.Context) {
 			var stdout, stderr string
-			defer func() {
-				if stderr != "" {
-					klog.Errorf("[Task %s] run failed: %s", ctrlclient.ObjectKeyFromObject(task), stderr)
-				}
 
+			// progress bar for task
+			var bar = progressbar.NewOptions(1,
+				progressbar.OptionEnableColorCodes(true),
+				progressbar.OptionSetDescription(fmt.Sprintf("[%s] running...", h)),
+				progressbar.OptionOnCompletion(func() {
+					os.Stdout.Write([]byte("\n"))
+				}),
+				progressbar.OptionShowElapsedTimeOnFinish(),
+				progressbar.OptionSetPredictTime(false),
+			)
+			defer func() {
 				if task.Spec.Register != "" {
 					// set variable to parent location
 					if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
@@ -365,6 +374,12 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 						return
 					}
 				}
+
+				if stderr != "" {
+					klog.Errorf("[Task %s] run failed: %s", ctrlclient.ObjectKeyFromObject(task), stderr)
+					bar.Describe(fmt.Sprintf("[%s] failed", h))
+				}
+				bar.Finish()
 				// fill result
 				dataChan <- kubekeyv1alpha1.TaskHostResult{
 					Host:   host,
@@ -378,6 +393,14 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				stderr = fmt.Sprintf("get variable error: %v", err)
 				return
 			}
+			// execute module with loop
+			loop, err := e.execLoop(ctx, ha.(map[string]any), task)
+			if err != nil {
+				stderr = fmt.Sprintf("parse loop vars error: %v", err)
+				return
+			}
+			bar.ChangeMax(len(loop)*3 + 1)
+
 			// check when condition
 			if len(task.Spec.When) > 0 {
 				ok, err := tmpl.ParseBool(ha.(map[string]any), task.Spec.When)
@@ -387,15 +410,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				}
 				if !ok {
 					stdout = "skip"
+					bar.Describe(fmt.Sprintf("[%s] skip", h))
 					return
 				}
-			}
-
-			// execute module with loop
-			loop, err := e.execLoop(ctx, ha.(map[string]any), task)
-			if err != nil {
-				stderr = fmt.Sprintf("parse loop vars error: %v", err)
-				return
 			}
 
 			for _, item := range loop {
@@ -406,6 +423,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					stderr = fmt.Sprintf("set loop item to variable error: %v", err)
 					return
 				}
+				bar.Add(1)
 				stdout, stderr = e.executeModule(ctx, task, modules.ExecOptions{
 					Args:     task.Spec.Module.Args,
 					Host:     host,
@@ -413,6 +431,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					Task:     *task,
 					Pipeline: *e.pipeline,
 				})
+				bar.Add(1)
 				// delete item
 				if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
 					"item": nil,
@@ -420,7 +439,10 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
 					return
 				}
+				bar.Add(1)
 			}
+
+			bar.Describe(fmt.Sprintf("[%s] success", h))
 		})
 	}
 	go func() {
