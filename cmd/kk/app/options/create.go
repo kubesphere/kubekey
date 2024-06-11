@@ -43,7 +43,7 @@ type CreateClusterOptions struct {
 
 func (o *CreateClusterOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
-	kfs := fss.FlagSet("kubernetes")
+	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", "", "Specify a supported version of kubernetes")
 	kfs.StringVar(&o.ContainerManager, "container-manager", "", "Container runtime: docker, crio, containerd and isula.")
 	kfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
