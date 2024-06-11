@@ -74,7 +74,7 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 		if p.ImportPlaybook != "" {
 			importPlaybook := getPlaybookBaseFromPlaybook(baseFS, pbPath, p.ImportPlaybook)
 			if importPlaybook == "" {
-				return fmt.Errorf("cannot found import playbook %s", importPlaybook)
+				return fmt.Errorf("cannot found import playbook %s", p.ImportPlaybook)
 			}
 			if err := loadPlaybook(baseFS, importPlaybook, pb); err != nil {
 				return err

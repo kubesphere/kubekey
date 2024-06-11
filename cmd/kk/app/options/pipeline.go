@@ -1,7 +1,6 @@
 package options
 
 import (
-	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cliflag "k8s.io/component-base/cli/flag"
 )
@@ -26,9 +25,4 @@ func (o *PipelineOptions) Flags() cliflag.NamedFlagSets {
 	pfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "namespace of pipeline")
 	pfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 	return fss
-
-}
-
-func (o *PipelineOptions) Complete(cmd *cobra.Command, args []string) {
-	// do nothing
 }
