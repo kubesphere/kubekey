@@ -363,11 +363,21 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 			)
 			defer func() {
 				if task.Spec.Register != "" {
+					var stdoutResult any = stdout
+					var stderrResult any = stderr
+					// try to convert by json
+					if err := json.Unmarshal([]byte(stdout), &stdoutResult); err != nil {
+						// dothing
+					}
+					// try to convert by json
+					if err := json.Unmarshal([]byte(stderr), &stderrResult); err != nil {
+						// dothing
+					}
 					// set variable to parent location
 					if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
-						task.Spec.Register: map[string]string{
-							"stdout": stdout,
-							"stderr": stderr,
+						task.Spec.Register: map[string]any{
+							"stdout": stdoutResult,
+							"stderr": stderrResult,
 						},
 					})); err != nil {
 						stderr = fmt.Sprintf("register task result to variable error: %v", err)
@@ -375,11 +385,19 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					}
 				}
 
-				if stderr != "" {
-					klog.Errorf("[Task %s] run failed: %s", ctrlclient.ObjectKeyFromObject(task), stderr)
+				switch {
+				case stderr != "": // failed
 					bar.Describe(fmt.Sprintf("[%s] failed", h))
+					bar.Finish()
+					klog.Errorf("[Task %s] run failed: %s", ctrlclient.ObjectKeyFromObject(task), stderr)
+				case stdout == "skip": // skip
+					bar.Describe(fmt.Sprintf("[%s] skip", h))
+					bar.Finish()
+				default: //success
+					bar.Describe(fmt.Sprintf("[%s] success", h))
+					bar.Finish()
 				}
-				bar.Finish()
+
 				// fill result
 				dataChan <- kubekeyv1alpha1.TaskHostResult{
 					Host:   host,
@@ -410,7 +428,6 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				}
 				if !ok {
 					stdout = "skip"
-					bar.Describe(fmt.Sprintf("[%s] skip", h))
 					return
 				}
 			}
@@ -441,8 +458,6 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				}
 				bar.Add(1)
 			}
-
-			bar.Describe(fmt.Sprintf("[%s] success", h))
 		})
 	}
 	go func() {

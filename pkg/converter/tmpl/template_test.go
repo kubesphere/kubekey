@@ -49,10 +49,12 @@ func TestParseBool(t *testing.T) {
 		},
 		{
 			name:      "container string",
-			condition: []string{"test in instr"},
+			condition: []string{"instr[0].test"},
 			variable: pongo2.Context{
-				"test":  "a1",
-				"instr": "vda hjilsa1 sdte",
+				"instr": []pongo2.Context{
+					{"test": true},
+					{"test": false},
+				},
 			},
 			excepted: true,
 		},
