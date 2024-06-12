@@ -141,6 +141,17 @@ func TestFilter(t *testing.T) {
 			},
 			except: "a = 23",
 		},
+		{
+			name:  "get from map",
+			input: "{{ test|get:'a1' }}",
+			ctx: map[string]any{
+				"test": map[string]any{
+					"a1": 10,
+					"a2": "b2",
+				},
+			},
+			except: "10",
+		},
 	}
 
 	for _, tc := range testcases {

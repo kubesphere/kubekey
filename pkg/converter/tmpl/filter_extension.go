@@ -36,6 +36,7 @@ func init() {
 	pongo2.RegisterFilter("to_json", filterToJson)
 	pongo2.RegisterFilter("to_yaml", filterToYaml)
 	pongo2.RegisterFilter("ip_range", filterIpRange)
+	pongo2.RegisterFilter("get", filterGet)
 }
 
 func filterDefined(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
@@ -174,4 +175,24 @@ func filterIpRange(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 	}
 
 	return pongo2.AsValue(ipRange), nil
+}
+
+// filterGet get value from map or array
+func filterGet(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+	var result *pongo2.Value
+	in.Iterate(func(idx, count int, key, value *pongo2.Value) bool {
+		if param.IsInteger() && idx == param.Integer() {
+			result = in.Index(idx)
+			return false
+		}
+		if param.IsString() && key.String() == param.String() {
+			result = pongo2.AsValue(value.Interface())
+			return false
+		}
+		return true
+	}, func() {
+		result = pongo2.AsValue(nil)
+	})
+
+	return result, nil
 }
