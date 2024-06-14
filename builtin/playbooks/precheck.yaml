@@ -3,7 +3,7 @@
     - localhost
   roles:
     - role: precheck/artifact_check
-      when: artifact.artifact_file | defined
+      when: artifact_file | defined
 
 - hosts:
     - k8s_cluster

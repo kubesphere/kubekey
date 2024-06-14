@@ -151,9 +151,27 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 			return nil, err
 		}
 		var ss []string
-		if err := json.Unmarshal([]byte(as), &ss); err != nil {
-			// if is not json format. only return a value contains this
-			return []string{as}, nil
+		switch {
+		case regexp.MustCompile(`^<\[\](.*?) Value>$`).MatchString(as):
+			// in pongo2 cannot get slice value. add extension filter value.
+			var input = val.(string)
+			// try to escape string
+			if ns, err := strconv.Unquote(val.(string)); err == nil {
+				input = ns
+			}
+			vv := GetValue(d, input)
+			if _, ok := vv.([]any); ok {
+				ss = make([]string, len(vv.([]any)))
+				for i, a := range vv.([]any) {
+					ss[i] = a.(string)
+				}
+			}
+		default:
+			// value is simple string
+			if err := json.Unmarshal([]byte(as), &ss); err != nil {
+				// if is not json format. only return a value contains this
+				return []string{as}, nil
+			}
 		}
 		return ss, nil
 	default:

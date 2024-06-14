@@ -264,21 +264,3 @@
   loop: "{{ artifact.arch }}"
   when:
     - keepalived_version | defined && keepalived_version != ""
-
-- name: Check binaries for oras
-  command: |
-    artifact_name={{ artifact.artifact_url.oras[item]|split:"/"|last }}
-    artifact_path={{ work_dir }}/kubekey/oras/{{ oras_version }}/{{ item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-        mkdir -p $artifact_path
-        # download online
-        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ artifact.artifact_url.oras[item] }})
-        if [ $http_code != 200 ]; then
-          echo "http code is $http_code"
-          exit 1
-        fi
-        curl -L -o $artifact_path/$artifact_name {{ artifact.artifact_url.oras[item] }}
-    fi
-  loop: "{{ artifact.arch }}"
-  when:
-    - oras_version | defined && oras_version != ""

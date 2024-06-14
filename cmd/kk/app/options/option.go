@@ -56,6 +56,8 @@ type CommonOptions struct {
 	Set []string
 	// WorkDir is the baseDir which command find any resource (project etc.)
 	WorkDir string
+	// Artifact is the path of offline package for kubekey.
+	Artifact string
 	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
 	Debug bool
 	// Namespace for all resources.
@@ -80,6 +82,7 @@ func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
 	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
+	gfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
 	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val")
 	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.ini")
@@ -108,6 +111,13 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 	} else if err := config.SetValue("work_dir", o.WorkDir); err != nil {
 		return nil, nil, fmt.Errorf("work_dir to config error: %w", err)
 	}
+	if o.Artifact != "" {
+		// override artifact_file in config
+		if err := config.SetValue("artifact_file", o.Artifact); err != nil {
+			return nil, nil, fmt.Errorf("artifact file to config error: %w", err)
+		}
+	}
+
 	for _, s := range o.Set {
 		ss := strings.Split(s, "=")
 		if len(ss) != 2 {

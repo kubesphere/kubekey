@@ -37,8 +37,6 @@ type CreateClusterOptions struct {
 	Kubernetes string
 	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
 	ContainerManager string
-	// Artifact container all binaries which used to install kubernetes.
-	Artifact string
 }
 
 func (o *CreateClusterOptions) Flags() cliflag.NamedFlagSets {
@@ -46,7 +44,6 @@ func (o *CreateClusterOptions) Flags() cliflag.NamedFlagSets {
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", "", "Specify a supported version of kubernetes")
 	kfs.StringVar(&o.ContainerManager, "container-manager", "", "Container runtime: docker, crio, containerd and isula.")
-	kfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	return fss
 }
 
@@ -85,12 +82,6 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kub
 	if o.ContainerManager != "" {
 		// override container_manager in config
 		if err := config.SetValue("cri.container_manager", o.ContainerManager); err != nil {
-			return nil, nil, nil, err
-		}
-	}
-	if o.Artifact != "" {
-		// override artifact_file in config
-		if err := config.SetValue("artifact_file", o.Artifact); err != nil {
 			return nil, nil, nil, err
 		}
 	}
