@@ -68,6 +68,7 @@ func init() {
 	RegisterModule("template", ModuleTemplate)
 	RegisterModule("set_fact", ModuleSetFact)
 	RegisterModule("gen_cert", ModuleGenCert)
+	RegisterModule("image", ModuleImage)
 }
 
 // ConnKey for connector which store in context

@@ -88,11 +88,6 @@ artifact:
 #        {% if (kkzone == 'cn') %}https://kubernetes-release.pek3b.qingstor.com/osixia/keepalived/releases/download/{{ keepalived_version }}/keepalived-{{ keepalived_version }}-linux-amd64.tgz{% else %}https://github.com/osixia/keepalived/releases/download/{{ keepalived_version }}/keepalived-{{ keepalived_version }}-linux-amd64.tgz{% endif %}
 #      arm64: |
 #        {% if (kkzone == 'cn') %}https://kubernetes-release.pek3b.qingstor.com/osixia/keepalived/releases/download/{{ keepalived_version }}/keepalived-{{ keepalived_version }}-linux-arm64.tgz{% else %}https://github.com/osixia/keepalived/releases/download/{{ keepalived_version }}/keepalived-{{ keepalived_version }}-linux-arm64.tgz{% endif %}
-    oras:
-      amd64: |
-        https://github.com/oras-project/oras/releases/download/{{ oras_version }}/oras_{{ oras_version|slice:'1:' }}_linux_amd64.tar.gz
-      arm64: |
-        https://github.com/oras-project/oras/releases/download/{{ oras_version }}/oras_{{ oras_version|slice:'1:' }}_linux_arm64.tar.gz
     cilium: https://helm.cilium.io/cilium-{{ cilium_version }}.tgz
     kubeovn: https://kubeovn.github.io/kube-ovn/kube-ovn-{{ kubeovn_version }}.tgz
     hybridnet: https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ hybridnet_version }}/hybridnet-{{ hybridnet_version }}.tgz

@@ -1,27 +1,6 @@
 ---
-- name: Check if image to load
-  ignore_errors: true
-  command: |
-    ls {{ work_dir }}/kubekey/images/
-  register: local_images_dir
-
-- name: Sync oras to remote
-  copy:
-    src: "{{ work_dir }}/kubekey/oras/{{ oras_version }}/{{ binary_type.stdout }}/oras_{{ oras_version|slice:'1:' }}_linux_{{ binary_type.stdout }}.tar.gz"
-    dest: "/tmp/kubekey/oras_{{ oras_version|slice:'1:' }}_linux_{{ binary_type.stdout }}.tar.gz"
-  when: local_images_dir.stderr == ""
-
-- name: Unpackage oras binary
-  command: tar -zxvf /tmp/kubekey/oras_{{ oras_version|slice:'1:' }}_linux_{{ binary_type.stdout }}.tar.gz -C /usr/local/bin oras
-  when: local_images_dir.stderr == ""
-
-- name: Sync images package to remote
-  copy:
-    src: "{{ work_dir }}/kubekey/images/"
-    dest: "/tmp/kubekey/images/"
-  when: local_images_dir.stderr == ""
-
-- name: Sync images to registry
+- name: Create harbor project for each image
+  tags: ["only_image"]
   command: |
     for dir in /tmp/kubekey/images/*; do
       if [ ! -d "$dir" ]; then
@@ -40,12 +19,34 @@
       fi
     
       # if project is not exist, create if
-      http_code=$(curl -Iks -u "admin:{{ image_registry.harbor.admin_password }}"  'https://localhost/api/v2.0/projects?project_name=${project}' | grep HTTP | awk '{print $2}')
+      http_code=$(curl -Iks -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name=${project}' | grep HTTP | awk '{print $2}')
       if [ $http_code == 404 ]; then
           # create project
-          curl -u "admin:{{ image_registry.harbor.admin_password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"${project}\", \"public\": true}"
-      fi
-    
-      oras cp --to-username admin --to-password {{ image_registry.harbor.admin_password }} ${dir##*/} localhost/${project}/${dest_image}:${tag}
+          curl -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"${project}\", \"public\": true}"
+      fi    
     done
-  when: local_images_dir.stderr == ""
+  when:
+    - image_registry.type == 'harbor'
+    - image_registry.namespace_override == ""
+    -
+- name: Create harbor project for namespace_override
+  tags: ["only_image"]
+  command: |
+    # if project is not exist, create if
+    http_code=$(curl -Iks -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name={{ image_registry.namespace_override }}' | grep HTTP | awk '{print $2}')
+    if [ $http_code == 404 ]; then
+        # create project
+        curl -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"{{ image_registry.namespace_override }}\", \"public\": true}"
+    fi
+  when:
+    - image_registry.type == 'harbor'
+    - image_registry.namespace_override != ""
+
+- name: Sync images package to harbor
+  tags: ["only_image"]
+  image:
+    push:
+      registry: "{{ image_registry.auth.registry }}"
+      namespace_override: "{{ image_registry.namespace_override }}"
+      username: "{{ image_registry.auth.username }}"
+      password: "{{ image_registry.auth.password }}"

@@ -261,7 +261,7 @@ func appendSANsToAltNames(altNames *certutil.AltNames, SANs []string, certName s
 		} else if len(validation.IsWildcardDNS1123Subdomain(altname)) == 0 {
 			altNames.DNSNames = append(altNames.DNSNames, altname)
 		} else {
-			klog.Warningf(
+			klog.V(4).Infof(
 				"[certificates] WARNING: '%s' was not added to the '%s' SAN, because it is not a valid IP or RFC-1123 compliant DNS entry\n",
 				altname,
 				certName,

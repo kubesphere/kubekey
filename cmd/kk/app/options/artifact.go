@@ -27,22 +27,22 @@ import (
 )
 
 // ======================================================================================
-//                                     init os
+//                                    artifact export
 // ======================================================================================
 
-type InitOSOptions struct {
+type ArtifactExportOptions struct {
 	CommonOptions
 }
 
-func (o *InitOSOptions) Flags() cliflag.NamedFlagSets {
+func (o *ArtifactExportOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	return fss
 }
 
-func (o InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, *kubekeyv1.Config, *kubekeyv1.Inventory, error) {
+func (o ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, *kubekeyv1.Config, *kubekeyv1.Inventory, error) {
 	pipeline := &kubekeyv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "init-os-",
+			GenerateName: "artifact-export-",
 			Namespace:    o.Namespace,
 			Annotations: map[string]string{
 				kubekeyv1.BuiltinsProjectAnnotation: "",
@@ -69,28 +69,28 @@ func (o InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.P
 	return pipeline, config, inventory, nil
 }
 
-func NewInitOSOptions() *InitOSOptions {
+func NewArtifactExportOptions() *ArtifactExportOptions {
 	// set default value
-	return &InitOSOptions{CommonOptions: newCommonOptions()}
+	return &ArtifactExportOptions{CommonOptions: newCommonOptions()}
 }
 
 // ======================================================================================
-//                                    init registry
+//                                   artifact image
 // ======================================================================================
 
-type InitRegistryOptions struct {
+type ArtifactImagesOptions struct {
 	CommonOptions
 }
 
-func (o *InitRegistryOptions) Flags() cliflag.NamedFlagSets {
+func (o *ArtifactImagesOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	return fss
 }
 
-func (o InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, *kubekeyv1.Config, *kubekeyv1.Inventory, error) {
+func (o ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, *kubekeyv1.Config, *kubekeyv1.Inventory, error) {
 	pipeline := &kubekeyv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "init-registry-",
+			GenerateName: "artifact-images-",
 			Namespace:    o.Namespace,
 			Annotations: map[string]string{
 				kubekeyv1.BuiltinsProjectAnnotation: "",
@@ -108,6 +108,7 @@ func (o InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kubek
 	pipeline.Spec = kubekeyv1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
+		Tags:     []string{"only_image"},
 	}
 	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
@@ -117,7 +118,7 @@ func (o InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kubek
 	return pipeline, config, inventory, nil
 }
 
-func NewInitRegistryOptions() *InitRegistryOptions {
+func NewArtifactImagesOptions() *ArtifactImagesOptions {
 	// set default value
-	return &InitRegistryOptions{CommonOptions: newCommonOptions()}
+	return &ArtifactImagesOptions{CommonOptions: newCommonOptions()}
 }
