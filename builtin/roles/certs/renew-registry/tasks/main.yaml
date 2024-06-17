@@ -1,0 +1,6 @@
+- include_tasks: harbor.yaml
+  tags: ["certs"]
+  when: image_registry.type == 'harbor'
+- include_tasks: registry.yaml
+  tags: ["certs"]
+  when: image_registry.type == 'registry'

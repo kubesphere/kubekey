@@ -20,10 +20,9 @@
     - include_tasks: download_by_curl.yaml
     # the binaries which download by helm
     - include_tasks: download_by_helm.yaml
-    # download image package by oras
-    - include_tasks: download_by_oras.yaml
 
 - include_tasks: pki.yaml
+  tags: ["certs"]
 
 - name: Chown work_dir to sudo
   tags: ["always"]

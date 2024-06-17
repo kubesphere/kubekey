@@ -30,7 +30,7 @@
   command: |
     /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
     /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
-  when: inventory_name in groups['kube_control_plane']
+  when: inventory_name in groups["kube_worker"]
     
 - name: Add work label
   command: |

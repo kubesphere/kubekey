@@ -1,0 +1,26 @@
+- hosts:
+    - localhost
+  tags: ["certs"]
+  roles:
+    - init/init-artifact
+
+- hosts:
+    - etcd
+  tags: ["certs"]
+  roles:
+    - role: certs/renew-etcd
+      when: groups['etcd']|length > 0 && renew_etcd|default_if_none:true
+
+- hosts:
+    - image_registry
+  tags: ["certs"]
+  roles:
+    - role: certs/renew-registry
+      when: groups['image_registry']|length > 0 && renew_image_registry|default_if_none:true
+
+- hosts:
+    - kube_control_plane
+  tags: ["certs"]
+  roles:
+    - role: certs/renew-kubernetes
+      when: groups['kube_control_plane']|length > 0 && renew_kubernetes|default_if_none:true
