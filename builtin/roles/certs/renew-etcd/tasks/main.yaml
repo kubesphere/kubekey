@@ -1,0 +1,22 @@
+---
+- name: Sync ca file to remote
+  tags: ["certs"]
+  copy:
+    src: "{{ work_dir }}/kubekey/pki/root.crt"
+    dest: "/etc/ssl/etcd/ssl/ca.crt"
+
+- name: Sync etcd cert file to remote
+  tags: ["certs"]
+  copy:
+    src: "{{ work_dir }}/kubekey/pki/etcd.crt"
+    dest: "/etc/ssl/etcd/ssl/server.crt"
+
+- name: Sync etcd key file to remote
+  tags: ["certs"]
+  copy:
+    src: "{{ work_dir }}/kubekey/pki/etcd.key"
+    dest: "/etc/ssl/etcd/ssl/server.key"
+
+- name: Restart etcd service
+  tags: ["certs"]
+  command: systemctl restart etcd

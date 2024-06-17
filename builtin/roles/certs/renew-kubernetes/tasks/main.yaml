@@ -1,0 +1,22 @@
+---
+- include_tasks: kube.yaml
+  tags: ["certs"]
+
+- include_tasks: etcd.yaml
+  tags: ["certs"]
+  when:
+  - kubernetes.etcd.deployment_type=='external' && groups['etcd']|length > 0
+  - renew_etcd|default_if_none:true
+
+- name: Reload kubernetes pods
+  tags: [ "certs" ]
+  command: |
+    {% if (cri.container_manager|default_if_none:"docker" == "docker") %}
+    docker ps -af name=k8s_kube-apiserver* -q | xargs --no-run-if-empty docker rm -f
+    docker ps -af name=k8s_kube-controller-manager* -q | xargs --no-run-if-empty docker rm -f
+    docker ps -af name=k8s_ kube-scheduler* -q | xargs --no-run-if-empty docker rm -f
+    {% else %}
+    crictl pods --name kube-apiserver* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %
+    crictl pods --name kube-controller-manager* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %
+    crictl pods --name kube-scheduler* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %
+    {% endif %}

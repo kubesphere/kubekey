@@ -1,5 +1,6 @@
 ---
 - name: Generate root ca file
+  tags: ["certs"]
   gen_cert:
     cn: root
     date: 87600h
@@ -8,6 +9,7 @@
     out_cert: "{{ work_dir }}/kubekey/pki/root.crt"
 
 - name: Generate etcd cert file
+  tags: ["certs"]
   gen_cert:
     root_key: "{{ work_dir }}/kubekey/pki/root.key"
     root_cert: "{{ work_dir }}/kubekey/pki/root.crt"
@@ -21,6 +23,7 @@
   when: groups['etcd']|length > 0
 
 - name: Generate registry image cert file
+  tags: ["certs"]
   gen_cert:
     root_key: "{{ work_dir }}/kubekey/pki/root.key"
     root_cert: "{{ work_dir }}/kubekey/pki/root.crt"

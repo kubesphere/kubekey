@@ -6,12 +6,25 @@
 - include_tasks: install_keepalived.yaml
   when: image_registry.ha_vip | defined
 
-- name: Install image registry
+- name: Install harbor
+  when: image_registry.type == 'harbor'
   block:
-  - include_tasks: install_registry.yaml
-    when: image_registry.type == 'registry'
-  - include_tasks: install_harbor.yaml
-    when: image_registry.type == 'harbor'
+    - name: Check if harbor installed
+      ignore_errors: true
+      command: systemctl status harbor.service
+      register: image_registry_service
+    - include_tasks: install_registry.yaml
+      when: image_registry_service.stderr != ""
+
+- name: Install registry
+  when: image_registry.type == 'registry'
+  block:
+    - name: Check if registry installed
+      ignore_errors: true
+      command: systemctl status registry.service
+      register: image_registry_service
+    - include_tasks: install_registry.yaml
+      when: image_registry_service.stderr != ""
 
 - include_tasks: load_images.yaml
   tags: ["only_image"]

@@ -45,5 +45,4 @@
     - addons/nfd
     - addons/sc
 
-
 - import_playbook: hook/post_install.yaml
