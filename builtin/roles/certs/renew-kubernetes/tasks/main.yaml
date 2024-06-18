@@ -11,12 +11,12 @@
 - name: Reload kubernetes pods
   tags: [ "certs" ]
   command: |
-    {% if (cri.container_manager|default_if_none:"docker" == "docker") %}
+    {% if (cri.container_manager == "docker") %}
     docker ps -af name=k8s_kube-apiserver* -q | xargs --no-run-if-empty docker rm -f
     docker ps -af name=k8s_kube-controller-manager* -q | xargs --no-run-if-empty docker rm -f
     docker ps -af name=k8s_ kube-scheduler* -q | xargs --no-run-if-empty docker rm -f
     {% else %}
-    crictl pods --name kube-apiserver* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %
-    crictl pods --name kube-controller-manager* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %
-    crictl pods --name kube-scheduler* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %
+    crictl ps --name kube-apiserver -q | xargs -I% --no-run-if-empty bash -c 'crictl stop % && crictl rm %'
+    crictl ps --name kube-controller-manager -q | xargs -I% --no-run-if-empty bash -c 'crictl stop % && crictl rm %'
+    crictl ps --name kube-scheduler -q | xargs -I% --no-run-if-empty bash -c 'crictl stop % && crictl rm %'
     {% endif %}
