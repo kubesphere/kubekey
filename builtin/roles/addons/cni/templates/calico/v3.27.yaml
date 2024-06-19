@@ -29,7 +29,7 @@ metadata:
   namespace: kube-system
 data:
   # You must set a non-zero value for Typha replicas below.
-  typha_service_name: {% if (cni.calico.typha=="true") %}"calico-typha"{% else %}"none"{% endif %}
+  typha_service_name: {% if (cni.calico.typha) %}"calico-typha"{% else %}"none"{% endif %}
   # Configure the backend to use.
   calico_backend: "bird"
 
@@ -4715,7 +4715,7 @@ subjects:
     name: calico-cni-plugin
     namespace: kube-system
 
-{% if (cni.calico.typha=="true") %}
+{% if (cni.calico.typha) %}
 ---
 # Source: calico/templates/calico-typha.yaml
 # This manifest creates a Service, which will be backed by Calico's Typha daemon.
@@ -4893,7 +4893,7 @@ spec:
             # Use Kubernetes API as the backing datastore.
             - name: DATASTORE_TYPE
               value: "kubernetes"
-            {% if (cni.calico.typha=="true") %}
+            {% if (cni.calico.typha) %}
             # Typha support: controlled by the ConfigMap.
             - name: FELIX_TYPHAK8SSERVICENAME
               valueFrom:
@@ -4927,7 +4927,7 @@ spec:
               value: "can-reach=$(NODEIP)"
             - name: IP
               value: "autodetect"
-            {% if (cni.ipv6_support=="true") %}
+            {% if (cni.ipv6_support) %}
             - name: IP6
               value: "autodetect"
             {% endif %}
@@ -4944,7 +4944,7 @@ spec:
             - name: CALICO_IPV4POOL_NAT_OUTGOING
               value: "false"
             {% endif %}
-            {% if (cni.ipv6_support=="true") %}
+            {% if (cni.ipv6_support) %}
             # Enable or Disable VXLAN on the default IPv6 IP pool.
             - name: CALICO_IPV6POOL_VXLAN
               value: "Always"
@@ -4983,7 +4983,7 @@ spec:
               value: "{{ cni.kube_pods_v4_cidr }}"
             - name: CALICO_IPV4POOL_BLOCK_SIZE
               value: "{{ cni.node_cidr_mask_size }}"
-            {% if (cni.ipv6_support=="true") %}
+            {% if (cni.ipv6_support) %}
             - name: CALICO_IPV6POOL_CIDR
               value: "{{ cni.kube_pods_v6_cidr }}"
             - name: CALICO_IPV6POOL_BLOCK_SIZE
@@ -4994,7 +4994,7 @@ spec:
               value: "true"
             - name: CALICO_IPV4POOL_CIDR
               value: ""
-            {% if (cni.ipv6_support=="true") %}
+            {% if (cni.ipv6_support) %}
             - name: CALICO_IPV6POOL_CIDR
               value: ""
             {% endif %}
@@ -5005,7 +5005,7 @@ spec:
             - name: FELIX_DEFAULTENDPOINTTOHOSTACTION
               value: "ACCEPT"
             # Disable IPv6 on Kubernetes.
-            {% if (cni.ipv6_support=="true") %}
+            {% if (cni.ipv6_support) %}
             - name: FELIX_IPV6SUPPORT
               value: "true"
             {% else %}
@@ -5199,7 +5199,7 @@ spec:
                 - -r
             periodSeconds: 10
 
-{% if (cni.calico.typha=="true") %}
+{% if (cni.calico.typha) %}
 ---
 # Source: calico/templates/calico-typha.yaml
 # This manifest creates a Deployment of Typha to back the above service.

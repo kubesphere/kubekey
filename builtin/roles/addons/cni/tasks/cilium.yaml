@@ -8,14 +8,26 @@
 - name: Install cilium
   command: |
     helm install cilium /etc/kubernetes/cni/cilium-{{ cilium_version }}.tgz --namespace kube-system \
-      --set operator.image.override={{ cni.cilium.operator_image }} \
+      --set image.repository={{ cilium_repository }} \
+      --set preflight.image.repository={{ cilium_repository }} \
+      --set certgen.image.repository={{ certgen_repository }} \
+      --set hubble.relay.image.repository={{ hubble_relay_repository }} \
+      --set hubble.ui.backend.image.repository={{ hubble_ui_backend_repository }} \
+      --set hubble.ui.frontend.image.repository={{ hubble_ui_repository }} \
+      --set envoy.image.repository={{ cilium_envoy_repository }} \
+      --set etcd.image.repository={{ cilium_etcd_operator_repository }} \
+      --set operator.image.repository={{ operator_repository }} \
+      --set nodeinit.image.repository={{ startup_script_repository }} \
+      --set clustermesh.apiserver.image.repository={{ clustermesh_apiserver_repository }} \
+      --set authentication.mutual.spire.install.initImage.image.repository={{ busybox_repository }} \
+      --set authentication.mutual.spire.install.agent.image.repository={{ spire_agent_repository }} \
+      --set authentication.mutual.spire.install.server.image.repository={{ spire_server_repository }} \
       --set operator.replicas={{ cni.cilium.operator_replicas }} \
-      --set image.override={{ cni.cilium.cilium_image }} \
-      --set ipv6.enabled={% if (cni.ipv6_support=="true") %}true{%else%}false{% endif %} \
+      --set ipv6.enabled={{ cni.ipv6_support }} \
       --set ipv4NativeRoutingCIDR: {{ cni.kube_pods_v4_cidr }} \
-    {% if (cni.ipv6_support=="true") %}
+    {% if (cni.ipv6_support) %}
       --set ipv6NativeRoutingCIDR: {{ cni.kube_pods_v6_cidr }} \
     {% endif %}
-    {% if (cni.kube_proxy=="true") %}
+    {% if (cni.kube_proxy) %}
       --set kubeProxyReplacement=strict --set k8sServiceHost={{ cni.cilium.k8s_endpoint }} --set k8sServicePort={{ cni.cilium.k8s_port }}
     {% endif  %}

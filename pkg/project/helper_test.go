@@ -230,3 +230,58 @@ func TestMarshalPlaybook(t *testing.T) {
 		})
 	}
 }
+
+func TestCombineMaps(t *testing.T) {
+	testcases := []struct {
+		name   string
+		v1     map[string]any
+		v2     map[string]any
+		except map[string]any
+		err    bool
+	}{
+		{
+			name: "v1 is null",
+			v2: map[string]any{
+				"a": "b",
+			},
+			except: map[string]any{
+				"a": "b",
+			},
+		},
+		{
+			name: "success",
+			v1: map[string]any{
+				"a1": "b1",
+			},
+			v2: map[string]any{
+				"a2": "b2",
+			},
+			except: map[string]any{
+				"a1": "b1",
+				"a2": "b2",
+			},
+		},
+		{
+			name: "duplicate key",
+			v1: map[string]any{
+				"a1": "b1",
+			},
+			v2: map[string]any{
+				"a1": "b2",
+			},
+			err: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			maps, err := combineMaps(tc.v1, tc.v2)
+			if tc.err {
+				assert.Error(t, err)
+			} else {
+				assert.Equal(t, tc.except, maps)
+			}
+
+		})
+	}
+}

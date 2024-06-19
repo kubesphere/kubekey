@@ -81,6 +81,33 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 			}
 		}
 
+		// load var_files (optional)
+		for _, file := range p.VarsFiles {
+			varDefault := getYamlFile(baseFS, filepath.Join(filepath.Dir(pbPath), file))
+			if varDefault != "" {
+				mainData, err := fs.ReadFile(baseFS, varDefault)
+				if err != nil {
+					klog.V(4).ErrorS(err, "Read var_files for playbook error", "playbook", pbPath, "var_file", varDefault)
+					return err
+				}
+
+				var vars map[string]any
+				var node yaml.Node // marshal file on defined order
+				if err := yaml.Unmarshal(mainData, &vars); err != nil {
+					klog.V(4).ErrorS(err, "Unmarshal var_files for playbook error", "playbook", pbPath, "var_file", varDefault)
+					return err
+				}
+				if err := node.Decode(&vars); err != nil {
+					return err
+				}
+
+				p.Vars, err = combineMaps(p.Vars, vars)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// fill block in roles
 		for i, r := range p.Roles {
 			roleBase := getRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
@@ -147,7 +174,7 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 				}
 
 				var vars map[string]any
-				var node yaml.Node
+				var node yaml.Node // marshal file on defined order
 				if err := yaml.Unmarshal(mainData, &node); err != nil {
 					klog.V(4).ErrorS(err, "Unmarshal defaults variable for Role error", "playbook", pbPath, "Role", r.Role)
 					return err
@@ -155,7 +182,12 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 				if err := node.Decode(&vars); err != nil {
 					return err
 				}
-				p.Roles[i].Vars = vars
+
+				p.Roles[i].Vars, err = combineMaps(p.Roles[i].Vars, vars)
+				if err != nil {
+					return err
+				}
+
 			}
 		}
 		pb.Play[i] = p
@@ -304,4 +336,23 @@ func getYamlFile(baseFS fs.FS, base string) string {
 	}
 
 	return ""
+}
+
+// combine v2 map to v1 if not repeat.
+func combineMaps(v1, v2 map[string]any) (map[string]any, error) {
+	if len(v1) == 0 {
+		return v2, nil
+	}
+
+	mv := make(map[string]any)
+	for k, v := range v1 {
+		mv[k] = v
+	}
+	for k, v := range v2 {
+		if _, ok := mv[k]; ok {
+			return nil, fmt.Errorf("duplicate key: %s", k)
+		}
+		mv[k] = v
+	}
+	return mv, nil
 }

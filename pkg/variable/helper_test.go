@@ -249,6 +249,30 @@ func TestParseVariable(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "parse slice with bool value",
+			data: map[string]any{
+				"a": []any{"{{ b }}"},
+			},
+			base: map[string]any{
+				"b": "true",
+			},
+			except: map[string]any{
+				"a": []any{true},
+			},
+		},
+		{
+			name: "parse map with bool value",
+			data: map[string]any{
+				"a": "{{ b }}",
+			},
+			base: map[string]any{
+				"b": "true",
+			},
+			except: map[string]any{
+				"a": true,
+			},
+		},
 	}
 
 	for _, tc := range testcases {

@@ -91,7 +91,7 @@ data:
   net-conf.json: |
     {
       "Network": "{{ cni.kube_pods_v4_cidr }}",
-{% if (cni.ipv6_support=="true") %}
+{% if (cni.ipv6_support) %}
       "EnableIPv6": true,
       "IPv6Network":"{{ cni.kube_pods_v6_cidr }}",
 {% endif %}

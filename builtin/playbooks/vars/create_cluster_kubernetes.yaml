@@ -1,0 +1,7 @@
+global_registry: ""
+dockerio_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}docker.io{% endif %}"
+quayio_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}quay.io{% endif %}"
+ghcrio_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}ghcr.io{% endif %}"
+k8s_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}registry.k8s.io{% endif %}"
+
+security_enhancement: false

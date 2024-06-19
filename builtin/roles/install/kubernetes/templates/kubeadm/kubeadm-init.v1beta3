@@ -36,7 +36,7 @@ networking:
   serviceSubnet: {{ kubernetes.networking.service_cidr }}
 apiServer:
   extraArgs:
-{% if (kubernetes.security_enhancement == "true") %}
+{% if (security_enhancement) %}
     authorization-mode: Node,RBAC
     enable-admission-plugins: AlwaysPullImages,ServiceAccount,NamespaceLifecycle,NodeRestriction,LimitRanger,ResourceQuota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodNodeSelector,PodSecurity
     profiling: false
@@ -91,7 +91,7 @@ controllerManager:
 {% else %}
     experimental-cluster-signing-duration: 87600h
 {% endif %}
-{% if (kubernetes.security_enhancement == "true") %}
+{% if (security_enhancement) %}
     bind-address: 127.0.0.1
     profiling: false
     terminated-pod-gc-threshold: 50
@@ -107,7 +107,7 @@ controllerManager:
     readOnly: true
 scheduler:
   extraArgs:
-{% if (kubernetes.security_enhancement == "true") %}
+{% if (security_enhancement) %}
     bind-address: 127.0.0.1
     profiling: false
 {% else %}
@@ -161,7 +161,7 @@ evictionSoftGracePeriod:
 evictionMaxPodGracePeriod: 120
 evictionPressureTransitionPeriod: 30s
 
-{% if (kubernetes.security_enhancement == "true") %}
+{% if (security_enhancement) %}
 readOnlyPort: 0
 protectKernelDefaults: true
 eventRecordQPS: 1

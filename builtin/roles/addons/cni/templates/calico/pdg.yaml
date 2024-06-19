@@ -15,7 +15,7 @@ spec:
     matchLabels:
       k8s-app: calico-kube-controllers
 
-{% if (cni.calico.typha=="true") %}
+{% if (cni.calico.typha) %}
 ---
 # Source: calico/templates/calico-typha.yaml
 # This manifest creates a Pod Disruption Budget for Typha to allow K8s Cluster Autoscaler to evict
