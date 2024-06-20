@@ -34,11 +34,12 @@ func newPreCheckCommand() *cobra.Command {
 	o := options.NewPreCheckOptions()
 
 	cmd := &cobra.Command{
-		Use:   "precheck",
+		Use:   "precheck tags...",
 		Short: "Check if the nodes is eligible for cluster deployment.",
-		Long:  "",
+		Long:  "the tags can specify check items. support: etcd, os, network, cri, nfs.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/precheck.yaml"})
+			args = append(args, "playbooks/precheck.yaml")
+			pipeline, config, inventory, err := o.Complete(cmd, args)
 			if err != nil {
 				return err
 			}

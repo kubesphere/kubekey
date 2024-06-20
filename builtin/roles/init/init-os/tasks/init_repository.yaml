@@ -22,10 +22,11 @@
   block:
     - name: Init debian repository
       command: |
+        now=$(date +"%Y-%m-%d %H:%M:%S")
         if [ -f "/tmp/kubekey/repository.iso" ];then
           # backup
-          mv /etc/apt/sources.list /etc/apt/sources.list.kubekey.bak
-          mv /etc/apt/sources.list.d /etc/apt/sources.list.d.kubekey.bak
+          mv /etc/apt/sources.list /etc/apt/sources.list.kubekey-$now.bak
+          mv /etc/apt/sources.list.d /etc/apt/sources.list.d.kubekey-$now.bak
           mkdir -p /etc/apt/sources.list.d
           # add repository
           rm -rf /etc/apt/sources.list.d/*
@@ -36,17 +37,18 @@
           apt install -y socat conntrack ipset ebtables chrony ipvsadm
           # reset repository
           rm -rf /etc/apt/sources.list.d
-          mv /etc/apt/sources.list.kubekey.bak /etc/apt/sources.list
-          mv /etc/apt/sources.list.d.kubekey.bak /etc/apt/sources.list.d
+          mv /etc/apt/sources.list.kubekey.bak-$now /etc/apt/sources.list
+          mv /etc/apt/sources.list.d.kubekey.bak-$now /etc/apt/sources.list.d
         else
           apt-get update && apt install -y socat conntrack ipset ebtables chrony ipvsadm
         fi
       when: os.release.ID_LIKE == "debian"
     - name: Init rhel repository
       command: |
+        now=$(date +"%Y-%m-%d %H:%M:%S")
         if [ -f "/tmp/kubekey/repository.iso" ];then
           # backup
-          mv /etc/yum.repos.d /etc/yum.repos.d.kubekey.bak
+          mv /etc/yum.repos.d /etc/yum.repos.d.kubekey-$now.bak
           mkdir -p /etc/yum.repos.d
           # add repository
           rm -rf /etc/yum.repos.d/*
@@ -67,7 +69,7 @@
           yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
           # reset repository
           rm -rf /etc/yum.repos.d
-          mv /etc/yum.repos.d.kubekey.bak /etc/yum.repos.d
+          mv /etc/yum.repos.d.kubekey.bak-$now /etc/yum.repos.d
         else
           # install
           yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm

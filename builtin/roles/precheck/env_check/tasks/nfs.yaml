@@ -1,5 +1,6 @@
 ---
 - name: Stop if nfs server is not be one
+  tags: ["nfs"]
   assert:
     that: groups['nfs'] | length == 1
   fail_msg: "Only one nfs server is supported"

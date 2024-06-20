@@ -1,5 +1,6 @@
 ---
 - name: Stop if container manager is not docker or containerd
+
   assert:
     that: cri.container_manager in cluster_require.require_container_manager
     fail_msg: "The container manager:{{ cri.container_manager }}, must be docker or containerd"

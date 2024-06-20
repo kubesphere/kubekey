@@ -23,6 +23,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -64,7 +65,7 @@ func newRunCommand() *cobra.Command {
 }
 
 func run(ctx context.Context, pipeline *kubekeyv1.Pipeline, config *kubekeyv1.Config, inventory *kubekeyv1.Inventory) error {
-	restconfig, err := proxy.NewConfig()
+	restconfig, err := proxy.NewConfig(&rest.Config{})
 	if err != nil {
 		return fmt.Errorf("could not get rest config: %w", err)
 	}

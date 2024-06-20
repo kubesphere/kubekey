@@ -51,15 +51,20 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv
 	}
 
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
+	var tags []string
+	if len(args) < 1 {
+		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+	} else if len(args) == 1 {
 		o.Playbook = args[0]
 	} else {
-		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		tags = args[:len(args)-1]
+		o.Playbook = args[len(args)-1]
 	}
 
 	pipeline.Spec = kubekeyv1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
+		Tags:     tags,
 	}
 	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
