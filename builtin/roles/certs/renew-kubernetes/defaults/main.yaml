@@ -1,5 +1,0 @@
-kubernetes:
-  etcd:
-    deployment_type: external
-cri:
-  container_manager: docker

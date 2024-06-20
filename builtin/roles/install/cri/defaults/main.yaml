@@ -1,7 +1,7 @@
 cri:
   # support: systemd, cgroupfs
   cgroup_driver: systemd
-  sandbox_image: "k8s.gcr.io/pause:3.5"
+  sandbox_image: "{{ k8s_registry }}/pause:3.5"
   # support: containerd,docker,crio
   container_manager: docker
   # the endpoint of containerd
@@ -10,3 +10,14 @@ cri:
 #    data_root: /var/lib/containerd
   docker:
     data_root: /var/lib/docker
+  registry:
+    mirrors: ["https://registry-1.docker.io"]
+    insecure_registries: []
+    auths: []
+
+image_registry:
+  #  ha_vip: 192.168.122.59
+  auth:
+    registry: "{% if (image_registry.ha_vip|defined) %}{{ image_registry.ha_vip }}{% else %}{{ groups['image_registry']|first }}{% endif %}"
+    username: admin
+    password: Harbor12345

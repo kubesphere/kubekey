@@ -294,7 +294,14 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 					if err != nil {
 						return err
 					}
-					reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(newValue))
+					switch {
+					case strings.ToUpper(newValue) == "TRUE":
+						reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(true))
+					case strings.ToUpper(newValue) == "FALSE":
+						reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(false))
+					default:
+						reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(newValue))
+					}
 				}
 			} else {
 				if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
@@ -311,7 +318,15 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 					if err != nil {
 						return err
 					}
-					val.Set(reflect.ValueOf(newValue))
+					switch {
+					case strings.ToUpper(newValue) == "TRUE":
+
+						val.Set(reflect.ValueOf(true))
+					case strings.ToUpper(newValue) == "FALSE":
+						val.Set(reflect.ValueOf(false))
+					default:
+						val.Set(reflect.ValueOf(newValue))
+					}
 				}
 			} else {
 				if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {

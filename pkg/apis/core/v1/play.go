@@ -36,8 +36,8 @@ type Play struct {
 	//FactPath string
 
 	// Variable Attribute
-	VarsFiles  []string `yaml:"vars_files,omitempty"`
-	VarsPrompt []string `yaml:"vars_prompt,omitempty"`
+	VarsFiles []string `yaml:"vars_files,omitempty"`
+	//VarsPrompt []string `yaml:"vars_prompt,omitempty"`
 
 	// Role Attributes
 	Roles []Role `yaml:"roles,omitempty"`

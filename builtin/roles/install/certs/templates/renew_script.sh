@@ -1,5 +1,5 @@
 #!/bin/bash
-{% if (renew_certs.is_kubeadm_alpha=="true") %}
+{% if (renew_certs.is_kubeadm_alpha) %}
 kubeadmCerts='/usr/local/bin/kubeadm alpha certs'
 {% else %}
 kubeadmCerts='/usr/local/bin/kubeadm certs'
@@ -15,7 +15,7 @@ if [ $(getCertValidDays) -lt 30 ]; then
   echo "## Renewing certificates managed by kubeadm ##"
   ${kubeadmCerts} renew all
   echo "## Restarting control plane pods managed by kubeadm ##"
-{% if (renew_certs.is_docker=="true") %}
+{% if (renew_certs.is_docker) %}
   $(which docker | grep docker) ps -af 'name=k8s_POD_(kube-apiserver|kube-controller-manager|kube-scheduler|etcd)-*' -q | /usr/bin/xargs $(which docker | grep docker) rm -f
 {% else %}
   $(which crictl | grep crictl) pods --namespace kube-system --name 'kube-scheduler-*|kube-controller-manager-*|kube-apiserver-*|etcd-*' -q | /usr/bin/xargs $(which crictl | grep crictl) rmp -f

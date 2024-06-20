@@ -2,10 +2,8 @@ kubernetes:
   cluster_name: cluster.local
   # support: flannel, calico
   kube_network_plugin: calico
-  # the minimal version of kubernetes to be installed.
-  kube_version_min_required: v1.19.10
   # the image repository of kubernetes.
-  image_repository: "registry.k8s.io"
+  image_repository: "{{ k8s_registry }}"
 
   # memory size for each kube_worker node.(unit kB)
   # should be greater than or equal to minimal_node_memory_mb.
@@ -13,15 +11,14 @@ kubernetes:
   # the maximum number of pods that can be run on each node.
   max_pods: 110
   audit: false
-  security_enhancement: "{{ security_enhancement|default_if_none:false }}"
   networking:
     dns_domain: cluster.local
     # it supports two value like value1,value2.
     # the first value is ipv4_cidr, the last value is ipv6_cidr.
     pod_cidr: 10.233.64.0/18
     service_cidr: 10.233.0.0/18
-    dns_image: "registry.k8s.io/coredns/coredns:v1.11.1"
-    dns_cache_image: "kubesphere/k8s-dns-node-cache:1.22.20"
+    dns_image: "{{ k8s_registry }}/coredns/coredns:v1.11.1"
+    dns_cache_image: "{{ dockerio_registry }}/kubesphere/k8s-dns-node-cache:1.22.20"
     dns_service_ip: "{{ kubernetes.networking.service_cidr|ip_range|slice:':3'|last }}"
   # Specify a stable IP address or DNS name for the control plane.
 #  control_plane_endpoint: lb.kubesphere.local
@@ -147,15 +144,15 @@ kubernetes:
     enabled: false
     # support:BGP, ARP
     mode: BGP
-    image: plndr/kube-vip:v0.7.2
+    image: "{{ dockerio_registry }}/plndr/kube-vip:v0.7.2"
   haproxy:
     enabled: false
     health_port: 8081
-    image: library/haproxy:2.9.6-alpine
+    image: "{{ dockerio_registry }}/library/haproxy:2.9.6-alpine"
   etcd: # todo should apply zone variable
     # It is possible to deploy etcd with three methods.
     # external: Deploy etcd cluster with external etcd cluster.
     # internal: Deploy etcd cluster by static pod.
     deployment_type: external
-    image: "k8s.gcr.io/etcd:3.5.0"
+    image: "{{ k8s_registry }}/etcd:3.5.0"
   custom_label: {}

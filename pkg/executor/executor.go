@@ -48,7 +48,7 @@ type TaskExecutor interface {
 
 func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline) TaskExecutor {
 	// get variable
-	v, err := variable.GetVariable(client, *pipeline)
+	v, err := variable.New(client, *pipeline)
 	if err != nil {
 		klog.V(4).ErrorS(nil, "convert playbook error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return nil

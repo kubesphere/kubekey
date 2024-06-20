@@ -38,10 +38,11 @@ GO_INSTALL := ./scripts/go_install.sh
 
 # output
 OUTPUT_DIR := $(abspath $(ROOT_DIR)/_output)
-BIN_DIR := $(OUTPUT_DIR)/bin
+OUTPUT_BIN_DIR := $(OUTPUT_DIR)/bin
+OUTPUT_TOOLS_DIR := $(OUTPUT_DIR)/tools
 #ARTIFACTS ?= ${OUTPUT_DIR}/_artifacts
 
-dirs := $(OUTPUT_DIR) $(BIN_DIR)
+dirs := $(OUTPUT_DIR) $(OUTPUT_BIN_DIR) $(OUTPUT_TOOLS_DIR)
 
 $(foreach dir, $(dirs), \
   $(if $(shell [ -d $(dir) ] && echo 1 || echo 0),, \
@@ -49,7 +50,7 @@ $(foreach dir, $(dirs), \
   ) \
 )
 
-export PATH := $(abspath $(BIN_DIR)):$(PATH)
+export PATH := $(abspath $(OUTPUT_BIN_DIR)):$(abspath $(OUTPUT_TOOLS_DIR)):$(PATH)
 
 #
 # Binaries.
@@ -57,29 +58,29 @@ export PATH := $(abspath $(BIN_DIR)):$(PATH)
 # Note: Need to use abspath so we can invoke these from subdirectories
 KUSTOMIZE_VER := v4.5.2
 KUSTOMIZE_BIN := kustomize
-KUSTOMIZE := $(abspath $(BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
+KUSTOMIZE := $(abspath $(OUTPUT_TOOLS_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
 
 SETUP_ENVTEST_VER := v0.0.0-20240521074430-fbb7d370bebc
 SETUP_ENVTEST_BIN := setup-envtest
-SETUP_ENVTEST := $(abspath $(BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
+SETUP_ENVTEST := $(abspath $(OUTPUT_TOOLS_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 CONTROLLER_GEN_VER := v0.15.0
 CONTROLLER_GEN_BIN := controller-gen
-CONTROLLER_GEN := $(abspath $(BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
+CONTROLLER_GEN := $(abspath $(OUTPUT_TOOLS_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
 
 GOTESTSUM_VER := v1.6.4
 GOTESTSUM_BIN := gotestsum
-GOTESTSUM := $(abspath $(BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
+GOTESTSUM := $(abspath $(OUTPUT_TOOLS_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
 GOTESTSUM_PKG := gotest.tools/gotestsum
 
 HADOLINT_VER := v2.10.0
 HADOLINT_FAILURE_THRESHOLD = warning
 
 GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT := $(abspath $(BIN_DIR)/$(GOLANGCI_LINT_BIN))
+GOLANGCI_LINT := $(abspath $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN))
 
 #
 # Docker.
@@ -148,11 +149,9 @@ help: ## Display this help.
 
 ##@ generate:
 
-#ALL_GENERATE_MODULES = capkk k3s-bootstrap k3s-control-plane
-
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-* targets
-	$(MAKE) generate-go-deepcopy-kubekey generate-manifests-kubekey
+	$(MAKE) generate-go-deepcopy-kubekey generate-manifests-kubekey generate-modules generate-goimports
 
 .PHONY: generate-go-deepcopy-kubekey
 generate-go-deepcopy-kubekey: $(CONTROLLER_GEN) ## Generate deepcopy object
@@ -167,6 +166,14 @@ generate-manifests-kubekey: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RB
 		paths=./pkg/apis/... \
 		crd \
 		output:crd:dir=./config/helm/crds/
+
+.PHONY: generate-modules
+generate-modules: ## Run go mod tidy to ensure modules are up to date
+	go mod tidy
+
+.PHONY: generate-goimports
+generate-goimports:  ## Format all import, `goimports` is required.
+	@hack/update-goimports.sh
 
 ## --------------------------------------
 ## Lint / Verify
@@ -189,7 +196,7 @@ lint-dockerfiles:
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
 
 .PHONY: verify-modules
-verify-modules: generate-modules  ## Verify go modules are up to date
+verify-modules:  ## Verify go modules are up to date
 	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
@@ -200,11 +207,15 @@ verify-modules: generate-modules  ## Verify go modules are up to date
 	fi
 
 .PHONY: verify-gen
-verify-gen: generate  ## Verify go generated files are up to date
+verify-gen:  ## Verify go generated files are up to date
 	@if !(git diff --quiet HEAD); then \
 		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
+
+.PHONY: verify-goimports
+verify-goimports: ## Verify go imports
+	@hack/verify-goimports.sh
 
 ## --------------------------------------
 ## Binaries
@@ -214,7 +225,7 @@ verify-gen: generate  ## Verify go generated files are up to date
 
 .PHONY: kk
 kk: ## build kk binary
-	@CGO_ENABLED=0 GOARCH=$(GOARCH) GOOS=$(GOOS) go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kk cmd/kk/kubekey.go
+	@CGO_ENABLED=0 GOARCH=$(GOARCH) GOOS=$(GOOS) go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(OUTPUT_BIN_DIR)/kk cmd/kk/kubekey.go
 
 .PHONY: docker-build ## build and push all images
 docker-build: docker-build-operator docker-build-kk
@@ -326,20 +337,19 @@ helm-package: ## Helm-package.
 
 ##@ test:
 
-
 #ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
 #	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 #else
 #	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 #endif
-#
-#.PHONY: test
-#test: $(SETUP_ENVTEST) ## Run unit and integration tests
-#	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
-#.PHONY: test-verbose
-#test-verbose: ## Run unit and integration tests with verbose flag
-#	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
+.PHONY: test
+test: $(SETUP_ENVTEST) ## Run unit and integration tests
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+
+.PHONY: test-verbose
+test-verbose: ## Run unit and integration tests with verbose flag
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
 #
 #.PHONY: test-junit
 #test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report
@@ -516,11 +526,11 @@ helm-package: ## Helm-package.
 
 .PHONY: clean
 clean: ## Remove all generated files
-	$(MAKE) clean-bin
+	$(MAKE) clean-output clean-generated-deepcopy
 
-.PHONY: clean-bin
-clean-bin: ## Remove all generated binaries
-	rm -rf $(BIN_DIR)
+.PHONY: clean-output
+clean-output: ## Remove all generated binaries
+	rm -rf $(OUTPUT_DIR)
 
 #.PHONY: clean-release
 #clean-release: ## Remove the release folder
@@ -560,43 +570,18 @@ $(SETUP_ENVTEST_BIN): $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
 $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
-	GOBIN=$(BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+	GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
 
 $(GOTESTSUM): # Build gotestsum from tools folder.
-	GOBIN=$(BIN_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
+	GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
-	CGO_ENABLED=0 GOBIN=$(BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
 
 $(SETUP_ENVTEST): # Build setup-envtest from tools folder.
-	GOBIN=$(BIN_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
+	GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
 
 $(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golangci-lint using hack script into tools folder.
 	hack/ensure-golangci-lint.sh \
-		-b $(BIN_DIR) \
+		-b $(OUTPUT_TOOLS_DIR) \
 		$(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version | sed 's/.*version: //')
-
-# build the artifact of repository iso
-#ISO_ARCH ?= amd64
-#ISO_OUTPUT_DIR ?= ./output
-#ISO_BUILD_WORKDIR := hack/gen-repository-iso
-#ISO_OS_NAMES := centos7 debian9 debian10 ubuntu1604 ubuntu1804 ubuntu2004 ubuntu2204
-#ISO_BUILD_NAMES := $(addprefix build-iso-,$(ISO_OS_NAMES))
-#build-iso-all: $(ISO_BUILD_NAMES)
-#.PHONY: $(ISO_BUILD_NAMES)
-#$(ISO_BUILD_NAMES):
-#	@export DOCKER_BUILDKIT=1
-#	docker build \
-#		--platform linux/$(ISO_ARCH) \
-#		--build-arg TARGETARCH=$(ISO_ARCH) \
-#		-o type=local,dest=$(ISO_OUTPUT_DIR) \
-#		-f $(ISO_BUILD_WORKDIR)/dockerfile.$(subst build-iso-,,$@) \
-#		$(ISO_BUILD_WORKDIR)
-#
-#go-releaser-test:
-#	goreleaser release --rm-dist --skip-publish --snapshot
-
-
-# Format all import, `goimports` is required.
-goimports:  ## Format all import, `goimports` is required.
-	@hack/update-goimports.sh

@@ -12,7 +12,7 @@ cni:
   kube_svc_cidr: "{{ kubernetes.networking.service_cidr|default_if_none:'10.233.0.0/18' }}"
   multus:
     enabled: false
-    image: kubesphere/multus-cni:v3.8
+    image: "{{ dockerio_registry }}/kubesphere/multus-cni:v3.8"
   calico:
     # when cluster node > 50. it default true.
     typha: "{%if (groups['k8s_cluster']|length > 50) %}true{% else %}false{% endif %}"
@@ -24,26 +24,38 @@ cni:
     # true is enabled
     default_ip_pool: true
     # image
-    cni_image: "calico/cni:{{ calico_version }}"
-    node_image: "calico/node:{{ calico_version }}"
-    kube_controller_image: "calico/kube-controllers:{{ calico_version }}"
-    typha_image: "calico/typha:{{ calico_version }}"
+    cni_image: "{{ dockerio_registry }}/calico/cni:{{ calico_version }}"
+    node_image: "{{ dockerio_registry }}/calico/node:{{ calico_version }}"
+    kube_controller_image: "{{ dockerio_registry }}/calico/kube-controllers:{{ calico_version }}"
+    typha_image: "{{ dockerio_registry }}/calico/typha:{{ calico_version }}"
     replicas: 1
     node_selector: {}
   flannel:
     # https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md
     backend: vxlan
-    cni_plugin_image: docker.io/flannel/flannel-cni-plugin:v1.4.0-flannel1
-    flannel_image: "docker.io/flannel/flannel:{{ flannel_version }}"
+    cni_plugin_image: "{{ dockerio_registry }}/flannel/flannel-cni-plugin:v1.4.0-flannel1"
+    flannel_image: "{{ dockerio_registry }}/flannel/flannel:{{ flannel_version }}"
   cilium:
-    operator_image: cilium/operator-generic:1.15.3
-    cilium_image: cilium/cilium:1.15.3
+    # image repo
+    cilium_repository: "{{ quayio_registry }}/cilium/cilium"
+    certgen_repository: "{{ quayio_registry }}/cilium/certgen"
+    hubble_relay_repository: "{{ quayio_registry }}/cilium/hubble-relay"
+    hubble_ui_backend_repository: "{{ quayio_registry }}/cilium/hubble-ui-backend"
+    hubble_ui_repository: "{{ quayio_registry }}/cilium/hubble-ui"
+    cilium_envoy_repository: "{{ quayio_registry }}/cilium/cilium-envoy"
+    cilium_etcd_operator_repository: "{{ quayio_registry }}/cilium/cilium-etcd-operator"
+    operator_repository: "{{ quayio_registry }}/cilium/operator"
+    startup_script_repository: "{{ quayio_registry }}/cilium/startup-script"
+    clustermesh_apiserver_repository: "{{ quayio_registry }}/cilium/clustermesh-apiserver"
+    busybox_repository: "{{ dockerio_registry }}/library/busybox"
+    spire_agent_repository: "{{ ghcrio_registry }}/spiffe/spire-agent"
+    spire_server_repository: "{{ ghcrio_registry }}/spiffe/spire-server"
     k8s_endpoint: "{% if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint }}{% else %}{{ groups['kube_control_plane']|first }}{% endif %}"
     k8s_port: "{{ kubernetes.apiserver.port|default_if_none:6443 }}"
   kubeovn:
     replica: 1
-    registry: docker.io/kubeovn
+    registry: "{{ dockerio_registry }}/kubeovn"
   hybridnet:
-    registryURL: docker.io
+    registry: "{{ dockerio_registry }}"
 #    hybridnet_image: hybridnetdev/hybridnet
 #    hybridnet_tag: v0.8.8

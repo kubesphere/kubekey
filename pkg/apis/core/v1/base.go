@@ -28,7 +28,7 @@ type Base struct {
 	Vars map[string]any `yaml:"vars,omitempty"`
 
 	// module default params
-	ModuleDefaults []map[string]map[string]any `yaml:"module_defaults,omitempty"`
+	//ModuleDefaults []map[string]map[string]any `yaml:"module_defaults,omitempty"`
 
 	// flags and misc. settings
 	Environment    []map[string]string `yaml:"environment,omitempty"`

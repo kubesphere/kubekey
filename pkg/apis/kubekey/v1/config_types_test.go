@@ -55,8 +55,6 @@ func TestSetValue(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := in.SetValue(tc.key, tc.val)
 			assert.NoError(t, err)
-			t.Logf("%s", in.Spec.Raw)
-			t.Logf("%s", tc.except.Spec.Raw)
 			assert.Equal(t, tc.except, in)
 		})
 	}
