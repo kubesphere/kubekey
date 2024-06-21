@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -22,7 +25,12 @@ func newPipelineCommand() *cobra.Command {
 		Short: "Executor a pipeline in kubernetes",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_const.SetWorkDir(o.WorkDir)
-			restconfig, err := proxy.NewConfig()
+			restconfig, err := ctrl.GetConfig()
+			if err != nil {
+				klog.Infof("kubeconfig in empty, store resources local")
+				restconfig = &rest.Config{}
+			}
+			restconfig, err = proxy.NewConfig(restconfig)
 			if err != nil {
 				return fmt.Errorf("could not get rest config: %w", err)
 			}

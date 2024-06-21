@@ -1,5 +1,6 @@
 ---
 - name: Stop if unknown network plugin
+  tags: ["network"]
   assert:
     that: kubernetes.kube_network_plugin in cluster_require.require_network_plugin
     fail_msg: "{{ kubernetes.kube_network_plugin }} is not supported"
@@ -12,6 +13,7 @@
 # provisioning time, so to establish a guarantee, we factor these out.
 # NOTICE: the check blatantly ignores the inet6-case
 - name: Guarantee that enough network address space is available for all pods
+  tags: ["network"]
   assert:
     that: "(kubernetes.kubelet.max_pods | integer)  <= (2 | pow: {{ 32 - kubernetes.controller_manager.kube_network_node_prefix | integer }} - 2)"
     fail_msg: "Do not schedule more pods on a node than inet addresses are available."

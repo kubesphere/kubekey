@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -35,8 +36,12 @@ type controllerManager struct {
 
 func (c controllerManager) Run(ctx context.Context) error {
 	ctrl.SetLogger(klog.NewKlogr())
-
-	restconfig, err := proxy.NewConfig()
+	restconfig, err := ctrl.GetConfig()
+	if err != nil {
+		klog.Infof("kubeconfig in empty, store resources local")
+		restconfig = &rest.Config{}
+	}
+	restconfig, err = proxy.NewConfig(restconfig)
 	if err != nil {
 		return fmt.Errorf("could not get rest config: %w", err)
 	}

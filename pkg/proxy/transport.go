@@ -40,7 +40,6 @@ import (
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
@@ -53,12 +52,8 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/task"
 )
 
-func NewConfig() (*rest.Config, error) {
-	restconfig, err := ctrl.GetConfig()
-	if err != nil {
-		klog.Infof("kubeconfig in empty, store resources local")
-		restconfig = &rest.Config{}
-	}
+func NewConfig(restconfig *rest.Config) (*rest.Config, error) {
+	var err error
 	restconfig.Transport, err = newProxyTransport(restconfig)
 	if err != nil {
 		return nil, fmt.Errorf("create proxy transport error: %w", err)

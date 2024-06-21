@@ -1,5 +1,6 @@
 ---
 - name: Stop if etcd deployment type is not internal or external
+  tags: [ "etcd" ]
   assert:
     that: kubernetes.etcd.deployment_type in cluster_require.require_etcd_deployment_type
     fail_msg: "The etcd deployment type, 'kubernetes.etcd.deployment_type', must be internal or external"
@@ -7,6 +8,7 @@
   when: kubernetes.etcd.deployment_type | defined
 
 - name: Stop if etcd group is empty in internal etcd mode
+  tags: [ "etcd" ]
   assert:
     that: "'etcd' in groups"
     fail_msg: "Group 'etcd' cannot be empty in external etcd mode"
@@ -15,6 +17,7 @@
     - kubernetes.etcd.deployment_type  == "external"
 
 - name: Stop if even number of etcd hosts
+  tags: [ "etcd" ]
   assert:
     that: not groups.etcd | length | divisibleby:2
   when:
@@ -22,26 +25,32 @@
 
 ## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824
 - name: Check dev io for etcd
+  tags: [ "etcd" ]
   when:
     - inventory_name in groups['etcd']
   block:
     - name: Check fio is exist
+      tags: [ "etcd" ]
       ignore_errors: true
       command: fio --version
       register: fio_install_version
     - name: Test dev io by fio
+      tags: [ "etcd" ]
       when: fio_install_version.stderr == ""
       block:
         - name: Get fio result
+          tags: [ "etcd" ]
           command: |
             mkdir -p /tmp/kubekey/etcd/test-data
             fio --rw=write --ioengine=sync --fdatasync=1 --directory=/tmp/kubekey/etcd/test-data --size=22m --bs=2300 --name=mytest --output-format=json
           register: fio_result
         - name: Check fio result
+          tags: [ "etcd" ]
           assert:
             that: fio_result.stdout.jobs|first|get:'sync'|get:'lat_ns'|get:'percentile'|get:'90.000000' <= cluster_require.etcd_disk_wal_fysnc_duration_seconds
-            fail_msg: "etcd_disk_wal_fysnc_duration_seconds: {{ fio_result.stdout.jobs|first|get:'sync'|get:'lat_ns'|get:'percentile'|get:'90.000000' }}us is more than {{ cluster_require.etcd_disk_wal_fysnc_duration_seconds }}us"
+            fail_msg: "etcd_disk_wal_fysnc_duration_seconds: {{ fio_result.stdout.jobs|first|get:'sync'|get:'lat_ns'|get:'percentile'|get:'90.000000' }}ns is more than {{ cluster_require.etcd_disk_wal_fysnc_duration_seconds }}ns"
       always:
         - name: Clean test data dir
+          tags: [ "etcd" ]
           command: rm -rf /tmp/kubekey/etcd/test-data
 
