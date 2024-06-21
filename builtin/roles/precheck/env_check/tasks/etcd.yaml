@@ -48,7 +48,7 @@
           tags: [ "etcd" ]
           assert:
             that: fio_result.stdout.jobs|first|get:'sync'|get:'lat_ns'|get:'percentile'|get:'90.000000' <= cluster_require.etcd_disk_wal_fysnc_duration_seconds
-            fail_msg: "etcd_disk_wal_fysnc_duration_seconds: {{ fio_result.stdout.jobs|first|get:'sync'|get:'lat_ns'|get:'percentile'|get:'90.000000' }}us is more than {{ cluster_require.etcd_disk_wal_fysnc_duration_seconds }}us"
+            fail_msg: "etcd_disk_wal_fysnc_duration_seconds: {{ fio_result.stdout.jobs|first|get:'sync'|get:'lat_ns'|get:'percentile'|get:'90.000000' }}ns is more than {{ cluster_require.etcd_disk_wal_fysnc_duration_seconds }}ns"
       always:
         - name: Clean test data dir
           tags: [ "etcd" ]
