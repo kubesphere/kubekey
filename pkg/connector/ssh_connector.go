@@ -17,6 +17,7 @@ limitations under the License.
 package connector
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -29,6 +30,9 @@ import (
 	"golang.org/x/crypto/ssh"
 	"k8s.io/klog/v2"
 )
+
+var _ Connector = &sshConnector{}
+var _ GatherFacts = &sshConnector{}
 
 type sshConnector struct {
 	Host     string
@@ -132,4 +136,47 @@ func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, 
 	defer session.Close()
 
 	return session.CombinedOutput(cmd)
+}
+
+func (c *sshConnector) Info(ctx context.Context) (map[string]any, error) {
+	// os information
+	osVars := make(map[string]any)
+	var osRelease bytes.Buffer
+	if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
+		return nil, fmt.Errorf("failed to fetch os-release: %w", err)
+	}
+	osVars["release"] = convertBytesToMap(osRelease.Bytes(), "=")
+	kernel, err := c.ExecuteCommand(ctx, "uname -r")
+	if err != nil {
+		return nil, fmt.Errorf("get kernel version error: %w", err)
+	}
+	osVars["kernel_version"] = string(bytes.TrimSuffix(kernel, []byte("\n")))
+	hn, err := c.ExecuteCommand(ctx, "hostname")
+	if err != nil {
+		return nil, fmt.Errorf("get hostname error: %w", err)
+	}
+	osVars["hostname"] = string(bytes.TrimSuffix(hn, []byte("\n")))
+	arch, err := c.ExecuteCommand(ctx, "arch")
+	if err != nil {
+		return nil, fmt.Errorf("get arch error: %w", err)
+	}
+	osVars["architecture"] = string(bytes.TrimSuffix(arch, []byte("\n")))
+
+	// process information
+	procVars := make(map[string]any)
+	var cpu bytes.Buffer
+	if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
+		return nil, fmt.Errorf("get cpuinfo error: %w", err)
+	}
+	procVars["cpuInfo"] = convertBytesToSlice(cpu.Bytes(), ":")
+	var mem bytes.Buffer
+	if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
+		return nil, fmt.Errorf("get meminfo error: %w", err)
+	}
+	procVars["memInfo"] = convertBytesToMap(mem.Bytes(), ":")
+
+	return map[string]any{
+		"os":      osVars,
+		"process": procVars,
+	}, nil
 }

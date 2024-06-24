@@ -29,6 +29,8 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
+var _ Connector = &kubernetesConnector{}
+
 type kubernetesConnector struct {
 	clusterName    string
 	kubeconfig     string

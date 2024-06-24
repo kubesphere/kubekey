@@ -70,7 +70,7 @@ func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
 
 	tfs := fss.FlagSet("tags")
 	tfs.StringArrayVar(&o.Tags, "tags", o.Tags, "the tags of playbook which to execute")
-	tfs.StringArrayVar(&o.SkipTags, "skip_tags", o.SkipTags, "the tags of playbook which skip execute")
+	tfs.StringArrayVar(&o.SkipTags, "skip-tags", o.SkipTags, "the tags of playbook which skip execute")
 
 	return fss
 }
