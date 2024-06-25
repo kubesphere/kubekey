@@ -34,7 +34,7 @@ type Base struct {
 	Environment    []map[string]string `yaml:"environment,omitempty"`
 	NoLog          bool                `yaml:"no_log,omitempty"`
 	RunOnce        bool                `yaml:"run_once,omitempty"`
-	IgnoreErrors   bool                `yaml:"ignore_errors,omitempty"`
+	IgnoreErrors   *bool               `yaml:"ignore_errors,omitempty"`
 	CheckMode      bool                `yaml:"check_mode,omitempty"`
 	Diff           bool                `yaml:"diff,omitempty"`
 	AnyErrorsFatal bool                `yaml:"any_errors_fatal,omitempty"`

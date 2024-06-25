@@ -71,7 +71,8 @@ type executor struct {
 
 type execBlockOptions struct {
 	// playbook level config
-	hosts []string // which hosts will run playbook
+	hosts        []string // which hosts will run playbook
+	ignoreErrors *bool    // IgnoreErrors for playbook
 	// blocks level config
 	blocks []kkcorev1.Block
 	role   string   // role name of blocks
@@ -152,8 +153,9 @@ func (e executor) Exec(ctx context.Context) error {
 
 			// generate task from pre tasks
 			if err := e.execBlock(ctx, execBlockOptions{
-				hosts:  serials,
-				blocks: play.PreTasks,
+				hosts:        serials,
+				ignoreErrors: play.IgnoreErrors,
+				blocks:       play.PreTasks,
 			}); err != nil {
 				return fmt.Errorf("execute pre-tasks from play error: %w", err)
 			}
@@ -163,27 +165,35 @@ func (e executor) Exec(ctx context.Context) error {
 				if err := e.mergeVariable(ctx, e.variable, role.Vars, serials...); err != nil {
 					return fmt.Errorf("merge variable error: %w", err)
 				}
+				// use the most closely configuration
+				ignoreErrors := role.IgnoreErrors
+				if ignoreErrors == nil {
+					ignoreErrors = play.IgnoreErrors
+				}
 
 				if err := e.execBlock(ctx, execBlockOptions{
-					hosts:  serials,
-					blocks: role.Block,
-					role:   role.Role,
-					when:   role.When.Data,
+					hosts:        serials,
+					ignoreErrors: ignoreErrors,
+					blocks:       role.Block,
+					role:         role.Role,
+					when:         role.When.Data,
 				}); err != nil {
 					return fmt.Errorf("execute role-tasks error: %w", err)
 				}
 			}
 			// generate task from tasks
 			if err := e.execBlock(ctx, execBlockOptions{
-				hosts:  serials,
-				blocks: play.Tasks,
+				hosts:        serials,
+				ignoreErrors: play.IgnoreErrors,
+				blocks:       play.Tasks,
 			}); err != nil {
 				return fmt.Errorf("execute tasks error: %w", err)
 			}
 			// generate task from post tasks
 			if err := e.execBlock(ctx, execBlockOptions{
-				hosts:  serials,
-				blocks: play.Tasks,
+				hosts:        serials,
+				ignoreErrors: play.IgnoreErrors,
+				blocks:       play.Tasks,
 			}); err != nil {
 				return fmt.Errorf("execute post-tasks error: %w", err)
 			}
@@ -228,6 +238,11 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			hosts = []string{options.hosts[0]}
 		}
 
+		// use the most closely configuration
+		ignoreErrors := at.IgnoreErrors
+		if ignoreErrors == nil {
+			ignoreErrors = options.ignoreErrors
+		}
 		// merge variable which defined in block
 		if err := e.mergeVariable(ctx, e.variable, at.Vars, hosts...); err != nil {
 			klog.V(5).ErrorS(err, "merge variable error", "pipeline", e.pipeline, "block", at.Name)
@@ -238,10 +253,11 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 		case len(at.Block) != 0:
 			// exec block
 			if err := e.execBlock(ctx, execBlockOptions{
-				hosts:  hosts,
-				role:   options.role,
-				blocks: at.Block,
-				when:   append(options.when, at.When.Data...),
+				hosts:        hosts,
+				ignoreErrors: ignoreErrors,
+				role:         options.role,
+				blocks:       at.Block,
+				when:         append(options.when, at.When.Data...),
 			}); err != nil {
 				klog.V(4).ErrorS(err, "execute tasks from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return err
@@ -250,10 +266,11 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			// if block exec failed exec rescue
 			if e.pipeline.Status.Phase == kubekeyv1.PipelinePhaseFailed && len(at.Rescue) != 0 {
 				if err := e.execBlock(ctx, execBlockOptions{
-					hosts:  hosts,
-					blocks: at.Rescue,
-					role:   options.role,
-					when:   append(options.when, at.When.Data...),
+					hosts:        hosts,
+					ignoreErrors: ignoreErrors,
+					blocks:       at.Rescue,
+					role:         options.role,
+					when:         append(options.when, at.When.Data...),
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from rescue error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
@@ -263,10 +280,11 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			// exec always after block
 			if len(at.Always) != 0 {
 				if err := e.execBlock(ctx, execBlockOptions{
-					hosts:  hosts,
-					blocks: at.Always,
-					role:   options.role,
-					when:   append(options.when, at.When.Data...),
+					hosts:        hosts,
+					ignoreErrors: ignoreErrors,
+					blocks:       at.Always,
+					role:         options.role,
+					when:         append(options.when, at.When.Data...),
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from always error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
@@ -495,7 +513,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 	task.Status.Phase = kubekeyv1alpha1.TaskPhaseSuccess
 	for data := range dataChan {
 		if data.StdErr != "" {
-			if task.Spec.IgnoreError {
+			if task.Spec.IgnoreError != nil && *task.Spec.IgnoreError {
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseIgnored
 			} else {
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseFailed
