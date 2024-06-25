@@ -119,3 +119,8 @@ func NewConnector(host string, vars map[string]any) (Connector, error) {
 		}, nil
 	}
 }
+
+// GatherFacts get host info.
+type GatherFacts interface {
+	Info(ctx context.Context) (map[string]any, error)
+}

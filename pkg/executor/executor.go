@@ -34,6 +34,7 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
@@ -112,7 +113,7 @@ func (e executor) Exec(ctx context.Context) error {
 		// when gather_fact is set. get host's information from remote.
 		if play.GatherFacts {
 			for _, h := range hosts {
-				gfv, err := getGatherFact(ctx, h, e.variable)
+				gfv, err := e.getGatherFact(ctx, h, e.variable)
 				if err != nil {
 					return fmt.Errorf("get gather fact error: %w", err)
 				}
@@ -189,6 +190,32 @@ func (e executor) Exec(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// getGatherFact get host info
+func (e executor) getGatherFact(ctx context.Context, hostname string, vars variable.Variable) (map[string]any, error) {
+	v, err := vars.Get(variable.GetParamVariable(hostname))
+	if err != nil {
+		klog.V(4).ErrorS(err, "Get host variable error", "hostname", hostname)
+		return nil, err
+	}
+
+	conn, err := connector.NewConnector(hostname, v.(map[string]any))
+	if err != nil {
+		klog.V(4).ErrorS(err, "New connector error", "hostname", hostname)
+		return nil, err
+	}
+	if err := conn.Init(ctx); err != nil {
+		klog.V(4).ErrorS(err, "Init connection error", "hostname", hostname)
+		return nil, err
+	}
+	defer conn.Close(ctx)
+
+	if gf, ok := conn.(connector.GatherFacts); ok {
+		return gf.Info(ctx)
+	}
+	klog.V(4).ErrorS(nil, "gather fact is not defined in this connector", "hostname", hostname)
+	return nil, nil
 }
 
 func (e executor) execBlock(ctx context.Context, options execBlockOptions) error {
