@@ -39,7 +39,7 @@ const (
 type KubeKeyTaskSpec struct {
 	Name        string   `json:"name,omitempty"`
 	Hosts       []string `json:"hosts,omitempty"`
-	IgnoreError bool     `json:"ignoreError,omitempty"`
+	IgnoreError *bool    `json:"ignoreError,omitempty"`
 	Retries     int      `json:"retries,omitempty"`
 
 	When       []string             `json:"when,omitempty"`
