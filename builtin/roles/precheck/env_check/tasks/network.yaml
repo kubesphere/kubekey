@@ -15,7 +15,7 @@
 - name: Guarantee that enough network address space is available for all pods
   tags: ["network"]
   assert:
-    that: "(kubernetes.kubelet.max_pods | integer)  <= (2 | pow: {{ 32 - kubernetes.controller_manager.kube_network_node_prefix | integer }} - 2)"
+    that: "(kubernetes.kubelet.max_pods | integer)  <= (2 | pow:{{ 32 - kubernetes.controller_manager.kube_network_node_prefix | integer }} - 2)"
     fail_msg: "Do not schedule more pods on a node than inet addresses are available."
   when:
     - inventory_name in groups['k8s_cluster']
