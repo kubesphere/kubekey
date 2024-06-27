@@ -26,6 +26,7 @@ type RoleInfo struct {
 	Taggable         `yaml:",inline"`
 	CollectionSearch `yaml:",inline"`
 
+	// Role ref in playbook
 	Role string `yaml:"role,omitempty"`
 
 	Block []Block
