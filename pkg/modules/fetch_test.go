@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	testassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -65,8 +65,8 @@ func TestFetch(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctx, time.Second*5)
 			defer cancel()
 			acStdout, acStderr := ModuleFetch(ctx, tc.opt)
-			testassert.Equal(t, tc.exceptStdout, acStdout)
-			testassert.Equal(t, tc.exceptStderr, acStderr)
+			assert.Equal(t, tc.exceptStdout, acStdout)
+			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

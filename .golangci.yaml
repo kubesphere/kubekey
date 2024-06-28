@@ -1,0 +1,259 @@
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - containedctx
+    - deadcode
+    - depguard
+    - dogsled
+    - errcheck
+    - exportloopref
+    - gci
+    - goconst
+    - gocritic
+    - gofmt
+    - goimports
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - importas
+    - ineffassign
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
+    - rowserrcheck
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - thelper
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+
+linters-settings:
+  godot:
+    #   declarations - for top level declaration comments (default);
+    #   toplevel     - for top level comments;
+    #   all          - for all comments.
+    scope: toplevel
+    exclude:
+      - '^ \+.*'
+      - '^ ANCHOR.*'
+  ifshort:
+    # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
+    max-decl-chars: 50
+  gci:
+    local-prefixes: "github.com/kubesphere/kubekey"
+  importas:
+    no-unaliased: true
+    alias:
+      # oci
+      - pkg: github.com/opencontainers/image-spec/specs-go/v1
+        alias: imagev1
+      # Kubernetes
+      - pkg: "k8s.io/api/core/v1"
+        alias: corev1
+      - pkg: "k8s.io/api/batch/v1"
+        alias: batchv1
+      - pkg: "k8s.io/api/rbac/v1"
+        alias: rbacv1
+      - pkg: "k8s.io/apimachinery/pkg/apis/meta/v1"
+        alias: metav1
+      - pkg: "k8s.io/apimachinery/pkg/api/errors"
+        alias: apierrors
+      - pkg:  "k8s.io/client-go/tools/cache"
+        alias: cgcache
+      - pkg:  "k8s.io/client-go/util/cert"
+        alias: certutil
+      - pkg:  "k8s.io/component-base/cli/flag"
+        alias: cliflag
+      - pkg:  "k8s.io/utils/exec/testing"
+        alias: testingexec
+      - pkg:  "k8s.io/utils/net"
+        alias: netutils
+      # Controller Runtime
+      - pkg: "sigs.k8s.io/controller-runtime"
+        alias: ctrl
+      - pkg: "sigs.k8s.io/controller-runtime/pkg/client"
+        alias: ctrlclient
+      - pkg: "sigs.k8s.io/controller-runtime/pkg/controller"
+        alias: ctrlcontroller
+      - pkg: "sigs.k8s.io/controller-runtime/pkg/finalizer"
+        alias: ctrlfinalizer
+      # kubekey
+      - pkg: "github.com/kubesphere/kubekey/v4/pkg/const"
+        alias: _const
+      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+        alias: kubekeyv1
+      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+        alias: kubekeyv1alpha1
+      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+        alias: kkcorev1
+  nolintlint:
+    allow-unused: false
+    allow-leading-space: false
+    require-specific: true
+  revive:
+    rules:
+      # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      #- name: if-return  # TODO This is a recommended rule with many findings which may require it's own pr.
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      #- name: unused-parameter  # TODO This is a recommended rule with many findings which may require it's own pr.
+      - name: unreachable-code
+      - name: redefines-builtin-id
+      #
+      # Rules in addition to the recommended configuration above.
+      #
+      - name: bool-literal-in-expr
+      - name: constant-logical-expr
+  gosec:
+    excludes:
+      - G307 # Deferring unsafe method "Close" on type "\*os.File"
+      - G108 # Profiling endpoint is automatically exposed on /debug/pprof
+  gocritic:
+    enabled-tags:
+      - experimental
+    disabled-checks:
+      - appendAssign
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - evalOrder
+      - ifElseChain
+      - octalLiteral
+      - regexpSimplify
+      - sloppyReassign
+      - truncateCmp
+      - typeDefFirst
+      - unnamedResult
+      - unnecessaryDefer
+      - whyNoLint
+      - wrapperFunc
+      - commentFormatting
+      - filepathJoin
+      - rangeValCopy
+      - hugeParam
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
+  # changes in PRs and avoid nitpicking.
+  exclude-use-default: false
+  exclude-rules:
+    - linters:
+        - revive
+      text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
+    - linters:
+        - errcheck
+      text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+    # Exclude revive's exported for certain packages and code, e.g. tests and fake.
+    - linters:
+        - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      source: (func|type).*Fake.*
+    - linters:
+        - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: fake_\.go
+    - linters:
+        - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: .*test/(providers|framework|e2e).*.go
+    - linters:
+        - errcheck
+      text: Error return value is not checked
+      path: _test\.go
+    - linters:
+        - errcheck
+      text: Error return value of (.+) is not checked
+      path: _test\.go
+    - linters:
+        - gosec
+      text: "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+    - linters:
+        - godot
+      text: "Comment should end in a period"
+      path: "(.*)/(v1beta1|v1beta2)/(.*)types.go"
+    - linters:
+        - errcheck
+      text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+      # With Go 1.16, the new embed directive can be used with an un-named import,
+      # revive (previously, golint) only allows these to be imported in a main.go, which wouldn't work for us.
+      # This directive allows the embed package to be imported with an underscore everywhere.
+    - linters:
+        - revive
+      source: _ "embed"
+      # This directive allows the variable in defaults.go files to have underscore
+    - linters:
+        - revive
+      text: "var-naming: don't use underscores in Go names; func (.+) should be (.+)"
+      path: .*/defaults.go
+      # Disable unparam "always receives" which might not be really
+      # useful when building libraries.
+    - linters:
+        - unparam
+      text: always receives
+      # Dot imports for gomega or ginkgo are allowed
+      # within test files.
+    - path: _test\.go
+      text: should not use dot imports
+    - path: (framework|e2e)/.*.go
+      text: should not use dot imports
+    - path: _test\.go
+      text: cyclomatic complexity
+    - linters:
+        - unparam
+      text: (.+) - (`t`|`g`) is unused
+    - path: _test\.go
+      text: cyclomatic complexity
+      # Append should be able to assign to a different var/slice.
+    - linters:
+        - gocritic
+      text: "appendAssign: append result not assigned to the same slice"
+    # We don't care about defer in for loops in test files.
+    - linters:
+        - gocritic
+      text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
+      path: _test\.go
+
+run:
+  timeout: 10m
+  go: "1.19"
+  build-tags:
+    - tools
+    - e2e
+    - containers_image_openpgp
+    - exclude_graphdriver_devicemapper
+    - exclude_graphdriver_btrfs
+  skip-files:
+    - "zz_generated.*\\.go$"
+    - "vendored_openapi\\.go$"
+    - "cmd"
+  allow-parallel-runners: true

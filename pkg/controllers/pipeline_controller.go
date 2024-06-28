@@ -23,7 +23,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -60,7 +60,7 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	pipeline := &kubekeyv1.Pipeline{}
 	err := r.Client.Get(ctx, req.NamespacedName, pipeline)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			klog.V(5).InfoS("pipeline not found", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 			return ctrl.Result{}, nil
 		}
@@ -108,7 +108,7 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 		jobs := &batchv1.JobList{}
 		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace), ctrlclient.MatchingLabels{
 			jobLabel: pipeline.Name,
-		}); err != nil && !errors.IsNotFound(err) {
+		}); err != nil && !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		} else if len(jobs.Items) != 0 {
 			// could find exist job
@@ -137,7 +137,7 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 		jobs := &batchv1.CronJobList{}
 		if err := r.Client.List(ctx, jobs, ctrlclient.InNamespace(pipeline.Namespace), ctrlclient.MatchingLabels{
 			jobLabel: pipeline.Name,
-		}); err != nil && !errors.IsNotFound(err) {
+		}); err != nil && !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
 
 		} else if len(jobs.Items) != 0 {
@@ -198,7 +198,7 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 
 	var sa = &corev1.ServiceAccount{}
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, sa); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			klog.ErrorS(err, "get service account", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
 			return err
 		}
@@ -213,7 +213,7 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 
 	var rb = &rbacv1.ClusterRoleBinding{}
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, rb); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
 			return err
 		}

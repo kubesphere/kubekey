@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	testassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -61,8 +61,8 @@ func TestModuleGenCert(t *testing.T) {
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
 			stdout, stderr := ModuleGenCert(context.Background(), testcase.opt)
-			testassert.Equal(t, testcase.exceptStdout, stdout)
-			testassert.Equal(t, testcase.exceptStderr, stderr)
+			assert.Equal(t, testcase.exceptStdout, stdout)
+			assert.Equal(t, testcase.exceptStderr, stderr)
 		})
 	}
 }
