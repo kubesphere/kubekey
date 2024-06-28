@@ -1,0 +1,41 @@
+name: goreleaser
+
+on:
+  push:
+    tags:
+      - 'v4*'
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    if: github.repository == 'kubesphere/kubekey'
+    steps:
+      - name: Prepare
+        id: prepare
+        run: |
+          LDFLAGS=$(shell hack/version.sh)
+          
+          echo "ldflags=${LDFLAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: ${{ env.GITHUB_REF_NAME }}
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LDFLAGS: ${{ steps.prepare.outputs.ldflags }}
