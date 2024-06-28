@@ -72,7 +72,6 @@ func (s *PlaySerial) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return nil
 	}
 	return fmt.Errorf("unsupported type, excepted any or array")
-
 }
 
 type PlayHost struct {
@@ -91,5 +90,4 @@ func (p *PlayHost) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return nil
 	}
 	return fmt.Errorf("unsupported type, excepted string or string array")
-
 }

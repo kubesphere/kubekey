@@ -20,8 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog/v2"
-
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -30,8 +28,7 @@ func ModuleDebug(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
 
 	args := variable.Extension2Variables(options.Args)
@@ -39,17 +36,13 @@ func ModuleDebug(ctx context.Context, options ExecOptions) (string, string) {
 	if varParam, err := variable.StringVar(ha.(map[string]any), args, "var"); err == nil {
 		result, err := tmpl.ParseString(ha.(map[string]any), fmt.Sprintf("{{ %s }}", varParam))
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to parse var")
-			return "", err.Error()
+			return "", fmt.Sprintf("failed to parse var: %v", err)
 		}
 		return result, ""
 	}
 	// msg is defined. return the actual msg
 	if msgParam, err := variable.StringVar(ha.(map[string]any), args, "msg"); err == nil {
 		return msgParam, ""
-	}
-	if err != nil {
-		return "", err.Error()
 	}
 
 	return "", "unknown args for debug. only support var or msg"

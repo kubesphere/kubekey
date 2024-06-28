@@ -23,8 +23,8 @@ type Playbook struct {
 }
 
 func (p *Playbook) Validate() error {
-	var newPlay []Play
-	for _, play := range p.Play {
+	var newPlay = make([]Play, len(p.Play))
+	for i, play := range p.Play {
 		// delete import_playbook import_playbook is a link, should be ignored.
 		if play.ImportPlaybook != "" {
 			continue
@@ -32,7 +32,7 @@ func (p *Playbook) Validate() error {
 		if len(play.PlayHost.Hosts) == 0 {
 			return fmt.Errorf("playbook's hosts must not be empty")
 		}
-		newPlay = append(newPlay, play)
+		newPlay[i] = play
 	}
 	p.Play = newPlay
 	return nil

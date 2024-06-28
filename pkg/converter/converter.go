@@ -77,18 +77,18 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 	// the count for sis
 	var count int
 	for i, a := range serial {
-		switch a.(type) {
+		switch val := a.(type) {
 		case int:
-			sis[i] = a.(int)
+			sis[i] = val
 		case string:
-			if strings.HasSuffix(a.(string), "%") {
-				b, err := strconv.ParseFloat(a.(string)[:len(a.(string))-1], 64)
+			if strings.HasSuffix(val, "%") {
+				b, err := strconv.ParseFloat(val[:len(val)-1], 64)
 				if err != nil {
 					return nil, fmt.Errorf("convert serial %v to float error: %w", a, err)
 				}
 				sis[i] = int(math.Ceil(float64(len(hosts)) * b / 100.0))
 			} else {
-				b, err := strconv.Atoi(a.(string))
+				b, err := strconv.Atoi(val)
 				if err != nil {
 					return nil, fmt.Errorf("convert serial %v to int error: %w", a, err)
 				}

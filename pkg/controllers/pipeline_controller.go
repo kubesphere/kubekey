@@ -139,7 +139,6 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 			jobLabel: pipeline.Name,
 		}); err != nil && !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
-
 		} else if len(jobs.Items) != 0 {
 			// could find exist cronJob
 			for _, job := range jobs.Items {

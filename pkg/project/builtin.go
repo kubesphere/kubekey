@@ -71,7 +71,7 @@ func (p builtinProject) getFilePath(path string, o GetFileOption) string {
 		}
 		find = append(find, filepath.Join(_const.ProjectRolesTemplateDir, path))
 	default:
-		find = append(find, filepath.Join(path))
+		find = append(find, path)
 	}
 	for _, s := range find {
 		if _, err := fs.Stat(p.FS, s); err == nil {

@@ -24,10 +24,6 @@ type router struct {
 	handlers map[string]http.HandlerFunc
 }
 
-func (r router) matchPath(url string) bool {
-	return r.pathExpr.Matcher.MatchString(url)
-}
-
 // Types and functions to support the sorting of Dispatchers
 
 type dispatcherCandidate struct {

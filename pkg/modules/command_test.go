@@ -18,7 +18,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -30,7 +29,7 @@ func TestCommand(t *testing.T) {
 	testcases := []struct {
 		name         string
 		opt          ExecOptions
-		ctx          context.Context
+		ctxFunc      func() context.Context
 		exceptStdout string
 		exceptStderr string
 	}{
@@ -39,14 +38,14 @@ func TestCommand(t *testing.T) {
 			opt: ExecOptions{
 				Variable: &testVariable{},
 			},
-			ctx:          context.Background(),
+			ctxFunc:      context.Background,
 			exceptStderr: "cannot find variable \"ssh_host\"",
 		},
 		{
 			name: "exec command success",
-			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
-				output: []byte("success"),
-			}),
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, successConnector)
+			},
 			opt: ExecOptions{
 				Host:     "test",
 				Args:     runtime.RawExtension{Raw: []byte("echo success")},
@@ -55,10 +54,8 @@ func TestCommand(t *testing.T) {
 			exceptStdout: "success",
 		},
 		{
-			name: "exec command failed",
-			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
-				commandErr: fmt.Errorf("failed"),
-			}),
+			name:    "exec command failed",
+			ctxFunc: func() context.Context { return context.WithValue(context.Background(), ConnKey, failedConnector) },
 			opt: ExecOptions{
 				Host:     "test",
 				Args:     runtime.RawExtension{Raw: []byte("echo success")},
@@ -70,7 +67,7 @@ func TestCommand(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(tc.ctx, time.Second*5)
+			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 			acStdout, acStderr := ModuleCommand(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)

@@ -38,7 +38,7 @@ func TestTemplate(t *testing.T) {
 	testcases := []struct {
 		name         string
 		opt          ExecOptions
-		ctx          context.Context
+		ctxFunc      func() context.Context
 		exceptStdout string
 		exceptStderr string
 	}{
@@ -49,7 +49,7 @@ func TestTemplate(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx:          context.Background(),
+			ctxFunc:      context.Background,
 			exceptStderr: "\"src\" should be string",
 		},
 		{
@@ -61,14 +61,14 @@ func TestTemplate(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx:          context.Background(),
+			ctxFunc:      context.Background,
 			exceptStderr: "\"dest\" should be string",
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(tc.ctx, time.Second*5)
+			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 			acStdout, acStderr := ModuleTemplate(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)

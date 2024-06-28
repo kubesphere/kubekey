@@ -47,7 +47,6 @@ func New(pipeline kubekeyv1.Pipeline, update bool) (Project, error) {
 	if strings.HasPrefix(pipeline.Spec.Project.Addr, "https://") ||
 		strings.HasPrefix(pipeline.Spec.Project.Addr, "http://") ||
 		strings.HasPrefix(pipeline.Spec.Project.Addr, "git@") {
-
 		return newGitProject(pipeline, update)
 	}
 

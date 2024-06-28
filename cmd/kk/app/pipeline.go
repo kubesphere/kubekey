@@ -37,6 +37,9 @@ func newPipelineCommand() *cobra.Command {
 			client, err := ctrlclient.New(restconfig, ctrlclient.Options{
 				Scheme: _const.Scheme,
 			})
+			if err != nil {
+				return fmt.Errorf("could not create client: %w", err)
+			}
 			ctx := signals.SetupSignalHandler()
 			var pipeline = new(kubekeyv1.Pipeline)
 			var config = new(kubekeyv1.Config)

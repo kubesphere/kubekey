@@ -187,7 +187,6 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 				if err != nil {
 					return err
 				}
-
 			}
 		}
 		pb.Play[i] = p

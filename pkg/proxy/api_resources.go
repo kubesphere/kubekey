@@ -102,7 +102,7 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 	if err != nil {
 		return err
 	}
-	if len(subResource) == 0 {
+	if subResource == "" {
 		singularNameProvider, ok := o.storage.(apirest.SingularNameProvider)
 		if !ok {
 			return fmt.Errorf("resource %s must implement SingularNameProvider", o.path)

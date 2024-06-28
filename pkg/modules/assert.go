@@ -18,8 +18,7 @@ package modules
 
 import (
 	"context"
-
-	"k8s.io/klog/v2"
+	"fmt"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -29,8 +28,7 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
 
 	args := variable.Extension2Variables(options.Args)
@@ -41,33 +39,33 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 
 	ok, err := tmpl.ParseBool(ha.(map[string]any), thatParam)
 	if err != nil {
-		return "", err.Error()
+		return "", fmt.Sprintf("parse \"that\" error: %v", err)
 	}
 
 	if ok {
 		if successMsgParam, err := variable.StringVar(ha.(map[string]any), args, "success_msg"); err == nil {
 			if r, err := tmpl.ParseString(ha.(map[string]any), successMsgParam); err != nil {
-				return "", err.Error()
+				return "", fmt.Sprintf("parse \"success_msg\" error: %v", err)
 			} else {
 				return r, ""
 			}
 		}
-		return "True", ""
+		return stdoutTrue, ""
 	} else {
 		if failMsgParam, err := variable.StringVar(ha.(map[string]any), args, "fail_msg"); err == nil {
 			if r, err := tmpl.ParseString(ha.(map[string]any), failMsgParam); err != nil {
-				return "", err.Error()
+				return "", fmt.Sprintf("parse \"fail_msg\" error: %v", err)
 			} else {
-				return "False", r
+				return stdoutFalse, r
 			}
 		}
 		if msgParam, err := variable.StringVar(ha.(map[string]any), args, "msg"); err == nil {
 			if r, err := tmpl.ParseString(ha.(map[string]any), msgParam); err != nil {
-				return "", err.Error()
+				return "", fmt.Sprintf("parse \"msg\" error: %v", err)
 			} else {
-				return "False", r
+				return stdoutFalse, r
 			}
 		}
-		return "False", "False"
+		return stdoutFalse, "False"
 	}
 }

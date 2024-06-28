@@ -22,6 +22,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
@@ -44,11 +45,11 @@ var (
 
 func newScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	batchv1.AddToScheme(s)
-	corev1.AddToScheme(s)
-	rbacv1.AddToScheme(s)
-	kubekeyv1.AddToScheme(s)
-	kubekeyv1alpha1.AddToScheme(s)
-	kubekeyv1alpha1.AddConversionFuncs(s)
+	utilruntime.Must(batchv1.AddToScheme(s))
+	utilruntime.Must(corev1.AddToScheme(s))
+	utilruntime.Must(rbacv1.AddToScheme(s))
+	utilruntime.Must(kubekeyv1.AddToScheme(s))
+	utilruntime.Must(kubekeyv1alpha1.AddToScheme(s))
+	utilruntime.Must(kubekeyv1alpha1.AddConversionFuncs(s))
 	return s
 }

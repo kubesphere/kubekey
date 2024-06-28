@@ -25,14 +25,14 @@ func ParseIp(ip string) []string {
 	var availableIPs []string
 	// if ip is "1.1.1.1/",trim /
 	ip = strings.TrimRight(ip, "/")
-	if strings.Contains(ip, "/") == true {
-		if strings.Contains(ip, "/32") == true {
+	if strings.Contains(ip, "/") {
+		if strings.Contains(ip, "/32") {
 			aip := strings.Replace(ip, "/32", "", -1)
 			availableIPs = append(availableIPs, aip)
 		} else {
 			availableIPs = GetAvailableIP(ip)
 		}
-	} else if strings.Contains(ip, "-") == true {
+	} else if strings.Contains(ip, "-") {
 		ipRange := strings.SplitN(ip, "-", 2)
 		availableIPs = GetAvailableIPRange(ipRange[0], ipRange[1])
 	} else {
@@ -57,7 +57,7 @@ func GetAvailableIPRange(ipStart, ipEnd string) []string {
 
 	for newNum <= EndIPNum {
 		availableIPs = append(availableIPs, intToIP(newNum).String())
-		newNum = newNum + pos
+		newNum += pos
 	}
 	return availableIPs
 }
@@ -95,11 +95,11 @@ func intToIP(n int32) net.IP {
 }
 
 func IPAddressToCIDR(ipAddress string) string {
-	if strings.Contains(ipAddress, "/") == true {
+	if strings.Contains(ipAddress, "/") {
 		ipAndMask := strings.Split(ipAddress, "/")
 		ip := ipAndMask[0]
 		mask := ipAndMask[1]
-		if strings.Contains(mask, ".") == true {
+		if strings.Contains(mask, ".") {
 			mask = IPMaskStringToCIDR(mask)
 		}
 		return ip + "/" + mask
@@ -110,10 +110,9 @@ func IPAddressToCIDR(ipAddress string) string {
 
 func IPMaskStringToCIDR(netmask string) string {
 	netmaskList := strings.Split(netmask, ".")
-	var mint []int
-	for _, v := range netmaskList {
-		strv, _ := strconv.Atoi(v)
-		mint = append(mint, strv)
+	var mint = make([]int, len(netmaskList))
+	for i, v := range netmaskList {
+		mint[i], _ = strconv.Atoi(v)
 	}
 	myIPMask := net.IPv4Mask(byte(mint[0]), byte(mint[1]), byte(mint[2]), byte(mint[3]))
 	ones, _ := myIPMask.Size()

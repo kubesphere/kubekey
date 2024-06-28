@@ -89,7 +89,6 @@ func (v value) getParameterVariable() map[string]any {
 		// merge config vars to host vars
 		hostVars = combineVariables(hostVars, Extension2Variables(v.Config.Spec))
 		globalHosts[hostname] = hostVars
-
 	}
 	var externalVal = make(map[string]any)
 	// external vars

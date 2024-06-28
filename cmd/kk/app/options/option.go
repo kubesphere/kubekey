@@ -203,9 +203,9 @@ func setValue(config *kubekeyv1.Config, key, val string) error {
 			return err
 		}
 		return config.SetValue(key, value)
-	case strings.ToUpper(val) == "TRUE" || strings.ToUpper(val) == "YES" || strings.ToUpper(val) == "Y":
+	case strings.EqualFold(val, "TRUE") || strings.EqualFold(val, "YES") || strings.EqualFold(val, "Y"):
 		return config.SetValue(key, true)
-	case strings.ToUpper(val) == "FALSE" || strings.ToUpper(val) == "NO" || strings.ToUpper(val) == "N":
+	case strings.EqualFold(val, "FALSE") || strings.EqualFold(val, "NO") || strings.EqualFold(val, "N"):
 		return config.SetValue(key, false)
 	default:
 		return config.SetValue(key, val)

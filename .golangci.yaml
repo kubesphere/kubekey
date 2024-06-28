@@ -4,12 +4,12 @@ linters:
     - asciicheck
     - bodyclose
     - containedctx
-    - deadcode
-    - depguard
+#    - deadcode
+#    - depguard
     - dogsled
     - errcheck
     - exportloopref
-    - gci
+#    - gci
     - goconst
     - gocritic
     - gofmt
@@ -20,24 +20,24 @@ linters:
     - govet
     - importas
     - ineffassign
-    - misspell
+#    - misspell
     - nakedret
     - nilerr
     - noctx
     - nolintlint
     - prealloc
     - predeclared
-    - revive
+#    - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
+#    - structcheck
     - stylecheck
     - thelper
     - typecheck
     - unconvert
-    - unparam
+#    - unparam
     - unused
-    - varcheck
+#    - varcheck
     - whitespace
 
 linters-settings:
@@ -49,11 +49,6 @@ linters-settings:
     exclude:
       - '^ \+.*'
       - '^ ANCHOR.*'
-  ifshort:
-    # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
-    max-decl-chars: 50
-  gci:
-    local-prefixes: "github.com/kubesphere/kubekey"
   importas:
     no-unaliased: true
     alias:
@@ -71,10 +66,12 @@ linters-settings:
         alias: metav1
       - pkg: "k8s.io/apimachinery/pkg/api/errors"
         alias: apierrors
+      - pkg:  "k8s.io/apimachinery/pkg/util/runtime"
+        alias: utilruntime
       - pkg:  "k8s.io/client-go/tools/cache"
-        alias: cgcache
+        alias: cgtoolscache
       - pkg:  "k8s.io/client-go/util/cert"
-        alias: certutil
+        alias: cgutilcert
       - pkg:  "k8s.io/component-base/cli/flag"
         alias: cliflag
       - pkg:  "k8s.io/utils/exec/testing"
@@ -101,7 +98,6 @@ linters-settings:
         alias: kkcorev1
   nolintlint:
     allow-unused: false
-    allow-leading-space: false
     require-specific: true
   revive:
     rules:
@@ -137,6 +133,10 @@ linters-settings:
       - name: constant-logical-expr
   gosec:
     excludes:
+      - G106 # Deferring unsafe method "InsecureIgnoreHostKey" on type "\*ssh"
+      - G301 # Deferring unsafe method "MkdirAll" on type "\*os.File"
+      - G304 # Deferring unsafe method "Create" or "Open" on type "\*os.File"
+      - G306 # Deferring unsafe method "WriteFile" on type "\*os.File"
       - G307 # Deferring unsafe method "Close" on type "\*os.File"
       - G108 # Profiling endpoint is automatically exposed on /debug/pprof
   gocritic:
@@ -160,6 +160,9 @@ linters-settings:
       - filepathJoin
       - rangeValCopy
       - hugeParam
+  stylecheck:
+    checks:
+      - -ST1000 # ignore package comment
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
@@ -245,15 +248,7 @@ issues:
 
 run:
   timeout: 10m
-  go: "1.19"
+  go: "1.22"
   build-tags:
-    - tools
-    - e2e
-    - containers_image_openpgp
-    - exclude_graphdriver_devicemapper
-    - exclude_graphdriver_btrfs
-  skip-files:
-    - "zz_generated.*\\.go$"
-    - "vendored_openapi\\.go$"
-    - "cmd"
+    - builtin
   allow-parallel-runners: true

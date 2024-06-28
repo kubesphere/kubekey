@@ -24,8 +24,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/klog/v2"
-
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -35,8 +33,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
 
 	// check args
@@ -44,9 +41,6 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 	args := variable.Extension2Variables(options.Args)
 	srcParam, _ := variable.StringVar(ha.(map[string]any), args, "src")
 	contentParam, _ := variable.StringVar(ha.(map[string]any), args, "content")
-	if srcParam == "" && contentParam == "" {
-		return "", "\"src\" or \"content\" in args should be string"
-	}
 	destParam, err := variable.StringVar(ha.(map[string]any), args, "dest")
 	if err != nil {
 		return "", "\"dest\" in args should be string"
@@ -55,7 +49,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 	// get connector
 	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
 	if err != nil {
-		return "", err.Error()
+		return "", fmt.Sprintf("get connector error: %v", err)
 	}
 	defer conn.Close(ctx)
 
@@ -112,7 +106,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 					return "", fmt.Sprintf("read file error: %v", err)
 				}
 				if strings.HasSuffix(destParam, "/") {
-					destParam = destParam + filepath.Base(srcParam)
+					destParam += filepath.Base(srcParam)
 				}
 				mode := fileInfo.Mode()
 				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
@@ -143,7 +137,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 
 					info, err := d.Info()
 					if err != nil {
-						return fmt.Errorf("get file info error: %v", err)
+						return fmt.Errorf("get file info error: %w", err)
 					}
 					mode := info.Mode()
 					if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
@@ -151,7 +145,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 					}
 					data, err := pj.ReadFile(path, project.GetFileOption{Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
 					if err != nil {
-						return fmt.Errorf("read file error: %v", err)
+						return fmt.Errorf("read file error: %w", err)
 					}
 					var destFilename = destParam
 					if strings.HasSuffix(destParam, "/") {
@@ -162,11 +156,11 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 						destFilename = filepath.Join(destParam, rel)
 					}
 					if err := conn.PutFile(ctx, data, destFilename, mode); err != nil {
-						return fmt.Errorf("copy file error: %v", err)
+						return fmt.Errorf("copy file error: %w", err)
 					}
 					return nil
 				}); err != nil {
-					return "", fmt.Sprintf("")
+					return "", fmt.Sprintf(" walk dir %s in local path error: %v", srcParam, err)
 				}
 			} else {
 				data, err := pj.ReadFile(srcParam, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
@@ -174,7 +168,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 					return "", fmt.Sprintf("read file error: %v", err)
 				}
 				if strings.HasSuffix(destParam, "/") {
-					destParam = destParam + filepath.Base(srcParam)
+					destParam += filepath.Base(srcParam)
 				}
 				mode := fileInfo.Mode()
 				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
@@ -185,6 +179,7 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 				}
 			}
 		}
+		return stdoutSuccess, ""
 
 	case contentParam != "": // convert content param and copy to remote
 		if strings.HasSuffix(destParam, "/") {
@@ -196,9 +191,10 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 		}
 
 		if err := conn.PutFile(ctx, []byte(contentParam), destParam, mode); err != nil {
-			return "", err.Error()
+			return "", fmt.Sprintf("copy file error: %v", err)
 		}
+		return stdoutSuccess, ""
+	default:
+		return "", "either \"src\" or \"content\" must be provided."
 	}
-	return "success", ""
-
 }

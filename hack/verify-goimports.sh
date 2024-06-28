@@ -34,16 +34,14 @@ export GO111MODULE=on
 if ! command -v goimports ; then
 # Install goimports
   echo 'installing goimports'
-  pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-    GO111MODULE=auto go install -mod=mod golang.org/x/tools/cmd/goimports@v0.7.0
-  popd >/dev/null
+  GO111MODULE=auto go install -mod=mod golang.org/x/tools/cmd/goimports@v0.7.0
 fi
 
 cd "${KUBE_ROOT}" || exit 1
 
 IFS=$'\n' read -r -d '' -a files < <( find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./pkg/apis/*" -not -path "./pkg/client/*" -not -name "zz_generated.deepcopy.go" && printf '\0' )
 
-output=$(goimports -local github.com/kubesphere/kubekey -l "${files[@]}")
+output=$(goimports -local kubesphere.io/kubekey -l "${files[@]}")
 
 if [ "${output}" != "" ]; then
     echo "The following files are not import formatted"

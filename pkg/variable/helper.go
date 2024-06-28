@@ -58,7 +58,6 @@ func combineVariables(v1, v2 map[string]any) map[string]any {
 		mv[k] = f(mv[k], v)
 	}
 	return mv
-
 }
 
 func convertGroup(inv kubekeyv1.Inventory) map[string]any {
@@ -129,10 +128,10 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 	if !ok {
 		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
 	}
-	switch val.(type) {
+	switch valv := val.(type) {
 	case []any:
 		var ss []string
-		for _, a := range val.([]any) {
+		for _, a := range valv {
 			av, ok := a.(string)
 			if !ok {
 				klog.V(6).InfoS("variable is not string", "key", key)
@@ -146,7 +145,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 		}
 		return ss, nil
 	case string:
-		as, err := tmpl.ParseString(d, val.(string))
+		as, err := tmpl.ParseString(d, valv)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +155,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 			// in pongo2 cannot get slice value. add extension filter value.
 			var input = val.(string)
 			// try to escape string
-			if ns, err := strconv.Unquote(val.(string)); err == nil {
+			if ns, err := strconv.Unquote(valv); err == nil {
 				input = ns
 			}
 			vv := GetValue(d, input)
@@ -170,7 +169,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 			// value is simple string
 			if err := json.Unmarshal([]byte(as), &ss); err != nil {
 				// if is not json format. only return a value contains this
-				return []string{as}, nil
+				return []string{as}, nil //nolint:nilerr
 			}
 		}
 		return ss, nil
@@ -186,11 +185,11 @@ func IntVar(d map[string]any, vars map[string]any, key string) (int, error) {
 		return 0, fmt.Errorf("cannot find variable \"%s\"", key)
 	}
 	// default convert to float64
-	switch val.(type) {
+	switch valv := val.(type) {
 	case float64:
-		return int(val.(float64)), nil
+		return int(valv), nil
 	case string:
-		vs, err := tmpl.ParseString(d, val.(string))
+		vs, err := tmpl.ParseString(d, valv)
 		if err != nil {
 			return 0, err
 		}
@@ -295,9 +294,9 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 						return err
 					}
 					switch {
-					case strings.ToUpper(newValue) == "TRUE":
+					case strings.EqualFold(newValue, "TRUE"):
 						reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(true))
-					case strings.ToUpper(newValue) == "FALSE":
+					case strings.EqualFold(newValue, "FALSE"):
 						reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(false))
 					default:
 						reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(newValue))
@@ -319,10 +318,10 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 						return err
 					}
 					switch {
-					case strings.ToUpper(newValue) == "TRUE":
+					case strings.EqualFold(newValue, "TRUE"):
 
 						val.Set(reflect.ValueOf(true))
-					case strings.ToUpper(newValue) == "FALSE":
+					case strings.EqualFold(newValue, "FALSE"):
 						val.Set(reflect.ValueOf(false))
 					default:
 						val.Set(reflect.ValueOf(newValue))

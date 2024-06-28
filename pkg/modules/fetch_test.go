@@ -29,7 +29,7 @@ func TestFetch(t *testing.T) {
 	testcases := []struct {
 		name         string
 		opt          ExecOptions
-		ctx          context.Context
+		ctxFunc      func() context.Context
 		exceptStdout string
 		exceptStderr string
 	}{
@@ -40,9 +40,10 @@ func TestFetch(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
-				output: []byte("success"),
-			}), exceptStderr: "\"src\" in args should be string",
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, successConnector)
+			},
+			exceptStderr: "\"src\" in args should be string",
 		},
 		{
 			name: "dest is empty",
@@ -53,16 +54,16 @@ func TestFetch(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), "connector", &testConnector{
-				output: []byte("success"),
-			}),
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, successConnector)
+			},
 			exceptStderr: "\"dest\" in args should be string",
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(tc.ctx, time.Second*5)
+			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 			acStdout, acStderr := ModuleFetch(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)

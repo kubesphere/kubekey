@@ -24,8 +24,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/klog/v2"
-
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
@@ -36,9 +34,9 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
+
 	// check args
 	args := variable.Extension2Variables(options.Args)
 	srcParam, err := variable.StringVar(ha.(map[string]any), args, "src")
@@ -142,12 +140,12 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 					return nil
 				}
 				if err != nil {
-					return fmt.Errorf("walk dir %s error: %v", srcParam, err)
+					return fmt.Errorf("walk dir %s error: %w", srcParam, err)
 				}
 
 				info, err := d.Info()
 				if err != nil {
-					return fmt.Errorf("get file info error: %v", err)
+					return fmt.Errorf("get file info error: %w", err)
 				}
 				mode := info.Mode()
 				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
@@ -155,11 +153,11 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				}
 				data, err := pj.ReadFile(path, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
 				if err != nil {
-					return fmt.Errorf("read file error: %v", err)
+					return fmt.Errorf("read file error: %w", err)
 				}
 				result, err := tmpl.ParseFile(ha.(map[string]any), data)
 				if err != nil {
-					return fmt.Errorf("parse file error: %v", err)
+					return fmt.Errorf("parse file error: %w", err)
 				}
 				var destFilename = destParam
 				if strings.HasSuffix(destParam, "/") {
@@ -170,7 +168,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 					destFilename = filepath.Join(destParam, rel)
 				}
 				if err := conn.PutFile(ctx, []byte(result), destFilename, mode); err != nil {
-					return fmt.Errorf("copy file error: %v", err)
+					return fmt.Errorf("copy file error: %w", err)
 				}
 				return nil
 			}); err != nil {
@@ -186,7 +184,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				return "", fmt.Sprintf("parse file error: %v", err)
 			}
 			if strings.HasSuffix(destParam, "/") {
-				destParam = destParam + filepath.Base(srcParam)
+				destParam += filepath.Base(srcParam)
 			}
 			mode := fileInfo.Mode()
 			if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
@@ -197,5 +195,5 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 			}
 		}
 	}
-	return "success", ""
+	return stdoutSuccess, ""
 }

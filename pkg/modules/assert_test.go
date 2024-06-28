@@ -54,7 +54,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: "True",
+			exceptStdout: stdoutTrue,
 		},
 		{
 			name: "success with success_msg",
@@ -86,7 +86,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: "False",
+			exceptStdout: stdoutFalse,
 			exceptStderr: "False",
 		},
 		{
@@ -103,7 +103,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: "False",
+			exceptStdout: stdoutFalse,
 			exceptStderr: "failed v2",
 		},
 	}

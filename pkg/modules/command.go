@@ -18,9 +18,8 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"strings"
-
-	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -29,9 +28,9 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
+
 	// get connector
 	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
 	if err != nil {
