@@ -89,10 +89,11 @@ DOCKERCMD ?= $(shell which docker)
 DOCKER_BUILD_ENV = DOCKER_BUILDKIT=1
 DOCKER_BUILD ?= $(DOCKER_BUILD_ENV) $(DOCKERCMD) buildx build
 PLATFORM ?= linux/amd64,linux/arm64
-DOCKER_PUSH ?= $(DOCKER_BUILD) --platform $(PLATFORM) --push
+DOCKER_OUT_TYPE ?= --push
+DOCKER_PUSH ?= $(DOCKER_BUILD) --platform $(PLATFORM) $(DOCKER_OUT_TYPE)
 
 # Define Docker related variables. Releases should modify and double check these vars.
-REGISTRY ?= hub.kubesphere.com.cn/kubekey
+REGISTRY ?= docker.io/kubespheredev
 #REGISTRY ?= docker.io/kubespheredev
 #PROD_REGISTRY ?= docker.io/kubesphere
 
