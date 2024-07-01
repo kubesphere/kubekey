@@ -19,7 +19,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
-	certutil "k8s.io/client-go/util/cert"
+	cgutilcert "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/klog/v2"
 	netutils "k8s.io/utils/net"
@@ -47,9 +47,9 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (stdout string, std
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
+
 	// args
 	args := variable.Extension2Variables(options.Args)
 	rootKeyParam, _ := variable.StringVar(ha.(map[string]any), args, "root_key")
@@ -71,12 +71,12 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (stdout string, std
 		return "", "\"cn\" in args should be string"
 	}
 
-	altName := &certutil.AltNames{
+	altName := &cgutilcert.AltNames{
 		DNSNames: []string{"localhost"},
 		IPs:      []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 	}
 	appendSANsToAltNames(altName, sansParam, outCertParam)
-	cfg := &certutil.Config{
+	cfg := &cgutilcert.Config{
 		CommonName:   cnParam,
 		Organization: []string{"kubekey"},
 		AltNames:     *altName,
@@ -86,7 +86,7 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (stdout string, std
 	var newCert *x509.Certificate
 	newKey, err = rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 	if err != nil {
-		return "", err.Error()
+		return "", fmt.Sprintf("generate rsa key error: %v", err)
 	}
 
 	var after time.Duration
@@ -94,8 +94,7 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (stdout string, std
 	if dateParam != "" {
 		dur, err := time.ParseDuration(dateParam)
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to parse duration")
-			return "", err.Error()
+			return "", fmt.Sprintf("failed to parse duration: %v", err)
 		}
 		after = dur
 	}
@@ -104,19 +103,16 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (stdout string, std
 	case rootKeyParam == "" || rootCertParam == "": // generate Self-signed certificate
 		newCert, err = NewSelfSignedCACert(*cfg, after, newKey)
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to generate Self-signed certificate")
-			return "", err.Error()
+			return "", fmt.Sprintf("failed to generate Self-signed certificate: %v", err)
 		}
 	default: // generate certificate signed by root certificate
 		parentKey, err := TryLoadKeyFromDisk(rootKeyParam)
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to load root key")
-			return "", err.Error()
+			return "", fmt.Sprintf("failed to load root key: %v", err)
 		}
 		parentCert, _, err := TryLoadCertChainFromDisk(rootCertParam)
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to load root certificate")
-			return "", err.Error()
+			return "", fmt.Sprintf("failed to load root certificate: %v", err)
 		}
 		if policyParam == policyIfNotPresent {
 			if _, err := TryLoadKeyFromDisk(outKeyParam); err != nil {
@@ -130,37 +126,31 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (stdout string, std
 			}
 			// check if the existing key and cert match the root key and cert
 			if err := ValidateCertPeriod(existCert, 0); err != nil {
-				klog.V(4).ErrorS(err, "Failed to ValidateCertPeriod", "out_cert", outCertParam)
-				return "", err.Error()
+				return "", fmt.Sprintf("failed to ValidateCertPeriod: %v", err)
 			}
 			if err := VerifyCertChain(existCert, intermediates, parentCert); err != nil {
-				klog.V(4).ErrorS(err, "Failed to VerifyCertChain", "out_cert", outCertParam)
-				return "", err.Error()
+				return "", fmt.Sprintf("failed to VerifyCertChain: %v", err)
 			}
 			if err := validateCertificateWithConfig(existCert, outCertParam, cfg); err != nil {
-				klog.V(4).ErrorS(err, "Failed to validateCertificateWithConfig", "out_cert", outCertParam)
-				return "", err.Error()
+				return "", fmt.Sprintf("failed to validateCertificateWithConfig: %v", err)
 			}
-			return "skip", ""
+			return stdoutSkip, ""
 		}
 	NEW:
 		newCert, err = NewSignedCert(*cfg, after, newKey, parentCert, parentKey, true)
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to generate certificate")
-			return "", err.Error()
+			return "", fmt.Sprintf("failed to generate certificate: %v", err)
 		}
 	}
 
 	// write key and cert to file
 	if err := WriteKey(outKeyParam, newKey, policyParam); err != nil {
-		klog.V(4).ErrorS(err, "Failed to write key")
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to write key: %v", err)
 	}
 	if err := WriteCert(outCertParam, newCert, policyParam); err != nil {
-		klog.V(4).ErrorS(err, "Failed to write certificate")
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to write certificate: %v", err)
 	}
-	return "success", ""
+	return stdoutSuccess, ""
 }
 
 // WriteKey stores the given key at the given location
@@ -175,10 +165,10 @@ func WriteKey(outKey string, key crypto.Signer, policy string) error {
 
 	encoded, err := keyutil.MarshalPrivateKeyToPEM(key)
 	if err != nil {
-		return errors.Wrapf(err, "unable to marshal private key to PEM")
+		return fmt.Errorf("unable to marshal private key to PEM, error: %w", err)
 	}
 	if err := keyutil.WriteKey(outKey, encoded); err != nil {
-		return errors.Wrapf(err, "unable to write private key to file %s", outKey)
+		return fmt.Errorf("unable to write private key to file %s, error: %w", outKey, err)
 	}
 
 	return nil
@@ -194,8 +184,8 @@ func WriteCert(outCert string, cert *x509.Certificate, policy string) error {
 		return errors.New("certificate cannot be nil when writing to file")
 	}
 
-	if err := certutil.WriteCert(outCert, EncodeCertPEM(cert)); err != nil {
-		return errors.Wrapf(err, "unable to write certificate to file %s", outCert)
+	if err := cgutilcert.WriteCert(outCert, EncodeCertPEM(cert)); err != nil {
+		return fmt.Errorf("unable to write certificate to file %s, error: %w", outCert, err)
 	}
 
 	return nil
@@ -215,7 +205,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 	// Parse the private key from a file
 	privKey, err := keyutil.PrivateKeyFromFile(rootKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "couldn't load the private key file %s", rootKey)
+		return nil, fmt.Errorf("couldn't load the private key file %s, error: %w", rootKey, err)
 	}
 
 	// Allow RSA and ECDSA formats only
@@ -226,7 +216,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 	case *ecdsa.PrivateKey:
 		key = k
 	default:
-		return nil, errors.Errorf("the private key file %s is neither in RSA nor ECDSA format", rootKey)
+		return nil, fmt.Errorf("the private key file %s is neither in RSA nor ECDSA format", rootKey)
 	}
 
 	return key, nil
@@ -234,10 +224,9 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 
 // TryLoadCertChainFromDisk tries to load the cert chain from the disk
 func TryLoadCertChainFromDisk(rootCert string) (*x509.Certificate, []*x509.Certificate, error) {
-
-	certs, err := certutil.CertsFromFile(rootCert)
+	certs, err := cgutilcert.CertsFromFile(rootCert)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "couldn't load the certificate file %s", rootCert)
+		return nil, nil, fmt.Errorf("couldn't load the certificate file %s, error: %w", rootCert, err)
 	}
 
 	cert := certs[0]
@@ -252,8 +241,8 @@ func TryLoadCertChainFromDisk(rootCert string) (*x509.Certificate, []*x509.Certi
 // RFC-1123 compliant DNS strings are added to altNames.DNSNames as strings
 // RFC-1123 compliant wildcard DNS strings are added to altNames.DNSNames as strings
 // certNames is used to print user facing warnings and should be the name of the cert the altNames will be used for
-func appendSANsToAltNames(altNames *certutil.AltNames, SANs []string, certName string) {
-	for _, altname := range SANs {
+func appendSANsToAltNames(altNames *cgutilcert.AltNames, sans []string, certName string) {
+	for _, altname := range sans {
 		if ip := netutils.ParseIPSloppy(altname); ip != nil {
 			altNames.IPs = append(altNames.IPs, ip)
 		} else if len(validation.IsDNS1123Subdomain(altname)) == 0 {
@@ -271,7 +260,7 @@ func appendSANsToAltNames(altNames *certutil.AltNames, SANs []string, certName s
 }
 
 // NewSelfSignedCACert creates a CA certificate
-func NewSelfSignedCACert(cfg certutil.Config, after time.Duration, key crypto.Signer) (*x509.Certificate, error) {
+func NewSelfSignedCACert(cfg cgutilcert.Config, after time.Duration, key crypto.Signer) (*x509.Certificate, error) {
 	now := time.Now()
 	// returns a uniform random value in [0, max-1), then add 1 to serial to make it a uniform random value in [1, max).
 	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64-1))
@@ -309,15 +298,15 @@ func NewSelfSignedCACert(cfg certutil.Config, after time.Duration, key crypto.Si
 }
 
 // NewSignedCert creates a signed certificate using the given CA certificate and key
-func NewSignedCert(cfg certutil.Config, after time.Duration, key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer, isCA bool) (*x509.Certificate, error) {
+func NewSignedCert(cfg cgutilcert.Config, after time.Duration, key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer, isCA bool) (*x509.Certificate, error) {
 	// returns a uniform random value in [0, max-1), then add 1 to serial to make it a uniform random value in [1, max).
 	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64-1))
 	if err != nil {
 		return nil, err
 	}
 	serial = new(big.Int).Add(serial, big.NewInt(1))
-	if len(cfg.CommonName) == 0 {
-		return nil, errors.New("must specify a CommonName")
+	if cfg.CommonName == "" {
+		return nil, fmt.Errorf("must specify a CommonName")
 	}
 
 	keyUsage := x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature
@@ -354,7 +343,7 @@ func NewSignedCert(cfg certutil.Config, after time.Duration, key crypto.Signer, 
 }
 
 // RemoveDuplicateAltNames removes duplicate items in altNames.
-func RemoveDuplicateAltNames(altNames *certutil.AltNames) {
+func RemoveDuplicateAltNames(altNames *cgutilcert.AltNames) {
 	if altNames == nil {
 		return
 	}
@@ -380,10 +369,10 @@ func ValidateCertPeriod(cert *x509.Certificate, offset time.Duration) error {
 	period := fmt.Sprintf("NotBefore: %v, NotAfter: %v", cert.NotBefore, cert.NotAfter)
 	now := time.Now().Add(offset)
 	if now.Before(cert.NotBefore) {
-		return errors.Errorf("the certificate is not valid yet: %s", period)
+		return fmt.Errorf("the certificate is not valid yet: %s", period)
 	}
 	if now.After(cert.NotAfter) {
-		return errors.Errorf("the certificate has expired: %s", period)
+		return fmt.Errorf("the certificate has expired: %s", period)
 	}
 	return nil
 }
@@ -414,15 +403,15 @@ func VerifyCertChain(cert *x509.Certificate, intermediates []*x509.Certificate, 
 
 // validateCertificateWithConfig makes sure that a given certificate is valid at
 // least for the SANs defined in the configuration.
-func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg *certutil.Config) error {
+func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg *cgutilcert.Config) error {
 	for _, dnsName := range cfg.AltNames.DNSNames {
 		if err := cert.VerifyHostname(dnsName); err != nil {
-			return errors.Wrapf(err, "certificate %s is invalid", baseName)
+			return fmt.Errorf("certificate %s is invalid, error: %w", baseName, err)
 		}
 	}
 	for _, ipAddress := range cfg.AltNames.IPs {
 		if err := cert.VerifyHostname(ipAddress.String()); err != nil {
-			return errors.Wrapf(err, "certificate %s is invalid", baseName)
+			return fmt.Errorf("certificate %s is invalid, error: %w", baseName, err)
 		}
 	}
 	return nil

@@ -21,12 +21,25 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
+)
+
+// message for stdout
+const (
+	// stdoutSuccess message for common module
+	stdoutSuccess = "success"
+	stdoutSkip    = "skip"
+
+	// stdoutTrue for bool module
+	stdoutTrue = "True"
+	// stdoutFalse for bool module
+	stdoutFalse = "False"
 )
 
 type ModuleExecFunc func(ctx context.Context, options ExecOptions) (stdout string, stderr string)
@@ -39,9 +52,9 @@ type ExecOptions struct {
 	// the variable module need
 	variable.Variable
 	// the task to be executed
-	kubekeyv1alpha1.Task
+	Task kubekeyv1alpha1.Task
 	// the pipeline to be executed
-	kubekeyv1.Pipeline
+	Pipeline kubekeyv1.Pipeline
 }
 
 var module = make(map[string]ModuleExecFunc)
@@ -59,16 +72,16 @@ func FindModule(moduleName string) ModuleExecFunc {
 }
 
 func init() {
-	RegisterModule("assert", ModuleAssert)
-	RegisterModule("command", ModuleCommand)
-	RegisterModule("shell", ModuleCommand)
-	RegisterModule("copy", ModuleCopy)
-	RegisterModule("fetch", ModuleFetch)
-	RegisterModule("debug", ModuleDebug)
-	RegisterModule("template", ModuleTemplate)
-	RegisterModule("set_fact", ModuleSetFact)
-	RegisterModule("gen_cert", ModuleGenCert)
-	RegisterModule("image", ModuleImage)
+	utilruntime.Must(RegisterModule("assert", ModuleAssert))
+	utilruntime.Must(RegisterModule("command", ModuleCommand))
+	utilruntime.Must(RegisterModule("shell", ModuleCommand))
+	utilruntime.Must(RegisterModule("copy", ModuleCopy))
+	utilruntime.Must(RegisterModule("fetch", ModuleFetch))
+	utilruntime.Must(RegisterModule("debug", ModuleDebug))
+	utilruntime.Must(RegisterModule("template", ModuleTemplate))
+	utilruntime.Must(RegisterModule("set_fact", ModuleSetFact))
+	utilruntime.Must(RegisterModule("gen_cert", ModuleGenCert))
+	utilruntime.Must(RegisterModule("image", ModuleImage))
 }
 
 // ConnKey for connector which store in context

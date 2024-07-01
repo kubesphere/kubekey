@@ -80,8 +80,12 @@ func InitProfiling() error {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
-		f.Close()
-		FlushProfiling()
+		if err := f.Close(); err != nil {
+			fmt.Printf("failed to close file. file: %v. error: %v \n", profileOutput, err)
+		}
+		if err := FlushProfiling(); err != nil {
+			fmt.Printf("failed to FlushProfiling. file: %v. error: %v \n", profileOutput, err)
+		}
 		os.Exit(0)
 	}()
 
@@ -107,7 +111,9 @@ func FlushProfiling() error {
 			return err
 		}
 		defer f.Close()
-		profile.WriteTo(f, 0)
+		if err := profile.WriteTo(f, 0); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -121,7 +127,7 @@ var gops bool
 
 func AddGOPSFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&gops, "gops", false, "Whether to enable gops or not.  When enabled this option, "+
-		"kk will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the kk currently running.")
+		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
 }
 
 func InitGOPS() error {

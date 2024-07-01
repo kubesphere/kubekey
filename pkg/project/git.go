@@ -18,6 +18,7 @@ package project
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -126,7 +127,7 @@ func (p gitProject) gitClone(ctx context.Context) error {
 		Progress:        nil,
 		ReferenceName:   plumbing.NewBranchReferenceName(p.Pipeline.Spec.Project.Branch),
 		SingleBranch:    true,
-		Auth:            &http.TokenAuth{p.Pipeline.Spec.Project.Token},
+		Auth:            &http.TokenAuth{Token: p.Pipeline.Spec.Project.Token},
 		InsecureSkipTLS: false,
 	}); err != nil {
 		klog.Errorf("clone project %s failed: %v", p.Pipeline.Spec.Project.Addr, err)
@@ -150,9 +151,9 @@ func (p gitProject) gitPull(ctx context.Context) error {
 		RemoteURL:       p.Pipeline.Spec.Project.Addr,
 		ReferenceName:   plumbing.NewBranchReferenceName(p.Pipeline.Spec.Project.Branch),
 		SingleBranch:    true,
-		Auth:            &http.TokenAuth{p.Pipeline.Spec.Project.Token},
+		Auth:            &http.TokenAuth{Token: p.Pipeline.Spec.Project.Token},
 		InsecureSkipTLS: false,
-	}); err != nil && err != git.NoErrAlreadyUpToDate {
+	}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
 		klog.V(4).ErrorS(err, "git pull error", "local_dir", p.projectDir)
 		return err
 	}

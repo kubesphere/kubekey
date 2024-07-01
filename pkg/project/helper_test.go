@@ -133,24 +133,26 @@ func TestMarshalPlaybook(t *testing.T) {
 		{
 			name: "marshal playbook",
 			file: "playbooks/playbook1.yaml",
-			except: &kkcorev1.Playbook{[]kkcorev1.Play{
+			except: &kkcorev1.Playbook{Play: []kkcorev1.Play{
 				{
 					Base:     kkcorev1.Base{Name: "play1"},
 					PlayHost: kkcorev1.PlayHost{Hosts: []string{"localhost"}},
 					Roles: []kkcorev1.Role{
-						{kkcorev1.RoleInfo{
-							Role: "role1",
-							Block: []kkcorev1.Block{
-								{
-									BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "role1 | block1"}},
-									Task: kkcorev1.Task{UnknownFiled: map[string]any{
-										"debug": map[string]any{
-											"msg": "echo \"hello world\"",
-										},
-									}},
+						{
+							RoleInfo: kkcorev1.RoleInfo{
+								Role: "role1",
+								Block: []kkcorev1.Block{
+									{
+										BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "role1 | block1"}},
+										Task: kkcorev1.Task{UnknownFiled: map[string]any{
+											"debug": map[string]any{
+												"msg": "echo \"hello world\"",
+											},
+										}},
+									},
 								},
 							},
-						}},
+						},
 					},
 					Handlers: nil,
 					PreTasks: []kkcorev1.Block{
@@ -281,7 +283,6 @@ func TestCombineMaps(t *testing.T) {
 			} else {
 				assert.Equal(t, tc.except, maps)
 			}
-
 		})
 	}
 }

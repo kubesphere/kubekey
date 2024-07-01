@@ -187,14 +187,15 @@ lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
-.PHONY: lint-dockerfiles
-lint-dockerfiles:
-	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+.PHONY: verify-dockerfiles
+verify-dockerfiles:
+	./hack/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+
+ALL_VERIFY_CHECKS ?= modules gen goimports
 
 .PHONY: verify
-verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
+verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS))  ## Run all verify-* targets
 
 .PHONY: verify-modules
 verify-modules:  ## Verify go modules are up to date

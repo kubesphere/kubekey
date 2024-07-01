@@ -25,18 +25,19 @@ import (
 
 	"github.com/flosch/pongo2/v6"
 	"gopkg.in/yaml.v3"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
 )
 
 func init() {
-	pongo2.RegisterFilter("defined", filterDefined)
-	pongo2.RegisterFilter("version", filterVersion)
-	pongo2.RegisterFilter("pow", filterPow)
-	pongo2.RegisterFilter("match", filterMatch)
-	pongo2.RegisterFilter("to_json", filterToJson)
-	pongo2.RegisterFilter("to_yaml", filterToYaml)
-	pongo2.RegisterFilter("ip_range", filterIpRange)
-	pongo2.RegisterFilter("get", filterGet)
+	utilruntime.Must(pongo2.RegisterFilter("defined", filterDefined))
+	utilruntime.Must(pongo2.RegisterFilter("version", filterVersion))
+	utilruntime.Must(pongo2.RegisterFilter("pow", filterPow))
+	utilruntime.Must(pongo2.RegisterFilter("match", filterMatch))
+	utilruntime.Must(pongo2.RegisterFilter("to_json", filterToJson))
+	utilruntime.Must(pongo2.RegisterFilter("to_yaml", filterToYaml))
+	utilruntime.Must(pongo2.RegisterFilter("ip_range", filterIpRange))
+	utilruntime.Must(pongo2.RegisterFilter("get", filterGet))
 }
 
 func filterDefined(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {

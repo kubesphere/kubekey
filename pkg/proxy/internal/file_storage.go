@@ -184,7 +184,7 @@ func (s fileStorage) GetList(ctx context.Context, key string, opts apistorage.Li
 	}
 
 	switch {
-	case opts.Recursive && len(opts.Predicate.Continue) > 0:
+	case opts.Recursive && opts.Predicate.Continue != "":
 		// The format of continueKey is: namespace/resourceName/name.yaml
 		// continueKey is localPath which resources store.
 		continueKey, _, err := apistorage.DecodeContinue(opts.Predicate.Continue, key)
@@ -203,7 +203,7 @@ func (s fileStorage) GetList(ctx context.Context, key string, opts apistorage.Li
 			// start read after continueKey (not contain). Because it has read in last result.
 			return startRead && key != continueKey
 		}
-	case len(opts.ResourceVersion) > 0:
+	case opts.ResourceVersion != "":
 		parsedRV, err := s.versioner.ParseResourceVersion(opts.ResourceVersion)
 		if err != nil {
 			return fmt.Errorf("invalid resource version: %w", err)
@@ -364,7 +364,7 @@ RESULT:
 	// we never return a key that the client wouldn't be allowed to see
 	if hasMore {
 		// we want to start immediately after the last key
-		next, err := apistorage.EncodeContinue(string(lastKey)+"\x00", key, 0)
+		next, err := apistorage.EncodeContinue(lastKey+"\x00", key, 0)
 		if err != nil {
 			return err
 		}
@@ -499,7 +499,7 @@ func decode(codec runtime.Codec, value []byte, objPtr runtime.Object) error {
 func getNewItem(listObj runtime.Object, v reflect.Value) runtime.Object {
 	// For unstructured lists with a target group/version, preserve the group/version in the instantiated list items
 	if unstructuredList, isUnstructured := listObj.(*unstructured.UnstructuredList); isUnstructured {
-		if apiVersion := unstructuredList.GetAPIVersion(); len(apiVersion) > 0 {
+		if apiVersion := unstructuredList.GetAPIVersion(); apiVersion != "" {
 			return &unstructured.Unstructured{Object: map[string]interface{}{"apiVersion": apiVersion}}
 		}
 	}

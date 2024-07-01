@@ -18,11 +18,10 @@ package modules
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
-	testassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -30,21 +29,23 @@ func TestCopy(t *testing.T) {
 	testcases := []struct {
 		name         string
 		opt          ExecOptions
-		ctx          context.Context
+		ctxFunc      func() context.Context
 		exceptStdout string
 		exceptStderr string
 	}{
 		{
 			name: "src and content is empty",
 			opt: ExecOptions{
-				Args:     runtime.RawExtension{},
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"dest": "hello world"}`),
+				},
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
-				output: []byte("success"),
-			}),
-			exceptStderr: "\"src\" or \"content\" in args should be string",
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, successConnector)
+			},
+			exceptStderr: "either \"src\" or \"content\" must be provided.",
 		},
 		{
 			name: "dest is empty",
@@ -55,9 +56,9 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
-				output: []byte("success"),
-			}),
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, successConnector)
+			},
 			exceptStderr: "\"dest\" in args should be string",
 		},
 		{
@@ -69,9 +70,9 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
-				output: []byte("success"),
-			}),
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, successConnector)
+			},
 			exceptStderr: "\"content\" should copy to a file",
 		},
 		{
@@ -83,10 +84,10 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
-				output: []byte("success"),
-			}),
-			exceptStdout: "success",
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, successConnector)
+			},
+			exceptStdout: stdoutSuccess,
 		},
 		{
 			name: "copy failed",
@@ -97,20 +98,20 @@ func TestCopy(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			ctx: context.WithValue(context.Background(), ConnKey, &testConnector{
-				copyErr: fmt.Errorf("copy failed"),
-			}),
-			exceptStderr: "copy failed",
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, failedConnector)
+			},
+			exceptStderr: "copy file error: failed",
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(tc.ctx, time.Second*5)
+			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 			acStdout, acStderr := ModuleCopy(ctx, tc.opt)
-			testassert.Equal(t, tc.exceptStdout, acStdout)
-			testassert.Equal(t, tc.exceptStderr, acStderr)
+			assert.Equal(t, tc.exceptStdout, acStdout)
+			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

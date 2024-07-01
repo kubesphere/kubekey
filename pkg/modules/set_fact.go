@@ -30,5 +30,5 @@ func ModuleSetFact(ctx context.Context, options ExecOptions) (string, string) {
 	if err := options.Variable.Merge(variable.MergeAllRuntimeVariable(options.Host, args)); err != nil {
 		return "", fmt.Sprintf("set_fact error: %v", err)
 	}
-	return "success", ""
+	return stdoutSuccess, ""
 }

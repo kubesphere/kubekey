@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/schollz/progressbar/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,10 +86,6 @@ func (e executor) Exec(ctx context.Context) error {
 	}
 
 	// convert to transfer.Playbook struct
-	playbookPath := e.pipeline.Spec.Playbook
-	if path.IsAbs(playbookPath) {
-		playbookPath = playbookPath[1:]
-	}
 	pb, err := pj.MarshalPlaybook()
 	if err != nil {
 		return fmt.Errorf("convert playbook error: %w", err)
@@ -360,7 +355,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			// exit when task run failed
 			if task.IsFailed() {
 				var hostReason []kubekeyv1.PipelineFailedDetailHost
-				for _, tr := range task.Status.FailedDetail {
+				for _, tr := range task.Status.HostResults {
 					hostReason = append(hostReason, kubekeyv1.PipelineFailedDetailHost{
 						Host:   tr.Host,
 						Stdout: tr.Stdout,
@@ -401,7 +396,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				progressbar.OptionEnableColorCodes(true),
 				progressbar.OptionSetDescription(fmt.Sprintf("[%s] running...", h)),
 				progressbar.OptionOnCompletion(func() {
-					os.Stdout.Write([]byte("\n"))
+					if _, err := os.Stdout.WriteString("\n"); err != nil {
+						klog.ErrorS(err, "failed to write output", "host", h)
+					}
 				}),
 				progressbar.OptionShowElapsedTimeOnFinish(),
 				progressbar.OptionSetPredictTime(false),
@@ -411,13 +408,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					var stdoutResult any = stdout
 					var stderrResult any = stderr
 					// try to convert by json
-					if err := json.Unmarshal([]byte(stdout), &stdoutResult); err != nil {
-						// dothing
-					}
+					_ = json.Unmarshal([]byte(stdout), &stdoutResult)
 					// try to convert by json
-					if err := json.Unmarshal([]byte(stderr), &stderrResult); err != nil {
-						// dothing
-					}
+					_ = json.Unmarshal([]byte(stderr), &stderrResult)
 					// set variable to parent location
 					if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
 						task.Spec.Register: map[string]any{
@@ -433,14 +426,20 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				switch {
 				case stderr != "": // failed
 					bar.Describe(fmt.Sprintf("[%s] failed", h))
-					bar.Finish()
+					if err := bar.Finish(); err != nil {
+						klog.ErrorS(err, "fail to finish bar")
+					}
 					klog.Errorf("[Task %s] run failed: %s", ctrlclient.ObjectKeyFromObject(task), stderr)
 				case stdout == "skip": // skip
 					bar.Describe(fmt.Sprintf("[%s] skip", h))
-					bar.Finish()
+					if err := bar.Finish(); err != nil {
+						klog.ErrorS(err, "fail to finish bar")
+					}
 				default: //success
 					bar.Describe(fmt.Sprintf("[%s] success", h))
-					bar.Finish()
+					if err := bar.Finish(); err != nil {
+						klog.ErrorS(err, "fail to finish bar")
+					}
 				}
 
 				// fill result
@@ -485,7 +484,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					stderr = fmt.Sprintf("set loop item to variable error: %v", err)
 					return
 				}
-				bar.Add(1)
+				if err := bar.Add(1); err != nil {
+					klog.ErrorS(err, "fail to add bar")
+				}
 				stdout, stderr = e.executeModule(ctx, task, modules.ExecOptions{
 					Args:     task.Spec.Module.Args,
 					Host:     host,
@@ -493,7 +494,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					Task:     *task,
 					Pipeline: *e.pipeline,
 				})
-				bar.Add(1)
+				if err := bar.Add(1); err != nil {
+					klog.ErrorS(err, "fail to add bar")
+				}
 				// delete item
 				if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
 					"item": nil,
@@ -501,7 +504,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
 					return
 				}
-				bar.Add(1)
+				if err := bar.Add(1); err != nil {
+					klog.ErrorS(err, "fail to add bar")
+				}
 			}
 		})
 	}
@@ -517,7 +522,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseIgnored
 			} else {
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseFailed
-				task.Status.FailedDetail = append(task.Status.FailedDetail, kubekeyv1alpha1.TaskFailedDetail{
+				task.Status.HostResults = append(task.Status.HostResults, kubekeyv1alpha1.TaskHostResult{
 					Host:   data.Host,
 					Stdout: data.Stdout,
 					StdErr: data.StdErr,
@@ -569,7 +574,6 @@ func (e executor) mergeVariable(ctx context.Context, v variable.Variable, vd map
 		return nil
 	}
 	for _, host := range hosts {
-
 		if err := v.Merge(variable.MergeRuntimeVariable(host, vd)); err != nil {
 			return err
 		}

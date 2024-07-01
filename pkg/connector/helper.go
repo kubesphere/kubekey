@@ -49,19 +49,17 @@ func convertBytesToSlice(bs []byte, split string) []map[string]string {
 		line := scanner.Text()
 		line = strings.TrimSpace(line)
 
-		if len(line) > 0 {
+		if line != "" {
 			parts := strings.SplitN(line, split, 2)
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
 				currentMap[key] = value
 			}
-		} else {
+		} else if len(currentMap) > 0 {
 			// If encountering an empty line, add the current map to config and create a new map
-			if len(currentMap) > 0 {
-				config = append(config, currentMap)
-				currentMap = make(map[string]string)
-			}
+			config = append(config, currentMap)
+			currentMap = make(map[string]string)
 		}
 	}
 

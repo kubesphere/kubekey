@@ -29,12 +29,14 @@ import (
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
 	apistorage "k8s.io/apiserver/pkg/storage"
 	apinames "k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/client-go/tools/cache"
+	cgtoolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
+
+const pipelineKind = "Pipeline"
 
 // taskStrategy implements behavior for Pods
 type taskStrategy struct {
@@ -118,7 +120,7 @@ func OwnerPipelineIndexFunc(obj interface{}) ([]string, error) {
 
 	var index string
 	for _, reference := range task.OwnerReferences {
-		if reference.Kind == "Pipeline" {
+		if reference.Kind == pipelineKind {
 			index = types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,
@@ -134,8 +136,8 @@ func OwnerPipelineIndexFunc(obj interface{}) ([]string, error) {
 }
 
 // Indexers returns the indexers for pod storage.
-func Indexers() *cache.Indexers {
-	return &cache.Indexers{
+func Indexers() *cgtoolscache.Indexers {
+	return &cgtoolscache.Indexers{
 		apistorage.FieldIndex(kubekeyv1alpha1.TaskOwnerField): OwnerPipelineIndexFunc,
 	}
 }
@@ -168,7 +170,7 @@ func ToSelectableFields(task *kubekeyv1alpha1.Task) fields.Set {
 	// be adjusted.
 	taskSpecificFieldsSet := make(fields.Set, 10)
 	for _, reference := range task.OwnerReferences {
-		if reference.Kind == "Pipeline" {
+		if reference.Kind == pipelineKind {
 			taskSpecificFieldsSet[kubekeyv1alpha1.TaskOwnerField] = types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,
@@ -183,7 +185,7 @@ func ToSelectableFields(task *kubekeyv1alpha1.Task) fields.Set {
 func OwnerPipelineTriggerFunc(obj runtime.Object) string {
 	task := obj.(*kubekeyv1alpha1.Task)
 	for _, reference := range task.OwnerReferences {
-		if reference.Kind == "Pipeline" {
+		if reference.Kind == pipelineKind {
 			return types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,

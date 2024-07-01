@@ -280,7 +280,7 @@ func (l *transport) registerResources(resources *apiResources) error {
 		if err != nil {
 			return err
 		}
-		isSubresource := len(subresource) > 0
+		isSubresource := subresource != ""
 		scoper, ok := o.storage.(apirest.Scoper)
 		if !ok {
 			return fmt.Errorf("%q must implement scoper", o.path)

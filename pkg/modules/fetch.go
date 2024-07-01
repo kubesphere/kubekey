@@ -18,6 +18,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -30,9 +31,9 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
+
 	// check args
 	args := variable.Extension2Variables(options.Args)
 	srcParam, err := variable.StringVar(ha.(map[string]any), args, "src")
@@ -47,15 +48,14 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	// get connector
 	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
 	if err != nil {
-		return "", err.Error()
+		return "", fmt.Sprintf("get connector error: %v", err)
 	}
 	defer conn.Close(ctx)
 
 	// fetch file
 	if _, err := os.Stat(filepath.Dir(destParam)); os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(destParam), 0755); err != nil {
-			klog.V(4).ErrorS(err, "failed to create dest dir")
-			return "", err.Error()
+			return "", fmt.Sprintf("failed to create dest dir: %v", err)
 		}
 	}
 	destFile, err := os.Create(destParam)
@@ -66,8 +66,7 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	defer destFile.Close()
 
 	if err := conn.FetchFile(ctx, srcParam, destFile); err != nil {
-		klog.V(4).ErrorS(err, "failed to fetch file")
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to fetch file: %v", err)
 	}
-	return "success", ""
+	return stdoutSuccess, ""
 }

@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	imagev1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"k8s.io/klog/v2"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
@@ -44,8 +43,7 @@ func ModuleImage(ctx context.Context, options ExecOptions) (stdout string, stder
 	// get host variable
 	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to get host variable", "hostname", options.Host)
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to get host variable: %v", err)
 	}
 
 	// check args
@@ -109,7 +107,7 @@ func ModuleImage(ctx context.Context, options ExecOptions) (stdout string, stder
 		}
 	}
 
-	return "", ""
+	return stdoutSuccess, ""
 }
 
 func findLocalImageManifests(localDir string) ([]string, error) {

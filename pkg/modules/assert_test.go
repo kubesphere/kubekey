@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	testassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -54,7 +54,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: "True",
+			exceptStdout: stdoutTrue,
 		},
 		{
 			name: "success with success_msg",
@@ -86,7 +86,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: "False",
+			exceptStdout: stdoutFalse,
 			exceptStderr: "False",
 		},
 		{
@@ -103,7 +103,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: "False",
+			exceptStdout: stdoutFalse,
 			exceptStderr: "failed v2",
 		},
 	}
@@ -113,8 +113,8 @@ func TestAssert(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
 			acStdout, acStderr := ModuleAssert(ctx, tc.opt)
-			testassert.Equal(t, tc.exceptStdout, acStdout)
-			testassert.Equal(t, tc.exceptStderr, acStderr)
+			assert.Equal(t, tc.exceptStdout, acStdout)
+			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

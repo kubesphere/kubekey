@@ -53,7 +53,6 @@ func newPathExpression(path string) (*pathExpression, error) {
 func templateToRegularExpression(template string) (expression string, literalCount int, varNames []string, varCount int, tokens []string) {
 	var buffer bytes.Buffer
 	buffer.WriteString("^")
-	//tokens = strings.Split(template, "/")
 	tokens = tokenizePath(template)
 	for _, each := range tokens {
 		if each == "" {
@@ -91,7 +90,7 @@ func templateToRegularExpression(template string) (expression string, literalCou
 
 // Tokenize an URL path using the slash separator ; the result does not have empty tokens
 func tokenizePath(path string) []string {
-	if "/" == path {
+	if path == "/" {
 		return nil
 	}
 	if TrimRightSlashEnabled {
@@ -101,7 +100,6 @@ func tokenizePath(path string) []string {
 		// 3.10.2
 		return strings.Split(strings.TrimLeft(path, "/"), "/")
 	}
-
 }
 
 // TrimRightSlashEnabled controls whether

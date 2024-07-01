@@ -80,8 +80,12 @@ func InitProfiling() error {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
-		f.Close()
-		FlushProfiling()
+		if err := f.Close(); err != nil {
+			fmt.Printf("failed to close file. file: %v. error: %v \n", profileOutput, err)
+		}
+		if err := FlushProfiling(); err != nil {
+			fmt.Printf("failed to FlushProfiling. file: %v. error: %v \n", profileOutput, err)
+		}
 		os.Exit(0)
 	}()
 
@@ -107,7 +111,9 @@ func FlushProfiling() error {
 			return err
 		}
 		defer f.Close()
-		profile.WriteTo(f, 0)
+		if err := profile.WriteTo(f, 0); err != nil {
+			return err
+		}
 	}
 
 	return nil

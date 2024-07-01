@@ -29,7 +29,7 @@ import (
 	cacherstorage "k8s.io/apiserver/pkg/storage/cacher"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
-	cgcache "k8s.io/client-go/tools/cache"
+	cgtoolscache "k8s.io/client-go/tools/cache"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
@@ -48,7 +48,7 @@ func NewFileRESTOptionsGetter(gv schema.GroupVersion) apigeneric.RESTOptionsGett
 }
 
 func newYamlCodec(gv schema.GroupVersion) runtime.Codec {
-	yamlSerializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, _const.Scheme, _const.Scheme, json.SerializerOptions{true, false, false})
+	yamlSerializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, _const.Scheme, _const.Scheme, json.SerializerOptions{Yaml: true})
 	return versioning.NewDefaultingCodecForScheme(
 		_const.Scheme,
 		yamlSerializer,
@@ -60,7 +60,6 @@ func newYamlCodec(gv schema.GroupVersion) runtime.Codec {
 
 type fileRESTOptionsGetter struct {
 	gv            schema.GroupVersion
-	allowGroups   []string
 	storageConfig *storagebackend.Config
 }
 
@@ -74,7 +73,7 @@ func (f fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (ap
 			newListFunc func() runtime.Object,
 			getAttrsFunc apistorage.AttrFunc,
 			triggerFuncs apistorage.IndexerFuncs,
-			indexers *cgcache.Indexers) (apistorage.Interface, factory.DestroyFunc, error) {
+			indexers *cgtoolscache.Indexers) (apistorage.Interface, factory.DestroyFunc, error) {
 			s, d, err := newFileStorage(prefix, resource, storageConfig.Codec, newFunc)
 			if err != nil {
 				return s, d, err

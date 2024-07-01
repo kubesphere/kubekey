@@ -18,6 +18,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 
@@ -37,11 +38,18 @@ func (v testVariable) Get(f variable.GetFunc) (any, error) {
 	return v.value, v.err
 }
 
-func (v testVariable) Merge(f variable.MergeFunc) error {
+func (v *testVariable) Merge(f variable.MergeFunc) error {
 	v.value = map[string]any{
 		"k": "v",
 	}
 	return nil
+}
+
+var successConnector = &testConnector{output: []byte("success")}
+var failedConnector = &testConnector{
+	copyErr:    fmt.Errorf("failed"),
+	fetchErr:   fmt.Errorf("failed"),
+	commandErr: fmt.Errorf("failed"),
 }
 
 type testConnector struct {
