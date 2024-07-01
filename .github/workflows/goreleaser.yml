@@ -13,18 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'kubesphere/kubekey'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - name: Prepare
         id: prepare
         run: |
           LDFLAGS=$(bash hack/version.sh)
           
           echo "ldflags=${LDFLAGS}" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
