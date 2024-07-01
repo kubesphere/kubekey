@@ -10,7 +10,6 @@ builds:
   - main: ./cmd/kk/kubekey.go
     goos:
       - linux
-      - windows
       - darwin
     goarch:
       - amd64
