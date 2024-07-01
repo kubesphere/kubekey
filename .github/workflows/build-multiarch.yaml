@@ -26,20 +26,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Login to Aliyun
-        uses: docker/login-action@v3
-        with:
-          registry: registry.cn-beijing.aliyuncs.com
-          username: ${{ secrets.ALIYUNCS_USERNAME }}
-          password: ${{ secrets.ALIYUNCS_PASSWORD }}
-
-      - name: Login to Hub_Kubesphere
-        uses: docker/login-action@v3
-        with:
-          registry: hub.kubesphere.com.cn
-          username: ${{ secrets.HUB_KUBESPHERE_USERNAME }}
-          password: ${{ secrets.HUB_KUBESPHERE_PASSWORD }}
-
       - name: Login to DOCKER
         uses: docker/login-action@v3
         with:
