@@ -16,7 +16,7 @@ jobs:
       - name: Prepare
         id: prepare
         run: |
-          LDFLAGS=$(shell hack/version.sh)
+          LDFLAGS=$(bash hack/version.sh)
           
           echo "ldflags=${LDFLAGS}" >> "$GITHUB_OUTPUT"
 
