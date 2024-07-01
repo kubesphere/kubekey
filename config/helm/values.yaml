@@ -1,7 +1,7 @@
 ## @section Common parameters
 ##
 global:
-  imageRegistry: hub.kubesphere.com.cn/kubekey
+  imageRegistry: ""
   tag: ""
   imagePullSecrets: []
 
@@ -43,7 +43,7 @@ operator:
   pullSecrets: []
   image:
     registry: ""
-    repository: controller-manager
+    repository: kubesphere/kk-controller-manager
     tag: ""
     digest: ""
     pullPolicy: IfNotPresent
@@ -77,7 +77,7 @@ operator:
 executor:
   image:
     registry: ""
-    repository: executor
+    repository: kubesphere/kk-executor
     tag: ""
     digest: ""
     pullPolicy: IfNotPresent
