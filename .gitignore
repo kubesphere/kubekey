@@ -36,5 +36,5 @@ _artifacts
 tmp
 
 # Used by current object
-/example/test/
 /_output/
+dist/
