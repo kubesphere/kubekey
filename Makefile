@@ -34,7 +34,7 @@ TEST_DIR := test
 TOOLS_DIR := hack/tools
 #BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
-GO_INSTALL := ./scripts/go_install.sh
+GO_INSTALL := ./hack/go_install.sh
 
 # output
 OUTPUT_DIR := $(abspath $(ROOT_DIR)/_output)
@@ -81,6 +81,11 @@ HADOLINT_FAILURE_THRESHOLD = warning
 
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(abspath $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN))
+
+GORELEASER_VERSION := v2.0.1
+GORELEASER_BIN := goreleaser
+GORELEASER_PKG := github.com/goreleaser/goreleaser/v2
+GORELEASER := $(abspath $(OUTPUT_TOOLS_DIR)/$(GORELEASER_BIN))
 
 #
 # Docker.
@@ -192,7 +197,7 @@ lint: $(GOLANGCI_LINT) ## Lint the codebase
 verify-dockerfiles:
 	./hack/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
-ALL_VERIFY_CHECKS ?= modules gen goimports
+ALL_VERIFY_CHECKS ?= modules gen goimports releaser
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS))  ## Run all verify-* targets
@@ -219,6 +224,10 @@ verify-gen:  ## Verify go generated files are up to date
 verify-goimports: ## Verify go imports
 	@hack/verify-goimports.sh
 
+.PHONY: verify-releaser
+verify-releaser: $(GORELEASER) ## Verify goreleaser
+	@$(GORELEASER) check
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
@@ -228,6 +237,10 @@ verify-goimports: ## Verify go imports
 .PHONY: kk
 kk: ## build kk binary
 	@CGO_ENABLED=0 GOARCH=$(GOARCH) GOOS=$(GOOS) go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(OUTPUT_BIN_DIR)/kk cmd/kk/kubekey.go
+
+.PHONY: kk-releaser
+kk-releaser: $(GORELEASER_BIN)
+	LDFLAGS=$(bash ./hack/version.sh) $(GORELEASER_BIN) release --clean --skip validate --skip publish
 
 .PHONY: docker-build ## build and push all images
 docker-build: docker-build-operator docker-build-kk
@@ -571,11 +584,14 @@ $(SETUP_ENVTEST_BIN): $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
 .PHONY: $(GOLANGCI_LINT_BIN)
 $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
 
+.PHONY: $(GORELEASER)
+$(GORELEASER_BIN): $(GORELEASER) ## Build a local copy of golangci-lint
+
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
-	GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
 
 $(GOTESTSUM): # Build gotestsum from tools folder.
-	GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
+	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
 	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
@@ -587,3 +603,6 @@ $(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golangci-lint u
 	hack/ensure-golangci-lint.sh \
 		-b $(OUTPUT_TOOLS_DIR) \
 		$(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version | sed 's/.*version: //')
+
+$(GORELEASER):
+	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GORELEASER_PKG) $(GORELEASER_BIN) $(GORELEASER_VERSION)

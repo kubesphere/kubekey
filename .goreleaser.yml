@@ -1,3 +1,5 @@
+version: 2
+
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
@@ -10,6 +12,7 @@ builds:
   - main: ./cmd/kk/kubekey.go
     goos:
       - linux
+      - windows
       - darwin
     goarch:
       - amd64
@@ -17,10 +20,11 @@ builds:
     binary: kubekey
     ldflags: "{{ .Env.LDFLAGS }}"
     flags:
-      - builtin
+      - -tags=builtin
 
 archives:
-  - name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - format: tar.gz
+    name_template: "{{ .Binary }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - none*
 

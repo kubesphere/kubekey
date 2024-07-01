@@ -4,6 +4,7 @@
 *.so
 *.dylib
 *.tmp
+.DS_Store
 
 # Test binary, build with `go test -c`
 *.test
@@ -36,5 +37,5 @@ _artifacts
 tmp
 
 # Used by current object
-/example/test/
 /_output/
+dist/
