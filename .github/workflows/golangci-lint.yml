@@ -44,7 +44,7 @@ jobs:
           go-version: 1.22
 
       - name: Verify
-        run: ALL_VERIFY_CHECKS=goimports make verify
+        run: ALL_VERIFY_CHECKS="goimports releaser" make verify
 
   test:
     name: test

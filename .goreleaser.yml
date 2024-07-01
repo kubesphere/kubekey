@@ -20,11 +20,11 @@ builds:
     binary: kubekey
     ldflags: "{{ .Env.LDFLAGS }}"
     flags:
-      - builtin
+      - -tags=builtin
 
 archives:
   - format: tar.gz
-    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "{{ .Binary }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - none*
 
