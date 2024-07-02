@@ -237,6 +237,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 		if at.RunOnce { // only run in first host
 			hosts = []string{options.hosts[0]}
 		}
+		tags := kkcorev1.JoinTag(at.Taggable, options.tags)
 
 		// use the most closely configuration
 		ignoreErrors := at.IgnoreErrors
@@ -258,7 +259,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 				role:         options.role,
 				blocks:       at.Block,
 				when:         append(options.when, at.When.Data...),
-				tags:         kkcorev1.JoinTag(at.Taggable, options.tags),
+				tags:         tags,
 			}); err != nil {
 				klog.V(4).ErrorS(err, "execute tasks from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return err
@@ -272,7 +273,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					blocks:       at.Rescue,
 					role:         options.role,
 					when:         append(options.when, at.When.Data...),
-					tags:         kkcorev1.JoinTag(at.Taggable, options.tags),
+					tags:         tags,
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from rescue error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
@@ -287,7 +288,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					blocks:       at.Always,
 					role:         options.role,
 					when:         append(options.when, at.When.Data...),
-					tags:         kkcorev1.JoinTag(at.Taggable, options.tags),
+					tags:         tags,
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from always error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err

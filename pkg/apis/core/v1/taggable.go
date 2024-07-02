@@ -58,9 +58,12 @@ func (t Taggable) IsEnabled(onlyTags []string, skipTags []string) bool {
 
 // JoinTag the child block should inherit tag for parent block
 func JoinTag(child, parent Taggable) Taggable {
-	for _, tg := range parent.Tags {
-		if !slices.Contains(child.Tags, tg) {
-			child.Tags = append(child.Tags, tg)
+	for _, tag := range parent.Tags {
+		if tag == "always" { // skip inherit "always" tag
+			continue
+		}
+		if !slices.Contains(child.Tags, tag) {
+			child.Tags = append(child.Tags, tag)
 		}
 	}
 	return child
