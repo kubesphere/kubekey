@@ -18,6 +18,7 @@ package v1
 
 import "k8s.io/utils/strings/slices"
 
+// Taggable if it should executor
 type Taggable struct {
 	Tags []string `yaml:"tags,omitempty"`
 }
@@ -53,6 +54,16 @@ func (t Taggable) IsEnabled(onlyTags []string, skipTags []string) bool {
 	}
 
 	return shouldRun
+}
+
+// JoinTag the child block should inherit tag for parent block
+func JoinTag(child, parent Taggable) Taggable {
+	for _, tg := range parent.Tags {
+		if !slices.Contains(child.Tags, tg) {
+			child.Tags = append(child.Tags, tg)
+		}
+	}
+	return child
 }
 
 // isdisjoint returns true if a and b have no elements in common.
