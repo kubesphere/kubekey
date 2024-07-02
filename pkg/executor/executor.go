@@ -76,6 +76,7 @@ type execBlockOptions struct {
 	blocks []kkcorev1.Block
 	role   string   // role name of blocks
 	when   []string // when condition for blocks
+	tags   kkcorev1.Taggable
 }
 
 func (e executor) Exec(ctx context.Context) error {
@@ -151,6 +152,7 @@ func (e executor) Exec(ctx context.Context) error {
 				hosts:        serials,
 				ignoreErrors: play.IgnoreErrors,
 				blocks:       play.PreTasks,
+				tags:         play.Taggable,
 			}); err != nil {
 				return fmt.Errorf("execute pre-tasks from play error: %w", err)
 			}
@@ -172,6 +174,7 @@ func (e executor) Exec(ctx context.Context) error {
 					blocks:       role.Block,
 					role:         role.Role,
 					when:         role.When.Data,
+					tags:         kkcorev1.JoinTag(role.Taggable, play.Taggable),
 				}); err != nil {
 					return fmt.Errorf("execute role-tasks error: %w", err)
 				}
@@ -181,6 +184,7 @@ func (e executor) Exec(ctx context.Context) error {
 				hosts:        serials,
 				ignoreErrors: play.IgnoreErrors,
 				blocks:       play.Tasks,
+				tags:         play.Taggable,
 			}); err != nil {
 				return fmt.Errorf("execute tasks error: %w", err)
 			}
@@ -189,6 +193,7 @@ func (e executor) Exec(ctx context.Context) error {
 				hosts:        serials,
 				ignoreErrors: play.IgnoreErrors,
 				blocks:       play.Tasks,
+				tags:         play.Taggable,
 			}); err != nil {
 				return fmt.Errorf("execute post-tasks error: %w", err)
 			}
@@ -225,7 +230,7 @@ func (e executor) getGatherFact(ctx context.Context, hostname string, vars varia
 
 func (e executor) execBlock(ctx context.Context, options execBlockOptions) error {
 	for _, at := range options.blocks {
-		if !at.Taggable.IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
+		if !kkcorev1.JoinTag(at.Taggable, options.tags).IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
 			continue
 		}
 		hosts := options.hosts
@@ -253,6 +258,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 				role:         options.role,
 				blocks:       at.Block,
 				when:         append(options.when, at.When.Data...),
+				tags:         kkcorev1.JoinTag(at.Taggable, options.tags),
 			}); err != nil {
 				klog.V(4).ErrorS(err, "execute tasks from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return err
@@ -266,6 +272,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					blocks:       at.Rescue,
 					role:         options.role,
 					when:         append(options.when, at.When.Data...),
+					tags:         kkcorev1.JoinTag(at.Taggable, options.tags),
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from rescue error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
@@ -280,6 +287,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					blocks:       at.Always,
 					role:         options.role,
 					when:         append(options.when, at.When.Data...),
+					tags:         kkcorev1.JoinTag(at.Taggable, options.tags),
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from always error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
