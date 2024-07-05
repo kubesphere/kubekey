@@ -18,6 +18,7 @@ package templates
 
 import (
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
@@ -270,6 +271,17 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 			}
 		}
 
+	}
+
+	nodeEtcHosts := kubeConf.Cluster.DNS.NodeEtcHosts
+	if len(nodeEtcHosts) > 0 {
+		lines := strings.Split(strings.TrimSpace(nodeEtcHosts), "\n")
+		for i := range lines {
+			line := strings.TrimSpace(lines[i])
+			if line != "" {
+				hostsList = append(hostsList, line)
+			}
+		}
 	}
 
 	hostsList = append(hostsList, lbHost)

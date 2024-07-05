@@ -18,6 +18,7 @@ package v1alpha2
 
 type DNS struct {
 	DNSEtcHosts  string       `yaml:"dnsEtcHosts" json:"dnsEtcHosts"`
+	NodeEtcHosts string       `yaml:"nodeEtcHosts" json:"nodeEtcHosts,omitempty"`
 	CoreDNS      CoreDNS      `yaml:"coredns" json:"coredns"`
 	NodeLocalDNS NodeLocalDNS `yaml:"nodelocaldns" json:"nodelocaldns"`
 }
