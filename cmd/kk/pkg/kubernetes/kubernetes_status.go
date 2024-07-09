@@ -55,6 +55,11 @@ func (k *KubernetesStatus) SearchVersion(runtime connector.Runtime) error {
 }
 
 func (k *KubernetesStatus) SearchJoinInfo(runtime connector.Runtime) error {
+	// check if the cluster status contain initial data
+	if k.BootstrapToken != "" && k.CertificateKey != "" {
+		return nil
+	}
+
 	checkKubeadmConfig, err := runtime.GetRunner().SudoCmd("cat /etc/kubernetes/kubeadm-config.yaml", false)
 	if err != nil {
 		return err
