@@ -89,18 +89,20 @@ type KubeVip struct {
 type CustomScripts struct {
 	Name      string   `yaml:"name" json:"name,omitempty"`
 	Bash      string   `yaml:"bash" json:"bash,omitempty"`
+	Role      string   `yaml:"role" json:"role,omitempty"`
 	Materials []string `yaml:"materials" json:"materials,omitempty"`
 }
 
 // System defines the system config for each node in cluster.
 type System struct {
-	NtpServers      []string        `yaml:"ntpServers" json:"ntpServers,omitempty"`
-	Timezone        string          `yaml:"timezone" json:"timezone,omitempty"`
-	Rpms            []string        `yaml:"rpms" json:"rpms,omitempty"`
-	Debs            []string        `yaml:"debs" json:"debs,omitempty"`
-	PreInstall      []CustomScripts `yaml:"preInstall" json:"preInstall,omitempty"`
-	PostInstall     []CustomScripts `yaml:"postInstall" json:"postInstall,omitempty"`
-	SkipConfigureOS bool            `yaml:"skipConfigureOS" json:"skipConfigureOS,omitempty"`
+	NtpServers         []string        `yaml:"ntpServers" json:"ntpServers,omitempty"`
+	Timezone           string          `yaml:"timezone" json:"timezone,omitempty"`
+	Rpms               []string        `yaml:"rpms" json:"rpms,omitempty"`
+	Debs               []string        `yaml:"debs" json:"debs,omitempty"`
+	PreInstall         []CustomScripts `yaml:"preInstall" json:"preInstall,omitempty"`
+	PostClusterInstall []CustomScripts `yaml:"postClusterInstall" json:"postClusterInstall,omitempty"`
+	PostInstall        []CustomScripts `yaml:"postInstall" json:"postInstall,omitempty"`
+	SkipConfigureOS    bool            `yaml:"skipConfigureOS" json:"skipConfigureOS,omitempty"`
 }
 
 // RegistryConfig defines the configuration information of the image's repository.

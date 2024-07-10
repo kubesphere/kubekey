@@ -19,10 +19,17 @@ package addons
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
+	"github.com/pkg/errors"
+
+	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/customscripts"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
 )
 
 type Install struct {
@@ -31,11 +38,81 @@ type Install struct {
 
 func (i *Install) Execute(runtime connector.Runtime) error {
 	nums := len(i.KubeConf.Cluster.Addons)
+
+	enabledAddons, err := i.enabledAddons()
+	if err != nil {
+		return err
+	}
+
+	logger.Log.Messagef(runtime.RemoteHost().GetName(), "[%v/%v] enabled addons", len(enabledAddons), nums)
+
 	for index, addon := range i.KubeConf.Cluster.Addons {
+		if _, ok := enabledAddons[addon.Name]; !ok {
+			continue
+		}
 		logger.Log.Messagef(runtime.RemoteHost().GetName(), "Install addon [%v-%v]: %s", nums, index, addon.Name)
-		if err := InstallAddons(i.KubeConf, &addon, filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.GetObjName()))); err != nil {
+
+		m := []module.Module{
+			&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: addon.PreInstall},
+			&AddonModule{addon: &addon},
+			&customscripts.CustomScriptsModule{Phase: "PostInstall", Scripts: addon.PostInstall},
+		}
+		p := pipeline.Pipeline{
+			Name:          "InstallAddonsPipeline",
+			Modules:       m,
+			Runtime:       runtime,
+			SkipPrintLogo: true,
+		}
+		if err := p.Start(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (i *Install) enabledAddons() (map[string]struct{}, error) {
+	enabledAddons := make(map[string]struct{}, len(i.KubeConf.Cluster.Addons))
+	for _, addon := range i.KubeConf.Cluster.Addons {
+		enabledAddons[addon.Name] = struct{}{}
+	}
+
+	if len(i.KubeConf.Arg.EnabledAddons) == 0 {
+		return enabledAddons, nil
+	}
+
+	enabledAddonsConfig := make(map[string]struct{}, len(i.KubeConf.Arg.EnabledAddons))
+	for _, config := range i.KubeConf.Arg.EnabledAddons {
+		enabledAddonsConfig[config] = struct{}{}
+	}
+
+	for addon := range enabledAddons {
+		if _, ok := enabledAddonsConfig[addon]; !ok {
+			// drop addons not in input args
+			delete(enabledAddons, addon)
+		} else {
+			// drop input args validated
+			delete(enabledAddonsConfig, addon)
+		}
+	}
+	if len(enabledAddonsConfig) > 0 {
+		// exists invalid input args
+		keys := make([]string, 0, len(enabledAddonsConfig))
+		for key := range enabledAddonsConfig {
+			keys = append(keys, key)
+		}
+		return nil, errors.New(fmt.Sprintf("Addons not exists: %s", strings.Join(keys, ",")))
+	}
+	return enabledAddons, nil
+}
+
+type InstallAddon struct {
+	common.KubeAction
+	addon *kubekeyapiv1alpha2.Addon
+}
+
+func (i *InstallAddon) Execute(runtime connector.Runtime) error {
+	if err := InstallAddons(i.KubeConf, i.addon, filepath.Join(runtime.GetWorkDir(), fmt.Sprintf("config-%s", runtime.GetObjName()))); err != nil {
+		return err
 	}
 	return nil
 }

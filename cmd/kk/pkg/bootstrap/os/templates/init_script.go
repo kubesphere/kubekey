@@ -18,6 +18,7 @@ package templates
 
 import (
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
@@ -81,8 +82,8 @@ echo 'net.ipv4.tcp_keepalive_intvl = 30' >> /etc/sysctl.conf
 echo 'net.ipv4.tcp_keepalive_probes = 10' >> /etc/sysctl.conf
 echo 'net.ipv4.udp_rmem_min = 131072' >> /etc/sysctl.conf
 echo 'net.ipv4.udp_wmem_min = 131072' >> /etc/sysctl.conf
-echo 'net.ipv4.conf.all.rp_filter = 1' >> /etc/sysctl.conf
-echo 'net.ipv4.conf.default.rp_filter = 1' >> /etc/sysctl.conf
+echo 'net.ipv4.conf.all.rp_filter = 0' >> /etc/sysctl.conf
+echo 'net.ipv4.conf.default.rp_filter = 0' >> /etc/sysctl.conf
 echo 'net.ipv4.conf.all.arp_accept = 1' >> /etc/sysctl.conf
 echo 'net.ipv4.conf.default.arp_accept = 1' >> /etc/sysctl.conf
 echo 'net.ipv4.conf.all.arp_ignore = 1' >> /etc/sysctl.conf
@@ -107,8 +108,8 @@ echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
 #See https://help.aliyun.com/document_detail/118806.html#uicontrol-e50-ddj-w0y
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1|2)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_reuse ?= ?(0|1)@net.ipv4.tcp_tw_reuse = 0@g" /etc/sysctl.conf
-sed -r -i "s@#{0,}?net.ipv4.conf.all.rp_filter ?= ?(0|1|2)@net.ipv4.conf.all.rp_filter = 1@g" /etc/sysctl.conf
-sed -r -i "s@#{0,}?net.ipv4.conf.default.rp_filter ?= ?(0|1|2)@net.ipv4.conf.default.rp_filter = 1@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv4.conf.all.rp_filter ?= ?(0|1|2)@net.ipv4.conf.all.rp_filter = 0@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv4.conf.default.rp_filter ?= ?(0|1|2)@net.ipv4.conf.default.rp_filter = 0@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv4.ip_forward ?= ?(0|1)@net.ipv4.ip_forward = 1@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.bridge.bridge-nf-call-arptables ?= ?(0|1)@net.bridge.bridge-nf-call-arptables = 1@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.bridge.bridge-nf-call-ip6tables ?= ?(0|1)@net.bridge.bridge-nf-call-ip6tables = 1@g" /etc/sysctl.conf
@@ -270,6 +271,17 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 			}
 		}
 
+	}
+
+	nodeEtcHosts := kubeConf.Cluster.DNS.NodeEtcHosts
+	if len(nodeEtcHosts) > 0 {
+		lines := strings.Split(strings.TrimSpace(nodeEtcHosts), "\n")
+		for i := range lines {
+			line := strings.TrimSpace(lines[i])
+			if line != "" {
+				hostsList = append(hostsList, line)
+			}
+		}
 	}
 
 	hostsList = append(hostsList, lbHost)

@@ -39,7 +39,7 @@ func NewUpgradeNodesOptions() *UpgradeNodesOptions {
 	}
 }
 
-// NewCmdUpgrade creates a new upgrade command
+// NewCmdUpgradeNodes creates a new upgrade command
 func NewCmdUpgradeNodes() *cobra.Command {
 	o := NewUpgradeNodesOptions()
 	cmd := &cobra.Command{

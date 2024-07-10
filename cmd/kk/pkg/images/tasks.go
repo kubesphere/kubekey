@@ -155,6 +155,8 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 
 type SaveImages struct {
 	common.ArtifactAction
+	ImageStartIndex int
+	ImageTransport string
 }
 
 func (s *SaveImages) Execute(runtime connector.Runtime) error {
@@ -164,7 +166,10 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 	if err := coreutil.Mkdir(dirName); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "mkdir %s failed", dirName)
 	}
-	for _, image := range s.Manifest.Spec.Images {
+	for index, image := range s.Manifest.Spec.Images {
+		if s.ImageStartIndex > index {
+			continue
+		}
 		if err := validateImageName(image); err != nil {
 			return err
 		}
@@ -175,7 +180,7 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 			auth = v
 		}
 
-		srcName := fmt.Sprintf("docker://%s", image)
+		srcName := formatImageName(s.ImageTransport, image)
 		for _, platform := range s.Manifest.Spec.Arches {
 			arch, variant := ParseArchVariant(platform)
 			// placeholder
@@ -183,11 +188,11 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 				variant = "-" + variant
 			}
 			// Ex:
-			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-amd64
-			// oci:./kubekey/artifact/images:kubesphere:kube-apiserver:v1.21.5-arm-v7
-			destName := fmt.Sprintf("oci:%s:%s:%s-%s%s", dirName, imageFullName[1], suffixImageName(imageFullName[2:]), arch, variant)
-			logger.Log.Infof("Source: %s", srcName)
-			logger.Log.Infof("Destination: %s", destName)
+			// oci:./kubekey/artifact/images:docker.io/kubesphere/kube-apiserver:v1.21.5-amd64
+			// oci:./kubekey/artifact/images:docker.io/kubesphere/kube-apiserver:v1.21.5-arm-v7
+			destName := fmt.Sprintf("oci:%s:%s-%s%s", dirName, image, arch, variant)
+			logger.Log.Infof("[%d]Source: %s", index, srcName)
+			logger.Log.Infof("[%d]Destination: %s", index, destName)
 
 			o := &CopyImageOptions{
 				srcImage: &srcImageOptions{
@@ -232,7 +237,8 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 
 type CopyImagesToRegistry struct {
 	common.KubeAction
-	ImagesPath string
+	ImagesPath     string
+	ImageTransport string
 }
 
 func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
@@ -260,18 +266,21 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		ref := m.Annotations.RefName
 
 		// Ex:
-		// calico:cni:v3.20.0-amd64
-		nameArr := strings.Split(ref, ":")
-		if len(nameArr) != 3 {
+		// docker.io/calico/cni:v3.20.0-amd64
+		repoAddr, namespace, imageName, imageTag, err := parseImageFullName(ref)
+		if err != nil {
 			return errors.Errorf("invalid ref name: %s", ref)
 		}
 
+		if c.ImageTransport != common.DockerDaemon {
+			repoAddr = c.KubeConf.Cluster.Registry.PrivateRegistry
+		}
 		image := Image{
-			RepoAddr:          c.KubeConf.Cluster.Registry.PrivateRegistry,
-			Namespace:         nameArr[0],
+			RepoAddr:          repoAddr,
+			Namespace:         namespace,
 			NamespaceOverride: c.KubeConf.Cluster.Registry.NamespaceOverride,
-			Repo:              nameArr[1],
-			Tag:               nameArr[2],
+			Repo:              imageName,
+			Tag:               imageTag,
 		}
 
 		uniqueImage, p := ParseImageWithArchTag(image.ImageName())
@@ -305,7 +314,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		}
 
 		srcName := fmt.Sprintf("oci:%s:%s", imagesPath, ref)
-		destName := fmt.Sprintf("docker://%s", image.ImageName())
+		destName := formatImageName(c.ImageTransport, uniqueImage)
 		logger.Log.Infof("Source: %s", srcName)
 		logger.Log.Infof("Destination: %s", destName)
 
