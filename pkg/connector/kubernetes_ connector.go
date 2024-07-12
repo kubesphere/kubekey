@@ -39,6 +39,11 @@ type kubernetesConnector struct {
 }
 
 func (c *kubernetesConnector) Init(ctx context.Context) error {
+	if c.clusterName == _const.LocalHostName && c.kubeconfig == "" {
+		// use default kubeconfig. skip
+		klog.V(4).InfoS("kubeconfig is not set, using local kubeconfig")
+		return nil
+	}
 	c.kubeconfigPath = filepath.Join(_const.GetWorkDir(), "kubernetes", c.clusterName, "kubeconfig")
 	if _, err := os.Stat(c.kubeconfigPath); err == nil || !os.IsNotExist(err) {
 		klog.V(4).InfoS("kubeconfig file already exists", "cluster", c.clusterName)

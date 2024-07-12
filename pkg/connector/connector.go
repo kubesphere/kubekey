@@ -82,7 +82,7 @@ func NewConnector(host string, vars map[string]any) (Connector, error) {
 		}, nil
 	case "kubernetes":
 		kubeconfig, err := variable.StringVar(nil, vars, "kubeconfig")
-		if err != nil {
+		if err != nil && host != _const.LocalHostName {
 			return nil, err
 		}
 		return &kubernetesConnector{Cmd: exec.New(), clusterName: host, kubeconfig: kubeconfig}, nil
