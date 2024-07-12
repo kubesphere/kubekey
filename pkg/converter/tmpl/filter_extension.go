@@ -25,6 +25,7 @@ import (
 
 	"github.com/flosch/pongo2/v6"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/util/rand"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
 )
@@ -38,6 +39,7 @@ func init() {
 	utilruntime.Must(pongo2.RegisterFilter("to_yaml", filterToYaml))
 	utilruntime.Must(pongo2.RegisterFilter("ip_range", filterIpRange))
 	utilruntime.Must(pongo2.RegisterFilter("get", filterGet))
+	utilruntime.Must(pongo2.RegisterFilter("rand", filterRand))
 }
 
 func filterDefined(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
@@ -174,7 +176,6 @@ func filterIpRange(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 	for _, s := range strings.Split(in.String(), ",") {
 		ipRange = append(ipRange, ParseIp(s)...)
 	}
-
 	return pongo2.AsValue(ipRange), nil
 }
 
@@ -194,6 +195,15 @@ func filterGet(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *p
 	}, func() {
 		result = pongo2.AsValue(nil)
 	})
-
 	return result, nil
+}
+
+func filterRand(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+	if !param.IsInteger() {
+		return pongo2.AsValue(nil), &pongo2.Error{
+			Sender:    "rand",
+			OrigError: fmt.Errorf("param is not format int"),
+		}
+	}
+	return pongo2.AsValue(rand.String(param.Integer())), nil
 }

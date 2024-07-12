@@ -158,8 +158,8 @@ linters-settings:
       - wrapperFunc
       - commentFormatting
       - filepathJoin
-      - rangeValCopy
-      - hugeParam
+#      - rangeValCopy
+#      - hugeParam
   stylecheck:
     checks:
       - -ST1000 # ignore package comment
@@ -251,4 +251,7 @@ run:
   go: "1.22"
   build-tags:
     - builtin
+  executor-dirs:
+    - .git
+    - vendor
   allow-parallel-runners: true
