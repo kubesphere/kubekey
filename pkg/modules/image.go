@@ -224,16 +224,16 @@ func (i imageTransport) RoundTrip(request *http.Request) (*http.Response, error)
 			defer request.Body.Close()
 
 			filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
-			if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 				return ResponseServerError, nil
 			}
-			if err := os.WriteFile(filename, body, 0644); err != nil {
+			if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
 				return ResponseServerError, nil
 			}
 			return ResponseCreated, nil
 		} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "/manifests") { // manifest
 			filename := filepath.Join(i.baseDir, strings.TrimPrefix(request.URL.Path, apiPrefix))
-			if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 				return ResponseServerError, nil
 			}
 			body, err := io.ReadAll(request.Body)
@@ -241,7 +241,7 @@ func (i imageTransport) RoundTrip(request *http.Request) (*http.Response, error)
 				return ResponseServerError, nil
 			}
 			defer request.Body.Close()
-			if err := os.WriteFile(filename, body, 0644); err != nil {
+			if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
 				return ResponseServerError, nil
 			}
 			return ResponseCreated, nil

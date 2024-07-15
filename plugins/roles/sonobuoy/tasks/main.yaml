@@ -2,7 +2,7 @@
 - name: Generate sonobuoy plugins
   template:
     src: plugins/
-    dest: "{{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/"
+    dest: "sonobuoy/plugins/"
 
 - name: Run sonobuoy
   command: |
@@ -10,12 +10,12 @@
     sonobuoy run --wait \
       {% if (plugins.systemd_logs.enabled) %}-p systemd-logs {% endif %}\
       {% if (plugins.e2e.enabled) %}-p e2e {% endif %}\
-      {% if (plugins.e2e_ks.enabled) %}-p {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/e2e-ks.yaml {% endif %}\
-      {% if (plugins.kube_bench.enabled) %}-p {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/kube-bench.yaml -p {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/plugins/kube-bench-master.yaml {% endif %}\
+      {% if (plugins.e2e_ks.enabled) %}-p sonobuoy/plugins/e2e-ks.yaml {% endif %}\
+      {% if (plugins.kube_bench.enabled) %}-p sonobuoy/plugins/kube-bench.yaml -p sonobuoy/plugins/kube-bench-master.yaml {% endif %}\
 
 - name: Retrieve result
   command: |
-    cd {{ work_dir }}/kubernetes/{{ inventory_name }}/sonobuoy/ && sonobuoy retrieve
+    cd sonobuoy/ && sonobuoy retrieve
 
 - name: Clean sonobuoy
   command: |

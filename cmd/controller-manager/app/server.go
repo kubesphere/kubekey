@@ -18,7 +18,6 @@ package app
 
 import (
 	"context"
-	"io/fs"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -49,7 +48,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			// create workdir directory,if not exists
 			_const.SetWorkDir(o.WorkDir)
 			if _, err := os.Stat(o.WorkDir); os.IsNotExist(err) {
-				if err := os.MkdirAll(o.WorkDir, fs.ModePerm); err != nil {
+				if err := os.MkdirAll(o.WorkDir, os.ModePerm); err != nil {
 					return err
 				}
 			}
