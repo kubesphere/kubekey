@@ -54,7 +54,7 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 
 	// fetch file
 	if _, err := os.Stat(filepath.Dir(destParam)); os.IsNotExist(err) {
-		if err := os.MkdirAll(filepath.Dir(destParam), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(destParam), os.ModePerm); err != nil {
 			return "", fmt.Sprintf("failed to create dest dir: %v", err)
 		}
 	}

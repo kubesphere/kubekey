@@ -17,7 +17,6 @@ limitations under the License.
 package source
 
 import (
-	"io/fs"
 	"os"
 
 	"k8s.io/klog/v2"
@@ -39,7 +38,7 @@ type Watcher interface {
 // New returns a new source.
 func New(path string) (Source, error) {
 	if _, err := os.Stat(path); err != nil {
-		if err := os.MkdirAll(path, fs.ModePerm); err != nil {
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			klog.V(4).ErrorS(err, "create source path error", "path", path)
 			return nil, err
 		}

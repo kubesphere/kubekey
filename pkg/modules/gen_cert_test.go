@@ -52,7 +52,7 @@ func TestModuleGenCert(t *testing.T) {
 	}
 
 	if _, err := os.Stat("./test_gen_cert"); os.IsNotExist(err) {
-		if err := os.Mkdir("./test_gen_cert", 0755); err != nil {
+		if err := os.Mkdir("./test_gen_cert", os.ModePerm); err != nil {
 			t.Fatal(err)
 		}
 	}

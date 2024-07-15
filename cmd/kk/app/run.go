@@ -19,7 +19,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -50,7 +49,7 @@ func newRunCommand() *cobra.Command {
 			_const.SetWorkDir(o.WorkDir)
 			// create workdir directory,if not exists
 			if _, err := os.Stat(o.WorkDir); os.IsNotExist(err) {
-				if err := os.MkdirAll(o.WorkDir, fs.ModePerm); err != nil {
+				if err := os.MkdirAll(o.WorkDir, os.ModePerm); err != nil {
 					return err
 				}
 			}

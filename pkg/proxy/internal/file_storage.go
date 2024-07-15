@@ -83,7 +83,7 @@ func (s fileStorage) Create(ctx context.Context, key string, obj, out runtime.Ob
 	// create file to local disk
 	if _, err := os.Stat(filepath.Dir(key)); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(filepath.Dir(key), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(key), os.ModePerm); err != nil {
 				klog.V(4).ErrorS(err, "failed to create dir", "path", filepath.Dir(key))
 				return err
 			}
