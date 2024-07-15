@@ -22,9 +22,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"gopkg.in/yaml.v3"
+
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"gopkg.in/yaml.v3"
 )
 
 // marshalPlaybook kkcorev1.Playbook from a playbook file
