@@ -1,12 +1,16 @@
 - hosts:
     - localhost
   tags: ["certs"]
+  vars_files:
+    - vars/certs_renew.yaml
   roles:
     - init/init-artifact
 
 - hosts:
     - etcd
   tags: ["certs"]
+  vars_files:
+    - vars/certs_renew.yaml
   roles:
     - role: certs/renew-etcd
       when: groups['etcd']|length > 0 && renew_etcd
@@ -14,12 +18,16 @@
 - hosts:
     - image_registry
   tags: ["certs"]
+  vars_files:
+    - vars/certs_renew.yaml
   roles:
     - role: certs/renew-registry
       when: groups['image_registry']|length > 0 && renew_image_registry
 
 - hosts:
     - kube_control_plane
+  vars_files:
+    - vars/certs_renew.yaml
   tags: ["certs"]
   roles:
     - role: certs/renew-kubernetes

@@ -26,7 +26,7 @@
 
 - hosts:
     - k8s_cluster
-  var_files:
+  vars_files:
     - vars/create_cluster_kubernetes.yaml
   gather_facts: true
   roles:
