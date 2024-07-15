@@ -20,7 +20,7 @@ limitations under the License.
 package options
 
 import (
-	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/kubesphere/kubekey/v4/builtin"
 )

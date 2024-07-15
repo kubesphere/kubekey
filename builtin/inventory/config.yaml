@@ -44,5 +44,3 @@ spec:
   kube_version: v1.23.15
   # nfs provisioner helm version
   nfs_provisioner_version: 4.0.18
-  # oras binary
-  oras_version: v1.1.0
