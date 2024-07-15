@@ -85,7 +85,7 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 
 			var vars map[string]any
 			var node yaml.Node // marshal file on defined order
-			if err := yaml.Unmarshal(mainData, &vars); err != nil {
+			if err := yaml.Unmarshal(mainData, &node); err != nil {
 				return fmt.Errorf("cannot unmarshal variables file %s", filepath.Join(filepath.Dir(pbPath), file))
 			}
 			if err := node.Decode(&vars); err != nil {
