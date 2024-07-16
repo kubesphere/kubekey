@@ -6,7 +6,6 @@ discovery:
     apiServerEndpoint: {%if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint }}{% else %}{{ init_kubernetes_node }}{% endif %}:{{ kubernetes.apiserver.port }}
     token: "{{ kubeadm_token }}"
     unsafeSkipCAVerification: true
-  tlsBootstrapToken: "{{ kubeadm_token }}"
 {% if (inventory_name in groups['kube_control_plane']) %}
 controlPlane:
   localAPIEndpoint:

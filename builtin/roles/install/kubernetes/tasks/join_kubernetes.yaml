@@ -17,7 +17,7 @@
       command: |
         /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
   rescue:
-    - name: Reset kubeadm if init failed
+    - name: Reset kubeadm if join failed
       command: kubeadm reset -f {% if (cri.cri_socket|defined && cri.cri_socket != "") %}--cri-socket {{ cri.cri_socket }}{% endif %}
 
 - name: Sync kubeconfig to remote
@@ -25,14 +25,14 @@
     src: "{{ work_dir }}/kubekey/kubeconfig"
     dest: /root/.kube/config
 
-- name: Remote master taint
-  ignore_errors: true
-  command: |
-    /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
-    /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
+- name: Set to worker node
   when: inventory_name in groups["kube_worker"]
-    
-- name: Add work label
-  command: |
-    /usr/local/bin/kubectl label --overwrite node {{ inventory_name }} node-role.kubernetes.io/worker=
-  when: inventory_name in groups['kube_worker']
+  block:
+    - name: Remote master taint
+      ignore_errors: true
+      command: |
+        /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
+    - name: Add work label
+      command: |
+        /usr/local/bin/kubectl label --overwrite node {{ inventory_name }} node-role.kubernetes.io/worker=
