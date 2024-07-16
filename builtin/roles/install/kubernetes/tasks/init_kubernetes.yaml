@@ -52,7 +52,7 @@
   block:
     - name: Init kubernetes by kubeadm
       command: |
-        /usr/local/bin/kubeadm init  --upload-certs \
+        /usr/local/bin/kubeadm init \
           --config=/etc/kubernetes/kubeadm-config.yaml \
           --ignore-preflight-errors=FileExisting-crictl,ImagePull \
           {% if (not kubernetes.kube_proxy.enabled) %}--skip-phases=addon/kube-proxy{% endif %}
