@@ -18,11 +18,11 @@ package executor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/schollz/progressbar/v3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -252,6 +252,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 
 		switch {
 		case len(at.Block) != 0:
+			var errs error
 			// exec block
 			if err := e.execBlock(ctx, execBlockOptions{
 				hosts:        hosts,
@@ -262,7 +263,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 				tags:         tags,
 			}); err != nil {
 				klog.V(4).ErrorS(err, "execute tasks from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
-				return err
+				errs = errors.Join(errs, err)
 			}
 
 			// if block exec failed exec rescue
@@ -276,7 +277,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					tags:         tags,
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from rescue error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
-					return err
+					errs = errors.Join(errs, err)
 				}
 			}
 
@@ -291,8 +292,13 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					tags:         tags,
 				}); err != nil {
 					klog.V(4).ErrorS(err, "execute tasks from always error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
-					return err
+					errs = errors.Join(errs, err)
 				}
+			}
+
+			// when execute error. return
+			if errs != nil {
+				return errs
 			}
 
 		case at.IncludeTasks != "":
@@ -384,19 +390,10 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 }
 
 func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, options execBlockOptions) error {
-	cd := kubekeyv1alpha1.TaskCondition{
-		StartTimestamp: metav1.Now(),
-	}
-	defer func() {
-		cd.EndTimestamp = metav1.Now()
-		task.Status.Conditions = append(task.Status.Conditions, cd)
-	}()
-
 	// check task host results
 	wg := &wait.Group{}
-	dataChan := make(chan kubekeyv1alpha1.TaskHostResult, len(task.Spec.Hosts))
-	for _, h := range task.Spec.Hosts {
-		host := h
+	task.Status.HostResults = make([]kubekeyv1alpha1.TaskHostResult, len(task.Spec.Hosts))
+	for i, h := range task.Spec.Hosts {
 		wg.StartWithContext(ctx, func(ctx context.Context) {
 			var stdout, stderr string
 
@@ -421,7 +418,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					// try to convert by json
 					_ = json.Unmarshal([]byte(stderr), &stderrResult)
 					// set variable to parent location
-					if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
+					if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
 						task.Spec.Register: map[string]any{
 							"stdout": stdoutResult,
 							"stderr": stderrResult,
@@ -452,14 +449,19 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				}
 
 				// fill result
-				dataChan <- kubekeyv1alpha1.TaskHostResult{
-					Host:   host,
+				//dataChan <- kubekeyv1alpha1.TaskHostResult{
+				//	Host:   host,
+				//	Stdout: stdout,
+				//	StdErr: stderr,
+				//}
+				task.Status.HostResults[i] = kubekeyv1alpha1.TaskHostResult{
+					Host:   h,
 					Stdout: stdout,
 					StdErr: stderr,
 				}
 			}()
 
-			ha, err := e.variable.Get(variable.GetAllVariable(host))
+			ha, err := e.variable.Get(variable.GetAllVariable(h))
 			if err != nil {
 				stderr = fmt.Sprintf("get variable error: %v", err)
 				return
@@ -487,7 +489,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 
 			for _, item := range loop {
 				// set item to runtime variable
-				if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
+				if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
 					"item": item,
 				})); err != nil {
 					stderr = fmt.Sprintf("set loop item to variable error: %v", err)
@@ -498,7 +500,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				}
 				stdout, stderr = e.executeModule(ctx, task, modules.ExecOptions{
 					Args:     task.Spec.Module.Args,
-					Host:     host,
+					Host:     h,
 					Variable: e.variable,
 					Task:     *task,
 					Pipeline: *e.pipeline,
@@ -507,7 +509,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					klog.ErrorS(err, "fail to add bar")
 				}
 				// delete item
-				if err := e.variable.Merge(variable.MergeRuntimeVariable(host, map[string]any{
+				if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
 					"item": nil,
 				})); err != nil {
 					stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
@@ -519,26 +521,18 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 			}
 		})
 	}
-	go func() {
-		wg.Wait()
-		close(dataChan)
-	}()
+	wg.Wait()
 
 	task.Status.Phase = kubekeyv1alpha1.TaskPhaseSuccess
-	for data := range dataChan {
+	for _, data := range task.Status.HostResults {
 		if data.StdErr != "" {
 			if task.Spec.IgnoreError != nil && *task.Spec.IgnoreError {
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseIgnored
 			} else {
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseFailed
-				task.Status.HostResults = append(task.Status.HostResults, kubekeyv1alpha1.TaskHostResult{
-					Host:   data.Host,
-					Stdout: data.Stdout,
-					StdErr: data.StdErr,
-				})
 			}
+			break
 		}
-		cd.HostResults = append(cd.HostResults, data)
 	}
 
 	return nil

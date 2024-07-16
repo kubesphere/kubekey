@@ -58,15 +58,7 @@ type Module struct {
 type TaskStatus struct {
 	RestartCount int              `json:"restartCount,omitempty"`
 	Phase        TaskPhase        `json:"phase,omitempty"`
-	Conditions   []TaskCondition  `json:"conditions,omitempty"`
-	HostResults  []TaskHostResult `json:"failedDetail,omitempty"`
-}
-
-type TaskCondition struct {
-	StartTimestamp metav1.Time `json:"startTimestamp,omitempty"`
-	EndTimestamp   metav1.Time `json:"endTimestamp,omitempty"`
-	// HostResults of runtime.RawExtension host. the key is host name. value is host result
-	HostResults []TaskHostResult `json:"hostResults,omitempty"`
+	HostResults  []TaskHostResult `json:"hostResults,omitempty"`
 }
 
 type TaskHostResult struct {
