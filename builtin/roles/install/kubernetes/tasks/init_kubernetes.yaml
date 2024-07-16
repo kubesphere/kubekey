@@ -75,3 +75,14 @@
     cp -f /etc/kubernetes/admin.conf /root/.kube/config
   when: kube_node_info_important.stderr != ""
 
+- name: Set to worker node
+  when: inventory_name in groups["kube_worker"]
+  block:
+    - name: Remote master taint
+      ignore_errors: true
+      command: |
+        /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
+    - name: Add work label
+      command: |
+        /usr/local/bin/kubectl label --overwrite node {{ inventory_name }} node-role.kubernetes.io/worker=

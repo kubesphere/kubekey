@@ -26,14 +26,14 @@
       fetch:
         src: /etc/kubernetes/admin.conf
         dest: "{{ work_dir }}/kubekey/kubeconfig"
-    - name: Generate certificate key
-      block:
-        - name: Generate certificate key by kubeadm
-          command: /usr/local/bin/kubeadm certs certificate-key
-          register: kubeadm_cert_result
-        - name: Set_Fact certificate key to all hosts
-          set_fact:
-            kubeadm_cert: "{{ kubeadm_cert_result.stdout }}"
+    - name: Generate certificate key by kubeadm
+      command: |
+        /usr/local/bin/kubeadm init phase upload-certs --upload-certs --config /etc/kubernetes/kubeadm-config.yaml 2>&1 \
+          | awk '/Using certificate key:/{getline; print}'
+      register: kubeadm_cert_result
+    - name: Set_Fact certificate key to all hosts
+      set_fact:
+        kubeadm_cert: "{{ kubeadm_cert_result.stdout }}"
     - name: Generate kubeadm token
       block:
         - name: Generate token by kubeadm
