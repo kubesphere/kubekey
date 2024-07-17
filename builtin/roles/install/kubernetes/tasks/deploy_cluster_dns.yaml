@@ -5,7 +5,9 @@
     dest: /etc/kubernetes/coredns.yaml
 
 - name: Apply coredns config
-  command: "kubectl apply -f /etc/kubernetes/coredns.yaml"
+  command: |
+    kubectl delete svc kube-dns -n kube-system
+    kubectl apply -f /etc/kubernetes/coredns.yaml
 
 - name: Get cluster api
   command: |
