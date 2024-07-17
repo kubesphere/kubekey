@@ -20,6 +20,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 
 	"k8s.io/klog/v2"
@@ -88,34 +89,44 @@ func NewConnector(host string, vars map[string]any) (Connector, error) {
 		return &kubernetesConnector{Cmd: exec.New(), clusterName: host, kubeconfig: kubeconfig}, nil
 	default:
 		localHost, _ := os.Hostname()
-		if host == _const.LocalHostName || localHost == host {
-			return &localConnector{Cmd: exec.New()}, nil
-		}
-
 		hostParam, err := variable.StringVar(nil, vars, "ssh_host")
 		if err != nil {
-			return nil, err
+			klog.V(4).Infof("ssh_port is empty use: %s", host)
+			hostParam = host
+		}
+		if host == _const.LocalHostName || localHost == host || isLocalIP(hostParam) {
+			return &localConnector{Cmd: exec.New()}, nil
 		}
 
 		portParam, err := variable.IntVar(nil, vars, "ssh_port")
 		if err != nil {
-			return nil, err
+			klog.V(4).Infof("ssh_port is empty use: %v", defaultSSHPort)
+			portParam = defaultSSHPort
 		}
 
 		userParam, err := variable.StringVar(nil, vars, "ssh_user")
 		if err != nil {
-			return nil, err
+			klog.V(4).Infof("ssh_user is empty use: %s", defaultSSHUser)
+			userParam = defaultSSHUser
 		}
 
 		passParam, err := variable.StringVar(nil, vars, "ssh_password")
 		if err != nil {
-			return nil, err
+			klog.V(4).InfoS("ssh_password is empty use public key")
 		}
+
+		priParam, err := variable.StringVar(nil, vars, "ssh_key")
+		if err != nil {
+			klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
+			priParam = defaultSSHPrivateKey
+		}
+
 		return &sshConnector{
-			Host:     hostParam,
-			Port:     portParam,
-			User:     userParam,
-			Password: passParam,
+			Host:       hostParam,
+			Port:       portParam,
+			User:       userParam,
+			Password:   passParam,
+			PrivateKey: priParam,
 		}, nil
 	}
 }
@@ -123,4 +134,37 @@ func NewConnector(host string, vars map[string]any) (Connector, error) {
 // GatherFacts get host info.
 type GatherFacts interface {
 	Info(ctx context.Context) (map[string]any, error)
+}
+
+func isLocalIP(ipAddr string) bool {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		klog.V(4).ErrorS(err, "get net interfaces error")
+		return false
+	}
+	for _, i := range interfaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			klog.V(4).ErrorS(err, "get address for net interface error", "interface", i.Name)
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			default:
+				klog.V(4).InfoS("unknown address type", "address", addr.String())
+				continue
+			}
+
+			if ip.String() == ipAddr {
+				return true
+			}
+		}
+	}
+	return false
 }

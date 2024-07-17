@@ -31,15 +31,22 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const (
+	defaultSSHPort       = 22
+	defaultSSHUser       = "root"
+	defaultSSHPrivateKey = "/root/.ssh/id_rsa"
+)
+
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
 type sshConnector struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	client   *ssh.Client
+	Host       string
+	Port       int
+	User       string
+	Password   string
+	PrivateKey string
+	client     *ssh.Client
 }
 
 func (c *sshConnector) Init(ctx context.Context) error {
@@ -48,10 +55,20 @@ func (c *sshConnector) Init(ctx context.Context) error {
 	}
 	var auth []ssh.AuthMethod
 	if c.Password != "" {
-		auth = []ssh.AuthMethod{
-			ssh.Password(c.Password),
-		}
+		auth = append(auth, ssh.Password(c.Password))
 	}
+	if _, err := os.Stat(c.PrivateKey); err == nil {
+		key, err := os.ReadFile(c.PrivateKey)
+		if err != nil {
+			return fmt.Errorf("read private key error: %w", err)
+		}
+		privateKey, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			return fmt.Errorf("parse private key error: %w", err)
+		}
+		auth = append(auth, ssh.PublicKeys(privateKey))
+	}
+
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%v", c.Host, c.Port), &ssh.ClientConfig{
 		User:            c.User,
 		Auth:            auth,
