@@ -9,15 +9,11 @@
     kubectl delete svc kube-dns -n kube-system
     kubectl apply -f /etc/kubernetes/coredns.yaml
 
-- name: Get cluster api
-  command: |
-    /usr/local/bin/kubectl get svc -n kube-system coredns -o jsonpath='{.spec.clusterIP}'
-  register: core_dns_ip
-
 - name: Generate nodelocaldns deployment
   template:
-    src: dns/coredns.deployment
+    src: dns/nodelocaldns.daemonset
     dest: /etc/kubernetes/nodelocaldns.yaml
 
 - name: Apply coredns deployment
-  command: "kubectl apply -f /etc/kubernetes/nodelocaldns.yaml"
+  command: |
+    kubectl apply -f /etc/kubernetes/nodelocaldns.yaml

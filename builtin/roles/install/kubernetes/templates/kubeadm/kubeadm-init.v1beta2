@@ -60,7 +60,7 @@ apiServer:
     - kubernetes.default.svc
     - localhost
     - 127.0.0.1
-    - {{ kubernetes.networking.service_cidr|ip_range|slice:":1"|last }}
+    - {{ kubernetes.networking.service_cidr|ip_range:0 }}
     - {%if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint }}{% else %}{{ init_kubernetes_node }}{% endif %}
     - {%if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint|stringformat:"kubernetes.default.svc.%s" }}{% else %}{{ init_kubernetes_node|stringformat:"kubernetes.default.svc.%s" }}{% endif %}
     - {{ kubernetes.networking.dns_domain|stringformat:"kubernetes.default.svc.%s" }}

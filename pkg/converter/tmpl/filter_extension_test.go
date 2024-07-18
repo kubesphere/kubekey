@@ -152,6 +152,38 @@ func TestFilter(t *testing.T) {
 			},
 			except: "10",
 		},
+		{
+			name:  "get index from ip_range",
+			input: "{{ test|ip_range:0 }}",
+			ctx: map[string]any{
+				"test": "10.233.0.0/18",
+			},
+			except: "10.233.0.1",
+		},
+		{
+			name:  "get index string from ip_range",
+			input: "{{ test|ip_range:'1' }}",
+			ctx: map[string]any{
+				"test": "10.233.0.0/18",
+			},
+			except: "10.233.0.2",
+		},
+		{
+			name:  "get negative number from ip_range",
+			input: "{{ test|ip_range:'-1' }}",
+			ctx: map[string]any{
+				"test": "10.233.0.0/18",
+			},
+			except: "10.233.63.254",
+		},
+		{
+			name:  "get range from ip_range",
+			input: "{{ test|ip_range:':1'|last }}",
+			ctx: map[string]any{
+				"test": "10.233.0.0/18",
+			},
+			except: "10.233.0.1",
+		},
 	}
 
 	for _, tc := range testcases {

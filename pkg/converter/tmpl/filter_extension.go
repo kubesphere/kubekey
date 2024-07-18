@@ -176,6 +176,52 @@ func filterIpRange(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 	for _, s := range strings.Split(in.String(), ",") {
 		ipRange = append(ipRange, ParseIp(s)...)
 	}
+	// if param is integer. return a single value
+	if param.IsInteger() {
+		index := param.Integer()
+		// handle negative number
+		if index < 0 {
+			index = max(len(ipRange)+index, 0)
+		}
+		index = max(index, 0)
+		index = min(index, len(ipRange)-1)
+		return pongo2.AsValue(ipRange[index]), nil
+	}
+	if param.IsString() {
+		comp := strings.Split(param.String(), ":")
+		switch len(comp) {
+		case 1: //  return a single value
+			index := pongo2.AsValue(comp[0]).Integer()
+			// handle negative number
+			if index < 0 {
+				index = max(len(ipRange)+index, 0)
+			}
+			index = max(index, 0)
+			index = min(index, len(ipRange)-1)
+			return pongo2.AsValue(ipRange[index]), nil
+		case 2: // return a slice
+			// start with [x:len]
+			from := pongo2.AsValue(comp[0]).Integer()
+			from = max(from, 0)
+			from = min(from, len(ipRange)-1)
+
+			to := pongo2.AsValue(comp[1]).Integer()
+			// handle missing y
+			if strings.TrimSpace(comp[1]) == "" {
+				to = len(ipRange) - 1
+			}
+			to = max(to, from)
+			to = min(to, len(ipRange)-1)
+
+			return pongo2.AsValue(ipRange[from:to]), nil
+		default:
+			return nil, &pongo2.Error{
+				Sender:    "filter:ip_range",
+				OrigError: fmt.Errorf("ip_range string must have the format 'from:to' or a single number format 'index'"),
+			}
+		}
+	}
+
 	return pongo2.AsValue(ipRange), nil
 }
 
