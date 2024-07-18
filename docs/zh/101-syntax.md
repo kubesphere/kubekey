@@ -46,7 +46,15 @@
 将ip范围(cidr)转换成可用的ip数组, 值为字符串数组
 ```yaml
 {{ string_variable | ip_range }}
+{{ string_variable | ip_range:1 }}
+{{ string_variable | ip_range:"-1" }}
+{{ string_variable | ip_range:"1:2" }}
 ```
+无参数: 返回一整个可用ip列表
+参数为数字: 返回对应下标的ip(负数从最大的开始, 即-1表示返回ip列表最后一个ip)
+参数为字符串形数字: 返回对应下标的ip(负数从最大的开始, 即-1表示返回ip列表最后一个ip)
+参数为"数字:数字": 返回对应范围的ip列表(负数从最大的开始, 即-1表示返回ip列表最后一个ip)
+
 ## get
 获取map类型的variable中某个key值对应的value, 参数为key, 值为任意类型
 ```yaml
