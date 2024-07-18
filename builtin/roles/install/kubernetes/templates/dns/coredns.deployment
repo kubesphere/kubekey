@@ -47,6 +47,7 @@ metadata:
     prometheus.io/scrape: "true"
     createdby: 'kubekey'
 spec:
+  clusterIP: {{ kubernetes.networking.dns_service_ip }}
   selector:
     k8s-app: kube-dns
   ports:
@@ -184,58 +185,58 @@ metadata:
       addonmanager.kubernetes.io/mode: EnsureExists
 data:
   Corefile: |
-    {% for ez in kubernetes.coredns.zone_configs %}
+{% for ez in kubernetes.coredns.zone_configs %}
     {{ ez.zones|join:"   " }} {
       cache {{ ez.cache }}
-      {% for c in ez.additional_configs %}
+{% for c in ez.additional_configs %}
       {{ c }}
-      {% endfor %}
+{% endfor %}
 
-      {% for r in ez.rewrite %}
+{% for r in ez.rewrite %}
       rewrite {{ r.rule }} {
         {{ r.field }} {{ r.type }} {{ r.value }}
         {{ r.options }}
       }
-      {% endfor %}
+{% endfor %}
 
       health {
         lameduck 5s
       }
 
-      {% if (ez.kubernetes.zones|defined) %}
+{% if (ez.kubernetes.zones|defined) %}
       kubernetes {{ ez.kubernetes.zones|join:" " }} in-addr.arpa ip6.arpa {
         pods insecure
         fallthrough in-addr.arpa ip6.arpa
         ttl 30
       }
-      {% endif %}
+{% endif %}
 
-      {% for f in ez.forward %}
+{% for f in ez.forward %}
       forward {{ f.from }} {{ f.to|join:" " }} {
-        {% if (f.except|length > 0)  %}except {{ f.except|join:" " }}{% endif %}
-        {% if (f.force_tcp) %}force_tcp{% endif %}
-        {% if (f.prefer_udp) %}prefer_udp{% endif %}
-        {% if (f.max_fails|defined) %}max_fails {{ f.max_fails }}{% endif %}
-        {% if (f.expire|defined) %}expire {{ f.expire }}{% endif %}
-        {% if (f.tls|defined) %}tls {{ f.tls.cert_file }} {{ f.tls.key_file }} {{ f.tls.ca_file }}{% endif %}
-        {% if (f.tls_servername|defined) %}tls_servername {{ f.tls_servername }}{% endif %}
-        {% if (f.policy|defined) %}policy {{ f.policy }}{% endif %}
-        {% if (f.health_check|defined) %}health_check {{ f.health_check }}{% endif %}
-        {% if (f.max_concurrent|defined) %}max_concurrent {{ f.max_concurrent }}{% endif %}
+{% if (f.except|length > 0)  %}        except {{ f.except|join:" " }}{% endif %}
+{% if (f.force_tcp) %}        force_tcp{% endif %}
+{% if (f.prefer_udp) %}        prefer_udp{% endif %}
+{% if (f.max_fails|defined) %}        max_fails {{ f.max_fails }}{% endif %}
+{% if (f.expire|defined) %}        expire {{ f.expire }}{% endif %}
+{% if (f.tls|defined) %}        tls {{ f.tls.cert_file }} {{ f.tls.key_file }} {{ f.tls.ca_file }}{% endif %}
+{% if (f.tls_servername|defined) %}        tls_servername {{ f.tls_servername }}{% endif %}
+{% if (f.policy|defined) %}        policy {{ f.policy }}{% endif %}
+{% if (f.health_check|defined) %}        health_check {{ f.health_check }}{% endif %}
+{% if (f.max_concurrent|defined) %}        max_concurrent {{ f.max_concurrent }}{% endif %}
       }
-      {% endfor %}
+{% endfor %}
 
-      {% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
       hosts /etc/coredns/hosts {
         allthrough
       }
-      {% endif %}
+{% endif %}
     }
-    {% endfor %}
+{% endfor %}
 
-  {% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
   hosts: |
-    {% for h in kubernetes.coredns.dns_etc_hosts %}
+{% for h in kubernetes.coredns.dns_etc_hosts %}
     {{ h }}
-    {% endfor %}
-  {% endif %}
+{% endfor %}
+{% endif %}
