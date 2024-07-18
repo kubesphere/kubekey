@@ -19,7 +19,7 @@ kubernetes:
     service_cidr: 10.233.0.0/18
     dns_image: "{{ k8s_registry }}/coredns/coredns:v1.8.6"
     dns_cache_image: "{{ dockerio_registry }}/kubesphere/k8s-dns-node-cache:1.22.20"
-    dns_service_ip: "{{ kubernetes.networking.service_cidr|ip_range|slice:':3'|last }}"
+    dns_service_ip: "{{ kubernetes.networking.service_cidr|ip_range:2 }}"
   # Specify a stable IP address or DNS name for the control plane.
 #  control_plane_endpoint: lb.kubesphere.local
   apiserver:
