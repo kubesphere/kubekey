@@ -119,6 +119,7 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 	}
 
 	for _, s := range o.Set {
+		s = unescapeString(s)
 		ss := strings.Split(s, "=")
 		if len(ss) != 2 {
 			return nil, nil, fmt.Errorf("--set value should be k=v")
@@ -210,4 +211,25 @@ func setValue(config *kubekeyv1.Config, key, val string) error {
 	default:
 		return config.SetValue(key, val)
 	}
+}
+
+// unescapeString handles common escape sequences
+func unescapeString(s string) string {
+	replacements := map[string]string{
+		`\\`: `\`,
+		`\"`: `"`,
+		`\'`: `'`,
+		`\n`: "\n",
+		`\r`: "\r",
+		`\t`: "\t",
+		`\b`: "\b",
+		`\f`: "\f",
+	}
+
+	// Iterate over the replacements map and replace escape sequences in the string
+	for old, new := range replacements {
+		s = strings.ReplaceAll(s, old, new)
+	}
+
+	return s
 }
