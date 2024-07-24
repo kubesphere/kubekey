@@ -47,6 +47,29 @@ spec:
 groups包含的总hosts为`groups`包含的host + `hosts`中包含的host.  
 **vars**: 全局变量, 针对所有host生效.  
 变量优先级为: $(host_variable) > $(group_variable) > $(global_variable)
+
+**示例**:
+```yaml
+apiVersion: kubekey.kubesphere.io/v1
+kind: Inventory
+metadata:
+  name: default
+spec:
+  hosts:
+    node1:
+      address: 192.168.6.2
+      password: 'password'
+      user: ubuntu
+    node2:
+      address: 192.168.6.3
+      password: 'password'
+      user: ubuntu
+  groups:
+    k8s_cluster:
+      hosts:
+      - node1
+      - node2
+```
 ### 全局配置
 yaml格式文件, 不包含模板语法, 通过`-c`参数传入(`kk -c config.yaml ...`), 在每个host上生效
 ```yaml

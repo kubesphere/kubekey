@@ -41,7 +41,7 @@ var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
 type sshConnector struct {
-	Host       string
+	Address    string
 	Port       int
 	User       string
 	Password   string
@@ -50,7 +50,7 @@ type sshConnector struct {
 }
 
 func (c *sshConnector) Init(ctx context.Context) error {
-	if c.Host == "" {
+	if c.Address == "" {
 		return fmt.Errorf("host is not set")
 	}
 	var auth []ssh.AuthMethod
@@ -69,14 +69,14 @@ func (c *sshConnector) Init(ctx context.Context) error {
 		auth = append(auth, ssh.PublicKeys(privateKey))
 	}
 
-	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%v", c.Host, c.Port), &ssh.ClientConfig{
+	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%v", c.Address, c.Port), &ssh.ClientConfig{
 		User:            c.User,
 		Auth:            auth,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         30 * time.Second,
 	})
 	if err != nil {
-		klog.V(4).ErrorS(err, "Dial ssh server failed", "host", c.Host, "port", c.Port)
+		klog.V(4).ErrorS(err, "Dial ssh server failed", "host", c.Address, "port", c.Port)
 		return err
 	}
 	c.client = sshClient
@@ -143,7 +143,7 @@ func (c *sshConnector) FetchFile(ctx context.Context, src string, dst io.Writer)
 }
 
 func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
-	klog.V(4).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
+	klog.V(4).InfoS("exec ssh command", "cmd", cmd, "host", c.Address)
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {

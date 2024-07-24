@@ -94,8 +94,19 @@ func (t Task) IsComplete() bool {
 func (t Task) IsSucceed() bool {
 	return t.Status.Phase == TaskPhaseSuccess || t.Status.Phase == TaskPhaseIgnored
 }
+
 func (t Task) IsFailed() bool {
 	return t.Status.Phase == TaskPhaseFailed && t.Spec.Retries <= t.Status.RestartCount
+}
+
+func (t Task) HostNameMaxLength() int {
+	max := 0
+	for _, h := range t.Spec.Hosts {
+		if len(h) > max {
+			max = len(h)
+		}
+	}
+	return max
 }
 
 func init() {

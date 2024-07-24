@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/schollz/progressbar/v3"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -393,12 +394,22 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 	// check task host results
 	wg := &wait.Group{}
 	task.Status.HostResults = make([]kubekeyv1alpha1.TaskHostResult, len(task.Spec.Hosts))
+
+	max := task.HostNameMaxLength()
+
 	for i, h := range task.Spec.Hosts {
 		wg.StartWithContext(ctx, func(ctx context.Context) {
 			var stdout, stderr string
 
 			// progress bar for task
-			var bar = progressbar.NewOptions(1,
+			var bar = progressbar.NewOptions(1000,
+				progressbar.OptionSetTheme(progressbar.Theme{
+					Saucer:        "[green]=[reset]",
+					SaucerHead:    "[green]>[reset]",
+					SaucerPadding: " ",
+					BarStart:      "[",
+					BarEnd:        "]",
+				}),
 				progressbar.OptionEnableColorCodes(true),
 				progressbar.OptionSetDescription(fmt.Sprintf("[%s] running...", h)),
 				progressbar.OptionOnCompletion(func() {
@@ -431,29 +442,23 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 
 				switch {
 				case stderr != "": // failed
-					bar.Describe(fmt.Sprintf("[%s] failed", h))
+					bar.Describe(fmt.Sprintf("%-"+strconv.Itoa(max+2)+"s %-7s", "["+h+"]", "failed"))
 					if err := bar.Finish(); err != nil {
 						klog.ErrorS(err, "fail to finish bar")
 					}
 					klog.Errorf("[Task %s] run failed: %s", ctrlclient.ObjectKeyFromObject(task), stderr)
 				case stdout == "skip": // skip
-					bar.Describe(fmt.Sprintf("[%s] skip", h))
+					bar.Describe(fmt.Sprintf("%-"+strconv.Itoa(max+2)+"s %-7s", "["+h+"]", "skip"))
 					if err := bar.Finish(); err != nil {
 						klog.ErrorS(err, "fail to finish bar")
 					}
 				default: //success
-					bar.Describe(fmt.Sprintf("[%s] success", h))
+					bar.Describe(fmt.Sprintf("%-"+strconv.Itoa(max+2)+"s %s", "["+h+"]", "success"))
 					if err := bar.Finish(); err != nil {
 						klog.ErrorS(err, "fail to finish bar")
 					}
 				}
 
-				// fill result
-				//dataChan <- kubekeyv1alpha1.TaskHostResult{
-				//	Host:   host,
-				//	Stdout: stdout,
-				//	StdErr: stderr,
-				//}
 				task.Status.HostResults[i] = kubekeyv1alpha1.TaskHostResult{
 					Host:   h,
 					Stdout: stdout,
