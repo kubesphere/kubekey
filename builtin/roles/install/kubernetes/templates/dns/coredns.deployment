@@ -228,7 +228,7 @@ data:
 
 {% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
       hosts /etc/coredns/hosts {
-        allthrough
+        fallthrough
       }
 {% endif %}
     }
