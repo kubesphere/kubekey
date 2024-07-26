@@ -224,7 +224,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 		switch g.KubeConf.Cluster.Etcd.Type {
 		case kubekeyv1alpha2.KubeKey:
 			for _, host := range runtime.GetHostsByRole(common.ETCD) {
-				endpoint := fmt.Sprintf("https://%s:%s", host.GetInternalIPv4Address(), kubekeyv1alpha2.DefaultEtcdPort)
+				endpoint := fmt.Sprintf("https://%s:%d", host.GetInternalIPv4Address(), g.KubeConf.Cluster.Etcd.GetPort())
 				endpointsList = append(endpointsList, endpoint)
 			}
 			externalEtcd.Endpoints = endpointsList
