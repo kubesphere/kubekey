@@ -84,12 +84,12 @@ func (g *GetStatus) Execute(runtime connector.Runtime) error {
 
 		if v, ok := g.PipelineCache.Get(common.ETCDCluster); ok {
 			c := v.(*EtcdCluster)
-			c.peerAddresses = append(c.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address()))
+			c.peerAddresses = append(c.peerAddresses, fmt.Sprintf("%s=https://%s:%d", etcdName, host.GetInternalIPv4Address(), g.KubeConf.Cluster.Etcd.GetPeerPort()))
 			c.clusterExist = true
 			// type: *EtcdCluster
 			g.PipelineCache.Set(common.ETCDCluster, c)
 		} else {
-			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address()))
+			cluster.peerAddresses = append(cluster.peerAddresses, fmt.Sprintf("%s=https://%s:%d", etcdName, host.GetInternalIPv4Address(), g.KubeConf.Cluster.Etcd.GetPeerPort()))
 			cluster.clusterExist = true
 			g.PipelineCache.Set(common.ETCDCluster, cluster)
 		}
@@ -169,7 +169,7 @@ type GenerateAccessAddress struct {
 func (g *GenerateAccessAddress) Execute(runtime connector.Runtime) error {
 	var addrList []string
 	for _, host := range runtime.GetHostsByRole(common.ETCD) {
-		addrList = append(addrList, fmt.Sprintf("https://%s:2379", host.GetInternalIPv4Address()))
+		addrList = append(addrList, fmt.Sprintf("https://%s:%d", host.GetInternalIPv4Address(), g.KubeConf.Cluster.Etcd.GetPort()))
 	}
 
 	accessAddresses := strings.Join(addrList, ",")
@@ -232,7 +232,7 @@ func (g *GenerateConfig) Execute(runtime connector.Runtime) error {
 			peerAddressesMap[v] = v
 		}
 
-		newPeerAddress := fmt.Sprintf("%s=https://%s:2380", etcdName, host.GetInternalIPv4Address())
+		newPeerAddress := fmt.Sprintf("%s=https://%s:%d", etcdName, host.GetInternalIPv4Address(), g.KubeConf.Cluster.Etcd.GetPeerPort())
 
 		if _, ok := peerAddressesMap[newPeerAddress]; !ok {
 			cluster.peerAddresses = append(cluster.peerAddresses, newPeerAddress)
@@ -309,6 +309,8 @@ func refreshConfig(KubeConf *common.KubeConf, runtime connector.Runtime, endpoin
 			"Name":                etcdName,
 			"Ip":                  host.GetInternalIPv4Address(),
 			"Hostname":            host.GetName(),
+			"Port":                KubeConf.Cluster.Etcd.GetPort(),
+			"PeerPort":            KubeConf.Cluster.Etcd.GetPeerPort(),
 			"State":               state,
 			"PeerAddresses":       strings.Join(endpoints, ","),
 			"UnsupportedArch":     UnsupportedArch,
@@ -353,7 +355,7 @@ func (j *JoinMember) Execute(runtime connector.Runtime) error {
 			"export ETCDCTL_CA_FILE='/etc/ssl/etcd/ssl/ca.pem';"+
 			"%s/etcdctl --endpoints=%s member add %s %s",
 			host.GetName(), host.GetName(), common.BinDir, cluster.accessAddresses, etcdName,
-			fmt.Sprintf("https://%s:2380", host.GetInternalIPv4Address()))
+			fmt.Sprintf("https://%s:%d", host.GetInternalIPv4Address(), j.KubeConf.Cluster.Etcd.GetPeerPort()))
 
 		if _, err := runtime.GetRunner().SudoCmd(joinMemberCmd, true); err != nil {
 			return errors.Wrap(errors.WithStack(err), "add etcd member failed")
@@ -387,7 +389,7 @@ func (c *CheckMember) Execute(runtime connector.Runtime) error {
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "list etcd member failed")
 		}
-		if !strings.Contains(memberList, fmt.Sprintf("https://%s:2379", host.GetInternalIPv4Address())) {
+		if !strings.Contains(memberList, fmt.Sprintf("https://%s:%d", host.GetInternalIPv4Address(), c.KubeConf.Cluster.Etcd.GetPort())) {
 			return errors.Wrap(errors.WithStack(err), "add etcd member failed")
 		}
 	} else {
@@ -417,7 +419,7 @@ func (b *BackupETCD) Execute(runtime connector.Runtime) error {
 		Dst:      filepath.Join(b.KubeConf.Cluster.Etcd.BackupScriptDir, "etcd-backup.sh"),
 		Data: util.Data{
 			"Hostname":            runtime.RemoteHost().GetName(),
-			"Etcdendpoint":        fmt.Sprintf("https://%s:2379", runtime.RemoteHost().GetInternalIPv4Address()),
+			"Etcdendpoint":        fmt.Sprintf("https://%s:%d", runtime.RemoteHost().GetInternalIPv4Address(), b.KubeConf.Cluster.Etcd.GetPort()),
 			"DataDir":             b.KubeConf.Cluster.Etcd.DataDir,
 			"Backupdir":           b.KubeConf.Cluster.Etcd.BackupDir,
 			"KeepbackupNumber":    b.KubeConf.Cluster.Etcd.KeepBackupNumber + 1,
