@@ -311,6 +311,7 @@ func refreshConfig(KubeConf *common.KubeConf, runtime connector.Runtime, endpoin
 			"Hostname":            host.GetName(),
 			"Port":                KubeConf.Cluster.Etcd.GetPort(),
 			"PeerPort":            KubeConf.Cluster.Etcd.GetPeerPort(),
+			"ExtraArgs":           KubeConf.Cluster.Etcd.ExtraArgs,
 			"State":               state,
 			"PeerAddresses":       strings.Join(endpoints, ","),
 			"UnsupportedArch":     UnsupportedArch,

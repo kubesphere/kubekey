@@ -29,6 +29,7 @@ type EtcdCluster struct {
 	External                ExternalEtcd `yaml:"external" json:"external,omitempty"`
 	Port                    *int         `yaml:"port" json:"port,omitempty"`
 	PeerPort                *int         `yaml:"peerPort" json:"peerPort,omitempty"`
+	ExtraArgs               []string     `yaml:"extraArgs" json:"extraArgs,omitempty"`
 	BackupDir               string       `yaml:"backupDir" json:"backupDir,omitempty"`
 	BackupPeriod            int          `yaml:"backupPeriod" json:"backupPeriod,omitempty"`
 	KeepBackupNumber        int          `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`

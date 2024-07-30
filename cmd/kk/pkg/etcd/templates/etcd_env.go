@@ -82,6 +82,11 @@ ETCD_LOG_LEVEL={{ .LogLevel }}
 {{- if .UnsupportedArch }}
 ETCD_UNSUPPORTED_ARCH={{ .Arch }}
 {{ end }}
+{{- if .ExtraArgs }}
+{{- range $index, $value := .ExtraArgs }}
+{{ $value }}
+{{- end }}
+{{- end }}
 
 # TLS settings
 ETCD_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
