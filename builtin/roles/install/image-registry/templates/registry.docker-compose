@@ -2,7 +2,7 @@
 version: '2.3'
 services:
   registry:
-    image: registry:{{ registry_version }}
+    image: registry:{{ .registry_version }}
     container_name: registry
     restart: always
     dns_search: .
@@ -15,18 +15,18 @@ services:
       - SETUID
     volumes:
       - type: bind
-        source: /opt/registry/{{ registry_version }}/ssl/
+        source: /opt/registry/{{ .registry_version }}/ssl/
         target: /etc/registry/ssl/
       - type: bind
-        source: /opt/registry/{{ registry_version }}/config.yml
+        source: /opt/registry/{{ .registry_version }}/config.yml
         target: /etc/docker/registry/config.yml
     port:
       - 443:5000
     networks:
       - registry
-{% if (image_registry.ha_vip | defined) %}
+{{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
   keepalived:
-    image: osixia/keepalived: {{ keepalived_version }}
+    image: osixia/keepalived:{{ .keepalived_version }}
     container_name: keepalived
     restart: always
     dns_search: .
@@ -41,14 +41,14 @@ services:
       - registry
     volumes:
       - type: bind
-        source: /opt/keeplived/{{ keepalived_version }}/keepalived.conf
+        source: /opt/keeplived/{{ .keepalived_version }}/keepalived.conf
         target: /container/service/keepalived/assets/keepalived.conf
       - type: bind
-        source: /opt/keeplived/{{ keepalived_version }}/healthcheck.sh
+        source: /opt/keeplived/{{ .keepalived_version }}/healthcheck.sh
         target: /etc/keepalived/healthcheck.sh
     networks:
       - registry
-{% endif %}
+{{- end }}
 networks:
   registry:
     external: false

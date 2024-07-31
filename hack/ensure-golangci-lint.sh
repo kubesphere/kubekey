@@ -17,6 +17,7 @@
 # NOTE: This script is copied from from https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh.
 
 set -e
+set -x
 
 usage() {
   this=$1

@@ -43,7 +43,7 @@ spec:
         operator: "Exists"
       containers:
       - name: node-cache
-        image: {{ kubernetes.networking.dns_cache_image }}
+        image: {{ .kubernetes.networking.dns_cache_image }}
         resources:
           limits:
             memory: 200Mi
@@ -112,118 +112,118 @@ metadata:
     addonmanager.kubernetes.io/mode: EnsureExists
 data:
   Corefile: |
-{% for ez in kubernetes.coredns.external_zones %}
-{{ ez.zones|join:"   " }}{
-        log
-        errors
-        loadbalance
-        cache {{ ez.cache }}
-        reload
-        loop
-        bind 169.254.25.10
-        prometheus :9253
+  {{- range ez := .kubernetes.coredns.external_zones }}
+    {{ (index $ez "zones") | join " " }}{
+      log
+      errors
+      loadbalance
+      cache {{ index $ez "cache" }}
+      reload
+      loop
+      bind 169.254.25.10
+      prometheus :9253
 
-{% for r in ez.rewrite %}
-        rewrite {{ r.rule }} {
-          {{ r.field }} {{ r.type }} {{ r.value }}
-          {{ r.options }}
-        }
-{% endfor %}
+    {{- range $r := (index $ez "rewrite") }}
+      rewrite {{ index $r "rule" }} {
+        {{ index $r "field" }} {{ index $r "type" }} {{ index $r "value" }}
+        {{ index $r "options" }}
+      }
+    {{- end }}
 
-{% for f in ez.forward %}
-        forward {{ f.from }} {{ f.to|join:" " }} {
-{% if (f.except|length > 0)  %}
-            except {{ f.except|join:" " }}
-{% endif %}
-{% if (f.force_tcp) %}
-            force_tcp
-{% endif %}
-{% if (f.prefer_udp) %}
-            prefer_udp
-{% endif %}
-            max_fails {{ f.max_fails|default_if_none:2 }}
-            expire {{ f.expire|default_if_none:"10s" }}
-{% if (f.tls|defined) %}
-            tls {{ f.tls.cert_file|default_if_none:'""' }} {{ f.tls.key_file|default_if_none:'""' }} {{ f.tls.ca_file|default_if_none:'""' }}
-{% endif %}
-{% if (f.tls_servername|defined) %}
-            tls_servername {{ f.tls_servername }}
-{% endif %}
-{% if (f.policy|defined) %}
-            policy {{ f.policy }}
-{% endif %}
-{% if (f.health_check|defined) %}
-            health_check {{ f.health_check }}
-{% endif %}
-{% if (f.max_concurrent|defined) %}
-            max_concurrent {{ f.max_concurrent }}
-{% endif %}
-        }
-{% endfor %}
+    {{- range $f := (index $ez "forward") }}
+      forward {{ index $f "from" }} {{ (index $f "to") | join " " }} {
+      {{- if (index $f "except") | len | lt 0 }}
+        except {{ (index $f "except" | join " " }}
+      {{- end }}
+      {{- if index $f "force_tcp" }}
+        force_tcp
+      {{- end }}
+      {{ if index $f "prefer_udp" }}
+        prefer_udp
+      {{- end }}
+        max_fails {{ (index $f "max_fails") | default 2 }}
+        expire {{ (index $f "expire") | default "10s" }}
+      {{- if index $f "tls" }}
+        tls {{ index $f "tls" "cert_file" }} {{ index $f "tls" "key_file" }} {{ index $f "tls" "ca_file" }}
+      {{- end }}
+      {{- if index $f "tls_servername" }}
+        tls_servername {{ index $f "tls_servername" }}
+      {{- end }}
+      {{- if index $f "policy" }}
+        policy {{ index $f "policy" }}
+      {{- end }}
+      {{- if index $f "health_check" }}
+        health_check {{ index $f "health_check" }}
+      {{- end }}
+      {{- if index $f "max_concurrent" }}
+        max_concurrent {{ index $f "max_concurrent" }}
+      {{- end }}
+      }
+    {{- end }}
 
-{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
-        hosts /etc/coredns/hosts {
-          fallthrough
-        }
-{% endif %}
+    {{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
+      hosts /etc/coredns/hosts {
+        fallthrough
+      }
+    {{- end }}
     }
-{% endfor %}
+  {{- end }}
 
-
-    {{ kubernetes.networking.dns_domain }}:53 {
-        errors
-        cache {
-            success 9984 30
-            denial 9984 5
-        }
-        reload
-        loop
-        bind 169.254.25.10
-        forward . {{ kubernetes.networking.dns_service_ip }} {
-            force_tcp
-        }
-        prometheus :9253
-        health 169.254.25.10:9254
+    {{ .kubernetes.networking.dns_domain }}:53 {
+      errors
+      cache {
+         success 9984 30
+          denial 9984 5
+      }
+      reload
+      loop
+      bind 169.254.25.10
+      forward . {{ .kubernetes.networking.dns_service_ip }} {
+        force_tcp
+      }
+      prometheus :9253
+      health 169.254.25.10:9254
     }
     in-addr.arpa:53 {
-        errors
-        cache 30
-        reload
-        loop
-        bind 169.254.25.10
-        forward . {{ kubernetes.networking.dns_service_ip }} {
-            force_tcp
-        }
-        prometheus :9253
+      errors
+      cache 30
+      reload
+      loop
+      bind 169.254.25.10
+      forward . {{ .kubernetes.networking.dns_service_ip }} {
+        force_tcp
+      }
+      prometheus :9253
     }
     ip6.arpa:53 {
-        errors
-        cache 30
-        reload
-        loop
-        bind 169.254.25.10
-        forward . {{ kubernetes.networking.dns_service_ip }} {
-            force_tcp
-        }
-        prometheus :9253
+      errors
+      cache 30
+      reload
+      loop
+      bind 169.254.25.10
+      forward . {{ .kubernetes.networking.dns_service_ip }} {
+          force_tcp
+      }
+      prometheus :9253
     }
     .:53 {
-        errors
-        cache 30
-        reload
-        loop
-        bind 169.254.25.10
-        forward . /etc/resolv.conf
-        prometheus :9253
-{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
-        hosts /etc/coredns/hosts {
-          fallthrough
-        }
-{% endif %}
+      errors
+      cache 30
+      reload
+      loop
+      bind 169.254.25.10
+      forward . /etc/resolv.conf
+      prometheus :9253
+    {{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
+      hosts /etc/coredns/hosts {
+        fallthrough
+      }
+    {{- end }}
     }
-{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+
+{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
   hosts: |
-{% for h in kubernetes.coredns.dns_etc_hosts %}
-    {{ h }}
-{% endfor %}
-{% endif %}
+  {{- range $h := .kubernetes.coredns.dns_etc_hosts }}
+    {{ $h }}
+  {{- end }}
+{{- end }}

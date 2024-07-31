@@ -1,16 +1,18 @@
 ---
 - name: Stop if container manager is not docker or containerd
   assert:
-    that: cri.container_manager in cluster_require.require_container_manager
-    fail_msg: "The container manager:{{ cri.container_manager }}, must be docker or containerd"
+    that: .cluster_require.require_container_manager | has .cri.container_manager
+    fail_msg: |
+      the container manager:{{ .cri.container_manager }}, must be "docker" or "containerd"
   run_once: true
-  when: cri.container_manager | defined
+  when: and .cri.container_manager  (ne .cri.container_manager "")
 
 - name: Ensure minimum containerd version
   assert:
-    that: containerd_version | version:'>={{cluster_require.containerd_min_version_required}}'
-    fail_msg: "containerd_version is too low. Minimum version {{ cluster_require.containerd_min_version_required }}"
+    that: .containerd_version | versionAtLeast .cluster_require.containerd_min_version_required
+    fail_msg: |
+      containerd_version is too low. Minimum version {{ .cluster_require.containerd_min_version_required }}
   run_once: true
   when:
-    - not containerd_version in cluster_require.require_containerd_version
-    - cri.container_manager == 'containerd'
+    - not .cluster_require.require_containerd_version | has .containerd_version
+    - .cri.container_manager | eq "containerd"

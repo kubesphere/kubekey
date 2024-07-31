@@ -5,10 +5,10 @@ set -o nounset
 set -o pipefail
 
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
-ENDPOINTS='https://{{ internal_ipv4 }}:2379'
-ETCD_DATA_DIR="{{ etcd.env.data_dir }}"
-BACKUP_DIR="{{ etcd.backup.backup_dir }}/etcd-$(date +%Y-%m-%d-%H-%M-%S)"
-KEEPBACKUPNUMBER='{{ etcd.backup.keep_backup_number }}'
+ENDPOINTS='https://{{ .internal_ipv4 }}:2379'
+ETCD_DATA_DIR="{{ .etcd.env.data_dir }}"
+BACKUP_DIR="{{ .etcd.backup.backup_dir }}/etcd-$(date +%Y-%m-%d-%H-%M-%S)"
+KEEPBACKUPNUMBER='{{ .etcd.backup.keep_backup_number }}'
 ((KEEPBACKNUMBER++))
 
 ETCDCTL_CERT="/etc/ssl/etcd/ssl/server.crt"

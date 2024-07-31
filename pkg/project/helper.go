@@ -67,35 +67,35 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 		if p.ImportPlaybook != "" {
 			importPlaybook := getPlaybookBaseFromPlaybook(baseFS, pbPath, p.ImportPlaybook)
 			if importPlaybook == "" {
-				return fmt.Errorf("cannot found import playbook %s", p.ImportPlaybook)
+				return fmt.Errorf("import playbook %s failed", p.ImportPlaybook)
 			}
 			if err := loadPlaybook(baseFS, importPlaybook, pb); err != nil {
-				return err
+				return fmt.Errorf("load playbook failed: %w", err)
 			}
 		}
 
 		// load var_files (optional)
 		for _, file := range p.VarsFiles {
 			if _, err := fs.Stat(baseFS, filepath.Join(filepath.Dir(pbPath), file)); err != nil {
-				return fmt.Errorf("cannot stat variables file %s", file)
+				return fmt.Errorf("file %s not exists", file)
 			}
 			mainData, err := fs.ReadFile(baseFS, filepath.Join(filepath.Dir(pbPath), file))
 			if err != nil {
-				return fmt.Errorf("cannot read variables file %s", filepath.Join(filepath.Dir(pbPath), file))
+				return fmt.Errorf("read file %s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
 			}
 
 			var vars map[string]any
 			var node yaml.Node // marshal file on defined order
 			if err := yaml.Unmarshal(mainData, &node); err != nil {
-				return fmt.Errorf("cannot unmarshal variables file %s", filepath.Join(filepath.Dir(pbPath), file))
+				return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
 			}
 			if err := node.Decode(&vars); err != nil {
-				return fmt.Errorf("cannot unmarshal variables file %s", filepath.Join(filepath.Dir(pbPath), file))
+				return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
 			}
 
 			p.Vars, err = combineMaps(p.Vars, vars)
 			if err != nil {
-				return fmt.Errorf("cannot combine variables file %s", filepath.Join(filepath.Dir(pbPath), file))
+				return fmt.Errorf("combine maps file:%s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
 			}
 		}
 
@@ -112,11 +112,11 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 
 			rdata, err := fs.ReadFile(baseFS, mainTask)
 			if err != nil {
-				return fmt.Errorf("cannot read role %s", r.Role)
+				return fmt.Errorf("read file %s failed: %w", mainTask, err)
 			}
 			var blocks []kkcorev1.Block
 			if err := yaml.Unmarshal(rdata, &blocks); err != nil {
-				return fmt.Errorf("cannot unmarshal role %s", r.Role)
+				return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
 			}
 			p.Roles[i].Block = blocks
 		}
@@ -143,11 +143,11 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 
 			rdata, err := fs.ReadFile(baseFS, mainTask)
 			if err != nil {
-				return fmt.Errorf("cannot read role %s", r.Role)
+				return fmt.Errorf("read file %s failed: %w", mainTask, err)
 			}
 			var blocks []kkcorev1.Block
 			if err := yaml.Unmarshal(rdata, &blocks); err != nil {
-				return fmt.Errorf("cannot unmarshal role %s", r.Role)
+				return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
 			}
 			p.Roles[i].Block = blocks
 
@@ -156,21 +156,21 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 			if mainDefault != "" {
 				mainData, err := fs.ReadFile(baseFS, mainDefault)
 				if err != nil {
-					return fmt.Errorf("cannot read defaults variable for Role %s", r.Role)
+					return fmt.Errorf("read defaults variable file %s failed: %w", mainDefault, err)
 				}
 
 				var vars map[string]any
 				var node yaml.Node // marshal file on defined order
 				if err := yaml.Unmarshal(mainData, &node); err != nil {
-					return fmt.Errorf("cannot unmarshal defaults variable for Role %s", r.Role)
+					return fmt.Errorf("unmarshal defaults variable yaml file: %s failed: %w", mainDefault, err)
 				}
 				if err := node.Decode(&vars); err != nil {
-					return fmt.Errorf("cannot unmarshal defaults variable for Role %s", r.Role)
+					return fmt.Errorf("decode defaults variable yaml file: %s failed: %w", mainDefault, err)
 				}
 
 				p.Roles[i].Vars, err = combineMaps(p.Roles[i].Vars, vars)
 				if err != nil {
-					return fmt.Errorf("cannot combine defaults variable for Role %s", r.Role)
+					return fmt.Errorf("combine defaults variable failed: %w", err)
 				}
 			}
 		}
@@ -184,19 +184,19 @@ func convertIncludeTasks(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) err
 	var pbBase = filepath.Dir(filepath.Dir(pbPath))
 	for _, play := range pb.Play {
 		if err := fileToBlock(baseFS, pbBase, play.PreTasks); err != nil {
-			return fmt.Errorf("cannot convert pre_tasks file %s", pbPath)
+			return fmt.Errorf("convert pre_tasks file %s failed: %w", pbPath, err)
 		}
 		if err := fileToBlock(baseFS, pbBase, play.Tasks); err != nil {
-			return fmt.Errorf("cannot convert tasks file %s", pbPath)
+			return fmt.Errorf("convert tasks file %s failed: %w", pbPath, err)
 		}
 		if err := fileToBlock(baseFS, pbBase, play.PostTasks); err != nil {
-			return fmt.Errorf("cannot convert post_tasks file %s", pbPath)
+			return fmt.Errorf("convert post_tasks file %s failed: %w", pbPath, err)
 		}
 
 		for _, r := range play.Roles {
 			roleBase := getRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
 			if err := fileToBlock(baseFS, filepath.Join(roleBase, _const.ProjectRolesTasksDir), r.Block); err != nil {
-				return fmt.Errorf("cannot convert role %s", r.Role)
+				return fmt.Errorf("convert role %s failed: %w", filepath.Join(pbPath, r.Role), err)
 			}
 		}
 	}
@@ -208,23 +208,23 @@ func fileToBlock(baseFS fs.FS, baseDir string, blocks []kkcorev1.Block) error {
 		if b.IncludeTasks != "" {
 			data, err := fs.ReadFile(baseFS, filepath.Join(baseDir, b.IncludeTasks))
 			if err != nil {
-				return fmt.Errorf("cannot read includeTask file %s", filepath.Join(baseDir, b.IncludeTasks))
+				return fmt.Errorf("read includeTask file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 			}
 			var bs []kkcorev1.Block
 			if err := yaml.Unmarshal(data, &bs); err != nil {
-				return fmt.Errorf("cannot unmarshal includeTask file %s", filepath.Join(baseDir, b.IncludeTasks))
+				return fmt.Errorf("unmarshal includeTask file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 			}
 			b.Block = bs
 			blocks[i] = b
 		}
 		if err := fileToBlock(baseFS, baseDir, b.Block); err != nil {
-			return fmt.Errorf("cannot convert block file %s", filepath.Join(baseDir, b.IncludeTasks))
+			return fmt.Errorf("convert block file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 		}
 		if err := fileToBlock(baseFS, baseDir, b.Rescue); err != nil {
-			return fmt.Errorf("cannot convert rescue file %s", filepath.Join(baseDir, b.IncludeTasks))
+			return fmt.Errorf("convert rescue file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 		}
 		if err := fileToBlock(baseFS, baseDir, b.Always); err != nil {
-			return fmt.Errorf("cannot convert always file %s", filepath.Join(baseDir, b.IncludeTasks))
+			return fmt.Errorf("convert always file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 		}
 	}
 	return nil

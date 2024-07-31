@@ -1,18 +1,18 @@
 ---
 - include_tasks: calico.yaml
-  when: cni.kube_network_plugin == "calico"
+  when: .cni.kube_network_plugin | eq "calico"
 
 - include_tasks: flannel.yaml
-  when: cni.kube_network_plugin == "flannel"
+  when: .cni.kube_network_plugin | eq "flannel"
 
 - include_tasks: cilium.yaml
-  when: cni.kube_network_plugin == "cilium"
+  when: .cni.kube_network_plugin | eq "cilium"
 
 - include_tasks: kubeovn.yaml
-  when: cni.kube_network_plugin == "kubeovn"
+  when: .cni.kube_network_plugin | eq "kubeovn"
 
 - include_tasks: hybridnet.yaml
-  when: cni.kube_network_plugin == "hyvbridnet"
+  when: .cni.kube_network_plugin | eq "hyvbridnet"
 
 - include_tasks: multus.yaml
-  when: cni.multus.enabled
+  when: .cni.multus.enabled

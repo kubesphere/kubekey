@@ -1,4 +1,14 @@
 renew_certs:
   enabled: false
-  is_docker: "{% if (cri.container_manager == 'docker') %}true{% else %}false{% endif %}"
-  is_kubeadm_alpha: "{% if (kube_version|version:'<v1.20.0') %}true{% else %}false{% endif %}"
+  is_docker: |
+    {{- if .cri.container_manager | eq "docker" }}
+    true
+    {{- else }}
+    false
+    {{- end }}
+  is_kubeadm_alpha: |
+    {{- if .kube_version | versionLessThan "v1.20.0" }}
+    true
+    {{- else }}
+    false
+    {{- end }}

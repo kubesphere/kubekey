@@ -19,8 +19,10 @@ package variable
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -29,6 +31,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
@@ -62,17 +65,22 @@ func combineVariables(v1, v2 map[string]any) map[string]any {
 
 func convertGroup(inv kubekeyv1.Inventory) map[string]any {
 	groups := make(map[string]any)
-	all := []string{"localhost"} // set default host
+	all := make([]string, 0)
 	for hn := range inv.Spec.Hosts {
 		all = append(all, hn)
 	}
-	groups["all"] = all
+	if !slices.Contains(all, _const.VariableLocalHost) { // set default localhost
+		all = append(all, _const.VariableLocalHost)
+	}
+	groups[_const.VariableGroupsAll] = all
 	for gn := range inv.Spec.Groups {
 		groups[gn] = hostsInGroup(inv, gn)
 	}
 	return groups
 }
 
+// hostsInGroup get a host_name slice in a given group
+// if the given group contains other group. convert other group to host_name slice.
 func hostsInGroup(inv kubekeyv1.Inventory, groupName string) []string {
 	if v, ok := inv.Spec.Groups[groupName]; ok {
 		var hosts []string
@@ -336,4 +344,24 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 	}
 
 	return nil
+}
+
+// getLocalIP get the ipv4 or ipv6 for localhost machine
+func getLocalIP(ipType string) string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		klog.ErrorS(err, "get local ip address error")
+	}
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ipType == _const.VariableIPv4 && ipNet.IP.To4() != nil {
+				return ipNet.IP.String()
+			}
+			if ipType == _const.VariableIPv6 && ipNet.IP.To16() != nil {
+				return ipNet.IP.String()
+			}
+		}
+	}
+	klog.V(4).Infof("connot get local %s address", ipType)
+	return ""
 }

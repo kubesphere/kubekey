@@ -41,4 +41,4 @@ cd "${KUBE_ROOT}" || exit 1
 
 IFS=$'\n' read -r -d '' -a files < <( find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./pkg/client/*" -not -name "zz_generated.deepcopy.go" && printf '\0' )
 
-"goimports" -w -local github.com/kubesphere/kubekey "${files[@]}"
+"goimports" -w -local github.com/kubesphere/kubekey/v4 "${files[@]}"

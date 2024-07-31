@@ -7,18 +7,24 @@
 # kubeovn-0.1.0.tgz is helm version not helm appVersion
 - name: Sync kubeovn helm chart to remote
   copy:
-    src: "{{ work_dir }}/kubekey/cni/kubeovn-{{ kubeovn_version }}.tgz"
-    dest: "/etc/kubernetes/cni/kubeovn-{{ kubeovn_version }}.tgz"
+    src: |
+      {{ .work_dir }}/kubekey/cni/kubeovn-{{ .kubeovn_version }}.tgz
+    dest: |
+      /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz
 
 # https://kubeovn.github.io/docs/stable/start/one-step-install/#helm-chart
 - name: Install kubeovn
   command: |
-    helm install kubeovn /etc/kubernetes/cni/kubeovn-{{ kubeovn_version }}.tgz --set replicaCount={{ cni.kubeovn.replica }} \
-      --set MASTER_NODES={% for h in groups['kube_control_plane'] %}{% set hv=inventory_hosts[h] %}"{{ hv.internal_ipv4 }}"{% if (not forloop.Last) %},{% endif %}{% endfor %} \
-      --set global.registry.address={{ cni.kubeovn.registry }} \
-      --set ipv4.POD_CIDR={{ cni.kubeovn.kube_pods_v4_cidr }} --set ipv4.SVC_CIDR={{ cni.kubeovn.kube_svc_cidr }} \
-    {% if (cni.ipv6_support) %}
+    helm install kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz --set replicaCount={{ .cni.kubeovn.replica }} \
+    {{- $ips := list -}}
+    {{- range $element := .groups.kube_control_plane -}}
+        {{- $ips = append $ips (index .inventory_hosts $element "internal_ipv4") -}}
+    {{- end -}}
+      --set MASTER_NODES={{ join $ips "," }} \
+      --set global.registry.address={{ .cni.kubeovn.registry }} \
+      --set ipv4.POD_CIDR={{ .cni.kubeovn.kube_pods_v4_cidr }} --set ipv4.SVC_CIDR={{ .cni.kubeovn.kube_svc_cidr }} \
+    {{- if .cni.ipv6_support }}
       --set networking.NET_STACK=dual_stack \
-      --set dual_stack.POD_CIDR={{ cni.kubeovn.kube_pods_v4_cidr }},{{ cni.kubeovn.kube_pods_v6_cidr }} \
-      --set dual_stack.SVC_CIDR={{ cni.kubeovn.kube_svc_cidr }} \
-    {% endif %}
+      --set dual_stack.POD_CIDR={{ .cni.kubeovn.kube_pods_v4_cidr }},{{ .cni.kubeovn.kube_pods_v6_cidr }} \
+      --set dual_stack.SVC_CIDR={{ .cni.kubeovn.kube_svc_cidr }} \
+    {{- end }}

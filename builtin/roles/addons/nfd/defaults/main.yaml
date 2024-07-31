@@ -1,3 +1,4 @@
 nfd:
   enabled: false
-  image: kubesphere/node-feature-discovery:v0.10.0
+  image: |
+    {{ .dockerio_registry }}/kubesphere/node-feature-discovery:v0.10.0

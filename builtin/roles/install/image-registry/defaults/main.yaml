@@ -2,7 +2,12 @@ image_registry:
   #  ha_vip: 192.168.122.59
   namespace_override: ""
   auth:
-    registry: "{% if (image_registry.ha_vip|defined) %}{{ image_registry.ha_vip }}{% else %}{{ groups['image_registry']|first }}{% endif %}"
+    registry: |
+      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
+      {{ .image_registry.ha_vip }}
+      {{- else }}
+      {{ .groups.image_registry | first }}
+      {{- end }}
     username: admin
     password: Harbor12345
   # registry type. support: harbor, registry

@@ -9,7 +9,6 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.0
-  creationTimestamp: null
   name: nodefeaturerules.nfd.k8s-sigs.io
 spec:
   group: nfd.k8s-sigs.io
@@ -500,7 +499,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          image: {{ nfd.image }}
+          image: {{ .nfd.image }}
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
@@ -564,7 +563,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          image: {{ nfd.image }}
+          image: {{ .nfd.image }}
           imagePullPolicy: IfNotPresent
           name: nfd-worker
           securityContext:

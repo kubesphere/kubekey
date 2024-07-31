@@ -5,7 +5,10 @@ Requires=docker.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/docker-compose -p harbor -f /opt/harbor/{{ harbor_version }}/harbor/docker-compose.yml up {% if (image_registry.ha_vip | defined) %}&& /usr/local/bin/docker-compose -p harbor -f /opt/harbor/{{ harbor_version }}/docker-compose-keepalived.yml up{% endif %}
+ExecStart=/usr/local/bin/docker-compose -p harbor -f /opt/harbor/{{ .harbor_version }}/harbor/docker-compose.yml up \
+    {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
+    && /usr/local/bin/docker-compose -p harbor -f /opt/harbor/{{ .harbor_version }}/harbor/docker-compose-keepalived.yml up
+    {{- end }}
 ExecStop=/usr/local/bin/docker-compose -p harbor down
 Restart=on-failure
 [Install]

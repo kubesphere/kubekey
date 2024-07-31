@@ -30,6 +30,14 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
+// connectedType for connector
+const (
+	connectedDefault    = ""
+	connectedSSH        = "ssh"
+	connectedLocal      = "local"
+	connectedKubernetes = "kubernetes"
+)
+
 // Connector is the interface for connecting to a remote host
 type Connector interface {
 	// Init initializes the connection
@@ -51,39 +59,50 @@ type Connector interface {
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
 func NewConnector(host string, vars map[string]any) (Connector, error) {
-	switch vars["connector"] {
-	case "local":
+	var connect = make(map[string]any)
+	if data, ok := vars[_const.VariableConnector].(map[string]any); ok {
+		connect = data
+	}
+	connectedType, _ := variable.StringVar(nil, connect, _const.VariableConnectorType)
+	switch connectedType {
+	case connectedLocal:
 		return &localConnector{Cmd: exec.New()}, nil
-	case "ssh":
-		hostParam, err := variable.StringVar(nil, vars, "ssh_host")
+	case connectedSSH:
+		hostParam, err := variable.StringVar(nil, connect, _const.VariableConnectorHost)
 		if err != nil {
-			return nil, err
+			klog.InfoS("get ssh port failed use default port 22", "error", err)
+			hostParam = host
 		}
 
-		portParam, err := variable.IntVar(nil, vars, "ssh_port")
+		portParam, err := variable.IntVar(nil, vars, _const.VariableConnectorPort)
 		if err != nil { // default port 22
 			klog.InfoS("get ssh port failed use default port 22", "error", err)
 			portParam = 22
 		}
 
-		userParam, err := variable.StringVar(nil, vars, "ssh_user")
+		userParam, err := variable.StringVar(nil, vars, _const.VariableConnectorUser)
 		if err != nil {
 			return nil, err
 		}
 
-		passParam, err := variable.StringVar(nil, vars, "ssh_password")
+		passwdParam, err := variable.StringVar(nil, vars, _const.VariableConnectorPassword)
+		if err != nil {
+			return nil, err
+		}
+		keyParam, err := variable.StringVar(nil, vars, _const.VariableConnectorPrivateKey)
 		if err != nil {
 			return nil, err
 		}
 		return &sshConnector{
-			Host:     hostParam,
-			Port:     portParam,
-			User:     userParam,
-			Password: passParam,
+			Host:       hostParam,
+			Port:       portParam,
+			User:       userParam,
+			Password:   passwdParam,
+			PrivateKey: keyParam,
 		}, nil
-	case "kubernetes":
-		kubeconfig, err := variable.StringVar(nil, vars, "kubeconfig")
-		if err != nil && host != _const.LocalHostName {
+	case connectedKubernetes:
+		kubeconfig, err := variable.StringVar(nil, vars, _const.VariableConnectorKubeconfig)
+		if err != nil && host != _const.VariableLocalHost {
 			return nil, err
 		}
 		return &kubernetesConnector{Cmd: exec.New(), clusterName: host, kubeconfig: kubeconfig}, nil
@@ -94,7 +113,7 @@ func NewConnector(host string, vars map[string]any) (Connector, error) {
 			klog.V(4).Infof("ssh_port is empty use: %s", host)
 			hostParam = host
 		}
-		if host == _const.LocalHostName || localHost == host || isLocalIP(hostParam) {
+		if host == _const.VariableLocalHost || localHost == host || isLocalIP(hostParam) {
 			return &localConnector{Cmd: exec.New()}, nil
 		}
 

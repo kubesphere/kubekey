@@ -1,7 +1,27 @@
 global_registry: ""
-dockerio_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}docker.io{% endif %}"
-quayio_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}quay.io{% endif %}"
-ghcrio_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}ghcr.io{% endif %}"
-k8s_registry: "{% if (global_registry != '') %}{{ global_registry }}{% else %}registry.k8s.io{% endif %}"
+dockerio_registry: |
+  {{- if ne .global_registry "" }}
+  {{ .global_registry }}
+  {{- else }}
+  docker.io
+  {{- end }}
+quayio_registry: |
+  {{- if ne .global_registry "" }}
+  {{ .global_registry }}
+  {{- else }}
+  quay.io
+  {{- end }}
+ghcrio_registry: |
+  {{- if ne .global_registry "" }}
+  {{ .global_registry }}
+  {{- else }}
+  ghcr.io
+  {{- end }}
+k8s_registry: |
+  {{- if ne .global_registry "" }}
+  {{ .global_registry }}
+  {{- else }}
+  registry.k8s.io
+  {{- end }}
 
 security_enhancement: false

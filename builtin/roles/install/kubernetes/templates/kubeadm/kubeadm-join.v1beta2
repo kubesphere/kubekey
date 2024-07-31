@@ -3,17 +3,17 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: JoinConfiguration
 discovery:
   bootstrapToken:
-    apiServerEndpoint: {%if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint }}{% else %}{{ init_kubernetes_node }}{% endif %}:{{ kubernetes.apiserver.port }}
-    token: "{{ kubeadm_token }}"
+    apiServerEndpoint: {{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}:{{ .kubernetes.apiserver.port }}
+    token: "{{ .kubeadm_token }}"
     unsafeSkipCAVerification: true
-{% if (inventory_name in groups['kube_control_plane']) %}
+{{- if .groups.kube_control_plane | has .inventory_name }}
 controlPlane:
   localAPIEndpoint:
-    advertiseAddress: {{ internal_ipv4 }}
-    bindPort: {{ kubernetes.apiserver.port }}
-  certificateKey: {{ kubeadm_cert }}
-{% endif %}
+    advertiseAddress: {{ .internal_ipv4 }}
+    bindPort: {{ .kubernetes.apiserver.port }}
+  certificateKey: {{ .kubeadm_cert }}
+{{ end }}
 nodeRegistration:
-  criSocket: {{ cri.cri_socket }}
+  criSocket: {{ .cri.cri_socket }}
   kubeletExtraArgs:
-    cgroup-driver: {{ cri.cgroup_driver }}
+    cgroup-driver: {{ .cri.cgroup_driver }}

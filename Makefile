@@ -79,8 +79,10 @@ GOTESTSUM_PKG := gotest.tools/gotestsum
 HADOLINT_VER := v2.10.0
 HADOLINT_FAILURE_THRESHOLD = warning
 
+GOLANGCI_LINT_VER := $(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version | sed 's/.*version: //')
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(abspath $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN))
+GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 
 GORELEASER_VERSION := v2.0.1
 GORELEASER_BIN := goreleaser
@@ -175,7 +177,7 @@ generate-manifests-kubekey: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RB
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
-	go mod tidy
+	@go mod tidy && go mod vendor
 
 .PHONY: generate-goimports
 generate-goimports:  ## Format all import, `goimports` is required.
@@ -588,21 +590,29 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
 $(GORELEASER_BIN): $(GORELEASER) ## Build a local copy of golangci-lint
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
-	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(CONTROLLER_GEN_BIN) ]; then \
+		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER) \
+	fi
 
 $(GOTESTSUM): # Build gotestsum from tools folder.
-	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
+	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(GOTESTSUM_BIN) ]; then \
+		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER) \
+	fi
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
-	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(KUSTOMIZE_PKG) ]; then \
+		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER) \
+	fi
 
 $(SETUP_ENVTEST): # Build setup-envtest from tools folder.
-	GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
+	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(SETUP_ENVTEST_BIN) ]; then \
+		GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER) \
+	fi
 
-$(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golangci-lint using hack script into tools folder.
-	hack/ensure-golangci-lint.sh \
-		-b $(OUTPUT_TOOLS_DIR) \
-		$(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version | sed 's/.*version: //')
+$(GOLANGCI_LINT): # Download golangci-lint using hack script into tools folder.
+	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN) ]; then \
+		GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER) \
+	fi
 
 $(GORELEASER):
 	CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GORELEASER_PKG) $(GORELEASER_BIN) $(GORELEASER_VERSION)

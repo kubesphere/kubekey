@@ -40,45 +40,40 @@ func TestGetAllVariable(t *testing.T) {
 artifact:
   images:
    - abc
-`),
-					},
+`)},
 				},
-				Inventory: kubekeyv1.Inventory{},
-				Hosts: map[string]host{
-					"test": {
-						RuntimeVars: map[string]any{
-							"artifact": map[string]any{
-								"k1": "v1",
-								"k2": 2,
-								"k3": true,
-								"k4": map[string]any{
-									"k41": "v41",
-								},
-							},
+				Inventory: kubekeyv1.Inventory{
+					Spec: kubekeyv1.InventorySpec{
+						Hosts: map[string]runtime.RawExtension{
+							"localhost": {Raw: []byte(`
+internal_ipv4: 127.0.0.1
+internal_ipv6: ::1
+`)},
 						},
 					},
 				},
+				Hosts: map[string]host{
+					"localhost": {},
+				},
 			},
 			except: map[string]any{
+				"internal_ipv4": "127.0.0.1",
+				"internal_ipv6": "::1",
 				"artifact": map[string]any{
-					"k1": "v1",
-					"k2": 2,
-					"k3": true,
-					"k4": map[string]any{
-						"k41": "v41",
-					},
 					"images": []any{"abc"},
 				},
 				"groups": map[string]interface{}{"all": []string{"localhost"}},
 				"inventory_hosts": map[string]interface{}{
-					"test": map[string]interface{}{
+					"localhost": map[string]interface{}{
+						"internal_ipv4": "127.0.0.1",
+						"internal_ipv6": "::1",
 						"artifact": map[string]interface{}{
 							"images": []interface{}{"abc"},
 						},
-						"inventory_name": "test",
+						"inventory_name": "localhost",
 					},
 				},
-				"inventory_name": "test",
+				"inventory_name": "localhost",
 			},
 		},
 	}
@@ -86,7 +81,7 @@ artifact:
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			v := variable{value: &tc.value}
-			result, err := v.Get(GetAllVariable("test"))
+			result, err := v.Get(GetAllVariable("localhost"))
 			if err != nil {
 				t.Fatal(err)
 			}

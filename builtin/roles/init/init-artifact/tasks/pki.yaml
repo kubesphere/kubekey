@@ -3,32 +3,53 @@
   gen_cert:
     cn: root
     date: 87600h
-    policy: "{{ artifact.gen_cert_policy }}"
-    out_key: "{{ work_dir }}/kubekey/pki/root.key"
-    out_cert: "{{ work_dir }}/kubekey/pki/root.crt"
+    policy: |
+      {{ .artifact.gen_cert_policy }}
+    out_key: |
+      {{ .work_dir }}/kubekey/pki/root.key
+    out_cert: |
+      {{ .work_dir }}/kubekey/pki/root.crt
 
 - name: Generate etcd cert file
   gen_cert:
-    root_key: "{{ work_dir }}/kubekey/pki/root.key"
-    root_cert: "{{ work_dir }}/kubekey/pki/root.crt"
+    root_key: |
+      {{ .work_dir }}/kubekey/pki/root.key
+    root_cert: |
+      {{ .work_dir }}/kubekey/pki/root.crt
     cn: etcd
     sans: |
-      [{% for h in groups['etcd'] %}{% set hv=inventory_hosts[h] %}"{{ hv.internal_ipv4 }}"{% if (not forloop.Last) %},{% endif %}{% endfor %}]
+      {{- $ips := list -}}
+      {{- range $element := .groups.etcd -}}
+        {{- $ips = append $ips (index .inventory_hosts $element "internal_ipv4") -}}
+      {{- end -}}
+      {{ $ips | toJson }}
     date: 87600h
-    policy: "{{ artifact.gen_cert_policy }}"
-    out_key: "{{ work_dir }}/kubekey/pki/etcd.key"
-    out_cert: "{{ work_dir }}/kubekey/pki/etcd.crt"
-  when: groups['etcd']|length > 0
+    policy: |
+      {{ .artifact.gen_cert_policy }}
+    out_key: |
+      {{ .work_dir }}/kubekey/pki/etcd.key
+    out_cert: |
+      {{ .work_dir }}/kubekey/pki/etcd.crt
+  when: .groups.etcd | len | lt 0
 
 - name: Generate registry image cert file
   gen_cert:
-    root_key: "{{ work_dir }}/kubekey/pki/root.key"
-    root_cert: "{{ work_dir }}/kubekey/pki/root.crt"
+    root_key: |
+      {{ .work_dir }}/kubekey/pki/root.key
+    root_cert: |
+      {{ .work_dir }}/kubekey/pki/root.crt
     cn: image_registry
     sans: |
-      [{% for h in groups['image_registry'] %}{% set hv=inventory_hosts[h] %}"{{ hv.internal_ipv4 }}"{% if (not forloop.Last) %},{% endif %}{% endfor %}]
+      {{- $ips := list -}}
+      {{- range $element := .groups.image_registry -}}
+        {{- $ips = append $ips (index .inventory_hosts $element "internal_ipv4") -}}
+      {{- end -}}
+      {{ $ips | toJson }}
     date: 87600h
-    policy: "{{ artifact.gen_cert_policy }}"
-    out_key: "{{ work_dir }}/kubekey/pki/image_registry.key"
-    out_cert: "{{ work_dir }}/kubekey/pki/image_registry.crt"
-  when: groups['image_registry']|length > 0
+    policy: |
+      {{ .artifact.gen_cert_policy }}
+    out_key: |
+      {{ .work_dir }}/kubekey/pki/image_registry.key
+    out_cert: |
+      {{ .work_dir }}/kubekey/pki/image_registry.crt
+  when: .groups.image_registry | len | lt 0

@@ -16,11 +16,9 @@ spec:
   # harbor image tag
   harbor_version: v2.10.1
   # registry image tag
-  registry_version: 2.8.3
+#  registry_version: 2.8.3
   # keepalived image tag
-  keepalived_version: stable
-  # runc binary
-  runc_version: v1.1.11
+#  keepalived_version: stable
   # calicoctl binary
   calico_version: v3.27.2
   # etcd binary
@@ -28,19 +26,21 @@ spec:
   # crictl binary
   crictl_version: v1.29.0
   # cilium helm
-  cilium_version: 1.15.4
+#  cilium_version: 1.15.4
   # kubeovn helm
-  kubeovn_version: 0.1.0
+#  kubeovn_version: 0.1.0
   # hybridnet helm
-  hybridnet_version: 0.6.8
-  # containerd binary
-  containerd_version: v1.7.0
+#  hybridnet_version: 0.6.8
   # docker binary
   docker_version: 24.0.6
+  # containerd binary
+#  containerd_version: v1.7.0
+  # runc binary
+#  runc_version: v1.1.11
   # cridockerd
-  cridockerd_version: v0.3.10
+#  cridockerd_version: v0.3.10
   # the version of kubernetes to be installed.
   # should be greater than or equal to kube_version_min_required.
   kube_version: v1.23.15
   # nfs provisioner helm version
-  nfs_provisioner_version: 4.0.18
+#  nfs_provisioner_version: 4.0.18

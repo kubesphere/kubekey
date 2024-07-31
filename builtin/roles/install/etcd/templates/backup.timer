@@ -1,7 +1,7 @@
 [Unit]
 Description=Timer to backup ETCD
 [Timer]
-OnCalendar={{ etcd.backup.on_calendar }}
+OnCalendar={{ .etcd.backup.on_calendar }}
 Unit=backup-etcd.service
 [Install]
 WantedBy=multi-user.target

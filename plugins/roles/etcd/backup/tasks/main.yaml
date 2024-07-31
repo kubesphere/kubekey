@@ -7,9 +7,9 @@
     export $(cat /etc/etcd.env | grep ETCDCTL_CACERT)
     export $(cat /etc/etcd.env | grep ETCDCTL_CERT)
     export $(cat /etc/etcd.env | grep ETCDCTL_KEY)
-    ETCDCTL_API=3 etcdctl --endpoints=https://{{ internal_ipv4 }}:2379 snapshot save /tmp/kubekey/etcd/snapshot.db
+    ETCDCTL_API=3 etcdctl --endpoints=https://{{ .internal_ipv4 }}:2379 snapshot save /tmp/kubekey/etcd/snapshot.db
 
 - name: Fetch backup to local
   fetch:
     src: /tmp/kubekey/etcd/snapshot.db
-    dest: "{{ work_dir }}/kubekey/etcd/snapshot.db"
+    dest: "{{ .work_dir }}/kubekey/etcd/snapshot.db"

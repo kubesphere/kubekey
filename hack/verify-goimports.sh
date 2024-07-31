@@ -41,7 +41,7 @@ cd "${KUBE_ROOT}" || exit 1
 
 IFS=$'\n' read -r -d '' -a files < <( find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./pkg/apis/*" -not -path "./pkg/client/*" -not -name "zz_generated.deepcopy.go" && printf '\0' )
 
-output=$(goimports -local kubesphere.io/kubekey -l "${files[@]}")
+output=$(goimports -local github.com/kubesphere/kubekey/v4 -l "${files[@]}")
 
 if [ "${output}" != "" ]; then
     echo "The following files are not import formatted"

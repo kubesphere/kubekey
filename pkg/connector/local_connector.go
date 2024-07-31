@@ -28,6 +28,8 @@ import (
 
 	"k8s.io/klog/v2"
 	"k8s.io/utils/exec"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 var _ Connector = &localConnector{}
@@ -85,22 +87,22 @@ func (c *localConnector) Info(ctx context.Context) (map[string]any, error) {
 		if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
 			return nil, fmt.Errorf("failed to fetch os-release: %w", err)
 		}
-		osVars["release"] = convertBytesToMap(osRelease.Bytes(), "=")
+		osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
 		kernel, err := c.ExecuteCommand(ctx, "uname -r")
 		if err != nil {
 			return nil, fmt.Errorf("get kernel version error: %w", err)
 		}
-		osVars["kernel_version"] = string(bytes.TrimSuffix(kernel, []byte("\n")))
+		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSuffix(kernel, []byte("\n")))
 		hn, err := c.ExecuteCommand(ctx, "hostname")
 		if err != nil {
 			return nil, fmt.Errorf("get hostname error: %w", err)
 		}
-		osVars["hostname"] = string(bytes.TrimSuffix(hn, []byte("\n")))
+		osVars[_const.VariableHostName] = string(bytes.TrimSuffix(hn, []byte("\n")))
 		arch, err := c.ExecuteCommand(ctx, "arch")
 		if err != nil {
 			return nil, fmt.Errorf("get arch error: %w", err)
 		}
-		osVars["architecture"] = string(bytes.TrimSuffix(arch, []byte("\n")))
+		osVars[_const.VariableOSArchitecture] = string(bytes.TrimSuffix(arch, []byte("\n")))
 
 		// process information
 		procVars := make(map[string]any)
@@ -108,16 +110,16 @@ func (c *localConnector) Info(ctx context.Context) (map[string]any, error) {
 		if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
 			return nil, fmt.Errorf("get cpuinfo error: %w", err)
 		}
-		procVars["cpuInfo"] = convertBytesToSlice(cpu.Bytes(), ":")
+		procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
 		var mem bytes.Buffer
 		if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
 			return nil, fmt.Errorf("get meminfo error: %w", err)
 		}
-		procVars["memInfo"] = convertBytesToMap(mem.Bytes(), ":")
+		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
 		return map[string]any{
-			"os":      osVars,
-			"process": procVars,
+			_const.VariableOS:      osVars,
+			_const.VariableProcess: procVars,
 		}, nil
 	default:
 		klog.V(4).ErrorS(nil, "Unsupported platform", "platform", runtime.GOOS)

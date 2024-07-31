@@ -21,7 +21,7 @@ etcd:
   backup:
     backup_dir: /var/lib/etcd-backup
     keep_backup_number: 5
-#    etcd_backup_script: /usr/local/bin/kube-scripts/backup-etcd.sh
+    etcd_backup_script: "backup.sh"
     on_calendar: "*-*-* *:00/30:00"
   performance: false
   traffic_priority: false

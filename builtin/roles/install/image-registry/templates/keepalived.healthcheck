@@ -1,12 +1,12 @@
 #!/bin/bash
 
-{% if (image_registry.type=='registry') %}
+{{- if .image_registry.type | eq "registry" }}
 # registry service
 service=registry:5000
-{% else %}
+{{- else }}
 # harbor service
 service=harbor:80
-{% endif %}
+{{- end }}
 
 nc -zv -w 2 $service > /dev/null 2>&1
 

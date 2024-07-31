@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/strings/slices"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -84,6 +84,16 @@ func (v value) getParameterVariable() map[string]any {
 				hostVars = combineVariables(hostVars, Extension2Variables(gv.Vars))
 			}
 		}
+		// set default localhost
+		if hostname == _const.VariableLocalHost {
+			if _, ok := hostVars[_const.VariableIPv4]; !ok {
+				hostVars[_const.VariableIPv4] = getLocalIP(_const.VariableIPv4)
+			}
+			if _, ok := hostVars[_const.VariableIPv6]; !ok {
+				hostVars[_const.VariableIPv6] = getLocalIP(_const.VariableIPv6)
+			}
+		}
+
 		// merge inventory vars to host vars
 		hostVars = combineVariables(hostVars, Extension2Variables(v.Inventory.Spec.Vars))
 		// merge config vars to host vars

@@ -6,8 +6,10 @@
     - name: Copy pre install scripts to remote
       ignore_errors: yes
       copy:
-        src: "{{ work_dir }}/scripts/pre_install_{{ inventory_name }}.sh"
-        dest: "/etc/kubekey/scripts/pre_install_{{ inventory_name }}.sh"
+        src: |
+          {{ .work_dir }}/scripts/pre_install_{{ .inventory_name }}.sh
+        dest: |
+          /etc/kubekey/scripts/pre_install_{{ .inventory_name }}.sh
     - name: Execute pre install scripts
       command: |
         for file in /etc/kubekey/scripts/pre_install_*.sh; do

@@ -1,44 +1,52 @@
 ---
 - name: Sync harbor package to remote
   copy:
-    src: "{{ work_dir }}/kubekey/image-registry/harbor/{{ harbor_version }}/{{ binary_type.stdout }}/harbor-offline-installer-{{ harbor_version }}.tgz"
-    dest: "/opt/harbor/{{ harbor_version }}/harbor-offline-installer-{{ harbor_version }}.tgz"
+    src: |
+      {{ .work_dir }}/kubekey/image-registry/harbor/{{ .harbor_version }}/{{ .binary_type.stdout }}/harbor-offline-installer-{{ .harbor_version }}.tgz
+    dest: |
+      /opt/harbor/{{ .harbor_version }}/harbor-offline-installer-{{ .harbor_version }}.tgz
 
 - name: Untar harbor package
   command: |
-    cd /opt/harbor/{{ harbor_version }}/ && tar -zxvf harbor-offline-installer-{{ harbor_version }}.tgz
+    cd /opt/harbor/{{ .harbor_version }}/ && tar -zxvf harbor-offline-installer-{{ .harbor_version }}.tgz
 
 - name: Sync image registry cert file to remote
   copy:
-    src: "{{ work_dir }}/kubekey/pki/image_registry.crt"
-    dest: "/opt/harbor/{{ harbor_version }}/ssl/server.crt"
+    src: |
+      {{ .work_dir }}/kubekey/pki/image_registry.crt
+    dest: |
+      /opt/harbor/{{ .harbor_version }}/ssl/server.crt
 
 - name: Sync image registry key file to remote
   copy:
-    src: "{{ work_dir }}/kubekey/pki/image_registry.key"
-    dest: "/opt/harbor/{{ harbor_version }}/ssl/server.key"
+    src: |
+      {{ .work_dir }}/kubekey/pki/image_registry.key
+    dest: |
+      /opt/harbor/{{ .harbor_version }}/ssl/server.key
 
 - name: Generate harbor config
   template:
-    src: "harbor.config"
-    dest: "/opt/harbor/{{ harbor_version }}/harbor/harbor.yml"
+    src: harbor.config
+    dest: |
+      /opt/harbor/{{ .harbor_version }}/harbor/harbor.yml
 
 - name: Generate keepalived docker compose
   template:
-    src: "harbor_keepalived.docker-compose"
-    dest: "/opt/harbor/{{ harbor_version }}/harbor/docker-compose-keepalived.yml"
+    src: harbor_keepalived.docker-compose
+    dest: |
+      /opt/harbor/{{ .harbor_version }}/harbor/docker-compose-keepalived.yml
   when:
-    - image_registry.ha_vip | defined
-    - image_registry_service.stderr != ""
+    - and .image_registry.ha_vip (ne .image_registry.ha_vip "")
+    - .image_registry_service.stderr | ne ""
 
 - name: Install harbor
   command: |
-    cd /opt/harbor/{{ harbor_version }}/harbor && /bin/bash install.sh
+    cd /opt/harbor/{{ .harbor_version }}/harbor && /bin/bash install.sh
 
 - name: Register harbor service
   template:
-    src: "harbor.service"
-    dest: "/etc/systemd/system/harbor.service"
+    src: harbor.service
+    dest: /etc/systemd/system/harbor.service
 
 - name: Start harbor service
   command: systemctl daemon-reload && systemctl start harbor.service && systemctl enable harbor.service

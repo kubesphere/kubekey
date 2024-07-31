@@ -1,3 +1,3 @@
-{% for p in nfs.share_dir %}
-{{ p }} *(rw,sync,no_subtree_check)
-{% endfor %}
+{{- range $p := .nfs.share_dir }}
+{{ $p }} *(rw,sync,no_subtree_check)
+{{- end }}

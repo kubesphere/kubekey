@@ -4,16 +4,16 @@
 
 # install docker
 - include_tasks: install_docker.yaml
-  when: cri.container_manager == "docker"
+  when: .cri.container_manager | eq "docker"
 
     # install containerd
 - include_tasks: install_containerd.yaml
-  when: cri.container_manager == "containerd"
+  when: .cri.container_manager | eq "containerd"
 
 # install cridockerd
 - include_tasks: install_cridockerd.yaml
   when:
-  - cri.container_manager == "docker"
-  - kube_version|version:'>=v1.24.0'
+  - .cri.container_manager | eq  "docker"
+  - .kube_version | versionAtLeast "v1.24.0"
 
 

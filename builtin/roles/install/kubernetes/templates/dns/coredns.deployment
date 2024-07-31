@@ -47,7 +47,7 @@ metadata:
     prometheus.io/scrape: "true"
     createdby: 'kubekey'
 spec:
-  clusterIP: {{ kubernetes.networking.dns_service_ip }}
+  clusterIP: {{ .kubernetes.networking.dns_service_ip }}
   selector:
     k8s-app: kube-dns
   ports:
@@ -119,7 +119,7 @@ spec:
                 - ""
       containers:
       - name: coredns
-        image: "{{ kubernetes.networking.dns_image }}"
+        image: "{{ .kubernetes.networking.dns_image }}"
         imagePullPolicy: IfNotPresent
         resources:
           # TODO: Set memory limits when we've profiled the container for large
@@ -185,58 +185,78 @@ metadata:
       addonmanager.kubernetes.io/mode: EnsureExists
 data:
   Corefile: |
-{% for ez in kubernetes.coredns.zone_configs %}
-    {{ ez.zones|join:"   " }} {
-      cache {{ ez.cache }}
-{% for c in ez.additional_configs %}
-      {{ c }}
-{% endfor %}
+  {{- range $ez := .kubernetes.coredns.zone_configs }}
+    {{ (index $ez "zones") | join " " }} {
+      cache {{ index $ez "cache" }}
+    {{- range $c := (index $ez "additional_configs") }}
+      {{ $c }}
+    {{- end }}
 
-{% for r in ez.rewrite %}
-      rewrite {{ r.rule }} {
-        {{ r.field }} {{ r.type }} {{ r.value }}
-        {{ r.options }}
+    {{- range $r := (index $ez "rewrite") }}
+      rewrite {{ index $r "rule" }} {
+        {{ index $r "field" }} {{ index $r "type" }} {{ index $r "value" }}
+        {{ index $r "options" }}
       }
-{% endfor %}
+    {{- end }}
 
       health {
         lameduck 5s
       }
 
-{% if (ez.kubernetes.zones|defined) %}
-      kubernetes {{ ez.kubernetes.zones|join:" " }} in-addr.arpa ip6.arpa {
+    {{- if (index $ez "kubernetes" "zones") | len | lt 0 }}
+      kubernetes {{ (index $ez "kubernetes" "zones") | join " " }} in-addr.arpa ip6.arpa {
         pods insecure
         fallthrough in-addr.arpa ip6.arpa
         ttl 30
       }
-{% endif %}
+    {{- end }}
 
-{% for f in ez.forward %}
-      forward {{ f.from }} {{ f.to|join:" " }} {
-{% if (f.except|length > 0)  %}        except {{ f.except|join:" " }}{% endif %}
-{% if (f.force_tcp) %}        force_tcp{% endif %}
-{% if (f.prefer_udp) %}        prefer_udp{% endif %}
-{% if (f.max_fails|defined) %}        max_fails {{ f.max_fails }}{% endif %}
-{% if (f.expire|defined) %}        expire {{ f.expire }}{% endif %}
-{% if (f.tls|defined) %}        tls {{ f.tls.cert_file }} {{ f.tls.key_file }} {{ f.tls.ca_file }}{% endif %}
-{% if (f.tls_servername|defined) %}        tls_servername {{ f.tls_servername }}{% endif %}
-{% if (f.policy|defined) %}        policy {{ f.policy }}{% endif %}
-{% if (f.health_check|defined) %}        health_check {{ f.health_check }}{% endif %}
-{% if (f.max_concurrent|defined) %}        max_concurrent {{ f.max_concurrent }}{% endif %}
+    {{- range $f := (index $ez "forward") }}
+      forward {{ index $f "from" }} {{ (index $f "to") | join " " }} {
+      {{- if (index $f "except") | len | lt 0 }}
+        except {{ index $f "except" | join " " }}
+      {{- end }}
+      {{- if index $f "force_tcp" }}
+        force_tcp
+      {{- end }}
+      {{- if index $f "prefer_udp" }}
+        prefer_udp
+      {{- end }}
+      {{- if index $f "max_fails" }}
+        max_fails {{ index $f "max_fails" }}
+      {{- end }}
+      {{- if index $f "expire" }}
+        expire {{ index $f "expire" }}
+      {{- end }}
+      {{- if index $f "tls" }}
+        tls {{ index $f "tls" "cert_file" }} {{ index $f "tls" "key_file" }} {{ index $f "tls" "ca_file" }}
+      {{- end }}
+      {{- if index $f "tls_servername" }}
+        tls_servername {{ index $f "tls_servername" }}
+      {{- end }}
+      {{- if index $f "policy" }}
+        policy {{ index $f "policy" }}
+      {{- end }}
+      {{- if index $f "health_check" }}
+        health_check {{ index $f "health_check" }}
+      {{- end }}
+      {{- if index $f "max_concurrent" }}
+        max_concurrent {{ index $f "max_concurrent" }}
+      {{- end }}
       }
-{% endfor %}
+    {{- end }}
 
-{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+    {{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
-{% endif %}
+    {{- end }}
     }
-{% endfor %}
+  {{- end }}
 
-{% if (kubernetes.coredns.dns_etc_hosts|length > 0) %}
+{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
   hosts: |
-{% for h in kubernetes.coredns.dns_etc_hosts %}
-    {{ h }}
-{% endfor %}
-{% endif %}
+  {{- range $h := .kubernetes.coredns.dns_etc_hosts }}
+    {{ $h }}
+  {{- end }}
+{{- end }}

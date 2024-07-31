@@ -41,7 +41,7 @@ type kubernetesConnector struct {
 }
 
 func (c *kubernetesConnector) Init(ctx context.Context) error {
-	if c.clusterName == _const.LocalHostName && c.kubeconfig == "" {
+	if c.clusterName == _const.VariableLocalHost && c.kubeconfig == "" {
 		// use default kubeconfig. skip
 		klog.V(4).InfoS("kubeconfig is not set, using local kubeconfig")
 		return nil

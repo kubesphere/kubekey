@@ -4,53 +4,53 @@
   command: docker --version
   register: docker_install_version
 
-- name: Sync docker binary to remote
-  copy:
-    src: "{{ work_dir }}/kubekey/docker/{{ docker_version }}/{{ binary_type.stdout }}/docker-{{ docker_version }}.tgz"
-    dest: "/tmp/kubekey/docker-{{ docker_version }}.tgz"
-  when: docker_install_version.stderr != ""
-
-- name: Unpackage docker binary
-  command: |
-    tar -C /usr/local/bin/ --strip-components=1 -xvf /tmp/kubekey/docker-{{ docker_version }}.tgz --wildcards docker/*
-  when: docker_install_version.stderr != ""
-
-- name: Generate docker config file
-  template:
-    src: docker.config
-    dest: /etc/docker/daemon.json
-  when: docker_install_version.stderr != ""
-
-- name: Generate docker service file
-  copy:
-    src: docker.service
-    dest: /etc/systemd/system/docker.service
-  when: docker_install_version.stderr != ""
-
-- name: Generate containerd service file
-  copy:
-    src: containerd.service
-    dest: /etc/systemd/system/containerd.service
-  when: docker_install_version.stderr != ""
+- name: Install docker
+  when: or (.docker_install_version.stderr | ne "") (not .docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version))
+  block:
+    - name: Sync docker binary to remote
+      copy:
+        src: |
+          {{ .work_dir }}/kubekey/docker/{{ .docker_version }}/{{ .binary_type.stdout }}/docker-{{ .docker_version }}.tgz
+        dest: |
+          /tmp/kubekey/docker-{{ .docker_version }}.tgz
+    - name: Unpackage docker binary
+      command: |
+        tar -C /usr/local/bin/ --strip-components=1 -xvf /tmp/kubekey/docker-{{ .docker_version }}.tgz --wildcards docker/*
+    - name: Generate docker config file
+      template:
+        src: docker.config
+        dest: /etc/docker/daemon.json
+    - name: Generate docker service file
+      copy:
+        src: docker.service
+        dest: /etc/systemd/system/docker.service
+    - name: Generate containerd service file
+      copy:
+        src: containerd.service
+        dest: /etc/systemd/system/containerd.service
+    - name: Start docker service
+      command: |
+        systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
+        systemctl daemon-reload && systemctl start docker.service && systemctl enable docker.service
 
 - name: Sync image registry tls to remote
-  when: groups['image_registry'] > 0
+  when: .groups.image_registry | len | lt 0
   block:
     - name: Sync image registry cert file to remote
       copy:
-        src: "{{ work_dir }}/kubekey/pki/root.crt"
-        dest: "/etc/docker/certs.d/{{ image_registry.auth.registry }}/ca.crt"
+        src: |
+          {{ .work_dir }}/kubekey/pki/root.crt
+        dest: |
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/ca.crt
     - name: Sync image registry cert file to remote
       copy:
-        src: "{{ work_dir }}/kubekey/pki/image_registry.crt"
-        dest: "/etc/docker/certs.d/{{ image_registry.auth.registry }}/server.crt"
+        src: |
+          {{ .work_dir }}/kubekey/pki/image_registry.crt
+        dest: |
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/server.crt
     - name: Sync image registry key file to remote
       copy:
-        src: "{{ work_dir }}/kubekey/pki/image_registry.key"
-        dest: "/etc/docker/certs.d/{{ image_registry.auth.registry }}/server.key"
-
-- name: Start docker service
-  command: |
-    systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
-    systemctl daemon-reload && systemctl start docker.service && systemctl enable docker.service
-  when: docker_install_version.stderr != ""
+        src: |
+          {{ .work_dir }}/kubekey/pki/image_registry.key
+        dest: |
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/server.key

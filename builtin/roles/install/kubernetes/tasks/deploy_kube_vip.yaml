@@ -2,30 +2,27 @@
 # install with static pod: https://kube-vip.io/docs/installation/static/
 - name: Get interface for ipv4
   command: |
-    ip route | grep ' {{ internal_ipv4 }} ' | grep 'proto kernel scope link src' | sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\"| uniq
+    ip route | grep ' {{ .internal_ipv4 }} ' | grep 'proto kernel scope link src' | sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\"| uniq
   register: interface
-
-- name: Should ipv4 interface not be empty
-  assert: interface.stdout != ""
-  fail_msg: "{{ internal_ipv4 }} cannot be found in network interface."
 
 - name: Generate kubevip manifest
   template:
-    src: "kubevip/kubevip.{{ kubernetes.kube_vip.mode }}"
-    dest: "/etc/kubernetes/manifests/kubevip.yaml"
+    src: |
+      kubevip/kubevip.{{ .kubernetes.kube_vip.mode }}
+    dest: /etc/kubernetes/manifests/kubevip.yaml
 
 - name: Update kubelet config
   command: |
-    sed -i 's#server:.*#server: https://127.0.0.1:{{ kubernetes.apiserver.port }}#g' /etc/kubernetes/kubelet.conf
+    sed -i 's#server:.*#server: https://127.0.0.1:{{ .kubernetes.apiserver.port }}#g' /etc/kubernetes/kubelet.conf
     systemctl restart kubelet
 
 - name: Update kube-proxy config
   command: |
     set -o pipefail && /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get configmap kube-proxy -n kube-system -o yaml \
-      | sed 's#server:.*#server: https://127.0.0.1:{{ kubernetes.apiserver.port }}#g' \
+      | sed 's#server:.*#server: https://127.0.0.1:{{ .kubernetes.apiserver.port }}#g' \
       | /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf replace -f -
     /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod -n kube-system -l k8s-app=kube-proxy --force --grace-period=0
 
 - name: Update hosts file
   command: |
-    sed -i 's#.* {{ kubernetes.control_plane_endpoint }}#127.0.0.1 {{ kubernetes.control_plane_endpoint }}s#g' /etc/hosts
+    sed -i 's#.* {{ .kubernetes.control_plane_endpoint }}#127.0.0.1 {{ .kubernetes.control_plane_endpoint }}s#g' /etc/hosts
