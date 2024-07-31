@@ -19,13 +19,13 @@ package variable
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"net"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 
