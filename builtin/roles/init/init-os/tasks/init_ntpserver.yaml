@@ -16,12 +16,11 @@
     echo "local stratum 10" >> $chronyConfigFile
     # add server
     {{- range $server := .ntp_servers -}}
-      {{- range $.inventory_hosts -}}
-        {{- if eq .inventory_name $server -}}
-          {{- $server = .internal_ipv4 -}}
+      {{- range _,$value := .inventory_hosts -}}
+        {{- if eq (get $value "inventory_name") $server -}}
+    grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
         {{- end -}}
       {{- end -}}
-    grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
     {{- end -}}
 
 - name: Set timezone
@@ -33,7 +32,8 @@
 - name: Restart ntp server
   command: |
     {{- if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}
-    systemctl restart chrony.service
+    systemctl restart /etc/chrony/chrony.conf
+    {{- else }}
+    systemctl restart /etc/chrony.conf
     {{- end }}
-    systemctl restart chronyd.service
   when: or (.ntp_servers | len | lt 0) (.timezone | ne "")

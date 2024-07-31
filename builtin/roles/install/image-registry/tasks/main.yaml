@@ -12,9 +12,9 @@
     - name: Check if harbor installed
       ignore_errors: true
       command: systemctl status harbor.service
-      register: harbor_service_status
-    - include_tasks: install_harbor.yaml
-      when: .harbor_service_status.stderr | ne ""
+      register: image_registry_service
+    - include_tasks: install_registry.yaml
+      when: .image_registry_service.stderr | ne ""
 
 - name: Install registry
   when: .image_registry.type | eq "registry"
@@ -22,9 +22,9 @@
     - name: Check if registry installed
       ignore_errors: true
       command: systemctl status registry.service
-      register: registry_service_status
+      register: image_registry_service
     - include_tasks: install_registry.yaml
-      when: .registry_service_status.stderr | ne ""
+      when: .image_registry_service.stderr | ne ""
 
 - include_tasks: load_images.yaml
   tags: ["only_image"]

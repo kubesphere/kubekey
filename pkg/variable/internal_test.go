@@ -36,19 +36,19 @@ func TestGetAllVariable(t *testing.T) {
 			value: value{
 				Config: kubekeyv1.Config{
 					Spec: runtime.RawExtension{
-						Raw: []byte(`{
-"artifact": {
-  "images": [ "abc" ]
-}
-}`)},
+						Raw: []byte(`
+artifact:
+  images:
+   - abc
+`)},
 				},
 				Inventory: kubekeyv1.Inventory{
 					Spec: kubekeyv1.InventorySpec{
 						Hosts: map[string]runtime.RawExtension{
-							"localhost": {Raw: []byte(`{
-"internal_ipv4": "127.0.0.1",
-"internal_ipv6": "::1"
-}`)},
+							"localhost": {Raw: []byte(`
+internal_ipv4: 127.0.0.1
+internal_ipv6: ::1
+`)},
 						},
 					},
 				},

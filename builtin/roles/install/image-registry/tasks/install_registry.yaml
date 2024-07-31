@@ -8,15 +8,15 @@
 
 - name: Mount NFS dir
   command: |
-    {{- if .os.release.ID_LIKE | eq "debian" -}}
+    {{- if .os.release.ID_LIKE | eq "debian" }}
       yum update && yum install -y nfs-utils
-    {{- else if .os.release.ID_LIKE | eq "rhel fedora" -}}
+    {{- else if .os.release.ID_LIKE | eq "rhel fedora" }}
       apt update && apt install -y nfs-common
-    {{- end -}}
-    mount -t nfs {{ index .inventory_hosts (.groups.nfs | default list | first) "internal_ipv4" }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registryregistry.storage.filesystem.rootdirectory }}
+    {{- end }}
+    mount -t nfs {{ index .inventory_hosts (.groups.nfs | first) "internal_ipv4" }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registryregistry.storage.filesystem.rootdirectory }}
   when:
     - and .image_registry.registry.storage.filesystem.nfs_mount (ne .image_registry.registry.storage.filesystem.nfs_mount "")
-    - .groups.nfs | default list | len | eq 1
+    - .groups.nfs | len | eq 1
     - .image_registry_service.stderr | ne ""
 
 - name: Load registry image

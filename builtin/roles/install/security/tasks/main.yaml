@@ -5,7 +5,7 @@
     chmod 600 /etc/ssl/etcd/ssl/* && chown root:root /etc/ssl/etcd/ssl/*
     chmod 700 /var/lib/etcd && chown etcd:etcd /var/lib/etcd
     chmod 550 /usr/local/bin/etcd* && chown root:root /usr/local/bin/etcd*
-  when: .groups.etcd | default list | has .inventory_name
+  when: .groups.etcd | has .inventory_name
 
 - name: security enhancement for control plane
   command: |
@@ -21,7 +21,7 @@
     chmod 640 /var/lib/kubelet/config.yaml && chown root:root /var/lib/kubelet/config.yaml
     chmod 640 -R /etc/systemd/system/kubelet.service* && chown root:root -R /etc/systemd/system/kubelet.service*
     chmod 640 /etc/systemd/system/k8s-certs-renew* && chown root:root /etc/systemd/system/k8s-certs-renew*
-  when: .groups.kube_control_plane | default list | has .inventory_name
+  when: .groups.kube_control_plane | has .inventory_name
 
 - name: security enhancement for worker
   command: |
@@ -36,4 +36,4 @@
     chmod 550 -R /opt/cni/bin && chown root:root -R /opt/cni/bin
     chmod 640 /var/lib/kubelet/config.yaml && chown root:root /var/lib/kubelet/config.yaml
     chmod 640 -R /etc/systemd/system/kubelet.service* && chown root:root -R /etc/systemd/system/kubelet.service*
-  when:  .groups.kube_worker | default list | has .inventory_name
+  when:  .groups.kube_worker | has .inventory_name

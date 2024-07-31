@@ -4,13 +4,6 @@ metadata:
   name: default
 spec:
   hosts: # your can set all nodes here. or set nodes on special groups.
-#    node1:
-#      connector:
-#        type: ssh
-#        host: node1
-#        port: 22
-#        user: root
-#        password: 123456
   groups:
     # all kubernetes nodes.
     k8s_cluster:
@@ -29,9 +22,9 @@ spec:
     etcd:
       hosts:
         - localhost
-#    image_registry:
-#      hosts:
-#        - localhost
+    image_registry:
+      hosts:
+        - localhost
     # nfs nodes for registry storage. and kubernetes nfs storage
 #    nfs:
 #      hosts:

@@ -1,14 +1,14 @@
 renew_certs:
   enabled: false
   is_docker: |
-    {{- if .cri.container_manager | eq "docker" -}}
+    {{- if .cri.container_manager | eq "docker" }}
     true
-    {{- else -}}
+    {{- else }}
     false
-    {{- end -}}
+    {{- end }}
   is_kubeadm_alpha: |
-    {{- if .kube_version | semverCompare "<v1.20.0" -}}
+    {{- if .kube_version | versionLessThan "v1.20.0" }}
     true
-    {{- else -}}
+    {{- else }}
     false
-    {{- end -}}
+    {{- end }}

@@ -10,10 +10,10 @@
 - name: Install hybridnet
   command: |
     helm install hybridnet /etc/kubernetes/cni/hybridnet-{{ .hybridnet_version }}.tgz --namespace kube-system \
-    {{- if ne .cni.hybridnet.hybridnet_image "" -}}
+    {{- if ne .cni.hybridnet.hybridnet_image "" }}
       --set images.hybridnet.image={{ .cni.hybridnet.hybridnet_image }} \
-    {{- end -}}
-    {{- if ne .cni.hybridnet.hybridnet_tag "" -}}
+    {{- end }}
+    {{- if ne .cni.hybridnet.hybridnet_tag "" }}
       --set images.hybridnet.tag={{ .cni.hybridnet.hybridnet_tag }}  \
-    {{- end -}}
+    {{- end }}
       --set image.registryURL={{ .cni.hybridnet.registry }} \

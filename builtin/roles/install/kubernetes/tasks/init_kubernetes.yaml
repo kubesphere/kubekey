@@ -20,7 +20,7 @@
     - {path: "/var/lib/calico", chown: "/var/lib/calico"}
 
 - name: Sync external etcd config
-  when: and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | len | lt 0)
+  when: and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | len | lt 0)
   block:
     - name: Sync etcd ca file to remote
       copy:
@@ -47,18 +47,23 @@
 - name: Generate kubeadm init config
   template:
     src: |
-      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
+      {{- if .kube_version | versionAtLeast "v1.24.0" }}
       kubeadm/kubeadm-init.v1beta3
-      {{- else -}}
+      {{- else }}
       kubeadm/kubeadm-init.v1beta2
-      {{- end -}}
+      {{- end }}
     dest: /etc/kubernetes/kubeadm-config.yaml
 
 - name: Init kubernetes cluster
   block:
     - name: Init kubernetes by kubeadm
       command: |
-        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
+        /usr/local/bin/kubeadm init \
+          --config=/etc/kubernetes/kubeadm-config.yaml \
+          --ignore-preflight-errors=FileExisting-crictl,ImagePull \
+        {{- if not .kubernetes.kube_proxy.enabled }}
+          --skip-phases=addon/kube-proxy \
+        {{- end }}
   rescue:
     - name: Reset kubeadm if init failed
       command: |
@@ -73,7 +78,7 @@
   when: .kube_node_info_important.stderr | ne ""
 
 - name: Set to worker node
-  when: .groups.kube_worker | default list | has .inventory_name
+  when: .groups.kube_worker | has .inventory_name
   block:
     - name: Remote master taint
       ignore_errors: true

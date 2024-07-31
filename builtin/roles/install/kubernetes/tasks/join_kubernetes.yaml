@@ -2,18 +2,19 @@
 - name: Generate kubeadm join config
   template:
     src: |
-      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
+      {{- if .kube_version | versionAtLeast ">=v1.24.0" }}
       kubeadm/kubeadm-join.v1beta3
-      {{- else -}}
+      {{- else }}
       kubeadm/kubeadm-join.v1beta2
-      {{- end -}}
+      {{- end }}
     dest: /etc/kubernetes/kubeadm-config.yaml
 
 - name: Sync audit policy file to remote
   copy:
     src: audit
     dest: /etc/kubernetes/audit/
-  when: .kubernetes.audit
+  when:
+    - kubernetes.audit
 
 - name: Join kubernetes cluster
   block:
@@ -31,7 +32,7 @@
     dest: /root/.kube/config
 
 - name: Set to worker node
-  when: .groups.kube_worker | default list | has .inventory_name
+  when: .groups.kube_worker | has .inventory_name
   block:
     - name: Remote master taint
       ignore_errors: true

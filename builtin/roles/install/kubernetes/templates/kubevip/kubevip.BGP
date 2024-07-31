@@ -30,9 +30,9 @@ spec:
       value: "true"
     - name: bgp_routerid
       value: |
-        {{ $ips := list }}
-        {{- range .groups.kube_control_plane | default list -}}
-            {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
+        {{- $ips := list -}}
+        {{- range $element := .groups.kube_control_plane -}}
+            {{- $ips = append $ips (index .inventory_hosts $element "internal_ipv4") -}}
         {{- end -}}
         {{ $ips | join "," }}
     - name: bgp_as
@@ -43,9 +43,9 @@ spec:
       value: "65000"
     - name: bgp_peers
       value: |
-        {{ $ips := list }}
-        {{- range .groups.kube_control_plane | default list -}}
-            {{- $ips = append $ips (printf "%s:65000::false" (index $.inventory_hosts . "internal_ipv4")) -}}
+        {{- $ips := list -}}
+        {{- range $element := .groups.kube_control_plane -}}
+            {{- $ips = append $ips (printf "%s:65000::false" (index .inventory_hosts $element "internal_ipv4")) -}}
         {{- end -}}
         {{ $ips | join "," }}
     - name: lb_enable

@@ -16,7 +16,7 @@
     that: le .kubernetes.kubelet.max_pods  (sub (pow 2 (sub 32 .kubernetes.controller_manager.kube_network_node_prefix))  2)
     fail_msg: do not schedule more pods on a node than inet addresses are available.
   when:
-    - .groups.k8s_cluster | default list | has .inventory_name
+    - .groups.k8s_cluster | has .inventory_name
     - .kubernetes.controller_manager.kube_network_node_prefix
     - .kubernetes.kube_network_plugin | ne "calico"
 

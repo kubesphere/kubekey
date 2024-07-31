@@ -23,7 +23,7 @@
 ## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824
 - name: Check dev io for etcd
   when:
-    - .groups.etcd | default list | has .inventory_name
+    - .groups.etcd | has .inventory_name
   block:
     - name: Check fio is exist
       ignore_errors: true

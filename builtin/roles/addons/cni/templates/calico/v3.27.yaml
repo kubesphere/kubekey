@@ -4736,6 +4736,7 @@ spec:
       name: calico-typha
   selector:
     k8s-app: calico-typha
+
 {{- end }}
 ---
 # Source: calico/templates/calico-node.yaml

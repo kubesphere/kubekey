@@ -60,18 +60,15 @@ const ( // === From GatherFact ===
 	VariableOSRelease = "release"
 	// VariableOSKernelVersion the value is kernel version of VariableOS.
 	VariableOSKernelVersion = "kernel_version"
-	// VariableOSHostName the value is hostname of VariableOS.
-	VariableOSHostName = "hostname"
+	// VariableOSKHostName the value is hostname of VariableOS.
+	VariableOSKHostName = "hostname"
 	// VariableOSArchitecture the value is architecture of VariableOS.
 	VariableOSArchitecture = "architecture"
+
 	// VariableProcess the value is process information.
 	VariableProcess = "process"
 	// VariableProcessCPU the value is cpu info of VariableProcess.
 	VariableProcessCPU = "cpuInfo"
 	// VariableProcessMemory the value is memory info of VariableProcess.
 	VariableProcessMemory = "memInfo"
-)
-
-const ( // === From runtime ===
-	VariableItem = "item"
 )

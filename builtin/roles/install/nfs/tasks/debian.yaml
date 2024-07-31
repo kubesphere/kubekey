@@ -15,7 +15,7 @@
       chmod -R 0755 {{ .item }}
       chown nobody:nogroup {{ .item }}
     fi
-  loop: "{{ .nfs.share_dir | toJson }}"
+  loop: "{{ .nfs.share_dir }}"
 
 - name: Generate nfs config
   template:

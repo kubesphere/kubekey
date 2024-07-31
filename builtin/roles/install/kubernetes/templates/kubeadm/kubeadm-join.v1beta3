@@ -6,13 +6,13 @@ discovery:
     apiServerEndpoint: {{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}:{{ .kubernetes.apiserver.port }}
     token: "{{ .kubeadm_token }}"
     unsafeSkipCAVerification: true
-{{- if .groups.kube_control_plane | default list | has .inventory_name }}
+{{- if .groups.kube_control_plane | has .inventory_name }}
 controlPlane:
   localAPIEndpoint:
     advertiseAddress: {{ .internal_ipv4 }}
     bindPort: {{ .kubernetes.apiserver.port }}
   certificateKey: {{ .kubeadm_cert }}
-{{- end }}
+{{ end }}
 nodeRegistration:
   criSocket: {{ .cri.cri_socket }}
   kubeletExtraArgs:

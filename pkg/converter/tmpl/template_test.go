@@ -29,43 +29,10 @@ func TestParseBool(t *testing.T) {
 		variable  map[string]any
 		excepted  bool
 	}{
-		// ======= semverCompare =======
-		{
-			name:      "semverCompare true-1",
-			condition: []string{"{{ .foo | semverCompare \">=v1.21\" }}"},
-			variable: map[string]any{
-				"foo": "v1.23",
-			},
-			excepted: true,
-		},
-		{
-			name:      "semverCompare true-2",
-			condition: []string{"{{  .foo | semverCompare \"v1.21\" }}"},
-			variable: map[string]any{
-				"foo": "v1.21",
-			},
-			excepted: true,
-		},
-		{
-			name:      "semverCompare true-3",
-			condition: []string{"{{ semverCompare \">=v1.21\" .foo }}"},
-			variable: map[string]any{
-				"foo": "v1.23",
-			},
-			excepted: true,
-		},
-		{
-			name:      "semverCompare true-3",
-			condition: []string{"{{ semverCompare \"<v1.21\" .foo }}"},
-			variable: map[string]any{
-				"foo": "v1.20",
-			},
-			excepted: true,
-		},
 		// ======= eq =======
 		{
-			name:      "atoi true-1",
-			condition: []string{`{{ .foo | trimSuffix " kB" | atoi | le .bar }}`},
+			name:      "eq true-1",
+			condition: []string{`{{ .foo | trimSuffix " kB" | le .bar }}`},
 			variable: map[string]any{
 				"foo": "8148172 kB",
 				"bar": 10,
@@ -271,120 +238,29 @@ func TestParseFunction(t *testing.T) {
 		variable map[string]any
 		excepted string
 	}{
-		// ======= if =======
-		{
-			name:  "if map 1",
-			input: "{{ if .foo.foo.foo1 | eq \"bar1\" }}{{ $.foo.foo.foo2 }}{{ end }}",
-			variable: map[string]any{
-				"foo": map[string]any{
-					"foo": map[string]any{
-						"foo1": "bar1",
-						"foo2": "bar2",
-					},
-				},
-			},
-			excepted: "bar2",
-		},
-		{
-			name:  "if map 1",
-			input: "{{ if .foo.foo.foo1 | eq \"bar1\" }}{{ .foo.foo.foo2 }}{{ end }}",
-			variable: map[string]any{
-				"foo": map[string]any{
-					"foo": map[string]any{
-						"foo1": "bar1",
-						"foo2": "bar2",
-					},
-				},
-			},
-			excepted: "bar2",
-		},
-		// ======= range =======
-		{
-			name:  "range map 1",
-			input: "{{ range $k,$v := .foo.foo }}{{ $v }}{{ end }}",
-			variable: map[string]any{
-				"foo": map[string]any{
-					"foo": map[string]any{
-						"foo1": "bar1",
-						"foo2": "bar2",
-					},
-				},
-			},
-			excepted: "bar1bar2",
-		},
-		{
-			name:  "range map value 1",
-			input: "{{ range .foo }}{{ .foo1 }}{{ end }}",
-			variable: map[string]any{
-				"foo": map[string]any{
-					"foo": map[string]any{
-						"foo1": "bar1",
-						"foo2": "bar2",
-					},
-				},
-			},
-			excepted: "bar1",
-		},
-		{
-			name:  "range map top-value 1",
-			input: "{{ range $_ := .foo }}{{ $.foo1 }}{{ end }}",
-			variable: map[string]any{
-				"foo": map[string]any{
-					"foo": map[string]any{
-						"foo1": "bar1",
-						"foo2": "bar2",
-					},
-				},
-				"foo1": "bar11",
-			},
-			excepted: "bar11",
-		},
-		{
-			name:  "range slice value 1",
-			input: "{{ range .foo }}{{ .foo1 }}{{ end }}",
-			variable: map[string]any{
-				"foo": []map[string]any{
-					{
-						"foo1": "bar1",
-						"foo2": "bar2",
-					},
-				},
-			},
-			excepted: "bar1",
-		},
-		{
-			name:  "range slice value 1",
-			input: "{{ range .foo }}{{ . }}{{ end }}",
-			variable: map[string]any{
-				"foo": []string{
-					"foo1", "bar1",
-				},
-			},
-			excepted: "foo1bar1",
-		},
 		// ======= default =======
 		{
-			name:     "default string 1",
+			name:     "default string-1",
 			input:    "{{ .foo | default \"bar\" }}",
 			variable: map[string]any{},
 			excepted: "bar",
 		},
 		{
-			name:     "default string 2",
+			name:     "default string-2",
 			input:    "{{ default .foo \"bar\" }}",
 			variable: map[string]any{},
 			excepted: "bar",
 		},
 
 		{
-			name:     "default number 1",
+			name:     "default number-1",
 			input:    "{{ .foo | default 1 }}",
 			variable: map[string]any{},
 			excepted: "1",
 		},
 		// ======= split =======
 		{
-			name:  "split 1",
+			name:  "split true-1",
 			input: "{{ split \",\" .foo }}",
 			variable: map[string]any{
 				"foo": "a,b",
@@ -392,7 +268,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "map[_0:a _1:b]",
 		},
 		{
-			name:  "split 2",
+			name:  "split true-2",
 			input: "{{ .foo | split \",\" }}",
 			variable: map[string]any{
 				"foo": "a,b",
@@ -401,7 +277,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= len =======
 		{
-			name:  "len 1",
+			name:  "len true-1",
 			input: "{{ len .foo  }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -409,7 +285,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "2",
 		},
 		{
-			name:  "len 2",
+			name:  "len true-2",
 			input: "{{ .foo | len }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -418,7 +294,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= index =======
 		{
-			name:  "index 1",
+			name:  "index true-1",
 			input: "{{ index .foo \"foo\" }}",
 			variable: map[string]any{
 				"foo": map[string]any{
@@ -428,7 +304,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "a",
 		},
 		{
-			name:  "index 1",
+			name:  "index false-1",
 			input: "{{ if index .foo \"a\" }}true{{else}}false{{end}}",
 			variable: map[string]any{
 				"foo": map[string]any{
@@ -439,7 +315,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= first =======
 		{
-			name:  "first 1",
+			name:  "first true-1",
 			input: "{{ .foo | first }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -447,7 +323,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "a",
 		},
 		{
-			name:  "first 2",
+			name:  "first true-2",
 			input: "{{ first .foo }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -456,7 +332,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= last =======
 		{
-			name:  "last 1",
+			name:  "last true-1",
 			input: "{{ .foo | last }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -464,7 +340,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "b",
 		},
 		{
-			name:  "last 2",
+			name:  "last true-2",
 			input: "{{ last .foo }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -473,7 +349,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= slice =======
 		{
-			name:  "slice 1",
+			name:  "slice true-1",
 			input: "{{ slice .foo 0 2 }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -482,7 +358,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= join =======
 		{
-			name:  "join 1",
+			name:  "join true-1",
 			input: "{{ slice .foo 0 2 | join \".\" }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -491,7 +367,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= toJson =======
 		{
-			name:  "toJson 1",
+			name:  "toJson true-1",
 			input: "{{ .foo | toJson }}",
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
@@ -500,7 +376,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= toYaml =======
 		{
-			name:  "toYaml 1",
+			name:  "toYaml true-1",
 			input: "{{ .foo | toYaml }}",
 			variable: map[string]any{
 				"foo": map[string]any{
@@ -512,7 +388,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= indent =======
 		{
-			name:  "indent 1",
+			name:  "indent true-1",
 			input: "{{ .foo | indent 2 }}",
 			variable: map[string]any{
 				"foo": "a1: b1\na2: b2",
@@ -521,7 +397,7 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= printf =======
 		{
-			name:  "printf 1",
+			name:  "printf true-1",
 			input: "{{ printf \"http://%s\" .foo }}",
 			variable: map[string]any{
 				"foo": "a",
@@ -529,7 +405,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "http://a",
 		},
 		{
-			name:  "printf 2",
+			name:  "printf true-2",
 			input: "{{ .foo | printf \"http://%s\" }}",
 			variable: map[string]any{
 				"foo": "a",
@@ -539,7 +415,7 @@ func TestParseFunction(t *testing.T) {
 
 		// ======= div =======
 		{
-			name:  "div 1",
+			name:  "div true-1",
 			input: "{{ mod .foo 2 }}",
 			variable: map[string]any{
 				"foo": 5,
@@ -547,7 +423,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "1",
 		},
 		{
-			name:  "div 1",
+			name:  "div true-1",
 			input: "{{ mod .foo 2 }}",
 			variable: map[string]any{
 				"foo": 4,
@@ -556,27 +432,12 @@ func TestParseFunction(t *testing.T) {
 		},
 		// ======= sub =======
 		{
-			name:  "sub 1",
+			name:  "sub true-1",
 			input: "{{ sub .foo 2 }}",
 			variable: map[string]any{
 				"foo": 5,
 			},
 			excepted: "3",
-		},
-		// ======= trimPrefix =======
-		{
-			name:  "trimPrefix 1",
-			input: `{{ .foo | trimPrefix "v" }}`,
-			variable: map[string]any{
-				"foo": "v1.1",
-			},
-			excepted: "1.1",
-		},
-		{
-			name:     "trimPrefix 2",
-			input:    `{{ .foo | default "" |trimPrefix "v" }}`,
-			variable: map[string]any{},
-			excepted: "",
 		},
 	}
 
@@ -598,6 +459,48 @@ func TestParseCustomFunction(t *testing.T) {
 		variable map[string]any
 		excepted string
 	}{
+		// ======= versionAtLeast =======
+		{
+			name:  "versionAtLeast true-1",
+			input: "{{ .foo | versionAtLeast \"v1.21\" }}",
+			variable: map[string]any{
+				"foo": "v1.23",
+			},
+			excepted: "true",
+		},
+		{
+			name:  "versionAtLeast true-2",
+			input: "{{  .foo | versionAtLeast \"v1.21\" }}",
+			variable: map[string]any{
+				"foo": "v1.21",
+			},
+			excepted: "true",
+		},
+		{
+			name:  "versionAtLeast true-3",
+			input: "{{ versionAtLeast \"v1.21\" .foo }}",
+			variable: map[string]any{
+				"foo": "v1.23",
+			},
+			excepted: "true",
+		},
+		// ======= versionLessThan =======
+		{
+			name:  "versionLessThan true-1",
+			input: "{{ versionLessThan \"v1.25\" .foo }}",
+			variable: map[string]any{
+				"foo": "v1.23",
+			},
+			excepted: "true",
+		},
+		{
+			name:  "versionLessThan true-2",
+			input: "{{  .foo | versionLessThan \"v1.25\" }}",
+			variable: map[string]any{
+				"foo": "v1.23",
+			},
+			excepted: "true",
+		},
 		// ======= ipInCIDR =======
 		{
 			name:  "ipInCIDR true-1",

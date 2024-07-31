@@ -10,7 +10,6 @@
           {{ .work_dir }}/scripts/pre_install_{{ .inventory_name }}.sh
         dest: |
           /etc/kubekey/scripts/pre_install_{{ .inventory_name }}.sh
-        mode: 0755
     - name: Execute pre install scripts
       command: |
         for file in /etc/kubekey/scripts/pre_install_*.sh; do

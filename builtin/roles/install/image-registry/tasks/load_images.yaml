@@ -2,24 +2,20 @@
 - name: Create harbor project for each image
   tags: ["only_image"]
   command: |
-    {{- if .image_registry.namespace_override | eq "" -}}
+    {{- if .image_registry.namespace_override | eq "" }}
     for dir in /tmp/kubekey/images/*; do
       if [ ! -d "$dir" ]; then
-        # only deal with directories
+        # only deal directory
         continue
       fi
     
-      dir_name=${dir##*/}
-      IFS='=' set -- $dir_name
-      image_array="$@"
-      array_length=$#
-    
-      if [ "$array_length" -gt 3 ]; then
-        project=$2
-        dest_image=$(shift 2 && echo "$*" | tr ' ' '/')
-        tag=$(echo "$@" | awk '{print $NF}')
+      IFS='=' read -ra image_array <<< "${dir##*/}"
+      if [ $(echo ${image_array[@]} | wc -w) > 3 ]; then
+        project=${image_array[1]}
+        dest_image=$(echo "${image_array[@]:2:-1}" | tr ' ' '/')
+        tag=${image_array[-1]}
       else
-        echo "unsupported image: $dir_name"
+        echo "unsupported image"
         exit 1
       fi
     
@@ -30,14 +26,14 @@
           curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"${project}\", \"public\": true}"
       fi    
     done
-    {{- else -}}
+    {{- else }}
     # if project is not exist, create if
     http_code=$(curl -Iks -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name={{ .image_registry.namespace_override }}' | grep HTTP | awk '{print $2}')
     if [ $http_code == 404 ]; then
         # create project
         curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"{{ .image_registry.namespace_override }}\", \"public\": true}"
     fi
-    {{- end -}}
+    {{- end }}
   when: .image_registry.type | eq "harbor"
 
 - name: Sync images package to harbor

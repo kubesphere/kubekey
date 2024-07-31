@@ -4,7 +4,7 @@
   command: helm version
   register: helm_install_version
 - name: Install helm
-  when: or (.helm_install_version.stderr | ne "") (.helm_install_version.stdout | contains (printf "Version:\"%s\"" .helm_version) | not)
+  when: or (.helm_install_version.stderr | ne "") (not .helm_install_version.stdout | contains (printf "Version:\"%s\"" .helm_version))
   block:
     - name: Sync helm to remote
       copy:
@@ -24,7 +24,7 @@
   when: or (.kubeadm_install_version.stderr | ne "") (.kubeadm_install_version.stdout | ne .kube_version)
   copy:
     src: |
-      {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubeadm
+      {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubeadm"
     dest: /usr/local/bin/kubeadm
     mode: 0755
 
@@ -33,7 +33,7 @@
   command: kubectl version
   register: kubectl_install_version
 - name: Sync kubectl to remote
-  when: or (.kubectl_install_version.stderr | ne "") (.kubectl_install_version.stdout | contains (printf "GitVersion:\"%s\"" .kube_version) | not)
+  when: or (.kubectl_install_version.stderr | ne "") (not .kubectl_install_version.stdout | contains (printf "GitVersion:\"%s\"" .kube_version))
   copy:
     src: |
       {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubectl

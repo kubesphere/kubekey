@@ -1,27 +1,27 @@
 global_registry: ""
 dockerio_registry: |
-  {{- if ne .global_registry "" -}}
+  {{- if ne .global_registry "" }}
   {{ .global_registry }}
-  {{- else -}}
+  {{- else }}
   docker.io
-  {{- end -}}
+  {{- end }}
 quayio_registry: |
-  {{- if ne .global_registry "" -}}
+  {{- if ne .global_registry "" }}
   {{ .global_registry }}
-  {{- else -}}
+  {{- else }}
   quay.io
-  {{- end -}}
+  {{- end }}
 ghcrio_registry: |
-  {{- if ne .global_registry "" -}}
+  {{- if ne .global_registry "" }}
   {{ .global_registry }}
-  {{- else -}}
+  {{- else }}
   ghcr.io
-  {{- end -}}
+  {{- end }}
 k8s_registry: |
-  {{- if ne .global_registry "" -}}
+  {{- if ne .global_registry "" }}
   {{ .global_registry }}
-  {{- else -}}
+  {{- else }}
   registry.k8s.io
-  {{- end -}}
+  {{- end }}
 
 security_enhancement: false

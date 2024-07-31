@@ -7,14 +7,14 @@ etcd:
     imageRepository: {{ slice (.kubernetes.etcd.image | splitList ":" | first | splitList "/") 1 (.kubernetes.etcd.image | splitList ":" | first | splitList "/" | len) | join "/" }}
     imageTag: {{ .kubernetes.etcd.image | splitList ":" | last }}
     serverCertSANs:
-    {{- range .groups.etcd | default list }}
-    - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
+    {{- for $hv := .groups.etcd }}
+    - https://{{ index .inventory_hosts $hv "internal_ipv4" }}:2379
     {{- end }}
 {{- else }}
   external:
     endpoints:
-    {{- range .groups.etcd | default list }}
-    - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
+    {{- for $hv := .groups.etcd }}
+    - https://{{ index .inventory_hosts $hv "internal_ipv4" }}:2379
     {{- end }}
     caFile: /etc/kubernetes/pki/etcd/ca.crt
     certFile: /etc/kubernetes/pki/etcd/client.crt
@@ -61,15 +61,13 @@ apiServer:
     - {{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}
     - kubernetes.default.svc.{{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}
     - kubernetes.default.svc.{{ .kubernetes.networking.dns_domain }}
-  {{- range .groups.k8s_cluster | default list }}
-    - {{ . }}.{{ .kubernetes.networking.dns_domain }}
-    - {{ index $.inventory_hosts . "internal_ipv4" }}
-    {{- if index $.inventory_hosts . "internal_ipv6" }}
-    - {{ index $.inventory_hosts . "internal_ipv6" }}
-    {{- end }}
+  {{- range $h := .groups.k8s_cluster }}
+    - {{ $h }}.{{ .kubernetes.networking.dns_domain }}
+    - {{ index .inventory_hosts $h "internal_ipv4" }}
+    {{- if index $inventory_hosts "internal_ipv6" }}- {{ index $inventory_hosts "internal_ipv6" }}{{ end }}
   {{- end }}
-  {{- range .kubernetes.apiserver.certSANs }}
-    - {{ . }}
+  {{- range $h := .kubernetes.apiserver.certSANs }}
+    - {{ $h }}
   {{- end }}
 {{- if .kubernetes.audit }}
   extraVolumes:
@@ -86,7 +84,7 @@ controllerManager:
 {{- else }}
     node-cidr-mask-size: "{{ .kubernetes.controller_manager.kube_network_node_prefix }}"
 {{- end }}
-{{- if .kube_version | semverCompare ">=v1.9.0" }}
+{{- if .kube_version | versionAtLeast "v1.9.0" }}
     cluster-signing-duration: 87600h
 {{- else }}
     experimental-cluster-signing-duration: 87600h
@@ -170,26 +168,25 @@ tlsCipherSuites:
 featureGates:
   RotateKubeletServerCertificate: true
   SeccompDefault: true
-  {{- if .kube_version | semverCompare ">=v1.24.0" }}
+  {{- if .kube_version | versionAtLeast "v1.24.0" }}
   TTLAfterFinished: true
   {{- end }}
-  {{ if .kube_version | semverCompare ">=v1.21.0" }}
+  {{ if .kube_version | versionAtLeast "v1.21.0" }}
   CSIStorageCapacity: true
   {{- end }}
-{{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
+{{ .features | toYaml | indent 2 }}
 {{- else }}
 featureGates:
   RotateKubeletServerCertificate: true
-  {{- if .kube_version | semverCompare ">=v1.24.0" }}
+  {{- if .kube_version | versionAtLeast "v1.24.0" }}
   TTLAfterFinished: true
   {{- end }}
-  {{- if .kube_version | semverCompare ">=v1.21.0" }}
+  {{- if .kube_version | versionAtLeast "v1.21.0" }}
   CSIStorageCapacity: true
   ExpandCSIVolumes: true
   {{- end }}
-{{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
+{{ .features | toYaml | indent 2 }}
 {{- end }}
 cgroupDriver: {{ .cri.cgroup_driver }}
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
 containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
-{{ .kubernetes.kubelet.extra_args | toYaml }}
