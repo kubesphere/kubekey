@@ -13,8 +13,7 @@
         fi
         curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.etcd .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .etcd_version (ne .etcd_version "")
 
 - name: Check binaries for kube
@@ -50,8 +49,7 @@
         fi
         curl -L -o $kube_path/kubectl {{ get .artifact.artifact_url.kubectl .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .kube_version (ne .kube_version "")
 
 - name: Check binaries for cni
@@ -68,8 +66,7 @@
         fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cni .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .cni_version (ne .cni_version "")
 
 - name: Check binaries for helm
@@ -86,8 +83,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.helm .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .helm_version (ne .helm_version "")
 
 - name: Check binaries for crictl
@@ -104,8 +100,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.crictl .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .crictl_version (ne .crictl_version "")
 
 - name: Check binaries for docker
@@ -122,8 +117,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.docker .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .docker_version (ne .docker_version "")
 
 - name: Check binaries for cridockerd
@@ -140,8 +134,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cridockerd .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .cridockerd_version (ne .docker_version "")
 
 - name: Check binaries for containerd
@@ -158,8 +151,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.containerd .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .containerd_version (ne .containerd_version "")
 
 - name: Check binaries for runc
@@ -176,8 +168,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.runc .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .runc_version (ne .runc_version "")
 
 - name: Check binaries for calicoctl
@@ -194,8 +185,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.calicoctl .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .calico_version (ne .calico_version "")
 
 - name: Check binaries for registry
@@ -212,8 +202,7 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.registry .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .registry_version (ne .registry_version "")
 
 - name: Check binaries for docker-compose
@@ -225,8 +214,7 @@
       # download online
       curl -L -o $compose_path/$compose_name {{ get .artifact.artifact_url.dockercompose .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .dockercompose_version (ne .dockercompose_version "")
 
 - name: Check binaries for harbor
@@ -243,8 +231,7 @@
       fi
       curl -L -o $harbor_path/$harbor_name {{ get .artifact.artifact_url.harbor .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .harbor_version (ne .harbor_version "")
 
 - name: Check binaries for keepalived
@@ -261,6 +248,5 @@
       fi
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.keepalived .item }}
     fi
-  loop: |
-    {{ .artifact.arch }}
+  loop: "{{ .artifact.arch | toJson }}"
   when: and .keepalived_version (ne .keepalived_version "")

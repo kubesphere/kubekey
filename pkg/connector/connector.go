@@ -58,40 +58,40 @@ type Connector interface {
 // if set connector to "kubernetes", use kubernetes connector
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
-func NewConnector(host string, vars map[string]any) (Connector, error) {
-	var connect = make(map[string]any)
-	if data, ok := vars[_const.VariableConnector].(map[string]any); ok {
-		connect = data
-	}
-	connectedType, _ := variable.StringVar(nil, connect, _const.VariableConnectorType)
+func NewConnector(host string, connectorVars map[string]any) (Connector, error) {
+	connectedType, _ := variable.StringVar(nil, connectorVars, _const.VariableConnectorType)
 	switch connectedType {
 	case connectedLocal:
 		return &localConnector{Cmd: exec.New()}, nil
 	case connectedSSH:
-		hostParam, err := variable.StringVar(nil, connect, _const.VariableConnectorHost)
+		// get host in connector variable. if empty, set default host: host_name.
+		hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
 		if err != nil {
 			klog.InfoS("get ssh port failed use default port 22", "error", err)
 			hostParam = host
 		}
-
-		portParam, err := variable.IntVar(nil, vars, _const.VariableConnectorPort)
-		if err != nil { // default port 22
-			klog.InfoS("get ssh port failed use default port 22", "error", err)
-			portParam = 22
-		}
-
-		userParam, err := variable.StringVar(nil, vars, _const.VariableConnectorUser)
+		// get port in connector variable. if empty, set default port: 22.
+		portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
 		if err != nil {
-			return nil, err
+			klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
+			portParam = defaultSSHPort
 		}
-
-		passwdParam, err := variable.StringVar(nil, vars, _const.VariableConnectorPassword)
+		// get user in connector variable. if empty, set default user: root.
+		userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
 		if err != nil {
-			return nil, err
+			klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
+			userParam = defaultSSHUser
 		}
-		keyParam, err := variable.StringVar(nil, vars, _const.VariableConnectorPrivateKey)
+		// get password in connector variable. if empty, should connector by private key.
+		passwdParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
 		if err != nil {
-			return nil, err
+			klog.V(4).InfoS("connector password is empty use public key")
+		}
+		// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
+		keyParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPrivateKey)
+		if err != nil {
+			klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
+			keyParam = defaultSSHPrivateKey
 		}
 		return &sshConnector{
 			Host:       hostParam,
@@ -101,51 +101,52 @@ func NewConnector(host string, vars map[string]any) (Connector, error) {
 			PrivateKey: keyParam,
 		}, nil
 	case connectedKubernetes:
-		kubeconfig, err := variable.StringVar(nil, vars, _const.VariableConnectorKubeconfig)
+		kubeconfig, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorKubeconfig)
 		if err != nil && host != _const.VariableLocalHost {
 			return nil, err
 		}
 		return &kubernetesConnector{Cmd: exec.New(), clusterName: host, kubeconfig: kubeconfig}, nil
 	default:
 		localHost, _ := os.Hostname()
-		hostParam, err := variable.StringVar(nil, vars, "ssh_host")
+		// get host in connector variable. if empty, set default host: host_name.
+		hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
 		if err != nil {
-			klog.V(4).Infof("ssh_port is empty use: %s", host)
+			klog.V(4).Infof("connector host is empty use: %s", host)
 			hostParam = host
 		}
-		if host == _const.VariableLocalHost || localHost == host || isLocalIP(hostParam) {
+		if host == _const.VariableLocalHost || host == localHost || isLocalIP(hostParam) {
 			return &localConnector{Cmd: exec.New()}, nil
 		}
-
-		portParam, err := variable.IntVar(nil, vars, "ssh_port")
+		// get port in connector variable. if empty, set default port: 22.
+		portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
 		if err != nil {
-			klog.V(4).Infof("ssh_port is empty use: %v", defaultSSHPort)
+			klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
 			portParam = defaultSSHPort
 		}
-
-		userParam, err := variable.StringVar(nil, vars, "ssh_user")
+		// get user in connector variable. if empty, set default user: root.
+		userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
 		if err != nil {
-			klog.V(4).Infof("ssh_user is empty use: %s", defaultSSHUser)
+			klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
 			userParam = defaultSSHUser
 		}
-
-		passParam, err := variable.StringVar(nil, vars, "ssh_password")
+		// get password in connector variable. if empty, should connector by private key.
+		passwdParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
 		if err != nil {
-			klog.V(4).InfoS("ssh_password is empty use public key")
+			klog.V(4).InfoS("connector password is empty use public key")
 		}
-
-		priParam, err := variable.StringVar(nil, vars, "ssh_key")
+		// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
+		keyParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPrivateKey)
 		if err != nil {
 			klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
-			priParam = defaultSSHPrivateKey
+			keyParam = defaultSSHPrivateKey
 		}
 
 		return &sshConnector{
 			Host:       hostParam,
 			Port:       portParam,
 			User:       userParam,
-			Password:   passParam,
-			PrivateKey: priParam,
+			Password:   passwdParam,
+			PrivateKey: keyParam,
 		}, nil
 	}
 }
@@ -155,34 +156,26 @@ type GatherFacts interface {
 	Info(ctx context.Context) (map[string]any, error)
 }
 
+// isLocalIP check if given ipAddr is local network ip
 func isLocalIP(ipAddr string) bool {
-	interfaces, err := net.Interfaces()
+	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		klog.V(4).ErrorS(err, "get net interfaces error")
+		klog.ErrorS(err, "get network address error")
 		return false
 	}
-	for _, i := range interfaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			klog.V(4).ErrorS(err, "get address for net interface error", "interface", i.Name)
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		default:
+			klog.V(4).InfoS("unknown address type", "address", addr.String())
 			continue
 		}
-
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			default:
-				klog.V(4).InfoS("unknown address type", "address", addr.String())
-				continue
-			}
-
-			if ip.String() == ipAddr {
-				return true
-			}
+		if ip.String() == ipAddr {
+			return true
 		}
 	}
 	return false

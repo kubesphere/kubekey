@@ -5,7 +5,7 @@
     fail_msg: |
       the container manager:{{ .cri.container_manager }}, must be "docker" or "containerd"
   run_once: true
-  when: and .cri.container_manager  (ne .cri.container_manager "")
+  when: and .cri.container_manager (ne .cri.container_manager "")
 
 - name: Ensure minimum containerd version
   assert:
@@ -14,5 +14,5 @@
       containerd_version is too low. Minimum version {{ .cluster_require.containerd_min_version_required }}
   run_once: true
   when:
-    - not .cluster_require.require_containerd_version | has .containerd_version
+    - and .containerd_version (ne .containerd_version "")
     - .cri.container_manager | eq "containerd"

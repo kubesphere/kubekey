@@ -4,7 +4,7 @@
   command: runc --version
   register: runc_install_version
 - name: Sync runc binary to remote
-  when: or (.runc_install_version.stderr | ne "") (not .runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | trimPrefix "v" )))
+  when: or (.runc_install_version.stderr | ne "") (not .runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | default "" | trimPrefix "v" )))
   copy:
     src: |
       {{ .work_dir }}/kubekey/runc/{{ .runc_version }}/{{ .binary_type.stdout }}/runc.{{ .binary_type.stdout }}
@@ -21,12 +21,12 @@
     - name: Sync containerd binary to remote
       copy:
         src: |
-          {{ .work_dir }}/kubekey/containerd/{{ .containerd_version }}/{{ .binary_type.stdout }}/containerd-{{ .containerd_version | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
+          {{ .work_dir }}/kubekey/containerd/{{ .containerd_version }}/{{ .binary_type.stdout }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
         dest: |
-          /tmp/kubekey/containerd-{{ .containerd_version | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
+          /tmp/kubekey/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
     - name: Unpackage containerd binary
       command: |
-        tar -xvf /tmp/kubekey/containerd-{{ .containerd_version | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
+        tar -xvf /tmp/kubekey/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
     - name: Generate containerd config file
       template:
         src: containerd.config

@@ -63,7 +63,7 @@
 
 - name: Add custom label to cluster
   command: |
-    {{- range $k,$v := .kubernetes.custom_label }}
+    {{- range $k,$v := .kubernetes.custom_label -}}
     /usr/local/bin/kubectl label --overwrite node {{ .inventory_name }} {{ $k }}={{ $v }}
-    {{- end }}
+    {{- end -}}
   when: .kubernetes.custom_label | len | lt 0

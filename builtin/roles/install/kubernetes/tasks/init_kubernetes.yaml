@@ -47,11 +47,11 @@
 - name: Generate kubeadm init config
   template:
     src: |
-      {{- if .kube_version | versionAtLeast "v1.24.0" }}
+      {{- if .kube_version | versionAtLeast "v1.24.0" -}}
       kubeadm/kubeadm-init.v1beta3
-      {{- else }}
+      {{- else -}}
       kubeadm/kubeadm-init.v1beta2
-      {{- end }}
+      {{- end -}}
     dest: /etc/kubernetes/kubeadm-config.yaml
 
 - name: Init kubernetes cluster
@@ -61,9 +61,9 @@
         /usr/local/bin/kubeadm init \
           --config=/etc/kubernetes/kubeadm-config.yaml \
           --ignore-preflight-errors=FileExisting-crictl,ImagePull \
-        {{- if not .kubernetes.kube_proxy.enabled }}
+        {{- if not .kubernetes.kube_proxy.enabled -}}
           --skip-phases=addon/kube-proxy \
-        {{- end }}
+        {{- end -}}
   rescue:
     - name: Reset kubeadm if init failed
       command: |

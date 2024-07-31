@@ -7,7 +7,7 @@
 
 - name: Install etcd
   when: |
-    or (.etcd_install_version.stderr | ne "") (not .etcd_install_version.stdout | hasPrefix (printf "etcd Version: %s\n" (.etcd_version | trimPrefix "v")))
+    or (.etcd_install_version.stderr | ne "") (not .etcd_install_version.stdout | hasPrefix (printf "etcd Version: %s\n" (.etcd_version | default "" | trimPrefix "v")))
   block:
     - name: Init etcd
       block:
@@ -20,7 +20,7 @@
               mkdir -p {{ .item }} && chown -R etcd {{ .item }}
             fi
           loop:
-            - "/var/lib/etcd"
+           - "/var/lib/etcd"
 
     - include_tasks: install_etcd.yaml
 
