@@ -34,6 +34,7 @@ import (
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
@@ -209,8 +210,13 @@ func (e executor) getGatherFact(ctx context.Context, hostname string, vars varia
 		klog.V(4).ErrorS(err, "Get host variable error", "hostname", hostname)
 		return nil, err
 	}
-
-	conn, err := connector.NewConnector(hostname, v.(map[string]any))
+	connectorVars := make(map[string]any)
+	if c1, ok := v.(map[string]any)[_const.VariableConnector]; ok {
+		if c2, ok := c1.(map[string]any); ok {
+			connectorVars = c2
+		}
+	}
+	conn, err := connector.NewConnector(hostname, connectorVars)
 	if err != nil {
 		klog.V(4).ErrorS(err, "New connector error", "hostname", hostname)
 		return nil, err
@@ -490,7 +496,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 			for _, item := range loop {
 				// set item to runtime variable
 				if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
-					"item": item,
+					_const.VariableItem: item,
 				})); err != nil {
 					stderr = fmt.Sprintf("set loop item to variable error: %v", err)
 					return
@@ -510,7 +516,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				}
 				// delete item
 				if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
-					"item": nil,
+					_const.VariableItem: nil,
 				})); err != nil {
 					stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
 					return

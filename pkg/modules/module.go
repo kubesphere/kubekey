@@ -27,6 +27,7 @@ import (
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -93,7 +94,13 @@ func getConnector(ctx context.Context, host string, data map[string]any) (connec
 	if v := ctx.Value(ConnKey); v != nil {
 		conn = v.(connector.Connector)
 	} else {
-		conn, err = connector.NewConnector(host, data)
+		connectorVars := make(map[string]any)
+		if c1, ok := data[_const.VariableConnector]; ok {
+			if c2, ok := c1.(map[string]any); ok {
+				connectorVars = c2
+			}
+		}
+		conn, err = connector.NewConnector(host, connectorVars)
 		if err != nil {
 			return conn, err
 		}

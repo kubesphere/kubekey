@@ -2,7 +2,7 @@
 - name: Create harbor project for each image
   tags: ["only_image"]
   command: |
-    {{- if .image_registry.namespace_override | eq "" }}
+    {{- if .image_registry.namespace_override | eq "" -}}
     for dir in /tmp/kubekey/images/*; do
       if [ ! -d "$dir" ]; then
         # only deal directory
@@ -26,14 +26,14 @@
           curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"${project}\", \"public\": true}"
       fi    
     done
-    {{- else }}
+    {{- else -}}
     # if project is not exist, create if
     http_code=$(curl -Iks -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name={{ .image_registry.namespace_override }}' | grep HTTP | awk '{print $2}')
     if [ $http_code == 404 ]; then
         # create project
         curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"{{ .image_registry.namespace_override }}\", \"public\": true}"
     fi
-    {{- end }}
+    {{- end -}}
   when: .image_registry.type | eq "harbor"
 
 - name: Sync images package to harbor

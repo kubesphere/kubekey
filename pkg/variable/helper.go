@@ -19,16 +19,15 @@ package variable
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"net"
 	"reflect"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/yaml"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -158,29 +157,10 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 			return nil, err
 		}
 		var ss []string
-		switch {
-		case regexp.MustCompile(`^<\[\](.*?) Value>$`).MatchString(as):
-			// in pongo2 cannot get slice value. add extension filter value.
-			var input = val.(string)
-			// try to escape string
-			if ns, err := strconv.Unquote(valv); err == nil {
-				input = ns
-			}
-			vv := GetValue(d, input)
-			if _, ok := vv.([]any); ok {
-				ss = make([]string, len(vv.([]any)))
-				for i, a := range vv.([]any) {
-					ss[i] = a.(string)
-				}
-			}
-		default:
-			// value is simple string
-			if err := json.Unmarshal([]byte(as), &ss); err != nil {
-				// if is not json format. only return a value contains this
-				return []string{as}, nil //nolint:nilerr
-			}
+		if err := json.Unmarshal([]byte(as), &ss); err == nil {
+			return ss, nil
 		}
-		return ss, nil
+		return []string{as}, nil
 	default:
 		return nil, fmt.Errorf("unsupport variable \"%s\" type", key)
 	}
@@ -227,33 +207,19 @@ func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
 	}
 
 	var data []any
+	// try parse yaml string which defined  by single value or multi value
 	if err := yaml.Unmarshal(ext.Raw, &data); err == nil {
 		return data
 	}
-
+	// try converter template string
 	val, err := Extension2String(d, ext)
 	if err != nil {
 		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
 	}
-	// parse value by pongo2. if
-	switch {
-	case regexp.MustCompile(`^<\[\](.*?) Value>$`).MatchString(val):
-		// in pongo2 cannot get slice value. add extension filter value.
-		var input = string(ext.Raw)
-		// try to escape string
-		if ns, err := strconv.Unquote(string(ext.Raw)); err == nil {
-			input = ns
-		}
-		vv := GetValue(d, input)
-		if _, ok := vv.([]any); ok {
-			return vv.([]any)
-		}
-	default:
-		// value is simple string
-		return []any{val}
+	if err := json.Unmarshal([]byte(val), &data); err == nil {
+		return data
 	}
-
-	return data
+	return []any{val}
 }
 
 func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error) {
@@ -350,7 +316,7 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 func getLocalIP(ipType string) string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		klog.ErrorS(err, "get local ip address error")
+		klog.ErrorS(err, "get network address error")
 	}
 	for _, addr := range addrs {
 		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {

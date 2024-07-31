@@ -3,8 +3,7 @@
   gen_cert:
     cn: root
     date: 87600h
-    policy: |
-      {{ .artifact.gen_cert_policy }}
+    policy: "{{ .artifact.gen_cert_policy }}"
     out_key: |
       {{ .work_dir }}/kubekey/pki/root.key
     out_cert: |
@@ -24,8 +23,7 @@
       {{- end -}}
       {{ $ips | toJson }}
     date: 87600h
-    policy: |
-      {{ .artifact.gen_cert_policy }}
+    policy: "{{ .artifact.gen_cert_policy }}"
     out_key: |
       {{ .work_dir }}/kubekey/pki/etcd.key
     out_cert: |
@@ -46,8 +44,7 @@
       {{- end -}}
       {{ $ips | toJson }}
     date: 87600h
-    policy: |
-      {{ .artifact.gen_cert_policy }}
+    policy: "{{ .artifact.gen_cert_policy }}"
     out_key: |
       {{ .work_dir }}/kubekey/pki/image_registry.key
     out_cert: |

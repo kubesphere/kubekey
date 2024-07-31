@@ -27,9 +27,9 @@
       --set operator.replicas={{ .cni.cilium.operator_replicas }} \
       --set ipv6.enabled={{ .cni.ipv6_support }} \
       --set ipv4NativeRoutingCIDR: {{ .cni.kube_pods_v4_cidr }} \
-    {{- if .cni.ipv6_support }}
+    {{- if .cni.ipv6_support -}}
       --set ipv6NativeRoutingCIDR: {{ .cni.kube_pods_v6_cidr }} \
-    {{- end }}
-    {{- if .cni.kube_proxy }}
+    {{- end -}}
+    {{- if .cni.kube_proxy -}}
       --set kubeProxyReplacement=strict --set k8sServiceHost={{ .cni.cilium.k8s_endpoint }} --set k8sServicePort={{ .cni.cilium.k8s_port }}
-    {{- end  }}
+    {{- end -}}

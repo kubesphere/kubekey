@@ -64,11 +64,14 @@ const ( // === From GatherFact ===
 	VariableOSKHostName = "hostname"
 	// VariableOSArchitecture the value is architecture of VariableOS.
 	VariableOSArchitecture = "architecture"
-
 	// VariableProcess the value is process information.
 	VariableProcess = "process"
 	// VariableProcessCPU the value is cpu info of VariableProcess.
 	VariableProcessCPU = "cpuInfo"
 	// VariableProcessMemory the value is memory info of VariableProcess.
 	VariableProcessMemory = "memInfo"
+)
+
+const ( // === From runtime ===
+	VariableItem = "item"
 )
