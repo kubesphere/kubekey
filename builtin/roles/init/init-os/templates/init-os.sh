@@ -174,7 +174,7 @@ sed -i '/^$/N;/\n$/N;//D' /etc/hosts
 
 cat >>/etc/hosts<<EOF
 # kubekey hosts BEGIN
-{{- range _, $value := inventory_hosts }}
+{{- range $key, $value := inventory_hosts }}
   {{- if and (get $value "internal_ipv4") (ne (get $value "internal_ipv4") "") }}
     {{ printf "%s %s %s.%s" (get $value "internal_ipv4") (get $value "inventory_name") (get $value "inventory_name") (.kubernetes.cluster_name | default "cluster.local") }}
   {{- end }}

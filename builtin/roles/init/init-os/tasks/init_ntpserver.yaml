@@ -16,7 +16,7 @@
     echo "local stratum 10" >> $chronyConfigFile
     # add server
     {{- range $server := .ntp_servers -}}
-      {{- range _,$value := .inventory_hosts -}}
+      {{- range $key,$value := .inventory_hosts -}}
         {{- if eq (get $value "inventory_name") $server -}}
     grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
         {{- end -}}
