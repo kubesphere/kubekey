@@ -39,7 +39,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build iso image to local
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: hack/gen-repository-iso
           file: hack/gen-repository-iso/${{ matrix.dockerfile }}
@@ -54,7 +54,7 @@ jobs:
           sha256sum *.iso >  ${{ matrix.name }}.iso.sha256sum.txt
 
       - name: Wait for release workflow to finish
-        uses: lewagon/wait-on-check-action@v1.3.3
+        uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.ref }}
           check-name: 'create draft release'

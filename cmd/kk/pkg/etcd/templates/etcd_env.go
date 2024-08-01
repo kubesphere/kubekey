@@ -30,13 +30,13 @@ ETCD_DATA_DIR={{ .DataDir }}
 {{- else }}
 ETCD_DATA_DIR=/var/lib/etcd
 {{- end }}
-ETCD_ADVERTISE_CLIENT_URLS=https://{{ .Ip }}:2379
-ETCD_INITIAL_ADVERTISE_PEER_URLS=https://{{ .Ip }}:2380
+ETCD_ADVERTISE_CLIENT_URLS=https://{{ .Ip }}:{{ .Port }}
+ETCD_INITIAL_ADVERTISE_PEER_URLS=https://{{ .Ip }}:{{ .PeerPort }}
 ETCD_INITIAL_CLUSTER_STATE={{ .State }}
 ETCD_METRICS=basic
-ETCD_LISTEN_CLIENT_URLS=https://{{ .Ip }}:2379,https://127.0.0.1:2379
+ETCD_LISTEN_CLIENT_URLS=https://{{ .Ip }}:{{ .Port }},https://127.0.0.1:{{ .Port }}
 ETCD_INITIAL_CLUSTER_TOKEN=k8s_etcd
-ETCD_LISTEN_PEER_URLS=https://{{ .Ip }}:2380
+ETCD_LISTEN_PEER_URLS=https://{{ .Ip }}:{{ .PeerPort }}
 ETCD_NAME={{ .Name }}
 ETCD_PROXY=off
 ETCD_ENABLE_V2=true
@@ -82,6 +82,11 @@ ETCD_LOG_LEVEL={{ .LogLevel }}
 {{- if .UnsupportedArch }}
 ETCD_UNSUPPORTED_ARCH={{ .Arch }}
 {{ end }}
+{{- if .ExtraArgs }}
+{{- range $index, $value := .ExtraArgs }}
+{{ $value }}
+{{- end }}
+{{- end }}
 
 # TLS settings
 ETCD_TRUSTED_CA_FILE=/etc/ssl/etcd/ssl/ca.pem
@@ -95,7 +100,7 @@ ETCD_PEER_KEY_FILE=/etc/ssl/etcd/ssl/member-{{ .Hostname }}-key.pem
 ETCD_PEER_CLIENT_CERT_AUTH=true
 
 # CLI settings
-ETCDCTL_ENDPOINTS=https://127.0.0.1:2379
+ETCDCTL_ENDPOINTS=https://127.0.0.1:{{ .Port }}
 ETCDCTL_CACERT=/etc/ssl/etcd/ssl/ca.pem
 ETCDCTL_KEY=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}-key.pem
 ETCDCTL_CERT=/etc/ssl/etcd/ssl/admin-{{ .Hostname }}.pem

@@ -27,6 +27,9 @@ type EtcdCluster struct {
 	Type string `yaml:"type" json:"type,omitempty"`
 	// ExternalEtcd describes how to connect to an external etcd cluster when type is set to external
 	External                ExternalEtcd `yaml:"external" json:"external,omitempty"`
+	Port                    *int         `yaml:"port" json:"port,omitempty"`
+	PeerPort                *int         `yaml:"peerPort" json:"peerPort,omitempty"`
+	ExtraArgs               []string     `yaml:"extraArgs" json:"extraArgs,omitempty"`
 	BackupDir               string       `yaml:"backupDir" json:"backupDir,omitempty"`
 	BackupPeriod            int          `yaml:"backupPeriod" json:"backupPeriod,omitempty"`
 	KeepBackupNumber        int          `yaml:"keepBackupNumber" json:"keepBackupNumber,omitempty"`
@@ -56,4 +59,20 @@ type ExternalEtcd struct {
 	CertFile string `yaml:"certFile" json:"certFile,omitempty"`
 	// KeyFile is an SSL key file used to secure etcd communication.
 	KeyFile string `yaml:"keyFile" json:"keyFile,omitempty"`
+}
+
+// GetPort returns the port of etcd cluster
+func (e *EtcdCluster) GetPort() int {
+	if e.Port == nil {
+		return 2379
+	}
+	return *e.Port
+}
+
+// GetPeerPort returns the peer port of etcd cluster
+func (e *EtcdCluster) GetPeerPort() int {
+	if e.PeerPort == nil {
+		return 2380
+	}
+	return *e.PeerPort
 }

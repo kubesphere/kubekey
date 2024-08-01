@@ -1,28 +1,26 @@
-<div align=center><img src="docs/img/kubekey-logo.svg?raw=true"></div>
+# KubeKey
 
 [![CI](https://github.com/kubesphere/kubekey/workflows/CI/badge.svg?branch=master&event=push)](https://github.com/kubesphere/kubekey/actions?query=event%3Apush+branch%3Amaster+workflow%3ACI+)
 
-> English | [中文](README_zh-CN.md) | [日本語](README_ja-JP.md)
+> [English](README.md) | [中文](README_zh-CN.md) | 日本語
 
-### 👋 Welcome to KubeKey!
+KubeKeyは、Kubernetesクラスターをデプロイするためのオープンソースの軽量ツールです。Kubernetes/K3s、Kubernetes/K3sとKubeSphere、および関連するクラウドネイティブアドオンをインストールするための柔軟で迅速かつ便利な方法を提供します。また、クラスターのスケールとアップグレードを効率的に行うツールでもあります。
 
-KubeKey is an open-source lightweight tool for deploying Kubernetes clusters. It provides a flexible, rapid, and convenient way to install Kubernetes/K3s only, both Kubernetes/K3s and KubeSphere, and related cloud-native add-ons. It is also an efficient tool to scale and upgrade your cluster.
+さらに、KubeKeyはカスタマイズされたエアギャップパッケージもサポートしており、オフライン環境でクラスターを迅速にデプロイすることができます。
 
-In addition, KubeKey also supports customized Air-Gap package, which is convenient for users to quickly deploy clusters in offline environments.
+> KubeKeyは[CNCF kubernetes 一致性認証](https://www.cncf.io/certification/software-conformance/)に合格しています。
 
-> KubeKey has passed [CNCF kubernetes conformance verification](https://www.cncf.io/certification/software-conformance/).
+KubeKeyを使用する3つのシナリオがあります。
 
-Use KubeKey in the following three scenarios.
+* Kubernetes/K3sのみをインストールする
+* Kubernetes/K3sとKubeSphereを1つのコマンドでインストールする
+* まずKubernetes/K3sをインストールし、その上に[ks-installer](https://github.com/kubesphere/ks-installer)を使用してKubeSphereをデプロイする
 
-* Install Kubernetes/K3s only
-* Install Kubernetes/K3s and KubeSphere together in one command
-* Install Kubernetes/K3s first, then deploy KubeSphere on it using [ks-installer](https://github.com/kubesphere/ks-installer)
+> **重要:** 既存のKubernetesクラスターがある場合は、[ks-installer (既存のKubernetesクラスターにKubeSphereをインストールする)](https://github.com/kubesphere/ks-installer)を参照してください。
 
-> **Important:** If you have existing Kubernetes clusters, please refer to [ks-installer (Install KubeSphere on existing Kubernetes cluster)](https://github.com/kubesphere/ks-installer).
+## サポートされている環境
 
-## Supported Environment
-
-### Linux Distributions
+### Linuxディストリビューション
 
 * **Ubuntu**  *16.04, 18.04, 20.04, 22.04*
 * **Debian**  *Bullseye, Buster, Stretch*
@@ -30,84 +28,84 @@ Use KubeKey in the following three scenarios.
 * **AlmaLinux**  *9.0*
 * **SUSE Linux Enterprise Server** *15*
 
-> Recommended Linux Kernel Version: `4.15 or later` 
-> You can run the `uname -srm` command to check the Linux Kernel Version.
+> 推奨Linuxカーネルバージョン: `4.15以降` 
+> Linuxカーネルバージョンを確認するには、`uname -srm`コマンドを実行します。
 
-### <span id = "KubernetesVersions">Kubernetes Versions</span>
+### <span id = "KubernetesVersions">Kubernetesバージョン</span>
 
 * **v1.19**: &ensp; *v1.19.15*
 * **v1.20**: &ensp; *v1.20.10*
 * **v1.21**: &ensp; *v1.21.14*
 * **v1.22**: &ensp; *v1.22.15*
-* **v1.23**: &ensp; *v1.23.10*   (default)
+* **v1.23**: &ensp; *v1.23.10*   (デフォルト)
 * **v1.24**: &ensp; *v1.24.7*
 * **v1.25**: &ensp; *v1.25.3*
 
-> Looking for more supported versions: \
-> [Kubernetes Versions](./docs/kubernetes-versions.md) \
-> [K3s Versions](./docs/k3s-versions.md)
+> サポートされているバージョンの詳細については、以下を参照してください: \
+> [Kubernetesバージョン](./docs/kubernetes-versions.md) \
+> [K3sバージョン](./docs/k3s-versions.md)
 
-### Container Manager
+### コンテナマネージャー
 
 * **Docker** / **containerd** / **CRI-O** / **iSula**
 
-> `Kata Containers` can be set to automatically install and configure runtime class for it when the container manager is containerd or CRI-O.
+> `Kata Containers`は、コンテナマネージャーがcontainerdまたはCRI-Oの場合に、ランタイムクラスを自動的にインストールおよび構成するように設定できます。
 
-### Network Plugins
+### ネットワークプラグイン
 
 * **Calico** / **Flannel** / **Cilium** / **Kube-OVN** / **Multus-CNI**
 
-> Kubekey also supports users to set the network plugin to `none` if there is a requirement for custom network plugin.
+> カスタムネットワークプラグインの要件がある場合、Kubekeyはネットワークプラグインを`none`に設定することもサポートしています。
 
-## Requirements and Recommendations
+## 要件と推奨事項
 
-* Minimum resource requirements (For Minimal Installation of KubeSphere only)：
-  * 2 vCPUs
+* 最小リソース要件（KubeSphereの最小インストールの場合）：
+  * 2 vCPU
   * 4 GB RAM
-  * 20 GB Storage
+  * 20 GBストレージ
 
-> /var/lib/docker is mainly used to store the container data, and will gradually increase in size during use and operation. In the case of a production environment, it is recommended that /var/lib/docker mounts a drive separately.
+> /var/lib/dockerは主にコンテナデータを保存するために使用され、使用および操作中に徐々にサイズが大きくなります。プロダクション環境の場合、/var/lib/dockerが別のドライブにマウントされることをお勧めします。
 
-* OS requirements:
-  * `SSH` can access to all nodes.
-  * Time synchronization for all nodes.
-  * `sudo`/`curl`/`openssl` should be used in all nodes.
-  * `docker` can be installed by yourself or by KubeKey.
-  * `Red Hat` includes `SELinux` in its `Linux release`. It is recommended to close SELinux or [switch the mode of SELinux](./docs/turn-off-SELinux.md) to `Permissive`
+* OS要件:
+  * `SSH`がすべてのノードにアクセスできること。
+  * すべてのノードの時間が同期されていること。
+  * すべてのノードで`sudo`/`curl`/`openssl`が使用できること。
+  * `docker`は自分でインストールするか、KubeKeyを使用してインストールできます。
+  * `Red Hat`の`Linuxリリース`には`SELinux`が含まれています。SELinuxを無効にするか、[SELinuxのモードを切り替える](./docs/turn-off-SELinux.md)ことをお勧めします。
 
-> * It's recommended that Your OS is clean (without any other software installed), otherwise there may be conflicts.
-> * A container image mirror (accelerator) is recommended to be prepared if you have trouble downloading images from dockerhub.io. [Configure registry-mirrors for the Docker daemon](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon).
-> * KubeKey will install [OpenEBS](https://openebs.io/) to provision LocalPV for development and testing environment by default, this is convenient for new users. For production, please use NFS / Ceph / GlusterFS  or commercial products as persistent storage, and install the [relevant client](docs/storage-client.md) in all nodes.
-> * If you encounter `Permission denied` when copying, it is recommended to check [SELinux and turn off it](./docs/turn-off-SELinux.md) first
+> * OSがクリーンであることをお勧めします（他のソフトウェアがインストールされていない）。そうしないと、競合が発生する可能性があります。
+> * dockerhub.ioからのイメージのダウンロードに問題がある場合は、コンテナイメージミラー（アクセラレータ）を準備することをお勧めします。[Dockerデーモンのレジストリミラーを構成する](https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon)。
+> * KubeKeyはデフォルトで[OpenEBS](https://openebs.io/)をインストールして、開発およびテスト環境のLocalPVをプロビジョニングします。これは新しいユーザーにとって非常に便利です。プロダクション環境では、NFS / Ceph / GlusterFSまたは商用製品を永続ストレージとして使用し、すべてのノードに[関連クライアント](docs/storage-client.md)をインストールしてください。
+> * コピー時に`Permission denied`が発生した場合は、まず[SELinuxを無効にする](./docs/turn-off-SELinux.md)ことをお勧めします。
 
-* Dependency requirements:
+* 依存関係の要件:
 
-KubeKey can install Kubernetes and KubeSphere together. Some dependencies need to be installed before installing kubernetes after version 1.18. You can refer to the list below to check and install the relevant dependencies on your node in advance.
+KubeKeyはKubernetesとKubeSphereを一緒にインストールできます。バージョン1.18以降、kubernetesのインストール前にいくつかの依存関係をインストールする必要があります。以下のリストを参照して、事前にノードに関連する依存関係をチェックしてインストールしてください。
 
-|               | Kubernetes Version ≥ 1.18 |
+|               | Kubernetesバージョン ≥ 1.18 |
 | ------------- | -------------------------- |
-| `socat`     | Required                   |
-| `conntrack` | Required                   |
-| `ebtables`  | Optional but recommended   |
-| `ipset`     | Optional but recommended   |
-| `ipvsadm`   | Optional but recommended   |
+| `socat`     | 必須                   |
+| `conntrack` | 必須                   |
+| `ebtables`  | オプションですが推奨   |
+| `ipset`     | オプションですが推奨   |
+| `ipvsadm`   | オプションですが推奨   |
 
-* Networking and DNS requirements:
-  * Make sure the DNS address in `/etc/resolv.conf` is available. Otherwise, it may cause some issues of DNS in cluster.
-  * If your network configuration uses Firewall or Security Group，you must ensure infrastructure components can communicate with each other through specific ports. It's recommended that you turn off the firewall or follow the link configuriation: [NetworkAccess](docs/network-access.md).
+* ネットワーキングとDNSの要件:
+  * `/etc/resolv.conf`のDNSアドレスが利用可能であることを確認してください。そうしないと、クラスター内のDNSに関する問題が発生する可能性があります。
+  * ネットワーク構成でファイアウォールまたはセキュリティグループを使用している場合、インフラストラクチャコンポーネントが特定のポートを介して相互に通信できることを確認する必要があります。ファイアウォールをオフにするか、リンク構成に従うことをお勧めします: [ネットワークアクセス](docs/network-access.md)。
 
-## Usage
+## 使用方法
 
-### Get the KubeKey Executable File
+### KubeKey実行ファイルの取得
 
-* The fastest way to get KubeKey is to use the script:
+* 最速の方法はスクリプトを使用することです:
 
   ```
   curl -sfL https://get-kk.kubesphere.io | sh -
   ```
-* Binary downloads of the KubeKey also can be found on the [Releases page](https://github.com/kubesphere/kubekey/releases).
-  Unpack the binary and you are good to go!
-* Build Binary from Source Code
+* KubeKeyのバイナリダウンロードは[リリースページ](https://github.com/kubesphere/kubekey/releases)にもあります。
+  バイナリを解凍して、すぐに使用できます！
+* ソースコードからバイナリをビルドする
 
   ```shell
   git clone https://github.com/kubesphere/kubekey.git
@@ -115,176 +113,176 @@ KubeKey can install Kubernetes and KubeSphere together. Some dependencies need t
   make kk
   ```
 
-### Create a Cluster
+### クラスターの作成
 
-#### Quick Start
+#### クイックスタート
 
-Quick Start is for `all-in-one` installation which is a good start to get familiar with Kubernetes and KubeSphere.
+クイックスタートは`all-in-one`インストール用で、KubernetesとKubeSphereに慣れるための良いスタートです。
 
-> Note: Since Kubernetes temporarily does not support uppercase NodeName, contains uppercase letters in the hostname will lead to subsequent installation error
+> 注意: Kubernetesは一時的に大文字のNodeNameをサポートしていないため、ホスト名に大文字が含まれていると、後続のインストールエラーが発生します
 
-##### Command
+##### コマンド
 
-> If you have problem to access `https://storage.googleapis.com`, execute first `export KKZONE=cn`.
+> `https://storage.googleapis.com`にアクセスする際に問題がある場合は、最初に`export KKZONE=cn`を実行してください。
 
 ```shell
 ./kk create cluster [--with-kubernetes version] [--with-kubesphere version]
 ```
 
-##### Examples
+##### 例
 
-* Create a pure Kubernetes cluster with default version (Kubernetes v1.23.10).
+* デフォルトバージョン（Kubernetes v1.23.10）で純粋なKubernetesクラスターを作成する。
 
   ```shell
   ./kk create cluster
   ```
-* Create a Kubernetes cluster with a specified version.
+* 指定されたバージョンのKubernetesクラスターを作成する。
 
   ```shell
   ./kk create cluster --with-kubernetes v1.24.1 --container-manager containerd
   ```
-* Create a Kubernetes cluster with KubeSphere installed.
+* KubeSphereがインストールされたKubernetesクラスターを作成する。
 
   ```shell
   ./kk create cluster --with-kubesphere v3.2.1
   ```
 
-#### Advanced
+#### 高度なインストール
 
-You have more control to customize parameters or create a multi-node cluster using the advanced installation. Specifically, create a cluster by specifying a configuration file.
+高度なインストールを使用すると、カスタムパラメーターを制御したり、マルチノードクラスターを作成したりすることができます。具体的には、構成ファイルを指定してクラスターを作成します。
 
-> If you have problem to access `https://storage.googleapis.com`, execute first `export KKZONE=cn`.
+> `https://storage.googleapis.com`にアクセスする際に問題がある場合は、最初に`export KKZONE=cn`を実行してください。
 
-1. First, create an example configuration file
+1. まず、サンプル構成ファイルを作成します
 
    ```shell
    ./kk create config [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
    ```
 
-   **examples:**
+   **例:**
 
-   * create an example config file with default configurations. You also can specify the file that could be a different filename, or in different folder.
+   * デフォルトの構成でサンプル構成ファイルを作成します。ファイル名やフォルダーを指定することもできます。
 
    ```shell
    ./kk create config [-f ~/myfolder/abc.yaml]
    ```
 
-   * with KubeSphere
+   * KubeSphereを含む
 
    ```shell
    ./kk create config --with-kubesphere v3.2.1
    ```
-2. Modify the file config-sample.yaml according to your environment
+2. 環境に応じてconfig-sample.yamlファイルを変更します
 
-> Note:  Since Kubernetes temporarily does not support uppercase NodeName, contains uppercase letters in workerNode`s name will lead to subsequent installation error
+> 注意: Kubernetesは一時的に大文字のNodeNameをサポートしていないため、workerNodeの名前に大文字が含まれていると、後続のインストールエラーが発生します
 >
-> A persistent storage is required in the cluster, when kubesphere will be installed. The local volume is used default. If you want to use other persistent storage, please refer to [addons](./docs/addons.md).
+> KubeSphereをインストールする場合、クラスターには永続ストレージが必要です。デフォルトではローカルボリュームが使用されます。他の永続ストレージを使用する場合は、[addons](./docs/addons.md)を参照してください。
 
-3. Create a cluster using the configuration file
+3. 構成ファイルを使用してクラスターを作成します
 
    ```shell
    ./kk create cluster -f config-sample.yaml
    ```
 
-### Enable Multi-cluster Management
+### マルチクラスター管理の有効化
 
-By default, KubeKey will only install a **solo** cluster without Kubernetes federation. If you want to set up a multi-cluster control plane to centrally manage multiple clusters using KubeSphere, you need to set the `ClusterRole` in [config-example.yaml](docs/config-example.md). For multi-cluster user guide, please refer to [How to Enable the Multi-cluster Feature](https://github.com/kubesphere/community/tree/master/sig-multicluster/how-to-setup-multicluster-on-kubesphere).
+デフォルトでは、KubeKeyはKubernetesフェデレーションなしで**ソロ**クラスターのみをインストールします。KubeSphereを使用して複数のクラスターを集中管理するためのマルチクラスターコントロールプレーンを設定する場合は、[config-example.yaml](docs/config-example.md)で`ClusterRole`を設定する必要があります。マルチクラスターのユーザーガイドについては、[マルチクラスター機能の有効化方法](https://github.com/kubesphere/community/tree/master/sig-multicluster/how-to-setup-multicluster-on-kubesphere)を参照してください。
 
-### Enable Pluggable Components
+### プラグイン可能なコンポーネントの有効化
 
-KubeSphere has decoupled some core feature components since v2.1.0. These components are designed to be pluggable which means you can enable them either before or after installation. By default, KubeSphere will be started with a minimal installation if you do not enable them.
+KubeSphereはv2.1.0以降、いくつかのコア機能コンポーネントをデカップリングしました。これらのコンポーネントはプラグイン可能であり、インストール前またはインストール後に有効にすることができます。デフォルトでは、これらのコンポーネントを有効にしない場合、KubeSphereは最小インストールで開始されます。
 
-You can enable any of them according to your demands. It is highly recommended that you install these pluggable components to discover the full-stack features and capabilities provided by KubeSphere. Please ensure your machines have sufficient CPU and memory before enabling them. See [Enable Pluggable Components](https://github.com/kubesphere/ks-installer#enable-pluggable-components) for the details.
+ニーズに応じて、これらのコンポーネントを有効にすることができます。KubeSphereが提供するフルスタックの機能と機能を発見するために、これらのプラグイン可能なコンポーネントをインストールすることを強くお勧めします。これらを有効にする前に、マシンに十分なCPUとメモリがあることを確認してください。詳細については、[プラグイン可能なコンポーネントの有効化](https://github.com/kubesphere/ks-installer#enable-pluggable-components)を参照してください。
 
-### Add Nodes
+### ノードの追加
 
-Add new node's information to the cluster config file, then apply the changes.
+新しいノードの情報をクラスター構成ファイルに追加し、変更を適用します。
 
 ```shell
 ./kk add nodes -f config-sample.yaml
 ```
 
-### Delete Nodes
+### ノードの削除
 
-You can delete the node by the following command，the nodeName that needs to be removed.
+次のコマンドでノードを削除できます。削除するノード名を指定します。
 
 ```shell
 ./kk delete node <nodeName> -f config-sample.yaml
 ```
 
-### Delete Cluster
+### クラスターの削除
 
-You can delete the cluster by the following command:
+次のコマンドでクラスターを削除できます:
 
-* If you started with the quick start (all-in-one):
+* クイックスタート（all-in-one）を開始した場合:
 
 ```shell
 ./kk delete cluster
 ```
 
-* If you started with the advanced (created with a configuration file):
+* 高度なインストール（構成ファイルを使用して作成されたクラスター）を開始した場合:
 
 ```shell
 ./kk delete cluster [-f config-sample.yaml]
 ```
 
-### Upgrade Cluster
+### クラスターのアップグレード
 
 #### Allinone
 
-Upgrading cluster with a specified version.
+指定されたバージョンでクラスターをアップグレードします。
 
 ```shell
 ./kk upgrade [--with-kubernetes version] [--with-kubesphere version] 
 ```
 
-* Support upgrading Kubernetes only.
-* Support upgrading KubeSphere only.
-* Support upgrading Kubernetes and KubeSphere.
+* Kubernetesのみのアップグレードをサポートします。
+* KubeSphereのみのアップグレードをサポートします。
+* KubernetesとKubeSphereの両方のアップグレードをサポートします。
 
-#### Multi-nodes
+#### マルチノード
 
-Upgrading cluster with a specified configuration file.
+指定された構成ファイルでクラスターをアップグレードします。
 
 ```shell
 ./kk upgrade [--with-kubernetes version] [--with-kubesphere version] [(-f | --filename) path]
 ```
 
-* If `--with-kubernetes` or `--with-kubesphere` is specified, the configuration file will be also updated.
-* Use `-f` to specify the configuration file which was generated for cluster creation.
+* `--with-kubernetes`または`--with-kubesphere`が指定されている場合、構成ファイルも更新されます。
+* クラスター作成に使用された構成ファイルを指定するには、`-f`を使用します。
 
-> Note: Upgrading multi-nodes cluster need a specified configuration file. If the cluster was installed without kubekey or the configuration file for installation was not found, the configuration file needs to be created by yourself or following command.
+> 注意: マルチノードクラスターのアップグレードには、指定された構成ファイルが必要です。クラスターがkubekeyなしでインストールされた場合、またはインストールに使用された構成ファイルが見つからない場合は、構成ファイルを自分で作成するか、次のコマンドを使用して作成する必要があります。
 
-Getting cluster info and generating kubekey's configuration file (optional).
+クラスター情報を取得し、kubekeyの構成ファイルを生成します（オプション）。
 
 ```shell
 ./kk create config [--from-cluster] [(-f | --filename) path] [--kubeconfig path]
 ```
 
-* `--from-cluster` means fetching cluster's information from an existing cluster.
-* `-f` refers to the path where the configuration file is generated.
-* `--kubeconfig` refers to the path where the kubeconfig.
-* After generating the configuration file, some parameters need to be filled in, such as the ssh information of the nodes.
+* `--from-cluster`は、既存のクラスターからクラスター情報を取得することを意味します。
+* `-f`は、構成ファイルが生成されるパスを指します。
+* `--kubeconfig`は、kubeconfigのパスを指します。
+* 構成ファイルを生成した後、ノードのssh情報などのいくつかのパラメーターを入力する必要があります。
 
-## Documents
+## ドキュメント
 
-* [Features List](docs/features.md)
-* [Commands](docs/commands/kk.md)
-* [Configuration example](docs/config-example.md)
-* [Air-Gapped Installation](docs/manifest_and_artifact.md)
-* [Highly Available clusters](docs/ha-mode.md)
-* [Addons](docs/addons.md)
-* [Network access](docs/network-access.md)
-* [Storage clients](docs/storage-client.md)
-* [kubectl auto-completion](docs/kubectl-autocompletion.md)
-* [kubekey auto-completion](docs/kubekey-autocompletion.md)
-* [Roadmap](docs/roadmap.md)
-* [Check-Renew-Certificate](docs/check-renew-certificate.md)
-* [Developer-Guide](docs/developer-guide.md)
+* [機能リスト](docs/features.md)
+* [コマンド](docs/commands/kk.md)
+* [構成例](docs/config-example.md)
+* [エアギャップインストール](docs/manifest_and_artifact.md)
+* [高可用性クラスター](docs/ha-mode.md)
+* [アドオン](docs/addons.md)
+* [ネットワークアクセス](docs/network-access.md)
+* [ストレージクライアント](docs/storage-client.md)
+* [kubectl自動補完](docs/kubectl-autocompletion.md)
+* [kubekey自動補完](docs/kubekey-autocompletion.md)
+* [ロードマップ](docs/roadmap.md)
+* [証明書の確認と更新](docs/check-renew-certificate.md)
+* [開発者ガイド](docs/developer-guide.md)
 
-## Contributors ✨
+## 貢献者 ✨
 
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+これらの素晴らしい人々に感謝します（[絵文字キー](https://allcontributors.org/docs/en/emoji-key)）：
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -412,4 +410,4 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+このプロジェクトは [all-contributors](https://github.com/all-contributors/all-contributors) の仕様に従っています。どのような種類の貢献でも歓迎します！
