@@ -226,4 +226,5 @@ spec:
     #   resources: {}
   terminal:
     timeout: 600
+  zone: ""
 `)))
