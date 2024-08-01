@@ -317,6 +317,7 @@ var MergeAllRuntimeVariable = func(hostName string, vd map[string]any) MergeFunc
 	}
 }
 
+// GetAllVariable get all variable for a given host
 var GetAllVariable = func(hostName string) GetFunc {
 	return func(v Variable) (any, error) {
 		if _, ok := v.(*variable); !ok {
@@ -334,5 +335,20 @@ var GetAllVariable = func(hostName string) GetFunc {
 		}
 
 		return result, nil
+	}
+}
+
+// GetHostMaxLength get the max length for all hosts
+var GetHostMaxLength = func() GetFunc {
+	return func(v Variable) (any, error) {
+		if _, ok := v.(*variable); !ok {
+			return nil, fmt.Errorf("variable type error")
+		}
+		data := v.(*variable).value
+		var hostNameMaxLen int
+		for k := range data.Hosts {
+			hostNameMaxLen = max(len(k), hostNameMaxLen)
+		}
+		return hostNameMaxLen, nil
 	}
 }

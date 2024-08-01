@@ -30,7 +30,7 @@ spec:
       value: "true"
     - name: bgp_routerid
       value: |
-        {{- $ips := list -}}
+        {{ $ips := list }}
         {{- range .groups.kube_control_plane -}}
             {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
         {{- end -}}
@@ -43,7 +43,7 @@ spec:
       value: "65000"
     - name: bgp_peers
       value: |
-        {{- $ips := list -}}
+        {{ $ips := list }}
         {{- range .groups.kube_control_plane -}}
             {{- $ips = append $ips (printf "%s:65000::false" (index $.inventory_hosts . "internal_ipv4")) -}}
         {{- end -}}

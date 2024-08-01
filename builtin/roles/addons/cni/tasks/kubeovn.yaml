@@ -16,7 +16,7 @@
 - name: Install kubeovn
   command: |
     helm install kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz --set replicaCount={{ .cni.kubeovn.replica }} \
-    {{- $ips := list -}}
+    {{ $ips := list }}
     {{- range .groups.kube_control_plane -}}
         {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
     {{- end -}}
