@@ -18,8 +18,8 @@
     cn: etcd
     sans: |
       {{- $ips := list -}}
-      {{- range $element := .groups.etcd -}}
-        {{- $ips = append $ips (index .inventory_hosts $element "internal_ipv4") -}}
+      {{- range .groups.etcd -}}
+        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
       {{- end -}}
       {{ $ips | toJson }}
     date: 87600h
@@ -39,8 +39,8 @@
     cn: image_registry
     sans: |
       {{- $ips := list -}}
-      {{- range $element := .groups.image_registry -}}
-        {{- $ips = append $ips (index .inventory_hosts $element "internal_ipv4") -}}
+      {{- range .groups.image_registry -}}
+        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
       {{- end -}}
       {{ $ips | toJson }}
     date: 87600h

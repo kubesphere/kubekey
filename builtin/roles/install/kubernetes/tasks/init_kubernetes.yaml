@@ -47,7 +47,7 @@
 - name: Generate kubeadm init config
   template:
     src: |
-      {{- if .kube_version | versionAtLeast "v1.24.0" -}}
+      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
       kubeadm/kubeadm-init.v1beta3
       {{- else -}}
       kubeadm/kubeadm-init.v1beta2

@@ -185,17 +185,17 @@ metadata:
       addonmanager.kubernetes.io/mode: EnsureExists
 data:
   Corefile: |
-  {{- range $ez := .kubernetes.coredns.zone_configs }}
-    {{ (index $ez "zones") | join " " }} {
-      cache {{ index $ez "cache" }}
-    {{- range $c := (index $ez "additional_configs") }}
-      {{ $c }}
+  {{- range .kubernetes.coredns.zone_configs }}
+    {{ .zones | join " " }} {
+      cache {{ .cache }}
+    {{- range .additional_configs }}
+      {{ . }}
     {{- end }}
 
-    {{- range $r := (index $ez "rewrite") }}
-      rewrite {{ index $r "rule" }} {
-        {{ index $r "field" }} {{ index $r "type" }} {{ index $r "value" }}
-        {{ index $r "options" }}
+    {{- range .rewrite }}
+      rewrite {{ .rule }} {
+        {{ .field }} {{ .type }} {{ .value }}
+        {{ .options }}
       }
     {{- end }}
 
@@ -203,50 +203,50 @@ data:
         lameduck 5s
       }
 
-    {{- if (index $ez "kubernetes" "zones") | len | lt 0 }}
-      kubernetes {{ (index $ez "kubernetes" "zones") | join " " }} in-addr.arpa ip6.arpa {
+    {{- if .kubernetes.zones | len | lt 0 }}
+      kubernetes {{ .kubernetes.zones | join " " }} in-addr.arpa ip6.arpa {
         pods insecure
         fallthrough in-addr.arpa ip6.arpa
         ttl 30
       }
     {{- end }}
 
-    {{- range $f := (index $ez "forward") }}
-      forward {{ index $f "from" }} {{ (index $f "to") | join " " }} {
-      {{- if (index $f "except") | len | lt 0 }}
-        except {{ index $f "except" | join " " }}
+    {{- range .forward }}
+      forward {{ .from }} {{ .to | join " " }} {
+      {{- if .except | len | lt 0 }}
+        except {{ .except | join " " }}
       {{- end }}
-      {{- if index $f "force_tcp" }}
+      {{- if .force_tcp }}
         force_tcp
       {{- end }}
-      {{- if index $f "prefer_udp" }}
+      {{- if .prefer_udp }}
         prefer_udp
       {{- end }}
-      {{- if index $f "max_fails" }}
-        max_fails {{ index $f "max_fails" }}
+      {{- if .max_fails }}
+        max_fails {{ .max_fails }}
       {{- end }}
-      {{- if index $f "expire" }}
-        expire {{ index $f "expire" }}
+      {{- if .expire }}
+        expire {{ .expire }}
       {{- end }}
-      {{- if index $f "tls" }}
-        tls {{ index $f "tls" "cert_file" }} {{ index $f "tls" "key_file" }} {{ index $f "tls" "ca_file" }}
+      {{- if .tls }}
+        tls {{ .tls.cert_file }} {{ .tls.key_file }} {{ .tls.ca_file }}
       {{- end }}
-      {{- if index $f "tls_servername" }}
-        tls_servername {{ index $f "tls_servername" }}
+      {{- if .tls_servername }}
+        tls_servername {{ .tls_servername }}
       {{- end }}
-      {{- if index $f "policy" }}
-        policy {{ index $f "policy" }}
+      {{- if .policy }}
+        policy {{ .policy }}
       {{- end }}
-      {{- if index $f "health_check" }}
-        health_check {{ index $f "health_check" }}
+      {{- if .health_check }}
+        health_check {{ .health_check }}
       {{- end }}
-      {{- if index $f "max_concurrent" }}
-        max_concurrent {{ index $f "max_concurrent" }}
+      {{- if .max_concurrent }}
+        max_concurrent {{ .max_concurrent }}
       {{- end }}
       }
     {{- end }}
 
-    {{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
+    {{- if $.kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
@@ -256,7 +256,7 @@ data:
 
 {{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
   hosts: |
-  {{- range $h := .kubernetes.coredns.dns_etc_hosts }}
-    {{ $h }}
+  {{- range .kubernetes.coredns.dns_etc_hosts }}
+    {{ $. }}
   {{- end }}
 {{- end }}

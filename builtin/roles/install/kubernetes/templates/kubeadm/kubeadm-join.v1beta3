@@ -12,7 +12,7 @@ controlPlane:
     advertiseAddress: {{ .internal_ipv4 }}
     bindPort: {{ .kubernetes.apiserver.port }}
   certificateKey: {{ .kubeadm_cert }}
-{{ end }}
+{{- end }}
 nodeRegistration:
   criSocket: {{ .cri.cri_socket }}
   kubeletExtraArgs:

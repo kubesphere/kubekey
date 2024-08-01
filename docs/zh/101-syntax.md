@@ -1,18 +1,6 @@
 # 语法
 语法遵循`go template`规范.引用[sprig](https://github.com/Masterminds/sprig)进行函数扩展.
 # 自定义函数
-## versionAtLeast
-比较版本大小. 第一个参数的版本>=第二个参数的版本时返回true
-```yaml
-# version_variable>=v1.0.0
-{{ .version_variable | versionAtLeast "v1.0.0" }}
-```
-## versionLessThan
-比较版本大小. 第一个参数的版本<第二个参数的版本时返回true
-```yaml
-# version_variable<v1.0.0
-{{ .version_variable | versionLessThan "v1.0.0" }}
-```
 ## pow
 幂运算.
 ```yaml

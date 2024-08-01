@@ -56,7 +56,7 @@ func TestTemplate(t *testing.T) {
 			name: "dest is empty",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
-					Raw: []byte(fmt.Sprintf(`{"src": %s}`, absPath)),
+					Raw: []byte(fmt.Sprintf(`{"src": "%s"}`, absPath)),
 				},
 				Host:     "local",
 				Variable: &testVariable{},

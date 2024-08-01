@@ -455,11 +455,6 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				}
 
 				// fill result
-				//dataChan <- kubekeyv1alpha1.TaskHostResult{
-				//	Host:   host,
-				//	Stdout: stdout,
-				//	StdErr: stderr,
-				//}
 				task.Status.HostResults[i] = kubekeyv1alpha1.TaskHostResult{
 					Host:   h,
 					Stdout: stdout,
