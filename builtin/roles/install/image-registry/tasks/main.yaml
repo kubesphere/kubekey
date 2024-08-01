@@ -13,7 +13,7 @@
       ignore_errors: true
       command: systemctl status harbor.service
       register: image_registry_service
-    - include_tasks: install_registry.yaml
+    - include_tasks: install_harbor.yaml
       when: .image_registry_service.stderr | ne ""
 
 - name: Install registry
