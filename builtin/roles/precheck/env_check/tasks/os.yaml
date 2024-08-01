@@ -34,4 +34,4 @@
 
 - name: Stop if kernel version is too low
   assert:
-    that: .os.kernel_version | splitList "-" | first | versionAtLeast "4.9.17"
+    that: .os.kernel_version | splitList "-" | first | semverCompare ">=4.9.17"

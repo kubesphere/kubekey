@@ -29,6 +29,39 @@ func TestParseBool(t *testing.T) {
 		variable  map[string]any
 		excepted  bool
 	}{
+		// ======= semverCompare =======
+		{
+			name:      "semverCompare true-1",
+			condition: []string{"{{ .foo | semverCompare \">=v1.21\" }}"},
+			variable: map[string]any{
+				"foo": "v1.23",
+			},
+			excepted: true,
+		},
+		{
+			name:      "semverCompare true-2",
+			condition: []string{"{{  .foo | semverCompare \"v1.21\" }}"},
+			variable: map[string]any{
+				"foo": "v1.21",
+			},
+			excepted: true,
+		},
+		{
+			name:      "semverCompare true-3",
+			condition: []string{"{{ semverCompare \">=v1.21\" .foo }}"},
+			variable: map[string]any{
+				"foo": "v1.23",
+			},
+			excepted: true,
+		},
+		{
+			name:      "semverCompare true-3",
+			condition: []string{"{{ semverCompare \"<v1.21\" .foo }}"},
+			variable: map[string]any{
+				"foo": "v1.20",
+			},
+			excepted: true,
+		},
 		// ======= eq =======
 		{
 			name:      "atoi true-1",
@@ -238,6 +271,97 @@ func TestParseFunction(t *testing.T) {
 		variable map[string]any
 		excepted string
 	}{
+		// ======= if =======
+		{
+			name:  "if map 1",
+			input: "{{ if .foo.foo.foo1 | eq \"bar1\" }}{{ $.foo.foo.foo2 }}{{ end }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": map[string]any{
+						"foo1": "bar1",
+						"foo2": "bar2",
+					},
+				},
+			},
+			excepted: "bar2",
+		},
+		{
+			name:  "if map 1",
+			input: "{{ if .foo.foo.foo1 | eq \"bar1\" }}{{ .foo.foo.foo2 }}{{ end }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": map[string]any{
+						"foo1": "bar1",
+						"foo2": "bar2",
+					},
+				},
+			},
+			excepted: "bar2",
+		},
+		// ======= range =======
+		{
+			name:  "range map 1",
+			input: "{{ range $k,$v := .foo.foo }}{{ $v }}{{ end }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": map[string]any{
+						"foo1": "bar1",
+						"foo2": "bar2",
+					},
+				},
+			},
+			excepted: "bar1bar2",
+		},
+		{
+			name:  "range map value 1",
+			input: "{{ range .foo }}{{ .foo1 }}{{ end }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": map[string]any{
+						"foo1": "bar1",
+						"foo2": "bar2",
+					},
+				},
+			},
+			excepted: "bar1",
+		},
+		{
+			name:  "range map top-value 1",
+			input: "{{ range $_ := .foo }}{{ $.foo1 }}{{ end }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": map[string]any{
+						"foo1": "bar1",
+						"foo2": "bar2",
+					},
+				},
+				"foo1": "bar11",
+			},
+			excepted: "bar11",
+		},
+		{
+			name:  "range slice value 1",
+			input: "{{ range .foo }}{{ .foo1 }}{{ end }}",
+			variable: map[string]any{
+				"foo": []map[string]any{
+					{
+						"foo1": "bar1",
+						"foo2": "bar2",
+					},
+				},
+			},
+			excepted: "bar1",
+		},
+		{
+			name:  "range slice value 1",
+			input: "{{ range .foo }}{{ . }}{{ end }}",
+			variable: map[string]any{
+				"foo": []string{
+					"foo1", "bar1",
+				},
+			},
+			excepted: "foo1bar1",
+		},
 		// ======= default =======
 		{
 			name:     "default string 1",
@@ -474,48 +598,6 @@ func TestParseCustomFunction(t *testing.T) {
 		variable map[string]any
 		excepted string
 	}{
-		// ======= versionAtLeast =======
-		{
-			name:  "versionAtLeast true-1",
-			input: "{{ .foo | versionAtLeast \"v1.21\" }}",
-			variable: map[string]any{
-				"foo": "v1.23",
-			},
-			excepted: "true",
-		},
-		{
-			name:  "versionAtLeast true-2",
-			input: "{{  .foo | versionAtLeast \"v1.21\" }}",
-			variable: map[string]any{
-				"foo": "v1.21",
-			},
-			excepted: "true",
-		},
-		{
-			name:  "versionAtLeast true-3",
-			input: "{{ versionAtLeast \"v1.21\" .foo }}",
-			variable: map[string]any{
-				"foo": "v1.23",
-			},
-			excepted: "true",
-		},
-		// ======= versionLessThan =======
-		{
-			name:  "versionLessThan true-1",
-			input: "{{ versionLessThan \"v1.25\" .foo }}",
-			variable: map[string]any{
-				"foo": "v1.23",
-			},
-			excepted: "true",
-		},
-		{
-			name:  "versionLessThan true-2",
-			input: "{{  .foo | versionLessThan \"v1.25\" }}",
-			variable: map[string]any{
-				"foo": "v1.23",
-			},
-			excepted: "true",
-		},
 		// ======= ipInCIDR =======
 		{
 			name:  "ipInCIDR true-1",

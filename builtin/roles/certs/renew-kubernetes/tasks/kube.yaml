@@ -9,7 +9,7 @@
   tags: ["certs"]
   run_once: true
   command: |
-    {{- if .kubeadm_install_version.stdout | versionLessThan "v1.20.0" -}}
+    {{- if .kubeadm_install_version.stdout | semverCompare "<v1.20.0" -}}
     /usr/local/bin/kubeadm alpha certs renew apiserver
     /usr/local/bin/kubeadm alpha certs renew apiserver-kubelet-client
     /usr/local/bin/kubeadm alpha certs renew front-proxy-client

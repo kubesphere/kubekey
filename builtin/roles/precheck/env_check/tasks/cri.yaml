@@ -9,7 +9,7 @@
 
 - name: Ensure minimum containerd version
   assert:
-    that: .containerd_version | versionAtLeast .cluster_require.containerd_min_version_required
+    that: .containerd_version | semverCompare (printf ">=%s" .cluster_require.containerd_min_version_required)
     fail_msg: |
       containerd_version is too low. Minimum version {{ .cluster_require.containerd_min_version_required }}
   run_once: true

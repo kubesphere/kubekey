@@ -17,7 +17,6 @@ limitations under the License.
 package variable
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -25,8 +24,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
@@ -154,6 +153,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 	case string:
 		as, err := tmpl.ParseString(d, valv)
 		if err != nil {
+			klog.V(4).ErrorS(err, "parse string", "key", key)
 			return nil, err
 		}
 		var ss []string
@@ -194,7 +194,7 @@ func Extension2Variables(ext runtime.RawExtension) map[string]any {
 	}
 
 	var data map[string]any
-	if err := yaml.Unmarshal(ext.Raw, &data); err != nil {
+	if err := json.Unmarshal(ext.Raw, &data); err != nil {
 		klog.V(4).ErrorS(err, "failed to unmarshal extension to variables")
 	}
 	return data
@@ -208,7 +208,7 @@ func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
 
 	var data []any
 	// try parse yaml string which defined  by single value or multi value
-	if err := yaml.Unmarshal(ext.Raw, &data); err == nil {
+	if err := json.Unmarshal(ext.Raw, &data); err == nil {
 		return data
 	}
 	// try converter template string

@@ -62,7 +62,7 @@ func ParseString(ctx map[string]any, input string) (string, error) {
 		return "", fmt.Errorf("failed to execute template '%s': %v", input, err)
 	}
 	klog.V(6).InfoS(" parse template succeed", "result", result.String())
-	return result.String(), nil
+	return strings.TrimPrefix(strings.TrimSuffix(result.String(), "\n"), "\n"), nil
 }
 
 // IsTmplSyntax Check if the string conforms to the template syntax.
