@@ -24,7 +24,7 @@
   when: or (.kubeadm_install_version.stderr | ne "") (.kubeadm_install_version.stdout | ne .kube_version)
   copy:
     src: |
-      {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubeadm"
+      {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubeadm
     dest: /usr/local/bin/kubeadm
     mode: 0755
 

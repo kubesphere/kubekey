@@ -351,8 +351,8 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 
 			for {
 				var roleLog string
-				if role, ok := task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]; ok {
-					roleLog = "[" + role + "]"
+				if task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] != "" {
+					roleLog = "[" + task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] + "]"
 				}
 				fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.RFC822), roleLog, task.Spec.Name)
 				// exec task

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"k8s.io/klog/v2"
 	"net/http"
 	"os"
 	"path/filepath"
