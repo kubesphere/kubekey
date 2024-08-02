@@ -31,7 +31,7 @@
     dest: /root/.kube/config
 
 - name: Set to worker node
-  when: .groups.kube_worker | has .inventory_name
+  when: .groups.kube_worker | default list | has .inventory_name
   block:
     - name: Remote master taint
       ignore_errors: true

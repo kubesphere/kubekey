@@ -9,13 +9,13 @@
 - include_tasks: deploy_kube_vip.yaml
   when:
     - .kubernetes.kube_vip.enabled
-    - .groups.kube_control_plane | has .inventory_name
+    - .groups.kube_control_plane | default list | has .inventory_name
 
 - name: Select init kubernetes node
   run_once: true
   set_fact:
     init_kubernetes_node: |
-      {{ .groups.kube_control_plane | first }}
+      {{ .groups.kube_control_plane | default list | first }}
 
 - name: Init kubernetes
   when: eq .inventory_name .init_kubernetes_node
@@ -59,7 +59,7 @@
 - include_tasks: deploy_haproxy.yaml
   when:
     - .kubernetes.haproxy.enabled
-    - .groups.kube_worker | has .inventory_name
+    - .groups.kube_worker | default list | has .inventory_name
 
 - name: Add custom label to cluster
   command: |

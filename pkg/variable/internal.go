@@ -84,11 +84,6 @@ func (v value) getParameterVariable() map[string]any {
 		}
 		// set default localhost
 		if hostname == _const.VariableLocalHost {
-			if os, ok := v.Hosts[hostname].RemoteVars[_const.VariableOS]; ok {
-				if osm, ok := os.(map[string]any); ok {
-					hostVars[_const.VariableHostName] = osm[_const.VariableOSHostName].(string)
-				}
-			}
 			if _, ok := hostVars[_const.VariableIPv4]; !ok {
 				hostVars[_const.VariableIPv4] = getLocalIP(_const.VariableIPv4)
 			}

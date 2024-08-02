@@ -18,7 +18,7 @@
     cn: etcd
     sans: |
       {{- $ips := list -}}
-      {{- range .groups.etcd -}}
+      {{- range .groups.etcd | default list -}}
         {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
       {{- end -}}
       {{ $ips | toJson }}
@@ -28,7 +28,7 @@
       {{ .work_dir }}/kubekey/pki/etcd.key
     out_cert: |
       {{ .work_dir }}/kubekey/pki/etcd.crt
-  when: .groups.etcd | len | lt 0
+  when: .groups.etcd | default list | len | lt 0
 
 - name: Generate registry image cert file
   gen_cert:
@@ -39,7 +39,7 @@
     cn: image_registry
     sans: |
       {{- $ips := list -}}
-      {{- range .groups.image_registry -}}
+      {{- range .groups.image_registry | default list -}}
         {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
       {{- end -}}
       {{ $ips | toJson }}
@@ -49,4 +49,4 @@
       {{ .work_dir }}/kubekey/pki/image_registry.key
     out_cert: |
       {{ .work_dir }}/kubekey/pki/image_registry.crt
-  when: .groups.image_registry | len | lt 0
+  when: and .groups.image_registry (.groups.image_registry | default list | len | lt 0)

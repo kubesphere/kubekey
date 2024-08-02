@@ -34,7 +34,7 @@
         systemctl daemon-reload && systemctl start docker.service && systemctl enable docker.service
 
 - name: Sync image registry tls to remote
-  when: .groups.image_registry | len | lt 0
+  when: .groups.image_registry | default list | len | lt 0
   block:
     - name: Sync image registry cert file to remote
       copy:

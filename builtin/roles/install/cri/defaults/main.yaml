@@ -26,7 +26,7 @@ image_registry:
       {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") -}}
       {{ .image_registry.ha_vip }}
       {{- else -}}
-      {{ .groups.image_registry | first }}
+      {{ .groups.image_registry | default list | first }}
       {{- end -}}
     username: admin
     password: Harbor12345

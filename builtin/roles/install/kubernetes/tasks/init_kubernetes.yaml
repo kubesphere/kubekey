@@ -20,7 +20,7 @@
     - {path: "/var/lib/calico", chown: "/var/lib/calico"}
 
 - name: Sync external etcd config
-  when: and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | len | lt 0)
+  when: and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | len | lt 0)
   block:
     - name: Sync etcd ca file to remote
       copy:
@@ -73,7 +73,7 @@
   when: .kube_node_info_important.stderr | ne ""
 
 - name: Set to worker node
-  when: .groups.kube_worker | has .inventory_name
+  when: .groups.kube_worker | default list | has .inventory_name
   block:
     - name: Remote master taint
       ignore_errors: true
