@@ -60,8 +60,8 @@ const ( // === From GatherFact ===
 	VariableOSRelease = "release"
 	// VariableOSKernelVersion the value is kernel version of VariableOS.
 	VariableOSKernelVersion = "kernel_version"
-	// VariableOSKHostName the value is hostname of VariableOS.
-	VariableOSKHostName = "hostname"
+	// VariableOSHostName the value is hostname of VariableOS.
+	VariableOSHostName = "hostname"
 	// VariableOSArchitecture the value is architecture of VariableOS.
 	VariableOSArchitecture = "architecture"
 	// VariableProcess the value is process information.

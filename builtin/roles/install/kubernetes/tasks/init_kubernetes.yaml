@@ -58,12 +58,7 @@
   block:
     - name: Init kubernetes by kubeadm
       command: |
-        /usr/local/bin/kubeadm init \
-          --config=/etc/kubernetes/kubeadm-config.yaml \
-          --ignore-preflight-errors=FileExisting-crictl,ImagePull \
-        {{- if not .kubernetes.kube_proxy.enabled -}}
-          --skip-phases=addon/kube-proxy \
-        {{- end -}}
+        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
   rescue:
     - name: Reset kubeadm if init failed
       command: |

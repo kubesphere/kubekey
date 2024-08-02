@@ -52,10 +52,10 @@ kubernetes:
   kubelet:
     max_pod: 110
     pod_pids_limit: 10000
-    feature_gates: {}
+#    feature_gates:
     container_log_max_size: 5Mi
     container_log_max_files: 3
-    extra_args: {}
+#    extra_args:
   coredns:
     dns_etc_hosts: []
     # the config for zones

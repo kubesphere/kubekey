@@ -20,10 +20,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"k8s.io/klog/v2"
 	"os"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
+
+	"k8s.io/klog/v2"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"

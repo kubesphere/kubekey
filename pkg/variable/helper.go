@@ -18,14 +18,15 @@ package variable
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/klog/v2"
 	"net"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -278,7 +279,7 @@ func IntVar(d map[string]any, vars map[string]any, key string) (int, error) {
 // Extension2Variables convert extension to variables
 func Extension2Variables(ext runtime.RawExtension) map[string]any {
 	if len(ext.Raw) == 0 {
-		return nil
+		return make(map[string]any)
 	}
 
 	var data map[string]any

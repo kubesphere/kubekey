@@ -97,7 +97,7 @@ func (c *localConnector) Info(ctx context.Context) (map[string]any, error) {
 		if err != nil {
 			return nil, fmt.Errorf("get hostname error: %w", err)
 		}
-		osVars[_const.VariableHostName] = string(bytes.TrimSuffix(hn, []byte("\n")))
+		osVars[_const.VariableOSHostName] = string(bytes.TrimSuffix(hn, []byte("\n")))
 		arch, err := c.ExecuteCommand(ctx, "arch")
 		if err != nil {
 			return nil, fmt.Errorf("get arch error: %w", err)

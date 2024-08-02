@@ -75,9 +75,7 @@ func (v value) getParameterVariable() map[string]any {
 		hostVars := Extension2Variables(v.Inventory.Spec.Hosts[hostname])
 		// set inventory_name to hostVars
 		// "inventory_name" is the hostname configured in the inventory file.
-		hostVars = combineVariables(hostVars, map[string]any{
-			_const.VariableHostName: hostname,
-		})
+		hostVars[_const.VariableHostName] = hostname
 		// merge group vars to host vars
 		for _, gv := range v.Inventory.Spec.Groups {
 			if slices.Contains(gv.Hosts, hostname) {
@@ -86,6 +84,11 @@ func (v value) getParameterVariable() map[string]any {
 		}
 		// set default localhost
 		if hostname == _const.VariableLocalHost {
+			if os, ok := v.Hosts[hostname].RemoteVars[_const.VariableOS]; ok {
+				if osm, ok := os.(map[string]any); ok {
+					hostVars[_const.VariableHostName] = osm[_const.VariableOSHostName].(string)
+				}
+			}
 			if _, ok := hostVars[_const.VariableIPv4]; !ok {
 				hostVars[_const.VariableIPv4] = getLocalIP(_const.VariableIPv4)
 			}
