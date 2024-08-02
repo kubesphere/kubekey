@@ -175,7 +175,7 @@ featureGates:
   {{ if .kube_version | semverCompare ">=v1.21.0" }}
   CSIStorageCapacity: true
   {{- end }}
-{{ .features | toYaml | indent 2 }}
+{{ .kubelet.feature_gates | toYaml | indent 2 }}
 {{- else }}
 featureGates:
   RotateKubeletServerCertificate: true
@@ -186,7 +186,7 @@ featureGates:
   CSIStorageCapacity: true
   ExpandCSIVolumes: true
   {{- end }}
-{{ .features | toYaml | indent 2 }}
+{{ .kubelet.feature_gates | toYaml | indent 2 }}
 {{- end }}
 cgroupDriver: {{ .cri.cgroup_driver }}
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
