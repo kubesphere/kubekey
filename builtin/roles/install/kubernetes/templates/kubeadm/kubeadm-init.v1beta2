@@ -8,13 +8,13 @@ etcd:
     imageTag: {{ .kubernetes.etcd.image | splitList ":" | last }}
     serverCertSANs:
     {{- range .groups.etcd }}
-    - https://{{ index .inventory_hosts . "internal_ipv4" }}:2379
+    - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
     {{- end }}
 {{- else }}
   external:
     endpoints:
     {{- range .groups.etcd }}
-    - https://{{ index .inventory_hosts . "internal_ipv4" }}:2379
+    - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
     {{- end }}
     caFile: /etc/kubernetes/pki/etcd/ca.crt
     certFile: /etc/kubernetes/pki/etcd/client.crt
