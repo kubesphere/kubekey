@@ -18,15 +18,14 @@ package variable
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/klog/v2"
 	"net"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/klog/v2"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -114,147 +113,6 @@ func mergeSlice(g1, g2 []string) []string {
 	return mg
 }
 
-// StringVar get string value by key
-func StringVar(d map[string]any, args map[string]any, key string) (string, error) {
-	val, ok := args[key]
-	if !ok {
-		return "", fmt.Errorf("cannot find variable \"%s\"", key)
-	}
-
-	sv, ok := val.(string)
-	if !ok {
-		return "", fmt.Errorf("variable \"%s\" is not string", key)
-	}
-	return tmpl.ParseString(d, sv)
-}
-
-// StringSliceVar get string slice value by key
-func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string, error) {
-	val, ok := vars[key]
-	if !ok {
-		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
-	}
-	switch valv := val.(type) {
-	case []any:
-		var ss []string
-		for _, a := range valv {
-			av, ok := a.(string)
-			if !ok {
-				klog.V(6).InfoS("variable is not string", "key", key)
-				return nil, nil
-			}
-			as, err := tmpl.ParseString(d, av)
-			if err != nil {
-				return nil, err
-			}
-			ss = append(ss, as)
-		}
-		return ss, nil
-	case string:
-		as, err := tmpl.ParseString(d, valv)
-		if err != nil {
-			klog.V(4).ErrorS(err, "parse string", "key", key)
-			return nil, err
-		}
-		var ss []string
-		if err := json.Unmarshal([]byte(as), &ss); err == nil {
-			return ss, nil
-		}
-		return []string{as}, nil
-	default:
-		return nil, fmt.Errorf("unsupport variable \"%s\" type", key)
-	}
-}
-
-// IntVar get int value by key
-func IntVar(d map[string]any, vars map[string]any, key string) (int, error) {
-	val, ok := vars[key]
-	if !ok {
-		return 0, fmt.Errorf("cannot find variable \"%s\"", key)
-	}
-	// default convert to float64
-	switch valv := val.(type) {
-	case float64:
-		return int(valv), nil
-	case string:
-		vs, err := tmpl.ParseString(d, valv)
-		if err != nil {
-			return 0, err
-		}
-		return strconv.Atoi(vs)
-	default:
-		return 0, fmt.Errorf("unsupport variable \"%s\" type", key)
-	}
-}
-
-// Extension2Variables convert extension to variables
-func Extension2Variables(ext runtime.RawExtension) map[string]any {
-	if len(ext.Raw) == 0 {
-		return nil
-	}
-
-	var data map[string]any
-	if err := json.Unmarshal(ext.Raw, &data); err != nil {
-		klog.V(4).ErrorS(err, "failed to unmarshal extension to variables")
-	}
-	return data
-}
-
-// Extension2Slice convert extension to slice
-func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
-	if len(ext.Raw) == 0 {
-		return nil
-	}
-
-	var data []any
-	// try parse yaml string which defined  by single value or multi value
-	if err := json.Unmarshal(ext.Raw, &data); err == nil {
-		return data
-	}
-	// try converter template string
-	val, err := Extension2String(d, ext)
-	if err != nil {
-		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
-	}
-	if err := json.Unmarshal([]byte(val), &data); err == nil {
-		return data
-	}
-	return []any{val}
-}
-
-func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error) {
-	if len(ext.Raw) == 0 {
-		return "", nil
-	}
-	var input = string(ext.Raw)
-	// try to escape string
-	if ns, err := strconv.Unquote(string(ext.Raw)); err == nil {
-		input = ns
-	}
-
-	result, err := tmpl.ParseString(d, input)
-	if err != nil {
-		return "", err
-	}
-
-	return result, nil
-}
-
-// GetValue from VariableData by key path
-func GetValue(value map[string]any, keys string) any {
-	switch {
-	case strings.HasPrefix(keys, "{{") && strings.HasSuffix(keys, "}}"):
-		// the keys like {{ a.b.c }}. return value[a][b][c]
-		var result any = value
-		for _, k := range strings.Split(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(keys, "{{"), "}}")), ".") {
-			result = result.(map[string]any)[k]
-		}
-		return result
-	default:
-		return nil
-	}
-}
-
 // parseVariable parse all string values to the actual value.
 func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 	switch reflect.ValueOf(v).Kind() {
@@ -330,4 +188,142 @@ func getLocalIP(ipType string) string {
 	}
 	klog.V(4).Infof("connot get local %s address", ipType)
 	return ""
+}
+
+// StringVar get string value by key
+func StringVar(d map[string]any, args map[string]any, key string) (string, error) {
+	val, ok := args[key]
+	if !ok {
+		klog.V(4).ErrorS(nil, "cannot find variable", "key", key)
+		return "", fmt.Errorf("cannot find variable \"%s\"", key)
+	}
+	// convert to string
+	sv, ok := val.(string)
+	if !ok {
+		klog.V(4).ErrorS(nil, "variable is not string", "key", key)
+		return "", fmt.Errorf("variable \"%s\" is not string", key)
+	}
+	return tmpl.ParseString(d, sv)
+}
+
+// StringSliceVar get string slice value by key
+func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string, error) {
+	val, ok := vars[key]
+	if !ok {
+		klog.V(4).ErrorS(nil, "cannot find variable", "key", key)
+		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
+	}
+	switch valv := val.(type) {
+	case []any:
+		var ss []string
+		for _, a := range valv {
+			av, ok := a.(string)
+			if !ok {
+				klog.V(6).InfoS("variable is not string", "key", key)
+				return nil, nil
+			}
+			as, err := tmpl.ParseString(d, av)
+			if err != nil {
+				return nil, err
+			}
+			ss = append(ss, as)
+		}
+		return ss, nil
+	case string:
+		as, err := tmpl.ParseString(d, valv)
+		if err != nil {
+			klog.V(4).ErrorS(err, "parse variable error", "key", key)
+			return nil, err
+		}
+		var ss []string
+		if err := json.Unmarshal([]byte(as), &ss); err == nil {
+			return ss, nil
+		}
+		return []string{as}, nil
+	default:
+		klog.V(4).ErrorS(nil, "unsupported variable type", "key", key)
+		return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
+	}
+}
+
+// IntVar get int value by key
+func IntVar(d map[string]any, vars map[string]any, key string) (int, error) {
+	val, ok := vars[key]
+	if !ok {
+		klog.V(4).ErrorS(nil, "cannot find variable", "key", key)
+		return 0, fmt.Errorf("cannot find variable \"%s\"", key)
+	}
+	// default convert to int
+	v := reflect.ValueOf(val)
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return int(v.Int()), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return int(v.Uint()), nil
+	case reflect.Float32, reflect.Float64:
+		return int(v.Float()), nil
+	case reflect.String:
+		vs, err := tmpl.ParseString(d, v.String())
+		if err != nil {
+			klog.V(4).ErrorS(err, "parse string variable error", "key", key)
+			return 0, err
+		}
+		return strconv.Atoi(vs)
+	default:
+		klog.V(4).ErrorS(nil, "unsupported variable type", "key", key)
+		return 0, fmt.Errorf("unsupported variable \"%s\" type", key)
+	}
+}
+
+// Extension2Variables convert extension to variables
+func Extension2Variables(ext runtime.RawExtension) map[string]any {
+	if len(ext.Raw) == 0 {
+		return nil
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal(ext.Raw, &data); err != nil {
+		klog.V(4).ErrorS(err, "failed to unmarshal extension to variables")
+	}
+	return data
+}
+
+// Extension2Slice convert extension to slice
+func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
+	if len(ext.Raw) == 0 {
+		return nil
+	}
+
+	var data []any
+	// try parse yaml string which defined  by single value or multi value
+	if err := json.Unmarshal(ext.Raw, &data); err == nil {
+		return data
+	}
+	// try converter template string
+	val, err := Extension2String(d, ext)
+	if err != nil {
+		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
+	}
+	if err := json.Unmarshal([]byte(val), &data); err == nil {
+		return data
+	}
+	return []any{val}
+}
+
+func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error) {
+	if len(ext.Raw) == 0 {
+		return "", nil
+	}
+	var input = string(ext.Raw)
+	// try to escape string
+	if ns, err := strconv.Unquote(string(ext.Raw)); err == nil {
+		input = ns
+	}
+
+	result, err := tmpl.ParseString(d, input)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
 }
