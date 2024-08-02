@@ -64,7 +64,9 @@ apiServer:
   {{- range .groups.k8s_cluster }}
     - {{ . }}.{{ .kubernetes.networking.dns_domain }}
     - {{ index $.inventory_hosts . "internal_ipv4" }}
-    {{- if index $.inventory_hosts . "internal_ipv6" }}- {{ index $.inventory_hosts . "internal_ipv6" }}{{ end }}
+    {{- if index $.inventory_hosts . "internal_ipv6" }}
+    - {{ index $.inventory_hosts . "internal_ipv6" }}
+    {{- end }}
   {{- end }}
   {{- range .kubernetes.apiserver.certSANs }}
     - {{ . }}
@@ -174,7 +176,7 @@ featureGates:
   {{ if .kube_version | semverCompare ">=v1.21.0" }}
   CSIStorageCapacity: true
   {{- end }}
-{{ .kubelet.feature_gates  | toYaml | indent 2 }}
+{{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
 {{- else }}
 featureGates:
   RotateKubeletServerCertificate: true
@@ -185,8 +187,9 @@ featureGates:
   CSIStorageCapacity: true
   ExpandCSIVolumes: true
   {{- end }}
-{{ .kubelet.feature_gates  | toYaml | indent 2 }}
+{{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
 {{- end }}
 cgroupDriver: {{ .cri.cgroup_driver }}
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
 containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
+{{ .kubernetes.kubelet.extra_args | toYaml }}

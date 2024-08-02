@@ -13,8 +13,7 @@
   copy:
     src: audit
     dest: /etc/kubernetes/audit/
-  when:
-    - kubernetes.audit
+  when: .kubernetes.audit
 
 - name: Join kubernetes cluster
   block:
