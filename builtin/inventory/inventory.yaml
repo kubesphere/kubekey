@@ -29,9 +29,9 @@ spec:
     etcd:
       hosts:
         - localhost
-    image_registry:
-      hosts:
-        - localhost
+#    image_registry:
+#      hosts:
+#        - localhost
     # nfs nodes for registry storage. and kubernetes nfs storage
 #    nfs:
 #      hosts:
