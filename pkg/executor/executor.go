@@ -354,7 +354,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 				if task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] != "" {
 					roleLog = "[" + task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] + "]"
 				}
-				fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.RFC822), roleLog, task.Spec.Name)
+				fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.TimeOnly+" MST"), roleLog, task.Spec.Name)
 				// exec task
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseRunning
 				if err := e.client.Status().Update(ctx, task); err != nil {
