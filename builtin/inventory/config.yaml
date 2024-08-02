@@ -19,9 +19,9 @@ spec:
   # etcd binary
   etcd_version: v3.5.6
   # harbor image tag
-#  harbor_version: v2.10.1
+  harbor_version: v2.10.1
   # docker-compose binary
-#  dockercompose_version: v2.24.6
+  dockercompose_version: v2.24.6
   # registry image tag
 #  registry_version: 2.8.3
   # keepalived image tag
