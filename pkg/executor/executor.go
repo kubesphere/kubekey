@@ -50,7 +50,7 @@ type TaskExecutor interface {
 	Exec(ctx context.Context) error
 }
 
-func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline) TaskExecutor {
+func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline, logOutput io.Writer) TaskExecutor {
 	// get variable
 	v, err := variable.New(client, *pipeline)
 	if err != nil {
@@ -62,7 +62,7 @@ func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline) Tas
 		client:    client,
 		pipeline:  pipeline,
 		variable:  v,
-		logOutput: os.Stdout,
+		logOutput: logOutput,
 	}
 }
 
@@ -350,7 +350,11 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			}
 
 			for {
-				fmt.Fprintf(e.logOutput, "%s [Task %s] \"%s\":\"%s\" exec:%v times\n", time.Now().Format(time.RFC3339), ctrlclient.ObjectKeyFromObject(task), task.Annotations[kubekeyv1alpha1.TaskAnnotationRole], task.Spec.Name, task.Status.RestartCount+1)
+				var roleLog string
+				if role, ok := task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]; ok {
+					roleLog = "[" + role + "]"
+				}
+				fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.RFC822), roleLog, task.Spec.Name)
 				// exec task
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseRunning
 				if err := e.client.Status().Update(ctx, task); err != nil {
@@ -431,9 +435,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					}
 				}
 				if stderr != "" && task.Spec.IgnoreError != nil && *task.Spec.IgnoreError {
-					klog.V(4).ErrorS(fmt.Errorf("%s", stderr), "task run failed", "task", ctrlclient.ObjectKeyFromObject(task))
+					klog.V(4).ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(task))
 				} else if stderr != "" {
-					klog.ErrorS(fmt.Errorf("%s", stderr), "task run failed", "task", ctrlclient.ObjectKeyFromObject(task))
+					klog.ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(task))
 				}
 				// fill result
 				task.Status.HostResults[i] = kubekeyv1alpha1.TaskHostResult{

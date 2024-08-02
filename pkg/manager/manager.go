@@ -18,6 +18,7 @@ package manager
 
 import (
 	"context"
+	"os"
 
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -44,6 +45,7 @@ func NewCommandManager(o CommandManagerOptions) Manager {
 		Config:    o.Config,
 		Inventory: o.Inventory,
 		Client:    o.Client,
+		logOutput: os.Stdout,
 	}
 }
 
