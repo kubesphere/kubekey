@@ -24,13 +24,13 @@
 - name: Stop if memory is too small for masters
   assert:
     that: .process.memInfo.MemTotal | trimSuffix " kB" | atoi | le .cluster_require.minimal_master_memory_mb
-  when: .groups.kube_control_plane | has .inventory_name
+  when: .groups.kube_control_plane | default list | has .inventory_name
 
 - name: Stop if memory is too small for nodes
   assert:
     that: .process.memInfo.MemTotal | trimSuffix " kB" | atoi | le .cluster_require.minimal_node_memory_mb
   when:
-    - .groups.kube_worker | has .inventory_name
+    - .groups.kube_worker | default list | has .inventory_name
 
 - name: Stop if kernel version is too low
   assert:

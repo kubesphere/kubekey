@@ -35,7 +35,7 @@ cni:
   calico:
     # when cluster node > 50. it default true.
     typha: |
-      {{- if gt (.groups.k8s_cluster | len) 50 -}}
+      {{- if gt (.groups.k8s_cluster | default list | len) 50 -}}
       true
       {{- else -}}
       false
@@ -97,7 +97,7 @@ cni:
       {{- if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") -}}
       {{- .kubernetes.control_plane_endpoint -}}
       {{- else -}}
-      {{- .groups.kube_control_plane | first -}}
+      {{- .groups.kube_control_plane | default list | first -}}
       {{- end -}}
     k8s_port: |
       {{- .kubernetes.apiserver.port | default 6443 -}}

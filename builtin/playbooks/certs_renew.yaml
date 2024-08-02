@@ -13,7 +13,7 @@
     - vars/certs_renew.yaml
   roles:
     - role: certs/renew-etcd
-      when: and (.groups.etcd | len | lt 0) .renew_etcd
+      when: and (.groups.etcd | default list | len | lt 0) .renew_etcd
 
 - hosts:
     - image_registry
@@ -22,7 +22,7 @@
     - vars/certs_renew.yaml
   roles:
     - role: certs/renew-registry
-      when: and (.groups.image_registry | len | lt 0) .renew_image_registry
+      when: and (.groups.image_registry | default list | len | lt 0) .renew_image_registry
 
 - hosts:
     - kube_control_plane
@@ -31,4 +31,4 @@
   tags: ["certs"]
   roles:
     - role: certs/renew-kubernetes
-      when: and (.groups.kube_control_plane | len | lt 0) .renew_kubernetes
+      when: and (.groups.kube_control_plane | default list | len | lt 0) .renew_kubernetes
