@@ -474,9 +474,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				switch {
 				case stderr != "":
 					if task.Spec.IgnoreError != nil && *task.Spec.IgnoreError { // ignore
-						bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mignore \033[0m ", h, placeholder))
+						bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mignore \033[0m", h, placeholder))
 					} else { // failed
-						bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[31mfailed \033[0m ", h, placeholder))
+						bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[31mfailed \033[0m", h, placeholder))
 					}
 				case stdout == "skip": // skip
 					bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mskip   \033[0m", h, placeholder))
