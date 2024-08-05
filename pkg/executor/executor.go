@@ -54,7 +54,7 @@ func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline, log
 	// get variable
 	v, err := variable.New(client, *pipeline)
 	if err != nil {
-		klog.V(4).ErrorS(nil, "convert playbook error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+		klog.V(5).ErrorS(nil, "convert playbook error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return nil
 	}
 
@@ -110,7 +110,7 @@ func (e executor) Exec(ctx context.Context) error {
 			hosts = ahn.([]string)
 		}
 		if len(hosts) == 0 { // if hosts is empty skip this playbook
-			klog.V(4).Info("Hosts is empty", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
+			klog.V(5).Info("Hosts is empty", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 			continue
 		}
 
@@ -123,7 +123,7 @@ func (e executor) Exec(ctx context.Context) error {
 				}
 				// merge host information to runtime variable
 				if err := e.variable.Merge(variable.MergeRemoteVariable(h, gfv)); err != nil {
-					klog.V(4).ErrorS(err, "Merge gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "host", h)
+					klog.V(5).ErrorS(err, "Merge gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "host", h)
 					return fmt.Errorf("merge gather fact error: %w", err)
 				}
 			}
@@ -142,18 +142,17 @@ func (e executor) Exec(ctx context.Context) error {
 			}
 		}
 
-		// generate task by each batch.
+		// generate and execute task.
 		for _, serials := range batchHosts {
 			// each batch hosts should not be empty.
 			if len(serials) == 0 {
-				klog.V(4).ErrorS(nil, "Host is empty", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
+				klog.V(5).ErrorS(nil, "Host is empty", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 				return fmt.Errorf("host is empty")
 			}
 
 			if err := e.mergeVariable(ctx, e.variable, play.Vars, serials...); err != nil {
 				return fmt.Errorf("merge variable error: %w", err)
 			}
-
 			// generate task from pre tasks
 			if err := e.execBlock(ctx, execBlockOptions{
 				hosts:        serials,
@@ -163,7 +162,6 @@ func (e executor) Exec(ctx context.Context) error {
 			}); err != nil {
 				return fmt.Errorf("execute pre-tasks from play error: %w", err)
 			}
-
 			// generate task from role
 			for _, role := range play.Roles {
 				if err := e.mergeVariable(ctx, e.variable, role.Vars, serials...); err != nil {
@@ -213,7 +211,7 @@ func (e executor) Exec(ctx context.Context) error {
 func (e executor) getGatherFact(ctx context.Context, hostname string, vars variable.Variable) (map[string]any, error) {
 	v, err := vars.Get(variable.GetParamVariable(hostname))
 	if err != nil {
-		klog.V(4).ErrorS(err, "Get host variable error", "hostname", hostname)
+		klog.V(5).ErrorS(err, "Get host variable error", "hostname", hostname)
 		return nil, err
 	}
 	connectorVars := make(map[string]any)
@@ -224,11 +222,11 @@ func (e executor) getGatherFact(ctx context.Context, hostname string, vars varia
 	}
 	conn, err := connector.NewConnector(hostname, connectorVars)
 	if err != nil {
-		klog.V(4).ErrorS(err, "New connector error", "hostname", hostname)
+		klog.V(5).ErrorS(err, "New connector error", "hostname", hostname)
 		return nil, err
 	}
 	if err := conn.Init(ctx); err != nil {
-		klog.V(4).ErrorS(err, "Init connection error", "hostname", hostname)
+		klog.V(5).ErrorS(err, "Init connection error", "hostname", hostname)
 		return nil, err
 	}
 	defer conn.Close(ctx)
@@ -236,7 +234,7 @@ func (e executor) getGatherFact(ctx context.Context, hostname string, vars varia
 	if gf, ok := conn.(connector.GatherFacts); ok {
 		return gf.Info(ctx)
 	}
-	klog.V(4).ErrorS(nil, "gather fact is not defined in this connector", "hostname", hostname)
+	klog.V(5).ErrorS(nil, "gather fact is not defined in this connector", "hostname", hostname)
 	return nil, nil
 }
 
@@ -275,7 +273,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 				when:         append(options.when, at.When.Data...),
 				tags:         tags,
 			}); err != nil {
-				klog.V(4).ErrorS(err, "execute tasks from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+				klog.V(5).ErrorS(err, "execute tasks from block error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				errs = errors.Join(errs, err)
 			}
 
@@ -289,7 +287,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					when:         append(options.when, at.When.Data...),
 					tags:         tags,
 				}); err != nil {
-					klog.V(4).ErrorS(err, "execute tasks from rescue error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+					klog.V(5).ErrorS(err, "execute tasks from rescue error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					errs = errors.Join(errs, err)
 				}
 			}
@@ -304,7 +302,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					when:         append(options.when, at.When.Data...),
 					tags:         tags,
 				}); err != nil {
-					klog.V(4).ErrorS(err, "execute tasks from always error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+					klog.V(5).ErrorS(err, "execute tasks from always error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					errs = errors.Join(errs, err)
 				}
 			}
@@ -323,14 +321,14 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			task.GenerateName = e.pipeline.Name + "-"
 			task.Namespace = e.pipeline.Namespace
 			if err := controllerutil.SetControllerReference(e.pipeline, task, e.client.Scheme()); err != nil {
-				klog.V(4).ErrorS(err, "Set controller reference error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+				klog.V(5).ErrorS(err, "Set controller reference error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return err
 			}
 			// complete module by unknown field
 			for n, a := range at.UnknownFiled {
 				data, err := json.Marshal(a)
 				if err != nil {
-					klog.V(4).ErrorS(err, "Marshal unknown field error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name, "field", n)
+					klog.V(5).ErrorS(err, "Marshal unknown field error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name, "field", n)
 					return err
 				}
 				if m := modules.FindModule(n); m != nil {
@@ -340,20 +338,21 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 				}
 			}
 			if task.Spec.Module.Name == "" { // action is necessary for a task
-				klog.V(4).ErrorS(nil, "No module/action detected in task", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+				klog.V(5).ErrorS(nil, "No module/action detected in task", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return fmt.Errorf("no module/action detected in task: %s", task.Name)
 			}
 			// create task
 			if err := e.client.Create(ctx, task); err != nil {
-				klog.V(4).ErrorS(err, "create task error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+				klog.V(5).ErrorS(err, "create task error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 				return err
 			}
 
 			for {
 				var roleLog string
 				if task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] != "" {
-					roleLog = "[" + task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] + "]"
+					roleLog = "[" + task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] + "] "
 				}
+				klog.V(5).InfoS("begin run task", "task", ctrlclient.ObjectKeyFromObject(task))
 				fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.TimeOnly+" MST"), roleLog, task.Spec.Name)
 				// exec task
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseRunning
@@ -361,7 +360,7 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					klog.V(5).ErrorS(err, "update task status error", "task", ctrlclient.ObjectKeyFromObject(task))
 				}
 				if err := e.executeTask(ctx, task, options); err != nil {
-					klog.V(4).ErrorS(err, "exec task error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
+					klog.V(5).ErrorS(err, "exec task error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "block", at.Name)
 					return err
 				}
 				if err := e.client.Status().Update(ctx, task); err != nil {
@@ -435,7 +434,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					}
 				}
 				if stderr != "" && task.Spec.IgnoreError != nil && *task.Spec.IgnoreError {
-					klog.V(4).ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(task))
+					klog.V(5).ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(task))
 				} else if stderr != "" {
 					klog.ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(task))
 				}
@@ -455,7 +454,7 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 			// progress bar for task
 			var bar = progressbar.NewOptions(-1,
 				progressbar.OptionSetWriter(e.logOutput),
-				progressbar.OptionSpinnerType(59),
+				progressbar.OptionSpinnerCustom([]string{"            "}),
 				progressbar.OptionEnableColorCodes(true),
 				progressbar.OptionSetDescription(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[36mrunning\033[0m", h, placeholder)),
 				progressbar.OptionOnCompletion(func() {
@@ -463,8 +462,6 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 						klog.ErrorS(err, "failed to write output", "host", h)
 					}
 				}),
-				progressbar.OptionShowElapsedTimeOnFinish(),
-				progressbar.OptionSetPredictTime(false),
 			)
 			go func() {
 				for !bar.IsFinished() {
@@ -497,12 +494,6 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 				stderr = fmt.Sprintf("get variable error: %v", err)
 				return
 			}
-			// execute module with loop
-			loop, err := e.parseLoop(ctx, ha.(map[string]any), task)
-			if err != nil {
-				stderr = fmt.Sprintf("parse loop vars error: %v", err)
-				return
-			}
 			// check when condition
 			if len(task.Spec.When) > 0 {
 				ok, err := tmpl.ParseBool(ha.(map[string]any), task.Spec.When)
@@ -515,8 +506,9 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					return
 				}
 			}
+			// execute module with loop
 			// if loop is empty. execute once, and the item is null
-			for _, item := range loop {
+			for _, item := range e.parseLoop(ctx, ha.(map[string]any), task) {
 				// set item to runtime variable
 				if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
 					_const.VariableItem: item,
@@ -562,13 +554,13 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 // loop is json string. try convertor to string slice by json.
 // loop is normal string. set it to empty slice and return.
 // loop is string slice. return it.
-func (e executor) parseLoop(ctx context.Context, ha map[string]any, task *kubekeyv1alpha1.Task) ([]any, error) {
+func (e executor) parseLoop(ctx context.Context, ha map[string]any, task *kubekeyv1alpha1.Task) []any {
 	switch {
 	case task.Spec.Loop.Raw == nil:
 		// loop is not set. add one element to execute once module.
-		return []any{nil}, nil
+		return []any{nil}
 	default:
-		return variable.Extension2Slice(ha, task.Spec.Loop), nil
+		return variable.Extension2Slice(ha, task.Spec.Loop)
 	}
 }
 

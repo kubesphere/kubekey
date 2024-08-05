@@ -71,9 +71,11 @@ func TestGetAllVariable(t *testing.T) {
 							"images": []interface{}{"abc"},
 						},
 						"inventory_name": "localhost",
+						"hostname":       "localhost",
 					},
 				},
 				"inventory_name": "localhost",
+				"hostname":       "localhost",
 			},
 		},
 	}

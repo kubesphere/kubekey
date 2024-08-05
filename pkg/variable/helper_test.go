@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
@@ -285,6 +286,72 @@ func TestParseVariable(t *testing.T) {
 				t.Fatal(err)
 			}
 			assert.Equal(t, tc.except, tc.data)
+		})
+	}
+}
+
+func TestHostsInGroup(t *testing.T) {
+	testcases := []struct {
+		name      string
+		inventory kubekeyv1.Inventory
+		groupName string
+		except    []string
+	}{
+		{
+			name: "single group",
+			inventory: kubekeyv1.Inventory{
+				Spec: kubekeyv1.InventorySpec{
+					Groups: map[string]kubekeyv1.InventoryGroup{
+						"g1": {
+							Hosts: []string{"h1", "h2", "h3"},
+						},
+					},
+				},
+			},
+			groupName: "g1",
+			except:    []string{"h1", "h2", "h3"},
+		},
+		{
+			name: "group in group",
+			inventory: kubekeyv1.Inventory{
+				Spec: kubekeyv1.InventorySpec{
+					Groups: map[string]kubekeyv1.InventoryGroup{
+						"g1": {
+							Hosts:  []string{"h1", "h2", "h3"},
+							Groups: []string{"g2"},
+						},
+						"g2": {
+							Hosts: []string{"h4"},
+						},
+					},
+				},
+			},
+			groupName: "g1",
+			except:    []string{"h1", "h2", "h3", "h4"},
+		},
+		{
+			name: "repeat hosts in group",
+			inventory: kubekeyv1.Inventory{
+				Spec: kubekeyv1.InventorySpec{
+					Groups: map[string]kubekeyv1.InventoryGroup{
+						"g1": {
+							Hosts:  []string{"h1", "h2", "h3"},
+							Groups: []string{"g2"},
+						},
+						"g2": {
+							Hosts: []string{"h3", "h4"},
+						},
+					},
+				},
+			},
+			groupName: "g1",
+			except:    []string{"h4", "h1", "h2", "h3"},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.ElementsMatch(t, tc.except, hostsInGroup(tc.inventory, tc.groupName))
 		})
 	}
 }

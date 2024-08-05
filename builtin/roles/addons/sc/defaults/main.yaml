@@ -11,5 +11,5 @@ sc:
     enabled: false
     default: false
     server: |
-      {{ groups.nfs | first }}
+      {{ .groups.nfs | default list | first }}
     path: /share/kubernetes

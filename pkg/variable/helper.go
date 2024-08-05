@@ -182,7 +182,7 @@ func getLocalIP(ipType string) string {
 			if ipType == _const.VariableIPv4 && ipNet.IP.To4() != nil {
 				return ipNet.IP.String()
 			}
-			if ipType == _const.VariableIPv6 && ipNet.IP.To16() != nil {
+			if ipType == _const.VariableIPv6 && ipNet.IP.To16() != nil && ipNet.IP.To4() == nil {
 				return ipNet.IP.String()
 			}
 		}

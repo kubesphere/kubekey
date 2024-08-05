@@ -16,15 +16,15 @@
 - name: Install kubeovn
   command: |
     helm install kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz --set replicaCount={{ .cni.kubeovn.replica }} \
-    {{ $ips := list }}
-    {{- range .groups.kube_control_plane | default list -}}
-        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
-    {{- end -}}
-      --set MASTER_NODES={{ $ips |join "," }} \
+    {{- $ips := list }}
+    {{- range .groups.kube_control_plane | default list }}
+        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") }}
+    {{- end }}
+      --set MASTER_NODES={{ $ips | join "," }} \
       --set global.registry.address={{ .cni.kubeovn.registry }} \
       --set ipv4.POD_CIDR={{ .cni.kubeovn.kube_pods_v4_cidr }} --set ipv4.SVC_CIDR={{ .cni.kubeovn.kube_svc_cidr }} \
-    {{- if .cni.ipv6_support -}}
+    {{- if .cni.ipv6_support }}
       --set networking.NET_STACK=dual_stack \
       --set dual_stack.POD_CIDR={{ .cni.kubeovn.kube_pods_v4_cidr }},{{ .cni.kubeovn.kube_pods_v6_cidr }} \
       --set dual_stack.SVC_CIDR={{ .cni.kubeovn.kube_svc_cidr }} \
-    {{- end -}}
+    {{- end }}

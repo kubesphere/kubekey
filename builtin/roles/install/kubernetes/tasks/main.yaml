@@ -1,7 +1,7 @@
 ---
 - name: Check kubernetes if installed
   ignore_errors: true
-  command: kubectl get node --field-selector metadata.name={{ .inventory_name }}
+  command: kubectl get node --field-selector metadata.name={{ .hostname }}
   register: kube_node_info_important
 
 - include_tasks: install_binaries.yaml
@@ -15,10 +15,10 @@
   run_once: true
   set_fact:
     init_kubernetes_node: |
-      {{ .groups.kube_control_plane | default list | first }}
+      {{ index .inventory_hosts (.groups.kube_control_plane | default list | first) "hostname" }}
 
 - name: Init kubernetes
-  when: eq .inventory_name .init_kubernetes_node
+  when: eq .hostname .init_kubernetes_node
   block:
     - include_tasks: init_kubernetes.yaml
       when: .kube_node_info_important.stderr | ne ""
@@ -54,7 +54,7 @@
 - include_tasks: join_kubernetes.yaml
   when:
     - .kube_node_info_important.stderr | ne ""
-    - ne .inventory_name .init_kubernetes_node
+    - ne .hostname .init_kubernetes_node
 
 - include_tasks: deploy_haproxy.yaml
   when:
@@ -63,7 +63,7 @@
 
 - name: Add custom label to cluster
   command: |
-    {{- range $k, $v := .kubernetes.custom_label -}}
-    /usr/local/bin/kubectl label --overwrite node {{ $.inventory_name }} {{ $k }}={{ $v }}
-    {{- end -}}
+    {{- range $k, $v := .kubernetes.custom_label }}
+    /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
+    {{- end }}
   when: .kubernetes.custom_label | len | lt 0

@@ -3,11 +3,11 @@ image_registry:
   namespace_override: ""
   auth:
     registry: |
-      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") -}}
+      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
       {{ .image_registry.ha_vip }}
-      {{- else -}}
+      {{- else }}
       {{ .groups.image_registry | default list | first }}
-      {{- end -}}
+      {{- end }}
     username: admin
     password: Harbor12345
   # registry type. support: harbor, registry

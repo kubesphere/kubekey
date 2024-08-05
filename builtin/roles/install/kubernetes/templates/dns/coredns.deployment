@@ -246,7 +246,7 @@ data:
       }
     {{- end }}
 
-    {{- if $.kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
+    {{- if $.kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
@@ -254,9 +254,9 @@ data:
     }
   {{- end }}
 
-{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
+{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
   hosts: |
   {{- range .kubernetes.coredns.dns_etc_hosts }}
-    {{ $. }}
+    {{ . }}
   {{- end }}
 {{- end }}

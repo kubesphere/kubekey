@@ -1,33 +1,33 @@
 cni:
   kube_proxy: |
-    {{- .kubernetes.kube_proxy.enabled | default true -}}
+    {{ .kubernetes.kube_proxy.enabled | default true }}
   # apiVersion for policy may be changed for difference kubernetes version. https://kube-api.ninja
   api_version_policy: |
-    {{- if .kube_version | semverCompare "<v1.21" -}}
+    {{- if .kube_version | semverCompare "<v1.21" }}
     policy/v1beta1
-    {{- else -}}
+    {{- else }}
     policy/v1
-    {{- end -}}
+    {{- end }}
   kube_network_plugin: |
-    {{- .kubernetes.kube_network_plugin | default "calico" -}}
+    {{ .kubernetes.kube_network_plugin | default "calico" }}
   # ip cidr config.
   # dual stack. support ipv4/ipv6
   ipv6_support: |
-    {{- if gt ( .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | len) 1 -}}
+    {{- if gt ( .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | len) 1 }}
     true
-    {{- else -}}
+    {{- else }}
     false
-    {{- end -}}
+    {{- end }}
   kube_pods_v4_cidr: |
-    {{- .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first -}}
+    {{ .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first }}
   kube_pods_v6_cidr: |
-    {{- if .cni.ipv6_support -}}
-    {{- .kubernetes.networking.pod_cidr | splitList "," | last -}}
-    {{- end -}}
+    {{- if .cni.ipv6_support }}
+    {{ .kubernetes.networking.pod_cidr | splitList "," | last }}
+    {{- end }}
   node_cidr_mask_size: |
-    {{- .kubernetes.controller_manager.kube_network_node_prefix | default 24 -}}
+    {{ .kubernetes.controller_manager.kube_network_node_prefix | default 24 }}
   kube_svc_cidr: |
-    {{- .kubernetes.networking.service_cidr | default "10.233.0.0/18" -}}
+    {{ .kubernetes.networking.service_cidr | default "10.233.0.0/18" }}
   multus:
     enabled: false
     image: |
@@ -35,11 +35,11 @@ cni:
   calico:
     # when cluster node > 50. it default true.
     typha: |
-      {{- if gt (.groups.k8s_cluster | default list | len) 50 -}}
+      {{- if gt (.groups.k8s_cluster | default list | len) 50 }}
       true
-      {{- else -}}
+      {{- else }}
       false
-      {{- end -}}
+      {{- end }}
     veth_mtu: 0
     ipip_mode: Always
     vxlan_mode: Never
@@ -94,19 +94,19 @@ cni:
     spire_server_repository: |
       {{ .ghcrio_registry }}/spiffe/spire-server
     k8s_endpoint: |
-      {{- if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") -}}
-      {{- .kubernetes.control_plane_endpoint -}}
-      {{- else -}}
-      {{- .groups.kube_control_plane | default list | first -}}
-      {{- end -}}
+      {{- if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}
+      {{ .kubernetes.control_plane_endpoint }}
+      {{- else }}
+      {{ .groups.kube_control_plane | default list | first }}
+      {{- end }}
     k8s_port: |
-      {{- .kubernetes.apiserver.port | default 6443 -}}
+      {{ .kubernetes.apiserver.port | default 6443 }}
   kubeovn:
     replica: 1
     registry: |
       {{ .dockerio_registry }}/kubeovn
   hybridnet:
     registry: |
-      {{- .dockerio_registry -}}
+      {{ .dockerio_registry }}
 #    hybridnet_image: hybridnetdev/hybridnet
 #    hybridnet_tag: v0.8.8

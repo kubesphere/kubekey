@@ -42,13 +42,25 @@ type commandManager struct {
 }
 
 func (m *commandManager) Run(ctx context.Context) error {
-	fmt.Fprintf(m.logOutput, "%s [Pipeline %s] start\n", time.Now().Format(time.RFC822), ctrlclient.ObjectKeyFromObject(m.Pipeline))
+	fmt.Fprint(m.logOutput, `
+
+ _   __      _          _   __           
+| | / /     | |        | | / /           
+| |/ / _   _| |__   ___| |/ /  ___ _   _ 
+|    \| | | | '_ \ / _ \    \ / _ \ | | |
+| |\  \ |_| | |_) |  __/ |\  \  __/ |_| |
+\_| \_/\__,_|_.__/ \___\_| \_/\___|\__, |
+                                    __/ |
+                                   |___/
+
+`)
+	fmt.Fprintf(m.logOutput, "%s [Pipeline %s] start\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline))
 	cp := m.Pipeline.DeepCopy()
 	defer func() {
-		fmt.Fprintf(m.logOutput, "%s [Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.RFC3339), ctrlclient.ObjectKeyFromObject(m.Pipeline),
+		fmt.Fprintf(m.logOutput, "%s [Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline),
 			m.Pipeline.Status.TaskResult.Total, m.Pipeline.Status.TaskResult.Success, m.Pipeline.Status.TaskResult.Ignored, m.Pipeline.Status.TaskResult.Failed)
 		if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kubekeyv1.PipelinePhaseSucceed {
-			fmt.Fprintf(m.logOutput, "%s [Pipeline %s] clean runtime directory\n", time.Now().Format(time.RFC822), ctrlclient.ObjectKeyFromObject(m.Pipeline))
+			fmt.Fprintf(m.logOutput, "%s [Pipeline %s] clean runtime directory\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline))
 			// clean runtime directory
 			if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
 				klog.ErrorS(err, "clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())

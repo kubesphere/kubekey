@@ -117,7 +117,7 @@ data:
       log
       errors
       loadbalance
-      cache {{ index $ez "cache" }}
+      cache {{ .cache }}
       reload
       loop
       bind 169.254.25.10
@@ -144,7 +144,7 @@ data:
         max_fails {{ .max_fails | default 2 }}
         expire {{ .expire | default "10s" }}
       {{- if .tls }}
-        tls {{ .tls.cert_file }} {{ i.tls.key_file }} {{ .tls.ca_file }}
+        tls {{ .tls.cert_file }} {{ .tls.key_file }} {{ .tls.ca_file }}
       {{- end }}
       {{- if .tls_servername }}
         tls_servername {{ .tls_servername }}
@@ -221,7 +221,7 @@ data:
     {{- end }}
     }
 
-{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0) }}
+{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
   hosts: |
   {{- range .kubernetes.coredns.dns_etc_hosts }}
     {{ . }}
