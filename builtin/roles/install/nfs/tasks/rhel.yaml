@@ -6,16 +6,16 @@
 
 - name: Install nfs
   command: yum update && yum install -y nfs-utils
-  when: nfs_server_install.stderr != ""
+  when: .nfs_server_install.stderr | ne ""
 
 - name: Create nfs share directory
   command: |
-    if [ ! -d {{ item }} ]; then
-      mkdir -p {{ item }}
-      chmod -R 0755 {{ item }}
-      chown nobody:nobody {{ item }}
+    if [ ! -d {{ .item }} ]; then
+      mkdir -p {{ .item }}
+      chmod -R 0755 {{ .item }}
+      chown nobody:nobody {{ .item }}
     fi
-  loop: "{{ nfs.share_dir }}"
+  loop: "{{ .nfs.share_dir }}"
 
 - name: Generate nfs config
   template:

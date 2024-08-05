@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/strings/slices"
 
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -75,15 +75,23 @@ func (v value) getParameterVariable() map[string]any {
 		hostVars := Extension2Variables(v.Inventory.Spec.Hosts[hostname])
 		// set inventory_name to hostVars
 		// "inventory_name" is the hostname configured in the inventory file.
-		hostVars = combineVariables(hostVars, map[string]any{
-			_const.VariableHostName: hostname,
-		})
+		hostVars[_const.VariableHostName] = hostname
 		// merge group vars to host vars
 		for _, gv := range v.Inventory.Spec.Groups {
 			if slices.Contains(gv.Hosts, hostname) {
 				hostVars = combineVariables(hostVars, Extension2Variables(gv.Vars))
 			}
 		}
+		// set default localhost
+		if hostname == _const.VariableLocalHost {
+			if _, ok := hostVars[_const.VariableIPv4]; !ok {
+				hostVars[_const.VariableIPv4] = getLocalIP(_const.VariableIPv4)
+			}
+			if _, ok := hostVars[_const.VariableIPv6]; !ok {
+				hostVars[_const.VariableIPv6] = getLocalIP(_const.VariableIPv6)
+			}
+		}
+
 		// merge inventory vars to host vars
 		hostVars = combineVariables(hostVars, Extension2Variables(v.Inventory.Spec.Vars))
 		// merge config vars to host vars
@@ -307,6 +315,7 @@ var MergeAllRuntimeVariable = func(hostName string, vd map[string]any) MergeFunc
 	}
 }
 
+// GetAllVariable get all variable for a given host
 var GetAllVariable = func(hostName string) GetFunc {
 	return func(v Variable) (any, error) {
 		if _, ok := v.(*variable); !ok {
@@ -324,5 +333,20 @@ var GetAllVariable = func(hostName string) GetFunc {
 		}
 
 		return result, nil
+	}
+}
+
+// GetHostMaxLength get the max length for all hosts
+var GetHostMaxLength = func() GetFunc {
+	return func(v Variable) (any, error) {
+		if _, ok := v.(*variable); !ok {
+			return nil, fmt.Errorf("variable type error")
+		}
+		data := v.(*variable).value
+		var hostNameMaxLen int
+		for k := range data.Hosts {
+			hostNameMaxLen = max(len(k), hostNameMaxLen)
+		}
+		return hostNameMaxLen, nil
 	}
 }

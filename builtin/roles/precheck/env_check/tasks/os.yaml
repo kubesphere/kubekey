@@ -1,35 +1,37 @@
 ---
 - name: Stop if bad hostname
-  vars:
-    regex: '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
   assert:
-    that: inventory_name | match:regex
+    that: .inventory_name | regexMatch "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"
     fail_msg: "Hostname must consist of lower case alphanumeric characters, '.' or '-', and must start and end with an alphanumeric character"
 
 - name: Stop if the os does not support
   assert:
-    that: (cluster_require.allow_unsupported_distribution_setup) or (os.release.ID in cluster_require.supported_os_distributions)
-    fail_msg: "{{ os.release.ID }} is not a known OS"
+    that: or (.cluster_require.allow_unsupported_distribution_setup) (.cluster_require.supported_os_distributions | has .os.release.ID)
+    fail_msg: "{{ .os.release.ID }} is not a known OS"
 
 - name: Stop if arch supported
   assert:
-    that: os.architecture in cluster_require.supported_architectures.amd64 or os.architecture in cluster_require.supported_architectures.arm64
-    success_msg: "{% if (os.architecture in cluster_require.supported_architectures.amd64) %}amd64{% else %}arm64{% endif %}"
-    fail_msg: "{{ os.architecture }} is not a known OS"
+    that: or (.cluster_require.supported_architectures.amd64 | has .os.architecture) (.cluster_require.supported_architectures.arm64 | has .os.architecture)
+    success_msg: |
+      {{- if .cluster_require.supported_architectures.amd64 | has .os.architecture -}}
+      amd64
+      {{- else -}}
+      arm64
+      {{- end -}}
+    fail_msg: "{{ .os.architecture }} is not a known arch"
   register: binary_type
 
 - name: Stop if memory is too small for masters
   assert:
-    that: process.memInfo.MemTotal | cut:' kB' >= cluster_require.minimal_master_memory_mb
-  when:
-    - inventory_name in groups['kube_control_plane']
+    that: .process.memInfo.MemTotal | trimSuffix " kB" | atoi | le .cluster_require.minimal_master_memory_mb
+  when: .groups.kube_control_plane | default list | has .inventory_name
 
 - name: Stop if memory is too small for nodes
   assert:
-    that: process.memInfo.MemTotal | cut:' kB' >= cluster_require.minimal_node_memory_mb
+    that: .process.memInfo.MemTotal | trimSuffix " kB" | atoi | le .cluster_require.minimal_node_memory_mb
   when:
-    - inventory_name in groups['kube_worker']
+    - .groups.kube_worker | default list | has .inventory_name
 
 - name: Stop if kernel version is too low
   assert:
-    that: os.kernel_version | split:'-' | first | version:'>=4.9.17'
+    that: .os.kernel_version | splitList "-" | first | semverCompare ">=4.9.17"

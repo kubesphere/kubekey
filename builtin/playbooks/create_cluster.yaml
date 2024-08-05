@@ -37,7 +37,7 @@
     - kube_control_plane
   roles:
     - role: install/certs
-      when: renew_certs.enabled|default_if_none:false
+      when: .renew_certs.enabled
 
 - hosts:
     - k8s_cluster|random

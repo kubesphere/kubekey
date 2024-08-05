@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1
 
-import "k8s.io/utils/strings/slices"
+import "slices"
 
 // Taggable if it should executor
 type Taggable struct {

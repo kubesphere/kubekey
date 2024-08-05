@@ -20,7 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/schollz/progressbar/v3"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +37,7 @@ import (
 	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
 	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
@@ -46,7 +50,7 @@ type TaskExecutor interface {
 	Exec(ctx context.Context) error
 }
 
-func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline) TaskExecutor {
+func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline, logOutput io.Writer) TaskExecutor {
 	// get variable
 	v, err := variable.New(client, *pipeline)
 	if err != nil {
@@ -55,9 +59,10 @@ func NewTaskExecutor(client ctrlclient.Client, pipeline *kubekeyv1.Pipeline) Tas
 	}
 
 	return &executor{
-		client:   client,
-		pipeline: pipeline,
-		variable: v,
+		client:    client,
+		pipeline:  pipeline,
+		variable:  v,
+		logOutput: logOutput,
 	}
 }
 
@@ -66,6 +71,8 @@ type executor struct {
 
 	pipeline *kubekeyv1.Pipeline
 	variable variable.Variable
+
+	logOutput io.Writer
 }
 
 type execBlockOptions struct {
@@ -209,8 +216,13 @@ func (e executor) getGatherFact(ctx context.Context, hostname string, vars varia
 		klog.V(4).ErrorS(err, "Get host variable error", "hostname", hostname)
 		return nil, err
 	}
-
-	conn, err := connector.NewConnector(hostname, v.(map[string]any))
+	connectorVars := make(map[string]any)
+	if c1, ok := v.(map[string]any)[_const.VariableConnector]; ok {
+		if c2, ok := c1.(map[string]any); ok {
+			connectorVars = c2
+		}
+	}
+	conn, err := connector.NewConnector(hostname, connectorVars)
 	if err != nil {
 		klog.V(4).ErrorS(err, "New connector error", "hostname", hostname)
 		return nil, err
@@ -228,6 +240,7 @@ func (e executor) getGatherFact(ctx context.Context, hostname string, vars varia
 	return nil, nil
 }
 
+// execBlock loop block and generate task.
 func (e executor) execBlock(ctx context.Context, options execBlockOptions) error {
 	for _, at := range options.blocks {
 		if !kkcorev1.JoinTag(at.Taggable, options.tags).IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
@@ -337,7 +350,11 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 			}
 
 			for {
-				klog.Infof("[Task %s] task exec \"%s\" begin for %v times", ctrlclient.ObjectKeyFromObject(task), task.Spec.Name, task.Status.RestartCount+1)
+				var roleLog string
+				if task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] != "" {
+					roleLog = "[" + task.Annotations[kubekeyv1alpha1.TaskAnnotationRole] + "]"
+				}
+				fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.TimeOnly+" MST"), roleLog, task.Spec.Name)
 				// exec task
 				task.Status.Phase = kubekeyv1alpha1.TaskPhaseRunning
 				if err := e.client.Status().Update(ctx, task); err != nil {
@@ -356,7 +373,6 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 					break
 				}
 			}
-			klog.Infof("[Task %s] task exec \"%s\" end status is %s", ctrlclient.ObjectKeyFromObject(task), task.Spec.Name, task.Status.Phase)
 			e.pipeline.Status.TaskResult.Total++
 			switch task.Status.Phase {
 			case kubekeyv1alpha1.TaskPhaseSuccess:
@@ -389,26 +405,16 @@ func (e executor) execBlock(ctx context.Context, options execBlockOptions) error
 	return nil
 }
 
+// executeTask parallel in each host.
 func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, options execBlockOptions) error {
 	// check task host results
 	wg := &wait.Group{}
 	task.Status.HostResults = make([]kubekeyv1alpha1.TaskHostResult, len(task.Spec.Hosts))
+
 	for i, h := range task.Spec.Hosts {
 		wg.StartWithContext(ctx, func(ctx context.Context) {
+			// task result
 			var stdout, stderr string
-
-			// progress bar for task
-			var bar = progressbar.NewOptions(1,
-				progressbar.OptionEnableColorCodes(true),
-				progressbar.OptionSetDescription(fmt.Sprintf("[%s] running...", h)),
-				progressbar.OptionOnCompletion(func() {
-					if _, err := os.Stdout.WriteString("\n"); err != nil {
-						klog.ErrorS(err, "failed to write output", "host", h)
-					}
-				}),
-				progressbar.OptionShowElapsedTimeOnFinish(),
-				progressbar.OptionSetPredictTime(false),
-			)
 			defer func() {
 				if task.Spec.Register != "" {
 					var stdoutResult any = stdout
@@ -428,52 +434,75 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 						return
 					}
 				}
-
-				switch {
-				case stderr != "": // failed
-					bar.Describe(fmt.Sprintf("[%s] failed", h))
-					if err := bar.Finish(); err != nil {
-						klog.ErrorS(err, "fail to finish bar")
-					}
-					klog.Errorf("[Task %s] run failed: %s", ctrlclient.ObjectKeyFromObject(task), stderr)
-				case stdout == "skip": // skip
-					bar.Describe(fmt.Sprintf("[%s] skip", h))
-					if err := bar.Finish(); err != nil {
-						klog.ErrorS(err, "fail to finish bar")
-					}
-				default: //success
-					bar.Describe(fmt.Sprintf("[%s] success", h))
-					if err := bar.Finish(); err != nil {
-						klog.ErrorS(err, "fail to finish bar")
-					}
+				if stderr != "" && task.Spec.IgnoreError != nil && *task.Spec.IgnoreError {
+					klog.V(4).ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(task))
+				} else if stderr != "" {
+					klog.ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(task))
 				}
-
 				// fill result
-				//dataChan <- kubekeyv1alpha1.TaskHostResult{
-				//	Host:   host,
-				//	Stdout: stdout,
-				//	StdErr: stderr,
-				//}
 				task.Status.HostResults[i] = kubekeyv1alpha1.TaskHostResult{
 					Host:   h,
 					Stdout: stdout,
 					StdErr: stderr,
 				}
 			}()
-
+			// task log
+			// placeholder format task log
+			var placeholder string
+			if hostNameMaxLen, err := e.variable.Get(variable.GetHostMaxLength()); err == nil {
+				placeholder = strings.Repeat(" ", hostNameMaxLen.(int)-len(h))
+			}
+			// progress bar for task
+			var bar = progressbar.NewOptions(-1,
+				progressbar.OptionSetWriter(e.logOutput),
+				progressbar.OptionSpinnerType(59),
+				progressbar.OptionEnableColorCodes(true),
+				progressbar.OptionSetDescription(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[36mrunning\033[0m", h, placeholder)),
+				progressbar.OptionOnCompletion(func() {
+					if _, err := os.Stdout.WriteString("\n"); err != nil {
+						klog.ErrorS(err, "failed to write output", "host", h)
+					}
+				}),
+				progressbar.OptionShowElapsedTimeOnFinish(),
+				progressbar.OptionSetPredictTime(false),
+			)
+			go func() {
+				for !bar.IsFinished() {
+					if err := bar.Add(1); err != nil {
+						return
+					}
+					time.Sleep(100 * time.Millisecond)
+				}
+			}()
+			defer func() {
+				switch {
+				case stderr != "":
+					if task.Spec.IgnoreError != nil && *task.Spec.IgnoreError { // ignore
+						bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mignore \033[0m", h, placeholder))
+					} else { // failed
+						bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[31mfailed \033[0m", h, placeholder))
+					}
+				case stdout == "skip": // skip
+					bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mskip   \033[0m", h, placeholder))
+				default: //success
+					bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34msuccess\033[0m", h, placeholder))
+				}
+				if err := bar.Finish(); err != nil {
+					klog.ErrorS(err, "finish bar error")
+				}
+			}()
+			// task execute
 			ha, err := e.variable.Get(variable.GetAllVariable(h))
 			if err != nil {
 				stderr = fmt.Sprintf("get variable error: %v", err)
 				return
 			}
 			// execute module with loop
-			loop, err := e.execLoop(ctx, ha.(map[string]any), task)
+			loop, err := e.parseLoop(ctx, ha.(map[string]any), task)
 			if err != nil {
 				stderr = fmt.Sprintf("parse loop vars error: %v", err)
 				return
 			}
-			bar.ChangeMax(len(loop)*3 + 1)
-
 			// check when condition
 			if len(task.Spec.When) > 0 {
 				ok, err := tmpl.ParseBool(ha.(map[string]any), task.Spec.When)
@@ -486,17 +515,14 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					return
 				}
 			}
-
+			// if loop is empty. execute once, and the item is null
 			for _, item := range loop {
 				// set item to runtime variable
 				if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
-					"item": item,
+					_const.VariableItem: item,
 				})); err != nil {
 					stderr = fmt.Sprintf("set loop item to variable error: %v", err)
 					return
-				}
-				if err := bar.Add(1); err != nil {
-					klog.ErrorS(err, "fail to add bar")
 				}
 				stdout, stderr = e.executeModule(ctx, task, modules.ExecOptions{
 					Args:     task.Spec.Module.Args,
@@ -505,24 +531,18 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 					Task:     *task,
 					Pipeline: *e.pipeline,
 				})
-				if err := bar.Add(1); err != nil {
-					klog.ErrorS(err, "fail to add bar")
-				}
 				// delete item
 				if err := e.variable.Merge(variable.MergeRuntimeVariable(h, map[string]any{
-					"item": nil,
+					_const.VariableItem: nil,
 				})); err != nil {
 					stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
 					return
-				}
-				if err := bar.Add(1); err != nil {
-					klog.ErrorS(err, "fail to add bar")
 				}
 			}
 		})
 	}
 	wg.Wait()
-
+	// host result for task
 	task.Status.Phase = kubekeyv1alpha1.TaskPhaseSuccess
 	for _, data := range task.Status.HostResults {
 		if data.StdErr != "" {
@@ -538,7 +558,11 @@ func (e executor) executeTask(ctx context.Context, task *kubekeyv1alpha1.Task, o
 	return nil
 }
 
-func (e executor) execLoop(ctx context.Context, ha map[string]any, task *kubekeyv1alpha1.Task) ([]any, error) {
+// parseLoop parse loop to slice. if loop contains template string. convert it.
+// loop is json string. try convertor to string slice by json.
+// loop is normal string. set it to empty slice and return.
+// loop is string slice. return it.
+func (e executor) parseLoop(ctx context.Context, ha map[string]any, task *kubekeyv1alpha1.Task) ([]any, error) {
 	switch {
 	case task.Spec.Loop.Raw == nil:
 		// loop is not set. add one element to execute once module.
@@ -548,13 +572,14 @@ func (e executor) execLoop(ctx context.Context, ha map[string]any, task *kubekey
 	}
 }
 
+// executeModule find register module and execute it.
 func (e executor) executeModule(ctx context.Context, task *kubekeyv1alpha1.Task, opts modules.ExecOptions) (string, string) {
+	// get all variable. which contains item.
 	lg, err := opts.Variable.Get(variable.GetAllVariable(opts.Host))
 	if err != nil {
 		klog.V(5).ErrorS(err, "get location variable error", "task", ctrlclient.ObjectKeyFromObject(task))
 		return "", err.Error()
 	}
-
 	// check failed when condition
 	if len(task.Spec.FailedWhen) > 0 {
 		ok, err := tmpl.ParseBool(lg.(map[string]any), task.Spec.FailedWhen)
@@ -570,7 +595,7 @@ func (e executor) executeModule(ctx context.Context, task *kubekeyv1alpha1.Task,
 	return modules.FindModule(task.Spec.Module.Name)(ctx, opts)
 }
 
-// merge defined variable to host variable
+// mergeVariable to runtime variable
 func (e executor) mergeVariable(ctx context.Context, v variable.Variable, vd map[string]any, hosts ...string) error {
 	if len(vd) == 0 {
 		// skip

@@ -37,15 +37,19 @@ func TestModuleGenCert(t *testing.T) {
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
 					Raw: []byte(`{
-"policy": "IfNotPresent",
-"sans": ["localhost"],
-"cn": "test", 
+"policy": "{{- .policy -}}\n",
+"sans": "[\"localhost\"]",
+"cn": "test",
 "out_key": "./test_gen_cert/test-key.pem",
 "out_cert": "./test_gen_cert/test-crt.pem"
-				}`),
+}`),
 				},
-				Host:     "local",
-				Variable: &testVariable{},
+				Host: "local",
+				Variable: &testVariable{
+					value: map[string]any{
+						"policy": "IfNotPresent",
+					},
+				},
 			},
 			exceptStdout: "success",
 		},

@@ -194,7 +194,7 @@ func TestParseVariable(t *testing.T) {
 		{
 			name: "parse string",
 			data: map[string]any{
-				"a": "{{ a }}",
+				"a": "{{ .a }}",
 			},
 			base: map[string]any{
 				"a": "b",
@@ -206,7 +206,7 @@ func TestParseVariable(t *testing.T) {
 		{
 			name: "parse map",
 			data: map[string]any{
-				"a": "{{ a.b }}",
+				"a": "{{ .a.b }}",
 			},
 			base: map[string]any{
 				"a": map[string]any{
@@ -220,7 +220,7 @@ func TestParseVariable(t *testing.T) {
 		{
 			name: "parse slice",
 			data: map[string]any{
-				"a": []string{"{{ b }}"},
+				"a": []string{"{{ .b }}"},
 			},
 			base: map[string]any{
 				"b": "c",
@@ -234,7 +234,7 @@ func TestParseVariable(t *testing.T) {
 			data: map[string]any{
 				"a": []map[string]any{
 					{
-						"a1": []any{"{{ b }}"},
+						"a1": []any{"{{ .b }}"},
 					},
 				},
 			},
@@ -252,7 +252,7 @@ func TestParseVariable(t *testing.T) {
 		{
 			name: "parse slice with bool value",
 			data: map[string]any{
-				"a": []any{"{{ b }}"},
+				"a": []any{"{{ .b }}"},
 			},
 			base: map[string]any{
 				"b": "true",
@@ -264,7 +264,7 @@ func TestParseVariable(t *testing.T) {
 		{
 			name: "parse map with bool value",
 			data: map[string]any{
-				"a": "{{ b }}",
+				"a": "{{ .b }}",
 			},
 			base: map[string]any{
 				"b": "true",

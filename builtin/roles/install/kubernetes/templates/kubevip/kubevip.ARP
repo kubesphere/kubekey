@@ -15,7 +15,7 @@ spec:
     - name: port
       value: "6443"
     - name: vip_interface
-      value: {{ interface.stdout }}
+      value: {{ .interface.stdout }}
     - name: vip_cidr
       value: "32"
     - name: cp_enable
@@ -39,8 +39,8 @@ spec:
     - name: lb_port
       value: "6443"
     - name: address
-      value: {{ kubernetes.control_plane_endpoint }}
-    image: {{ kubernetes.kubevip.image }}
+      value: {{ .kubernetes.kube_vip.address }}
+    image: {{ .kubernetes.kubevip.image }}
     imagePullPolicy: IfNotPresent
     name: kube-vip
     resources: {}

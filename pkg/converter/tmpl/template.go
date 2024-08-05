@@ -17,80 +17,55 @@ limitations under the License.
 package tmpl
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
-	"github.com/flosch/pongo2/v6"
 	"k8s.io/klog/v2"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/internal"
 )
 
-// ParseBool by pongo2 with not contain "{{ }}". It will add  "{{ }}" to input string.
-func ParseBool(ctx pongo2.Context, inputs []string) (bool, error) {
+// ParseBool parse template string to bool
+func ParseBool(ctx map[string]any, inputs []string) (bool, error) {
 	for _, input := range inputs {
-		// first convert: parse variable like "{{ }}" in input
-		intql, err := pongo2.FromString(input)
-		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to get string")
-			return false, err
+		if !IsTmplSyntax(input) {
+			input = "{{ " + input + " }}"
 		}
-		inres, err := intql.Execute(ctx)
+		tl, err := internal.Template.Parse(input)
 		if err != nil {
-			klog.V(4).ErrorS(err, "Failed to execute string")
-			return false, err
+			return false, fmt.Errorf("failed to parse template '%s': %v", input, err)
 		}
-
-		// second convert: add {{ }} to input.
-		// trim line break.
-		inres = strings.TrimSuffix(inres, "\n")
-		inres = fmt.Sprintf("{{ %s }}", inres)
-		tql, err := pongo2.FromString(inres)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to get string")
-			return false, err
+		result := bytes.NewBuffer(nil)
+		if err := tl.Execute(result, ctx); err != nil {
+			return false, fmt.Errorf("failed to execute template '%s': %v", input, err)
 		}
-		result, err := tql.Execute(ctx)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to execute string")
-			return false, err
-		}
-		klog.V(6).InfoS(" parse template succeed", "result", result)
-		if result != "True" {
+		klog.V(6).InfoS(" parse template succeed", "result", result.String())
+		if result.String() != "true" {
 			return false, nil
 		}
 	}
 	return true, nil
 }
 
-// ParseString with contain "{{  }}"
-func ParseString(ctx pongo2.Context, input string) (string, error) {
-	if len(ctx) == 0 || !IsTmplSyntax(input) {
+// ParseString parse template string to actual string
+func ParseString(ctx map[string]any, input string) (string, error) {
+	if !IsTmplSyntax(input) {
 		return input, nil
 	}
-	tql, err := pongo2.FromString(input)
+	tl, err := internal.Template.Parse(input)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to get string")
-		return input, err
+		return "", fmt.Errorf("failed to parse template '%s': %v", input, err)
 	}
-	result, err := tql.Execute(ctx)
-	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to execute string")
-		return input, err
+	result := bytes.NewBuffer(nil)
+	if err := tl.Execute(result, ctx); err != nil {
+		return "", fmt.Errorf("failed to execute template '%s': %v", input, err)
 	}
-	klog.V(6).InfoS(" parse template succeed", "result", result)
-	return result, nil
+	klog.V(6).InfoS(" parse template succeed", "result", result.String())
+	return strings.TrimPrefix(strings.TrimSuffix(result.String(), "\n"), "\n"), nil
 }
 
-func ParseFile(ctx pongo2.Context, file []byte) (string, error) {
-	tql, err := pongo2.FromBytes(file)
-	if err != nil {
-		klog.V(4).ErrorS(err, "Transfer file to template error")
-		return "", err
-	}
-	result, err := tql.Execute(ctx)
-	if err != nil {
-		klog.V(4).ErrorS(err, "exec template error")
-		return "", err
-	}
-	klog.V(6).InfoS(" parse template succeed", "result", result)
-	return result, nil
+// IsTmplSyntax Check if the string conforms to the template syntax.
+func IsTmplSyntax(s string) bool {
+	return strings.Contains(s, "{{") && strings.Contains(s, "}}")
 }

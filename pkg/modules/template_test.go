@@ -56,10 +56,16 @@ func TestTemplate(t *testing.T) {
 			name: "dest is empty",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
-					Raw: []byte(fmt.Sprintf(`{"src": %s}`, absPath)),
+					Raw: []byte(`{
+"src": "{{ .absPath }}"
+}`),
 				},
-				Host:     "local",
-				Variable: &testVariable{},
+				Host: "local",
+				Variable: &testVariable{
+					value: map[string]any{
+						"absPath": absPath,
+					},
+				},
 			},
 			ctxFunc:      context.Background,
 			exceptStderr: "\"dest\" should be string",

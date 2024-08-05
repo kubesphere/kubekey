@@ -18,7 +18,10 @@ package manager
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
+	"time"
 
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,22 +37,23 @@ type commandManager struct {
 	*kubekeyv1.Inventory
 
 	ctrlclient.Client
+
+	logOutput io.Writer
 }
 
 func (m *commandManager) Run(ctx context.Context) error {
-	klog.Infof("[Pipeline %s] start", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+	fmt.Fprintf(m.logOutput, "%s [Pipeline %s] start\n", time.Now().Format(time.RFC822), ctrlclient.ObjectKeyFromObject(m.Pipeline))
 	cp := m.Pipeline.DeepCopy()
 	defer func() {
-		klog.Infof("[Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v", ctrlclient.ObjectKeyFromObject(m.Pipeline),
+		fmt.Fprintf(m.logOutput, "%s [Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.RFC3339), ctrlclient.ObjectKeyFromObject(m.Pipeline),
 			m.Pipeline.Status.TaskResult.Total, m.Pipeline.Status.TaskResult.Success, m.Pipeline.Status.TaskResult.Ignored, m.Pipeline.Status.TaskResult.Failed)
 		if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kubekeyv1.PipelinePhaseSucceed {
-			klog.Infof("[Pipeline %s] clean runtime directory", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+			fmt.Fprintf(m.logOutput, "%s [Pipeline %s] clean runtime directory\n", time.Now().Format(time.RFC822), ctrlclient.ObjectKeyFromObject(m.Pipeline))
 			// clean runtime directory
 			if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
 				klog.ErrorS(err, "clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())
 			}
 		}
-
 		if m.Pipeline.Spec.JobSpec.Schedule != "" { // if pipeline is cornJob. it's always running.
 			m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
 		}
@@ -59,9 +63,8 @@ func (m *commandManager) Run(ctx context.Context) error {
 		}
 	}()
 
-	klog.Infof("[Pipeline %s] start task controller", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 	m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseSucceed
-	if err := executor.NewTaskExecutor(m.Client, m.Pipeline).Exec(ctx); err != nil {
+	if err := executor.NewTaskExecutor(m.Client, m.Pipeline, m.logOutput).Exec(ctx); err != nil {
 		klog.ErrorS(err, "executor tasks error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		m.Pipeline.Status.Phase = kubekeyv1.PipelinePhaseFailed
 		m.Pipeline.Status.Reason = err.Error()

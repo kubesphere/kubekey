@@ -5,8 +5,8 @@
 
 - name: Create kube directories
   command: |
-    if [ ! -d "{{ item.path }}" ]; then
-      mkdir -p {{ item.path }} && chown kube -R {{ item.chown }}
+    if [ ! -d "{{ .item.path }}" ]; then
+      mkdir -p {{ .item.path }} && chown kube -R {{ .item.chown }}
     fi
   loop:
     - {path: "/usr/local/bin", chown: "/usr/local/bin"}
@@ -20,52 +20,49 @@
     - {path: "/var/lib/calico", chown: "/var/lib/calico"}
 
 - name: Sync external etcd config
-  when:
-    - kubernetes.etcd.deployment_type == 'external' && groups['etcd']|length > 0
+  when: and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | len | lt 0)
   block:
     - name: Sync etcd ca file to remote
       copy:
-        src: "{{ work_dir }}/kubekey/pki/root.crt"
-        dest: "/etc/kubernetes/pki/etcd/ca.crt"
+        src: |
+          {{ .work_dir }}/kubekey/pki/root.crt
+        dest: /etc/kubernetes/pki/etcd/ca.crt
     - name: Sync etcd cert files to remote
       copy:
-        src: "{{ work_dir }}/kubekey/pki/etcd.crt"
-        dest: "/etc/kubernetes/pki/etcd/client.crt"
+        src: |
+          {{ .work_dir }}/kubekey/pki/etcd.crt
+        dest: /etc/kubernetes/pki/etcd/client.crt
     - name: Sync etcd key files to remote
       copy:
-        src: "{{ work_dir }}/kubekey/pki/etcd.key"
-        dest: "/etc/kubernetes/pki/etcd/client.key"
+        src: |
+          {{ .work_dir }}/kubekey/pki/etcd.key
+        dest: /etc/kubernetes/pki/etcd/client.key
 
 - name: Sync audit policy file to remote
   copy:
-    src: "audit"
-    dest: "/etc/kubernetes/audit/"
-  when:
-    - kubernetes.audit
+    src: audit
+    dest: /etc/kubernetes/audit/
+  when: .kubernetes.audit
 
 - name: Generate kubeadm init config
   template:
-    src: "kubeadm/{% if (kube_version|version:'>=v1.24.0') %}kubeadm-init.v1beta3{% else %}kubeadm-init.v1beta2{% endif %}"
-    dest: "/etc/kubernetes/kubeadm-config.yaml"
+    src: |
+      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
+      kubeadm/kubeadm-init.v1beta3
+      {{- else -}}
+      kubeadm/kubeadm-init.v1beta2
+      {{- end -}}
+    dest: /etc/kubernetes/kubeadm-config.yaml
 
 - name: Init kubernetes cluster
   block:
     - name: Init kubernetes by kubeadm
       command: |
-        /usr/local/bin/kubeadm init \
-          --config=/etc/kubernetes/kubeadm-config.yaml \
-          --ignore-preflight-errors=FileExisting-crictl,ImagePull \
-          {% if (not kubernetes.kube_proxy.enabled) %}--skip-phases=addon/kube-proxy{% endif %}
+        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
   rescue:
     - name: Reset kubeadm if init failed
-      command: kubeadm reset -f {% if (cri.cri_socket !="") %}--cri-socket {{ cri.cri_socket }}{% endif %}
-
-- name: Remote master taint
-  ignore_errors: true
-  command: |
-    /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
-    /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
-  when: inventory_name in groups["kube_worker"]
+      command: |
+        kubeadm reset -f {{ if and .cri.cri_socket (ne .cri.cri_socket "") }}--cri-socket {{ .cri.cri_socket }}{{ end }}
 
 - name: Copy kubeconfig to default dir
   command: |
@@ -73,16 +70,16 @@
       mkdir -p /root/.kube
     fi
     cp -f /etc/kubernetes/admin.conf /root/.kube/config
-  when: kube_node_info_important.stderr != ""
+  when: .kube_node_info_important.stderr | ne ""
 
 - name: Set to worker node
-  when: inventory_name in groups["kube_worker"]
+  when: .groups.kube_worker | default list | has .inventory_name
   block:
     - name: Remote master taint
       ignore_errors: true
       command: |
-        /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
-        /usr/local/bin/kubectl taint nodes {{ inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ .inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ .inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
     - name: Add work label
       command: |
-        /usr/local/bin/kubectl label --overwrite node {{ inventory_name }} node-role.kubernetes.io/worker=
+        /usr/local/bin/kubectl label --overwrite node {{ .inventory_name }} node-role.kubernetes.io/worker=

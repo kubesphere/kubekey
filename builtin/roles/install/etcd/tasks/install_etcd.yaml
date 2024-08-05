@@ -1,44 +1,49 @@
 ---
 - name: Sync etcd binary to node
   copy:
-    src: "{{ work_dir }}/kubekey/etcd/{{ etcd_version }}/{{ binary_type.stdout }}/etcd-{{ etcd_version }}-linux-{{ binary_type.stdout }}.tar.gz"
-    dest: "/tmp/kubekey/etcd-{{ etcd_version }}-linux-{{ binary_type.stdout }}.tar.gz"
+    src: |
+      {{ .work_dir }}/kubekey/etcd/{{ .etcd_version }}/{{ .binary_type.stdout }}/etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+    dest: |
+      /tmp/kubekey/etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
 
 - name: Extract etcd binary
   command: |
-    tar --strip-components=1 -C /usr/local/bin/ -xvf /tmp/kubekey/etcd-{{ etcd_version }}-linux-{{ binary_type.stdout }}.tar.gz \
-      --wildcards etcd-{{ etcd_version }}-linux-{{ binary_type.stdout }}/etcd*
+    tar --strip-components=1 -C /usr/local/bin/ -xvf /tmp/kubekey/etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}.tar.gz \
+      --wildcards etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}/etcd*
 
 - name: Sync ca file to remote
   copy:
-    src: "{{ work_dir }}/kubekey/pki/root.crt"
-    dest: "/etc/ssl/etcd/ssl/ca.crt"
+    src: |
+      {{ .work_dir }}/kubekey/pki/root.crt
+    dest: /etc/ssl/etcd/ssl/ca.crt
 
 - name: Sync etcd cert file to remote
   copy:
-    src: "{{ work_dir }}/kubekey/pki/etcd.crt"
-    dest: "/etc/ssl/etcd/ssl/server.crt"
+    src: |
+      {{ .work_dir }}/kubekey/pki/etcd.crt
+    dest: /etc/ssl/etcd/ssl/server.crt
 
 - name: Sync etcd key file to remote
   copy:
-    src: "{{ work_dir }}/kubekey/pki/etcd.key"
-    dest: "/etc/ssl/etcd/ssl/server.key"
+    src: |
+      {{ .work_dir }}/kubekey/pki/etcd.key
+    dest: /etc/ssl/etcd/ssl/server.key
 
 - name: Generate etcd env file
   template:
-    src: "etcd.env"
-    dest: "/etc/etcd.env"
+    src: etcd.env
+    dest: /etc/etcd.env
 
 - name: Generate etcd systemd service file
   copy:
-    src: "etcd.service"
-    dest: "/etc/systemd/system/etcd.service"
+    src: etcd.service
+    dest: /etc/systemd/system/etcd.service
 
 # refer: https://etcd.io/docs/v3.5/tuning/
 - name: Set cpu to performance
   command: |
     echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-  when: etcd.performance
+  when: .etcd.performance
 
 - name: Set Traffic Priority
   command: |
@@ -47,7 +52,7 @@
     tc filter add dev eth0 parent 1: protocol ip prio 1 u32 match ip dport 2380 0xffff flowid 1:1
     tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip sport 2379 0xffff flowid 1:1
     tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip dport 2379 0xffff flowid 1:1
-  when: etcd.traffic_priority
+  when: .etcd.traffic_priority
 
 - name: Start etcd service
   command: systemctl daemon-reload &&  systemctl start etcd && systemctl enable etcd

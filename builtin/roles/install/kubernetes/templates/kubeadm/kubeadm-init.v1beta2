@@ -2,42 +2,40 @@
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 etcd:
-{% if (kubernetes.etcd.deployment_type=='internal') %}
+{{- if .kubernetes.etcd.deployment_type | eq "internal" }}
   local:
-    {% set etcd_image_info=kubernetes.etcd.image|split:":" %}
-    imageRepository: {{ etcd_image_info[0]|split:"/"|slice:":-1"|join:"/"|safe }}
-    imageTag: {{ etcd_image_info[1] }}
+    imageRepository: {{ slice (.kubernetes.etcd.image | splitList ":" | first | splitList "/") 1 (.kubernetes.etcd.image | splitList ":" | first | splitList "/" | len) | join "/" }}
+    imageTag: {{ .kubernetes.etcd.image | splitList ":" | last }}
     serverCertSANs:
-    {% for h in groups['etcd'] %}{% set hv=inventory_hosts[h] %}
-    - {{ hv.internal_ipv4|stringformat:"https://%s:2379" }}
-    {% endfor %}
-{% else %}
+    {{- range .groups.etcd | default list }}
+    - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
+    {{- end }}
+{{- else }}
   external:
     endpoints:
-    {% for h in groups['etcd'] %}{% set hv=inventory_hosts[h] %}
-    - {{ hv.internal_ipv4|stringformat:"https://%s:2379" }}
-    {% endfor %}
+    {{- range .groups.etcd | default list }}
+    - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
+    {{- end }}
     caFile: /etc/kubernetes/pki/etcd/ca.crt
     certFile: /etc/kubernetes/pki/etcd/client.crt
     keyFile: /etc/kubernetes/pki/etcd/client.key
-{% endif %}
+{{- end }}
 dns:
   type: CoreDNS
-  {% set core_image_info=kubernetes.networking.dns_image|split:":" %}
-  imageRepository: {{ core_image_info[0]|split:"/"|slice:":-1"|join:"/"|safe }}
-  imageTag: {{ core_image_info[1] }}
-imageRepository: {{ kubernetes.image_repository }}
-kubernetesVersion: {{ kube_version }}
+  imageRepository: {{ slice (.kubernetes.networking.dns_image | splitList ":" | first | splitList "/") 1 (.kubernetes.networking.dns_image | splitList ":" | first | splitList "/" | len) | join "/" }}
+  imageTag: {{ .kubernetes.networking.dns_image | splitList ":" | last }}
+imageRepository: {{ .kubernetes.image_repository }}
+kubernetesVersion: {{ .kube_version }}
 certificatesDir: /etc/kubernetes/pki
-clusterName: {{ kubernetes.cluster_name }}
-controlPlaneEndpoint: {%if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint }}{% else %}{{ init_kubernetes_node }}{% endif %}
+clusterName: {{ .kubernetes.cluster_name }}
+controlPlaneEndpoint: {{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}
 networking:
-  dnsDomain: {{ kubernetes.networking.dns_domain }}
-  podSubnet: {{ kubernetes.networking.pod_cidr }}
-  serviceSubnet: {{ kubernetes.networking.service_cidr }}
+  dnsDomain: {{ .kubernetes.networking.dns_domain }}
+  podSubnet: {{ .kubernetes.networking.pod_cidr }}
+  serviceSubnet: {{ .kubernetes.networking.service_cidr }}
 apiServer:
   extraArgs:
-{% if (security_enhancement) %}
+{{- if .security_enhancement }}
     authorization-mode: Node,RBAC
     enable-admission-plugins: AlwaysPullImages,ServiceAccount,NamespaceLifecycle,NodeRestriction,LimitRanger,ResourceQuota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodNodeSelector,PodSecurity
     profiling: false
@@ -45,62 +43,64 @@ apiServer:
     service-account-lookup: true
     tls-min-version: VersionTLS12
     tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-{% endif %}
-{% if (kubernetes.audit) %}
+{{- end }}
+{{- if .kubernetes.audit }}
     audit-log-format: json
     audit-log-maxbackup: 2
     audit-log-maxsize: 200
     audit-policy-file: /etc/kubernetes/audit/policy.yaml
     audit-webhook-config-file: /etc/kubernetes/audit/webhook.yaml
-{% endif %}
-{{ kubernetes.apiserver.extra_args|to_yaml:4|safe }}
+{{- end }}
+{{ .kubernetes.apiserver.extra_args | toYaml | indent 4 }}
   certSANs:
     - kubernetes
     - kubernetes.default
     - kubernetes.default.svc
     - localhost
     - 127.0.0.1
-    - {{ kubernetes.networking.service_cidr|ip_range:0 }}
-    - {%if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint }}{% else %}{{ init_kubernetes_node }}{% endif %}
-    - {%if kubernetes.control_plane_endpoint %}{{ kubernetes.control_plane_endpoint|stringformat:"kubernetes.default.svc.%s" }}{% else %}{{ init_kubernetes_node|stringformat:"kubernetes.default.svc.%s" }}{% endif %}
-    - {{ kubernetes.networking.dns_domain|stringformat:"kubernetes.default.svc.%s" }}
-    {% for h in groups['k8s_cluster'] %}{% set hv=inventory_hosts[h] %}
-    - {{ h }}.{{ kubernetes.networking.dns_domain }}
-    - {{ hv.internal_ipv4 }}
-    {% if (hv.internal_ipv6|defined) %}- {{ hv.internal_ipv6 }}{% endif %}
-    {% endfor %}
-    {% for h in kubernetes.apiserver.certSANs %}
-    - {{ h }}
-    {% endfor %}
-{% if (kubernetes.audit) %}
+    - {{ .kubernetes.networking.service_cidr | ipInCIDR 0 }}
+    - {{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}
+    - kubernetes.default.svc.{{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}
+    - kubernetes.default.svc.{{ .kubernetes.networking.dns_domain }}
+  {{- range .groups.k8s_cluster | default list }}
+    - {{ . }}.{{ $.kubernetes.networking.dns_domain }}
+    - {{ index $.inventory_hosts . "internal_ipv4" }}
+    {{- if index $.inventory_hosts . "internal_ipv6" }}
+    - {{ index $.inventory_hosts . "internal_ipv6" }}
+    {{- end }}
+  {{- end }}
+  {{- range .kubernetes.apiserver.certSANs }}
+    - {{ . }}
+  {{- end }}
+{{- if .kubernetes.audit }}
   extraVolumes:
   - name: k8s-audit
     hostPath: /etc/kubernetes/audit
     mountPath: /etc/kubernetes/audit
     pathType: DirectoryOrCreate
-{% endif %}
+{{- end }}
 controllerManager:
   extraArgs:
-{% if (internal_ipv6|defined) %}
-    node-cidr-mask-size-ipv4: "{{ kubernetes.controller_manager.kube_network_node_prefix }}"
+{{- if and .internal_ipv6 (ne .internal_ipv6 "") }}
+    node-cidr-mask-size-ipv4: "{{ .kubernetes.controller_manager.kube_network_node_prefix }}"
     node-cidr-mask-size-ipv6: "64"
-{% else %}
-    node-cidr-mask-size: "{{ kubernetes.controller_manager.kube_network_node_prefix }}"
-{% endif %}
-{% if (kube_version|version:'>=v1.9.0') %}
+{{- else }}
+    node-cidr-mask-size: "{{ .kubernetes.controller_manager.kube_network_node_prefix }}"
+{{- end }}
+{{- if .kube_version | semverCompare ">=v1.9.0" }}
     cluster-signing-duration: 87600h
-{% else %}
+{{- else }}
     experimental-cluster-signing-duration: 87600h
-{% endif %}
-{% if (security_enhancement) %}
+{{- end }}
+{{- if .security_enhancement }}
     bind-address: 127.0.0.1
     profiling: false
     terminated-pod-gc-threshold: 50
     use-service-account-credentials: true
-{% else %}
+{{- else }}
     bind-address: 0.0.0.0
-{% endif %}
-{{ kubernetes.controller_manager.extra_args|to_yaml:4|safe }}
+{{- end }}
+{{ .kubernetes.controller_manager.extra_args | toYaml | indent 4 }}
   extraVolumes:
   - name: host-time
     hostPath: /etc/localtime
@@ -108,43 +108,40 @@ controllerManager:
     readOnly: true
 scheduler:
   extraArgs:
-{% if (security_enhancement) %}
+{{ if .security_enhancement }}
     bind-address: 127.0.0.1
     profiling: false
-{% else %}
+{{- else }}
     bind-address: 0.0.0.0
-{% endif %}
-{{ kubernetes.scheduler.extra_args|to_yaml:4|safe }}
+{{- end }}
+{{ .kubernetes.scheduler.extra_args | toYaml | indent 4 }}
 
 ---
-
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{ internal_ipv4 }}
-  bindPort: {{ kubernetes.apiserver.port }}
+  advertiseAddress: {{ .internal_ipv4 }}
+  bindPort: {{ .kubernetes.apiserver.port }}
 nodeRegistration:
-  criSocket: {{ cri.cri_socket }}
+  criSocket: {{ .cri.cri_socket }}
   kubeletExtraArgs:
-    cgroup-driver: {{ cri.cgroup_driver }}
+    cgroup-driver: {{ .cri.cgroup_driver }}
 
 ---
-
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
-clusterCIDR: {{ kubernetes.networking.pod_cidr }}
-mode: {{ kubernetes.kube_proxy.mode }}
-{{ kubernetes.kube_proxy.config|to_yaml|safe }}
+clusterCIDR: {{ .kubernetes.networking.pod_cidr }}
+mode: {{ .kubernetes.kube_proxy.mode }}
+{{ .kubernetes.kube_proxy.config | toYaml }}
 
 ---
-
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
-clusterDomain: {{ kubernetes.networking.dns_domain }}
+clusterDomain: {{ .kubernetes.networking.dns_domain }}
 clusterDNS:
-  - {{ kubernetes.networking.dns_service_ip }}
-maxPods: {{ kubernetes.max_pods }}
-podPidsLimit: {{ kubernetes.kubelet.pod_pids_limit }}
+  - {{ .kubernetes.networking.dns_service_ip }}
+maxPods: {{ .kubernetes.max_pods }}
+podPidsLimit: {{ .kubernetes.kubelet.pod_pids_limit }}
 rotateCertificates: true
 kubeReserved:
   cpu: 200m
@@ -161,8 +158,7 @@ evictionSoftGracePeriod:
   memory.available: 2m
 evictionMaxPodGracePeriod: 120
 evictionPressureTransitionPeriod: 30s
-
-{% if (security_enhancement) %}
+{{- if .security_enhancement }}
 readOnlyPort: 0
 protectKernelDefaults: true
 eventRecordQPS: 1
@@ -175,25 +171,30 @@ tlsCipherSuites:
 featureGates:
   RotateKubeletServerCertificate: true
   SeccompDefault: true
-{% if (kube_version|version:">=v1.24.0") %}
+  {{- if .kube_version | semverCompare ">=v1.24.0" }}
   TTLAfterFinished: true
-{% endif %}
-{% if (kube_version|version:">=v1.21.0") %}
+  {{- end }}
+  {{ if .kube_version | semverCompare ">=v1.21.0" }}
   CSIStorageCapacity: true
-{% endif %}
-{{ features|to_yaml:2|safe }}
-{% else %}
+  {{- end }}
+{{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
+{{- else }}
 featureGates:
   RotateKubeletServerCertificate: true
-{% if (kube_version|version:">=v1.24.0") %}
+  {{- if .kube_version | semverCompare ">=v1.24.0" }}
   TTLAfterFinished: true
-{% endif %}
-{% if (kube_version|version:">=v1.21.0") %}
+  {{- end }}
+  {{- if .kube_version | semverCompare ">=v1.21.0" }}
   CSIStorageCapacity: true
   ExpandCSIVolumes: true
-{% endif %}
-{{ features|to_yaml:2|safe }}
-{% endif %}
-cgroupDriver: {{ cri.cgroup_driver }}
-containerLogMaxSize: {{ kubernetes.kubelet.container_log_max_size }}
-containerLogMaxFiles: {{ kubernetes.kubelet.container_log_max_files }}
+  {{- end }}
+  {{- if .kubernetes.kubelet.feature_gates }}
+{{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
+  {{- end }}
+{{- end }}
+cgroupDriver: {{ .cri.cgroup_driver }}
+containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
+containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
+{{- if .kubernetes.kubelet.extra_args }}
+{{ .kubernetes.kubelet.extra_args | toYaml }}
+{{- end }}

@@ -84,7 +84,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				if err != nil {
 					return fmt.Errorf("read file error: %w", err)
 				}
-				result, err := tmpl.ParseFile(ha.(map[string]any), data)
+				result, err := tmpl.ParseString(ha.(map[string]any), string(data))
 				if err != nil {
 					return fmt.Errorf("parse file error: %w", err)
 				}
@@ -109,7 +109,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 			if err != nil {
 				return "", fmt.Sprintf("read file error: %v", err)
 			}
-			result, err := tmpl.ParseFile(ha.(map[string]any), data)
+			result, err := tmpl.ParseString(ha.(map[string]any), string(data))
 			if err != nil {
 				return "", fmt.Sprintf("parse file error: %v", err)
 			}
@@ -155,7 +155,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				if err != nil {
 					return fmt.Errorf("read file error: %w", err)
 				}
-				result, err := tmpl.ParseFile(ha.(map[string]any), data)
+				result, err := tmpl.ParseString(ha.(map[string]any), string(data))
 				if err != nil {
 					return fmt.Errorf("parse file error: %w", err)
 				}
@@ -179,7 +179,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 			if err != nil {
 				return "", fmt.Sprintf("read file error: %v", err)
 			}
-			result, err := tmpl.ParseFile(ha.(map[string]any), data)
+			result, err := tmpl.ParseString(ha.(map[string]any), string(data))
 			if err != nil {
 				return "", fmt.Sprintf("parse file error: %v", err)
 			}

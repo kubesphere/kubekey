@@ -174,11 +174,21 @@ sed -i '/^$/N;/\n$/N;//D' /etc/hosts
 
 cat >>/etc/hosts<<EOF
 # kubekey hosts BEGIN
-{% for _,hv in inventory_hosts %}
-{% if (hv.internal_ipv4|defined) %}{{ hv.internal_ipv4 }} {{ hv.inventory_name }} {{ hv.inventory_name }}.{{ kubernetes.cluster_name|default_if_none:'cluster.local' }}{% endif %}
-{% if (hv.internal_ipv6|defined) %}{{ hv.internal_ipv6 }} {{ hv.inventory_name }} {{ hv.inventory_name }}.{{ kubernetes.cluster_name|default_if_none:'cluster.local' }}{% endif %}
-{% endfor %}
+{{- range .inventory_hosts }}
+  {{- if and .internal_ipv4 (ne .internal_ipv4 "") }}
+    {{ printf "%s %s %s.%s" .internal_ipv4 .inventory_name .inventory_name ($.kubernetes.cluster_name | default "cluster.local") }}
+  {{- end }}
+  {{- if and .internal_ipv6 (ne .internal_ipv6 "") }}
+    {{ printf "%s %s %s.%s" .internal_ipv6 .internal_ipv6 .inventory_name ($.kubernetes.cluster_name | default "cluster.local") }}
+  {{- end }}
+{{- end }}
 # kubekey hosts END
+
+{{- if ne .kubernetes.kube_vip.address .kubernetes.control_plane_endpoint }}
+# kubevip BEGIN
+.kubernetes.kube_vip.address .kubernetes.control_plane_endpoint
+#kubevip END
+{{- end }}
 EOF
 
 sync

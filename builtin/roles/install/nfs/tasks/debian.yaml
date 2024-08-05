@@ -6,16 +6,16 @@
 
 - name: Install nfs
   command: apt update && apt install -y nfs-kernel-server
-  when: nfs_server_install.stderr != ""
+  when: .nfs_server_install.stderr | ne ""
 
 - name: Create nfs share directory
   command: |
-    if [ ! -d {{ item }} ]; then
-      mkdir -p {{ item }}
-      chmod -R 0755 {{ item }}
-      chown nobody:nogroup {{ item }}
+    if [ ! -d {{ .item }} ]; then
+      mkdir -p {{ .item }}
+      chmod -R 0755 {{ .item }}
+      chown nobody:nogroup {{ .item }}
     fi
-  loop: "{{ nfs.share_dir }}"
+  loop: "{{ .nfs.share_dir | toJson }}"
 
 - name: Generate nfs config
   template:

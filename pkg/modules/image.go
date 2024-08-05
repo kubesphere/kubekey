@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	imagev1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"k8s.io/klog/v2"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
@@ -111,6 +112,11 @@ func ModuleImage(ctx context.Context, options ExecOptions) (stdout string, stder
 }
 
 func findLocalImageManifests(localDir string) ([]string, error) {
+	if _, err := os.Stat(localDir); err != nil {
+		// images is not exist, skip
+		klog.V(4).ErrorS(err, "failed to stat local directory")
+		return nil, nil
+	}
 	var manifests []string
 	if err := filepath.WalkDir(localDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

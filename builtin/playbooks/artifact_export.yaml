@@ -5,8 +5,8 @@
   tasks:
     - name: Package image
       image:
-        pull: "{{ image_manifests }}"
-      when: image_manifests|length > 0
+        pull: "{{ .image_manifests }}"
+      when: .image_manifests | default list | len | lt 0
     - name: Export artifact
       command: |
-        cd {{ work_dir }} && tar -czvf kubekey-artifact.tar.gz kubekey/
+        cd {{ .work_dir }} && tar -czvf kubekey-artifact.tar.gz kubekey/

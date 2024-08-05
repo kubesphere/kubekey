@@ -1,10 +1,7 @@
 ---
 - name: Configure ntp server
   command: |
-    chronyConfigFile="/etc/chrony.conf"
-    if [ {{ os.release.ID }} = "ubuntu" ] || [ {{ os.release.ID_LIKE }} = "debian" ]; then
-      chronyConfigFile="/etc/chrony/chrony.conf"
-    fi
+    chronyConfigFile={{ if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}"/etc/chrony/chrony.conf"{{ else }}"/etc/chrony.conf"{{ end }}
     # clear old server
     sed -i '/^server/d' $chronyConfigFile
     # disable pool
@@ -18,25 +15,25 @@
     # add local
     echo "local stratum 10" >> $chronyConfigFile
     # add server
-    {% for server in ntp_servers %}
-      {% for _,v in inventory_hosts %}
-      {% if (v.inventory_name == server) %}{% set server = v.internal_ipv4%}{% endif %}
-      {% endfor %}
-    grep -q '^server {{ server }} iburst' $chronyConfigFile||sed '1a server {{ server }} iburst' -i $chronyConfigFile
-    {% endfor %}
+    {{- range $server := .ntp_servers -}}
+      {{- range $.inventory_hosts -}}
+        {{- if eq .inventory_name $server -}}
+          {{- $server = .internal_ipv4 -}}
+        {{- end -}}
+      {{- end -}}
+    grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
+    {{- end -}}
 
 - name: Set timezone
   command: |
-    timedatectl set-timezone {{ timezone }}
+    timedatectl set-timezone {{ .timezone }}
     timedatectl set-ntp true
-  when: timezone | defined
+  when: or (.ntp_servers | len | lt 0) (.timezone | ne "")
 
 - name: Restart ntp server
   command: |
-    chronyService="chronyd.service"
-    if [ {{ os.release.ID }} = "ubuntu" ] || [ {{ os.release.ID_LIKE }} = "debian" ]; then
-    chronyService="chrony.service"
-    fi
-    systemctl restart $chronyService
-  when:
-    - ntp_servers | defined or timezone | defined
+    {{- if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}
+    systemctl restart chrony.service
+    {{- end }}
+    systemctl restart chronyd.service
+  when: or (.ntp_servers | len | lt 0) (.timezone | ne "")

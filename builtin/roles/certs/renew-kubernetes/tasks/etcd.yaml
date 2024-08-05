@@ -2,15 +2,18 @@
 - name: Sync etcd ca file to remote
   tags: ["certs"]
   copy:
-    src: "{{ work_dir }}/kubekey/pki/root.crt"
-    dest: "/etc/kubernetes/pki/etcd/ca.crt"
+    src: |
+      {{ .work_dir }}/kubekey/pki/root.crt
+    dest: /etc/kubernetes/pki/etcd/ca.crt
 - name: Sync etcd cert files to remote
   tags: ["certs"]
   copy:
-    src: "{{ work_dir }}/kubekey/pki/etcd.crt"
-    dest: "/etc/kubernetes/pki/etcd/client.crt"
+    src: |
+      {{ .work_dir }}/kubekey/pki/etcd.crt
+    dest: /etc/kubernetes/pki/etcd/client.crt
 - name: Sync etcd key files to remote
   tags: ["certs"]
   copy:
-    src: "{{ work_dir }}/kubekey/pki/etcd.key"
-    dest: "/etc/kubernetes/pki/etcd/client.key"
+    src: |
+      {{ .work_dir }}/kubekey/pki/etcd.key
+    dest: /etc/kubernetes/pki/etcd/client.key

@@ -7,8 +7,8 @@
     - name: Stop docker in kubernetes
       command: |
         systemctl stop docker
-      when: cri.container_manager == 'docker'
+      when: .cri.container_manager | eq "docker"
     - name: Stop containerd in kubernetes
       command: |
         systemctl stop containerd
-      when: cri.container_manager == 'containerd'
+      when: .cri.container_manager | eq "containerd"

@@ -2,51 +2,53 @@
 - name: Create harbor project for each image
   tags: ["only_image"]
   command: |
+    {{- if .image_registry.namespace_override | eq "" -}}
     for dir in /tmp/kubekey/images/*; do
       if [ ! -d "$dir" ]; then
-        # only deal directory
+        # only deal with directories
         continue
       fi
     
-      IFS='=' read -ra array <<< "${dir##*/}"
-      if [ $(echo ${my_array[@]} | wc -w) > 3 ]; then
-        project=${array[1]}
-        dest_image=$(echo "${array[@]:2:-1}" | tr ' ' '/')
-        tag=${array[-1]}
+      dir_name=${dir##*/}
+      IFS='=' set -- $dir_name
+      image_array="$@"
+      array_length=$#
+    
+      if [ "$array_length" -gt 3 ]; then
+        project=$2
+        dest_image=$(shift 2 && echo "$*" | tr ' ' '/')
+        tag=$(echo "$@" | awk '{print $NF}')
       else
-        echo "unsupported image"
+        echo "unsupported image: $dir_name"
         exit 1
       fi
     
       # if project is not exist, create if
-      http_code=$(curl -Iks -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name=${project}' | grep HTTP | awk '{print $2}')
+      http_code=$(curl -Iks -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name=${project}' | grep HTTP | awk '{print $2}')
       if [ $http_code == 404 ]; then
           # create project
-          curl -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"${project}\", \"public\": true}"
+          curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"${project}\", \"public\": true}"
       fi    
     done
-  when:
-    - image_registry.type == 'harbor'
-    - image_registry.namespace_override == ""
-    -
-- name: Create harbor project for namespace_override
-  tags: ["only_image"]
-  command: |
+    {{- else -}}
     # if project is not exist, create if
-    http_code=$(curl -Iks -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name={{ image_registry.namespace_override }}' | grep HTTP | awk '{print $2}')
+    http_code=$(curl -Iks -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}"  'https://localhost/api/v2.0/projects?project_name={{ .image_registry.namespace_override }}' | grep HTTP | awk '{print $2}')
     if [ $http_code == 404 ]; then
         # create project
-        curl -u "{{ image_registry.auth.username }}:{{ image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"{{ image_registry.namespace_override }}\", \"public\": true}"
+        curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://localhost/api/v2.0/projects" -d "{ \"project_name\": \"{{ .image_registry.namespace_override }}\", \"public\": true}"
     fi
-  when:
-    - image_registry.type == 'harbor'
-    - image_registry.namespace_override != ""
+    {{- end -}}
+  when: .image_registry.type | eq "harbor"
 
 - name: Sync images package to harbor
   tags: ["only_image"]
   image:
     push:
-      registry: "{{ image_registry.auth.registry }}"
-      namespace_override: "{{ image_registry.namespace_override }}"
-      username: "{{ image_registry.auth.username }}"
-      password: "{{ image_registry.auth.password }}"
+      registry: |
+        {{ .image_registry.auth.registry }}
+      namespace_override: |
+        {{ .image_registry.namespace_override }}
+      username: |
+        {{ .image_registry.auth.username }}
+      password: |
+        {{ .image_registry.auth.password }}

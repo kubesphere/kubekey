@@ -2,9 +2,10 @@
 # https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md
 - name: Generate flannel manifest
   template:
-    src: "flannel/flannel.yaml"
-    dest: "/etc/kubernetes/cni/flannel-{{ flannel_version }}.yaml"
+    src: flannel/flannel.yaml
+    dest: |
+      /etc/kubernetes/cni/flannel-{{ .flannel_version }}.yaml
 
 - name: Apply calico
   command: |
-    /usr/local/bin/kubectl apply -f /etc/kubernetes/cni/flannel-{{ flannel_version }}.yaml
+    kubectl apply -f /etc/kubernetes/cni/flannel-{{ .flannel_version }}.yaml

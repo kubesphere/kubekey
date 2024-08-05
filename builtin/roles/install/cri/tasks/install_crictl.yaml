@@ -4,18 +4,19 @@
   command: crictl --version
   register: crictl_install_version
 
-- name: Sync crictl binary to remote
-  copy:
-    src: "{{ work_dir }}/kubekey/crictl/{{ crictl_version }}/{{ binary_type.stdout }}/crictl-{{ crictl_version }}-linux-{{ binary_type.stdout }}.tar.gz"
-    dest: "/tmp/kubekey/crictl-{{ crictl_version }}-linux-{{ binary_type.stdout }}.tar.gz"
-  when: crictl_install_version.stderr != ""
-
-- name: Unpackage crictl binary
-  command: |
-    tar -xvf /tmp/kubekey/crictl-{{ crictl_version }}-linux-{{ binary_type.stdout }}.tar.gz -C /usr/local/bin/
-  when: crictl_install_version.stderr != ""
-
-- name: Generate crictl config file
-  template:
-    src: crictl.config
-    dest: /etc/crictl.yaml
+- name: Install crictl
+  when: or (.crictl_install_version.stderr | ne "") (.crictl_install_version.stdout | ne (printf "crictl version %s" .crictl_version))
+  block:
+    - name: Sync crictl binary to remote
+      copy:
+        src: |
+          {{ .work_dir }}/kubekey/crictl/{{ .crictl_version }}/{{ .binary_type.stdout }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+        dest: |
+          /tmp/kubekey/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+    - name: Unpackage crictl binary
+      command: |
+        tar -xvf /tmp/kubekey/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
+    - name: Generate crictl config file
+      template:
+        src: crictl.config
+        dest: /etc/crictl.yaml

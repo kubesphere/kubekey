@@ -4,30 +4,26 @@
   command: cri-dockerd --version
   register: cridockerd_install_version
 
-- name: Sync cri-dockerd Binary to remote
-  copy:
-    src: "{{ work_dir }}/kubekey/cri-dockerd/{{ cridockerd_version }}/{{ binary_type.stdout }}/cri-dockerd-{{ cridockerd_version }}-linux-{{ binary_type.stdout }}.tar.gz"
-    dest: "/tmp/kubekey/cri-dockerd-{{ cridockerd_version }}-linux-{{ binary_type.stdout }}.tar.gz"
-    when: cridockerd_install_version.stderr != ""
-
-- name: Generate cri-dockerd config file
-  template:
-    src: cri-dockerd.config
-    dest: /etc/cri-dockerd.yaml
-    when: cridockerd_install_version.stderr != ""
-
-- name: Unpackage cri-dockerd binary
-  command: |
-    tar -xvf /tmp/kubekey/cri-dockerd-{{ cridockerd_version }}-linux-{{ binary_type.stdout }}.tar.gz -C /usr/local/bin/
-  when: cridockerd_install_version.stderr != ""
-
-- name: Generate cri-dockerd Service file
-  template:
-    src: cri-dockerd.service
-    dest: /etc/systemd/system/cri-dockerd.service
-  when: cridockerd_install_version.stderr != ""
-
-- name: Start cri-dockerd service
-  command: |
-    systemctl daemon-reload && systemctl start cri-dockerd.service && systemctl enable cri-dockerd.service
-  when: cridockerd_install_version.stderr != ""
+- name: Install cri-dockerd
+  when: or (.cridockerd_install_version.stderr | ne "") (.cridockerd_install_version.stdout | hasPrefix (printf "cri-dockerd %s " .cridockerd_version) | not)
+  block:
+    - name: Sync cri-dockerd Binary to remote
+      copy:
+        src: |
+          {{ .work_dir }}/kubekey/cri-dockerd/{{ .cridockerd_version }}/{{ .binary_type.stdout }}/cri-dockerd-{{ .cridockerd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+        dest: |
+          /tmp/kubekey/cri-dockerd-{{ .cridockerd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+    - name: Generate cri-dockerd config file
+      template:
+        src: cri-dockerd.config
+        dest: /etc/cri-dockerd.yaml
+    - name: Unpackage cri-dockerd binary
+      command: |
+        tar -xvf /tmp/kubekey/cri-dockerd-{{ .cridockerd_version }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
+    - name: Generate cri-dockerd Service file
+      template:
+        src: cri-dockerd.service
+        dest: /etc/systemd/system/cri-dockerd.service
+    - name: Start cri-dockerd service
+      command: |
+        systemctl daemon-reload && systemctl start cri-dockerd.service && systemctl enable cri-dockerd.service

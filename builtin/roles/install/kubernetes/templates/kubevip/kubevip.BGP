@@ -15,7 +15,7 @@ spec:
     - name: port
       value: "6443"
     - name: vip_interface
-      value: {{ interface.stdout }}
+      value: {{ .interface.stdout }}
     - name: vip_cidr
       value: "32"
     - name: cp_enable
@@ -29,7 +29,12 @@ spec:
     - name: bgp_enable
       value: "true"
     - name: bgp_routerid
-      value: {% for h in groups['kube_control_plane'] %}{% set hv=inventory_hosts[h] %}"{{ hv.internal_ipv4 }}"{% if (not forloop.Last) %},{% endif %}{% endfor %}
+      value: |
+        {{ $ips := list }}
+        {{- range .groups.kube_control_plane | default list -}}
+            {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
+        {{- end -}}
+        {{ $ips | join "," }}
     - name: bgp_as
       value: "65000"
     - name: bgp_peeraddress
@@ -37,7 +42,12 @@ spec:
     - name: bgp_peeras
       value: "65000"
     - name: bgp_peers
-      value: {{ .BGPPeers }}
+      value: |
+        {{ $ips := list }}
+        {{- range .groups.kube_control_plane | default list -}}
+            {{- $ips = append $ips (printf "%s:65000::false" (index $.inventory_hosts . "internal_ipv4")) -}}
+        {{- end -}}
+        {{ $ips | join "," }}
     - name: lb_enable
       value: "true"
     - name: lb_port
@@ -45,10 +55,10 @@ spec:
     - name: lb_fwdmethod
       value: local
     - name: address
-      value: {{ kubernetes.control_plane_endpoint }}
+      value: {{ .kubernetes.kube_vip.address }}
     - name: prometheus_server
       value: :2112
-    image: {{ kubernetes.kubevip.image }}
+    image: {{ .kubernetes.kubevip.image }}
     imagePullPolicy: IfNotPresent
     name: kube-vip
     resources: {}

@@ -15,7 +15,6 @@ cluster_require:
   minimal_node_memory_mb: 10
   require_etcd_deployment_type: ['internal','external']
   require_container_manager: ['docker', 'containerd']
-  require_containerd_version: ['latest', 'edge', 'stable']
   # the minimal required version of containerd to be installed.
   containerd_min_version_required: v1.6.0
   supported_architectures:

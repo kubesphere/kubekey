@@ -4,27 +4,27 @@
 - include_tasks: install_docker_compose.yaml
 
 - include_tasks: install_keepalived.yaml
-  when: image_registry.ha_vip | defined
+  when: and .image_registry.ha_vip (ne .image_registry.ha_vip "")
 
 - name: Install harbor
-  when: image_registry.type == 'harbor'
+  when: .image_registry.type | eq "harbor"
   block:
     - name: Check if harbor installed
       ignore_errors: true
       command: systemctl status harbor.service
-      register: image_registry_service
-    - include_tasks: install_registry.yaml
-      when: image_registry_service.stderr != ""
+      register: harbor_service_status
+    - include_tasks: install_harbor.yaml
+      when: .harbor_service_status.stderr | ne ""
 
 - name: Install registry
-  when: image_registry.type == 'registry'
+  when: .image_registry.type | eq "registry"
   block:
     - name: Check if registry installed
       ignore_errors: true
       command: systemctl status registry.service
-      register: image_registry_service
+      register: registry_service_status
     - include_tasks: install_registry.yaml
-      when: image_registry_service.stderr != ""
+      when: .registry_service_status.stderr | ne ""
 
 - include_tasks: load_images.yaml
   tags: ["only_image"]

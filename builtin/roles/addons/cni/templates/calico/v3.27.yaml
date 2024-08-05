@@ -29,14 +29,14 @@ metadata:
   namespace: kube-system
 data:
   # You must set a non-zero value for Typha replicas below.
-  typha_service_name: {% if (cni.calico.typha) %}"calico-typha"{% else %}"none"{% endif %}
+  typha_service_name: "{{ if .cni.calico.typha }}calico-typha{{ else }}none{{ end }}"
   # Configure the backend to use.
   calico_backend: "bird"
 
   # Configure the MTU to use for workload interfaces and tunnels.
   # By default, MTU is auto-detected, and explicitly setting this field should not be required.
   # You can override auto-detection by providing a non-zero value.
-  veth_mtu: "{{ cni.calico.veth_mtu }}"
+  veth_mtu: "{{ .cni.calico.veth_mtu }}"
 
   # The CNI network configuration to install on each node. The special
   # values in this config will be automatically populated.
@@ -4715,7 +4715,7 @@ subjects:
     name: calico-cni-plugin
     namespace: kube-system
 
-{% if (cni.calico.typha) %}
+{{- if .cni.calico.typha }}
 ---
 # Source: calico/templates/calico-typha.yaml
 # This manifest creates a Service, which will be backed by Calico's Typha daemon.
@@ -4736,8 +4736,7 @@ spec:
       name: calico-typha
   selector:
     k8s-app: calico-typha
-
-{% endif %}
+{{- end }}
 ---
 # Source: calico/templates/calico-node.yaml
 # This manifest installs the calico-node container, as well
@@ -4785,7 +4784,7 @@ spec:
         # It can be deleted if this is a fresh installation, or if you have already
         # upgraded to use calico-ipam.
         - name: upgrade-ipam
-          image: {{ cni.calico.cni_image }}
+          image: {{ .cni.calico.cni_image }}
           imagePullPolicy: IfNotPresent
           command: ["/opt/cni/bin/calico-ipam", "-upgrade"]
           envFrom:
@@ -4813,7 +4812,7 @@ spec:
         # This container installs the CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: {{ cni.calico.cni_image }}
+          image: {{ .cni.calico.cni_image }}
           imagePullPolicy: IfNotPresent
           command: ["/opt/cni/bin/install"]
           envFrom:
@@ -4856,7 +4855,7 @@ spec:
         # i.e. bpf at /sys/fs/bpf and cgroup2 at /run/calico/cgroup. Calico-node initialisation is executed
         # in best effort fashion, i.e. no failure for errors, to not disrupt pod creation in iptable mode.
         - name: "mount-bpffs"
-          image: {{ cni.calico.node_image }}
+          image: {{ .cni.calico.node_image }}
           imagePullPolicy: IfNotPresent
           command: ["calico-node", "-init", "-best-effort"]
           volumeMounts:
@@ -4882,7 +4881,7 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: {{ cni.calico.node_image }}
+          image: {{ .cni.calico.node_image }}
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
@@ -4893,14 +4892,14 @@ spec:
             # Use Kubernetes API as the backing datastore.
             - name: DATASTORE_TYPE
               value: "kubernetes"
-            {% if (cni.calico.typha) %}
+{{- if .cni.calico.typha }}
             # Typha support: controlled by the ConfigMap.
             - name: FELIX_TYPHAK8SSERVICENAME
               valueFrom:
                 configMapKeyRef:
                   name: calico-config
                   key: typha_service_name
-            {% endif %}
+{{- end }}
             # Wait for the datastore.
             - name: WAIT_FOR_DATASTORE
               value: "true"
@@ -4927,36 +4926,36 @@ spec:
               value: "can-reach=$(NODEIP)"
             - name: IP
               value: "autodetect"
-            {% if (cni.ipv6_support) %}
+{{- if .cni.ipv6_support }}
             - name: IP6
               value: "autodetect"
-            {% endif %}
+{{- end }}
             # Enable IPIP
             - name: CALICO_IPV4POOL_IPIP
-              value: "{{ cni.calico.ipip_mode }}"
+              value: "{{ .cni.calico.ipip_mode }}"
             # Enable or Disable VXLAN on the default IP pool.
             - name: CALICO_IPV4POOL_VXLAN
-              value: "{{ cni.calico.vxlan_mode }}"
-            {% if (cni.calico.ipv4pool_nat_outgoing) %}
+              value: "{{ .cni.calico.vxlan_mode }}"
+{{- if .cni.calico.ipv4pool_nat_outgoing }}
             - name: CALICO_IPV4POOL_NAT_OUTGOING
               value: "true"
-            {% else %}
+{{- else }}
             - name: CALICO_IPV4POOL_NAT_OUTGOING
               value: "false"
-            {% endif %}
-            {% if (cni.ipv6_support) %}
+{{- end }}
+{{- if .cni.ipv6_support }}
             # Enable or Disable VXLAN on the default IPv6 IP pool.
             - name: CALICO_IPV6POOL_VXLAN
               value: "Always"
             - name: CALICO_IPV6POOL_NAT_OUTGOING
               value: "true"
-            {% else %}
+{{- else }}
             # Enable or Disable VXLAN on the default IPv6 IP pool.
             - name: CALICO_IPV6POOL_VXLAN
               value: "Never"
             - name: CALICO_IPV6POOL_NAT_OUTGOING
               value: "false"
-            {% endif %}
+{{- end }}
             # Set MTU for tunnel device used if ipip is enabled
             - name: FELIX_IPINIPMTU
               valueFrom:
@@ -4975,43 +4974,43 @@ spec:
                 configMapKeyRef:
                   name: calico-config
                   key: veth_mtu
-            {% if cni.calico.default_ip_pool %}
+{{- if .cni.calico.default_ip_pool }}
             # The default IPv4 pool to create on startup if none exists. Pod IPs will be
             # chosen from this range. Changing this value after installation will have
             # no effect.
             - name: CALICO_IPV4POOL_CIDR
-              value: "{{ cni.kube_pods_v4_cidr }}"
+              value: "{{ .cni.kube_pods_v4_cidr }}"
             - name: CALICO_IPV4POOL_BLOCK_SIZE
-              value: "{{ cni.node_cidr_mask_size }}"
-            {% if (cni.ipv6_support) %}
+              value: "{{ .cni.node_cidr_mask_size }}"
+  {{- if .cni.ipv6_support }}
             - name: CALICO_IPV6POOL_CIDR
-              value: "{{ cni.kube_pods_v6_cidr }}"
+              value: "{{ .cni.kube_pods_v6_cidr }}"
             - name: CALICO_IPV6POOL_BLOCK_SIZE
               value: "120"
-            {% endif %}
-            {% else %}
+  {{- end }}
+{{- else }}
             - name: NO_DEFAULT_POOLS
               value: "true"
             - name: CALICO_IPV4POOL_CIDR
               value: ""
-            {% if (cni.ipv6_support) %}
+  {{- if .cni.ipv6_support }}
             - name: CALICO_IPV6POOL_CIDR
               value: ""
-            {% endif %}
-            {% endif %}
+  {{- end }}
+{{- end }}
             - name: CALICO_DISABLE_FILE_LOGGING
               value: "true"
             # Set Felix endpoint to host default action to ACCEPT.
             - name: FELIX_DEFAULTENDPOINTTOHOSTACTION
               value: "ACCEPT"
             # Disable IPv6 on Kubernetes.
-            {% if (cni.ipv6_support) %}
+{{- if .cni.ipv6_support }}
             - name: FELIX_IPV6SUPPORT
               value: "true"
-            {% else %}
+{{- else }}
             - name: FELIX_IPV6SUPPORT
               value: "false"
-            {% endif %}
+{{- end }}
             - name: FELIX_HEALTHENABLED
               value: "true"
             - name: FELIX_DEVICEROUTESOURCEADDRESS
@@ -5135,7 +5134,7 @@ metadata:
     k8s-app: calico-kube-controllers
 spec:
   # The controllers can only have a single active instance.
-  replicas: {{ cni.calico.replicas }}
+  replicas: {{ .cni.calico.replicas }}
   selector:
     matchLabels:
       k8s-app: calico-kube-controllers
@@ -5150,7 +5149,7 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-{{ cni.calico.node_selector|to_yaml:8|safe }}
+{{ .cni.calico.node_selector|to_yaml:8|safe }}
       tolerations:
         # Mark the pod as a critical add-on for rescheduling.
         - key: CriticalAddonsOnly
@@ -5175,7 +5174,7 @@ spec:
       priorityClassName: system-cluster-critical
       containers:
         - name: calico-kube-controllers
-          image:  {{ cni.calico.kube_controller_image }}
+          image:  {{ .cni.calico.kube_controller_image }}
           imagePullPolicy: IfNotPresent
           env:
             # Choose which controllers to run.
@@ -5199,7 +5198,7 @@ spec:
                 - -r
             periodSeconds: 10
 
-{% if (cni.calico.typha) %}
+{{- if .cni.calico.typha }}
 ---
 # Source: calico/templates/calico-typha.yaml
 # This manifest creates a Deployment of Typha to back the above service.
@@ -5218,7 +5217,7 @@ spec:
   # We recommend using Typha if you have more than 50 nodes. Above 100 nodes it is essential
   # (when using the Kubernetes datastore). Use one replica for every 100-200 nodes. In
   # production, we recommend running at least 3 replicas to reduce the impact of rolling upgrade.
-  replicas: {{ cni.calico.replicas }}
+  replicas: {{ .cni.calico.replicas }}
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -5245,7 +5244,7 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-{{ cni.calico.node_selector|to_yaml:8|safe }}
+{{ .cni.calico.node_selector|to_yaml:8|safe }}
       hostNetwork: true
       # Typha supports graceful shut down, disconnecting clients slowly during the grace period.
       # The TYPHA_SHUTDOWNTIMEOUTSECS env var should be kept in sync with this value.
@@ -5279,7 +5278,7 @@ spec:
       securityContext:
         fsGroup: 65534
       containers:
-        - image: {{ cni.calico.typha_image }}
+        - image: {{ .cni.calico.typha_image }}
           imagePullPolicy: IfNotPresent
           name: calico-typha
           ports:
@@ -5336,4 +5335,4 @@ spec:
               host: localhost
             periodSeconds: 10
             timeoutSeconds: 10
-{% endif %}
+{{- end }}

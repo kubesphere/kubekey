@@ -45,7 +45,7 @@ func TestDebug(t *testing.T) {
 			name: "var value",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
-					Raw: []byte(`{"var": "k"}`),
+					Raw: []byte(`{"var": ".k"}`),
 				},
 				Host: "local",
 				Variable: &testVariable{
@@ -60,7 +60,7 @@ func TestDebug(t *testing.T) {
 			name: "msg value",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
-					Raw: []byte(`{"msg": "{{ k }}"}`),
+					Raw: []byte(`{"msg": "{{ .k }}"}`),
 				},
 				Host: "local",
 				Variable: &testVariable{

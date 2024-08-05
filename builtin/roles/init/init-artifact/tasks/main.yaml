@@ -2,17 +2,17 @@
 - name: Create work_dir
   tags: ["always"]
   command: |
-    if [ ! -d "{{ work_dir }}" ]; then
-      mkdir -p {{ work_dir }}
+    if [ ! -d "{{ .work_dir }}" ]; then
+      mkdir -p {{ .work_dir }}
     fi
 
 - name: Extract artifact to work_dir
   tags: ["always"]
   command: |
-    if [ ! -f "{{ artifact_file }}" ]; then
-      tar -zxvf {{ artifact_file }} -C {{ work_dir }}
+    if [ ! -f "{{ .artifact_file }}" ]; then
+      tar -zxvf {{ .artifact_file }} -C {{ .work_dir }}
     fi
-  when: artifact_file | defined
+  when: and .artifact_file (ne .artifact_file "")
 
 - name: Download binaries
   block:
@@ -27,4 +27,4 @@
 - name: Chown work_dir to sudo
   tags: ["always"]
   command: |
-    chown -R ${SUDO_UID}:${SUDO_GID} {{ work_dir }}
+    chown -R ${SUDO_UID}:${SUDO_GID} {{ .work_dir }}
