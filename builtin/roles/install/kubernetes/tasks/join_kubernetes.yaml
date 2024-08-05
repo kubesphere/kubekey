@@ -2,11 +2,11 @@
 - name: Generate kubeadm join config
   template:
     src: |
-      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
+      {{- if .kube_version | semverCompare ">=v1.24.0" }}
       kubeadm/kubeadm-join.v1beta3
-      {{- else -}}
+      {{- else }}
       kubeadm/kubeadm-join.v1beta2
-      {{- end -}}
+      {{- end }}
     dest: /etc/kubernetes/kubeadm-config.yaml
 
 - name: Sync audit policy file to remote
@@ -36,8 +36,8 @@
     - name: Remote master taint
       ignore_errors: true
       command: |
-        /usr/local/bin/kubectl taint nodes {{ .inventory_name }} node-role.kubernetes.io/master=:NoSchedule-
-        /usr/local/bin/kubectl taint nodes {{ .inventory_name }} node-role.kubernetes.io/control-plane=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/master=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/control-plane=:NoSchedule-
     - name: Add work label
       command: |
-        /usr/local/bin/kubectl label --overwrite node {{ .inventory_name }} node-role.kubernetes.io/worker=
+        /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=

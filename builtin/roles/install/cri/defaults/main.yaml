@@ -7,9 +7,9 @@ cri:
   container_manager: docker
   # the endpoint of containerd
   cri_socket: |
-    {{- if .cri.container_manager | eq "containerd" -}}
+    {{- if .cri.container_manager | eq "containerd" }}
     unix:///var/run/containerd.sock
-    {{- end -}}
+    {{- end }}
 #  containerd:
 #    data_root: /var/lib/containerd
   docker:
@@ -23,10 +23,10 @@ image_registry:
   #  ha_vip: 192.168.122.59
   auth:
     registry: |
-      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") -}}
+      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
       {{ .image_registry.ha_vip }}
-      {{- else -}}
+      {{- else }}
       {{ .groups.image_registry | default list | first }}
-      {{- end -}}
+      {{- end }}
     username: admin
     password: Harbor12345

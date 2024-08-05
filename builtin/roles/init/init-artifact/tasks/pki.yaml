@@ -17,10 +17,10 @@
       {{ .work_dir }}/kubekey/pki/root.crt
     cn: etcd
     sans: |
-      {{- $ips := list -}}
-      {{- range .groups.etcd | default list -}}
-        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
-      {{- end -}}
+      {{- $ips := list }}
+      {{- range .groups.etcd | default list }}
+        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") }}
+      {{- end }}
       {{ $ips | toJson }}
     date: 87600h
     policy: "{{ .artifact.gen_cert_policy }}"
@@ -38,10 +38,10 @@
       {{ .work_dir }}/kubekey/pki/root.crt
     cn: image_registry
     sans: |
-      {{- $ips := list -}}
-      {{- range .groups.image_registry | default list -}}
-        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") -}}
-      {{- end -}}
+      {{- $ips := list }}
+      {{- range .groups.image_registry | default list }}
+        {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") }}
+      {{- end }}
       {{ $ips | toJson }}
     date: 87600h
     policy: "{{ .artifact.gen_cert_policy }}"

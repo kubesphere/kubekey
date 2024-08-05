@@ -51,7 +51,7 @@ data:
           "log_file_path": "/var/log/calico/cni/cni.log",
           "datastore_type": "kubernetes",
           "nodename": "__KUBERNETES_NODE_NAME__",
-          "mtu": __CNI_MTU__,
+          "mtu": "__CNI_MTU__",
           "ipam": {
               "type": "calico-ipam"
           },
@@ -5149,7 +5149,9 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-{{ .cni.calico.node_selector|to_yaml:8|safe }}
+{{- if .cni.calico.node_selector }}
+{{ .cni.calico.node_selector | toYaml | indent 8 }}
+{{- end }}
       tolerations:
         # Mark the pod as a critical add-on for rescheduling.
         - key: CriticalAddonsOnly
@@ -5244,7 +5246,9 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-{{ .cni.calico.node_selector|to_yaml:8|safe }}
+{{- if .cni.calico.node_selector }}
+{{ .cni.calico.node_selector| toYaml | indent 8 }}
+{{- end }}
       hostNetwork: true
       # Typha supports graceful shut down, disconnecting clients slowly during the grace period.
       # The TYPHA_SHUTDOWNTIMEOUTSECS env var should be kept in sync with this value.

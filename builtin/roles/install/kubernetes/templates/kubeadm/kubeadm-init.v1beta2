@@ -63,7 +63,7 @@ apiServer:
     - kubernetes.default.svc.{{ if and .kubernetes.control_plane_endpoint (ne .kubernetes.control_plane_endpoint "") }}{{ .kubernetes.control_plane_endpoint }}{{ else }}{{ .init_kubernetes_node }}{{ end }}
     - kubernetes.default.svc.{{ .kubernetes.networking.dns_domain }}
   {{- range .groups.k8s_cluster | default list }}
-    - {{ . }}.{{ $.kubernetes.networking.dns_domain }}
+    - {{ index $.inventory_hosts . "hostname" }}.{{ $.kubernetes.networking.dns_domain }}
     - {{ index $.inventory_hosts . "internal_ipv4" }}
     {{- if index $.inventory_hosts . "internal_ipv6" }}
     - {{ index $.inventory_hosts . "internal_ipv6" }}
@@ -81,7 +81,7 @@ apiServer:
 {{- end }}
 controllerManager:
   extraArgs:
-{{- if and .internal_ipv6 (ne .internal_ipv6 "") }}
+{{- if gt ( .kubernetes.networking.pod_cidr | splitList "," | len) 1 }}
     node-cidr-mask-size-ipv4: "{{ .kubernetes.controller_manager.kube_network_node_prefix }}"
     node-cidr-mask-size-ipv6: "64"
 {{- else }}

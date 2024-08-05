@@ -176,10 +176,10 @@ cat >>/etc/hosts<<EOF
 # kubekey hosts BEGIN
 {{- range .inventory_hosts }}
   {{- if and .internal_ipv4 (ne .internal_ipv4 "") }}
-    {{ printf "%s %s %s.%s" .internal_ipv4 .inventory_name .inventory_name ($.kubernetes.cluster_name | default "cluster.local") }}
+    {{ printf "%s %s %s.%s" .internal_ipv4 .hostname .hostname ($.kubernetes.cluster_name | default "cluster.local") }}
   {{- end }}
   {{- if and .internal_ipv6 (ne .internal_ipv6 "") }}
-    {{ printf "%s %s %s.%s" .internal_ipv6 .internal_ipv6 .inventory_name ($.kubernetes.cluster_name | default "cluster.local") }}
+    {{ printf "%s %s %s.%s" .internal_ipv6 .internal_ipv6 .hostname ($.kubernetes.cluster_name | default "cluster.local") }}
   {{- end }}
 {{- end }}
 # kubekey hosts END

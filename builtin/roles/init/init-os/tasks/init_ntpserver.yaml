@@ -15,14 +15,14 @@
     # add local
     echo "local stratum 10" >> $chronyConfigFile
     # add server
-    {{- range $server := .ntp_servers -}}
-      {{- range $.inventory_hosts -}}
-        {{- if eq .inventory_name $server -}}
-          {{- $server = .internal_ipv4 -}}
-        {{- end -}}
-      {{- end -}}
+    {{- range $server := .ntp_servers }}
+      {{- range $.inventory_hosts }}
+        {{- if eq .hostname $server }}
+          {{- $server = .internal_ipv4 }}
+        {{- end }}
+      {{- end }}
     grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
-    {{- end -}}
+    {{- end }}
 
 - name: Set timezone
   command: |
