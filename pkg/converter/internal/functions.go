@@ -1,14 +1,12 @@
 package internal
 
 import (
-	"fmt"
 	"math"
 	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"gopkg.in/yaml.v3"
-	"k8s.io/apimachinery/pkg/util/version"
 )
 
 var Template = template.New("kubekey").Funcs(funcMap())
@@ -20,8 +18,6 @@ func funcMap() template.FuncMap {
 	delete(f, "expandenv")
 	// add custom function
 	f["toYaml"] = toYAML
-	f["versionAtLeast"] = versionAtLeast
-	f["versionLessThan"] = versionLessThan
 	f["ipInCIDR"] = ipInCIDR
 	f["pow"] = pow
 
@@ -39,32 +35,6 @@ func toYAML(v interface{}) string {
 		return ""
 	}
 	return strings.TrimSuffix(string(data), "\n")
-}
-
-// versionAtLeast tests if the "version2" is at least equal to a given minimum "version1".
-func versionAtLeast(version1, version2 string) (bool, error) {
-	v1, err := version.ParseGeneric(version1)
-	if err != nil {
-		return false, fmt.Errorf("convert %s to version error: %w", version1, err)
-	}
-	v2, err := version.ParseGeneric(version2)
-	if err != nil {
-		return false, fmt.Errorf("convert %s to version error: %w", version2, err)
-	}
-	return v2.AtLeast(v1), nil
-}
-
-// versionLessThan tests if the "version2" is less than a given "version1".
-func versionLessThan(version1, version2 string) (bool, error) {
-	v1, err := version.ParseGeneric(version1)
-	if err != nil {
-		return false, fmt.Errorf("convert %s to version error: %w", version1, err)
-	}
-	v2, err := version.ParseGeneric(version2)
-	if err != nil {
-		return false, fmt.Errorf("convert %s to version error: %w", version2, err)
-	}
-	return v2.LessThan(v1), nil
 }
 
 // ipInCIDR get the IP of a specific location within the cidr range
