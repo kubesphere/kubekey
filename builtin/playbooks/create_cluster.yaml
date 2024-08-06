@@ -40,7 +40,7 @@
       when: .renew_certs.enabled
 
 - hosts:
-    - k8s_cluster|random
+    - kube_control_plane|random
   roles:
     - addons/cni
     - addons/kata
