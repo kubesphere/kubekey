@@ -174,12 +174,40 @@ sed -i '/^$/N;/\n$/N;//D' /etc/hosts
 
 cat >>/etc/hosts<<EOF
 # kubekey hosts BEGIN
-{{- range .inventory_hosts }}
-  {{- if and .internal_ipv4 (ne .internal_ipv4 "") }}
-    {{ printf "%s %s %s.%s" .internal_ipv4 .hostname .hostname ($.kubernetes.cluster_name | default "cluster.local") }}
+# kubernetes hosts
+{{- range .groups.k8s_cluster | default list }}
+  {{- if and (index $.inventory_hosts . "internal_ipv4") (ne (index $.inventory_hosts . "internal_ipv4") "") }}
+    {{ printf "%s %s %s.%s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") (index $.inventory_hosts . "hostname") ($.kubernetes.cluster_name | default "cluster.local") }}
   {{- end }}
-  {{- if and .internal_ipv6 (ne .internal_ipv6 "") }}
-    {{ printf "%s %s %s.%s" .internal_ipv6 .internal_ipv6 .hostname ($.kubernetes.cluster_name | default "cluster.local") }}
+  {{- if and (index $.inventory_hosts . "internal_ipv6") (ne (index $.inventory_hosts . "internal_ipv6") "") }}
+    {{ printf "%s %s %s.%s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") (index $.inventory_hosts . "hostname") ($.kubernetes.cluster_name | default "cluster.local") }}
+  {{- end }}
+{{- end }}
+# etcd hosts
+{{- range .groups.etcd | default list }}
+  {{- if and (index $.inventory_hosts . "internal_ipv4") (ne (index $.inventory_hosts . "internal_ipv4") "") }}
+    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") }}
+  {{- end }}
+  {{- if and (index $.inventory_hosts . "internal_ipv6") (ne (index $.inventory_hosts . "internal_ipv6") "") }}
+    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") }}
+  {{- end }}
+{{- end }}
+# image registry hosts
+{{- range .groups.image_registry | default list }}
+  {{- if and (index $.inventory_hosts . "internal_ipv4") (ne (index $.inventory_hosts . "internal_ipv4") "") }}
+    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") }}
+  {{- end }}
+  {{- if and (index $.inventory_hosts . "internal_ipv6") (ne (index $.inventory_hosts . "internal_ipv6") "") }}
+    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") }}
+  {{- end }}
+{{- end }}
+# nfs hosts
+{{- range .groups.nfs | default list }}
+  {{- if and (index $.inventory_hosts . "internal_ipv4") (ne (index $.inventory_hosts . "internal_ipv4") "") }}
+    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") }}
+  {{- end }}
+  {{- if and (index $.inventory_hosts . "internal_ipv6") (ne (index $.inventory_hosts . "internal_ipv6") "") }}
+    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") }}
   {{- end }}
 {{- end }}
 # kubekey hosts END

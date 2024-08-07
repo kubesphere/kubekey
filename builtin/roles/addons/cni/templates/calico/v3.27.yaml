@@ -51,7 +51,7 @@ data:
           "log_file_path": "/var/log/calico/cni/cni.log",
           "datastore_type": "kubernetes",
           "nodename": "__KUBERNETES_NODE_NAME__",
-          "mtu": "__CNI_MTU__",
+          "mtu": __CNI_MTU__,
           "ipam": {
               "type": "calico-ipam"
           },
