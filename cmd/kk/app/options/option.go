@@ -84,7 +84,7 @@ func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 	gfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
-	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val")
+	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val or --set k1=v1,k2=v2")
 	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.ini")
 	gfs.BoolVarP(&o.Debug, "debug", "d", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
 	gfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "the namespace which pipeline will be executed, all reference resources(pipeline, config, inventory, task) should in the same namespace")
@@ -119,13 +119,14 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 	}
 
 	for _, s := range o.Set {
-		s = unescapeString(s)
-		ss := strings.Split(s, "=")
-		if len(ss) != 2 {
-			return nil, nil, fmt.Errorf("--set value should be k=v")
-		}
-		if err := setValue(config, ss[0], ss[1]); err != nil {
-			return nil, nil, fmt.Errorf("--set value to config error: %w", err)
+		for _, setVal := range strings.Split(unescapeString(s), ",") {
+			i := strings.Index(setVal, "=")
+			if i == 0 || i == -1 {
+				return nil, nil, fmt.Errorf("--set value should be k=v")
+			}
+			if err := setValue(config, setVal[:i], setVal[i+1:]); err != nil {
+				return nil, nil, fmt.Errorf("--set value to config error: %w", err)
+			}
 		}
 	}
 	pipeline.Spec.ConfigRef = &corev1.ObjectReference{
