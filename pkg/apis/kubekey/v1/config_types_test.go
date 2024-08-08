@@ -59,3 +59,53 @@ func TestSetValue(t *testing.T) {
 		})
 	}
 }
+
+func TestGetValue(t *testing.T) {
+	testcases := []struct {
+		name   string
+		key    string
+		config Config
+		except any
+	}{
+		{
+			name:   "all value",
+			key:    "",
+			config: Config{Spec: runtime.RawExtension{Raw: []byte(`{"a":1}`)}},
+			except: map[string]interface{}{
+				"a": int64(1),
+			},
+		},
+		{
+			name:   "none value",
+			key:    "b",
+			config: Config{Spec: runtime.RawExtension{Raw: []byte(`{"a":1}`)}},
+			except: nil,
+		},
+		{
+			name:   "none multi value",
+			key:    "b.c",
+			config: Config{Spec: runtime.RawExtension{Raw: []byte(`{"a":1}`)}},
+			except: nil,
+		},
+		{
+			name:   "find one value",
+			key:    "a",
+			config: Config{Spec: runtime.RawExtension{Raw: []byte(`{"a":1}`)}},
+			except: int64(1),
+		},
+		{
+			name:   "find mulit value",
+			key:    "a.b",
+			config: Config{Spec: runtime.RawExtension{Raw: []byte(`{"a":{"b":1}}`)}},
+			except: int64(1),
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			value, err := tc.config.GetValue(tc.key)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.except, value)
+		})
+	}
+}
