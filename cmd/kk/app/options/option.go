@@ -84,7 +84,7 @@ func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 	gfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
-	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val")
+	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val or --set k1=v1,k2=v2")
 	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.ini")
 	gfs.BoolVarP(&o.Debug, "debug", "d", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
 	gfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "the namespace which pipeline will be executed, all reference resources(pipeline, config, inventory, task) should in the same namespace")
@@ -100,33 +100,9 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 		o.WorkDir = filepath.Join(wd, o.WorkDir)
 	}
 
-	config, err := genConfig(o.ConfigFile)
+	config, err := o.genConfig()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate config error: %w", err)
-	}
-	config.Namespace = o.Namespace
-	if wd, err := config.GetValue("work_dir"); err == nil && wd != nil {
-		// if work_dir is defined in config, use it. otherwise use current dir.
-		o.WorkDir = wd.(string)
-	} else if err := config.SetValue("work_dir", o.WorkDir); err != nil {
-		return nil, nil, fmt.Errorf("work_dir to config error: %w", err)
-	}
-	if o.Artifact != "" {
-		// override artifact_file in config
-		if err := config.SetValue("artifact_file", o.Artifact); err != nil {
-			return nil, nil, fmt.Errorf("artifact file to config error: %w", err)
-		}
-	}
-
-	for _, s := range o.Set {
-		s = unescapeString(s)
-		ss := strings.Split(s, "=")
-		if len(ss) != 2 {
-			return nil, nil, fmt.Errorf("--set value should be k=v")
-		}
-		if err := setValue(config, ss[0], ss[1]); err != nil {
-			return nil, nil, fmt.Errorf("--set value to config error: %w", err)
-		}
 	}
 	pipeline.Spec.ConfigRef = &corev1.ObjectReference{
 		Kind:            config.Kind,
@@ -137,11 +113,10 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 		ResourceVersion: config.ResourceVersion,
 	}
 
-	inventory, err := genInventory(o.InventoryFile)
+	inventory, err := o.genInventory()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate inventory error: %w", err)
 	}
-	inventory.Namespace = o.Namespace
 	pipeline.Spec.InventoryRef = &corev1.ObjectReference{
 		Kind:            inventory.Kind,
 		Namespace:       inventory.Namespace,
@@ -154,40 +129,77 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 	return config, inventory, nil
 }
 
-func genConfig(configFile string) (*kubekeyv1.Config, error) {
-	if configFile != "" {
-		cdata, err := os.ReadFile(configFile)
+// genConfig generate config by ConfigFile and set value by command args.
+func (o *CommonOptions) genConfig() (*kubekeyv1.Config, error) {
+	config := defaultConfig.DeepCopy()
+	if o.ConfigFile != "" {
+		cdata, err := os.ReadFile(o.ConfigFile)
 		if err != nil {
 			return nil, fmt.Errorf("read config file error: %w", err)
 		}
-		config := &kubekeyv1.Config{}
+		config = &kubekeyv1.Config{}
 		if err := yaml.Unmarshal(cdata, config); err != nil {
 			return nil, fmt.Errorf("unmarshal config file error: %w", err)
 		}
-		return config, nil
+	}
+	// set by command args
+	if o.Namespace != "" {
+		config.Namespace = o.Namespace
+	}
+	if wd, err := config.GetValue("work_dir"); err == nil && wd != nil {
+		// if work_dir is defined in config, use it. otherwise use current dir.
+		o.WorkDir = wd.(string)
+	} else if err := config.SetValue("work_dir", o.WorkDir); err != nil {
+		return nil, fmt.Errorf("work_dir to config error: %w", err)
+	}
+	if o.Artifact != "" {
+		// override artifact_file in config
+		if err := config.SetValue("artifact_file", o.Artifact); err != nil {
+			return nil, fmt.Errorf("artifact file to config error: %w", err)
+		}
+	}
+	for _, s := range o.Set {
+		for _, setVal := range strings.Split(unescapeString(s), ",") {
+			i := strings.Index(setVal, "=")
+			if i == 0 || i == -1 {
+				return nil, fmt.Errorf("--set value should be k=v")
+			}
+			if err := setValue(config, setVal[:i], setVal[i+1:]); err != nil {
+				return nil, fmt.Errorf("--set value to config error: %w", err)
+			}
+		}
 	}
 
-	return defaultConfig, nil
+	return config, nil
 }
 
-func genInventory(inventoryFile string) (*kubekeyv1.Inventory, error) {
-	if inventoryFile != "" {
-		cdata, err := os.ReadFile(inventoryFile)
+// genConfig generate config by ConfigFile and set value by command args.
+func (o *CommonOptions) genInventory() (*kubekeyv1.Inventory, error) {
+	inventory := defaultInventory.DeepCopy()
+	if o.InventoryFile != "" {
+		cdata, err := os.ReadFile(o.InventoryFile)
 		if err != nil {
 			klog.V(4).ErrorS(err, "read config file error")
 			return nil, err
 		}
-		inventory := &kubekeyv1.Inventory{}
+		inventory = &kubekeyv1.Inventory{}
 		if err := yaml.Unmarshal(cdata, inventory); err != nil {
 			klog.V(4).ErrorS(err, "unmarshal config file error")
 			return nil, err
 		}
-		return inventory, nil
+	}
+	// set by command args
+	if o.Namespace != "" {
+		inventory.Namespace = o.Namespace
 	}
 
-	return defaultInventory, nil
+	return inventory, nil
 }
 
+// setValue set key: val in config.
+// if val is json string. convert to map or slice
+// if val is TRUE,YES,Y. convert to bool type true.
+// if val is FALSE,NO,N. convert to bool type false.
 func setValue(config *kubekeyv1.Config, key, val string) error {
 	switch {
 	case strings.HasPrefix(val, "{") && strings.HasSuffix(val, "{"):
@@ -227,8 +239,8 @@ func unescapeString(s string) string {
 	}
 
 	// Iterate over the replacements map and replace escape sequences in the string
-	for old, new := range replacements {
-		s = strings.ReplaceAll(s, old, new)
+	for o, n := range replacements {
+		s = strings.ReplaceAll(s, o, n)
 	}
 
 	return s

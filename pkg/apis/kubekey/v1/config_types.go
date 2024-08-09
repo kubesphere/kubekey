@@ -48,6 +48,8 @@ func init() {
 	SchemeBuilder.Register(&Config{}, &ConfigList{})
 }
 
+// SetValue to config
+// if key contains "." (a.b), will convert map and set value (a:b:value)
 func (c *Config) SetValue(key string, value any) error {
 	configMap := make(map[string]any)
 	if c.Spec.Raw != nil {
@@ -77,11 +79,25 @@ func (c *Config) SetValue(key string, value any) error {
 	return nil
 }
 
+// GetValue by key
+// if key contains "." (a.b), find by the key path (if a:b:value in config.and get value)
 func (c *Config) GetValue(key string) (any, error) {
 	configMap := make(map[string]any)
 	if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
 		return nil, err
 	}
+	if key == "" {
+		return configMap, nil
+	}
 	// get value
-	return configMap[key], nil
+	var result any = configMap
+	for _, k := range strings.Split(key, ".") {
+		r, ok := result.(map[string]any)
+		if !ok {
+			// cannot find value
+			return nil, nil
+		}
+		result = r[k]
+	}
+	return result, nil
 }
