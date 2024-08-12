@@ -73,7 +73,7 @@ func newCommonOptions() CommonOptions {
 		klog.ErrorS(err, "get current dir error")
 		o.WorkDir = "/tmp/kubekey"
 	} else {
-		o.WorkDir = wd
+		o.WorkDir = filepath.Join(wd, "kubekey")
 	}
 	return o
 }
