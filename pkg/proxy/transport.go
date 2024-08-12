@@ -42,8 +42,8 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/config"
@@ -82,9 +82,9 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 		lt.restClient = clientFor
 	}
 
-	// register kubekeyv1alpha1 resources
-	kkv1alpha1 := newApiIResources(kubekeyv1alpha1.SchemeGroupVersion)
-	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(kubekeyv1alpha1.SchemeGroupVersion))
+	// register kkcorev1alpha1 resources
+	kkv1alpha1 := newApiIResources(kkcorev1alpha1.SchemeGroupVersion)
+	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1alpha1.SchemeGroupVersion))
 	if err != nil {
 		klog.V(4).ErrorS(err, "failed to create storage")
 		return nil, err
@@ -109,10 +109,10 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 
 	// when restConfig is null. should store all resource local
 	if restConfig.Host == "" {
-		// register kubekeyv1 resources
-		kkv1 := newApiIResources(kubekeyv1.SchemeGroupVersion)
+		// register kkcorev1 resources
+		kkv1 := newApiIResources(kkcorev1.SchemeGroupVersion)
 		// add config
-		configStorage, err := config.NewStorage(internal.NewFileRESTOptionsGetter(kubekeyv1.SchemeGroupVersion))
+		configStorage, err := config.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to create storage")
 			return nil, err
@@ -125,7 +125,7 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 			return nil, err
 		}
 		// add inventory
-		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(kubekeyv1.SchemeGroupVersion))
+		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to create storage")
 			return nil, err
@@ -138,7 +138,7 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 			return nil, err
 		}
 		// add pipeline
-		pipelineStorage, err := pipeline.NewStorage(internal.NewFileRESTOptionsGetter(kubekeyv1.SchemeGroupVersion))
+		pipelineStorage, err := pipeline.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to create storage")
 			return nil, err
@@ -197,7 +197,7 @@ type transport struct {
 }
 
 func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
-	if l.restClient != nil && !strings.HasPrefix(request.URL.Path, "/apis/"+kubekeyv1alpha1.SchemeGroupVersion.String()) {
+	if l.restClient != nil && !strings.HasPrefix(request.URL.Path, "/apis/"+kkcorev1alpha1.SchemeGroupVersion.String()) {
 		return l.restClient.Transport.RoundTrip(request)
 	}
 

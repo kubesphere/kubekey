@@ -22,7 +22,7 @@ import (
 	apiregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 type InventoryStorage struct {
@@ -35,17 +35,17 @@ type REST struct {
 
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (InventoryStorage, error) {
 	store := &apiregistry.Store{
-		NewFunc:                   func() runtime.Object { return &kubekeyv1.Inventory{} },
-		NewListFunc:               func() runtime.Object { return &kubekeyv1.InventoryList{} },
-		DefaultQualifiedResource:  kubekeyv1.SchemeGroupVersion.WithResource("inventories").GroupResource(),
-		SingularQualifiedResource: kubekeyv1.SchemeGroupVersion.WithResource("inventory").GroupResource(),
+		NewFunc:                   func() runtime.Object { return &kkcorev1.Inventory{} },
+		NewListFunc:               func() runtime.Object { return &kkcorev1.InventoryList{} },
+		DefaultQualifiedResource:  kkcorev1.SchemeGroupVersion.WithResource("inventories").GroupResource(),
+		SingularQualifiedResource: kkcorev1.SchemeGroupVersion.WithResource("inventory").GroupResource(),
 
 		CreateStrategy:      Strategy,
 		UpdateStrategy:      Strategy,
 		DeleteStrategy:      Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: apirest.NewDefaultTableConvertor(kubekeyv1.SchemeGroupVersion.WithResource("inventories").GroupResource()),
+		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("inventories").GroupResource()),
 	}
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,

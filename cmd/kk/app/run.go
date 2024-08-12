@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/manager"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
@@ -63,7 +63,7 @@ func newRunCommand() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, pipeline *kubekeyv1.Pipeline, config *kubekeyv1.Config, inventory *kubekeyv1.Inventory) error {
+func run(ctx context.Context, pipeline *kkcorev1.Pipeline, config *kkcorev1.Config, inventory *kkcorev1.Inventory) error {
 	restconfig, err := proxy.NewConfig(&rest.Config{})
 	if err != nil {
 		return fmt.Errorf("could not get rest config: %w", err)
@@ -84,7 +84,7 @@ func run(ctx context.Context, pipeline *kubekeyv1.Pipeline, config *kubekeyv1.Co
 		klog.ErrorS(err, "Create inventory error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return err
 	}
-	pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
+	pipeline.Status.Phase = kkcorev1.PipelinePhaseRunning
 	if err := client.Create(ctx, pipeline); err != nil {
 		klog.ErrorS(err, "Create pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 		return err

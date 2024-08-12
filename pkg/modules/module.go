@@ -24,8 +24,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -53,9 +53,9 @@ type ExecOptions struct {
 	// the variable module need
 	variable.Variable
 	// the task to be executed
-	Task kubekeyv1alpha1.Task
+	Task kkcorev1alpha1.Task
 	// the pipeline to be executed
-	Pipeline kubekeyv1.Pipeline
+	Pipeline kkcorev1.Pipeline
 }
 
 var module = make(map[string]ModuleExecFunc)

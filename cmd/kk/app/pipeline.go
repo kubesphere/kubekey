@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/manager"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
@@ -41,9 +41,9 @@ func newPipelineCommand() *cobra.Command {
 				return fmt.Errorf("could not create client: %w", err)
 			}
 			ctx := signals.SetupSignalHandler()
-			var pipeline = new(kubekeyv1.Pipeline)
-			var config = new(kubekeyv1.Config)
-			var inventory = new(kubekeyv1.Inventory)
+			var pipeline = new(kkcorev1.Pipeline)
+			var config = new(kkcorev1.Config)
+			var inventory = new(kkcorev1.Inventory)
 			if err := client.Get(ctx, ctrlclient.ObjectKey{
 				Name:      o.Name,
 				Namespace: o.Namespace,

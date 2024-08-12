@@ -23,11 +23,11 @@ import (
 	"path/filepath"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-func newLocalProject(pipeline kubekeyv1.Pipeline) (Project, error) {
+func newLocalProject(pipeline kkcorev1.Pipeline) (Project, error) {
 	if !filepath.IsAbs(pipeline.Spec.Playbook) {
 		if pipeline.Spec.Project.Addr == "" {
 			wd, err := os.Getwd()
@@ -55,7 +55,7 @@ func newLocalProject(pipeline kubekeyv1.Pipeline) (Project, error) {
 }
 
 type localProject struct {
-	kubekeyv1.Pipeline
+	kkcorev1.Pipeline
 
 	projectDir string
 	// playbook relpath base on projectDir
@@ -107,7 +107,7 @@ func (p localProject) ReadFile(path string, option GetFileOption) ([]byte, error
 	return os.ReadFile(p.getFilePath(path, option))
 }
 
-func (p localProject) MarshalPlaybook() (*kkcorev1.Playbook, error) {
+func (p localProject) MarshalPlaybook() (*projectv1.Playbook, error) {
 	return marshalPlaybook(os.DirFS(p.projectDir), p.playbook)
 }
 

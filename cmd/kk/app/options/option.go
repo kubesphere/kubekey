@@ -29,18 +29,18 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
-var defaultConfig = &kubekeyv1.Config{
+var defaultConfig = &kkcorev1.Config{
 	TypeMeta: metav1.TypeMeta{
-		APIVersion: kubekeyv1.SchemeGroupVersion.String(),
+		APIVersion: kkcorev1.SchemeGroupVersion.String(),
 		Kind:       "Config",
 	},
 	ObjectMeta: metav1.ObjectMeta{Name: "default"}}
-var defaultInventory = &kubekeyv1.Inventory{
+var defaultInventory = &kkcorev1.Inventory{
 	TypeMeta: metav1.TypeMeta{
-		APIVersion: kubekeyv1.SchemeGroupVersion.String(),
+		APIVersion: kkcorev1.SchemeGroupVersion.String(),
 		Kind:       "Inventory",
 	},
 	ObjectMeta: metav1.ObjectMeta{Name: "default"}}
@@ -91,7 +91,7 @@ func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Config, *kubekeyv1.Inventory, error) {
+func (o *CommonOptions) completeRef(pipeline *kkcorev1.Pipeline) (*kkcorev1.Config, *kkcorev1.Inventory, error) {
 	if !filepath.IsAbs(o.WorkDir) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -130,14 +130,14 @@ func (o *CommonOptions) completeRef(pipeline *kubekeyv1.Pipeline) (*kubekeyv1.Co
 }
 
 // genConfig generate config by ConfigFile and set value by command args.
-func (o *CommonOptions) genConfig() (*kubekeyv1.Config, error) {
+func (o *CommonOptions) genConfig() (*kkcorev1.Config, error) {
 	config := defaultConfig.DeepCopy()
 	if o.ConfigFile != "" {
 		cdata, err := os.ReadFile(o.ConfigFile)
 		if err != nil {
 			return nil, fmt.Errorf("read config file error: %w", err)
 		}
-		config = &kubekeyv1.Config{}
+		config = &kkcorev1.Config{}
 		if err := yaml.Unmarshal(cdata, config); err != nil {
 			return nil, fmt.Errorf("unmarshal config file error: %w", err)
 		}
@@ -174,7 +174,7 @@ func (o *CommonOptions) genConfig() (*kubekeyv1.Config, error) {
 }
 
 // genConfig generate config by ConfigFile and set value by command args.
-func (o *CommonOptions) genInventory() (*kubekeyv1.Inventory, error) {
+func (o *CommonOptions) genInventory() (*kkcorev1.Inventory, error) {
 	inventory := defaultInventory.DeepCopy()
 	if o.InventoryFile != "" {
 		cdata, err := os.ReadFile(o.InventoryFile)
@@ -182,7 +182,7 @@ func (o *CommonOptions) genInventory() (*kubekeyv1.Inventory, error) {
 			klog.V(4).ErrorS(err, "read config file error")
 			return nil, err
 		}
-		inventory = &kubekeyv1.Inventory{}
+		inventory = &kkcorev1.Inventory{}
 		if err := yaml.Unmarshal(cdata, inventory); err != nil {
 			klog.V(4).ErrorS(err, "unmarshal config file error")
 			return nil, err
@@ -200,7 +200,7 @@ func (o *CommonOptions) genInventory() (*kubekeyv1.Inventory, error) {
 // if val is json string. convert to map or slice
 // if val is TRUE,YES,Y. convert to bool type true.
 // if val is FALSE,NO,N. convert to bool type false.
-func setValue(config *kubekeyv1.Config, key, val string) error {
+func setValue(config *kkcorev1.Config, key, val string) error {
 	switch {
 	case strings.HasPrefix(val, "{") && strings.HasSuffix(val, "{"):
 		var value map[string]any

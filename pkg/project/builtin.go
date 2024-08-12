@@ -27,12 +27,12 @@ import (
 
 	"github.com/kubesphere/kubekey/v4/builtin"
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 func init() {
-	builtinProjectFunc = func(pipeline kubekeyv1.Pipeline) (Project, error) {
+	builtinProjectFunc = func(pipeline kkcorev1.Pipeline) (Project, error) {
 		if pipeline.Spec.Playbook == "" {
 			return nil, fmt.Errorf("playbook should not be empty")
 		}
@@ -44,7 +44,7 @@ func init() {
 }
 
 type builtinProject struct {
-	kubekeyv1.Pipeline
+	kkcorev1.Pipeline
 
 	fs.FS
 	// playbook relpath base on projectDir
@@ -93,7 +93,7 @@ func (p builtinProject) ReadFile(path string, option GetFileOption) ([]byte, err
 	return fs.ReadFile(p.FS, p.getFilePath(path, option))
 }
 
-func (p builtinProject) MarshalPlaybook() (*kkcorev1.Playbook, error) {
+func (p builtinProject) MarshalPlaybook() (*projectv1.Playbook, error) {
 	return marshalPlaybook(p.FS, p.playbook)
 }
 

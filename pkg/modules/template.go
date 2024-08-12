@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -129,13 +129,13 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 		if err != nil {
 			return "", fmt.Sprintf("get project error: %v", err)
 		}
-		fileInfo, err := pj.Stat(srcParam, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+		fileInfo, err := pj.Stat(srcParam, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
 		if err != nil {
 			return "", fmt.Sprintf("get file %s from project error %v", srcParam, err)
 		}
 
 		if fileInfo.IsDir() {
-			if err := pj.WalkDir(srcParam, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]}, func(path string, d fs.DirEntry, err error) error {
+			if err := pj.WalkDir(srcParam, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]}, func(path string, d fs.DirEntry, err error) error {
 				if d.IsDir() { // only copy file
 					return nil
 				}
@@ -151,7 +151,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				if modeParam, err := variable.IntVar(ha.(map[string]any), args, "mode"); err == nil {
 					mode = os.FileMode(modeParam)
 				}
-				data, err := pj.ReadFile(path, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+				data, err := pj.ReadFile(path, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
 				if err != nil {
 					return fmt.Errorf("read file error: %w", err)
 				}
@@ -161,7 +161,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				}
 				var destFilename = destParam
 				if strings.HasSuffix(destParam, "/") {
-					rel, err := pj.Rel(srcParam, path, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+					rel, err := pj.Rel(srcParam, path, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
 					if err != nil {
 						return fmt.Errorf("get relative file path error: %w", err)
 					}
@@ -175,7 +175,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				return "", fmt.Sprintf("copy file error: %v", err)
 			}
 		} else {
-			data, err := pj.ReadFile(srcParam, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kubekeyv1alpha1.TaskAnnotationRole]})
+			data, err := pj.ReadFile(srcParam, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
 			if err != nil {
 				return "", fmt.Sprintf("read file error: %v", err)
 			}

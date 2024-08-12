@@ -26,7 +26,7 @@ import (
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 type PipelineStorage struct {
@@ -48,7 +48,7 @@ func (r *StatusREST) NamespaceScoped() bool {
 
 // New creates a new Node object.
 func (r *StatusREST) New() runtime.Object {
-	return &kubekeyv1.Pipeline{}
+	return &kkcorev1.Pipeline{}
 }
 
 // Destroy cleans up resources on shutdown.
@@ -79,17 +79,17 @@ func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, 
 }
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (PipelineStorage, error) {
 	store := &apiregistry.Store{
-		NewFunc:                   func() runtime.Object { return &kubekeyv1.Pipeline{} },
-		NewListFunc:               func() runtime.Object { return &kubekeyv1.PipelineList{} },
-		DefaultQualifiedResource:  kubekeyv1.SchemeGroupVersion.WithResource("pipelines").GroupResource(),
-		SingularQualifiedResource: kubekeyv1.SchemeGroupVersion.WithResource("pipeline").GroupResource(),
+		NewFunc:                   func() runtime.Object { return &kkcorev1.Pipeline{} },
+		NewListFunc:               func() runtime.Object { return &kkcorev1.PipelineList{} },
+		DefaultQualifiedResource:  kkcorev1.SchemeGroupVersion.WithResource("pipelines").GroupResource(),
+		SingularQualifiedResource: kkcorev1.SchemeGroupVersion.WithResource("pipeline").GroupResource(),
 
 		CreateStrategy:      Strategy,
 		UpdateStrategy:      Strategy,
 		DeleteStrategy:      Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: apirest.NewDefaultTableConvertor(kubekeyv1.SchemeGroupVersion.WithResource("pipelines").GroupResource()),
+		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("pipelines").GroupResource()),
 	}
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,

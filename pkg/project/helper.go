@@ -24,14 +24,14 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-// marshalPlaybook kkcorev1.Playbook from a playbook file
-func marshalPlaybook(baseFS fs.FS, pbPath string) (*kkcorev1.Playbook, error) {
-	// convert playbook to kkcorev1.Playbook
-	pb := &kkcorev1.Playbook{}
+// marshalPlaybook projectv1.Playbook from a playbook file
+func marshalPlaybook(baseFS fs.FS, pbPath string) (*projectv1.Playbook, error) {
+	// convert playbook to projectv1.Playbook
+	pb := &projectv1.Playbook{}
 	if err := loadPlaybook(baseFS, pbPath, pb); err != nil {
 		return nil, fmt.Errorf("load playbook failed: %w", err)
 	}
@@ -52,13 +52,13 @@ func marshalPlaybook(baseFS fs.FS, pbPath string) (*kkcorev1.Playbook, error) {
 }
 
 // loadPlaybook with include_playbook. Join all playbooks into one playbook
-func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
+func loadPlaybook(baseFS fs.FS, pbPath string, pb *projectv1.Playbook) error {
 	// baseDir is the local ansible project dir which playbook belong to
 	pbData, err := fs.ReadFile(baseFS, pbPath)
 	if err != nil {
 		return fmt.Errorf("read playbook failed: %w", err)
 	}
-	var plays []kkcorev1.Play
+	var plays []projectv1.Play
 	if err := yaml.Unmarshal(pbData, &plays); err != nil {
 		return fmt.Errorf("unmarshal playbook failed: %w", err)
 	}
@@ -114,7 +114,7 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 			if err != nil {
 				return fmt.Errorf("read file %s failed: %w", mainTask, err)
 			}
-			var blocks []kkcorev1.Block
+			var blocks []projectv1.Block
 			if err := yaml.Unmarshal(rdata, &blocks); err != nil {
 				return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
 			}
@@ -127,7 +127,7 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 }
 
 // convertRoles convert roleName to block
-func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
+func convertRoles(baseFS fs.FS, pbPath string, pb *projectv1.Playbook) error {
 	for i, p := range pb.Play {
 		for i, r := range p.Roles {
 			roleBase := getRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
@@ -145,7 +145,7 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 			if err != nil {
 				return fmt.Errorf("read file %s failed: %w", mainTask, err)
 			}
-			var blocks []kkcorev1.Block
+			var blocks []projectv1.Block
 			if err := yaml.Unmarshal(rdata, &blocks); err != nil {
 				return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
 			}
@@ -180,7 +180,7 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
 }
 
 // convertIncludeTasks from file to blocks
-func convertIncludeTasks(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) error {
+func convertIncludeTasks(baseFS fs.FS, pbPath string, pb *projectv1.Playbook) error {
 	var pbBase = filepath.Dir(filepath.Dir(pbPath))
 	for _, play := range pb.Play {
 		if err := fileToBlock(baseFS, pbBase, play.PreTasks); err != nil {
@@ -203,14 +203,14 @@ func convertIncludeTasks(baseFS fs.FS, pbPath string, pb *kkcorev1.Playbook) err
 	return nil
 }
 
-func fileToBlock(baseFS fs.FS, baseDir string, blocks []kkcorev1.Block) error {
+func fileToBlock(baseFS fs.FS, baseDir string, blocks []projectv1.Block) error {
 	for i, b := range blocks {
 		if b.IncludeTasks != "" {
 			data, err := fs.ReadFile(baseFS, filepath.Join(baseDir, b.IncludeTasks))
 			if err != nil {
 				return fmt.Errorf("read includeTask file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 			}
-			var bs []kkcorev1.Block
+			var bs []projectv1.Block
 			if err := yaml.Unmarshal(data, &bs); err != nil {
 				return fmt.Errorf("unmarshal includeTask file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 			}

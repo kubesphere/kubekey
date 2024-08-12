@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
@@ -42,7 +42,7 @@ type Variable interface {
 }
 
 // New variable. generate value from config args. and render to source.
-func New(client ctrlclient.Client, pipeline kubekeyv1.Pipeline) (Variable, error) {
+func New(client ctrlclient.Client, pipeline kkcorev1.Pipeline) (Variable, error) {
 	// new source
 	s, err := source.New(filepath.Join(_const.RuntimeDirFromPipeline(pipeline), _const.RuntimePipelineVariableDir))
 	if err != nil {
@@ -50,13 +50,13 @@ func New(client ctrlclient.Client, pipeline kubekeyv1.Pipeline) (Variable, error
 		return nil, err
 	}
 	// get config
-	var config = &kubekeyv1.Config{}
+	var config = &kkcorev1.Config{}
 	if err := client.Get(context.Background(), types.NamespacedName{Namespace: pipeline.Spec.ConfigRef.Namespace, Name: pipeline.Spec.ConfigRef.Name}, config); err != nil {
 		klog.V(4).ErrorS(err, "get config from pipeline error", "config", pipeline.Spec.ConfigRef, "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
 		return nil, err
 	}
 	// get inventory
-	var inventory = &kubekeyv1.Inventory{}
+	var inventory = &kkcorev1.Inventory{}
 	if err := client.Get(context.Background(), types.NamespacedName{Namespace: pipeline.Spec.InventoryRef.Namespace, Name: pipeline.Spec.InventoryRef.Name}, inventory); err != nil {
 		klog.V(4).ErrorS(err, "get inventory from pipeline error", "inventory", pipeline.Spec.InventoryRef, "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
 		return nil, err

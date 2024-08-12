@@ -22,7 +22,7 @@ import (
 
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 // Manager shared dependencies such as Addr and , and provides them to Runnable.
@@ -32,9 +32,9 @@ type Manager interface {
 }
 
 type CommandManagerOptions struct {
-	*kubekeyv1.Pipeline
-	*kubekeyv1.Config
-	*kubekeyv1.Inventory
+	*kkcorev1.Pipeline
+	*kkcorev1.Config
+	*kkcorev1.Inventory
 
 	ctrlclient.Client
 }
