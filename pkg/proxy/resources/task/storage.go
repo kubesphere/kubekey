@@ -27,7 +27,7 @@ import (
 	apistorage "k8s.io/apiserver/pkg/storage"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 )
 
 type TaskStorage struct {
@@ -49,7 +49,7 @@ func (r *StatusREST) NamespaceScoped() bool {
 
 // New creates a new Node object.
 func (r *StatusREST) New() runtime.Object {
-	return &kubekeyv1alpha1.Task{}
+	return &kkcorev1alpha1.Task{}
 }
 
 // Destroy cleans up resources on shutdown.
@@ -81,11 +81,11 @@ func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, 
 
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 	store := &apiregistry.Store{
-		NewFunc:                   func() runtime.Object { return &kubekeyv1alpha1.Task{} },
-		NewListFunc:               func() runtime.Object { return &kubekeyv1alpha1.TaskList{} },
+		NewFunc:                   func() runtime.Object { return &kkcorev1alpha1.Task{} },
+		NewListFunc:               func() runtime.Object { return &kkcorev1alpha1.TaskList{} },
 		PredicateFunc:             MatchTask,
-		DefaultQualifiedResource:  kubekeyv1alpha1.SchemeGroupVersion.WithResource("tasks").GroupResource(),
-		SingularQualifiedResource: kubekeyv1alpha1.SchemeGroupVersion.WithResource("task").GroupResource(),
+		DefaultQualifiedResource:  kkcorev1alpha1.SchemeGroupVersion.WithResource("tasks").GroupResource(),
+		SingularQualifiedResource: kkcorev1alpha1.SchemeGroupVersion.WithResource("task").GroupResource(),
 
 		CreateStrategy: Strategy,
 		UpdateStrategy: Strategy,
@@ -93,12 +93,12 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 		//ResetFieldsStrategy: Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: apirest.NewDefaultTableConvertor(kubekeyv1alpha1.SchemeGroupVersion.WithResource("tasks").GroupResource()),
+		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1alpha1.SchemeGroupVersion.WithResource("tasks").GroupResource()),
 	}
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 		AttrFunc:    GetAttrs,
-		TriggerFunc: map[string]apistorage.IndexerFunc{kubekeyv1alpha1.TaskOwnerField: OwnerPipelineTriggerFunc},
+		TriggerFunc: map[string]apistorage.IndexerFunc{kkcorev1alpha1.TaskOwnerField: OwnerPipelineTriggerFunc},
 		Indexers:    Indexers(),
 	}
 	if err := store.CompleteWithOptions(options); err != nil {

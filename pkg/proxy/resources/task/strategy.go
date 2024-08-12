@@ -32,7 +32,7 @@ import (
 	cgtoolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
@@ -56,9 +56,9 @@ func (t taskStrategy) NamespaceScoped() bool {
 
 func (t taskStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	// init status when create
-	task := obj.(*kubekeyv1alpha1.Task)
-	task.Status = kubekeyv1alpha1.TaskStatus{
-		Phase: kubekeyv1alpha1.TaskPhasePending,
+	task := obj.(*kkcorev1alpha1.Task)
+	task.Status = kkcorev1alpha1.TaskStatus{
+		Phase: kkcorev1alpha1.TaskPhasePending,
 	}
 }
 
@@ -88,8 +88,8 @@ func (t taskStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Obj
 
 func (t taskStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	// only support update status
-	task := obj.(*kubekeyv1alpha1.Task)
-	oldTask := old.(*kubekeyv1alpha1.Task)
+	task := obj.(*kkcorev1alpha1.Task)
+	oldTask := old.(*kkcorev1alpha1.Task)
 	if !reflect.DeepEqual(task.Spec, oldTask.Spec) {
 		return field.ErrorList{field.Forbidden(field.NewPath("spec"), "spec is immutable")}
 	}
@@ -113,7 +113,7 @@ func (t taskStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 
 // OwnerPipelineIndexFunc return value ownerReference.object is pipeline.
 func OwnerPipelineIndexFunc(obj interface{}) ([]string, error) {
-	task, ok := obj.(*kubekeyv1alpha1.Task)
+	task, ok := obj.(*kkcorev1alpha1.Task)
 	if !ok {
 		return nil, fmt.Errorf("not a task")
 	}
@@ -138,7 +138,7 @@ func OwnerPipelineIndexFunc(obj interface{}) ([]string, error) {
 // Indexers returns the indexers for pod storage.
 func Indexers() *cgtoolscache.Indexers {
 	return &cgtoolscache.Indexers{
-		apistorage.FieldIndex(kubekeyv1alpha1.TaskOwnerField): OwnerPipelineIndexFunc,
+		apistorage.FieldIndex(kkcorev1alpha1.TaskOwnerField): OwnerPipelineIndexFunc,
 	}
 }
 
@@ -148,13 +148,13 @@ func MatchTask(label labels.Selector, field fields.Selector) apistorage.Selectio
 		Label:       label,
 		Field:       field,
 		GetAttrs:    GetAttrs,
-		IndexFields: []string{kubekeyv1alpha1.TaskOwnerField},
+		IndexFields: []string{kkcorev1alpha1.TaskOwnerField},
 	}
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
-	task, ok := obj.(*kubekeyv1alpha1.Task)
+	task, ok := obj.(*kkcorev1alpha1.Task)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a Task")
 	}
@@ -163,7 +163,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 
 // ToSelectableFields returns a field set that represents the object
 // TODO: fields are not labels, and the validation rules for them do not apply.
-func ToSelectableFields(task *kubekeyv1alpha1.Task) fields.Set {
+func ToSelectableFields(task *kkcorev1alpha1.Task) fields.Set {
 	// The purpose of allocation with a given number of elements is to reduce
 	// amount of allocations needed to create the fields.Set. If you add any
 	// field here or the number of object-meta related fields changes, this should
@@ -171,7 +171,7 @@ func ToSelectableFields(task *kubekeyv1alpha1.Task) fields.Set {
 	taskSpecificFieldsSet := make(fields.Set, 10)
 	for _, reference := range task.OwnerReferences {
 		if reference.Kind == pipelineKind {
-			taskSpecificFieldsSet[kubekeyv1alpha1.TaskOwnerField] = types.NamespacedName{
+			taskSpecificFieldsSet[kkcorev1alpha1.TaskOwnerField] = types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,
 			}.String()
@@ -183,7 +183,7 @@ func ToSelectableFields(task *kubekeyv1alpha1.Task) fields.Set {
 
 // OwnerPipelineTriggerFunc returns value ownerReference is pipeline of given object.
 func OwnerPipelineTriggerFunc(obj runtime.Object) string {
-	task := obj.(*kubekeyv1alpha1.Task)
+	task := obj.(*kkcorev1alpha1.Task)
 	for _, reference := range task.OwnerReferences {
 		if reference.Kind == pipelineKind {
 			return types.NamespacedName{

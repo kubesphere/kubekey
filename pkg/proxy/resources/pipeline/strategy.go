@@ -25,7 +25,7 @@ import (
 	apinames "k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
@@ -75,8 +75,8 @@ func (t pipelineStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime
 
 func (t pipelineStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	// only support update status
-	task := obj.(*kubekeyv1.Pipeline)
-	oldTask := old.(*kubekeyv1.Pipeline)
+	task := obj.(*kkcorev1.Pipeline)
+	oldTask := old.(*kkcorev1.Pipeline)
 	if !reflect.DeepEqual(task.Spec, oldTask.Spec) {
 		return field.ErrorList{field.Forbidden(field.NewPath("spec"), "spec is immutable")}
 	}

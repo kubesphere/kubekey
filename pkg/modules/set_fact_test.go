@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 )
 
 func TestSetFact(t *testing.T) {
@@ -43,8 +43,8 @@ func TestSetFact(t *testing.T) {
 				},
 				Host:     "",
 				Variable: &testVariable{},
-				Task:     kubekeyv1alpha1.Task{},
-				Pipeline: kubekeyv1.Pipeline{},
+				Task:     kkcorev1alpha1.Task{},
+				Pipeline: kkcorev1.Pipeline{},
 			},
 			exceptStdout: "success",
 		},

@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 func TestGetAllVariable(t *testing.T) {
@@ -34,7 +34,7 @@ func TestGetAllVariable(t *testing.T) {
 		{
 			name: "global override runtime variable",
 			value: value{
-				Config: kubekeyv1.Config{
+				Config: kkcorev1.Config{
 					Spec: runtime.RawExtension{
 						Raw: []byte(`{
 "artifact": {
@@ -42,8 +42,8 @@ func TestGetAllVariable(t *testing.T) {
 }
 }`)},
 				},
-				Inventory: kubekeyv1.Inventory{
-					Spec: kubekeyv1.InventorySpec{
+				Inventory: kkcorev1.Inventory{
+					Spec: kkcorev1.InventorySpec{
 						Hosts: map[string]runtime.RawExtension{
 							"localhost": {Raw: []byte(`{
 "internal_ipv4": "127.0.0.1",

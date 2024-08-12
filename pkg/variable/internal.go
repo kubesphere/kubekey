@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
@@ -48,8 +48,8 @@ type variable struct {
 
 // value is the specific data contained in the variable
 type value struct {
-	kubekeyv1.Config    `json:"-"`
-	kubekeyv1.Inventory `json:"-"`
+	kkcorev1.Config    `json:"-"`
+	kkcorev1.Inventory `json:"-"`
 	// Hosts store the variable for running tasks on specific hosts
 	Hosts map[string]host `json:"hosts"`
 }

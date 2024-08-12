@@ -22,7 +22,7 @@ import (
 	apiregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 type ConfigStorage struct {
@@ -35,17 +35,17 @@ type REST struct {
 
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (ConfigStorage, error) {
 	store := &apiregistry.Store{
-		NewFunc:                   func() runtime.Object { return &kubekeyv1.Config{} },
-		NewListFunc:               func() runtime.Object { return &kubekeyv1.ConfigList{} },
-		DefaultQualifiedResource:  kubekeyv1.SchemeGroupVersion.WithResource("configs").GroupResource(),
-		SingularQualifiedResource: kubekeyv1.SchemeGroupVersion.WithResource("config").GroupResource(),
+		NewFunc:                   func() runtime.Object { return &kkcorev1.Config{} },
+		NewListFunc:               func() runtime.Object { return &kkcorev1.ConfigList{} },
+		DefaultQualifiedResource:  kkcorev1.SchemeGroupVersion.WithResource("configs").GroupResource(),
+		SingularQualifiedResource: kkcorev1.SchemeGroupVersion.WithResource("config").GroupResource(),
 
 		CreateStrategy:      Strategy,
 		UpdateStrategy:      Strategy,
 		DeleteStrategy:      Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: apirest.NewDefaultTableConvertor(kubekeyv1.SchemeGroupVersion.WithResource("configs").GroupResource()),
+		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("configs").GroupResource()),
 	}
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,

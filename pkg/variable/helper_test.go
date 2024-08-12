@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
@@ -293,15 +293,15 @@ func TestParseVariable(t *testing.T) {
 func TestHostsInGroup(t *testing.T) {
 	testcases := []struct {
 		name      string
-		inventory kubekeyv1.Inventory
+		inventory kkcorev1.Inventory
 		groupName string
 		except    []string
 	}{
 		{
 			name: "single group",
-			inventory: kubekeyv1.Inventory{
-				Spec: kubekeyv1.InventorySpec{
-					Groups: map[string]kubekeyv1.InventoryGroup{
+			inventory: kkcorev1.Inventory{
+				Spec: kkcorev1.InventorySpec{
+					Groups: map[string]kkcorev1.InventoryGroup{
 						"g1": {
 							Hosts: []string{"h1", "h2", "h3"},
 						},
@@ -313,9 +313,9 @@ func TestHostsInGroup(t *testing.T) {
 		},
 		{
 			name: "group in group",
-			inventory: kubekeyv1.Inventory{
-				Spec: kubekeyv1.InventorySpec{
-					Groups: map[string]kubekeyv1.InventoryGroup{
+			inventory: kkcorev1.Inventory{
+				Spec: kkcorev1.InventorySpec{
+					Groups: map[string]kkcorev1.InventoryGroup{
 						"g1": {
 							Hosts:  []string{"h1", "h2", "h3"},
 							Groups: []string{"g2"},
@@ -331,9 +331,9 @@ func TestHostsInGroup(t *testing.T) {
 		},
 		{
 			name: "repeat hosts in group",
-			inventory: kubekeyv1.Inventory{
-				Spec: kubekeyv1.InventorySpec{
-					Groups: map[string]kubekeyv1.InventoryGroup{
+			inventory: kkcorev1.Inventory{
+				Spec: kkcorev1.InventorySpec{
+					Groups: map[string]kkcorev1.InventoryGroup{
 						"g1": {
 							Hosts:  []string{"h1", "h2", "h3"},
 							Groups: []string{"g2"},

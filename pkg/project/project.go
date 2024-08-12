@@ -22,15 +22,15 @@ import (
 	"strings"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 )
 
-var builtinProjectFunc func(kubekeyv1.Pipeline) (Project, error)
+var builtinProjectFunc func(kkcorev1.Pipeline) (Project, error)
 
 // Project represent location of actual project.
 // get project file should base on it
 type Project interface {
-	MarshalPlaybook() (*kkcorev1.Playbook, error)
+	MarshalPlaybook() (*projectv1.Playbook, error)
 	Stat(path string, option GetFileOption) (os.FileInfo, error)
 	WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error
 	ReadFile(path string, option GetFileOption) ([]byte, error)
@@ -43,14 +43,14 @@ type GetFileOption struct {
 	IsFile     bool
 }
 
-func New(pipeline kubekeyv1.Pipeline, update bool) (Project, error) {
+func New(pipeline kkcorev1.Pipeline, update bool) (Project, error) {
 	if strings.HasPrefix(pipeline.Spec.Project.Addr, "https://") ||
 		strings.HasPrefix(pipeline.Spec.Project.Addr, "http://") ||
 		strings.HasPrefix(pipeline.Spec.Project.Addr, "git@") {
 		return newGitProject(pipeline, update)
 	}
 
-	if _, ok := pipeline.Annotations[kubekeyv1.BuiltinsProjectAnnotation]; ok {
+	if _, ok := pipeline.Annotations[kkcorev1.BuiltinsProjectAnnotation]; ok {
 		return builtinProjectFunc(pipeline)
 	}
 

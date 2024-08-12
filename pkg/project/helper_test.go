@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 )
 
 func TestGetPlaybookBaseFromAbsPlaybook(t *testing.T) {
@@ -128,23 +128,23 @@ func TestMarshalPlaybook(t *testing.T) {
 	testcases := []struct {
 		name   string
 		file   string
-		except *kkcorev1.Playbook
+		except *projectv1.Playbook
 	}{
 		{
 			name: "marshal playbook",
 			file: "playbooks/playbook1.yaml",
-			except: &kkcorev1.Playbook{Play: []kkcorev1.Play{
+			except: &projectv1.Playbook{Play: []projectv1.Play{
 				{
-					Base:     kkcorev1.Base{Name: "play1"},
-					PlayHost: kkcorev1.PlayHost{Hosts: []string{"localhost"}},
-					Roles: []kkcorev1.Role{
+					Base:     projectv1.Base{Name: "play1"},
+					PlayHost: projectv1.PlayHost{Hosts: []string{"localhost"}},
+					Roles: []projectv1.Role{
 						{
-							RoleInfo: kkcorev1.RoleInfo{
+							RoleInfo: projectv1.RoleInfo{
 								Role: "role1",
-								Block: []kkcorev1.Block{
+								Block: []projectv1.Block{
 									{
-										BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "role1 | block1"}},
-										Task: kkcorev1.Task{UnknownFiled: map[string]any{
+										BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "role1 | block1"}},
+										Task: projectv1.Task{UnknownFiled: map[string]any{
 											"debug": map[string]any{
 												"msg": "echo \"hello world\"",
 											},
@@ -155,41 +155,41 @@ func TestMarshalPlaybook(t *testing.T) {
 						},
 					},
 					Handlers: nil,
-					PreTasks: []kkcorev1.Block{
+					PreTasks: []projectv1.Block{
 						{
-							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | pre_block1"}},
-							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+							BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "play1 | pre_block1"}},
+							Task: projectv1.Task{UnknownFiled: map[string]any{
 								"debug": map[string]any{
 									"msg": "echo \"hello world\"",
 								},
 							}},
 						},
 					},
-					PostTasks: []kkcorev1.Block{
+					PostTasks: []projectv1.Block{
 						{
-							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | post_block1"}},
-							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+							BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "play1 | post_block1"}},
+							Task: projectv1.Task{UnknownFiled: map[string]any{
 								"debug": map[string]any{
 									"msg": "echo \"hello world\"",
 								},
 							}},
 						},
 					},
-					Tasks: []kkcorev1.Block{
+					Tasks: []projectv1.Block{
 						{
-							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block1"}},
-							BlockInfo: kkcorev1.BlockInfo{Block: []kkcorev1.Block{
+							BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "play1 | block1"}},
+							BlockInfo: projectv1.BlockInfo{Block: []projectv1.Block{
 								{
-									BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block1 | block1"}},
-									Task: kkcorev1.Task{UnknownFiled: map[string]any{
+									BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "play1 | block1 | block1"}},
+									Task: projectv1.Task{UnknownFiled: map[string]any{
 										"debug": map[string]any{
 											"msg": "echo \"hello world\"",
 										},
 									}},
 								},
 								{
-									BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block1 | block2"}},
-									Task: kkcorev1.Task{UnknownFiled: map[string]any{
+									BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "play1 | block1 | block2"}},
+									Task: projectv1.Task{UnknownFiled: map[string]any{
 										"debug": map[string]any{
 											"msg": "echo \"hello world\"",
 										},
@@ -198,8 +198,8 @@ func TestMarshalPlaybook(t *testing.T) {
 							}},
 						},
 						{
-							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play1 | block2"}},
-							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+							BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "play1 | block2"}},
+							Task: projectv1.Task{UnknownFiled: map[string]any{
 								"debug": map[string]any{
 									"msg": "echo \"hello world\"",
 								},
@@ -208,12 +208,12 @@ func TestMarshalPlaybook(t *testing.T) {
 					},
 				},
 				{
-					Base:     kkcorev1.Base{Name: "play2"},
-					PlayHost: kkcorev1.PlayHost{Hosts: []string{"localhost"}},
-					Tasks: []kkcorev1.Block{
+					Base:     projectv1.Base{Name: "play2"},
+					PlayHost: projectv1.PlayHost{Hosts: []string{"localhost"}},
+					Tasks: []projectv1.Block{
 						{
-							BlockBase: kkcorev1.BlockBase{Base: kkcorev1.Base{Name: "play2 | block1"}},
-							Task: kkcorev1.Task{UnknownFiled: map[string]any{
+							BlockBase: projectv1.BlockBase{Base: projectv1.Base{Name: "play2 | block1"}},
+							Task: projectv1.Task{UnknownFiled: map[string]any{
 								"debug": map[string]any{
 									"msg": "echo \"hello world\"",
 								},

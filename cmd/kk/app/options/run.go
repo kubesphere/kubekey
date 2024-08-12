@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cliflag "k8s.io/component-base/cli/flag"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 type KubekeyRunOptions struct {
@@ -75,8 +75,8 @@ func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubekeyv1.Pipeline, *kubekeyv1.Config, *kubekeyv1.Inventory, error) {
-	pipeline := &kubekeyv1.Pipeline{
+func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
+	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "run-",
 			Namespace:    o.Namespace,
@@ -90,8 +90,8 @@ func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kubeke
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 
-	pipeline.Spec = kubekeyv1.PipelineSpec{
-		Project: kubekeyv1.PipelineProject{
+	pipeline.Spec = kkcorev1.PipelineSpec{
+		Project: kkcorev1.PipelineProject{
 			Addr:            o.ProjectAddr,
 			Name:            o.ProjectName,
 			Branch:          o.ProjectBranch,

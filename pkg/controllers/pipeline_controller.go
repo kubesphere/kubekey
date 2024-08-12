@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	ctrlfinalizer "sigs.k8s.io/controller-runtime/pkg/finalizer"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 const (
@@ -57,7 +57,7 @@ type PipelineReconciler struct {
 
 func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// get pipeline
-	pipeline := &kubekeyv1.Pipeline{}
+	pipeline := &kkcorev1.Pipeline{}
 	err := r.Client.Get(ctx, req.NamespacedName, pipeline)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -75,29 +75,29 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	switch pipeline.Status.Phase {
 	case "":
 		excepted := pipeline.DeepCopy()
-		pipeline.Status.Phase = kubekeyv1.PipelinePhasePending
+		pipeline.Status.Phase = kkcorev1.PipelinePhasePending
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
 			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 			return ctrl.Result{}, err
 		}
-	case kubekeyv1.PipelinePhasePending:
+	case kkcorev1.PipelinePhasePending:
 		excepted := pipeline.DeepCopy()
-		pipeline.Status.Phase = kubekeyv1.PipelinePhaseRunning
+		pipeline.Status.Phase = kkcorev1.PipelinePhaseRunning
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
 			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
 			return ctrl.Result{}, err
 		}
-	case kubekeyv1.PipelinePhaseRunning:
+	case kkcorev1.PipelinePhaseRunning:
 		return r.dealRunningPipeline(ctx, pipeline)
-	case kubekeyv1.PipelinePhaseFailed:
+	case kkcorev1.PipelinePhaseFailed:
 		// do nothing
-	case kubekeyv1.PipelinePhaseSucceed:
+	case kkcorev1.PipelinePhaseSucceed:
 		// do nothing
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *kubekeyv1.Pipeline) (ctrl.Result, error) {
+func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *kkcorev1.Pipeline) (ctrl.Result, error) {
 	if err := r.checkServiceAccount(ctx, *pipeline); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -188,7 +188,7 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 }
 
 // checkServiceAccount when ServiceAccount is not exist, create it.
-func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline kubekeyv1.Pipeline) error {
+func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline kkcorev1.Pipeline) error {
 	// get ServiceAccount name for executor pod
 	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
 	if !ok {
@@ -240,7 +240,7 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 	return nil
 }
 
-func (r *PipelineReconciler) GenerateJobSpec(pipeline kubekeyv1.Pipeline) batchv1.JobSpec {
+func (r *PipelineReconciler) GenerateJobSpec(pipeline kkcorev1.Pipeline) batchv1.JobSpec {
 	// get ServiceAccount name for executor pod
 	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
 	if !ok {
@@ -291,6 +291,6 @@ func (r *PipelineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithOptions(ctrlcontroller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
-		For(&kubekeyv1.Pipeline{}).
+		For(&kkcorev1.Pipeline{}).
 		Complete(r)
 }

@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
@@ -61,7 +61,7 @@ func combineVariables(v1, v2 map[string]any) map[string]any {
 	return mv
 }
 
-func convertGroup(inv kubekeyv1.Inventory) map[string]any {
+func convertGroup(inv kkcorev1.Inventory) map[string]any {
 	groups := make(map[string]any)
 	all := make([]string, 0)
 	for hn := range inv.Spec.Hosts {
@@ -79,7 +79,7 @@ func convertGroup(inv kubekeyv1.Inventory) map[string]any {
 
 // hostsInGroup get a host_name slice in a given group
 // if the given group contains other group. convert other group to host_name slice.
-func hostsInGroup(inv kubekeyv1.Inventory, groupName string) []string {
+func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
 	if v, ok := inv.Spec.Groups[groupName]; ok {
 		var hosts []string
 		for _, cg := range v.Groups {

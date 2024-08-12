@@ -28,24 +28,24 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kubekeyv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 )
 
 // MarshalBlock marshal block to task
-func MarshalBlock(ctx context.Context, role string, hosts []string, when []string, block kkcorev1.Block) *kubekeyv1alpha1.Task {
-	task := &kubekeyv1alpha1.Task{
+func MarshalBlock(ctx context.Context, role string, hosts []string, when []string, block projectv1.Block) *kkcorev1alpha1.Task {
+	task := &kkcorev1alpha1.Task{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Task",
-			APIVersion: kubekeyv1alpha1.SchemeGroupVersion.String(),
+			APIVersion: kkcorev1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Now(),
 			Annotations: map[string]string{
-				kubekeyv1alpha1.TaskAnnotationRole: role,
+				kkcorev1alpha1.TaskAnnotationRole: role,
 			},
 		},
-		Spec: kubekeyv1alpha1.KubeKeyTaskSpec{
+		Spec: kkcorev1alpha1.KubeKeyTaskSpec{
 			Name:        block.Name,
 			Hosts:       hosts,
 			IgnoreError: block.IgnoreErrors,

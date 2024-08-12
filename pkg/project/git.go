@@ -31,11 +31,11 @@ import (
 	"k8s.io/klog/v2"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-func newGitProject(pipeline kubekeyv1.Pipeline, update bool) (Project, error) {
+func newGitProject(pipeline kkcorev1.Pipeline, update bool) (Project, error) {
 	if pipeline.Spec.Playbook == "" || pipeline.Spec.Project.Addr == "" {
 		return nil, fmt.Errorf("playbook and project.addr should not be empty")
 	}
@@ -68,7 +68,7 @@ func newGitProject(pipeline kubekeyv1.Pipeline, update bool) (Project, error) {
 
 // gitProject from git
 type gitProject struct {
-	kubekeyv1.Pipeline
+	kkcorev1.Pipeline
 
 	projectDir string
 	// playbook relpath base on projectDir
@@ -117,7 +117,7 @@ func (p gitProject) ReadFile(path string, option GetFileOption) ([]byte, error) 
 	return os.ReadFile(p.getFilePath(path, option))
 }
 
-func (p gitProject) MarshalPlaybook() (*kkcorev1.Playbook, error) {
+func (p gitProject) MarshalPlaybook() (*projectv1.Playbook, error) {
 	return marshalPlaybook(os.DirFS(p.projectDir), p.Pipeline.Spec.Playbook)
 }
 

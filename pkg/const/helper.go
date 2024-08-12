@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	kubekeyv1 "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 var workDirOnce = &sync.Once{}
@@ -42,7 +42,7 @@ func GetRuntimeDir() string {
 	return filepath.Join(workDir, RuntimeDir)
 }
 
-func RuntimeDirFromPipeline(obj kubekeyv1.Pipeline) string {
-	return filepath.Join(GetRuntimeDir(), kubekeyv1.SchemeGroupVersion.String(),
+func RuntimeDirFromPipeline(obj kkcorev1.Pipeline) string {
+	return filepath.Join(GetRuntimeDir(), kkcorev1.SchemeGroupVersion.String(),
 		RuntimePipelineDir, obj.Namespace, obj.Name)
 }
