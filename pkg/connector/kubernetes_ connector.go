@@ -47,7 +47,7 @@ func (c *kubernetesConnector) Init(ctx context.Context) error {
 		return nil
 	}
 	// set rootDir
-	c.rootDir = filepath.Join(_const.GetWorkDir(), "kubernetes", c.clusterName)
+	c.rootDir = filepath.Join(_const.GetWorkDir(), _const.KubernetesDir, c.clusterName)
 	if _, err := os.Stat(c.rootDir); err != nil && os.IsNotExist(err) {
 		if err := os.MkdirAll(c.rootDir, os.ModePerm); err != nil {
 			klog.V(4).ErrorS(err, "Failed to create local dir", "cluster", c.clusterName)
