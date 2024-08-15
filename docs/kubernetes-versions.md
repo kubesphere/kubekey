@@ -152,3 +152,5 @@
 | v1.30.1 | :white_check_mark: |
 | v1.30.2 | :white_check_mark: |
 | v1.30.3 | :white_check_mark: |
+| v1.30.4 | :white_check_mark: |
+| v1.31.0 | :white_check_mark: |
