@@ -380,8 +380,8 @@ func (p *PushManifest) Execute(_ connector.Runtime) error {
 
 	auths := registry.DockerRegistryAuthEntries(p.KubeConf.Cluster.Registry.Auths)
 	auth := new(registry.DockerRegistryEntry)
-	if _, ok := auths[p.KubeConf.Cluster.Registry.PrivateRegistry]; ok {
-		auth = auths[p.KubeConf.Cluster.Registry.PrivateRegistry]
+	if _, ok := auths[p.KubeConf.Cluster.Registry.GetHost()]; ok {
+		auth = auths[p.KubeConf.Cluster.Registry.GetHost()]
 	}
 
 	for imageName, platforms := range list {
