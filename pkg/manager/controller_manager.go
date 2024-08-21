@@ -67,5 +67,27 @@ func (c controllerManager) Run(ctx context.Context) error {
 		return err
 	}
 
+	if err := (&controllers.KKClusterReconciler{
+		Client:                  mgr.GetClient(),
+		EventRecorder:           mgr.GetEventRecorderFor("kk-cluster-controller"),
+		Scheme:                  mgr.GetScheme(),
+		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
+	}).SetupWithManager(ctx, mgr); err != nil {
+		klog.ErrorS(err, "create kk-cluster controller error")
+
+		return err
+	}
+
+	if err := (&controllers.KKMachineReconciler{
+		Client:                  mgr.GetClient(),
+		EventRecorder:           mgr.GetEventRecorderFor("kk-machine-controller"),
+		Scheme:                  mgr.GetScheme(),
+		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
+	}).SetupWithManager(ctx, mgr); err != nil {
+		klog.ErrorS(err, "create kk-machine controller error")
+
+		return err
+	}
+
 	return mgr.Start(ctx)
 }

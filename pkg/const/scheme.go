@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	capkkv1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1alpha1"
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 )
@@ -50,6 +51,7 @@ func newScheme() *runtime.Scheme {
 	utilruntime.Must(kkcorev1.AddToScheme(s))
 	utilruntime.Must(kkcorev1alpha1.AddToScheme(s))
 	utilruntime.Must(kkcorev1alpha1.AddConversionFuncs(s))
+	utilruntime.Must(capkkv1alpha1.AddToScheme(s))
 
 	return s
 }
