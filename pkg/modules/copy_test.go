@@ -87,7 +87,7 @@ func TestCopy(t *testing.T) {
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
 			},
-			exceptStdout: stdoutSuccess,
+			exceptStdout: StdoutSuccess,
 		},
 		{
 			name: "copy failed",
@@ -109,6 +109,7 @@ func TestCopy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
+
 			acStdout, acStderr := ModuleCopy(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
 			assert.Equal(t, tc.exceptStderr, acStderr)

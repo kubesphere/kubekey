@@ -173,7 +173,7 @@ func TestUnmarshalYaml(t *testing.T) {
 					Tasks: []Block{
 						{
 							BlockBase: BlockBase{Base: Base{Name: "test"}},
-							Task:      Task{UnknownFiled: map[string]any{"custom-module": "abc"}},
+							Task:      Task{UnknownField: map[string]any{"custom-module": "abc"}},
 						},
 					},
 				},
@@ -200,7 +200,7 @@ func TestUnmarshalYaml(t *testing.T) {
 							BlockInfo: BlockInfo{
 								Block: []Block{{
 									BlockBase: BlockBase{Base: Base{Name: "test | test"}},
-									Task:      Task{UnknownFiled: map[string]any{"custom-module": "abc"}},
+									Task:      Task{UnknownField: map[string]any{"custom-module": "abc"}},
 								}},
 							},
 						},
@@ -214,7 +214,9 @@ func TestUnmarshalYaml(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var pb []Play
 			err := yaml.Unmarshal(tc.data, &pb)
-			assert.NoError(t, err)
+			if err != nil {
+				t.Fatal(err)
+			}
 			assert.Equal(t, tc.excepted, pb)
 		})
 	}

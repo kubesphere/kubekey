@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -30,6 +31,7 @@ import (
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Namespaced
 
+// Config store global vars for playbook.
 type Config struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -38,6 +40,7 @@ type Config struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// ConfigList of Config
 type ConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -60,15 +63,26 @@ func (c *Config) SetValue(key string, value any) error {
 	// set value
 	var f func(input map[string]any, key []string, value any) any
 	f = func(input map[string]any, key []string, value any) any {
-		if len(key) == 1 {
-			input[key[0]] = value
-		} else if len(key) > 1 {
-			if v, ok := input[key[0]]; ok && reflect.TypeOf(v).Kind() == reflect.Map {
-				input[key[0]] = f(v.(map[string]any), key[1:], value)
-			} else {
-				input[key[0]] = f(make(map[string]any), key[1:], value)
-			}
+		if len(key) == 0 {
+			return input
 		}
+
+		firstKey := key[0]
+		if len(key) == 1 {
+			input[firstKey] = value
+
+			return input
+		}
+
+		// Handle nested maps
+		if v, ok := input[firstKey]; ok && reflect.TypeOf(v).Kind() == reflect.Map {
+			if vd, ok := v.(map[string]any); ok {
+				input[firstKey] = f(vd, key[1:], value)
+			}
+		} else {
+			input[firstKey] = f(make(map[string]any), key[1:], value)
+		}
+
 		return input
 	}
 	data, err := json.Marshal(f(configMap, strings.Split(key, "."), value))
@@ -76,6 +90,7 @@ func (c *Config) SetValue(key string, value any) error {
 		return err
 	}
 	c.Spec.Raw = data
+
 	return nil
 }
 
@@ -86,6 +101,7 @@ func (c *Config) GetValue(key string) (any, error) {
 	if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
 		return nil, err
 	}
+	// get all value
 	if key == "" {
 		return configMap, nil
 	}
@@ -95,9 +111,10 @@ func (c *Config) GetValue(key string) (any, error) {
 		r, ok := result.(map[string]any)
 		if !ok {
 			// cannot find value
-			return nil, nil
+			return nil, fmt.Errorf("cannot find key: %s", key)
 		}
 		result = r[k]
 	}
+
 	return result, nil
 }

@@ -1,0 +1,5 @@
+rpm_url:
+  kernel_lt:
+    amd64: http://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS/kernel-lt-{{ .kernel_version }}.elrepo.x86_64.rpm
+  kernel_lt_devel:
+    amd64: http://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS/kernel-lt-devel-{{ .kernel_version }}.elrepo.x86_64.rpm

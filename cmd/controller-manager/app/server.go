@@ -28,8 +28,10 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/manager"
 )
 
+// NewControllerManagerCommand operator command.
 func NewControllerManagerCommand() *cobra.Command {
 	o := options.NewControllerManagerServerOptions()
+	ctx := signals.SetupSignalHandler()
 
 	cmd := &cobra.Command{
 		Use:   "controller-manager",
@@ -38,13 +40,14 @@ func NewControllerManagerCommand() *cobra.Command {
 			if err := options.InitGOPS(); err != nil {
 				return err
 			}
-			return options.InitProfiling()
+
+			return options.InitProfiling(ctx)
 		},
 		PersistentPostRunE: func(*cobra.Command, []string) error {
 			return options.FlushProfiling()
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			o.Complete(cmd, args)
+		RunE: func(*cobra.Command, []string) error {
+			o.Complete()
 			// create workdir directory,if not exists
 			_const.SetWorkDir(o.WorkDir)
 			if _, err := os.Stat(o.WorkDir); os.IsNotExist(err) {
@@ -52,7 +55,8 @@ func NewControllerManagerCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), o)
+
+			return run(ctx, o)
 		},
 	}
 
@@ -68,6 +72,7 @@ func NewControllerManagerCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(newVersionCommand())
+
 	return cmd
 }
 

@@ -177,7 +177,7 @@ cat >>/etc/hosts<<EOF
 # kubernetes hosts
 {{- range .groups.k8s_cluster | default list }}
   {{- if and (index $.inventory_hosts . "internal_ipv4") (ne (index $.inventory_hosts . "internal_ipv4") "") }}
-    {{ printf "%s %s %s.%s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") (index $.inventory_hosts . "hostname") ($.kubernetes.cluster_name | default "cluster.local") }}
+    {{- printf "%s %s %s.%s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") (index $.inventory_hosts . "hostname") ($.kubernetes.cluster_name | default "cluster.local") }}
   {{- end }}
   {{- if and (index $.inventory_hosts . "internal_ipv6") (ne (index $.inventory_hosts . "internal_ipv6") "") }}
     {{ printf "%s %s %s.%s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") (index $.inventory_hosts . "hostname") ($.kubernetes.cluster_name | default "cluster.local") }}
@@ -195,19 +195,19 @@ cat >>/etc/hosts<<EOF
 # image registry hosts
 {{- range .groups.image_registry | default list }}
   {{- if and (index $.inventory_hosts . "internal_ipv4") (ne (index $.inventory_hosts . "internal_ipv4") "") }}
-    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") }}
+    {{- printf "%s %s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") }}
   {{- end }}
   {{- if and (index $.inventory_hosts . "internal_ipv6") (ne (index $.inventory_hosts . "internal_ipv6") "") }}
-    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") }}
+    {{- printf "%s %s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") }}
   {{- end }}
 {{- end }}
 # nfs hosts
 {{- range .groups.nfs | default list }}
   {{- if and (index $.inventory_hosts . "internal_ipv4") (ne (index $.inventory_hosts . "internal_ipv4") "") }}
-    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") }}
+    {{- printf "%s %s" (index $.inventory_hosts . "internal_ipv4") (index $.inventory_hosts . "hostname") }}
   {{- end }}
   {{- if and (index $.inventory_hosts . "internal_ipv6") (ne (index $.inventory_hosts . "internal_ipv6") "") }}
-    {{ printf "%s %s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") }}
+    {{- printf "%s %s" (index $.inventory_hosts . "internal_ipv6") (index $.inventory_hosts . "hostname") }}
   {{- end }}
 {{- end }}
 # kubekey hosts END
@@ -227,5 +227,3 @@ update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || 
 update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 || true
 update-alternatives --set arptables /usr/sbin/arptables-legacy >/dev/null 2>&1 || true
 update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || true
-
-

@@ -3,7 +3,11 @@ cluster_require:
   etcd_disk_wal_fysnc_duration_seconds: 10000000
   allow_unsupported_distribution_setup: false
   # support ubuntu, centos.
-  supported_os_distributions: ['ubuntu', 'centos']
+  supported_os_distributions:
+    - ubuntu
+    - '"ubuntu"'
+    - centos
+    - '"centos"'
   require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
   # the minimal version of kubernetes to be installed.
   kube_version_min_required: v1.19.10
@@ -24,3 +28,4 @@ cluster_require:
     arm64:
       - arm64
       - aarch64
+  min_kernel_version: 4.9.17

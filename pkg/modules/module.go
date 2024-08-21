@@ -33,18 +33,20 @@ import (
 
 // message for stdout
 const (
-	// stdoutSuccess message for common module
-	stdoutSuccess = "success"
-	stdoutSkip    = "skip"
+	// StdoutSuccess message for common module
+	StdoutSuccess = "success"
+	StdoutSkip    = "skip"
 
-	// stdoutTrue for bool module
-	stdoutTrue = "True"
-	// stdoutFalse for bool module
-	stdoutFalse = "False"
+	// StdoutTrue for bool module
+	StdoutTrue = "True"
+	// StdoutFalse for bool module
+	StdoutFalse = "False"
 )
 
+// ModuleExecFunc exec module
 type ModuleExecFunc func(ctx context.Context, options ExecOptions) (stdout string, stderr string)
 
+// ExecOptions for module
 type ExecOptions struct {
 	// the defined Args for module
 	Args runtime.RawExtension
@@ -58,16 +60,34 @@ type ExecOptions struct {
 	Pipeline kkcorev1.Pipeline
 }
 
+func (o ExecOptions) getAllVariables() (map[string]any, error) {
+	ha, err := o.Variable.Get(variable.GetAllVariable(o.Host))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get host %s variable: %w", o.Host, err)
+	}
+
+	vd, ok := ha.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("host: %s variable is not a map", o.Host)
+	}
+
+	return vd, nil
+}
+
 var module = make(map[string]ModuleExecFunc)
 
+// RegisterModule register module
 func RegisterModule(moduleName string, exec ModuleExecFunc) error {
 	if _, ok := module[moduleName]; ok {
 		return fmt.Errorf("module %s is exist", moduleName)
 	}
+
 	module[moduleName] = exec
+
 	return nil
 }
 
+// FindModule by module name which has register.
 func FindModule(moduleName string) ModuleExecFunc {
 	return module[moduleName]
 }
@@ -91,23 +111,31 @@ var ConnKey = struct{}{}
 func getConnector(ctx context.Context, host string, data map[string]any) (connector.Connector, error) {
 	var conn connector.Connector
 	var err error
+
 	if v := ctx.Value(ConnKey); v != nil {
-		conn = v.(connector.Connector)
+		if vd, ok := v.(connector.Connector); ok {
+			conn = vd
+		}
 	} else {
 		connectorVars := make(map[string]any)
+
 		if c1, ok := data[_const.VariableConnector]; ok {
 			if c2, ok := c1.(map[string]any); ok {
 				connectorVars = c2
 			}
 		}
+
 		conn, err = connector.NewConnector(host, connectorVars)
 		if err != nil {
 			return conn, err
 		}
 	}
+
 	if err = conn.Init(ctx); err != nil {
 		klog.V(4).ErrorS(err, "failed to init connector")
+
 		return conn, err
 	}
+
 	return conn, nil
 }

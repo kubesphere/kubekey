@@ -17,6 +17,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
+        description: Config store global vars for playbook.
         properties:
           apiVersion:
             description: |-

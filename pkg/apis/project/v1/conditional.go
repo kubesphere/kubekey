@@ -17,27 +17,34 @@ limitations under the License.
 package v1
 
 import (
-	"fmt"
+	"errors"
 )
 
+// Conditional defined in project.
 type Conditional struct {
 	When When `yaml:"when,omitempty"`
 }
 
+// When defined in project.
 type When struct {
 	Data []string
 }
 
-func (w *When) UnmarshalYAML(unmarshal func(interface{}) error) error {
+// UnmarshalYAML yaml string to when
+func (w *When) UnmarshalYAML(unmarshal func(any) error) error {
 	var s string
 	if err := unmarshal(&s); err == nil {
 		w.Data = []string{s}
+
 		return nil
 	}
+
 	var a []string
 	if err := unmarshal(&a); err == nil {
 		w.Data = a
+
 		return nil
 	}
-	return fmt.Errorf("unsupported type, excepted string or array of strings")
+
+	return errors.New("unsupported type, excepted string or array of strings")
 }

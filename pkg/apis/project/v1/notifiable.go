@@ -16,6 +16,7 @@ limitations under the License.
 
 package v1
 
+// Notifiable defined in project.
 type Notifiable struct {
 	Notify string `yaml:"notify,omitempty"`
 }

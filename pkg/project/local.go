@@ -17,13 +17,14 @@ limitations under the License.
 package project
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
@@ -42,15 +43,18 @@ func newLocalProject(pipeline kkcorev1.Pipeline) (Project, error) {
 	if _, err := os.Stat(pipeline.Spec.Playbook); err != nil {
 		return nil, fmt.Errorf("cannot find playbook %s", pipeline.Spec.Playbook)
 	}
+
 	if filepath.Base(filepath.Dir(pipeline.Spec.Playbook)) != _const.ProjectPlaybooksDir {
 		// the format of playbook is not correct
-		return nil, fmt.Errorf("playbook should be projectDir/playbooks/playbookfile")
+		return nil, errors.New("playbook should be projectDir/playbooks/playbookfile")
 	}
+
 	projectDir := filepath.Dir(filepath.Dir(pipeline.Spec.Playbook))
 	playbook, err := filepath.Rel(projectDir, pipeline.Spec.Playbook)
 	if err != nil {
 		return nil, err
 	}
+
 	return &localProject{Pipeline: pipeline, projectDir: projectDir, playbook: playbook}, nil
 }
 
@@ -92,25 +96,31 @@ func (p localProject) getFilePath(path string, o GetFileOption) string {
 			return s
 		}
 	}
+
 	return ""
 }
 
+// MarshalPlaybook project file to playbook.
+func (p localProject) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
+	return marshalPlaybook(os.DirFS(p.projectDir), p.playbook)
+}
+
+// Stat role/file/template file or dir in project
 func (p localProject) Stat(path string, option GetFileOption) (os.FileInfo, error) {
 	return os.Stat(p.getFilePath(path, option))
 }
 
+// WalkDir role/file/template dir in project
 func (p localProject) WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error {
 	return filepath.WalkDir(p.getFilePath(path, option), f)
 }
 
+// ReadFile role/file/template file or dir in project
 func (p localProject) ReadFile(path string, option GetFileOption) ([]byte, error) {
 	return os.ReadFile(p.getFilePath(path, option))
 }
 
-func (p localProject) MarshalPlaybook() (*projectv1.Playbook, error) {
-	return marshalPlaybook(os.DirFS(p.projectDir), p.playbook)
-}
-
+// Rel path for role/file/template file or dir in project
 func (p localProject) Rel(root string, path string, option GetFileOption) (string, error) {
 	return filepath.Rel(p.getFilePath(root, option), path)
 }

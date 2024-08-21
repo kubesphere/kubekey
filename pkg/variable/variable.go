@@ -19,6 +19,8 @@ package variable
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -31,36 +33,67 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
 
+var (
+	emptyGetFunc GetFunc = func(Variable) (any, error) {
+		return nil, errors.New("nil value returned")
+	}
+	emptyMergeFunc MergeFunc = func(Variable) error {
+		return nil
+	}
+)
+
+// GetFunc get data from variable
 type GetFunc func(Variable) (any, error)
 
+// MergeFunc merge data to variable
 type MergeFunc func(Variable) error
 
+// Variable store all vars which pipeline used.
 type Variable interface {
-	Key() string
-	Get(GetFunc) (any, error)
-	Merge(MergeFunc) error
+	Get(getFunc GetFunc) (any, error)
+	Merge(mergeFunc MergeFunc) error
 }
 
 // New variable. generate value from config args. and render to source.
-func New(client ctrlclient.Client, pipeline kkcorev1.Pipeline) (Variable, error) {
+func New(ctx context.Context, client ctrlclient.Client, pipeline kkcorev1.Pipeline, st source.SourceType) (Variable, error) {
+	var err error
 	// new source
-	s, err := source.New(filepath.Join(_const.RuntimeDirFromPipeline(pipeline), _const.RuntimePipelineVariableDir))
-	if err != nil {
-		klog.V(4).ErrorS(err, "create file source failed", "path", filepath.Join(_const.RuntimeDirFromPipeline(pipeline), _const.RuntimePipelineVariableDir), "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
-		return nil, err
+	var s source.Source
+
+	switch st {
+	case source.MemorySource:
+		s = source.NewMemorySource()
+	case source.FileSource:
+		s, err = source.NewFileSource(filepath.Join(_const.RuntimeDirFromPipeline(pipeline), _const.RuntimePipelineVariableDir))
+		if err != nil {
+			klog.V(4).ErrorS(err, "create file source failed", "path", filepath.Join(_const.RuntimeDirFromPipeline(pipeline), _const.RuntimePipelineVariableDir), "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported source type: %v", st)
 	}
+
 	// get config
 	var config = &kkcorev1.Config{}
-	if err := client.Get(context.Background(), types.NamespacedName{Namespace: pipeline.Spec.ConfigRef.Namespace, Name: pipeline.Spec.ConfigRef.Name}, config); err != nil {
-		klog.V(4).ErrorS(err, "get config from pipeline error", "config", pipeline.Spec.ConfigRef, "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
-		return nil, err
+	if pipeline.Spec.ConfigRef != nil {
+		if err := client.Get(ctx, types.NamespacedName{Namespace: pipeline.Spec.ConfigRef.Namespace, Name: pipeline.Spec.ConfigRef.Name}, config); err != nil {
+			klog.V(4).ErrorS(err, "get config from pipeline error", "config", pipeline.Spec.ConfigRef, "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
+			return nil, err
+		}
 	}
+
 	// get inventory
 	var inventory = &kkcorev1.Inventory{}
-	if err := client.Get(context.Background(), types.NamespacedName{Namespace: pipeline.Spec.InventoryRef.Namespace, Name: pipeline.Spec.InventoryRef.Name}, inventory); err != nil {
-		klog.V(4).ErrorS(err, "get inventory from pipeline error", "inventory", pipeline.Spec.InventoryRef, "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
-		return nil, err
+	if pipeline.Spec.InventoryRef != nil {
+		if err := client.Get(ctx, types.NamespacedName{Namespace: pipeline.Spec.InventoryRef.Namespace, Name: pipeline.Spec.InventoryRef.Name}, inventory); err != nil {
+			klog.V(4).ErrorS(err, "get inventory from pipeline error", "inventory", pipeline.Spec.InventoryRef, "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
+			return nil, err
+		}
 	}
+
 	v := &variable{
 		key:    string(pipeline.UID),
 		source: s,
@@ -70,10 +103,13 @@ func New(client ctrlclient.Client, pipeline kkcorev1.Pipeline) (Variable, error)
 			Hosts:     make(map[string]host),
 		},
 	}
-	for _, hostname := range convertGroup(*inventory)["all"].([]string) {
-		v.value.Hosts[hostname] = host{
-			RemoteVars:  make(map[string]any),
-			RuntimeVars: make(map[string]any),
+
+	if gd, ok := convertGroup(*inventory)["all"].([]string); ok {
+		for _, hostname := range gd {
+			v.value.Hosts[hostname] = host{
+				RemoteVars:  make(map[string]any),
+				RuntimeVars: make(map[string]any),
+			}
 		}
 	}
 
@@ -81,15 +117,19 @@ func New(client ctrlclient.Client, pipeline kkcorev1.Pipeline) (Variable, error)
 	data, err := v.source.Read()
 	if err != nil {
 		klog.V(4).ErrorS(err, "read data from source error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
 		return nil, err
 	}
+
 	for k, d := range data {
 		// set hosts
 		h := host{}
 		if err := json.Unmarshal(d, &h); err != nil {
 			klog.V(4).ErrorS(err, "unmarshal host error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
 			return nil, err
 		}
+
 		v.value.Hosts[strings.TrimSuffix(k, ".json")] = h
 	}
 

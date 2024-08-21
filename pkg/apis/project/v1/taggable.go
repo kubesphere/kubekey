@@ -18,6 +18,18 @@ package v1
 
 import "slices"
 
+// the special tags
+const (
+	// AlwaysTag it always run
+	AlwaysTag = "always"
+	// NeverTag it never run
+	NeverTag = "never"
+	// AllTag represent all tags
+	AllTag = "all"
+	// TaggedTag represent which has tags
+	TaggedTag = "tagged"
+)
+
 // Taggable if it should executor
 type Taggable struct {
 	Tags []string `yaml:"tags,omitempty"`
@@ -28,27 +40,28 @@ func (t Taggable) IsEnabled(onlyTags []string, skipTags []string) bool {
 	shouldRun := true
 
 	if len(onlyTags) > 0 {
-		if slices.Contains(t.Tags, "always") {
+		switch {
+		case slices.Contains(t.Tags, AlwaysTag):
 			shouldRun = true
-		} else if slices.Contains(onlyTags, "all") && !slices.Contains(t.Tags, "never") {
+		case slices.Contains(onlyTags, AllTag) && !slices.Contains(t.Tags, NeverTag):
 			shouldRun = true
-		} else if slices.Contains(onlyTags, "tagged") && len(onlyTags) > 0 && !slices.Contains(t.Tags, "never") {
+		case slices.Contains(onlyTags, TaggedTag) && !slices.Contains(t.Tags, NeverTag):
 			shouldRun = true
-		} else if !isdisjoint(onlyTags, t.Tags) {
+		case !isdisjoint(onlyTags, t.Tags):
 			shouldRun = true
-		} else {
+		default:
 			shouldRun = false
 		}
 	}
 
 	if shouldRun && len(skipTags) > 0 {
-		if slices.Contains(skipTags, "all") {
-			if !slices.Contains(t.Tags, "always") || !slices.Contains(skipTags, "always") {
-				shouldRun = false
-			}
-		} else if !isdisjoint(skipTags, t.Tags) {
+		switch {
+		case slices.Contains(skipTags, AllTag) &&
+			(!slices.Contains(t.Tags, AlwaysTag) || !slices.Contains(skipTags, AlwaysTag)):
 			shouldRun = false
-		} else if slices.Contains(skipTags, "tagged") && len(skipTags) > 0 {
+		case !isdisjoint(skipTags, t.Tags):
+			shouldRun = false
+		case slices.Contains(skipTags, TaggedTag) && len(skipTags) > 0:
 			shouldRun = false
 		}
 	}
@@ -59,13 +72,15 @@ func (t Taggable) IsEnabled(onlyTags []string, skipTags []string) bool {
 // JoinTag the child block should inherit tag for parent block
 func JoinTag(child, parent Taggable) Taggable {
 	for _, tag := range parent.Tags {
-		if tag == "always" { // skip inherit "always" tag
+		if tag == AlwaysTag { // skip inherit "always" tag
 			continue
 		}
+
 		if !slices.Contains(child.Tags, tag) {
 			child.Tags = append(child.Tags, tag)
 		}
 	}
+
 	return child
 }
 
@@ -76,5 +91,6 @@ func isdisjoint(a, b []string) bool {
 			return false
 		}
 	}
+
 	return true
 }

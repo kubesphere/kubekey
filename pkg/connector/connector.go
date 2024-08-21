@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/klog/v2"
 	"k8s.io/utils/exec"
+	"k8s.io/utils/ptr"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -32,7 +33,6 @@ import (
 
 // connectedType for connector
 const (
-	connectedDefault    = ""
 	connectedSSH        = "ssh"
 	connectedLocal      = "local"
 	connectedKubernetes = "kubernetes"
@@ -60,6 +60,7 @@ type Connector interface {
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
 func NewConnector(host string, connectorVars map[string]any) (Connector, error) {
 	connectedType, _ := variable.StringVar(nil, connectorVars, _const.VariableConnectorType)
+
 	switch connectedType {
 	case connectedLocal:
 		return &localConnector{Cmd: exec.New()}, nil
@@ -74,7 +75,7 @@ func NewConnector(host string, connectorVars map[string]any) (Connector, error) 
 		portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
 		if err != nil {
 			klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
-			portParam = defaultSSHPort
+			portParam = ptr.To(defaultSSHPort)
 		}
 		// get user in connector variable. if empty, set default user: root.
 		userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
@@ -93,9 +94,10 @@ func NewConnector(host string, connectorVars map[string]any) (Connector, error) 
 			klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
 			keyParam = defaultSSHPrivateKey
 		}
+
 		return &sshConnector{
 			Host:       hostParam,
-			Port:       portParam,
+			Port:       *portParam,
 			User:       userParam,
 			Password:   passwdParam,
 			PrivateKey: keyParam,
@@ -105,6 +107,7 @@ func NewConnector(host string, connectorVars map[string]any) (Connector, error) 
 		if err != nil && host != _const.VariableLocalHost {
 			return nil, err
 		}
+
 		return &kubernetesConnector{Cmd: exec.New(), clusterName: host, kubeconfig: kubeconfig}, nil
 	default:
 		localHost, _ := os.Hostname()
@@ -121,7 +124,7 @@ func NewConnector(host string, connectorVars map[string]any) (Connector, error) 
 		portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
 		if err != nil {
 			klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
-			portParam = defaultSSHPort
+			portParam = ptr.To(defaultSSHPort)
 		}
 		// get user in connector variable. if empty, set default user: root.
 		userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
@@ -143,7 +146,7 @@ func NewConnector(host string, connectorVars map[string]any) (Connector, error) 
 
 		return &sshConnector{
 			Host:       hostParam,
-			Port:       portParam,
+			Port:       *portParam,
 			User:       userParam,
 			Password:   passwdParam,
 			PrivateKey: keyParam,
@@ -153,7 +156,7 @@ func NewConnector(host string, connectorVars map[string]any) (Connector, error) 
 
 // GatherFacts get host info.
 type GatherFacts interface {
-	Info(ctx context.Context) (map[string]any, error)
+	HostInfo(ctx context.Context) (map[string]any, error)
 }
 
 // isLocalIP check if given ipAddr is local network ip
@@ -161,8 +164,10 @@ func isLocalIP(ipAddr string) bool {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		klog.ErrorS(err, "get network address error")
+
 		return false
 	}
+
 	for _, addr := range addrs {
 		var ip net.IP
 		switch v := addr.(type) {
@@ -172,11 +177,14 @@ func isLocalIP(ipAddr string) bool {
 			ip = v.IP
 		default:
 			klog.V(4).InfoS("unknown address type", "address", addr.String())
+
 			continue
 		}
+
 		if ip.String() == ipAddr {
 			return true
 		}
 	}
+
 	return false
 }

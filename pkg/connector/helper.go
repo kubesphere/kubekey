@@ -35,6 +35,7 @@ func convertBytesToMap(bs []byte, split string) map[string]string {
 			config[key] = value
 		}
 	}
+
 	return config
 }
 

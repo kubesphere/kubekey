@@ -26,19 +26,23 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
+// NewPreCheckOptions for newPreCheckCommand
 func NewPreCheckOptions() *PreCheckOptions {
 	// set default value
-	return &PreCheckOptions{CommonOptions: newCommonOptions()}
+	return &PreCheckOptions{commonOptions: newCommonOptions()}
 }
 
+// PreCheckOptions for NewPreCheckOptions
 type PreCheckOptions struct {
-	CommonOptions
+	commonOptions
 }
 
+// Flags add to newPreCheckCommand
 func (o *PreCheckOptions) Flags() cliflag.NamedFlagSets {
-	return o.CommonOptions.Flags()
+	return o.commonOptions.flags()
 }
 
+// Complete options. create Pipeline, Config and Inventory
 func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{

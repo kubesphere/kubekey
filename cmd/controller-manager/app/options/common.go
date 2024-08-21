@@ -17,10 +17,10 @@ limitations under the License.
 package options
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"strings"
@@ -39,16 +39,19 @@ var (
 	profileOutput string
 )
 
+// AddProfilingFlags to NewControllerManagerCommand
 func AddProfilingFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&profileName, "profile", "none", "Name of profile to capture. One of (none|cpu|heap|goroutine|threadcreate|block|mutex)")
 	flags.StringVar(&profileOutput, "profile-output", "profile.pprof", "Name of the file to write the profile to")
 }
 
-func InitProfiling() error {
+// InitProfiling for profileName
+func InitProfiling(ctx context.Context) error {
 	var (
 		f   *os.File
 		err error
 	)
+
 	switch profileName {
 	case "none":
 		return nil
@@ -57,6 +60,7 @@ func InitProfiling() error {
 		if err != nil {
 			return err
 		}
+
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
 			return err
@@ -76,22 +80,20 @@ func InitProfiling() error {
 
 	// If the command is interrupted before the end (ctrl-c), flush the
 	// profiling files
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
 	go func() {
-		<-c
+		<-ctx.Done()
 		if err := f.Close(); err != nil {
 			fmt.Printf("failed to close file. file: %v. error: %v \n", profileOutput, err)
 		}
 		if err := FlushProfiling(); err != nil {
 			fmt.Printf("failed to FlushProfiling. file: %v. error: %v \n", profileOutput, err)
 		}
-		os.Exit(0)
 	}()
 
 	return nil
 }
 
+// FlushProfiling to local file
 func FlushProfiling() error {
 	switch profileName {
 	case "none":
@@ -100,17 +102,20 @@ func FlushProfiling() error {
 		pprof.StopCPUProfile()
 	case "heap":
 		runtime.GC()
+
 		fallthrough
 	default:
 		profile := pprof.Lookup(profileName)
 		if profile == nil {
 			return nil
 		}
+
 		f, err := os.Create(profileOutput)
 		if err != nil {
 			return err
 		}
 		defer f.Close()
+
 		if err := profile.WriteTo(f, 0); err != nil {
 			return err
 		}
@@ -125,11 +130,12 @@ func FlushProfiling() error {
 
 var gops bool
 
+// AddGOPSFlags to NewControllerManagerCommand
 func AddGOPSFlags(flags *pflag.FlagSet) {
-	flags.BoolVar(&gops, "gops", false, "Whether to enable gops or not.  When enabled this option, "+
-		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
+	flags.BoolVar(&gops, "gops", false, "Whether to enable gops or not.  When enabled this option, controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
 }
 
+// InitGOPS if gops is true
 func InitGOPS() error {
 	if gops {
 		// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
@@ -138,6 +144,7 @@ func InitGOPS() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -145,6 +152,7 @@ func InitGOPS() error {
 //                                       KLOG
 // ======================================================================================
 
+// AddKlogFlags to NewControllerManagerCommand
 func AddKlogFlags(fs *pflag.FlagSet) {
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(local)

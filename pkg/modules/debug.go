@@ -24,24 +24,26 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-func ModuleDebug(ctx context.Context, options ExecOptions) (string, string) {
+// ModuleDebug deal "debug" module
+func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
 	// get host variable
-	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
+	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", fmt.Sprintf("failed to get host variable: %v", err)
+		return "", err.Error()
 	}
 
 	args := variable.Extension2Variables(options.Args)
 	// var is defined. return the value of var
-	if varParam, err := variable.StringVar(ha.(map[string]any), args, "var"); err == nil {
-		result, err := tmpl.ParseString(ha.(map[string]any), fmt.Sprintf("{{ %s }}", varParam))
+	if varParam, err := variable.StringVar(ha, args, "var"); err == nil {
+		result, err := tmpl.ParseString(ha, fmt.Sprintf("{{ %s }}", varParam))
 		if err != nil {
 			return "", fmt.Sprintf("failed to parse var: %v", err)
 		}
+
 		return result, ""
 	}
 	// msg is defined. return the actual msg
-	if msgParam, err := variable.StringVar(ha.(map[string]any), args, "msg"); err == nil {
+	if msgParam, err := variable.StringVar(ha, args, "msg"); err == nil {
 		return msgParam, ""
 	}
 

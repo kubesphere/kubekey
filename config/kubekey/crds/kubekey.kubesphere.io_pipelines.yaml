@@ -30,6 +30,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
+        description: Pipeline resource executor a playbook.
         properties:
           apiVersion:
             description: |-
@@ -49,6 +50,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: PipelineSpec of pipeline.
             properties:
               configRef:
                 description: ConfigRef is the global variable configuration for playbook
@@ -1972,14 +1974,19 @@ spec:
             - playbook
             type: object
           status:
+            description: PipelineStatus of Pipeline
             properties:
               failedDetail:
                 description: FailedDetail will record the failed tasks.
                 items:
+                  description: PipelineFailedDetail store failed message when pipeline
+                    run failed.
                   properties:
                     hosts:
                       description: failed Hosts Result of failed task.
                       items:
+                        description: PipelineFailedDetailHost detail failed message
+                          for each host.
                         properties:
                           host:
                             description: Host name of failed task.

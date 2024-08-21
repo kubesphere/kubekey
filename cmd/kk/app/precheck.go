@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -37,8 +36,7 @@ func newPreCheckCommand() *cobra.Command {
 		Short: "Check if the nodes is eligible for cluster deployment.",
 		Long:  "the tags can specify check items. support: etcd, os, network, cri, nfs.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			args = append(args, "playbooks/precheck.yaml")
-			pipeline, config, inventory, err := o.Complete(cmd, args)
+			pipeline, config, inventory, err := o.Complete(cmd, append(args, "playbooks/precheck.yaml"))
 			if err != nil {
 				return err
 			}
@@ -50,7 +48,8 @@ func newPreCheckCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+
+			return run(ctx, pipeline, config, inventory)
 		},
 	}
 
@@ -58,6 +57,7 @@ func newPreCheckCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
 	return cmd
 }
 

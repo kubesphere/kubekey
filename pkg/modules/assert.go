@@ -18,54 +18,89 @@ package modules
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
+type assertArgs struct {
+	that       []string
+	successMsg string
+	failMsg    string // high priority than msg
+	msg        string
+}
+
+func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*assertArgs, error) {
+	var err error
+	aa := &assertArgs{}
+	args := variable.Extension2Variables(raw)
+	if aa.that, err = variable.StringSliceVar(vars, args, "that"); err != nil {
+		return nil, errors.New("\"that\" should be []string or string")
+	}
+	aa.successMsg, _ = variable.StringVar(vars, args, "success_msg")
+	if aa.successMsg == "" {
+		aa.successMsg = StdoutTrue
+	}
+	aa.failMsg, _ = variable.StringVar(vars, args, "fail_msg")
+	aa.msg, _ = variable.StringVar(vars, args, "msg")
+	if aa.msg == "" {
+		aa.msg = StdoutFalse
+	}
+
+	return aa, nil
+}
+
+// ModuleAssert deal "assert" module
 func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
-	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
+	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", fmt.Sprintf("failed to get host variable: %v", err)
+		return "", err.Error()
 	}
 
-	args := variable.Extension2Variables(options.Args)
-	thatParam, err := variable.StringSliceVar(ha.(map[string]any), args, "that")
+	aa, err := newAssertArgs(ctx, options.Args, ha)
 	if err != nil {
-		return "", "\"that\" should be []string or string"
+		klog.V(4).ErrorS(err, "get assert args error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
+
+		return "", err.Error()
 	}
 
-	ok, err := tmpl.ParseBool(ha.(map[string]any), thatParam)
+	ok, err := tmpl.ParseBool(ha, aa.that)
 	if err != nil {
 		return "", fmt.Sprintf("parse \"that\" error: %v", err)
 	}
-
+	// condition is true
 	if ok {
-		if successMsgParam, err := variable.StringVar(ha.(map[string]any), args, "success_msg"); err == nil {
-			if r, err := tmpl.ParseString(ha.(map[string]any), successMsgParam); err != nil {
-				return "", fmt.Sprintf("parse \"success_msg\" error: %v", err)
-			} else {
-				return r, ""
-			}
+		r, err := tmpl.ParseString(ha, aa.successMsg)
+		if err == nil {
+			return r, ""
 		}
-		return stdoutTrue, ""
-	} else {
-		if failMsgParam, err := variable.StringVar(ha.(map[string]any), args, "fail_msg"); err == nil {
-			if r, err := tmpl.ParseString(ha.(map[string]any), failMsgParam); err != nil {
-				return "", fmt.Sprintf("parse \"fail_msg\" error: %v", err)
-			} else {
-				return stdoutFalse, r
-			}
-		}
-		if msgParam, err := variable.StringVar(ha.(map[string]any), args, "msg"); err == nil {
-			if r, err := tmpl.ParseString(ha.(map[string]any), msgParam); err != nil {
-				return "", fmt.Sprintf("parse \"msg\" error: %v", err)
-			} else {
-				return stdoutFalse, r
-			}
-		}
-		return stdoutFalse, "False"
+		klog.V(4).ErrorS(err, "parse \"success_msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
+
+		return StdoutTrue, ""
 	}
+	// condition is false and fail_msg is not empty
+	if aa.failMsg != "" {
+		r, err := tmpl.ParseString(ha, aa.failMsg)
+		if err == nil {
+			return StdoutFalse, r
+		}
+		klog.V(4).ErrorS(err, "parse \"fail_msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
+	}
+	// condition is false and msg is not empty
+	if aa.msg != "" {
+		r, err := tmpl.ParseString(ha, aa.msg)
+		if err == nil {
+			return StdoutFalse, r
+		}
+		klog.V(4).ErrorS(err, "parse \"msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
+	}
+
+	return StdoutFalse, "False"
 }

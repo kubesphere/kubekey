@@ -47,10 +47,10 @@
         src: |
           {{ .work_dir }}/kubekey/pki/image_registry.crt
         dest: |
-          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/server.crt
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.cert
     - name: Sync image registry key file to remote
       copy:
         src: |
           {{ .work_dir }}/kubekey/pki/image_registry.key
         dest: |
-          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/server.key
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.key

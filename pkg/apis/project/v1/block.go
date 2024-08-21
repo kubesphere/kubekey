@@ -23,15 +23,17 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// Block defined in project.
 type Block struct {
 	BlockBase
-	// If has Block, Task should be empty
+	// If it has Block, Task should be empty
 	Task
 	IncludeTasks string `yaml:"include_tasks,omitempty"`
 
 	BlockInfo
 }
 
+// BlockBase defined in project.
 type BlockBase struct {
 	Base             `yaml:",inline"`
 	Conditional      `yaml:",inline"`
@@ -41,12 +43,14 @@ type BlockBase struct {
 	Delegatable      `yaml:",inline"`
 }
 
+// BlockInfo defined in project.
 type BlockInfo struct {
 	Block  []Block `yaml:"block,omitempty"`
 	Rescue []Block `yaml:"rescue,omitempty"`
 	Always []Block `yaml:"always,omitempty"`
 }
 
+// Task defined in project.
 type Task struct {
 	AsyncVal    int         `yaml:"async,omitempty"`
 	ChangedWhen When        `yaml:"changed_when,omitempty"`
@@ -62,11 +66,12 @@ type Task struct {
 	// deprecated, used to be loop and loop_args but loop has been repurposed
 	//LoopWith string	`yaml:"loop_with"`
 
-	//
-	UnknownFiled map[string]any `yaml:"-"`
+	// UnknownField store undefined filed
+	UnknownField map[string]any `yaml:"-"`
 }
 
-func (b *Block) UnmarshalYAML(unmarshal func(interface{}) error) error {
+// UnmarshalYAML yaml string to block.
+func (b *Block) UnmarshalYAML(unmarshal func(any) error) error {
 	// fill baseInfo
 	var bb BlockBase
 	if err := unmarshal(&bb); err == nil {
@@ -76,58 +81,110 @@ func (b *Block) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var m map[string]any
 	if err := unmarshal(&m); err != nil {
 		klog.Errorf("unmarshal data to map error: %v", err)
+
 		return err
 	}
 
-	if v, ok := m["include_tasks"]; ok {
-		b.IncludeTasks = v.(string)
-	} else if _, ok := m["block"]; ok {
-		// render block
-		var bi BlockInfo
-		err := unmarshal(&bi)
+	if includeTasks, ok := handleIncludeTasks(m); ok {
+		// Set the IncludeTasks field if "include_tasks" exists and is valid.
+		b.IncludeTasks = includeTasks
+
+		return nil
+	}
+
+	switch {
+	case m["block"] != nil:
+		// If the "block" key exists, unmarshal it into BlockInfo and set the BlockInfo field.
+		bi, err := handleBlock(m, unmarshal)
 		if err != nil {
-			klog.Errorf("unmarshal data to block error: %v", err)
 			return err
 		}
 		b.BlockInfo = bi
-	} else {
-		// render task
-		var t Task
-		err := unmarshal(&t)
+	default:
+		// If neither "include_tasks" nor "block" are present, treat the data as a task.
+		t, err := handleTask(m, unmarshal)
 		if err != nil {
-			klog.Errorf("unmarshal data to task error: %v", err)
 			return err
 		}
 		b.Task = t
-		deleteExistField(reflect.TypeOf(Block{}), m)
-		// set unknown flied to task.UnknownFiled
-		b.UnknownFiled = m
+		// Set any remaining unknown fields to the Task's UnknownField.
+		b.UnknownField = m
 	}
 
 	return nil
 }
 
+// handleIncludeTasks checks if the "include_tasks" key exists in the map and is of type string.
+// If so, it returns the string value and true, otherwise it returns an empty string and false.
+func handleIncludeTasks(m map[string]any) (string, bool) {
+	if v, ok := m["include_tasks"]; ok {
+		if it, ok := v.(string); ok {
+			return it, true
+		}
+	}
+
+	return "", false
+}
+
+// handleBlock attempts to unmarshal the block data into a BlockInfo structure.
+// If successful, it returns the BlockInfo and nil. If an error occurs, it logs the error and returns it.
+func handleBlock(_ map[string]any, unmarshal func(any) error) (BlockInfo, error) {
+	var bi BlockInfo
+	if err := unmarshal(&bi); err != nil {
+		klog.Errorf("unmarshal data to block error: %v", err)
+
+		return bi, err
+	}
+
+	return bi, nil
+}
+
+// handleTask attempts to unmarshal the task data into a Task structure.
+// If successful, it deletes existing fields from the map, logs the error if it occurs, and returns the Task and nil.
+func handleTask(m map[string]any, unmarshal func(any) error) (Task, error) {
+	var t Task
+	if err := unmarshal(&t); err != nil {
+		klog.Errorf("unmarshal data to task error: %v", err)
+
+		return t, err
+	}
+	deleteExistField(reflect.TypeOf(Block{}), m)
+
+	return t, nil
+}
+
 func deleteExistField(rt reflect.Type, m map[string]any) {
-	for i := 0; i < rt.NumField(); i++ {
+	for i := range rt.NumField() {
 		field := rt.Field(i)
 		if field.Anonymous {
 			deleteExistField(field.Type, m)
 		} else {
-			yamlTag := rt.Field(i).Tag.Get("yaml")
-			if yamlTag != "" {
-				for _, t := range strings.Split(yamlTag, ",") {
-					if _, ok := m[t]; ok {
-						delete(m, t)
-						break
-					}
-				}
-			} else {
-				t := strings.ToUpper(rt.Field(i).Name[:1]) + rt.Field(i).Name[1:]
-				if _, ok := m[t]; ok {
-					delete(m, t)
-					break
-				}
+			if isFound := deleteField(rt.Field(i), m); isFound {
+				break
 			}
 		}
 	}
+}
+
+// deleteField find and delete the filed, return the field if found.
+func deleteField(field reflect.StructField, m map[string]any) bool {
+	yamlTag := field.Tag.Get("yaml")
+	if yamlTag != "" {
+		for _, t := range strings.Split(yamlTag, ",") {
+			if _, ok := m[t]; ok {
+				delete(m, t)
+
+				return true
+			}
+		}
+	} else {
+		t := strings.ToUpper(field.Name[:1]) + field.Name[1:]
+		if _, ok := m[t]; ok {
+			delete(m, t)
+
+			return true
+		}
+	}
+
+	return false
 }

@@ -16,6 +16,7 @@ limitations under the License.
 
 package v1
 
+// CollectionSearch defined in project.
 type CollectionSearch struct {
 	Collections []string `yaml:"collections,omitempty"`
 }

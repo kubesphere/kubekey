@@ -18,27 +18,26 @@ package modules
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
+// ModuleCommand deal "command" module.
 func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
-	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
+	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", fmt.Sprintf("failed to get host variable: %v", err)
+		return "", err.Error()
 	}
-
 	// get connector
-	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
+	conn, err := getConnector(ctx, options.Host, ha)
 	if err != nil {
 		return "", err.Error()
 	}
 	defer conn.Close(ctx)
 	// command string
-	command, err := variable.Extension2String(ha.(map[string]any), options.Args)
+	command, err := variable.Extension2String(ha, options.Args)
 	if err != nil {
 		return "", err.Error()
 	}
@@ -51,5 +50,6 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 	if data != nil {
 		stdout = strings.TrimSuffix(string(data), "\n")
 	}
+
 	return stdout, stderr
 }

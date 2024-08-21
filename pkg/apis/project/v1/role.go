@@ -16,10 +16,12 @@ limitations under the License.
 
 package v1
 
+// Role defined in project.
 type Role struct {
 	RoleInfo
 }
 
+// RoleInfo defined in project.
 type RoleInfo struct {
 	Base             `yaml:",inline"`
 	Conditional      `yaml:",inline"`
@@ -32,15 +34,19 @@ type RoleInfo struct {
 	Block []Block
 }
 
-func (r *Role) UnmarshalYAML(unmarshal func(interface{}) error) error {
+// UnmarshalYAML yaml string to role.
+func (r *Role) UnmarshalYAML(unmarshal func(any) error) error {
 	var s string
 	if err := unmarshal(&s); err == nil {
 		r.Role = s
+
 		return nil
 	}
+
 	var info RoleInfo
 	if err := unmarshal(&info); err == nil {
 		r.RoleInfo = info
+
 		return nil
 	}
 

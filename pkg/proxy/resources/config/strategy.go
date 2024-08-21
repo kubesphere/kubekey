@@ -39,54 +39,65 @@ var Strategy = ConfigStrategy{_const.Scheme, apinames.SimpleNameGenerator}
 
 // ===CreateStrategy===
 
+// NamespaceScoped always true
 func (t ConfigStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (t ConfigStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
+// PrepareForCreate do no-thing
+func (t ConfigStrategy) PrepareForCreate(context.Context, runtime.Object) {
 	// do nothing
 }
 
-func (t ConfigStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
-	// do nothing
-	return nil
-}
-
-func (t ConfigStrategy) WarningsOnCreate(ctx context.Context, obj runtime.Object) []string {
+// Validate always pass
+func (t ConfigStrategy) Validate(context.Context, runtime.Object) field.ErrorList {
 	// do nothing
 	return nil
 }
 
-func (t ConfigStrategy) Canonicalize(obj runtime.Object) {
+// WarningsOnCreate do no-thing
+func (t ConfigStrategy) WarningsOnCreate(context.Context, runtime.Object) []string {
+	// do nothing
+	return nil
+}
+
+// Canonicalize do no-thing
+func (t ConfigStrategy) Canonicalize(runtime.Object) {
 	// do nothing
 }
 
 // ===UpdateStrategy===
 
+// AllowCreateOnUpdate always false
 func (t ConfigStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-func (t ConfigStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
+// PrepareForUpdate do no-thing
+func (t ConfigStrategy) PrepareForUpdate(context.Context, runtime.Object, runtime.Object) {
 	// do nothing
 }
 
-func (t ConfigStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
-	// do nothing
-	return nil
-}
-
-func (t ConfigStrategy) WarningsOnUpdate(ctx context.Context, obj, old runtime.Object) []string {
+// ValidateUpdate do nothing
+func (t ConfigStrategy) ValidateUpdate(context.Context, runtime.Object, runtime.Object) field.ErrorList {
 	// do nothing
 	return nil
 }
 
+// WarningsOnUpdate always nil
+func (t ConfigStrategy) WarningsOnUpdate(context.Context, runtime.Object, runtime.Object) []string {
+	// do nothing
+	return nil
+}
+
+// AllowUnconditionalUpdate always true
 func (t ConfigStrategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
 // ===ResetFieldsStrategy===
 
+// GetResetFields always nil
 func (t ConfigStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return nil
 }

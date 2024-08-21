@@ -18,6 +18,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,59 +42,75 @@ var Strategy = pipelineStrategy{_const.Scheme, apinames.SimpleNameGenerator}
 
 // ===CreateStrategy===
 
+// NamespaceScoped always true
 func (t pipelineStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (t pipelineStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
-	// do nothing
-}
+// PrepareForCreate do no-thing
+func (t pipelineStrategy) PrepareForCreate(context.Context, runtime.Object) {}
 
-func (t pipelineStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
-	// do nothing
-	return nil
-}
-
-func (t pipelineStrategy) WarningsOnCreate(ctx context.Context, obj runtime.Object) []string {
+// Validate always pass
+func (t pipelineStrategy) Validate(context.Context, runtime.Object) field.ErrorList {
 	// do nothing
 	return nil
 }
 
-func (t pipelineStrategy) Canonicalize(obj runtime.Object) {
+// WarningsOnCreate do no-thing
+func (t pipelineStrategy) WarningsOnCreate(context.Context, runtime.Object) []string {
+	// do nothing
+	return nil
+}
+
+// Canonicalize do no-thing
+func (t pipelineStrategy) Canonicalize(runtime.Object) {
 	// do nothing
 }
 
 // ===UpdateStrategy===
 
+// AllowCreateOnUpdate always false
 func (t pipelineStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-func (t pipelineStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
+// PrepareForUpdate do no-thing
+func (t pipelineStrategy) PrepareForUpdate(context.Context, runtime.Object, runtime.Object) {
 	// do nothing
 }
 
-func (t pipelineStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
+// ValidateUpdate spec is immutable
+func (t pipelineStrategy) ValidateUpdate(_ context.Context, obj, old runtime.Object) field.ErrorList {
 	// only support update status
-	task := obj.(*kkcorev1.Pipeline)
-	oldTask := old.(*kkcorev1.Pipeline)
-	if !reflect.DeepEqual(task.Spec, oldTask.Spec) {
+	pipeline, ok := obj.(*kkcorev1.Pipeline)
+	if !ok {
+		return field.ErrorList{field.InternalError(field.NewPath("spec"), errors.New("the object is not Task"))}
+	}
+	oldPipeline, ok := old.(*kkcorev1.Pipeline)
+	if !ok {
+		return field.ErrorList{field.InternalError(field.NewPath("spec"), errors.New("the object is not Task"))}
+	}
+	if !reflect.DeepEqual(pipeline.Spec, oldPipeline.Spec) {
 		return field.ErrorList{field.Forbidden(field.NewPath("spec"), "spec is immutable")}
 	}
+
 	return nil
 }
 
-func (t pipelineStrategy) WarningsOnUpdate(ctx context.Context, obj, old runtime.Object) []string {
+// WarningsOnUpdate always nil
+func (t pipelineStrategy) WarningsOnUpdate(context.Context, runtime.Object, runtime.Object) []string {
 	// do nothing
 	return nil
 }
 
+// AllowUnconditionalUpdate always true
 func (t pipelineStrategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
 // ===ResetFieldsStrategy===
 
+// GetResetFields always nil
 func (t pipelineStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return nil
 }

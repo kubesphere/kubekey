@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -36,15 +35,17 @@ func newCertsCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(newCertsRenewCommand())
+
 	return cmd
 }
 
 func newCertsRenewCommand() *cobra.Command {
 	o := options.NewCertsRenewOptions()
+
 	cmd := &cobra.Command{
 		Use:   "renew",
 		Short: "renew a cluster certs",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/certs_renew.yaml"})
 			if err != nil {
 				return err
@@ -57,7 +58,8 @@ func newCertsRenewCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+
+			return run(ctx, pipeline, config, inventory)
 		},
 	}
 
@@ -65,6 +67,7 @@ func newCertsRenewCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
 	return cmd
 }
 

@@ -1,0 +1,30 @@
+---
+- name: Download kernel-lt rpm
+  command: |
+    artifact_name={{ get .rpm_url.kernel_lt .arch | splitList "/" | last }}
+    artifact_path={{ .work_dir }}/kubekey/kernel/{{ .kernel_version }}/{{ .arch }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .rpm_url.kernel_lt .arch }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .rpm_url.kernel_lt .arch }}
+    fi
+
+- name: Download kernel-lt-devel rpm
+  command: |
+    artifact_name={{ get .rpm_url.kernel_lt_devel .arch | splitList "/" | last }}
+    artifact_path={{ .work_dir }}/kubekey/kernel/{{ .kernel_version }}/{{ .arch }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .rpm_url.kernel_lt_devel .arch }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .rpm_url.kernel_lt_devel .arch }}
+    fi

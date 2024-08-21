@@ -42,6 +42,7 @@ func GetRuntimeDir() string {
 	return filepath.Join(workDir, RuntimeDir)
 }
 
+// RuntimeDirFromPipeline returns the absolute path of the runtime directory for specify Pipeline
 func RuntimeDirFromPipeline(obj kkcorev1.Pipeline) string {
 	return filepath.Join(GetRuntimeDir(), kkcorev1.SchemeGroupVersion.String(),
 		RuntimePipelineDir, obj.Namespace, obj.Name)

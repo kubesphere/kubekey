@@ -26,27 +26,32 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
+// NewCreateClusterOptions for newCreateClusterCommand
 func NewCreateClusterOptions() *CreateClusterOptions {
 	// set default value
-	return &CreateClusterOptions{CommonOptions: newCommonOptions()}
+	return &CreateClusterOptions{commonOptions: newCommonOptions()}
 }
 
+// CreateClusterOptions for NewCreateClusterOptions
 type CreateClusterOptions struct {
-	CommonOptions
+	commonOptions
 	// kubernetes version which the cluster will install.
 	Kubernetes string
 	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
 	ContainerManager string
 }
 
+// Flags add to newCreateClusterCommand
 func (o *CreateClusterOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
+	fss := o.commonOptions.flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", "", "Specify a supported version of kubernetes")
 	kfs.StringVar(&o.ContainerManager, "container-manager", "", "Container runtime: docker, crio, containerd and isula.")
+
 	return fss
 }
 
+// Complete options. create Pipeline, Config and Inventory
 func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
@@ -59,20 +64,21 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 	}
 
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
+	if len(args) != 1 {
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
+	o.Playbook = args[0]
 
 	pipeline.Spec = kkcorev1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
+
 	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
 	if o.Kubernetes != "" {
 		// override kube_version in config
 		if err := config.SetValue("kube_version", o.Kubernetes); err != nil {

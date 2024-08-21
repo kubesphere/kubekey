@@ -65,6 +65,7 @@ func TestFetch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
+
 			acStdout, acStderr := ModuleFetch(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
 			assert.Equal(t, tc.exceptStderr, acStderr)

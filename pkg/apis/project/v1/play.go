@@ -16,8 +16,11 @@ limitations under the License.
 
 package v1
 
-import "fmt"
+import (
+	"errors"
+)
 
+// Play defined in project.
 type Play struct {
 	ImportPlaybook string `yaml:"import_playbook,omitempty"`
 
@@ -56,38 +59,50 @@ type Play struct {
 	Order             string     `yaml:"order,omitempty"`
 }
 
+// PlaySerial defined in project.
 type PlaySerial struct {
 	Data []any
 }
 
-func (s *PlaySerial) UnmarshalYAML(unmarshal func(interface{}) error) error {
+// UnmarshalYAML yaml string to serial.
+func (s *PlaySerial) UnmarshalYAML(unmarshal func(any) error) error {
 	var as []any
 	if err := unmarshal(&as); err == nil {
 		s.Data = as
+
 		return nil
 	}
+
 	var a any
 	if err := unmarshal(&a); err == nil {
 		s.Data = []any{a}
+
 		return nil
 	}
-	return fmt.Errorf("unsupported type, excepted any or array")
+
+	return errors.New("unsupported type, excepted any or array")
 }
 
+// PlayHost defined in project.
 type PlayHost struct {
 	Hosts []string
 }
 
-func (p *PlayHost) UnmarshalYAML(unmarshal func(interface{}) error) error {
+// UnmarshalYAML yaml string to play
+func (p *PlayHost) UnmarshalYAML(unmarshal func(any) error) error {
 	var hs []string
 	if err := unmarshal(&hs); err == nil {
 		p.Hosts = hs
+
 		return nil
 	}
+
 	var h string
 	if err := unmarshal(&h); err == nil {
 		p.Hosts = []string{h}
+
 		return nil
 	}
-	return fmt.Errorf("unsupported type, excepted string or string array")
+
+	return errors.New("unsupported type, excepted string or string array")
 }

@@ -20,7 +20,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -34,15 +33,17 @@ func newInitCommand() *cobra.Command {
 
 	cmd.AddCommand(newInitOSCommand())
 	cmd.AddCommand(newInitRegistryCommand())
+
 	return cmd
 }
 
 func newInitOSCommand() *cobra.Command {
 	o := options.NewInitOSOptions()
+
 	cmd := &cobra.Command{
 		Use:   "os",
 		Short: "Init operating system",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/init_os.yaml"})
 			if err != nil {
 				return err
@@ -55,7 +56,8 @@ func newInitOSCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+
+			return run(ctx, pipeline, config, inventory)
 		},
 	}
 
@@ -63,15 +65,17 @@ func newInitOSCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
 	return cmd
 }
 
 func newInitRegistryCommand() *cobra.Command {
 	o := options.NewInitRegistryOptions()
+
 	cmd := &cobra.Command{
 		Use:   "registry",
 		Short: "Init a local image registry",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/init_registry.yaml"})
 			if err != nil {
 				return err
@@ -84,7 +88,8 @@ func newInitRegistryCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+
+			return run(ctx, pipeline, config, inventory)
 		},
 	}
 
@@ -92,6 +97,7 @@ func newInitRegistryCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
 	return cmd
 }
 

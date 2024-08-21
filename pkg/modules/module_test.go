@@ -18,7 +18,7 @@ package modules
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"io/fs"
 
@@ -34,22 +34,23 @@ func (v testVariable) Key() string {
 	return "testModule"
 }
 
-func (v testVariable) Get(f variable.GetFunc) (any, error) {
+func (v testVariable) Get(variable.GetFunc) (any, error) {
 	return v.value, v.err
 }
 
-func (v *testVariable) Merge(f variable.MergeFunc) error {
+func (v *testVariable) Merge(variable.MergeFunc) error {
 	v.value = map[string]any{
 		"k": "v",
 	}
+
 	return nil
 }
 
 var successConnector = &testConnector{output: []byte("success")}
 var failedConnector = &testConnector{
-	copyErr:    fmt.Errorf("failed"),
-	fetchErr:   fmt.Errorf("failed"),
-	commandErr: fmt.Errorf("failed"),
+	copyErr:    errors.New("failed"),
+	fetchErr:   errors.New("failed"),
+	commandErr: errors.New("failed"),
 }
 
 type testConnector struct {
@@ -66,22 +67,22 @@ type testConnector struct {
 	commandErr error
 }
 
-func (t testConnector) Init(ctx context.Context) error {
+func (t testConnector) Init(context.Context) error {
 	return t.initErr
 }
 
-func (t testConnector) Close(ctx context.Context) error {
+func (t testConnector) Close(context.Context) error {
 	return t.closeErr
 }
 
-func (t testConnector) PutFile(ctx context.Context, local []byte, remoteFile string, mode fs.FileMode) error {
+func (t testConnector) PutFile(context.Context, []byte, string, fs.FileMode) error {
 	return t.copyErr
 }
 
-func (t testConnector) FetchFile(ctx context.Context, remoteFile string, local io.Writer) error {
+func (t testConnector) FetchFile(context.Context, string, io.Writer) error {
 	return t.fetchErr
 }
 
-func (t testConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
+func (t testConnector) ExecuteCommand(context.Context, string) ([]byte, error) {
 	return t.output, t.commandErr
 }

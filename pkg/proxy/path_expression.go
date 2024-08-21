@@ -46,14 +46,20 @@ func newPathExpression(path string) (*pathExpression, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &pathExpression{literalCount, varNames, varCount, compiled, expression, tokens}, nil
 }
 
 // http://jsr311.java.net/nonav/releases/1.1/spec/spec3.html#x3-370003.7.3
-func templateToRegularExpression(template string) (expression string, literalCount int, varNames []string, varCount int, tokens []string) {
+func templateToRegularExpression(template string) (string, int, []string, int, []string) {
+	var (
+		literalCount int
+		varNames     []string
+		varCount     int
+	)
 	var buffer bytes.Buffer
 	buffer.WriteString("^")
-	tokens = tokenizePath(template)
+	tokens := tokenizePath(template)
 	for _, each := range tokens {
 		if each == "" {
 			continue
@@ -78,13 +84,14 @@ func templateToRegularExpression(template string) (expression string, literalCou
 				buffer.WriteString("([^/]+?)")
 			}
 			varNames = append(varNames, varName)
-			varCount += 1
+			varCount++
 		} else {
 			literalCount += len(each)
-			encoded := each // TODO URI encode
+			encoded := each
 			buffer.WriteString(regexp.QuoteMeta(encoded))
 		}
 	}
+
 	return strings.TrimRight(buffer.String(), "/") + "(/.*)?$", literalCount, varNames, varCount, tokens
 }
 
@@ -93,17 +100,6 @@ func tokenizePath(path string) []string {
 	if path == "/" {
 		return nil
 	}
-	if TrimRightSlashEnabled {
-		// 3.9.0
-		return strings.Split(strings.Trim(path, "/"), "/")
-	} else {
-		// 3.10.2
-		return strings.Split(strings.TrimLeft(path, "/"), "/")
-	}
+	// 3.9.0
+	return strings.Split(strings.Trim(path, "/"), "/")
 }
-
-// TrimRightSlashEnabled controls whether
-// - path on route building is using path.Join
-// - the path of the incoming request is trimmed of its slash suffux.
-// Value of true matches the behavior of <= 3.9.0
-var TrimRightSlashEnabled = true

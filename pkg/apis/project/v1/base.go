@@ -16,6 +16,7 @@ limitations under the License.
 
 package v1
 
+// Base defined in project.
 type Base struct {
 	Name string `yaml:"name,omitempty"`
 

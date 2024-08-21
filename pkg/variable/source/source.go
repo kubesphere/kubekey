@@ -16,32 +16,18 @@ limitations under the License.
 
 package source
 
-import (
-	"os"
+// SourceType how to store variable
+type SourceType int
 
-	"k8s.io/klog/v2"
+const (
+	// MemorySource store variable in memory
+	MemorySource SourceType = iota
+	// FileSource store variable in file
+	FileSource SourceType = iota
 )
 
 // Source is the source from which config is loaded.
 type Source interface {
 	Read() (map[string][]byte, error)
 	Write(data []byte, filename string) error
-	//Watch() (Watcher, error)
-}
-
-// Watcher watches a source for changes.
-type Watcher interface {
-	Next() ([]byte, error)
-	Stop() error
-}
-
-// New returns a new source.
-func New(path string) (Source, error) {
-	if _, err := os.Stat(path); err != nil {
-		if err := os.MkdirAll(path, os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "create source path error", "path", path)
-			return nil, err
-		}
-	}
-	return &fileSource{path: path}, nil
 }
