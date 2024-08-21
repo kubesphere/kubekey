@@ -23,12 +23,14 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-func ModuleSetFact(ctx context.Context, options ExecOptions) (string, string) {
+// ModuleSetFact deal "set_fact" module
+func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	args := variable.Extension2Variables(options.Args)
 
-	if err := options.Variable.Merge(variable.MergeAllRuntimeVariable(options.Host, args)); err != nil {
+	if err := options.Variable.Merge(variable.MergeAllRuntimeVariable(args, options.Host)); err != nil {
 		return "", fmt.Sprintf("set_fact error: %v", err)
 	}
-	return stdoutSuccess, ""
+
+	return StdoutSuccess, ""
 }

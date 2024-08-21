@@ -21,12 +21,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// PipelinePhase of Pipeline
 type PipelinePhase string
 
 const (
+	// PipelinePhasePending of Pipeline. Pipeline has created but not deal
 	PipelinePhasePending PipelinePhase = "Pending"
+	// PipelinePhaseRunning of Pipeline. deal Pipeline.
 	PipelinePhaseRunning PipelinePhase = "Running"
-	PipelinePhaseFailed  PipelinePhase = "Failed"
+	// PipelinePhaseFailed of Pipeline. once Task run failed.
+	PipelinePhaseFailed PipelinePhase = "Failed"
+	// PipelinePhaseSucceed of Pipeline. all Tasks run success.
 	PipelinePhaseSucceed PipelinePhase = "Succeed"
 )
 
@@ -35,6 +40,7 @@ const (
 	BuiltinsProjectAnnotation = "kubekey.kubesphere.io/builtins-project"
 )
 
+// PipelineSpec of pipeline.
 type PipelineSpec struct {
 	// Project is storage for executable packages
 	// +optional
@@ -118,6 +124,7 @@ type PipelineJobSpec struct {
 	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 
+// PipelineProject respect which playbook store.
 type PipelineProject struct {
 	// Addr is the storage for executable packages (in Ansible file format).
 	// When starting with http or https, it will be obtained from a Git repository.
@@ -141,6 +148,7 @@ type PipelineProject struct {
 	Token string `json:"token,omitempty"`
 }
 
+// PipelineStatus of Pipeline
 type PipelineStatus struct {
 	// TaskResult total related tasks execute result.
 	TaskResult PipelineTaskResult `json:"taskResult,omitempty"`
@@ -152,6 +160,7 @@ type PipelineStatus struct {
 	FailedDetail []PipelineFailedDetail `json:"failedDetail,omitempty"`
 }
 
+// PipelineTaskResult of Pipeline
 type PipelineTaskResult struct {
 	// Total number of tasks.
 	Total int `json:"total,omitempty"`
@@ -163,6 +172,7 @@ type PipelineTaskResult struct {
 	Ignored int `json:"ignored,omitempty"`
 }
 
+// PipelineFailedDetail store failed message when pipeline run failed.
 type PipelineFailedDetail struct {
 	// Task name of failed task.
 	Task string `json:"task,omitempty"`
@@ -170,6 +180,7 @@ type PipelineFailedDetail struct {
 	Hosts []PipelineFailedDetailHost `json:"hosts,omitempty"`
 }
 
+// PipelineFailedDetailHost detail failed message for each host.
 type PipelineFailedDetailHost struct {
 	// Host name of failed task.
 	Host string `json:"host,omitempty"`
@@ -189,6 +200,7 @@ type PipelineFailedDetailHost struct {
 // +kubebuilder:printcolumn:name="Total",type="integer",JSONPath=".status.taskResult.total"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
+// Pipeline resource executor a playbook.
 type Pipeline struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -199,6 +211,7 @@ type Pipeline struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// PipelineList of Pipeline
 type PipelineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

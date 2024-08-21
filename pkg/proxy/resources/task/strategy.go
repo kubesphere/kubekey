@@ -18,7 +18,7 @@ package task
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/fields"
@@ -50,72 +50,84 @@ var Strategy = taskStrategy{_const.Scheme, apinames.SimpleNameGenerator}
 
 // ===CreateStrategy===
 
+// NamespaceScoped always true
 func (t taskStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (t taskStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
+// PrepareForCreate set tasks status to pending
+func (t taskStrategy) PrepareForCreate(_ context.Context, obj runtime.Object) {
 	// init status when create
-	task := obj.(*kkcorev1alpha1.Task)
-	task.Status = kkcorev1alpha1.TaskStatus{
-		Phase: kkcorev1alpha1.TaskPhasePending,
+	if task, ok := obj.(*kkcorev1alpha1.Task); ok {
+		task.Status = kkcorev1alpha1.TaskStatus{
+			Phase: kkcorev1alpha1.TaskPhasePending,
+		}
 	}
 }
 
-func (t taskStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
-	// do nothing
+// Validate always pass
+func (t taskStrategy) Validate(context.Context, runtime.Object) field.ErrorList {
 	return nil
 }
 
-func (t taskStrategy) WarningsOnCreate(ctx context.Context, obj runtime.Object) []string {
-	// do nothing
+// WarningsOnCreate do no-thing
+func (t taskStrategy) WarningsOnCreate(context.Context, runtime.Object) []string {
 	return nil
 }
 
-func (t taskStrategy) Canonicalize(obj runtime.Object) {
-	// do nothing
-}
+// Canonicalize do no-thing
+func (t taskStrategy) Canonicalize(runtime.Object) {}
 
 // ===UpdateStrategy===
 
+// AllowCreateOnUpdate always false
 func (t taskStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-func (t taskStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
-	// do nothing
-}
+// PrepareForUpdate do no-thing
+func (t taskStrategy) PrepareForUpdate(context.Context, runtime.Object, runtime.Object) {}
 
-func (t taskStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
+// ValidateUpdate spec is immutable
+func (t taskStrategy) ValidateUpdate(_ context.Context, obj, old runtime.Object) field.ErrorList {
 	// only support update status
-	task := obj.(*kkcorev1alpha1.Task)
-	oldTask := old.(*kkcorev1alpha1.Task)
+	task, ok := obj.(*kkcorev1alpha1.Task)
+	if !ok {
+		return field.ErrorList{field.InternalError(field.NewPath("spec"), errors.New("the object is not Task"))}
+	}
+	oldTask, ok := old.(*kkcorev1alpha1.Task)
+	if !ok {
+		return field.ErrorList{field.InternalError(field.NewPath("spec"), errors.New("the object is not Task"))}
+	}
 	if !reflect.DeepEqual(task.Spec, oldTask.Spec) {
 		return field.ErrorList{field.Forbidden(field.NewPath("spec"), "spec is immutable")}
 	}
+
 	return nil
 }
 
-func (t taskStrategy) WarningsOnUpdate(ctx context.Context, obj, old runtime.Object) []string {
-	// do nothing
+// WarningsOnUpdate always nil
+func (t taskStrategy) WarningsOnUpdate(context.Context, runtime.Object, runtime.Object) []string {
 	return nil
 }
 
+// AllowUnconditionalUpdate always true
 func (t taskStrategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
 // ===ResetFieldsStrategy===
 
+// GetResetFields always nil
 func (t taskStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return nil
 }
 
 // OwnerPipelineIndexFunc return value ownerReference.object is pipeline.
-func OwnerPipelineIndexFunc(obj interface{}) ([]string, error) {
+func OwnerPipelineIndexFunc(obj any) ([]string, error) {
 	task, ok := obj.(*kkcorev1alpha1.Task)
 	if !ok {
-		return nil, fmt.Errorf("not a task")
+		return nil, errors.New("not Task")
 	}
 
 	var index string
@@ -125,11 +137,12 @@ func OwnerPipelineIndexFunc(obj interface{}) ([]string, error) {
 				Namespace: task.Namespace,
 				Name:      reference.Name,
 			}.String()
+
 			break
 		}
 	}
 	if index == "" {
-		return nil, fmt.Errorf("task has no ownerReference.pipeline")
+		return nil, errors.New("task has no ownerReference.pipeline")
 	}
 
 	return []string{index}, nil
@@ -143,10 +156,10 @@ func Indexers() *cgtoolscache.Indexers {
 }
 
 // MatchTask returns a generic matcher for a given label and field selector.
-func MatchTask(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {
+func MatchTask(label labels.Selector, fd fields.Selector) apistorage.SelectionPredicate {
 	return apistorage.SelectionPredicate{
 		Label:       label,
-		Field:       field,
+		Field:       fd,
 		GetAttrs:    GetAttrs,
 		IndexFields: []string{kkcorev1alpha1.TaskOwnerField},
 	}
@@ -156,41 +169,45 @@ func MatchTask(label labels.Selector, field fields.Selector) apistorage.Selectio
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	task, ok := obj.(*kkcorev1alpha1.Task)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a Task")
+		return nil, nil, errors.New("not Task")
 	}
-	return labels.Set(task.ObjectMeta.Labels), ToSelectableFields(task), nil
+
+	return task.ObjectMeta.Labels, ToSelectableFields(task), nil
 }
 
 // ToSelectableFields returns a field set that represents the object
-// TODO: fields are not labels, and the validation rules for them do not apply.
 func ToSelectableFields(task *kkcorev1alpha1.Task) fields.Set {
 	// The purpose of allocation with a given number of elements is to reduce
 	// amount of allocations needed to create the fields.Set. If you add any
 	// field here or the number of object-meta related fields changes, this should
 	// be adjusted.
-	taskSpecificFieldsSet := make(fields.Set, 10)
+	taskSpecificFieldsSet := make(fields.Set)
 	for _, reference := range task.OwnerReferences {
 		if reference.Kind == pipelineKind {
 			taskSpecificFieldsSet[kkcorev1alpha1.TaskOwnerField] = types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,
 			}.String()
+
 			break
 		}
 	}
+
 	return apigeneric.AddObjectMetaFieldsSet(taskSpecificFieldsSet, &task.ObjectMeta, true)
 }
 
 // OwnerPipelineTriggerFunc returns value ownerReference is pipeline of given object.
 func OwnerPipelineTriggerFunc(obj runtime.Object) string {
-	task := obj.(*kkcorev1alpha1.Task)
-	for _, reference := range task.OwnerReferences {
-		if reference.Kind == pipelineKind {
-			return types.NamespacedName{
-				Namespace: task.Namespace,
-				Name:      reference.Name,
-			}.String()
+	if task, ok := obj.(*kkcorev1alpha1.Task); ok {
+		for _, reference := range task.OwnerReferences {
+			if reference.Kind == pipelineKind {
+				return types.NamespacedName{
+					Namespace: task.Namespace,
+					Name:      reference.Name,
+				}.String()
+			}
 		}
 	}
+
 	return ""
 }

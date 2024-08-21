@@ -34,6 +34,7 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
+// NewFileRESTOptionsGetter return fileRESTOptionsGetter
 func NewFileRESTOptionsGetter(gv schema.GroupVersion) apigeneric.RESTOptionsGetter {
 	return &fileRESTOptionsGetter{
 		gv: gv,
@@ -49,6 +50,7 @@ func NewFileRESTOptionsGetter(gv schema.GroupVersion) apigeneric.RESTOptionsGett
 
 func newYamlCodec(gv schema.GroupVersion) runtime.Codec {
 	yamlSerializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, _const.Scheme, _const.Scheme, json.SerializerOptions{Yaml: true})
+
 	return versioning.NewDefaultingCodecForScheme(
 		_const.Scheme,
 		yamlSerializer,
@@ -58,13 +60,16 @@ func newYamlCodec(gv schema.GroupVersion) runtime.Codec {
 	)
 }
 
+// fileRESTOptionsGetter local rest info
 type fileRESTOptionsGetter struct {
 	gv            schema.GroupVersion
 	storageConfig *storagebackend.Config
 }
 
+// GetRESTOptions return apigeneric.RESTOptions
 func (f fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (apigeneric.RESTOptions, error) {
 	prefix := filepath.Join(_const.GetRuntimeDir(), f.gv.Group, f.gv.Version, resource.Resource)
+
 	return apigeneric.RESTOptions{
 		StorageConfig: f.storageConfig.ForResource(resource),
 		Decorator: func(storageConfig *storagebackend.ConfigForResource, resourcePrefix string,
@@ -74,10 +79,7 @@ func (f fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (ap
 			getAttrsFunc apistorage.AttrFunc,
 			triggerFuncs apistorage.IndexerFuncs,
 			indexers *cgtoolscache.Indexers) (apistorage.Interface, factory.DestroyFunc, error) {
-			s, d, err := newFileStorage(prefix, resource, storageConfig.Codec, newFunc)
-			if err != nil {
-				return s, d, err
-			}
+			s, d := newFileStorage(prefix, resource, storageConfig.Codec, newFunc)
 
 			cacherConfig := cacherstorage.Config{
 				Storage:        s,

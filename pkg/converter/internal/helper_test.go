@@ -19,11 +19,12 @@ func TestParseIp(t *testing.T) {
 			excepted: func() []string {
 				// 192.168.0.1 - 192.168.63.254
 				var ips []string
-				for i := 0; i <= 63; i++ {
-					for j := 0; j <= 255; j++ {
+				for i := range 64 {
+					for j := range 256 {
 						ips = append(ips, fmt.Sprintf("192.168.%d.%d", i, j))
 					}
 				}
+
 				return ips[1 : len(ips)-1]
 			},
 		},
@@ -33,11 +34,12 @@ func TestParseIp(t *testing.T) {
 			excepted: func() []string {
 				// 192.168.0.1 - 192.168.63.254
 				var ips []string
-				for i := 0; i <= 63; i++ {
-					for j := 0; j <= 255; j++ {
+				for i := range 64 {
+					for j := range 256 {
 						ips = append(ips, fmt.Sprintf("192.168.%d.%d", i, j))
 					}
 				}
+
 				return ips[1 : len(ips)-1]
 			},
 		},
@@ -45,7 +47,7 @@ func TestParseIp(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.excepted(), parseIp(tc.ipRange))
+			assert.Equal(t, tc.excepted(), parseIP(tc.ipRange))
 		})
 	}
 }

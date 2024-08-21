@@ -5,7 +5,7 @@
   tasks:
     - name: Package image
       image:
-        pull: "{{ .image_manifests }}"
+        pull: "{{ .image_manifests | toJson }}"
       when: .image_manifests | default list | len | lt 0
     - name: Export artifact
       command: |

@@ -73,5 +73,6 @@ func ParseFilesSha256(componentsJSON []byte) (map[string]map[string]map[string]s
 	if err != nil {
 		return nil, err
 	}
+
 	return m, nil
 }

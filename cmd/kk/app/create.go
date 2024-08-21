@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -36,15 +35,17 @@ func newCreateCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(newCreateClusterCommand())
+
 	return cmd
 }
 
 func newCreateClusterCommand() *cobra.Command {
 	o := options.NewCreateClusterOptions()
+
 	cmd := &cobra.Command{
 		Use:   "cluster",
 		Short: "Create a Kubernetes or KubeSphere cluster",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/create_cluster.yaml"})
 			if err != nil {
 				return err
@@ -57,7 +58,8 @@ func newCreateClusterCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+
+			return run(ctx, pipeline, config, inventory)
 		},
 	}
 
@@ -65,6 +67,7 @@ func newCreateClusterCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
 	return cmd
 }
 

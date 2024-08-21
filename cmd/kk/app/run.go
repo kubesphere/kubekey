@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
@@ -53,13 +52,15 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), kk, config, inventory)
+
+			return run(ctx, kk, config, inventory)
 		},
 	}
 
 	for _, f := range o.Flags().FlagSets {
 		cmd.Flags().AddFlagSet(f)
 	}
+
 	return cmd
 }
 
@@ -75,18 +76,23 @@ func run(ctx context.Context, pipeline *kkcorev1.Pipeline, config *kkcorev1.Conf
 		return fmt.Errorf("could not get runtime-client: %w", err)
 	}
 
-	// create config, inventory and pipeline
+	// create config
 	if err := client.Create(ctx, config); err != nil {
 		klog.ErrorS(err, "Create config error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+
 		return err
 	}
+	// create inventory
 	if err := client.Create(ctx, inventory); err != nil {
 		klog.ErrorS(err, "Create inventory error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+
 		return err
 	}
+	// create pipeline
 	pipeline.Status.Phase = kkcorev1.PipelinePhaseRunning
 	if err := client.Create(ctx, pipeline); err != nil {
 		klog.ErrorS(err, "Create pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+
 		return err
 	}
 

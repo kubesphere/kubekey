@@ -48,7 +48,7 @@ const ( // === From system generate ===
 	// VariableInventoryName the value which defined in inventory.spec.host.
 	VariableInventoryName = "inventory_name"
 	// VariableHostName the value is node hostname, default VariableInventoryName.
-	// if VariableInventoryName is "localhost". try to set the actual name.
+	// If VariableInventoryName is "localhost". try to set the actual name.
 	VariableHostName = "hostname"
 	// VariableGlobalHosts the value is host_var which defined in inventory.
 	VariableGlobalHosts = "inventory_hosts"
@@ -76,5 +76,6 @@ const ( // === From GatherFact ===
 )
 
 const ( // === From runtime ===
+	// VariableItem for "loop" argument when run a task.
 	VariableItem = "item"
 )

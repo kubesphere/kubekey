@@ -171,9 +171,9 @@ generate-go-deepcopy-kubekey: $(CONTROLLER_GEN) ## Generate deepcopy object
 .PHONY: generate-manifests-kubekey
 generate-manifests-kubekey: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
-		paths=./pkg/apis/... \
+		paths=./pkg/apis/core/... \
 		crd \
-		output:crd:dir=./config/helm/crds/
+		output:crd:dir=./config/kubekey/crds/
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
@@ -193,7 +193,6 @@ generate-goimports:  ## Format all import, `goimports` is required.
 lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: verify-dockerfiles
 verify-dockerfiles:

@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -32,16 +33,17 @@ func newFakeLocalConnector(runCmd string, output string) *localConnector {
 	return &localConnector{
 		Cmd: &testingexec.FakeExec{CommandScript: []testingexec.FakeCommandAction{
 			func(cmd string, args ...string) exec.Cmd {
-				if strings.TrimSpace(fmt.Sprintf("%s %s", cmd, strings.Join(args, " "))) == fmt.Sprintf("/bin/sh -c %s", runCmd) {
+				if strings.TrimSpace(fmt.Sprintf("%s %s", cmd, strings.Join(args, " "))) == "/bin/sh -c "+runCmd {
 					return &testingexec.FakeCmd{
 						CombinedOutputScript: []testingexec.FakeAction{func() ([]byte, []byte, error) {
 							return []byte(output), nil, nil
 						}},
 					}
 				}
+
 				return &testingexec.FakeCmd{
 					CombinedOutputScript: []testingexec.FakeAction{func() ([]byte, []byte, error) {
-						return nil, nil, fmt.Errorf("error command")
+						return nil, nil, errors.New("error command")
 					}},
 				}
 			},
@@ -63,7 +65,7 @@ func TestSshConnector_ExecuteCommand(t *testing.T) {
 		{
 			name:        "execute command failed",
 			cmd:         "echo 'hello1'",
-			exceptedErr: fmt.Errorf("error command"),
+			exceptedErr: errors.New("error command"),
 		},
 	}
 

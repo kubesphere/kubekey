@@ -28,12 +28,12 @@ import (
 func TestGetAllVariable(t *testing.T) {
 	testcases := []struct {
 		name   string
-		value  value
+		value  *value
 		except map[string]any
 	}{
 		{
 			name: "global override runtime variable",
-			value: value{
+			value: &value{
 				Config: kkcorev1.Config{
 					Spec: runtime.RawExtension{
 						Raw: []byte(`{
@@ -62,13 +62,13 @@ func TestGetAllVariable(t *testing.T) {
 				"artifact": map[string]any{
 					"images": []any{"abc"},
 				},
-				"groups": map[string]interface{}{"all": []string{"localhost"}},
-				"inventory_hosts": map[string]interface{}{
-					"localhost": map[string]interface{}{
+				"groups": map[string]any{"all": []string{"localhost"}},
+				"inventory_hosts": map[string]any{
+					"localhost": map[string]any{
 						"internal_ipv4": "127.0.0.1",
 						"internal_ipv6": "::1",
-						"artifact": map[string]interface{}{
-							"images": []interface{}{"abc"},
+						"artifact": map[string]any{
+							"images": []any{"abc"},
 						},
 						"inventory_name": "localhost",
 						"hostname":       "localhost",
@@ -82,11 +82,13 @@ func TestGetAllVariable(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			v := variable{value: &tc.value}
+			v := variable{value: tc.value}
+
 			result, err := v.Get(GetAllVariable("localhost"))
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, tc.except, result)
 		})
 	}

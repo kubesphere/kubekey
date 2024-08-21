@@ -1,4 +1,11 @@
 ---
+- name: Sync images to remote
+  tags: ["only_image"]
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/images/
+    dest: /tmp/kubekey/images/
+
 - name: Create harbor project for each image
   tags: ["only_image"]
   command: |
@@ -9,18 +16,11 @@
         continue
       fi
     
-      dir_name=${dir##*/}
-      IFS='=' set -- $dir_name
-      image_array="$@"
-      array_length=$#
+      project=${dir##*/}
     
-      if [ "$array_length" -gt 3 ]; then
-        project=$2
-        dest_image=$(shift 2 && echo "$*" | tr ' ' '/')
-        tag=$(echo "$@" | awk '{print $NF}')
-      else
-        echo "unsupported image: $dir_name"
-        exit 1
+      if [ "$project" == "blobs" ]; then
+        # skip blobs dir
+        continue
       fi
     
       # if project is not exist, create if
@@ -44,6 +44,7 @@
   tags: ["only_image"]
   image:
     push:
+      images_dir: /tmp/kubekey/images/
       registry: |
         {{ .image_registry.auth.registry }}
       namespace_override: |

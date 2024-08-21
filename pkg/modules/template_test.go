@@ -32,6 +32,7 @@ func TestTemplate(t *testing.T) {
 	absPath, err := filepath.Abs(os.Args[0])
 	if err != nil {
 		fmt.Println("Error getting absolute path:", err)
+
 		return
 	}
 
@@ -76,6 +77,7 @@ func TestTemplate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
+
 			acStdout, acStderr := ModuleTemplate(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
 			assert.Equal(t, tc.exceptStderr, acStderr)

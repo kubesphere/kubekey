@@ -16,24 +16,30 @@ limitations under the License.
 
 package v1
 
-import "fmt"
+import (
+	"errors"
+)
 
+// Playbook defined in project.
 type Playbook struct {
 	Play []Play
 }
 
+// Validate playbook. delete empty ImportPlaybook which has convert to play.
 func (p *Playbook) Validate() error {
-	var newPlay = make([]Play, len(p.Play))
-	for i, play := range p.Play {
-		// delete import_playbook import_playbook is a link, should be ignored.
+	var newPlay = make([]Play, 0)
+	for _, play := range p.Play {
+		//  import_playbook is a link, should be ignored.
 		if play.ImportPlaybook != "" {
 			continue
 		}
+
 		if len(play.PlayHost.Hosts) == 0 {
-			return fmt.Errorf("playbook's hosts must not be empty")
+			return errors.New("playbook's hosts must not be empty")
 		}
-		newPlay[i] = play
+		newPlay = append(newPlay, play)
 	}
 	p.Play = newPlay
+
 	return nil
 }

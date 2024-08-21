@@ -33,7 +33,6 @@ var (
 	// NOTE: If you are copying this file to start a new api group, STOP! Copy the
 	// extensions group instead. This Scheme is special and should appear ONLY in
 	// the api group, unless you really know what you're doing.
-	// TODO(lavalamp): make the above error impossible.
 	Scheme = newScheme()
 
 	// Codecs provides access to encoding and decoding for the scheme
@@ -51,5 +50,6 @@ func newScheme() *runtime.Scheme {
 	utilruntime.Must(kkcorev1.AddToScheme(s))
 	utilruntime.Must(kkcorev1alpha1.AddToScheme(s))
 	utilruntime.Must(kkcorev1alpha1.AddConversionFuncs(s))
+
 	return s
 }

@@ -26,20 +26,25 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
+// NewCertsRenewOptions for newCertsRenewCommand
 func NewCertsRenewOptions() *CertsRenewOptions {
 	// set default value
-	return &CertsRenewOptions{CommonOptions: newCommonOptions()}
+	return &CertsRenewOptions{commonOptions: newCommonOptions()}
 }
 
+// CertsRenewOptions for NewCertsRenewOptions
 type CertsRenewOptions struct {
-	CommonOptions
+	commonOptions
 }
 
+// Flags add to newCertsRenewCommand
 func (o *CertsRenewOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
+	fss := o.commonOptions.flags()
+
 	return fss
 }
 
+// Complete options. create Pipeline, Config and Inventory
 func (o *CertsRenewOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
@@ -52,17 +57,17 @@ func (o *CertsRenewOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 	}
 
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
+	if len(args) != 1 {
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
+	o.Playbook = args[0]
 
 	pipeline.Spec = kkcorev1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		Tags:     []string{"certs"},
 	}
+
 	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
 		return nil, nil, nil, err

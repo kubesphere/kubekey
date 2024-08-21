@@ -85,13 +85,13 @@ func TestParseBool(t *testing.T) {
 		{
 			name:      "eq true-1",
 			condition: []string{"{{ ne .foo \"\" }}"},
-			variable:  map[string]any{},
+			variable:  make(map[string]any),
 			excepted:  true,
 		},
 		{
 			name:      "eq true-1",
 			condition: []string{"{{ and .foo (ne .foo \"\") }}"},
-			variable:  map[string]any{},
+			variable:  make(map[string]any),
 			excepted:  false,
 		},
 		// ======= value exist =======
@@ -123,7 +123,7 @@ func TestParseBool(t *testing.T) {
 		{
 			name:      "default true-1",
 			condition: []string{"{{ .foo | default true }}"},
-			variable:  map[string]any{},
+			variable:  make(map[string]any),
 			excepted:  true,
 		},
 		// ======= has =======
@@ -366,20 +366,20 @@ func TestParseFunction(t *testing.T) {
 		{
 			name:     "default string 1",
 			input:    "{{ .foo | default \"bar\" }}",
-			variable: map[string]any{},
+			variable: make(map[string]any),
 			excepted: "bar",
 		},
 		{
 			name:     "default string 2",
 			input:    "{{ default .foo \"bar\" }}",
-			variable: map[string]any{},
+			variable: make(map[string]any),
 			excepted: "bar",
 		},
 
 		{
 			name:     "default number 1",
 			input:    "{{ .foo | default 1 }}",
-			variable: map[string]any{},
+			variable: make(map[string]any),
 			excepted: "1",
 		},
 		// ======= split =======
@@ -575,7 +575,7 @@ func TestParseFunction(t *testing.T) {
 		{
 			name:     "trimPrefix 2",
 			input:    `{{ .foo | default "" |trimPrefix "v" }}`,
-			variable: map[string]any{},
+			variable: make(map[string]any),
 			excepted: "",
 		},
 	}
@@ -627,7 +627,7 @@ func TestParseCustomFunction(t *testing.T) {
 		{
 			name:     "pow true-1",
 			input:    "{{ pow 2 3 }}",
-			variable: map[string]any{},
+			variable: make(map[string]any),
 			excepted: "8",
 		},
 	}

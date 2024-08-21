@@ -93,12 +93,15 @@ func TestGroupHostBySerial(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := GroupHostBySerial(hosts, tc.serial)
-			if tc.exceptErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.exceptResult, result)
+			if err != nil {
+				if tc.exceptErr {
+					assert.Error(t, err)
+
+					return
+				}
+				t.Fatal(err)
 			}
+			assert.Equal(t, tc.exceptResult, result)
 		})
 	}
 }

@@ -20,6 +20,11 @@
     - include_tasks: download_by_curl.yaml
     # the binaries which download by helm
     - include_tasks: download_by_helm.yaml
+    # download remote images to local
+    - name: Download images
+      image:
+        pull: "{{ .image_manifests | toJson }}"
+      when: .image_manifests | default list | len | lt 0
 
 - include_tasks: pki.yaml
   tags: ["certs"]

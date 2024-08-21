@@ -30,16 +30,20 @@ import (
 //                                    artifact export
 // ======================================================================================
 
+// ArtifactExportOptions for NewArtifactExportOptions
 type ArtifactExportOptions struct {
-	CommonOptions
+	commonOptions
 }
 
+// Flags add to newArtifactExportCommand
 func (o *ArtifactExportOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
+	fss := o.commonOptions.flags()
+
 	return fss
 }
 
-func (o ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
+// Complete options. create Pipeline, Config and Inventory
+func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "artifact-export-",
@@ -51,16 +55,16 @@ func (o ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 	}
 
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
+	if len(args) != 1 {
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
+	o.Playbook = args[0]
 
 	pipeline.Spec = kkcorev1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
+
 	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
 		return nil, nil, nil, err
@@ -69,25 +73,30 @@ func (o ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 	return pipeline, config, inventory, nil
 }
 
+// NewArtifactExportOptions for newArtifactExportCommand
 func NewArtifactExportOptions() *ArtifactExportOptions {
 	// set default value
-	return &ArtifactExportOptions{CommonOptions: newCommonOptions()}
+	return &ArtifactExportOptions{commonOptions: newCommonOptions()}
 }
 
 // ======================================================================================
 //                                   artifact image
 // ======================================================================================
 
+// ArtifactImagesOptions for NewArtifactImagesOptions
 type ArtifactImagesOptions struct {
-	CommonOptions
+	commonOptions
 }
 
+// Flags add to newArtifactImagesCommand
 func (o *ArtifactImagesOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
+	fss := o.commonOptions.flags()
+
 	return fss
 }
 
-func (o ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
+// Complete options. create Pipeline, Config and Inventory
+func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "artifact-images-",
@@ -99,17 +108,17 @@ func (o ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 	}
 
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
+	if len(args) != 1 {
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
+	o.Playbook = args[0]
 
 	pipeline.Spec = kkcorev1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		Tags:     []string{"only_image"},
 	}
+
 	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
 		return nil, nil, nil, err
@@ -118,7 +127,8 @@ func (o ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 	return pipeline, config, inventory, nil
 }
 
+// NewArtifactImagesOptions for newArtifactImagesCommand
 func NewArtifactImagesOptions() *ArtifactImagesOptions {
 	// set default value
-	return &ArtifactImagesOptions{CommonOptions: newCommonOptions()}
+	return &ArtifactImagesOptions{commonOptions: newCommonOptions()}
 }

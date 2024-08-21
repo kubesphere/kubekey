@@ -30,19 +30,23 @@ import (
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 )
 
+// TaskStorage storage for Task
 type TaskStorage struct {
 	Task       *REST
 	TaskStatus *StatusREST
 }
 
+// REST resource for Task
 type REST struct {
 	*apiregistry.Store
 }
 
+// StatusREST status subresource for Task
 type StatusREST struct {
 	store *apiregistry.Store
 }
 
+// NamespaceScoped is true for Task
 func (r *StatusREST) NamespaceScoped() bool {
 	return true
 }
@@ -64,7 +68,7 @@ func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOp
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx context.Context, name string, objInfo apirest.UpdatedObjectInfo, createValidation apirest.ValidateObjectFunc, updateValidation apirest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+func (r *StatusREST) Update(ctx context.Context, name string, objInfo apirest.UpdatedObjectInfo, createValidation apirest.ValidateObjectFunc, updateValidation apirest.ValidateObjectUpdateFunc, _ bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 	// We are explicitly setting forceAllowCreate to false in the call to the underlying storage because
 	// subresources should never allow create on update.
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation, false, options)
@@ -75,10 +79,12 @@ func (r *StatusREST) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return r.store.GetResetFields()
 }
 
+// ConvertToTable print table view
 func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
+// NewStorage for Task storage
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 	store := &apiregistry.Store{
 		NewFunc:                   func() runtime.Object { return &kkcorev1alpha1.Task{} },
@@ -87,10 +93,9 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 		DefaultQualifiedResource:  kkcorev1alpha1.SchemeGroupVersion.WithResource("tasks").GroupResource(),
 		SingularQualifiedResource: kkcorev1alpha1.SchemeGroupVersion.WithResource("task").GroupResource(),
 
-		CreateStrategy: Strategy,
-		UpdateStrategy: Strategy,
-		DeleteStrategy: Strategy,
-		//ResetFieldsStrategy: Strategy,
+		CreateStrategy:      Strategy,
+		UpdateStrategy:      Strategy,
+		DeleteStrategy:      Strategy,
 		ReturnDeletedObject: true,
 
 		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1alpha1.SchemeGroupVersion.WithResource("tasks").GroupResource()),

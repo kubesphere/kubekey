@@ -27,66 +27,75 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-// pipelineStrategy implements behavior for Pods
-type pipelineStrategy struct {
+// inventoryStrategy implements behavior for Pods
+type inventoryStrategy struct {
 	runtime.ObjectTyper
 	apinames.NameGenerator
 }
 
 // Strategy is the default logic that applies when creating and updating Pod
 // objects via the REST API.
-var Strategy = pipelineStrategy{_const.Scheme, apinames.SimpleNameGenerator}
+var Strategy = inventoryStrategy{_const.Scheme, apinames.SimpleNameGenerator}
 
 // ===CreateStrategy===
 
-func (t pipelineStrategy) NamespaceScoped() bool {
+// NamespaceScoped always true
+func (t inventoryStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (t pipelineStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
+// PrepareForCreate do no-thing
+func (t inventoryStrategy) PrepareForCreate(context.Context, runtime.Object) {
 	// do nothing
 }
 
-func (t pipelineStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
-	// do nothing
-	return nil
-}
-
-func (t pipelineStrategy) WarningsOnCreate(ctx context.Context, obj runtime.Object) []string {
+// Validate always pass
+func (t inventoryStrategy) Validate(context.Context, runtime.Object) field.ErrorList {
 	// do nothing
 	return nil
 }
 
-func (t pipelineStrategy) Canonicalize(obj runtime.Object) {
+// WarningsOnCreate do no-thing
+func (t inventoryStrategy) WarningsOnCreate(context.Context, runtime.Object) []string {
+	// do nothing
+	return nil
+}
+
+// Canonicalize do no-thing
+func (t inventoryStrategy) Canonicalize(runtime.Object) {
 	// do nothing
 }
 
 // ===UpdateStrategy===
 
-func (t pipelineStrategy) AllowCreateOnUpdate() bool {
+// AllowCreateOnUpdate always false
+func (t inventoryStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-func (t pipelineStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
-	// do nothing
-}
+// PrepareForUpdate do no-thing
+func (t inventoryStrategy) PrepareForUpdate(context.Context, runtime.Object, runtime.Object) {}
 
-func (t pipelineStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
-	// do nothing
-	return nil
-}
-
-func (t pipelineStrategy) WarningsOnUpdate(ctx context.Context, obj, old runtime.Object) []string {
+// ValidateUpdate do nothing
+func (t inventoryStrategy) ValidateUpdate(context.Context, runtime.Object, runtime.Object) field.ErrorList {
 	// do nothing
 	return nil
 }
 
-func (t pipelineStrategy) AllowUnconditionalUpdate() bool {
+// WarningsOnUpdate always nil
+func (t inventoryStrategy) WarningsOnUpdate(context.Context, runtime.Object, runtime.Object) []string {
+	// do nothing
+	return nil
+}
+
+// AllowUnconditionalUpdate always true
+func (t inventoryStrategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
 // ===ResetFieldsStrategy===
 
-func (t pipelineStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
+// GetResetFields always nil
+func (t inventoryStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return nil
 }

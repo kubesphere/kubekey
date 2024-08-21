@@ -16,6 +16,7 @@ limitations under the License.
 
 package v1
 
+// LoopControl defined in project.
 type LoopControl struct {
 	LoopVar          string  `yaml:"loop_var,omitempty"`
 	IndexVar         string  `yaml:"index_var,omitempty"`

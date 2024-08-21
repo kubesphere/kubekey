@@ -19,10 +19,12 @@ package connector
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
+	"os/user"
 	"path/filepath"
 	"time"
 
@@ -34,10 +36,19 @@ import (
 )
 
 const (
-	defaultSSHPort       = 22
-	defaultSSHUser       = "root"
-	defaultSSHPrivateKey = "/root/.ssh/id_rsa"
+	defaultSSHPort = 22
+	defaultSSHUser = "root"
 )
+
+var defaultSSHPrivateKey string
+
+func init() {
+	if currentUser, err := user.Current(); err == nil {
+		defaultSSHPrivateKey = filepath.Join(currentUser.HomeDir, ".ssh/id_rsa")
+	} else {
+		defaultSSHPrivateKey = filepath.Join(defaultSSHUser, ".ssh/id_rsa")
+	}
+}
 
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
@@ -51,10 +62,12 @@ type sshConnector struct {
 	client     *ssh.Client
 }
 
-func (c *sshConnector) Init(ctx context.Context) error {
+// Init connector, get ssh.Client
+func (c *sshConnector) Init(context.Context) error {
 	if c.Host == "" {
-		return fmt.Errorf("host is not set")
+		return errors.New("host is not set")
 	}
+
 	var auth []ssh.AuthMethod
 	if c.Password != "" {
 		auth = append(auth, ssh.Password(c.Password))
@@ -79,6 +92,7 @@ func (c *sshConnector) Init(ctx context.Context) error {
 	})
 	if err != nil {
 		klog.V(4).ErrorS(err, "Dial ssh server failed", "host", c.Host, "port", c.Port)
+
 		return err
 	}
 	c.client = sshClient
@@ -86,16 +100,18 @@ func (c *sshConnector) Init(ctx context.Context) error {
 	return nil
 }
 
-func (c *sshConnector) Close(ctx context.Context) error {
+// Close connector
+func (c *sshConnector) Close(context.Context) error {
 	return c.client.Close()
 }
 
 // PutFile to remote node. src is the file bytes. dst is the remote filename
-func (c *sshConnector) PutFile(ctx context.Context, src []byte, dst string, mode fs.FileMode) error {
+func (c *sshConnector) PutFile(_ context.Context, src []byte, dst string, mode fs.FileMode) error {
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
 		klog.V(4).ErrorS(err, "Failed to create sftp client")
+
 		return err
 	}
 	defer sftpClient.Close()
@@ -103,29 +119,35 @@ func (c *sshConnector) PutFile(ctx context.Context, src []byte, dst string, mode
 	if _, err := sftpClient.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
 		if err := sftpClient.MkdirAll(filepath.Dir(dst)); err != nil {
 			klog.V(4).ErrorS(err, "Failed to create remote dir", "remote_file", dst)
+
 			return err
 		}
 	}
+
 	rf, err := sftpClient.Create(dst)
 	if err != nil {
 		klog.V(4).ErrorS(err, "Failed to  create remote file", "remote_file", dst)
+
 		return err
 	}
 	defer rf.Close()
 
 	if _, err = rf.Write(src); err != nil {
 		klog.V(4).ErrorS(err, "Failed to write content to remote file", "remote_file", dst)
+
 		return err
 	}
+
 	return rf.Chmod(mode)
 }
 
 // FetchFile from remote node. src is the remote filename, dst is the local writer.
-func (c *sshConnector) FetchFile(ctx context.Context, src string, dst io.Writer) error {
+func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) error {
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
 		klog.V(4).ErrorS(err, "Failed to create sftp client", "remote_file", src)
+
 		return err
 	}
 	defer sftpClient.Close()
@@ -133,23 +155,28 @@ func (c *sshConnector) FetchFile(ctx context.Context, src string, dst io.Writer)
 	rf, err := sftpClient.Open(src)
 	if err != nil {
 		klog.V(4).ErrorS(err, "Failed to open file", "remote_file", src)
+
 		return err
 	}
 	defer rf.Close()
 
 	if _, err := io.Copy(dst, rf); err != nil {
 		klog.V(4).ErrorS(err, "Failed to copy file", "remote_file", src)
+
 		return err
 	}
+
 	return nil
 }
 
-func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
-	klog.V(4).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
+// ExecuteCommand in remote host
+func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, error) {
+	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {
 		klog.V(4).ErrorS(err, "Failed to create ssh session")
+
 		return nil, err
 	}
 	defer session.Close()
@@ -157,7 +184,8 @@ func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, 
 	return session.CombinedOutput(cmd)
 }
 
-func (c *sshConnector) Info(ctx context.Context) (map[string]any, error) {
+// HostInfo for GatherFacts
+func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 	// os information
 	osVars := make(map[string]any)
 	var osRelease bytes.Buffer

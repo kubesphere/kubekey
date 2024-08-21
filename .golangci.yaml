@@ -1,46 +1,215 @@
 linters:
   disable-all: true
   enable:
+    - asasalint
     - asciicheck
+    - bidichk
     - bodyclose
+    - canonicalheader
     - containedctx
-#    - deadcode
-#    - depguard
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - decorder
+    - depguard
     - dogsled
+#    - dupl
+    - dupword
+    - durationcheck
+#    - err113
     - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+#    - exhaustruct
     - exportloopref
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - funlen
 #    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+#    - gochecknoglobals
+#    - gochecknoinits
+    - gochecksumtype
+    - gocognit
     - goconst
     - gocritic
+    - gocyclo
+    - godot
+    - godox
     - gofmt
+#    - gofumpt
+    - goheader
     - goimports
+    - gomoddirectives
+    - gomodguard
     - goprintffuncname
     - gosec
     - gosimple
+    - gosmopolitan
     - govet
+    - grouper
     - importas
+    - inamedparam
     - ineffassign
+    - interfacebloat
+    - intrange
+#    - ireturn
+#    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
 #    - misspell
+#    - mnd
+#    - musttag
     - nakedret
+    - nestif
     - nilerr
+    - nilnil
+    - nlreturn
     - noctx
     - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+#    - paralleltest
+    - perfsprint
     - prealloc
     - predeclared
-#    - revive
+    - promlinter
+    - protogetter
+    - reassign
+    - revive
     - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
     - staticcheck
-#    - structcheck
     - stylecheck
+    - tagalign
+#    - tagliatelle
+    - tenv
+    - testableexamples
+    - testifylint
+#    - testpackage
     - thelper
+    - tparallel
     - typecheck
     - unconvert
-#    - unparam
+    - unparam
     - unused
-#    - varcheck
+    - usestdlibvars
+#    - varnamelen
+    - wastedassign
     - whitespace
+#    - wrapcheck
+#    - wsl
+    - zerologlint
 
 linters-settings:
+  cyclop:
+    # The maximal code complexity to report.
+    # Default: 10
+    max-complexity: 20
+    # Should ignore tests.
+    # Default: false
+    skip-tests: true
+  depguard:
+    # Rules to apply.
+    #
+    # Variables:
+    # - File Variables
+    #   you can still use and exclamation mark ! in front of a variable to say not to use it.
+    #   Example !$test will match any file that is not a go test file.
+    #
+    #   `$all` - matches all go files
+    #   `$test` - matches all go test files
+    #
+    # - Package Variables
+    #
+    #  `$gostd` - matches all of go's standard library (Pulled from `GOROOT`)
+    #
+    # Default: Only allow $gostd in all files.
+    rules:
+      # Name of a rule.
+      main:
+        # List of allowed packages.
+        allow:
+          - $gostd
+          - github.com/spf13
+          - github.com/pkg/sftp
+          - github.com/google/gops
+          - github.com/go-git/go-git
+          - github.com/fsnotify/fsnotify
+          - github.com/schollz/progressbar
+          - github.com/stretchr/testify
+          - github.com/Masterminds/sprig
+          - github.com/opencontainers/image-spec
+          - oras.land/oras-go
+          - k8s.io
+          - sigs.k8s.io
+          - github.com/kubesphere/kubekey
+  exhaustive:
+    # Enum types matching the supplied regex do not have to be listed in
+    # switch statements to satisfy exhaustiveness.
+    # Default: ""
+    ignore-enum-types: "fsnotify.Op|v1alpha1.TaskPhase|reflect.Kind"
+  forbidigo:
+    # Forbid the following identifiers (list of regexp).
+    # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
+    forbid:
+      # Builtin function:
+      - ^print.*$
+      # Optional message that gets included in error reports.
+#      - p: ^fmt\.Print.*$
+#        msg: Do not commit print statements.
+#      # Alternatively, put messages at the end of the regex, surrounded by `(# )?`
+      # Escape any special characters. Those messages get included in error reports.
+#      - 'fmt\.Print.*(# Do not commit print statements\.)?'
+      # Forbid spew Dump, whether it is called as function or method.
+      # Depends on analyze-types below.
+      - ^spew\.(ConfigState\.)?Dump$
+      # The package name might be ambiguous.
+      # The full import path can be used as additional criteria.
+      # Depends on analyze-types below.
+      - p: ^v1.Dump$
+        pkg: ^example.com/pkg/api/v1$
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: -1
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: -1
+    # Ignore comments when counting lines.
+    # Default false
+    ignore-comments: true
+  gocritic:
+    enabled-tags:
+      - experimental
+    disabled-checks:
+      - appendAssign
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - evalOrder
+      - ifElseChain
+      - octalLiteral
+      - regexpSimplify
+      - sloppyReassign
+      - truncateCmp
+      - typeDefFirst
+      - unnamedResult
+      - unnecessaryDefer
+      - whyNoLint
+      - wrapperFunc
+      - commentFormatting
+      - filepathJoin
+  #      - rangeValCopy
+  #      - hugeParam
   godot:
     #   declarations - for top level declaration comments (default);
     #   toplevel     - for top level comments;
@@ -49,8 +218,24 @@ linters-settings:
     exclude:
       - '^ \+.*'
       - '^ ANCHOR.*'
+    # Check that each sentence ends with a period.
+    # Default: true
+    period: false
+    # Check that each sentence starts with a capital letter.
+    # Default: false
+    capital: false
+  gosec:
+    excludes:
+      - G106 # Deferring unsafe method "InsecureIgnoreHostKey" on type "\*ssh"
+      - G301 # Deferring unsafe method "MkdirAll" on type "\*os.File"
+      - G304 # Deferring unsafe method "Create" or "Open" on type "\*os.File"
+      - G306 # Deferring unsafe method "WriteFile" on type "\*os.File"
+      - G307 # Deferring unsafe method "Close" on type "\*os.File"
+      - G108 # Profiling endpoint is automatically exposed on /debug/pprof
+      - G402 # Look for bad TLS connection settings
   importas:
     no-unaliased: true
+#    no-extra-aliases: true
     alias:
       # oci
       - pkg: github.com/opencontainers/image-spec/specs-go/v1
@@ -90,79 +275,536 @@ linters-settings:
       # kubekey
       - pkg: "github.com/kubesphere/kubekey/v4/pkg/const"
         alias: _const
-      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1"
-        alias: kubekeyv1
-      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/kubekey/v1alpha1"
-        alias: kubekeyv1alpha1
       - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
         alias: kkcorev1
+      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+        alias: kkcorev1alpha1
+      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+        alias: kkprojectv1
+  nestif:
+    # Minimal complexity of if statements to report.
+    # Default: 5
+    min-complexity: 20
   nolintlint:
     allow-unused: false
     require-specific: true
   revive:
-    rules:
-      # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
+    # Maximum number of open files at the same time.
+    # See https://github.com/mgechev/revive#command-line-flags
+    # Defaults to unlimited.
+#    max-open-files: 2048
+    # When set to false, ignores files with "GENERATED" header, similar to golint.
+    # See https://github.com/mgechev/revive#available-rules for details.
+    # Default: false
+    ignore-generated-header: true
+    # Sets the default severity.
+    # See https://github.com/mgechev/revive#configuration
+    # Default: warning
+    severity: error
+    # Enable all available rules.
+    # Default: false
+    enable-all-rules: false
+    # Sets the default failure confidence.
+    # This means that linting errors with less than 0.8 confidence will be ignored.
+    # Default: 0.8
+    confidence: 0.1
+    rules: # v1.3.7
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#add-constant
+      - name: add-constant
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - maxLitCount: "3"
+            allowStrs: '""'
+            allowInts: "0,1,2"
+            allowFloats: "0.0,0.,1.0,1.,2.0,2."
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#argument-limit
+      - name: argument-limit
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [4]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#atomic
+      - name: atomic
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#banned-characters
+      - name: banned-characters
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: ["Ω", "Σ", "σ", "7"]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#bare-return
+      - name: bare-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#blank-imports
       - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: exported
-      #- name: if-return  # TODO This is a recommended rule with many findings which may require it's own pr.
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: package-comments
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: empty-block
-      - name: superfluous-else
-      #- name: unused-parameter  # TODO This is a recommended rule with many findings which may require it's own pr.
-      - name: unreachable-code
-      - name: redefines-builtin-id
-      #
-      # Rules in addition to the recommended configuration above.
-      #
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#bool-literal-in-expr
       - name: bool-literal-in-expr
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#call-to-gc
+      - name: call-to-gc
+        severity: warning
+        disabled: true
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#cognitive-complexity
+      - name: cognitive-complexity
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [7]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#comment-spacings
+      - name: comment-spacings
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - mypragma
+          - otherpragma
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-naming
+      - name: confusing-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-results
+      - name: confusing-results
+        severity: warning
+        disabled: true
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#constant-logical-expr
       - name: constant-logical-expr
-  gosec:
-    excludes:
-      - G106 # Deferring unsafe method "InsecureIgnoreHostKey" on type "\*ssh"
-      - G301 # Deferring unsafe method "MkdirAll" on type "\*os.File"
-      - G304 # Deferring unsafe method "Create" or "Open" on type "\*os.File"
-      - G306 # Deferring unsafe method "WriteFile" on type "\*os.File"
-      - G307 # Deferring unsafe method "Close" on type "\*os.File"
-      - G108 # Profiling endpoint is automatically exposed on /debug/pprof
-  gocritic:
-    enabled-tags:
-      - experimental
-    disabled-checks:
-      - appendAssign
-      - dupImport # https://github.com/go-critic/go-critic/issues/845
-      - evalOrder
-      - ifElseChain
-      - octalLiteral
-      - regexpSimplify
-      - sloppyReassign
-      - truncateCmp
-      - typeDefFirst
-      - unnamedResult
-      - unnecessaryDefer
-      - whyNoLint
-      - wrapperFunc
-      - commentFormatting
-      - filepathJoin
-#      - rangeValCopy
-#      - hugeParam
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#context-as-argument
+      - name: context-as-argument
+        severity: warning
+        disabled: false
+        exclude: [""]
+#        arguments:
+#          - allowTypesBefore: "*testing.T,*github.com/user/repo/testing.Harness"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#context-keys-type
+      - name: context-keys-type
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#cyclomatic
+      - name: cyclomatic
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [3]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#datarace
+      - name: datarace
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#deep-exit
+      - name: deep-exit
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#defer
+      - name: defer
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - ["call-chain", "loop"]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#dot-imports
+      - name: dot-imports
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments: []
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#duplicated-imports
+      - name: duplicated-imports
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#early-return
+      - name: early-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "preserveScope"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-block
+      - name: empty-block
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-lines
+      - name: empty-lines
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-map-style
+      - name: enforce-map-style
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "make"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-repeated-arg-type-style
+      - name: enforce-repeated-arg-type-style
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "short"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-slice-style
+      - name: enforce-slice-style
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "make"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-naming
+      - name: error-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-return
+      - name: error-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-strings
+      - name: error-strings
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#errorf
+      - name: errorf
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#exported
+      - name: exported
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "checkPrivateReceivers"
+          - "disableStutteringCheck"
+          - "sayRepetitiveInsteadOfStutters"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#file-header
+      - name: file-header
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - This is the text that must appear at the top of source files.
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#flag-parameter
+      - name: flag-parameter
+        severity: warning
+        disabled: true
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-length
+      - name: function-length
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [10, 0]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-result-limit
+      - name: function-result-limit
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [3]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#get-return
+      - name: get-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#identical-branches
+      - name: identical-branches
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#if-return
+      - name: if-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#import-alias-naming
+      - name: import-alias-naming
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "^[a-z][a-z0-9]{0,}$"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#import-shadowing
+      - name: import-shadowing
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#imports-blocklist
+      - name: imports-blocklist
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "crypto/md5"
+          - "crypto/sha1"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#increment-decrement
+      - name: increment-decrement
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#indent-error-flow
+      - name: indent-error-flow
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "preserveScope"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#line-length-limit
+      - name: line-length-limit
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [80]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#max-control-nesting
+      - name: max-control-nesting
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [3]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#max-public-structs
+      - name: max-public-structs
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [3]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-parameter
+      - name: modifies-parameter
+        severity: warning
+        disabled: true
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-value-receiver
+      - name: modifies-value-receiver
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#nested-structs
+      - name: nested-structs
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#optimize-operands-order
+      - name: optimize-operands-order
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#package-comments
+      - name: package-comments
+        severity: warning
+        disabled: true
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range
+      - name: range
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range-val-address
+      - name: range-val-address
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range-val-in-closure
+      - name: range-val-in-closure
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#receiver-naming
+      - name: receiver-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#redefines-builtin-id
+      - name: redefines-builtin-id
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#redundant-import-alias
+      - name: redundant-import-alias
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#string-format
+      - name: string-format
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - - 'core.WriteError[1].Message'
+            - '/^([^A-Z]|$)/'
+            - must not start with a capital letter
+          - - 'fmt.Errorf[0]'
+            - '/(^|[^\.!?])$/'
+            - must not end in punctuation
+          - - panic
+            - '/^[^\n]*$/'
+            - must not contain line breaks
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#string-of-int
+      - name: string-of-int
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#struct-tag
+      - name: struct-tag
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "json,inline"
+          - "bson,outline,gnu"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#superfluous-else
+      - name: superfluous-else
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "preserveScope"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#time-equal
+      - name: time-equal
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#time-naming
+      - name: time-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unchecked-type-assertion
+      - name: unchecked-type-assertion
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - acceptIgnoredAssertionResult: true
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unconditional-recursion
+      - name: unconditional-recursion
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unexported-naming
+      - name: unexported-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unexported-return
+      - name: unexported-return
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unhandled-error
+      - name: unhandled-error
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "fmt.Printf"
+          - "fmt.Fprintf"
+          - "fmt.Fprint"
+          - "fmt.Println"
+          - "bytes.Buffer.WriteString"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unnecessary-stmt
+      - name: unnecessary-stmt
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unreachable-code
+      - name: unreachable-code
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unused-parameter
+      - name: unused-parameter
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - allowRegex: "^_"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unused-receiver
+      - name: unused-receiver
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - allowRegex: "^_"
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#use-any
+      - name: use-any
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#useless-break
+      - name: useless-break
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-declaration
+      - name: var-declaration
+        severity: warning
+        disabled: false
+        exclude: [""]
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-naming
+      - name: var-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - ["ID"] # AllowList
+          - ["VM"] # DenyList
+          - - upperCaseConst: true # Extra parameter (upperCaseConst|skipPackageNameChecks)
+              skipPackageNameChecks: true
+#      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#waitgroup-by-value
+      - name: waitgroup-by-value
+        severity: warning
+        disabled: false
+        exclude: [""]
   stylecheck:
     checks:
       - -ST1000 # ignore package comment
+  wrapcheck:
+    # An array of strings that specify substrings of signatures to ignore.
+    # If this set, it will override the default set of ignored signatures.
+    # See https://github.com/tomarrell/wrapcheck#configuration for more information.
+    # Default: [".Errorf(", "errors.New(", "errors.Unwrap(", "errors.Join(", ".Wrap(", ".Wrapf(", ".WithMessage(", ".WithMessagef(", ".WithStack("]
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - errors.Join(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
+    # An array of strings that specify regular expressions of signatures to ignore.
+    # Default: []
+    ignoreSigRegexps:
+      - \.New.*Error\(
+    # An array of strings that specify globs of packages to ignore.
+    # Default: []
+    ignorePackageGlobs:
+      - encoding/*
+      - github.com/pkg/*
+    # An array of strings that specify regular expressions of interfaces to ignore.
+    # Default: []
+    ignoreInterfaceRegexps:
+      - ^(?i)c(?-i)ach(ing|e)
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

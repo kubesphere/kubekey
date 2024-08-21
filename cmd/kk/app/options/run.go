@@ -26,8 +26,9 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
-type KubekeyRunOptions struct {
-	CommonOptions
+// KubeKeyRunOptions for NewKubeKeyRunOptions
+type KubeKeyRunOptions struct {
+	commonOptions
 	// ProjectAddr is the storage for executable packages (in Ansible format).
 	// When starting with http or https, it will be obtained from a Git repository.
 	// When starting with file path, it will be obtained from the local path.
@@ -49,16 +50,19 @@ type KubekeyRunOptions struct {
 	SkipTags []string
 }
 
-func NewKubeKeyRunOptions() *KubekeyRunOptions {
+// NewKubeKeyRunOptions for newRunCommand
+func NewKubeKeyRunOptions() *KubeKeyRunOptions {
 	// add default values
-	o := &KubekeyRunOptions{
-		CommonOptions: newCommonOptions(),
+	o := &KubeKeyRunOptions{
+		commonOptions: newCommonOptions(),
 	}
+
 	return o
 }
 
-func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
+// Flags add to newRunCommand
+func (o *KubeKeyRunOptions) Flags() cliflag.NamedFlagSets {
+	fss := o.commonOptions.flags()
 	gitfs := fss.FlagSet("project")
 	gitfs.StringVar(&o.ProjectAddr, "project-addr", o.ProjectAddr, "the storage for executable packages (in Ansible format)."+
 		" When starting with http or https, it will be obtained from a Git repository."+
@@ -75,20 +79,20 @@ func (o *KubekeyRunOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-func (o *KubekeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
+// Complete options. create Pipeline, Config and Inventory
+func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "run-",
 			Namespace:    o.Namespace,
-			Annotations:  map[string]string{},
+			Annotations:  make(map[string]string),
 		},
 	}
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
+	if len(args) != 1 {
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
+	o.Playbook = args[0]
 
 	pipeline.Spec = kkcorev1.PipelineSpec{
 		Project: kkcorev1.PipelineProject{

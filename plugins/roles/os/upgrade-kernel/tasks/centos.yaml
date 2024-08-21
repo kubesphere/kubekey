@@ -1,0 +1,31 @@
+---
+- name: add aliyuns repo
+  command: |
+    now=$(date +"%Y-%m-%d %H:%M:%S")
+    cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak-$now
+    sudo sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+             -e 's|^#baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' \
+             -i.bak \
+             /etc/yum.repos.d/CentOS-Base.repo
+    sudo yum clean all
+    sudo yum makecache
+
+- name: install necessary dependency rpm
+  command: |
+    sudo yum install linux-firmware perl -y
+
+- name: copy rpm to remote
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/kernel/{{ .kernel_version }}/{{ .arch }}/
+    dest: /tmp/kubekey/kernel/
+
+- name: install rpm
+  command: |
+    rpm -ivh /tmp/kubekey/kernel/kernel-lt*
+
+- name: set kernel
+  command: |
+    grub2-set-default 0
+    grub2-mkconfig -o /boot/grub2/grub.cfg
+#    reboot -h now

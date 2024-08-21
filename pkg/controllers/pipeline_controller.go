@@ -46,6 +46,7 @@ const (
 	defaultServiceAccount = "kk-executor"
 )
 
+// PipelineReconciler reconcile pipeline
 type PipelineReconciler struct {
 	*runtime.Scheme
 	ctrlclient.Client
@@ -62,13 +63,16 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(5).InfoS("pipeline not found", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+
 			return ctrl.Result{}, nil
 		}
+
 		return ctrl.Result{}, err
 	}
 
 	if pipeline.DeletionTimestamp != nil {
 		klog.V(5).InfoS("pipeline is deleting", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+
 		return ctrl.Result{}, nil
 	}
 
@@ -78,6 +82,7 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		pipeline.Status.Phase = kkcorev1.PipelinePhasePending
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
 			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+
 			return ctrl.Result{}, err
 		}
 	case kkcorev1.PipelinePhasePending:
@@ -85,15 +90,18 @@ func (r PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		pipeline.Status.Phase = kkcorev1.PipelinePhaseRunning
 		if err := r.Client.Status().Patch(ctx, pipeline, ctrlclient.MergeFrom(excepted)); err != nil {
 			klog.V(5).ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+
 			return ctrl.Result{}, err
 		}
 	case kkcorev1.PipelinePhaseRunning:
+
 		return r.dealRunningPipeline(ctx, pipeline)
 	case kkcorev1.PipelinePhaseFailed:
 		// do nothing
 	case kkcorev1.PipelinePhaseSucceed:
 		// do nothing
 	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -153,6 +161,7 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 					}
 				}
 			}
+
 			return ctrl.Result{}, nil
 		}
 
@@ -199,6 +208,7 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, sa); err != nil {
 		if !apierrors.IsNotFound(err) {
 			klog.ErrorS(err, "get service account", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
 			return err
 		}
 		// create sa
@@ -206,6 +216,7 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 			ObjectMeta: metav1.ObjectMeta{Name: saName, Namespace: pipeline.Namespace},
 		}); err != nil {
 			klog.ErrorS(err, "create service account error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
 			return err
 		}
 	}
@@ -214,6 +225,7 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: saName}, rb); err != nil {
 		if !apierrors.IsNotFound(err) {
 			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
 			return err
 		}
 		//create rolebinding
@@ -234,12 +246,15 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 			},
 		}); err != nil {
 			klog.ErrorS(err, "create role binding error", "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
+
 			return err
 		}
 	}
+
 	return nil
 }
 
+// GenerateJobSpec for pipeline
 func (r *PipelineReconciler) GenerateJobSpec(pipeline kkcorev1.Pipeline) batchv1.JobSpec {
 	// get ServiceAccount name for executor pod
 	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
@@ -282,6 +297,7 @@ func (r *PipelineReconciler) GenerateJobSpec(pipeline kkcorev1.Pipeline) batchv1
 			},
 		},
 	}
+
 	return jobSpec
 }
 

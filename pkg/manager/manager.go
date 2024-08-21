@@ -31,6 +31,7 @@ type Manager interface {
 	Run(ctx context.Context) error
 }
 
+// CommandManagerOptions for NewCommandManager
 type CommandManagerOptions struct {
 	*kkcorev1.Pipeline
 	*kkcorev1.Config
@@ -39,6 +40,7 @@ type CommandManagerOptions struct {
 	ctrlclient.Client
 }
 
+// NewCommandManager return a new commandManager
 func NewCommandManager(o CommandManagerOptions) Manager {
 	return &commandManager{
 		Pipeline:  o.Pipeline,
@@ -49,11 +51,13 @@ func NewCommandManager(o CommandManagerOptions) Manager {
 	}
 }
 
+// ControllerManagerOptions for NewControllerManager
 type ControllerManagerOptions struct {
 	MaxConcurrentReconciles int
 	LeaderElection          bool
 }
 
+// NewControllerManager return a new controllerManager
 func NewControllerManager(o ControllerManagerOptions) Manager {
 	return &controllerManager{
 		MaxConcurrentReconciles: o.MaxConcurrentReconciles,

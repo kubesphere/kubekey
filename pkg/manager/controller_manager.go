@@ -34,6 +34,7 @@ type controllerManager struct {
 	LeaderElection          bool
 }
 
+// Run controllerManager, run controller in kubernetes
 func (c controllerManager) Run(ctx context.Context) error {
 	ctrl.SetLogger(klog.NewKlogr())
 	restconfig, err := ctrl.GetConfig()
@@ -45,6 +46,7 @@ func (c controllerManager) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("could not get rest config: %w", err)
 	}
+
 	mgr, err := ctrl.NewManager(restconfig, ctrl.Options{
 		Scheme:           _const.Scheme,
 		LeaderElection:   c.LeaderElection,
@@ -61,6 +63,7 @@ func (c controllerManager) Run(ctx context.Context) error {
 		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {
 		klog.ErrorS(err, "create pipeline controller error")
+
 		return err
 	}
 

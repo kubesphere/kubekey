@@ -26,20 +26,23 @@ func newAlwaysAdmit() admission.Interface {
 	return &admit{}
 }
 
-type admit struct {
-}
+type admit struct{}
 
-func (a admit) Validate(ctx context.Context, attr admission.Attributes, obj admission.ObjectInterfaces) (err error) {
+// Validate always pass
+func (a admit) Validate(context.Context, admission.Attributes, admission.ObjectInterfaces) error {
 	return nil
 }
 
-func (a admit) Admit(ctx context.Context, attr admission.Attributes, obj admission.ObjectInterfaces) (err error) {
+// Admit always pass
+func (a admit) Admit(context.Context, admission.Attributes, admission.ObjectInterfaces) error {
 	return nil
 }
 
-func (a admit) Handles(operation admission.Operation) bool {
+// Handles always true
+func (a admit) Handles(admission.Operation) bool {
 	return true
 }
 
 var _ admission.MutationInterface = admit{}
+
 var _ admission.ValidationInterface = admit{}

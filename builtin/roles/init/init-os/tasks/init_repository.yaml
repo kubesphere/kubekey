@@ -54,16 +54,16 @@
           # add repository
           rm -rf /etc/yum.repos.d/*
           cat << EOF > /etc/yum.repos.d/CentOS-local.repo
-          [base-local]
-          name=rpms-local
+        [base-local]
+        name=rpms-local
       
-          baseurl=file://%s
+        baseurl=file:///tmp/kubekey/repository.iso
       
-          enabled=1 
+        enabled=1 
       
-          gpgcheck=0
+        gpgcheck=0
       
-          EOF
+        EOF
           # update repository
           yum clean all && yum makecache
           # install
@@ -75,4 +75,4 @@
           # install
           yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
         fi
-      when: .os.release.ID_LIKE | eq "rhel fedora"
+      when: .os.release.ID_LIKE | eq "\"rhel fedora\""

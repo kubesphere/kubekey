@@ -17,7 +17,7 @@ limitations under the License.
 package converter
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -29,11 +29,11 @@ import (
 	"k8s.io/klog/v2"
 
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
-	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 )
 
 // MarshalBlock marshal block to task
-func MarshalBlock(ctx context.Context, role string, hosts []string, when []string, block projectv1.Block) *kkcorev1alpha1.Task {
+func MarshalBlock(role string, hosts []string, when []string, block kkprojectv1.Block) *kkcorev1alpha1.Task {
 	task := &kkcorev1alpha1.Task{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Task",
@@ -45,7 +45,7 @@ func MarshalBlock(ctx context.Context, role string, hosts []string, when []strin
 				kkcorev1alpha1.TaskAnnotationRole: role,
 			},
 		},
-		Spec: kkcorev1alpha1.KubeKeyTaskSpec{
+		Spec: kkcorev1alpha1.TaskSpec{
 			Name:        block.Name,
 			Hosts:       hosts,
 			IgnoreError: block.IgnoreErrors,
@@ -55,6 +55,7 @@ func MarshalBlock(ctx context.Context, role string, hosts []string, when []strin
 			Register:    block.Register,
 		},
 	}
+
 	if block.Loop != nil {
 		data, err := json.Marshal(block.Loop)
 		if err != nil {
@@ -95,13 +96,14 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 				sis[i] = b
 			}
 		default:
-			return nil, fmt.Errorf("unknown serial type. only support int or percent")
+			return nil, errors.New("unknown serial type. only support int or percent")
 		}
 		if sis[i] == 0 {
 			return nil, fmt.Errorf("serial %v should not be zero", a)
 		}
 		count += sis[i]
 	}
+
 	if len(hosts) > count {
 		for i := 0.0; i < float64(len(hosts)-count)/float64(sis[len(sis)-1]); i++ {
 			sis = append(sis, sis[len(sis)-1])
@@ -119,5 +121,6 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 		result[i] = hosts[begin:end]
 		begin += si
 	}
+
 	return result, nil
 }

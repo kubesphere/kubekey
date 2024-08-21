@@ -17,10 +17,10 @@ limitations under the License.
 package options
 
 import (
-	"github.com/spf13/cobra"
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
+// ControllerManagerServerOptions for NewControllerManagerServerOptions
 type ControllerManagerServerOptions struct {
 	// WorkDir is the baseDir which command find any resource (project etc.)
 	WorkDir string
@@ -31,6 +31,7 @@ type ControllerManagerServerOptions struct {
 	LeaderElection          bool
 }
 
+// NewControllerManagerServerOptions for NewControllerManagerCommand
 func NewControllerManagerServerOptions() *ControllerManagerServerOptions {
 	return &ControllerManagerServerOptions{
 		WorkDir:                 "/kubekey",
@@ -38,18 +39,21 @@ func NewControllerManagerServerOptions() *ControllerManagerServerOptions {
 	}
 }
 
+// Flags add to NewControllerManagerCommand
 func (o *ControllerManagerServerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
 	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
-	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
+	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Pipeline, "+"will retain runtime data, which includes task execution status and parameters.")
 	cfs := fss.FlagSet("controller-manager")
 	cfs.IntVar(&o.MaxConcurrentReconciles, "max-concurrent-reconciles", o.MaxConcurrentReconciles, "The number of maximum concurrent reconciles for controller.")
 	cfs.BoolVar(&o.LeaderElection, "leader-election", o.LeaderElection, "Whether to enable leader election for controller-manager.")
+
 	return fss
 }
 
-func (o *ControllerManagerServerOptions) Complete(cmd *cobra.Command, args []string) {
+// Complete for ControllerManagerServerOptions
+func (o *ControllerManagerServerOptions) Complete() {
 	// do nothing
 	if o.MaxConcurrentReconciles == 0 {
 		o.MaxConcurrentReconciles = 1

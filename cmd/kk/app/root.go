@@ -18,11 +18,15 @@ package app
 
 import (
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
-var internalCommand = []*cobra.Command{}
+// ctx cancel by shutdown signal
+var ctx = signals.SetupSignalHandler()
+
+var internalCommand = make([]*cobra.Command, 0)
 
 func registerInternalCommand(command *cobra.Command) {
 	for _, c := range internalCommand {
@@ -34,6 +38,7 @@ func registerInternalCommand(command *cobra.Command) {
 	internalCommand = append(internalCommand, command)
 }
 
+// NewRootCommand console command.
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "kk",
@@ -42,12 +47,14 @@ func NewRootCommand() *cobra.Command {
 			if err := options.InitGOPS(); err != nil {
 				return err
 			}
-			return options.InitProfiling()
+
+			return options.InitProfiling(ctx)
 		},
 		PersistentPostRunE: func(*cobra.Command, []string) error {
 			return options.FlushProfiling()
 		},
 	}
+	cmd.SetContext(ctx)
 
 	// add common flag
 	flags := cmd.PersistentFlags()
@@ -60,5 +67,6 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newVersionCommand())
 	// internal command
 	cmd.AddCommand(internalCommand...)
+
 	return cmd
 }

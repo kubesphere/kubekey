@@ -27,26 +27,26 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
+// ModuleFetch deal fetch module
 func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
-	ha, err := options.Variable.Get(variable.GetAllVariable(options.Host))
+	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", fmt.Sprintf("failed to get host variable: %v", err)
+		return "", err.Error()
 	}
-
 	// check args
 	args := variable.Extension2Variables(options.Args)
-	srcParam, err := variable.StringVar(ha.(map[string]any), args, "src")
+	srcParam, err := variable.StringVar(ha, args, "src")
 	if err != nil {
 		return "", "\"src\" in args should be string"
 	}
-	destParam, err := variable.StringVar(ha.(map[string]any), args, "dest")
+	destParam, err := variable.StringVar(ha, args, "dest")
 	if err != nil {
 		return "", "\"dest\" in args should be string"
 	}
 
 	// get connector
-	conn, err := getConnector(ctx, options.Host, ha.(map[string]any))
+	conn, err := getConnector(ctx, options.Host, ha)
 	if err != nil {
 		return "", fmt.Sprintf("get connector error: %v", err)
 	}
@@ -58,9 +58,11 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 			return "", fmt.Sprintf("failed to create dest dir: %v", err)
 		}
 	}
+
 	destFile, err := os.Create(destParam)
 	if err != nil {
 		klog.V(4).ErrorS(err, "failed to create dest file")
+
 		return "", err.Error()
 	}
 	defer destFile.Close()
@@ -68,5 +70,6 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	if err := conn.FetchFile(ctx, srcParam, destFile); err != nil {
 		return "", fmt.Sprintf("failed to fetch file: %v", err)
 	}
-	return stdoutSuccess, ""
+
+	return StdoutSuccess, ""
 }

@@ -20,25 +20,27 @@ limitations under the License.
 package project
 
 import (
-	"fmt"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/kubesphere/kubekey/v4/builtin"
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 func init() {
 	builtinProjectFunc = func(pipeline kkcorev1.Pipeline) (Project, error) {
 		if pipeline.Spec.Playbook == "" {
-			return nil, fmt.Errorf("playbook should not be empty")
+			return nil, errors.New("playbook should not be empty")
 		}
+
 		if filepath.IsAbs(pipeline.Spec.Playbook) {
-			return nil, fmt.Errorf("playbook should be relative path base on project.addr")
+			return nil, errors.New("playbook should be relative path base on project.addr")
 		}
+
 		return &builtinProject{Pipeline: pipeline, FS: builtin.BuiltinPipeline, playbook: pipeline.Spec.Playbook}, nil
 	}
 }
@@ -78,25 +80,31 @@ func (p builtinProject) getFilePath(path string, o GetFileOption) string {
 			return s
 		}
 	}
+
 	return ""
 }
 
+// MarshalPlaybook project file to playbook.
+func (p builtinProject) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
+	return marshalPlaybook(p.FS, p.playbook)
+}
+
+// Stat role/file/template file or dir in project
 func (p builtinProject) Stat(path string, option GetFileOption) (os.FileInfo, error) {
 	return fs.Stat(p.FS, p.getFilePath(path, option))
 }
 
+// WalkDir role/file/template dir in project
 func (p builtinProject) WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error {
 	return fs.WalkDir(p.FS, p.getFilePath(path, option), f)
 }
 
+// ReadFile role/file/template file or dir in project
 func (p builtinProject) ReadFile(path string, option GetFileOption) ([]byte, error) {
 	return fs.ReadFile(p.FS, p.getFilePath(path, option))
 }
 
-func (p builtinProject) MarshalPlaybook() (*projectv1.Playbook, error) {
-	return marshalPlaybook(p.FS, p.playbook)
-}
-
+// Rel path for role/file/template file or dir in project
 func (p builtinProject) Rel(root string, path string, option GetFileOption) (string, error) {
 	return filepath.Rel(p.getFilePath(root, option), path)
 }

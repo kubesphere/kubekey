@@ -31,38 +31,42 @@ import (
 	"k8s.io/klog/v2"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-func newGitProject(pipeline kkcorev1.Pipeline, update bool) (Project, error) {
+func newGitProject(ctx context.Context, pipeline kkcorev1.Pipeline, update bool) (Project, error) {
 	if pipeline.Spec.Playbook == "" || pipeline.Spec.Project.Addr == "" {
-		return nil, fmt.Errorf("playbook and project.addr should not be empty")
+		return nil, errors.New("playbook and project.addr should not be empty")
 	}
+
 	if filepath.IsAbs(pipeline.Spec.Playbook) {
-		return nil, fmt.Errorf("playbook should be relative path base on project.addr")
+		return nil, errors.New("playbook should be relative path base on project.addr")
 	}
 
 	// git clone to project dir
 	if pipeline.Spec.Project.Name == "" {
 		pipeline.Spec.Project.Name = strings.TrimSuffix(pipeline.Spec.Project.Addr[strings.LastIndex(pipeline.Spec.Project.Addr, "/")+1:], ".git")
 	}
+
 	p := &gitProject{
 		Pipeline:   pipeline,
 		projectDir: filepath.Join(_const.GetWorkDir(), _const.ProjectDir, pipeline.Spec.Project.Name),
 		playbook:   pipeline.Spec.Playbook,
 	}
+
 	if _, err := os.Stat(p.projectDir); os.IsNotExist(err) {
 		// git clone
-		if err := p.gitClone(context.Background()); err != nil {
+		if err := p.gitClone(ctx); err != nil {
 			return nil, fmt.Errorf("clone git project error: %w", err)
 		}
 	} else if update {
 		// git pull
-		if err := p.gitPull(context.Background()); err != nil {
+		if err := p.gitPull(ctx); err != nil {
 			return nil, fmt.Errorf("pull git project error: %w", err)
 		}
 	}
+
 	return p, nil
 }
 
@@ -70,6 +74,7 @@ func newGitProject(pipeline kkcorev1.Pipeline, update bool) (Project, error) {
 type gitProject struct {
 	kkcorev1.Pipeline
 
+	//location
 	projectDir string
 	// playbook relpath base on projectDir
 	playbook string
@@ -102,23 +107,8 @@ func (p gitProject) getFilePath(path string, o GetFileOption) string {
 			return s
 		}
 	}
+
 	return ""
-}
-
-func (p gitProject) Stat(path string, option GetFileOption) (os.FileInfo, error) {
-	return os.Stat(p.getFilePath(path, option))
-}
-
-func (p gitProject) WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error {
-	return filepath.WalkDir(p.getFilePath(path, option), f)
-}
-
-func (p gitProject) ReadFile(path string, option GetFileOption) ([]byte, error) {
-	return os.ReadFile(p.getFilePath(path, option))
-}
-
-func (p gitProject) MarshalPlaybook() (*projectv1.Playbook, error) {
-	return marshalPlaybook(os.DirFS(p.projectDir), p.Pipeline.Spec.Playbook)
 }
 
 func (p gitProject) gitClone(ctx context.Context) error {
@@ -131,8 +121,10 @@ func (p gitProject) gitClone(ctx context.Context) error {
 		InsecureSkipTLS: false,
 	}); err != nil {
 		klog.Errorf("clone project %s failed: %v", p.Pipeline.Spec.Project.Addr, err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -140,13 +132,17 @@ func (p gitProject) gitPull(ctx context.Context) error {
 	open, err := git.PlainOpen(p.projectDir)
 	if err != nil {
 		klog.V(4).ErrorS(err, "git open error", "local_dir", p.projectDir)
+
 		return err
 	}
+
 	wt, err := open.Worktree()
 	if err != nil {
 		klog.V(4).ErrorS(err, "git open worktree error", "local_dir", p.projectDir)
+
 		return err
 	}
+
 	if err := wt.PullContext(ctx, &git.PullOptions{
 		RemoteURL:       p.Pipeline.Spec.Project.Addr,
 		ReferenceName:   plumbing.NewBranchReferenceName(p.Pipeline.Spec.Project.Branch),
@@ -155,12 +151,34 @@ func (p gitProject) gitPull(ctx context.Context) error {
 		InsecureSkipTLS: false,
 	}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
 		klog.V(4).ErrorS(err, "git pull error", "local_dir", p.projectDir)
+
 		return err
 	}
 
 	return nil
 }
 
+// MarshalPlaybook project file to playbook.
+func (p gitProject) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
+	return marshalPlaybook(os.DirFS(p.projectDir), p.Pipeline.Spec.Playbook)
+}
+
+// Stat role/file/template file or dir in project
+func (p gitProject) Stat(path string, option GetFileOption) (os.FileInfo, error) {
+	return os.Stat(p.getFilePath(path, option))
+}
+
+// WalkDir role/file/template dir in project
+func (p gitProject) WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error {
+	return filepath.WalkDir(p.getFilePath(path, option), f)
+}
+
+// ReadFile role/file/template file or dir in project
+func (p gitProject) ReadFile(path string, option GetFileOption) ([]byte, error) {
+	return os.ReadFile(p.getFilePath(path, option))
+}
+
+// Rel path for role/file/template file or dir in project
 func (p gitProject) Rel(root string, path string, option GetFileOption) (string, error) {
 	return filepath.Rel(p.getFilePath(root, option), path)
 }

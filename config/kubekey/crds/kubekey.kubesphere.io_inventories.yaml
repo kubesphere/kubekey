@@ -17,6 +17,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
+        description: Inventory store hosts vars for playbook.
         properties:
           apiVersion:
             description: |-
@@ -36,9 +37,11 @@ spec:
           metadata:
             type: object
           spec:
+            description: InventorySpec of Inventory
             properties:
               groups:
                 additionalProperties:
+                  description: InventoryGroup of Inventory
                   properties:
                     groups:
                       items:

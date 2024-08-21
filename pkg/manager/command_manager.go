@@ -41,6 +41,7 @@ type commandManager struct {
 	logOutput io.Writer
 }
 
+// Run command Manager. print log and run pipeline executor.
 func (m *commandManager) Run(ctx context.Context) error {
 	fmt.Fprint(m.logOutput, `
 
@@ -66,7 +67,8 @@ func (m *commandManager) Run(ctx context.Context) error {
 				klog.ErrorS(err, "clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())
 			}
 		}
-		if m.Pipeline.Spec.JobSpec.Schedule != "" { // if pipeline is cornJob. it's always running.
+		// if pipeline is cornJob. it's always running.
+		if m.Pipeline.Spec.JobSpec.Schedule != "" {
 			m.Pipeline.Status.Phase = kkcorev1.PipelinePhaseRunning
 		}
 		// update pipeline status
@@ -76,10 +78,11 @@ func (m *commandManager) Run(ctx context.Context) error {
 	}()
 
 	m.Pipeline.Status.Phase = kkcorev1.PipelinePhaseSucceed
-	if err := executor.NewTaskExecutor(m.Client, m.Pipeline, m.logOutput).Exec(ctx); err != nil {
+	if err := executor.NewPipelineExecutor(ctx, m.Client, m.Pipeline, m.logOutput).Exec(ctx); err != nil {
 		klog.ErrorS(err, "executor tasks error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
 		m.Pipeline.Status.Phase = kkcorev1.PipelinePhaseFailed
 		m.Pipeline.Status.Reason = err.Error()
+
 		return err
 	}
 

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 is the internal version. should not register in kubernetes
+// Package v1alpha1 is the internal version, should not register in kubernetes
 // +k8s:deepcopy-gen=package,register
 // +groupName=kubekey.kubesphere.io
 // +kubebuilder:skip

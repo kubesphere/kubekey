@@ -9,11 +9,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Template parse file or vars which defined in project.
 var Template = template.New("kubekey").Funcs(funcMap())
 
 func funcMap() template.FuncMap {
 	var f = sprig.TxtFuncMap()
-
 	delete(f, "env")
 	delete(f, "expandenv")
 	// add custom function
@@ -28,12 +28,13 @@ func funcMap() template.FuncMap {
 // always return a string, even on marshal error (empty string).
 //
 // This is designed to be called from a template.
-func toYAML(v interface{}) string {
+func toYAML(v any) string {
 	data, err := yaml.Marshal(v)
 	if err != nil {
 		// Swallow errors inside of a template.
 		return ""
 	}
+
 	return strings.TrimSuffix(string(data), "\n")
 }
 
@@ -41,13 +42,15 @@ func toYAML(v interface{}) string {
 func ipInCIDR(index int, cidr string) (string, error) {
 	var ips = make([]string, 0)
 	for _, s := range strings.Split(cidr, ",") {
-		ips = append(ips, parseIp(s)...)
+		ips = append(ips, parseIP(s)...)
 	}
+
 	if index < 0 {
 		index = max(len(ips)+index, 0)
 	}
 	index = max(index, 0)
 	index = min(index, len(ips)-1)
+
 	return ips[index], nil
 }
 

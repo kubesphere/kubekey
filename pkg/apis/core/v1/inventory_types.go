@@ -21,14 +21,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// InventoryHost of Inventory
 type InventoryHost map[string]runtime.RawExtension
 
+// InventoryGroup of Inventory
 type InventoryGroup struct {
 	Groups []string             `json:"groups,omitempty"`
 	Hosts  []string             `json:"hosts,omitempty"`
 	Vars   runtime.RawExtension `json:"vars,omitempty"`
 }
 
+// InventorySpec of Inventory
 type InventorySpec struct {
 	// Hosts is all nodes
 	Hosts InventoryHost `json:"hosts,omitempty"`
@@ -46,6 +49,7 @@ type InventorySpec struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Namespaced
 
+// Inventory store hosts vars for playbook.
 type Inventory struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -55,6 +59,7 @@ type Inventory struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// InventoryList of Inventory
 type InventoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

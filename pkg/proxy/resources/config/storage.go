@@ -25,14 +25,17 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
+// ConfigStorage storage for Config
 type ConfigStorage struct {
 	Config *REST
 }
 
+// REST resource for Config
 type REST struct {
 	*apiregistry.Store
 }
 
+// NewStorage for Config
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (ConfigStorage, error) {
 	store := &apiregistry.Store{
 		NewFunc:                   func() runtime.Object { return &kkcorev1.Config{} },
@@ -47,9 +50,11 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (ConfigStorage, error) 
 
 		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("configs").GroupResource()),
 	}
+
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 	}
+
 	if err := store.CompleteWithOptions(options); err != nil {
 		return ConfigStorage{}, err
 	}

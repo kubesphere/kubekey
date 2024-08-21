@@ -18,6 +18,7 @@ package options
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,7 +46,7 @@ var defaultInventory = &kkcorev1.Inventory{
 	},
 	ObjectMeta: metav1.ObjectMeta{Name: "default"}}
 
-type CommonOptions struct {
+type commonOptions struct {
 	// Playbook which to execute.
 	Playbook string
 	// HostFile is the path of host file
@@ -64,10 +65,11 @@ type CommonOptions struct {
 	Namespace string
 }
 
-func newCommonOptions() CommonOptions {
-	o := CommonOptions{
+func newCommonOptions() commonOptions {
+	o := commonOptions{
 		Namespace: metav1.NamespaceDefault,
 	}
+
 	wd, err := os.Getwd()
 	if err != nil {
 		klog.ErrorS(err, "get current dir error")
@@ -75,10 +77,11 @@ func newCommonOptions() CommonOptions {
 	} else {
 		o.WorkDir = filepath.Join(wd, "kubekey")
 	}
+
 	return o
 }
 
-func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
+func (o *commonOptions) flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
 	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
@@ -88,10 +91,11 @@ func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.ini")
 	gfs.BoolVarP(&o.Debug, "debug", "d", o.Debug, "Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.")
 	gfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "the namespace which pipeline will be executed, all reference resources(pipeline, config, inventory, task) should in the same namespace")
+
 	return fss
 }
 
-func (o *CommonOptions) completeRef(pipeline *kkcorev1.Pipeline) (*kkcorev1.Config, *kkcorev1.Inventory, error) {
+func (o *commonOptions) completeRef(pipeline *kkcorev1.Pipeline) (*kkcorev1.Config, *kkcorev1.Inventory, error) {
 	if !filepath.IsAbs(o.WorkDir) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -99,7 +103,7 @@ func (o *CommonOptions) completeRef(pipeline *kkcorev1.Pipeline) (*kkcorev1.Conf
 		}
 		o.WorkDir = filepath.Join(wd, o.WorkDir)
 	}
-
+	// complete config
 	config, err := o.genConfig()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate config error: %w", err)
@@ -112,7 +116,7 @@ func (o *CommonOptions) completeRef(pipeline *kkcorev1.Pipeline) (*kkcorev1.Conf
 		APIVersion:      config.APIVersion,
 		ResourceVersion: config.ResourceVersion,
 	}
-
+	// complete inventory
 	inventory, err := o.genInventory()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate inventory error: %w", err)
@@ -130,7 +134,7 @@ func (o *CommonOptions) completeRef(pipeline *kkcorev1.Pipeline) (*kkcorev1.Conf
 }
 
 // genConfig generate config by ConfigFile and set value by command args.
-func (o *CommonOptions) genConfig() (*kkcorev1.Config, error) {
+func (o *commonOptions) genConfig() (*kkcorev1.Config, error) {
 	config := defaultConfig.DeepCopy()
 	if o.ConfigFile != "" {
 		cdata, err := os.ReadFile(o.ConfigFile)
@@ -142,13 +146,15 @@ func (o *CommonOptions) genConfig() (*kkcorev1.Config, error) {
 			return nil, fmt.Errorf("unmarshal config file error: %w", err)
 		}
 	}
-	// set by command args
+	// set value by command args
 	if o.Namespace != "" {
 		config.Namespace = o.Namespace
 	}
 	if wd, err := config.GetValue("work_dir"); err == nil && wd != nil {
 		// if work_dir is defined in config, use it. otherwise use current dir.
-		o.WorkDir = wd.(string)
+		if workDir, ok := wd.(string); ok {
+			o.WorkDir = workDir
+		}
 	} else if err := config.SetValue("work_dir", o.WorkDir); err != nil {
 		return nil, fmt.Errorf("work_dir to config error: %w", err)
 	}
@@ -162,7 +168,7 @@ func (o *CommonOptions) genConfig() (*kkcorev1.Config, error) {
 		for _, setVal := range strings.Split(unescapeString(s), ",") {
 			i := strings.Index(setVal, "=")
 			if i == 0 || i == -1 {
-				return nil, fmt.Errorf("--set value should be k=v")
+				return nil, errors.New("--set value should be k=v")
 			}
 			if err := setValue(config, setVal[:i], setVal[i+1:]); err != nil {
 				return nil, fmt.Errorf("--set value to config error: %w", err)
@@ -174,21 +180,23 @@ func (o *CommonOptions) genConfig() (*kkcorev1.Config, error) {
 }
 
 // genConfig generate config by ConfigFile and set value by command args.
-func (o *CommonOptions) genInventory() (*kkcorev1.Inventory, error) {
+func (o *commonOptions) genInventory() (*kkcorev1.Inventory, error) {
 	inventory := defaultInventory.DeepCopy()
 	if o.InventoryFile != "" {
 		cdata, err := os.ReadFile(o.InventoryFile)
 		if err != nil {
 			klog.V(4).ErrorS(err, "read config file error")
+
 			return nil, err
 		}
 		inventory = &kkcorev1.Inventory{}
 		if err := yaml.Unmarshal(cdata, inventory); err != nil {
 			klog.V(4).ErrorS(err, "unmarshal config file error")
+
 			return nil, err
 		}
 	}
-	// set by command args
+	// set value by command args
 	if o.Namespace != "" {
 		inventory.Namespace = o.Namespace
 	}
@@ -197,9 +205,9 @@ func (o *CommonOptions) genInventory() (*kkcorev1.Inventory, error) {
 }
 
 // setValue set key: val in config.
-// if val is json string. convert to map or slice
-// if val is TRUE,YES,Y. convert to bool type true.
-// if val is FALSE,NO,N. convert to bool type false.
+// If val is json string. convert to map or slice
+// If val is TRUE,YES,Y. convert to bool type true.
+// If val is FALSE,NO,N. convert to bool type false.
 func setValue(config *kkcorev1.Config, key, val string) error {
 	switch {
 	case strings.HasPrefix(val, "{") && strings.HasSuffix(val, "{"):
@@ -208,6 +216,7 @@ func setValue(config *kkcorev1.Config, key, val string) error {
 		if err != nil {
 			return err
 		}
+
 		return config.SetValue(key, value)
 	case strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]"):
 		var value []any
@@ -215,6 +224,7 @@ func setValue(config *kkcorev1.Config, key, val string) error {
 		if err != nil {
 			return err
 		}
+
 		return config.SetValue(key, value)
 	case strings.EqualFold(val, "TRUE") || strings.EqualFold(val, "YES") || strings.EqualFold(val, "Y"):
 		return config.SetValue(key, true)

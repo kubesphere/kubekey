@@ -25,14 +25,17 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
+// InventoryStorage storage for Inventory
 type InventoryStorage struct {
 	Inventory *REST
 }
 
+// REST resource for Inventory
 type REST struct {
 	*apiregistry.Store
 }
 
+// NewStorage for Inventory
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (InventoryStorage, error) {
 	store := &apiregistry.Store{
 		NewFunc:                   func() runtime.Object { return &kkcorev1.Inventory{} },

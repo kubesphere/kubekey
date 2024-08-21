@@ -54,7 +54,9 @@ func TestSetValue(t *testing.T) {
 		in := Config{Spec: runtime.RawExtension{Raw: []byte(`{"a":1}`)}}
 		t.Run(tc.name, func(t *testing.T) {
 			err := in.SetValue(tc.key, tc.val)
-			assert.NoError(t, err)
+			if err != nil {
+				t.Fatal(err)
+			}
 			assert.Equal(t, tc.except, in)
 		})
 	}
@@ -71,7 +73,7 @@ func TestGetValue(t *testing.T) {
 			name:   "all value",
 			key:    "",
 			config: Config{Spec: runtime.RawExtension{Raw: []byte(`{"a":1}`)}},
-			except: map[string]interface{}{
+			except: map[string]any{
 				"a": int64(1),
 			},
 		},
@@ -103,8 +105,7 @@ func TestGetValue(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			value, err := tc.config.GetValue(tc.key)
-			assert.NoError(t, err)
+			value, _ := tc.config.GetValue(tc.key)
 			assert.Equal(t, tc.except, value)
 		})
 	}

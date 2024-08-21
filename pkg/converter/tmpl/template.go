@@ -32,19 +32,22 @@ func ParseBool(ctx map[string]any, inputs []string) (bool, error) {
 		if !IsTmplSyntax(input) {
 			input = "{{ " + input + " }}"
 		}
+
 		tl, err := internal.Template.Parse(input)
 		if err != nil {
-			return false, fmt.Errorf("failed to parse template '%s': %v", input, err)
+			return false, fmt.Errorf("failed to parse template '%s': %w", input, err)
 		}
+
 		result := bytes.NewBuffer(nil)
 		if err := tl.Execute(result, ctx); err != nil {
-			return false, fmt.Errorf("failed to execute template '%s': %v", input, err)
+			return false, fmt.Errorf("failed to execute template '%s': %w", input, err)
 		}
 		klog.V(6).InfoS(" parse template succeed", "result", result.String())
 		if result.String() != "true" {
 			return false, nil
 		}
 	}
+
 	return true, nil
 }
 
@@ -53,15 +56,18 @@ func ParseString(ctx map[string]any, input string) (string, error) {
 	if !IsTmplSyntax(input) {
 		return input, nil
 	}
+
 	tl, err := internal.Template.Parse(input)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse template '%s': %v", input, err)
+		return "", fmt.Errorf("failed to parse template '%s': %w", input, err)
 	}
+
 	result := bytes.NewBuffer(nil)
 	if err := tl.Execute(result, ctx); err != nil {
-		return "", fmt.Errorf("failed to execute template '%s': %v", input, err)
+		return "", fmt.Errorf("failed to execute template '%s': %w", input, err)
 	}
 	klog.V(6).InfoS(" parse template succeed", "result", result.String())
+
 	return strings.TrimPrefix(strings.TrimSuffix(result.String(), "\n"), "\n"), nil
 }
 

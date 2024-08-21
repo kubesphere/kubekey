@@ -54,7 +54,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: stdoutTrue,
+			exceptStdout: StdoutTrue,
 		},
 		{
 			name: "success with success_msg",
@@ -86,7 +86,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: stdoutFalse,
+			exceptStdout: StdoutFalse,
 			exceptStderr: "False",
 		},
 		{
@@ -103,7 +103,7 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: stdoutFalse,
+			exceptStdout: StdoutFalse,
 			exceptStderr: "failed v2",
 		},
 	}
@@ -112,6 +112,7 @@ func TestAssert(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
+
 			acStdout, acStderr := ModuleAssert(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
 			assert.Equal(t, tc.exceptStderr, acStderr)

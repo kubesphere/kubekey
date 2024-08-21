@@ -40,9 +40,11 @@ type sortableDispatcherCandidates struct {
 func (dc *sortableDispatcherCandidates) Len() int {
 	return len(dc.candidates)
 }
+
 func (dc *sortableDispatcherCandidates) Swap(i, j int) {
 	dc.candidates[i], dc.candidates[j] = dc.candidates[j], dc.candidates[i]
 }
+
 func (dc *sortableDispatcherCandidates) Less(i, j int) bool {
 	ci := dc.candidates[i]
 	cj := dc.candidates[j]

@@ -41,8 +41,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.playbook.Validate()
-			assert.Error(t, err)
+			assert.Error(t, tc.playbook.Validate())
 		})
 	}
 }

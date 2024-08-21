@@ -17,12 +17,13 @@ limitations under the License.
 package project
 
 import (
+	"context"
 	"io/fs"
 	"os"
 	"strings"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	projectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 )
 
 var builtinProjectFunc func(kkcorev1.Pipeline) (Project, error)
@@ -30,24 +31,29 @@ var builtinProjectFunc func(kkcorev1.Pipeline) (Project, error)
 // Project represent location of actual project.
 // get project file should base on it
 type Project interface {
-	MarshalPlaybook() (*projectv1.Playbook, error)
+	MarshalPlaybook() (*kkprojectv1.Playbook, error)
 	Stat(path string, option GetFileOption) (os.FileInfo, error)
 	WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error
 	ReadFile(path string, option GetFileOption) ([]byte, error)
 	Rel(root string, path string, option GetFileOption) (string, error)
 }
 
+// GetFileOption for file.
 type GetFileOption struct {
 	Role       string
 	IsTemplate bool
 	IsFile     bool
 }
 
-func New(pipeline kkcorev1.Pipeline, update bool) (Project, error) {
+// New project.
+// If project address is git format. newGitProject
+// If pipeline has BuiltinsProjectAnnotation. builtinProjectFunc
+// Default newLocalProject
+func New(ctx context.Context, pipeline kkcorev1.Pipeline, update bool) (Project, error) {
 	if strings.HasPrefix(pipeline.Spec.Project.Addr, "https://") ||
 		strings.HasPrefix(pipeline.Spec.Project.Addr, "http://") ||
 		strings.HasPrefix(pipeline.Spec.Project.Addr, "git@") {
-		return newGitProject(pipeline, update)
+		return newGitProject(ctx, pipeline, update)
 	}
 
 	if _, ok := pipeline.Annotations[kkcorev1.BuiltinsProjectAnnotation]; ok {

@@ -54,6 +54,7 @@ func TestSetFact(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
+
 			stdout, stderr := ModuleSetFact(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, stdout)
 			assert.Equal(t, tc.exceptStderr, stderr)

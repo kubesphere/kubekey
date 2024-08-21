@@ -16,6 +16,7 @@ limitations under the License.
 
 package v1
 
+// Delegatable defined in project.
 type Delegatable struct {
 	DelegateTo    string `yaml:"delegate_to,omitempty"`
 	DelegateFacts bool   `yaml:"delegate_facts,omitempty"`

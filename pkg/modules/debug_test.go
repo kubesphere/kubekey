@@ -77,6 +77,7 @@ func TestDebug(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
+
 			acStdout, acStderr := ModuleDebug(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
 			assert.Equal(t, tc.exceptStderr, acStderr)

@@ -21,13 +21,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// TaskPhase of Task
 type TaskPhase string
 
 const (
+	// TaskPhasePending of Task. Task has created but not deal
 	TaskPhasePending TaskPhase = "Pending"
+	// TaskPhaseRunning of Task. deal Task
 	TaskPhaseRunning TaskPhase = "Running"
+	// TaskPhaseSuccess of Task. Module of Task run success in each hosts.
 	TaskPhaseSuccess TaskPhase = "Success"
-	TaskPhaseFailed  TaskPhase = "Failed"
+	// TaskPhaseFailed of Task. once host run failed.
+	TaskPhaseFailed TaskPhase = "Failed"
+	// TaskPhaseIgnored of Task. once host run failed and set ignore_errors.
 	TaskPhaseIgnored TaskPhase = "Ignored"
 )
 
@@ -36,7 +42,8 @@ const (
 	TaskAnnotationRole = "kubesphere.io/role"
 )
 
-type KubeKeyTaskSpec struct {
+// TaskSpec of Task
+type TaskSpec struct {
 	Name        string   `json:"name,omitempty"`
 	Hosts       []string `json:"hosts,omitempty"`
 	IgnoreError *bool    `json:"ignoreError,omitempty"`
@@ -50,17 +57,20 @@ type KubeKeyTaskSpec struct {
 	Register string `json:"register,omitempty"`
 }
 
+// Module of Task
 type Module struct {
 	Name string               `json:"name,omitempty"`
 	Args runtime.RawExtension `json:"args,omitempty"`
 }
 
+// TaskStatus of Task
 type TaskStatus struct {
 	RestartCount int              `json:"restartCount,omitempty"`
 	Phase        TaskPhase        `json:"phase,omitempty"`
 	HostResults  []TaskHostResult `json:"hostResults,omitempty"`
 }
 
+// TaskHostResult each host result for task
 type TaskHostResult struct {
 	Host   string `json:"host,omitempty"`
 	Stdout string `json:"stdout,omitempty"`
@@ -71,29 +81,35 @@ type TaskHostResult struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Namespaced
 
+// Task of pipeline
 type Task struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KubeKeyTaskSpec `json:"spec,omitempty"`
-	Status TaskStatus      `json:"status,omitempty"`
+	Spec   TaskSpec   `json:"spec,omitempty"`
+	Status TaskStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// TaskList for Task
 type TaskList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Task `json:"items"`
 }
 
+// IsComplete if Task IsSucceed or IsFailed
 func (t Task) IsComplete() bool {
 	return t.IsSucceed() || t.IsFailed()
 }
 
+// IsSucceed if Task.Status.Phase TaskPhaseSuccess or TaskPhaseIgnored
 func (t Task) IsSucceed() bool {
 	return t.Status.Phase == TaskPhaseSuccess || t.Status.Phase == TaskPhaseIgnored
 }
+
+// IsFailed Task.Status.Phase is failed when reach the retries
 func (t Task) IsFailed() bool {
 	return t.Status.Phase == TaskPhaseFailed && t.Spec.Retries <= t.Status.RestartCount
 }

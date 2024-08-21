@@ -29,19 +29,23 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
+// PipelineStorage storage for Pipeline
 type PipelineStorage struct {
 	Pipeline       *REST
 	PipelineStatus *StatusREST
 }
 
+// REST resource for Pipeline
 type REST struct {
 	*apiregistry.Store
 }
 
+// StatusREST status subresource for Pipeline
 type StatusREST struct {
 	store *apiregistry.Store
 }
 
+// NamespaceScoped is true for Pipeline
 func (r *StatusREST) NamespaceScoped() bool {
 	return true
 }
@@ -63,7 +67,7 @@ func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOp
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx context.Context, name string, objInfo apirest.UpdatedObjectInfo, createValidation apirest.ValidateObjectFunc, updateValidation apirest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+func (r *StatusREST) Update(ctx context.Context, name string, objInfo apirest.UpdatedObjectInfo, createValidation apirest.ValidateObjectFunc, updateValidation apirest.ValidateObjectUpdateFunc, _ bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 	// We are explicitly setting forceAllowCreate to false in the call to the underlying storage because
 	// subresources should never allow create on update.
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation, false, options)
@@ -74,9 +78,12 @@ func (r *StatusREST) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return r.store.GetResetFields()
 }
 
+// ConvertToTable print table view
 func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
+
+// NewStorage for Pipeline storage
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (PipelineStorage, error) {
 	store := &apiregistry.Store{
 		NewFunc:                   func() runtime.Object { return &kkcorev1.Pipeline{} },

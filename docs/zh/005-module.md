@@ -99,6 +99,7 @@ gen_cert:
 拉取镜像到本地目录, 或推送镜像到远程服务器
 ```yaml
 image:
+  skip_tls_verify: true
   pull: ["image1", "image2"]
   push:
     registry: local.kubekey
@@ -106,6 +107,7 @@ image:
     password: password
     namespace_override: new_namespace
 ```
+**skip_tls_verify**: 跳过证书认证. 默认true.
 **pull**: 拉取镜像到本地工作目录, 非必填. 值采用[模板语法](101-syntax.md)编写, 对每个的host单独计算值.  
 **push**: 推送工作目录中的镜像到远程仓库, 非必填. 值采用[模板语法](101-syntax.md)编写, 对每个的host单独计算值.  
 **registry**: 远程仓库地址, 必填. 值采用[模板语法](101-syntax.md)编写, 对每个的host单独计算值.  

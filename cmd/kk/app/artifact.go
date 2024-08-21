@@ -20,7 +20,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -34,15 +33,17 @@ func newArtifactCommand() *cobra.Command {
 
 	cmd.AddCommand(newArtifactExportCommand())
 	cmd.AddCommand(newArtifactImagesCommand())
+
 	return cmd
 }
 
 func newArtifactExportCommand() *cobra.Command {
 	o := options.NewArtifactExportOptions()
+
 	cmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export a KubeKey offline installation package",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/artifact_export.yaml"})
 			if err != nil {
 				return err
@@ -55,7 +56,8 @@ func newArtifactExportCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+
+			return run(ctx, pipeline, config, inventory)
 		},
 	}
 
@@ -63,15 +65,17 @@ func newArtifactExportCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
 	return cmd
 }
 
 func newArtifactImagesCommand() *cobra.Command {
 	o := options.NewArtifactImagesOptions()
+
 	cmd := &cobra.Command{
 		Use:   "images",
 		Short: "push images to a registry from an artifact",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			pipeline, config, inventory, err := o.Complete(cmd, []string{"playbooks/artifact_images.yaml"})
 			if err != nil {
 				return err
@@ -84,7 +88,8 @@ func newArtifactImagesCommand() *cobra.Command {
 					return err
 				}
 			}
-			return run(signals.SetupSignalHandler(), pipeline, config, inventory)
+
+			return run(ctx, pipeline, config, inventory)
 		},
 	}
 
@@ -92,6 +97,7 @@ func newArtifactImagesCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
 	return cmd
 }
 

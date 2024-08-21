@@ -17,9 +17,11 @@ limitations under the License.
 package proxy
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,12 +53,39 @@ type apiResources struct {
 }
 
 type resourceOptions struct {
-	path    string
-	storage apirest.Storage
-	admit   admission.Interface
+	path         string
+	resource     string // generate by path
+	subresource  string // generate by path
+	resourcePath string // generate by path
+	itemPath     string // generate by path
+	storage      apirest.Storage
+	admit        admission.Interface
 }
 
-func newApiIResources(gv schema.GroupVersion) *apiResources {
+func (o *resourceOptions) init() error {
+	// checks if the given storage path is the path of a subresource
+	switch parts := strings.Split(o.path, "/"); len(parts) {
+	case 2:
+		o.resource, o.subresource = parts[0], parts[1]
+		o.resourcePath = "/namespaces/{namespace}/" + o.resource
+		o.itemPath = "/namespaces/{namespace}/" + o.resource + "/{name}"
+	case 1:
+		o.resource = parts[0]
+		o.resourcePath = "/namespaces/{namespace}/" + o.resource + "/{name}/" + o.subresource
+		o.itemPath = "/namespaces/{namespace}/" + o.resource + "/{name}/" + o.subresource
+	default:
+		return errors.New("api_installer allows only one or two segment paths (resource or resource/subresource)")
+	}
+
+	if o.admit == nil {
+		// set default admit
+		o.admit = newAlwaysAdmit()
+	}
+
+	return nil
+}
+
+func newAPIIResources(gv schema.GroupVersion) *apiResources {
 	return &apiResources{
 		gv:                gv,
 		prefix:            "/apis/" + gv.String(),
@@ -67,21 +96,24 @@ func newApiIResources(gv schema.GroupVersion) *apiResources {
 	}
 }
 
+// AddResource add a api-resources
 func (r *apiResources) AddResource(o resourceOptions) error {
-	if o.admit == nil {
-		// set default admit
-		o.admit = newAlwaysAdmit()
+	if err := o.init(); err != nil {
+		klog.V(6).ErrorS(err, "Failed to initialize resourceOptions")
+
+		return err
 	}
 	r.resourceOptions = append(r.resourceOptions, o)
 	storageVersionProvider, isStorageVersionProvider := o.storage.(apirest.StorageVersionProvider)
 	var apiResource metav1.APIResource
-	if utilfeature.DefaultFeatureGate.Enabled(features.StorageVersionHash) &&
-		isStorageVersionProvider &&
+	if isStorageVersionProvider &&
+		utilfeature.DefaultFeatureGate.Enabled(features.StorageVersionHash) &&
 		storageVersionProvider.StorageVersion() != nil {
 		versioner := storageVersionProvider.StorageVersion()
 		gvk, err := getStorageVersionKind(versioner, o.storage, r.typer)
 		if err != nil {
-			klog.V(4).ErrorS(err, "failed to get storage version kind", "storage", reflect.TypeOf(o.storage))
+			klog.V(6).ErrorS(err, "failed to get storage version kind", "storage", reflect.TypeOf(o.storage))
+
 			return err
 		}
 		apiResource.Group = gvk.Group
@@ -98,11 +130,8 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 	if categoriesProvider, ok := o.storage.(apirest.CategoriesProvider); ok {
 		apiResource.Categories = categoriesProvider.Categories()
 	}
-	_, subResource, err := splitSubresource(o.path)
-	if err != nil {
-		return err
-	}
-	if subResource == "" {
+
+	if o.subresource == "" {
 		singularNameProvider, ok := o.storage.(apirest.SingularNameProvider)
 		if !ok {
 			return fmt.Errorf("resource %s must implement SingularNameProvider", o.path)
@@ -110,10 +139,11 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 		apiResource.SingularName = singularNameProvider.GetSingularName()
 	}
 	r.list = append(r.list, apiResource)
+
 	return nil
 }
 
-func (r *apiResources) handlerApiResources() http.HandlerFunc {
+func (r *apiResources) handlerAPIResources() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		responsewriters.WriteObjectNegotiated(r.serializer, negotiation.DefaultEndpointRestrictions, schema.GroupVersion{}, writer, request, http.StatusOK,
 			&metav1.APIResourceList{GroupVersion: r.gv.String(), APIResources: r.list}, false)
@@ -131,5 +161,6 @@ func getStorageVersionKind(storageVersioner runtime.GroupVersioner, storage apir
 	if !ok {
 		return schema.GroupVersionKind{}, fmt.Errorf("cannot find the storage version kind for %v", reflect.TypeOf(object))
 	}
+
 	return gvk, nil
 }

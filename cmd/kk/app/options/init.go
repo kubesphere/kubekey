@@ -30,16 +30,20 @@ import (
 //                                     init os
 // ======================================================================================
 
+// InitOSOptions for NewInitOSOptions
 type InitOSOptions struct {
-	CommonOptions
+	commonOptions
 }
 
+// Flags add to newInitOSCommand
 func (o *InitOSOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
+	fss := o.commonOptions.flags()
+
 	return fss
 }
 
-func (o InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
+// Complete options. create Pipeline, Config and Inventory
+func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "init-os-",
@@ -51,16 +55,16 @@ func (o InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pi
 	}
 
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
+	if len(args) != 1 {
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
+	o.Playbook = args[0]
 
 	pipeline.Spec = kkcorev1.PipelineSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
+
 	config, inventory, err := o.completeRef(pipeline)
 	if err != nil {
 		return nil, nil, nil, err
@@ -69,25 +73,30 @@ func (o InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pi
 	return pipeline, config, inventory, nil
 }
 
+// NewInitOSOptions for newInitOSCommand
 func NewInitOSOptions() *InitOSOptions {
 	// set default value
-	return &InitOSOptions{CommonOptions: newCommonOptions()}
+	return &InitOSOptions{commonOptions: newCommonOptions()}
 }
 
 // ======================================================================================
 //                                    init registry
 // ======================================================================================
 
+// InitRegistryOptions for NewInitRegistryOptions
 type InitRegistryOptions struct {
-	CommonOptions
+	commonOptions
 }
 
+// Flags add to newInitRegistryCommand
 func (o *InitRegistryOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
+	fss := o.commonOptions.flags()
+
 	return fss
 }
 
-func (o InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
+// Complete options. create Pipeline, Config and Inventory
+func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "init-registry-",
@@ -99,11 +108,10 @@ func (o InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 	}
 
 	// complete playbook. now only support one playbook
-	if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
+	if len(args) != 1 {
 		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
+	o.Playbook = args[0]
 
 	pipeline.Spec = kkcorev1.PipelineSpec{
 		Playbook: o.Playbook,
@@ -117,7 +125,8 @@ func (o InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 	return pipeline, config, inventory, nil
 }
 
+// NewInitRegistryOptions for newInitRegistryCommand
 func NewInitRegistryOptions() *InitRegistryOptions {
 	// set default value
-	return &InitRegistryOptions{CommonOptions: newCommonOptions()}
+	return &InitRegistryOptions{commonOptions: newCommonOptions()}
 }
