@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+
 	"github.com/pkg/errors"
 
 	infrastructurev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1alpha1"

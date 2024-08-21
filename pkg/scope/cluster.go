@@ -18,6 +18,7 @@ package scope
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1alpha1"
