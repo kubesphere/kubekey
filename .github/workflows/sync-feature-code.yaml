@@ -1,0 +1,59 @@
+name: Sync Feature Branch to Main
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  sync-feature:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if PR has merged
+        id: check_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ $(gh pr ls -H sync-feature-to-main -B master -R kubesphere/kubekey) == "" ]]; then
+            echo "pr_merged=true" >> $GITHUB_OUTPUT
+          else
+            echo "pr_merged=false" >> $GITHUB_OUTPUT
+          fi 
+
+      - name: Checkout master branch
+        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
+        uses: actions/checkout@v3
+        with:
+          ref: master
+
+      - name: Checkout feature branch
+        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
+        uses: actions/checkout@v3
+        with:
+          ref: feature
+          path: feature-branch
+
+      - name: Remove old feature directory
+        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
+        run: rm -rf feature
+
+      - name: Sync feature branch to master/feature directory
+        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
+        run: |
+          mkdir -p feature
+          cp -r feature-branch/* feature/
+          git config --global user.name 'ks-ci-bot'
+          git config --global user.email 'ci-bot@kubesphere.io'
+          git add feature/
+          git commit -m "Sync feature branch to master/feature directory"
+
+      - name: Push changes and create PR
+        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Sync feature branch to master/feature directory
+          branch: sync-feature-to-main
+          title: [ci-bot] Sync feature branch to master/feature directory
+          body: This PR syncs the feature branch to the master/feature directory.
