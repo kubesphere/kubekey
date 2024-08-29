@@ -263,6 +263,10 @@ type StartHarbor struct {
 
 func (g *StartHarbor) Execute(runtime connector.Runtime) error {
 	startCmd := "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh --with-trivy && systemctl daemon-reload && systemctl enable harbor && systemctl restart harbor"
+	//harbor 2.8.0开始移除--with-chartmuseum
+	if VersionCompare(g.KubeConf.Cluster.Registry.Version, "v2.8.0") {
+		startCmd = "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh --with-notary --with-trivy --with-chartmuseum && systemctl daemon-reload && systemctl enable harbor && systemctl restart harbor"
+	}
 	if _, err := runtime.GetRunner().SudoCmd(startCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "start harbor failed")
 	}
@@ -272,4 +276,67 @@ func (g *StartHarbor) Execute(runtime connector.Runtime) error {
 	fmt.Println()
 
 	return nil
+}
+
+// VersionCompare
+// @description: 版本比较，v2版本是否大于v1版本
+// @param: v1 string 当前版本
+// @param: v2 string 最新版本
+// @author: GJing
+// @email: gjing1st@gmail.com
+// @date: 2024/8/29 14:10
+// @success: v2>v1返回true
+func VersionCompare(v1, v2 string) (res bool) {
+	if len(v1) == 0 {
+		return true
+	}
+	if len(v2) == 0 {
+		return false
+	}
+	if v1[0] == 'v' || v1[0] == 'V' {
+		v1 = v1[1:]
+	}
+	if v2[0] == 'v' || v2[0] == 'V' {
+		v2 = v2[1:]
+	}
+	v1Arr := strings.Split(v1, ".")
+	v2Arr := strings.Split(v2, ".")
+	if len(v1Arr) == len(v2Arr) {
+		//版本位数相同
+		for i, v := range v2Arr {
+			if v > v1Arr[i] {
+				res = true
+				return
+			} else if v < v1Arr[i] {
+				return
+			}
+		}
+	} else if len(v1Arr) < len(v2Arr) {
+		//新版本位数更多
+		for i, v := range v1Arr {
+			if v2Arr[i] > v {
+				res = true
+				return
+			} else if v2Arr[i] < v {
+				return
+			}
+			if i == len(v1Arr)-1 {
+				//v1的版本位数跟v2的一样，v2的位数更多，返回true
+				res = true
+				return
+			}
+		}
+
+	} else if len(v1Arr) > len(v2Arr) {
+		//旧版本位数多，新版本位数少
+		for i, v := range v2Arr {
+			if v > v1Arr[i] {
+				res = true
+				return
+			} else if v < v1Arr[i] {
+				return
+			}
+		}
+	}
+	return
 }

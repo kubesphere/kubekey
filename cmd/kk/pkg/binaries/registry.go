@@ -36,8 +36,22 @@ func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, path, arch string, p
 
 	switch kubeConf.Cluster.Registry.Type {
 	case common.Harbor:
+		//当配置了harbor版本时，使用配置的版本
+		harborVersion := kubekeyapiv1alpha2.DefaultHarborVersion
+		if len(kubeConf.Cluster.Registry.Version) > 0 {
+			//验证配置的版本是否在列表中
+			if _, ok := files.FileSha256["harbor"][arch][kubeConf.Cluster.Registry.Version]; !ok {
+				supportVersion := ""
+				for key := range files.FileSha256["harbor"][arch] {
+					supportVersion += fmt.Sprintf("%s ", key)
+				}
+				logger.Log.Warningf("Harbor Version only supports %s, the KubeKey artifact will not contain the Harbor Version:%s,use default version:%s", supportVersion, kubeConf.Cluster.Registry.Version, kubekeyapiv1alpha2.DefaultHarborVersion)
+			} else {
+				harborVersion = kubeConf.Cluster.Registry.Version
+			}
+		}
 		// TODO: Harbor only supports amd64, so there is no need to consider other architectures at present.
-		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, kubeConf.Arg.DownloadCommand)
+		harbor := files.NewKubeBinary("harbor", arch, harborVersion, path, kubeConf.Arg.DownloadCommand)
 		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, kubeConf.Arg.DownloadCommand)
 		docker := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, kubeConf.Arg.DownloadCommand)
 		binaries = []*files.KubeBinary{harbor, docker, compose}
@@ -84,12 +98,23 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 	}
 
 	if m.Components.Harbor.Version != "" {
-		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, manifest.Arg.DownloadCommand)
-		if arch == "amd64" {
-			binaries = append(binaries, harbor)
+		//允许下载version/components.json中规定的版本
+		if _, ok := files.FileSha256["harbor"][arch][m.Components.Harbor.Version]; !ok {
+			supportVersion := ""
+			for key := range files.FileSha256["harbor"][arch] {
+				supportVersion += fmt.Sprintf("%s ", key)
+			}
+			logger.Log.Warningf("Harbor Version only supports %s, the KubeKey artifact will not contain the Harbor Version:%s", supportVersion, m.Components.Harbor.Version)
 		} else {
-			logger.Log.Warningf("Harbor only supports amd64, the KubeKey artifact will not contain the Harbor %s", arch)
+			//harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, manifest.Arg.DownloadCommand)
+			harbor := files.NewKubeBinary("harbor", arch, m.Components.Harbor.Version, path, manifest.Arg.DownloadCommand)
+			if arch == "amd64" {
+				binaries = append(binaries, harbor)
+			} else {
+				logger.Log.Warningf("Harbor only supports amd64, the KubeKey artifact will not contain the Harbor %s", arch)
+			}
 		}
+
 	}
 
 	if m.Components.DockerCompose.Version != "" {
