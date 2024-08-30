@@ -98,21 +98,25 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 	}
 
 	if m.Components.Harbor.Version != "" {
+		harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, manifest.Arg.DownloadCommand)
+
 		//允许下载version/components.json中规定的版本
 		if _, ok := files.FileSha256["harbor"][arch][m.Components.Harbor.Version]; !ok {
 			supportVersion := ""
 			for key := range files.FileSha256["harbor"][arch] {
 				supportVersion += fmt.Sprintf("%s ", key)
 			}
-			logger.Log.Warningf("Harbor Version only supports %s, the KubeKey artifact will not contain the Harbor Version:%s", supportVersion, m.Components.Harbor.Version)
+			logger.Log.Warningf("Harbor Version only supports %s, the KubeKey artifact will not contain the Harbor Version:%s,use default version:%s", supportVersion, m.Components.Harbor.Version, kubekeyapiv1alpha2.DefaultHarborVersion)
+
 		} else {
 			//harbor := files.NewKubeBinary("harbor", arch, kubekeyapiv1alpha2.DefaultHarborVersion, path, manifest.Arg.DownloadCommand)
-			harbor := files.NewKubeBinary("harbor", arch, m.Components.Harbor.Version, path, manifest.Arg.DownloadCommand)
-			if arch == "amd64" {
-				binaries = append(binaries, harbor)
-			} else {
-				logger.Log.Warningf("Harbor only supports amd64, the KubeKey artifact will not contain the Harbor %s", arch)
-			}
+			harbor = files.NewKubeBinary("harbor", arch, m.Components.Harbor.Version, path, manifest.Arg.DownloadCommand)
+
+		}
+		if arch == "amd64" {
+			binaries = append(binaries, harbor)
+		} else {
+			logger.Log.Warningf("Harbor only supports amd64, the KubeKey artifact will not contain the Harbor %s", arch)
 		}
 
 	}
