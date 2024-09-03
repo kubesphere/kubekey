@@ -73,12 +73,12 @@ fi
 
 # Login docker.io
 if [ $DOCKERHUB_USERNAME ] && [ $DOCKERHUB_PASSWORD ];then
-   skopeo login docker.io -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+   oras login docker.io -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
 fi
 
 # Login registry.cn-beijing.aliyuncs.com
 if [ $ALIYUNCS_USERNAME ] && [ $ALIYUNCS_PASSWORD ];then
-   skopeo login registry.cn-beijing.aliyuncs.com -u $ALIYUNCS_USERNAME -p $ALIYUNCS_PASSWORD
+   oras login registry.cn-beijing.aliyuncs.com -u $ALIYUNCS_USERNAME -p $ALIYUNCS_PASSWORD
 fi
 
 # Sync Kubernetes Binaries and Images
@@ -100,8 +100,8 @@ if [ $KUBERNETES_VERSION ]; then
    done
 
    chmod +x binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} skopeo sync --src docker --dest docker {} docker.io/$DOCKERHUB_NAMESPACE/${image##} --all
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} skopeo sync --src docker --dest docker {} registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/${image##} --all
+   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} oras cp {} docker.io/$DOCKERHUB_NAMESPACE/${image##}
+   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} oras cp {} registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/${image##}
 
    rm -rf binaries
 fi
@@ -329,48 +329,48 @@ rm -rf qsctl-config.yaml
 
 # Sync NodeLocalDns Images
 if [ $NODE_LOCAL_DNS_VERSION ]; then
-   skopeo sync --src docker --dest docker registry.k8s.io/dns/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION docker.io/$DOCKERHUB_NAMESPACE/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION --all
-   skopeo sync --src docker --dest docker registry.k8s.io/dns/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION --all
+   oras cp registry.k8s.io/dns/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION docker.io/$DOCKERHUB_NAMESPACE/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION
+   oras cp registry.k8s.io/dns/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/k8s-dns-node-cache:$NODE_LOCAL_DNS_VERSION
 fi
 
 # Sync Coredns Images
 if [ $COREDNS_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/coredns/coredns:$COREDNS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/coredns:$COREDNS_VERSION --all
+   oras cp docker.io/coredns/coredns:$COREDNS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/coredns:$COREDNS_VERSION
 fi
 
 # Sync Calico Images
 if [ $CALICO_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/calico/kube-controllers:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/kube-controllers:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/cni:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/cni:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/node:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/node:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/pod2daemon-flexvol:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/pod2daemon-flexvol:$CALICO_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/calico/typha:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/typha:$CALICO_VERSION --all
+   oras cp docker.io/calico/kube-controllers:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/kube-controllers:$CALICO_VERSION
+   oras cp docker.io/calico/cni:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/cni:$CALICO_VERSION
+   oras cp docker.io/calico/node:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/node:$CALICO_VERSION
+   oras cp docker.io/calico/pod2daemon-flexvol:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/pod2daemon-flexvol:$CALICO_VERSION
+   oras cp docker.io/calico/typha:$CALICO_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/typha:$CALICO_VERSION
 fi
 
 # Sync Kube-OVN Images
 if [ $KUBE_OVN_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/kubeovn/kube-ovn:$KUBE_OVN_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/kube-ovn:$KUBE_OVN_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/kubeovn/vpc-nat-gateway:$KUBE_OVN_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/vpc-nat-gateway:$KUBE_OVN_VERSION --all
+   oras cp docker.io/kubeovn/kube-ovn:$KUBE_OVN_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/kube-ovn:$KUBE_OVN_VERSION
+   oras cp docker.io/kubeovn/vpc-nat-gateway:$KUBE_OVN_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/vpc-nat-gateway:$KUBE_OVN_VERSION
 fi
 
 # Sync Cilium Images
 if [ $CILIUM_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/cilium/cilium:$CILIUM_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/cilium:$CILIUM_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/cilium/cilium-operator-generic:$CILIUM_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/cilium-operator-generic:$CILIUM_VERSION --all
+   oras cp docker.io/cilium/cilium:$CILIUM_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/cilium:$CILIUM_VERSION
+   oras cp docker.io/cilium/cilium-operator-generic:$CILIUM_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/cilium-operator-generic:$CILIUM_VERSION
 fi
 
 # Sync OpenEBS Images
 if [ $OPENEBS_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/openebs/provisioner-localpv:$OPENEBS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/provisioner-localpv:$OPENEBS_VERSION --all
-   skopeo sync --src docker --dest docker docker.io/openebs/linux-utils:$OPENEBS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/linux-utils:$OPENEBS_VERSION --all
+   oras cp docker.io/openebs/provisioner-localpv:$OPENEBS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/provisioner-localpv:$OPENEBS_VERSION
+   oras cp docker.io/openebs/linux-utils:$OPENEBS_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/linux-utils:$OPENEBS_VERSION
 fi
 
 # Sync Haproxy Images
 if [ $HAPROXY_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/library/haproxy:$HAPROXY_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/haproxy:$HAPROXY_VERSION --all
+   oras cp docker.io/library/haproxy:$HAPROXY_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/haproxy:$HAPROXY_VERSION
 fi
 
 # Sync Kube-vip Images
 if [ $KUBEVIP_VERSION ]; then
-   skopeo sync --src docker --dest docker docker.io/plndr/kubevip:$KUBEVIP_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/kubevip:$KUBEVIP_VERSION --all
+   oras cp docker.io/plndr/kubevip:$KUBEVIP_VERSION registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/kubevip:$KUBEVIP_VERSION
 fi
