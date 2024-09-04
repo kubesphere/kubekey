@@ -7,11 +7,11 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Sync Feature Code
     runs-on: ubuntu-latest
 
     steps:
-      - name: Sync Feature Code
+      - name: Check if PR has merged
         id: check_pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
