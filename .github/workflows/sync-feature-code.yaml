@@ -49,7 +49,6 @@ jobs:
           git commit -m "Sync feature branch to master/feature directory"
 
       - name: Push changes and create PR
-        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: Sync feature branch to master/feature directory
