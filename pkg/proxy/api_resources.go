@@ -63,16 +63,28 @@ type resourceOptions struct {
 }
 
 func (o *resourceOptions) init() error {
+	// prefix for resourcePath.
+	var prefix string
+	scoper, ok := o.storage.(apirest.Scoper)
+	if !ok {
+		return fmt.Errorf("%q must implement scoper", o.path)
+	}
+	if scoper.NamespaceScoped() {
+		prefix = "/namespaces/{namespace}/"
+	} else {
+		prefix = "/"
+	}
+
 	// checks if the given storage path is the path of a subresource
 	switch parts := strings.Split(o.path, "/"); len(parts) {
 	case 2:
 		o.resource, o.subresource = parts[0], parts[1]
-		o.resourcePath = "/namespaces/{namespace}/" + o.resource
-		o.itemPath = "/namespaces/{namespace}/" + o.resource + "/{name}"
+		o.resourcePath = prefix + o.resource + "/{name}/" + o.subresource
+		o.itemPath = prefix + o.resource + "/{name}/" + o.subresource
 	case 1:
 		o.resource = parts[0]
-		o.resourcePath = "/namespaces/{namespace}/" + o.resource + "/{name}/" + o.subresource
-		o.itemPath = "/namespaces/{namespace}/" + o.resource + "/{name}/" + o.subresource
+		o.resourcePath = prefix + o.resource
+		o.itemPath = prefix + o.resource + "/{name}"
 	default:
 		return errors.New("api_installer allows only one or two segment paths (resource or resource/subresource)")
 	}
