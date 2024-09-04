@@ -8,7 +8,6 @@ on:
 jobs:
   sync-feature:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check if PR has merged
         id: check_pr
@@ -31,29 +30,28 @@ jobs:
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         uses: actions/checkout@v3
         with:
-          ref: feature
+          ref: feature-gitops
           path: feature-branch
-
-      - name: Remove old feature directory
-        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
-        run: rm -rf feature
 
       - name: Sync feature branch to master/feature directory
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         run: |
-          mkdir -p feature
+          rm -rf feature && mkdir -p feature
+          rm -rf feature-branch/vendor
           cp -r feature-branch/* feature/
-          git config --global user.name 'ks-ci-bot'
-          git config --global user.email 'ci-bot@kubesphere.io'
-          git add feature/
-          git commit -m "Sync feature branch to master/feature directory"
+          rm -rf feature-branch
 
       - name: Push changes and create PR
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: Sync feature branch to master/feature directory
+          commit-message: 'Sync feature branch to master/feature directory'
+          delete-branch: true
           branch: sync-feature-to-main
-          title: [ci-bot] Sync feature branch to master/feature directory
-          body: This PR syncs the feature branch to the master/feature directory.
+          sign-commits: true
+          title: '[ci-bot] Sync feature branch to master/feature directory'
+          body: |
+            This PR syncs the feature branch to the master/feature directory.
+            ```release-note
+            none
+            ```
