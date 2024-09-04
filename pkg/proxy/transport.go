@@ -276,41 +276,32 @@ func (l *transport) registerResources(resources *apiResources) error {
 			return fmt.Errorf("%q must implement TableConvertor", o.path)
 		}
 
-		scoper, ok := o.storage.(apirest.Scoper)
-		if !ok {
-			return fmt.Errorf("%q must implement scoper", o.path)
-		}
-
 		// Get the list of actions for the given scope.
-		switch {
-		case !scoper.NamespaceScoped(): // cluster
-			// do nothing. The current managed resources are all  namespace scope.
-		default: // namespace
-			reqScope, err := newReqScope(resources, o, l.authz)
-			if err != nil {
-				return err
-			}
-			// LIST
-			l.registerList(resources, reqScope, o)
-			// POST
-			l.registerPost(resources, reqScope, o)
-			// DELETECOLLECTION
-			l.registerDeleteCollection(resources, reqScope, o)
-			// DEPRECATED in 1.11 WATCHLIST
-			l.registerWatchList(resources, reqScope, o)
-			// GET
-			l.registerGet(resources, reqScope, o)
-			// PUT
-			l.registerPut(resources, reqScope, o)
-			// PATCH
-			l.registerPatch(resources, reqScope, o)
-			// DELETE
-			l.registerDelete(resources, reqScope, o)
-			// DEPRECATED in 1.11 WATCH
-			l.registerWatch(resources, reqScope, o)
-			// CONNECT
-			l.registerConnect(resources, reqScope, o)
+		// namespace
+		reqScope, err := newReqScope(resources, o, l.authz)
+		if err != nil {
+			return err
 		}
+		// LIST
+		l.registerList(resources, reqScope, o)
+		// POST
+		l.registerPost(resources, reqScope, o)
+		// DELETECOLLECTION
+		l.registerDeleteCollection(resources, reqScope, o)
+		// DEPRECATED in 1.11 WATCHLIST
+		l.registerWatchList(resources, reqScope, o)
+		// GET
+		l.registerGet(resources, reqScope, o)
+		// PUT
+		l.registerPut(resources, reqScope, o)
+		// PATCH
+		l.registerPatch(resources, reqScope, o)
+		// DELETE
+		l.registerDelete(resources, reqScope, o)
+		// DEPRECATED in 1.11 WATCH
+		l.registerWatch(resources, reqScope, o)
+		// CONNECT
+		l.registerConnect(resources, reqScope, o)
 	}
 
 	return nil
