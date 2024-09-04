@@ -1,0 +1,4 @@
+kata:
+  enabled: false
+  image: |
+    {{ .dockerio_registry }}/kubesphere/kata-deploy:stable

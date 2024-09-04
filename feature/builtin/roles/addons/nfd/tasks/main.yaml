@@ -1,0 +1,11 @@
+---
+- name: Generate nfd deploy file
+  template:
+    src: nfd-deploy.yaml
+    dest: /etc/kubernetes/addons/nfd-deploy.yaml
+  when: .nfd.enabled
+
+- name: Deploy nfd
+  command: |
+    kubectl apply -f /etc/kubernetes/addons/nfd-deploy.yaml
+  when: .nfd.enabled

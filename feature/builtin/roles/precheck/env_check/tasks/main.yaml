@@ -1,0 +1,45 @@
+---
+- name: Should defined internal_ipv4
+  assert:
+    that: and .internal_ipv4 (ne .internal_ipv4 "")
+    fail_msg: |
+      "internal_ipv4" should not be empty
+
+- name: Check kubevip
+  assert:
+    that:
+      - and .kubernetes.kube_vip.address (ne .kubernetes.kube_vip.address "")
+      - .kubernetes.kube_vip.address | regexMatch "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:)|(([0-9a-fA-F]{1,4}:){1,6}|:):([0-9a-fA-F]{1,4}|:){1,6}([0-9a-fA-F]{1,4}|:)))$"
+      - |
+        {{- $existIP := false }}
+        {{- range .groups.all | default list }}
+          {{- if eq $.kubernetes.kube_vip.address (index $.inventory_hosts . "internal_ipv4") }}
+          {{- $existIP = true }}
+          {{- end }}
+        {{- end }}
+        {{ not $existIP }}
+    fail_msg: |
+      "kubernetes.control_plane_endpoint" should be a un-used ip address when "kubernetes.kube_vip.enabled" is true
+  when: .kubernetes.kube_vip.enabled
+
+- name: Stop if unsupported version of Kubernetes
+  assert:
+    that: .kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
+    fail_msg: |
+      the current release of Kubespray only support newer version of Kubernetes than {{ .kube_version_min_required }} - You are trying to apply {{ .kube_version }}
+  when: and .kube_version (ne .kube_version "")
+
+- include_tasks: etcd.yaml
+  tags: ["etcd"]
+
+- include_tasks: os.yaml
+  tags: ["os"]
+
+- include_tasks: network.yaml
+  tags: ["network"]
+
+- include_tasks: cri.yaml
+  tags: ["cri"]
+
+- include_tasks: nfs.yaml
+  tags: ["nfs"]

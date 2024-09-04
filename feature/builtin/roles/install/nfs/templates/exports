@@ -1,0 +1,3 @@
+{{- range .nfs.share_dir }}
+{{ . }} *(rw,sync,no_subtree_check)
+{{- end }}

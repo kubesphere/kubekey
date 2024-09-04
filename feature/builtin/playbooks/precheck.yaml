@@ -1,0 +1,16 @@
+---
+- hosts:
+    - localhost
+  roles:
+    - role: precheck/artifact_check
+      when: and .artifact.artifact_file (ne .artifact.artifact_file "")
+
+- hosts:
+    - k8s_cluster
+    - etcd
+    - image_registry
+    - nfs
+  gather_facts: true
+  tags: ["always"]
+  roles:
+    - precheck/env_check

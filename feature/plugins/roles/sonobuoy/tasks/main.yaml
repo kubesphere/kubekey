@@ -1,0 +1,23 @@
+---
+- name: Generate sonobuoy plugins
+  template:
+    src: plugins/
+    dest: sonobuoy/plugins/
+
+- name: Run sonobuoy
+  command: |
+    # run and waiting
+    sonobuoy run --wait \
+      {{ if .plugins.systemd_logs.enabled }}-p systemd-logs {{ end }}\
+      {{ if .plugins.e2e.enabled }}-p e2e {{ end }}\
+      {{ if .plugins.e2e_ks.enabled }}-p sonobuoy/plugins/e2e-ks.yaml {{ end }}\
+      {{ if .plugins.kube_bench.enabled }}-p sonobuoy/plugins/kube-bench.yaml -p sonobuoy/plugins/kube-bench-master.yaml {{ end }}\
+
+- name: Retrieve result
+  command: |
+    cd sonobuoy/ && sonobuoy retrieve
+
+- name: Clean sonobuoy
+  command: |
+    sonobuoy delete 
+

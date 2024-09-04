@@ -1,0 +1,16 @@
+---
+- hosts:
+    - localhost
+  vars_files:
+    - vars/upgrade_kernel.yaml
+  tags: ["always"]
+  roles:
+    - os/init-kernel
+
+- hosts:
+    - os
+  vars_files:
+    - vars/upgrade_kernel.yaml
+  tags: ["always"]
+  roles:
+    - os/upgrade-kernel

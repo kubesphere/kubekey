@@ -1,0 +1,22 @@
+---
+- name: Execute pre install scripts
+  hosts:
+    - all
+  tasks:
+    - name: Copy pre install scripts to remote
+      ignore_errors: yes
+      copy:
+        src: |
+          {{ .work_dir }}/scripts/pre_install_{{ .inventory_name }}.sh
+        dest: |
+          /etc/kubekey/scripts/pre_install_{{ .inventory_name }}.sh
+        mode: 0755
+    - name: Execute pre install scripts
+      command: |
+        for file in /etc/kubekey/scripts/pre_install_*.sh; do
+          if [ -f $file ]; then
+            # execute file
+            chmod +x $file
+            $file
+          fi
+        done
