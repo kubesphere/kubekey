@@ -30,7 +30,7 @@ jobs:
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         uses: actions/checkout@v3
         with:
-          ref: feature
+          ref: feature-gitops
           path: feature-branch
 
       - name: Remove old feature directory
@@ -53,7 +53,7 @@ jobs:
         with:
           commit-message: 'Sync feature branch to master/feature directory'
           delete-branch: true
-          branch-suffix: timestamp
+          branch: sync-feature-to-main
           sign-commits: true
           title: '[ci-bot] Sync feature branch to master/feature directory'
           body: |
