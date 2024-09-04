@@ -50,10 +50,15 @@ jobs:
 
       - name: Push changes and create PR
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Sync feature branch to master/feature directory
-          branch: sync-feature-to-main
+          delete-branch: true
+          branch-suffix: sync-feature
           title: [ci-bot] Sync feature branch to master/feature directory
-          body: This PR syncs the feature branch to the master/feature directory.
+          body: |
+            This PR syncs the feature branch to the master/feature directory.
+            ```release-note
+            none
+            ```
