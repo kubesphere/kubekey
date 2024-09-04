@@ -52,7 +52,6 @@ jobs:
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Sync feature branch to master/feature directory
           delete-branch: true
           branch-suffix: sync-feature
