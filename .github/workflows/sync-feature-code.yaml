@@ -6,7 +6,8 @@ on:
   workflow_dispatch: # Manual trigger
 
 jobs:
-  sync-feature:
+  build:
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -51,17 +52,13 @@ jobs:
       - name: Push changes and create PR
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         uses: peter-evans/create-pull-request@v7
-
-#      - name: Push changes and create PR
-#        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
-#        uses: peter-evans/create-pull-request@v7
-#        with:
-#          commit-message: Sync feature branch to master/feature directory
-#          delete-branch: true
-#          branch-suffix: sync-feature
-#          title: [ci-bot] Sync feature branch to master/feature directory
-#          body: |
-#            This PR syncs the feature branch to the master/feature directory.
-#            ```release-note
-#            none
-#            ```
+        with:
+          commit-message: Sync feature branch to master/feature directory
+          delete-branch: true
+          branch-suffix: sync-feature
+          title: [ci-bot] Sync feature branch to master/feature directory
+          body: |
+            This PR syncs the feature branch to the master/feature directory.
+            ```release-note
+            none
+            ```
