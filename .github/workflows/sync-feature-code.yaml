@@ -37,6 +37,7 @@ jobs:
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         run: |
           rm -rf feature && mkdir -p feature
+          rm -rf feature-branch/vendor
           cp -r feature-branch/* feature/
           rm -rf feature-branch
 
