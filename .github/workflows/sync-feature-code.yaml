@@ -33,19 +33,12 @@ jobs:
           ref: feature-gitops
           path: feature-branch
 
-      - name: Remove old feature directory
-        if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
-        run: rm -rf feature
-
       - name: Sync feature branch to master/feature directory
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
         run: |
-          mkdir -p feature
+          rm -rf feature && mkdir -p feature
           cp -r feature-branch/* feature/
-          git config --global user.name 'ks-ci-bot'
-          git config --global user.email 'ci-bot@kubesphere.io'
-          git add feature/
-          git commit -m "Sync feature branch to master/feature directory"
+          rm -rf feature-branch
 
       - name: Push changes and create PR
         if: ${{ steps.check_pr.outputs.pr_merged == 'true' }}
