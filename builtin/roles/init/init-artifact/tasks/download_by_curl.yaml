@@ -173,7 +173,7 @@
 
 - name: Check binaries for calicoctl
   command: |
-    artifact_name={{ get .artifact.artifact_url.calicoctl .item | splitList "/" | last }}
+    artifact_name=calicoctl
     artifact_path={{ .work_dir }}/kubekey/cni/{{ .calico_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
       mkdir -p $artifact_path

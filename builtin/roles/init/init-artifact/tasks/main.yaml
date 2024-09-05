@@ -9,8 +9,9 @@
 - name: Extract artifact to work_dir
   tags: ["always"]
   command: |
-    if [ ! -f "{{ .artifact_file }}" ]; then
-      tar -zxvf {{ .artifact_file }} -C {{ .work_dir }}
+    if [ -f "{{ .artifact_file }}" ]; then
+      mkdir -p {{ .work_dir }}/kubekey
+      tar -zxvf {{ .artifact_file }} -C {{ .work_dir }}/kubekey
     fi
   when: and .artifact_file (ne .artifact_file "")
 
