@@ -63,3 +63,30 @@
         dest: /etc/systemd/system/kubelet.service
     - name: Register kubelet service
       command: systemctl daemon-reload && systemctl enable kubelet.service
+
+- name: Check if calicoctl is installed
+  ignore_errors: true
+  command: calicoctl --version
+  register: calicoctl_install_version
+- name: Install calicoctl
+  when:
+    - and .calico_version (ne .calico_version "")
+    - |
+      or (.calicoctl_install_version.stderr | ne "") (.calicoctl_install_version.stdout | contains (printf "Client Version:    %s" .calico_version) | not)
+  block:
+    - name: Sync calicoctl to remote
+      copy:
+        src: |
+          {{ .work_dir }}/kubekey/cni/{{ .calico_version }}/{{ .binary_type.stdout }}/calicoctl
+        dest: /usr/local/bin/calicoctl
+        mode: 0755
+    - name: Sync kubelet env to remote
+      template:
+        src: kubeadm/kubelet.env
+        dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    - name: Sync kubelet service to remote
+      copy:
+        src: kubelet.service
+        dest: /etc/systemd/system/kubelet.service
+    - name: Register kubelet service
+      command: systemctl daemon-reload && systemctl enable kubelet.service
