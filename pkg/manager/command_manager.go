@@ -19,6 +19,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"io"
 	"os"
 	"time"
@@ -27,7 +28,6 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/executor"
 )
 
