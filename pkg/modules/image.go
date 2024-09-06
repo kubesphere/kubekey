@@ -30,10 +30,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	imagev1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
@@ -158,10 +158,14 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ipl.username, _ = variable.StringVar(vars, pull, "username")
 		ipl.password, _ = variable.StringVar(vars, pull, "password")
 		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skipTLSVerify")
+		if ipl.skipTLSVerify == nil {
+			ipl.skipTLSVerify = ptr.To(false)
+		}
 		// check args
 		if len(ipl.manifests) == 0 {
 			return nil, errors.New("\"pull.manifests\" is required")
 		}
+		ia.pull = ipl
 	}
 	// if namespace_override is not empty, it will override the image manifests namespace_override. (namespace maybe multi sub path)
 	// push to private registry
@@ -178,6 +182,9 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ips.namespace, _ = variable.StringVar(vars, push, "namespace_override")
 		ips.imagesDir, _ = variable.StringVar(vars, push, "images_dir")
 		ips.skipTLSVerify, _ = variable.BoolVar(vars, push, "skipTLSVerify")
+		if ips.skipTLSVerify == nil {
+			ips.skipTLSVerify = ptr.To(false)
+		}
 		// check args
 		if ips.registry == "" {
 			return nil, errors.New("\"push.registry\" is required")
@@ -323,28 +330,38 @@ func (i imageTransport) head(request *http.Request) (*http.Response, error) {
 	if strings.HasSuffix(filepath.Dir(request.URL.Path), "blobs") { // blobs
 		filename := filepath.Join(i.baseDir, "blobs", filepath.Base(request.URL.Path))
 		if _, err := os.Stat(filename); err != nil {
-			return responseNotFound, err
+			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
+
+			return responseNotFound, nil
 		}
 
 		return responseOK, nil
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, strings.TrimPrefix(request.URL.Path, apiPrefix))
 		if _, err := os.Stat(filename); err != nil {
-			return responseNotFound, err
+			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
+
+			return responseNotFound, nil
 		}
 
 		file, err := os.ReadFile(filename)
 		if err != nil {
-			return responseServerError, err
+			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
+
+			return responseServerError, nil
 		}
 
 		var data map[string]any
 		if err := json.Unmarshal(file, &data); err != nil {
-			return responseServerError, err
+			klog.V(4).ErrorS(err, "failed to unmarshal file", "filename", filename)
+
+			return responseServerError, nil
 		}
 
 		mediaType, ok := data["mediaType"].(string)
 		if !ok {
+			klog.V(4).ErrorS(nil, "unknown mediaType", "filename", filename)
+
 			return responseServerError, nil
 		}
 
@@ -423,12 +440,16 @@ func (i imageTransport) get(request *http.Request) (*http.Response, error) {
 	if strings.HasSuffix(filepath.Dir(request.URL.Path), "blobs") { // blobs
 		filename := filepath.Join(i.baseDir, "blobs", filepath.Base(request.URL.Path))
 		if _, err := os.Stat(filename); err != nil {
-			return responseNotFound, err
+			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
+
+			return responseNotFound, nil
 		}
 
 		file, err := os.ReadFile(filename)
 		if err != nil {
-			return responseServerError, err
+			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
+
+			return responseServerError, nil
 		}
 
 		return &http.Response{
@@ -440,12 +461,16 @@ func (i imageTransport) get(request *http.Request) (*http.Response, error) {
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, strings.TrimPrefix(request.URL.Path, apiPrefix))
 		if _, err := os.Stat(filename); err != nil {
-			return responseNotFound, err
+			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
+
+			return responseNotFound, nil
 		}
 
 		file, err := os.ReadFile(filename)
 		if err != nil {
-			return responseServerError, err
+			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
+
+			return responseServerError, nil
 		}
 
 		var data map[string]any
