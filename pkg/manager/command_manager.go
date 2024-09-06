@@ -19,6 +19,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"io"
 	"os"
 	"time"
@@ -27,7 +28,6 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/executor"
 )
 
@@ -60,13 +60,16 @@ func (m *commandManager) Run(ctx context.Context) error {
 	defer func() {
 		fmt.Fprintf(m.logOutput, "%s [Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline),
 			m.Pipeline.Status.TaskResult.Total, m.Pipeline.Status.TaskResult.Success, m.Pipeline.Status.TaskResult.Ignored, m.Pipeline.Status.TaskResult.Failed)
-		if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kkcorev1.PipelinePhaseSucceed {
-			fmt.Fprintf(m.logOutput, "%s [Pipeline %s] clean runtime directory\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline))
-			// clean runtime directory
-			if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
-				klog.ErrorS(err, "clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())
+		go func() {
+			if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kkcorev1.PipelinePhaseSucceed {
+				<-ctx.Done()
+				fmt.Fprintf(m.logOutput, "%s [Pipeline %s] clean runtime directory\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline))
+				// clean runtime directory
+				if err := os.RemoveAll(_const.GetRuntimeDir()); err != nil {
+					klog.ErrorS(err, "clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", _const.GetRuntimeDir())
+				}
 			}
-		}
+		}()
 		// if pipeline is cornJob. it's always running.
 		if m.Pipeline.Spec.JobSpec.Schedule != "" {
 			m.Pipeline.Status.Phase = kkcorev1.PipelinePhaseRunning
