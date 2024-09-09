@@ -56,6 +56,8 @@ func newArtifactExportCommand() *cobra.Command {
 					return err
 				}
 			}
+			// when package an artifact, should not contains certs
+			pipeline.Spec.SkipTags = []string{"certs"}
 
 			return run(ctx, pipeline, config, inventory)
 		},
