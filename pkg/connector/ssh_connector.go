@@ -31,8 +31,10 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 const (
@@ -53,7 +55,55 @@ func init() {
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
+func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
+	sudo, err := variable.BoolVar(nil, connectorVars, _const.VariableConnectorSudo)
+	if err != nil {
+		klog.InfoS("get connector sudo failed use default port 22", "error", err)
+		sudo = ptr.To(true)
+	}
+
+	// get host in connector variable. if empty, set default host: host_name.
+	hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
+	if err != nil {
+		klog.InfoS("get connector host failed use current hostname", "error", err)
+		hostParam = host
+	}
+	// get port in connector variable. if empty, set default port: 22.
+	portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
+	if err != nil {
+		klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
+		portParam = ptr.To(defaultSSHPort)
+	}
+	// get user in connector variable. if empty, set default user: root.
+	userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
+	if err != nil {
+		klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
+		userParam = defaultSSHUser
+	}
+	// get password in connector variable. if empty, should connector by private key.
+	passwdParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
+	if err != nil {
+		klog.V(4).InfoS("connector password is empty use public key")
+	}
+	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
+	keyParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPrivateKey)
+	if err != nil {
+		klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
+		keyParam = defaultSSHPrivateKey
+	}
+
+	return &sshConnector{
+		Sudo:       *sudo,
+		Host:       hostParam,
+		Port:       *portParam,
+		User:       userParam,
+		Password:   passwdParam,
+		PrivateKey: keyParam,
+	}
+}
+
 type sshConnector struct {
+	Sudo       bool
 	Host       string
 	Port       int
 	User       string
@@ -181,7 +231,11 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	return session.CombinedOutput(cmd)
+	if c.Sudo {
+		return session.CombinedOutput(fmt.Sprintf("sudo -E %s -c \"%q\"", shell, cmd))
+	}
+
+	return session.CombinedOutput(fmt.Sprintf("%s -c \"%q\"", shell, cmd))
 }
 
 // HostInfo for GatherFacts
