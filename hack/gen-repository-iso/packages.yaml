@@ -40,45 +40,26 @@ debs:
   - software-properties-common
   - sudo
 
-centos:
-  - containerd.io
+centos: []
 
 centos7:
   - libselinux-python
-  - docker-ce-20.10.8
-  - docker-ce-cli-20.10.8
 
-debian:
-  - containerd.io
+debian: []
 
-debian10:
-  - docker-ce=5:20.10.8~3-0~debian-buster
-  - docker-ce-cli=5:20.10.8~3-0~debian-buster
+debian10: []
 
-debian11:
-  - docker-ce=5:20.10.8~3-0~debian-bullseye
-  - docker-ce-cli=5:20.10.8~3-0~debian-bullseye
+debian11: []
 
-ubuntu:
-  - containerd.io
+ubuntu: []
 
-ubuntu1804:
-  - docker-ce=5:20.10.8~3-0~ubuntu-bionic
-  - docker-ce-cli=5:20.10.8~3-0~ubuntu-bionic
+ubuntu1804: []
 
-ubuntu2004:
-  - docker-ce=5:20.10.8~3-0~ubuntu-focal
-  - docker-ce-cli=5:20.10.8~3-0~ubuntu-focal
+ubuntu2004: []
 
 # The minimum version of docker-ce on ubuntu 2204 is 20.10.13
-ubuntu2204:
-  - docker-ce=5:20.10.13~3-0~ubuntu-jammy
-  - docker-ce-cli=5:20.10.13~3-0~ubuntu-jammy
+ubuntu2204: []
 
-almalinux:
-  - containerd.io
-  - docker-compose-plugin
+almalinux: []
 
-almalinux90:
-  - docker-ce-20.10.17
-  - docker-ce-cli-20.10.17
+almalinux90: []
