@@ -1,0 +1,28 @@
+---
+- include_tasks: kube.yaml
+  tags: ["certs"]
+
+- include_tasks: etcd.yaml
+  tags: ["certs"]
+  when:
+  - and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | len | lt 0)
+  - .renew_etcd
+
+- name: Reload kubernetes pods
+  tags: [ "certs" ]
+  command: |
+    {{- if .cri.container_manager | eq "docker" }}
+    docker ps -af name=k8s_PODS_kube-apiserver* -q | xargs --no-run-if-empty docker rm -f
+    docker ps -af name=k8s_PODS_kube-controller-manager* -q | xargs --no-run-if-empty docker rm -f
+    docker ps -af name=k8s_PODS_kube-scheduler* -q | xargs --no-run-if-empty docker rm -f
+      {{- if and (.kubernetes.etcd.deployment_type | eq "docker") .renew_etcd }}
+    docker ps -af name=k8s_PODS_etcd* -q | xargs --no-run-if-empty docker rm -f
+      {{- end }}
+    {{- else }}
+    crictl pods --name kube-apiserver-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
+    crictl pods --name kube-controller-manager-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
+    crictl pods --name kube-scheduler-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
+      {{- if and (.kubernetes.etcd.deployment_type | eq "internal") .renew_etcd }}
+    crictl pods --name etcd-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
+      {{- end }}
+    {{- end }}

@@ -1,0 +1,15 @@
+---
+- hosts:
+    - kube_control_plane
+  roles:
+    - kubernetes/stop
+
+- hosts:
+    - etcd
+  roles:
+    - etcd/restore
+
+- hosts:
+    - kube_control_plane
+  roles:
+    - kubernetes/start

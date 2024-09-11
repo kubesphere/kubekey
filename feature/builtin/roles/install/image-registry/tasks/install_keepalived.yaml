@@ -1,0 +1,23 @@
+---
+- name: Sync keepalived image to remote
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/image-registry/keepalived/{{ .keepalived_version }}/{{ .binary_type.stdout }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type.stdout }}.tgz
+    dest: |
+      /opt/keepalived/{{ .keepalived_version }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type.stdout }}.tgz
+
+- name: Load keeplived image
+  command: |
+    docker load -i /opt/keepalived/{{ .keepalived_version }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type.stdout }}.tgz
+
+- name: Sync keeplived config to remote
+  template:
+    src: keeplived.config
+    dest: |
+      /opt/keeplived/{{ .keepalived_version }}/keepalived.conf
+
+- name: Sync healthcheck shell to remote
+  template:
+    src: keepalived.healthcheck
+    dest: |
+      /opt/keeplived/{{ .keepalived_version }}/healthcheck.sh

@@ -1,0 +1,28 @@
+sonobuoy_version: v0.57.1
+work_dir: /kubekey
+sonobuoy:
+  amd64: |
+    {{- if .kkzone | eq "cn" }}
+    https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/{{ .sonobuoy_version }}/sonobuoy_{{ .sonobuoy_version | trimPrefix "v" }}_linux_amd64.tar.gz
+    {{- else }}
+    https://github.com/vmware-tanzu/sonobuoy/releases/download/{{ .sonobuoy_version }}/sonobuoy_{{ .sonobuoy_version | trimPrefix "v" }}_linux_amd64.tar.gz
+    {{- end }}
+  arm64: |
+    {{- if .kkzone | eq "cn" }}
+    https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/{{ .sonobuoy_version }}/sonobuoy_{{ .sonobuoy_version | trimPrefix "v" }}_linux_arm64.tar.gz
+    {{- else }}
+    https://github.com/vmware-tanzu/sonobuoy/releases/download/{{ .sonobuoy_version }}/sonobuoy_{{ .sonobuoy_version | trimPrefix "v" }}_linux_arm64.tar.gz
+    {{- end }}
+plugins:
+  systemd_logs:
+    enabled: false
+  e2e:
+    enabled: false
+  e2e_ks:
+    enabled: false
+    image: registry.cn-beijing.aliyuncs.com/kubesphereio/conformance:{{ .kube_version }}
+  kube_bench:
+    enabled: false
+    image: sonobuoy/kube-bench:v0.6.17
+
+

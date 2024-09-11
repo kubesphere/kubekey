@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Config
+clusters:
+  - name: kube-auditing
+    cluster:
+      server: https://SHOULD_BE_REPLACED:6443/audit/webhook/event
+      insecure-skip-tls-verify: true
+contexts:
+  - context:
+      cluster: kube-auditing
+      user: ""
+    name: default-context
+current-context: default-context
+preferences: {}
+users: []

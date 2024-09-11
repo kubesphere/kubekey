@@ -1,0 +1,51 @@
+---
+- name: Check kubeadm version
+  tags: ["certs"]
+  run_once: true
+  command: kubeadm version -o short
+  register: kubeadm_install_version
+
+- name: Renew cert by kubeadm
+  tags: ["certs"]
+  run_once: true
+  command: |
+    {{- if .kubeadm_install_version.stdout | semverCompare "<v1.20.0" }}
+    /usr/local/bin/kubeadm alpha certs renew apiserver
+    /usr/local/bin/kubeadm alpha certs renew apiserver-kubelet-client
+    /usr/local/bin/kubeadm alpha certs renew front-proxy-client
+    /usr/local/bin/kubeadm alpha certs renew admin.conf
+    /usr/local/bin/kubeadm alpha certs renew controller-manager.conf
+    /usr/local/bin/kubeadm alpha certs renew scheduler.conf
+      {{- if and (.kubernetes.etcd.deployment_type | eq "internal") .renew_etcd }}
+    /usr/local/bin/kubeadm alpha certs renew etcd-healthcheck-client
+    /usr/local/bin/kubeadm alpha certs renew etcd-peer
+    /usr/local/bin/kubeadm alpha certs renew etcd-server
+      {{- end }}
+    {{- else }}
+    /usr/local/bin/kubeadm certs renew apiserver
+    /usr/local/bin/kubeadm certs renew apiserver-kubelet-client
+    /usr/local/bin/kubeadm certs renew front-proxy-client
+    /usr/local/bin/kubeadm certs renew admin.conf
+    /usr/local/bin/kubeadm certs renew controller-manager.conf
+    /usr/local/bin/kubeadm certs renew scheduler.conf
+      {{- if and (.kubernetes.etcd.deployment_type | eq "internal") .renew_etcd }}
+    /usr/local/bin/kubeadm certs renew etcd-healthcheck-client
+    /usr/local/bin/kubeadm certs renew etcd-peer
+    /usr/local/bin/kubeadm certs renew etcd-server
+      {{- end }}
+    {{- end }}
+
+- name: Fetch kubeconfig to local
+  tags: ["certs"]
+  run_once: true
+  fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: |
+      {{ .work_dir }}/kubekey/kubeconfig
+
+- name: Sync kubeconfig to remote
+  tags: ["certs"]
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/kubeconfig
+    dest: /root/.kube/config

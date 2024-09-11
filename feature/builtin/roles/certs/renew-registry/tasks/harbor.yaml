@@ -1,0 +1,20 @@
+---
+- name: Sync image registry cert file to remote
+  tags: ["certs"]
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/pki/image_registry.crt
+    dest: |
+      /opt/harbor/{{ .harbor_version }}/ssl/server.crt
+
+- name: Sync image registry key file to remote
+  tags: ["certs"]
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/pki/image_registry.key
+    dest: |
+      /opt/harbor/{{ .harbor_version }}/ssl/server.key
+
+- name: Restart harbor service
+  tags: ["certs"]
+  command: systemctl restart harbor.service

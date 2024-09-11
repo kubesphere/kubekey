@@ -1,0 +1,11 @@
+---
+- name: Generate calico manifest
+  template:
+    src: |
+      calico/{{ slice (.calico_version | splitList ".") 0 2 | join "." }}.yaml
+    dest: |
+      /etc/kubernetes/cni/calico-{{ .calico_version }}.yaml
+
+- name: Apply calico
+  command: |
+    kubectl apply -f /etc/kubernetes/cni/calico-{{ .calico_version }}.yaml --force

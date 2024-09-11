@@ -1,0 +1,17 @@
+#!/bin/bash
+
+{{- if .image_registry.type | eq "registry" }}
+# registry service
+service=registry:5000
+{{- else }}
+# harbor service
+service=harbor:80
+{{- end }}
+
+nc -zv -w 2 $service > /dev/null 2>&1
+
+if [ $? -eq 0 ]; then
+    exit 0
+else
+    exit 1
+fi
