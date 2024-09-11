@@ -36,7 +36,7 @@ const (
 	connectedKubernetes = "kubernetes"
 )
 
-var shell = commandShell()
+var localShell = commandShell()
 
 // Connector is the interface for connecting to a remote host
 type Connector interface {

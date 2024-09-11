@@ -114,7 +114,7 @@ func (c *kubernetesConnector) PutFile(_ context.Context, src []byte, dst string,
 func (c *kubernetesConnector) FetchFile(ctx context.Context, src string, dst io.Writer) error {
 	// add "--kubeconfig" to src command
 	klog.V(5).InfoS("exec local command", "cmd", src)
-	command := c.Cmd.CommandContext(ctx, "/bin/sh", "-c", src)
+	command := c.Cmd.CommandContext(ctx, localShell, "-c", src)
 	command.SetDir(c.homeDir)
 	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homeDir, kubeconfigRelPath)})
 	command.SetStdout(dst)
@@ -127,7 +127,7 @@ func (c *kubernetesConnector) FetchFile(ctx context.Context, src string, dst io.
 func (c *kubernetesConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	// add "--kubeconfig" to src command
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
-	command := c.Cmd.CommandContext(ctx, shell, "-c", cmd)
+	command := c.Cmd.CommandContext(ctx, localShell, "-c", cmd)
 	command.SetDir(c.homeDir)
 	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homeDir, kubeconfigRelPath)})
 

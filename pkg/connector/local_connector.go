@@ -28,7 +28,6 @@ import (
 
 	"k8s.io/klog/v2"
 	"k8s.io/utils/exec"
-	"k8s.io/utils/ptr"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -38,17 +37,16 @@ var _ Connector = &localConnector{}
 var _ GatherFacts = &localConnector{}
 
 func newLocalConnector(connectorVars map[string]any) *localConnector {
-	sudo, err := variable.BoolVar(nil, connectorVars, _const.VariableConnectorSudo)
+	sudo, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorSudoPassword)
 	if err != nil {
-		klog.InfoS("get connector sudo failed use default port 22", "error", err)
-		sudo = ptr.To(true)
+		klog.V(4).InfoS("get connector sudo password failed, execute command without sudo", "error", err)
 	}
 
-	return &localConnector{Sudo: *sudo, Cmd: exec.New()}
+	return &localConnector{Sudo: sudo, Cmd: exec.New()}
 }
 
 type localConnector struct {
-	Sudo bool
+	Sudo string
 	Cmd  exec.Interface
 }
 
@@ -97,11 +95,16 @@ func (c *localConnector) FetchFile(_ context.Context, src string, dst io.Writer)
 // ExecuteCommand in local host
 func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
-	if c.Sudo {
-		return c.Cmd.CommandContext(ctx, "sudo", "-E", shell, "-c", cmd).CombinedOutput()
+	// find command interpreter in env. default /bin/bash
+
+	if c.Sudo != "" {
+		command := c.Cmd.CommandContext(ctx, "sudo", "-E", localShell, "-c", cmd)
+		command.SetStdin(bytes.NewBufferString(c.Sudo + "\n"))
+
+		return command.CombinedOutput()
 	}
 
-	return c.Cmd.CommandContext(ctx, shell, "-c", cmd).CombinedOutput()
+	return c.Cmd.CommandContext(ctx, localShell, "-c", cmd).CombinedOutput()
 }
 
 // HostInfo for GatherFacts
