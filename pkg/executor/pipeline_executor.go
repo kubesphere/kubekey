@@ -168,7 +168,7 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			option:       e.option,
 			hosts:        serials,
 			ignoreErrors: play.IgnoreErrors,
-			blocks:       play.Tasks,
+			blocks:       play.PostTasks,
 			tags:         play.Taggable,
 		}.Exec(ctx)); err != nil {
 			return fmt.Errorf("execute post-tasks error: %w", err)
