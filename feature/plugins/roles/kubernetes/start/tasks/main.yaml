@@ -1,0 +1,14 @@
+---
+- name: Start cri in kubernetes
+  block:
+    - name: Stop docker in kubernetes
+      command: |
+        systemctl start docker
+      when: .cri.container_manager | eq "docker"
+    - name: Start containerd in kubernetes
+      command: |
+        systemctl start containerd
+      when: .cri.container_manager | eq "containerd"
+
+- name: Start kubelet in kubernetes
+  command: systemctl start kubelet

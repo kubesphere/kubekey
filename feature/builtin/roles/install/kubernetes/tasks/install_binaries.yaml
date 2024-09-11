@@ -1,0 +1,92 @@
+---
+- name: Check if helm is installed
+  ignore_errors: true
+  command: helm version
+  register: helm_install_version
+- name: Install helm
+  when: or (.helm_install_version.stderr | ne "") (.helm_install_version.stdout | contains (printf "Version:\"%s\"" .helm_version) | not)
+  block:
+    - name: Sync helm to remote
+      copy:
+        src: |
+          {{ .work_dir }}/kubekey/helm/{{ .helm_version }}/{{ .binary_type.stdout }}/helm-{{ .helm_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+        dest: |
+          /tmp/kubekey/helm-{{ .helm_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+    - name: Install helm
+      command: |
+        tar --strip-components=1 -zxvf /tmp/kubekey/helm-{{ .helm_version }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin linux-{{ .binary_type.stdout }}/helm
+
+- name: Check if kubeadm is installed
+  ignore_errors: true
+  command: kubeadm version -o short
+  register: kubeadm_install_version
+- name: Install kubeadm
+  when: or (.kubeadm_install_version.stderr | ne "") (.kubeadm_install_version.stdout | ne .kube_version)
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubeadm
+    dest: /usr/local/bin/kubeadm
+    mode: 0755
+
+- name: Check if kubectl is installed
+  ignore_errors: true
+  command: kubectl version
+  register: kubectl_install_version
+- name: Sync kubectl to remote
+  when: or (.kubectl_install_version.stderr | ne "") (.kubectl_install_version.stdout | contains (printf "GitVersion:\"%s\"" .kube_version) | not)
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: 0755
+
+- name: Check if kubelet is installed
+  ignore_errors: true
+  command: kubelet --version
+  register: kubelet_install_version
+- name: Install kubelet
+  when: or (.kubelet_install_version.stderr | ne "") (.kubelet_install_version.stdout | ne (printf "Kubernetes %s" .kube_version))
+  block:
+    - name: Sync kubelet to remote
+      copy:
+        src: |
+          {{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubelet
+        dest: /usr/local/bin/kubelet
+        mode: 0755
+    - name: Sync kubelet env to remote
+      template:
+        src: kubeadm/kubelet.env
+        dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    - name: Sync kubelet service to remote
+      copy:
+        src: kubelet.service
+        dest: /etc/systemd/system/kubelet.service
+    - name: Register kubelet service
+      command: systemctl daemon-reload && systemctl enable kubelet.service
+
+- name: Check if calicoctl is installed
+  ignore_errors: true
+  command: calicoctl --version
+  register: calicoctl_install_version
+- name: Install calicoctl
+  when:
+    - and .calico_version (ne .calico_version "")
+    - |
+      or (.calicoctl_install_version.stderr | ne "") (.calicoctl_install_version.stdout | contains (printf "Client Version:    %s" .calico_version) | not)
+  block:
+    - name: Sync calicoctl to remote
+      copy:
+        src: |
+          {{ .work_dir }}/kubekey/cni/{{ .calico_version }}/{{ .binary_type.stdout }}/calicoctl
+        dest: /usr/local/bin/calicoctl
+        mode: 0755
+    - name: Sync kubelet env to remote
+      template:
+        src: kubeadm/kubelet.env
+        dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    - name: Sync kubelet service to remote
+      copy:
+        src: kubelet.service
+        dest: /etc/systemd/system/kubelet.service
+    - name: Register kubelet service
+      command: systemctl daemon-reload && systemctl enable kubelet.service

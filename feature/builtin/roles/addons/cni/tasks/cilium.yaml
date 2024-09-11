@@ -1,0 +1,37 @@
+---
+- name: Sync cilium helm chart to remote
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/cni/cilium-{{ .cilium_version }}.tgz
+    dest: |
+      /etc/kubernetes/cni/cilium-{{ .cilium_version }}.tgz
+
+# https://docs.cilium.io/en/stable/installation/k8s-install-helm/
+- name: Install cilium
+  command: |
+    helm install cilium /etc/kubernetes/cni/cilium-{{ .cilium_version }}.tgz --namespace kube-system \
+      --set image.repository={{ .cni.cilium.cilium_repository }} \
+      --set preflight.image.repository={{ .cni.cilium.cilium_repository }} \
+      --set certgen.image.repository={{ .cni.cilium.certgen_repository }} \
+      --set hubble.relay.image.repository={{ .cni.cilium.hubble_relay_repository }} \
+      --set hubble.ui.backend.image.repository={{ .cni.cilium.hubble_ui_backend_repository }} \
+      --set hubble.ui.frontend.image.repository={{ .cni.cilium.hubble_ui_repository }} \
+      --set envoy.image.repository={{ .cni.cilium.cilium_envoy_repository }} \
+      --set etcd.image.repository={{ .cni.cilium.cilium_etcd_operator_repository }} \
+      --set operator.image.repository={{ .cni.cilium.operator_repository }} \
+      --set nodeinit.image.repository={{ .cni.cilium.startup_script_repository }} \
+      --set clustermesh.apiserver.image.repository={{ .cni.cilium.clustermesh_apiserver_repository }} \
+      --set authentication.mutual.spire.install.initImage.image.repository={{ .cni.cilium.busybox_repository }} \
+      --set authentication.mutual.spire.install.agent.image.repository={{ .cni.cilium.spire_agent_repository }} \
+      --set authentication.mutual.spire.install.server.image.repository={{ .cni.cilium.spire_server_repository }} \
+      --set operator.replicas={{ .cni.cilium.operator_replicas }} \
+      --set ipv6.enabled={{ .cni.ipv6_support }} \
+      --set ipv4NativeRoutingCIDR: {{ .cni.kube_pods_v4_cidr }} \
+    {{- if .cni.ipv6_support }}
+      --set ipv6NativeRoutingCIDR: {{ .cni.kube_pods_v6_cidr }} \
+    {{- end }}
+    {{- if .cni.kube_proxy }}
+      --set kubeProxyReplacement=strict \
+      --set k8sServiceHost={{ .cni.cilium.k8s_endpoint }} \
+      --set k8sServicePort={{ .cni.cilium.k8s_port }}
+    {{- end }}

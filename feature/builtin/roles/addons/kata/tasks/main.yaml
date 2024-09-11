@@ -1,0 +1,11 @@
+---
+- name: Generate kata deploy file
+  template:
+    src: kata-deploy.yaml
+    dest: /etc/kubernetes/addons/kata-deploy.yaml
+  when: .kata.enabled
+
+- name: Deploy kata
+  command: |
+    kubectl apply -f /etc/kubernetes/addons/kata-deploy.yaml
+  when: .kata.enabled

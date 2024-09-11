@@ -1,0 +1,6 @@
+- hosts:
+    - localhost
+  tags: ["always"]
+  roles:
+    - init/init-artifact
+    - install/image-registry

@@ -1,0 +1,76 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: {{ include "common.labels" . | nindent 4 }}
+    app: kk-operator
+  name: kk-operator
+  namespace: {{ .Release.Namespace }}
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+    type: RollingUpdate
+  progressDeadlineSeconds: 600
+  replicas: {{ .Values.operator.replicaCount }}
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kk-operator
+  template:
+    metadata:
+      labels: {{ include "common.labels" .  | nindent 8 }}
+        app: kk-operator
+    spec:
+      serviceAccountName: kk-operator
+      {{- if .Values.operator.pullSecrets }}
+      imagePullSecrets: {{ .Values.operator.pullSecrets }}
+      {{- end }}
+      {{- if .Values.operator.nodeSelector }}
+      nodeSelector: {{ .Values.operator.nodeSelector }}
+      {{- end }}
+      {{- if .Values.operator.affinity }}
+      affinity: {{ .Values.operator.affinity }}
+      {{- end }}
+      {{- if .Values.operator.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.operator.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      dnsPolicy: {{ .Values.operator.dnsPolicy }}
+      restartPolicy: {{ .Values.operator.restartPolicy }}
+      schedulerName: {{ .Values.operator.schedulerName }}
+      terminationGracePeriodSeconds: {{ .Values.operator.terminationGracePeriodSeconds }}
+      containers:
+        - name: ks-controller-manager
+          image: {{ template "operator.image" . }}
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          {{- if .Values.operator.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.operator.command "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            {{- if .Values.operator.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.operator.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+            - name: EXECUTOR_IMAGE
+              value: {{ template "executor.image" . }}
+            - name: EXECUTOR_IMAGE_PULLPOLICY
+              value: {{ .Values.executor.image.pullPolicy }}
+            - name: EXECUTOR_SERVICEACCOUNT
+              value: kk-executor
+          {{- if .Values.operator.resources }}
+          resources: {{- toYaml .Values.operator.resources | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /etc/localtime
+              name: host-time
+              readOnly: true
+          {{- if .Values.operator.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.operator.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+      volumes:
+        - hostPath:
+            path: /etc/localtime
+            type: ""
+          name: host-time
+        {{- if .Values.operator.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.operator.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}

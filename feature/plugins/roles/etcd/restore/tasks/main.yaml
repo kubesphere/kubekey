@@ -1,0 +1,31 @@
+---
+- name: Sync etcd snapshot to remote
+  copy:
+    src: "{{ .work_dir }}/kubekey/etcd/snapshot.db"
+    dest: /tmp/kubekey/etcd/snapshot.db
+
+- name: Stop etcd
+  command: systemctl stop etcd
+
+- name: Remove etcd data dir
+  command: |
+    rm -rf /var/lib/etcd/*
+
+- name: Restore etcd by snapshot
+  command: |
+    export $(cat /etc/etcd.env | grep ETCDCTL_CACERT)
+    export $(cat /etc/etcd.env | grep ETCDCTL_CERT)
+    export $(cat /etc/etcd.env | grep ETCDCTL_KEY)
+    etcdctl snapshot restore /tmp/kubekey/etcd/snapshot.db \
+        --name={{ .inventory_name }} --endpoints=https://{{ .internal_ipv4 }}:2379 \
+    {{- $ips := list -}}
+    {{- range $element := .groups.etcd -}}
+      {{- $ips = append $ips (printf "%s=https://%s:2380" (index .inventory_hosts $element "inventory_name") (index .inventory_hosts $element "internal_ipv4") -}}
+    {{- end -}}
+        --initial-cluster={{ $ips | join "," }} \
+        --initial-advertise-peer-urls=https://{{ .internal_ipv4 }}:2380\
+        --initial-cluster-token={{ .etcd.env.token }} \
+        --data-dir={{ .etcd.env.data_dir }}
+
+- name: Start etcd
+  command: systemctl start etcd
