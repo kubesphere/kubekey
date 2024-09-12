@@ -26,18 +26,22 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 const (
-	defaultSSHPort = 22
-	defaultSSHUser = "root"
+	defaultSSHPort  = 22
+	defaultSSHUser  = "root"
+	defaultSSHSHELL = "/bin/bash"
 )
 
 var defaultSSHPrivateKey string
@@ -53,13 +57,64 @@ func init() {
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
+func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
+	sudo, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorSudoPassword)
+	if err != nil {
+		klog.V(4).InfoS("get connector sudo password failed, execute command without sudo", "error", err)
+	}
+
+	// get host in connector variable. if empty, set default host: host_name.
+	hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
+	if err != nil {
+		klog.V(4).InfoS("get connector host failed use current hostname", "error", err)
+		hostParam = host
+	}
+	// get port in connector variable. if empty, set default port: 22.
+	portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
+	if err != nil {
+		klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
+		portParam = ptr.To(defaultSSHPort)
+	}
+	// get user in connector variable. if empty, set default user: root.
+	userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
+	if err != nil {
+		klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
+		userParam = defaultSSHUser
+	}
+	// get password in connector variable. if empty, should connector by private key.
+	passwdParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
+	if err != nil {
+		klog.V(4).InfoS("connector password is empty use public key")
+	}
+	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
+	keyParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPrivateKey)
+	if err != nil {
+		klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
+		keyParam = defaultSSHPrivateKey
+	}
+
+	return &sshConnector{
+		Sudo:       sudo,
+		Host:       hostParam,
+		Port:       *portParam,
+		User:       userParam,
+		Password:   passwdParam,
+		PrivateKey: keyParam,
+		shell:      defaultSSHSHELL,
+	}
+}
+
 type sshConnector struct {
+	Sudo       string
 	Host       string
 	Port       int
 	User       string
 	Password   string
 	PrivateKey string
-	client     *ssh.Client
+
+	client *ssh.Client
+	// shell to execute command
+	shell string
 }
 
 // Init connector, get ssh.Client
@@ -96,6 +151,22 @@ func (c *sshConnector) Init(context.Context) error {
 		return err
 	}
 	c.client = sshClient
+
+	// get shell from env
+	session, err := sshClient.NewSession()
+	if err != nil {
+		return fmt.Errorf("create session error: %w", err)
+	}
+	defer session.Close()
+
+	output, err := session.CombinedOutput("echo $SHELL")
+	if err != nil {
+		return fmt.Errorf("env command error: %w", err)
+	}
+
+	if strings.TrimSuffix(string(output), "\n") != "" {
+		c.shell = strings.TrimSuffix(string(output), "\n")
+	}
 
 	return nil
 }
@@ -181,7 +252,39 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	return session.CombinedOutput(cmd)
+	if c.Sudo != "" {
+		cmd = fmt.Sprintf("sudo -E %s -c \"%q\"", c.shell, cmd)
+		// get pipe from session
+		stdin, _ := session.StdinPipe()
+		stdout, _ := session.StdoutPipe()
+		stderr, _ := session.StderrPipe()
+		// Request a pseudo-terminal (required for sudo password input)
+		if err := session.RequestPty("xterm", 80, 40, ssh.TerminalModes{}); err != nil {
+			return nil, err
+		}
+		// Start the remote command
+		if err := session.Start(cmd); err != nil {
+			return nil, err
+		}
+		// Write sudo password to the standard input
+		if _, err := io.WriteString(stdin, c.Sudo+"\n"); err != nil {
+			return nil, err
+		}
+		// Read the command output
+		output := make([]byte, 0)
+		stdoutData, _ := io.ReadAll(stdout)
+		stderrData, _ := io.ReadAll(stderr)
+		output = append(output, stdoutData...)
+		output = append(output, stderrData...)
+		// Wait for the command to complete
+		if err := session.Wait(); err != nil {
+			return nil, err
+		}
+
+		return output, nil
+	}
+
+	return session.CombinedOutput(fmt.Sprintf("%s -c \"%q\"", c.shell, cmd))
 }
 
 // HostInfo for GatherFacts
