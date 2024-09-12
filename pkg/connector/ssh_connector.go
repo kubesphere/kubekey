@@ -58,11 +58,6 @@ var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
 func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
-	sudo, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorSudoPassword)
-	if err != nil {
-		klog.V(4).InfoS("get connector sudo password failed, execute command without sudo", "error", err)
-	}
-
 	// get host in connector variable. if empty, set default host: host_name.
 	hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
 	if err != nil {
@@ -94,7 +89,6 @@ func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
 	}
 
 	return &sshConnector{
-		Sudo:       sudo,
 		Host:       hostParam,
 		Port:       *portParam,
 		User:       userParam,
@@ -105,7 +99,6 @@ func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
 }
 
 type sshConnector struct {
-	Sudo       string
 	Host       string
 	Port       int
 	User       string
@@ -252,39 +245,37 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	if c.Sudo != "" {
-		cmd = fmt.Sprintf("sudo -E %s -c \"%q\"", c.shell, cmd)
-		// get pipe from session
-		stdin, _ := session.StdinPipe()
-		stdout, _ := session.StdoutPipe()
-		stderr, _ := session.StderrPipe()
-		// Request a pseudo-terminal (required for sudo password input)
-		if err := session.RequestPty("xterm", 80, 40, ssh.TerminalModes{}); err != nil {
-			return nil, err
-		}
-		// Start the remote command
-		if err := session.Start(cmd); err != nil {
-			return nil, err
-		}
+	cmd = fmt.Sprintf("sudo -E %s -c \"%q\"", c.shell, cmd)
+	// get pipe from session
+	stdin, _ := session.StdinPipe()
+	stdout, _ := session.StdoutPipe()
+	stderr, _ := session.StderrPipe()
+	// Request a pseudo-terminal (required for sudo password input)
+	if err := session.RequestPty("xterm", 80, 40, ssh.TerminalModes{}); err != nil {
+		return nil, err
+	}
+	// Start the remote command
+	if err := session.Start(cmd); err != nil {
+		return nil, err
+	}
+	if c.Password != "" {
 		// Write sudo password to the standard input
-		if _, err := io.WriteString(stdin, c.Sudo+"\n"); err != nil {
+		if _, err := io.WriteString(stdin, c.Password+"\n"); err != nil {
 			return nil, err
 		}
-		// Read the command output
-		output := make([]byte, 0)
-		stdoutData, _ := io.ReadAll(stdout)
-		stderrData, _ := io.ReadAll(stderr)
-		output = append(output, stdoutData...)
-		output = append(output, stderrData...)
-		// Wait for the command to complete
-		if err := session.Wait(); err != nil {
-			return nil, err
-		}
-
-		return output, nil
+	}
+	// Read the command output
+	output := make([]byte, 0)
+	stdoutData, _ := io.ReadAll(stdout)
+	stderrData, _ := io.ReadAll(stderr)
+	output = append(output, stdoutData...)
+	output = append(output, stderrData...)
+	// Wait for the command to complete
+	if err := session.Wait(); err != nil {
+		return nil, err
 	}
 
-	return session.CombinedOutput(fmt.Sprintf("%s -c \"%q\"", c.shell, cmd))
+	return output, nil
 }
 
 // HostInfo for GatherFacts

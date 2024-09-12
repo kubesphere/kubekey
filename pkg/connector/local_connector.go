@@ -37,17 +37,17 @@ var _ Connector = &localConnector{}
 var _ GatherFacts = &localConnector{}
 
 func newLocalConnector(connectorVars map[string]any) *localConnector {
-	sudo, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorSudoPassword)
+	password, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
 	if err != nil {
 		klog.V(4).InfoS("get connector sudo password failed, execute command without sudo", "error", err)
 	}
 
-	return &localConnector{Sudo: sudo, Cmd: exec.New()}
+	return &localConnector{Password: password, Cmd: exec.New()}
 }
 
 type localConnector struct {
-	Sudo string
-	Cmd  exec.Interface
+	Password string
+	Cmd      exec.Interface
 }
 
 // Init connector. do nothing
@@ -97,14 +97,12 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
 	// find command interpreter in env. default /bin/bash
 
-	if c.Sudo != "" {
-		command := c.Cmd.CommandContext(ctx, "sudo", "-E", localShell, "-c", cmd)
-		command.SetStdin(bytes.NewBufferString(c.Sudo + "\n"))
-
-		return command.CombinedOutput()
+	command := c.Cmd.CommandContext(ctx, "sudo", "-E", localShell, "-c", cmd)
+	if c.Password != "" {
+		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
 	}
 
-	return c.Cmd.CommandContext(ctx, localShell, "-c", cmd).CombinedOutput()
+	return command.CombinedOutput()
 }
 
 // HostInfo for GatherFacts

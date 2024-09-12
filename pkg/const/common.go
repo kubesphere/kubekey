@@ -30,8 +30,6 @@ const ( // === From inventory ===
 	VariableConnector = "connector"
 	// VariableConnectorType is connected type for VariableConnector.
 	VariableConnectorType = "type"
-	// VariableConnectorSudoPassword is connected address for VariableConnector.
-	VariableConnectorSudoPassword = "sudo_password"
 	// VariableConnectorHost is connected address for VariableConnector.
 	VariableConnectorHost = "host"
 	// VariableConnectorPort is connected address for VariableConnector.
