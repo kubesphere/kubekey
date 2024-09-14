@@ -235,7 +235,7 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 }
 
 // ExecuteCommand in remote host
-func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, error) {
+func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
 	// create ssh session
 	session, err := c.client.NewSession()
