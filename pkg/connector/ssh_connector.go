@@ -246,7 +246,8 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	command := exec.Command("sudo", "-E", c.shell, "-c", fmt.Sprintf("\"%s\"", cmd))
+	// nolint:gosec
+	command := exec.CommandContext(ctx, "sudo", "-E", c.shell, "-c", fmt.Sprint("\""), cmd, fmt.Sprint("\""))
 	// get pipe from session
 	stdin, _ := session.StdinPipe()
 	stdout, _ := session.StdoutPipe()
