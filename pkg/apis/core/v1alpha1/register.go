@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 is the internal version, should not register in kubernetes
+// Package v1beta1 is the internal version, should not register in kubernetes
 // +k8s:deepcopy-gen=package,register
 // +groupName=kubekey.kubesphere.io
 // +kubebuilder:skip
@@ -27,7 +27,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "kubekey.kubesphere.io", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "kubekey.kubesphere.io", Version: "v1beta1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}

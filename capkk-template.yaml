@@ -1,0 +1,208 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.233.0.0/18"]
+    pods:
+      cidrBlocks: ["10.233.64.0/18"]
+    serviceDomain: "cluster.local"
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: KKCluster
+    name: '${CLUSTER_NAME}'
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    name: "${CLUSTER_NAME}-control-plane"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKCluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  labels:
+    cluster.x-k8s.io/v1beta1: v1beta1
+spec:
+  distribution: "This cluster created for test"
+  inventoryRef:
+    apiVersion: kubekey.kubesphere.io/v1
+    kind: Inventory
+    name: "${CLUSTER_NAME}-inventory"
+  configRef:
+    apiVersion: kubekey.kubesphere.io/v1
+    kind: Config
+    name: "${CLUSTER_NAME}-config"
+  nodeSelectorMode: "Sequence"
+  controlPlaneGroupName: "kube_control_plane"
+  workerGroupName: "kube_worker"
+  controlPlaneEndpoint: 
+    host: "172.31.19.6"
+    port: 6443
+---
+apiVersion: kubekey.kubesphere.io/v1
+kind: Inventory
+metadata:
+  name: "${CLUSTER_NAME}-inventory"
+spec:
+  hosts:
+#    localhost:
+#      connector:
+#        type: local
+    k8s-control-plane-node:
+      internal_ipv4: 172.31.19.6
+      connector:
+        type: ssh
+        host: 139.198.121.174
+        port: 30001
+        user: root
+        private_key: /root/.ssh/id_rsa
+    k8s-work-node-1:
+      internal_ipv4: 172.31.19.8
+      connector:
+        type: ssh
+        host: 139.198.121.174
+        port: 30002
+        user: root
+        private_key: /root/.ssh/id_rsa
+    k8s-work-node-2:
+      internal_ipv4: 172.31.19.9
+      connector:
+        type: ssh
+        host: 139.198.121.174
+        port: 30003
+        user: root
+        private_key: /root/.ssh/id_rsa
+  groups:
+    # all kubernetes nodes.
+    k8s_cluster:
+      groups:
+        - kube_control_plane
+        - kube_worker
+    # control_plane nodes
+    kube_control_plane:
+      hosts:
+        - k8s-control-plane-node
+    # worker nodes
+    kube_worker:
+      hosts:
+        - k8s-work-node-1
+        - k8s-work-node-2
+    # etcd nodes when etcd_deployment_type is external
+    etcd:
+      hosts:
+        - k8s-control-plane-node
+---
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  replicas: ${CONTROL_PLANE_NODE_COUNT}
+  machineTemplate:
+    infrastructureRef:
+      kind: KKMachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: "${CLUSTER_NAME}-control-plane"
+  kubeadmConfigSpec:
+    initConfiguration:
+      nodeRegistration:
+        criSocket: unix:///var/run/containerd/containerd.sock
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: unix:///var/run/containerd/containerd.sock
+  version: '${K8S_VERSION}'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/v1beta1: v1beta1
+        cluster.x-k8s.io/cluster-name: '${CLUSTER_NAME}'
+        cluster.x-k8s.io/control-plane: "true"
+    spec:
+      roles:
+        - control-plane
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  clusterName: '${CLUSTER_NAME}'
+  replicas: ${WORKER_NODE_COUNT}
+  selector:
+    matchLabels:
+  template:
+    spec:
+      clusterName: '${CLUSTER_NAME}'
+      version: '${K8S_VERSION}'
+      bootstrap:
+        configRef:
+          name: "${CLUSTER_NAME}-md-0"
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-worker"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: KKMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-worker"
+spec:
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/v1beta1: v1beta1
+        cluster.x-k8s.io/cluster-name: '${CLUSTER_NAME}'
+        cluster.x-k8s.io/deployment-name: "${CLUSTER_NAME}-md-0"
+    spec:
+      roles:
+        - worker
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: unix:///var/run/containerd/containerd.sock
+---
+apiVersion: kubekey.kubesphere.io/v1
+kind: Config
+metadata:
+  name: "${CLUSTER_NAME}-config"
+spec:
+  # zone for kk. how to download files
+  # kkzone: cn
+  # work_dir is the directory where the artifact is extracted.
+  work_dir: /kubekey
+  # the version of kubernetes to be installed.
+  # should be greater than or equal to kube_version_min_required.
+  kube_version: v1.23.15
+  # helm binary
+  helm_version: v3.14.2
+  # cni binary
+  cni_version: v1.2.0
+  # calicoctl binary
+  calico_version: v3.27.2
+  # etcd binary
+  etcd_version: v3.5.6
+  # crictl binary
+  crictl_version: v1.29.0
+  # docker binary
+  docker_version: 24.0.6
+  kubernetes:
+    apiserver:
+      certSANs:
+        - 139.198.121.174

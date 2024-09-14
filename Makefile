@@ -159,21 +159,29 @@ help: ## Display this help.
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-* targets
-	$(MAKE) generate-go-deepcopy-kubekey generate-manifests-kubekey generate-modules generate-goimports
+	$(MAKE) generate-go-deepcopy-kubekey generate-manifests-kubekey generate-manifests-capkk generate-modules generate-goimports
 
 .PHONY: generate-go-deepcopy-kubekey
 generate-go-deepcopy-kubekey: $(CONTROLLER_GEN) ## Generate deepcopy object
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./pkg/apis/"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate.go.txt \
-		paths=./pkg/apis/... \
+		paths=./pkg/apis/...
 
 .PHONY: generate-manifests-kubekey
-generate-manifests-kubekey: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+generate-manifests-kubekey: $(CONTROLLER_GEN) ## Generate kubekey manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./pkg/apis/core/... \
 		crd \
 		output:crd:dir=./config/kubekey/crds/
+
+.PHONY: generate-manifests-capkk
+generate-manifests-capkk: $(CONTROLLER_GEN) ## Generate capkk manifests e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
+		paths=./pkg/apis/capkk/... \
+		crd webhook \
+		output:crd:dir=./config/capkk/crds/ \
+		output:webhook:dir=./config/capkk/webhook/
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date

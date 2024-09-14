@@ -1,0 +1,5 @@
+[Unit]
+Description=Renew K8S control plane certificates
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/kube-scripts/k8s-certs-renew.sh

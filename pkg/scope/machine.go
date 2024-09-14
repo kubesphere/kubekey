@@ -18,11 +18,10 @@ package scope
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/pkg/errors"
-
-	infrastructurev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1alpha1"
+	infrastructurev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1beta1"
 
 	"k8s.io/utils/ptr"
 
@@ -30,12 +29,12 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
-	Client       client.Client
+	Client       ctrlclient.Client
 	ClusterScope *ClusterScope
 	Machine      *clusterv1.Machine
 	KKMachine    *infrastructurev1alpha1.KKMachine
@@ -59,7 +58,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 	helper, err := patch.NewHelper(params.KKMachine, params.Client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to init patch helper")
+		return nil, fmt.Errorf("%w: failed to init patch helper", err)
 	}
 
 	return &MachineScope{
@@ -74,7 +73,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 // MachineScope defines a scope defined around a machine and its cluster.
 type MachineScope struct {
-	client      client.Client
+	client      ctrlclient.Client
 	patchHelper *patch.Helper
 
 	ClusterScope *ClusterScope
@@ -149,17 +148,17 @@ func (m *MachineScope) SetFailureReason(v capierrors.MachineStatusError) {
 }
 
 // PatchObject persists the machine spec and status.
-func (m *MachineScope) PatchObject() error {
+func (m *MachineScope) PatchObject(ctx context.Context) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
 	return m.patchHelper.Patch(
-		context.TODO(),
+		ctx,
 		m.KKMachine)
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
-func (m *MachineScope) Close() error {
-	return m.PatchObject()
+func (m *MachineScope) Close(ctx context.Context) error {
+	return m.PatchObject(ctx)
 }
 
 // HasFailed returns the failure state of the machine scope.

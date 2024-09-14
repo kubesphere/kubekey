@@ -4,13 +4,33 @@ metadata:
   name: default
 spec:
   hosts: # your can set all nodes here. or set nodes on special groups.
-#    node1:
+#    localhost:
 #      connector:
-#        type: ssh
-#        host: node1
-#        port: 22
-#        user: root
-#        password: 123456
+#        type: local
+    k8s-master-node:
+      internal_ipv4: 172.31.19.6
+      connector:
+        type: ssh
+        host: 139.198.121.174
+        port: 30001
+        user: root
+        private_key: /Users/dyl/.ssh/id_rsa
+    k8s-work-node-1:
+      internal_ipv4: 172.31.19.8
+      connector:
+        type: ssh
+        host: 139.198.121.174
+        port: 30002
+        user: root
+        private_key: /Users/dyl/.ssh/id_rsa
+    k8s-work-node-2:
+      internal_ipv4: 172.31.19.9
+      connector:
+        type: ssh
+        host: 139.198.121.174
+        port: 30003
+        user: root
+        private_key: /Users/dyl/.ssh/id_rsa
   groups:
     # all kubernetes nodes.
     k8s_cluster:
@@ -20,15 +40,16 @@ spec:
     # control_plane nodes
     kube_control_plane:
       hosts:
-        - localhost
+        - k8s-master-node
     # worker nodes
     kube_worker:
       hosts:
-        - localhost
+        - k8s-work-node-1
+        - k8s-work-node-2
     # etcd nodes when etcd_deployment_type is external
     etcd:
       hosts:
-        - localhost
+        - k8s-master-node
 #    image_registry:
 #      hosts:
 #        - localhost

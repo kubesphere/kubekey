@@ -1,0 +1,19 @@
+---
+- name: Environment PreCheck
+  hosts:
+    - k8s_cluster
+    - etcd
+    - image_registry
+    - nfs
+  gather_facts: true
+  tags: [ "always" ]
+  roles:
+    - precheck/env_check
+
+- name: Initialize OS
+  hosts:
+    - k8s_cluster
+    - etcd
+    - image_registry
+  roles:
+    - init/init-os

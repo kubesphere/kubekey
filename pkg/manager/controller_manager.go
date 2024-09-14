@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	capkkv1beta1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1beta1"
+
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,6 +87,18 @@ func (c controllerManager) Run(ctx context.Context) error {
 		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		klog.ErrorS(err, "create kk-machine controller error")
+
+		return err
+	}
+
+	if err = (&capkkv1beta1.KKCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.ErrorS(err, "unable to create webhook", "webhook", "KKCluster")
+
+		return err
+	}
+
+	if err = (&capkkv1beta1.KKMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.ErrorS(err, "unable to create webhook", "webhook", "KKMachine")
 
 		return err
 	}

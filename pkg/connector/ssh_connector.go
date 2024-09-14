@@ -245,7 +245,9 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	cmd = fmt.Sprintf("sudo -E %s -c \"%q\"", c.shell, cmd)
+	// command := exec.Command("sudo", "-E", c.shell, "-c", fmt.Sprintf("\"%s\"", cmd))
+	command := fmt.Sprintf("sudo -E %s -c %q", c.shell, cmd)
+	// command := fmt.Sprintf("sudo -E %s -c %q", c.shell, cmd)
 	// get pipe from session
 	stdin, _ := session.StdinPipe()
 	stdout, _ := session.StdoutPipe()
@@ -255,7 +257,7 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 		return nil, err
 	}
 	// Start the remote command
-	if err := session.Start(cmd); err != nil {
+	if err := session.Start(command); err != nil {
 		return nil, err
 	}
 	if c.Password != "" {

@@ -44,3 +44,11 @@ spec:
 #  cridockerd_version: v0.3.10
   # nfs provisioner helm version
 #  nfs_provisioner_version: 4.0.18
+  kubernetes:
+    apiserver:
+      certSANs:
+        - 139.198.121.174
+#    kube_network_plugin: cilium
+#  cni:
+#    cilium:
+#      operator_replicas:

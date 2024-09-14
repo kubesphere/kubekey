@@ -1,0 +1,11 @@
+---
+- hosts:
+    - localhost
+  roles:
+    - init/init-artifact
+
+- hosts:
+    - etcd
+    - k8s_cluster
+  roles:
+    - init/init-os

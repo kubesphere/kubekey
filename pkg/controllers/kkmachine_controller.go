@@ -18,12 +18,17 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"time"
 
-	"github.com/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1alpha1"
+	infrav1beta1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1beta1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
@@ -38,12 +43,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // KKMachineReconciler reconciles a KKMachine object
 type KKMachineReconciler struct {
-	client.Client
+	ctrlclient.Client
 	Scheme *runtime.Scheme
 	record.EventRecorder
 
@@ -59,7 +64,7 @@ type KKMachineReconciler struct {
 
 func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	// Fetch the KKMachine.
-	kkMachine := &v1alpha1.KKMachine{}
+	kkMachine := &infrav1beta1.KKMachine{}
 	err := r.Get(ctx, req.NamespacedName, kkMachine)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -75,20 +80,22 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 	if machine == nil {
-		klog.V(5).InfoS("Machine Controller has not yet set OwnerRef")
+		klog.V(5).InfoS("Machine has not yet set OwnerRef",
+			"ProviderID", kkMachine.Spec.ProviderID)
 
 		return ctrl.Result{}, nil
 	}
 
-	klog.InfoS("machine", machine.Name)
+	klog.V(4).InfoS("Fetched machine", "machine", machine.Name)
 
-	// Fetch the Cluster.
+	// Fetch the Cluster & KKCluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
 	if err != nil {
 		klog.V(5).InfoS("Machine is missing cluster label or cluster does not exist")
 
 		return ctrl.Result{}, nil
 	}
+	klog.V(4).InfoS("Fetched cluster", "cluster", cluster.Name)
 
 	if annotations.IsPaused(cluster, kkMachine) {
 		klog.V(5).InfoS("KKMachine or linked Cluster is marked as paused. Won't reconcile")
@@ -96,20 +103,24 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	klog.InfoS("", "cluster", cluster.Name)
+	// Handle Deletion Early, avoid `KKCluster` delete earlier than `KKMachine`, which may causes some problem.
+	if !kkMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+		r.reconcileDelete(kkMachine)
 
-	klog.InfoS("", "KKCluster", cluster.Spec.InfrastructureRef.Name)
-	kkClusterName := client.ObjectKey{
+		return ctrl.Result{}, nil
+	}
+
+	kkCluster := &infrav1beta1.KKCluster{}
+	kkClusterName := ctrlclient.ObjectKey{
 		Namespace: kkMachine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-
-	kkCluster := &v1alpha1.KKCluster{}
 	if err := r.Client.Get(ctx, kkClusterName, kkCluster); err != nil {
 		klog.V(5).InfoS("KKCluster is not ready yet")
 
 		return ctrl.Result{}, nil
 	}
+	klog.V(4).InfoS("Fetched kk-cluster", "kk-cluster", kkCluster.Name)
 
 	// Create the cluster scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
@@ -119,7 +130,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ControllerName: "kk-cluster",
 	})
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
+		return reconcile.Result{}, fmt.Errorf("failed to create scope: %w", err)
 	}
 
 	// Create the machine scope
@@ -137,28 +148,90 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Always close the scope when exiting this function, so we can persist any KKMachine changes.
 	defer func() {
-		if err := machineScope.Close(); err != nil && retErr == nil {
+		if err := machineScope.Close(ctx); err != nil && retErr == nil {
 			klog.V(5).ErrorS(err, "failed to patch object")
 			retErr = err
 		}
 	}()
 
-	// if !kkMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-	// 	return r.reconcileDelete(ctx, machineScope)
-	// }
-	//
-	// return r.reconcileNormal(ctx, machineScope, infraCluster, infraCluster)
+	return r.reconcileNormal(ctx, machineScope)
+}
 
-	return ctrl.Result{}, nil
+func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, s *scope.MachineScope) (reconcile.Result, error) {
+	klog.V(4).Info("Reconcile KKMachine normal")
+
+	// If the KKMachine doesn't have our finalizer, add it.
+	if controllerutil.AddFinalizer(s.KKMachine, infrav1beta1.MachineFinalizer) {
+		// Register the finalizer immediately to avoid orphaning KK resources on delete
+		if err := s.PatchObject(ctx); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	if !s.ClusterScope.Cluster.Status.InfrastructureReady {
+		return reconcile.Result{}, nil
+	}
+
+	switch s.KKMachine.Status.Phase {
+	}
+
+	if s.IsRole(infrav1beta1.CONTROL_PLANE_ROLE) {
+		// Register instance with control plane load balancer
+	}
+
+	if s.IsRole(infrav1beta1.WORKER_ROLE) {
+		// ...
+	}
+
+	if s.GetProviderID() == "" {
+		// TODO: Hope to set as Inventory host
+		s.SetProviderID("123", s.Name())
+	}
+
+	return ctrl.Result{
+		RequeueAfter: 30 * time.Second,
+	}, nil
+}
+
+func (r *KKMachineReconciler) reconcileDelete(kkMachine *infrav1beta1.KKMachine) {
+	klog.V(4).Info("Reconcile KKCluster delete")
+
+	// Machine is deleted so remove the finalizer.
+	controllerutil.RemoveFinalizer(kkMachine, infrav1beta1.MachineFinalizer)
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *KKMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
+	// for KKMachine resources only
+	kkMachineFilter := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldKKMachine, okOld := e.ObjectOld.(*infrav1beta1.KKMachine)
+			newKKMachine, okNew := e.ObjectNew.(*infrav1beta1.KKMachine)
+
+			if !okOld || !okNew {
+				return false
+			}
+
+			oldCluster := oldKKMachine.DeepCopy()
+			newCluster := newKKMachine.DeepCopy()
+
+			oldCluster.Status = infrav1beta1.KKMachineStatus{}
+			newCluster.Status = infrav1beta1.KKMachineStatus{}
+
+			oldCluster.ObjectMeta.ResourceVersion = ""
+			newCluster.ObjectMeta.ResourceVersion = ""
+
+			return !reflect.DeepEqual(oldCluster, newCluster)
+		},
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(ctrlcontroller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(ctrl.LoggerFrom(ctx))).
-		For(&v1alpha1.KKMachine{}).
+		WithEventFilter(kkMachineFilter).
+		For(&infrav1beta1.KKMachine{}).
 		Complete(r)
 }

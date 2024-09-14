@@ -66,6 +66,33 @@ type InventoryList struct {
 	Items           []Inventory `json:"items"`
 }
 
+// GetHostsFromGroup flatten a specific `Inventory` group with de-duplication.
+func GetHostsFromGroup(inv *Inventory, groupName string, unavailableHosts, unavailableGroups map[string]struct{}) []string {
+	var hosts = make([]string, 0)
+	if v, ok := inv.Spec.Groups[groupName]; ok {
+		unavailableGroups[groupName] = struct{}{}
+		for _, cg := range v.Groups {
+			if _, exist := unavailableGroups[cg]; !exist {
+				unavailableGroups[cg] = struct{}{}
+				hosts = append(hosts, GetHostsFromGroup(inv, cg, unavailableHosts, unavailableGroups)...)
+			}
+		}
+
+		validHosts := make([]string, 0)
+		for _, hostName := range v.Hosts {
+			if _, ok := inv.Spec.Hosts[hostName]; ok {
+				if _, exist := unavailableHosts[hostName]; !exist {
+					unavailableHosts[hostName] = struct{}{}
+					validHosts = append(validHosts, hostName)
+				}
+			}
+		}
+		hosts = append(hosts, validHosts...)
+	}
+
+	return hosts
+}
+
 func init() {
 	SchemeBuilder.Register(&Inventory{}, &InventoryList{})
 }

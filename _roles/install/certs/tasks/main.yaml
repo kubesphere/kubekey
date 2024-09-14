@@ -1,0 +1,20 @@
+---
+- name: Generate renew script
+  template:
+    src: renew_script.sh
+    dest: /usr/local/bin/kube-scripts/renew_script.sh
+    mode: 0755
+
+- name: Sync renew service
+  copy:
+    src: k8s-certs-renew.service
+    dest: /etc/systemd/system/k8s-certs-renew.service
+
+- name: Sync renew timer
+  copy:
+    src: k8s-certs-renew.timer
+    dest: /etc/systemd/system/k8s-certs-renew.timer
+
+- name: Enable renew service
+  command:
+    systemctl daemon-reload && systemctl enable --now k8s-certs-renew.timer

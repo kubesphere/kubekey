@@ -18,14 +18,16 @@ package scope
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net"
 
-	"github.com/pkg/errors"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1alpha1"
+	"github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1beta1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -35,9 +37,9 @@ const (
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
-	Client         client.Client
+	Client         ctrlclient.Client
 	Cluster        *clusterv1.Cluster
-	KKCluster      *v1alpha1.KKCluster
+	KKCluster      *v1beta1.KKCluster
 	ControllerName string
 }
 
@@ -60,7 +62,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 	helper, err := patch.NewHelper(params.KKCluster, params.Client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to init patch helper")
+		return nil, fmt.Errorf("%w: failed to init patch helper", err)
 	}
 
 	clusterScope.patchHelper = helper
@@ -70,11 +72,11 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
-	client      client.Client
+	client      ctrlclient.Client
 	patchHelper *patch.Helper
 
 	Cluster   *clusterv1.Cluster
-	KKCluster *v1alpha1.KKCluster
+	KKCluster *v1beta1.KKCluster
 
 	controllerName string
 }
@@ -100,39 +102,21 @@ func (s *ClusterScope) KubernetesClusterName() string {
 }
 
 // GetKKMachines returns the list of KKMachines for a KKCluster.
-func (s *ClusterScope) GetKKMachines(ctx context.Context) (*v1alpha1.KKMachineList, error) {
-	kkMachineList := &v1alpha1.KKMachineList{}
+func (s *ClusterScope) GetKKMachines(ctx context.Context) (*v1beta1.KKMachineList, error) {
+	kkMachineList := &v1beta1.KKMachineList{}
 	if err := s.client.List(
 		ctx,
 		kkMachineList,
-		client.InNamespace(s.KKCluster.Namespace),
-		client.MatchingLabels{
+		ctrlclient.InNamespace(s.KKCluster.Namespace),
+		ctrlclient.MatchingLabels{
 			KKClusterLabelName: s.KKCluster.Name,
 		},
 	); err != nil {
-		return nil, errors.Wrap(err, "failed to list KKMachines")
+		return nil, fmt.Errorf("%w: failed to list KKMachines", err)
 	}
 
 	return kkMachineList, nil
 }
-
-// GetMachines returns the collections of machines for a KKCluster.
-// func (s *ClusterScope) GetMachines(ctx context.Context, filters ...capicollections.Func) (capicollections.Machines, error) {
-//	kkml, err := s.GetKKMachines(ctx)
-//	if err != nil {
-//		return nil, errors.Wrap(err, "failed to get KKMachines")
-//	}
-//
-//	machines := make(capicollections.Machines, len(kkml.Items))
-//	for i := range kkml.Items {
-//		machine, err := capiutil.GetOwnerMachine(ctx, s.client, kkml.Items[i].ObjectMeta)
-//		if err != nil {
-//			return nil, errors.Wrap(err, "failed to get owner machine")
-//		}
-//		machines.Insert(machine)
-//	}
-//	return machines.Filter(filters...), nil
-// }
 
 // ControlPlaneEndpoint returns the control plane endpoint.
 func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
@@ -140,15 +124,23 @@ func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
 }
 
 // PatchObject persists the cluster configuration and status.
-func (s *ClusterScope) PatchObject() error {
+func (s *ClusterScope) PatchObject(ctx context.Context) error {
 	return s.patchHelper.Patch(
-		context.TODO(),
-		s.KKCluster)
+		ctx,
+		s.KKCluster,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			v1beta1.HostsReadyCondition,
+			v1beta1.EtcdReadyCondition,
+			v1beta1.BinaryInstallCondition,
+			v1beta1.BootstrapReadyCondition,
+			v1beta1.ClusterReadyCondition,
+		}})
 }
 
 // Close closes the current scope persisting the cluster configuration and status.
-func (s *ClusterScope) Close() error {
-	return s.PatchObject()
+func (s *ClusterScope) Close(ctx context.Context) error {
+	return s.PatchObject(ctx)
 }
 
 // ControllerName returns the name of the controller that
@@ -163,8 +155,18 @@ func (s *ClusterScope) Distribution() string {
 }
 
 // ControlPlaneLoadBalancer returns the KKLoadBalancerSpec.
-func (s *ClusterScope) ControlPlaneLoadBalancer() *v1alpha1.KKLoadBalancerSpec {
-	return s.KKCluster.Spec.ControlPlaneLoadBalancer
+func (s *ClusterScope) ControlPlaneLoadBalancer() *v1beta1.KKLoadBalancerSpec {
+	lb := s.KKCluster.Spec.ControlPlaneLoadBalancer
+	if lb == nil {
+		return nil
+	}
+
+	ip := net.ParseIP(lb.Host)
+	if ip == nil {
+		return nil
+	}
+
+	return lb
 }
 
 // APIServerPort returns the APIServerPort to use when creating the load balancer.
@@ -172,5 +174,6 @@ func (s *ClusterScope) APIServerPort() int32 {
 	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
 		return *s.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
+
 	return 6443
 }

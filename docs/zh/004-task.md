@@ -48,6 +48,7 @@ task执行时, 会在定义的host分别上执行.
 **register**: 值为字符串, 将执行结果注册到[variable](201-variable.md)中, 传递给后续的task. 如果结果为json字符串, 会尝试将该字符串转成json结构层级存入variable中(key为register的值, value为输出值, 输出值包含: stderr和stdout两个字段)  
 - stderr: 失败输出
 - stdout: 成功输出
+
 **block**: task集合, 非必填(当未定义module相关字段时, 必填), 一定会执行.  
 **rescue**: task集合, 非必填, 当block执行失败(task集合有一个执行失败即为该block失败)时,执行该task集合.   
 **always**: task集合, 非必填, 当block和rescue执行完毕后(无论成功失败)都会执行该task集合.  

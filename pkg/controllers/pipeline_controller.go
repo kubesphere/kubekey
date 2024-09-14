@@ -228,7 +228,7 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 
 			return err
 		}
-		//create rolebinding
+		// create rolebinding
 		if err := r.Client.Create(ctx, &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Namespace: pipeline.Namespace, Name: saName},
 			RoleRef: rbacv1.RoleRef{
@@ -290,7 +290,7 @@ func (r *PipelineReconciler) GenerateJobSpec(pipeline kkcorev1.Pipeline) batchv1
 						Command:         []string{"kk"},
 						Args: []string{"pipeline",
 							"--name", pipeline.Name,
-							"--namespace", pipeline.Namespace},
+							"--namespace", pipeline.Namespace, "-v=6"},
 						VolumeMounts: pipeline.Spec.JobSpec.VolumeMounts,
 					},
 				},
