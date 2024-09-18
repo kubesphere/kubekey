@@ -46,55 +46,88 @@ const (
 
 const (
 	// HostsReadyCondition will check if hosts are connected firstly, then select control-plane nodes and worker nodes.
-	HostsReadyCondition          clusterv1.ConditionType = "HostsReadyCondition"
-	WaitingCheckHostReadyReason  string                  = "WaitingForCheckHosts"
-	WaitingCheckHostReadyMessage string                  = "Waiting for check if all of the hosts are connected."
-	HostsNotReadyReason          string                  = "HostsNotReady"
-	HostsSelectFailedMessage     string                  = "Not enough connected hosts to complete host selection."
-	WaitingHostsSelectReason     string                  = "WaitingForHostsSelect"
-	WaitingHostsSelectMessage    string                  = "Waiting for select kube-control-plane and worker nodes."
-	HostsReadyReason             string                  = "HostsReady"
-	HostsReadyMessage            string                  = "All hosts are connected."
+	HostsReadyCondition clusterv1.ConditionType = "HostsReadyCondition"
+	// WaitingCheckHostReadyReason is one `Reason` of HostsReadyCondition.
+	WaitingCheckHostReadyReason string = "WaitingForCheckHosts"
+	// WaitingCheckHostReadyMessage is a specification `Message` of WaitingCheckHostReadyReason.
+	WaitingCheckHostReadyMessage string = "Waiting for check if all of the hosts are connected."
+	// HostsNotReadyReason is one `Reason` of HostsReadyCondition.
+	HostsNotReadyReason string = "HostsNotReady"
+	// HostsSelectFailedMessage is a specification `Message` of HostsNotReadyReason.
+	HostsSelectFailedMessage string = "Not enough connected hosts to complete host selection."
+	// WaitingHostsSelectReason is one `Reason` of HostsReadyCondition.
+	WaitingHostsSelectReason string = "WaitingForHostsSelect"
+	// WaitingHostsSelectMessage is a specification `Message` of HostsNotReadyReason.
+	WaitingHostsSelectMessage string = "Waiting for select kube-control-plane and worker nodes."
+	// HostsReadyReason is one `Reason` of HostsReadyCondition.
+	HostsReadyReason string = "HostsReady"
+	// HostsReadyMessage is a specification `Message` of HostsNotReadyReason.
+	HostsReadyMessage string = "All hosts are connected."
 
 	// PreparationReadyCondition will check which artifacts need to be installed, also initialize the os system.
 	PreparationReadyCondition clusterv1.ConditionType = "PreCheckReadyCondition"
-	WaitingPreparationReason  string                  = "WaitingForPreparation"
-	WaitingPreparationMessage string                  = "Waiting for pre-check and pre-install artifacts and initialize os system"
-	PreparationNotReadyReason string                  = "PreparationNotReady"
-	PreparationReadyReason    string                  = "PreparationReady"
-	PreparationReadyMessage   string                  = "Both artifacts pre-install and os initialization are ready."
+	// WaitingPreparationReason is one `Reason` of PreparationReadyCondition.
+	WaitingPreparationReason string = "WaitingForPreparation"
+	// WaitingPreparationMessage is a specification `Message` of PreparationReadyCondition.
+	WaitingPreparationMessage string = "Waiting for pre-check and pre-install artifacts and initialize os system"
+	// PreparationNotReadyReason is one `Reason` of PreparationReadyCondition.
+	PreparationNotReadyReason string = "PreparationNotReady"
+	// PreparationReadyReason is one `Reason` of PreparationReadyCondition.
+	PreparationReadyReason string = "PreparationReady"
+	// PreparationReadyMessage is a specification `Message` of PreparationReadyCondition.
+	PreparationReadyMessage string = "Both artifacts pre-install and os initialization are ready."
 
 	// EtcdReadyCondition will install etcd into etcd group (binary install only currently).
-	EtcdReadyCondition        clusterv1.ConditionType = "EtcdReadyCondition"
-	WaitingInstallEtcdReason  string                  = "WaitingForInstallEtcd"
-	WaitingInstallEtcdMessage string                  = "Waiting for install ETCD binary service"
-	EtcdNotReadyReason        string                  = "ETCDNotReady"
-	EtcdReadyReason           string                  = "EtcdReady"
-	EtcdReadyMessage          string                  = "Etcd successfully installed."
+	EtcdReadyCondition clusterv1.ConditionType = "EtcdReadyCondition"
+	// WaitingInstallEtcdReason is one `Reason` of EtcdReadyCondition.
+	WaitingInstallEtcdReason string = "WaitingForInstallEtcd"
+	// WaitingInstallEtcdMessage is a specification `Message` of EtcdReadyCondition.
+	WaitingInstallEtcdMessage string = "Waiting for install ETCD binary service"
+	// EtcdNotReadyReason is one `Reason` of EtcdReadyCondition.
+	EtcdNotReadyReason string = "ETCDNotReady"
+	// EtcdReadyReason is one `Reason` of EtcdReadyCondition.
+	EtcdReadyReason string = "EtcdReady"
+	// EtcdReadyMessage is a specification `Message` of EtcdReadyCondition.
+	EtcdReadyMessage string = "Etcd successfully installed."
 
 	// BinaryInstallCondition will install cluster binary tools.
-	BinaryInstallCondition             clusterv1.ConditionType = "BinaryInstallCondition"
-	WaitingInstallClusterBinaryReason  string                  = "WaitingForInstallClusterBinary"
-	WaitingInstallClusterBinaryMessage string                  = "Waiting for install cluster binary tools, e.g. kubeadm and kubelet, etc."
-	BinaryNotReadyReason               string                  = "ClusterBinaryNotReady"
-	BinaryReadyReason                  string                  = "ClusterBinaryReady"
-	BinaryReadyMessage                 string                  = "Cluster binary successfully installed"
+	BinaryInstallCondition clusterv1.ConditionType = "BinaryInstallCondition"
+	// WaitingInstallClusterBinaryReason is one `Reason` of BinaryInstallCondition.
+	WaitingInstallClusterBinaryReason string = "WaitingForInstallClusterBinary"
+	// WaitingInstallClusterBinaryMessage is a specification `Message` of BinaryInstallCondition.
+	WaitingInstallClusterBinaryMessage string = "Waiting for install cluster binary tools, e.g. kubeadm and kubelet, etc."
+	// BinaryNotReadyReason is one `Reason` of BinaryInstallCondition.
+	BinaryNotReadyReason string = "ClusterBinaryNotReady"
+	// BinaryReadyReason is one `Reason` of BinaryInstallCondition.
+	BinaryReadyReason string = "ClusterBinaryReady"
+	// BinaryReadyMessage is a specification `Message` of BinaryInstallCondition.
+	BinaryReadyMessage string = "Cluster binary successfully installed"
 
 	// BootstrapReadyCondition will execute `kubeadm join` & `kubeadm init` command.
-	BootstrapReadyCondition           clusterv1.ConditionType = "BootstrapReadyCondition"
-	WaitingCheckBootstrapReadyReason  string                  = "WaitingForBootstrapReady"
-	WaitingCheckBootstrapReadyMessage string                  = "Waiting for the initial bootstrap to complete. Adding control plane and worker nodes to the cluster."
-	BootstrapNotReadyReason           string                  = "CheckBootstrapNotReady"
-	BootstrapReadyReason              string                  = "CheckBootstrapReady"
-	BootstrapReadyMessage             string                  = "Bootstrap is ready."
+	BootstrapReadyCondition clusterv1.ConditionType = "BootstrapReadyCondition"
+	// WaitingCheckBootstrapReadyReason is one `Reason` of BootstrapReadyCondition.
+	WaitingCheckBootstrapReadyReason string = "WaitingForBootstrapReady"
+	// WaitingCheckBootstrapReadyMessage is a specification `Message` of BootstrapReadyCondition.
+	WaitingCheckBootstrapReadyMessage string = "Waiting for the initial bootstrap to complete. Adding control plane and worker nodes to the cluster."
+	// BootstrapNotReadyReason is one `Reason` of BootstrapReadyCondition.
+	BootstrapNotReadyReason string = "CheckBootstrapNotReady"
+	// BootstrapReadyReason is one `Reason` of BootstrapReadyCondition.
+	BootstrapReadyReason string = "CheckBootstrapReady"
+	// BootstrapReadyMessage is a specification `Message` of BootstrapReadyCondition.
+	BootstrapReadyMessage string = "Bootstrap is ready."
 
 	// ClusterReadyCondition will check if cluster is ready.
-	ClusterReadyCondition           clusterv1.ConditionType = "ClusterReadyCondition"
-	WaitingCheckClusterReadyReason  string                  = "WaitingForClusterReady"
-	WaitingCheckClusterReadyMessage string                  = "Waiting for initial bootstrap to ready, add control-plane and worker nodes into cluster."
-	ClusterNotReadyReason           string                  = "ClusterNotReady"
-	ClusterReadyReason              string                  = "ClusterReady"
-	ClusterReadyMessage             string                  = "Cluster is ready."
+	ClusterReadyCondition clusterv1.ConditionType = "ClusterReadyCondition"
+	// WaitingCheckClusterReadyReason is one `Reason` of ClusterReadyCondition.
+	WaitingCheckClusterReadyReason string = "WaitingForClusterReady"
+	// WaitingCheckClusterReadyMessage is a specification `Message` of ClusterReadyCondition.
+	WaitingCheckClusterReadyMessage string = "Waiting for initial bootstrap to ready, add control-plane and worker nodes into cluster."
+	// ClusterNotReadyReason is one `Reason` of ClusterReadyCondition.
+	ClusterNotReadyReason string = "ClusterNotReady"
+	// ClusterReadyReason is one `Reason` of ClusterReadyCondition.
+	ClusterReadyReason string = "ClusterReady"
+	// ClusterReadyMessage is a specification `Message` of ClusterReadyCondition.
+	ClusterReadyMessage string = "Cluster is ready."
 )
 
 const (

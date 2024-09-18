@@ -34,8 +34,10 @@ const (
 )
 
 const (
-	WORKER_ROLE        string = "worker"
-	CONTROL_PLANE_ROLE string = "control-plane"
+	// WorkerRole defines worker node role.
+	WorkerRole string = "worker"
+	// ControlPlaneRole defines control plane node role.
+	ControlPlaneRole string = "control-plane"
 	// MachineFinalizer allows ReconcileKKMachine to clean up KubeKey resources associated with KKMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "kkmachine.infrastructure.cluster.x-k8s.io"
