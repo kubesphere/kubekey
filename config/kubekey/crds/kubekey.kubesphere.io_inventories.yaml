@@ -69,6 +69,27 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
             type: object
+          status:
+            description: InventoryStatus of Inventory
+            properties:
+              hostMachineMapping:
+                additionalProperties:
+                  description: MachineBinding represents the binding information of
+                    a host to a machine.
+                  properties:
+                    machine:
+                      type: string
+                    roles:
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                description: HostMachineMapping stores the mapping between inventory
+                  hosts and CAPI machines.
+                type: object
+            type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}

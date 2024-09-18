@@ -4,33 +4,25 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: pipelines.kubekey.kubesphere.io
+  name: pipelinetemplates.kubekey.kubesphere.io
 spec:
   group: kubekey.kubesphere.io
   names:
-    kind: Pipeline
-    listKind: PipelineList
-    plural: pipelines
-    singular: pipeline
+    kind: PipelineTemplate
+    listKind: PipelineTemplateList
+    plural: pipelinetemplates
+    singular: pipelinetemplate
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.playbook
-      name: Playbook
-      type: string
-    - jsonPath: .status.phase
-      name: Phase
-      type: string
-    - jsonPath: .status.taskResult.total
-      name: Total
-      type: integer
-    - jsonPath: .metadata.creationTimestamp
+    - description: Time duration since creation of PipelineTemplate
+      jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
     name: v1
     schema:
       openAPIV3Schema:
-        description: Pipeline resource executor a playbook.
+        description: PipelineTemplate is the Schema for the pipelinetemplates API
         properties:
           apiVersion:
             description: |-
@@ -50,7 +42,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: PipelineSpec of pipeline.
+            description: PipelineTemplateSpec defines the desired state of PipelineTemplate.
             properties:
               configRef:
                 description: ConfigRef is the global variable configuration for playbook
@@ -2028,9 +2020,6 @@ spec:
                       type: object
                     type: array
                 type: object
-              playbook:
-                description: Playbook which to execute.
-                type: string
               project:
                 description: Project is storage for executable packages
                 properties:
@@ -2067,65 +2056,8 @@ spec:
                 items:
                   type: string
                 type: array
-            required:
-            - playbook
-            type: object
-          status:
-            description: PipelineStatus of Pipeline
-            properties:
-              failedDetail:
-                description: FailedDetail will record the failed tasks.
-                items:
-                  description: PipelineFailedDetail store failed message when pipeline
-                    run failed.
-                  properties:
-                    hosts:
-                      description: failed Hosts Result of failed task.
-                      items:
-                        description: PipelineFailedDetailHost detail failed message
-                          for each host.
-                        properties:
-                          host:
-                            description: Host name of failed task.
-                            type: string
-                          stdErr:
-                            description: StdErr of failed task.
-                            type: string
-                          stdout:
-                            description: Stdout of failed task.
-                            type: string
-                        type: object
-                      type: array
-                    task:
-                      description: Task name of failed task.
-                      type: string
-                  type: object
-                type: array
-              phase:
-                description: Phase of pipeline.
-                type: string
-              reason:
-                description: failed Reason of pipeline.
-                type: string
-              taskResult:
-                description: TaskResult total related tasks execute result.
-                properties:
-                  failed:
-                    description: Failed number of tasks.
-                    type: integer
-                  ignored:
-                    description: Ignored number of tasks.
-                    type: integer
-                  success:
-                    description: Success number of tasks.
-                    type: integer
-                  total:
-                    description: Total number of tasks.
-                    type: integer
-                type: object
             type: object
         type: object
     served: true
     storage: true
-    subresources:
-      status: {}
+    subresources: {}
