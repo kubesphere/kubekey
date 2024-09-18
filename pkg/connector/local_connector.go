@@ -97,7 +97,8 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
 	// find command interpreter in env. default /bin/bash
 
-	command := c.Cmd.CommandContext(ctx, "sudo", "-E", localShell, "-c", cmd)
+	//nolint:gosec
+	command := c.Cmd.CommandContext(ctx, "sudo", "-E", localShell, "-c", "\"", cmd, "\"")
 	if c.Password != "" {
 		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
 	}
