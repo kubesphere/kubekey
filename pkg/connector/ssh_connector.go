@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -234,7 +235,7 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 }
 
 // ExecuteCommand in remote host
-func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, error) {
+func (c *sshConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
 	// create ssh session
 	session, err := c.client.NewSession()
@@ -245,7 +246,8 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	cmd = fmt.Sprintf("sudo -E %s -c \"%q\"", c.shell, cmd)
+	//nolint:gosec
+	command := exec.CommandContext(ctx, "sudo", "-E", c.shell, "-c", "\"", cmd, "\"")
 	// get pipe from session
 	stdin, _ := session.StdinPipe()
 	stdout, _ := session.StdoutPipe()
@@ -255,7 +257,7 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 		return nil, err
 	}
 	// Start the remote command
-	if err := session.Start(cmd); err != nil {
+	if err := session.Start(command.String()); err != nil {
 		return nil, err
 	}
 	if c.Password != "" {
