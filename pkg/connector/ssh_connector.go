@@ -158,8 +158,8 @@ func (c *sshConnector) Init(context.Context) error {
 		return fmt.Errorf("env command error: %w", err)
 	}
 
-	if strings.TrimSuffix(string(output), "\n") != "" {
-		c.shell = strings.TrimSuffix(string(output), "\n")
+	if strings.TrimSpace(string(output)) != "" {
+		c.shell = strings.TrimSpace(string(output))
 	}
 
 	return nil

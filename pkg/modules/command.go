@@ -48,7 +48,7 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		stderr = err.Error()
 	}
 	if data != nil {
-		stdout = strings.TrimSuffix(string(data), "\n")
+		stdout = strings.TrimSpace(string(data))
 	}
 
 	return stdout, stderr
