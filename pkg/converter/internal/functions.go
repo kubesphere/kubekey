@@ -35,7 +35,7 @@ func toYAML(v any) string {
 		return ""
 	}
 
-	return strings.TrimSuffix(string(data), "\n")
+	return strings.TrimSpace(string(data))
 }
 
 // ipInCIDR get the IP of a specific location within the cidr range

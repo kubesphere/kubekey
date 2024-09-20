@@ -158,8 +158,8 @@ func (c *sshConnector) Init(context.Context) error {
 		return fmt.Errorf("env command error: %w", err)
 	}
 
-	if strings.TrimSuffix(string(output), "\n") != "" {
-		c.shell = strings.TrimSuffix(string(output), "\n")
+	if strings.TrimSpace(string(output)) != "" {
+		c.shell = strings.TrimSpace(string(output))
 	}
 
 	return nil
@@ -293,17 +293,17 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get kernel version error: %w", err)
 	}
-	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSuffix(kernel, []byte("\n")))
+	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
 	hn, err := c.ExecuteCommand(ctx, "hostname")
 	if err != nil {
 		return nil, fmt.Errorf("get hostname error: %w", err)
 	}
-	osVars[_const.VariableOSHostName] = string(bytes.TrimSuffix(hn, []byte("\n")))
+	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
 	arch, err := c.ExecuteCommand(ctx, "arch")
 	if err != nil {
 		return nil, fmt.Errorf("get arch error: %w", err)
 	}
-	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSuffix(arch, []byte("\n")))
+	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 
 	// process information
 	procVars := make(map[string]any)
