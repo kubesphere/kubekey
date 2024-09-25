@@ -68,7 +68,7 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) error {
 			return fmt.Errorf("load import_playbook failed: %w", err)
 		}
 
-		if err := dealVarsFiles(p, baseFS, pbPath); err != nil {
+		if err := dealVarsFiles(&p, baseFS, pbPath); err != nil {
 			return fmt.Errorf("load vars_files failed: %w", err)
 		}
 		// fill block in roles
@@ -98,7 +98,7 @@ func dealImportPlaybook(p kkprojectv1.Play, baseFS fs.FS, pbPath string, pb *kkp
 }
 
 // dealVarsFiles "var_files" argument in play
-func dealVarsFiles(p kkprojectv1.Play, baseFS fs.FS, pbPath string) error {
+func dealVarsFiles(p *kkprojectv1.Play, baseFS fs.FS, pbPath string) error {
 	for _, file := range p.VarsFiles {
 		// load vars from vars_files
 		if _, err := fs.Stat(baseFS, filepath.Join(filepath.Dir(pbPath), file)); err != nil {
