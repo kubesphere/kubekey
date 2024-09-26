@@ -1,5 +1,9 @@
 version = 2
+{{- if .RootDir }}
+root = "{{ .RootDir }}"
+{{- else }}
 root = "/var/lib/containerd"
+{{- end}}
 state = "/run/containerd"
 
 [grpc]
