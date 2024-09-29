@@ -23,7 +23,10 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 	"time"
+
+	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -239,6 +242,9 @@ func (r *KKClusterReconciler) reconcileNormalRunning(ctx context.Context, s *sco
 					return err
 				}
 			case infrav1beta1.PreparationReadyCondition:
+				if err := dealWithSecrets(ctx, r.Client, s); err != nil {
+					return err
+				}
 				if err := r.dealWithPreparation(ctx, s); err != nil {
 					return err
 				}
@@ -544,6 +550,90 @@ func (r *KKClusterReconciler) dealWithExecuteFailed(p *kkcorev1.Pipeline, functi
 	klog.V(5).ErrorS(err, "")
 
 	return err
+}
+
+// dealWithSecrets function fetches secrets created by KubeadmControlPlane, etc. And uses them to create a cluster.
+func dealWithSecrets(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) error {
+	// Fetch all secrets
+	secrets := &corev1.SecretList{}
+	if err := client.List(ctx, secrets, ctrlclient.MatchingLabels{
+		clusterv1.ClusterNameLabel: s.Name(),
+	}); err != nil {
+		return err
+	}
+
+	// Fetch KubeadmControlPlaneReference
+	var kcpOwnRef metav1.OwnerReference
+	if kcp, err := GetKubeadmControlPlane(ctx, client, s); err != nil {
+		return err
+	} else if kcp != nil {
+		kcpOwnRef = metav1.OwnerReference{
+			APIVersion: kcp.APIVersion,
+			Kind:       kcp.Kind,
+			Name:       kcp.Name,
+			UID:        kcp.UID,
+			Controller: ptr.To(true),
+		}
+	}
+
+	// deal with secrets created by kcp.
+	for _, secret := range secrets.Items {
+		if !util.HasOwnerRef(secret.OwnerReferences, kcpOwnRef) {
+			continue
+		}
+		if err := dealWithSecretsCreatedByKCP(ctx, client, s, &secret); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// dealWithSecretsCreatedByKCP function handle one secret created by kcp, and bind with `PipelineTemplate` resource.
+func dealWithSecretsCreatedByKCP(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope, secret *corev1.Secret) error {
+	var mountPath string
+	switch {
+	case strings.Contains(secret.Name, "ca"):
+		mountPath = "/etc/kubernetes/pki/ca.crt"
+	case strings.Contains(secret.Name, "control-plane"):
+		mountPath = "/etc/kubernetes/pki/control-plane.crt"
+	case strings.Contains(secret.Name, "etcd"):
+		mountPath = "/etc/kubernetes/pki/etcd.crt"
+	case strings.Contains(secret.Name, "kubeconfig"):
+		mountPath = "/etc/kubernetes/kubeconfig"
+	case strings.Contains(secret.Name, "proxy"):
+		mountPath = "/etc/kubernetes/pki/proxy.crt"
+	case strings.Contains(secret.Name, "sa"):
+		mountPath = "/etc/kubernetes/pki/sa.crt"
+	default:
+		return nil
+	}
+
+	pipelineTemplate, err := GetPipelineTemplateFromRef(ctx, client, s.KKCluster.Spec.PipelineRef)
+	if err != nil {
+		return err
+	}
+
+	volume := corev1.Volume{
+		Name: secret.Name + "volume",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: secret.Name,
+			},
+		},
+	}
+
+	// 将 Volume 挂载到对应的 VolumeMounts
+	volumeMount := corev1.VolumeMount{
+		Name:      secret.Name + "volume",
+		MountPath: mountPath,
+		ReadOnly:  true,
+	}
+
+	pipelineTemplate.Spec.JobSpec.Volumes = append(pipelineTemplate.Spec.JobSpec.Volumes, volume)
+	pipelineTemplate.Spec.JobSpec.VolumeMounts = append(pipelineTemplate.Spec.JobSpec.VolumeMounts, volumeMount)
+
+	return client.Update(ctx, pipelineTemplate)
 }
 
 // dealWithPipelinesReconciles will reconcile all pipelines created for execute `playbookName` tasks, and belong to current cluster.
@@ -866,152 +956,6 @@ func (r *KKClusterReconciler) generatePipelineByTemplate(ctx context.Context, s 
 	return pipeline, nil
 }
 
-// generateKKMachines function can generate KKMachines bind with both control plane nodes and worker nodes.
-// func (r *KKClusterReconciler) generateKKMachines(ctx context.Context, s *scope.ClusterScope) error {
-// 	// Fetch groups and hosts of `Inventory`, replicas of `KubeadmControlPlane` and `MachineDeployment`.
-// 	inv, err := GetInventory(ctx, r.Client, s)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	kcp, err := GetKubeadmControlPlane(ctx, r.Client, s)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	md, err := GetMachineDeployment(ctx, r.Client, s)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	controlPlaneGroup := inv.Spec.Groups[s.KKCluster.Spec.ControlPlaneGroupName]
-// 	workerGroup := inv.Spec.Groups[s.KKCluster.Spec.WorkerGroupName]
-// 	controlPlaneInfraRef := kcp.Spec.MachineTemplate.InfrastructureRef
-// 	workerInfraRef := kcp.Spec.MachineTemplate.InfrastructureRef
-//
-// 	// Iterate through the control plane hosts
-// 	for _, hostName := range controlPlaneGroup.Hosts {
-// 		// Generate labels for control plane
-// 		labels := map[string]string{
-// 			clusterv1.ClusterNameLabel:         s.Name(),
-// 			clusterv1.MachineControlPlaneLabel: "true",
-// 		}
-//
-// 		// Check if the KKMachine already exists
-// 		kkMachine := &infrav1beta1.KKMachine{}
-// 		err := r.Client.Get(ctx, ctrlclient.ObjectKey{
-// 			Name:      s.Name() + "-" + hostName, // Name convention
-// 			Namespace: s.Namespace(),
-// 		}, kkMachine)
-//
-// 		if err != nil && apierrors.IsNotFound(err) {
-// 			if err := r.generateKKMachine(ctx, s, controlPlaneInfraRef, hostName, labels); err != nil {
-// 				return err
-// 			}
-// 		} else if err == nil {
-// 			// If exists, update the KKMachine if necessary
-// 			if err := r.updateKKMachine(ctx, kkMachine, controlPlaneInfraRef, labels); err != nil {
-// 				return err
-// 			}
-// 		}
-// 	}
-//
-// 	// Iterate through the worker group hosts
-// 	for _, hostName := range workerGroup.Hosts {
-// 		// Generate labels for worker nodes
-// 		labels := map[string]string{
-// 			clusterv1.ClusterNameLabel:           s.Name(),
-// 			clusterv1.MachineDeploymentNameLabel: md.Name,
-// 		}
-//
-// 		// Check if the KKMachine already exists
-// 		kkMachine := &infrav1beta1.KKMachine{}
-// 		err := r.Client.Get(ctx, ctrlclient.ObjectKey{
-// 			Name:      s.Name() + "-" + hostName, // Name convention
-// 			Namespace: s.Namespace(),
-// 		}, kkMachine)
-//
-// 		if err != nil && apierrors.IsNotFound(err) {
-// 			// If not found, generate a new KKMachine
-// 			if err := r.generateKKMachine(ctx, s, workerInfraRef, hostName, labels); err != nil {
-// 				return err
-// 			}
-// 		} else if err == nil {
-// 			// If exists, update the KKMachine if necessary
-// 			if err := r.updateKKMachine(ctx, kkMachine, workerInfraRef, labels); err != nil {
-// 				return err
-// 			}
-// 		}
-// 	}
-//
-// 	return nil
-// }
-
-// generateKKMachine function is used for generate a `KKMachine` resource by `Ref` and `providerID` given by other CRDs.
-// Param::providerID: from `Inventory` resource, Param::ref: from `KubeadmControlPlane` for `MachineDeployment` resource.
-// Param::ref is used for get `KKMachineTemplate`
-// Param::labels used for bind with other CRDs.
-// func (r *KKClusterReconciler) generateKKMachine(ctx context.Context, s *scope.ClusterScope, ref corev1.ObjectReference,
-// 	providerID string, labels map[string]string) error {
-// 	kkMachineTemplate, err := GetKKMachineTemplateFromRef(ctx, r.Client, ref)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	// Create a new KKMachine based on the template
-// 	kkMachine := &infrav1beta1.KKMachine{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      s.Name() + "-" + providerID,
-// 			Namespace: s.Namespace(),
-// 			Labels:    kkMachineTemplate.Spec.Template.ObjectMeta.Labels,
-// 		},
-// 		Spec: kkMachineTemplate.Spec.Template.Spec,
-// 	}
-//
-// 	// Add additional labels provided
-// 	for k, v := range labels {
-// 		kkMachine.ObjectMeta.Labels[k] = labels[v]
-// 	}
-//
-// 	// Assign the providerID to the new KKMachine
-// 	kkMachine.Spec.ProviderID = &providerID
-//
-// 	// Create the new KKMachine resource
-// 	return r.Client.Create(ctx, kkMachine)
-// }
-
-// updateKKMachine function used for update one exist `KKMachine` resource. Usually update `labels` and `roles`.
-// func (r *KKClusterReconciler) updateKKMachine(ctx context.Context, kkm *infrav1beta1.KKMachine,
-// 	ref corev1.ObjectReference, labels map[string]string) error {
-// 	kkMachineTemplate, err := GetKKMachineTemplateFromRef(ctx, r.Client, ref)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	// Update labels if they don't exist
-// 	for key, value := range labels {
-// 		if _, exists := kkm.Labels[key]; !exists {
-// 			kkm.Labels[key] = value
-// 		}
-// 	}
-//
-// 	// Append roles if they are missing
-// 	// convert old role to roleSet, used for de-duplicated
-// 	roleSet := make(map[string]struct{})
-// 	for _, role := range kkm.Spec.Roles {
-// 		roleSet[role] = struct{}{}
-// 	}
-// 	// Append missing roles from the template
-// 	for _, role := range kkMachineTemplate.Spec.Template.Spec.Roles {
-// 		if _, exists := roleSet[role]; !exists {
-// 			kkm.Spec.Roles = append(kkm.Spec.Roles, role)
-// 		}
-// 	}
-//
-// 	// Update the KKMachine resource
-// 	return r.Client.Update(ctx, kkm)
-// }
-
 // GetInventory function return cluster's `Inventory` resource.
 func GetInventory(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) (*kkcorev1.Inventory, error) {
 	inventory := &kkcorev1.Inventory{}
@@ -1125,23 +1069,6 @@ func GetPipelineTemplateFromRef(ctx context.Context, client ctrlclient.Client, r
 
 	return pipelineTemplate, nil
 }
-
-// GetKKMachineTemplateFromRef function return `KKMachineTemplate` resource based on `ObjectReference`.
-// e.g. `ObjectReference` from `KubeadmControlPlane` & `MachineDeployment` resources.
-// func GetKKMachineTemplateFromRef(ctx context.Context, client ctrlclient.Client, ref corev1.ObjectReference) (*infrav1beta1.KKMachineTemplate, error) {
-// 	kkMachineTemplate := &infrav1beta1.KKMachineTemplate{}
-//
-// 	namespacedName := types.NamespacedName{
-// 		Namespace: ref.Namespace,
-// 		Name:      ref.Name,
-// 	}
-//
-// 	if err := client.Get(ctx, namespacedName, kkMachineTemplate); err != nil {
-// 		return nil, err
-// 	}
-//
-// 	return kkMachineTemplate, nil
-// }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *KKClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
