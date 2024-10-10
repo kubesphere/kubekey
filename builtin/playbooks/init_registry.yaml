@@ -5,6 +5,7 @@
    - localhost
   roles:
    - init/init-artifact
+   - init/init-cert
 
 - hosts:
     - image_registry

@@ -3,4 +3,5 @@
   tags: ["always"]
   roles:
     - init/init-artifact
+    - init/init-cert
     - install/image-registry

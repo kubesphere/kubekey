@@ -4,14 +4,17 @@
     - all
   tasks:
     - name: Copy post install scripts to remote
-      ignore_errors: yes
+      ignore_errors: true
       copy:
         src: |
           {{ .work_dir }}/scripts/post_install_{{ .inventory_name }}.sh
         dest: |
           /etc/kubekey/scripts/post_install_{{ .inventory_name }}.sh
         mode: 0755
+      register: execute_result
+
     - name: Execute post install scripts
+      when: .execute_result.stderr | eq ""
       command: |
         for file in /etc/kubekey/scripts/post_install_*.sh; do
           if [ -f $file ]; then

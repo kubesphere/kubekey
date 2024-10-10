@@ -50,3 +50,8 @@
     out_cert: |
       {{ .work_dir }}/kubekey/pki/image_registry.crt
   when: and .groups.image_registry (.groups.image_registry | default list | len | lt 0)
+
+#- name: Chown pki to sudo
+#  ignore_errors: yes
+#  command: |
+#    chown -R ${SUDO_UID}:${SUDO_GID} {{ .work_dir }}/kubekey/pki

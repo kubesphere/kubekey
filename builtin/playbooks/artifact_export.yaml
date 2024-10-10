@@ -2,6 +2,7 @@
     - localhost
   roles:
     - init/init-artifact
+    - init/init-cert
   tasks:
     - name: Export artifact
       command: |

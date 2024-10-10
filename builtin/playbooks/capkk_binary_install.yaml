@@ -1,0 +1,14 @@
+---
+- name: NFS Install
+  hosts:
+    - nfs
+  gather_facts: true
+  roles:
+    - install/nfs
+
+#- name: Image Registry Install
+#  hosts:
+#    - image_registry
+#  gather_facts: true
+#  roles:
+#    - install/image-registry

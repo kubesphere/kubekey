@@ -5,8 +5,6 @@ artifact:
   artifact_file: ""
   # the md5_file of artifact_file.
   artifact_md5: ""
-  # how to generate cert file.support: IfNotPresent, Always
-  gen_cert_policy: IfNotPresent
   artifact_url:
     etcd:
       amd64: |

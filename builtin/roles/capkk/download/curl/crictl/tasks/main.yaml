@@ -1,0 +1,18 @@
+---
+- name: Check binaries for crictl
+  tags: ["crictl"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.crictl .item | splitList "/" | last }}
+    artifact_path={{ .work_dir }}/kubekey/crictl/{{ .crictl_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.crictl .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.crictl .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: and .crictl_version (ne .crictl_version "")

@@ -1,0 +1,27 @@
+etcd:
+  #    endpoints: ["https://172.1.1.1:2379"]
+  # etcd binary
+  state: new
+#  env config
+  env:
+    election_timeout: 5000
+    heartbeat_interval: 250
+    compaction_retention: 8
+    snapshot_count: 10000
+    data_dir: /var/lib/etcd
+    token: k8s_etcd
+#    metrics: basic
+#    quota_backend_bytes: 100
+#    max_request_bytes: 100
+#    max_snapshots: 100
+#    max_wals: 5
+#    log_level: info
+#    unsupported_arch: arm64
+#  backup config
+  backup:
+    backup_dir: /var/lib/etcd-backup
+    keep_backup_number: 5
+    etcd_backup_script: "backup.sh"
+    on_calendar: "*-*-* *:00/30:00"
+  performance: false
+  traffic_priority: false

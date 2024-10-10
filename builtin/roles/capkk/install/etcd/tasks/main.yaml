@@ -1,0 +1,27 @@
+---
+- name: Check if etcd is installed
+  ignore_errors: true
+  command: etcd --version
+  run_once: true
+  register: etcd_install_version
+
+- name: Install etcd
+  when: |
+    or (.etcd_install_version.stderr | ne "") (.etcd_install_version.stdout | hasPrefix (printf "etcd Version: %s\n" (.etcd_version | default "" | trimPrefix "v")) | not)
+  block:
+    - name: Init etcd
+      block:
+        - name: Add etcd user
+          command: |
+            useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd || :
+        - name: Create etcd directories
+          command: |
+            if [ ! -d "{{ .item }}" ]; then
+              mkdir -p {{ .item }} && chown -R etcd {{ .item }}
+            fi
+          loop:
+           - "/var/lib/etcd"
+
+    - include_tasks: install_etcd.yaml
+
+    - include_tasks: backup_etcd.yaml

@@ -1,0 +1,4 @@
+work_dir: /kubekey
+artifact:
+  # how to generate cert file.support: IfNotPresent, Always
+  gen_cert_policy: IfNotPresent
