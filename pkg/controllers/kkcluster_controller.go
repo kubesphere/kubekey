@@ -38,7 +38,8 @@ import (
 	"k8s.io/klog/v2"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	kcv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	kcpv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -58,8 +59,9 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/scope"
 )
 
-// Defines some useful static strings.
+// This const defines some useful static strings.
 const (
+	TrueString               string = "true"
 	MaxPipelineCounts        int    = 3
 	PipelineUpperLimitReason string = "PipelineUpperLimit"
 
@@ -79,6 +81,19 @@ const (
 
 	BootstrapPlaybookName string = "bootstrap-ready"
 	BootstrapPlaybook     string = "capkk/playbooks/capkk_bootstrap_ready.yaml"
+
+	KCPCertificateAuthoritySecretInfix string = "ca"
+	KCPCertificateAuthorityMountPath   string = "/etc/kubernetes/pki/ca"
+	KCPKubeadmConfigSecretInfix        string = "control-plane"
+	KCPKubeadmConfigMountPath          string = "/etc/kubernetes/pki/kubeadmconfig"
+	KCPEtcdSecretInfix                 string = "etcd"
+	KCPEtcdMountPath                   string = "/etc/kubernetes/pki/etcd"
+	KCPKubeConfigSecretInfix           string = "kubeconfig"
+	KCPKubeConfigMountPath             string = "/etc/kubernetes/pki/kubeconfig"
+	KCPProxySecretInfix                string = "proxy"
+	KCPProxyMountPath                  string = "/etc/kubernetes/pki/proxy"
+	KCPServiceAccountInfix             string = "sa"
+	KCPServiceAccountMountPath         string = "/etc/kubernetes/pki/sa"
 )
 
 // KKClusterReconciler reconciles a KKCluster object
@@ -219,6 +234,13 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, s *scope.Clus
 		}
 	}
 
+	// Initialize node select mode
+	if !kkCluster.Status.Ready {
+		if err := r.initKKCluster(ctx, s); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	kkCluster.Status.Ready = true
 
 	return ctrl.Result{
@@ -230,6 +252,7 @@ func (r *KKClusterReconciler) reconcileNormalRunning(ctx context.Context, s *sco
 	var reset bool
 	for {
 		reset = false
+
 		for _, condition := range s.KKCluster.Status.Conditions {
 			conditionsCnt := len(s.KKCluster.Status.Conditions)
 			if conditions.IsFalse(s.KKCluster, condition.Type) {
@@ -242,8 +265,11 @@ func (r *KKClusterReconciler) reconcileNormalRunning(ctx context.Context, s *sco
 					return err
 				}
 			case infrav1beta1.PreparationReadyCondition:
-				if err := dealWithSecrets(ctx, r.Client, s); err != nil {
-					return err
+				// Refresh KCP secrets if annotation is true.
+				if val, ok := s.KKCluster.Annotations[infrav1beta1.KCPSecretsRefreshAnnotation]; ok && val == TrueString {
+					if err := dealWithSecrets(ctx, r.Client, s); err != nil {
+						return err
+					}
 				}
 				if err := r.dealWithPreparation(ctx, s); err != nil {
 					return err
@@ -345,16 +371,13 @@ func (r *KKClusterReconciler) dealWithHostConnectCheck(ctx context.Context, s *s
 
 // dealWithHostSelector function will be executed by dealWithHostConnectCheck function, if relevant pipeline run complete.
 func (r *KKClusterReconciler) dealWithHostSelector(ctx context.Context, s *scope.ClusterScope, _ kkcorev1.Pipeline) error {
-	// Initialize node select mode
-	if err := r.initNodeSelectMode(s); err != nil {
-		return err
-	}
-
 	// Fetch groups and hosts of `Inventory`, replicas of `KubeadmControlPlane` and `MachineDeployment`.
 	inv, err := r.getInitialedInventory(ctx, s)
 	if err != nil {
 		return err
 	}
+
+	originalInventory := inv.DeepCopy()
 
 	kcp, err := GetKubeadmControlPlane(ctx, r.Client, s)
 	if err != nil {
@@ -370,28 +393,30 @@ func (r *KKClusterReconciler) dealWithHostSelector(ctx context.Context, s *scope
 	unavailableHosts, unavailableGroups := make(map[string]struct{}), make(map[string]struct{})
 
 	// Validate kubernetes cluster's controlPlaneGroup.
-	controlPlaneGroup, err := validateInventoryGroup(s.KKCluster, inv, s.KKCluster.Spec.ControlPlaneGroupName,
+	controlPlaneGroup, err := validateInventoryGroup(s.KKCluster, inv,
+		s.KKCluster.Annotations[infrav1beta1.ControlPlaneGroupNameAnnotation],
 		int(*kcp.Spec.Replicas), unavailableHosts, unavailableGroups, false,
 	)
 	if err != nil {
 		return err
 	}
 
-	inv.Spec.Groups[s.KKCluster.Spec.ControlPlaneGroupName] = controlPlaneGroup
+	inv.Spec.Groups[s.KKCluster.Annotations[infrav1beta1.ControlPlaneGroupNameAnnotation]] = controlPlaneGroup
 
 	// Validate kubernetes cluster's workerGroup.
-	workerGroup, err := validateInventoryGroup(s.KKCluster, inv, s.KKCluster.Spec.WorkerGroupName,
+	workerGroup, err := validateInventoryGroup(s.KKCluster, inv,
+		s.KKCluster.Annotations[infrav1beta1.WorkerGroupNameAnnotation],
 		int(*md.Spec.Replicas), unavailableHosts, unavailableGroups, false,
 	)
 	if err != nil {
 		return err
 	}
 
-	inv.Spec.Groups[s.KKCluster.Spec.WorkerGroupName] = workerGroup
+	inv.Spec.Groups[s.KKCluster.Annotations[infrav1beta1.WorkerGroupNameAnnotation]] = workerGroup
 
 	// Update `Inventory` resource.
-	if err := r.Client.Update(ctx, inv); err != nil {
-		klog.V(5).ErrorS(err, "Update Inventory error", "Inventory", ctrlclient.ObjectKeyFromObject(inv))
+	if err := r.Client.Patch(ctx, inv, ctrlclient.MergeFrom(originalInventory)); err != nil {
+		klog.V(5).ErrorS(err, "Failed to patch Inventory", "Inventory", ctrlclient.ObjectKeyFromObject(inv))
 
 		return err
 	}
@@ -526,13 +551,21 @@ func (r *KKClusterReconciler) dealWithExecutePlaybookReconcile(ctx context.Conte
 		return &kkcorev1.Pipeline{}, nil
 	case kkcorev1.PipelinePhaseSucceed:
 		r.dealWithExecuteSucceed(p, funcWithSucceed)
-
-		return p, nil
+		if err := r.Client.Status().Update(ctx, s.KKCluster); err != nil {
+			return p, err
+		}
 	case kkcorev1.PipelinePhaseFailed:
-		return p, r.dealWithExecuteFailed(p, funcWithFailed)
+		if err := r.dealWithExecuteFailed(p, funcWithFailed); err != nil {
+			return p, err
+		}
+		if err := r.Client.Status().Update(ctx, s.KKCluster); err != nil {
+			return p, err
+		}
 	default:
 		return &kkcorev1.Pipeline{}, nil
 	}
+
+	return p, nil
 }
 
 // dealWithExecuteSucceed function used by dealWithExecutePlaybookReconcile, mark current condition as false and mark the
@@ -554,7 +587,7 @@ func (r *KKClusterReconciler) dealWithExecuteFailed(p *kkcorev1.Pipeline, functi
 
 // dealWithSecrets function fetches secrets created by KubeadmControlPlane, etc. And uses them to create a cluster.
 func dealWithSecrets(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) error {
-	// Fetch all secrets
+	// Fetch all secrets.
 	secrets := &corev1.SecretList{}
 	if err := client.List(ctx, secrets, ctrlclient.MatchingLabels{
 		clusterv1.ClusterNameLabel: s.Name(),
@@ -562,7 +595,7 @@ func dealWithSecrets(ctx context.Context, client ctrlclient.Client, s *scope.Clu
 		return err
 	}
 
-	// Fetch KubeadmControlPlaneReference
+	// Fetch KubeadmControlPlaneReference.
 	var kcpOwnRef metav1.OwnerReference
 	if kcp, err := GetKubeadmControlPlane(ctx, client, s); err != nil {
 		return err
@@ -576,67 +609,116 @@ func dealWithSecrets(ctx context.Context, client ctrlclient.Client, s *scope.Clu
 		}
 	}
 
-	// deal with secrets created by kcp.
+	// Fetch control plane's KubeadmConfig.
+	var kcOwnRef metav1.OwnerReference
+	if kc, err := GetControlPlaneKubeadmConfig(ctx, client, s); err != nil {
+		return err
+	} else if kc != nil {
+		kcOwnRef = metav1.OwnerReference{
+			APIVersion: kc.APIVersion,
+			Kind:       kc.Kind,
+			Name:       kc.Name,
+			UID:        kc.UID,
+			Controller: ptr.To(true),
+		}
+	}
+
+	// Deal with secrets
 	for _, secret := range secrets.Items {
-		if !util.HasOwnerRef(secret.OwnerReferences, kcpOwnRef) {
+		if !(util.HasOwnerRef(secret.OwnerReferences, kcpOwnRef) || util.HasOwnerRef(secret.OwnerReferences, kcOwnRef)) {
 			continue
 		}
-		if err := dealWithSecretsCreatedByKCP(ctx, client, s, &secret); err != nil {
+
+		if err := mountSecretsOnPipelineTemplate(ctx, client, s, &secret); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	// Delete kcp secrets annotation.
+	originalKKCluster := s.KKCluster.DeepCopy()
+	delete(s.KKCluster.Annotations, infrav1beta1.KCPSecretsRefreshAnnotation)
+
+	return client.Patch(ctx, s.KKCluster, ctrlclient.MergeFrom(originalKKCluster))
 }
 
-// dealWithSecretsCreatedByKCP function handle one secret created by kcp, and bind with `PipelineTemplate` resource.
-func dealWithSecretsCreatedByKCP(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope, secret *corev1.Secret) error {
+// mountSecretsOnPipelineTemplate function handle one secret created by kcp, and bind with `PipelineTemplate` resource.
+func mountSecretsOnPipelineTemplate(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope, secret *corev1.Secret) error {
+	prefixToMountPath := map[string]string{
+		s.KKCluster.Name + "-" + KCPCertificateAuthoritySecretInfix: KCPCertificateAuthorityMountPath,
+		s.KKCluster.Name + "-" + KCPKubeadmConfigSecretInfix:        KCPKubeadmConfigMountPath,
+		s.KKCluster.Name + "-" + KCPEtcdSecretInfix:                 KCPEtcdMountPath,
+		s.KKCluster.Name + "-" + KCPKubeConfigSecretInfix:           KCPKubeConfigMountPath,
+		s.KKCluster.Name + "-" + KCPProxySecretInfix:                KCPProxyMountPath,
+		s.KKCluster.Name + "-" + KCPServiceAccountInfix:             KCPServiceAccountMountPath,
+	}
+
+	// Fetch secret mount path. All secrets created by KCP must satisfy `${ClusterName}-${Infix}` format name.
 	var mountPath string
-	switch {
-	case strings.Contains(secret.Name, "ca"):
-		mountPath = "/etc/kubernetes/pki/ca.crt"
-	case strings.Contains(secret.Name, "control-plane"):
-		mountPath = "/etc/kubernetes/pki/control-plane.crt"
-	case strings.Contains(secret.Name, "etcd"):
-		mountPath = "/etc/kubernetes/pki/etcd.crt"
-	case strings.Contains(secret.Name, "kubeconfig"):
-		mountPath = "/etc/kubernetes/kubeconfig"
-	case strings.Contains(secret.Name, "proxy"):
-		mountPath = "/etc/kubernetes/pki/proxy.crt"
-	case strings.Contains(secret.Name, "sa"):
-		mountPath = "/etc/kubernetes/pki/sa.crt"
-	default:
+	for prefix, path := range prefixToMountPath {
+		if strings.HasPrefix(secret.Name, prefix) {
+			mountPath = path
+
+			break
+		}
+	}
+	if mountPath == "" {
 		return nil
 	}
 
-	pipelineTemplate, err := GetPipelineTemplateFromRef(ctx, client, s.KKCluster.Spec.PipelineRef)
-	if err != nil {
-		return err
-	}
-
+	// Define `Volume` and `VolumeMount`
 	volume := corev1.Volume{
-		Name: secret.Name + "volume",
+		Name: secret.Name + "-volume",
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
 				SecretName: secret.Name,
 			},
 		},
 	}
-
-	// 将 Volume 挂载到对应的 VolumeMounts
+	// Mount `Volume` on `VolumeMount`
 	volumeMount := corev1.VolumeMount{
-		Name:      secret.Name + "volume",
+		Name:      secret.Name + "-volume",
 		MountPath: mountPath,
-		ReadOnly:  true,
 	}
 
-	pipelineTemplate.Spec.JobSpec.Volumes = append(pipelineTemplate.Spec.JobSpec.Volumes, volume)
-	pipelineTemplate.Spec.JobSpec.VolumeMounts = append(pipelineTemplate.Spec.JobSpec.VolumeMounts, volumeMount)
+	// DeepCopy `KKCluster` for patch update.
+	originalKKCluster := s.KKCluster.DeepCopy()
 
-	return client.Update(ctx, pipelineTemplate)
+	// Fetch `.Spec.PipelineTemplate`.
+	pipelineTemplate := &s.KKCluster.Spec.PipelineTemplate
+
+	// Append or Update `Volume` for `.Spec.PipelineTemplate`.
+	volumeExists := false
+	for i, v := range pipelineTemplate.JobSpec.Volumes {
+		if v.Name == volume.Name {
+			pipelineTemplate.JobSpec.Volumes[i] = volume
+			volumeExists = true
+
+			break
+		}
+	}
+	if !volumeExists {
+		pipelineTemplate.JobSpec.Volumes = append(pipelineTemplate.JobSpec.Volumes, volume)
+	}
+
+	// Append or Update `VolumeMount` for `.Spec.PipelineTemplate`.
+	volumeMountExists := false
+	for i, vm := range pipelineTemplate.JobSpec.VolumeMounts {
+		if vm.Name == volumeMount.Name {
+			pipelineTemplate.JobSpec.VolumeMounts[i] = volumeMount
+			volumeMountExists = true
+
+			break
+		}
+	}
+	if !volumeMountExists {
+		pipelineTemplate.JobSpec.VolumeMounts = append(pipelineTemplate.JobSpec.VolumeMounts, volumeMount)
+	}
+
+	// Patch `KKCluster`.
+	return client.Patch(ctx, s.KKCluster, ctrlclient.MergeFrom(originalKKCluster))
 }
 
-// dealWithPipelinesReconciles will reconcile all pipelines created for execute `playbookName` tasks, and belong to current cluster.
+// dealWithPipelinesReconciles will reconcile all pipelines created for execute `playbookName` test1, and belong to current cluster.
 // It will create one
 func (r *KKClusterReconciler) dealWithPipelinesReconcile(ctx context.Context, s *scope.ClusterScope,
 	playbook, playbookName string) (*kkcorev1.Pipeline, error) {
@@ -678,23 +760,49 @@ func (r *KKClusterReconciler) dealWithPipelinesReconcile(ctx context.Context, s 
 	return latestPipeline, nil
 }
 
-// initNodeSelectMode function used to initialize some necessary configuration information if yaml file not config them.
-func (r *KKClusterReconciler) initNodeSelectMode(s *scope.ClusterScope) error {
-	// Set default value of `KKCluster` resource.
+// initKKCluster function used to initialize some necessary configuration information if yaml file not config them.
+func (r *KKClusterReconciler) initKKCluster(ctx context.Context, s *scope.ClusterScope) error {
+	originalKKCluster := s.KKCluster.DeepCopy()
+
 	if s.KKCluster.Spec.NodeSelectorMode == "" {
 		s.KKCluster.Spec.NodeSelectorMode = infrav1beta1.DefaultNodeSelectorMode
 	}
-	if s.KKCluster.Spec.ControlPlaneGroupName == "" {
-		s.KKCluster.Spec.ControlPlaneGroupName = infrav1beta1.DefaultControlPlaneGroupName
-	}
-	if s.KKCluster.Spec.WorkerGroupName == "" {
-		s.KKCluster.Spec.WorkerGroupName = infrav1beta1.DefaultWorkerGroupName
-	}
-	if s.KKCluster.Spec.ClusterGroupName == "" {
-		s.KKCluster.Spec.ClusterGroupName = infrav1beta1.DefaultClusterGroupName
+
+	// Fetch annotations of `KKCluster`.
+	kkcAnnotations := s.KKCluster.Annotations
+	if kkcAnnotations == nil {
+		kkcAnnotations = make(map[string]string)
 	}
 
-	return nil
+	// Init annotations of `KKCluster`.
+	if _, exists := kkcAnnotations[infrav1beta1.ControlPlaneGroupNameAnnotation]; !exists {
+		kkcAnnotations[infrav1beta1.ControlPlaneGroupNameAnnotation] = infrav1beta1.DefaultControlPlaneGroupName
+	}
+
+	if _, exists := kkcAnnotations[infrav1beta1.WorkerGroupNameAnnotation]; !exists {
+		kkcAnnotations[infrav1beta1.WorkerGroupNameAnnotation] = infrav1beta1.DefaultWorkerGroupName
+	}
+
+	if _, exists := kkcAnnotations[infrav1beta1.ClusterGroupNameAnnotation]; !exists {
+		kkcAnnotations[infrav1beta1.ClusterGroupNameAnnotation] = infrav1beta1.DefaultClusterGroupName
+	}
+
+	if _, exists := kkcAnnotations[infrav1beta1.EtcdGroupNameAnnotation]; !exists {
+		kkcAnnotations[infrav1beta1.EtcdGroupNameAnnotation] = infrav1beta1.DefaultEtcdGroupName
+	}
+
+	if _, exists := kkcAnnotations[infrav1beta1.RegistryGroupNameAnnotation]; !exists {
+		kkcAnnotations[infrav1beta1.RegistryGroupNameAnnotation] = infrav1beta1.DefaultRegistryGroupName
+	}
+
+	if _, exists := kkcAnnotations[infrav1beta1.KCPSecretsRefreshAnnotation]; !exists {
+		kkcAnnotations[infrav1beta1.KCPSecretsRefreshAnnotation] = "true"
+	}
+
+	// Patch annotations of KKCluster.
+	s.KKCluster.Annotations = kkcAnnotations
+
+	return r.Patch(ctx, s.KKCluster, ctrlclient.MergeFrom(originalKKCluster))
 }
 
 // getInitialedInventory function is a pre-processor function, used to process `Groups` of `Inventory`to streamline
@@ -705,6 +813,8 @@ func (r *KKClusterReconciler) getInitialedInventory(ctx context.Context, s *scop
 	if err != nil {
 		return nil, err
 	}
+
+	originalInventory := inv.DeepCopy()
 
 	hosts := inv.Spec.Hosts
 	groups := inv.Spec.Groups
@@ -721,14 +831,17 @@ func (r *KKClusterReconciler) getInitialedInventory(ctx context.Context, s *scop
 	}
 
 	// Initialize kubernetes necessary groups.
-	groups[s.KKCluster.Spec.ClusterGroupName] = kkcorev1.InventoryGroup{
-		Groups: []string{s.KKCluster.Spec.ControlPlaneGroupName, s.KKCluster.Spec.WorkerGroupName},
+	groups[s.KKCluster.Annotations[infrav1beta1.ClusterGroupNameAnnotation]] = kkcorev1.InventoryGroup{
+		Groups: []string{
+			s.KKCluster.Annotations[infrav1beta1.ControlPlaneGroupNameAnnotation],
+			s.KKCluster.Annotations[infrav1beta1.WorkerGroupNameAnnotation],
+		},
 	}
-	if _, exists := groups[s.KKCluster.Spec.ControlPlaneGroupName]; !exists {
-		groups[s.KKCluster.Spec.ControlPlaneGroupName] = kkcorev1.InventoryGroup{}
+	if _, exists := groups[s.KKCluster.Annotations[infrav1beta1.ControlPlaneGroupNameAnnotation]]; !exists {
+		groups[s.KKCluster.Annotations[infrav1beta1.ControlPlaneGroupNameAnnotation]] = kkcorev1.InventoryGroup{}
 	}
-	if _, exists := groups[s.KKCluster.Spec.WorkerGroupName]; !exists {
-		groups[s.KKCluster.Spec.WorkerGroupName] = kkcorev1.InventoryGroup{}
+	if _, exists := groups[s.KKCluster.Annotations[infrav1beta1.WorkerGroupNameAnnotation]]; !exists {
+		groups[s.KKCluster.Annotations[infrav1beta1.WorkerGroupNameAnnotation]] = kkcorev1.InventoryGroup{}
 	}
 	inv.Spec.Groups = groups
 
@@ -736,10 +849,8 @@ func (r *KKClusterReconciler) getInitialedInventory(ctx context.Context, s *scop
 		return nil, err
 	}
 
-	if err := r.Update(ctx, inv); err != nil {
-		klog.ErrorS(err, "Failed to update Inventory", "Inventory", inv)
-
-		return nil, err
+	if err := r.Patch(ctx, inv, ctrlclient.MergeFrom(originalInventory)); err != nil {
+		klog.ErrorS(err, "Failed to patch Inventory", "Inventory", inv)
 	}
 
 	return inv, nil
@@ -751,8 +862,8 @@ func (r *KKClusterReconciler) updateInventoryStatus(ctx context.Context, s *scop
 	newHostMachineMapping := make(map[string]kkcorev1.MachineBinding)
 
 	// Get ControlPlaneGroup and WorkerGroup.
-	controlPlaneGroup := inv.Spec.Groups[s.KKCluster.Spec.ControlPlaneGroupName]
-	workerGroup := inv.Spec.Groups[s.KKCluster.Spec.WorkerGroupName]
+	controlPlaneGroup := inv.Spec.Groups[s.KKCluster.Annotations[infrav1beta1.ControlPlaneGroupNameAnnotation]]
+	workerGroup := inv.Spec.Groups[s.KKCluster.Annotations[infrav1beta1.WorkerGroupNameAnnotation]]
 
 	// Update control-plane nodes.
 	for _, h := range controlPlaneGroup.Hosts {
@@ -847,7 +958,7 @@ func validateInventoryGroup(
 	return kkcorev1.InventoryGroup{
 		Groups: make([]string, 0),
 		Hosts:  ghosts,
-		Vars:   inv.Spec.Groups[kkc.Spec.ControlPlaneGroupName].Vars,
+		Vars:   inv.Spec.Groups[gName].Vars,
 	}, nil
 }
 
@@ -904,15 +1015,7 @@ func secureRandomInt(upperLimit int) (int, error) {
 // generatePipelineByTemplate function can generate a generic pipeline by `PipelineTemplate`.
 func (r *KKClusterReconciler) generatePipelineByTemplate(ctx context.Context, s *scope.ClusterScope, name string, playbook string,
 ) (*kkcorev1.Pipeline, error) {
-	ref := s.KKCluster.Spec.PipelineRef
-	if ref.Namespace == "" {
-		ref.Namespace = s.Namespace()
-	}
-
-	pipelineTemplate, err := GetPipelineTemplateFromRef(ctx, r.Client, s.KKCluster.Spec.PipelineRef)
-	if err != nil {
-		return nil, err
-	}
+	pipelineTemplate := s.KKCluster.Spec.PipelineTemplate
 
 	pipeline := &kkcorev1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
@@ -924,14 +1027,14 @@ func (r *KKClusterReconciler) generatePipelineByTemplate(ctx context.Context, s 
 			},
 		},
 		Spec: kkcorev1.PipelineSpec{
-			Project:      pipelineTemplate.Spec.Project,
+			Project:      pipelineTemplate.Project,
 			Playbook:     playbook,
-			InventoryRef: pipelineTemplate.Spec.InventoryRef,
-			ConfigRef:    pipelineTemplate.Spec.ConfigRef,
-			Tags:         pipelineTemplate.Spec.Tags,
-			SkipTags:     pipelineTemplate.Spec.SkipTags,
-			Debug:        pipelineTemplate.Spec.Debug,
-			JobSpec:      pipelineTemplate.Spec.JobSpec,
+			InventoryRef: pipelineTemplate.InventoryRef,
+			ConfigRef:    pipelineTemplate.ConfigRef,
+			Tags:         pipelineTemplate.Tags,
+			SkipTags:     pipelineTemplate.SkipTags,
+			Debug:        pipelineTemplate.Debug,
+			JobSpec:      pipelineTemplate.JobSpec,
 		},
 	}
 
@@ -981,34 +1084,9 @@ func GetInventory(ctx context.Context, client ctrlclient.Client, s *scope.Cluste
 	return inventory, nil
 }
 
-// GetConfig function return cluster's `Config` resource.
-func GetConfig(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) *kkcorev1.Config {
-	config := &kkcorev1.Config{}
-
-	namespace := s.KKCluster.Spec.ConfigRef.Namespace
-	if namespace == "" {
-		namespace = s.Namespace()
-	}
-
-	err := client.Get(ctx,
-		types.NamespacedName{
-			Name:      s.KKCluster.Spec.ConfigRef.Name,
-			Namespace: namespace,
-		}, config)
-
-	if err != nil {
-		klog.V(5).InfoS("Cluster not found customize `Config` resource, use default configuration default",
-			"Config", ctrlclient.ObjectKeyFromObject(config))
-
-		return nil
-	}
-
-	return config
-}
-
 // GetKubeadmControlPlane function return cluster's `KubeadmControlPlane` resource.
-func GetKubeadmControlPlane(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) (*v1beta1.KubeadmControlPlane, error) {
-	kcp := &v1beta1.KubeadmControlPlane{}
+func GetKubeadmControlPlane(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) (*kcpv1beta1.KubeadmControlPlane, error) {
+	kcp := &kcpv1beta1.KubeadmControlPlane{}
 
 	namespace := s.Cluster.Spec.ControlPlaneRef.Namespace
 	if namespace == "" {
@@ -1025,6 +1103,37 @@ func GetKubeadmControlPlane(ctx context.Context, client ctrlclient.Client, s *sc
 	}
 
 	return kcp, nil
+}
+
+// GetControlPlaneKubeadmConfig function return cluster's `KubeadmConfig` resource belonged to control plane `Machine`.
+func GetControlPlaneKubeadmConfig(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) (*kcv1beta1.KubeadmConfig, error) {
+	kcList := &kcv1beta1.KubeadmConfigList{}
+
+	namespace := s.Cluster.Spec.ControlPlaneRef.Namespace
+	if namespace == "" {
+		namespace = s.Namespace()
+	}
+
+	err := client.List(ctx, kcList,
+		ctrlclient.InNamespace(namespace),
+		ctrlclient.MatchingLabels{
+			clusterv1.ClusterNameLabel: s.Name(),
+		}, ctrlclient.HasLabels{
+			clusterv1.MachineControlPlaneNameLabel,
+		})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("error listing MachineDeployments: %w", err)
+	}
+
+	if len(kcList.Items) == 0 {
+		return nil, errors.New("no control plane's KubeadmConfig found for cluster " + s.Name())
+	}
+
+	if len(kcList.Items) > 1 {
+		return nil, errors.New("multiple control plane's KubeadmConfig found for cluster " + s.Name())
+	}
+
+	return &kcList.Items[0], nil
 }
 
 // GetMachineDeployment function return cluster's `MachineDeployment` resource.
@@ -1052,22 +1161,6 @@ func GetMachineDeployment(ctx context.Context, client ctrlclient.Client, s *scop
 	}
 
 	return &mdList.Items[0], nil
-}
-
-// GetPipelineTemplateFromRef function used for generate `Pipeline` resources by `PipelineTemplate`
-func GetPipelineTemplateFromRef(ctx context.Context, client ctrlclient.Client, ref *corev1.ObjectReference) (*kkcorev1.PipelineTemplate, error) {
-	pipelineTemplate := &kkcorev1.PipelineTemplate{}
-
-	namespacedName := types.NamespacedName{
-		Namespace: ref.Namespace,
-		Name:      ref.Name,
-	}
-
-	if err := client.Get(ctx, namespacedName, pipelineTemplate); err != nil {
-		return nil, err
-	}
-
-	return pipelineTemplate, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

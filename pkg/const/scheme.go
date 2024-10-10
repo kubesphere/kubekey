@@ -25,6 +25,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kcv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	kcpv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
 	capkkv1beta1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1beta1"
@@ -57,6 +58,7 @@ func newScheme() *runtime.Scheme {
 	utilruntime.Must(capkkv1beta1.AddToScheme(s))
 	utilruntime.Must(capiv1beta1.AddToScheme(s))
 	utilruntime.Must(kcpv1beta1.AddToScheme(s))
+	utilruntime.Must(kcv1beta1.AddToScheme(s))
 
 	return s
 }
