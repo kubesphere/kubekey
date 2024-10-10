@@ -44,31 +44,17 @@ type InventorySpec struct {
 	Groups map[string]InventoryGroup `json:"groups,omitempty"`
 }
 
-// MachineBinding represents the binding information of a host to a machine.
-type MachineBinding struct {
-	Roles   []string `json:"roles,omitempty"`   // e.g., control-plane, worker
-	Machine string   `json:"machine,omitempty"` // the corresponding machine name
-}
-
-// InventoryStatus of Inventory
-type InventoryStatus struct {
-	// HostMachineMapping stores the mapping between inventory hosts and CAPI machines.
-	HostMachineMapping map[string]MachineBinding `json:"hostMachineMapping,omitempty"`
-}
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Namespaced
-// +kubebuilder:subresource:status
 
 // Inventory store hosts vars for playbook.
 type Inventory struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   InventorySpec   `json:"spec,omitempty"`
-	Status InventoryStatus `json:"status,omitempty"`
+	Spec InventorySpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -78,33 +64,6 @@ type InventoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Inventory `json:"items"`
-}
-
-// GetHostsFromGroup flatten a specific `Inventory` group with de-duplication.
-func GetHostsFromGroup(inv *Inventory, groupName string, unavailableHosts, unavailableGroups map[string]struct{}) []string {
-	var hosts = make([]string, 0)
-	if v, ok := inv.Spec.Groups[groupName]; ok {
-		unavailableGroups[groupName] = struct{}{}
-		for _, cg := range v.Groups {
-			if _, exist := unavailableGroups[cg]; !exist {
-				unavailableGroups[cg] = struct{}{}
-				hosts = append(hosts, GetHostsFromGroup(inv, cg, unavailableHosts, unavailableGroups)...)
-			}
-		}
-
-		validHosts := make([]string, 0)
-		for _, hostName := range v.Hosts {
-			if _, ok := inv.Spec.Hosts[hostName]; ok {
-				if _, exist := unavailableHosts[hostName]; !exist {
-					unavailableHosts[hostName] = struct{}{}
-					validHosts = append(validHosts, hostName)
-				}
-			}
-		}
-		hosts = append(hosts, validHosts...)
-	}
-
-	return hosts
 }
 
 func init() {
