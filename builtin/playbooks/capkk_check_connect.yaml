@@ -1,0 +1,11 @@
+---
+- name: Check Connect
+  hosts: all
+  ignore_errors: true
+  tasks:
+    - name: Check Connect for Hosts
+      when: .inventory_name | ne "localhost"
+      command: echo 1
+#  post_tasks:
+#  - name: Compute Respond Time for Hosts
+#    command: ping -c 1 -W 1 k8s-master-node | grep time= | awk '{print $8}' | cut -d'=' -f2

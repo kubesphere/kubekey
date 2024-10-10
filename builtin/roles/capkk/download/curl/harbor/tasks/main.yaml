@@ -1,0 +1,18 @@
+---
+- name: Check binaries for harbor
+  tags: ["harbor"]
+  command: |
+    harbor_name={{ get .artifact.artifact_url.harbor .item | splitList "/" | last }}
+    harbor_path={{ .work_dir }}/kubekey/image-registry/harbor/{{ .harbor_version }}/{{ .item }}
+    if [ ! -f $harbor_path/$harbor_name ]; then
+      mkdir -p $harbor_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.harbor .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $harbor_path/$harbor_name {{ get .artifact.artifact_url.harbor .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: and .harbor_version (ne .harbor_version "")

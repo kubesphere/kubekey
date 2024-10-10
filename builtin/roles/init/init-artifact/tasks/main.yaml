@@ -28,11 +28,8 @@
           manifests: "{{ .image_manifests | toJson }}"
       when: .image_manifests | default list | len | lt 0
 
-- include_tasks: pki.yaml
-  tags: ["certs"]
-
 - name: Chown work_dir to sudo
   tags: ["always"]
-  ignore_errors: yes
+  ignore_errors: true
   command: |
     chown -R ${SUDO_UID}:${SUDO_GID} {{ .work_dir }}
