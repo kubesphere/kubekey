@@ -54,7 +54,7 @@ func ParseBool(ctx map[string]any, inputs []string) (bool, error) {
 // ParseString parse template string to actual string
 func ParseString(ctx map[string]any, input string) (string, error) {
 	if !IsTmplSyntax(input) {
-		return input, nil
+		return strings.Trim(input, "\r\n"), nil
 	}
 
 	tl, err := internal.Template.Parse(input)
