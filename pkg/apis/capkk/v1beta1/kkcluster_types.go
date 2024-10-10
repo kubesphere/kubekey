@@ -21,12 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
+
+	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 // KKClusterPhase of KKCluster
 type KKClusterPhase string
 
-// const defines current Phase of KKCluster.
+// This const defines current Phase of KKCluster.
 const (
 	KKClusterPhasePending KKClusterPhase = "Pending"
 	KKClusterPhaseSucceed KKClusterPhase = "Succeed"
@@ -37,13 +39,14 @@ const (
 // NodeSelectorMode defines selector function during select cluster nodes.
 type NodeSelectorMode string
 
-// const defines various NodeSelectorMode of KKCluster.
+// This const defines various NodeSelectorMode of KKCluster.
 const (
 	RandomNodeSelectorMode   NodeSelectorMode = "Random"
 	SequenceNodeSelectorMode NodeSelectorMode = "Sequence"
 	// ResponseTimeNodeSelectorMode NodeSelectorMode = "ResponseTime"
 )
 
+// This const defines various Condition, Reason and Message of KKCluster Conditions.
 const (
 	// HostsReadyCondition will check if hosts are connected firstly, then select control-plane nodes and worker nodes.
 	HostsReadyCondition clusterv1.ConditionType = "HostsReadyCondition"
@@ -130,22 +133,42 @@ const (
 	ClusterReadyMessage string = "Cluster is ready."
 )
 
+// This const defines various annotation of KKCluster.
+const (
+	// ClusterGroupNameAnnotation defines cluster group name of the kubernetes cluster.
+	ClusterGroupNameAnnotation string = "capkk.kubekey.kubesphere.io/cluster-group-name"
+	// ControlPlaneGroupNameAnnotation defines control plane group name of the kubernetes cluster.
+	ControlPlaneGroupNameAnnotation string = "capkk.kubekey.kubesphere.io/control-plane-group-name"
+	// WorkerGroupNameAnnotation defines worker group name of the kubernetes cluster.
+	WorkerGroupNameAnnotation string = "capkk.kubekey.kubesphere.io/worker-group-name"
+	// EtcdGroupNameAnnotation defines etcd group name of the kubernetes cluster.
+	EtcdGroupNameAnnotation string = "capkk.kubekey.kubesphere.io/etcd-group-name"
+	// RegistryGroupNameAnnotation defines registry group name of the kubernetes cluster.
+	RegistryGroupNameAnnotation string = "capkk.kubekey.kubesphere.io/registry-group-name"
+	// KCPSecretsRefreshAnnotation defines if kcp secrets need to refresh
+	KCPSecretsRefreshAnnotation string = "capkk.kubekey.kubesphere.io/kcp-secrets-refresh" //nolint:gosec
+)
+
+// This const defines default node select strategy way and annotations values of KKCluster.
+const (
+	// DefaultNodeSelectorMode is the default node selector mode for the cluster.
+	DefaultNodeSelectorMode = "Random"
+	// DefaultClusterGroupName is the default cluster group name.
+	DefaultClusterGroupName = "k8s_cluster"
+	// DefaultControlPlaneGroupName is the default control plane group name.
+	DefaultControlPlaneGroupName = "kube_control_plane"
+	// DefaultWorkerGroupName is the default worker group name.
+	DefaultWorkerGroupName = "kube_worker"
+	// DefaultEtcdGroupName is the default etcd group name.
+	DefaultEtcdGroupName = "etcd"
+	// DefaultRegistryGroupName is the default registry group name.
+	DefaultRegistryGroupName = "registry"
+)
+
 const (
 	// ClusterFinalizer allows ReconcileKKCluster to clean up KK resources associated with KKCluster before
 	// removing it from the apiserver.
 	ClusterFinalizer = "kkcluster.infrastructure.cluster.x-k8s.io"
-
-	// DefaultNodeSelectorMode is select nodes randomly.
-	DefaultNodeSelectorMode = RandomNodeSelectorMode
-
-	// DefaultControlPlaneGroupName defines default control plane group name of the kubernetes cluster.
-	DefaultControlPlaneGroupName = "kube_control_plane"
-
-	// DefaultWorkerGroupName defines default worker group name of the kubernetes cluster.
-	DefaultWorkerGroupName = "kube_worker"
-
-	// DefaultClusterGroupName defines default cluster group name of the kubernetes cluster.
-	DefaultClusterGroupName = "k8s_cluster"
 )
 
 // KKClusterSpec defines the desired state of KKCluster.
@@ -157,27 +180,11 @@ type KKClusterSpec struct {
 	// +optional
 	NodeSelectorMode NodeSelectorMode `json:"nodeSelectorMode,omitempty"`
 
-	// ControlPlaneGroupName is the group name of kubernetes control plane nodes.
-	// +optional
-	ControlPlaneGroupName string `json:"controlPlaneGroupName,omitempty"`
-
-	// WorkerGroupName is the group name of kubernetes worker nodes.
-	// +optional
-	WorkerGroupName string `json:"workerGroupName,omitempty"`
-
-	// ClusterGroupName is the group name of kubernetes cluster, which contains control plane group and worker group.
-	// +optional
-	ClusterGroupName string `json:"clusterGroupName,omitempty"`
+	// PipelineTemplate defines how to create a pipeline, which is used to execute all CAPKK jobs.
+	PipelineTemplate PipelineTemplate `json:"pipelineTemplate,omitempty"`
 
 	// InventoryRef is the reference of Inventory.
 	InventoryRef *corev1.ObjectReference `json:"inventoryRef,omitempty"`
-
-	// ConfigRef is the reference of Config.
-	// +optional
-	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
-
-	// ConfigRef is the reference of Pipeline.
-	PipelineRef *corev1.ObjectReference `json:"pipelineRef,omitempty"`
 
 	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.
 	// +optional
@@ -212,7 +219,7 @@ type KKClusterStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	// +optional
-	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
+	FailureReason *errors.ClusterStatusError `json:"failureReason,omitempty"`
 
 	// FailureMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable
@@ -236,6 +243,32 @@ type KKClusterStatus struct {
 	// Conditions defines current service state of the KKCluster.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+}
+
+// PipelineTemplate defines how to create a pipeline, which is used to execute all CAPKK jobs.
+type PipelineTemplate struct {
+	// Project is storage for executable packages
+	// +optional
+	Project kkcorev1.PipelineProject `json:"project,omitempty"`
+	// InventoryRef is the node configuration for playbook
+	// +optional
+	InventoryRef *corev1.ObjectReference `json:"inventoryRef,omitempty"`
+	// ConfigRef is the global variable configuration for playbook
+	// +optional
+	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
+	// Tags is the tags of playbook which to execute
+	// +optional
+	Tags []string `json:"tags,omitempty"`
+	// SkipTags is the tags of playbook which skip execute
+	// +optional
+	SkipTags []string `json:"skipTags,omitempty"`
+	// If Debug mode is true, It will retain runtime data after a successful execution of Pipeline,
+	// which includes task execution status and parameters.
+	// +optional
+	Debug bool `json:"debug,omitempty"`
+	// when execute in kubernetes, pipeline will create ob or cornJob to execute.
+	// +optional
+	JobSpec kkcorev1.PipelineJobSpec `json:"jobSpec,omitempty"`
 }
 
 // KKLoadBalancerSpec defines the desired state of an KK load balancer.
