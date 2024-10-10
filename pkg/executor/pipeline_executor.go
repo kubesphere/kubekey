@@ -132,6 +132,10 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 		}
 		// generate task from role
 		for _, role := range play.Roles {
+			if !role.Taggable.IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
+				// if not match the tags. skip
+				continue
+			}
 			if err := e.variable.Merge(variable.MergeRuntimeVariable(role.Vars, serials...)); err != nil {
 				return fmt.Errorf("merge variable error: %w", err)
 			}
