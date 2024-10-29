@@ -30,10 +30,11 @@ type KKClusterPhase string
 
 // This const defines current Phase of KKCluster.
 const (
-	KKClusterPhasePending KKClusterPhase = "Pending"
-	KKClusterPhaseSucceed KKClusterPhase = "Succeed"
-	KKClusterPhaseRunning KKClusterPhase = "Running"
-	KKClusterPhaseFailed  KKClusterPhase = "Failed"
+	KKClusterPhasePending  KKClusterPhase = "Pending"
+	KKClusterPhaseSucceed  KKClusterPhase = "Succeed"
+	KKClusterPhaseRunning  KKClusterPhase = "Running"
+	KKClusterPhaseFailed   KKClusterPhase = "Failed"
+	KKClusterPhaseDeleting KKClusterPhase = "Deleting"
 )
 
 // NodeSelectorMode defines selector function during select cluster nodes.
@@ -131,6 +132,19 @@ const (
 	ClusterReadyReason string = "ClusterReady"
 	// ClusterReadyMessage is a specification `Message` of ClusterReadyCondition.
 	ClusterReadyMessage string = "Cluster is ready."
+
+	// ClusterDeletingCondition will delete the cluster.
+	ClusterDeletingCondition clusterv1.ConditionType = "ClusterDeletingCondition"
+	// WaitingClusterDeletingReason is one `Reason` of ClusterDeletingCondition.
+	WaitingClusterDeletingReason string = "WaitingForClusterDeleting"
+	// WaitingClusterDeletingMessage is a specification `Message` of ClusterDeletingCondition.
+	WaitingClusterDeletingMessage string = "Waiting for cluster deletion"
+	// ClusterDeletingSucceedReason is one `Reason` of ClusterDeletingCondition.
+	ClusterDeletingSucceedReason string = "ClusterDeletingSucceeded"
+	// ClusterDeletingFailedReason is one `Reason` of ClusterDeletingCondition.
+	ClusterDeletingFailedReason string = "ClusterDeletingFailed"
+	// ClusterDeletingSucceedMessage is a specification `Message` of ClusterDeletingCondition.
+	ClusterDeletingSucceedMessage string = "Cluster deletion succeeded"
 )
 
 // This const defines various annotation of KKCluster.
