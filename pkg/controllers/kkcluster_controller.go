@@ -180,7 +180,10 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Handle deleted clusters
 	if !kkCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, clusterScope)
+		err := r.reconcileDelete(ctx, clusterScope)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Handle non-deleted clusters
@@ -198,6 +201,7 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, s *scope.Clus
 		}
 	}
 
+	//nolint:exhaustive
 	switch s.KKCluster.Status.Phase {
 	case "":
 		// Switch kkCluster.Status.Phase to `Pending`
@@ -250,70 +254,12 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, s *scope.Clus
 }
 
 func (r *KKClusterReconciler) reconcileNormalRunning(ctx context.Context, s *scope.ClusterScope) error {
-	var reset bool
 	for {
-		reset = false
-
-		for _, condition := range s.KKCluster.Status.Conditions {
-			conditionsCnt := len(s.KKCluster.Status.Conditions)
-			if conditions.IsFalse(s.KKCluster, condition.Type) {
-				continue
-			}
-
-			switch condition.Type {
-			case infrav1beta1.HostsReadyCondition:
-				if err := r.dealWithHostConnectCheck(ctx, s); err != nil {
-					return err
-				}
-			case infrav1beta1.PreparationReadyCondition:
-				// Refresh KCP secrets if annotation is true.
-				if val, ok := s.KKCluster.Annotations[infrav1beta1.KCPSecretsRefreshAnnotation]; ok && val == TrueString {
-					if err := dealWithSecrets(ctx, r.Client, s); err != nil {
-						return err
-					}
-				}
-				if err := r.dealWithPreparation(ctx, s); err != nil {
-					return err
-				}
-			case infrav1beta1.EtcdReadyCondition:
-				if err := r.dealWithEtcdInstall(ctx, s); err != nil {
-					return err
-				}
-			case infrav1beta1.BinaryInstallCondition:
-				if err := r.dealWithBinaryInstall(ctx, s); err != nil {
-					return err
-				}
-			case infrav1beta1.BootstrapReadyCondition:
-				// kubeadm init, kubeadm join
-				if err := r.dealWithBootstrapReady(ctx, s); err != nil {
-					return err
-				}
-			case infrav1beta1.ClusterReadyCondition:
-				// kubectl get node
-				// master -> configmap -> kubeconfig -> Client: get node
-				if err := r.dealWithClusterReadyCheck(ctx, s); err != nil {
-					return err
-				}
-				// Switch `KKCluster.Phase` to `Succeed`
-				s.KKCluster.Status.Phase = infrav1beta1.KKClusterPhaseSucceed
-				if err := r.Client.Status().Update(ctx, s.KKCluster); err != nil {
-					klog.V(5).ErrorS(err, "Update KKCluster error", "KKCluster",
-						ctrlclient.ObjectKeyFromObject(s.KKCluster))
-
-					return err
-				}
-			default:
-			}
-
-			// If add new conditions, restart loop.
-			if len(s.KKCluster.Status.Conditions) > conditionsCnt {
-				reset = true
-
-				break
-			}
+		conditionsIsChanged, err := r.dealWithKKClusterConditions(ctx, s)
+		if err != nil {
+			return err
 		}
-
-		if !reset {
+		if !conditionsIsChanged {
 			break
 		}
 	}
@@ -321,7 +267,70 @@ func (r *KKClusterReconciler) reconcileNormalRunning(ctx context.Context, s *sco
 	return nil
 }
 
-func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, s *scope.ClusterScope) (reconcile.Result, error) {
+//nolint:gocognit,cyclop
+func (r *KKClusterReconciler) dealWithKKClusterConditions(ctx context.Context, s *scope.ClusterScope) (bool, error) {
+	for _, condition := range s.KKCluster.Status.Conditions {
+		conditionsCnt := len(s.KKCluster.Status.Conditions)
+		if conditions.IsFalse(s.KKCluster, condition.Type) {
+			continue
+		}
+
+		//nolint:exhaustive
+		switch condition.Type {
+		case infrav1beta1.HostsReadyCondition:
+			if err := r.dealWithHostConnectCheck(ctx, s); err != nil {
+				return false, err
+			}
+		case infrav1beta1.PreparationReadyCondition:
+			// Refresh KCP secrets if annotation is true.
+			if val, ok := s.KKCluster.Annotations[infrav1beta1.KCPSecretsRefreshAnnotation]; ok && val == TrueString {
+				if err := dealWithSecrets(ctx, r.Client, s); err != nil {
+					return false, err
+				}
+			}
+			if err := r.dealWithPreparation(ctx, s); err != nil {
+				return false, err
+			}
+		case infrav1beta1.EtcdReadyCondition:
+			if err := r.dealWithEtcdInstall(ctx, s); err != nil {
+				return false, err
+			}
+		case infrav1beta1.BinaryInstallCondition:
+			if err := r.dealWithBinaryInstall(ctx, s); err != nil {
+				return false, err
+			}
+		case infrav1beta1.BootstrapReadyCondition:
+			// kubeadm init, kubeadm join
+			if err := r.dealWithBootstrapReady(ctx, s); err != nil {
+				return false, err
+			}
+		case infrav1beta1.ClusterReadyCondition:
+			// kubectl get node
+			// master -> configmap -> kubeconfig -> Client: get node
+			if err := r.dealWithClusterReadyCheck(ctx, s); err != nil {
+				return false, err
+			}
+			// Switch `KKCluster.Phase` to `Succeed`
+			s.KKCluster.Status.Phase = infrav1beta1.KKClusterPhaseSucceed
+			if err := r.Client.Status().Update(ctx, s.KKCluster); err != nil {
+				klog.V(5).ErrorS(err, "Update KKCluster error", "KKCluster",
+					ctrlclient.ObjectKeyFromObject(s.KKCluster))
+
+				return false, err
+			}
+		default:
+		}
+
+		// If add new conditions, restart loop.
+		if len(s.KKCluster.Status.Conditions) > conditionsCnt {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, s *scope.ClusterScope) error {
 	klog.V(4).Info("Reconcile KKCluster delete")
 
 	// : pipeline delete
@@ -330,33 +339,33 @@ func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, s *scope.Clus
 		// Switch kkCluster.Status.Phase to `Deleting`
 		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
 		if err != nil {
-			return reconcile.Result{}, err
+			return err
 		}
 	case infrav1beta1.KKClusterPhaseRunning:
 		// delete running pipeline
 		if err := r.dealWithDeletePipelines(ctx, s); err != nil {
-			return reconcile.Result{}, err
+			return err
 		}
 
 		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
 		if err != nil {
-			return reconcile.Result{}, err
+			return err
 		}
 	case infrav1beta1.KKClusterPhaseFailed:
 		// Switch kkCluster.Status.Phase to `Deleting`
 		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
 		if err != nil {
-			return reconcile.Result{}, err
+			return err
 		}
 	case infrav1beta1.KKClusterPhaseSucceed:
 		// Switch kkCluster.Status.Phase to `Deleting`
 		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
 		if err != nil {
-			return reconcile.Result{}, err
+			return err
 		}
 	case infrav1beta1.KKClusterPhaseDeleting:
 		if err := r.dealWithClusterDeleting(ctx, s); err != nil {
-			return reconcile.Result{}, err
+			return err
 		}
 	}
 
@@ -365,7 +374,7 @@ func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, s *scope.Clus
 		controllerutil.RemoveFinalizer(s.KKCluster, infrav1beta1.ClusterFinalizer)
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // dealWithHostConnectCheck and dealWithHostSelector function used to pre-check inventory configuration, especially
@@ -678,9 +687,6 @@ func dealWithKCSecrets(ctx context.Context, client ctrlclient.Client, s *scope.C
 	}
 
 	// if secret format is cloud-config, parse and generate relevant secrets bind with `.Spec.PipelineTemplate`
-	if strings.HasPrefix(secret.Name, s.KKCluster.Name+"-"+KCPKubeConfigSecretInfix) {
-
-	}
 	if strings.HasPrefix(secret.Name, s.KKCluster.Name+"-"+KCPKubeadmConfigSecretInfix) {
 		return GenerateAndBindSecretsFromCloudConfig(ctx, client, s, secret, s.Name())
 	}
