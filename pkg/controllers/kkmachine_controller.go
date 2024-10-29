@@ -107,13 +107,6 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// Handle Deletion Early, avoid `KKCluster` delete earlier than `KKMachine`, which may causes some problem.
-	if !kkMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		r.reconcileDelete(kkMachine)
-
-		return ctrl.Result{}, nil
-	}
-
 	kkCluster := &infrav1beta1.KKCluster{}
 	kkClusterName := ctrlclient.ObjectKey{
 		Namespace: kkMachine.Namespace,
@@ -158,6 +151,14 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}()
 
+	// Handle Deleted machines
+	if !kkMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+		r.reconcileDelete(kkMachine)
+
+		return ctrl.Result{}, nil
+	}
+
+	// Handle normal machines
 	return r.reconcileNormal(ctx, machineScope)
 }
 
@@ -195,11 +196,11 @@ func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, s *scope.Mach
 	}, nil
 }
 
-func (r *KKMachineReconciler) reconcileDelete(kkMachine *infrav1beta1.KKMachine) {
-	klog.V(4).Info("Reconcile KKCluster delete")
+func (r *KKMachineReconciler) reconcileDelete(kkm *infrav1beta1.KKMachine) {
+	klog.V(4).Info("Reconcile KKMachine delete")
 
 	// Machine is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(kkMachine, infrav1beta1.MachineFinalizer)
+	controllerutil.RemoveFinalizer(kkm, infrav1beta1.MachineFinalizer)
 }
 
 func refreshProviderID(ctx context.Context, client ctrlclient.Client, s *scope.MachineScope) error {

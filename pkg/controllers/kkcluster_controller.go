@@ -22,9 +22,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 
 	"k8s.io/utils/ptr"
 
@@ -82,18 +85,24 @@ const (
 	BootstrapPlaybookName string = "bootstrap-ready"
 	BootstrapPlaybook     string = "capkk/playbooks/capkk_bootstrap_ready.yaml"
 
-	KCPCertificateAuthoritySecretInfix string = "ca"
-	KCPCertificateAuthorityMountPath   string = "/etc/kubernetes/pki/ca"
-	KCPKubeadmConfigSecretInfix        string = "control-plane"
-	KCPKubeadmConfigMountPath          string = "/etc/kubernetes/pki/kubeadmconfig"
-	KCPEtcdSecretInfix                 string = "etcd"
-	KCPEtcdMountPath                   string = "/etc/kubernetes/pki/etcd"
-	KCPKubeConfigSecretInfix           string = "kubeconfig"
-	KCPKubeConfigMountPath             string = "/etc/kubernetes/pki/kubeconfig"
-	KCPProxySecretInfix                string = "proxy"
-	KCPProxyMountPath                  string = "/etc/kubernetes/pki/proxy"
-	KCPServiceAccountInfix             string = "sa"
-	KCPServiceAccountMountPath         string = "/etc/kubernetes/pki/sa"
+	ClusterDeletingPlaybookName string = "delete-cluster"
+	ClusterDeletingPlaybook     string = "capkk/playbooks/capkk_delete_cluster.yaml"
+
+	CloudConfigValueKey string = "value"
+
+	KubernetesDir string = "/etc/kubernetes/pki/"
+	// KCPCertificateAuthoritySecretInfix string = "ca"
+	// KCPCertificateAuthorityMountPath   string = "/etc/kubernetes/pki/ca"
+	KCPKubeadmConfigSecretInfix string = "control-plane"
+	KCPKubeadmConfigMountPath   string = "/etc/kubernetes/pki/kubeadmconfig"
+	// KCPEtcdSecretInfix                 string = "etcd"
+	// KCPEtcdMountPath                   string = "/etc/kubernetes/pki/etcd"
+	KCPKubeConfigSecretInfix string = "kubeconfig"
+	KCPKubeConfigMountPath   string = "/etc/kubernetes/pki/kubeconfig"
+	// KCPProxySecretInfix                string = "proxy"
+	// KCPProxyMountPath                  string = "/etc/kubernetes/pki/proxy"
+	// KCPServiceAccountInfix             string = "sa"
+	// KCPServiceAccountMountPath         string = "/etc/kubernetes/pki/sa"
 )
 
 // KKClusterReconciler reconciles a KKCluster object
@@ -171,9 +180,7 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Handle deleted clusters
 	if !kkCluster.DeletionTimestamp.IsZero() {
-		r.reconcileDelete(clusterScope)
-
-		return ctrl.Result{}, nil
+		return r.reconcileDelete(ctx, clusterScope)
 	}
 
 	// Handle non-deleted clusters
@@ -183,37 +190,31 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, s *scope.ClusterScope) (reconcile.Result, error) {
 	klog.V(4).Info("Reconcile KKCluster normal")
 
-	kkCluster := s.KKCluster
-
 	// If the KKCluster doesn't have our finalizer, add it.
-	if controllerutil.AddFinalizer(kkCluster, infrav1beta1.ClusterFinalizer) {
+	if controllerutil.AddFinalizer(s.KKCluster, infrav1beta1.ClusterFinalizer) {
 		// Register the finalizer immediately to avoid orphaning KK resources on delete
 		if err := s.PatchObject(ctx); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
 
-	switch kkCluster.Status.Phase {
+	switch s.KKCluster.Status.Phase {
 	case "":
 		// Switch kkCluster.Status.Phase to `Pending`
-		excepted := kkCluster.DeepCopy()
-		kkCluster.Status.Phase = infrav1beta1.KKClusterPhasePending
-		if err := r.Client.Status().Patch(ctx, kkCluster, ctrlclient.MergeFrom(excepted)); err != nil {
-			klog.V(5).ErrorS(err, "Update KKCluster error", "KKCluster", ctrlclient.ObjectKeyFromObject(kkCluster))
-
-			return ctrl.Result{}, err
+		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhasePending)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	case infrav1beta1.KKClusterPhasePending:
-		// Switch kkCluster.Status.Phase to `Pending`, also add HostReadyCondition.
-		excepted := kkCluster.DeepCopy()
-		kkCluster.Status.Phase = infrav1beta1.KKClusterPhaseRunning
-		// Set series of conditions as `Unknown` for the next reconciles.
-		conditions.MarkUnknown(s.KKCluster, infrav1beta1.HostsReadyCondition,
-			infrav1beta1.WaitingCheckHostReadyReason, infrav1beta1.WaitingCheckHostReadyMessage)
-		if err := r.Client.Status().Patch(ctx, kkCluster, ctrlclient.MergeFrom(excepted)); err != nil {
-			klog.V(5).ErrorS(err, "Update KKCluster error", "KKCluster", ctrlclient.ObjectKeyFromObject(kkCluster))
-
-			return ctrl.Result{}, err
+		err := s.PatchClusterWithFunc(ctx, func(kkc *infrav1beta1.KKCluster) {
+			// Switch kkCluster.Status.Phase to `Pending`
+			kkc.Status.Phase = infrav1beta1.KKClusterPhaseRunning
+			// Set series of conditions as `Unknown` for the next reconciles.
+			conditions.MarkUnknown(s.KKCluster, infrav1beta1.HostsReadyCondition,
+				infrav1beta1.WaitingCheckHostReadyReason, infrav1beta1.WaitingCheckHostReadyMessage)
+		})
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	case infrav1beta1.KKClusterPhaseRunning:
 		if err := r.reconcileNormalRunning(ctx, s); err != nil {
@@ -228,20 +229,20 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, s *scope.Clus
 	}
 
 	if lb := s.ControlPlaneLoadBalancer(); lb != nil {
-		kkCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+		s.KKCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 			Host: lb.Host,
 			Port: s.APIServerPort(),
 		}
 	}
 
 	// Initialize node select mode
-	if !kkCluster.Status.Ready {
+	if !s.KKCluster.Status.Ready {
 		if err := r.initKKCluster(ctx, s); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	kkCluster.Status.Ready = true
+	s.KKCluster.Status.Ready = true
 
 	return ctrl.Result{
 		RequeueAfter: 30 * time.Second,
@@ -320,23 +321,51 @@ func (r *KKClusterReconciler) reconcileNormalRunning(ctx context.Context, s *sco
 	return nil
 }
 
-func (r *KKClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) {
+func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, s *scope.ClusterScope) (reconcile.Result, error) {
 	klog.V(4).Info("Reconcile KKCluster delete")
 
 	// : pipeline delete
-	switch clusterScope.KKCluster.Status.Phase {
+	switch s.KKCluster.Status.Phase {
 	case infrav1beta1.KKClusterPhasePending:
-		// transfer into Delete phase
+		// Switch kkCluster.Status.Phase to `Deleting`
+		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	case infrav1beta1.KKClusterPhaseRunning:
-		// delete running pipeline & recreate delete pipeline
+		// delete running pipeline
+		if err := r.dealWithDeletePipelines(ctx, s); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	case infrav1beta1.KKClusterPhaseFailed:
-		// delete
+		// Switch kkCluster.Status.Phase to `Deleting`
+		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	case infrav1beta1.KKClusterPhaseSucceed:
-		//
+		// Switch kkCluster.Status.Phase to `Deleting`
+		err := s.PatchClusterPhase(ctx, infrav1beta1.KKClusterPhaseDeleting)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	case infrav1beta1.KKClusterPhaseDeleting:
+		if err := r.dealWithClusterDeleting(ctx, s); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(clusterScope.KKCluster, infrav1beta1.ClusterFinalizer)
+	if conditions.IsFalse(s.KKCluster, infrav1beta1.ClusterDeletingCondition) {
+		controllerutil.RemoveFinalizer(s.KKCluster, infrav1beta1.ClusterFinalizer)
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // dealWithHostConnectCheck and dealWithHostSelector function used to pre-check inventory configuration, especially
@@ -534,6 +563,27 @@ func (r *KKClusterReconciler) dealWithClusterReadyCheck(ctx context.Context, s *
 	return r.updateInventoryStatus(ctx, s, inv)
 }
 
+// dealWithClusterDeleting function will delete the cluster.
+func (r *KKClusterReconciler) dealWithClusterDeleting(ctx context.Context, s *scope.ClusterScope) error {
+	var err error
+	if _, err = r.dealWithExecutePlaybookReconcile(
+		ctx, s, ClusterDeletingPlaybook, ClusterDeletingPlaybookName,
+		func(_ *kkcorev1.Pipeline) {
+			conditions.MarkFalse(s.KKCluster, infrav1beta1.ClusterDeletingCondition, infrav1beta1.ClusterDeletingSucceedReason,
+				clusterv1.ConditionSeverityInfo, infrav1beta1.ClusterDeletingSucceedMessage)
+		},
+		func(p *kkcorev1.Pipeline) {
+			r.EventRecorder.Eventf(s.KKCluster, corev1.EventTypeWarning, infrav1beta1.ClusterDeletingFailedReason, p.Status.Reason)
+			conditions.MarkTrueWithNegativePolarity(s.KKCluster, infrav1beta1.ClusterDeletingCondition,
+				infrav1beta1.ClusterDeletingFailedReason, clusterv1.ConditionSeverityError, p.Status.Reason,
+			)
+		}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // dealWithExecutePlaybookReconcile will judge the closest pipeline's `.Status.Phase` to the latest state of the cluster,
 // and execute exactly stage to adjustment the cluster conditions. It will return one pipeline if it's useful, used for
 // the other judgements.
@@ -585,7 +635,7 @@ func (r *KKClusterReconciler) dealWithExecuteFailed(p *kkcorev1.Pipeline, functi
 	return err
 }
 
-// dealWithSecrets function fetches secrets created by KubeadmControlPlane, etc. And uses them to create a cluster.
+// dealWithSecrets function fetches secrets, and uses them to create a cluster.
 func dealWithSecrets(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope) error {
 	// Fetch all secrets.
 	secrets := &corev1.SecretList{}
@@ -595,20 +645,20 @@ func dealWithSecrets(ctx context.Context, client ctrlclient.Client, s *scope.Clu
 		return err
 	}
 
-	// Fetch KubeadmControlPlaneReference.
-	var kcpOwnRef metav1.OwnerReference
-	if kcp, err := GetKubeadmControlPlane(ctx, client, s); err != nil {
-		return err
-	} else if kcp != nil {
-		kcpOwnRef = metav1.OwnerReference{
-			APIVersion: kcp.APIVersion,
-			Kind:       kcp.Kind,
-			Name:       kcp.Name,
-			UID:        kcp.UID,
-			Controller: ptr.To(true),
+	// Deal with secrets
+	for _, secret := range secrets.Items {
+		if err := dealWithKCSecrets(ctx, client, s, &secret); err != nil {
+			return err
 		}
 	}
 
+	return s.PatchClusterWithFunc(ctx, func(kkc *infrav1beta1.KKCluster) {
+		delete(kkc.Annotations, infrav1beta1.KCPSecretsRefreshAnnotation)
+	})
+}
+
+// dealWithKCSecrets function fetches secrets created by KubeadmConfig.
+func dealWithKCSecrets(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope, secret *corev1.Secret) error {
 	// Fetch control plane's KubeadmConfig.
 	var kcOwnRef metav1.OwnerReference
 	if kc, err := GetControlPlaneKubeadmConfig(ctx, client, s); err != nil {
@@ -623,48 +673,24 @@ func dealWithSecrets(ctx context.Context, client ctrlclient.Client, s *scope.Clu
 		}
 	}
 
-	// Deal with secrets
-	for _, secret := range secrets.Items {
-		if !(util.HasOwnerRef(secret.OwnerReferences, kcpOwnRef) || util.HasOwnerRef(secret.OwnerReferences, kcOwnRef)) {
-			continue
-		}
-
-		if err := mountSecretsOnPipelineTemplate(ctx, client, s, &secret); err != nil {
-			return err
-		}
-	}
-
-	// Delete kcp secrets annotation.
-	originalKKCluster := s.KKCluster.DeepCopy()
-	delete(s.KKCluster.Annotations, infrav1beta1.KCPSecretsRefreshAnnotation)
-
-	return client.Patch(ctx, s.KKCluster, ctrlclient.MergeFrom(originalKKCluster))
-}
-
-// mountSecretsOnPipelineTemplate function handle one secret created by kcp, and bind with `PipelineTemplate` resource.
-func mountSecretsOnPipelineTemplate(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope, secret *corev1.Secret) error {
-	prefixToMountPath := map[string]string{
-		s.KKCluster.Name + "-" + KCPCertificateAuthoritySecretInfix: KCPCertificateAuthorityMountPath,
-		s.KKCluster.Name + "-" + KCPKubeadmConfigSecretInfix:        KCPKubeadmConfigMountPath,
-		s.KKCluster.Name + "-" + KCPEtcdSecretInfix:                 KCPEtcdMountPath,
-		s.KKCluster.Name + "-" + KCPKubeConfigSecretInfix:           KCPKubeConfigMountPath,
-		s.KKCluster.Name + "-" + KCPProxySecretInfix:                KCPProxyMountPath,
-		s.KKCluster.Name + "-" + KCPServiceAccountInfix:             KCPServiceAccountMountPath,
-	}
-
-	// Fetch secret mount path. All secrets created by KCP must satisfy `${ClusterName}-${Infix}` format name.
-	var mountPath string
-	for prefix, path := range prefixToMountPath {
-		if strings.HasPrefix(secret.Name, prefix) {
-			mountPath = path
-
-			break
-		}
-	}
-	if mountPath == "" {
+	if !util.HasOwnerRef(secret.OwnerReferences, kcOwnRef) {
 		return nil
 	}
 
+	// if secret format is cloud-config, parse and generate relevant secrets bind with `.Spec.PipelineTemplate`
+	if strings.HasPrefix(secret.Name, s.KKCluster.Name+"-"+KCPKubeConfigSecretInfix) {
+
+	}
+	if strings.HasPrefix(secret.Name, s.KKCluster.Name+"-"+KCPKubeadmConfigSecretInfix) {
+		return GenerateAndBindSecretsFromCloudConfig(ctx, client, s, secret, s.Name())
+	}
+
+	return nil
+}
+
+// mountSecretOnPipelineTemplate function handle one secret created by kcp, and bind with `PipelineTemplate` resource.
+func mountSecretOnPipelineTemplate(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope,
+	secret *corev1.Secret, mountPath string) error {
 	// Define `Volume` and `VolumeMount`
 	volume := corev1.Volume{
 		Name: secret.Name + "-volume",
@@ -718,7 +744,7 @@ func mountSecretsOnPipelineTemplate(ctx context.Context, client ctrlclient.Clien
 	return client.Patch(ctx, s.KKCluster, ctrlclient.MergeFrom(originalKKCluster))
 }
 
-// dealWithPipelinesReconciles will reconcile all pipelines created for execute `playbookName` test1, and belong to current cluster.
+// dealWithPipelinesReconcile will reconcile all pipelines created for execute `playbookName` test1, and belong to current cluster.
 // It will create one
 func (r *KKClusterReconciler) dealWithPipelinesReconcile(ctx context.Context, s *scope.ClusterScope,
 	playbook, playbookName string) (*kkcorev1.Pipeline, error) {
@@ -758,6 +784,27 @@ func (r *KKClusterReconciler) dealWithPipelinesReconcile(ctx context.Context, s 
 	}
 
 	return latestPipeline, nil
+}
+
+// dealWithDeletePipelines delete all existed pipeline created by cluster.
+func (r *KKClusterReconciler) dealWithDeletePipelines(ctx context.Context, s *scope.ClusterScope) error {
+	pipelines := &kkcorev1.PipelineList{}
+
+	// Check if pipelines exist, or an unexpected error occurred.
+	if err := r.Client.List(ctx, pipelines, ctrlclient.InNamespace(s.Namespace()), ctrlclient.MatchingLabels{
+		clusterv1.ClusterNameLabel: s.Name(),
+	}); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	// Iterate through all pipelines and delete them.
+	for _, pipeline := range pipelines.Items {
+		if err := r.Client.Delete(ctx, &pipeline); err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // initKKCluster function used to initialize some necessary configuration information if yaml file not config them.
@@ -1161,6 +1208,80 @@ func GetMachineDeployment(ctx context.Context, client ctrlclient.Client, s *scop
 	}
 
 	return &mdList.Items[0], nil
+}
+
+// GenerateAndBindSecretsFromCloudConfig fetches the cloud-config format secret, then parse it and returns secrets.
+func GenerateAndBindSecretsFromCloudConfig(ctx context.Context, client ctrlclient.Client, s *scope.ClusterScope,
+	secret *corev1.Secret, secretNamePrefix string) error {
+	// WriteFile represents the structure of each write_files entry in cloud-init.
+	type WriteFile struct {
+		Path        string `yaml:"path"`
+		Owner       string `yaml:"owner"`
+		Permissions string `yaml:"permissions"`
+		Content     string `yaml:"content"`
+	}
+
+	// CloudConfig represents the structure of the cloud-init data.
+	type CloudConfig struct {
+		WriteFiles []WriteFile `yaml:"write_files"`
+	}
+
+	// Step 1: Get the YAML data from the secret.
+	data, exists := secret.Data[CloudConfigValueKey]
+	if !exists {
+		return fmt.Errorf("key %s not found in secret", CloudConfigValueKey)
+	}
+
+	// Step 2: Parse the cloud-init content into CloudConfig struct.
+	var cloudConfig CloudConfig
+	if err := yaml.Unmarshal(data, &cloudConfig); err != nil {
+		return fmt.Errorf("failed to unmarshal cloud-init YAML: %w", err)
+	}
+
+	for _, file := range cloudConfig.WriteFiles {
+		var secretName string
+		if strings.HasPrefix(file.Path, KubernetesDir) {
+			// Create a secret name based on the file path (replace slashes with hyphens).
+			secretName = fmt.Sprintf("%s-%s", secretNamePrefix,
+				strings.NewReplacer(".", "-", "/", "-").Replace(strings.TrimPrefix(file.Path, KubernetesDir)))
+		} else if file.Path == "/run/kubeadm/kubeadm.yaml" {
+			secretName = fmt.Sprintf("%s-%s", secretNamePrefix, "kubeadm-config")
+		} else {
+			continue
+		}
+
+		ownerRef := metav1.OwnerReference{
+			APIVersion:         s.KKCluster.APIVersion,
+			Kind:               s.KKCluster.Kind,
+			Name:               s.KKCluster.Name,
+			UID:                s.KKCluster.UID,
+			Controller:         ptr.To(true),
+			BlockOwnerDeletion: ptr.To(true),
+		}
+
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            secretName,
+				Namespace:       s.Namespace(),
+				OwnerReferences: []metav1.OwnerReference{ownerRef},
+			},
+			Data: map[string][]byte{
+				filepath.Base(file.Path): []byte(file.Content),
+			},
+			Type: corev1.SecretTypeBootstrapToken,
+		}
+
+		// Create the Secret in the cluster
+		if err := client.Create(ctx, secret); err != nil {
+			return err
+		}
+
+		if err := mountSecretOnPipelineTemplate(ctx, client, s, secret, file.Path); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -33,7 +33,7 @@ FROM alpine:3.19.0
 WORKDIR /kubekey
 
 # install tool
-RUN apk update && apk add bash && apk add curl && apk add openssl
+RUN apk update && apk add bash && apk add curl && apk add openssl && apk add sudo
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
      chmod 700 get_helm.sh && \
      ./get_helm.sh
