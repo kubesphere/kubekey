@@ -1,5 +1,6 @@
 ---
 - name: Check binaries for etcd
+  tags: ["etcd"]
   command: |
     artifact_name={{ get .artifact.artifact_url.etcd .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/etcd/{{ .etcd_version }}/{{ .item }}
@@ -17,6 +18,7 @@
   when: and .etcd_version (ne .etcd_version "")
 
 - name: Check binaries for kube
+  tags: ["kube"]
   command: |
     kube_path={{ .work_dir }}/kubekey/kube/{{ .kube_version }}/{{ .item }}
     if [ ! -f $kube_path/kubelet ]; then
@@ -53,6 +55,7 @@
   when: and .kube_version (ne .kube_version "")
 
 - name: Check binaries for cni
+  tags: ["cni"]
   command: |
     artifact_name={{ get .artifact.artifact_url.cni .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/cni/{{ .cni_version }}/{{ .item }}
@@ -70,6 +73,7 @@
   when: and .cni_version (ne .cni_version "")
 
 - name: Check binaries for helm
+  tags: ["helm"]
   command: |
     artifact_name={{ get .artifact.artifact_url.helm .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/helm/{{ .helm_version }}/{{ .item }}
@@ -87,6 +91,7 @@
   when: and .helm_version (ne .helm_version "")
 
 - name: Check binaries for crictl
+  tags: ["crictl"]
   command: |
     artifact_name={{ get .artifact.artifact_url.crictl .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/crictl/{{ .crictl_version }}/{{ .item }}
@@ -104,6 +109,7 @@
   when: and .crictl_version (ne .crictl_version "")
 
 - name: Check binaries for docker
+  tags: ["docker"]
   command: |
     artifact_name={{ get .artifact.artifact_url.docker .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/docker/{{ .docker_version }}/{{ .item }}
@@ -121,6 +127,7 @@
   when: and .docker_version (ne .docker_version "")
 
 - name: Check binaries for cridockerd
+  tags: ["cridockerd"]
   command: |
     artifact_name={{ get .artifact.artifact_url.cridockerd .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/cri-dockerd/{{ .cridockerd_version }}/{{ .item }}
@@ -138,6 +145,7 @@
   when: and .cridockerd_version (ne .docker_version "")
 
 - name: Check binaries for containerd
+  tags: ["containerd"]
   command: |
     artifact_name={{ get .artifact.artifact_url.containerd .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/containerd/{{ .containerd_version }}/{{ .item }}
@@ -155,6 +163,7 @@
   when: and .containerd_version (ne .containerd_version "")
 
 - name: Check binaries for runc
+  tags: ["runc"]
   command: |
     artifact_name={{ get .artifact.artifact_url.runc .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/runc/{{ .runc_version }}/{{ .item }}
@@ -172,6 +181,7 @@
   when: and .runc_version (ne .runc_version "")
 
 - name: Check binaries for calicoctl
+  tags: ["calicoctl"]
   command: |
     artifact_name=calicoctl
     artifact_path={{ .work_dir }}/kubekey/cni/{{ .calico_version }}/{{ .item }}
@@ -189,6 +199,7 @@
   when: and .calico_version (ne .calico_version "")
 
 - name: Check binaries for registry
+  tags: ["registry"]
   command: |
     artifact_name={{ get .artifact.artifact_url.registry .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/image-registry/registry/{{ .registry_version }}/{{ .item }}
@@ -206,6 +217,7 @@
   when: and .registry_version (ne .registry_version "")
 
 - name: Check binaries for docker-compose
+  tags: ["docker-compose"]
   command: |
     compose_name=docker-compose
     compose_path={{ .work_dir }}/kubekey/image-registry/docker-compose/{{ .dockercompose_version }}/{{ .item }}
@@ -218,6 +230,7 @@
   when: and .dockercompose_version (ne .dockercompose_version "")
 
 - name: Check binaries for harbor
+  tags: ["harbor"]
   command: |
     harbor_name={{ get .artifact.artifact_url.harbor .item | splitList "/" | last }}
     harbor_path={{ .work_dir }}/kubekey/image-registry/harbor/{{ .harbor_version }}/{{ .item }}
@@ -235,6 +248,7 @@
   when: and .harbor_version (ne .harbor_version "")
 
 - name: Check binaries for keepalived
+  tags: ["keepalived"]
   command: |
     artifact_name={{ get .artifact.artifact_url.keepalived .item | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/image-registry/keepalived/{{ .keepalived_version }}/{{ .item }}

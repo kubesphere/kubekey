@@ -25,7 +25,7 @@
     - vars/create_cluster_kubernetes.yaml
   roles:
     - install/cri
-    - install/kubernetes
+    - capkk/install/kubernetes
 
 - name: Certs Distribution
   hosts:

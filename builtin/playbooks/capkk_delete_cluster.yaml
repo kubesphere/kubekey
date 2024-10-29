@@ -3,16 +3,16 @@
   hosts:
     - k8s_cluster
   roles:
-    - capkk/kubernetes
+    - capkk/delete/kubernetes
 
 - name: Delete Network
   hosts:
     - k8s_cluster
   roles:
-    - capkk/network
+    - capkk/delete/network
 
 - name: Delete ETCD
   hosts:
     - etcd
   roles:
-    - capkk/etcd
+    - capkk/delete/etcd

@@ -8,7 +8,7 @@ etcd:
     imageTag: {{ .kubernetes.etcd.image | splitList ":" | last }}
     serverCertSANs:
     {{- range .groups.etcd | default list }}
-    - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
+    - {{ index $.inventory_hosts . "internal_ipv4" }}
     {{- end }}
 {{- else }}
   external:

@@ -1,5 +1,6 @@
 ---
 - name: Check binaries for cilium
+  tags: ["cilium"]
   command: |
     artifact_name={{ .artifact.artifact_url.cilium | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/cni
@@ -11,6 +12,7 @@
   when: and .cilium_version (ne .cilium_version "")
 
 - name: Check binaries for kubeovn
+  tags: ["kubeovn"]
   command: |
     artifact_name={{ .artifact.artifact_url.kubeovn | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/cni
@@ -22,6 +24,7 @@
   when: and .kubeovn_version (ne .kubeovn_version "")
 
 - name: Check binaries for hybridnet
+  tags: ["hybridnet"]
   command: |
     artifact_name={{ .artifact.artifact_url.hybridnet | splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/cni
@@ -33,6 +36,7 @@
   when: and .hybridnet_version (ne .hybridnet_version "")
 
 - name: Check binaries for nfs_provisioner
+  tags: ["nfs_provisioner"]
   command: |
     artifact_name={{ .artifact.artifact_url.nfs_provisioner |splitList "/" | last }}
     artifact_path={{ .work_dir }}/kubekey/sc

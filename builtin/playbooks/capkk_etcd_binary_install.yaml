@@ -1,5 +1,6 @@
 ---
 - name: ETCD Binary Install Pre-Check
+  when: .kubernetes.etcd.deployment_type | eq "external"
   hosts:
     - etcd
   gather_facts: true
@@ -18,24 +19,8 @@
         fail_msg: "{{ .os.architecture }} is not a known arch"
       register: binary_type
 
-# TODO: 需要讨论一个比较合适的 Install 流程，要统一安装目录等等
-#- name: ETCD Binary Download
-#  hosts:
-#    - etcd
-#  tags: ["etcd"]
-#  vars_files:
-#    - vars/init_artifact.yaml
-#  pre_tasks:
-#    - name: Create Directory
-#      tags: [ "always" ]
-#      command: |
-#        if [ ! -d "{{ .work_dir }}" ]; then
-#          mkdir -p {{ .work_dir }}/kubekey
-#        fi
-#  roles:
-#    - capkk/download/curl/etcd
-
 - name: ETCD Binary Install
+  when: .kubernetes.etcd.deployment_type | eq "external"
   hosts:
     - etcd
   roles:
