@@ -112,21 +112,21 @@ func NewKubeBinary(name, arch, version, prePath string, getCmd func(path, url st
 	case kubeadm:
 		component.Type = KUBE
 		component.FileName = kubeadm
-		component.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubeadm", version, arch)
+		component.Url = fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/%s/kubeadm", version, arch)
 		if component.Zone == "cn" {
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubeadm", version, arch)
 		}
 	case kubelet:
 		component.Type = KUBE
 		component.FileName = kubelet
-		component.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubelet", version, arch)
+		component.Url = fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/%s/kubelet", version, arch)
 		if component.Zone == "cn" {
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubelet", version, arch)
 		}
 	case kubectl:
 		component.Type = KUBE
 		component.FileName = kubectl
-		component.Url = fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/%s/kubectl", version, arch)
+		component.Url = fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/%s/kubectl", version, arch)
 		if component.Zone == "cn" {
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/release/%s/bin/linux/%s/kubectl", version, arch)
 		}

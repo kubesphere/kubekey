@@ -90,7 +90,7 @@ if [ $KUBERNETES_VERSION ]; then
        echo "Synchronizing $binary-$arch"
 
        curl -L -o binaries/kube/$KUBERNETES_VERSION/$arch/$binary \
-                  https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary
+                  https://dl.k8s.io/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary
 
        qsctl cp binaries/kube/$KUBERNETES_VERSION/$arch/$binary \
              qs://kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary \
