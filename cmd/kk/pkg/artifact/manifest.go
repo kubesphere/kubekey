@@ -20,12 +20,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/files"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
@@ -276,7 +277,7 @@ func CreateManifestSpecifyVersion(arg common.Argument, name, version string, reg
 			}, &common.KubeConf{
 				Cluster: &kubekeyv1alpha2.ClusterSpec{
 					Kubernetes: kubekeyv1alpha2.Kubernetes{Version: v},
-					Registry:   kubekeyv1alpha2.RegistryConfig{PrivateRegistry: "docker.io"},
+					Registry:   kubekeyv1alpha2.RegistryConfig{PrivateRegistry: images.DefaultRegistry()},
 				},
 			}, imageName).ImageName()
 			if !imageIsExist(repo, imageArr) {
@@ -287,15 +288,9 @@ func CreateManifestSpecifyVersion(arg common.Argument, name, version string, reg
 	}
 
 	options := &templates.Options{
-		Name:   name,
-		Arches: arch,
-		OperatingSystems: []kubekeyv1alpha2.OperatingSystem{{
-			Arch:    "amd64",
-			Type:    "linux",
-			Id:      "ubuntu",
-			Version: "20.04",
-			OsImage: "Ubuntu 20.04.6 LTS",
-		}},
+		Name:                    name,
+		Arches:                  arch,
+		OperatingSystems:        []kubekeyv1alpha2.OperatingSystem{},
 		KubernetesDistributions: kubernetesDistribution,
 		Components: kubekeyv1alpha2.Components{
 			Helm:      kubekeyv1alpha2.Helm{Version: kubekeyv1alpha2.DefaultHelmVersion},
