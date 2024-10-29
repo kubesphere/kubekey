@@ -18,11 +18,11 @@
   roles:
     - install/etcd
 
-- hosts:
-    - image_registry
-  gather_facts: true
-  roles:
-    - install/image-registry
+#- hosts:
+#    - image_registry
+#  gather_facts: true
+#  roles:
+#    - install/image-registry
 
 - hosts:
     - k8s_cluster

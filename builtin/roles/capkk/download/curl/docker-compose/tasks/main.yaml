@@ -1,0 +1,13 @@
+---
+- name: Check binaries for docker-compose
+  tags: ["docker-compose"]
+  command: |
+    compose_name=docker-compose
+    compose_path={{ .work_dir }}/kubekey/image-registry/docker-compose/{{ .dockercompose_version }}/{{ .item }}
+    if [ ! -f $compose_path/$compose_name ]; then
+      mkdir -p $compose_path
+      # download online
+      curl -L -o $compose_path/$compose_name {{ get .artifact.artifact_url.dockercompose .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: and .dockercompose_version (ne .dockercompose_version "")

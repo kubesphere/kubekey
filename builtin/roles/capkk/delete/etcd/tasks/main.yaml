@@ -1,0 +1,15 @@
+---
+- name: Stop ETCD Service
+  command: systemctl stop etcd && systemctl disable etcd
+
+- name: Delete Binary ETCD
+  command: rm /usr/local/bin/etcd && rm /usr/local/bin/etcdctl
+
+- name: Delete ETCD Certs
+  command: rm -r /etc/ssl/etcd/
+
+- name: Delete ETCD service file and env file
+  command: rm /etc/systemd/system/etcd.service && rm /etc/etcd.env
+
+- name: Delete Directories
+  command: rm -rf /var/lib/etcd/

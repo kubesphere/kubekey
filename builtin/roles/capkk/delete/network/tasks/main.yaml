@@ -1,0 +1,13 @@
+---
+- name: Reset iptables
+  ignore_errors: true
+  command: iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+
+- name: Reset IPVS
+  ignore_errors: true
+  command: ipvsadm -C
+
+- name: Delete net.d
+  command: |
+    rm -rf /etc/cni/net.d/
+    rm -rf /var/lib/cni/

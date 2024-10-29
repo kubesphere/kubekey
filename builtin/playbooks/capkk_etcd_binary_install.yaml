@@ -1,0 +1,27 @@
+---
+- name: ETCD Binary Install Pre-Check
+  when: .kubernetes.etcd.deployment_type | eq "external"
+  hosts:
+    - etcd
+  gather_facts: true
+  vars_files:
+    - vars/cluster_requirements.yaml
+  tasks:
+    - name: Stop if arch supported
+      assert:
+        that: or (.cluster_require.supported_architectures.amd64 | has .os.architecture) (.cluster_require.supported_architectures.arm64 | has .os.architecture)
+        success_msg: |
+          {{- if .cluster_require.supported_architectures.amd64 | has .os.architecture }}
+          amd64
+          {{- else }}
+          arm64
+          {{- end }}
+        fail_msg: "{{ .os.architecture }} is not a known arch"
+      register: binary_type
+
+- name: ETCD Binary Install
+  when: .kubernetes.etcd.deployment_type | eq "external"
+  hosts:
+    - etcd
+  roles:
+    - install/etcd

@@ -1,0 +1,12 @@
+---
+- name: Check binaries for nfs-provisioner
+  tags: ["nfs-provisioner"]
+  command: |
+    artifact_name={{ .artifact.artifact_url.nfs_provisioner |splitList "/" | last }}
+    artifact_path={{ .work_dir }}/kubekey/sc
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      cd $artifact_path && helm pull {{ .artifact.artifact_url.nfs_provisioner }}
+    fi
+  when: and .nfs_provisioner_version (ne .nfs_provisioner_version "")

@@ -4,7 +4,7 @@
   vars_files:
     - vars/certs_renew.yaml
   roles:
-    - init/init-artifact
+    - init/init-cert
 
 - hosts:
     - etcd
