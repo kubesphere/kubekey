@@ -33,7 +33,7 @@ do
     echo "${app}@${arch}"
     for ver in "${versions[@]}"
     do
-      url="https://storage.googleapis.com/kubernetes-release/release/${ver}/bin/linux/${arch}/${app}.sha256"
+      url="https://dl.k8s.io/release/${ver}/bin/linux/${arch}/${app}.sha256"
       hash=$(wget --quiet -O - "$url")
       echo "\"${ver}\": \"${hash}\","
       json=$(echo "$json" | jq ".${app}.${arch} += {\"${ver}\":\"${hash}\"}")
