@@ -2,6 +2,7 @@
 name: Kubernetes-Auto-Support
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
 
