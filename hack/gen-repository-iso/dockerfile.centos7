@@ -6,7 +6,6 @@ ARG BUILD_TOOLS="yum-utils createrepo mkisofs epel-release"
 ARG DIR=${OS}${OS_VERSION}-${TARGETARCH}-rpms
 
 RUN yum install -q -y ${BUILD_TOOLS} \
-    && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
     && yum makecache
 
 WORKDIR package

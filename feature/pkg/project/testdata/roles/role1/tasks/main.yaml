@@ -1,0 +1,3 @@
+- name: role1 | block1
+  debug:
+    msg: echo "hello world"

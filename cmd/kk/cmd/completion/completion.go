@@ -50,8 +50,8 @@ Normally you don't need to do more extra work to have this feature if you've ins
 		Example: `# Installing bash completion on Linux
 ## If bash-completion is not installed on Linux, please install the 'bash-completion' package
 ## via your distribution's package manager.
-## Load the ks completion code for bash into the current shell
-source <(ks completion bash)
+## Load the kk completion code for bash into the current shell
+source <(kk completion bash)
 ## Write bash completion code to a file and source if from .bash_profile
 mkdir -p ~/.config/kk/ && kk completion --type bash > ~/.config/kk/completion.bash.inc
 printf "

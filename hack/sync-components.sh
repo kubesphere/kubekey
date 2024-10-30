@@ -91,7 +91,7 @@ if [ $KUBERNETES_VERSION ]; then
        echo "Synchronizing $binary-$arch"
 
        curl -L -o binaries/kube/$KUBERNETES_VERSION/$arch/$binary \
-                  https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary
+                  https://dl.k8s.io/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary
 
        qsctl cp binaries/kube/$KUBERNETES_VERSION/$arch/$binary \
              qs://kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/$arch/$binary \
@@ -100,8 +100,12 @@ if [ $KUBERNETES_VERSION ]; then
    done
 
    chmod +x binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} oras cp {} docker.io/$DOCKERHUB_NAMESPACE/${image##}
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} oras cp {} registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/${image##}
+   
+   while IFS= read -r image; do
+     echo $(basename "$image")
+     oras cp $image docker.io/$DOCKERHUB_NAMESPACE/$(basename "$image")
+     oras cp $image registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/$(basename "$image")
+   done < <(binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION)
 
    rm -rf binaries
 fi

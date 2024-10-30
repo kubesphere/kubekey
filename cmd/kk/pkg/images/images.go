@@ -149,3 +149,11 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 	}
 	return nil
 }
+
+// DefaultRegistry is used to get default registry address.
+func DefaultRegistry() string {
+	if os.Getenv("KKZONE") == "cn" {
+		return cnRegistry
+	}
+	return "docker.io"
+}

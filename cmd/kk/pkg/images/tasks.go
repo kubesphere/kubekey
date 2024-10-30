@@ -278,7 +278,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 		image := Image{
 			RepoAddr:          repoAddr,
 			Namespace:         namespace,
-			NamespaceOverride: c.KubeConf.Cluster.Registry.NamespaceOverride,
+			NamespaceOverride: "",
 			Repo:              imageName,
 			Tag:               imageTag,
 		}

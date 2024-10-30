@@ -1,0 +1,48 @@
+---
+- name: Stop if etcd deployment type is not internal or external
+  assert:
+    that: .cluster_require.require_etcd_deployment_type | has .kubernetes.etcd.deployment_type
+    fail_msg: |
+      the etcd deployment type, should be internal or external but got {{ .kubernetes.etcd.deployment_type }}
+  run_once: true
+  when: and .kubernetes.etcd.deployment_type (ne .kubernetes.etcd.deployment_type "")
+
+- name: Stop if etcd group is empty in internal etcd mode
+  assert:
+    that: .groups.etcd
+    fail_msg: "group \"etcd\" cannot be empty in external etcd mode"
+  run_once: true
+  when: .kubernetes.etcd.deployment_type | eq "external"
+
+- name: Stop if even number of etcd hosts
+  assert:
+    that: (mod (.groups.etcd | len) 2) | eq 1
+    fail_msg: "etcd number should be odd number"
+  when: .groups.etcd
+
+## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824
+- name: Check dev io for etcd
+  when:
+    - .groups.etcd | default list | has .inventory_name
+  block:
+    - name: Check fio is exist
+      ignore_errors: true
+      command: fio --version
+      register: fio_install_version
+    - name: Test dev io by fio
+      when: .fio_install_version.stderr | eq ""
+      block:
+        - name: Get fio result
+          command: |
+            mkdir -p /tmp/kubekey/etcd/test-data
+            fio --rw=write --ioengine=sync --fdatasync=1 --directory=/tmp/kubekey/etcd/test-data --size=22m --bs=2300 --name=mytest --output-format=json
+          register: fio_result
+        - name: Check fio result
+          assert:
+            that: (index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000") | le .cluster_require.etcd_disk_wal_fysnc_duration_seconds
+            fail_msg: |
+              etcd_disk_wal_fysnc_duration_seconds: {{ index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000" }}ns is more than {{ .cluster_require.etcd_disk_wal_fysnc_duration_seconds }}ns
+      always:
+        - name: Clean test data dir
+          command: rm -rf /tmp/kubekey/etcd/test-data
+

@@ -1,0 +1,27 @@
+---
+- include_tasks: init_repository.yaml
+
+- include_tasks: init_ntpserver.yaml
+
+- name: Reset tmp dir
+  command: |
+    if [ -d /tmp/kubekey ]; then
+      rm -rf /tmp/kubekey
+    fi
+    mkdir -m 777 -p /tmp/kubekey
+
+- name: Set hostname
+  command: |
+    hostnamectl set-hostname {{ .inventory_name }} \
+      && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_name }}/g' /etc/hosts
+  when: .inventory_name | ne "localhost"
+
+- name: Sync init os to remote
+  template:
+    src: init-os.sh
+    dest: /etc/kubekey/scripts/init-os.sh
+    mode: 0755
+
+- name: Execute init os script
+  command: |
+    chmod +x /etc/kubekey/scripts/init-os.sh && /etc/kubekey/scripts/init-os.sh

@@ -1,0 +1,13 @@
+---
+- name: Sync nfs provisioner helm to remote
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/sc/nfs-subdir-external-provisioner-{{ .nfs_provisioner_version }}.tgz
+    dest: |
+      /etc/kubernetes/addons/nfs-subdir-external-provisioner-{{ .nfs_provisioner_version }}.tgz
+
+- name: Deploy nfs provisioner
+  command: |
+    helm upgrade --install nfs-subdir-external-provisioner /etc/kubernetes/addons/nfs-subdir-external-provisioner-{{ .nfs_provisioner_version }}.tgz --namespace kube-system \
+      --set nfs.server={{ .sc.nfs.server }} --set nfs.path={{ .sc.nfs.path }} \
+      --set storageClass.defaultClass={{ if .sc.local.default }}true{{ else }}false{{ end }}

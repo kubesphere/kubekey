@@ -1,0 +1,5 @@
+work_dir: /kubekey
+etcd:
+  env:
+    data_dir: /var/lib/etcd
+    token: k8s_etcd

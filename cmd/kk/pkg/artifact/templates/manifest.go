@@ -37,6 +37,9 @@ spec:
   {{- range .Options.Arches }}
   - {{ . }}
   {{- end }}
+  {{- if not .Options.OperatingSystems }}
+  operatingSystems: []
+  {{- else }}
   operatingSystems:
   {{- range $i, $v := .Options.OperatingSystems }}
   - arch: {{ $v.Arch }}
@@ -48,6 +51,7 @@ spec:
       iso:
         localPath: 
         url: 
+  {{- end }}
   {{- end }}
   kubernetesDistributions:
   {{- range $i, $v := .Options.KubernetesDistributions }}
