@@ -100,8 +100,12 @@ if [ $KUBERNETES_VERSION ]; then
    done
 
    chmod +x binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} bash -c "oras cp {} docker.io/$DOCKERHUB_NAMESPACE/$(basename \"{}\")"
-   binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION | xargs -I {} bash -c "oras cp {} registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/$(basename \"{}\")"
+   
+   while IFS= read -r image; do
+     echo $(basename "$image")
+     oras cp $image docker.io/$DOCKERHUB_NAMESPACE/$(basename "$image")
+     oras cp $image registry.cn-beijing.aliyuncs.com/$ALIYUNCS_NAMESPACE/$(basename "$image")
+   done < <(binaries/kube/$KUBERNETES_VERSION/amd64/kubeadm config images list --kubernetes-version $KUBERNETES_VERSION)
 
    rm -rf binaries
 fi
