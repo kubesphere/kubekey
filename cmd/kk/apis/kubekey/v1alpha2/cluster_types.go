@@ -108,6 +108,7 @@ type System struct {
 // RegistryConfig defines the configuration information of the image's repository.
 type RegistryConfig struct {
 	Type               string               `yaml:"type" json:"type,omitempty"`
+	Version            string               `yaml:"version" json:"version,omitempty"`
 	RegistryMirrors    []string             `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
