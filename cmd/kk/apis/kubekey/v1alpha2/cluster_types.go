@@ -115,6 +115,7 @@ type RegistryConfig struct {
 	NamespaceOverride  string               `yaml:"namespaceOverride" json:"namespaceOverride,omitempty"`
 	BridgeIP           string               `yaml:"bridgeIP" json:"bridgeIP,omitempty"`
 	Auths              runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
+	Port               int                  `yaml:"port" json:"port,omitempty"`
 }
 
 // KubeSphere defines the configuration information of the KubeSphere.
@@ -318,4 +319,11 @@ func (r *RegistryConfig) GetHost() string {
 		return ""
 	}
 	return strings.Split(r.PrivateRegistry, "/")[0]
+}
+
+func (r *RegistryConfig) GetPort() int {
+	if r.Port == 0 {
+		return 80
+	}
+	return r.Port
 }
