@@ -7,7 +7,7 @@ hostname: {{ .Domain }}
 # http related config
 http:
   # port for http, default is 80. If https enabled, this port will redirect to https port
-  port: 80
+  port: {{ .Port }}
 
 # https related config
 https:
