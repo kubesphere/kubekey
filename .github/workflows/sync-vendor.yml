@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - go.mod
+  workflow_dispatch:
 
 # Remove all permissions from GITHUB_TOKEN except metadata.
 permissions: {}
