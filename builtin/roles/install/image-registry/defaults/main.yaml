@@ -5,7 +5,7 @@ image_registry:
     registry: |
       {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
       {{ .image_registry.ha_vip }}
-      {{- else if .groups.image_registry | default list | len | lt 0 }}
+      {{- else }}
       {{ index .inventory_hosts (.groups.image_registry | default list | first) "internal_ipv4" }}
       {{- end }}
     username: admin
