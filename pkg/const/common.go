@@ -79,3 +79,14 @@ const ( // === From runtime ===
 	// VariableItem for "loop" argument when run a task.
 	VariableItem = "item"
 )
+
+const ( // === From env ===
+	// ENV_SHELL which shell operator use in local connector.
+	ENV_SHELL = "SHELL"
+	// ENV_EXECUTOR_SERVICEACCOUNT use to run pipeline pod.
+	ENV_EXECUTOR_SERVICEACCOUNT = "EXECUTOR_SERVICEACCOUNT"
+	// ENV_EXECUTOR_IMAGE which image use in pipeline pod.
+	ENV_EXECUTOR_IMAGE = "EXECUTOR_IMAGE"
+	// ENV_EXECUTOR_IMAGE_PULLPOLICY which imagePolicy use in pipeline pod.
+	ENV_EXECUTOR_IMAGE_PULLPOLICY = "EXECUTOR_IMAGE_PULLPOLICY"
+)

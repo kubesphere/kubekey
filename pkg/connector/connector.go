@@ -121,7 +121,7 @@ func isLocalIP(ipAddr string) bool {
 
 func commandShell() string {
 	// find command interpreter in env. default /bin/bash
-	sl, ok := os.LookupEnv("SHELL")
+	sl, ok := os.LookupEnv(_const.ENV_SHELL)
 	if !ok {
 		return "/bin/bash"
 	}

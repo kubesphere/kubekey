@@ -36,6 +36,7 @@ import (
 	ctrlfinalizer "sigs.k8s.io/controller-runtime/pkg/finalizer"
 
 	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 const (
@@ -199,7 +200,7 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 // checkServiceAccount when ServiceAccount is not exist, create it.
 func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline kkcorev1.Pipeline) error {
 	// get ServiceAccount name for executor pod
-	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
+	saName, ok := os.LookupEnv(_const.ENV_EXECUTOR_SERVICEACCOUNT)
 	if !ok {
 		saName = defaultServiceAccount
 	}
@@ -257,17 +258,17 @@ func (r *PipelineReconciler) checkServiceAccount(ctx context.Context, pipeline k
 // GenerateJobSpec for pipeline
 func (r *PipelineReconciler) GenerateJobSpec(pipeline kkcorev1.Pipeline) batchv1.JobSpec {
 	// get ServiceAccount name for executor pod
-	saName, ok := os.LookupEnv("EXECUTOR_SERVICEACCOUNT")
+	saName, ok := os.LookupEnv(_const.ENV_EXECUTOR_SERVICEACCOUNT)
 	if !ok {
 		saName = defaultServiceAccount
 	}
 	// get image from env
-	image, ok := os.LookupEnv("EXECUTOR_IMAGE")
+	image, ok := os.LookupEnv(_const.ENV_EXECUTOR_IMAGE)
 	if !ok {
 		image = defaultExecutorImage
 	}
 	// get image from env
-	imagePullPolicy, ok := os.LookupEnv("EXECUTOR_IMAGE_PULLPOLICY")
+	imagePullPolicy, ok := os.LookupEnv(_const.ENV_EXECUTOR_IMAGE_PULLPOLICY)
 	if !ok {
 		imagePullPolicy = defaultPullPolicy
 	}
