@@ -1,6 +1,8 @@
 image_registry:
   #  ha_vip: 192.168.122.59
   namespace_override: ""
+  # which store images data which will push to registry.
+  images_dir: /tmp/kubekey/images/
   auth:
     registry: |
       {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}

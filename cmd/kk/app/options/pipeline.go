@@ -26,7 +26,7 @@ func (o *PipelineOptions) Flags() cliflag.NamedFlagSets {
 	pfs := fss.FlagSet("pipeline flags")
 	pfs.StringVar(&o.Name, "name", o.Name, "name of pipeline")
 	pfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "namespace of pipeline")
-	pfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
+	pfs.StringVar(&o.WorkDir, "workdir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 
 	return fss
 }
