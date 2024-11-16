@@ -23,6 +23,9 @@ spec:
     worker:
     - node1
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
+    ## Specify the node role as registry. Only one node can be set as registry. For more information check docs/registry.md
+    registry:
+    - node1
   controlPlaneEndpoint:
     # Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
     internalLoadbalancer: haproxy
