@@ -120,6 +120,7 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/baikjy0215"><img src="https://avatars.githubusercontent.com/u/110450904?v=4?s=100" width="100px;" alt="baikjy0215"/><br /><sub><b>baikjy0215</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=baikjy0215" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/knowmost"><img src="https://avatars.githubusercontent.com/u/167442703?v=4?s=100" width="100px;" alt="knowmost"/><br /><sub><b>knowmost</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=knowmost" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Hiiirad"><img src="https://avatars.githubusercontent.com/u/26739670?v=4?s=100" width="100px;" alt="Hirad Rasoolinejad"/><br /><sub><b>Hirad Rasoolinejad</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=Hiiirad" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/xLexih"><img src="https://avatars.githubusercontent.com/u/67009568?v=4?s=100" width="100px;" alt="Lexih"/><br /><sub><b>Lexih</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=xLexih" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>
