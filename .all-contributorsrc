@@ -814,6 +814,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "xLexih",
+      "name": "Lexih",
+      "avatar_url": "https://avatars.githubusercontent.com/u/67009568?v=4",
+      "profile": "https://github.com/xLexih",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
