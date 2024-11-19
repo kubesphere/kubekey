@@ -132,7 +132,7 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 		}
 		// generate task from role
 		for _, role := range play.Roles {
-			if !role.Taggable.IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
+			if !kkprojectv1.JoinTag(role.Taggable, play.Taggable).IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
 				// if not match the tags. skip
 				continue
 			}

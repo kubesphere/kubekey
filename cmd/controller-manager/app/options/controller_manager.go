@@ -43,7 +43,7 @@ func NewControllerManagerServerOptions() *ControllerManagerServerOptions {
 func (o *ControllerManagerServerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
-	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
+	gfs.StringVar(&o.WorkDir, "workdir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Pipeline, "+"will retain runtime data, which includes task execution status and parameters.")
 	cfs := fss.FlagSet("controller-manager")
 	cfs.IntVar(&o.MaxConcurrentReconciles, "max-concurrent-reconciles", o.MaxConcurrentReconciles, "The number of maximum concurrent reconciles for controller.")

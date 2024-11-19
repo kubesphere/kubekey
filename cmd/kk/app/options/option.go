@@ -84,7 +84,7 @@ func newCommonOptions() commonOptions {
 func (o *commonOptions) flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
-	gfs.StringVar(&o.WorkDir, "work-dir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
+	gfs.StringVar(&o.WorkDir, "workdir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 	gfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
 	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val or --set k1=v1,k2=v2")

@@ -2,6 +2,9 @@
     - localhost
   tags: ["always"]
   roles:
-    - init/init-artifact
-    - init/init-cert
-    - install/image-registry
+    - role: init/init-artifact
+      tags: ["always"]
+    - role: init/init-cert
+      tags: ["always"]
+    - role: install/image-registry
+      tags: ["always"]
