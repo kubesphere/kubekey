@@ -166,3 +166,4 @@
 | v1.31.0 | :white_check_mark: |
 | v1.31.1 | :white_check_mark: |
 | v1.31.2 | :white_check_mark: |
+| v1.31.3 | :white_check_mark: |
