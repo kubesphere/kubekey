@@ -18,6 +18,8 @@ package connector
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
@@ -58,16 +60,35 @@ type Connector interface {
 // if set connector to "kubernetes", use kubernetes connector
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
-func NewConnector(host string, connectorVars map[string]any) (Connector, error) {
-	connectedType, _ := variable.StringVar(nil, connectorVars, _const.VariableConnectorType)
+func NewConnector(host string, v variable.Variable) (Connector, error) {
+	vars, err := v.Get(variable.GetAllVariable(host))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get %q host variable for", host)
+	}
+	connectorVars := make(map[string]any)
+	if c1, ok := vars.(map[string]any)[_const.VariableConnector]; ok {
+		if c2, ok := c1.(map[string]any); ok {
+			connectorVars = c2
+		}
+	}
 
+	connectedType, _ := variable.StringVar(nil, connectorVars, _const.VariableConnectorType)
 	switch connectedType {
 	case connectedLocal:
 		return newLocalConnector(connectorVars), nil
 	case connectedSSH:
 		return newSSHConnector(host, connectorVars), nil
 	case connectedKubernetes:
-		return newKubernetesConnector(host, connectorVars)
+		workdir, err := v.Get(variable.GetWorkDir())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get workdir from variable. error is %w", err)
+		}
+		wd, ok := workdir.(string)
+		if !ok {
+			return nil, errors.New("workdir in variable should be string")
+		}
+
+		return newKubernetesConnector(host, wd, connectorVars)
 	default:
 		localHost, _ := os.Hostname()
 		// get host in connector variable. if empty, set default host: host_name.

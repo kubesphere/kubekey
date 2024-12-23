@@ -28,8 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 )
 
 // MarshalBlock marshal block to task
@@ -123,4 +125,27 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 	}
 
 	return result, nil
+}
+
+// ConvertKKClusterToInventoryHost convert inventoryHost which defined in kkclusters.infrastructure.cluster.x-k8s.io to inventoryHost which defined in inventories.kubekey.kubesphere.io .
+func ConvertKKClusterToInventoryHost(kkcluster *capkkinfrav1beta1.KKCluster) (kkcorev1.InventoryHost, error) {
+	inventoryHosts := make(kkcorev1.InventoryHost)
+	for _, ih := range kkcluster.Spec.InventoryHosts {
+		vars := make(map[string]any)
+		if ih.Vars.Raw != nil {
+			if err := json.Unmarshal(ih.Vars.Raw, &vars); err != nil {
+				return nil, fmt.Errorf("unmarshal kkclusters %s to inventory error: %w", ih.Name, err)
+			}
+		}
+		vars["connector"] = ih.Connector
+		data, err := json.Marshal(vars)
+		if err != nil {
+			return nil, fmt.Errorf("marshal kkclusters %s to inventory error: %w", ih.Name, err)
+		}
+		inventoryHosts[ih.Name] = runtime.RawExtension{
+			Raw: data,
+		}
+	}
+
+	return inventoryHosts, nil
 }

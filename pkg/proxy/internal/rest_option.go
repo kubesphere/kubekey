@@ -35,9 +35,10 @@ import (
 )
 
 // NewFileRESTOptionsGetter return fileRESTOptionsGetter
-func NewFileRESTOptionsGetter(gv schema.GroupVersion) apigeneric.RESTOptionsGetter {
+func NewFileRESTOptionsGetter(runtimedir string, gv schema.GroupVersion) apigeneric.RESTOptionsGetter {
 	return &fileRESTOptionsGetter{
-		gv: gv,
+		runtimedir: runtimedir,
+		gv:         gv,
 		storageConfig: &storagebackend.Config{
 			Type:            "",
 			Prefix:          "/",
@@ -62,13 +63,14 @@ func newYamlCodec(gv schema.GroupVersion) runtime.Codec {
 
 // fileRESTOptionsGetter local rest info
 type fileRESTOptionsGetter struct {
+	runtimedir    string
 	gv            schema.GroupVersion
 	storageConfig *storagebackend.Config
 }
 
-// GetRESTOptions return apigeneric.RESTOptions
-func (f fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (apigeneric.RESTOptions, error) {
-	prefix := filepath.Join(_const.GetRuntimeDir(), f.gv.Group, f.gv.Version, resource.Resource)
+// GetRESTOptions implements generic.RESTOptionsGetter.
+func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, example runtime.Object) (apigeneric.RESTOptions, error) {
+	prefix := filepath.Join(f.runtimedir, f.gv.Group, f.gv.Version, resource.Resource)
 
 	return apigeneric.RESTOptions{
 		StorageConfig: f.storageConfig.ForResource(resource),

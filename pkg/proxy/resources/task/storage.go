@@ -19,6 +19,7 @@ package task
 import (
 	"context"
 
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
@@ -26,8 +27,6 @@ import (
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	apistorage "k8s.io/apiserver/pkg/storage"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
-
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 )
 
 // TaskStorage storage for Task

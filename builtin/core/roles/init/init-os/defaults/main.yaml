@@ -1,0 +1,7 @@
+ntp:
+  servers: 
+    - "cn.pool.ntp.org"
+  enabled: true
+timezone: Asia/Shanghai
+# set hostname by inventory_host's name which defined in inventory.yaml
+set_hostname: true

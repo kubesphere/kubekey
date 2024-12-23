@@ -1,0 +1,79 @@
+---
+- name: Check if helm is installed
+  ignore_errors: true
+  command: helm version
+  register: helm_install_version
+- name: Install helm
+  when: or (.helm_install_version.stderr | ne "") (.helm_install_version.stdout | contains (printf "Version:\"%s\"" .helm_version) | not)
+  block:
+    - name: Sync helm to remote
+      copy:
+        src: |
+          {{ .binary_dir }}/helm/{{ .helm_version }}/{{ .binary_type.stdout }}/helm-{{ .helm_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+        dest: |
+          {{ .tmp_dir }}/helm-{{ .helm_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+    - name: Install helm
+      command: |
+        tar --strip-components=1 -zxvf {{ .tmp_dir }}/helm-{{ .helm_version }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin linux-{{ .binary_type.stdout }}/helm
+
+- name: Check if kubeadm is installed
+  ignore_errors: true
+  command: kubeadm version -o short
+  register: kubeadm_install_version
+- name: Install kubeadm
+  when: or (.kubeadm_install_version.stderr | ne "") (.kubeadm_install_version.stdout | ne .kube_version)
+  copy:
+    src: |
+      {{ .binary_dir }}/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubeadm
+    dest: /usr/local/bin/kubeadm
+    mode: 0755
+
+- name: Check if kubectl is installed
+  ignore_errors: true
+  command: kubectl version --short
+  register: kubectl_install_version
+- name: Sync kubectl to remote
+  when: |
+    or (.kubectl_install_version.stderr | ne "") ((get .kubectl_install_version.stdout "Server Version") | ne  .kube_version)
+  copy:
+    src: |
+      {{ .binary_dir }}/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: 0755
+
+- name: Check if kubelet is installed
+  ignore_errors: true
+  command: kubelet --version
+  register: kubelet_install_version
+- name: Install kubelet
+  when: or (.kubelet_install_version.stderr | ne "") (.kubelet_install_version.stdout | ne (printf "Kubernetes %s" .kube_version))
+  block:
+    - name: Sync kubelet to remote
+      copy:
+        src: |
+          {{ .binary_dir }}/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubelet
+        dest: /usr/local/bin/kubelet
+        mode: 0755
+    - name: Sync kubelet env to remote
+      template:
+        src: kubeadm/kubelet.env
+        dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    - name: Sync kubelet service to remote
+      copy:
+        src: kubelet.service
+        dest: /etc/systemd/system/kubelet.service
+    - name: Register kubelet service
+      command: systemctl daemon-reload && systemctl enable kubelet.service
+
+- name: Install cni plugins
+  when: and .cni_plugins_version (ne .cni_plugins_version "")
+  block:
+    - name: Sync cni-plugin to remote
+      copy:
+        src: |
+          {{ .binary_dir }}/cni/plugins/{{ .cni_plugins_version }}/{{ .binary_type.stdout }}/cni-plugins-linux-{{ .binary_type.stdout }}-{{ .cni_plugins_version }}.tgz
+        dest: |
+          {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type.stdout }}-{{ .cni_plugins_version }}.tgz
+    - name: Install cni-plugin
+      command: |
+        tar -zxvf {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type.stdout }}-{{ .cni_plugins_version }}.tgz -C /opt/cni/bin/

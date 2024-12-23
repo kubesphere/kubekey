@@ -66,6 +66,12 @@ type fileStorage struct {
 	newFunc func() runtime.Object
 }
 
+// ReadinessCheck implements storage.Interface.
+func (s *fileStorage) ReadinessCheck() error {
+	// only need filesystem is ok. nothing to check.
+	return nil
+}
+
 var _ apistorage.Interface = &fileStorage{}
 
 // Versioner of local resource files.

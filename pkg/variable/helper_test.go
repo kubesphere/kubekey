@@ -19,9 +19,10 @@ package variable
 import (
 	"testing"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
@@ -138,7 +139,7 @@ func TestMergeVariable(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			v := combineVariables(tc.v1, tc.v2)
+			v := CombineVariables(tc.v1, tc.v2)
 			assert.Equal(t, tc.excepted, v)
 		})
 	}
@@ -280,7 +281,7 @@ func TestParseVariable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := parseVariable(tc.data, func(s string) (string, error) {
 				// parse use total variable. the task variable should not contain template syntax.
-				return tmpl.ParseString(combineVariables(tc.data, tc.base), s)
+				return tmpl.ParseString(CombineVariables(tc.data, tc.base), s)
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -352,7 +353,43 @@ func TestHostsInGroup(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(t, tc.except, hostsInGroup(tc.inventory, tc.groupName))
+			assert.ElementsMatch(t, tc.except, HostsInGroup(tc.inventory, tc.groupName))
+		})
+	}
+}
+
+func TestExtension2Slice(t *testing.T) {
+	testcases := []struct {
+		name   string
+		data   map[string]any
+		ext    runtime.RawExtension
+		except []any
+	}{
+		{
+			name: "succeed",
+			data: map[string]any{
+				"a": []any{"a1", "a2"},
+			},
+			ext: runtime.RawExtension{
+				Raw: []byte(`{{ .a | toJson }}`),
+			},
+			except: []any{"a1", "a2"},
+		},
+		{
+			name: "empty ext",
+			data: map[string]any{
+				"b": []any{"b1", "b2"},
+			},
+			ext: runtime.RawExtension{
+				Raw: []byte(`{{ .a | toJson }}`),
+			},
+			except: make([]any, 0),
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.ElementsMatch(t, tc.except, Extension2Slice(tc.data, tc.ext))
 		})
 	}
 }

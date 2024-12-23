@@ -18,13 +18,11 @@ package app
 
 import (
 	"context"
-	"os"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app/options"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/manager"
 )
 
@@ -48,13 +46,6 @@ func NewControllerManagerCommand() *cobra.Command {
 		},
 		RunE: func(*cobra.Command, []string) error {
 			o.Complete()
-			// create workdir directory,if not exists
-			_const.SetWorkDir(o.WorkDir)
-			if _, err := os.Stat(o.WorkDir); os.IsNotExist(err) {
-				if err := os.MkdirAll(o.WorkDir, os.ModePerm); err != nil {
-					return err
-				}
-			}
 
 			return run(ctx, o)
 		},
@@ -77,8 +68,5 @@ func NewControllerManagerCommand() *cobra.Command {
 }
 
 func run(ctx context.Context, o *options.ControllerManagerServerOptions) error {
-	return manager.NewControllerManager(manager.ControllerManagerOptions{
-		MaxConcurrentReconciles: o.MaxConcurrentReconciles,
-		LeaderElection:          o.LeaderElection,
-	}).Run(ctx)
+	return manager.NewControllerManager(o).Run(ctx)
 }

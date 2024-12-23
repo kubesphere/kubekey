@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseIp(t *testing.T) {
+func TestParseIP(t *testing.T) {
 	testcases := []struct {
 		name     string
 		ipRange  string

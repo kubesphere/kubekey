@@ -20,14 +20,13 @@ import (
 	"context"
 	"fmt"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -105,27 +104,21 @@ func init() {
 	utilruntime.Must(RegisterModule("image", ModuleImage))
 }
 
-// ConnKey for connector which store in context
-var ConnKey = struct{}{}
+type key struct{}
 
-func getConnector(ctx context.Context, host string, data map[string]any) (connector.Connector, error) {
+// ConnKey for connector which store in context
+var ConnKey = &key{}
+
+func getConnector(ctx context.Context, host string, v variable.Variable) (connector.Connector, error) {
 	var conn connector.Connector
 	var err error
 
-	if v := ctx.Value(ConnKey); v != nil {
-		if vd, ok := v.(connector.Connector); ok {
+	if val := ctx.Value(ConnKey); val != nil {
+		if vd, ok := val.(connector.Connector); ok {
 			conn = vd
 		}
 	} else {
-		connectorVars := make(map[string]any)
-
-		if c1, ok := data[_const.VariableConnector]; ok {
-			if c2, ok := c1.(map[string]any); ok {
-				connectorVars = c2
-			}
-		}
-
-		conn, err = connector.NewConnector(host, connectorVars)
+		conn, err = connector.NewConnector(host, v)
 		if err != nil {
 			return conn, err
 		}

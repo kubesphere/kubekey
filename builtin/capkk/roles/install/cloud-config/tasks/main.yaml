@@ -1,0 +1,143 @@
+---   
+- name: Install kube-vip
+  when: 
+    - eq .kubernetes.control_plane_endpoint.type "vip"
+    - or (.kubernetes.roles | has "master") (.kubernetes.roles | has "control-plane")
+  template:
+    src: kube-vip.yaml
+    dest: /etc/kubernetes/manifests/kube-vip.yaml
+
+# not support "encoding","append","owner".
+- name: Deal cloud-config write_files
+  loop: "{{ .cloud_config.write_files | toJson }}"
+  copy:
+    content: "{{ .item.content }}"
+    dest: "{{ .item.path }}"
+    mode: "{{ .item.permissions }}"
+
+- name: Deal cloud-config users
+  loop: "{{ .cloud_config.users | toJson }}"
+  command: |
+    #!/bin/bash
+
+    if id "{{ .item.name }}" &>/dev/null; then
+      echo "User '{{ .item.name }}' already exists"
+      exit 0
+    fi
+    # Create user '{{ .item.name }}' with bash shell and home directory
+    useradd "{{ .item.name }}"
+    {{- if .item.passwd }}
+    # Set password
+    echo "{{ .item.name }}:{{ .item.passwd }}" | chpasswd
+    {{- end }}
+    {{- if .item.gecos }}
+    # Set gecos information
+    usermod -c "{{ .item.gecos }}" "{{ .item.name }}"
+    {{- end }}
+    {{- if .item.home_dir }}
+    # Set home directory
+    usermod -d "{{ .item.home_dir }}" "{{ .item.name }}"
+    {{- end }}
+    {{- if .item.shell }}
+    # Set shell
+    usermod -s "{{ .item.shell }}" "{{ .item.name }}"
+    {{- end }}
+    {{- if .item.primary_group }}
+    # Set primary group
+    usermod -g "{{ .item.primary_group }}" "{{ .item.name }}"
+    {{- end }}
+    {{- if .item.lock_passwd }}
+    # Lock password
+    usermod -L "{{ .item.name }}"
+    {{- end }}
+    {{- if .item.groups }}
+    # Add user to groups
+    usermod -aG "{{ .item.groups }}" "{{ .item.name }}"
+    {{- end }}
+    {{- if .item.sudo }}
+    # Add user to sudoers
+    echo "{{ .item.name }} {{ .item.sudo }}" > "/etc/sudoers.d/{{ .item.name }}"
+    {{- end }}
+    {{- if .item.ssh_authorized_keys }}
+    # Add SSH authorized keys
+    mkdir -p "{{ .item.home_dir }}/.ssh"
+    echo "{{ .item.ssh_authorized_keys }}" > "{{ .item.home_dir }}/.ssh/authorized_keys"
+    chown -R "{{ .item.name }}" "{{ .item.home_dir }}/.ssh"
+    chmod 700 "{{ .item.home_dir }}/.ssh"
+    chmod 600 "{{ .item.home_dir }}/.ssh/authorized_keys"
+    {{- end }}
+
+- name: Deal cloud-config disk_setup
+  when: .cloud_config.disk_setup
+  command: |
+    #!/bin/bash
+
+    {{- range $_, $disk := .cloud_config.disk_setup }}
+    if lsblk | grep -q "{{ $disk.device }}"; then
+      echo "Disk {{ $disk.device }} already configured, skipping."
+    else
+      echo "Configuring disk {{ $disk.device }}"
+      # setup disk on '{{ $disk.device }}'
+      {{- if equal $disk.table_type "gpt" }}
+      parted "{{ $disk.device }}" mklabel gpt
+      {{- else  equal $disk.table_type "mbr" }}
+      parted "{{ $disk.device }}" mklabel msdos
+      {{- end }}
+      {{- if $disk.layout }}
+      # create a single partition for the entire disk
+      parted -a optimal "{{ $disk.device }}" mkpart primary ext4 0% 100%
+      {{- end }}
+    fi
+    {{- end }}
+
+- name: Deal cloud-config fs_setup
+  loop: "{{ .cloud_config.fs_setup | toJson }}"
+  command: |
+    #!/bin/bash
+
+    DEVICE="{{ .item.device }}"
+    {{- if .item.partition }}
+    DEVICE="${DEVICE}{{ .item.partition | atoi }}"
+    {{- end }}
+
+    if blkid "$DEVICE" &>/dev/null; then
+      echo "Filesystem already exists on $DEVICE"
+      {{- if .item.overwrite }}
+      # Overwrite existing filesystem on '$DEVICE'
+      mkfs -t "{{ .item.filesystem }}" '$DEVICE'
+      {{- else }}
+    else
+      echo "Creating filesystem on $DEVICE..."
+      mkfs -t "{{ .item.filesystem }}" {{- if .item.label }}-L "{{ .item.label }}"{{ end }} {{- range .item.extra_opts }}"{{ . }}" {{ end }} "$DEVICE"
+    fi
+   
+- name: Deal cloud-config mount
+  loop: "{{ .cloud_config.mounts | toJson }}"
+  command: |
+    #!/bin/bash
+
+    MOUNT_POINT="{{ last .item }}"
+    if mountpoint -q "$MOUNT_POINT"; then
+      echo "Mount point $MOUNT_POINT already mounted, skipping."
+    else
+      echo "Mounting {{ first .item }} to $MOUNT_POINT..."
+      mount -L "{{ first .item }}" "$MOUNT_POINT"
+      echo "LABEL={{ first .item }} $MOUNT_POINT ext4 defaults 0 0" >> /etc/fstab
+    fi
+
+- name: Deal runcmd
+  loop: "{{ .cloud_config.runcmd | toJson }}"
+  command: "{{ .item }}"
+
+- name: Sync kubeconfig
+  copy:
+    src: |
+      {{ .cloud_config_dir }}/kubeconfig/value
+    dest: /root/.kube/config
+    mode: 0600
+
+- name: Label kubernetes role
+  loop: "{{ .kubernetes.roles | toJson }}"
+  command: |
+    #!/bin/bash
+    kubectl label node "{{ .hostname }}" node-role.kubernetes.io/{{ .item }}="" --overwrite

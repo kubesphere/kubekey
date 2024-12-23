@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: capkk-system
+
+resources:
+- namespace.yaml
+- crds/infrastructure.cluster.x-k8s.io_kkclusters.yaml
+- crds/infrastructure.cluster.x-k8s.io_kkmachines.yaml
+- crds/infrastructure.cluster.x-k8s.io_kkmachinetemplates.yaml
+- crds/kubekey.kubesphere.io_inventories.yaml
+- crds/kubekey.kubesphere.io_pipelines.yaml
+- webhook/manifests.yaml
+- webhook/issuer.yaml
+- rbac/role.yaml
+- rbac/serviceaccount.yaml
+- deployment/kk-controller-manager.yaml
+- deployment/capkk-controller-manager.yaml
+
+# Optional: Add common labels to all resources
+commonLabels:
+  cluster.x-k8s.io/provider: infrastructure-kk
+
+images:
+- name: capkk-controller-manager-image
+- name: kk-controller-manager-image

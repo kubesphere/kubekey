@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 

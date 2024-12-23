@@ -9,14 +9,12 @@ import (
 type PipelineOptions struct {
 	Name      string
 	Namespace string
-	WorkDir   string
 }
 
 // NewPipelineOptions for newPipelineCommand
 func NewPipelineOptions() *PipelineOptions {
 	return &PipelineOptions{
 		Namespace: metav1.NamespaceDefault,
-		WorkDir:   "/kubekey",
 	}
 }
 
@@ -26,7 +24,6 @@ func (o *PipelineOptions) Flags() cliflag.NamedFlagSets {
 	pfs := fss.FlagSet("pipeline flags")
 	pfs.StringVar(&o.Name, "name", o.Name, "name of pipeline")
 	pfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "namespace of pipeline")
-	pfs.StringVar(&o.WorkDir, "workdir", o.WorkDir, "the base Dir for kubekey. Default current dir. ")
 
 	return fss
 }

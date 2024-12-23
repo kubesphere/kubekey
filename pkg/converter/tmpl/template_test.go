@@ -181,7 +181,10 @@ func TestParseBool(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			b, _ := ParseBool(tc.variable, tc.condition)
+			b, err := ParseBool(tc.variable, tc.condition)
+			if err != nil {
+				t.Fatal(err)
+			}
 			assert.Equal(t, tc.excepted, b)
 		})
 	}
@@ -428,7 +431,7 @@ func TestParseFunction(t *testing.T) {
 			excepted: "a",
 		},
 		{
-			name:  "index 1",
+			name:  "index 2",
 			input: "{{ if index .foo \"a\" }}true{{else}}false{{end}}",
 			variable: map[string]any{
 				"foo": map[string]any{
@@ -436,6 +439,18 @@ func TestParseFunction(t *testing.T) {
 				},
 			},
 			excepted: "false",
+		},
+		{
+			name:  "index 3",
+			input: "{{ index .foo \"foo\" \"a\"}}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": map[string]any{
+						"a": "b",
+					},
+				},
+			},
+			excepted: "b",
 		},
 		// ======= first =======
 		{
@@ -578,6 +593,15 @@ func TestParseFunction(t *testing.T) {
 			variable: make(map[string]any),
 			excepted: "",
 		},
+		// ======= fromJson =======
+		{
+			name:  "fromJson 1",
+			input: `{{ .foo | fromJson | first }}`,
+			variable: map[string]any{
+				"foo": "[\"a\",\"b\"]",
+			},
+			excepted: "a",
+		},
 	}
 
 	for _, tc := range testcases {
@@ -629,6 +653,19 @@ func TestParseCustomFunction(t *testing.T) {
 			input:    "{{ pow 2 3 }}",
 			variable: make(map[string]any),
 			excepted: "8",
+		},
+		// ======= ipFamily =======
+		{
+			name:     "ipFamily for ip address",
+			input:    `{{ .ip_addr | default "10.233.64.0/18" | splitList "," | first | ipFamily }}`,
+			variable: make(map[string]any),
+			excepted: "IPv4",
+		},
+		{
+			name:     "ipFamily for ip cidr",
+			input:    `{{ .ip_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily }}`,
+			variable: make(map[string]any),
+			excepted: "IPv4",
 		},
 	}
 

@@ -34,7 +34,7 @@ func TestFetch(t *testing.T) {
 		exceptStderr string
 	}{
 		{
-			name: "src and content is empty",
+			name: "src is empty",
 			opt: ExecOptions{
 				Args:     runtime.RawExtension{},
 				Host:     "local",

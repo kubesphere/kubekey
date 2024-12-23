@@ -1,0 +1,18 @@
+---
+- name: Install etcd
+  when: .etcd_install_version.stderr | ne ""
+  block:
+    - name: Init etcd
+      block:
+        - name: Add etcd user
+          command: |
+            useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd || :
+        - name: Create etcd directories
+          command: |
+            if [ ! -d "{{ .item }}" ]; then
+              mkdir -p {{ .item }} && chown -R etcd {{ .item }}
+            fi
+          loop:
+           - "/var/lib/etcd"
+    - include_tasks: install_etcd.yaml
+    - include_tasks: backup_etcd.yaml

@@ -1,0 +1,38 @@
+# the pod's WORKDIR which set by image. store the runtime files.
+work_dir: /kubekey
+# binary_dir may mount by pipeline. usage it shouldn't be changed.
+binary_dir: /capkk/kubekey
+# cloud_config_dir may mount by pipeline. usage it shouldn't be changed.
+cloud_config_dir: /capkk/cloud
+# tmp_dir for kubekey in remote node. it will store file like binary package, iso file etc.
+tmp_dir: /tmp/kubekey
+
+# image registry
+global_registry: ""
+dockerio_registry: |
+  {{- if ne .global_registry "" -}}
+  {{ .global_registry }}
+  {{- else -}}
+  docker.io
+  {{- end -}}
+quayio_registry: |
+  {{- if ne .global_registry "" -}}
+  {{ .global_registry }}
+  {{- else -}}
+  quay.io
+  {{- end -}}
+ghcrio_registry: |
+  {{- if ne .global_registry "" -}}
+  {{ .global_registry }}
+  {{- else -}}
+  ghcr.io
+  {{- end -}}
+k8s_registry: |
+  {{- if ne .global_registry "" -}}
+  {{ .global_registry }}
+  {{- else -}}
+  registry.k8s.io
+  {{- end -}}
+
+cri:
+  container_manager: docker

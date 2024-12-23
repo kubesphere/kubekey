@@ -9,12 +9,6 @@
 # Test binary, build with `go test -c`
 *.test
 
-# E2E test templates
-test/e2e/data/infrastructure-kubekey/v1beta1/cluster-template*.yaml
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
 # IntelliJ
 .idea/
 *.iml

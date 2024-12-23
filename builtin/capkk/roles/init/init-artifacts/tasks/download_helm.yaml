@@ -1,0 +1,33 @@
+---
+- name: Check binaries for calico
+  command: |
+    artifact_name={{ .artifact.artifact_url.calico | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/calico
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.calico }}
+    fi
+  when: and .calico_version (ne .calico_version "")
+
+- name: Check binaries for cilium
+  command: |
+    artifact_name={{ .artifact.artifact_url.cilium | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/cilium
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.cilium }}
+    fi
+  when: and .cilium_version (ne .cilium_version "")
+
+- name: Check binaries for flannel
+  command: |
+    artifact_name={{ .artifact.artifact_url.flannel | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/flannel
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.flannel }}
+    fi
+  when: and .flannel_version (ne .flannel_version "")

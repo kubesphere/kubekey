@@ -22,13 +22,12 @@ import (
 	"fmt"
 	"io"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -207,21 +206,8 @@ func (e pipelineExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool,
 	}
 
 	dealGatherFactsInHost := func(hostname string) error {
-		v, err := e.variable.Get(variable.GetParamVariable(hostname))
-		if err != nil {
-			klog.V(5).ErrorS(err, "get host variable error", "hostname", hostname)
-
-			return err
-		}
-
-		connectorVars := make(map[string]any)
-		if c1, ok := v.(map[string]any)[_const.VariableConnector]; ok {
-			if c2, ok := c1.(map[string]any); ok {
-				connectorVars = c2
-			}
-		}
 		// get host connector
-		conn, err := connector.NewConnector(hostname, connectorVars)
+		conn, err := connector.NewConnector(hostname, e.variable)
 		if err != nil {
 			klog.V(5).ErrorS(err, "new connector error", "hostname", hostname)
 

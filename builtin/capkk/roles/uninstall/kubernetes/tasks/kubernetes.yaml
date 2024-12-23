@@ -1,0 +1,26 @@
+---
+- name: Delete Node
+  command: |
+    if kubectl get node {{ .hostname }}; then
+      kubectl cordon {{ .hostname }}
+      kubectl drain {{ .hostname }} --ignore-daemonsets --delete-emptydir-data --force
+    {{- if .cni.type | eq "calico" }}
+      calicoctl delete node {{ .hostname }}
+    {{- end }}
+      kubectl delete node {{ .hostname }}
+      kubeadm reset -f
+    fi
+
+- name: Delete kubelet
+  command: |
+    rm -rf /etc/systemd/system/kubelet.service
+    rm -rf /etc/systemd/system/kubelet.service.d
+    systemctl daemon-reload
+
+- name: Delete residue files
+  command: |
+    rm -rf /usr/local/bin/kubeadm && rm -rf /usr/local/bin/kubelet && rm -rf /usr/local/bin/kubectl
+    rm -rf /var/lib/kubelet/
+    rm -rf /etc/kubernetes/
+    rm -rf .kube/config
+    rm -rf /var/lib/etcd

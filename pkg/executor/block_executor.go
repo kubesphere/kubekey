@@ -6,14 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -169,14 +170,6 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 // dealTask "block" argument is not defined in block.
 func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []string, block kkprojectv1.Block) error {
 	task := converter.MarshalBlock(e.role, hosts, when, block)
-	// complete by pipeline
-	task.GenerateName = e.pipeline.Name + "-"
-	task.Namespace = e.pipeline.Namespace
-	if err := controllerutil.SetControllerReference(e.pipeline, task, e.client.Scheme()); err != nil {
-		klog.V(5).ErrorS(err, "Set controller reference error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-		return err
-	}
 	// complete module by unknown field
 	for n, a := range block.UnknownField {
 		data, err := json.Marshal(a)
@@ -192,14 +185,21 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 			break
 		}
 	}
-
 	if task.Spec.Module.Name == "" { // action is necessary for a task
 		klog.V(5).ErrorS(nil, "No module/action detected in task", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 
 		return fmt.Errorf("no module/action detected in task: %s", task.Name)
 	}
+	// complete by pipeline
+	task.GenerateName = e.pipeline.Name + "-"
+	task.Namespace = e.pipeline.Namespace
+	if err := ctrl.SetControllerReference(e.pipeline, task, e.client.Scheme()); err != nil {
+		klog.V(5).ErrorS(err, "Set controller reference error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 
-	if err := (taskExecutor{option: e.option, task: task}.Exec(ctx)); err != nil {
+		return err
+	}
+
+	if err := (&taskExecutor{option: e.option, task: task, taskRunTimeout: 60 * time.Minute}).Exec(ctx); err != nil {
 		klog.V(5).ErrorS(err, "exec task error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 
 		return err
