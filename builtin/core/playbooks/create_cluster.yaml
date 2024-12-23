@@ -1,0 +1,91 @@
+---
+- import_playbook: hook/pre_install.yaml
+
+# precheck
+- hosts:
+    - localhost
+  roles:
+    - role: precheck/artifact_check
+      when: and .artifact.artifact_file (ne .artifact.artifact_file "")
+- hosts:
+    - k8s_cluster
+    - etcd
+    - image_registry
+    - nfs
+  gather_facts: true
+  tags: ["always"]
+  roles:
+    - precheck/env_check
+
+- hosts:
+    - localhost
+  gather_facts: true
+  roles:
+    - init/init-artifact
+    - init/init-cert
+
+# image registry
+- hosts:
+    - image_registry
+  gather_facts: true
+  roles:
+    - install/image-registry
+
+- hosts:
+    - localhost
+  roles:
+    - init/init-artifact
+    - init/init-cert
+
+# init os
+- hosts:
+    - etcd
+    - k8s_cluster
+    - registry
+    - nfs
+  roles:
+    - init/init-os
+
+# install
+- hosts:
+    - nfs
+  gather_facts: true
+  roles:
+    - install/nfs
+
+- hosts:
+    - etcd
+  gather_facts: true
+  roles:
+    - install/etcd
+
+- hosts:
+    - image_registry
+  gather_facts: true
+  roles:
+    - install/image-registry
+
+- hosts:
+    - k8s_cluster
+  vars_files:
+    - vars/create_cluster_kubernetes.yaml
+  gather_facts: true
+  roles:
+    - install/cri
+    - install/kubernetes
+
+- hosts:
+    - kube_control_plane
+  roles:
+    - role: install/certs
+      when: .renew_certs.enabled
+
+- hosts:
+    - kube_control_plane|random
+  roles:
+    - install/cni
+    - install/storageclass
+    - role: install/security
+      when: .security_enhancement
+
+- import_playbook: hook/post_install.yaml

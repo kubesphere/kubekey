@@ -7,88 +7,98 @@ import (
 	"strings"
 )
 
-// parseIP parse cidr to actual ip slice, or parse the ip range string (format xxx-xxx) to actual ip slice,
+// parseIP parses a CIDR or an IP range string (e.g., "xxx-xxx") into a slice of actual IPs.
 func parseIP(ip string) []string {
 	var availableIPs []string
-	// if ip is "1.1.1.1/",trim /
+
+	// Trim trailing slash from IP if present
 	ip = strings.TrimRight(ip, "/")
 	if strings.Contains(ip, "/") {
-		if strings.Contains(ip, "/32") {
-			aip := strings.Replace(ip, "/32", "", -1)
-			availableIPs = append(availableIPs, aip)
+		if strings.HasSuffix(ip, "/32") {
+			// Handle single IP case in CIDR format
+			availableIPs = append(availableIPs, strings.TrimSuffix(ip, "/32"))
 		} else {
+			// Parse CIDR into available IPs
 			availableIPs = getAvailableIP(ip)
 		}
 	} else if strings.Contains(ip, "-") {
+		// Handle IP range format (e.g., "192.168.1.1-192.168.1.10")
 		ipRange := strings.SplitN(ip, "-", 2)
-		availableIPs = getAvailableIPRange(ipRange[0], ipRange[1])
+		if len(ipRange) == 2 {
+			availableIPs = getAvailableIPRange(ipRange[0], ipRange[1])
+		}
 	} else {
+		// Single IP case
 		availableIPs = append(availableIPs, ip)
 	}
 
 	return availableIPs
 }
 
+// getAvailableIPRange generates all IPs between the start and end IP addresses.
 func getAvailableIPRange(ipStart, ipEnd string) []string {
 	var availableIPs []string
 
-	firstIP := net.ParseIP(ipStart)
-	endIP := net.ParseIP(ipEnd)
-	if firstIP.To4() == nil || endIP.To4() == nil {
+	startIP := net.ParseIP(ipStart).To4()
+	endIP := net.ParseIP(ipEnd).To4()
+	if startIP == nil || endIP == nil {
 		return availableIPs
 	}
 
-	firstIPNum := ipToInt(firstIP.To4())
-	endIPNum := ipToInt(endIP.To4())
-	pos := int32(1)
-	newNum := firstIPNum
-	for newNum <= endIPNum {
-		availableIPs = append(availableIPs, intToIP(newNum).String())
-		newNum += pos
+	startIPNum := ipToInt(startIP)
+	endIPNum := ipToInt(endIP)
+
+	for ipNum := startIPNum; ipNum <= endIPNum; ipNum++ {
+		availableIPs = append(availableIPs, intToIP(ipNum).String())
 	}
 
 	return availableIPs
 }
 
+// getAvailableIP calculates all available IPs in a given CIDR.
 func getAvailableIP(ipAndMask string) []string {
-	var availableIPs = make([]string, 0)
+	var availableIPs []string
 
+	// Ensure the input is in CIDR format
 	ipAndMask = strings.TrimSpace(ipAndMask)
 	ipAndMask = iPAddressToCIDR(ipAndMask)
-	_, ipnet, _ := net.ParseCIDR(ipAndMask)
 
-	firstIP, _ := networkRange(ipnet)
-	ipNum := ipToInt(firstIP)
-	size := networkSize(ipnet.Mask)
-	pos := int32(1)
-	m := size - 2 // -1 for the broadcast address, -1 for the gateway address
+	_, ipnet, err := net.ParseCIDR(ipAndMask)
+	if err != nil || ipnet == nil {
+		return availableIPs
+	}
 
-	var newNum int32
-	for range m {
-		newNum = ipNum + pos
-		pos = pos%m + 1
-		availableIPs = append(availableIPs, intToIP(newNum).String())
+	firstIP, lastIP := networkRange(ipnet)
+	startIPNum := ipToInt(firstIP)
+	endIPNum := ipToInt(lastIP)
+
+	// Exclude the network and broadcast addresses
+	for ipNum := startIPNum + 1; ipNum < endIPNum; ipNum++ {
+		availableIPs = append(availableIPs, intToIP(ipNum).String())
 	}
 
 	return availableIPs
 }
 
-func ipToInt(ip net.IP) int32 {
-	return int32(binary.BigEndian.Uint32(ip.To4()))
+// ipToInt converts an IP address to a uint32.
+func ipToInt(ip net.IP) uint32 {
+	return binary.BigEndian.Uint32(ip)
 }
 
-func intToIP(n int32) net.IP {
+// intToIP converts a uint32 to an IP address.
+func intToIP(n uint32) net.IP {
 	b := make([]byte, 4)
-	binary.BigEndian.PutUint32(b, uint32(n))
+	binary.BigEndian.PutUint32(b, n)
 
-	return b
+	return net.IP(b)
 }
 
+// iPAddressToCIDR converts an IP address with a subnet mask to CIDR format.
 func iPAddressToCIDR(ipAddress string) string {
 	if strings.Contains(ipAddress, "/") {
-		ipAndMask := strings.Split(ipAddress, "/")
-		ip := ipAndMask[0]
-		mask := ipAndMask[1]
+		parts := strings.Split(ipAddress, "/")
+		ip := parts[0]
+		mask := parts[1]
 		if strings.Contains(mask, ".") {
 			mask = iPMaskStringToCIDR(mask)
 		}
@@ -99,35 +109,37 @@ func iPAddressToCIDR(ipAddress string) string {
 	return ipAddress
 }
 
+// iPMaskStringToCIDR converts a subnet mask string (e.g., "255.255.255.0") to a CIDR prefix length.
 func iPMaskStringToCIDR(netmask string) string {
-	netmaskList := strings.Split(netmask, ".")
-	var mint = make([]int, len(netmaskList))
-	for i, v := range netmaskList {
-		mint[i], _ = strconv.Atoi(v)
+	parts := strings.Split(netmask, ".")
+	if len(parts) != 4 {
+		return "0"
 	}
 
-	myIPMask := net.IPv4Mask(byte(mint[0]), byte(mint[1]), byte(mint[2]), byte(mint[3]))
-	ones, _ := myIPMask.Size()
+	maskBytes := make([]byte, 4)
+	for i, part := range parts {
+		val, _ := strconv.Atoi(part)
+		maskBytes[i] = byte(val)
+	}
+
+	mask := net.IPv4Mask(maskBytes[0], maskBytes[1], maskBytes[2], maskBytes[3])
+	ones, _ := mask.Size()
 
 	return strconv.Itoa(ones)
 }
 
+// networkRange calculates the first and last IP in a given network.
 func networkRange(network *net.IPNet) (net.IP, net.IP) {
 	netIP := network.IP.To4()
-	firstIP := netIP.Mask(network.Mask)
-	lastIP := net.IPv4(0, 0, 0, 0).To4()
-	for i := 0; i < len(lastIP); i++ {
-		lastIP[i] = netIP[i] | ^network.Mask[i]
+	if netIP == nil {
+		return nil, nil
 	}
 
-	return firstIP, lastIP
-}
-
-func networkSize(mask net.IPMask) int32 {
-	m := net.IPv4Mask(0, 0, 0, 0)
-	for i := range net.IPv4len {
-		m[i] = ^mask[i]
+	startIP := netIP.Mask(network.Mask)
+	endIP := make(net.IP, len(startIP))
+	for i := range startIP {
+		endIP[i] = startIP[i] | ^network.Mask[i]
 	}
 
-	return int32(binary.BigEndian.Uint32(m)) + 1
+	return startIP, endIP
 }

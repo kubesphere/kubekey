@@ -5,7 +5,9 @@ global:
   tag: ""
   imagePullSecrets: []
 
-operator:
+controller-manager:
+  webhook:
+    enabled: true
   # tolerations of operator pod
   tolerations:
     - key: node-role.kubernetes.io/master
@@ -58,12 +60,7 @@ operator:
     requests:
       cpu: 30m
       memory: 50Mi
-  ## @param command Override default container command (useful when using custom images)
-  ##
-  command:
-    - controller-manager
-    - --logtostderr=true
-    - --leader-election=true
+  command: []
   ## @param extraEnvVars Array with extra environment variables to add to haproxy nodes
   ##
   extraEnvVars: []

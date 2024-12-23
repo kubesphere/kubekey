@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
 
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 )
 
 func TestBlockExecutor_DealRunOnce(t *testing.T) {

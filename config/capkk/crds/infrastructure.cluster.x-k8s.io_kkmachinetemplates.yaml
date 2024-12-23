@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.17.2-0.20250203100058-d1f73b5ea552
   labels:
     cluster.x-k8s.io/v1beta1: v1beta1
   name: kkmachinetemplates.infrastructure.cluster.x-k8s.io
@@ -63,7 +63,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -82,38 +82,49 @@ spec:
                     description: Spec is the specification of the desired behavior
                       of the machine.
                     properties:
+                      config:
+                        description: Config for machine. contains cluster version,
+                          binary version, etc.
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                      failureDomain:
+                        description: |-
+                          failureDomain is the failure domain the machine will be created in.
+                          Must match a key in the FailureDomains map stored on the cluster object.
+                        type: string
                       providerID:
-                        description: ProviderID is the unique identifier as specified
-                          by the kubekey provider.
+                        description: |-
+                          providerID is the identification ID of the machine provided by the provider.
+                          This field must match the provider ID as seen on the node object corresponding to this machine.
+                          This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+                          with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
+                          machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
+                          generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
+                          able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver
+                          and then a comparison is done to find out unregistered machines and are marked for delete.
+                          This field will be set by the actuators and consumed by higher level entities like autoscaler that will
+                          be interfacing with cluster-api as generic provider.
                         type: string
                       roles:
-                        description: Roles is the role of the machine, like `Worker`,
-                          `Master`, `ControlPlane`, etc.
+                        description: |-
+                          Roles defines the roles assigned to the Kubernetes cluster node, such as "worker" or "control-plane".
+                          A KKMachine created by ControlPlane will automatically have the "control-plane" role.
+                          A KKMachine created by MachineDeployment will automatically have the "worker" role.
+                          Additional custom roles can also be specified in this field as needed.
                         items:
                           type: string
                         type: array
+                      version:
+                        description: |-
+                          version defines the desired Kubernetes version.
+                          This field is meant to be optionally used by bootstrap providers.
+                        type: string
                     type: object
                 required:
                 - spec
                 type: object
             required:
             - template
-            type: object
-          status:
-            description: KKMachineTemplateStatus defines a status for an KKMachineTemplate.
-            properties:
-              capacity:
-                additionalProperties:
-                  anyOf:
-                  - type: integer
-                  - type: string
-                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                  x-kubernetes-int-or-string: true
-                description: |-
-                  Capacity defines the resource capacity for this machine.
-                  This value is used for autoscaling from zero operations as defined in:
-                  https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
-                type: object
             type: object
         type: object
     served: true

@@ -25,6 +25,8 @@ import (
 	"sort"
 	"strings"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,26 +45,23 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/internal"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/config"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/inventory"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/pipeline"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/task"
 )
 
-// NewConfig replace the restconfig transport to proxy transport
-func NewConfig(restconfig *rest.Config) (*rest.Config, error) {
+// RestConfig replace the restconfig transport to proxy transport
+func RestConfig(runtimedir string, restconfig *rest.Config) error {
 	var err error
-	restconfig.Transport, err = newProxyTransport(restconfig)
+	restconfig.Transport, err = newProxyTransport(runtimedir, restconfig)
 	if err != nil {
-		return nil, fmt.Errorf("create proxy transport error: %w", err)
+		return fmt.Errorf("create proxy transport error: %w", err)
 	}
 	restconfig.TLSClientConfig = rest.TLSClientConfig{}
 
-	return restconfig, nil
+	return err
 }
 
 // NewProxyTransport return a new http.RoundTripper use in ctrl.client.
@@ -72,7 +71,7 @@ func NewConfig(restconfig *rest.Config) (*rest.Config, error) {
 //
 // SPECIFICALLY: since tasks is running data, which is reentrant and large in quantity,
 // they should always store in local.
-func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
+func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTripper, error) {
 	lt := &transport{
 		authz: authorizerfactory.NewAlwaysAllowAuthorizer(),
 		handlerChainFunc: func(handler http.Handler) http.Handler {
@@ -91,7 +90,7 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 
 	// register kkcorev1alpha1 resources
 	kkv1alpha1 := newAPIIResources(kkcorev1alpha1.SchemeGroupVersion)
-	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1alpha1.SchemeGroupVersion))
+	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion))
 	if err != nil {
 		klog.V(6).ErrorS(err, "failed to create storage")
 
@@ -121,23 +120,8 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 	if restConfig.Host == "" {
 		// register kkcorev1 resources
 		kkv1 := newAPIIResources(kkcorev1.SchemeGroupVersion)
-		// add config
-		configStorage, err := config.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
-		if err != nil {
-			klog.V(6).ErrorS(err, "failed to create storage")
-
-			return nil, err
-		}
-		if err := kkv1.AddResource(resourceOptions{
-			path:    "configs",
-			storage: configStorage.Config,
-		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
-			return nil, err
-		}
 		// add inventory
-		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
+		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
 			klog.V(6).ErrorS(err, "failed to create storage")
 
@@ -152,7 +136,7 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 			return nil, err
 		}
 		// add pipeline
-		pipelineStorage, err := pipeline.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
+		pipelineStorage, err := pipeline.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
 			klog.V(6).ErrorS(err, "failed to create storage")
 

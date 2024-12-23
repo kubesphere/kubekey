@@ -6,7 +6,7 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.22
+GO_VERSION ?= 1.23.3
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 GOARCH ?= $(shell go env GOARCH)
 GOOS ?= $(shell go env GOOS)
@@ -56,17 +56,17 @@ export PATH := $(abspath $(OUTPUT_BIN_DIR)):$(abspath $(OUTPUT_TOOLS_DIR)):$(PAT
 # Binaries.
 #
 # Note: Need to use abspath so we can invoke these from subdirectories
-KUSTOMIZE_VER := v4.5.2
+KUSTOMIZE_VER := v5.5.0
 KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(OUTPUT_TOOLS_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
-KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v5
 
 SETUP_ENVTEST_VER := v0.0.0-20240521074430-fbb7d370bebc
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(OUTPUT_TOOLS_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.15.0
+CONTROLLER_GEN_VER := main
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(OUTPUT_TOOLS_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -79,15 +79,15 @@ GOTESTSUM_PKG := gotest.tools/gotestsum
 HADOLINT_VER := v2.10.0
 HADOLINT_FAILURE_THRESHOLD = warning
 
-GOLANGCI_LINT_VER := $(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version | sed 's/.*version: //')
+GOLANGCI_LINT_VER := $(shell cat .github/workflows/golangci-lint.yaml | grep [[:space:]]version | sed 's/.*version: //')
 GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT := $(abspath $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN))
+GOLANGCI_LINT := $(abspath $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 
-GORELEASER_VERSION := v2.0.1
+GORELEASER_VER := $(shell cat .github/workflows/releaser.yaml | grep [[:space:]]version | sed 's/.*version: //')
 GORELEASER_BIN := goreleaser
+GORELEASER := $(abspath $(OUTPUT_TOOLS_DIR)/$(GORELEASER_BIN)-$(GORELEASER_VER))
 GORELEASER_PKG := github.com/goreleaser/goreleaser/v2
-GORELEASER := $(abspath $(OUTPUT_TOOLS_DIR)/$(GORELEASER_BIN))
 
 #
 # Docker.
@@ -101,49 +101,26 @@ DOCKER_PUSH ?= $(DOCKER_BUILD) --platform $(PLATFORM) $(DOCKER_OUT_TYPE)
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= docker.io/kubespheredev
-#REGISTRY ?= docker.io/kubespheredev
-#PROD_REGISTRY ?= docker.io/kubesphere
 
 # capkk
-#CAPKK_IMAGE_NAME ?= capkk-controller
-#CAPKK_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPKK_IMAGE_NAME)
+CAPKK_CONTROLLER_IMG_NAME ?= capkk-controller-manager
+CAPKK_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPKK_CONTROLLER_IMG_NAME)
 # controller-manager
-OPERATOR_IMAGE_NAME ?= kk-controller-manager
-OPERATOR_CONTROLLER_IMG ?= $(REGISTRY)/$(OPERATOR_IMAGE_NAME)
+KK_CONTROLLER_IMG_NAME ?= kk-controller-manager
+KK_CONTROLLER_IMG ?= $(REGISTRY)/$(KK_CONTROLLER_IMG_NAME)
 # executor
-EXECUTOR_IMAGE_NAME ?= kk-executor
-EXECUTOR_CONTROLLER_IMG ?= $(REGISTRY)/$(EXECUTOR_IMAGE_NAME)
-
-# bootstrap
-#K3S_BOOTSTRAP_IMAGE_NAME ?= k3s-bootstrap-controller
-#K3S_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(K3S_BOOTSTRAP_IMAGE_NAME)
-
-# control plane
-#K3S_CONTROL_PLANE_IMAGE_NAME ?= k3s-control-plane-controller
-#K3S_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(K3S_CONTROL_PLANE_IMAGE_NAME)
+KK_EXECUTOR_IMG_NAME ?= kk-executor
+KK_EXECUTOR_IMG ?= $(REGISTRY)/$(KK_EXECUTOR_IMG_NAME)
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
 TAG ?= dev
-
-#ALL_ARCH = amd64 arm arm64 ppc64le s390x
-
-# Allow overriding the imagePullPolicy
-#PULL_POLICY ?= Always
-
-# Hosts running SELinux need :z added to volume mounts
-#SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
-#
-#ifeq ($(SELINUX_ENABLED),1)
-#  DOCKER_VOL_OPTS?=:z
-#endif
 
 # Set build time variables including version details
 LDFLAGS := $(shell hack/version.sh)
 # Set kk build tags
 #BUILDTAGS = exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp
 BUILDTAGS ?= builtin
-
 #.PHONY: all
 #all: test managers
 
@@ -158,35 +135,44 @@ help: ## Display this help.
 ##@ generate:
 
 .PHONY: generate
-generate: ## Run all generate-manifests-*, generate-go-deepcopy-* targets
-	$(MAKE) generate-go-deepcopy-kubekey generate-manifests-kubekey generate-manifests-capkk generate-modules generate-goimports
+generate: generate-go-deepcopy generate-manifests-kubekey generate-manifests-capkk generate-modules generate-goimports ## Run all generate-manifests-*, generate-go-deepcopy-* targets
 
-.PHONY: generate-go-deepcopy-kubekey
-generate-go-deepcopy-kubekey: $(CONTROLLER_GEN) ## Generate deepcopy object
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./pkg/apis/"
-	$(CONTROLLER_GEN) \
+.PHONY: generate-go-deepcopy
+generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy object
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/"
+	@$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate.go.txt \
-		paths=./pkg/apis/...
+		paths=./api/...
 
 .PHONY: generate-manifests-kubekey
-generate-manifests-kubekey: $(CONTROLLER_GEN) ## Generate kubekey manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) \
-		paths=./pkg/apis/core/... \
-		crd \
-		output:crd:dir=./config/kubekey/crds/
+generate-manifests-kubekey: $(CONTROLLER_GEN) clean-crds-kubekey ## Generate kubekey manifests e.g. CRD, RBAC etc.
+	@$(CONTROLLER_GEN) \
+		paths=./api/core/... \
+		crd output:crd:dir=./config/kubekey/crds/
+	@$(CONTROLLER_GEN) \
+		paths=./pkg/controllers/core/... \
+		rbac:roleName=kubekey output:rbac:dir=./config/kubekey/templates/
 
 .PHONY: generate-manifests-capkk
-generate-manifests-capkk: $(CONTROLLER_GEN) ## Generate capkk manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) \
-		paths=./pkg/apis/capkk/... \
-		crd webhook \
-		output:crd:dir=./config/capkk/crds/ \
-		output:webhook:dir=./config/capkk/webhook/
+generate-manifests-capkk: $(CONTROLLER_GEN) $(KUSTOMIZE) clean-crds-capkk ## Generate capkk manifests e.g. CRD, RBAC etc.
+	@$(CONTROLLER_GEN) \
+		paths=./api/capkk/... \
+		crd \
+		output:crd:dir=./config/capkk/crds/ 
+	@$(CONTROLLER_GEN) \
+		paths=./pkg/controllers/... \
+		rbac:roleName=capkk output:rbac:dir=./config/capkk/rbac \
+		webhook output:webhook:dir=./config/capkk/webhook
+	@cp ./config/kubekey/crds/* ./config/capkk/crds/
+	@cd config/capkk && $(KUSTOMIZE) edit set image capkk-controller-manager-image=$(CAPKK_CONTROLLER_IMG):$(TAG) kk-controller-manager-image=$(KK_CONTROLLER_IMG):$(TAG)
+	@$(KUSTOMIZE) build config/capkk | \
+		yq eval '.metadata |= select(.name == "default-capkk") *+ {"annotations": {"cert-manager.io/inject-ca-from": "capkk-system/capkk-serving-cert"}}' | \
+		yq eval '.spec.template.spec.containers[] |= (select(.name == "controller-manager") | .env[] |= (select(.name == "EXECUTOR_IMAGE") | .value = "$(KK_EXECUTOR_IMG):$(TAG)"))' \
+		> config/capkk/release/infrastructure-components.yaml
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
-	@go mod tidy && go mod vendor
-
+	@go mod tidy
 .PHONY: generate-goimports
 generate-goimports:  ## Format all import, `goimports` is required.
 	@hack/update-goimports.sh
@@ -199,12 +185,12 @@ generate-goimports:  ## Format all import, `goimports` is required.
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
-	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	@$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) 
+	@cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: verify-dockerfiles
 verify-dockerfiles:
-	./hack/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	@./hack/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
 ALL_VERIFY_CHECKS ?= modules gen goimports releaser
 
@@ -247,79 +233,36 @@ verify-releaser: $(GORELEASER) ## Verify goreleaser
 kk: ## build kk binary
 	@CGO_ENABLED=0 GOARCH=$(GOARCH) GOOS=$(GOOS) go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(OUTPUT_BIN_DIR)/kk cmd/kk/kubekey.go
 
-.PHONY: kk-releaser
-kk-releaser: $(GORELEASER_BIN)
-	LDFLAGS=$(bash ./hack/version.sh) $(GORELEASER_BIN) release --clean --skip validate --skip publish
+.PHONY: kk-releaser 
+kk-releaser: $(GORELEASER) ## build releaser in dist. it will show in https://github.com/kubesphere/kubekey/releases
+	@LDFLAGS=$(bash ./hack/version.sh) $(GORELEASER) release --clean --skip validate --skip publish
 
-.PHONY: docker-build ## build and push all images
-docker-build: docker-build-operator docker-build-kk
+.PHONY: docker-push ## build and push all images
+docker-push: docker-push-kk-executor docker-push-kk-controller-manager docker-push-capkk-controller-manager
 
-.PHONY: docker-build-operator
-docker-build-operator: ## Build the docker image for operator
+.PHONY: docker-push-kk-executor
+docker-push-kk-executor: ## Build the docker image for kk-executor
 	@$(DOCKER_PUSH) \
 		--build-arg builder_image=$(GO_CONTAINER_IMAGE) \
 		--build-arg goproxy=$(GOPROXY) \
-		--build-arg ldflags="$(LDFLAGS)" --build-arg build_tags="$(BUILDTAGS)" \
-		-f build/controller-manager/Dockerfile -t $(OPERATOR_CONTROLLER_IMG):$(TAG) .
+		--build-arg ldflags="$(LDFLAGS)" --build-arg build_tags="" \
+		-f build/kk/Dockerfile -t $(KK_EXECUTOR_IMG):$(TAG) .
 
-.PHONY: docker-build-kk
-docker-build-kk: ## Build the docker image for kk
+.PHONY: docker-push-kk-controller-manager
+docker-push-kk-controller-manager: ## Build the docker image for kk-controller-manager
 	@$(DOCKER_PUSH) \
 		--build-arg builder_image=$(GO_CONTAINER_IMAGE) \
 		--build-arg goproxy=$(GOPROXY) \
-		--build-arg ldflags="$(LDFLAGS)" --build-arg build_tags="$(BUILDTAGS)" \
-		-f build/kk/Dockerfile -t $(EXECUTOR_CONTROLLER_IMG):$(TAG) .
+		--build-arg ldflags="$(LDFLAGS)" --build-arg build_tags="builtin" \
+		-f build/controller-manager/Dockerfile -t $(KK_CONTROLLER_IMG):$(TAG) .
 
-
-#ALL_MANAGERS = capkk k3s-bootstrap k3s-control-plane
-
-#.PHONY: managers
-#managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
-#
-#.PHONY: manager-capkk
-#manager-capkk: ## Build the capkk manager binary into the ./bin folder
-#	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager github.com/kubesphere/kubekey/v3
-#
-#.PHONY: manager-k3s-bootstrap
-#manager-k3s-bootstrap: ## Build the k3s bootstrap manager binary into the ./bin folder
-#	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/k3s-bootstrap-manager github.com/kubesphere/kubekey/v3/bootstrap/k3s
-#
-#.PHONY: manager-k3s-control-plane
-#manager-k3s-control-plane: ## Build the k3s control plane manager binary into the ./bin folder
-#	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/k3s-control-plane-manager github.com/kubesphere/kubekey/v3/controlplane/k3s
-#
-#.PHONY: docker-pull-prerequisites
-#docker-pull-prerequisites:
-#	docker pull docker.io/docker/dockerfile:1.4
-#	docker pull $(GO_CONTAINER_IMAGE)
-#
-#.PHONY: docker-build-all
-#docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images for all architectures
-#
-#docker-build-%:
-#	$(MAKE) ARCH=$* docker-build
-#
-#ALL_DOCKER_BUILD = capkk k3s-bootstrap k3s-control-plane
-#
-#.PHONY: docker-build
-#docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all providers
-#	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD))
-#
-#.PHONY: docker-build-capkk
-#docker-build-capkk: ## Build the docker image for capkk
-#	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
-#
-#.PHONY: docker-build-k3s-bootstrap
-#docker-build-k3s-bootstrap: ## Build the docker image for k3s bootstrap controller manager
-#	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/k3s --build-arg ldflags="$(LDFLAGS)" . -t $(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
-#
-#.PHONY: docker-build-k3s-control-plane
-#docker-build-k3s-control-plane: ## Build the docker image for k3s control plane controller manager
-#	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/k3s --build-arg ldflags="$(LDFLAGS)" . -t $(K3S_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
-#
-#.PHONY: docker-build-e2e
-#docker-build-e2e: ## Build the docker image for capkk
-#	$(MAKE) docker-build REGISTRY=docker.io/kubespheredev PULL_POLICY=IfNotPresent TAG=e2e
+.PHONY: docker-push-capkk-controller-manager
+docker-push-capkk-controller-manager: ## Build the docker image for capkk-controller-manager
+	@$(DOCKER_PUSH) \
+		--build-arg builder_image=$(GO_CONTAINER_IMAGE) \
+		--build-arg goproxy=$(GOPROXY) \
+		--build-arg ldflags="$(LDFLAGS)" --build-arg build_tags="clusterapi" \
+		-f build/controller-manager/Dockerfile -t $(CAPKK_CONTROLLER_IMG):$(TAG) .
 
 ## --------------------------------------
 ## Deployment
@@ -329,31 +272,7 @@ docker-build-kk: ## Build the docker image for kk
 
 .PHONY: helm-package
 helm-package: ## Helm-package.
-	helm package config/helm -d $(OUTPUT_DIR)
-
-#ifndef ignore-not-found
-#  ignore-not-found = false
-#endif
-#
-#.PHONY: install
-#install: generate $(KUSTOMIZE) ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-#	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-#
-#.PHONY: uninstall
-#uninstall: generate $(KUSTOMIZE) ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-#	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-#
-#.PHONY: deploy
-#deploy: generate $(KUSTOMIZE) ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-#	$(MAKE) set-manifest-image \
-#		MANIFEST_IMG=$(REGISTRY)/$(CAPKK_IMAGE_NAME)-$(ARCH) MANIFEST_TAG=$(TAG) \
-#		TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
-#	cd config/manager
-#	$(KUSTOMIZE) build config/default | kubectl apply -f -
-#
-#.PHONY: undeploy
-#undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-#	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	@helm package config/helm -d $(OUTPUT_DIR)
 
 ## --------------------------------------
 ## Testing
@@ -361,186 +280,13 @@ helm-package: ## Helm-package.
 
 ##@ test:
 
-#ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
-#	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
-#else
-#	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
-#endif
-
 .PHONY: test
 test: $(SETUP_ENVTEST) ## Run unit and integration tests
-	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	@KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
 .PHONY: test-verbose
 test-verbose: ## Run unit and integration tests with verbose flag
-	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
-#
-#.PHONY: test-junit
-#test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report
-#	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
-#	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
-#	exit $$(cat $(ARTIFACTS)/junit.exitcode)
-#
-#.PHONY: test-cover
-#test-cover: ## Run unit and integration tests and generate a coverage report
-#	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=out/coverage.out"
-#	go tool cover -func=out/coverage.out -o out/coverage.txt
-#	go tool cover -html=out/coverage.out -o out/coverage.html
-#
-#.PHONY: test-e2e
-#test-e2e: ## Run e2e tests
-#	$(MAKE) -C $(TEST_DIR)/e2e run
-#
-#.PHONY: test-e2e-k3s
-#test-e2e-k3s: ## Run e2e tests
-#	$(MAKE) -C $(TEST_DIR)/e2e run-k3s
-
-## --------------------------------------
-## Release
-## --------------------------------------
-
-##@ release:
-
-## latest git tag for the commit, e.g., v0.3.10
-#RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
-#ifneq (,$(findstring -,$(RELEASE_TAG)))
-#    PRE_RELEASE=true
-#endif
-## the previous release tag, e.g., v0.3.9, excluding pre-release tags
-#PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
-#RELEASE_DIR := out
-#
-#$(RELEASE_DIR):
-#	mkdir -p $(RELEASE_DIR)/
-#
-#.PHONY: release
-#release: clean-release ## Build and push container images using the latest git tag for the commit
-#	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
-#	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
-#	git checkout "${RELEASE_TAG}"
-#	## Build binaries first.
-#	GIT_VERSION=$(RELEASE_TAG) $(MAKE) release-binaries
-#	# Set the manifest image to the production bucket.
-#	$(MAKE) manifest-modification REGISTRY=$(PROD_REGISTRY)
-#	## Build the manifests
-#	$(MAKE) release-manifests
-#	## Build the templates
-#	$(MAKE) release-templates
-#	## Clean the git artifacts modified in the release process
-#	$(MAKE) clean-release-git
-#
-#release-binaries: ## Build the binaries to publish with a release
-#	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=amd64 $(MAKE) release-binary
-#	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=amd64 $(MAKE) release-archive
-#	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=arm64 $(MAKE) release-binary
-#	RELEASE_BINARY=./cmd/kk GOOS=linux GOARCH=arm64 $(MAKE) release-archive
-#	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
-#	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=amd64 $(MAKE) release-archive
-#	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
-#	RELEASE_BINARY=./cmd/kk GOOS=darwin GOARCH=arm64 $(MAKE) release-archive
-#
-#release-binary: $(RELEASE_DIR)
-#	docker run \
-#		--rm \
-#		-e CGO_ENABLED=0 \
-#		-e GOOS=$(GOOS) \
-#		-e GOARCH=$(GOARCH) \
-#		-e GOPROXY=$(GOPROXY) \
-#		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
-#		-w /workspace \
-#		golang:$(GO_VERSION) \
-#		go build -a -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS) -extldflags '-static'" \
-#		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(RELEASE_BINARY)
-#
-#release-archive: $(RELEASE_DIR)
-#	tar -czf $(RELEASE_DIR)/kubekey-$(RELEASE_TAG)-$(GOOS)-$(GOARCH).tar.gz -C $(RELEASE_DIR)/ $(notdir $(RELEASE_BINARY))
-#	rm -rf  $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))
-#
-#.PHONY: manifest-modification
-#manifest-modification: # Set the manifest images to the staging/production bucket.
-#	$(MAKE) set-manifest-image \
-#		MANIFEST_IMG=$(REGISTRY)/$(CAPKK_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-#		TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
-#	$(MAKE) set-manifest-image \
-#		MANIFEST_IMG=$(REGISTRY)/$(K3S_BOOTSTRAP_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-#		TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_image_patch.yaml"
-#	$(MAKE) set-manifest-image \
-#    	MANIFEST_IMG=$(REGISTRY)/$(K3S_CONTROL_PLANE_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-#		TARGET_RESOURCE="./controlplane/k3s/config/default/manager_image_patch.yaml"
-#	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
-#	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/k3s/config/default/manager_pull_policy.yaml"
-#	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/k3s/config/default/manager_pull_policy.yaml"
-#
-#.PHONY: release-manifests
-#release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the manifests to publish with a release
-#	# Build capkk-components.
-#	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
-#	# Build bootstrap-components.
-#	$(KUSTOMIZE) build bootstrap/k3s/config/default > $(RELEASE_DIR)/bootstrap-components.yaml
-#	# Build control-plane-components.
-#	$(KUSTOMIZE) build controlplane/k3s/config/default > $(RELEASE_DIR)/control-plane-components.yaml
-#
-#	# Add metadata to the release artifacts
-#	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
-#
-#.PHONY: release-templates
-#release-templates: $(RELEASE_DIR) ## Generate release templates
-#	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
-#
-#.PHONY: release-prod
-#release-prod: ## Build and push container images to the prod
-#	REGISTRY=$(PROD_REGISTRY) TAG=$(RELEASE_TAG) $(MAKE) docker-build-all docker-push-all
-
-## --------------------------------------
-## Docker
-## --------------------------------------
-
-#
-#.PHONY: docker-push-all
-#docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
-#	$(MAKE) docker-push-manifest-capkk
-#	$(MAKE) docker-push-manifest-k3s-bootstrap
-#	$(MAKE) docker-push-manifest-k3s-control-plane
-#
-#docker-push-%:
-#	$(MAKE) ARCH=$* docker-push
-#
-#.PHONY: docker-push
-#docker-push: ## Push the docker images
-#	docker push $(CAPKK_CONTROLLER_IMG)-$(ARCH):$(TAG)
-#	docker push $(K3S_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
-#	docker push $(K3S_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
-#
-#.PHONY: docker-push-manifest-capkk
-#docker-push-manifest-capkk: ## Push the multiarch manifest for the capkk docker images
-#	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
-#	docker manifest create --amend $(CAPKK_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPKK_CONTROLLER_IMG)\-&:$(TAG)~g")
-#	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CAPKK_CONTROLLER_IMG}:${TAG} ${CAPKK_CONTROLLER_IMG}-$${arch}:${TAG}; done
-#	docker manifest push --purge $(CAPKK_CONTROLLER_IMG):$(TAG)
-#
-#.PHONY: docker-push-manifest-k3s-bootstrap
-#docker-push-manifest-k3s-bootstrap: ## Push the multiarch manifest for the k3s bootstrap docker images
-#	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
-#	docker manifest create --amend $(K3S_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(K3S_BOOTSTRAP_CONTROLLER_IMG)\-&:$(TAG)~g")
-#	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${K3S_BOOTSTRAP_CONTROLLER_IMG}:${TAG} ${K3S_BOOTSTRAP_CONTROLLER_IMG}-$${arch}:${TAG}; done
-#	docker manifest push --purge $(K3S_BOOTSTRAP_CONTROLLER_IMG):$(TAG)
-#
-#.PHONY: docker-push-manifest-k3s-control-plane
-#docker-push-manifest-k3s-control-plane: ## Push the multiarch manifest for the k3s control plane docker images
-#	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
-#	docker manifest create --amend $(K3S_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(K3S_CONTROL_PLANE_CONTROLLER_IMG)\-&:$(TAG)~g")
-#	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${K3S_CONTROL_PLANE_CONTROLLER_IMG}:${TAG} ${K3S_CONTROL_PLANE_CONTROLLER_IMG}-$${arch}:${TAG}; done
-#	docker manifest push --purge $(K3S_CONTROL_PLANE_CONTROLLER_IMG):$(TAG)
-#
-#.PHONY: set-manifest-pull-policy
-#set-manifest-pull-policy:
-#	$(info Updating kustomize pull policy file for manager resources)
-#	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(TARGET_RESOURCE)
-#
-#.PHONY: set-manifest-image
-#set-manifest-image:
-#	$(info Updating kustomize image patch file for manager resource)
-#	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' $(TARGET_RESOURCE)
+	@$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
 
 ## --------------------------------------
 ## Cleanup / Verification
@@ -549,16 +295,19 @@ test-verbose: ## Run unit and integration tests with verbose flag
 ##@ clean:
 
 .PHONY: clean
-clean: ## Remove all generated files
-	$(MAKE) clean-output clean-generated-deepcopy
+clean: clean-output clean-generated-deepcopy clean-crds-kubekey clean-crds-capkk ## Remove all generated files
 
 .PHONY: clean-output
 clean-output: ## Remove all generated binaries
-	rm -rf $(OUTPUT_DIR)
+	@rm -rf $(OUTPUT_DIR)
 
-#.PHONY: clean-release
-#clean-release: ## Remove the release folder
-#	rm -rf $(RELEASE_DIR)
+.PHONY: clean-crds-kubekey
+clean-crds-kubekey: ## Remove the generated crds for kubekey
+	@rm -rf ./config/kubekey/crds
+
+.PHONY: clean-crds-capkk
+clean-crds-capkk: ## Remove the generated crds for capkk
+	@rm -rf ./config/capkk/crds
 
 #.PHONY: clean-release-git
 #clean-release-git: ## Restores the git files usually modified during a release
@@ -570,7 +319,7 @@ clean-output: ## Remove all generated binaries
 #
 .PHONY: clean-generated-deepcopy
 clean-generated-deepcopy: ## Remove files generated by conversion-gen from the mentioned dirs. Example SRC_DIRS="./api/v1beta1"
-	(IFS=','; for i in $(SRC_DIRS); do find $$i -type f -name 'zz_generated.deepcopy*' -exec rm -f {} \;; done)
+	@(IFS=','; for i in $(SRC_DIRS); do find $$i -type f -name 'zz_generated.deepcopy*' -exec rm -f {} \;; done)
 
 ## --------------------------------------
 ## Hack / Tools
@@ -578,50 +327,32 @@ clean-generated-deepcopy: ## Remove files generated by conversion-gen from the m
 
 ##@ hack/tools:
 
-.PHONY: $(CONTROLLER_GEN_BIN)
-$(CONTROLLER_GEN_BIN): $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
-
-.PHONY: $(GOTESTSUM_BIN)
-$(GOTESTSUM_BIN): $(GOTESTSUM) ## Build a local copy of gotestsum.
-
-.PHONY: $(KUSTOMIZE_BIN)
-$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
-
-.PHONY: $(SETUP_ENVTEST_BIN)
-$(SETUP_ENVTEST_BIN): $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
-
-.PHONY: $(GOLANGCI_LINT_BIN)
-$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
-
-.PHONY: $(GORELEASER)
-$(GORELEASER_BIN): $(GORELEASER) ## Build a local copy of golangci-lint
-
 $(CONTROLLER_GEN): # Build controller-gen into tools folder.
-	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(CONTROLLER_GEN_BIN) ]; then \
+	@if [ ! -f $(CONTROLLER_GEN) ]; then \
 		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER); \
 	fi
 
 $(GOTESTSUM): # Build gotestsum into tools folder.
-	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(GOTESTSUM_BIN) ]; then \
+	@if [ ! -f $(GOTESTSUM) ]; then \
 		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER); \
 	fi
 
 $(KUSTOMIZE): # Build kustomize into tools folder.
-	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(KUSTOMIZE_PKG) ]; then \
+	@if [ ! -f $(KUSTOMIZE) ]; then \
 		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER); \
 	fi
 
 $(SETUP_ENVTEST): # Build setup-envtest into tools folder.
-	if [ ! -f $(OUTPUT_TOOLS_DIR)/$(SETUP_ENVTEST_BIN) ]; then \
+	if [ ! -f $(SETUP_ENVTEST) ]; then \
 		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER); \
 	fi
 
 $(GOLANGCI_LINT): # Build golangci-lint into tools folder.
-	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN) ]; then \
+	@if [ ! -f $(GOLANGCI_LINT) ]; then \
 		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER); \
 	fi
 
 $(GORELEASER): # Build goreleaser into tools folder.
-	@if [ ! -f $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN) ]; then \
-		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GORELEASER_PKG) $(GORELEASER_BIN) $(GORELEASER_VERSION); \
+	@if [ ! -f $(GORELEASER) ]; then \
+		CGO_ENABLED=0 GOBIN=$(OUTPUT_TOOLS_DIR) $(GO_INSTALL) $(GORELEASER_PKG) $(GORELEASER_BIN) $(GORELEASER_VER); \
 	fi

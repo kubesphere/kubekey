@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 )
 
 func TestSetFact(t *testing.T) {
@@ -36,7 +36,7 @@ func TestSetFact(t *testing.T) {
 		exceptStderr string
 	}{
 		{
-			name: "success",
+			name: "string value",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
 					Raw: []byte(`{"k": "v"}`),
@@ -47,6 +47,58 @@ func TestSetFact(t *testing.T) {
 				Pipeline: kkcorev1.Pipeline{},
 			},
 			exceptStdout: "success",
+		},
+		{
+			name: "int value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": 1}`),
+				},
+				Host:     "",
+				Variable: &testVariable{},
+				Task:     kkcorev1alpha1.Task{},
+				Pipeline: kkcorev1.Pipeline{},
+			},
+			exceptStdout: "success",
+		},
+		{
+			name: "float value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": 1.1}`),
+				},
+				Host:     "",
+				Variable: &testVariable{},
+				Task:     kkcorev1alpha1.Task{},
+				Pipeline: kkcorev1.Pipeline{},
+			},
+			exceptStdout: "success",
+		},
+		{
+			name: "map value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": {"k1": "v1", "k2": "v2"}}`),
+				},
+				Host:     "",
+				Variable: &testVariable{},
+				Task:     kkcorev1alpha1.Task{},
+				Pipeline: kkcorev1.Pipeline{},
+			},
+			exceptStderr: "only support bool, int, float64, string value for \"k\".",
+		},
+		{
+			name: "array value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": ["v1", "v2"]}`),
+				},
+				Host:     "",
+				Variable: &testVariable{},
+				Task:     kkcorev1alpha1.Task{},
+				Pipeline: kkcorev1.Pipeline{},
+			},
+			exceptStderr: "only support bool, int, float64, string value for \"k\".",
 		},
 	}
 

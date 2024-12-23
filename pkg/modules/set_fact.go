@@ -18,16 +18,44 @@ package modules
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
+	"gopkg.in/yaml.v2"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 // ModuleSetFact deal "set_fact" module
 func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
+	ha, err := options.getAllVariables()
+	if err != nil {
+		return "", err.Error()
+	}
 	// get host variable
 	args := variable.Extension2Variables(options.Args)
-
+	for k, v := range args {
+		switch val := v.(type) {
+		case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			args[k] = val
+		case string:
+			sv, err := tmpl.ParseString(ha, val)
+			if err != nil {
+				return "", fmt.Sprintf("parse %q error: %v", k, err)
+			}
+			var ssvResult any
+			if (strings.HasPrefix(sv, "{") || strings.HasPrefix(sv, "[")) && (strings.HasSuffix(sv, "}") || strings.HasSuffix(sv, "]")) {
+				_ = json.Unmarshal([]byte(sv), &ssvResult)
+			} else {
+				_ = yaml.Unmarshal([]byte(sv), &ssvResult)
+			}
+			args[k] = ssvResult
+		default:
+			return "", fmt.Sprintf("only support bool, int, float64, string value for %q.", k)
+		}
+	}
 	if err := options.Variable.Merge(variable.MergeAllRuntimeVariable(args, options.Host)); err != nil {
 		return "", fmt.Sprintf("set_fact error: %v", err)
 	}

@@ -22,6 +22,7 @@ import (
 	"io"
 	"io/fs"
 
+	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -52,6 +53,8 @@ var failedConnector = &testConnector{
 	fetchErr:   errors.New("failed"),
 	commandErr: errors.New("failed"),
 }
+
+var _ connector.Connector = &testConnector{}
 
 type testConnector struct {
 	// return for init

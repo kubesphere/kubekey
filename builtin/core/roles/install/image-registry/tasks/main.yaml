@@ -1,0 +1,30 @@
+---
+- include_tasks: install_docker.yaml
+
+- include_tasks: install_docker_compose.yaml
+
+- include_tasks: install_keepalived.yaml
+  when: and .image_registry.ha_vip (ne .image_registry.ha_vip "")
+
+- name: Install harbor
+  when: .image_registry.type | eq "harbor"
+  block:
+    - name: Check if harbor installed
+      ignore_errors: true
+      command: systemctl is-active harbor.service
+      register: harbor_install_service
+    - include_tasks: install_harbor.yaml
+      when: .harbor_install_service.stdout | eq "inactive"
+
+- name: Install registry
+  when: .image_registry.type | eq "registry"
+  block:
+    - name: Check if registry installed
+      ignore_errors: true
+      command: systemctl is-active registry.service
+      register: registry_install_service
+    - include_tasks: install_registry.yaml
+      when: .registry_install_service.stdout | eq "inactive"
+
+- include_tasks: load_images.yaml
+  tags: ["only_image"]
