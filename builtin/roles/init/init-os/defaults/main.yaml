@@ -1,2 +1,0 @@
-ntp_servers: [ "cn.pool.ntp.org" ]
-timezone: Asia/Shanghai

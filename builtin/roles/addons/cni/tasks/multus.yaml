@@ -1,9 +1,0 @@
----
-- name: Generate multus yaml
-  template:
-    src: multus/multus.yaml
-    desc: /etc/kubernetes/cni/cmultus.yaml
-
-- name: Apply multus
-  command: |
-    kubectl apply -f /etc/kubernetes/cni/cmultus.yaml

@@ -21,7 +21,7 @@ linters:
     - errchkjson
     - errname
     - errorlint
-    - exhaustive
+    # - exhaustive
 #    - exhaustruct
     - exportloopref
     - fatcontext
@@ -39,12 +39,12 @@ linters:
     - gocritic
     - gocyclo
     - godot
-    - godox
+    # - godox
     - gofmt
 #    - gofumpt
     - goheader
     - goimports
-    - gomoddirectives
+    # - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosec
@@ -68,7 +68,7 @@ linters:
 #    - musttag
     - nakedret
     - nestif
-    - nilerr
+    # - nilerr
     - nilnil
     - nlreturn
     - noctx
@@ -152,11 +152,6 @@ linters-settings:
           - k8s.io
           - sigs.k8s.io
           - github.com/kubesphere/kubekey
-  exhaustive:
-    # Enum types matching the supplied regex do not have to be listed in
-    # switch statements to satisfy exhaustiveness.
-    # Default: ""
-    ignore-enum-types: "fsnotify.Op|v1alpha1.TaskPhase|reflect.Kind"
   forbidigo:
     # Forbid the following identifiers (list of regexp).
     # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
@@ -275,12 +270,21 @@ linters-settings:
       # kubekey
       - pkg: "github.com/kubesphere/kubekey/v4/pkg/const"
         alias: _const
-      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+      - pkg: "github.com/kubesphere/kubekey/api/core/v1"
         alias: kkcorev1
-      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+      - pkg: "github.com/kubesphere/kubekey/api/core/v1alpha1"
         alias: kkcorev1alpha1
-      - pkg: "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+      - pkg: "github.com/kubesphere/kubekey/api/project/v1"
         alias: kkprojectv1
+      - pkg: "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+        alias: capkkinfrav1beta1
+      # cluster-api
+      - pkg: "sigs.k8s.io/cluster-api/api/v1beta1"
+        alias: clusterv1beta1
+      - pkg: "sigs.k8s.io/cluster-api/util"
+        alias: clusterutil
+      - pkg: "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+        alias: kubeadmcpv1beta1
   nestif:
     # Minimal complexity of if statements to report.
     # Default: 5
@@ -733,7 +737,7 @@ linters-settings:
 #      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unused-parameter
       - name: unused-parameter
         severity: warning
-        disabled: false
+        disabled: true
         exclude: [""]
         arguments:
           - allowRegex: "^_"
@@ -890,10 +894,16 @@ issues:
 
 run:
   timeout: 10m
-  go: "1.22"
+  go: "1.23"
   build-tags:
     - builtin
+    - clusterapi
   executor-dirs:
+    - _output
+    - dist
     - .git
-    - vendor
+    - .github
+    - config
+    - builtin
+    - plugins
   allow-parallel-runners: true

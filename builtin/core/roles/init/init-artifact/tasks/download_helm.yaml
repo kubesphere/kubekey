@@ -1,0 +1,69 @@
+---
+- name: Check binaries for calico
+  command: |
+    artifact_name={{ .artifact.artifact_url.calico | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/calico
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.calico }}
+    fi
+  when: and .calico_version (ne .calico_version "")
+
+- name: Check binaries for cilium
+  command: |
+    artifact_name={{ .artifact.artifact_url.cilium | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/cilium
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.cilium }}
+    fi
+  when: and .cilium_version (ne .cilium_version "")
+
+- name: Check binaries for flannel
+  command: |
+    artifact_name={{ .artifact.artifact_url.flannel | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/flannel
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.flannel }}
+    fi
+  when: and .flannel_version (ne .flannel_version "")
+
+- name: Check binaries for kubeovn
+  tags: ["kubeovn"]
+  command: |
+    artifact_name={{ .artifact.artifact_url.kubeovn | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/kubeovn
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.kubeovn }}
+    fi
+  when: and .kubeovn_version (ne .kubeovn_version "")
+
+- name: Check binaries for hybridnet
+  tags: ["hybridnet"]
+  command: |
+    artifact_name={{ .artifact.artifact_url.hybridnet | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/hybridnet
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.hybridnet }}
+    fi
+  when: and .hybridnet_version (ne .hybridnet_version "")
+
+- name: Check binaries for nfs_provisioner
+  tags: ["nfs_provisioner"]
+  command: |
+    artifact_name={{ .artifact.artifact_url.nfs_provisioner |splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/sc
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.nfs_provisioner }}
+    fi
+  when: and .nfs_provisioner_version (ne .nfs_provisioner_version "")

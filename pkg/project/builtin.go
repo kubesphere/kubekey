@@ -25,9 +25,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kubesphere/kubekey/v4/builtin"
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+
+	"github.com/kubesphere/kubekey/v4/builtin/core"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
@@ -41,7 +42,7 @@ func init() {
 			return nil, errors.New("playbook should be relative path base on project.addr")
 		}
 
-		return &builtinProject{Pipeline: pipeline, FS: builtin.BuiltinPipeline, playbook: pipeline.Spec.Playbook}, nil
+		return &builtinProject{Pipeline: pipeline, FS: core.BuiltinPipeline, playbook: pipeline.Spec.Playbook}, nil
 	}
 }
 

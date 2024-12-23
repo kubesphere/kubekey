@@ -23,8 +23,9 @@ import (
 	"os"
 	"path/filepath"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 

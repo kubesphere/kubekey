@@ -1,0 +1,10 @@
+---
+- name: install cluster
+  hosts:
+    - "{{ .provider_id }}"
+  vars_files:
+    - vars/main.yaml
+  roles:
+    - uninstall/kubernetes
+    - uninstall/cri
+    - uninstall/cloud-config

@@ -49,6 +49,7 @@ type imageArgs struct {
 }
 
 type imagePullArgs struct {
+	imagesDir     string
 	manifests     []string
 	skipTLSVerify *bool
 	username      string
@@ -76,8 +77,7 @@ func (i imagePullArgs) pull(ctx context.Context) error {
 			}),
 		}
 
-		dst, err := newLocalRepository(filepath.Join(domain, src.Reference.Repository)+":"+src.Reference.Reference,
-			filepath.Join(_const.GetWorkDir(), _const.ArtifactDir, _const.ArtifactImagesDir))
+		dst, err := newLocalRepository(filepath.Join(domain, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
 		if err != nil {
 			return fmt.Errorf("failed to get local image: %w", err)
 		}
@@ -148,6 +148,8 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	ia := &imageArgs{}
 	// check args
 	args := variable.Extension2Variables(raw)
+	binaryDir, _ := variable.StringVar(vars, args, _const.BinaryDir)
+
 	if pullArgs, ok := args["pull"]; ok {
 		pull, ok := pullArgs.(map[string]any)
 		if !ok {
@@ -157,6 +159,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
 		ipl.username, _ = variable.StringVar(vars, pull, "username")
 		ipl.password, _ = variable.StringVar(vars, pull, "password")
+		ipl.imagesDir, _ = variable.StringVar(vars, pull, "images_dir")
 		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skipTLSVerify")
 		if ipl.skipTLSVerify == nil {
 			ipl.skipTLSVerify = ptr.To(false)
@@ -164,6 +167,12 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		// check args
 		if len(ipl.manifests) == 0 {
 			return nil, errors.New("\"pull.manifests\" is required")
+		}
+		if ipl.imagesDir == "" {
+			if binaryDir == "" {
+				return nil, errors.New("\"push.images_dir\" is required")
+			}
+			ipl.imagesDir = filepath.Join(binaryDir, _const.BinaryImagesDir)
 		}
 		ia.pull = ipl
 	}
@@ -190,7 +199,10 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 			return nil, errors.New("\"push.registry\" is required")
 		}
 		if ips.imagesDir == "" {
-			return nil, errors.New("\"push.images_dir\" is required")
+			if binaryDir == "" {
+				return nil, errors.New("\"push.images_dir\" is required")
+			}
+			ips.imagesDir = filepath.Join(binaryDir, _const.BinaryImagesDir)
 		}
 		ia.push = ips
 	}

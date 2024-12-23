@@ -1,0 +1,19 @@
+---
+- name: Sync etcd ca file to remote
+  tags: ["certs"]
+  copy:
+    src: |
+      {{ .binary_dir }}/pki/root.crt
+    dest: /etc/kubernetes/pki/etcd/ca.crt
+- name: Sync etcd cert files to remote
+  tags: ["certs"]
+  copy:
+    src: |
+      {{ .binary_dir }}/pki/etcd.crt
+    dest: /etc/kubernetes/pki/etcd/client.crt
+- name: Sync etcd key files to remote
+  tags: ["certs"]
+  copy:
+    src: |
+      {{ .binary_dir }}/pki/etcd.key
+    dest: /etc/kubernetes/pki/etcd/client.key

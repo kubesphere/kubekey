@@ -17,20 +17,17 @@ limitations under the License.
 package _const
 
 import (
+	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	kcv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	kcpv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-
-	capkkv1beta1 "github.com/kubesphere/kubekey/v4/pkg/apis/capkk/v1beta1"
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kubeadmcpv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 var (
@@ -55,10 +52,9 @@ func newScheme() *runtime.Scheme {
 	utilruntime.Must(kkcorev1.AddToScheme(s))
 	utilruntime.Must(kkcorev1alpha1.AddToScheme(s))
 	utilruntime.Must(kkcorev1alpha1.AddConversionFuncs(s))
-	utilruntime.Must(capkkv1beta1.AddToScheme(s))
-	utilruntime.Must(capiv1beta1.AddToScheme(s))
-	utilruntime.Must(kcpv1beta1.AddToScheme(s))
-	utilruntime.Must(kcv1beta1.AddToScheme(s))
+	utilruntime.Must(capkkinfrav1beta1.AddToScheme(s))
+	utilruntime.Must(clusterv1beta1.AddToScheme(s))
+	utilruntime.Must(kubeadmcpv1beta1.AddToScheme(s))
 
 	return s
 }
