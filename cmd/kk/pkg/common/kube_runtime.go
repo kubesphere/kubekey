@@ -54,6 +54,7 @@ type Argument struct {
 	DeleteCRI           bool
 	Role                string
 	Type                string
+	OnlyEtcd            bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
