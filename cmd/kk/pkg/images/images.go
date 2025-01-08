@@ -131,23 +131,30 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 
 	host := runtime.RemoteHost()
 
-	for _, image := range images.Images {
-		switch {
-		case host.IsRole(common.Master) && image.Group == kubekeyapiv1alpha2.Master && image.Enable,
-			host.IsRole(common.Worker) && image.Group == kubekeyapiv1alpha2.Worker && image.Enable,
-			(host.IsRole(common.Master) || host.IsRole(common.Worker)) && image.Group == kubekeyapiv1alpha2.K8s && image.Enable,
-			host.IsRole(common.ETCD) && image.Group == kubekeyapiv1alpha2.Etcd && image.Enable:
+    for _, image := range images.Images {
+        switch {
+        case host.IsRole(common.Master) && image.Group == kubekeyapiv1alpha2.Master && image.Enable,
+            host.IsRole(common.Worker) && image.Group == kubekeyapiv1alpha2.Worker && image.Enable,
+            (host.IsRole(common.Master) || host.IsRole(common.Worker)) && image.Group == kubekeyapiv1alpha2.K8s && image.Enable,
+            host.IsRole(common.ETCD) && image.Group == kubekeyapiv1alpha2.Etcd && image.Enable:
 
-			logger.Log.Messagef(host.GetName(), "downloading image: %s", image.ImageName())
-			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s --platform %s", pullCmd, image.ImageName(), host.GetArch()), false); err != nil {
-				return errors.Wrap(err, "pull image failed")
-			}
-		default:
-			continue
-		}
-
-	}
-	return nil
+            logger.Log.Messagef(host.GetName(), "downloading image: %s", image.ImageName())
+            
+            var pullCommand string
+            if pullCmd == "crictl" {
+                pullCommand = fmt.Sprintf("env PATH=$PATH %s pull %s", pullCmd, image.ImageName())
+            } else {
+                pullCommand = fmt.Sprintf("env PATH=$PATH %s pull %s --platform %s", pullCmd, image.ImageName(), host.GetArch())
+            }
+            
+            if _, err := runtime.GetRunner().SudoCmd(pullCommand, false); err != nil {
+                return errors.Wrap(err, "pull image failed")
+            }
+        default:
+            continue
+        }
+    }
+    return nil
 }
 
 // DefaultRegistry is used to get default registry address.
