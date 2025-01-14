@@ -88,9 +88,17 @@ data:
           "datastore_type": "kubernetes",
           "nodename": "__KUBERNETES_NODE_NAME__",
           "mtu": __CNI_MTU__,
+{{- if .IPv6Support }}
+          "ipam": {
+              "type": "calico-ipam",
+              "assign_ipv4": "true",
+              "assign_ipv6": "true"
+          },
+{{- else }}
           "ipam": {
               "type": "calico-ipam"
           },
+{{- end }}
           "policy": {
               "type": "k8s"
           },
@@ -4981,17 +4989,16 @@ spec:
               value: "false"
 {{- end }}
 {{- if .IPv6Support }}
+            # Enable IPIP
+            - name: CALICO_IPV6POOL_IPIP
+              value: "{{ .IPIPMode }}"
             # Enable or Disable VXLAN on the default IPv6 IP pool.
             - name: CALICO_IPV6POOL_VXLAN
-              value: "Always"
+              value: "{{ .VXLANMode }}"
+{{- if .IPV6POOLNATOUTGOING }}
             - name: CALICO_IPV6POOL_NAT_OUTGOING
               value: "true"
-{{- else }}
-            # Enable or Disable VXLAN on the default IPv6 IP pool.
-            - name: CALICO_IPV6POOL_VXLAN
-              value: "Never"
-            - name: CALICO_IPV6POOL_NAT_OUTGOING
-              value: "false"
+{{- end }}
 {{- end }}
             # Set MTU for tunnel device used if ipip is enabled
             - name: FELIX_IPINIPMTU
@@ -5023,7 +5030,7 @@ spec:
             - name: CALICO_IPV6POOL_CIDR
               value: "{{ .KubePodsV6CIDR }}"
             - name: CALICO_IPV6POOL_BLOCK_SIZE
-              value: "120"
+              value: "{{ .NodeCidrMaskSizeIPv6 }}"
 {{- end }}
 {{- else }}
             - name: NO_DEFAULT_POOLS
@@ -5072,6 +5079,9 @@ spec:
               - /bin/calico-node
               - -felix-live
               - -bird-live
+{{- if .IPv6Support }}
+              - -bird6-live
+{{- end }}
             periodSeconds: 10
             initialDelaySeconds: 10
             failureThreshold: 6
@@ -5082,6 +5092,9 @@ spec:
               - /bin/calico-node
               - -felix-ready
               - -bird-ready
+{{- if .IPv6Support }}
+              - -bird6-ready
+{{- end }}
             periodSeconds: 10
             timeoutSeconds: 10
           volumeMounts:

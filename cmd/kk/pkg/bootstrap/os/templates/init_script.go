@@ -18,6 +18,7 @@ package templates
 
 import (
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/registry"
@@ -95,11 +96,16 @@ echo 'kernel.pid_max = 65535' >> /etc/sysctl.conf
 echo 'kernel.watchdog_thresh = 5' >> /etc/sysctl.conf
 echo 'kernel.hung_task_timeout_secs = 5' >> /etc/sysctl.conf
 
+{{- if .IPv6Support }}
 #add for ipv6
 echo 'net.ipv6.conf.all.disable_ipv6 = 0' >> /etc/sysctl.conf
 echo 'net.ipv6.conf.default.disable_ipv6 = 0' >> /etc/sysctl.conf
 echo 'net.ipv6.conf.lo.disable_ipv6 = 0' >> /etc/sysctl.conf
 echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
+echo 'net.ipv6.conf.default.accept_dad=0' >> /etc/sysctl.conf
+echo 'net.ipv6.route.max_size=65536' >> /etc/sysctl.conf
+echo 'net.ipv6.neigh.default.retrans_time_ms=1000' >> /etc/sysctl.conf
+{{- end}}
 
 #See https://help.aliyun.com/document_detail/118806.html#uicontrol-e50-ddj-w0y
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1|2)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
@@ -137,6 +143,18 @@ sed -r -i  "s@#{0,}?net.ipv4.conf.all.arp_ignore ?= ??(0|1|2)@net.ipv4.conf.all.
 sed -r -i  "s@#{0,}?net.ipv4.conf.default.arp_ignore ?= ??(0|1|2)@net.ipv4.conf.default.arp_ignore = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?kernel.watchdog_thresh ?= ?([0-9]{1,})@kernel.watchdog_thresh = 5@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?kernel.hung_task_timeout_secs ?= ?([0-9]{1,})@kernel.hung_task_timeout_secs = 5@g" /etc/sysctl.conf
+
+{{- if .IPv6Support }}
+#add for ipv6
+sed -r -i "s@#{0,}?net.ipv6.conf.all.disable_ipv6 ?= ?([0-9]{1,})@net.ipv6.conf.all.disable_ipv6 = 0@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv6.conf.default.disable_ipv6 ?= ?([0-9]{1,})@net.ipv6.conf.default.disable_ipv6 = 0@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv6.conf.lo.disable_ipv6 ?= ?([0-9]{1,})@net.ipv6.conf.lo.disable_ipv6 = 0@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv6.conf.all.forwarding ?= ?([0-9]{1,})@net.ipv6.conf.all.forwarding = 1@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv6.conf.default.accept_dad ?= ?([0-9]{1,})@net.ipv6.conf.default.accept_dad = 0@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv6.route.max_size ?= ?([0-9]{1,})@net.ipv6.route.max_size = 65536@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?net.ipv6.neigh.default.retrans_time_ms ?= ?([0-9]{1,})@net.ipv6.neigh.default.retrans_time_ms = 1000@g" /etc/sysctl.conf
+{{- end}}
+
 
 tmpfile="$$.tmp"
 awk ' !x[$0]++{print > "'$tmpfile'"}' /etc/sysctl.conf
@@ -265,4 +283,11 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	hostsList = append(hostsList, lbHost)
 	return hostsList
+}
+
+func EnabledIPv6(kubeConf *common.KubeConf) bool {
+	if len(strings.Split(kubeConf.Cluster.Network.KubePodsCIDR, ",")) == 2 {
+		return true
+	}
+	return false
 }

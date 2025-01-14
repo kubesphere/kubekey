@@ -32,6 +32,7 @@ type CalicoCfg struct {
 	VXLANMode       string     `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
 	VethMTU         int        `yaml:"vethMTU" json:"vethMTU,omitempty"`
 	Ipv4NatOutgoing *bool      `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
+	Ipv6NatOutgoing *bool      `yaml:"ipv6NatOutgoing" json:"ipv6NatOutgoing,omitempty"`
 	DefaultIPPOOL   *bool      `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
 	Typha           Typha      `yaml:"typha" json:"typha,omitempty"`
 	Controller      Controller `yaml:"controller" json:"controller,omitempty"`
@@ -186,6 +187,14 @@ func (c *CalicoCfg) EnableIPV4POOL_NAT_OUTGOING() bool {
 		return true
 	}
 	return *c.Ipv4NatOutgoing
+}
+
+// EnableIPV6POOL_NAT_OUTGOING is used to determine whether to enable CALICO_IPV6POOL_NAT_OUTGOING.
+func (c *CalicoCfg) EnableIPV6POOL_NAT_OUTGOING() bool {
+	if c.Ipv6NatOutgoing == nil {
+		return false
+	}
+	return *c.Ipv6NatOutgoing
 }
 
 // EnableDefaultIPPOOL is used to determine whether to create default ippool
