@@ -148,8 +148,8 @@ spec:
       ipipMode: Always  # IPIP Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, vxlanMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Always]
       vxlanMode: Never  # VXLAN Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, ipipMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Never]
       vethMTU: 0  # The maximum transmission unit (MTU) setting determines the largest packet size that can be transmitted through your network. By default, MTU is auto-detected. [Default: 0]
-    kubePodsCIDR: 10.233.64.0/18,fc00::/48
-    kubeServiceCIDR: 10.233.0.0/18,fd00::/108
+    kubePodsCIDR: 10.233.64.0/18,fd85:ee78:d8a6:8607::1:0000/112
+    kubeServiceCIDR: 10.233.0.0/18,fd85:ee78:d8a6:8607::1000/116
   storage:
     openebs:
       basePath: /var/openebs/local # base path of the local PV provisioner

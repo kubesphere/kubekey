@@ -98,7 +98,7 @@ controllerManager:
   extraArgs:
 {{- if .IPv6Support }}
     node-cidr-mask-size-ipv4: "{{ .NodeCidrMaskSize }}"
-    node-cidr-mask-size-ipv6: "64"
+    node-cidr-mask-size-ipv6: "{{ .NodeCidrMaskSizeIPv6 }}"
 {{- else }}
     node-cidr-mask-size: "{{ .NodeCidrMaskSize }}"
 {{- end }}
