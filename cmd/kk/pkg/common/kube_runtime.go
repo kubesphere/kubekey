@@ -59,6 +59,7 @@ type Argument struct {
 	Type                string
 	EtcdUpgrade         bool
 	WithBuildx          bool
+	OnlyEtcd            bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
