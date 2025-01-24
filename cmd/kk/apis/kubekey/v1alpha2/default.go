@@ -63,6 +63,7 @@ const (
 	DefaultMaxPods                 = 110
 	DefaultPodPidsLimit            = 10000
 	DefaultNodeCidrMaskSize        = 24
+	DefaultNodeCidrMaskSizeIPv6    = 120
 	DefaultIPIPMode                = "Always"
 	DefaultVXLANMode               = "Never"
 	DefaultVethMTU                 = 0
@@ -138,6 +139,9 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*Kub
 	}
 	if cfg.Kubernetes.NodeCidrMaskSize == 0 {
 		clusterCfg.Kubernetes.NodeCidrMaskSize = DefaultNodeCidrMaskSize
+	}
+	if cfg.Kubernetes.NodeCidrMaskSizeIPv6 == 0 {
+		clusterCfg.Kubernetes.NodeCidrMaskSizeIPv6 = DefaultNodeCidrMaskSizeIPv6
 	}
 	if cfg.Kubernetes.ProxyMode == "" {
 		clusterCfg.Kubernetes.ProxyMode = DefaultProxyMode

@@ -32,6 +32,7 @@ type Kubernetes struct {
 	MaxPods                int      `yaml:"maxPods" json:"maxPods,omitempty"`
 	PodPidsLimit           int      `yaml:"podPidsLimit" json:"podPidsLimit,omitempty"`
 	NodeCidrMaskSize       int      `yaml:"nodeCidrMaskSize" json:"nodeCidrMaskSize,omitempty"`
+	NodeCidrMaskSizeIPv6   int      `yaml:"nodeCidrMaskSizeIPv6" json:"nodeCidrMaskSizeIPv6,omitempty"`
 	ApiserverCertExtraSans []string `yaml:"apiserverCertExtraSans" json:"apiserverCertExtraSans,omitempty"`
 	ProxyMode              string   `yaml:"proxyMode" json:"proxyMode,omitempty"`
 	AutoRenewCerts         *bool    `yaml:"autoRenewCerts" json:"autoRenewCerts,omitempty"`
