@@ -1,0 +1,18 @@
+---
+- import_playbook: hook/pre_install.yaml
+
+- hosts:
+    - localhost
+  roles:
+    - init/init-artifact
+    - init/init-cert
+
+- hosts:
+    - etcd
+    - k8s_cluster
+    - registry
+    - nfs
+  roles:
+    - init/init-os
+
+- import_playbook: hook/post_install.yaml

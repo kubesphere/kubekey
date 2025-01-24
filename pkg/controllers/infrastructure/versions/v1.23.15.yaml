@@ -1,0 +1,18 @@
+apiVersion: kubekey.kubesphere.io/v1
+kind: Config
+spec:
+  # the version of kubernetes to be installed.
+  # should be greater than or equal to kube_version_min_required.
+  kube_version: v1.23.15
+  # helm binary
+  helm_version: v3.14.2
+  # cni_plugins binary
+  # cni_version_plugins: v1.2.0
+  # calicoctl binary
+  calico_version: v3.27.2
+  # etcd binary
+  etcd_version: v3.5.6
+  # crictl binary
+  crictl_version: v1.23.0
+  # docker binary
+  docker_version: "24.0.6"

@@ -20,9 +20,8 @@ import (
 	"context"
 	"os"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 // Manager shared dependencies such as Addr and , and provides them to Runnable.
@@ -33,6 +32,7 @@ type Manager interface {
 
 // CommandManagerOptions for NewCommandManager
 type CommandManagerOptions struct {
+	Workdir string
 	*kkcorev1.Pipeline
 	*kkcorev1.Config
 	*kkcorev1.Inventory
@@ -43,8 +43,8 @@ type CommandManagerOptions struct {
 // NewCommandManager return a new commandManager
 func NewCommandManager(o CommandManagerOptions) Manager {
 	return &commandManager{
+		workdir:   o.Workdir,
 		Pipeline:  o.Pipeline,
-		Config:    o.Config,
 		Inventory: o.Inventory,
 		Client:    o.Client,
 		logOutput: os.Stdout,
@@ -55,6 +55,7 @@ func NewCommandManager(o CommandManagerOptions) Manager {
 type ControllerManagerOptions struct {
 	MaxConcurrentReconciles int
 	LeaderElection          bool
+	LeaderElectionID        string
 }
 
 // NewControllerManager return a new controllerManager
@@ -62,5 +63,6 @@ func NewControllerManager(o ControllerManagerOptions) Manager {
 	return &controllerManager{
 		MaxConcurrentReconciles: o.MaxConcurrentReconciles,
 		LeaderElection:          o.LeaderElection,
+		LeaderElectionID:        o.LeaderElectionID,
 	}
 }

@@ -1,0 +1,25 @@
+---
+- name: Cordon Node
+  command: |
+    kubectl cordon {{ .inventory_hostname }}
+    kubectl drain {{ .inventory_hostname }} --ignore-daemonsets --delete-emptydir-data
+
+- name: Delete Node
+  command: |
+    kubectl delete node {{ .inventory_hostname }}
+
+- name: Delete kubernetes
+  command: |
+    kubeadm reset -f
+
+- name: Delete kubelet
+  command: |
+    rm -rf /etc/systemd/system/kubelet.service
+    rm -rf /etc/systemd/system/kubelet.service.d
+    systemctl daemon-reload
+
+- name: Delete residue files
+    rm -rf /usr/local/bin/kubeadm && rm -rf /usr/local/bin/kubelet && rm -rf /usr/local/bin/kubectl
+    rm -rf /var/lib/kubelet/
+    rm -rf /etc/kubernetes/
+    rm -rf .kube/config

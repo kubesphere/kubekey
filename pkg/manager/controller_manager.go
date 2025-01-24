@@ -18,76 +18,69 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/controllers"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy"
+	_ "github.com/kubesphere/kubekey/v4/pkg/controllers/core"
+	_ "github.com/kubesphere/kubekey/v4/pkg/controllers/infrastructure"
 )
 
 type controllerManager struct {
 	MaxConcurrentReconciles int
 	LeaderElection          bool
+	LeaderElectionID        string
 }
 
 // Run controllerManager, run controller in kubernetes
-func (c controllerManager) Run(ctx context.Context) error {
+func (m controllerManager) Run(ctx context.Context) error {
 	ctrl.SetLogger(klog.NewKlogr())
 	restconfig, err := ctrl.GetConfig()
 	if err != nil {
-		klog.Infof("kubeconfig in empty, store resources local")
-		restconfig = &rest.Config{}
-	}
-	restconfig, err = proxy.NewConfig(restconfig)
-	if err != nil {
-		return fmt.Errorf("could not get rest config: %w", err)
+		return fmt.Errorf("cannot get restconfig in kubernetes. error is %w", err)
 	}
 
 	mgr, err := ctrl.NewManager(restconfig, ctrl.Options{
-		Scheme:           _const.Scheme,
-		LeaderElection:   c.LeaderElection,
-		LeaderElectionID: "controller-leader-election-kk",
+		Scheme:                 _const.Scheme,
+		LeaderElection:         m.LeaderElection,
+		LeaderElectionID:       m.LeaderElectionID,
+		HealthProbeBindAddress: ":9440",
 	})
 	if err != nil {
-		return fmt.Errorf("could not create controller manager: %w", err)
+		return fmt.Errorf("failed to create controller manager. error: %w", err)
+	}
+	if err := mgr.AddHealthzCheck("default", healthz.Ping); err != nil {
+		return fmt.Errorf("failed to add default healthcheck. error: %w", err)
+	}
+	if err := mgr.AddReadyzCheck("default", healthz.Ping); err != nil {
+		return fmt.Errorf("failed to add default readycheck. error: %w", err)
 	}
 
-	if err := (&controllers.PipelineReconciler{
-		Client:                  mgr.GetClient(),
-		EventRecorder:           mgr.GetEventRecorderFor("pipeline"),
-		Scheme:                  mgr.GetScheme(),
-		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
-	}).SetupWithManager(mgr); err != nil {
-		klog.ErrorS(err, "create pipeline controller error")
-
-		return err
-	}
-
-	if err := (&controllers.KKClusterReconciler{
-		Client:                  mgr.GetClient(),
-		EventRecorder:           mgr.GetEventRecorderFor("kk-cluster-controller"),
-		Scheme:                  mgr.GetScheme(),
-		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
-	}).SetupWithManager(ctx, mgr); err != nil {
-		klog.ErrorS(err, "create kk-cluster controller error")
-
-		return err
-	}
-
-	if err := (&controllers.KKMachineReconciler{
-		Client:                  mgr.GetClient(),
-		EventRecorder:           mgr.GetEventRecorderFor("kk-machine-controller"),
-		Scheme:                  mgr.GetScheme(),
-		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
-	}).SetupWithManager(ctx, mgr); err != nil {
-		klog.ErrorS(err, "create kk-machine controller error")
-
+	if err := m.register(mgr); err != nil {
 		return err
 	}
 
 	return mgr.Start(ctx)
+}
+
+func (m controllerManager) register(mgr ctrl.Manager) error {
+	o := &ctrlcontroller.Options{
+		MaxConcurrentReconciles: m.MaxConcurrentReconciles,
+	}
+	if len(controllers.Controllers) == 0 {
+		return errors.New("register controllers is empty")
+	}
+	for _, c := range controllers.Controllers {
+		if err := c.SetupWithManager(mgr, *o); err != nil {
+			return fmt.Errorf("failed to register controller %q. error: %w", c.Name(), err)
+		}
+	}
+
+	return nil
 }

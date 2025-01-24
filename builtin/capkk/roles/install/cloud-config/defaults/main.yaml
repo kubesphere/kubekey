@@ -1,0 +1,4 @@
+kubernetes:
+  kube_vip:
+    image: |
+      {{ .dockerio_registry }}/plndr/kube-vip:v0.7.2

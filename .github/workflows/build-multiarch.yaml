@@ -40,7 +40,6 @@ jobs:
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v3
 
-
       - name: Build and push Docker images
         run: |
           tag=${{ steps.prepare.outputs.version }}

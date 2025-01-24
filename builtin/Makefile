@@ -1,22 +1,22 @@
 .PHONY: create-role
 create-role: ## create a role necessary file in roles
-	@echo "Creating role $(role)..."
-	@mkdir -p roles/$(role)/tasks
-	@echo "---" > roles/$(role)/tasks/main.yaml
-	@mkdir -p roles/$(role)/defaults
-	@echo "" > roles/$(role)/defaults/main.yaml
+	@echo "Creating role $(role) in ${base} ..."
+	@mkdir -p ${base}/roles/$(role)/tasks
+	@echo "---" > ${base}/roles/$(role)/tasks/main.yaml
+	@mkdir -p ${base}/roles/$(role)/defaults
+	@echo "" > ${base}/roles/$(role)/defaults/main.yaml
 ifeq ($(VARIABLE_NAME),"full")
-	@mkdir -p roles/$(role)/handlers
-	@mkdir -p roles/$(role)/templates
-	@mkdir -p roles/$(role)/files
-	@mkdir -p roles/$(role)/vars
-	@mkdir -p roles/$(role)/meta
-	@echo "---" > roles/$(role)/handlers/main.yaml
-	@echo "---" > roles/$(role)/templates/main.yaml
-	@echo "---" > roles/$(role)/files/main.yaml
-	@echo "---" > roles/$(role)/vars/main.yaml
-	@echo "---" > roles/$(role)/defaults/main.yaml
-	@echo "---" > roles/$(role)/meta/main.yaml
+	@mkdir -p ${base}/roles/$(role)/handlers
+	@mkdir -p ${base}/roles/$(role)/templates
+	@mkdir -p ${base}/roles/$(role)/files
+	@mkdir -p ${base}/roles/$(role)/vars
+	@mkdir -p ${base}/roles/$(role)/meta
+	@echo "---" > ${base}/roles/$(role)/handlers/main.yaml
+	@echo "---" > ${base}/roles/$(role)/templates/main.yaml
+	@echo "---" > ${base}/roles/$(role)/files/main.yaml
+	@echo "---" > ${base}/roles/$(role)/vars/main.yaml
+	@echo "---" > ${base}/roles/$(role)/defaults/main.yaml
+	@echo "---" > ${base}/roles/$(role)/meta/main.yaml
 endif
 	@echo "Role $(role) created successfully"
 

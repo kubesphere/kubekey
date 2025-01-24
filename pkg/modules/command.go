@@ -18,6 +18,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -31,9 +32,9 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		return "", err.Error()
 	}
 	// get connector
-	conn, err := getConnector(ctx, options.Host, ha)
+	conn, err := getConnector(ctx, options.Host, options.Variable)
 	if err != nil {
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to connector of %q error: %v", options.Host, err)
 	}
 	defer conn.Close(ctx)
 	// command string

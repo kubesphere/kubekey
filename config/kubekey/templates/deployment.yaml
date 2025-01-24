@@ -2,10 +2,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels: {{ include "common.labels" . | nindent 4 }}
-    app: kk-operator
   name: kk-operator
   namespace: {{ .Release.Namespace }}
+  labels: {{ include "common.labels" . | nindent 4 }}
+    app: kk-operator
 spec:
   strategy:
     rollingUpdate:

@@ -1,0 +1,8 @@
+---
+- name: deal cloud-config users
+  loop: "{{ .cloud_config.users | toJson }}"
+  command: |
+    #!/bin/bash
+
+    # Delete user '{{ .item.name }}'
+    userdel -r "{{ .item.name }}"
