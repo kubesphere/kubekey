@@ -114,7 +114,7 @@ func (image Image) ImageRepo() string {
 				// if match, change it
 				modifiedNamespace = strings.ReplaceAll(image.Namespace, matchSrc, image.NamespaceRewrite.Dest)
 			}
-			logger.Log.Debugf("changed iamge namespace: %s -> %s", image.Namespace, modifiedNamespace)
+			logger.Log.Debugf("changed image namespace: %s -> %s", image.Namespace, modifiedNamespace)
 			image.Namespace = modifiedNamespace
 		default:
 			logger.Log.Warn("namespace rewrite action not specified")

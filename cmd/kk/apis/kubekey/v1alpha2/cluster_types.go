@@ -128,9 +128,9 @@ const (
 
 // NamespaceRewrite define a policy to modify image namespace
 type NamespaceRewrite struct {
-	Policy NamespaceRewritePolicy
-	Src    []string `yaml:"src" json:"src"`
-	Dest   string   `yaml:"dest" json:"dest"`
+	Policy NamespaceRewritePolicy `yaml:"policy" json:"policy"`
+	Src    []string               `yaml:"src" json:"src"`
+	Dest   string                 `yaml:"dest" json:"dest"`
 }
 
 // KubeSphere defines the configuration information of the KubeSphere.

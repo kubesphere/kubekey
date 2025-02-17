@@ -169,7 +169,7 @@ spec:
     # namespace1 -> library
     # kubesphere -> library/kubesphere
     namespaceRewrite:
-      action: changePrefix
+      policy: changePrefix
       src: 
         - namespace1
       dest: library
