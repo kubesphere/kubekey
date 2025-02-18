@@ -130,7 +130,7 @@ func InstallDocker(m *InstallContainerModule) []task.Interface {
 			Data: util.Data{
 				"Mirrors":            templates.Mirrors(m.KubeConf),
 				"InsecureRegistries": templates.InsecureRegistries(m.KubeConf),
-				"DataRoot":           templates.DataRoot(m.KubeConf),
+				"DataRoot":           templates.DockerDataDir(m.KubeConf),
 				"BridgeIP":           templates.BridgeIP(m.KubeConf),
 			},
 		},
@@ -231,7 +231,7 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 				"InsecureRegistries": m.KubeConf.Cluster.Registry.InsecureRegistries,
 				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
 				"Auths":              registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths),
-				"DataRoot":           templates.DataRoot(m.KubeConf),
+				"DataRoot":           templates.ContainerdDataDir(m.KubeConf),
 			},
 		},
 		Parallel: true,

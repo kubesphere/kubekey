@@ -17,8 +17,10 @@
 package templates
 
 import (
+	"fmt"
 	"text/template"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/lithammer/dedent"
 )
 
@@ -102,3 +104,10 @@ state = "/run/containerd"
           {{- end}}
         {{- end}}
     `)))
+
+func ContainerdDataDir(kubeConf *common.KubeConf) string {
+	if kubeConf.Cluster.Registry.ContainerdDataDir != "" {
+		return fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.ContainerdDataDir)
+	}
+	return "\"/var/lib/containerd\""
+}

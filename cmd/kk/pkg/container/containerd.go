@@ -163,11 +163,7 @@ func (d *DisableContainerd) Execute(runtime connector.Runtime) error {
 		filepath.Join("/etc/systemd/system", templates.ContainerdService.Name()),
 		filepath.Join("/etc/containerd", templates.ContainerdConfig.Name()),
 		filepath.Join("/etc", templates.CrictlConfig.Name()),
-	}
-	if d.KubeConf.Cluster.Registry.DataRoot != "" {
-		files = append(files, d.KubeConf.Cluster.Registry.DataRoot)
-	} else {
-		files = append(files, "/var/lib/containerd")
+		templates.ContainerdDataDir(d.KubeConf),
 	}
 
 	for _, file := range files {
@@ -386,7 +382,7 @@ func MigrateSelfNodeCriTasks(runtime connector.Runtime, kubeAction common.KubeAc
 				Data: util.Data{
 					"Mirrors":            templates.Mirrors(kubeAction.KubeConf),
 					"InsecureRegistries": templates.InsecureRegistries(kubeAction.KubeConf),
-					"DataRoot":           templates.DataRoot(kubeAction.KubeConf),
+					"DataRoot":           templates.DockerDataDir(kubeAction.KubeConf),
 				},
 			},
 			Parallel: false,
@@ -470,7 +466,7 @@ func MigrateSelfNodeCriTasks(runtime connector.Runtime, kubeAction common.KubeAc
 					"InsecureRegistries": kubeAction.KubeConf.Cluster.Registry.InsecureRegistries,
 					"SandBoxImage":       images.GetImage(runtime, kubeAction.KubeConf, "pause").ImageName(),
 					"Auths":              registry.DockerRegistryAuthEntries(kubeAction.KubeConf.Cluster.Registry.Auths),
-					"DataRoot":           templates.DataRoot(kubeAction.KubeConf),
+					"DataRoot":           templates.ContainerdDataDir(kubeAction.KubeConf),
 				},
 			},
 			Parallel: false,
