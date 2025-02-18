@@ -165,6 +165,7 @@ spec:
         skipTLSVerify: false # Allow contacting registries over HTTPS with failed TLS verification.
         plainHTTP: false # Allow contacting registries over HTTP.
         certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
+    registryDataDir: /mnt/registry
   addons: [] # You can install cloud-native addons (Chart or YAML) by using this field.
   #dns:
   #  ## Optional hosts file content to coredns use as /etc/hosts file.
