@@ -16,6 +16,8 @@ Explanation of parameters:
       valuesFile: xxx        # specify values file for chart (path / url)
     yaml: 
       path: []               # the location list of yaml (path / url) 
+      values:                # custom variables like helm values (not nessesary)
+        key1: value1
 ```
 example:
 ```yaml
