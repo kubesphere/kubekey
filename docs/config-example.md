@@ -165,6 +165,14 @@ spec:
         skipTLSVerify: false # Allow contacting registries over HTTPS with failed TLS verification.
         plainHTTP: false # Allow contacting registries over HTTP.
         certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
+    # define a policy to modify image namespace, the policy below will be like:
+    # namespace1 -> library
+    # kubesphere -> library/kubesphere
+    namespaceRewrite:
+      policy: changePrefix
+      src: 
+        - namespace1
+      dest: library
   addons: [] # You can install cloud-native addons (Chart or YAML) by using this field.
   #dns:
   #  ## Optional hosts file content to coredns use as /etc/hosts file.
