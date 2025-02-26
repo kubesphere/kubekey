@@ -150,6 +150,9 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 	if kubeConf.Cluster.Registry.NamespaceOverride != "" {
 		image.NamespaceOverride = kubeConf.Cluster.Registry.NamespaceOverride
 	}
+	if kubeConf.Cluster.Registry.NamespaceRewrite != nil {
+		image.NamespaceRewrite = kubeConf.Cluster.Registry.NamespaceRewrite
+	}
 	return image
 }
 
@@ -281,6 +284,7 @@ func (c *CopyImagesToRegistry) Execute(runtime connector.Runtime) error {
 			NamespaceOverride: "",
 			Repo:              imageName,
 			Tag:               imageTag,
+			NamespaceRewrite:  c.KubeConf.Cluster.Registry.NamespaceRewrite,
 		}
 
 		uniqueImage, p := ParseImageWithArchTag(image.ImageName())

@@ -17,17 +17,22 @@
 package addons
 
 import (
+	"io"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 )
 
 func InstallAddons(kubeConf *common.KubeConf, addon *kubekeyapiv1alpha2.Addon, kubeConfig string) error {
@@ -41,6 +46,9 @@ func InstallAddons(kubeConf *common.KubeConf, addon *kubekeyapiv1alpha2.Addon, k
 
 	// install yaml
 	if len(addon.Sources.Yaml.Path) != 0 {
+		if err := render(addon.Sources.Yaml); err != nil {
+			return errors.Wrapf(err, "tamplate addon %s yaml failed", addon.Name)
+		}
 		var settings = cli.New()
 		p := getter.All(settings)
 		for _, yaml := range addon.Sources.Yaml.Path {
@@ -63,5 +71,58 @@ func InstallAddons(kubeConf *common.KubeConf, addon *kubekeyapiv1alpha2.Addon, k
 			}
 		}
 	}
+	return nil
+}
+
+func render(in v1alpha2.Yaml) error {
+	if len(in.Values) == 0 {
+		return nil
+	}
+	for _, yamlFile := range in.Path {
+		// backup
+		yamlTpl := yamlFile + ".tpl"
+		if _, err := os.Stat(yamlTpl); err != nil {
+			logger.Log.Infof("backup yaml: %s", yamlFile)
+			if err := copyFile(yamlFile, yamlTpl); err != nil {
+				return errors.Wrapf(err, "backup: %s failed", yamlFile)
+			}
+		}
+		// render
+		tpl, err := template.New(path.Base(yamlTpl)).ParseFiles(yamlTpl)
+		if err != nil {
+			return errors.Wrapf(err, "parse %s failed", yamlTpl)
+		}
+
+		f, err := os.OpenFile(yamlFile, os.O_RDWR|os.O_TRUNC, 0666)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		if err := tpl.Execute(f, in.Values); err != nil {
+			return errors.Wrapf(err, "render yaml %s failed", yamlFile)
+		}
+		logger.Log.Infof("render yaml: %s", yamlFile)
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destinationFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destinationFile.Close()
+
+	_, err = io.Copy(destinationFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

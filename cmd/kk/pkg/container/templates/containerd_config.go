@@ -96,11 +96,11 @@ state = "/run/containerd"
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}".auth]
             username = "{{$entry.Username}}"
             password = "{{$entry.Password}}"
-            [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}".tls]
-              ca_file = "{{$entry.CAFile}}"
-              cert_file = "{{$entry.CertFile}}"
-              key_file = "{{$entry.KeyFile}}"
-              insecure_skip_verify = {{$entry.SkipTLSVerify}}
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}".tls]
+            ca_file = "{{$entry.CAFile}}"
+            cert_file = "{{$entry.CertFile}}"
+            key_file = "{{$entry.KeyFile}}"
+            insecure_skip_verify = {{$entry.SkipTLSVerify}}
           {{- end}}
         {{- end}}
     `)))
