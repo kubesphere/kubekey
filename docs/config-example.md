@@ -165,6 +165,7 @@ spec:
         skipTLSVerify: false # Allow contacting registries over HTTPS with failed TLS verification.
         plainHTTP: false # Allow contacting registries over HTTP.
         certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
+    registryDataDir: /mnt/registry
     # define a policy to modify image namespace, the policy below will be like:
     # namespace1 -> library
     # kubesphere -> library/kubesphere
