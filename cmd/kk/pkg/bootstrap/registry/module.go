@@ -211,6 +211,8 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 			Data: util.Data{
 				"Mirrors":            docker_template.Mirrors(i.KubeConf),
 				"InsecureRegistries": docker_template.InsecureRegistries(i.KubeConf),
+				"DataRoot":           docker_template.DockerDataDir(i.KubeConf),
+				"BridgeIP":           docker_template.BridgeIP(i.KubeConf),
 			},
 		},
 		Parallel: true,

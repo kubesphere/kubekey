@@ -111,7 +111,8 @@ type RegistryConfig struct {
 	RegistryMirrors    []string             `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
-	DataRoot           string               `yaml:"dataRoot" json:"dataRoot,omitempty"`
+	ContainerdDataDir  string               `yaml:"containerdDataDir" json:"containerdDataDir"`
+	DockerDataDir      string               `yaml:"dockerDataDir" json:"dockerDataDir"`
 	RegistryDataDir    string               `yaml:"registryDataDir" json:"registryDataDir"`
 	NamespaceOverride  string               `yaml:"namespaceOverride" json:"namespaceOverride,omitempty"`
 	BridgeIP           string               `yaml:"bridgeIP" json:"bridgeIP,omitempty"`
