@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"github.com/schollz/progressbar/v3"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
@@ -24,10 +26,14 @@ import (
 type taskExecutor struct {
 	*option
 	task *kkcorev1alpha1.Task
+	// runOnce only executor task once
+	runOnce sync.Once
+	// taskRunTimeout is the timeout for task executor
+	taskRunTimeout time.Duration
 }
 
 // Exec and store Task
-func (e taskExecutor) Exec(ctx context.Context) error {
+func (e *taskExecutor) Exec(ctx context.Context) error {
 	// create task
 	if err := e.client.Create(ctx, e.task); err != nil {
 		klog.V(5).ErrorS(err, "create task error", "task", ctrlclient.ObjectKeyFromObject(e.task), "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
@@ -46,25 +52,11 @@ func (e taskExecutor) Exec(ctx context.Context) error {
 		}
 	}()
 
-	for !e.task.IsComplete() {
-		var roleLog string
-		if e.task.Annotations[kkcorev1alpha1.TaskAnnotationRole] != "" {
-			roleLog = "[" + e.task.Annotations[kkcorev1alpha1.TaskAnnotationRole] + "] "
-		}
-		klog.V(5).InfoS("begin run task", "task", ctrlclient.ObjectKeyFromObject(e.task))
-		fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.TimeOnly+" MST"), roleLog, e.task.Spec.Name)
-		// exec task
-		e.task.Status.Phase = kkcorev1alpha1.TaskPhaseRunning
-		if err := e.client.Status().Update(ctx, e.task); err != nil {
-			klog.V(5).ErrorS(err, "update task status error", "task", ctrlclient.ObjectKeyFromObject(e.task), "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-		}
-		e.execTask(ctx)
-		if err := e.client.Status().Update(ctx, e.task); err != nil {
-			klog.V(5).ErrorS(err, "update task status error", "task", ctrlclient.ObjectKeyFromObject(e.task), "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-			return err
-		}
+	// 执行任务
+	if err := e.runTaskLoop(ctx); err != nil {
+		return err
 	}
+
 	// exit when task run failed
 	if e.task.IsFailed() {
 		var hostReason []kkcorev1.PipelineFailedDetailHost
@@ -81,14 +73,55 @@ func (e taskExecutor) Exec(ctx context.Context) error {
 		})
 		e.pipeline.Status.Phase = kkcorev1.PipelinePhaseFailed
 
-		return fmt.Errorf("task %s run failed", e.task.Spec.Name)
+		return fmt.Errorf("task %q run failed", e.task.Spec.Name)
+	}
+
+	return nil
+}
+
+func (e *taskExecutor) runTaskLoop(ctx context.Context) error {
+	klog.V(5).InfoS("begin run task", "task", ctrlclient.ObjectKeyFromObject(e.task))
+	defer klog.V(5).InfoS("end run task", "task", ctrlclient.ObjectKeyFromObject(e.task))
+	timeout := time.After(e.taskRunTimeout)
+
+	for !e.task.IsComplete() {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("task %q cancelled: %w", e.task.Spec.Name, ctx.Err())
+		case <-timeout:
+			return fmt.Errorf("task %q execution timeout", e.task.Spec.Name)
+		default:
+			time.Sleep(500 * time.Millisecond)
+
+			var roleLog string
+			if e.task.Annotations[kkcorev1alpha1.TaskAnnotationRole] != "" {
+				roleLog = "[" + e.task.Annotations[kkcorev1alpha1.TaskAnnotationRole] + "] "
+			}
+			fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.TimeOnly+" MST"), roleLog, e.task.Spec.Name)
+			e.task.Status.Phase = kkcorev1alpha1.TaskPhaseRunning
+			if err := e.client.Status().Update(ctx, e.task); err != nil {
+				klog.V(5).ErrorS(err, "update task status error", "task", ctrlclient.ObjectKeyFromObject(e.task), "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
+
+				continue
+			}
+			// exec task
+			e.runOnce.Do(func() {
+				e.execTask(ctx)
+			})
+
+			if err := e.client.Status().Update(ctx, e.task); err != nil {
+				klog.V(5).ErrorS(err, "update task status error", "task", ctrlclient.ObjectKeyFromObject(e.task), "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
+
+				continue
+			}
+		}
 	}
 
 	return nil
 }
 
 // execTask
-func (e taskExecutor) execTask(ctx context.Context) {
+func (e *taskExecutor) execTask(ctx context.Context) {
 	// check task host results
 	wg := &wait.Group{}
 	e.task.Status.HostResults = make([]kkcorev1alpha1.TaskHostResult, len(e.task.Spec.Hosts))
@@ -112,7 +145,7 @@ func (e taskExecutor) execTask(ctx context.Context) {
 }
 
 // execTaskHost deal module in each host parallel.
-func (e taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
+func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 	return func(ctx context.Context) {
 		// task result
 		var stdout, stderr string
@@ -176,7 +209,7 @@ func (e taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 }
 
 // execTaskHostLogs logs for each host
-func (e taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, stderr *string) func() {
+func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, stderr *string) func() {
 	// placeholder format task log
 	var placeholder string
 	if hostNameMaxLen, err := e.variable.Get(variable.GetHostMaxLength()); err == nil {
@@ -235,7 +268,7 @@ func (e taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, st
 // execLoop parse loop to item slice and execute it. if loop contains template string. convert it.
 // loop is json string. try convertor to string slice by json.
 // loop is normal string. set it to empty slice and return.
-func (e taskExecutor) dealLoop(ha map[string]any) []any {
+func (e *taskExecutor) dealLoop(ha map[string]any) []any {
 	var items []any
 	switch {
 	case e.task.Spec.Loop.Raw == nil:
@@ -249,7 +282,7 @@ func (e taskExecutor) dealLoop(ha map[string]any) []any {
 }
 
 // executeModule find register module and execute it in a single host.
-func (e taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, host string, stdout, stderr *string) {
+func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, host string, stdout, stderr *string) {
 	// get all variable. which contains item.
 	ha, err := e.variable.Get(variable.GetAllVariable(host))
 	if err != nil {
@@ -278,7 +311,7 @@ func (e taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Ta
 }
 
 // dealWhen "when" argument in task.
-func (e taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool {
+func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool {
 	if len(e.task.Spec.When) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.When)
 		if err != nil {
@@ -298,7 +331,7 @@ func (e taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool 
 }
 
 // dealFailedWhen "failed_when" argument in task.
-func (e taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string) bool {
+func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string) bool {
 	if len(e.task.Spec.FailedWhen) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen)
 		if err != nil {
@@ -319,14 +352,18 @@ func (e taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string)
 }
 
 // dealRegister "register" argument in task.
-func (e taskExecutor) dealRegister(stdout, stderr, host string) error {
+func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 	if e.task.Spec.Register != "" {
 		var stdoutResult any = stdout
 		var stderrResult any = stderr
-		// try to convert by json
-		_ = json.Unmarshal([]byte(stdout), &stdoutResult)
-		// try to convert by json
-		_ = json.Unmarshal([]byte(stderr), &stderrResult)
+		// try to convert by json or yaml
+		if (strings.HasPrefix(stdout, "{") || strings.HasPrefix(stdout, "[")) && (strings.HasSuffix(stdout, "}") || strings.HasSuffix(stdout, "]")) {
+			_ = json.Unmarshal([]byte(stdout), &stdoutResult)
+			_ = json.Unmarshal([]byte(stderr), &stderrResult)
+		} else {
+			_ = yaml.Unmarshal([]byte(stdout), &stdoutResult)
+			_ = yaml.Unmarshal([]byte(stderr), &stderrResult)
+		}
 		// set variable to parent location
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(map[string]any{
 			e.task.Spec.Register: map[string]any{

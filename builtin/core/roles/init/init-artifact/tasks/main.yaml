@@ -1,0 +1,30 @@
+---
+- name: Extract artifact to work_dir
+  tags: ["always"]
+  command: |
+    if [ -f "{{ .artifact_file }}" ]; then
+      mkdir -p {{ .binary_dir }}
+      tar -zxvf {{ .artifact_file }} -C {{ .binary_dir }}
+    fi
+  when: and .artifact_file (ne .artifact_file "")
+
+- name: Download binaries
+  block:
+    # the binaries which download binary
+    - include_tasks: download_binary.yaml
+    # the binaries which download helm
+    - include_tasks: download_helm.yaml
+    # download remote images to local
+    - name: Download images
+      image:
+        pull:
+          images_dir: |
+            {{ .binary_dir }}/images/
+          manifests: "{{ .image_manifests | toJson }}"
+      when: .image_manifests | default list | len | lt 0
+
+- name: Chown work_dir to sudo
+  tags: ["always"]
+  ignore_errors: true
+  command: |
+    chown -R ${SUDO_UID}:${SUDO_GID} {{ .work_dir }}

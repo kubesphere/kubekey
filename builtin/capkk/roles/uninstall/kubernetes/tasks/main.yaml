@@ -1,0 +1,4 @@
+---
+- include_tasks: kubernetes.yaml
+
+- include_tasks: network.yaml

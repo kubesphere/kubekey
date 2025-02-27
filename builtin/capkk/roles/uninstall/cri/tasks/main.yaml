@@ -1,0 +1,19 @@
+---
+- name: Stop containerd
+  include_tasks: uninstall_containerd.yaml
+  when: .cri.container_manager | eq "containerd"
+
+- name: Stop docker
+  include_tasks: uninstall_docker.yaml
+  when: .cri.container_manager | eq "docker"
+
+# install cridockerd
+- include_tasks: uninstall_cridockerd.yaml
+  when:
+  - .cri.container_manager | eq  "docker"
+  - .kube_version | semverCompare ">=v1.24.0"
+  - and .cridockerd_version (.cridockerd_version | ne "")
+
+- name: Delete residue files
+  command: |
+   rm -f /usr/local/bin/crictl

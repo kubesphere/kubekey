@@ -21,12 +21,12 @@ import (
 	"errors"
 	"reflect"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apinames "k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 

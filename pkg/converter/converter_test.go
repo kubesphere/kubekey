@@ -19,7 +19,11 @@ package converter
 import (
 	"testing"
 
+	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestGroupHostBySerial(t *testing.T) {
@@ -102,6 +106,67 @@ func TestGroupHostBySerial(t *testing.T) {
 				t.Fatal(err)
 			}
 			assert.Equal(t, tc.exceptResult, result)
+		})
+	}
+}
+
+func TestConvertKKClusterToInventoryHost(t *testing.T) {
+	testcases := []struct {
+		name      string
+		kkcluster *capkkinfrav1beta1.KKCluster
+		except    kkcorev1.InventoryHost
+	}{
+		{
+
+			name: "test success",
+			kkcluster: &capkkinfrav1beta1.KKCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: capkkinfrav1beta1.KKClusterSpec{
+					InventoryHosts: []capkkinfrav1beta1.InventoryHost{
+						{
+							Name: "h1",
+							Connector: capkkinfrav1beta1.InventoryHostConnector{
+								Type: "local",
+								Host: "127.0.0.1",
+							},
+							Vars: runtime.RawExtension{
+								Raw: []byte(`{"internal_ipv4":"127.0.1.1"}`),
+							},
+						},
+						{
+							Name: "h2",
+							Connector: capkkinfrav1beta1.InventoryHostConnector{
+								Type: "ssh",
+								Host: "127.0.0.2",
+							},
+							Vars: runtime.RawExtension{
+								Raw: []byte(`{"internal_ipv4":"127.0.1.2"}`),
+							},
+						},
+					},
+				},
+			},
+			except: kkcorev1.InventoryHost{
+				"h1": runtime.RawExtension{
+					Raw: []byte(`{"connector":{"type":"local","host":"127.0.0.1"},"internal_ipv4":"127.0.1.1"}`),
+				},
+				"h2": runtime.RawExtension{
+					Raw: []byte(`{"connector":{"type":"ssh","host":"127.0.0.2"},"internal_ipv4":"127.0.1.2"}`),
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := ConvertKKClusterToInventoryHost(tc.kkcluster)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.except, result)
 		})
 	}
 }

@@ -19,10 +19,9 @@ package variable
 import (
 	"testing"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 func TestGetAllVariable(t *testing.T) {
@@ -62,7 +61,7 @@ func TestGetAllVariable(t *testing.T) {
 				"artifact": map[string]any{
 					"images": []any{"abc"},
 				},
-				"groups": map[string]any{"all": []string{"localhost"}},
+				"groups": map[string]any{"all": []string{"localhost"}, "ungrouped": []string{"localhost"}},
 				"inventory_hosts": map[string]any{
 					"localhost": map[string]any{
 						"internal_ipv4": "127.0.0.1",

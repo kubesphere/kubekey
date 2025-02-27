@@ -22,10 +22,11 @@ import (
 	"os"
 	"path/filepath"
 
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"gopkg.in/yaml.v3"
 
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 // marshalPlaybook kkprojectv1.Playbook from a playbook file
@@ -56,24 +57,24 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) error {
 	// baseDir is the local ansible project dir which playbook belong to
 	pbData, err := fs.ReadFile(baseFS, pbPath)
 	if err != nil {
-		return fmt.Errorf("read playbook failed: %w", err)
+		return fmt.Errorf("read playbook %q failed: %w", pbPath, err)
 	}
 	var plays []kkprojectv1.Play
 	if err := yaml.Unmarshal(pbData, &plays); err != nil {
-		return fmt.Errorf("unmarshal playbook failed: %w", err)
+		return fmt.Errorf("unmarshal playbook %q failed: %w", pbPath, err)
 	}
 
 	for _, p := range plays {
 		if err := dealImportPlaybook(p, baseFS, pbPath, pb); err != nil {
-			return fmt.Errorf("load import_playbook failed: %w", err)
+			return fmt.Errorf("load import_playbook in playbook %q failed: %w", pbPath, err)
 		}
 
 		if err := dealVarsFiles(&p, baseFS, pbPath); err != nil {
-			return fmt.Errorf("load vars_files failed: %w", err)
+			return fmt.Errorf("load vars_files in playbook %q failed: %w", pbPath, err)
 		}
 		// fill block in roles
 		if err := dealRoles(p, baseFS, pbPath); err != nil {
-			return fmt.Errorf("load roles failed: %w", err)
+			return fmt.Errorf("load roles in playbook %q failed: %w", pbPath, err)
 		}
 
 		pb.Play = append(pb.Play, p)
@@ -87,10 +88,10 @@ func dealImportPlaybook(p kkprojectv1.Play, baseFS fs.FS, pbPath string, pb *kkp
 	if p.ImportPlaybook != "" {
 		importPlaybook := getPlaybookBaseFromPlaybook(baseFS, pbPath, p.ImportPlaybook)
 		if importPlaybook == "" {
-			return fmt.Errorf("import_playbook %s path is empty, it's maybe [project-dir/playbooks/import_playbook_file, playbook-dir/playbooks/import_playbook-file, playbook-dir/import_playbook-file]", p.ImportPlaybook)
+			return fmt.Errorf("import_playbook %q path is empty, it's maybe [project-dir/playbooks/import_playbook_file, playbook-dir/playbooks/import_playbook-file, playbook-dir/import_playbook-file]", p.ImportPlaybook)
 		}
 		if err := loadPlaybook(baseFS, importPlaybook, pb); err != nil {
-			return fmt.Errorf("load playbook failed: %w", err)
+			return fmt.Errorf("load playbook %q failed: %w", importPlaybook, err)
 		}
 	}
 
@@ -102,26 +103,19 @@ func dealVarsFiles(p *kkprojectv1.Play, baseFS fs.FS, pbPath string) error {
 	for _, file := range p.VarsFiles {
 		// load vars from vars_files
 		if _, err := fs.Stat(baseFS, filepath.Join(filepath.Dir(pbPath), file)); err != nil {
-			return fmt.Errorf("file %s not exists", file)
+			return fmt.Errorf("file %q not exists", file)
 		}
 		data, err := fs.ReadFile(baseFS, filepath.Join(filepath.Dir(pbPath), file))
 		if err != nil {
-			return fmt.Errorf("read file %s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
+			return fmt.Errorf("read file %q failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
 		}
-
-		var vars map[string]any
-		var node yaml.Node // marshal file on defined order
-		if err := yaml.Unmarshal(data, &node); err != nil {
-			return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
-		}
-		if err := node.Decode(&vars); err != nil {
-			return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
+		var newVars map[string]any
+		// Unmarshal the YAML document into a root node.
+		if err := yaml.Unmarshal(data, &newVars); err != nil {
+			return fmt.Errorf("failed to unmarshal YAML: %w", err)
 		}
 		// store vars in play. the vars defined in file should not be repeated.
-		p.Vars, err = combineMaps(p.Vars, vars)
-		if err != nil {
-			return fmt.Errorf("combine maps file:%s failed: %w", filepath.Join(filepath.Dir(pbPath), file), err)
-		}
+		p.Vars = variable.CombineVariables(newVars, p.Vars)
 	}
 
 	return nil
@@ -132,21 +126,21 @@ func dealRoles(p kkprojectv1.Play, baseFS fs.FS, pbPath string) error {
 	for i, r := range p.Roles {
 		roleBase := getRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
 		if roleBase == "" {
-			return fmt.Errorf("cannot found Role %s", r.Role)
+			return fmt.Errorf("cannot found Role %q", r.Role)
 		}
 
 		mainTask := getYamlFile(baseFS, filepath.Join(roleBase, _const.ProjectRolesTasksDir, _const.ProjectRolesTasksMainFile))
 		if mainTask == "" {
-			return fmt.Errorf("cannot found main task for Role %s", r.Role)
+			return fmt.Errorf("cannot found main task for Role %q", r.Role)
 		}
 
 		rdata, err := fs.ReadFile(baseFS, mainTask)
 		if err != nil {
-			return fmt.Errorf("read file %s failed: %w", mainTask, err)
+			return fmt.Errorf("read file %q failed: %w", mainTask, err)
 		}
 		var blocks []kkprojectv1.Block
 		if err := yaml.Unmarshal(rdata, &blocks); err != nil {
-			return fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
+			return fmt.Errorf("unmarshal yaml file %q failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
 		}
 		p.Roles[i].Block = blocks
 	}
@@ -160,16 +154,16 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) error {
 		for i, r := range p.Roles {
 			roleBase := getRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
 			if roleBase == "" {
-				return fmt.Errorf("cannot found Role %s", r.Role)
+				return fmt.Errorf("cannot found Role %q in playbook %q", r.Role, pbPath)
 			}
 
 			var err error
 			if p.Roles[i].Block, err = convertRoleBlocks(baseFS, pbPath, roleBase); err != nil {
-				return fmt.Errorf("convert role %s  tasks failed: %w", r.Role, err)
+				return fmt.Errorf("convert role %q tasks in playbook %q failed: %w", r.Role, pbPath, err)
 			}
 
-			if p.Roles[i].Vars, err = convertRoleVars(baseFS, roleBase, p.Roles[i].Vars); err != nil {
-				return fmt.Errorf("convert role %s defaults failed: %w", r.Role, err)
+			if err = convertRoleVars(baseFS, roleBase, &p.Roles[i]); err != nil {
+				return fmt.Errorf("convert role %q defaults in playbook %q failed: %w", r.Role, pbPath, err)
 			}
 		}
 		pb.Play[i] = p
@@ -178,44 +172,41 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) error {
 	return nil
 }
 
-func convertRoleVars(baseFS fs.FS, roleBase string, roleVars map[string]any) (map[string]any, error) {
+func convertRoleVars(baseFS fs.FS, roleBase string, role *kkprojectv1.Role) error {
 	// load defaults (optional)
-	mainDefault := getYamlFile(baseFS, filepath.Join(roleBase, _const.ProjectRolesDefaultsDir, _const.ProjectRolesDefaultsMainFile))
-	if mainDefault != "" {
-		mainData, err := fs.ReadFile(baseFS, mainDefault)
+	defaultsFile := getYamlFile(baseFS, filepath.Join(roleBase, _const.ProjectRolesDefaultsDir, _const.ProjectRolesDefaultsMainFile))
+	if defaultsFile != "" {
+		data, err := fs.ReadFile(baseFS, defaultsFile)
 		if err != nil {
-			return nil, fmt.Errorf("read defaults variable file %s failed: %w", mainDefault, err)
+			return fmt.Errorf("read defaults variable file %q failed: %w", defaultsFile, err)
 		}
 
-		var vars map[string]any
-		var node yaml.Node // marshal file on defined order
-		if err := yaml.Unmarshal(mainData, &node); err != nil {
-			return nil, fmt.Errorf("unmarshal defaults variable yaml file: %s failed: %w", mainDefault, err)
+		var newVars map[string]any
+		// Unmarshal the YAML document into a root node.
+		if err := yaml.Unmarshal(data, &newVars); err != nil {
+			return fmt.Errorf("failed to unmarshal YAML: %w", err)
 		}
-		if err := node.Decode(&vars); err != nil {
-			return nil, fmt.Errorf("decode defaults variable yaml file: %s failed: %w", mainDefault, err)
-		}
-
-		return combineMaps(roleVars, vars)
+		// store vars in play. the vars defined in file should not be repeated.
+		role.Vars = variable.CombineVariables(newVars, role.Vars)
 	}
 
-	return roleVars, nil
+	return nil
 }
 
 // convertRoleBlocks roles/task/main.yaml to []kkprojectv1.Block
 func convertRoleBlocks(baseFS fs.FS, pbPath string, roleBase string) ([]kkprojectv1.Block, error) {
 	mainTask := getYamlFile(baseFS, filepath.Join(roleBase, _const.ProjectRolesTasksDir, _const.ProjectRolesTasksMainFile))
 	if mainTask == "" {
-		return nil, fmt.Errorf("cannot found main task for Role %s", roleBase)
+		return nil, fmt.Errorf("cannot found main task for Role %q", roleBase)
 	}
 
 	rdata, err := fs.ReadFile(baseFS, mainTask)
 	if err != nil {
-		return nil, fmt.Errorf("read file %s failed: %w", mainTask, err)
+		return nil, fmt.Errorf("read file %q failed: %w", mainTask, err)
 	}
 	var blocks []kkprojectv1.Block
 	if err := yaml.Unmarshal(rdata, &blocks); err != nil {
-		return nil, fmt.Errorf("unmarshal yaml file: %s failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
+		return nil, fmt.Errorf("unmarshal yaml file %q failed: %w", filepath.Join(filepath.Dir(pbPath), mainTask), err)
 	}
 
 	return blocks, nil
@@ -226,21 +217,21 @@ func convertIncludeTasks(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) 
 	var pbBase = filepath.Dir(filepath.Dir(pbPath))
 	for _, play := range pb.Play {
 		if err := fileToBlock(baseFS, pbBase, play.PreTasks); err != nil {
-			return fmt.Errorf("convert pre_tasks file %s failed: %w", pbPath, err)
+			return fmt.Errorf("convert pre_tasks file %q failed: %w", pbPath, err)
 		}
 
 		if err := fileToBlock(baseFS, pbBase, play.Tasks); err != nil {
-			return fmt.Errorf("convert tasks file %s failed: %w", pbPath, err)
+			return fmt.Errorf("convert tasks file %q failed: %w", pbPath, err)
 		}
 
 		if err := fileToBlock(baseFS, pbBase, play.PostTasks); err != nil {
-			return fmt.Errorf("convert post_tasks file %s failed: %w", pbPath, err)
+			return fmt.Errorf("convert post_tasks file %q failed: %w", pbPath, err)
 		}
 
 		for _, r := range play.Roles {
 			roleBase := getRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
 			if err := fileToBlock(baseFS, filepath.Join(roleBase, _const.ProjectRolesTasksDir), r.Block); err != nil {
-				return fmt.Errorf("convert role %s failed: %w", filepath.Join(pbPath, r.Role), err)
+				return fmt.Errorf("convert role %q failed: %w", filepath.Join(pbPath, r.Role), err)
 			}
 		}
 	}
@@ -253,11 +244,11 @@ func fileToBlock(baseFS fs.FS, baseDir string, blocks []kkprojectv1.Block) error
 		if b.IncludeTasks != "" {
 			data, err := fs.ReadFile(baseFS, filepath.Join(baseDir, b.IncludeTasks))
 			if err != nil {
-				return fmt.Errorf("read includeTask file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
+				return fmt.Errorf("read includeTask file %q failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 			}
 			var bs []kkprojectv1.Block
 			if err := yaml.Unmarshal(data, &bs); err != nil {
-				return fmt.Errorf("unmarshal includeTask file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
+				return fmt.Errorf("unmarshal includeTask file %q failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 			}
 
 			b.Block = bs
@@ -265,15 +256,15 @@ func fileToBlock(baseFS fs.FS, baseDir string, blocks []kkprojectv1.Block) error
 		}
 
 		if err := fileToBlock(baseFS, baseDir, b.Block); err != nil {
-			return fmt.Errorf("convert block file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
+			return fmt.Errorf("convert block file %q failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 		}
 
 		if err := fileToBlock(baseFS, baseDir, b.Rescue); err != nil {
-			return fmt.Errorf("convert rescue file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
+			return fmt.Errorf("convert rescue file %q failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 		}
 
 		if err := fileToBlock(baseFS, baseDir, b.Always); err != nil {
-			return fmt.Errorf("convert always file %s failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
+			return fmt.Errorf("convert always file %q failed: %w", filepath.Join(baseDir, b.IncludeTasks), err)
 		}
 	}
 
@@ -353,24 +344,4 @@ func getYamlFile(baseFS fs.FS, base string) string {
 	}
 
 	return ""
-}
-
-// combine v2 map to v1 if not repeat.
-func combineMaps(v1, v2 map[string]any) (map[string]any, error) {
-	if len(v1) == 0 {
-		return v2, nil
-	}
-
-	mv := make(map[string]any)
-	for k, v := range v1 {
-		mv[k] = v
-	}
-	for k, v := range v2 {
-		if _, ok := mv[k]; ok {
-			return nil, fmt.Errorf("duplicate key: %s", k)
-		}
-		mv[k] = v
-	}
-
-	return mv, nil
 }

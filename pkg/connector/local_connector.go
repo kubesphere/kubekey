@@ -50,17 +50,17 @@ type localConnector struct {
 	Cmd      exec.Interface
 }
 
-// Init connector. do nothing
+// Init initializes the local connector. This method does nothing for localConnector.
 func (c *localConnector) Init(context.Context) error {
 	return nil
 }
 
-// Close connector. do nothing
+// Close closes the local connector. This method does nothing for localConnector.
 func (c *localConnector) Close(context.Context) error {
 	return nil
 }
 
-// PutFile copy src file to dst file. src is the local filename, dst is the local filename.
+// PutFile copies the src file to the dst file. src is the local filename, dst is the local filename.
 func (c *localConnector) PutFile(_ context.Context, src []byte, dst string, mode fs.FileMode) error {
 	if _, err := os.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(dst), mode); err != nil {
@@ -73,7 +73,7 @@ func (c *localConnector) PutFile(_ context.Context, src []byte, dst string, mode
 	return os.WriteFile(dst, src, mode)
 }
 
-// FetchFile copy src file to dst writer. src is the local filename, dst is the local writer.
+// FetchFile copies the src file to the dst writer. src is the local filename, dst is the local writer.
 func (c *localConnector) FetchFile(_ context.Context, src string, dst io.Writer) error {
 	var err error
 	file, err := os.Open(src)
@@ -92,20 +92,25 @@ func (c *localConnector) FetchFile(_ context.Context, src string, dst io.Writer)
 	return nil
 }
 
-// ExecuteCommand in local host
+// ExecuteCommand executes a command on the local host.
 func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
-	// find command interpreter in env. default /bin/bash
-
+	// in
 	command := c.Cmd.CommandContext(ctx, "sudo", "-SE", localShell, "-c", cmd)
 	if c.Password != "" {
 		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
 	}
+	// out
+	output, err := command.CombinedOutput()
+	if c.Password != "" {
+		// Filter out the "Password:" prompt from the output
+		output = bytes.Replace(output, []byte("Password:"), []byte(""), -1)
+	}
 
-	return command.CombinedOutput()
+	return output, err
 }
 
-// HostInfo for GatherFacts
+// HostInfo gathers and returns host information for the local host.
 func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 	switch runtime.GOOS {
 	case "linux":

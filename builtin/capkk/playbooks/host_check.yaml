@@ -1,0 +1,8 @@
+---
+- name: Check Connect
+  hosts: 
+    - |
+      {{ .check_group | default "ungrouped" }}
+  tasks:
+    - name: Check Connect for Hosts
+      command: echo success

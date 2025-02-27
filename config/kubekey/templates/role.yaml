@@ -2,89 +2,56 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kk-operator
-  namespace: {{ .Release.Namespace }}
-  labels: {{- include "common.labels" . | nindent 4 }}
+  name: kubekey
 rules:
 - apiGroups:
-    - kubekey.kubesphere.io
+  - ""
   resources:
-    - configs
-    - inventories
+  - events
+  - pods
+  - serviceaccounts
   verbs:
-    - get
-    - list
-    - watch
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
-    - kubekey.kubesphere.io
+  - coordination.k8s.io
   resources:
-    - pipelines
-    - pipelines/status
+  - leases
   verbs:
-    - "*"
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
-    - coordination.k8s.io
+  - kubekey.kubesphere.io
   resources:
-    - leases
+  - '*'
   verbs:
-    - "*"
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
-    - ""
+  - rbac.authorization.k8s.io
   resources:
-    - events
+  - clusterrolebindings
+  - clusterroles
   verbs:
-    - "*"
-- apiGroups:
-    - batch
-  resources:
-    - jobs
-    - cronjobs
-  verbs:
-    - get
-    - list
-    - watch
-    - create
-    - update
-- apiGroups:
-    - ""
-  resources:
-    - serviceaccounts
-  verbs:
-    - get
-    - list
-    - watch
-    - create
-- apiGroups:
-    - "rbac.authorization.k8s.io"
-  resources:
-    - clusterrolebindings
-  verbs:
-    - get
-    - list
-    - watch
-    - create
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: kk-executor
-  namespace: {{ .Release.Namespace }}
-  labels: {{- include "common.labels" . | nindent 4 }}
-rules:
-  - apiGroups:
-      - kubekey.kubesphere.io
-    resources:
-      - configs
-      - inventories
-      - pipelines
-    verbs:
-      - get
-      - list
-  - apiGroups:
-      - kubekey.kubesphere.io
-    resources:
-      - pipelines/status
-    verbs:
-      - update
-      - patch
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

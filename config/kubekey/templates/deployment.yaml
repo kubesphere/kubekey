@@ -2,75 +2,95 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels: {{ include "common.labels" . | nindent 4 }}
-    app: kk-operator
-  name: kk-operator
+  name: kk-controller-manager
   namespace: {{ .Release.Namespace }}
+  labels: {{ include "common.labels" . | nindent 4 }}
+    app: kk-controller-manager
 spec:
   strategy:
     rollingUpdate:
       maxSurge: 0
     type: RollingUpdate
   progressDeadlineSeconds: 600
-  replicas: {{ .Values.operator.replicaCount }}
+  replicas: {{ .Values.controller-manager.replicaCount }}
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: kk-operator
+      app: kk-controller-manager
   template:
     metadata:
       labels: {{ include "common.labels" .  | nindent 8 }}
-        app: kk-operator
+        app: kk-controller-manager
     spec:
-      serviceAccountName: kk-operator
-      {{- if .Values.operator.pullSecrets }}
-      imagePullSecrets: {{ .Values.operator.pullSecrets }}
+      serviceAccountName: kubekey
+      {{- if .Values.controller-manager.pullSecrets }}
+      imagePullSecrets: {{ .Values.controller-manager.pullSecrets }}
       {{- end }}
-      {{- if .Values.operator.nodeSelector }}
-      nodeSelector: {{ .Values.operator.nodeSelector }}
+      {{- if .Values.controller-manager.nodeSelector }}
+      nodeSelector: {{ .Values.controller-manager.nodeSelector }}
       {{- end }}
-      {{- if .Values.operator.affinity }}
-      affinity: {{ .Values.operator.affinity }}
+      {{- if .Values.controller-manager.affinity }}
+      affinity: {{ .Values.controller-manager.affinity }}
       {{- end }}
-      {{- if .Values.operator.tolerations }}
-      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.operator.tolerations "context" .) | nindent 8 }}
+      {{- if .Values.controller-manager.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.controller-manager.tolerations "context" .) | nindent 8 }}
       {{- end }}
-      dnsPolicy: {{ .Values.operator.dnsPolicy }}
-      restartPolicy: {{ .Values.operator.restartPolicy }}
-      schedulerName: {{ .Values.operator.schedulerName }}
-      terminationGracePeriodSeconds: {{ .Values.operator.terminationGracePeriodSeconds }}
+      dnsPolicy: {{ .Values.controller-manager.dnsPolicy }}
+      restartPolicy: {{ .Values.controller-manager.restartPolicy }}
+      schedulerName: {{ .Values.controller-manager.schedulerName }}
+      terminationGracePeriodSeconds: {{ .Values.controller-manager.terminationGracePeriodSeconds }}
       containers:
-        - name: ks-controller-manager
+        - name: controller-manager
           image: {{ template "operator.image" . }}
-          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
-          {{- if .Values.operator.command }}
-          command: {{- include "common.tplvalues.render" (dict "value" .Values.operator.command "context" $) | nindent 12 }}
+          imagePullPolicy: {{ .Values.controller-manager.image.pullPolicy }}
+          {{- if .Values.controller-manager.command | default list | len | lt 0 }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.controller-manager.command "context" $) | nindent 12 }}
+          {{- else }}
+          command:
+            - controller-manager
+            - --logtostderr=true
+            - --leader-election=true
+            {{-if not .Values.controller-manager.webhook.enabled }}
+            - --controllers=*
+            - --controllers=-pipeline-webhook
+            {{- end }}
           {{- end }}
           env:
-            {{- if .Values.operator.extraEnvVars }}
-            {{- include "common.tplvalues.render" (dict "value" .Values.operator.extraEnvVars "context" $) | nindent 12 }}
+            {{- if .Values.controller-manager.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.controller-manager.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
             - name: EXECUTOR_IMAGE
               value: {{ template "executor.image" . }}
+            - name: EXECUTOR_CLUSTERROLE
+              value: kubekey
             - name: EXECUTOR_IMAGE_PULLPOLICY
               value: {{ .Values.executor.image.pullPolicy }}
-            - name: EXECUTOR_SERVICEACCOUNT
-              value: kk-executor
-          {{- if .Values.operator.resources }}
-          resources: {{- toYaml .Values.operator.resources | nindent 12 }}
+          {{- if .Values.controller-manager.resources }}
+          resources: {{- toYaml .Values.controller-manager.resources | nindent 12 }}
           {{- end }}
           volumeMounts:
             - mountPath: /etc/localtime
               name: host-time
               readOnly: true
-          {{- if .Values.operator.extraVolumeMounts }}
-          {{- include "common.tplvalues.render" (dict "value" .Values.operator.extraVolumeMounts "context" $) | nindent 12 }}
-          {{- end }}
+            {{- if .Values.controller-manager.webhook.enabled }}
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+            {{- end }}              
+            {{- if .Values.controller-manager.extraVolumeMounts }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.controller-manager.extraVolumeMounts "context" $) | nindent 12 }}
+            {{- end }}
       volumes:
         - hostPath:
             path: /etc/localtime
             type: ""
           name: host-time
-        {{- if .Values.operator.extraVolumes }}
-        {{- include "common.tplvalues.render" (dict "value" .Values.operator.extraVolumes "context" $) | nindent 8 }}
-        {{- end }}
+          {{- if .Values.controller-manager.webhook.enabled }}
+          - name: cert
+            secret:
+              defaultMode: 420
+              secretName: kubekey-webhook-service-cert
+          {{- end }}
+          {{- if .Values.controller-manager.extraVolumes }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.controller-manager.extraVolumes "context" $) | nindent 8 }}
+          {{- end }}

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"slices"
@@ -27,10 +28,10 @@ import (
 	"strings"
 	"sync"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
@@ -49,10 +50,10 @@ type variable struct {
 
 // value is the specific data contained in the variable
 type value struct {
-	kkcorev1.Config    `json:"-"`
-	kkcorev1.Inventory `json:"-"`
+	Config    kkcorev1.Config
+	Inventory kkcorev1.Inventory
 	// Hosts store the variable for running tasks on specific hosts
-	Hosts map[string]host `json:"hosts"`
+	Hosts map[string]host
 }
 
 func (v value) deepCopy() value {
@@ -86,15 +87,15 @@ func (v value) getParameterVariable() map[string]any {
 		// merge group vars to host vars
 		for _, gv := range v.Inventory.Spec.Groups {
 			if slices.Contains(gv.Hosts, hostname) {
-				hostVars = combineVariables(hostVars, Extension2Variables(gv.Vars))
+				hostVars = CombineVariables(hostVars, Extension2Variables(gv.Vars))
 			}
 		}
 		// set default localhost
-		setlocalhostVarialbe(hostname, v, hostVars)
+		setLocalhostVariable(hostname, v, hostVars)
 		// merge inventory vars to host vars
-		hostVars = combineVariables(hostVars, Extension2Variables(v.Inventory.Spec.Vars))
+		hostVars = CombineVariables(hostVars, Extension2Variables(v.Inventory.Spec.Vars))
 		// merge config vars to host vars
-		hostVars = combineVariables(hostVars, Extension2Variables(v.Config.Spec))
+		hostVars = CombineVariables(hostVars, Extension2Variables(v.Config.Spec))
 		globalHosts[hostname] = hostVars
 	}
 
@@ -102,16 +103,16 @@ func (v value) getParameterVariable() map[string]any {
 	// external vars
 	for hostname := range globalHosts {
 		var val = make(map[string]any)
-		val = combineVariables(val, map[string]any{
+		val = CombineVariables(val, map[string]any{
 			_const.VariableGlobalHosts: globalHosts,
 		})
-		val = combineVariables(val, map[string]any{
-			_const.VariableGroups: convertGroup(v.Inventory),
+		val = CombineVariables(val, map[string]any{
+			_const.VariableGroups: ConvertGroup(v.Inventory),
 		})
 		externalVal[hostname] = val
 	}
 
-	return combineVariables(globalHosts, externalVal)
+	return CombineVariables(globalHosts, externalVal)
 }
 
 type host struct {
@@ -147,16 +148,11 @@ func (v *variable) syncSource(old value) error {
 			// nothing change skip.
 			continue
 		}
-		// write to source
-		data, err := json.MarshalIndent(hv, "", "  ")
-		if err != nil {
-			klog.ErrorS(err, "marshal host data error", "hostname", hn)
-
-			return err
-		}
-
-		if err := v.source.Write(data, hn+".json"); err != nil {
-			klog.ErrorS(err, "write host data to local file error", "hostname", hn, "filename", hn+".json")
+		if err := v.source.Write(map[string]any{
+			"remote":  hv.RemoteVars,
+			"runtime": hv.RuntimeVars,
+		}, hn); err != nil {
+			return fmt.Errorf("failed to write host %s variable to source, error: %w", hn, err)
 		}
 	}
 
@@ -178,12 +174,16 @@ var GetHostnames = func(name []string) GetFunc {
 		}
 		var hs []string
 		for _, n := range name {
+			// try parse hostname by Config.
+			if pn, err := tmpl.ParseString(Extension2Variables(vv.value.Config.Spec), n); err == nil {
+				n = pn
+			}
 			// add host to hs
 			if _, ok := vv.value.Hosts[n]; ok {
 				hs = append(hs, n)
 			}
 			// add group's host to gs
-			for gn, gv := range convertGroup(vv.value.Inventory) {
+			for gn, gv := range ConvertGroup(vv.value.Inventory) {
 				if gn == n {
 					if gvd, ok := gv.([]string); ok {
 						hs = mergeSlice(hs, gvd)
@@ -202,7 +202,7 @@ var GetHostnames = func(name []string) GetFunc {
 
 					return nil, err
 				}
-				if group, ok := convertGroup(vv.value.Inventory)[match[1]].([]string); ok {
+				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]].([]string); ok {
 					if index >= len(group) {
 						return nil, fmt.Errorf("index %v out of range for group %s", index, group)
 					}
@@ -213,7 +213,7 @@ var GetHostnames = func(name []string) GetFunc {
 			// add random host in group
 			regexForRandom := regexp.MustCompile(`^(.+?)\s*\|\s*random$`)
 			if match := regexForRandom.FindStringSubmatch(strings.TrimSpace(n)); match != nil {
-				if group, ok := convertGroup(vv.value.Inventory)[match[1]].([]string); ok {
+				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]].([]string); ok {
 					hs = append(hs, group[rand.Intn(len(group))])
 				}
 			}
@@ -248,13 +248,13 @@ var GetAllVariable = func(hostName string) GetFunc {
 		}
 		result := make(map[string]any)
 		// find from runtime
-		result = combineVariables(result, vv.value.Hosts[hostName].RuntimeVars)
+		result = CombineVariables(result, vv.value.Hosts[hostName].RuntimeVars)
 		// find from remote
-		result = combineVariables(result, vv.value.Hosts[hostName].RemoteVars)
+		result = CombineVariables(result, vv.value.Hosts[hostName].RemoteVars)
 		// find from global.
 		if vv, ok := vv.value.getParameterVariable()[hostName]; ok {
 			if vvd, ok := vv.(map[string]any); ok {
-				result = combineVariables(result, vvd)
+				result = CombineVariables(result, vvd)
 			}
 		}
 
@@ -275,6 +275,18 @@ var GetHostMaxLength = func() GetFunc {
 		}
 
 		return hostNameMaxLen, nil
+	}
+}
+
+// GetWorkDir returns the working directory from the configuration.
+var GetWorkDir = func() GetFunc {
+	return func(v Variable) (any, error) {
+		vv, ok := v.(*variable)
+		if !ok {
+			return nil, errors.New("variable type error")
+		}
+
+		return _const.GetWorkdirFromConfig(vv.value.Config), nil
 	}
 }
 
@@ -306,6 +318,7 @@ var MergeRemoteVariable = func(data map[string]any, hostname string) MergeFunc {
 }
 
 // MergeRuntimeVariable parse variable by specific host and merge to the host.
+// TODO: support merge []byte to preserve yaml definition order
 var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc {
 	if len(data) == 0 || len(hosts) == 0 {
 		// skip
@@ -318,30 +331,36 @@ var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc 
 			if !ok {
 				return errors.New("variable type error")
 			}
-			// merge to specify host
-			curVariable, err := v.Get(GetAllVariable(hostName))
-			if err != nil {
-				return err
-			}
-			// parse variable
-			if err := parseVariable(data, func(s string) (string, error) {
-				// parse use total variable. the task variable should not contain template syntax.
-				cv, ok := curVariable.(map[string]any)
-				if !ok {
-					return "", errors.New("variable type error")
+
+			depth := 3
+			if envDepth, err := strconv.Atoi(os.Getenv(_const.ENV_VARIABLE_PARSE_DEPTH)); err == nil {
+				if envDepth != 0 {
+					depth = envDepth
 				}
-
-				return tmpl.ParseString(combineVariables(data, cv), s)
-			}); err != nil {
-				return err
 			}
 
-			if _, ok := v.(*variable); !ok {
-				return errors.New("variable type error")
+			for range depth {
+				// merge to specify host
+				curVariable, err := v.Get(GetAllVariable(hostName))
+				if err != nil {
+					return err
+				}
+				// parse variable
+				if err := parseVariable(data, func(s string) (string, error) {
+					// parse use total variable. the task variable should not contain template syntax.
+					cv, ok := curVariable.(map[string]any)
+					if !ok {
+						return "", errors.New("variable type error")
+					}
+
+					return tmpl.ParseString(CombineVariables(data, cv), s)
+				}); err != nil {
+					return err
+				}
+				hv := vv.value.Hosts[hostName]
+				hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
+				vv.value.Hosts[hostName] = hv
 			}
-			hv := vv.value.Hosts[hostName]
-			hv.RuntimeVars = combineVariables(hv.RuntimeVars, data)
-			vv.value.Hosts[hostName] = hv
 		}
 
 		return nil
@@ -368,7 +387,7 @@ var MergeAllRuntimeVariable = func(data map[string]any, hostName string) MergeFu
 				return "", errors.New("variable type error")
 			}
 
-			return tmpl.ParseString(combineVariables(data, cv), s)
+			return tmpl.ParseString(CombineVariables(data, cv), s)
 		}); err != nil {
 			return err
 		}
@@ -378,7 +397,7 @@ var MergeAllRuntimeVariable = func(data map[string]any, hostName string) MergeFu
 				return errors.New("variable type error")
 			}
 			hv := vv.value.Hosts[h]
-			hv.RuntimeVars = combineVariables(hv.RuntimeVars, data)
+			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
 			vv.value.Hosts[h] = hv
 		}
 

@@ -1,0 +1,17 @@
+---
+- include_tasks: kubernetes.yaml
+
+- include_tasks: etcd.yaml
+  tags: ["etcd"]
+
+- include_tasks: os.yaml
+  tags: ["os"]
+
+- include_tasks: network.yaml
+  tags: ["network"]
+
+- include_tasks: cri.yaml
+  tags: ["cri"]
+
+- include_tasks: nfs.yaml
+  tags: ["nfs"]

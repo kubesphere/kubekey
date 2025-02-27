@@ -6,14 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -172,7 +173,7 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 	// complete by pipeline
 	task.GenerateName = e.pipeline.Name + "-"
 	task.Namespace = e.pipeline.Namespace
-	if err := controllerutil.SetControllerReference(e.pipeline, task, e.client.Scheme()); err != nil {
+	if err := ctrl.SetControllerReference(e.pipeline, task, e.client.Scheme()); err != nil {
 		klog.V(5).ErrorS(err, "Set controller reference error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 
 		return err
@@ -199,7 +200,7 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 		return fmt.Errorf("no module/action detected in task: %s", task.Name)
 	}
 
-	if err := (taskExecutor{option: e.option, task: task}.Exec(ctx)); err != nil {
+	if err := (&taskExecutor{option: e.option, task: task, taskRunTimeout: 60 * time.Minute}).Exec(ctx); err != nil {
 		klog.V(5).ErrorS(err, "exec task error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
 
 		return err

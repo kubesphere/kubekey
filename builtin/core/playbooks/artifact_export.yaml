@@ -1,0 +1,14 @@
+---
+- import_playbook: hook/pre_install.yaml
+
+- hosts:
+    - localhost
+  roles:
+    - init/init-artifact
+    - init/init-cert
+  tasks:
+    - name: Export artifact
+      command: |
+        cd {{ .binary_dir }} && tar -czvf {{ .artifact_file }} *
+
+- import_playbook: hook/post_install.yaml

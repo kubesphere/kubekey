@@ -54,6 +54,8 @@ const ( // === From system generate ===
 	VariableGlobalHosts = "inventory_hosts"
 	// VariableGroupsAll the value is a all host_name slice of VariableGroups.
 	VariableGroupsAll = "all"
+	// VariableUnGrouped the value is a all host_name slice of VariableGroups.
+	VariableUnGrouped = "ungrouped"
 )
 
 const ( // === From GatherFact ===
@@ -81,12 +83,46 @@ const ( // === From runtime ===
 )
 
 const ( // === From env ===
+	// ENV_VARIABLE_PARSE_DEPTH Defines the depth of parameter transformation, specifying the number of levels in which parameters can reference other unprocessed parameters.
+	// The default value is 3.
+	ENV_VARIABLE_PARSE_DEPTH = "VARIABLE_PARSE_DEPTH"
 	// ENV_SHELL which shell operator use in local connector.
 	ENV_SHELL = "SHELL"
-	// ENV_EXECUTOR_SERVICEACCOUNT use to run pipeline pod.
-	ENV_EXECUTOR_SERVICEACCOUNT = "EXECUTOR_SERVICEACCOUNT"
 	// ENV_EXECUTOR_IMAGE which image use in pipeline pod.
 	ENV_EXECUTOR_IMAGE = "EXECUTOR_IMAGE"
 	// ENV_EXECUTOR_IMAGE_PULLPOLICY which imagePolicy use in pipeline pod.
 	ENV_EXECUTOR_IMAGE_PULLPOLICY = "EXECUTOR_IMAGE_PULLPOLICY"
+	// ENV_EXECUTOR_CLUSTERROLE which clusterrole use in pipeline pod.
+	ENV_EXECUTOR_CLUSTERROLE = "EXECUTOR_CLUSTERROLE"
+	// ENV_CAPKK_GROUP_CONTROLPLANE the control_plane groups for capkk pipeline
+	ENV_CAPKK_GROUP_CONTROLPLANE = "CAPKK_GROUP_CONTROLPLANE"
+	// ENV_CAPKK_GROUP_WORKER the worker groups for capkk pipeline
+	ENV_CAPKK_GROUP_WORKER = "CAPKK_GROUP_WORKER"
+	// ENV_CAPKK_VOLUME_BINARY is the binary dir for capkk pipeline. used in offline installer.
+	// the value should be a pvc name.
+	ENV_CAPKK_VOLUME_BINARY = "CAPKK_VOLUME_BINARY"
+	// ENV_CAPKK_VOLUME_PROJECT is the project dir for capkk pipeline. the default project has contained in IMAGE.
+	// the value should be a pvc name.
+	ENV_CAPKK_VOLUME_PROJECT = "CAPKK_VOLUME_PROJECT"
+	// ENV_CAPKK_VOLUME_WORKDIR is the workdir for capkk pipeline.
+	ENV_CAPKK_VOLUME_WORKDIR = "CAPKK_VOLUME_WORKDIR"
+)
+
+const ( // === From CAPKK base on GetCAPKKProject() ===
+	// CAPKKWorkdir is the work dir for capkk pipeline.
+	CAPKKWorkdir = "/kubekey/"
+	// CAPKKProjectdir is the project dir for capkk pipeline.
+	CAPKKProjectdir = "/capkk/project/"
+	// CAPKKBinarydir is the path of binary.
+	CAPKKBinarydir = "/capkk/kubekey/"
+	// CAPKKCloudConfigPath is the cloud-config path.
+	CAPKKCloudConfigPath = "/capkk/cloud/cloud-config"
+	// CAPKKCloudKubeConfigPath is the cloud-config path.
+	CAPKKCloudKubeConfigPath = "/capkk/cloud/kubeconfig"
+	// CAPKKPlaybookHostCheck is the playbook for host check.
+	CAPKKPlaybookHostCheck = "playbooks/host_check.yaml"
+	// CAPKKPlaybookAddNode is the playbook for add node.
+	CAPKKPlaybookAddNode = "playbooks/add_node.yaml"
+	// CAPKKPlaybookDeleteNode is the playbook for delete node.
+	CAPKKPlaybookDeleteNode = "playbooks/delete_node.yaml"
 )

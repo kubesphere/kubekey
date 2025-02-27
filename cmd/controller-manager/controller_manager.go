@@ -22,6 +22,8 @@ import (
 	"k8s.io/component-base/cli"
 
 	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app"
+	_ "github.com/kubesphere/kubekey/v4/pkg/controllers/core"
+	_ "github.com/kubesphere/kubekey/v4/pkg/controllers/infrastructure"
 )
 
 func main() {
