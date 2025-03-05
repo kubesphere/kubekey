@@ -1,0 +1,40 @@
+---
+- name: Check if runc is installed
+  ignore_errors: true
+  command: runc --version
+  register: runc_install_version
+- name: Sync runc binary to remote
+  when: or (.runc_install_version.stderr | ne "") (.runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | default "" | trimPrefix "v" )) | not)
+  copy:
+    src: |
+      {{ .binary_dir }}/runc/{{ .runc_version }}/{{ .binary_type.stdout }}/runc.{{ .binary_type.stdout }}
+    dest: /usr/local/bin/runc
+    mode: 0755
+
+- name: Check if containerd is installed
+  ignore_errors: true
+  command: containerd --version
+  register: containerd_install_version
+- name: Install containerd
+  when: or (.containerd_install_version.stderr | ne "") (.containerd_install_version.stdout | contains (printf " %s " .containerd_version) | not)
+  block:
+    - name: Sync containerd binary to remote
+      copy:
+        src: |
+          {{ .binary_dir }}/containerd/{{ .containerd_version }}/{{ .binary_type.stdout }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
+        dest: |
+          {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
+    - name: Unpackage containerd binary
+      command: |
+        tar -xvf {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
+    - name: Generate containerd config file
+      template:
+        src: containerd.config
+        dest: /etc/containerd/config.toml
+    - name: Generate containerd Service file
+      copy:
+        src: containerd.service
+        dest: /etc/systemd/system/containerd.service
+    - name: Start containerd
+      command: |
+        systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service

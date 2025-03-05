@@ -21,17 +21,18 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
-
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -40,7 +41,7 @@ import (
 type templateArgs struct {
 	src  string
 	dest string
-	mode *int
+	mode *uint32
 }
 
 func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*templateArgs, error) {
@@ -61,7 +62,15 @@ func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[strin
 		return nil, errors.New("\"dest\" should be string")
 	}
 
-	ta.mode, _ = variable.IntVar(vars, args, "mode")
+	mode, err := variable.IntVar(vars, args, "mode")
+	if err != nil {
+		klog.V(4).InfoS("get mode error", "error", err)
+	} else {
+		if *mode < 0 || *mode > math.MaxUint32 {
+			return nil, errors.New("mode should be uint32")
+		}
+		ta.mode = ptr.To(uint32(*mode))
+	}
 
 	return ta, nil
 }
@@ -82,7 +91,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 	}
 
 	// get connector
-	conn, err := getConnector(ctx, options.Host, ha)
+	conn, err := getConnector(ctx, options.Host, options.Variable)
 	if err != nil {
 		return "", err.Error()
 	}

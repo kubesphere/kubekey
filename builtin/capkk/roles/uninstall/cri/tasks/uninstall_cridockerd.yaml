@@ -1,0 +1,10 @@
+---
+- name: Stop cri-dockerd
+  command: |
+    systemctl stop cri-dockerd && systemctl disable cri-dockerd
+    rm -f /etc/systemd/system/cri-dockerd.service && systemctl daemon-reload
+
+- name: Delete residue files
+  command: |
+    rm -rf /etc/cri-dockerd
+    rm -f /usr/local/bin/cri-dockerd

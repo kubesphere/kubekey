@@ -1,0 +1,20 @@
+- name: Set custom hosts to /etc/hosts
+  when: and .kubernetes.control_plane_endpoint.etc_hosts (.kubernetes.control_plane_endpoint.etc_hosts | ne "")
+  command: |
+    cat >> /etc/hosts <<EOF
+    # Custom by kubekey begin
+    {{ .kubernetes.control_plane_endpoint.etc_hosts }}
+    # Custom by kubekey end
+    EOF
+
+# install with static pod: https://kube-vip.io/docs/installation/static/
+- include_tasks: high-availability/kube_vip.yaml
+  when:
+    - .kubernetes.control_plane_endpoint.type | eq "kube_vip"
+    - .groups.kube_control_plane | default list | has .inventory_name
+
+# only deploy haproxy in worker node. control_plane node use local static pod: kube-apiserver.
+- include_tasks: high-availability/haproxy.yaml
+  when:
+    - .kubernetes.control_plane_endpoint.type | eq "haproxy"
+    - .groups.kube_worker | default list | has .inventory_name

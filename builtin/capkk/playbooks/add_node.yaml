@@ -1,0 +1,51 @@
+---
+- hosts:
+    - "{{ .node_name }}"
+  gather_facts: true
+  vars_files:
+    - vars/main.yaml
+  roles:
+    - precheck/env_check
+
+- name: init cluster
+  hosts:
+    - localhost
+  vars_files:
+    - vars/main.yaml
+  tasks:
+    # https://cluster-api.sigs.k8s.io/tasks/bootstrap/kubeadm-bootstrap/index.html?highlight=ntp#additional-features
+    - name: init cloud-config
+      when: .kubernetes_installed | default false | eq false
+      block:
+        - name: get cloud-config value
+          command: |
+            cat {{ .cloud_config_dir }}/cloud-config/value
+          register: cloud_config_out
+        - name: set_fact of cloud-config value
+          set_fact:
+            cloud_config: "{{ .cloud_config_out.stdout | toJson }}"
+  roles:
+    - role: init/init-artifacts
+      when: .kubernetes_installed | default false | eq false
+
+- hosts:
+    - "{{ .node_name }}"
+  roles:
+    - role: init/init-os
+      when: .kubernetes_installed | default false | eq false
+
+- name: install cluster
+  hosts:
+    - "{{ .node_name }}"
+  gather_facts: true
+  roles:
+    - role: install/cri
+      when: .kubernetes_installed | default false | eq false
+    - role: install/kubernetes
+      when: .kubernetes_installed | default false | eq false
+    - role: install/cloud-config
+      when: .kubernetes_installed | default false | eq false
+    - role: install/cni
+      when: .kubernetes_installed | default false | eq false
+    - role: install/storageclass
+      when: .kubernetes_installed | default false | eq false

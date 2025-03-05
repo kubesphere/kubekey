@@ -28,10 +28,10 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/klog/v2"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
@@ -44,6 +44,16 @@ func newGitProject(ctx context.Context, pipeline kkcorev1.Pipeline, update bool)
 		return nil, errors.New("playbook should be relative path base on project.addr")
 	}
 
+	// get project_dir from pipeline
+	projectDir, err := pipeline.Spec.Config.GetValue("project_dir")
+	if err != nil {
+		return nil, fmt.Errorf("project_dir is not defined. error is %w", err)
+	}
+	pd, ok := projectDir.(string)
+	if !ok {
+		return nil, errors.New("project_dir should be string")
+	}
+
 	// git clone to project dir
 	if pipeline.Spec.Project.Name == "" {
 		pipeline.Spec.Project.Name = strings.TrimSuffix(pipeline.Spec.Project.Addr[strings.LastIndex(pipeline.Spec.Project.Addr, "/")+1:], ".git")
@@ -51,7 +61,7 @@ func newGitProject(ctx context.Context, pipeline kkcorev1.Pipeline, update bool)
 
 	p := &gitProject{
 		Pipeline:   pipeline,
-		projectDir: filepath.Join(_const.GetWorkDir(), _const.ProjectDir, pipeline.Spec.Project.Name),
+		projectDir: filepath.Join(pd, pipeline.Spec.Project.Name),
 		playbook:   pipeline.Spec.Playbook,
 	}
 

@@ -272,11 +272,8 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	output = append(output, stdoutData...)
 	output = append(output, stderrData...)
 	// Wait for the command to complete
-	if err := session.Wait(); err != nil {
-		return nil, err
-	}
 
-	return output, nil
+	return output, session.Wait()
 }
 
 // HostInfo for GatherFacts

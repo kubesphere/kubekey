@@ -22,8 +22,8 @@ import (
 	"os"
 	"strings"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 )
 
 var builtinProjectFunc func(kkcorev1.Pipeline) (Project, error)

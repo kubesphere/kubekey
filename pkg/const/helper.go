@@ -17,33 +17,50 @@ limitations under the License.
 package _const
 
 import (
-	"path/filepath"
-	"sync"
+	"fmt"
+	"os"
+	"strings"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 )
 
-var workDirOnce = &sync.Once{}
+// GetWorkdirFromConfig retrieves the working directory from the provided configuration.
+// If the 'workdir' value is set in the configuration and is a string, it returns that value.
+// If the 'workdir' value is not set or is not a string, it logs an informational message
+// and attempts to get the current working directory of the process.
+// If it fails to get the current working directory, it logs another informational message
+// and returns a default directory path "/opt/kubekey".
+func GetWorkdirFromConfig(config kkcorev1.Config) string {
+	workdir, err := config.GetValue(Workdir)
+	if err == nil {
+		wd, ok := workdir.(string)
+		if ok {
+			return wd
+		}
+	}
+	klog.Info("work_dir is not set use current dir.")
+	wd, err := os.Getwd()
+	if err != nil {
+		klog.Info("failed to get current dir. use default: /root/kubekey")
 
-// SetWorkDir sets the workdir once.
-func SetWorkDir(wd string) {
-	workDirOnce.Do(func() {
-		workDir = wd
-	})
+		return "/opt/kubekey"
+	}
+
+	return wd
 }
 
-// GetWorkDir returns the workdir.
-func GetWorkDir() string {
-	return workDir
+// Host2ProviderID converts a cluster name and host into a provider ID string.
+// It returns a pointer to a string in the format "kk://<cluster_name>/<host>".
+func Host2ProviderID(clusterName, host string) *string {
+	return ptr.To(fmt.Sprintf("kk://%s/%s", clusterName, host))
 }
 
-// GetRuntimeDir returns the absolute path of the runtime directory.
-func GetRuntimeDir() string {
-	return filepath.Join(workDir, RuntimeDir)
-}
-
-// RuntimeDirFromPipeline returns the absolute path of the runtime directory for specify Pipeline
-func RuntimeDirFromPipeline(obj kkcorev1.Pipeline) string {
-	return filepath.Join(GetRuntimeDir(), kkcorev1.SchemeGroupVersion.String(),
-		RuntimePipelineDir, obj.Namespace, obj.Name)
+// ProviderID2Host extracts the host name from a provider ID string.
+// It takes a cluster name and provider ID pointer, and returns the host portion
+// by trimming off the "kk://<cluster_name>/" prefix. If providerID is nil,
+// returns an empty string.
+func ProviderID2Host(clusterName string, providerID *string) string {
+	return strings.TrimPrefix(ptr.Deref(providerID, ""), fmt.Sprintf("kk://%s/", clusterName))
 }

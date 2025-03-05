@@ -1,0 +1,113 @@
+cni:
+  type: |
+    {{ .kubernetes.kube_network_plugin | default "calico" }}
+  # ip cidr config.
+  # In Kubernetes, the Pod CIDR supports both IPv4 and IPv6 configurations. It can be specified as follows:
+  # "Single-stack IPv4": the pod_cidr value format "ipv4"
+  # "Single-stack IPv6": the pod_cidr value format "ipv6"
+  # "Dual-stack (IPv4 and IPv6)": the pod_cidr value format "ipv4,ipv6"
+  ipv4_support: |
+    {{- eq (.cluster_network.pods.cidrBlocks | first | ipFamily) "IPv4" }}
+  ipv4_pods_cidr: |
+    {{- if eq (.cluster_network.pods.cidrBlocks | first | ipFamily) "IPv4" }}
+      {{- .cluster_network.pods.cidrBlocks | first }}
+    {{- end }}
+  ipv4_block_size: 24
+  ipv6_support: |
+    {{- eq (.cluster_network.pods.cidrBlocks | last | ipFamily) "IPv6" }}
+  ipv6_pods_cidr: |
+    {{- if eq (.cluster_network.pods.cidrBlocks | last | ipFamily) "IPv6" }}
+      {{- .cluster_network.pods.cidrBlocks | last }}
+    {{- end }}
+  ipv6_block_size: 120
+  kube_svc_cidr: |
+    {{ .cluster_network.service.cidrBlocks | join "," }}
+  calico:
+    values: |
+      # calico helm values
+      installation:
+        registry: {{ .dockerio_registry }}
+        calicoNetwork:
+          bgp: Enabled
+  cilium:
+    values: |
+      # cilium helm values 
+      image:
+        repository: {{ .quayio_registry }}/cilium/cilium-cli
+      certgen:
+        image:
+          repository: {{ .quayio_registry }}/cilium/certgen
+      hubble:
+        relay:
+          image:
+            repository: {{ .quayio_registry }}/cilium/hubble-relay-ci
+        ui:
+          backend:
+            image:
+              repository: {{ .quayio_registry }}/cilium/hubble-ui-backend
+          frontend:
+            image:
+              repository: {{ .quayio_registry }}/cilium/hubble-ui
+      envoy:
+        image:
+          repository: {{ .quayio_registry }}/cilium/cilium-envoy
+      operator:
+        replicas: 2
+        image:
+          repository: {{ .quayio_registry }}/cilium/operator
+      nodeinit:
+        image:
+          repository: {{ .quayio_registry }}/cilium/startup-script
+      preflight:
+        image:
+          repository: {{ .quayio_registry }}/cilium/cilium-ci
+      clustermesh:
+        apiserver:
+          image:
+            repository: {{ .quayio_registry }}/cilium/clustermesh-apiserver-ci
+      authentication:
+        mutual:
+          spire:
+            install:
+              initImage:
+                repository: {{ .dockerio_registry }}/library/busybox
+            agent:
+              image:
+                repository: {{ .ghcrio_registry }}/spiffe/spire-agent
+            server:
+              image:
+                repository: {{ .ghcrio_registry }}/spiffe/spire-server
+      ipv4:
+        enabled: {{ .cni.ipv4_support }}
+      ipv6:
+        enabled: {{ .cni.ipv6_support }}
+      ipam:
+        operator:
+      {{- if .cni.ipv4_support }}
+          clusterPoolIPv4PodCIDRList:
+            - {{ .cni.ipv4_pods_cidr }}
+          clusterPoolIPv4MaskSize: {{ .cni.ipv4_block_size }}
+      {{- end }}
+      {{- if .cni.ipv6_support }}
+          clusterPoolIPv6PodCIDRList:
+            - {{ .cni.ipv6_pods_cidr }}
+          clusterPoolIPv6MaskSize: {{ .cni.ipv6_block_size }}
+      {{- end }}
+      {{- if not (.kubernetes.kube_proxy.enabled | default true) }}
+      kubeProxyReplacement: "true"
+      k8sServiceHost: {{ .kubernetes.control_plane_endpoint.host }}
+      k8sServicePort: {{ .kubernetes.control_plane_endpoint.port }}
+      {{- end }}
+  flannel:
+    # https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md
+    values: |
+      # flannel helm values 
+      podCidr: {{ .cni.ipv4_pod_cidr }}
+      podCidrv6: {{ .cni.ipv6_pod_cidr }}
+      flannel:
+        image:
+          repository: {{ .dockerio_registry }}/flannel/flannel
+        image_cni:
+          repository: {{ .dockerio_registry }}/flannel/flannel-cni-plugin
+        # support "vxlan" and "host-gw"
+        backend: vxlan

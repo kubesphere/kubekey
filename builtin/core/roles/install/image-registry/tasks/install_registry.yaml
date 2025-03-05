@@ -1,0 +1,66 @@
+---
+- name: Sync registry image to remote
+  copy:
+    src: |
+      {{ .binary_dir }}/image-registry/registry/{{ .registry_version }}/{{ .binary_type.stdout }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
+    dest: |
+      /opt/registry/{{ .registry_version }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
+
+- name: Mount NFS dir
+  command: |
+    {{- if .os.release.ID_LIKE | eq "debian" }}
+    yum update && yum install -y nfs-utils
+    {{- else if .os.release.ID_LIKE | eq "rhel fedora" }}
+    apt update && apt install -y nfs-common
+    {{- end }}
+    {{- if }}
+    {{- $internalIPv4 := index .inventory_hosts (.groups.nfs | default list | first) "internal_ipv4" | default "" }}
+    {{- $internalIPv6 := index .inventory_hosts (.groups.nfs | default list | first) "internal_ipv6" | default "" }}
+    {{- if ne $internalIPv4 "" }}
+    mount -t nfs {{ $internalIPv4 }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registry.registry.storage.filesystem.rootdir }}
+    {{- else if ne $internalIPv6 "" }}
+      {{ $internalIPv6 }}
+    mount -t nfs {{ $internalIPv6 }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registry.registry.storage.filesystem.rootdir }}
+    {{- end }}
+  when:
+    - and .image_registry.registry.storage.filesystem.nfs_mount (ne .image_registry.registry.storage.filesystem.nfs_mount "")
+    - .groups.nfs | default list | len | eq 1
+    - .image_registry_service.stderr | ne ""
+
+- name: Load registry image
+  command: |
+    docker load -i /opt/registry/{{ .registry_version }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
+
+- name: Sync image registry cert file to remote
+  copy:
+    src: |
+      {{ .binary_dir }}/pki/image_registry.crt
+    dest: |
+      /opt/registry/{{ .registry_version }}/ssl/server.crt
+
+- name: Sync image registry key file to remote
+  copy:
+    src: |
+      {{ .binary_dir }}/pki/image_registry.key
+    dest: |
+      /opt/registry/{{ .registry_version }}/ssl/server.key
+
+- name: Generate registry docker compose
+  template:
+    src: registry.docker-compose
+    dest: |
+      /opt/registry/{{ .registry_version }}/docker-compose.yml
+
+- name: Generate registry config
+  template:
+    src: registry.config
+    dest: |
+      /opt/registry/{{ .registry_version }}/config.yml
+
+- name: Register registry service
+  copy:
+    src: registry.service
+    dest: /etc/systemd/system/registry.service
+
+- name: Start registry service
+  command: systemctl daemon-reload && systemctl start registry.service && systemctl enable registry.service

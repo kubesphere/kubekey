@@ -1,0 +1,79 @@
+---
+- name: Sync repository
+  block:
+    - name: Sync repository file
+      ignore_errors: true
+      copy:
+        src: |
+          {{ .binary_dir }}/repository/{{ .os.release.ID_LIKE }}-{{ .os.release.VERSION_ID }}-{{ .binary_type.stdout }}.iso
+        dest: |
+          {{ .tmp_dir }}/repository.iso
+    - name: Mount iso file
+      command: |
+        if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+          mount -t iso9660 -o loop {{ .tmp_dir }}/repository.iso {{ .tmp_dir }}/iso
+        fi
+  rescue:
+    - name: Unmount iso file
+      command: |
+        if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+          umount {{ .tmp_dir }}/iso
+        fi
+
+- name: Init repository
+  block:
+    - name: Init debian repository
+      command: |
+        now=$(date +"%Y-%m-%d %H:%M:%S")
+        if [ -f "{{ .tmp_dir }}/repository.iso" ];then
+          # backup
+          mv /etc/apt/sources.list /etc/apt/sources.list.kubekey-$now.bak
+          mv /etc/apt/sources.list.d /etc/apt/sources.list.d.kubekey-$now.bak
+          mkdir -p /etc/apt/sources.list.d
+          # add repository
+          rm -rf /etc/apt/sources.list.d/*
+          echo 'deb [trusted=yes]  file://{{ .tmp_dir }}/iso /' > /etc/apt/sources.list.d/kubekey.list
+          # update repository
+          apt-get update
+          # install
+          apt install -y socat conntrack ipset ebtables chrony ipvsadm
+          # reset repository
+          rm -rf /etc/apt/sources.list.d
+          mv /etc/apt/sources.list.kubekey.bak-$now /etc/apt/sources.list
+          mv /etc/apt/sources.list.d.kubekey.bak-$now /etc/apt/sources.list.d
+        else
+          apt-get update && apt install -y socat conntrack ipset ebtables chrony ipvsadm
+        fi
+      when: .os.release.ID_LIKE | eq "debian"
+    - name: Init rhel repository
+      command: |
+        now=$(date +"%Y-%m-%d %H:%M:%S")
+        if [ -f "{{ .tmp_dir }}/repository.iso" ];then
+          # backup
+          mv /etc/yum.repos.d /etc/yum.repos.d.kubekey-$now.bak
+          mkdir -p /etc/yum.repos.d
+          # add repository
+          rm -rf /etc/yum.repos.d/*
+          cat << EOF > /etc/yum.repos.d/CentOS-local.repo
+        [base-local]
+        name=rpms-local
+      
+        baseurl=file://{{ .tmp_dir }}/repository.iso
+      
+        enabled=1 
+      
+        gpgcheck=0
+      
+        EOF
+          # update repository
+          yum clean all && yum makecache
+          # install
+          yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
+          # reset repository
+          rm -rf /etc/yum.repos.d
+          mv /etc/yum.repos.d.kubekey.bak-$now /etc/yum.repos.d
+        else
+          # install
+          yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
+        fi
+      when: .os.release.ID_LIKE | eq "\"rhel fedora\""

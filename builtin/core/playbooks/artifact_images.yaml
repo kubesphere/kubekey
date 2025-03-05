@@ -1,0 +1,15 @@
+---
+- import_playbook: hook/pre_install.yaml
+
+- hosts:
+    - localhost
+  tags: ["always"]
+  roles:
+    - role: init/init-artifact
+      tags: ["always"]
+    - role: init/init-cert
+      tags: ["always"]
+    - role: install/image-registry
+      tags: ["always"]
+
+- import_playbook: hook/post_install.yaml

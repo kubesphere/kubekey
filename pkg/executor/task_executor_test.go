@@ -3,12 +3,13 @@ package executor
 import (
 	"context"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 )
 
 func TestTaskExecutor(t *testing.T) {
@@ -59,11 +60,14 @@ func TestTaskExecutor(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
 
 			if err := (&taskExecutor{
-				option: o,
-				task:   tc.task,
-			}).Exec(context.TODO()); err != nil {
+				option:         o,
+				task:           tc.task,
+				taskRunTimeout: 10 * time.Second,
+			}).Exec(ctx); err != nil {
 				t.Fatal(err)
 			}
 		})

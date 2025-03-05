@@ -1,0 +1,19 @@
+---
+- name: Sync hybridnet helm chart to remote
+  copy:
+    src: |
+      {{ .binary_dir }}/cni/hybridnet-{{ .hybridnet_version }}.tgz
+    dest: |
+      /etc/kubernetes/cni/hybridnet-{{ .hybridnet_version }}.tgz
+
+- name: Generate hybridnet custom value file
+  copy:
+    content: |
+      {{ .cni.hybridnet.values }}
+    dest: |
+      /etc/kubernetes/cni/hybridnet-values.yaml
+
+# https://artifacthub.io/packages/helm/hybridnet/hybridnet
+- name: Install hybridnet
+  command: |
+    helm install --namespace kube-system hybridnet /etc/kubernetes/cni/hybridnet-{{ .hybridnet_version }}.tgz -f /etc/kubernetes/cni/hybridnet-values.yaml

@@ -25,19 +25,19 @@ import (
 	"strings"
 	"time"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
-// combineVariables merge multiple variables into one variable
+// CombineVariables merge multiple variables into one variable
 // v2 will override v1 if variable is repeated
-func combineVariables(m1, m2 map[string]any) map[string]any {
+func CombineVariables(m1, m2 map[string]any) map[string]any {
 	var f func(val1, val2 any) any
 	f = func(val1, val2 any) any {
 		if val1 != nil && val2 != nil &&
@@ -69,13 +69,27 @@ func combineVariables(m1, m2 map[string]any) map[string]any {
 	return mv
 }
 
-func convertGroup(inv kkcorev1.Inventory) map[string]any {
+// ConvertGroup converts the inventory into a map of groups with their respective hosts.
+// It ensures that all hosts are included in the "all" group and adds a default localhost if not present.
+// It also creates an "ungrouped" group for hosts that are not part of any specific group.
+//
+// Parameters:
+//
+//	inv (kkcorev1.Inventory): The inventory containing hosts and groups specifications.
+//
+// Returns:
+//
+//	map[string]any: A map where keys are group names and values are lists of hostnames.
+func ConvertGroup(inv kkcorev1.Inventory) map[string]any {
 	groups := make(map[string]any)
 	all := make([]string, 0)
 
 	for hn := range inv.Spec.Hosts {
 		all = append(all, hn)
 	}
+
+	ungrouped := make([]string, len(all))
+	copy(ungrouped, all)
 
 	if !slices.Contains(all, _const.VariableLocalHost) { // set default localhost
 		all = append(all, _const.VariableLocalHost)
@@ -84,19 +98,28 @@ func convertGroup(inv kkcorev1.Inventory) map[string]any {
 	groups[_const.VariableGroupsAll] = all
 
 	for gn := range inv.Spec.Groups {
-		groups[gn] = hostsInGroup(inv, gn)
+		groups[gn] = HostsInGroup(inv, gn)
+		if hosts, ok := groups[gn].([]string); ok {
+			for _, v := range hosts {
+				if slices.Contains(ungrouped, v) {
+					ungrouped = slices.Delete(ungrouped, slices.Index(ungrouped, v), slices.Index(ungrouped, v)+1)
+				}
+			}
+		}
 	}
+
+	groups[_const.VariableUnGrouped] = ungrouped
 
 	return groups
 }
 
-// hostsInGroup get a host_name slice in a given group
+// HostsInGroup get a host_name slice in a given group
 // if the given group contains other group. convert other group to host_name slice.
-func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
+func HostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
 	if v, ok := inv.Spec.Groups[groupName]; ok {
 		var hosts []string
 		for _, cg := range v.Groups {
-			hosts = mergeSlice(hostsInGroup(inv, cg), hosts)
+			hosts = mergeSlice(HostsInGroup(inv, cg), hosts)
 		}
 
 		return mergeSlice(hosts, v.Hosts)
@@ -211,26 +234,6 @@ func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) e
 	return nil
 }
 
-// setlocalhostVarialbe set default vars when hostname is "localhost"
-func setlocalhostVarialbe(hostname string, v value, hostVars map[string]any) {
-	if hostname == _const.VariableLocalHost {
-		if os, ok := v.Hosts[hostname].RemoteVars[_const.VariableOS]; ok {
-			// try to set hostname by current actual hostname.
-			if osd, ok := os.(map[string]any); ok {
-				hostVars[_const.VariableHostName] = osd[_const.VariableOSHostName]
-			}
-		}
-
-		if _, ok := hostVars[_const.VariableIPv4]; !ok {
-			hostVars[_const.VariableIPv4] = getLocalIP(_const.VariableIPv4)
-		}
-
-		if _, ok := hostVars[_const.VariableIPv6]; !ok {
-			hostVars[_const.VariableIPv6] = getLocalIP(_const.VariableIPv6)
-		}
-	}
-}
-
 // getLocalIP get the ipv4 or ipv6 for localhost machine
 func getLocalIP(ipType string) string {
 	addrs, err := net.InterfaceAddrs()
@@ -339,7 +342,12 @@ func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return ptr.To(int(v.Int())), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return ptr.To(int(v.Uint())), nil
+		u := v.Uint()
+		if u > uint64(^uint(0)>>1) {
+			return nil, fmt.Errorf("variable \"%s\" value %d overflows int", key, u)
+		}
+
+		return ptr.To(int(u)), nil
 	case reflect.Float32, reflect.Float64:
 		return ptr.To(int(v.Float())), nil
 	case reflect.String:

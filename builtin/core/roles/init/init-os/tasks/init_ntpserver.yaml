@@ -1,0 +1,51 @@
+---
+- name: Configure ntp server
+  command: |
+    chronyConfigFile={{ if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}"/etc/chrony/chrony.conf"{{ else }}"/etc/chrony.conf"{{ end }}
+    # clear old server
+    sed -i '/^server/d' $chronyConfigFile
+    sed -i 's/^pool /#pool /g' $chronyConfigFile
+    sed -i '/^allow/d' $chronyConfigFile
+    sed -i '/^local/d' $chronyConfigFile
+    # add base config
+    echo "allow 0.0.0.0/0" >> $chronyConfigFile
+    echo "allow ::/0" >> $chronyConfigFile
+    echo "local stratum 10" >> $chronyConfigFile
+    # add server config
+    {{- range $server := .ntp.servers }}
+      {{- $internalIPv4 := "" }}
+      {{- $internalIPv6 := "" }}
+      {{- range $.inventory_hosts }}
+        {{- if eq .hostname $server }}
+          {{- $internalIPv4 = .internal_ipv4 | default "" }}
+          {{- $internalIPv6 = .internal_ipv6 | default "" }}
+        {{- end }}
+      {{- end }}
+    # add ntp server: {{ $server }}
+      {{- if $internalIPv4 }}
+    grep -q '^server {{ $internalIPv4 }} iburst' $chronyConfigFile || sed '1a server {{ $internalIPv4 }} iburst' -i $chronyConfigFile
+      {{- end }}
+      {{- if $internalIPv6 }}
+    grep -q '^server {{ $internalIPv6 }} iburst' $chronyConfigFile || sed '1a server [{{ $internalIPv6 }}] iburst' -i $chronyConfigFile
+      {{- end }}
+      {{- if and (eq $internalIPv4 "") (eq $internalIPv6 "") }}
+    grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
+      {{- end }}      
+    {{- end }}
+  when:
+    - .ntp.enabled
+    - .ntp.servers | len | lt 0
+
+- name: Set timezone
+  command: |
+    timedatectl set-timezone {{ .timezone }}
+    timedatectl set-ntp {{ and .ntp.enabled (.ntp.servers | len | lt 0) }}
+  when: or (and .ntp.enabled (.ntp.servers | len | lt 0)) (.timezone | ne "")
+
+- name: Restart ntp server
+  command: |
+    {{- if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}
+    systemctl restart chrony.service
+    {{- end }}
+    systemctl restart chronyd.service
+  when: or (and .ntp.enabled (.ntp.servers | len | lt 0)) (.timezone | ne "")

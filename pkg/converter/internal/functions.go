@@ -1,13 +1,17 @@
 package internal
 
 import (
+	"fmt"
 	"math"
+	"net"
 	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"gopkg.in/yaml.v3"
 )
+
+// default function docs: http://masterminds.github.io/sprig
 
 // Template parse file or vars which defined in project.
 var Template = template.New("kubekey").Funcs(funcMap())
@@ -19,6 +23,7 @@ func funcMap() template.FuncMap {
 	// add custom function
 	f["toYaml"] = toYAML
 	f["ipInCIDR"] = ipInCIDR
+	f["ipFamily"] = ipFamily
 	f["pow"] = pow
 
 	return f
@@ -52,6 +57,26 @@ func ipInCIDR(index int, cidr string) (string, error) {
 	index = min(index, len(ips)-1)
 
 	return ips[index], nil
+}
+
+// ipFamily returns the IP family (IPv4 or IPv6) of the given IP address or IP cidr.
+func ipFamily(addrOrCIDR string) (string, error) {
+	// from IP address
+	var ip = net.ParseIP(addrOrCIDR)
+	if ip == nil {
+		// from IP cidr
+		ipFromCIDR, _, err := net.ParseCIDR(addrOrCIDR)
+		if err != nil {
+			return "Invalid", fmt.Errorf("%s is not ip or cidr", addrOrCIDR)
+		}
+		ip = ipFromCIDR
+	}
+
+	if ip.To4() != nil {
+		return "IPv4", nil
+	}
+
+	return "IPv6", nil
 }
 
 // pow Get the "pow" power of "base". (base ** pow)

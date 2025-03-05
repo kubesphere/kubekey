@@ -1,0 +1,19 @@
+---
+- name: check cni by helm
+  command: helm list -a -A -q -o json 2>/dev/null
+  register: installed_helm_packages
+
+- include_tasks: calico.yaml
+  when: 
+    - .cni.type | eq "calico"
+    - .installed_helm_packages.stdout | has "calico" | not
+
+- include_tasks: flannel.yaml
+  when:
+    - .cni.type | eq "flannel"
+    - .installed_helm_packages.stdout | has "flannel" | not
+
+- include_tasks: cilium.yaml
+  when:
+    - .cni.type | eq "cilium"
+    - .installed_helm_packages.stdout | has "cilium" | not
