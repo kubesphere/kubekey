@@ -24,35 +24,131 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+func TestGetHostnames(t *testing.T) {
+	testcases := []struct {
+		name     string
+		hosts    []string
+		variable Variable
+		except   []string
+	}{
+		{
+			name:  "host value",
+			hosts: []string{"n1"},
+			variable: &variable{
+				value: &value{
+					Inventory: kkcorev1.Inventory{
+						Spec: kkcorev1.InventorySpec{
+							Hosts: map[string]runtime.RawExtension{
+								"node1": {},
+								"node2": {},
+							},
+						},
+					},
+					Hosts: map[string]host{
+						"n1": {},
+						"n2": {},
+					},
+				},
+			},
+			except: []string{"n1"},
+		},
+		{
+			name:  "group value",
+			hosts: []string{"g1"},
+			variable: &variable{
+				value: &value{
+					Inventory: kkcorev1.Inventory{
+						Spec: kkcorev1.InventorySpec{
+							Hosts: map[string]runtime.RawExtension{
+								"n1": {},
+								"n2": {},
+							},
+							Groups: map[string]kkcorev1.InventoryGroup{
+								"g1": {
+									Hosts: []string{"n1"},
+								},
+							},
+						},
+					},
+					Hosts: map[string]host{
+						"n1": {},
+						"n2": {},
+					},
+				},
+			},
+			except: []string{"n1"},
+		},
+		{
+			name:  "group index value",
+			hosts: []string{"g1[0]"},
+			variable: &variable{
+				value: &value{
+					Inventory: kkcorev1.Inventory{
+						Spec: kkcorev1.InventorySpec{
+							Hosts: map[string]runtime.RawExtension{
+								"n1": {},
+								"n2": {},
+							},
+							Groups: map[string]kkcorev1.InventoryGroup{
+								"g1": {
+									Hosts: []string{"n1", "n2"},
+								},
+							},
+						},
+					},
+					Hosts: map[string]host{
+						"n1": {},
+						"n2": {},
+					},
+				},
+			},
+			except: []string{"n1"},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := tc.variable.Get(GetHostnames(tc.hosts))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, tc.except, result)
+		})
+	}
+}
+
 func TestGetAllVariable(t *testing.T) {
 	testcases := []struct {
-		name   string
-		value  *value
-		except map[string]any
+		name     string
+		variable Variable
+		except   map[string]any
 	}{
 		{
 			name: "global override runtime variable",
-			value: &value{
-				Config: kkcorev1.Config{
-					Spec: runtime.RawExtension{
-						Raw: []byte(`{
+			variable: &variable{
+				value: &value{
+					Config: kkcorev1.Config{
+						Spec: runtime.RawExtension{
+							Raw: []byte(`{
 "artifact": {
   "images": [ "abc" ]
 }
 }`)},
-				},
-				Inventory: kkcorev1.Inventory{
-					Spec: kkcorev1.InventorySpec{
-						Hosts: map[string]runtime.RawExtension{
-							"localhost": {Raw: []byte(`{
+					},
+					Inventory: kkcorev1.Inventory{
+						Spec: kkcorev1.InventorySpec{
+							Hosts: map[string]runtime.RawExtension{
+								"localhost": {Raw: []byte(`{
 "internal_ipv4": "127.0.0.1",
 "internal_ipv6": "::1"
 }`)},
+							},
 						},
 					},
-				},
-				Hosts: map[string]host{
-					"localhost": {},
+					Hosts: map[string]host{
+						"localhost": {},
+					},
 				},
 			},
 			except: map[string]any{
@@ -81,9 +177,72 @@ func TestGetAllVariable(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			v := variable{value: tc.value}
+			result, err := tc.variable.Get(GetAllVariable("localhost"))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			result, err := v.Get(GetAllVariable("localhost"))
+			assert.Equal(t, tc.except, result)
+		})
+	}
+}
+
+func TestGetHostMaxLength(t *testing.T) {
+	testcases := []struct {
+		name     string
+		variable Variable
+		except   int
+	}{
+		{
+			name: "length",
+			variable: &variable{
+				value: &value{
+					Hosts: map[string]host{
+						"n1":  {},
+						"n22": {},
+					},
+				},
+			},
+			except: 3,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := tc.variable.Get(GetHostMaxLength())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, tc.except, result)
+		})
+	}
+}
+
+func TestGetWorkdir(t *testing.T) {
+	testcases := []struct {
+		name     string
+		variable Variable
+		except   string
+	}{
+		{
+			name: "workdir",
+			variable: &variable{
+				value: &value{
+					Config: kkcorev1.Config{
+						Spec: runtime.RawExtension{
+							Raw: []byte("{\"work_dir\": \"abc\"}"),
+						},
+					},
+				},
+			},
+			except: "abc",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := tc.variable.Get(GetWorkDir())
 			if err != nil {
 				t.Fatal(err)
 			}
