@@ -50,7 +50,7 @@ var GetHostnames = func(name []string) GetFunc {
 			}
 
 			// Add the specified host in the specified group to the hs.
-			regexForIndex := regexp.MustCompile(`^(.*)\[\d\]$`)
+			regexForIndex := regexp.MustCompile(`^(.*?)\[(\d+)\]$`)
 			if match := regexForIndex.FindStringSubmatch(strings.TrimSpace(n)); match != nil {
 				index, err := strconv.Atoi(match[2])
 				if err != nil {
