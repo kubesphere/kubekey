@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,6 +43,11 @@ func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]
 	args := variable.Extension2Variables(raw)
 	if aa.that, err = variable.StringSliceVar(vars, args, "that"); err != nil {
 		return nil, errors.New("\"that\" should be []string or string")
+	}
+	for i, s := range aa.that {
+		if !kkprojectv1.IsTmplSyntax(s) {
+			aa.that[i] = kkprojectv1.ParseTmplSyntax(s)
+		}
 	}
 	aa.successMsg, _ = variable.StringVar(vars, args, "success_msg")
 	if aa.successMsg == "" {
@@ -71,15 +77,15 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 		return "", err.Error()
 	}
 
-	ok, err := tmpl.ParseBool(ha, aa.that)
+	ok, err := tmpl.ParseBool(ha, aa.that...)
 	if err != nil {
 		return "", fmt.Sprintf("parse \"that\" error: %v", err)
 	}
 	// condition is true
 	if ok {
-		r, err := tmpl.ParseString(ha, aa.successMsg)
+		r, err := tmpl.Parse(ha, aa.successMsg)
 		if err == nil {
-			return r, ""
+			return string(r), ""
 		}
 		klog.V(4).ErrorS(err, "parse \"success_msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
 
@@ -87,17 +93,17 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 	}
 	// condition is false and fail_msg is not empty
 	if aa.failMsg != "" {
-		r, err := tmpl.ParseString(ha, aa.failMsg)
+		r, err := tmpl.Parse(ha, aa.failMsg)
 		if err == nil {
-			return StdoutFalse, r
+			return StdoutFalse, string(r)
 		}
 		klog.V(4).ErrorS(err, "parse \"fail_msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
 	}
 	// condition is false and msg is not empty
 	if aa.msg != "" {
-		r, err := tmpl.ParseString(ha, aa.msg)
+		r, err := tmpl.Parse(ha, aa.msg)
 		if err == nil {
-			return StdoutFalse, r
+			return StdoutFalse, string(r)
 		}
 		klog.V(4).ErrorS(err, "parse \"msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
 	}

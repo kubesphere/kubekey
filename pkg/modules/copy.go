@@ -101,44 +101,57 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 
 // copySrc copy src file to dest
 func (ca copyArgs) copySrc(ctx context.Context, options ExecOptions, conn connector.Connector) (string, string) {
-	if filepath.IsAbs(ca.src) { // if src is absolute path. find it in local path
+	dealAbsoluteFilePath := func() (string, string) {
 		fileInfo, err := os.Stat(ca.src)
 		if err != nil {
 			return "", fmt.Sprintf(" get src file %s in local path error: %v", ca.src, err)
 		}
-
 		if fileInfo.IsDir() { // src is dir
 			if err := ca.absDir(ctx, conn); err != nil {
 				return "", fmt.Sprintf("sync copy absolute dir error %s", err)
 			}
 		} else { // src is file
-			if err := ca.absFile(ctx, fileInfo.Mode(), conn); err != nil {
+			data, err := os.ReadFile(ca.src)
+			if err != nil {
+				return "", fmt.Sprintf("read file error: %s", err)
+			}
+			if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
 				return "", fmt.Sprintf("sync copy absolute dir error %s", err)
 			}
 		}
-	} else { // if src is not absolute path. find file in project
+
+		return StdoutSuccess, ""
+	}
+	dealRelativeFilePath := func() (string, string) {
 		pj, err := project.New(ctx, options.Pipeline, false)
 		if err != nil {
 			return "", fmt.Sprintf("get project error: %v", err)
 		}
-
 		fileInfo, err := pj.Stat(ca.src, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
 		if err != nil {
 			return "", fmt.Sprintf("get file %s from project error %v", ca.src, err)
 		}
-
 		if fileInfo.IsDir() {
 			if err := ca.relDir(ctx, pj, options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole], conn); err != nil {
 				return "", fmt.Sprintf("sync copy relative dir error %s", err)
 			}
 		} else {
-			if err := ca.relFile(ctx, pj, options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole], fileInfo.Mode(), conn); err != nil {
+			data, err := pj.ReadFile(ca.src, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
+			if err != nil {
+				return "", fmt.Sprintf("read file error: %s", err)
+			}
+			if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
 				return "", fmt.Sprintf("sync copy relative dir error %s", err)
 			}
 		}
-	}
 
-	return StdoutSuccess, ""
+		return StdoutSuccess, ""
+	}
+	if filepath.IsAbs(ca.src) { // if src is absolute path. find it in local path
+		return dealAbsoluteFilePath()
+	}
+	// if src is not absolute path. find file in project
+	return dealRelativeFilePath()
 }
 
 // copyContent convert content param and copy to dest
@@ -156,29 +169,6 @@ func (ca copyArgs) copyContent(ctx context.Context, mode fs.FileMode, conn conne
 	}
 
 	return StdoutSuccess, ""
-}
-
-// relFile when copy.src is relative dir, get all files from project, and copy to remote.
-func (ca copyArgs) relFile(ctx context.Context, pj project.Project, role string, mode fs.FileMode, conn connector.Connector) any {
-	data, err := pj.ReadFile(ca.src, project.GetFileOption{IsFile: true, Role: role})
-	if err != nil {
-		return fmt.Errorf("read file error: %w", err)
-	}
-
-	dest := ca.dest
-	if strings.HasSuffix(ca.dest, "/") {
-		dest = filepath.Join(ca.dest, filepath.Base(ca.src))
-	}
-
-	if ca.mode != nil {
-		mode = os.FileMode(*ca.mode)
-	}
-
-	if err := conn.PutFile(ctx, data, dest, mode); err != nil {
-		return fmt.Errorf("copy file error: %w", err)
-	}
-
-	return nil
 }
 
 // relDir when copy.src is relative dir, get all files from project, and copy to remote.
@@ -228,12 +218,7 @@ func (ca copyArgs) relDir(ctx context.Context, pj project.Project, role string, 
 }
 
 // absFile when copy.src is absolute file, get file from os, and copy to remote.
-func (ca copyArgs) absFile(ctx context.Context, mode fs.FileMode, conn connector.Connector) error {
-	data, err := os.ReadFile(ca.src)
-	if err != nil {
-		return fmt.Errorf("read file error: %w", err)
-	}
-
+func (ca copyArgs) readFile(ctx context.Context, data []byte, mode fs.FileMode, conn connector.Connector) error {
 	dest := ca.dest
 	if strings.HasSuffix(ca.dest, "/") {
 		dest = filepath.Join(ca.dest, filepath.Base(ca.src))

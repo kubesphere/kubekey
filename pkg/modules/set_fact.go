@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 
@@ -41,15 +40,15 @@ func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
 		case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 			args[k] = val
 		case string:
-			sv, err := tmpl.ParseString(ha, val)
+			sv, err := tmpl.Parse(ha, val)
 			if err != nil {
 				return "", fmt.Sprintf("parse %q error: %v", k, err)
 			}
 			var ssvResult any
-			if (strings.HasPrefix(sv, "{") || strings.HasPrefix(sv, "[")) && (strings.HasSuffix(sv, "}") || strings.HasSuffix(sv, "]")) {
-				_ = json.Unmarshal([]byte(sv), &ssvResult)
+			if json.Valid(sv) {
+				_ = json.Unmarshal(sv, &ssvResult)
 			} else {
-				_ = yaml.Unmarshal([]byte(sv), &ssvResult)
+				_ = yaml.Unmarshal(sv, &ssvResult)
 			}
 			args[k] = ssvResult
 		default:

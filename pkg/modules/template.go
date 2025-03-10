@@ -97,7 +97,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 	}
 	defer conn.Close(ctx)
 
-	if filepath.IsAbs(ta.src) {
+	dealAbsoluteFilePath := func() (string, string) {
 		fileInfo, err := os.Stat(ta.src)
 		if err != nil {
 			return "", fmt.Sprintf(" get src file %s in local path error: %v", ta.src, err)
@@ -108,11 +108,18 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				return "", fmt.Sprintf("sync template absolute dir error %s", err)
 			}
 		} else { // src is file
-			if err := ta.absFile(ctx, fileInfo.Mode(), conn, ha); err != nil {
+			data, err := os.ReadFile(ta.src)
+			if err != nil {
+				return "", fmt.Sprintf("read file error: %s", err)
+			}
+			if err := ta.readFile(ctx, string(data), fileInfo.Mode(), conn, ha); err != nil {
 				return "", fmt.Sprintf("sync template absolute file error %s", err)
 			}
 		}
-	} else {
+
+		return StdoutSuccess, ""
+	}
+	dealRelativeFilePath := func() (string, string) {
 		pj, err := project.New(ctx, options.Pipeline, false)
 		if err != nil {
 			return "", fmt.Sprintf("get project error: %v", err)
@@ -128,23 +135,27 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 				return "", fmt.Sprintf("sync template relative dir error: %s", err)
 			}
 		} else {
-			if err := ta.relFile(ctx, pj, options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole], fileInfo.Mode(), conn, ha); err != nil {
+			data, err := pj.ReadFile(ta.src, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
+			if err != nil {
+				return "", fmt.Sprintf("read file error: %s", err)
+			}
+			if err := ta.readFile(ctx, string(data), fileInfo.Mode(), conn, ha); err != nil {
 				return "", fmt.Sprintf("sync template relative dir error: %s", err)
 			}
 		}
+
+		return StdoutSuccess, ""
+	}
+	if filepath.IsAbs(ta.src) {
+		return dealAbsoluteFilePath()
 	}
 
-	return StdoutSuccess, ""
+	return dealRelativeFilePath()
 }
 
 // relFile when template.src is relative file, get file from project, parse it, and copy to remote.
-func (ta templateArgs) relFile(ctx context.Context, pj project.Project, role string, mode fs.FileMode, conn connector.Connector, vars map[string]any) any {
-	data, err := pj.ReadFile(ta.src, project.GetFileOption{IsTemplate: true, Role: role})
-	if err != nil {
-		return fmt.Errorf("read file error: %w", err)
-	}
-
-	result, err := tmpl.ParseString(vars, string(data))
+func (ta templateArgs) readFile(ctx context.Context, data string, mode fs.FileMode, conn connector.Connector, vars map[string]any) any {
+	result, err := tmpl.Parse(vars, data)
 	if err != nil {
 		return fmt.Errorf("parse file error: %w", err)
 	}
@@ -158,7 +169,7 @@ func (ta templateArgs) relFile(ctx context.Context, pj project.Project, role str
 		mode = os.FileMode(*ta.mode)
 	}
 
-	if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
+	if err := conn.PutFile(ctx, result, dest, mode); err != nil {
 		return fmt.Errorf("copy file error: %w", err)
 	}
 
@@ -189,7 +200,7 @@ func (ta templateArgs) relDir(ctx context.Context, pj project.Project, role stri
 		if err != nil {
 			return fmt.Errorf("read file error: %w", err)
 		}
-		result, err := tmpl.ParseString(vars, string(data))
+		result, err := tmpl.Parse(vars, string(data))
 		if err != nil {
 			return fmt.Errorf("parse file error: %w", err)
 		}
@@ -203,41 +214,13 @@ func (ta templateArgs) relDir(ctx context.Context, pj project.Project, role stri
 			dest = filepath.Join(ta.dest, rel)
 		}
 
-		if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
+		if err := conn.PutFile(ctx, result, dest, mode); err != nil {
 			return fmt.Errorf("copy file error: %w", err)
 		}
 
 		return nil
 	}); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// absFile when template.src is absolute file, get file by os, parse it, and copy to remote.
-func (ta templateArgs) absFile(ctx context.Context, mode fs.FileMode, conn connector.Connector, vars map[string]any) error {
-	data, err := os.ReadFile(ta.src)
-	if err != nil {
-		return fmt.Errorf("read file error: %w", err)
-	}
-
-	result, err := tmpl.ParseString(vars, string(data))
-	if err != nil {
-		return fmt.Errorf("parse file error: %w", err)
-	}
-
-	dest := ta.dest
-	if strings.HasSuffix(ta.dest, "/") {
-		dest = filepath.Join(ta.dest, filepath.Base(ta.src))
-	}
-
-	if ta.mode != nil {
-		mode = os.FileMode(*ta.mode)
-	}
-
-	if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
-		return fmt.Errorf("copy file error: %w", err)
 	}
 
 	return nil
@@ -267,7 +250,7 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 		if err != nil {
 			return fmt.Errorf("read file error: %w", err)
 		}
-		result, err := tmpl.ParseString(vars, string(data))
+		result, err := tmpl.Parse(vars, string(data))
 		if err != nil {
 			return fmt.Errorf("parse file error: %w", err)
 		}
@@ -281,7 +264,7 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 			dest = filepath.Join(ta.dest, rel)
 		}
 
-		if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
+		if err := conn.PutFile(ctx, result, dest, mode); err != nil {
 			return fmt.Errorf("copy file error: %w", err)
 		}
 

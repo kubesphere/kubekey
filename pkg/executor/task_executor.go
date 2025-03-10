@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v3"
-	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -337,7 +337,7 @@ func (e *taskExecutor) dealLoop(ha map[string]any) []any {
 // dealWhen "when" argument in task.
 func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool {
 	if len(e.task.Spec.When) > 0 {
-		ok, err := tmpl.ParseBool(had, e.task.Spec.When)
+		ok, err := tmpl.ParseBool(had, e.task.Spec.When...)
 		if err != nil {
 			klog.V(5).ErrorS(err, "validate when condition error", "task", ctrlclient.ObjectKeyFromObject(e.task))
 			*stderr = fmt.Sprintf("parse when condition error: %v", err)
@@ -357,7 +357,7 @@ func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool
 // dealFailedWhen "failed_when" argument in task.
 func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string) bool {
 	if len(e.task.Spec.FailedWhen) > 0 {
-		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen)
+		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen...)
 		if err != nil {
 			klog.V(5).ErrorS(err, "validate failed_when condition error", "task", ctrlclient.ObjectKeyFromObject(e.task))
 			*stderr = fmt.Sprintf("parse failed_when condition error: %v", err)
@@ -381,7 +381,7 @@ func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 		var stdoutResult any = stdout
 		var stderrResult any = stderr
 		// try to convert by json or yaml
-		if (strings.HasPrefix(stdout, "{") || strings.HasPrefix(stdout, "[")) && (strings.HasSuffix(stdout, "}") || strings.HasSuffix(stdout, "]")) {
+		if json.Valid([]byte(stdout)) {
 			_ = json.Unmarshal([]byte(stdout), &stdoutResult)
 			_ = json.Unmarshal([]byte(stderr), &stderrResult)
 		} else {

@@ -83,9 +83,6 @@ const ( // === From runtime ===
 )
 
 const ( // === From env ===
-	// ENV_VARIABLE_PARSE_DEPTH Defines the depth of parameter transformation, specifying the number of levels in which parameters can reference other unprocessed parameters.
-	// The default value is 3.
-	ENV_VARIABLE_PARSE_DEPTH = "VARIABLE_PARSE_DEPTH"
 	// ENV_SHELL which shell operator use in local connector.
 	ENV_SHELL = "SHELL"
 	// ENV_EXECUTOR_IMAGE which image use in pipeline pod.

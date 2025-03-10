@@ -26,6 +26,7 @@ import (
 	"time"
 
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
@@ -175,7 +176,7 @@ func parseVariableFromMap(v any, parseTmplFunc func(string) (string, error)) err
 	for _, kv := range reflect.ValueOf(v).MapKeys() {
 		val := reflect.ValueOf(v).MapIndex(kv)
 		if vv, ok := val.Interface().(string); ok {
-			if !tmpl.IsTmplSyntax(vv) {
+			if !kkprojectv1.IsTmplSyntax(vv) {
 				continue
 			}
 
@@ -207,7 +208,7 @@ func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) e
 	for i := range reflect.ValueOf(v).Len() {
 		val := reflect.ValueOf(v).Index(i)
 		if vv, ok := val.Interface().(string); ok {
-			if !tmpl.IsTmplSyntax(vv) {
+			if !kkprojectv1.IsTmplSyntax(vv) {
 				continue
 			}
 
@@ -274,7 +275,7 @@ func StringVar(d map[string]any, args map[string]any, key string) (string, error
 		return "", fmt.Errorf("variable \"%s\" is not string", key)
 	}
 
-	return tmpl.ParseString(d, sv)
+	return tmpl.ParseFunc(d, sv, func(b []byte) string { return string(b) })
 }
 
 // StringSliceVar get string slice value by key
@@ -298,7 +299,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 				return nil, nil
 			}
 
-			as, err := tmpl.ParseString(d, av)
+			as, err := tmpl.ParseFunc(d, av, func(b []byte) string { return string(b) })
 			if err != nil {
 				return nil, err
 			}
@@ -308,7 +309,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 
 		return ss, nil
 	case string:
-		as, err := tmpl.ParseString(d, valv)
+		as, err := tmpl.Parse(d, valv)
 		if err != nil {
 			klog.V(4).ErrorS(err, "parse variable error", "key", key)
 
@@ -316,11 +317,11 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 		}
 
 		var ss []string
-		if err := json.Unmarshal([]byte(as), &ss); err == nil {
+		if err := json.Unmarshal(as, &ss); err == nil {
 			return ss, nil
 		}
 
-		return []string{as}, nil
+		return []string{string(as)}, nil
 	default:
 		klog.V(4).ErrorS(nil, "unsupported variable type", "key", key)
 
@@ -351,7 +352,7 @@ func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 	case reflect.Float32, reflect.Float64:
 		return ptr.To(int(v.Float())), nil
 	case reflect.String:
-		vs, err := tmpl.ParseString(d, v.String())
+		vs, err := tmpl.ParseFunc(d, v.String(), func(b []byte) string { return string(b) })
 		if err != nil {
 			klog.V(4).ErrorS(err, "parse string variable error", "key", key)
 
@@ -387,20 +388,14 @@ func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 	case reflect.Bool:
 		return ptr.To(v.Bool()), nil
 	case reflect.String:
-		vs, err := tmpl.ParseString(d, v.String())
+		vs, err := tmpl.ParseBool(d, v.String())
 		if err != nil {
 			klog.V(4).ErrorS(err, "parse string variable error", "key", key)
 
 			return nil, err
 		}
 
-		if strings.EqualFold(vs, "TRUE") {
-			return ptr.To(true), nil
-		}
-
-		if strings.EqualFold(vs, "FALSE") {
-			return ptr.To(false), nil
-		}
+		return ptr.To(vs), nil
 	}
 
 	return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
@@ -468,10 +463,10 @@ func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error
 		input = ns
 	}
 
-	result, err := tmpl.ParseString(d, input)
+	result, err := tmpl.Parse(d, input)
 	if err != nil {
 		return "", err
 	}
 
-	return result, nil
+	return string(result), nil
 }
