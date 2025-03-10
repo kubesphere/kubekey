@@ -36,12 +36,23 @@ type When struct {
 func (w *When) UnmarshalYAML(node *yaml.Node) error {
 	switch node.Kind {
 	case yaml.ScalarNode:
-		w.Data = []string{node.Value}
-
-		return nil
+		if IsTmplSyntax(node.Value) {
+			w.Data = []string{node.Value}
+		} else {
+			w.Data = []string{"{{ " + node.Value + " }}"}
+		}
 	case yaml.SequenceNode:
-		return node.Decode(&w.Data)
+		if err := node.Decode(&w.Data); err != nil {
+			return err
+		}
+		for i, v := range w.Data {
+			if !IsTmplSyntax(v) {
+				w.Data[i] = ParseTmplSyntax(node.Value)
+			}
+		}
 	default:
 		return errors.New("unsupported type, excepted string or array of strings")
 	}
+
+	return nil
 }

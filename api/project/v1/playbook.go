@@ -18,6 +18,7 @@ package v1
 
 import (
 	"errors"
+	"strings"
 )
 
 // NOTE:
@@ -46,4 +47,15 @@ func (p *Playbook) Validate() error {
 	p.Play = newPlay
 
 	return nil
+}
+
+// IsTmplSyntax Check if the string conforms to the template syntax.
+func IsTmplSyntax(s string) bool {
+	return strings.Contains(s, "{{") && strings.Contains(s, "}}")
+}
+
+// ParseTmplSyntax wraps a string with template syntax delimiters "{{" and "}}"
+// to make it a valid Go template expression
+func ParseTmplSyntax(s string) string {
+	return "{{ " + s + "}}"
 }

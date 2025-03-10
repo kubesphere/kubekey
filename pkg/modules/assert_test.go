@@ -46,7 +46,7 @@ func TestAssert(t *testing.T) {
 			opt: ExecOptions{
 				Host: "local",
 				Args: runtime.RawExtension{
-					Raw: []byte(`{"that": ["true", "eq .testvalue \"a\""]}`),
+					Raw: []byte(`{"that": ["true", "{{ eq .testvalue \"a\" }}"]}`),
 				},
 				Variable: &testVariable{
 					value: map[string]any{
@@ -61,7 +61,7 @@ func TestAssert(t *testing.T) {
 			opt: ExecOptions{
 				Host: "local",
 				Args: runtime.RawExtension{
-					Raw: []byte(`{"that": ["true", "eq .k1 \"v1\""], "success_msg": "success {{ .k2 }}"}`),
+					Raw: []byte(`{"that": ["true", "{{ eq .k1 \"v1\" }}"], "success_msg": "success {{ .k2 }}"}`),
 				},
 				Variable: &testVariable{
 					value: map[string]any{
@@ -77,7 +77,7 @@ func TestAssert(t *testing.T) {
 			opt: ExecOptions{
 				Host: "local",
 				Args: runtime.RawExtension{
-					Raw: []byte(`{"that": ["true", "eq .k1 \"v2\""]}`),
+					Raw: []byte(`{"that": ["true", "{{ eq .k1 \"v2\" }}"]}`),
 				},
 				Variable: &testVariable{
 					value: map[string]any{
@@ -94,7 +94,7 @@ func TestAssert(t *testing.T) {
 			opt: ExecOptions{
 				Host: "local",
 				Args: runtime.RawExtension{
-					Raw: []byte(`{"that": ["true", "eq .k1 \"v2\""], "fail_msg": "failed {{ .k2 }}"}`),
+					Raw: []byte(`{"that": ["true", "{{ eq .k1 \"v2\" }}"], "fail_msg": "failed {{ .k2 }}"}`),
 				},
 				Variable: &testVariable{
 					value: map[string]any{

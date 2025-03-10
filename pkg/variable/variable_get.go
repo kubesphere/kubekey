@@ -31,7 +31,7 @@ var GetHostnames = func(name []string) GetFunc {
 		var hs []string
 		for _, n := range name {
 			// try parse hostname by Config.
-			if pn, err := tmpl.ParseString(Extension2Variables(vv.value.Config.Spec), n); err == nil {
+			if pn, err := tmpl.ParseFunc(Extension2Variables(vv.value.Config.Spec), n, func(b []byte) string { return string(b) }); err == nil {
 				n = pn
 			}
 			// add host to hs

@@ -281,7 +281,7 @@ func TestParseVariable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := parseVariable(tc.data, func(s string) (string, error) {
 				// parse use total variable. the task variable should not contain template syntax.
-				return tmpl.ParseString(CombineVariables(tc.data, tc.base), s)
+				return tmpl.ParseFunc(CombineVariables(tc.data, tc.base), s, func(b []byte) string { return string(b) })
 			})
 			if err != nil {
 				t.Fatal(err)

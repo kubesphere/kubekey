@@ -3,10 +3,7 @@ package variable
 import (
 	"errors"
 	"fmt"
-	"os"
-	"strconv"
 
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
@@ -51,36 +48,13 @@ var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc 
 			if !ok {
 				return errors.New("variable type error")
 			}
-
-			depth := 3
-			if envDepth, err := strconv.Atoi(os.Getenv(_const.ENV_VARIABLE_PARSE_DEPTH)); err == nil {
-				if envDepth != 0 {
-					depth = envDepth
-				}
+			// parse variable
+			if err := parseVariable(data, runtimeVarParser(v, hostname, data)); err != nil {
+				return err
 			}
-
-			for range depth {
-				// merge to specify host
-				curVariable, err := v.Get(GetAllVariable(hostname))
-				if err != nil {
-					return err
-				}
-				// parse variable
-				if err := parseVariable(data, func(s string) (string, error) {
-					// parse use total variable. the task variable should not contain template syntax.
-					cv, ok := curVariable.(map[string]any)
-					if !ok {
-						return "", errors.New("variable type error")
-					}
-
-					return tmpl.ParseString(CombineVariables(data, cv), s)
-				}); err != nil {
-					return err
-				}
-				hv := vv.value.Hosts[hostname]
-				hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
-				vv.value.Hosts[hostname] = hv
-			}
+			hv := vv.value.Hosts[hostname]
+			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
+			vv.value.Hosts[hostname] = hv
 		}
 
 		return nil
@@ -94,24 +68,10 @@ var MergeAllRuntimeVariable = func(data map[string]any, hostname string) MergeFu
 		if !ok {
 			return errors.New("variable type error")
 		}
-		// merge to specify host
-		curVariable, err := v.Get(GetAllVariable(hostname))
-		if err != nil {
-			return err
-		}
 		// parse variable
-		if err := parseVariable(data, func(s string) (string, error) {
-			// parse use total variable. the task variable should not contain template syntax.
-			cv, ok := curVariable.(map[string]any)
-			if !ok {
-				return "", errors.New("variable type error")
-			}
-
-			return tmpl.ParseString(CombineVariables(data, cv), s)
-		}); err != nil {
+		if err := parseVariable(data, runtimeVarParser(v, hostname, data)); err != nil {
 			return err
 		}
-
 		for h := range vv.value.Hosts {
 			if _, ok := v.(*variable); !ok {
 				return errors.New("variable type error")
@@ -122,5 +82,24 @@ var MergeAllRuntimeVariable = func(data map[string]any, hostname string) MergeFu
 		}
 
 		return nil
+	}
+}
+
+func runtimeVarParser(v Variable, hostname string, data map[string]any) func(string) (string, error) {
+	return func(s string) (string, error) {
+		curVariable, err := v.Get(GetAllVariable(hostname))
+		if err != nil {
+			return "", fmt.Errorf("get host %s variables error: %w", hostname, err)
+		}
+		cv, ok := curVariable.(map[string]any)
+		if !ok {
+			return "", fmt.Errorf("host %s variables type error, expect map[string]any", hostname)
+		}
+
+		return tmpl.ParseFunc(
+			CombineVariables(data, cv),
+			s,
+			func(b []byte) string { return string(b) },
+		)
 	}
 }

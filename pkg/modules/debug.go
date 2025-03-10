@@ -35,12 +35,12 @@ func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
 	args := variable.Extension2Variables(options.Args)
 	// var is defined. return the value of var
 	if varParam, err := variable.StringVar(ha, args, "var"); err == nil {
-		result, err := tmpl.ParseString(ha, fmt.Sprintf("{{ %s }}", varParam))
+		result, err := tmpl.Parse(ha, fmt.Sprintf("{{ %s }}", varParam))
 		if err != nil {
 			return "", fmt.Sprintf("failed to parse var: %v", err)
 		}
 
-		return result, ""
+		return string(result), ""
 	}
 	// msg is defined. return the actual msg
 	if msgParam, err := variable.StringVar(ha, args, "msg"); err == nil {
