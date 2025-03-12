@@ -125,6 +125,7 @@ func (o *CreateClusterOptions) Run() error {
 		Artifact:            o.Artifact,
 		InstallPackages:     o.InstallPackages,
 		Namespace:           o.CommonOptions.Namespace,
+		SkipInstallAddons:   o.SkipInstallAddons,
 	}
 
 	if o.localStorageChanged {
@@ -142,6 +143,7 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.EnableKubeSphere, "with-kubesphere", "", false, fmt.Sprintf("Deploy a specific version of kubesphere (default %s)", kubesphere.Latest().Version))
 	cmd.Flags().BoolVarP(&o.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	cmd.Flags().BoolVarP(&o.SkipPushImages, "skip-push-images", "", false, "Skip pre push images")
+	cmd.Flags().BoolVarP(&o.SkipInstallAddons, "skip-install-addons", "", false, "Skip install addons")
 	cmd.Flags().BoolVarP(&o.SecurityEnhancement, "with-security-enhancement", "", false, "Security enhancement")
 	cmd.Flags().StringVarP(&o.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
