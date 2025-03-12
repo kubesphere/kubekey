@@ -47,7 +47,7 @@ func (w *When) UnmarshalYAML(node *yaml.Node) error {
 		}
 		for i, v := range w.Data {
 			if !IsTmplSyntax(v) {
-				w.Data[i] = ParseTmplSyntax(node.Value)
+				w.Data[i] = ParseTmplSyntax(v)
 			}
 		}
 	default:

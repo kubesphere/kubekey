@@ -36,7 +36,7 @@ import (
 func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte) Output) (Output, error) {
 	// If input doesn't contain template syntax, return directly
 	if !kkprojectv1.IsTmplSyntax(input) {
-		return f([]byte(input)), nil
+		return f(bytes.Trim([]byte(input), "\r\n")), nil
 	}
 	// Parse the template string
 	tl, err := internal.Template.Parse(input)
@@ -52,7 +52,7 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 	klog.V(6).InfoS(" parse template succeed", "result", result.String())
 
 	// Apply parse function to result and return
-	return f(result.Bytes()), nil
+	return f(bytes.Trim(result.Bytes(), "\r\n")), nil
 }
 
 // Parse is a helper function that wraps ParseFunc to directly return bytes.
