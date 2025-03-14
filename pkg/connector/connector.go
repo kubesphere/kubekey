@@ -36,9 +36,8 @@ const (
 	connectedSSH        = "ssh"
 	connectedLocal      = "local"
 	connectedKubernetes = "kubernetes"
+	defaultSHELL        = "/bin/bash"
 )
-
-var localShell = commandShell()
 
 // Connector is the interface for connecting to a remote host
 type Connector interface {
@@ -138,14 +137,4 @@ func isLocalIP(ipAddr string) bool {
 	}
 
 	return false
-}
-
-func commandShell() string {
-	// find command interpreter in env. default /bin/bash
-	sl, ok := os.LookupEnv(_const.ENV_SHELL)
-	if !ok {
-		return "/bin/bash"
-	}
-
-	return sl
 }

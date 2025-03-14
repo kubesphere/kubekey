@@ -39,9 +39,8 @@ import (
 )
 
 const (
-	defaultSSHPort  = 22
-	defaultSSHUser  = "root"
-	defaultSSHSHELL = "/bin/bash"
+	defaultSSHPort = 22
+	defaultSSHUser = "root"
 )
 
 var defaultSSHPrivateKey string
@@ -94,7 +93,7 @@ func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
 		User:       userParam,
 		Password:   passwdParam,
 		PrivateKey: keyParam,
-		shell:      defaultSSHSHELL,
+		shell:      defaultSHELL,
 	}
 }
 
@@ -235,6 +234,7 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 
 // ExecuteCommand in remote host
 func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, error) {
+	cmd = fmt.Sprintf("sudo -SE %s << 'KUBEKEY_EOF'\n %s\nKUBEKEY_EOF\n", c.shell, cmd)
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
 	// create ssh session
 	session, err := c.client.NewSession()
@@ -245,35 +245,63 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	//nolint:gocritic
-	command := fmt.Sprintf("sudo -SE %s -c \"%s\"", c.shell, cmd)
 	// get pipe from session
-	stdin, _ := session.StdinPipe()
-	stdout, _ := session.StdoutPipe()
-	stderr, _ := session.StderrPipe()
-	// Request a pseudo-terminal (required for sudo password input)
-	if err := session.RequestPty("xterm", 80, 40, ssh.TerminalModes{}); err != nil {
+	stdin, err := session.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	stdout, err := session.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := session.StderrPipe()
+	if err != nil {
 		return nil, err
 	}
 	// Start the remote command
-	if err := session.Start(command); err != nil {
+	if err := session.Start(cmd); err != nil {
 		return nil, err
 	}
 	if c.Password != "" {
-		// Write sudo password to the standard input
-		if _, err := io.WriteString(stdin, c.Password+"\n"); err != nil {
+		if _, err := stdin.Write([]byte(c.Password + "\n")); err != nil {
 			return nil, err
 		}
 	}
-	// Read the command output
-	output := make([]byte, 0)
-	stdoutData, _ := io.ReadAll(stdout)
-	stderrData, _ := io.ReadAll(stderr)
-	output = append(output, stdoutData...)
-	output = append(output, stderrData...)
-	// Wait for the command to complete
+	if err := stdin.Close(); err != nil {
+		return nil, err
+	}
 
-	return output, session.Wait()
+	// Create buffers to store stdout and stderr output
+	var stdoutBuf, stderrBuf bytes.Buffer
+
+	// When reading large amounts of data from stdout/stderr, the pipe buffer can fill up
+	// and block the remote command from completing if we don't read from it continuously.
+	// To prevent this deadlock scenario, we need to read stdout/stderr asynchronously
+	// in separate goroutines while the command is running.
+	// Create channels to signal when copying is complete
+	stdoutDone := make(chan error, 1)
+	stderrDone := make(chan error, 1)
+
+	// Copy stdout and stderr concurrently to prevent pipe buffer from filling
+	go func() {
+		_, err := io.Copy(&stdoutBuf, stdout)
+		stdoutDone <- err
+	}()
+	go func() {
+		_, err := io.Copy(&stderrBuf, stderr)
+		stderrDone <- err
+	}()
+
+	// Wait for command to complete
+	err = session.Wait()
+
+	// Wait for stdout and stderr copying to finish to ensure we've captured all output
+	<-stdoutDone
+	<-stderrDone
+
+	output := append(stdoutBuf.Bytes(), stderrBuf.Bytes()...)
+
+	return output, err
 }
 
 // HostInfo for GatherFacts

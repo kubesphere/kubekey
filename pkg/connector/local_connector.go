@@ -42,16 +42,24 @@ func newLocalConnector(connectorVars map[string]any) *localConnector {
 		klog.V(4).InfoS("get connector sudo password failed, execute command without sudo", "error", err)
 	}
 
-	return &localConnector{Password: password, Cmd: exec.New()}
+	return &localConnector{Password: password, Cmd: exec.New(), shell: defaultSHELL}
 }
 
 type localConnector struct {
 	Password string
 	Cmd      exec.Interface
+	// shell to execute command
+	shell string
 }
 
 // Init initializes the local connector. This method does nothing for localConnector.
 func (c *localConnector) Init(context.Context) error {
+	// find command interpreter in env. default /bin/bash
+	sl, ok := os.LookupEnv(_const.ENV_SHELL)
+	if ok {
+		c.shell = sl
+	}
+
 	return nil
 }
 
@@ -96,7 +104,7 @@ func (c *localConnector) FetchFile(_ context.Context, src string, dst io.Writer)
 func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
 	// in
-	command := c.Cmd.CommandContext(ctx, "sudo", "-SE", localShell, "-c", cmd)
+	command := c.Cmd.CommandContext(ctx, "sudo", "-SE", c.shell, "-c", cmd)
 	if c.Password != "" {
 		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
 	}

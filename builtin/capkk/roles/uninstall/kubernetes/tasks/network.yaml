@@ -20,9 +20,9 @@
     ip link del cilium_vxlan
     {{- end }}
     {{- if .cni.type | eq "calico" }}
-    ip -br link show | grep cali[a-f0-9]* | awk -F @ '{print \$1}' | xargs -r -t -n 1 ip link del
+    ip -br link show | grep cali[a-f0-9]* | awk -F @ '{print $1}' | xargs -r -t -n 1 ip link del
     {{- end }}
-    ip netns show 2>/dev/null | grep cni- | awk '{print \$1}' | xargs -r -t -n 1 ip netns del
+    ip netns show 2>/dev/null | grep cni- | awk '{print $1}' | xargs -r -t -n 1 ip netns del
 
 - name: Delete net.d
   command: |
@@ -31,4 +31,9 @@
     {{- if .cni.type | eq "calico" }}
     rm -rf /usr/local/bin/calicoctl
     {{- end }}
+
+- name: Delete arp by kube-vip
+  when: eq .kubernetes.control_plane_endpoint.type "vip"
+  command: |
+    ip neigh show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{print $1 " dev " $3}' | xargs -r -L1 ip neigh delete
   
