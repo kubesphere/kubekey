@@ -45,6 +45,7 @@ func newKubernetesConnector(host string, workdir string, connectorVars map[strin
 		cmd:         exec.New(),
 		clusterName: host,
 		kubeconfig:  kubeconfig,
+		shell:       defaultSHELL,
 	}, nil
 }
 
@@ -53,7 +54,9 @@ type kubernetesConnector struct {
 	homedir     string
 	clusterName string
 	kubeconfig  string
-	cmd         exec.Interface
+	// shell to execute command
+	shell string
+	cmd   exec.Interface
 }
 
 // Init connector, create home dir in local for each kubernetes.
@@ -87,6 +90,11 @@ func (c *kubernetesConnector) Init(_ context.Context) error {
 
 		return err
 	}
+	// find command interpreter in env. default /bin/bash
+	sl, ok := os.LookupEnv(_const.ENV_SHELL)
+	if ok {
+		c.shell = sl
+	}
 
 	return nil
 }
@@ -116,7 +124,7 @@ func (c *kubernetesConnector) PutFile(_ context.Context, src []byte, dst string,
 func (c *kubernetesConnector) FetchFile(ctx context.Context, src string, dst io.Writer) error {
 	// add "--kubeconfig" to src command
 	klog.V(5).InfoS("exec local command", "cmd", src)
-	command := c.cmd.CommandContext(ctx, localShell, "-c", src)
+	command := c.cmd.CommandContext(ctx, c.shell, "-c", src)
 	command.SetDir(c.homedir)
 	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homedir, kubeconfigRelPath)})
 	command.SetStdout(dst)
@@ -129,7 +137,7 @@ func (c *kubernetesConnector) FetchFile(ctx context.Context, src string, dst io.
 func (c *kubernetesConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	// add "--kubeconfig" to src command
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
-	command := c.cmd.CommandContext(ctx, localShell, "-c", cmd)
+	command := c.cmd.CommandContext(ctx, c.shell, "-c", cmd)
 	command.SetDir(c.homedir)
 	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homedir, kubeconfigRelPath)})
 
