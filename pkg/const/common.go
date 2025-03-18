@@ -85,6 +85,8 @@ const ( // === From runtime ===
 const ( // === From env ===
 	// ENV_SHELL which shell operator use in local connector.
 	ENV_SHELL = "SHELL"
+	// ENV_EXECUTOR_VERBOSE which verbose use in pipeline pod.
+	ENV_EXECUTOR_VERBOSE = "EXECUTOR_VERBOSE"
 	// ENV_EXECUTOR_IMAGE which image use in pipeline pod.
 	ENV_EXECUTOR_IMAGE = "EXECUTOR_IMAGE"
 	// ENV_EXECUTOR_IMAGE_PULLPOLICY which imagePolicy use in pipeline pod.

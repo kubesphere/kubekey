@@ -46,7 +46,6 @@ const (
 	// pipelinePodLabel set in pod. value is which pipeline belongs to.
 	podPipelineLabel     = "kubekey.kubesphere.io/pipeline"
 	defaultExecutorImage = "docker.io/kubesphere/executor:latest"
-	defaultPullPolicy    = "IfNotPresent"
 	executorContainer    = "executor"
 )
 
@@ -216,17 +215,6 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 		// could find exist pod
 		return nil
 	}
-	// get image from env
-	image := os.Getenv(_const.ENV_EXECUTOR_IMAGE)
-	if image == "" {
-		image = defaultExecutorImage
-	}
-	// get image from env
-	imagePullPolicy := os.Getenv(_const.ENV_EXECUTOR_IMAGE_PULLPOLICY)
-	if imagePullPolicy == "" {
-		imagePullPolicy = defaultPullPolicy
-	}
-
 	// create pod
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -242,10 +230,9 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 			Volumes:            pipeline.Spec.Volumes,
 			Containers: []corev1.Container{
 				{
-					Name:            executorContainer,
-					Image:           image,
-					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
-					Command:         []string{"kk"},
+					Name:    executorContainer,
+					Image:   defaultExecutorImage,
+					Command: []string{"kk"},
 					Args: []string{"pipeline",
 						"--name", pipeline.Name,
 						"--namespace", pipeline.Namespace},
@@ -257,6 +244,18 @@ func (r *PipelineReconciler) dealRunningPipeline(ctx context.Context, pipeline *
 				},
 			},
 		},
+	}
+	// get verbose from env
+	if verbose := os.Getenv(_const.ENV_EXECUTOR_VERBOSE); verbose != "" {
+		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, "-v", verbose)
+	}
+	// get image from env
+	if image := os.Getenv(_const.ENV_EXECUTOR_IMAGE); image != "" {
+		pod.Spec.Containers[0].Image = image
+	}
+	// get image from env
+	if imagePullPolicy := os.Getenv(_const.ENV_EXECUTOR_IMAGE_PULLPOLICY); imagePullPolicy != "" {
+		pod.Spec.Containers[0].ImagePullPolicy = corev1.PullPolicy(imagePullPolicy)
 	}
 	if err := ctrl.SetControllerReference(pipeline, pod, r.Client.Scheme()); err != nil {
 		klog.ErrorS(err, "set controller reference error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))

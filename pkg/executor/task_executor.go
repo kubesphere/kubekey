@@ -365,7 +365,7 @@ func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string
 			return true
 		}
 		if ok {
-			*stdout = modules.StdoutSkip
+			*stdout = modules.StdoutFalse
 			*stderr = "reach failed_when, failed"
 
 			return true
