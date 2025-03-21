@@ -18,9 +18,8 @@ package manager
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -38,7 +37,7 @@ func (m controllerManager) Run(ctx context.Context) error {
 	ctrl.SetLogger(klog.NewKlogr())
 	restconfig, err := ctrl.GetConfig()
 	if err != nil {
-		return fmt.Errorf("cannot get restconfig in kubernetes. error is %w", err)
+		return errors.Wrap(err, "failed to get restconfig in kubernetes")
 	}
 
 	mgr, err := ctrl.NewManager(restconfig, ctrl.Options{
@@ -49,17 +48,17 @@ func (m controllerManager) Run(ctx context.Context) error {
 		HealthProbeBindAddress:     ":9440",
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create controller manager. error: %w", err)
+		return errors.Wrap(err, "failed to create controller manager")
 	}
 	if err := mgr.AddHealthzCheck("default", healthz.Ping); err != nil {
-		return fmt.Errorf("failed to add default healthcheck. error: %w", err)
+		return errors.Wrap(err, "failed to add default healthcheck")
 	}
 	if err := mgr.AddReadyzCheck("default", healthz.Ping); err != nil {
-		return fmt.Errorf("failed to add default readycheck. error: %w", err)
+		return errors.Wrap(err, "failed to add default readycheck")
 	}
 
 	if err := m.register(mgr); err != nil {
-		return err
+		return errors.Wrap(err, "failed to register manager")
 	}
 
 	return mgr.Start(ctx)
@@ -76,7 +75,7 @@ func (m controllerManager) register(mgr ctrl.Manager) error {
 			continue
 		}
 		if err := c.SetupWithManager(mgr, *m.ControllerManagerServerOptions); err != nil {
-			return fmt.Errorf("failed to register controller %q. error: %w", c.Name(), err)
+			return errors.Wrapf(err, "failed to register controller %q", c.Name())
 		}
 	}
 

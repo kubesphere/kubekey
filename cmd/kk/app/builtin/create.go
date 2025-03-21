@@ -20,6 +20,7 @@ limitations under the License.
 package builtin
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options/builtin"
@@ -44,12 +45,12 @@ func newCreateClusterCommand() *cobra.Command {
 		Use:   "cluster",
 		Short: "Create a Kubernetes or KubeSphere cluster",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			pipeline, err := o.Complete(cmd, []string{"playbooks/create_cluster.yaml"})
+			playbook, err := o.Complete(cmd, []string{"playbooks/create_cluster.yaml"})
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), pipeline)
+			return o.CommonOptions.Run(cmd.Context(), playbook)
 		},
 	}
 	flags := cmd.Flags()

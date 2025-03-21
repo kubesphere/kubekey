@@ -18,13 +18,12 @@ package modules
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -55,19 +54,19 @@ type ExecOptions struct {
 	variable.Variable
 	// the task to be executed
 	Task kkcorev1alpha1.Task
-	// the pipeline to be executed
-	Pipeline kkcorev1.Pipeline
+	// the playbook to be executed
+	Playbook kkcorev1.Playbook
 }
 
 func (o ExecOptions) getAllVariables() (map[string]any, error) {
 	ha, err := o.Variable.Get(variable.GetAllVariable(o.Host))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get host %s variable: %w", o.Host, err)
+		return nil, errors.Wrapf(err, "failed to get host %s variable", o.Host)
 	}
 
 	vd, ok := ha.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("host: %s variable is not a map", o.Host)
+		return nil, errors.Errorf("host: %s variable is not a map", o.Host)
 	}
 
 	return vd, nil
@@ -78,7 +77,7 @@ var module = make(map[string]ModuleExecFunc)
 // RegisterModule register module
 func RegisterModule(moduleName string, exec ModuleExecFunc) error {
 	if _, ok := module[moduleName]; ok {
-		return fmt.Errorf("module %s is exist", moduleName)
+		return errors.Errorf("module %s is exist", moduleName)
 	}
 
 	module[moduleName] = exec
@@ -120,14 +119,12 @@ func getConnector(ctx context.Context, host string, v variable.Variable) (connec
 	} else {
 		conn, err = connector.NewConnector(host, v)
 		if err != nil {
-			return conn, err
+			return conn, errors.Wrapf(err, "failed to get connector for host %q", host)
 		}
 	}
 
 	if err = conn.Init(ctx); err != nil {
-		klog.V(4).ErrorS(err, "failed to init connector")
-
-		return conn, err
+		return conn, errors.Wrapf(err, "failed to init connector for host %q", host)
 	}
 
 	return conn, nil

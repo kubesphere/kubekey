@@ -17,8 +17,6 @@ limitations under the License.
 package converter
 
 import (
-	"errors"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -28,10 +26,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 
+	"github.com/cockroachdb/errors"
 	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // MarshalBlock marshal block to task
@@ -87,13 +88,13 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 			if strings.HasSuffix(val, "%") {
 				b, err := strconv.ParseFloat(val[:len(val)-1], 64)
 				if err != nil {
-					return nil, fmt.Errorf("convert serial %v to float error: %w", a, err)
+					return nil, errors.Wrapf(err, "convert serial %q to float", val)
 				}
 				sis[i] = int(math.Ceil(float64(len(hosts)) * b / 100.0))
 			} else {
 				b, err := strconv.Atoi(val)
 				if err != nil {
-					return nil, fmt.Errorf("convert serial %v to int error: %w", a, err)
+					return nil, errors.Wrapf(err, "convert serial %q to int", val)
 				}
 				sis[i] = b
 			}
@@ -101,7 +102,7 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 			return nil, errors.New("unknown serial type. only support int or percent")
 		}
 		if sis[i] == 0 {
-			return nil, fmt.Errorf("serial %v should not be zero", a)
+			return nil, errors.Errorf("serial %v should not be zero", a)
 		}
 		count += sis[i]
 	}
@@ -134,17 +135,15 @@ func ConvertKKClusterToInventoryHost(kkcluster *capkkinfrav1beta1.KKCluster) (kk
 		vars := make(map[string]any)
 		if ih.Vars.Raw != nil {
 			if err := json.Unmarshal(ih.Vars.Raw, &vars); err != nil {
-				return nil, fmt.Errorf("unmarshal kkclusters %s to inventory error: %w", ih.Name, err)
+				return nil, errors.Wrapf(err, "failed to unmarshal kkcluster.spec.InventoryHost %s to inventoryHost", ih.Name)
 			}
 		}
-		vars["connector"] = ih.Connector
+		vars[_const.VariableConnector] = ih.Connector
 		data, err := json.Marshal(vars)
 		if err != nil {
-			return nil, fmt.Errorf("marshal kkclusters %s to inventory error: %w", ih.Name, err)
+			return nil, errors.Wrapf(err, "marshal kkclusters %s to inventory", ih.Name)
 		}
-		inventoryHosts[ih.Name] = runtime.RawExtension{
-			Raw: data,
-		}
+		inventoryHosts[ih.Name] = runtime.RawExtension{Raw: data}
 	}
 
 	return inventoryHosts, nil

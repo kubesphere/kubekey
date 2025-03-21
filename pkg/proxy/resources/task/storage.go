@@ -19,6 +19,7 @@ package task
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -102,11 +103,11 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 		AttrFunc:    GetAttrs,
-		TriggerFunc: map[string]apistorage.IndexerFunc{kkcorev1alpha1.TaskOwnerField: OwnerPipelineTriggerFunc},
+		TriggerFunc: map[string]apistorage.IndexerFunc{kkcorev1alpha1.TaskOwnerField: OwnerPlaybookTriggerFunc},
 		Indexers:    Indexers(),
 	}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return TaskStorage{}, err
+		return TaskStorage{}, errors.Wrap(err, "failed to complete store")
 	}
 
 	return TaskStorage{

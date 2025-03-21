@@ -17,10 +17,10 @@ limitations under the License.
 package v1
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -39,7 +39,7 @@ func (c *Config) SetValue(key string, value any) error {
 	configMap := make(map[string]any)
 	if c.Spec.Raw != nil {
 		if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	// set value
@@ -69,7 +69,7 @@ func (c *Config) SetValue(key string, value any) error {
 	}
 	data, err := json.Marshal(f(configMap, strings.Split(key, "."), value))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to marshal %q value to json", key)
 	}
 	c.Spec.Raw = data
 
@@ -81,7 +81,7 @@ func (c *Config) SetValue(key string, value any) error {
 func (c *Config) GetValue(key string) (any, error) {
 	configMap := make(map[string]any)
 	if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	// get all value
 	if key == "" {
@@ -93,7 +93,7 @@ func (c *Config) GetValue(key string) (any, error) {
 		r, ok := result.(map[string]any)
 		if !ok {
 			// cannot find value
-			return nil, fmt.Errorf("cannot find key: %s", key)
+			return nil, errors.Errorf("cannot find key: %s", key)
 		}
 		result = r[k]
 	}

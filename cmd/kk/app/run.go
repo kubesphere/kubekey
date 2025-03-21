@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -29,12 +30,12 @@ func newRunCommand() *cobra.Command {
 		Use:   "run [playbook]",
 		Short: "run a playbook by playbook file. the file source can be git or local",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pipeline, err := o.Complete(cmd, args)
+			playbook, err := o.Complete(cmd, args)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), pipeline)
+			return o.CommonOptions.Run(cmd.Context(), playbook)
 		},
 	}
 	for _, f := range o.Flags().FlagSets {

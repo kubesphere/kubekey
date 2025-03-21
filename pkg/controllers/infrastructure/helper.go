@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/cockroachdb/errors"
 	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -74,19 +75,19 @@ func newClusterScope(ctx context.Context, client ctrlclient.Client, clusterReq r
 	scope.Cluster = &clusterv1beta1.Cluster{}
 	if err := client.Get(ctx, scope.NamespacedName, scope.Cluster); err != nil {
 		// must hve scope
-		return scope, err
+		return scope, errors.Wrapf(err, "failed to get cluster with scope %q", scope.String())
 	}
 	// KKCluster
 	if err := client.Get(ctx, ctrlclient.ObjectKey{
 		Namespace: scope.Cluster.Spec.InfrastructureRef.Namespace,
 		Name:      scope.Cluster.Spec.InfrastructureRef.Name,
 	}, scope.KKCluster); err != nil {
-		return scope, err
+		return scope, errors.Wrapf(err, "failed to get kkcluster with scope %q", scope.String())
 	}
 	// ControlPlane
 	gv, err := schema.ParseGroupVersion(scope.Cluster.Spec.ControlPlaneRef.APIVersion)
 	if err != nil {
-		return scope, err
+		return scope, errors.Wrapf(err, "failed to get group version with scope %q", scope.String())
 	}
 	scope.ControlPlane.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   gv.Group,
@@ -97,7 +98,7 @@ func newClusterScope(ctx context.Context, client ctrlclient.Client, clusterReq r
 		Namespace: scope.Cluster.Spec.ControlPlaneRef.Namespace,
 		Name:      scope.Cluster.Spec.ControlPlaneRef.Name,
 	}, scope.ControlPlane); err != nil && !apierrors.IsNotFound(err) {
-		return scope, err
+		return scope, errors.Wrapf(err, "failed to get control-plane with scope %q", scope.String())
 	}
 	// MachineDeployment
 	mdlist := &clusterv1beta1.MachineDeploymentList{}
@@ -116,7 +117,7 @@ func newClusterScope(ctx context.Context, client ctrlclient.Client, clusterReq r
 func (p *clusterScope) newPatchHelper(obj ...ctrlclient.Object) error {
 	helper, err := util.NewPatchHelper(p.client, obj...)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create patch helper with scope %q", p.String())
 	}
 	p.PatchHelper = helper
 
@@ -127,15 +128,15 @@ func (p *clusterScope) isPaused() bool {
 	return clusterannotations.IsPaused(p.Cluster, p.KKCluster)
 }
 
-// checkIfPipelineCompleted determines if all pipelines associated with the given owner are completed.
-// At any given time, there should be at most one pipeline running for each owner.
-func (p *clusterScope) ifPipelineCompleted(ctx context.Context, owner ctrlclient.Object) (bool, error) {
-	pipelineList := &kkcorev1.PipelineList{}
-	if err := util.GetObjectListFromOwner(ctx, p.client, owner, pipelineList); err != nil {
-		return false, err
+// checkIfPlaybookCompleted determines if all playbooks associated with the given owner are completed.
+// At any given time, there should be at most one playbook running for each owner.
+func (p *clusterScope) ifPlaybookCompleted(ctx context.Context, owner ctrlclient.Object) (bool, error) {
+	playbookList := &kkcorev1.PlaybookList{}
+	if err := util.GetObjectListFromOwner(ctx, p.client, owner, playbookList); err != nil {
+		return false, errors.Wrapf(err, "failed to get playbook list from owner %q", ctrlclient.ObjectKeyFromObject(owner))
 	}
-	for _, pipeline := range pipelineList.Items {
-		if pipeline.Status.Phase != kkcorev1.PipelinePhaseFailed && pipeline.Status.Phase != kkcorev1.PipelinePhaseSucceeded {
+	for _, playbook := range playbookList.Items {
+		if playbook.Status.Phase != kkcorev1.PlaybookPhaseFailed && playbook.Status.Phase != kkcorev1.PlaybookPhaseSucceeded {
 			return false, nil
 		}
 	}

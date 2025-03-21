@@ -1,15 +1,13 @@
 package variable
 
 import (
-	"errors"
-	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
-	"k8s.io/klog/v2"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
@@ -54,13 +52,11 @@ var GetHostnames = func(name []string) GetFunc {
 			if match := regexForIndex.FindStringSubmatch(strings.TrimSpace(n)); match != nil {
 				index, err := strconv.Atoi(match[2])
 				if err != nil {
-					klog.V(4).ErrorS(err, "convert index to int error", "index", match[2])
-
-					return nil, err
+					return nil, errors.Wrapf(err, "failed to convert %q to int", match[2])
 				}
 				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]].([]string); ok {
 					if index >= len(group) {
-						return nil, fmt.Errorf("index %v out of range for group %s", index, group)
+						return nil, errors.Errorf("index %v out of range for group %s", index, group)
 					}
 					hs = append(hs, group[index])
 				}

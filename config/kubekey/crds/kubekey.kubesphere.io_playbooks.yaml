@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2-0.20250203100058-d1f73b5ea552
-  name: pipelines.kubekey.kubesphere.io
+  name: playbooks.kubekey.kubesphere.io
 spec:
   group: kubekey.kubesphere.io
   names:
-    kind: Pipeline
-    listKind: PipelineList
-    plural: pipelines
-    singular: pipeline
+    kind: Playbook
+    listKind: PlaybookList
+    plural: playbooks
+    singular: playbook
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -30,7 +30,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Pipeline resource executor a playbook.
+        description: Playbook resource executor a playbook.
         properties:
           apiVersion:
             description: |-
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: PipelineSpec of pipeline.
+            description: PlaybookSpec of playbook.
             properties:
               config:
                 description: Config is the global variable configuration for playbook
@@ -76,7 +76,7 @@ spec:
                 type: object
               debug:
                 description: |-
-                  If Debug mode is true, It will retain runtime data after a successful execution of Pipeline,
+                  If Debug mode is true, It will retain runtime data after a successful execution of Playbook,
                   which includes task execution status and parameters.
                 type: boolean
               inventoryRef:
@@ -1996,18 +1996,18 @@ spec:
             - playbook
             type: object
           status:
-            description: PipelineStatus of Pipeline
+            description: PlaybookStatus of Playbook
             properties:
               failedDetail:
                 description: FailedDetail will record the failed tasks.
                 items:
-                  description: PipelineFailedDetail store failed message when pipeline
+                  description: PlaybookFailedDetail store failed message when playbook
                     run failed.
                   properties:
                     hosts:
                       description: failed Hosts Result of failed task.
                       items:
-                        description: PipelineFailedDetailHost detail failed message
+                        description: PlaybookFailedDetailHost detail failed message
                           for each host.
                         properties:
                           host:
@@ -2035,7 +2035,7 @@ spec:
                   a terminal problem
                 type: string
               phase:
-                description: Phase of pipeline.
+                description: Phase of playbook.
                 type: string
               taskResult:
                 description: TaskResult total related tasks execute result.

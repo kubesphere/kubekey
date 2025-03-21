@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -75,7 +76,7 @@ type Task struct {
 func (b *Block) UnmarshalYAML(node *yaml.Node) error {
 	// fill baseInfo
 	if err := node.Decode(&b.BlockBase); err != nil {
-		return fmt.Errorf("failed to decode block, error: %w", err)
+		return errors.Wrap(err, "failed to decode block")
 	}
 
 	for i := 0; i < len(node.Content); i += 2 {
@@ -93,7 +94,7 @@ func (b *Block) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	if err := node.Decode(&b.Task); err != nil {
-		return fmt.Errorf("failed to decode task: %w", err)
+		return errors.Wrap(err, "failed to decode task")
 	}
 	b.UnknownField = collectUnknownFields(node, append(getFieldNames(reflect.TypeOf(BlockBase{})), getFieldNames(reflect.TypeOf(Task{}))...))
 

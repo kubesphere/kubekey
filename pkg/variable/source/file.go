@@ -18,13 +18,12 @@ package source
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -37,9 +36,7 @@ var _ Source = &fileSource{}
 func NewFileSource(path string) (Source, error) {
 	if _, err := os.Stat(path); err != nil {
 		if err := os.MkdirAll(path, os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "create source path error", "path", path)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create source path %q", path)
 		}
 	}
 
@@ -53,7 +50,7 @@ type fileSource struct {
 func (f *fileSource) Read() (map[string]map[string]any, error) {
 	de, err := os.ReadDir(f.path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dir %s, error: %w", f.path, err)
+		return nil, errors.Wrapf(err, "failed to read dir %s", f.path)
 	}
 
 	result := make(map[string]map[string]any)
@@ -65,12 +62,12 @@ func (f *fileSource) Read() (map[string]map[string]any, error) {
 		if strings.HasSuffix(entry.Name(), ".yaml") {
 			fdata, err := os.ReadFile(filepath.Join(f.path, entry.Name()))
 			if err != nil {
-				return nil, fmt.Errorf("failed to read file %q error: %w", entry.Name(), err)
+				return nil, errors.Wrapf(err, "failed to read file %q", entry.Name())
 			}
 			if bytes.HasPrefix(fdata, []byte(prefixYAML)) {
 				var data map[string]any
 				if err := yaml.Unmarshal(fdata, data); err != nil {
-					return nil, fmt.Errorf("failed to unmarshal file %q error: %w", entry.Name(), err)
+					return nil, errors.Wrapf(err, "failed to unmarshal file %q", entry.Name())
 				}
 				result[strings.TrimSuffix(entry.Name(), ".yaml")] = data
 			}
@@ -84,16 +81,16 @@ func (f *fileSource) Write(data map[string]any, host string) error {
 	filename := host + ".yaml"
 	file, err := os.Create(filepath.Join(f.path, filename))
 	if err != nil {
-		return fmt.Errorf("failed to create file %q error: %w", filename, err)
+		return errors.Wrapf(err, "failed to create file %q", filename)
 	}
 	defer file.Close()
 	// convert to yaml file
 	fdata, err := yaml.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal file %q error: %w", filename, err)
+		return errors.Wrapf(err, "failed to marshal file %q", filename)
 	}
 	if _, err := file.Write(append([]byte(prefixYAML), fdata...)); err != nil {
-		return fmt.Errorf("failed to write file %q error: %w", filename, err)
+		return errors.Wrapf(err, "failed to write file %q", filename)
 	}
 
 	return nil

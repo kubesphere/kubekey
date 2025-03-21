@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
@@ -33,30 +34,31 @@ func completeInventory(inventoryFile string, inventory *kkcorev1.Inventory) erro
 	if inventoryFile != "" {
 		data, err := os.ReadFile(inventoryFile)
 		if err != nil {
-			return fmt.Errorf("cannot get inventory for inventoryFile: %s. error is %w.", inventoryFile, err)
+			return errors.Wrapf(err, "failed to get inventory for inventoryFile: %q", inventoryFile)
 		}
-		return yaml.Unmarshal(data, inventory)
+		return errors.Wrapf(yaml.Unmarshal(data, inventory), "failed to unmarshal inventoryFile %s", inventoryFile)
 	}
 	data, err := core.Defaults.ReadFile("defaults/inventory/localhost.yaml")
 	if err != nil {
-		return fmt.Errorf("cannot get local inventory. error is %w. Please set it by \"--inventory\"", err)
+		return errors.Wrap(err, "failed to get local inventory. Please set it by \"--inventory\"")
 	}
 
-	return yaml.Unmarshal(data, inventory)
+	return errors.Wrapf(yaml.Unmarshal(data, inventory), "failed to unmarshal local inventoryFile %q", inventoryFile)
 }
 
 func completeConfig(kubeVersion string, configFile string, config *kkcorev1.Config) error {
 	if configFile != "" {
 		data, err := os.ReadFile(configFile)
 		if err != nil {
-			return fmt.Errorf("cannot get config for configFile: %s. error is %w.", kubeVersion, err)
+			return errors.Wrapf(err, "failed to get configFile %q", configFile)
 		}
-		return yaml.Unmarshal(data, config)
+
+		return errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal configFile %q", configFile)
 	}
 	data, err := core.Defaults.ReadFile(fmt.Sprintf("defaults/config/%s.yaml", kubeVersion))
 	if err != nil {
-		return fmt.Errorf("cannot get config for kube_version: %s. error is %w. Please set it by \"--config\"", kubeVersion, err)
+		return errors.Wrapf(err, "failed to get local configFile for kube_version: %q. Please set it by \"--config\"", kubeVersion)
 	}
 
-	return yaml.Unmarshal(data, config)
+	return errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", kubeVersion)
 }

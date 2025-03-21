@@ -52,7 +52,7 @@ spec:
             - --leader-election=true
             {{-if not .Values.controller-manager.webhook.enabled }}
             - --controllers=*
-            - --controllers=-pipeline-webhook
+            - --controllers=-playbook-webhook
             {{- end }}
           {{- end }}
           env:

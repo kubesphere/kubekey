@@ -18,10 +18,9 @@ package executor
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/klog/v2"
@@ -34,48 +33,48 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
 
-// NewPipelineExecutor return a new pipelineExecutor
-func NewPipelineExecutor(ctx context.Context, client ctrlclient.Client, pipeline *kkcorev1.Pipeline, logOutput io.Writer) Executor {
+// NewPlaybookExecutor return a new playbookExecutor
+func NewPlaybookExecutor(ctx context.Context, client ctrlclient.Client, playbook *kkcorev1.Playbook, logOutput io.Writer) Executor {
 	// get variable
-	v, err := variable.New(ctx, client, *pipeline, source.FileSource)
+	v, err := variable.New(ctx, client, *playbook, source.FileSource)
 	if err != nil {
-		klog.V(5).ErrorS(nil, "convert playbook error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+		klog.V(5).ErrorS(nil, "convert playbook error", "playbook", ctrlclient.ObjectKeyFromObject(playbook))
 
 		return nil
 	}
 
-	return &pipelineExecutor{
+	return &playbookExecutor{
 		option: &option{
 			client:    client,
-			pipeline:  pipeline,
+			playbook:  playbook,
 			variable:  v,
 			logOutput: logOutput,
 		},
 	}
 }
 
-// executor for pipeline
-type pipelineExecutor struct {
+// executor for playbook
+type playbookExecutor struct {
 	*option
 }
 
-// Exec pipeline. covert playbook to block and executor it.
-func (e pipelineExecutor) Exec(ctx context.Context) error {
-	klog.V(5).InfoS("deal project", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-	pj, err := project.New(ctx, *e.pipeline, true)
+// Exec playbook. covert playbook to block and executor it.
+func (e playbookExecutor) Exec(ctx context.Context) error {
+	klog.V(5).InfoS("deal project", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
+	pj, err := project.New(ctx, *e.playbook, true)
 	if err != nil {
-		return fmt.Errorf("deal project error: %w", err)
+		return errors.Wrap(err, "failed to deal project")
 	}
 
 	// convert to transfer.Playbook struct
 	pb, err := pj.MarshalPlaybook()
 	if err != nil {
-		return fmt.Errorf("convert playbook error: %w", err)
+		return errors.Wrap(err, "failed to convert playbook")
 	}
 
 	for _, play := range pb.Play {
 		// check tags
-		if !play.Taggable.IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
+		if !play.Taggable.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
 			// if not match the tags. skip
 			continue
 		}
@@ -88,17 +87,17 @@ func (e pipelineExecutor) Exec(ctx context.Context) error {
 		}
 		// when gather_fact is set. get host's information from remote.
 		if err := e.dealGatherFacts(ctx, play.GatherFacts, hosts); err != nil {
-			return fmt.Errorf("deal gather_facts argument error: %w", err)
+			return errors.Wrap(err, "failed to deal gather_facts argument")
 		}
 		// Batch execution, with each batch being a group of hosts run in serial.
 		var batchHosts [][]string
 		if err := e.dealSerial(play.Serial.Data, hosts, &batchHosts); err != nil {
-			return fmt.Errorf("deal serial argument error: %w", err)
+			return errors.Wrap(err, "failed to deal serial argument")
 		}
 		e.dealRunOnce(play.RunOnce, hosts, &batchHosts)
-		// exec pipeline in each BatchHosts
+		// exec playbook in each BatchHosts
 		if err := e.execBatchHosts(ctx, play, batchHosts); err != nil {
-			return fmt.Errorf("exec batch hosts error: %v", err)
+			return errors.Wrap(err, "failed to exec batch hosts")
 		}
 	}
 
@@ -106,18 +105,16 @@ func (e pipelineExecutor) Exec(ctx context.Context) error {
 }
 
 // execBatchHosts executor block in play order by: "pre_tasks" > "roles" > "tasks" > "post_tasks"
-func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.Play, batchHosts [][]string) any {
+func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.Play, batchHosts [][]string) error {
 	// generate and execute task.
 	for _, serials := range batchHosts {
 		// each batch hosts should not be empty.
 		if len(serials) == 0 {
-			klog.V(5).ErrorS(nil, "Host is empty", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-			return errors.New("host is empty")
+			return errors.Errorf("host is empty")
 		}
 
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(play.Vars, serials...)); err != nil {
-			return fmt.Errorf("merge variable error: %w", err)
+			return errors.Wrapf(err, "failed to merge variable with play %q", play.Name)
 		}
 		// generate task from pre tasks
 		if err := (blockExecutor{
@@ -127,16 +124,16 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			blocks:       play.PreTasks,
 			tags:         play.Taggable,
 		}.Exec(ctx)); err != nil {
-			return fmt.Errorf("execute pre-tasks from play error: %w", err)
+			return errors.Wrapf(err, "failed to execute pre-tasks with play %q", play.Name)
 		}
 		// generate task from role
 		for _, role := range play.Roles {
-			if !kkprojectv1.JoinTag(role.Taggable, play.Taggable).IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
+			if !kkprojectv1.JoinTag(role.Taggable, play.Taggable).IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
 				// if not match the tags. skip
 				continue
 			}
 			if err := e.variable.Merge(variable.MergeRuntimeVariable(role.Vars, serials...)); err != nil {
-				return fmt.Errorf("merge variable error: %w", err)
+				return errors.Wrapf(err, "failed to merge variable with role %q", role.Role)
 			}
 			// use the most closely configuration
 			ignoreErrors := role.IgnoreErrors
@@ -153,7 +150,7 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 				when:         role.When.Data,
 				tags:         kkprojectv1.JoinTag(role.Taggable, play.Taggable),
 			}.Exec(ctx)); err != nil {
-				return fmt.Errorf("execute role-tasks error: %w", err)
+				return errors.Wrapf(err, "failed to execute role-tasks")
 			}
 		}
 		// generate task from tasks
@@ -164,7 +161,7 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			blocks:       play.Tasks,
 			tags:         play.Taggable,
 		}.Exec(ctx)); err != nil {
-			return fmt.Errorf("execute tasks error: %w", err)
+			return errors.Wrapf(err, "failed to execute tasks")
 		}
 		// generate task from post tasks
 		if err := (blockExecutor{
@@ -174,7 +171,7 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			blocks:       play.PostTasks,
 			tags:         play.Taggable,
 		}.Exec(ctx)); err != nil {
-			return fmt.Errorf("execute post-tasks error: %w", err)
+			return errors.Wrapf(err, "failed to execute post-tasks")
 		}
 	}
 
@@ -182,10 +179,10 @@ func (e pipelineExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 }
 
 // dealHosts "hosts" argument in playbook. get hostname from kkprojectv1.PlayHost
-func (e pipelineExecutor) dealHosts(host kkprojectv1.PlayHost, i *[]string) error {
+func (e playbookExecutor) dealHosts(host kkprojectv1.PlayHost, i *[]string) error {
 	ahn, err := e.variable.Get(variable.GetHostnames(host.Hosts))
 	if err != nil {
-		return fmt.Errorf("getHostnames error: %w", err)
+		return errors.Wrapf(err, "failed to get hostnames")
 	}
 
 	if h, ok := ahn.([]string); ok {
@@ -199,47 +196,37 @@ func (e pipelineExecutor) dealHosts(host kkprojectv1.PlayHost, i *[]string) erro
 }
 
 // dealGatherFacts "gather_facts" argument in playbook. get host remote info and merge to variable
-func (e pipelineExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool, hosts []string) error {
+func (e playbookExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool, hosts []string) error {
 	if !gatherFacts {
 		// skip
 		return nil
 	}
-
 	dealGatherFactsInHost := func(hostname string) error {
 		// get host connector
 		conn, err := connector.NewConnector(hostname, e.variable)
 		if err != nil {
-			klog.V(5).ErrorS(err, "new connector error", "hostname", hostname)
-
-			return err
+			return errors.Wrapf(err, "failed to new connector in host %q", hostname)
 		}
 		if err := conn.Init(ctx); err != nil {
-			klog.V(5).ErrorS(err, "init connection error", "hostname", hostname)
-
-			return err
+			return errors.Wrapf(err, "failed to init connection in host %q", hostname)
 		}
 		defer conn.Close(ctx)
 
 		if gf, ok := conn.(connector.GatherFacts); ok {
 			remoteInfo, err := gf.HostInfo(ctx)
 			if err != nil {
-				klog.V(5).ErrorS(err, "gatherFacts from connector error", "hostname", hostname)
-
-				return err
+				return errors.Wrapf(err, "failed to execute gather_facts from connector in host %q", hostname)
 			}
 			if err := e.variable.Merge(variable.MergeRemoteVariable(remoteInfo, hostname)); err != nil {
-				klog.V(5).ErrorS(err, "merge gather fact error", "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline), "host", hostname)
-
-				return fmt.Errorf("merge gather fact error: %w", err)
+				return errors.Wrapf(err, "failed to merge gather_facts to in host %q", hostname)
 			}
 		}
 
 		return nil
 	}
-
 	for _, hostname := range hosts {
 		if err := dealGatherFactsInHost(hostname); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to deal gather_facts for host %q", hostname)
 		}
 	}
 
@@ -247,18 +234,18 @@ func (e pipelineExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool,
 }
 
 // dealSerial "serial" argument in playbook.
-func (e pipelineExecutor) dealSerial(serial []any, hosts []string, batchHosts *[][]string) error {
+func (e playbookExecutor) dealSerial(serial []any, hosts []string, batchHosts *[][]string) error {
 	var err error
 	*batchHosts, err = converter.GroupHostBySerial(hosts, serial)
 	if err != nil {
-		return fmt.Errorf("group host by serial error: %w", err)
+		return errors.Wrapf(err, "failed to group host by serial")
 	}
 
 	return nil
 }
 
 // dealRunOnce argument in playbook. if RunOnce is true. it's always only run in the first hosts.
-func (e pipelineExecutor) dealRunOnce(runOnce bool, hosts []string, batchHosts *[][]string) {
+func (e playbookExecutor) dealRunOnce(runOnce bool, hosts []string, batchHosts *[][]string) {
 	if runOnce {
 		// runOnce only run in first node
 		*batchHosts = [][]string{{hosts[0]}}

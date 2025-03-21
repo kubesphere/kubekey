@@ -22,8 +22,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"k8s.io/klog/v2"
-
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -61,8 +59,6 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 
 	destFile, err := os.Create(destParam)
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to create dest file")
-
 		return "", err.Error()
 	}
 	defer destFile.Close()

@@ -10,6 +10,6 @@ import (
 )
 
 func init() {
-	utilruntime.Must(options.Register(&PipelineReconciler{}))
-	utilruntime.Must(options.Register(&PipelineWebhook{}))
+	utilruntime.Must(options.Register(&PlaybookReconciler{}))
+	utilruntime.Must(options.Register(&PlaybookWebhook{}))
 }

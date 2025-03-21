@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -30,6 +29,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cockroachdb/errors"
+	"github.com/containerd/containerd/images"
 	imagev1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -60,7 +61,7 @@ func (i imagePullArgs) pull(ctx context.Context) error {
 	for _, img := range i.manifests {
 		src, err := remote.NewRepository(img)
 		if err != nil {
-			return fmt.Errorf("failed to get remote image: %w", err)
+			return errors.Wrapf(err, "failed to get remote image %p", img)
 		}
 		src.Client = &auth.Client{
 			Client: &http.Client{
@@ -79,11 +80,11 @@ func (i imagePullArgs) pull(ctx context.Context) error {
 
 		dst, err := newLocalRepository(filepath.Join(domain, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
 		if err != nil {
-			return fmt.Errorf("failed to get local image: %w", err)
+			return errors.Wrapf(err, "failed to get local repository %q for image %q", i.imagesDir, img)
 		}
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions); err != nil {
-			return fmt.Errorf("failed to copy image: %w", err)
+			return errors.Wrapf(err, "failed to pull image %q to local dir", img)
 		}
 	}
 
@@ -102,15 +103,15 @@ type imagePushArgs struct {
 // push local dir images to remote registry
 func (i imagePushArgs) push(ctx context.Context) error {
 	manifests, err := findLocalImageManifests(i.imagesDir)
-	klog.V(5).Info("manifests found", "manifests", manifests)
 	if err != nil {
-		return fmt.Errorf("failed to find local image manifests: %w", err)
+		return errors.Wrapf(err, "failed to find image manifests in local dir %p", i.imagesDir)
 	}
+	klog.V(5).Info("manifests found", "manifests", manifests)
 
 	for _, img := range manifests {
 		src, err := newLocalRepository(filepath.Join(domain, img), i.imagesDir)
 		if err != nil {
-			return fmt.Errorf("failed to get local image: %w", err)
+			return errors.Wrapf(err, "failed to get local repository %q for image %q", i.imagesDir, img)
 		}
 		repo := src.Reference.Repository
 		if i.namespace != "" {
@@ -119,7 +120,7 @@ func (i imagePushArgs) push(ctx context.Context) error {
 
 		dst, err := remote.NewRepository(filepath.Join(i.registry, repo) + ":" + src.Reference.Reference)
 		if err != nil {
-			return fmt.Errorf("failed to get remote repo: %w", err)
+			return errors.Wrapf(err, "failed to get remote repository %q", filepath.Join(i.registry, repo)+":"+src.Reference.Reference)
 		}
 		dst.Client = &auth.Client{
 			Client: &http.Client{
@@ -137,7 +138,7 @@ func (i imagePushArgs) push(ctx context.Context) error {
 		}
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions); err != nil {
-			return fmt.Errorf("failed to copy image: %w", err)
+			return errors.Wrapf(err, "failed to push image %q to remote", img)
 		}
 	}
 
@@ -250,7 +251,7 @@ func findLocalImageManifests(localDir string) ([]string, error) {
 	var manifests []string
 	if err := filepath.WalkDir(localDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		if path == filepath.Join(localDir, "blobs") {
@@ -263,14 +264,13 @@ func findLocalImageManifests(localDir string) ([]string, error) {
 
 		file, err := os.ReadFile(path)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to read file %q", path)
 		}
 
 		var data map[string]any
 		if err := json.Unmarshal(file, &data); err != nil {
-			// skip un except file (empty)
 			klog.V(4).ErrorS(err, "unmarshal manifests file error", "file", path)
-
+			// skip un-except file (empty)
 			return nil
 		}
 
@@ -278,18 +278,19 @@ func findLocalImageManifests(localDir string) ([]string, error) {
 		if !ok {
 			return errors.New("invalid mediaType")
 		}
-		if mediaType == imagev1.MediaTypeImageIndex || mediaType == "application/vnd.docker.distribution.manifest.list.v2+json" {
+		if mediaType == imagev1.MediaTypeImageIndex || mediaType == imagev1.MediaTypeImageManifest || // oci multi or single schema
+			mediaType == images.MediaTypeDockerSchema2ManifestList || mediaType == images.MediaTypeDockerSchema2Manifest { // docker multi or single schema
 			subpath, err := filepath.Rel(localDir, path)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "failed to get relative filepath")
 			}
-			// the last dir is manifests. should delete it
+			// the parent dir of subpath is "manifests". should delete it
 			manifests = append(manifests, filepath.Dir(filepath.Dir(subpath))+":"+filepath.Base(subpath))
 		}
 
 		return nil
 	}); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to work dir %q", localDir)
 	}
 
 	return manifests, nil
@@ -299,7 +300,7 @@ func findLocalImageManifests(localDir string) ([]string, error) {
 func newLocalRepository(reference, localDir string) (*remote.Repository, error) {
 	ref, err := registry.ParseReference(reference)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to parse reference %q", reference)
 	}
 
 	return &remote.Repository{
@@ -325,56 +326,56 @@ type imageTransport struct {
 func (i imageTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	switch request.Method {
 	case http.MethodHead: // check if file exist
-		return i.head(request)
+		return i.head(request), nil
 	case http.MethodPost:
-		return i.post(request)
+		return i.post(request), nil
 	case http.MethodPut:
-		return i.put(request)
+		return i.put(request), nil
 	case http.MethodGet:
-		return i.get(request)
+		return i.get(request), nil
 	default:
 		return responseNotAllowed, nil
 	}
 }
 
 // head method for http.MethodHead. check if file is exist in blobs dir or manifests dir
-func (i imageTransport) head(request *http.Request) (*http.Response, error) {
+func (i imageTransport) head(request *http.Request) *http.Response {
 	if strings.HasSuffix(filepath.Dir(request.URL.Path), "blobs") { // blobs
 		filename := filepath.Join(i.baseDir, "blobs", filepath.Base(request.URL.Path))
 		if _, err := os.Stat(filename); err != nil {
 			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
 
-			return responseNotFound, nil
+			return responseNotFound
 		}
 
-		return responseOK, nil
+		return responseOK
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, strings.TrimPrefix(request.URL.Path, apiPrefix))
 		if _, err := os.Stat(filename); err != nil {
 			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
 
-			return responseNotFound, nil
+			return responseNotFound
 		}
 
 		file, err := os.ReadFile(filename)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
 
-			return responseServerError, nil
+			return responseServerError
 		}
 
 		var data map[string]any
 		if err := json.Unmarshal(file, &data); err != nil {
 			klog.V(4).ErrorS(err, "failed to unmarshal file", "filename", filename)
 
-			return responseServerError, nil
+			return responseServerError
 		}
 
 		mediaType, ok := data["mediaType"].(string)
 		if !ok {
 			klog.V(4).ErrorS(nil, "unknown mediaType", "filename", filename)
 
-			return responseServerError, nil
+			return responseServerError
 		}
 
 		return &http.Response{
@@ -384,14 +385,14 @@ func (i imageTransport) head(request *http.Request) (*http.Response, error) {
 				"Content-Type": []string{mediaType},
 			},
 			ContentLength: int64(len(file)),
-		}, nil
+		}
 	}
 
-	return responseNotAllowed, nil
+	return responseNotAllowed
 }
 
 // post method for http.MethodPost, accept request.
-func (i imageTransport) post(request *http.Request) (*http.Response, error) {
+func (i imageTransport) post(request *http.Request) *http.Response {
 	if strings.HasSuffix(request.URL.Path, "/uploads/") {
 		return &http.Response{
 			Proto:      "Local",
@@ -400,68 +401,80 @@ func (i imageTransport) post(request *http.Request) (*http.Response, error) {
 				"Location": []string{filepath.Dir(request.URL.Path)},
 			},
 			Request: request,
-		}, nil
+		}
 	}
 
-	return responseNotAllowed, nil
+	return responseNotAllowed
 }
 
 // put method for http.MethodPut, create file in blobs dir or manifests dir
-func (i imageTransport) put(request *http.Request) (*http.Response, error) {
+func (i imageTransport) put(request *http.Request) *http.Response {
 	if strings.HasSuffix(request.URL.Path, "/uploads") { // blobs
 		body, err := io.ReadAll(request.Body)
 		if err != nil {
-			return responseServerError, nil
+			klog.V(4).ErrorS(err, "failed to read request")
+
+			return responseServerError
 		}
 		defer request.Body.Close()
 
 		filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			return responseServerError, nil
+			klog.V(4).ErrorS(err, "failed to create dir", "dir", filepath.Dir(filename))
+
+			return responseServerError
 		}
 
 		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
-			return responseServerError, nil
+			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
+
+			return responseServerError
 		}
 
-		return responseCreated, nil
+		return responseCreated
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "/manifests") { // manifest
-		filename := filepath.Join(i.baseDir, strings.TrimPrefix(request.URL.Path, apiPrefix))
-		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			return responseServerError, nil
-		}
-
 		body, err := io.ReadAll(request.Body)
 		if err != nil {
-			return responseServerError, nil
+			klog.V(4).ErrorS(err, "failed to read request")
+
+			return responseServerError
 		}
 		defer request.Body.Close()
 
-		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
-			return responseServerError, nil
+		filename := filepath.Join(i.baseDir, strings.TrimPrefix(request.URL.Path, apiPrefix))
+		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
+			klog.V(4).ErrorS(err, "failed to create dir", "dir", filepath.Dir(filename))
+
+			return responseServerError
 		}
 
-		return responseCreated, nil
+		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
+			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
+
+			return responseServerError
+		}
+
+		return responseCreated
 	}
 
-	return responseNotAllowed, nil
+	return responseNotAllowed
 }
 
 // get method for http.MethodGet, get file in blobs dir or manifest dir
-func (i imageTransport) get(request *http.Request) (*http.Response, error) {
+func (i imageTransport) get(request *http.Request) *http.Response {
 	if strings.HasSuffix(filepath.Dir(request.URL.Path), "blobs") { // blobs
 		filename := filepath.Join(i.baseDir, "blobs", filepath.Base(request.URL.Path))
 		if _, err := os.Stat(filename); err != nil {
 			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
 
-			return responseNotFound, nil
+			return responseNotFound
 		}
 
 		file, err := os.ReadFile(filename)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
 
-			return responseServerError, nil
+			return responseServerError
 		}
 
 		return &http.Response{
@@ -469,30 +482,34 @@ func (i imageTransport) get(request *http.Request) (*http.Response, error) {
 			StatusCode:    http.StatusOK,
 			ContentLength: int64(len(file)),
 			Body:          io.NopCloser(bytes.NewReader(file)),
-		}, nil
+		}
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, strings.TrimPrefix(request.URL.Path, apiPrefix))
 		if _, err := os.Stat(filename); err != nil {
 			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
 
-			return responseNotFound, nil
+			return responseNotFound
 		}
 
 		file, err := os.ReadFile(filename)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
 
-			return responseServerError, nil
+			return responseServerError
 		}
 
 		var data map[string]any
 		if err := json.Unmarshal(file, &data); err != nil {
-			return responseServerError, err
+			klog.V(4).ErrorS(err, "failed to unmarshal file data", "filename", filename)
+
+			return responseServerError
 		}
 
 		mediaType, ok := data["mediaType"].(string)
 		if !ok {
-			return responseServerError, nil
+			klog.V(4).ErrorS(nil, "unknown mediaType", "filename", filename)
+
+			return responseServerError
 		}
 
 		return &http.Response{
@@ -503,8 +520,8 @@ func (i imageTransport) get(request *http.Request) (*http.Response, error) {
 			},
 			ContentLength: int64(len(file)),
 			Body:          io.NopCloser(bytes.NewReader(file)),
-		}, nil
+		}
 	}
 
-	return responseNotAllowed, nil
+	return responseNotAllowed
 }

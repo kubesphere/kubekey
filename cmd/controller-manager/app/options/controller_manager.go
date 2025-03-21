@@ -21,13 +21,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	cliflag "k8s.io/component-base/cli/flag"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // ControllerManagerServerOptions for NewControllerManagerServerOptions
 type ControllerManagerServerOptions struct {
-	// Debug mode, after a successful execution of Pipeline, will retain runtime data, which includes task execution status and parameters.
+	// Debug mode, after a successful execution of Playbook, will retain runtime data, which includes task execution status and parameters.
 	Debug bool
 
 	MaxConcurrentReconciles int
@@ -100,7 +101,7 @@ func NewControllerManagerServerOptions() *ControllerManagerServerOptions {
 func (o *ControllerManagerServerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
-	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Pipeline, "+"will retain runtime data, which includes task execution status and parameters.")
+	gfs.BoolVar(&o.Debug, "debug", o.Debug, "Debug mode, after a successful execution of Playbook, "+"will retain runtime data, which includes task execution status and parameters.")
 	cfs := fss.FlagSet("controller-manager")
 	cfs.IntVar(&o.MaxConcurrentReconciles, "max-concurrent-reconciles", o.MaxConcurrentReconciles, "The number of maximum concurrent reconciles for controller.")
 	cfs.BoolVar(&o.LeaderElection, "leader-election", o.LeaderElection, "Whether to enable leader election for controller-manager.")
@@ -128,7 +129,7 @@ var controllers []Controller
 func Register(reconciler Controller) error {
 	for _, c := range controllers {
 		if c.Name() == reconciler.Name() {
-			return fmt.Errorf("%s has register", reconciler.Name())
+			return errors.Errorf("%s has register", reconciler.Name())
 		}
 	}
 	controllers = append(controllers, reconciler)

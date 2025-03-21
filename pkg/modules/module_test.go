@@ -18,9 +18,10 @@ package modules
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/fs"
+
+	"github.com/cockroachdb/errors"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"

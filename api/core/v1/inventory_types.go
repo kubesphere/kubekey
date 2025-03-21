@@ -22,11 +22,11 @@ import (
 )
 
 const (
-	// InventoryCAPKKFinalizer is used to waiting ref pipeline compelete when inventory is deleted.
+	// InventoryCAPKKFinalizer is used to waiting ref playbook compelete when inventory is deleted.
 	InventoryCAPKKFinalizer = "inventory.kubekey.kubesphere.io/capkk"
 
-	// HostCheckPipelineAnnotation store which pipeline is used to check hosts.
-	HostCheckPipelineAnnotation = "pipeline.kubekey.kubesphere.io/host-check"
+	// HostCheckPlaybookAnnotation store which playbook is used to check hosts.
+	HostCheckPlaybookAnnotation = "playbook.kubekey.kubesphere.io/host-check"
 )
 
 // InventoryPhase of inventory. it's always use in capkk to judge if host has checked.
@@ -35,11 +35,11 @@ type InventoryPhase string
 const (
 	// InventoryPhasePending inventory has created but has never been checked once
 	InventoryPhasePending InventoryPhase = "Pending"
-	// InventoryPhaseRunning inventory host_check pipeline is running.
+	// InventoryPhaseRunning inventory host_check playbook is running.
 	InventoryPhaseRunning InventoryPhase = "Running"
-	// InventoryPhaseReady inventory host_check pipeline run successfully.
+	// InventoryPhaseReady inventory host_check playbook run successfully.
 	InventoryPhaseSucceeded InventoryPhase = "Succeeded"
-	// InventoryPhaseReady inventory host_check pipeline run check failed.
+	// InventoryPhaseReady inventory host_check playbook run check failed.
 	InventoryPhaseFailed InventoryPhase = "Failed"
 )
 

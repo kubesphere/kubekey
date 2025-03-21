@@ -1,13 +1,13 @@
 package internal
 
 import (
-	"fmt"
 	"math"
 	"net"
 	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -67,7 +67,7 @@ func ipFamily(addrOrCIDR string) (string, error) {
 		// from IP cidr
 		ipFromCIDR, _, err := net.ParseCIDR(addrOrCIDR)
 		if err != nil {
-			return "Invalid", fmt.Errorf("%s is not ip or cidr", addrOrCIDR)
+			return "Invalid", errors.Errorf("%s is not ip or cidr", addrOrCIDR)
 		}
 		ip = ipFromCIDR
 	}

@@ -18,7 +18,6 @@ package modules
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
 	"math"
@@ -26,11 +25,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
@@ -77,8 +76,6 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 
 	ca, err := newCopyArgs(ctx, options.Args, ha)
 	if err != nil {
-		klog.V(4).ErrorS(err, "get copy args error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
-
 		return "", err.Error()
 	}
 
@@ -123,7 +120,7 @@ func (ca copyArgs) copySrc(ctx context.Context, options ExecOptions, conn connec
 		return StdoutSuccess, ""
 	}
 	dealRelativeFilePath := func() (string, string) {
-		pj, err := project.New(ctx, options.Pipeline, false)
+		pj, err := project.New(ctx, options.Playbook, false)
 		if err != nil {
 			return "", fmt.Sprintf("get project error: %v", err)
 		}
@@ -178,12 +175,12 @@ func (ca copyArgs) relDir(ctx context.Context, pj project.Project, role string, 
 			return nil
 		}
 		if err != nil {
-			return fmt.Errorf("walk dir %s error: %w", ca.src, err)
+			return errors.Wrapf(err, "failed to walk dir %s", ca.src)
 		}
 
 		info, err := d.Info()
 		if err != nil {
-			return fmt.Errorf("get file info error: %w", err)
+			return errors.Wrap(err, "failed to get file info")
 		}
 
 		mode := info.Mode()
@@ -193,25 +190,25 @@ func (ca copyArgs) relDir(ctx context.Context, pj project.Project, role string, 
 
 		data, err := pj.ReadFile(path, project.GetFileOption{Role: role})
 		if err != nil {
-			return fmt.Errorf("read file error: %w", err)
+			return errors.Wrap(err, "failed to read file")
 		}
 
 		dest := ca.dest
 		if strings.HasSuffix(ca.dest, "/") {
 			rel, err := pj.Rel(ca.src, path, project.GetFileOption{Role: role})
 			if err != nil {
-				return fmt.Errorf("get relative file path error: %w", err)
+				return errors.Wrap(err, "failed to get relative file path")
 			}
 			dest = filepath.Join(ca.dest, rel)
 		}
 
 		if err := conn.PutFile(ctx, data, dest, mode); err != nil {
-			return fmt.Errorf("copy file error: %w", err)
+			return errors.Wrap(err, "failed to copy file")
 		}
 
 		return nil
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to work dir %a", ca.src)
 	}
 
 	return nil
@@ -229,7 +226,7 @@ func (ca copyArgs) readFile(ctx context.Context, data []byte, mode fs.FileMode, 
 	}
 
 	if err := conn.PutFile(ctx, data, dest, mode); err != nil {
-		return fmt.Errorf("copy file error: %w", err)
+		return errors.Wrap(err, "failed to copy file")
 	}
 
 	return nil
@@ -243,12 +240,12 @@ func (ca copyArgs) absDir(ctx context.Context, conn connector.Connector) error {
 		}
 
 		if err != nil {
-			return fmt.Errorf("walk dir %s error: %w", ca.src, err)
+			return errors.WithStack(err)
 		}
 		// get file old mode
 		info, err := d.Info()
 		if err != nil {
-			return fmt.Errorf("get file info error: %w", err)
+			return errors.Wrapf(err, "failed to get file %q info", path)
 		}
 
 		mode := info.Mode()
@@ -258,25 +255,25 @@ func (ca copyArgs) absDir(ctx context.Context, conn connector.Connector) error {
 		// read file
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("read file error: %w", err)
+			return errors.Wrapf(err, "failed to read file %q", path)
 		}
 		// copy file to remote
 		dest := ca.dest
 		if strings.HasSuffix(ca.dest, "/") {
 			rel, err := filepath.Rel(ca.src, path)
 			if err != nil {
-				return fmt.Errorf("get relative file path error: %w", err)
+				return errors.Wrap(err, "failed to get relative filepath")
 			}
 			dest = filepath.Join(ca.dest, rel)
 		}
 
 		if err := conn.PutFile(ctx, data, dest, mode); err != nil {
-			return fmt.Errorf("copy file error: %w", err)
+			return errors.Wrap(err, "failed to put file")
 		}
 
 		return nil
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to walk dir %q", ca.src)
 	}
 
 	return nil

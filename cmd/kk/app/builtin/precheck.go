@@ -20,6 +20,7 @@ limitations under the License.
 package builtin
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options/builtin"
@@ -40,12 +41,12 @@ func NewPreCheckCommand() *cobra.Command {
 		Short: "Check if the nodes is eligible for cluster deployment.",
 		Long:  "the tags can specify check items. support: etcd, os, network, cri, nfs.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pipeline, err := o.Complete(cmd, append(args, "playbooks/precheck.yaml"))
+			playbook, err := o.Complete(cmd, append(args, "playbooks/precheck.yaml"))
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), pipeline)
+			return o.CommonOptions.Run(cmd.Context(), playbook)
 		},
 	}
 	flags := cmd.Flags()

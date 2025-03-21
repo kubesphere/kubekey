@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"github.com/schollz/progressbar/v3"
@@ -37,44 +38,40 @@ type taskExecutor struct {
 func (e *taskExecutor) Exec(ctx context.Context) error {
 	// create task
 	if err := e.client.Create(ctx, e.task); err != nil {
-		klog.V(5).ErrorS(err, "create task error", "task", ctrlclient.ObjectKeyFromObject(e.task), "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-		return err
+		return errors.Wrapf(err, "failed to create task %q", e.task.Spec.Name)
 	}
 	defer func() {
-		e.pipeline.Status.TaskResult.Total++
+		e.playbook.Status.TaskResult.Total++
 		switch e.task.Status.Phase {
 		case kkcorev1alpha1.TaskPhaseSuccess:
-			e.pipeline.Status.TaskResult.Success++
+			e.playbook.Status.TaskResult.Success++
 		case kkcorev1alpha1.TaskPhaseIgnored:
-			e.pipeline.Status.TaskResult.Ignored++
+			e.playbook.Status.TaskResult.Ignored++
 		case kkcorev1alpha1.TaskPhaseFailed:
-			e.pipeline.Status.TaskResult.Failed++
+			e.playbook.Status.TaskResult.Failed++
 		}
 	}()
-
-	// 执行任务
+	// run task
 	if err := e.runTaskLoop(ctx); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to run task %q", ctrlclient.ObjectKeyFromObject(e.task))
 	}
-
 	// exit when task run failed
 	if e.task.IsFailed() {
-		var hostReason []kkcorev1.PipelineFailedDetailHost
+		var hostReason []kkcorev1.PlaybookFailedDetailHost
 		for _, tr := range e.task.Status.HostResults {
-			hostReason = append(hostReason, kkcorev1.PipelineFailedDetailHost{
+			hostReason = append(hostReason, kkcorev1.PlaybookFailedDetailHost{
 				Host:   tr.Host,
 				Stdout: tr.Stdout,
 				StdErr: tr.StdErr,
 			})
 		}
-		e.pipeline.Status.FailedDetail = append(e.pipeline.Status.FailedDetail, kkcorev1.PipelineFailedDetail{
+		e.playbook.Status.FailedDetail = append(e.playbook.Status.FailedDetail, kkcorev1.PlaybookFailedDetail{
 			Task:  e.task.Spec.Name,
 			Hosts: hostReason,
 		})
-		e.pipeline.Status.Phase = kkcorev1.PipelinePhaseFailed
+		e.playbook.Status.Phase = kkcorev1.PlaybookPhaseFailed
 
-		return fmt.Errorf("task %q run failed", e.task.Spec.Name)
+		return errors.Errorf("task %q run failed", e.task.Spec.Name)
 	}
 
 	return nil
@@ -127,13 +124,13 @@ func (e *taskExecutor) runTaskLoop(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("task %q cancelled: %w", e.task.Spec.Name, ctx.Err())
+			return nil
 		case <-time.After(e.taskRunTimeout):
-			return fmt.Errorf("task %q execution timeout", e.task.Spec.Name)
+			return errors.Errorf("task %q execution timeout", e.task.Spec.Name)
 		case <-ticker.C:
 			result, err := reconcile(ctx, ctrl.Request{NamespacedName: ctrlclient.ObjectKeyFromObject(e.task)})
 			if err != nil {
-				klog.V(5).ErrorS(err, "failed to reconcile task", "task", ctrlclient.ObjectKeyFromObject(e.task), "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
+				klog.V(5).ErrorS(err, "failed to reconcile task", "task", ctrlclient.ObjectKeyFromObject(e.task), "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
 			}
 			if result.Requeue {
 				continue
@@ -260,7 +257,7 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 				return true, nil
 			}
 			if err := bar.Add(1); err != nil {
-				return false, err
+				return false, errors.Wrap(err, "failed to process bar")
 			}
 
 			return false, nil
@@ -314,7 +311,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		Host:     host,
 		Variable: e.variable,
 		Task:     *e.task,
-		Pipeline: *e.pipeline,
+		Playbook: *e.playbook,
 	})
 }
 
@@ -395,7 +392,7 @@ func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 				"stderr": stderrResult,
 			},
 		}, host)); err != nil {
-			return fmt.Errorf("register task result to variable error: %w", err)
+			return errors.Wrap(err, "failed to register task result to variable")
 		}
 	}
 

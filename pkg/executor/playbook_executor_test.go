@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPipelineExecutor_DealRunOnce(t *testing.T) {
+func TestPlaybookExecutor_DealRunOnce(t *testing.T) {
 	testcases := []struct {
 		name       string
 		runOnce    bool
@@ -31,7 +31,7 @@ func TestPipelineExecutor_DealRunOnce(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			pipelineExecutor{}.dealRunOnce(tc.runOnce, tc.hosts, &tc.batchHosts)
+			playbookExecutor{}.dealRunOnce(tc.runOnce, tc.hosts, &tc.batchHosts)
 			assert.Equal(t, tc.batchHosts, tc.except)
 		})
 	}

@@ -10,16 +10,16 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// Executor all task in pipeline
+// Executor all task in playbook
 type Executor interface {
 	Exec(ctx context.Context) error
 }
 
-// option for pipelineExecutor, blockExecutor, taskExecutor
+// option for playbookExecutor, blockExecutor, taskExecutor
 type option struct {
 	client ctrlclient.Client
 
-	pipeline *kkcorev1.Pipeline
+	playbook *kkcorev1.Playbook
 	variable variable.Variable
 	// commandLine log output. default os.stdout
 	logOutput io.Writer

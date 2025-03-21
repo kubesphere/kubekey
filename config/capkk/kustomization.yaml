@@ -9,7 +9,7 @@ resources:
 - crds/infrastructure.cluster.x-k8s.io_kkmachines.yaml
 - crds/infrastructure.cluster.x-k8s.io_kkmachinetemplates.yaml
 - crds/kubekey.kubesphere.io_inventories.yaml
-- crds/kubekey.kubesphere.io_pipelines.yaml
+- crds/kubekey.kubesphere.io_playbooks.yaml
 - webhook/manifests.yaml
 - webhook/issuer.yaml
 - rbac/role.yaml

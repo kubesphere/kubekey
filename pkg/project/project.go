@@ -26,15 +26,20 @@ import (
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 )
 
-var builtinProjectFunc func(kkcorev1.Pipeline) (Project, error)
+var builtinProjectFunc func(kkcorev1.Playbook) (Project, error)
 
 // Project represent location of actual project.
 // get project file should base on it
 type Project interface {
+	// MarshalPlaybook project file to playbook.
 	MarshalPlaybook() (*kkprojectv1.Playbook, error)
+	// Stat file or dir in project
 	Stat(path string, option GetFileOption) (os.FileInfo, error)
+	// WalkDir dir in project
 	WalkDir(path string, option GetFileOption, f fs.WalkDirFunc) error
+	// ReadFile file or dir in project
 	ReadFile(path string, option GetFileOption) ([]byte, error)
+	// Rel path file or dir in project
 	Rel(root string, path string, option GetFileOption) (string, error)
 }
 
@@ -47,18 +52,18 @@ type GetFileOption struct {
 
 // New project.
 // If project address is git format. newGitProject
-// If pipeline has BuiltinsProjectAnnotation. builtinProjectFunc
+// If playbook has BuiltinsProjectAnnotation. builtinProjectFunc
 // Default newLocalProject
-func New(ctx context.Context, pipeline kkcorev1.Pipeline, update bool) (Project, error) {
-	if strings.HasPrefix(pipeline.Spec.Project.Addr, "https://") ||
-		strings.HasPrefix(pipeline.Spec.Project.Addr, "http://") ||
-		strings.HasPrefix(pipeline.Spec.Project.Addr, "git@") {
-		return newGitProject(ctx, pipeline, update)
+func New(ctx context.Context, playbook kkcorev1.Playbook, update bool) (Project, error) {
+	if strings.HasPrefix(playbook.Spec.Project.Addr, "https://") ||
+		strings.HasPrefix(playbook.Spec.Project.Addr, "http://") ||
+		strings.HasPrefix(playbook.Spec.Project.Addr, "git@") {
+		return newGitProject(ctx, playbook, update)
 	}
 
-	if _, ok := pipeline.Annotations[kkcorev1.BuiltinsProjectAnnotation]; ok {
-		return builtinProjectFunc(pipeline)
+	if _, ok := playbook.Annotations[kkcorev1.BuiltinsProjectAnnotation]; ok {
+		return builtinProjectFunc(playbook)
 	}
 
-	return newLocalProject(pipeline)
+	return newLocalProject(playbook)
 }

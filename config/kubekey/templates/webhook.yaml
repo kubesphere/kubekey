@@ -68,12 +68,12 @@ webhooks:
     service:
       name: kk-webhook-service
       namespace: {{ .Release.Namespace }}
-      path: /mutate-kubekey-kubesphere-io-v1beta1-pipeline
+      path: /mutate-kubekey-kubesphere-io-v1beta1-playbook
     {{- if not $isCertManager }}
     caBundle: {{ b64enc $ca.Cert }}
     {{- end }}
   failurePolicy: Fail
-  name: default.pipeline.kubekey.kubesphere.io
+  name: default.playbook.kubekey.kubesphere.io
   rules:
   - apiGroups:
     - kubekey.kubesphere.io
@@ -83,6 +83,6 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - pipelines
+    - playbooks
   sideEffects: None
 {{- end }}

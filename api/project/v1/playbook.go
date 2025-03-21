@@ -17,8 +17,9 @@ limitations under the License.
 package v1
 
 import (
-	"errors"
 	"strings"
+
+	"github.com/cockroachdb/errors"
 )
 
 // NOTE:

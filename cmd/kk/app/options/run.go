@@ -17,8 +17,7 @@ limitations under the License.
 package options
 
 import (
-	"fmt"
-
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,9 +77,9 @@ func (o *KubeKeyRunOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-// Complete options. create Pipeline, Config and Inventory
-func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, error) {
-	pipeline := &kkcorev1.Pipeline{
+// Complete options. create Playbook, Config and Inventory
+func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "run-",
 			Namespace:    o.Namespace,
@@ -89,12 +88,12 @@ func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 	}
 	// complete playbook. now only support one playbook
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 	o.Playbook = args[0]
 
-	pipeline.Spec = kkcorev1.PipelineSpec{
-		Project: kkcorev1.PipelineProject{
+	playbook.Spec = kkcorev1.PlaybookSpec{
+		Project: kkcorev1.PlaybookProject{
 			Addr:            o.ProjectAddr,
 			Name:            o.ProjectName,
 			Branch:          o.ProjectBranch,
@@ -107,9 +106,9 @@ func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		SkipTags: o.SkipTags,
 		Debug:    o.Debug,
 	}
-	if err := o.CommonOptions.Complete(pipeline); err != nil {
-		return nil, err
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	return pipeline, nil
+	return playbook, nil
 }

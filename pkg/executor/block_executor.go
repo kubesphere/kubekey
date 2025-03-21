@@ -3,15 +3,13 @@ package executor
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"slices"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -42,32 +40,26 @@ func (e blockExecutor) Exec(ctx context.Context) error {
 		when := e.dealWhen(block.When)
 
 		// // check tags
-		if !tags.IsEnabled(e.pipeline.Spec.Tags, e.pipeline.Spec.SkipTags) {
+		if !tags.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
 			// if not match the tags. skip
 			continue
 		}
 
 		// merge variable which defined in block
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(block.Vars, hosts...)); err != nil {
-			klog.V(5).ErrorS(err, "merge variable error", "pipeline", e.pipeline, "block", block.Name)
-
-			return err
+			return errors.Wrapf(err, "failed to merge block-variable: %q in playbook %q", block.Name, e.playbook)
 		}
 
 		switch {
 		case len(block.Block) != 0:
 			if err := e.dealBlock(ctx, hosts, ignoreErrors, when, tags, block); err != nil {
-				klog.V(5).ErrorS(err, "deal block error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-				return err
+				return errors.Wrapf(err, "failed to deal block %q in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook))
 			}
 		case block.IncludeTasks != "":
 			// do nothing. include tasks has converted to blocks.
 		default:
 			if err := e.dealTask(ctx, hosts, when, block); err != nil {
-				klog.V(5).ErrorS(err, "deal task error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-				return err
+				return errors.Wrapf(err, "failed to deal task %s in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook))
 			}
 		}
 	}
@@ -130,11 +122,10 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 		when:         when,
 		tags:         tags,
 	}.Exec(ctx)); err != nil {
-		klog.V(5).ErrorS(err, "execute tasks from block error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-		errs = errors.Join(errs, err)
+		errs = errors.Join(errs, errors.Wrapf(err, "failed to execute block %q tasks in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook)))
 	}
 	// if block exec failed exec rescue
-	if e.pipeline.Status.Phase == kkcorev1.PipelinePhaseFailed && len(block.Rescue) != 0 {
+	if e.playbook.Status.Phase == kkcorev1.PlaybookPhaseFailed && len(block.Rescue) != 0 {
 		if err := (blockExecutor{
 			option:       e.option,
 			hosts:        hosts,
@@ -144,8 +135,7 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 			when:         when,
 			tags:         tags,
 		}.Exec(ctx)); err != nil {
-			klog.V(5).ErrorS(err, "execute tasks from rescue error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, errors.Wrapf(err, "failed to execute rescue %q tasks in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook)))
 		}
 	}
 	// exec always after block
@@ -159,8 +149,7 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 			when:         when,
 			tags:         tags,
 		}.Exec(ctx)); err != nil {
-			klog.V(5).ErrorS(err, "execute tasks from always error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, errors.Wrapf(err, "failed to execute always %q tasks in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook)))
 		}
 	}
 	// when execute error. return
@@ -174,9 +163,7 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 	for n, a := range block.UnknownField {
 		data, err := json.Marshal(a)
 		if err != nil {
-			klog.V(5).ErrorS(err, "Marshal unknown field error", "field", n, "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-			return err
+			return errors.Wrapf(err, "failed to marshal block %q unknown filed %q in playbook", block.Name, n, ctrlclient.ObjectKeyFromObject(e.playbook))
 		}
 		if m := modules.FindModule(n); m != nil {
 			task.Spec.Module.Name = n
@@ -186,23 +173,17 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 		}
 	}
 	if task.Spec.Module.Name == "" { // action is necessary for a task
-		klog.V(5).ErrorS(nil, "No module/action detected in task", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-		return fmt.Errorf("no module/action detected in task: %s", task.Name)
+		return errors.Errorf("no module/action detected in task: %s", task.Name)
 	}
-	// complete by pipeline
-	task.GenerateName = e.pipeline.Name + "-"
-	task.Namespace = e.pipeline.Namespace
-	if err := ctrl.SetControllerReference(e.pipeline, task, e.client.Scheme()); err != nil {
-		klog.V(5).ErrorS(err, "Set controller reference error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-		return err
+	// complete by playbook
+	task.GenerateName = e.playbook.Name + "-"
+	task.Namespace = e.playbook.Namespace
+	if err := ctrl.SetControllerReference(e.playbook, task, e.client.Scheme()); err != nil {
+		return errors.Wrapf(err, "failed to set playbook %q ownerReferences to %q", ctrlclient.ObjectKeyFromObject(e.playbook), block.Name)
 	}
 
 	if err := (&taskExecutor{option: e.option, task: task, taskRunTimeout: 60 * time.Minute}).Exec(ctx); err != nil {
-		klog.V(5).ErrorS(err, "exec task error", "block", block.Name, "pipeline", ctrlclient.ObjectKeyFromObject(e.pipeline))
-
-		return err
+		return errors.Wrapf(err, "failed to execute task %s in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook))
 	}
 
 	return nil

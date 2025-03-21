@@ -20,8 +20,7 @@ limitations under the License.
 package builtin
 
 import (
-	"fmt"
-
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,9 +51,9 @@ func (o *ArtifactExportOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-// Complete options. create Pipeline, Config and Inventory
-func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, error) {
-	pipeline := &kkcorev1.Pipeline{
+// Complete options. create Playbook, Config and Inventory
+func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "artifact-export-",
 			Namespace:    o.Namespace,
@@ -66,23 +65,23 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 
 	// complete playbook. now only support one playbook
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 	o.Playbook = args[0]
 
-	pipeline.Spec = kkcorev1.PipelineSpec{
+	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		SkipTags: []string{"certs"},
 	}
 	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, fmt.Errorf("cannot get local inventory. error is %w. Please set it by \"--inventory\"", err)
+		return nil, errors.Wrap(err, "failed to get local inventory. Please set it by \"--inventory\"")
 	}
-	if err := o.CommonOptions.Complete(pipeline); err != nil {
-		return nil, err
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	return pipeline, nil
+	return playbook, nil
 }
 
 // ======================================================================================
@@ -107,9 +106,9 @@ func (o *ArtifactImagesOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-// Complete options. create Pipeline, Config and Inventory
-func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, error) {
-	pipeline := &kkcorev1.Pipeline{
+// Complete options. create Playbook, Config and Inventory
+func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "artifact-images-",
 			Namespace:    o.Namespace,
@@ -121,19 +120,19 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 
 	// complete playbook. now only support one playbook
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 	o.Playbook = args[0]
 
-	pipeline.Spec = kkcorev1.PipelineSpec{
+	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		Tags:     []string{"only_image"},
 	}
 
-	if err := o.CommonOptions.Complete(pipeline); err != nil {
-		return nil, err
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	return pipeline, nil
+	return playbook, nil
 }

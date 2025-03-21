@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +35,7 @@ import (
 
 type commandManager struct {
 	workdir string
-	*kkcorev1.Pipeline
+	*kkcorev1.Playbook
 	*kkcorev1.Inventory
 
 	ctrlclient.Client
@@ -42,7 +43,7 @@ type commandManager struct {
 	logOutput io.Writer
 }
 
-// Run command Manager. print log and run pipeline executor.
+// Run command Manager. print log and run playbook executor.
 func (m *commandManager) Run(ctx context.Context) error {
 	fmt.Fprint(m.logOutput, `
 
@@ -56,36 +57,36 @@ func (m *commandManager) Run(ctx context.Context) error {
                                    |___/
 
 `)
-	fmt.Fprintf(m.logOutput, "%s [Pipeline %s] start\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline))
-	cp := m.Pipeline.DeepCopy()
+	fmt.Fprintf(m.logOutput, "%s [Playbook %s] start\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Playbook))
+	cp := m.Playbook.DeepCopy()
 	defer func() {
-		fmt.Fprintf(m.logOutput, "%s [Pipeline %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline),
-			m.Pipeline.Status.TaskResult.Total, m.Pipeline.Status.TaskResult.Success, m.Pipeline.Status.TaskResult.Ignored, m.Pipeline.Status.TaskResult.Failed)
+		fmt.Fprintf(m.logOutput, "%s [Playbook %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Playbook),
+			m.Playbook.Status.TaskResult.Total, m.Playbook.Status.TaskResult.Success, m.Playbook.Status.TaskResult.Ignored, m.Playbook.Status.TaskResult.Failed)
 		go func() {
-			if !m.Pipeline.Spec.Debug && m.Pipeline.Status.Phase == kkcorev1.PipelinePhaseSucceeded {
+			if !m.Playbook.Spec.Debug && m.Playbook.Status.Phase == kkcorev1.PlaybookPhaseSucceeded {
 				<-ctx.Done()
-				fmt.Fprintf(m.logOutput, "%s [Pipeline %s] clean runtime directory\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Pipeline))
+				fmt.Fprintf(m.logOutput, "%s [Playbook %s] clean runtime directory\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(m.Playbook))
 				// clean runtime directory
 				if err := os.RemoveAll(filepath.Join(m.workdir, _const.RuntimeDir)); err != nil {
-					klog.ErrorS(err, "clean runtime directory error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline), "runtime_dir", filepath.Join(m.workdir, _const.RuntimeDir))
+					klog.ErrorS(err, "clean runtime directory error", "playbook", ctrlclient.ObjectKeyFromObject(m.Playbook), "runtime_dir", filepath.Join(m.workdir, _const.RuntimeDir))
 				}
 			}
 		}()
-		// update pipeline status
-		if err := m.Client.Status().Patch(ctx, m.Pipeline, ctrlclient.MergeFrom(cp)); err != nil {
-			klog.ErrorS(err, "update pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
+		// update playbook status
+		if err := m.Client.Status().Patch(ctx, m.Playbook, ctrlclient.MergeFrom(cp)); err != nil {
+			klog.ErrorS(err, "update playbook error", "playbook", ctrlclient.ObjectKeyFromObject(m.Playbook))
 		}
 	}()
 
-	if err := executor.NewPipelineExecutor(ctx, m.Client, m.Pipeline, m.logOutput).Exec(ctx); err != nil {
-		klog.ErrorS(err, "executor tasks error", "pipeline", ctrlclient.ObjectKeyFromObject(m.Pipeline))
-		m.Pipeline.Status.Phase = kkcorev1.PipelinePhaseFailed
-		m.Pipeline.Status.FailureReason = kkcorev1.PipelineFailedReasonTaskFailed
-		m.Pipeline.Status.FailureMessage = err.Error()
+	if err := executor.NewPlaybookExecutor(ctx, m.Client, m.Playbook, m.logOutput).Exec(ctx); err != nil {
+		klog.ErrorS(err, "executor tasks error", "playbook", ctrlclient.ObjectKeyFromObject(m.Playbook))
+		m.Playbook.Status.Phase = kkcorev1.PlaybookPhaseFailed
+		m.Playbook.Status.FailureReason = kkcorev1.PlaybookFailedReasonTaskFailed
+		m.Playbook.Status.FailureMessage = err.Error()
 
-		return err
+		return errors.Wrapf(err, "failed to executor playbook %q", ctrlclient.ObjectKeyFromObject(m.Playbook))
 	}
-	m.Pipeline.Status.Phase = kkcorev1.PipelinePhaseSucceeded
+	m.Playbook.Status.Phase = kkcorev1.PlaybookPhaseSucceeded
 
 	return nil
 }
