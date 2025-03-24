@@ -18,13 +18,12 @@ package connector
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"net"
 	"os"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -62,7 +61,7 @@ type Connector interface {
 func NewConnector(host string, v variable.Variable) (Connector, error) {
 	vars, err := v.Get(variable.GetAllVariable(host))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get %q host variable for", host)
+		return nil, errors.Wrapf(err, "failed to get host %q variable", host)
 	}
 	connectorVars := make(map[string]any)
 	if c1, ok := vars.(map[string]any)[_const.VariableConnector]; ok {
@@ -80,7 +79,7 @@ func NewConnector(host string, v variable.Variable) (Connector, error) {
 	case connectedKubernetes:
 		workdir, err := v.Get(variable.GetWorkDir())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get workdir from variable. error is %w", err)
+			return nil, errors.Wrap(err, "failed to get workdir from variable")
 		}
 		wd, ok := workdir.(string)
 		if !ok {

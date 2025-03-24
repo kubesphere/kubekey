@@ -2,10 +2,10 @@ package infrastructure
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -90,11 +90,11 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get kkcluster %q", req.String())
 	}
 	clusterName := kkcluster.Labels[clusterv1beta1.ClusterNameLabel]
 	if clusterName == "" {
-		klog.V(5).InfoS("inventory is not belong cluster", "inventory", req.String())
+		klog.V(5).InfoS("kkcluster is not belong cluster. skip", "inventory", req.String())
 
 		return ctrl.Result{}, nil
 	}
@@ -103,10 +103,10 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		Name:      clusterName,
 	}})
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 	if err := scope.newPatchHelper(scope.KKCluster, scope.Inventory); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 	defer func() {
 		if retErr != nil {
@@ -116,10 +116,10 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			scope.KKCluster.Status.FailureMessage = retErr.Error()
 		}
 		if err := r.reconcileStatus(ctx, scope); err != nil {
-			retErr = errors.Join(retErr, err)
+			retErr = errors.Join(retErr, errors.WithStack(err))
 		}
 		if err := scope.PatchHelper.Patch(ctx, scope.KKCluster, scope.Inventory); err != nil {
-			retErr = errors.Join(retErr, err)
+			retErr = errors.Join(retErr, errors.WithStack(err))
 		}
 	}()
 
@@ -140,11 +140,11 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Handle deleted clusters
 	if !scope.KKCluster.DeletionTimestamp.IsZero() {
-		return reconcile.Result{}, r.reconcileDelete(ctx, scope)
+		return reconcile.Result{}, errors.WithStack(r.reconcileDelete(ctx, scope))
 	}
 
 	// Handle non-deleted clusters
-	return reconcile.Result{}, r.reconcileNormal(ctx, scope)
+	return reconcile.Result{}, errors.WithStack(r.reconcileNormal(ctx, scope))
 }
 
 // reconcileDelete delete cluster
@@ -152,11 +152,11 @@ func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, scope *cluste
 	// waiting inventory deleted
 	inventoryList := &kkcorev1.InventoryList{}
 	if err := util.GetObjectListFromOwner(ctx, r.Client, scope.KKCluster, inventoryList); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get inventoryList from kkcluster %q", ctrlclient.ObjectKeyFromObject(scope.KKCluster))
 	}
 	for _, obj := range inventoryList.Items {
 		if err := r.Client.Delete(ctx, &obj); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to delete inventory %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
 
@@ -174,7 +174,7 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, scope *cluste
 	if err != nil { // cannot convert kkcluster to inventory. may be kkcluster is not valid.
 		scope.KKCluster.Status.FailureReason = capkkinfrav1beta1.KKClusterFailedInvalidHosts
 
-		return err
+		return errors.Wrapf(err, "failed to convert kkcluster %q to inventoryHost", ctrlclient.ObjectKeyFromObject(scope.KKCluster))
 	}
 	// if inventory is not exist. create it
 	if scope.Inventory.Name == "" {
@@ -191,7 +191,7 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, scope *cluste
 			},
 		}
 		if err := ctrl.SetControllerReference(scope.KKCluster, scope.Inventory, r.Scheme); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to set ownerReference from kkcluster %q to inventory", ctrlclient.ObjectKeyFromObject(scope.KKCluster))
 		}
 
 		return r.Client.Create(ctx, scope.Inventory)
@@ -224,7 +224,7 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, scope *cluste
 	if scope.Inventory.Annotations == nil {
 		scope.Inventory.Annotations = make(map[string]string)
 	}
-	scope.Inventory.Annotations[kkcorev1.HostCheckPipelineAnnotation] = ""
+	scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation] = ""
 	scope.Inventory.Status.Phase = kkcorev1.InventoryPhasePending
 	scope.Inventory.Status.Ready = false
 
@@ -235,12 +235,12 @@ func (r *KKClusterReconciler) reconcileStatus(ctx context.Context, scope *cluste
 	// sync KKClusterNodeReachedCondition.
 	switch scope.Inventory.Status.Phase {
 	case kkcorev1.InventoryPhasePending:
-		conditions.MarkUnknown(scope.KKCluster, capkkinfrav1beta1.KKClusterNodeReachedCondition, capkkinfrav1beta1.KKClusterNodeReachedConditionReasonWaiting, "waiting for inventory host check pipeline.")
+		conditions.MarkUnknown(scope.KKCluster, capkkinfrav1beta1.KKClusterNodeReachedCondition, capkkinfrav1beta1.KKClusterNodeReachedConditionReasonWaiting, "waiting for inventory host check playbook.")
 	case kkcorev1.InventoryPhaseSucceeded:
 		conditions.MarkTrue(scope.KKCluster, capkkinfrav1beta1.KKClusterNodeReachedCondition)
 	case kkcorev1.InventoryPhaseFailed:
 		conditions.MarkFalse(scope.KKCluster, capkkinfrav1beta1.KKClusterNodeReachedCondition, capkkinfrav1beta1.KKClusterNodeReachedConditionReasonUnreached, clusterv1beta1.ConditionSeverityError,
-			"inventory host check pipeline %q run failed", scope.Inventory.Annotations[kkcorev1.HostCheckPipelineAnnotation])
+			"inventory host check playbook %q run failed", scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation])
 	}
 
 	// after inventory is ready. continue create cluster
@@ -252,7 +252,7 @@ func (r *KKClusterReconciler) reconcileStatus(ctx context.Context, scope *cluste
 	if err := r.Client.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.ClusterNameLabel: scope.Name,
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get kkMachineList with label %s=%s", clusterv1beta1.ClusterNameLabel, scope.Name)
 	}
 
 	// sync kkmachine status to kkcluster
@@ -271,7 +271,7 @@ func (r *KKClusterReconciler) reconcileStatus(ctx context.Context, scope *cluste
 
 	cpn, _, err := unstructured.NestedInt64(scope.ControlPlane.Object, "spec", "replicas")
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get replicas from machineControlPlane %s", ctrlclient.ObjectKeyFromObject(scope.ControlPlane))
 	}
 	mdn := int(ptr.Deref(scope.MachineDeployment.Spec.Replicas, 0))
 	if scope.KKCluster.Status.Ready && scope.KKCluster.Status.FailureReason == "" &&

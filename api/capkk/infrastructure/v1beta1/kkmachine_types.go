@@ -30,10 +30,10 @@ const (
 	// KKMachineBelongGroupLabel defines which kkmachine belong to.
 	KKMachineBelongGroupLabel = "kkmachine.infrastructure.cluster.x-k8s.io/group"
 
-	// AddNodePipelineAnnotation add node to cluster.
-	AddNodePipelineAnnotation = "pipeline.kubekey.kubesphere.io/add-node"
-	// DeleteNodePipelineAnnotation remove node from cluster.
-	DeleteNodePipelineAnnotation = "pipeline.kubekey.kubesphere.io/delete-node"
+	// AddNodePlaybookAnnotation add node to cluster.
+	AddNodePlaybookAnnotation = "playbook.kubekey.kubesphere.io/add-node"
+	// DeleteNodePlaybookAnnotation remove node from cluster.
+	DeleteNodePlaybookAnnotation = "playbook.kubekey.kubesphere.io/delete-node"
 )
 
 type KKMachineFailedReason string

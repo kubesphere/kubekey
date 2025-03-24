@@ -17,50 +17,49 @@ limitations under the License.
 package project
 
 import (
-	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-func newLocalProject(pipeline kkcorev1.Pipeline) (Project, error) {
-	if !filepath.IsAbs(pipeline.Spec.Playbook) {
-		if pipeline.Spec.Project.Addr == "" {
+func newLocalProject(playbook kkcorev1.Playbook) (Project, error) {
+	if !filepath.IsAbs(playbook.Spec.Playbook) {
+		if playbook.Spec.Project.Addr == "" {
 			wd, err := os.Getwd()
 			if err != nil {
 				return nil, err
 			}
-			pipeline.Spec.Project.Addr = wd
+			playbook.Spec.Project.Addr = wd
 		}
-		pipeline.Spec.Playbook = filepath.Join(pipeline.Spec.Project.Addr, pipeline.Spec.Playbook)
+		playbook.Spec.Playbook = filepath.Join(playbook.Spec.Project.Addr, playbook.Spec.Playbook)
 	}
 
-	if _, err := os.Stat(pipeline.Spec.Playbook); err != nil {
-		return nil, fmt.Errorf("cannot find playbook %s", pipeline.Spec.Playbook)
+	if _, err := os.Stat(playbook.Spec.Playbook); err != nil {
+		return nil, errors.Wrapf(err, "cannot find playbook %q", playbook.Spec.Playbook)
 	}
 
-	if filepath.Base(filepath.Dir(pipeline.Spec.Playbook)) != _const.ProjectPlaybooksDir {
+	if filepath.Base(filepath.Dir(playbook.Spec.Playbook)) != _const.ProjectPlaybooksDir {
 		// the format of playbook is not correct
 		return nil, errors.New("playbook should be projectDir/playbooks/playbookfile")
 	}
 
-	projectDir := filepath.Dir(filepath.Dir(pipeline.Spec.Playbook))
-	playbook, err := filepath.Rel(projectDir, pipeline.Spec.Playbook)
+	projectDir := filepath.Dir(filepath.Dir(playbook.Spec.Playbook))
+	pb, err := filepath.Rel(projectDir, playbook.Spec.Playbook)
 	if err != nil {
 		return nil, err
 	}
 
-	return &localProject{Pipeline: pipeline, projectDir: projectDir, playbook: playbook}, nil
+	return &localProject{Playbook: playbook, projectDir: projectDir, playbook: pb}, nil
 }
 
 type localProject struct {
-	kkcorev1.Pipeline
+	kkcorev1.Playbook
 
 	projectDir string
 	// playbook relpath base on projectDir

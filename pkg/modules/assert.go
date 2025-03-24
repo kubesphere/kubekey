@@ -18,9 +18,9 @@ package modules
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	"github.com/cockroachdb/errors"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -39,7 +39,8 @@ type assertArgs struct {
 
 func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*assertArgs, error) {
 	var err error
-	aa := &assertArgs{}
+	var aa = &assertArgs{}
+
 	args := variable.Extension2Variables(raw)
 	if aa.that, err = variable.StringSliceVar(vars, args, "that"); err != nil {
 		return nil, errors.New("\"that\" should be []string or string")
@@ -72,8 +73,6 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 
 	aa, err := newAssertArgs(ctx, options.Args, ha)
 	if err != nil {
-		klog.V(4).ErrorS(err, "get assert args error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
-
 		return "", err.Error()
 	}
 

@@ -18,8 +18,8 @@ package tmpl
 
 import (
 	"bytes"
-	"fmt"
 
+	"github.com/cockroachdb/errors"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/klog/v2"
 
@@ -41,12 +41,12 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 	// Parse the template string
 	tl, err := internal.Template.Parse(input)
 	if err != nil {
-		return f(nil), fmt.Errorf("failed to parse template '%s': %w", input, err)
+		return f(nil), errors.Wrapf(err, "failed to parse template '%s'", input)
 	}
 	// Execute template with provided context
 	result := bytes.NewBuffer(nil)
 	if err := tl.Execute(result, ctx); err != nil {
-		return f(nil), fmt.Errorf("failed to execute template '%s': %w", input, err)
+		return f(nil), errors.Wrapf(err, "failed to execute template '%s'", input)
 	}
 	// Log successful parsing
 	klog.V(6).InfoS(" parse template succeed", "result", result.String())
@@ -70,7 +70,7 @@ func ParseBool(ctx map[string]any, inputs ...string) (bool, error) {
 			return bytes.EqualFold(o, []byte("true"))
 		})
 		if err != nil {
-			return false, err
+			return false, errors.WithStack(err)
 		}
 		if !output {
 			return output, nil

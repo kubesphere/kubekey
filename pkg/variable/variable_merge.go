@@ -1,8 +1,7 @@
 package variable
 
 import (
-	"errors"
-	"fmt"
+	"github.com/cockroachdb/errors"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
@@ -21,7 +20,7 @@ var MergeRemoteVariable = func(data map[string]any, hostname string) MergeFunc {
 			return errors.New("when merge source is remote. HostName cannot be empty")
 		}
 		if _, ok := vv.value.Hosts[hostname]; !ok {
-			return fmt.Errorf("when merge source is remote. HostName %s not exist", hostname)
+			return errors.Errorf("when merge source is remote. HostName %s not exist", hostname)
 		}
 
 		// it should not be changed
@@ -50,7 +49,7 @@ var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc 
 			}
 			// parse variable
 			if err := parseVariable(data, runtimeVarParser(v, hostname, data)); err != nil {
-				return err
+				return errors.Wrap(err, "failed to parseVariable")
 			}
 			hv := vv.value.Hosts[hostname]
 			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
@@ -70,7 +69,7 @@ var MergeAllRuntimeVariable = func(data map[string]any, hostname string) MergeFu
 		}
 		// parse variable
 		if err := parseVariable(data, runtimeVarParser(v, hostname, data)); err != nil {
-			return err
+			return errors.Wrap(err, "failed to parseVariable")
 		}
 		for h := range vv.value.Hosts {
 			if _, ok := v.(*variable); !ok {
@@ -89,11 +88,11 @@ func runtimeVarParser(v Variable, hostname string, data map[string]any) func(str
 	return func(s string) (string, error) {
 		curVariable, err := v.Get(GetAllVariable(hostname))
 		if err != nil {
-			return "", fmt.Errorf("get host %s variables error: %w", hostname, err)
+			return "", errors.Wrapf(err, "get host %s variables", hostname)
 		}
 		cv, ok := curVariable.(map[string]any)
 		if !ok {
-			return "", fmt.Errorf("host %s variables type error, expect map[string]any", hostname)
+			return "", errors.Errorf("host %s variables type error, expect map[string]any", hostname)
 		}
 
 		return tmpl.ParseFunc(

@@ -19,13 +19,13 @@ package connector
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/exec"
 
@@ -38,7 +38,7 @@ var _ GatherFacts = &localConnector{}
 
 func newLocalConnector(connectorVars map[string]any) *localConnector {
 	password, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
-	if err != nil {
+	if err != nil { // password is not necessary when execute with root user.
 		klog.V(4).InfoS("get connector sudo password failed, execute command without sudo", "error", err)
 	}
 
@@ -70,31 +70,29 @@ func (c *localConnector) Close(context.Context) error {
 
 // PutFile copies the src file to the dst file. src is the local filename, dst is the local filename.
 func (c *localConnector) PutFile(_ context.Context, src []byte, dst string, mode fs.FileMode) error {
-	if _, err := os.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Dir(dst)); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local dir %q", dst)
+		}
 		if err := os.MkdirAll(filepath.Dir(dst), mode); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "dst_file", dst)
-
-			return err
+			return errors.Wrapf(err, "failed to create local dir %q", dst)
 		}
 	}
+	if err := os.WriteFile(dst, src, mode); err != nil {
+		return errors.Wrapf(err, "failed to write file %q", dst)
+	}
 
-	return os.WriteFile(dst, src, mode)
+	return nil
 }
 
 // FetchFile copies the src file to the dst writer. src is the local filename, dst is the local writer.
 func (c *localConnector) FetchFile(_ context.Context, src string, dst io.Writer) error {
-	var err error
 	file, err := os.Open(src)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to read local file failed", "src_file", src)
-
-		return err
+		return errors.Wrapf(err, "failed to open local file %q", src)
 	}
-
 	if _, err := io.Copy(dst, file); err != nil {
-		klog.V(4).ErrorS(err, "Failed to copy local file", "src_file", src)
-
-		return err
+		return errors.Wrapf(err, "failed to copy local file %q", src)
 	}
 
 	return nil
@@ -126,22 +124,22 @@ func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 		osVars := make(map[string]any)
 		var osRelease bytes.Buffer
 		if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
-			return nil, fmt.Errorf("failed to fetch os-release: %w", err)
+			return nil, errors.Wrap(err, "failed to fetch os-release")
 		}
 		osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
 		kernel, err := c.ExecuteCommand(ctx, "uname -r")
 		if err != nil {
-			return nil, fmt.Errorf("get kernel version error: %w", err)
+			return nil, errors.Wrap(err, "failed to get kernel version")
 		}
 		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
 		hn, err := c.ExecuteCommand(ctx, "hostname")
 		if err != nil {
-			return nil, fmt.Errorf("get hostname error: %w", err)
+			return nil, errors.Wrap(err, "failed to get hostname")
 		}
 		osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
 		arch, err := c.ExecuteCommand(ctx, "arch")
 		if err != nil {
-			return nil, fmt.Errorf("get arch error: %w", err)
+			return nil, errors.Wrap(err, "failed to get arch")
 		}
 		osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 
@@ -149,12 +147,12 @@ func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 		procVars := make(map[string]any)
 		var cpu bytes.Buffer
 		if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
-			return nil, fmt.Errorf("get cpuinfo error: %w", err)
+			return nil, errors.Wrap(err, "failed to get cpuinfo")
 		}
 		procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
 		var mem bytes.Buffer
 		if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
-			return nil, fmt.Errorf("get meminfo error: %w", err)
+			return nil, errors.Wrap(err, "failed to get meminfo")
 		}
 		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
@@ -164,7 +162,7 @@ func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 		}, nil
 	default:
 		klog.V(4).ErrorS(nil, "Unsupported platform", "platform", runtime.GOOS)
-
-		return make(map[string]any), nil
 	}
+
+	return make(map[string]any), nil
 }

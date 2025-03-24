@@ -1,9 +1,9 @@
 package app
 
 import (
-	"fmt"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
@@ -16,57 +16,57 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
-func newPipelineCommand() *cobra.Command {
-	o := options.NewPipelineOptions()
+func newPlaybookCommand() *cobra.Command {
+	o := options.NewPlaybookOptions()
 
 	cmd := &cobra.Command{
-		Use:   "pipeline",
-		Short: "Executor a pipeline in kubernetes",
+		Use:   "playbook",
+		Short: "Executor a playbook in kubernetes",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			restconfig, err := ctrl.GetConfig()
 			if err != nil {
-				return fmt.Errorf("cannot get restconfig in kubernetes. error is %w", err)
+				return errors.Wrap(err, "failed to get restconfig")
 			}
 			kubeclient, err := ctrlclient.New(restconfig, ctrlclient.Options{
 				Scheme: _const.Scheme,
 			})
 			if err != nil {
-				return fmt.Errorf("could not create client: %w", err)
+				return errors.Wrap(err, "failed to create client")
 			}
-			// get pipeline
-			pipeline := &kkcorev1.Pipeline{}
+			// get playbook
+			playbook := &kkcorev1.Playbook{}
 			if err := kubeclient.Get(cmd.Context(), ctrlclient.ObjectKey{
 				Name:      o.Name,
 				Namespace: o.Namespace,
-			}, pipeline); err != nil {
-				return err
+			}, playbook); err != nil {
+				return errors.Wrap(err, "failed to get playbook")
 			}
-			if pipeline.Status.Phase != kkcorev1.PipelinePhaseRunning {
-				klog.InfoS("pipeline is not running, skip", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
+			if playbook.Status.Phase != kkcorev1.PlaybookPhaseRunning {
+				klog.InfoS("playbook is not running, skip", "playbook", ctrlclient.ObjectKeyFromObject(playbook))
 
 				return nil
 			}
 			// get inventory
 			inventory := new(kkcorev1.Inventory)
 			if err := kubeclient.Get(cmd.Context(), ctrlclient.ObjectKey{
-				Name:      pipeline.Spec.InventoryRef.Name,
-				Namespace: pipeline.Spec.InventoryRef.Namespace,
+				Name:      playbook.Spec.InventoryRef.Name,
+				Namespace: playbook.Spec.InventoryRef.Namespace,
 			}, inventory); err != nil {
-				return err
+				return errors.Wrap(err, "failed to get inventory")
 			}
-			if err := proxy.RestConfig(filepath.Join(_const.GetWorkdirFromConfig(pipeline.Spec.Config), _const.RuntimeDir), restconfig); err != nil {
-				return fmt.Errorf("could not get rest config: %w", err)
+			if err := proxy.RestConfig(filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir), restconfig); err != nil {
+				return errors.Wrap(err, "failed to get rest config")
 			}
 			// use proxy client to store task.
 			proxyclient, err := ctrlclient.New(restconfig, ctrlclient.Options{
 				Scheme: _const.Scheme,
 			})
 			if err != nil {
-				return fmt.Errorf("could not create client: %w", err)
+				return errors.Wrap(err, "failed to create client")
 			}
 
 			return manager.NewCommandManager(manager.CommandManagerOptions{
-				Pipeline:  pipeline,
+				Playbook:  playbook,
 				Inventory: inventory,
 				Client:    proxyclient,
 			}).Run(cmd.Context())

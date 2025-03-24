@@ -19,15 +19,13 @@ package variable
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"path/filepath"
 	"reflect"
 	"sync"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -49,14 +47,14 @@ type GetFunc func(Variable) (any, error)
 // MergeFunc merge data to variable
 type MergeFunc func(Variable) error
 
-// Variable store all vars which pipeline used.
+// Variable store all vars which playbook used.
 type Variable interface {
 	Get(getFunc GetFunc) (any, error)
 	Merge(mergeFunc MergeFunc) error
 }
 
 // New variable. generate value from config args. and render to source.
-func New(ctx context.Context, client ctrlclient.Client, pipeline kkcorev1.Pipeline, st source.SourceType) (Variable, error) {
+func New(ctx context.Context, client ctrlclient.Client, playbook kkcorev1.Playbook, st source.SourceType) (Variable, error) {
 	var err error
 	// new source
 	var s source.Source
@@ -65,32 +63,28 @@ func New(ctx context.Context, client ctrlclient.Client, pipeline kkcorev1.Pipeli
 	case source.MemorySource:
 		s = source.NewMemorySource()
 	case source.FileSource:
-		path := filepath.Join(_const.GetWorkdirFromConfig(pipeline.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.String(), _const.RuntimePipelineDir, pipeline.Namespace, pipeline.Name, _const.RuntimePipelineVariableDir)
+		path := filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.String(), _const.RuntimePlaybookDir, playbook.Namespace, playbook.Name, _const.RuntimePlaybookVariableDir)
 		s, err = source.NewFileSource(path)
 		if err != nil {
-			klog.V(4).ErrorS(err, "create file source failed", "path", path)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create file source %q", path)
 		}
 	default:
-		return nil, fmt.Errorf("unsupported source type: %v", st)
+		return nil, errors.Errorf("unsupported source type: %v", st)
 	}
 
 	// get inventory
 	var inventory = &kkcorev1.Inventory{}
-	if pipeline.Spec.InventoryRef != nil {
-		if err := client.Get(ctx, types.NamespacedName{Namespace: pipeline.Spec.InventoryRef.Namespace, Name: pipeline.Spec.InventoryRef.Name}, inventory); err != nil {
-			klog.V(4).ErrorS(err, "get inventory from pipeline error", "inventory", pipeline.Spec.InventoryRef, "pipeline", ctrlclient.ObjectKeyFromObject(&pipeline))
-
-			return nil, err
+	if playbook.Spec.InventoryRef != nil {
+		if err := client.Get(ctx, types.NamespacedName{Namespace: playbook.Spec.InventoryRef.Namespace, Name: playbook.Spec.InventoryRef.Name}, inventory); err != nil {
+			return nil, errors.Wrapf(err, "failed to get inventory %q from playbook %q", playbook.Spec.InventoryRef, ctrlclient.ObjectKeyFromObject(&playbook))
 		}
 	}
 
 	v := &variable{
-		key:    string(pipeline.UID),
+		key:    string(playbook.UID),
 		source: s,
 		value: &value{
-			Config:    pipeline.Spec.Config,
+			Config:    playbook.Spec.Config,
 			Inventory: *inventory,
 			Hosts:     make(map[string]host),
 		},
@@ -108,7 +102,7 @@ func New(ctx context.Context, client ctrlclient.Client, pipeline kkcorev1.Pipeli
 	// read data from source
 	data, err := v.source.Read()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read data from source. pipeline: %q. error: %w", ctrlclient.ObjectKeyFromObject(&pipeline), err)
+		return nil, errors.Wrapf(err, "failed to read data from source. playbook: %q", ctrlclient.ObjectKeyFromObject(&playbook))
 	}
 
 	for k, d := range data {
@@ -135,7 +129,7 @@ func New(ctx context.Context, client ctrlclient.Client, pipeline kkcorev1.Pipeli
 }
 
 type variable struct {
-	// key is the unique Identifier of the variable. usually the UID of the pipeline.
+	// key is the unique Identifier of the variable. usually the UID of the playbook.
 	key string
 	// source is where the variable is stored
 	source source.Source
@@ -205,7 +199,7 @@ func (v *variable) syncSource(old value) error {
 			"remote":  hv.RemoteVars,
 			"runtime": hv.RuntimeVars,
 		}, hn); err != nil {
-			return fmt.Errorf("failed to write host %s variable to source, error: %w", hn, err)
+			return errors.Wrapf(err, "failed to write host %s variable to source", hn)
 		}
 	}
 

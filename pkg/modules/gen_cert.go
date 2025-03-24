@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -17,6 +16,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -62,11 +62,11 @@ type genCertArgs struct {
 func (gca genCertArgs) signedCertificate(cfg *cgutilcert.Config) (string, string) {
 	parentKey, err := TryLoadKeyFromDisk(gca.rootKey)
 	if err != nil {
-		return "", fmt.Sprintf("failed to load root key: %v", err)
+		return "", fmt.Sprintf("failed to load root key: %+v", err)
 	}
 	parentCert, _, err := TryLoadCertChainFromDisk(gca.rootCert)
 	if err != nil {
-		return "", fmt.Sprintf("failed to load root certificate: %v", err)
+		return "", fmt.Sprintf("failed to load root certificate: %+v", err)
 	}
 
 	if gca.policy == policyIfNotPresent {
@@ -204,10 +204,10 @@ func WriteKey(outKey string, key crypto.Signer, policy string) error {
 
 	encoded, err := keyutil.MarshalPrivateKeyToPEM(key)
 	if err != nil {
-		return fmt.Errorf("unable to marshal private key to PEM, error: %w", err)
+		return errors.Wrap(err, "failed to marshal private key to PEM")
 	}
 	if err := keyutil.WriteKey(outKey, encoded); err != nil {
-		return fmt.Errorf("unable to write private key to file %s, error: %w", outKey, err)
+		return errors.Wrapf(err, "failed to write private key to file %s", outKey)
 	}
 
 	return nil
@@ -224,7 +224,7 @@ func WriteCert(outCert string, cert *x509.Certificate, policy string) error {
 	}
 
 	if err := cgutilcert.WriteCert(outCert, EncodeCertPEM(cert)); err != nil {
-		return fmt.Errorf("unable to write certificate to file %s, error: %w", outCert, err)
+		return errors.Wrapf(err, "failed to write certificate to file %s", outCert)
 	}
 
 	return nil
@@ -245,7 +245,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 	// Parse the private key from a file
 	privKey, err := keyutil.PrivateKeyFromFile(rootKey)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't load the private key file %s, error: %w", rootKey, err)
+		return nil, errors.Wrapf(err, "failed to load the private key file %s", rootKey)
 	}
 
 	// Allow RSA and ECDSA formats only
@@ -256,7 +256,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 	case *ecdsa.PrivateKey:
 		key = k
 	default:
-		return nil, fmt.Errorf("the private key file %s is neither in RSA nor ECDSA format", rootKey)
+		return nil, errors.Errorf("the private key file %s is neither in RSA nor ECDSA format", rootKey)
 	}
 
 	return key, nil
@@ -266,7 +266,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 func TryLoadCertChainFromDisk(rootCert string) (*x509.Certificate, []*x509.Certificate, error) {
 	certs, err := cgutilcert.CertsFromFile(rootCert)
 	if err != nil {
-		return nil, nil, fmt.Errorf("couldn't load the certificate file %s, error: %w", rootCert, err)
+		return nil, nil, errors.Wrapf(err, "failed to load the certificate file %s", rootCert)
 	}
 
 	cert := certs[0]
@@ -306,7 +306,7 @@ func NewSelfSignedCACert(cfg cgutilcert.Config, after time.Duration, key crypto.
 	// returns a uniform random value in [0, max-1), then add 1 to serial to make it a uniform random value in [1, max).
 	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64-1))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate certificate's SerialNumber number")
 	}
 	serial = new(big.Int).Add(serial, big.NewInt(1))
 
@@ -334,7 +334,7 @@ func NewSelfSignedCACert(cfg cgutilcert.Config, after time.Duration, key crypto.
 
 	certDERBytes, err := x509.CreateCertificate(cryptorand.Reader, &tmpl, &tmpl, key.Public(), key)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create certificate")
 	}
 
 	return x509.ParseCertificate(certDERBytes)
@@ -345,7 +345,7 @@ func NewSignedCert(cfg cgutilcert.Config, after time.Duration, key crypto.Signer
 	// returns a uniform random value in [0, max-1), then add 1 to serial to make it a uniform random value in [1, max).
 	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64-1))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate certificate's SerialNumber number")
 	}
 	serial = new(big.Int).Add(serial, big.NewInt(1))
 
@@ -382,7 +382,7 @@ func NewSignedCert(cfg cgutilcert.Config, after time.Duration, key crypto.Signer
 
 	certDERBytes, err := x509.CreateCertificate(cryptorand.Reader, &certTmpl, caCert, key.Public(), caKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create certificate")
 	}
 
 	return x509.ParseCertificate(certDERBytes)
@@ -415,10 +415,10 @@ func ValidateCertPeriod(cert *x509.Certificate, offset time.Duration) error {
 	period := fmt.Sprintf("NotBefore: %v, NotAfter: %v", cert.NotBefore, cert.NotAfter)
 	now := time.Now().Add(offset)
 	if now.Before(cert.NotBefore) {
-		return fmt.Errorf("the certificate is not valid yet: %s", period)
+		return errors.Errorf("the certificate is not valid yet: %s", period)
 	}
 	if now.After(cert.NotAfter) {
-		return fmt.Errorf("the certificate has expired: %s", period)
+		return errors.Errorf("the certificate has expired: %s", period)
 	}
 
 	return nil
@@ -442,7 +442,7 @@ func VerifyCertChain(cert *x509.Certificate, intermediates []*x509.Certificate, 
 	}
 
 	if _, err := cert.Verify(verifyOptions); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to verify certificate")
 	}
 
 	return nil
@@ -453,13 +453,13 @@ func VerifyCertChain(cert *x509.Certificate, intermediates []*x509.Certificate, 
 func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg *cgutilcert.Config) error {
 	for _, dnsName := range cfg.AltNames.DNSNames {
 		if err := cert.VerifyHostname(dnsName); err != nil {
-			return fmt.Errorf("certificate %s is invalid, error: %w", baseName, err)
+			return errors.Wrapf(err, "certificate %s is invalid", baseName)
 		}
 	}
 
 	for _, ipAddress := range cfg.AltNames.IPs {
 		if err := cert.VerifyHostname(ipAddress.String()); err != nil {
-			return fmt.Errorf("certificate %s is invalid, error: %w", baseName, err)
+			return errors.Wrapf(err, "certificate %s is invalid", baseName)
 		}
 	}
 

@@ -42,10 +42,10 @@ work_dir/
 |
 |-- runtime/
 |-- group/version/
-|   |   |-- pipelines/
+|   |   |-- playbooks/
 |   |   |   |-- namespace/
-|   |   |   |   |-- pipeline.yaml
-|   |   |   |   |-- /pipelineName/variable/
+|   |   |   |   |-- playbook.yaml
+|   |   |   |   |-- /playbookName/variable/
 |   |   |   |   |   |-- location.json
 |   |   |   |   |   |-- hostname.json
 |   |   |-- tasks/
@@ -105,15 +105,15 @@ const BinaryImagesDir = "images"
 // RuntimeDir used to store runtime data for the current task execution. By default, its path is set to {{ .work_dir/runtime }}.
 const RuntimeDir = "runtime"
 
-// RuntimePipelineDir stores pipeline resources created during pipeline execution.
-const RuntimePipelineDir = "pipelines"
+// RuntimePlaybookDir stores playbook resources created during playbook execution.
+const RuntimePlaybookDir = "playbooks"
 
-// pipeline.yaml contains the data for a pipeline resource.
+// playbook.yaml contains the data for a playbook resource.
 
-// RuntimePipelineVariableDir is a fixed directory name under runtime, used to store task execution parameters.
-const RuntimePipelineVariableDir = "variable"
+// RuntimePlaybookVariableDir is a fixed directory name under runtime, used to store task execution parameters.
+const RuntimePlaybookVariableDir = "variable"
 
-// RuntimePipelineTaskDir is a fixed directory name under runtime, used to store the task execution status.
+// RuntimePlaybookTaskDir is a fixed directory name under runtime, used to store the task execution status.
 
 // task.yaml contains the data for a task resource.
 
@@ -125,5 +125,5 @@ const RuntimePipelineVariableDir = "variable"
 
 // inventory.yaml contains the data for an inventory resource.
 
-// KubernetesDir represents the remote host directory for each Kubernetes connection created during pipeline execution.
+// KubernetesDir represents the remote host directory for each Kubernetes connection created during playbook execution.
 const KubernetesDir = "kubernetes"

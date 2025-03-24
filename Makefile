@@ -172,6 +172,7 @@ generate-manifests-capkk: $(CONTROLLER_GEN) $(KUSTOMIZE) clean-crds-capkk ## Gen
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
+	@cd api && go mod tidy
 	@go mod tidy
 .PHONY: generate-goimports
 generate-goimports:  ## Format all import, `goimports` is required.

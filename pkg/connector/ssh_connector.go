@@ -19,7 +19,6 @@ package connector
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -29,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"k8s.io/klog/v2"
@@ -122,11 +122,11 @@ func (c *sshConnector) Init(context.Context) error {
 	if _, err := os.Stat(c.PrivateKey); err == nil {
 		key, err := os.ReadFile(c.PrivateKey)
 		if err != nil {
-			return fmt.Errorf("read private key error: %w", err)
+			return errors.Wrapf(err, "failed to read private key %q", c.PrivateKey)
 		}
 		privateKey, err := ssh.ParsePrivateKey(key)
 		if err != nil {
-			return fmt.Errorf("parse private key error: %w", err)
+			return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
 		}
 		auth = append(auth, ssh.PublicKeys(privateKey))
 	}
@@ -138,22 +138,20 @@ func (c *sshConnector) Init(context.Context) error {
 		Timeout:         30 * time.Second,
 	})
 	if err != nil {
-		klog.V(4).ErrorS(err, "Dial ssh server failed", "host", c.Host, "port", c.Port)
-
-		return err
+		return errors.Wrapf(err, "failed to dial %q:%d ssh server", c.Host, c.Port)
 	}
 	c.client = sshClient
 
 	// get shell from env
 	session, err := sshClient.NewSession()
 	if err != nil {
-		return fmt.Errorf("create session error: %w", err)
+		return errors.Wrap(err, "failed to create session")
 	}
 	defer session.Close()
 
 	output, err := session.CombinedOutput("echo $SHELL")
 	if err != nil {
-		return fmt.Errorf("env command error: %w", err)
+		return errors.Wrap(err, "failed to env command")
 	}
 
 	if strings.TrimSpace(string(output)) != "" {
@@ -173,35 +171,32 @@ func (c *sshConnector) PutFile(_ context.Context, src []byte, dst string, mode f
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to create sftp client")
-
-		return err
+		return errors.Wrap(err, "failed to create sftp client")
 	}
 	defer sftpClient.Close()
 	// create remote file
-	if _, err := sftpClient.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
+	if _, err := sftpClient.Stat(filepath.Dir(dst)); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat dir %q", dst)
+		}
 		if err := sftpClient.MkdirAll(filepath.Dir(dst)); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create remote dir", "remote_file", dst)
-
-			return err
+			return errors.Wrapf(err, "failed to create remote dir %q", dst)
 		}
 	}
 
 	rf, err := sftpClient.Create(dst)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to  create remote file", "remote_file", dst)
-
-		return err
+		return errors.Wrapf(err, "failed to create remote file %q", dst)
 	}
 	defer rf.Close()
-
 	if _, err = rf.Write(src); err != nil {
-		klog.V(4).ErrorS(err, "Failed to write content to remote file", "remote_file", dst)
-
-		return err
+		return errors.Wrapf(err, "failed to write content to remote file %q", dst)
+	}
+	if err := rf.Chmod(mode); err != nil {
+		return errors.Wrapf(err, "failed to chmod remote file %q", dst)
 	}
 
-	return rf.Chmod(mode)
+	return nil
 }
 
 // FetchFile from remote node. src is the remote filename, dst is the local writer.
@@ -209,24 +204,18 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 	// create sftp client
 	sftpClient, err := sftp.NewClient(c.client)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to create sftp client", "remote_file", src)
-
-		return err
+		return errors.Wrap(err, "failed to create sftp client")
 	}
 	defer sftpClient.Close()
 
 	rf, err := sftpClient.Open(src)
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to open file", "remote_file", src)
-
-		return err
+		return errors.Wrapf(err, "failed to open remote file %q", src)
 	}
 	defer rf.Close()
 
 	if _, err := io.Copy(dst, rf); err != nil {
-		klog.V(4).ErrorS(err, "Failed to copy file", "remote_file", src)
-
-		return err
+		return errors.Wrapf(err, "failed to copy file %q", src)
 	}
 
 	return nil
@@ -239,36 +228,34 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {
-		klog.V(4).ErrorS(err, "Failed to create ssh session")
-
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create ssh session")
 	}
 	defer session.Close()
 
 	// get pipe from session
 	stdin, err := session.StdinPipe()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get stdin pipe")
 	}
 	stdout, err := session.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get stdout pipe")
 	}
 	stderr, err := session.StderrPipe()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get stderr pipe")
 	}
 	// Start the remote command
 	if err := session.Start(cmd); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to start session")
 	}
 	if c.Password != "" {
 		if _, err := stdin.Write([]byte(c.Password + "\n")); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to write password")
 		}
 	}
 	if err := stdin.Close(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to close stdin pipe")
 	}
 
 	// Create buffers to store stdout and stderr output
@@ -310,22 +297,22 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 	osVars := make(map[string]any)
 	var osRelease bytes.Buffer
 	if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
-		return nil, fmt.Errorf("failed to fetch os-release: %w", err)
+		return nil, errors.Wrap(err, "failed to fetch os-release")
 	}
 	osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
 	kernel, err := c.ExecuteCommand(ctx, "uname -r")
 	if err != nil {
-		return nil, fmt.Errorf("get kernel version error: %w", err)
+		return nil, errors.Wrap(err, "failed to get kernel version")
 	}
 	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
 	hn, err := c.ExecuteCommand(ctx, "hostname")
 	if err != nil {
-		return nil, fmt.Errorf("get hostname error: %w", err)
+		return nil, errors.Wrap(err, "failed to get hostname")
 	}
 	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
 	arch, err := c.ExecuteCommand(ctx, "arch")
 	if err != nil {
-		return nil, fmt.Errorf("get arch error: %w", err)
+		return nil, errors.Wrap(err, "failed to get arch")
 	}
 	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 
@@ -333,12 +320,12 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 	procVars := make(map[string]any)
 	var cpu bytes.Buffer
 	if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
-		return nil, fmt.Errorf("get cpuinfo error: %w", err)
+		return nil, errors.Wrap(err, "failed to get cpuinfo")
 	}
 	procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
 	var mem bytes.Buffer
 	if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
-		return nil, fmt.Errorf("get meminfo error: %w", err)
+		return nil, errors.Wrap(err, "failed to get meminfo error")
 	}
 	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 

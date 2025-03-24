@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,11 +37,11 @@ func NewPatchHelper(client ctrlclient.Client, obj ...ctrlclient.Object) (*PatchH
 		}
 		helper, err := patch.NewHelper(o, client)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create patch helper for object %q", ctrlclient.ObjectKeyFromObject(o))
 		}
 		gvk, err := apiutil.GVKForObject(o, client.Scheme())
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get gvk for object %q", ctrlclient.ObjectKeyFromObject(o))
 		}
 		helpers[gvk] = helper
 	}
@@ -67,14 +68,14 @@ func (p *PatchHelper) Patch(ctx context.Context, obj ...ctrlclient.Object) error
 	for _, o := range obj {
 		gvk, err := apiutil.GVKForObject(o, p.client.Scheme())
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to get gvk for object %q", ctrlclient.ObjectKeyFromObject(o))
 		}
 		if p.helpers[gvk] == nil {
 			// object is created, should not patch.
 			return nil
 		}
 		if err := p.helpers[gvk].Patch(ctx, o); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch object %q", ctrlclient.ObjectKeyFromObject(o))
 		}
 	}
 

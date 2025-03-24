@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/exec"
 
@@ -37,7 +38,7 @@ var _ Connector = &kubernetesConnector{}
 func newKubernetesConnector(host string, workdir string, connectorVars map[string]any) (*kubernetesConnector, error) {
 	kubeconfig, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorKubeconfig)
 	if err != nil && host != _const.VariableLocalHost {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return &kubernetesConnector{
@@ -68,27 +69,29 @@ func (c *kubernetesConnector) Init(_ context.Context) error {
 	}
 	// set home dir for each kubernetes
 	c.homedir = filepath.Join(c.workdir, _const.KubernetesDir, c.clusterName)
-	if _, err := os.Stat(c.homedir); err != nil && os.IsNotExist(err) {
+	if _, err := os.Stat(c.homedir); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local dir %q for cluster %q", c.homedir, c.clusterName)
+		}
+		// if dir is not exist, create it.
 		if err := os.MkdirAll(c.homedir, os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "cluster", c.clusterName)
-			// if dir is not exist, create it.
-			return err
+			return errors.Wrapf(err, "failed to create local dir %q for cluster %q", c.homedir, c.clusterName)
 		}
 	}
 	// create kubeconfig path in home dir
 	kubeconfigPath := filepath.Join(c.homedir, kubeconfigRelPath)
-	if _, err := os.Stat(kubeconfigPath); err != nil && os.IsNotExist(err) {
+	if _, err := os.Stat(kubeconfigPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local path %q for cluster %q", kubeconfigPath, c.clusterName)
+		}
 		if err := os.MkdirAll(filepath.Dir(kubeconfigPath), os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "cluster", c.clusterName)
-
-			return err
+			return errors.Wrapf(err, "failed to create local path %q for cluster %q", kubeconfigPath, c.clusterName)
 		}
 	}
+
 	// write kubeconfig to home dir
 	if err := os.WriteFile(kubeconfigPath, []byte(c.kubeconfig), os.ModePerm); err != nil {
-		klog.V(4).ErrorS(err, "Failed to create kubeconfig file", "cluster", c.clusterName)
-
-		return err
+		return errors.Wrapf(err, "failed to create kubeconfig file for cluster %q", c.clusterName)
 	}
 	// find command interpreter in env. default /bin/bash
 	sl, ok := os.LookupEnv(_const.ENV_SHELL)
@@ -109,15 +112,19 @@ func (c *kubernetesConnector) Close(_ context.Context) error {
 // and it may be necessary to keep them in separate directories locally.
 func (c *kubernetesConnector) PutFile(_ context.Context, src []byte, dst string, mode fs.FileMode) error {
 	dst = filepath.Join(c.homedir, dst)
-	if _, err := os.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Dir(dst)); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local dir %q for cluster %q", dst, c.clusterName)
+		}
 		if err := os.MkdirAll(filepath.Dir(dst), mode); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "dst_file", dst)
-
-			return err
+			return errors.Wrapf(err, "failed to create local dir %q for cluster %q", dst, c.clusterName)
 		}
 	}
+	if err := os.WriteFile(dst, src, mode); err != nil {
+		return errors.Wrapf(err, "failed to write file %q for cluster %q", dst, c.clusterName)
+	}
 
-	return os.WriteFile(dst, src, mode)
+	return nil
 }
 
 // FetchFile copy src file to dst writer. src is the local filename, dst is the local writer.

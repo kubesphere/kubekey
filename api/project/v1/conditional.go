@@ -17,8 +17,7 @@ limitations under the License.
 package v1
 
 import (
-	"errors"
-
+	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -43,7 +42,7 @@ func (w *When) UnmarshalYAML(node *yaml.Node) error {
 		}
 	case yaml.SequenceNode:
 		if err := node.Decode(&w.Data); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		for i, v := range w.Data {
 			if !IsTmplSyntax(v) {

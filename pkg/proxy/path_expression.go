@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/cockroachdb/errors"
 )
 
 // PathExpression holds a compiled path expression (RegExp) needed to match against
@@ -44,7 +46,7 @@ func newPathExpression(path string) (*pathExpression, error) {
 	expression, literalCount, varNames, varCount, tokens := templateToRegularExpression(path)
 	compiled, err := regexp.Compile(expression)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to compile regexp")
 	}
 
 	return &pathExpression{literalCount, varNames, varCount, compiled, expression, tokens}, nil

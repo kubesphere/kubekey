@@ -18,13 +18,13 @@ package internal
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -42,6 +42,7 @@ const (
 	// after delete event is handled, the file will be deleted from disk.
 	deleteTagSuffix = "-deleted"
 	// the file type of resource will store local.
+	// NOTE: the variable will store in playbook dir, add file-suffix to distinct it.
 	yamlSuffix = ".yaml"
 )
 
@@ -84,45 +85,29 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 	// set resourceVersion to obj
 	metaObj, err := meta.Accessor(obj)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to get meta object", "path", filepath.Dir(key))
-
-		return err
+		return errors.Wrapf(err, "failed to get meta from object %q", key)
 	}
 	metaObj.SetResourceVersion("1")
 	// create file to local disk
 	if _, err := os.Stat(filepath.Dir(key)); err != nil {
 		if !os.IsNotExist(err) {
-			klog.V(6).ErrorS(err, "failed to check dir", "path", filepath.Dir(key))
-
-			return err
+			return errors.Wrapf(err, "failed to check dir %q", filepath.Dir(key))
 		}
 		if err := os.MkdirAll(filepath.Dir(key), os.ModePerm); err != nil {
-			klog.V(6).ErrorS(err, "failed to create dir", "path", filepath.Dir(key))
-
-			return err
+			return errors.Wrapf(err, "failed to create dir %q", filepath.Dir(key))
 		}
 	}
 
 	data, err := runtime.Encode(s.codec, obj)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to encode resource file", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to encode object %q", key)
 	}
-	// render to out
-	if out != nil {
-		err = decode(s.codec, data, out)
-		if err != nil {
-			klog.V(6).ErrorS(err, "failed to decode resource file", "path", key)
-
-			return err
-		}
+	if err := decode(s.codec, data, out); err != nil {
+		return errors.Wrapf(err, "failed to decode object %q", key)
 	}
 	// render to file
 	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
-		klog.V(6).ErrorS(err, "failed to create resource file", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to create object %q", key)
 	}
 
 	return nil
@@ -134,30 +119,21 @@ func (s fileStorage) Delete(ctx context.Context, key string, out runtime.Object,
 		out = cachedExistingObject
 	} else {
 		if err := s.Get(ctx, key, apistorage.GetOptions{}, out); err != nil {
-			klog.V(6).ErrorS(err, "failed to get resource", "path", key)
-
-			return err
+			return errors.Wrapf(err, "failed to get object %q", key)
 		}
 	}
 
 	if err := preconditions.Check(key, out); err != nil {
-		klog.V(6).ErrorS(err, "failed to check preconditions", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to check preconditions for object %q", key)
 	}
 
 	if err := validateDeletion(ctx, out); err != nil {
-		klog.V(6).ErrorS(err, "failed to validate deletion", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to validate deletion for object %q", err)
 	}
 
-	// delete object
-	// rename file to trigger watcher
+	// delete object: rename file to trigger watcher, it will actual delete by watcher.
 	if err := os.Rename(key+yamlSuffix, key+yamlSuffix+deleteTagSuffix); err != nil {
-		klog.V(6).ErrorS(err, "failed to rename resource file", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to rename object %q to del-object %q", key+yamlSuffix, key+yamlSuffix+deleteTagSuffix)
 	}
 
 	return nil
@@ -172,14 +148,10 @@ func (s fileStorage) Watch(_ context.Context, key string, _ apistorage.ListOptio
 func (s fileStorage) Get(_ context.Context, key string, _ apistorage.GetOptions, out runtime.Object) error {
 	data, err := os.ReadFile(key + yamlSuffix)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to read resource file", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to read object file %q", key)
 	}
 	if err := decode(s.codec, data, out); err != nil {
-		klog.V(6).ErrorS(err, "failed to decode resource file", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to decode object %q", key)
 	}
 
 	return nil
@@ -189,23 +161,23 @@ func (s fileStorage) Get(_ context.Context, key string, _ apistorage.GetOptions,
 func (s fileStorage) GetList(_ context.Context, key string, opts apistorage.ListOptions, listObj runtime.Object) error {
 	listPtr, err := meta.GetItemsPtr(listObj)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get object list items of %q", key)
 	}
 	v, err := conversion.EnforcePtr(listPtr)
 	if err != nil || v.Kind() != reflect.Slice {
-		return fmt.Errorf("need ptr to slice: %w", err)
+		return errors.Wrapf(err, "need ptr to slice of %q", key)
 	}
 
 	// Build matching rules for resource version and continue key.
 	resourceVersionMatchRule, continueKeyMatchRule, err := s.buildMatchRules(key, opts, &sync.Once{})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to build matchRules %q", key)
 	}
 
 	// Get the root entries in the directory corresponding to 'key'.
 	rootEntries, isAllNamespace, err := s.getRootEntries(key)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get root entries %q", key)
 	}
 
 	var lastKey string
@@ -243,9 +215,7 @@ func (s fileStorage) buildMatchRules(key string, opts apistorage.ListOptions, st
 		// If continue token is present, set up a rule to start reading after the continueKey.
 		continueKey, _, err := apistorage.DecodeContinue(opts.Predicate.Continue, key)
 		if err != nil {
-			klog.V(6).ErrorS(err, "failed to parse continueKey", "continueKey", opts.Predicate.Continue)
-
-			return nil, nil, fmt.Errorf("invalid continue token: %w", err)
+			return nil, nil, errors.Wrapf(err, "invalid continue token of %q", key)
 		}
 
 		continueKeyMatchRule = func(key string) bool {
@@ -260,7 +230,7 @@ func (s fileStorage) buildMatchRules(key string, opts apistorage.ListOptions, st
 		// Handle resource version matching based on the provided match rule.
 		parsedRV, err := s.versioner.ParseResourceVersion(opts.ResourceVersion)
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid resource version: %w", err)
+			return nil, nil, errors.Wrapf(err, "invalid resource version of %q", key)
 		}
 		switch opts.ResourceVersionMatch {
 		case metav1.ResourceVersionMatchNotOlderThan:
@@ -270,7 +240,7 @@ func (s fileStorage) buildMatchRules(key string, opts apistorage.ListOptions, st
 		case "":
 			// Legacy case: match all resource versions.
 		default:
-			return nil, nil, fmt.Errorf("unknown ResourceVersionMatch value: %v", opts.ResourceVersionMatch)
+			return nil, nil, errors.Errorf("unknown ResourceVersionMatch value %q of %q", opts.ResourceVersionMatch, key)
 		}
 	}
 
@@ -290,19 +260,11 @@ func (s fileStorage) getRootEntries(key string) ([]os.DirEntry, bool, error) {
 		// get all resources from key. key is runtimeDir
 		allNamespace = false
 	default:
-		klog.V(6).ErrorS(nil, "key is invalid", "key", key)
-
-		return nil, false, fmt.Errorf("key is invalid: %s", key)
+		return nil, false, errors.Errorf("key is invalid: %s", key)
 	}
-
 	rootEntries, err := os.ReadDir(key)
-	if err != nil && !os.IsNotExist(err) {
-		klog.V(6).ErrorS(err, "failed to read runtime dir", "path", key)
 
-		return nil, allNamespace, err
-	}
-
-	return rootEntries, allNamespace, nil
+	return rootEntries, allNamespace, err
 }
 
 // processNamespaceDirectory handles the traversal and processing of a namespace directory.
@@ -317,15 +279,14 @@ func (s fileStorage) processNamespaceDirectory(key string, ns os.DirEntry, v ref
 		if os.IsNotExist(err) {
 			return nil
 		}
-		klog.V(6).ErrorS(err, "failed to read namespaces dir", "path", nsDir)
 
-		return err
+		return errors.Wrapf(err, "failed to read dir %q", nsDir)
 	}
 
 	for _, entry := range entries {
 		err := s.processResourceFile(nsDir, entry, v, continueKeyMatchRule, resourceVersionMatchRule, lastKey, opts, listObj)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		// Check if we have reached the limit of results requested by the client.
 		if opts.Predicate.Limit != 0 && int64(v.Len()) >= opts.Predicate.Limit {
@@ -351,30 +312,22 @@ func (s fileStorage) processResourceFile(parentDir string, entry os.DirEntry, v 
 
 	data, err := os.ReadFile(currentKey)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to read resource file", "path", currentKey)
-
-		return err
+		return errors.Wrapf(err, "failed to read object %q", currentKey)
 	}
 
 	obj, _, err := s.codec.Decode(data, nil, getNewItem(listObj, v))
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to decode resource file", "path", currentKey)
-
-		return err
+		return errors.Wrapf(err, "failed to decode object %q", currentKey)
 	}
 
 	metaObj, err := meta.Accessor(obj)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to get meta object", "path", currentKey)
-
-		return err
+		return errors.Wrapf(err, "failed to get object %q meta", currentKey)
 	}
 
 	rv, err := s.versioner.ParseResourceVersion(metaObj.GetResourceVersion())
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to parse resource version", "resourceVersion", metaObj.GetResourceVersion())
-
-		return err
+		return errors.Wrapf(err, "failed to parse resource version %q", metaObj.GetResourceVersion())
 	}
 
 	// Apply the resource version match rule.
@@ -401,7 +354,7 @@ func (s fileStorage) handleResult(listObj runtime.Object, v reflect.Value, lastK
 		// If there are more results, set the continuation token for the next query.
 		next, err := apistorage.EncodeContinue(lastKey+"\x00", "", 0)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to encode continue %q", lastKey)
 		}
 
 		return s.versioner.UpdateList(listObj, 1, next, nil)
@@ -419,56 +372,40 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	} else {
 		oldObj = s.newFunc()
 		if err := s.Get(ctx, key, apistorage.GetOptions{IgnoreNotFound: ignoreNotFound}, oldObj); err != nil {
-			klog.V(6).ErrorS(err, "failed to get resource", "path", key)
-
-			return err
+			return errors.Wrapf(err, "failed to get object %q", key)
 		}
 	}
 	if err := preconditions.Check(key, oldObj); err != nil {
-		klog.V(6).ErrorS(err, "failed to check preconditions", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to check preconditions %q", key)
 	}
 	// set resourceVersion to obj
 	metaObj, err := meta.Accessor(oldObj)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to get meta object", "path", filepath.Dir(key))
-
-		return err
+		return errors.Wrapf(err, "failed to get object %q meta", filepath.Dir(key))
 	}
 	oldVersion, err := s.versioner.ParseResourceVersion(metaObj.GetResourceVersion())
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to parse resource version", "resourceVersion", metaObj.GetResourceVersion())
-
-		return err
+		return errors.Wrapf(err, "failed to parse resource version %q", metaObj.GetResourceVersion())
 	}
 	out, _, err := tryUpdate(oldObj, apistorage.ResponseMeta{ResourceVersion: oldVersion + 1})
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to try update", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to try update %q", key)
 	}
 
 	data, err := runtime.Encode(s.codec, out)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to encode resource file", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to encode resource file %q", key)
 	}
 	// render to destination
 	if destination != nil {
 		err = decode(s.codec, data, destination)
 		if err != nil {
-			klog.V(6).ErrorS(err, "failed to decode resource file", "path", key)
-
-			return err
+			return errors.Wrapf(err, "failed to decode resource file %q", key)
 		}
 	}
 	// render to file
 	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
-		klog.V(6).ErrorS(err, "failed to create resource file", "path", key)
-
-		return err
+		return errors.Wrapf(err, "failed to create resource file %q", key)
 	}
 
 	return nil
@@ -480,10 +417,8 @@ func (s fileStorage) Count(key string) (int64, error) {
 	countByNSDir := func(dir string) (int64, error) {
 		var count int64
 		entries, err := os.ReadDir(dir)
-		if err != nil {
-			klog.V(6).ErrorS(err, "failed to read namespaces dir", "path", dir)
-			// cannot read namespace dir
-			return 0, err
+		if err != nil { // cannot read namespace dir
+			return 0, errors.Wrapf(err, "failed to read namespaces dir %q", dir)
 		}
 		// count the file
 		for _, entry := range entries {
@@ -500,9 +435,7 @@ func (s fileStorage) Count(key string) (int64, error) {
 		var count int64
 		rootEntries, err := os.ReadDir(key)
 		if err != nil && !os.IsNotExist(err) {
-			klog.V(6).ErrorS(err, "failed to read runtime dir", "path", key)
-
-			return 0, err
+			return 0, errors.Wrapf(err, "failed to read runtime dir %q", key)
 		}
 		for _, ns := range rootEntries {
 			if !ns.IsDir() {
@@ -520,9 +453,8 @@ func (s fileStorage) Count(key string) (int64, error) {
 	case 1: // count a namespace's resources
 		return countByNSDir(key)
 	default:
-		klog.V(6).ErrorS(nil, "key is invalid", "key", key)
 		// not support key
-		return 0, fmt.Errorf("key is invalid: %s", key)
+		return 0, errors.Errorf("key is invalid: %s", key)
 	}
 }
 
@@ -535,11 +467,11 @@ func (s fileStorage) RequestWatchProgress(context.Context) error {
 // On success, objPtr would be set to the object.
 func decode(codec runtime.Codec, value []byte, objPtr runtime.Object) error {
 	if _, err := conversion.EnforcePtr(objPtr); err != nil {
-		return fmt.Errorf("unable to convert output object to pointer: %w", err)
+		return errors.Wrap(err, "failed to convert output object to pointer")
 	}
 	_, _, err := codec.Decode(value, nil, objPtr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to decode output object")
 	}
 
 	return nil

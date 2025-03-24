@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pipeline
+package playbook
 
 import (
 	"context"
-	"errors"
 	"reflect"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -30,67 +30,67 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-// pipelineStrategy implements behavior for Pods
-type pipelineStrategy struct {
+// playbookStrategy implements behavior for Pods
+type playbookStrategy struct {
 	runtime.ObjectTyper
 	apinames.NameGenerator
 }
 
 // Strategy is the default logic that applies when creating and updating Pod
 // objects via the REST API.
-var Strategy = pipelineStrategy{_const.Scheme, apinames.SimpleNameGenerator}
+var Strategy = playbookStrategy{_const.Scheme, apinames.SimpleNameGenerator}
 
 // ===CreateStrategy===
 
 // NamespaceScoped always true
-func (t pipelineStrategy) NamespaceScoped() bool {
+func (t playbookStrategy) NamespaceScoped() bool {
 	return true
 }
 
 // PrepareForCreate do no-thing
-func (t pipelineStrategy) PrepareForCreate(context.Context, runtime.Object) {}
+func (t playbookStrategy) PrepareForCreate(context.Context, runtime.Object) {}
 
 // Validate always pass
-func (t pipelineStrategy) Validate(context.Context, runtime.Object) field.ErrorList {
+func (t playbookStrategy) Validate(context.Context, runtime.Object) field.ErrorList {
 	// do nothing
 	return nil
 }
 
 // WarningsOnCreate do no-thing
-func (t pipelineStrategy) WarningsOnCreate(context.Context, runtime.Object) []string {
+func (t playbookStrategy) WarningsOnCreate(context.Context, runtime.Object) []string {
 	// do nothing
 	return nil
 }
 
 // Canonicalize do no-thing
-func (t pipelineStrategy) Canonicalize(runtime.Object) {
+func (t playbookStrategy) Canonicalize(runtime.Object) {
 	// do nothing
 }
 
 // ===UpdateStrategy===
 
 // AllowCreateOnUpdate always false
-func (t pipelineStrategy) AllowCreateOnUpdate() bool {
+func (t playbookStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
 // PrepareForUpdate do no-thing
-func (t pipelineStrategy) PrepareForUpdate(context.Context, runtime.Object, runtime.Object) {
+func (t playbookStrategy) PrepareForUpdate(context.Context, runtime.Object, runtime.Object) {
 	// do nothing
 }
 
 // ValidateUpdate spec is immutable
-func (t pipelineStrategy) ValidateUpdate(_ context.Context, obj, old runtime.Object) field.ErrorList {
+func (t playbookStrategy) ValidateUpdate(_ context.Context, obj, old runtime.Object) field.ErrorList {
 	// only support update status
-	pipeline, ok := obj.(*kkcorev1.Pipeline)
+	playbook, ok := obj.(*kkcorev1.Playbook)
 	if !ok {
 		return field.ErrorList{field.InternalError(field.NewPath("spec"), errors.New("the object is not Task"))}
 	}
-	oldPipeline, ok := old.(*kkcorev1.Pipeline)
+	oldPlaybook, ok := old.(*kkcorev1.Playbook)
 	if !ok {
 		return field.ErrorList{field.InternalError(field.NewPath("spec"), errors.New("the object is not Task"))}
 	}
-	if !reflect.DeepEqual(pipeline.Spec, oldPipeline.Spec) {
+	if !reflect.DeepEqual(playbook.Spec, oldPlaybook.Spec) {
 		return field.ErrorList{field.Forbidden(field.NewPath("spec"), "spec is immutable")}
 	}
 
@@ -98,19 +98,19 @@ func (t pipelineStrategy) ValidateUpdate(_ context.Context, obj, old runtime.Obj
 }
 
 // WarningsOnUpdate always nil
-func (t pipelineStrategy) WarningsOnUpdate(context.Context, runtime.Object, runtime.Object) []string {
+func (t playbookStrategy) WarningsOnUpdate(context.Context, runtime.Object, runtime.Object) []string {
 	// do nothing
 	return nil
 }
 
 // AllowUnconditionalUpdate always true
-func (t pipelineStrategy) AllowUnconditionalUpdate() bool {
+func (t playbookStrategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
 // ===ResetFieldsStrategy===
 
 // GetResetFields always nil
-func (t pipelineStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
+func (t playbookStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return nil
 }

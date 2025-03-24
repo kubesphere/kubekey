@@ -20,9 +20,9 @@ limitations under the License.
 package builtin
 
 import (
-	"fmt"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,9 +54,9 @@ func (o *InitOSOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-// Complete options. create Pipeline, Config and Inventory
-func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, error) {
-	pipeline := &kkcorev1.Pipeline{
+// Complete options. create Playbook, Config and Inventory
+func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "init-os-",
 			Namespace:    o.Namespace,
@@ -68,36 +68,36 @@ func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.P
 
 	// complete playbook. now only support one playbook
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 	o.Playbook = args[0]
 
-	pipeline.Spec = kkcorev1.PipelineSpec{
+	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
 
-	if err := o.CommonOptions.Complete(pipeline); err != nil {
-		return nil, err
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, errors.Wrap(err, "failed to complete playbook")
 	}
 
-	return pipeline, o.complateConfig()
+	return playbook, o.complateConfig()
 }
 
 func (o *InitOSOptions) complateConfig() error {
-	if workdir, err := o.CommonOptions.Config.GetValue("workdir"); err != nil {
+	if workdir, err := o.CommonOptions.Config.GetValue(_const.Workdir); err != nil {
 		// workdir should set by CommonOptions
-		return err
+		return errors.Wrapf(err, "failed to get value %q in config", _const.Workdir)
 	} else {
 		wd, ok := workdir.(string)
 		if !ok {
-			return fmt.Errorf("workdir should be string value")
+			return errors.New("workdir should be string value")
 		}
 		// set binary dir if not set
 		if _, err := o.CommonOptions.Config.GetValue(_const.BinaryDir); err != nil {
 			// not found set default
 			if err := o.CommonOptions.Config.SetValue(_const.BinaryDir, filepath.Join(wd, "kubekey")); err != nil {
-				return err
+				return errors.Wrapf(err, "failed to set value %q in config", _const.Workdir)
 			}
 		}
 	}
@@ -127,9 +127,9 @@ func (o *InitRegistryOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-// Complete options. create Pipeline, Config and Inventory
-func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, error) {
-	pipeline := &kkcorev1.Pipeline{
+// Complete options. create Playbook, Config and Inventory
+func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "init-registry-",
 			Namespace:    o.Namespace,
@@ -141,17 +141,17 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 
 	// complete playbook. now only support one playbook
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 	o.Playbook = args[0]
 
-	pipeline.Spec = kkcorev1.PipelineSpec{
+	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
-	if err := o.CommonOptions.Complete(pipeline); err != nil {
-		return nil, err
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, errors.Wrap(err, "failed to complete playbook")
 	}
 
-	return pipeline, nil
+	return playbook, nil
 }

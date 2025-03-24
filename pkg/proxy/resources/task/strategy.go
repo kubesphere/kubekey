@@ -18,9 +18,9 @@ package task
 
 import (
 	"context"
-	"errors"
 	"reflect"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -36,7 +36,7 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-const pipelineKind = "Pipeline"
+const playbookKind = "Playbook"
 
 // taskStrategy implements behavior for Pods
 type taskStrategy struct {
@@ -123,8 +123,8 @@ func (t taskStrategy) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return nil
 }
 
-// OwnerPipelineIndexFunc return value ownerReference.object is pipeline.
-func OwnerPipelineIndexFunc(obj any) ([]string, error) {
+// OwnerPlaybookIndexFunc return value ownerReference.object is playbook.
+func OwnerPlaybookIndexFunc(obj any) ([]string, error) {
 	task, ok := obj.(*kkcorev1alpha1.Task)
 	if !ok {
 		return nil, errors.New("not Task")
@@ -132,7 +132,7 @@ func OwnerPipelineIndexFunc(obj any) ([]string, error) {
 
 	var index string
 	for _, reference := range task.OwnerReferences {
-		if reference.Kind == pipelineKind {
+		if reference.Kind == playbookKind {
 			index = types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,
@@ -142,7 +142,7 @@ func OwnerPipelineIndexFunc(obj any) ([]string, error) {
 		}
 	}
 	if index == "" {
-		return nil, errors.New("task has no ownerReference.pipeline")
+		return nil, errors.New("task has no ownerReference.playbook")
 	}
 
 	return []string{index}, nil
@@ -151,7 +151,7 @@ func OwnerPipelineIndexFunc(obj any) ([]string, error) {
 // Indexers returns the indexers for pod storage.
 func Indexers() *cgtoolscache.Indexers {
 	return &cgtoolscache.Indexers{
-		apistorage.FieldIndex(kkcorev1alpha1.TaskOwnerField): OwnerPipelineIndexFunc,
+		apistorage.FieldIndex(kkcorev1alpha1.TaskOwnerField): OwnerPlaybookIndexFunc,
 	}
 }
 
@@ -183,7 +183,7 @@ func ToSelectableFields(task *kkcorev1alpha1.Task) fields.Set {
 	// be adjusted.
 	taskSpecificFieldsSet := make(fields.Set)
 	for _, reference := range task.OwnerReferences {
-		if reference.Kind == pipelineKind {
+		if reference.Kind == playbookKind {
 			taskSpecificFieldsSet[kkcorev1alpha1.TaskOwnerField] = types.NamespacedName{
 				Namespace: task.Namespace,
 				Name:      reference.Name,
@@ -196,11 +196,11 @@ func ToSelectableFields(task *kkcorev1alpha1.Task) fields.Set {
 	return apigeneric.AddObjectMetaFieldsSet(taskSpecificFieldsSet, &task.ObjectMeta, true)
 }
 
-// OwnerPipelineTriggerFunc returns value ownerReference is pipeline of given object.
-func OwnerPipelineTriggerFunc(obj runtime.Object) string {
+// OwnerPlaybookTriggerFunc returns value ownerReference is playbook of given object.
+func OwnerPlaybookTriggerFunc(obj runtime.Object) string {
 	if task, ok := obj.(*kkcorev1alpha1.Task); ok {
 		for _, reference := range task.OwnerReferences {
-			if reference.Kind == pipelineKind {
+			if reference.Kind == playbookKind {
 				return types.NamespacedName{
 					Namespace: task.Namespace,
 					Name:      reference.Name,

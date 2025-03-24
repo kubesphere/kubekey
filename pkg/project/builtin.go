@@ -20,11 +20,11 @@ limitations under the License.
 package project
 
 import (
-	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 
@@ -33,21 +33,21 @@ import (
 )
 
 func init() {
-	builtinProjectFunc = func(pipeline kkcorev1.Pipeline) (Project, error) {
-		if pipeline.Spec.Playbook == "" {
+	builtinProjectFunc = func(playbook kkcorev1.Playbook) (Project, error) {
+		if playbook.Spec.Playbook == "" {
 			return nil, errors.New("playbook should not be empty")
 		}
 
-		if filepath.IsAbs(pipeline.Spec.Playbook) {
+		if filepath.IsAbs(playbook.Spec.Playbook) {
 			return nil, errors.New("playbook should be relative path base on project.addr")
 		}
 
-		return &builtinProject{Pipeline: pipeline, FS: core.BuiltinPipeline, playbook: pipeline.Spec.Playbook}, nil
+		return &builtinProject{Playbook: playbook, FS: core.BuiltinPlaybook, playbook: playbook.Spec.Playbook}, nil
 	}
 }
 
 type builtinProject struct {
-	kkcorev1.Pipeline
+	kkcorev1.Playbook
 
 	fs.FS
 	// playbook relpath base on projectDir

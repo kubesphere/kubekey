@@ -18,13 +18,13 @@ package proxy
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"sort"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -48,7 +48,7 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/inventory"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/pipeline"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/playbook"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/task"
 )
 
@@ -66,7 +66,7 @@ func RestConfig(runtimedir string, restconfig *rest.Config) error {
 
 // NewProxyTransport return a new http.RoundTripper use in ctrl.client.
 // When restConfig is not empty: should connect a kubernetes cluster and store some resources in there.
-// Such as: pipeline.kubekey.kubesphere.io/v1, inventory.kubekey.kubesphere.io/v1, config.kubekey.kubesphere.io/v1
+// Such as: playbook.kubekey.kubesphere.io/v1, inventory.kubekey.kubesphere.io/v1, config.kubekey.kubesphere.io/v1
 // when restConfig is empty: store all resource in local.
 //
 // SPECIFICALLY: since tasks is running data, which is reentrant and large in quantity,
@@ -83,7 +83,7 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	if restConfig.Host != "" {
 		clientFor, err := rest.HTTPClientFor(restConfig)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to create http client")
 		}
 		lt.restClient = clientFor
 	}
@@ -92,28 +92,22 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	kkv1alpha1 := newAPIIResources(kkcorev1alpha1.SchemeGroupVersion)
 	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion))
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to create storage")
-
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create task storage")
 	}
 	if err := kkv1alpha1.AddResource(resourceOptions{
 		path:    "tasks",
 		storage: storage.Task,
 	}); err != nil {
-		klog.V(6).ErrorS(err, "failed to add resource")
-
-		return nil, err
+		return nil, errors.Wrap(err, "failed to add tasks resource")
 	}
 	if err := kkv1alpha1.AddResource(resourceOptions{
 		path:    "tasks/status",
 		storage: storage.TaskStatus,
 	}); err != nil {
-		klog.V(6).ErrorS(err, "failed to add resource")
-
-		return nil, err
+		return nil, errors.Wrap(err, "failed to add tasks/status resource")
 	}
 	if err := lt.registerResources(kkv1alpha1); err != nil {
-		klog.V(6).ErrorS(err, "failed to register resources")
+		return nil, errors.Wrap(err, "failed to register v1alpha1 resources")
 	}
 
 	// when restConfig is null. should store all resource local
@@ -123,46 +117,34 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		// add inventory
 		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
-			klog.V(6).ErrorS(err, "failed to create storage")
-
-			return nil, err
+			return nil, errors.Wrap(err, "failed to create inventory storage")
 		}
 		if err := kkv1.AddResource(resourceOptions{
 			path:    "inventories",
 			storage: inventoryStorage.Inventory,
 		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
-			return nil, err
+			return nil, errors.Wrap(err, "failed to add inventories resource")
 		}
-		// add pipeline
-		pipelineStorage, err := pipeline.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
+		// add playbook
+		playbookStorage, err := playbook.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
-			klog.V(6).ErrorS(err, "failed to create storage")
-
-			return nil, err
+			return nil, errors.Wrap(err, "failed to create playbook storage")
 		}
 		if err := kkv1.AddResource(resourceOptions{
-			path:    "pipelines",
-			storage: pipelineStorage.Pipeline,
+			path:    "playbooks",
+			storage: playbookStorage.Playbook,
 		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
-			return nil, err
+			return nil, errors.Wrap(err, "failed to add playbooks resource")
 		}
 		if err := kkv1.AddResource(resourceOptions{
-			path:    "pipelines/status",
-			storage: pipelineStorage.PipelineStatus,
+			path:    "playbooks/status",
+			storage: playbookStorage.PlaybookStatus,
 		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
-			return nil, err
+			return nil, errors.Wrap(err, "failed to add playbooks/status resource")
 		}
 
 		if err := lt.registerResources(kkv1); err != nil {
-			klog.V(6).ErrorS(err, "failed to register resources")
-
-			return nil, err
+			return nil, errors.Wrap(err, "failed to register v1 resources")
 		}
 	}
 
@@ -215,7 +197,7 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 	// dispatch request
 	handler, err := l.detectDispatcher(request)
 	if err != nil {
-		return response, fmt.Errorf("no router for request. url: %s, method: %s", request.URL.Path, request.Method)
+		return response, errors.Wrapf(err, "no router for request. url: %s, method: %s", request.URL.Path, request.Method)
 	}
 	// call handler
 	l.handlerChainFunc(handler).ServeHTTP(&responseWriter{response}, request)
@@ -257,7 +239,7 @@ func (l *transport) registerResources(resources *apiResources) error {
 		_, isTableProvider := o.storage.(apirest.TableConvertor)
 		if isLister && !isTableProvider {
 			// All listers must implement TableProvider
-			return fmt.Errorf("%q must implement TableConvertor", o.path)
+			return errors.Errorf("%q must implement TableConvertor", o.path)
 		}
 
 		// Get the list of actions for the given scope.
@@ -298,7 +280,7 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 	// request scope
 	fqKindToRegister, err := apiendpoints.GetResourceKind(resources.gv, o.storage, _const.Scheme)
 	if err != nil {
-		return apihandlers.RequestScope{}, err
+		return apihandlers.RequestScope{}, errors.Wrap(err, "failed to get resourcekind")
 	}
 	reqScope := apihandlers.RequestScope{
 		Namer: apihandlers.ContextBasedNaming{
@@ -338,7 +320,7 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 		resetFields,
 	)
 	if err != nil {
-		return apihandlers.RequestScope{}, err
+		return apihandlers.RequestScope{}, errors.Wrap(err, "failed to create default fieldManager")
 	}
 
 	return reqScope, nil

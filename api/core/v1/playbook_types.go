@@ -25,40 +25,40 @@ const (
 	// BuiltinsProjectAnnotation use builtins project of KubeKey
 	BuiltinsProjectAnnotation = "kubekey.kubesphere.io/builtins-project"
 
-	// PipelineCompletedFinalizer will be removed after the Pipeline is completed.
-	PipelineCompletedFinalizer = "kubekey.kubesphere.io/pipeline-completed"
+	// PlaybookCompletedFinalizer will be removed after the Playbook is completed.
+	PlaybookCompletedFinalizer = "kubekey.kubesphere.io/playbook-completed"
 )
 
-// PipelinePhase of Pipeline
-type PipelinePhase string
+// PlaybookPhase of Playbook
+type PlaybookPhase string
 
 const (
-	// PipelinePhasePending of Pipeline. Pipeline has created but not deal
-	PipelinePhasePending PipelinePhase = "Pending"
-	// PipelinePhaseRunning of Pipeline. deal Pipeline.
-	PipelinePhaseRunning PipelinePhase = "Running"
-	// PipelinePhaseFailed of Pipeline. once Task run failed.
-	PipelinePhaseFailed PipelinePhase = "Failed"
-	// PipelinePhaseSucceed of Pipeline. all Tasks run success.
-	PipelinePhaseSucceeded PipelinePhase = "Succeeded"
+	// PlaybookPhasePending of Playbook. Playbook has created but not deal
+	PlaybookPhasePending PlaybookPhase = "Pending"
+	// PlaybookPhaseRunning of Playbook. deal Playbook.
+	PlaybookPhaseRunning PlaybookPhase = "Running"
+	// PlaybookPhaseFailed of Playbook. once Task run failed.
+	PlaybookPhaseFailed PlaybookPhase = "Failed"
+	// PlaybookPhaseSucceed of Playbook. all Tasks run success.
+	PlaybookPhaseSucceeded PlaybookPhase = "Succeeded"
 )
 
-type PipelineFailedReason string
+type PlaybookFailedReason string
 
 const (
-	// PipelineFailedReasonUnknown is the default failed reason.
-	PipelineFailedReasonUnknown PipelineFailedReason = "unknown"
-	// PipelineFailedReasonPodFailed pod exec failed.
-	PipelineFailedReasonPodFailed PipelineFailedReason = "pod executor failed"
-	// PipelineFailedReasonTaskFailed task exec failed.
-	PipelineFailedReasonTaskFailed PipelineFailedReason = "task executor failed"
+	// PlaybookFailedReasonUnknown is the default failed reason.
+	PlaybookFailedReasonUnknown PlaybookFailedReason = "unknown"
+	// PlaybookFailedReasonPodFailed pod exec failed.
+	PlaybookFailedReasonPodFailed PlaybookFailedReason = "pod executor failed"
+	// PlaybookFailedReasonTaskFailed task exec failed.
+	PlaybookFailedReasonTaskFailed PlaybookFailedReason = "task executor failed"
 )
 
-// PipelineSpec of pipeline.
-type PipelineSpec struct {
+// PlaybookSpec of playbook.
+type PlaybookSpec struct {
 	// Project is storage for executable packages
 	// +optional
-	Project PipelineProject `json:"project,omitempty"`
+	Project PlaybookProject `json:"project,omitempty"`
 	// Playbook which to execute.
 	Playbook string `json:"playbook"`
 	// InventoryRef is the node configuration for playbook
@@ -73,7 +73,7 @@ type PipelineSpec struct {
 	// SkipTags is the tags of playbook which skip execute
 	// +optional
 	SkipTags []string `json:"skipTags,omitempty"`
-	// If Debug mode is true, It will retain runtime data after a successful execution of Pipeline,
+	// If Debug mode is true, It will retain runtime data after a successful execution of Playbook,
 	// which includes task execution status and parameters.
 	// +optional
 	Debug bool `json:"debug,omitempty"`
@@ -89,8 +89,8 @@ type PipelineSpec struct {
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
-// PipelineProject respect which playbook store.
-type PipelineProject struct {
+// PlaybookProject respect which playbook store.
+type PlaybookProject struct {
 	// Addr is the storage for executable packages (in Ansible file format).
 	// When starting with http or https, it will be obtained from a Git repository.
 	// When starting with file path, it will be obtained from the local path.
@@ -113,24 +113,24 @@ type PipelineProject struct {
 	Token string `json:"token,omitempty"`
 }
 
-// PipelineStatus of Pipeline
-type PipelineStatus struct {
+// PlaybookStatus of Playbook
+type PlaybookStatus struct {
 	// TaskResult total related tasks execute result.
-	TaskResult PipelineTaskResult `json:"taskResult,omitempty"`
-	// Phase of pipeline.
-	Phase PipelinePhase `json:"phase,omitempty"`
+	TaskResult PlaybookTaskResult `json:"taskResult,omitempty"`
+	// Phase of playbook.
+	Phase PlaybookPhase `json:"phase,omitempty"`
 	// FailureReason will be set in the event that there is a terminal problem
 	// +optional
-	FailureReason PipelineFailedReason `json:"failureReason,omitempty"`
+	FailureReason PlaybookFailedReason `json:"failureReason,omitempty"`
 	// FailureMessage will be set in the event that there is a terminal problem
 	// +optional
 	FailureMessage string `json:"failureMessage,omitempty"`
 	// FailedDetail will record the failed tasks.
-	FailedDetail []PipelineFailedDetail `json:"failedDetail,omitempty"`
+	FailedDetail []PlaybookFailedDetail `json:"failedDetail,omitempty"`
 }
 
-// PipelineTaskResult of Pipeline
-type PipelineTaskResult struct {
+// PlaybookTaskResult of Playbook
+type PlaybookTaskResult struct {
 	// Total number of tasks.
 	Total int `json:"total,omitempty"`
 	// Success number of tasks.
@@ -141,16 +141,16 @@ type PipelineTaskResult struct {
 	Ignored int `json:"ignored,omitempty"`
 }
 
-// PipelineFailedDetail store failed message when pipeline run failed.
-type PipelineFailedDetail struct {
+// PlaybookFailedDetail store failed message when playbook run failed.
+type PlaybookFailedDetail struct {
 	// Task name of failed task.
 	Task string `json:"task,omitempty"`
 	// failed Hosts Result of failed task.
-	Hosts []PipelineFailedDetailHost `json:"hosts,omitempty"`
+	Hosts []PlaybookFailedDetailHost `json:"hosts,omitempty"`
 }
 
-// PipelineFailedDetailHost detail failed message for each host.
-type PipelineFailedDetailHost struct {
+// PlaybookFailedDetailHost detail failed message for each host.
+type PlaybookFailedDetailHost struct {
 	// Host name of failed task.
 	Host string `json:"host,omitempty"`
 	// Stdout of failed task.
@@ -169,33 +169,24 @@ type PipelineFailedDetailHost struct {
 // +kubebuilder:printcolumn:name="Total",type="integer",JSONPath=".status.taskResult.total"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// Pipeline resource executor a playbook.
-type Pipeline struct {
+// Playbook resource executor a playbook.
+type Playbook struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PipelineSpec   `json:"spec,omitempty"`
-	Status PipelineStatus `json:"status,omitempty"`
+	Spec   PlaybookSpec   `json:"spec,omitempty"`
+	Status PlaybookStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PipelineList of Pipeline
-type PipelineList struct {
+// PlaybookList of Playbook
+type PlaybookList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Pipeline `json:"items"`
+	Items           []Playbook `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Pipeline{}, &PipelineList{})
+	SchemeBuilder.Register(&Playbook{}, &PlaybookList{})
 }
-
-// //+kubebuilder:webhook:path=/mutate-kubekey-kubesphere-io-v1beta1-pipeline,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=kkmachines,verbs=create;update,versions=v1beta1,name=default.kkmachine.infrastructure.cluster.x-k8s.io,admissionReviewVersions=v1
-
-// var _ webhook.Defaulter = &Pipeline{}
-
-// // Default implements webhook.Defaulter so a webhook will be registered for the type
-// func (k *Pipeline) Default() {
-
-// }

@@ -17,7 +17,6 @@ limitations under the License.
 package variable
 
 import (
-	"fmt"
 	"net"
 	"reflect"
 	"slices"
@@ -25,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -160,11 +160,11 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 	switch reflect.ValueOf(v).Kind() {
 	case reflect.Map:
 		if err := parseVariableFromMap(v, parseTmplFunc); err != nil {
-			return err
+			return errors.Wrap(err, "failed to parseVariableFromMap")
 		}
 	case reflect.Slice, reflect.Array:
 		if err := parseVariableFromArray(v, parseTmplFunc); err != nil {
-			return err
+			return errors.Wrap(err, "failed to parseVariableFromArray")
 		}
 	}
 
@@ -182,7 +182,7 @@ func parseVariableFromMap(v any, parseTmplFunc func(string) (string, error)) err
 
 			newValue, err := parseTmplFunc(vv)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to parseTmplFunc of %q", vv)
 			}
 
 			switch {
@@ -195,7 +195,7 @@ func parseVariableFromMap(v any, parseTmplFunc func(string) (string, error)) err
 			}
 		} else {
 			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return err
+				return errors.Wrap(err, "failed to parseVariable")
 			}
 		}
 	}
@@ -214,7 +214,7 @@ func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) e
 
 			newValue, err := parseTmplFunc(vv)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to parseTmplFunc of %q", vv)
 			}
 
 			switch {
@@ -227,7 +227,7 @@ func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) e
 			}
 		} else {
 			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return err
+				return errors.Wrap(err, "failed to parseVariable")
 			}
 		}
 	}
@@ -263,16 +263,12 @@ func getLocalIP(ipType string) string {
 func StringVar(d map[string]any, args map[string]any, key string) (string, error) {
 	val, ok := args[key]
 	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return "", fmt.Errorf("cannot find variable \"%s\"", key)
+		return "", errors.Errorf("cannot find variable %q", key)
 	}
 	// convert to string
 	sv, ok := val.(string)
 	if !ok {
-		klog.V(4).ErrorS(nil, "variable is not string", "key", key)
-
-		return "", fmt.Errorf("variable \"%s\" is not string", key)
+		return "", errors.Errorf("variable %q is not string", key)
 	}
 
 	return tmpl.ParseFunc(d, sv, func(b []byte) string { return string(b) })
@@ -282,9 +278,7 @@ func StringVar(d map[string]any, args map[string]any, key string) (string, error
 func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string, error) {
 	val, ok := vars[key]
 	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
+		return nil, errors.Errorf("cannot find variable %q", key)
 	}
 
 	switch valv := val.(type) {
@@ -311,9 +305,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 	case string:
 		as, err := tmpl.Parse(d, valv)
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse variable error", "key", key)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to parse variable %q of key %q", valv, key)
 		}
 
 		var ss []string
@@ -323,9 +315,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 
 		return []string{string(as)}, nil
 	default:
-		klog.V(4).ErrorS(nil, "unsupported variable type", "key", key)
-
-		return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
+		return nil, errors.Errorf("unsupported variable %q type", key)
 	}
 }
 
@@ -333,9 +323,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 	val, ok := vars[key]
 	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
+		return nil, errors.Errorf("cannot find variable %q", key)
 	}
 	// default convert to int
 	v := reflect.ValueOf(val)
@@ -345,7 +333,7 @@ func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		u := v.Uint()
 		if u > uint64(^uint(0)>>1) {
-			return nil, fmt.Errorf("variable \"%s\" value %d overflows int", key, u)
+			return nil, errors.Errorf("variable %q value %d overflows int", key, u)
 		}
 
 		return ptr.To(int(u)), nil
@@ -354,23 +342,17 @@ func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 	case reflect.String:
 		vs, err := tmpl.ParseFunc(d, v.String(), func(b []byte) string { return string(b) })
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse string variable error", "key", key)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to parse string variable %q of key %q", v.String(), key)
 		}
 
 		atoi, err := strconv.Atoi(vs)
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse convert string to int error", "key", key)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to convert string %q to int of key %q", vs, key)
 		}
 
 		return ptr.To(atoi), nil
 	default:
-		klog.V(4).ErrorS(nil, "unsupported variable type", "key", key)
-
-		return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
+		return nil, errors.Errorf("unsupported variable %q type", key)
 	}
 }
 
@@ -378,9 +360,7 @@ func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 	val, ok := args[key]
 	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
+		return nil, errors.Errorf("failed to find variable of key %q", key)
 	}
 	// default convert to int
 	v := reflect.ValueOf(val)
@@ -390,22 +370,20 @@ func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 	case reflect.String:
 		vs, err := tmpl.ParseBool(d, v.String())
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse string variable error", "key", key)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to parse string variable %q to bool of key %q", v.String(), key)
 		}
 
 		return ptr.To(vs), nil
 	}
 
-	return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
+	return nil, errors.Errorf("unsupported variable %q type", key)
 }
 
 // DurationVar get time.Duration value by key
 func DurationVar(d map[string]any, args map[string]any, key string) (time.Duration, error) {
 	stringVar, err := StringVar(d, args, key)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to get string variable of key %q", key)
 	}
 
 	return time.ParseDuration(stringVar)
@@ -465,7 +443,7 @@ func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error
 
 	result, err := tmpl.Parse(d, input)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to parse %q", input)
 	}
 
 	return string(result), nil

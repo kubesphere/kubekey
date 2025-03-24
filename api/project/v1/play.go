@@ -17,8 +17,7 @@ limitations under the License.
 package v1
 
 import (
-	"errors"
-
+	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
 )
 

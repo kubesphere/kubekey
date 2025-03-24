@@ -2,9 +2,9 @@ package infrastructure
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	"github.com/cockroachdb/errors"
 	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -68,9 +68,9 @@ func (r *InventoryReconciler) SetupWithManager(mgr manager.Manager, o options.Co
 		For(&kkcorev1.Inventory{}).
 		// Watches kkmachine to sync group.
 		Watches(&capkkinfrav1beta1.KKMachine{}, handler.EnqueueRequestsFromMapFunc(r.objectToInventoryMapFunc)).
-		// Watch Pipeline to sync inventory status.
-		Watches(&kkcorev1.Pipeline{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj ctrlclient.Object) []ctrl.Request {
-			// only need host check pipeline.
+		// Watch Playbook to sync inventory status.
+		Watches(&kkcorev1.Playbook{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj ctrlclient.Object) []ctrl.Request {
+			// only need host check playbook.
 			inventory := &kkcorev1.Inventory{}
 			if err := util.GetOwnerFromObject(ctx, r.Client, obj, inventory); err == nil {
 				return []ctrl.Request{{NamespacedName: ctrlclient.ObjectKeyFromObject(inventory)}}
@@ -113,11 +113,11 @@ func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get inventory %q", req.String())
 	}
 	clusterName := inventory.Labels[clusterv1beta1.ClusterNameLabel]
 	if clusterName == "" {
-		klog.V(5).InfoS("inventory is not belong cluster", "inventory", req.String())
+		klog.V(5).InfoS("inventory is not belong cluster. skip", "inventory", req.String())
 
 		return ctrl.Result{}, nil
 	}
@@ -126,14 +126,14 @@ func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		Name:      clusterName,
 	}})
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 	if err := scope.newPatchHelper(scope.Inventory); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 	defer func() {
 		if err := scope.PatchHelper.Patch(ctx, scope.Inventory); err != nil {
-			retErr = errors.Join(retErr, err)
+			retErr = errors.Join(retErr, errors.WithStack(err))
 		}
 	}()
 
@@ -154,21 +154,21 @@ func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	// Handle deleted inventory
 	if !scope.Inventory.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, scope)
+		return ctrl.Result{}, errors.WithStack(r.reconcileDelete(ctx, scope))
 	}
 
-	return ctrl.Result{}, r.reconcileNormal(ctx, scope)
+	return ctrl.Result{}, errors.WithStack(r.reconcileNormal(ctx, scope))
 }
 
 func (r *InventoryReconciler) reconcileDelete(ctx context.Context, scope *clusterScope) error {
-	// waiting pipeline delete
-	pipelineList := &kkcorev1.PipelineList{}
-	if err := util.GetObjectListFromOwner(ctx, r.Client, scope.Inventory, pipelineList); err != nil {
-		return err
+	// waiting playbook delete
+	playbookList := &kkcorev1.PlaybookList{}
+	if err := util.GetObjectListFromOwner(ctx, r.Client, scope.Inventory, playbookList); err != nil {
+		return errors.Wrapf(err, "failed to get playbook list from inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 	}
-	for _, obj := range pipelineList.Items {
+	for _, obj := range playbookList.Items {
 		if err := r.Client.Delete(ctx, &obj); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to delete playbook %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
 	// delete kkmachine for machine deployment
@@ -176,11 +176,11 @@ func (r *InventoryReconciler) reconcileDelete(ctx context.Context, scope *cluste
 	if err := r.Client.List(ctx, mdList, ctrlclient.MatchingLabels{
 		clusterv1beta1.ClusterNameLabel: scope.Name,
 	}, ctrlclient.HasLabels{clusterv1beta1.MachineDeploymentNameLabel}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to list machineDeployment with label %s=%s", clusterv1beta1.ClusterNameLabel, scope.Name)
 	}
 	for _, obj := range mdList.Items {
 		if err := r.Client.Delete(ctx, &obj); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to delete machineDeployment %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
 	if len(mdList.Items) != 0 {
@@ -192,15 +192,15 @@ func (r *InventoryReconciler) reconcileDelete(ctx context.Context, scope *cluste
 	if err := r.Client.List(ctx, cpList, ctrlclient.MatchingLabels{
 		clusterv1beta1.ClusterNameLabel: scope.Name,
 	}, ctrlclient.HasLabels{clusterv1beta1.MachineControlPlaneNameLabel}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to list machineControlPlane with label %q", clusterv1beta1.ClusterNameLabel, scope.Name)
 	}
 	for _, obj := range cpList.Items {
 		if err := r.Client.Delete(ctx, &obj); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to delete machineControlPlane %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
 
-	if len(pipelineList.Items) == 0 && len(mdList.Items) == 0 && len(cpList.Items) == 0 {
+	if len(playbookList.Items) == 0 && len(mdList.Items) == 0 && len(cpList.Items) == 0 {
 		// Delete finalizer.
 		controllerutil.RemoveFinalizer(scope.Inventory, kkcorev1.InventoryCAPKKFinalizer)
 	}
@@ -218,14 +218,14 @@ func (r *InventoryReconciler) reconcileNormal(ctx context.Context, scope *cluste
 		// when it's empty: inventory is first created.
 		// when it's pending: inventory's host haved changed.
 		scope.Inventory.Status.Ready = false
-		if err := r.createHostCheckPipeline(ctx, scope); err != nil {
-			return err
+		if err := r.createHostCheckPlaybook(ctx, scope); err != nil {
+			return errors.Wrapf(err, "failed to create host check playbook in inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 		}
 		scope.Inventory.Status.Phase = kkcorev1.InventoryPhaseRunning
 	case kkcorev1.InventoryPhaseRunning:
-		// sync inventory's status from pipeline
-		if err := r.reconcileInventoryPipeline(ctx, scope); err != nil {
-			return err
+		// sync inventory's status from playbook
+		if err := r.reconcileInventoryPlaybook(ctx, scope); err != nil {
+			return errors.Wrapf(err, "failed to reconcile running inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 		}
 	case kkcorev1.InventoryPhaseSucceeded:
 		// sync inventory's control_plane groups from ControlPlane
@@ -234,7 +234,7 @@ func (r *InventoryReconciler) reconcileNormal(ctx context.Context, scope *cluste
 		if scope.KKCluster.Spec.Tolerate {
 			scope.Inventory.Status.Ready = true
 		}
-		if scope.Inventory.Annotations[kkcorev1.HostCheckPipelineAnnotation] == "" {
+		if scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation] == "" {
 			// change to pending
 			scope.Inventory.Status.Phase = kkcorev1.InventoryPhasePending
 		}
@@ -245,11 +245,11 @@ func (r *InventoryReconciler) reconcileNormal(ctx context.Context, scope *cluste
 			scope.Inventory.Spec.Groups = make(map[string]kkcorev1.InventoryGroup)
 		}
 		if err := r.syncInventoryControlPlaneGroups(ctx, scope); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to sync control-plane groups in inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 		}
 		// sync inventory's worker groups from machinedeployment
 		if err := r.syncInventoryWorkerGroups(ctx, scope); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to sync worker groups in inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 		}
 		scope.Inventory.Spec.Groups[defaultClusterGroup] = kkcorev1.InventoryGroup{
 			Groups: []string{getControlPlaneGroupName(), getWorkerGroupName()},
@@ -259,37 +259,37 @@ func (r *InventoryReconciler) reconcileNormal(ctx context.Context, scope *cluste
 	return nil
 }
 
-func (r *InventoryReconciler) reconcileInventoryPipeline(ctx context.Context, scope *clusterScope) error {
-	// get pipeline from inventory
-	if scope.Inventory.Annotations[kkcorev1.HostCheckPipelineAnnotation] == "" {
+func (r *InventoryReconciler) reconcileInventoryPlaybook(ctx context.Context, scope *clusterScope) error {
+	// get playbook from inventory
+	if scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation] == "" {
 		return nil
 	}
-	pipeline := &kkcorev1.Pipeline{}
-	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Name: scope.Inventory.Annotations[kkcorev1.HostCheckPipelineAnnotation], Namespace: scope.Namespace}, pipeline); err != nil {
+	playbook := &kkcorev1.Playbook{}
+	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Name: scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation], Namespace: scope.Namespace}, playbook); err != nil {
 		if apierrors.IsNotFound(err) {
-			return r.createHostCheckPipeline(ctx, scope)
+			return r.createHostCheckPlaybook(ctx, scope)
 		}
 
-		return err
+		return errors.Wrapf(err, "failed to get playbook with inventory %q annotation %q", ctrlclient.ObjectKeyFromObject(scope.Inventory), kkcorev1.HostCheckPlaybookAnnotation)
 	}
-	switch pipeline.Status.Phase {
-	case kkcorev1.PipelinePhaseSucceeded:
+	switch playbook.Status.Phase {
+	case kkcorev1.PlaybookPhaseSucceeded:
 		scope.Inventory.Status.Phase = kkcorev1.InventoryPhaseSucceeded
-	case kkcorev1.PipelinePhaseFailed:
+	case kkcorev1.PlaybookPhaseFailed:
 		scope.Inventory.Status.Phase = kkcorev1.InventoryPhaseFailed
 	}
 
 	return nil
 }
 
-// createHostCheckPipeline if inventory hosts is reachable.
-func (r *InventoryReconciler) createHostCheckPipeline(ctx context.Context, scope *clusterScope) error {
-	if ok, _ := scope.ifPipelineCompleted(ctx, scope.Inventory); !ok {
+// createHostCheckPlaybook if inventory hosts is reachable.
+func (r *InventoryReconciler) createHostCheckPlaybook(ctx context.Context, scope *clusterScope) error {
+	if ok, _ := scope.ifPlaybookCompleted(ctx, scope.Inventory); !ok {
 		return nil
 	}
-	// todo when install offline. should mount workdir to pipeline.
+	// todo when install offline. should mount workdir to playbook.
 	volumes, volumeMounts := scope.getVolumeMounts(ctx)
-	pipeline := &kkcorev1.Pipeline{
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: scope.Inventory.Name + "-",
 			Namespace:    scope.Namespace,
@@ -297,8 +297,8 @@ func (r *InventoryReconciler) createHostCheckPipeline(ctx context.Context, scope
 				clusterv1beta1.ClusterNameLabel: scope.Name,
 			},
 		},
-		Spec: kkcorev1.PipelineSpec{
-			Project: kkcorev1.PipelineProject{
+		Spec: kkcorev1.PlaybookSpec{
+			Project: kkcorev1.PlaybookProject{
 				Addr: _const.CAPKKProjectdir,
 			},
 			Playbook:     _const.CAPKKPlaybookHostCheck,
@@ -312,17 +312,17 @@ func (r *InventoryReconciler) createHostCheckPipeline(ctx context.Context, scope
 			Volumes:      volumes,
 		},
 	}
-	if err := ctrl.SetControllerReference(scope.Inventory, pipeline, r.Client.Scheme()); err != nil {
-		return err
+	if err := ctrl.SetControllerReference(scope.Inventory, playbook, r.Client.Scheme()); err != nil {
+		return errors.Wrapf(err, "failed to set ownerReference of inventory %q to playbook", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 	}
-	if err := r.Create(ctx, pipeline); err != nil {
-		return err
+	if err := r.Create(ctx, playbook); err != nil {
+		return errors.Wrapf(err, "failed to create playbook use inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 	}
 
 	if scope.Inventory.Annotations == nil {
 		scope.Inventory.Annotations = make(map[string]string)
 	}
-	scope.Inventory.Annotations[kkcorev1.HostCheckPipelineAnnotation] = pipeline.Name
+	scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation] = playbook.Name
 
 	return nil
 }
@@ -331,18 +331,18 @@ func (r *InventoryReconciler) createHostCheckPipeline(ctx context.Context, scope
 func (r *InventoryReconciler) syncInventoryControlPlaneGroups(ctx context.Context, scope *clusterScope) error {
 	groupNum, _, err := unstructured.NestedInt64(scope.ControlPlane.Object, "spec", "replicas")
 	if err != nil {
-		return fmt.Errorf("failed to get replicas from controlPlane %q in cluster %q", ctrlclient.ObjectKeyFromObject(scope.ControlPlane), scope.String())
+		return errors.Wrapf(err, "failed to get replicas from controlPlane %q in cluster %q", ctrlclient.ObjectKeyFromObject(scope.ControlPlane), scope.String())
 	}
 	// Ensure the control plane group's replica count is singular. because etcd is deploy in controlPlane.
 	// todo: now we only support internal etcd groups.
 	if groupNum%2 != 1 {
-		return fmt.Errorf("controlPlane %q replicas must be singular in cluster %q", ctrlclient.ObjectKeyFromObject(scope.ControlPlane), scope.String())
+		return errors.Errorf("controlPlane %q replicas must be singular in cluster %q", ctrlclient.ObjectKeyFromObject(scope.ControlPlane), scope.String())
 	}
 
 	// get machineList from controlPlane
 	machineList := &clusterv1beta1.MachineList{}
 	if err := util.GetObjectListFromOwner(ctx, r.Client, scope.ControlPlane, machineList); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get machineList from controlPlane %q", ctrlclient.ObjectKeyFromObject(scope.ControlPlane))
 	}
 	if len(machineList.Items) != int(groupNum) {
 		klog.Info("waiting machine synced.")
@@ -355,7 +355,7 @@ func (r *InventoryReconciler) syncInventoryControlPlaneGroups(ctx context.Contex
 	if err := r.Client.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.MachineControlPlaneNameLabel: scope.ControlPlane.GetName(),
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get kkMachineList with label %s=%s", clusterv1beta1.MachineControlPlaneNameLabel, scope.ControlPlane.GetName())
 	}
 	for _, kkmachine := range kkmachineList.Items {
 		if kkmachine.Spec.ProviderID != nil {
@@ -384,7 +384,7 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 	if err := r.Client.List(ctx, machineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.MachineDeploymentNameLabel: scope.MachineDeployment.Name,
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get machineList with label %s=%s", clusterv1beta1.MachineDeploymentNameLabel, scope.MachineDeployment.Name)
 	}
 	if len(machineList.Items) != int(groupNum) {
 		klog.Info("waiting machine synced.")
@@ -397,7 +397,7 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 	if err := r.Client.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.MachineDeploymentNameLabel: scope.MachineDeployment.Name,
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get kkmachineList with label %s=%s", clusterv1beta1.MachineDeploymentNameLabel, scope.MachineDeployment.Name)
 	}
 	for _, kkmachine := range kkmachineList.Items {
 		if kkmachine.Spec.ProviderID != nil {
@@ -429,7 +429,7 @@ func (r *InventoryReconciler) setProviderID(ctx context.Context, clusterName str
 			}
 			kkmachine.Spec.ProviderID = _const.Host2ProviderID(clusterName, host)
 			if err := r.Client.Update(ctx, &kkmachine); err != nil {
-				return err
+				return errors.Wrapf(err, "failed to set provider to kkmachine %q", ctrlclient.ObjectKeyFromObject(&kkmachine))
 			}
 		}
 	}

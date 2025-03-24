@@ -20,8 +20,7 @@ limitations under the License.
 package builtin
 
 import (
-	"fmt"
-
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,9 +45,9 @@ func (o *PreCheckOptions) Flags() cliflag.NamedFlagSets {
 	return o.CommonOptions.Flags()
 }
 
-// Complete options. create Pipeline, Config and Inventory
-func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, error) {
-	pipeline := &kkcorev1.Pipeline{
+// Complete options. create Playbook, Config and Inventory
+func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "precheck-",
 			Namespace:    o.Namespace,
@@ -61,7 +60,7 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1
 	// complete playbook. now only support one playbook
 	var tags []string
 	if len(args) < 1 {
-		return nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	} else if len(args) == 1 {
 		o.Playbook = args[0]
 	} else {
@@ -69,17 +68,17 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1
 		o.Playbook = args[len(args)-1]
 	}
 
-	pipeline.Spec = kkcorev1.PipelineSpec{
+	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		Tags:     tags,
 	}
 	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, fmt.Errorf("cannot get local inventory. error is %w. Please set it by \"--inventory\"", err)
+		return nil, errors.WithStack(err)
 	}
-	if err := o.CommonOptions.Complete(pipeline); err != nil {
-		return nil, err
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	return pipeline, nil
+	return playbook, nil
 }

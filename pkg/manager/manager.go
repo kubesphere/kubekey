@@ -35,7 +35,7 @@ type Manager interface {
 // CommandManagerOptions for NewCommandManager
 type CommandManagerOptions struct {
 	Workdir string
-	*kkcorev1.Pipeline
+	*kkcorev1.Playbook
 	*kkcorev1.Config
 	*kkcorev1.Inventory
 
@@ -46,7 +46,7 @@ type CommandManagerOptions struct {
 func NewCommandManager(o CommandManagerOptions) Manager {
 	return &commandManager{
 		workdir:   o.Workdir,
-		Pipeline:  o.Pipeline,
+		Playbook:  o.Playbook,
 		Inventory: o.Inventory,
 		Client:    o.Client,
 		logOutput: os.Stdout,

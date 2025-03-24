@@ -17,17 +17,16 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
+	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // TaskOwnerField is the field name of the owner reference in the task.
 // It defined in proxy transport. Not applicable in kube-apiserver.
-const TaskOwnerField = "ownerReferences:pipeline"
+const TaskOwnerField = "ownerReferences:playbook"
 
 // AddConversionFuncs adds the conversion functions to the given scheme.
-// NOTE: ownerReferences:pipeline is valid in proxy client.
+// NOTE: ownerReferences:playbook is valid in proxy client.
 func AddConversionFuncs(scheme *runtime.Scheme) error {
 	return scheme.AddFieldLabelConversionFunc(
 		SchemeGroupVersion.WithKind("Task"),
@@ -36,7 +35,7 @@ func AddConversionFuncs(scheme *runtime.Scheme) error {
 			case "metadata.name", "metadata.namespace", TaskOwnerField:
 				return label, value, nil
 			default:
-				return "", "", fmt.Errorf("field label %q not supported for Task", label)
+				return "", "", errors.Errorf("field label %q not supported for Task", label)
 			}
 		},
 	)

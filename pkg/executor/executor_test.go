@@ -19,20 +19,20 @@ func newTestOption() (*option, error) {
 	var err error
 
 	o := &option{
-		client: fake.NewClientBuilder().WithScheme(_const.Scheme).WithStatusSubresource(&kkcorev1.Pipeline{}, &kkcorev1alpha1.Task{}).Build(),
-		pipeline: &kkcorev1.Pipeline{
+		client: fake.NewClientBuilder().WithScheme(_const.Scheme).WithStatusSubresource(&kkcorev1.Playbook{}, &kkcorev1alpha1.Task{}).Build(),
+		playbook: &kkcorev1.Playbook{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
 				Namespace: corev1.NamespaceDefault,
 			},
-			Spec: kkcorev1.PipelineSpec{
+			Spec: kkcorev1.PlaybookSpec{
 				InventoryRef: &corev1.ObjectReference{
 					Name:      "test",
 					Namespace: corev1.NamespaceDefault,
 				},
 			},
-			Status: kkcorev1.PipelineStatus{},
+			Status: kkcorev1.PlaybookStatus{},
 		},
 		logOutput: os.Stdout,
 	}
@@ -48,7 +48,7 @@ func newTestOption() (*option, error) {
 		return nil, err
 	}
 
-	o.variable, err = variable.New(context.TODO(), o.client, *o.pipeline, source.MemorySource)
+	o.variable, err = variable.New(context.TODO(), o.client, *o.playbook, source.MemorySource)
 	if err != nil {
 		return nil, err
 	}

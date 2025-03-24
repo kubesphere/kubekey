@@ -18,36 +18,34 @@ package project
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
-	"k8s.io/klog/v2"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-func newGitProject(ctx context.Context, pipeline kkcorev1.Pipeline, update bool) (Project, error) {
-	if pipeline.Spec.Playbook == "" || pipeline.Spec.Project.Addr == "" {
+func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool) (Project, error) {
+	if playbook.Spec.Playbook == "" || playbook.Spec.Project.Addr == "" {
 		return nil, errors.New("playbook and project.addr should not be empty")
 	}
 
-	if filepath.IsAbs(pipeline.Spec.Playbook) {
+	if filepath.IsAbs(playbook.Spec.Playbook) {
 		return nil, errors.New("playbook should be relative path base on project.addr")
 	}
 
-	// get project_dir from pipeline
-	projectDir, err := pipeline.Spec.Config.GetValue("project_dir")
+	// get project_dir from playbook
+	projectDir, err := playbook.Spec.Config.GetValue("project_dir")
 	if err != nil {
-		return nil, fmt.Errorf("project_dir is not defined. error is %w", err)
+		return nil, errors.Wrap(err, "project_dir is not defined")
 	}
 	pd, ok := projectDir.(string)
 	if !ok {
@@ -55,25 +53,25 @@ func newGitProject(ctx context.Context, pipeline kkcorev1.Pipeline, update bool)
 	}
 
 	// git clone to project dir
-	if pipeline.Spec.Project.Name == "" {
-		pipeline.Spec.Project.Name = strings.TrimSuffix(pipeline.Spec.Project.Addr[strings.LastIndex(pipeline.Spec.Project.Addr, "/")+1:], ".git")
+	if playbook.Spec.Project.Name == "" {
+		playbook.Spec.Project.Name = strings.TrimSuffix(playbook.Spec.Project.Addr[strings.LastIndex(playbook.Spec.Project.Addr, "/")+1:], ".git")
 	}
 
 	p := &gitProject{
-		Pipeline:   pipeline,
-		projectDir: filepath.Join(pd, pipeline.Spec.Project.Name),
-		playbook:   pipeline.Spec.Playbook,
+		Playbook:   playbook,
+		projectDir: filepath.Join(pd, playbook.Spec.Project.Name),
+		playbook:   playbook.Spec.Playbook,
 	}
 
 	if _, err := os.Stat(p.projectDir); os.IsNotExist(err) {
 		// git clone
 		if err := p.gitClone(ctx); err != nil {
-			return nil, fmt.Errorf("clone git project error: %w", err)
+			return nil, errors.Wrapf(err, "failed to clone git project")
 		}
 	} else if update {
 		// git pull
 		if err := p.gitPull(ctx); err != nil {
-			return nil, fmt.Errorf("pull git project error: %w", err)
+			return nil, errors.Wrapf(err, "failed to pull git project")
 		}
 	}
 
@@ -82,7 +80,7 @@ func newGitProject(ctx context.Context, pipeline kkcorev1.Pipeline, update bool)
 
 // gitProject from git
 type gitProject struct {
-	kkcorev1.Pipeline
+	kkcorev1.Playbook
 
 	//location
 	projectDir string
@@ -123,16 +121,14 @@ func (p gitProject) getFilePath(path string, o GetFileOption) string {
 
 func (p gitProject) gitClone(ctx context.Context) error {
 	if _, err := git.PlainCloneContext(ctx, p.projectDir, false, &git.CloneOptions{
-		URL:             p.Pipeline.Spec.Project.Addr,
+		URL:             p.Playbook.Spec.Project.Addr,
 		Progress:        nil,
-		ReferenceName:   plumbing.NewBranchReferenceName(p.Pipeline.Spec.Project.Branch),
+		ReferenceName:   plumbing.NewBranchReferenceName(p.Playbook.Spec.Project.Branch),
 		SingleBranch:    true,
-		Auth:            &http.TokenAuth{Token: p.Pipeline.Spec.Project.Token},
+		Auth:            &http.TokenAuth{Token: p.Playbook.Spec.Project.Token},
 		InsecureSkipTLS: false,
 	}); err != nil {
-		klog.Errorf("clone project %s failed: %v", p.Pipeline.Spec.Project.Addr, err)
-
-		return err
+		return errors.Wrapf(err, "failed to clone project %q", p.Playbook.Spec.Project.Addr)
 	}
 
 	return nil
@@ -141,28 +137,22 @@ func (p gitProject) gitClone(ctx context.Context) error {
 func (p gitProject) gitPull(ctx context.Context) error {
 	open, err := git.PlainOpen(p.projectDir)
 	if err != nil {
-		klog.V(4).ErrorS(err, "git open error", "local_dir", p.projectDir)
-
-		return err
+		return errors.Wrapf(err, "failed to open git project %a", p.projectDir)
 	}
 
 	wt, err := open.Worktree()
 	if err != nil {
-		klog.V(4).ErrorS(err, "git open worktree error", "local_dir", p.projectDir)
-
-		return err
+		return errors.Wrapf(err, "failed to open git project %q worktree", p.projectDir)
 	}
 
 	if err := wt.PullContext(ctx, &git.PullOptions{
-		RemoteURL:       p.Pipeline.Spec.Project.Addr,
-		ReferenceName:   plumbing.NewBranchReferenceName(p.Pipeline.Spec.Project.Branch),
+		RemoteURL:       p.Playbook.Spec.Project.Addr,
+		ReferenceName:   plumbing.NewBranchReferenceName(p.Playbook.Spec.Project.Branch),
 		SingleBranch:    true,
-		Auth:            &http.TokenAuth{Token: p.Pipeline.Spec.Project.Token},
+		Auth:            &http.TokenAuth{Token: p.Playbook.Spec.Project.Token},
 		InsecureSkipTLS: false,
 	}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-		klog.V(4).ErrorS(err, "git pull error", "local_dir", p.projectDir)
-
-		return err
+		return errors.Wrapf(err, "failed to pull git project %q", p.playbook)
 	}
 
 	return nil
@@ -170,7 +160,7 @@ func (p gitProject) gitPull(ctx context.Context) error {
 
 // MarshalPlaybook project file to playbook.
 func (p gitProject) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
-	return marshalPlaybook(os.DirFS(p.projectDir), p.Pipeline.Spec.Playbook)
+	return marshalPlaybook(os.DirFS(p.projectDir), p.Playbook.Spec.Playbook)
 }
 
 // Stat role/file/template file or dir in project

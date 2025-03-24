@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pipeline
+package playbook
 
 import (
 	"context"
@@ -28,30 +28,30 @@ import (
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 )
 
-// PipelineStorage storage for Pipeline
-type PipelineStorage struct {
-	Pipeline       *REST
-	PipelineStatus *StatusREST
+// PlaybookStorage storage for Playbook
+type PlaybookStorage struct {
+	Playbook       *REST
+	PlaybookStatus *StatusREST
 }
 
-// REST resource for Pipeline
+// REST resource for Playbook
 type REST struct {
 	*apiregistry.Store
 }
 
-// StatusREST status subresource for Pipeline
+// StatusREST status subresource for Playbook
 type StatusREST struct {
 	store *apiregistry.Store
 }
 
-// NamespaceScoped is true for Pipeline
+// NamespaceScoped is true for Playbook
 func (r *StatusREST) NamespaceScoped() bool {
 	return true
 }
 
 // New creates a new Node object.
 func (r *StatusREST) New() runtime.Object {
-	return &kkcorev1.Pipeline{}
+	return &kkcorev1.Playbook{}
 }
 
 // Destroy cleans up resources on shutdown.
@@ -82,30 +82,30 @@ func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, 
 	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
-// NewStorage for Pipeline storage
-func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (PipelineStorage, error) {
+// NewStorage for Playbook storage
+func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (PlaybookStorage, error) {
 	store := &apiregistry.Store{
-		NewFunc:                   func() runtime.Object { return &kkcorev1.Pipeline{} },
-		NewListFunc:               func() runtime.Object { return &kkcorev1.PipelineList{} },
-		DefaultQualifiedResource:  kkcorev1.SchemeGroupVersion.WithResource("pipelines").GroupResource(),
-		SingularQualifiedResource: kkcorev1.SchemeGroupVersion.WithResource("pipeline").GroupResource(),
+		NewFunc:                   func() runtime.Object { return &kkcorev1.Playbook{} },
+		NewListFunc:               func() runtime.Object { return &kkcorev1.PlaybookList{} },
+		DefaultQualifiedResource:  kkcorev1.SchemeGroupVersion.WithResource("playbooks").GroupResource(),
+		SingularQualifiedResource: kkcorev1.SchemeGroupVersion.WithResource("playbook").GroupResource(),
 
 		CreateStrategy:      Strategy,
 		UpdateStrategy:      Strategy,
 		DeleteStrategy:      Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("pipelines").GroupResource()),
+		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("playbooks").GroupResource()),
 	}
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 	}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return PipelineStorage{}, err
+		return PlaybookStorage{}, err
 	}
 
-	return PipelineStorage{
-		Pipeline:       &REST{store},
-		PipelineStatus: &StatusREST{store},
+	return PlaybookStorage{
+		Playbook:       &REST{store},
+		PlaybookStatus: &StatusREST{store},
 	}, nil
 }

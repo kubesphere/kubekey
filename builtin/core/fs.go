@@ -24,7 +24,7 @@ import (
 )
 
 //go:embed playbooks roles
-var BuiltinPipeline embed.FS
+var BuiltinPlaybook embed.FS
 
 //go:embed defaults
 var Defaults embed.FS

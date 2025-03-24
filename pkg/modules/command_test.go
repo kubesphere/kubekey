@@ -39,7 +39,7 @@ func TestCommand(t *testing.T) {
 				Variable: &testVariable{},
 			},
 			ctxFunc:      context.Background,
-			exceptStderr: "failed to connector of \"\" error: host is not set",
+			exceptStderr: "failed to connector of \"\" error: failed to init connector for host \"\": host is not set",
 		},
 		{
 			name: "exec command success",

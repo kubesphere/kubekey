@@ -2,9 +2,9 @@ package core
 
 import (
 	"context"
-	"errors"
 	"os"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	// defaultServiceAccountName is the default serviceaccount name for pipeline's executor pod.
+	// defaultServiceAccountName is the default serviceaccount name for playbook's executor pod.
 	defaultServiceAccountName = "kubekey-executor"
 	// defaultServiceAccountName is the default clusterrolebinding name for defaultServiceAccountName.
 	defaultClusterRoleBindingName = "kubekey-executor"
@@ -29,82 +29,81 @@ const (
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
 
-// +kubebuilder:webhook:mutating=true,name=default.pipeline.kubekey.kubesphere.io,serviceName=kk-webhook-service,serviceNamespace=capkk-system,path=/mutate-kubekey-kubesphere-io-v1-pipeline,failurePolicy=fail,sideEffects=None,groups=kubekey.kubesphere.io,resources=pipelines,verbs=create;update,versions=v1,admissionReviewVersions=v1
+// +kubebuilder:webhook:mutating=true,name=default.playbook.kubekey.kubesphere.io,serviceName=kk-webhook-service,serviceNamespace=capkk-system,path=/mutate-kubekey-kubesphere-io-v1-playbook,failurePolicy=fail,sideEffects=None,groups=kubekey.kubesphere.io,resources=playbooks,verbs=create;update,versions=v1,admissionReviewVersions=v1
 
-// PipelineWebhook handles mutating webhooks for Pipelines.
-type PipelineWebhook struct {
+// PlaybookWebhook handles mutating webhooks for Playbooks.
+type PlaybookWebhook struct {
 	ctrlclient.Client
 }
 
-var _ admission.CustomDefaulter = &PipelineWebhook{}
-var _ options.Controller = &PipelineWebhook{}
+var _ admission.CustomDefaulter = &PlaybookWebhook{}
+var _ options.Controller = &PlaybookWebhook{}
 
 // Name implements controllers.Controller.
-func (w *PipelineWebhook) Name() string {
-	return "pipeline-webhook"
+func (w *PlaybookWebhook) Name() string {
+	return "playbook-webhook"
 }
 
 // SetupWithManager implements controllers.Controller.
-func (w *PipelineWebhook) SetupWithManager(mgr ctrl.Manager, o options.ControllerManagerServerOptions) error {
+func (w *PlaybookWebhook) SetupWithManager(mgr ctrl.Manager, o options.ControllerManagerServerOptions) error {
 	w.Client = mgr.GetClient()
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		WithDefaulter(w).
-		For(&kkcorev1.Pipeline{}).
+		For(&kkcorev1.Playbook{}).
 		Complete()
 }
 
 // Default implements admission.CustomDefaulter.
-func (w *PipelineWebhook) Default(ctx context.Context, obj runtime.Object) error {
-	pipeline, ok := obj.(*kkcorev1.Pipeline)
+func (w *PlaybookWebhook) Default(ctx context.Context, obj runtime.Object) error {
+	playbook, ok := obj.(*kkcorev1.Playbook)
 	if !ok {
-		return errors.New("cannot convert to pipelines")
+		return errors.Errorf("failed to convert %q to playbooks", obj.GetObjectKind().GroupVersionKind().String())
 	}
-	if pipeline.Spec.ServiceAccountName == "" && os.Getenv(_const.ENV_EXECUTOR_CLUSTERROLE) != "" {
+	if playbook.Spec.ServiceAccountName == "" && os.Getenv(_const.ENV_EXECUTOR_CLUSTERROLE) != "" {
 		// should create default service account in current namespace
-		if err := w.syncServiceAccount(ctx, pipeline, os.Getenv(_const.ENV_EXECUTOR_CLUSTERROLE)); err != nil {
-			return err
+		if err := w.syncServiceAccount(ctx, playbook, os.Getenv(_const.ENV_EXECUTOR_CLUSTERROLE)); err != nil {
+			return errors.WithStack(err)
 		}
-		pipeline.Spec.ServiceAccountName = defaultServiceAccountName
+		playbook.Spec.ServiceAccountName = defaultServiceAccountName
 	}
-	if pipeline.Spec.ServiceAccountName == "" {
-		pipeline.Spec.ServiceAccountName = "default"
+	if playbook.Spec.ServiceAccountName == "" {
+		playbook.Spec.ServiceAccountName = "default"
 	}
 
 	return nil
 }
 
-func (w *PipelineWebhook) syncServiceAccount(ctx context.Context, pipeline *kkcorev1.Pipeline, clusterrole string) error {
+func (w *PlaybookWebhook) syncServiceAccount(ctx context.Context, playbook *kkcorev1.Playbook, clusterrole string) error {
 	// check if clusterrole is exist
 	cr := &rbacv1.ClusterRole{}
 	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: clusterrole}, cr); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
-
 	// check if the default service account is exist
 	sa := &corev1.ServiceAccount{}
-	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: pipeline.Namespace, Name: defaultServiceAccountName}, sa); err != nil {
+	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: playbook.Namespace, Name: defaultServiceAccountName}, sa); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return err
+			return errors.WithStack(err)
 		}
+		// create service account if not exist.
 		sa = &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: pipeline.Namespace,
+				Namespace: playbook.Namespace,
 				Name:      defaultServiceAccountName,
 			},
 		}
 		if err := w.Client.Create(ctx, sa); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	// check if the service account is bound to the default cluster role
 	crb := &rbacv1.ClusterRoleBinding{}
 	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: defaultClusterRoleBindingName}, crb); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return err
+			return errors.WithStack(err)
 		}
-
-		// create clusterrolebinding
+		// create clusterrolebinding if not exist
 		return w.Client.Create(ctx, &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: defaultClusterRoleBindingName,
@@ -113,7 +112,7 @@ func (w *PipelineWebhook) syncServiceAccount(ctx context.Context, pipeline *kkco
 				{
 					Kind:      "ServiceAccount",
 					Name:      defaultServiceAccountName,
-					Namespace: pipeline.Namespace,
+					Namespace: playbook.Namespace,
 				},
 			},
 			RoleRef: rbacv1.RoleRef{
@@ -124,7 +123,7 @@ func (w *PipelineWebhook) syncServiceAccount(ctx context.Context, pipeline *kkco
 	}
 
 	for _, sj := range crb.Subjects {
-		if sj.Kind == "ServiceAccount" && sj.Name == defaultServiceAccountName && sj.Namespace == pipeline.Namespace {
+		if sj.Kind == "ServiceAccount" && sj.Name == defaultServiceAccountName && sj.Namespace == playbook.Namespace {
 			return nil
 		}
 	}
@@ -132,8 +131,8 @@ func (w *PipelineWebhook) syncServiceAccount(ctx context.Context, pipeline *kkco
 	ncrb.Subjects = append(crb.Subjects, rbacv1.Subject{
 		Kind:      "ServiceAccount",
 		Name:      defaultServiceAccountName,
-		Namespace: pipeline.Namespace,
+		Namespace: playbook.Namespace,
 	})
 
-	return w.Client.Patch(ctx, ncrb, ctrlclient.MergeFrom(crb))
+	return errors.WithStack(w.Client.Patch(ctx, ncrb, ctrlclient.MergeFrom(crb)))
 }

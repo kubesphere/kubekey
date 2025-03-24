@@ -18,13 +18,12 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -43,7 +42,7 @@ func NewRootCommand() *cobra.Command {
 		Long: "kubekey is a daemon that execute command in a node",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := options.InitGOPS(); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
 			return options.InitProfiling(cmd.Context())
@@ -60,7 +59,7 @@ func NewRootCommand() *cobra.Command {
 	options.AddGOPSFlags(flags)
 	// add children command
 	cmd.AddCommand(newRunCommand())
-	cmd.AddCommand(newPipelineCommand())
+	cmd.AddCommand(newPlaybookCommand())
 	cmd.AddCommand(newVersionCommand())
 	// internal command
 	cmd.AddCommand(internalCommand...)
@@ -69,46 +68,41 @@ func NewRootCommand() *cobra.Command {
 }
 
 // CommandRunE executes the main command logic for the application.
-// It sets up the necessary configurations, creates the inventory and pipeline
+// It sets up the necessary configurations, creates the inventory and playbook
 // resources, and then runs the command manager.
 //
 // Parameters:
 //   - ctx: The context for controlling the execution flow.
 //   - workdir: The working directory path.
-//   - pipeline: The pipeline resource to be created and managed.
+//   - playbook: The playbook resource to be created and managed.
 //   - config: The configuration resource.
 //   - inventory: The inventory resource to be created.
 //
 // Returns:
 //   - error: An error if any step in the process fails, otherwise nil.
-func CommandRunE(ctx context.Context, workdir string, pipeline *kkcorev1.Pipeline, config *kkcorev1.Config, inventory *kkcorev1.Inventory) error {
+func CommandRunE(ctx context.Context, workdir string, playbook *kkcorev1.Playbook, config *kkcorev1.Config, inventory *kkcorev1.Inventory) error {
 	restconfig := &rest.Config{}
 	if err := proxy.RestConfig(filepath.Join(workdir, _const.RuntimeDir), restconfig); err != nil {
-		return fmt.Errorf("could not get rest config: %w", err)
+		return errors.Wrap(err, "failed to get restconfig")
 	}
 	client, err := ctrlclient.New(restconfig, ctrlclient.Options{
 		Scheme: _const.Scheme,
 	})
 	if err != nil {
-		return fmt.Errorf("could not get runtime-client: %w", err)
+		return errors.Wrap(err, "failed to get runtime-client")
 	}
 	// create inventory
 	if err := client.Create(ctx, inventory); err != nil {
-		klog.ErrorS(err, "Create inventory error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-
-		return err
+		return errors.Wrap(err, "failed to create inventory")
 	}
-	// create pipeline
-	// pipeline.Status.Phase = kkcorev1.PipelinePhaseRunning
-	if err := client.Create(ctx, pipeline); err != nil {
-		klog.ErrorS(err, "Create pipeline error", "pipeline", ctrlclient.ObjectKeyFromObject(pipeline))
-
-		return err
+	// create playbook
+	if err := client.Create(ctx, playbook); err != nil {
+		return errors.Wrap(err, "failed to create playbook")
 	}
 
 	return manager.NewCommandManager(manager.CommandManagerOptions{
 		Workdir:   workdir,
-		Pipeline:  pipeline,
+		Playbook:  playbook,
 		Config:    config,
 		Inventory: inventory,
 		Client:    client,

@@ -2,10 +2,9 @@ package util
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"reflect"
 
+	"github.com/cockroachdb/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
@@ -28,7 +27,7 @@ import (
 func GetOwnerFromObject(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, owner ctrlclient.Object) error {
 	gvk, err := apiutil.GVKForObject(owner, client.Scheme())
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get gvk for object %q", ctrlclient.ObjectKeyFromObject(owner))
 	}
 
 	for _, ref := range obj.GetOwnerReferences() {
@@ -38,7 +37,7 @@ func GetOwnerFromObject(ctx context.Context, client ctrlclient.Client, obj ctrlc
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to parse gv for %q", ref.APIVersion)
 		}
 		if gv.Group == gvk.Group {
 			// Retrieve the owner object using the Kubernetes client
@@ -46,7 +45,7 @@ func GetOwnerFromObject(ctx context.Context, client ctrlclient.Client, obj ctrlc
 		}
 	}
 
-	return fmt.Errorf("owner %s not found", gvk.String())
+	return errors.Errorf("owner %s not found", gvk.String())
 }
 
 // GetObjectListFromOwner filters a list of Kubernetes objects to include only those owned by a specified resource.
@@ -69,12 +68,12 @@ func GetObjectListFromOwner(ctx context.Context, client ctrlclient.Client, owner
 	// Retrieve the GroupVersionKind (GVK) of the owner object
 	gvk, err := apiutil.GVKForObject(owner, client.Scheme())
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get gvk for object %q", ctrlclient.ObjectKeyFromObject(owner))
 	}
 	opts = append(opts, ctrlclient.InNamespace(owner.GetNamespace()))
 	// List all objects in the namespace of the owner
 	if err := client.List(ctx, objList, opts...); err != nil {
-		return err
+		return errors.Wrap(err, "failed to list object %q")
 	}
 
 	// Access the Items field of objList using reflection

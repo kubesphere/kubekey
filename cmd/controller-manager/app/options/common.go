@@ -25,6 +25,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/google/gops/agent"
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
@@ -58,12 +59,12 @@ func InitProfiling(ctx context.Context) error {
 	case "cpu":
 		f, err = os.Create(profileOutput)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	// Block and mutex profiles need a call to Set{Block,Mutex}ProfileRate to
 	// output anything. We choose to sample all events.
@@ -74,7 +75,7 @@ func InitProfiling(ctx context.Context) error {
 	default:
 		// Check the profile name is valid.
 		if profile := pprof.Lookup(profileName); profile == nil {
-			return fmt.Errorf("unknown profile '%s'", profileName)
+			return errors.Errorf("unknown profile '%s'", profileName)
 		}
 	}
 
@@ -112,12 +113,12 @@ func FlushProfiling() error {
 
 		f, err := os.Create(profileOutput)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		defer f.Close()
 
 		if err := profile.WriteTo(f, 0); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -141,7 +142,7 @@ func InitGOPS() error {
 		// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
 		// Bind to a random port on address 127.0.0.1
 		if err := agent.Listen(agent.Options{}); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 

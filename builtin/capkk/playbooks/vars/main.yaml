@@ -1,8 +1,8 @@
 # the pod's WORKDIR which set by image. store the runtime files.
 work_dir: /kubekey
-# binary_dir may mount by pipeline. usage it shouldn't be changed.
+# binary_dir may mount by playbook. usage it shouldn't be changed.
 binary_dir: /capkk/kubekey
-# cloud_config_dir may mount by pipeline. usage it shouldn't be changed.
+# cloud_config_dir may mount by playbook. usage it shouldn't be changed.
 cloud_config_dir: /capkk/cloud
 # tmp_dir for kubekey in remote node. it will store file like binary package, iso file etc.
 tmp_dir: /tmp/kubekey

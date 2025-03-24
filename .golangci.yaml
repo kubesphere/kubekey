@@ -139,19 +139,21 @@ linters-settings:
         # List of allowed packages.
         allow:
           - $gostd
-          - github.com/spf13
-          - github.com/pkg/sftp
-          - github.com/google/gops
-          - github.com/go-git/go-git
+          - github.com/cockroachdb/errors
+          - github.com/containerd/containerd/images
           - github.com/fsnotify/fsnotify
-          - github.com/schollz/progressbar
-          - github.com/stretchr/testify
+          - github.com/go-git/go-git
+          - github.com/google/gops
+          - github.com/kubesphere/kubekey
           - github.com/Masterminds/sprig
           - github.com/opencontainers/image-spec
-          - oras.land/oras-go
+          - github.com/pkg/sftp
+          - github.com/schollz/progressbar
+          - github.com/spf13
+          - github.com/stretchr/testify
           - k8s.io
+          - oras.land/oras-go
           - sigs.k8s.io
-          - github.com/kubesphere/kubekey
   forbidigo:
     # Forbid the following identifiers (list of regexp).
     # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
@@ -657,9 +659,6 @@ linters-settings:
           - - 'core.WriteError[1].Message'
             - '/^([^A-Z]|$)/'
             - must not start with a capital letter
-          - - 'fmt.Errorf[0]'
-            - '/(^|[^\.!?])$/'
-            - must not end in punctuation
           - - panic
             - '/^[^\n]*$/'
             - must not contain line breaks

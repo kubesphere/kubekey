@@ -20,6 +20,7 @@ limitations under the License.
 package builtin
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options/builtin"
@@ -45,12 +46,12 @@ func newArtifactExportCommand() *cobra.Command {
 		Use:   "export",
 		Short: "Export a KubeKey offline installation package",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			pipeline, err := o.Complete(cmd, []string{"playbooks/artifact_export.yaml"})
+			playbook, err := o.Complete(cmd, []string{"playbooks/artifact_export.yaml"})
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), pipeline)
+			return o.CommonOptions.Run(cmd.Context(), playbook)
 		},
 	}
 	flags := cmd.Flags()
@@ -68,12 +69,12 @@ func newArtifactImagesCommand() *cobra.Command {
 		Use:   "images",
 		Short: "push images to a registry from an artifact",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			pipeline, err := o.Complete(cmd, []string{"playbooks/artifact_images.yaml"})
+			playbook, err := o.Complete(cmd, []string{"playbooks/artifact_images.yaml"})
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), pipeline)
+			return o.CommonOptions.Run(cmd.Context(), playbook)
 		},
 	}
 	flags := cmd.Flags()
