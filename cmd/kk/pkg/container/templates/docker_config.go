@@ -73,12 +73,11 @@ func InsecureRegistries(kubeConf *common.KubeConf) string {
 	return insecureRegistries
 }
 
-func DataRoot(kubeConf *common.KubeConf) string {
-	var dataRoot string
-	if kubeConf.Cluster.Registry.DataRoot != "" {
-		dataRoot = fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.DataRoot)
+func DockerDataDir(kubeConf *common.KubeConf) string {
+	if kubeConf.Cluster.Registry.DockerDataDir != "" {
+		return fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.DockerDataDir)
 	}
-	return dataRoot
+	return "\"/var/lib/docker\""
 }
 
 func BridgeIP(kubeConf *common.KubeConf) string {

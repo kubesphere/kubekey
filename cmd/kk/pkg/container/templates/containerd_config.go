@@ -17,8 +17,10 @@
 package templates
 
 import (
+	"fmt"
 	"text/template"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/lithammer/dedent"
 )
 
@@ -94,11 +96,18 @@ state = "/run/containerd"
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}".auth]
             username = "{{$entry.Username}}"
             password = "{{$entry.Password}}"
-            [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}".tls]
-              ca_file = "{{$entry.CAFile}}"
-              cert_file = "{{$entry.CertFile}}"
-              key_file = "{{$entry.KeyFile}}"
-              insecure_skip_verify = {{$entry.SkipTLSVerify}}
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{$repo}}".tls]
+            ca_file = "{{$entry.CAFile}}"
+            cert_file = "{{$entry.CertFile}}"
+            key_file = "{{$entry.KeyFile}}"
+            insecure_skip_verify = {{$entry.SkipTLSVerify}}
           {{- end}}
         {{- end}}
     `)))
+
+func ContainerdDataDir(kubeConf *common.KubeConf) string {
+	if kubeConf.Cluster.Registry.ContainerdDataDir != "" {
+		return fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.ContainerdDataDir)
+	}
+	return "\"/var/lib/containerd\""
+}

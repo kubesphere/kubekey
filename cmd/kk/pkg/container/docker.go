@@ -218,6 +218,7 @@ func (d *DisableDocker) Execute(runtime connector.Runtime) error {
 		"/usr/bin/containerd-shim-runc-v2",
 		filepath.Join("/etc/systemd/system", templates.DockerService.Name()),
 		filepath.Join("/etc/docker", templates.DockerConfig.Name()),
+		templates.DockerDataDir(d.KubeConf),
 	}
 
 	if d.KubeConf.Cluster.Kubernetes.IsAtLeastV124() && d.KubeConf.Cluster.Kubernetes.ContainerManager == common.Docker {
@@ -227,12 +228,6 @@ func (d *DisableDocker) Execute(runtime connector.Runtime) error {
 		}
 		files = append(files, filepath.Join("/etc/systemd/system", templates.CriDockerService.Name()))
 		files = append(files, "/var/run/cri-dockerd.sock")
-	}
-
-	if d.KubeConf.Cluster.Registry.DataRoot != "" {
-		files = append(files, d.KubeConf.Cluster.Registry.DataRoot)
-	} else {
-		files = append(files, "/var/lib/docker")
 	}
 
 	for _, file := range files {

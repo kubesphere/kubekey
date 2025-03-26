@@ -19,9 +19,11 @@ package images
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 
+	"github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
@@ -42,6 +44,7 @@ type Image struct {
 	Tag               string
 	Group             string
 	Enable            bool
+	NamespaceRewrite  *v1alpha2.NamespaceRewrite
 }
 
 // Images contains a list of Image
@@ -94,6 +97,30 @@ func (image Image) ImageRepo() string {
 		}
 	}
 
+	if image.NamespaceRewrite != nil {
+		switch image.NamespaceRewrite.Policy {
+		case v1alpha2.ChangePrefix:
+			matchSrc := ""
+			for _, src := range image.NamespaceRewrite.Src {
+				if strings.Contains(image.Namespace, src) {
+					matchSrc = src
+				}
+			}
+			modifiedNamespace := ""
+			if matchSrc == "" {
+				// if not match, add dest prefix
+				modifiedNamespace = fmt.Sprintf("%s/%s", image.NamespaceRewrite.Dest, image.Namespace)
+			} else {
+				// if match, change it
+				modifiedNamespace = strings.ReplaceAll(image.Namespace, matchSrc, image.NamespaceRewrite.Dest)
+			}
+			logger.Log.Debugf("changed image namespace: %s -> %s", image.Namespace, modifiedNamespace)
+			image.Namespace = modifiedNamespace
+		default:
+			logger.Log.Warn("namespace rewrite action not specified")
+		}
+	}
+
 	if image.RepoAddr == "" {
 		if image.Namespace == "" {
 			prefix = ""
@@ -138,14 +165,22 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 			(host.IsRole(common.Master) || host.IsRole(common.Worker)) && image.Group == kubekeyapiv1alpha2.K8s && image.Enable,
 			host.IsRole(common.ETCD) && image.Group == kubekeyapiv1alpha2.Etcd && image.Enable:
 
-			logger.Log.Messagef(host.GetName(), "downloading image: %s", image.ImageName())
-			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s --platform %s", pullCmd, image.ImageName(), host.GetArch()), false); err != nil {
+			imagePullName := image.ImageName()
+			logger.Log.Messagef(host.GetName(), "downloading image: %s", imagePullName)
+
+			var pullCommand string
+			if pullCmd == "crictl" {
+				pullCommand = fmt.Sprintf("env PATH=$PATH %s pull %s", pullCmd, imagePullName)
+			} else {
+				pullCommand = fmt.Sprintf("env PATH=$PATH %s pull %s --platform %s", pullCmd, imagePullName, host.GetArch())
+			}
+
+			if _, err := runtime.GetRunner().SudoCmd(pullCommand, false); err != nil {
 				return errors.Wrap(err, "pull image failed")
 			}
 		default:
 			continue
 		}
-
 	}
 	return nil
 }

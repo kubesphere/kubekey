@@ -111,10 +111,28 @@ type RegistryConfig struct {
 	RegistryMirrors    []string             `yaml:"registryMirrors" json:"registryMirrors,omitempty"`
 	InsecureRegistries []string             `yaml:"insecureRegistries" json:"insecureRegistries,omitempty"`
 	PrivateRegistry    string               `yaml:"privateRegistry" json:"privateRegistry,omitempty"`
-	DataRoot           string               `yaml:"dataRoot" json:"dataRoot,omitempty"`
+	ContainerdDataDir  string               `yaml:"containerdDataDir" json:"containerdDataDir"`
+	DockerDataDir      string               `yaml:"dockerDataDir" json:"dockerDataDir"`
+	RegistryDataDir    string               `yaml:"registryDataDir" json:"registryDataDir"`
 	NamespaceOverride  string               `yaml:"namespaceOverride" json:"namespaceOverride,omitempty"`
 	BridgeIP           string               `yaml:"bridgeIP" json:"bridgeIP,omitempty"`
 	Auths              runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
+	NamespaceRewrite   *NamespaceRewrite    `yaml:"namespaceRewrite" json:"namespaceRewrite"`
+}
+
+// NamespaceRewritePolicy define namespaceRewrite policy
+type NamespaceRewritePolicy string
+
+const (
+	// ChangePrefix change image namespace prefix
+	ChangePrefix NamespaceRewritePolicy = "changePrefix"
+)
+
+// NamespaceRewrite define a policy to modify image namespace
+type NamespaceRewrite struct {
+	Policy NamespaceRewritePolicy `yaml:"policy" json:"policy"`
+	Src    []string               `yaml:"src" json:"src"`
+	Dest   string                 `yaml:"dest" json:"dest"`
 }
 
 // KubeSphere defines the configuration information of the KubeSphere.

@@ -23,6 +23,9 @@ spec:
     worker:
     - node1
     - node[10:100] # All the nodes in your cluster that serve as the worker nodes.
+    ## Specify the node role as registry. Only one node can be set as registry. For more information check docs/registry.md
+    registry:
+    - node1
   controlPlaneEndpoint:
     # Internal loadbalancer for apiservers. Support: haproxy, kube-vip [Default: ""]
     internalLoadbalancer: haproxy
@@ -145,8 +148,8 @@ spec:
       ipipMode: Always  # IPIP Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, vxlanMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Always]
       vxlanMode: Never  # VXLAN Mode to use for the IPv4 POOL created at start up. If set to a value other than Never, ipipMode should be set to "Never". [Always | CrossSubnet | Never] [Default: Never]
       vethMTU: 0  # The maximum transmission unit (MTU) setting determines the largest packet size that can be transmitted through your network. By default, MTU is auto-detected. [Default: 0]
-    kubePodsCIDR: 10.233.64.0/18,fc00::/48
-    kubeServiceCIDR: 10.233.0.0/18,fd00::/108
+    kubePodsCIDR: 10.233.64.0/18,fd85:ee78:d8a6:8607::1:0000/112
+    kubeServiceCIDR: 10.233.0.0/18,fd85:ee78:d8a6:8607::1000/116
   storage:
     openebs:
       basePath: /var/openebs/local # base path of the local PV provisioner
@@ -162,6 +165,17 @@ spec:
         skipTLSVerify: false # Allow contacting registries over HTTPS with failed TLS verification.
         plainHTTP: false # Allow contacting registries over HTTP.
         certsPath: "/etc/docker/certs.d/dockerhub.kubekey.local" # Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
+    containerdDataDir: /var/lib/containerd
+    dockerDataDir: /var/lib/docker
+    registryDataDir: /mnt/registry
+    # define a policy to modify image namespace, the policy below will be like:
+    # namespace1 -> library
+    # kubesphere -> library/kubesphere
+    namespaceRewrite:
+      policy: changePrefix
+      src: 
+        - namespace1
+      dest: library
   addons: [] # You can install cloud-native addons (Chart or YAML) by using this field.
   #dns:
   #  ## Optional hosts file content to coredns use as /etc/hosts file.

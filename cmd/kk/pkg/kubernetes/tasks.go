@@ -307,6 +307,7 @@ func (g *GenerateKubeadmConfig) Execute(runtime connector.Runtime) error {
 				"BootstrapToken":         bootstrapToken,
 				"CertificateKey":         certificateKey,
 				"IPv6Support":            host.GetInternalIPv6Address() != "",
+				"NodeCidrMaskSizeIPv6":   g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSizeIPv6,
 			},
 		}
 

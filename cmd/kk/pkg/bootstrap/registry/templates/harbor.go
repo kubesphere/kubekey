@@ -51,3 +51,10 @@ func Password(kubeConf *common.KubeConf, domain string) string {
 
 	return "Harbor12345"
 }
+
+func RegistryDataDir(kubeConf *common.KubeConf) string {
+	if kubeConf.Cluster.Registry.RegistryDataDir != "" {
+		return kubeConf.Cluster.Registry.RegistryDataDir
+	}
+	return "/mnt/registry"
+}

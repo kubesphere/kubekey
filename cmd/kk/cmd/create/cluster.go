@@ -47,6 +47,7 @@ type CreateClusterOptions struct {
 	Artifact            string
 	InstallPackages     bool
 	WithBuildx          bool
+	OnlyEtcd            bool
 
 	localStorageChanged bool
 }
@@ -114,7 +115,6 @@ func (o *CreateClusterOptions) Run() error {
 		KubernetesVersion:   o.Kubernetes,
 		KsEnable:            o.EnableKubeSphere,
 		KsVersion:           o.KubeSphere,
-		SkipInstallAddons:   o.SkipInstallAddons,
 		SkipPullImages:      o.SkipPullImages,
 		SkipPushImages:      o.SkipPushImages,
 		SecurityEnhancement: o.SecurityEnhancement,
@@ -125,7 +125,7 @@ func (o *CreateClusterOptions) Run() error {
 		Artifact:            o.Artifact,
 		InstallPackages:     o.InstallPackages,
 		Namespace:           o.CommonOptions.Namespace,
-		WithBuildx:          o.WithBuildx,
+		SkipInstallAddons:   o.SkipInstallAddons,
 	}
 
 	if o.localStorageChanged {
@@ -141,16 +141,15 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.Kubernetes, "with-kubernetes", "", "", "Specify a supported version of kubernetes")
 	cmd.Flags().BoolVarP(&o.LocalStorage, "with-local-storage", "", false, "Deploy a local PV provisioner")
 	cmd.Flags().BoolVarP(&o.EnableKubeSphere, "with-kubesphere", "", false, fmt.Sprintf("Deploy a specific version of kubesphere (default %s)", kubesphere.Latest().Version))
-	cmd.Flags().BoolVarP(&o.SkipInstallAddons, "skip-install-addons", "", false, "Skip install addons")
 	cmd.Flags().BoolVarP(&o.SkipPullImages, "skip-pull-images", "", false, "Skip pre pull images")
 	cmd.Flags().BoolVarP(&o.SkipPushImages, "skip-push-images", "", false, "Skip pre push images")
+	cmd.Flags().BoolVarP(&o.SkipInstallAddons, "skip-install-addons", "", false, "Skip install addons")
 	cmd.Flags().BoolVarP(&o.SecurityEnhancement, "with-security-enhancement", "", false, "Security enhancement")
 	cmd.Flags().StringVarP(&o.ContainerManager, "container-manager", "", "docker", "Container runtime: docker, crio, containerd and isula.")
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
-	cmd.Flags().BoolVarP(&o.WithBuildx, "with-buildx", "", false, "install buildx when Container runtime is docker")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

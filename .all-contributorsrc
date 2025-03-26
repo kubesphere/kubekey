@@ -814,6 +814,33 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "xLexih",
+      "name": "Lexih",
+      "avatar_url": "https://avatars.githubusercontent.com/u/67009568?v=4",
+      "profile": "https://github.com/xLexih",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "LazyBusyYang",
+      "name": "LazyBusyYang",
+      "avatar_url": "https://avatars.githubusercontent.com/u/26729379?v=4",
+      "profile": "https://github.com/LazyBusyYang",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "endlesstravel",
+      "name": "Yx",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10757838?v=4",
+      "profile": "https://github.com/endlesstravel",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

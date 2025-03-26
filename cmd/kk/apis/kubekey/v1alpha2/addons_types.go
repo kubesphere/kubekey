@@ -16,6 +16,8 @@
 
 package v1alpha2
 
+import "helm.sh/helm/v3/pkg/chartutil"
+
 type Addon struct {
 	Name        string          `yaml:"name" json:"name,omitempty"`
 	Namespace   string          `yaml:"namespace" json:"namespace,omitempty"`
@@ -42,5 +44,6 @@ type Chart struct {
 }
 
 type Yaml struct {
-	Path []string `yaml:"path" json:"path,omitempty"`
+	Path   []string         `yaml:"path" json:"path,omitempty"`
+	Values chartutil.Values `yaml:"values" json:"values"`
 }
