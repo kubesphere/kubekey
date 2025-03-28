@@ -27,6 +27,7 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
@@ -196,14 +197,14 @@ func (o *CommonOptions) Complete(playbook *kkcorev1.Playbook) error {
 func (o *CommonOptions) completeConfig(config *kkcorev1.Config) error {
 	// set value by command args
 	if o.Workdir != "" {
-		if err := config.SetValue(_const.Workdir, o.Workdir); err != nil {
-			return errors.WithStack(err)
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Workdir, _const.Workdir); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", _const.Workdir)
 		}
 	}
 	if o.Artifact != "" {
 		// override artifact_file in config
-		if err := config.SetValue("artifact_file", o.Artifact); err != nil {
-			return errors.WithStack(err)
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Artifact, "artifact_file"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "artifact_file")
 		}
 	}
 	for _, s := range o.Set {
@@ -242,7 +243,8 @@ func setValue(config *kkcorev1.Config, key, val string) error {
 			return errors.Wrapf(err, "failed to unmarshal json for %q", key)
 		}
 
-		return config.SetValue(key, value)
+		return errors.Wrapf(unstructured.SetNestedMap(config.Value(), value, key),
+			"failed to set %q to config", key)
 	case strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]"):
 		var value []any
 		err := json.Unmarshal([]byte(val), &value)
@@ -250,13 +252,17 @@ func setValue(config *kkcorev1.Config, key, val string) error {
 			return errors.Wrapf(err, "failed to unmarshal json for %q", key)
 		}
 
-		return config.SetValue(key, value)
+		return errors.Wrapf(unstructured.SetNestedSlice(config.Value(), value, key),
+			"failed to set %q to config", key)
 	case strings.EqualFold(val, "TRUE") || strings.EqualFold(val, "YES") || strings.EqualFold(val, "Y"):
-		return config.SetValue(key, true)
+		return errors.Wrapf(unstructured.SetNestedField(config.Value(), true, key),
+			"failed to set %q to config", key)
 	case strings.EqualFold(val, "FALSE") || strings.EqualFold(val, "NO") || strings.EqualFold(val, "N"):
-		return config.SetValue(key, false)
+		return errors.Wrapf(unstructured.SetNestedField(config.Value(), false, key),
+			"failed to set %q to config", key)
 	default:
-		return config.SetValue(key, val)
+		return errors.Wrapf(unstructured.SetNestedField(config.Value(), val, key),
+			"failed to set %q to config", key)
 	}
 }
 

@@ -29,6 +29,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
@@ -43,13 +44,9 @@ func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool)
 	}
 
 	// get project_dir from playbook
-	projectDir, err := playbook.Spec.Config.GetValue("project_dir")
+	projectDir, _, err := unstructured.NestedString(playbook.Spec.Config.Value(), _const.ProjectsDir)
 	if err != nil {
-		return nil, errors.Wrap(err, "project_dir is not defined")
-	}
-	pd, ok := projectDir.(string)
-	if !ok {
-		return nil, errors.New("project_dir should be string")
+		return nil, errors.Wrapf(err, "failed to get %q in config", _const.ProjectsDir)
 	}
 
 	// git clone to project dir
@@ -59,7 +56,7 @@ func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool)
 
 	p := &gitProject{
 		Playbook:   playbook,
-		projectDir: filepath.Join(pd, playbook.Spec.Project.Name),
+		projectDir: filepath.Join(projectDir, playbook.Spec.Project.Name),
 		playbook:   playbook.Spec.Playbook,
 	}
 

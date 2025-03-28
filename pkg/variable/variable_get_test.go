@@ -21,6 +21,7 @@ import (
 
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -232,6 +233,9 @@ func TestGetWorkdir(t *testing.T) {
 					Config: kkcorev1.Config{
 						Spec: runtime.RawExtension{
 							Raw: []byte("{\"work_dir\": \"abc\"}"),
+							Object: &unstructured.Unstructured{Object: map[string]any{
+								"work_dir": "abc",
+							}},
 						},
 					},
 				},

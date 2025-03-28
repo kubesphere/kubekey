@@ -141,3 +141,10 @@
   command: |
     #!/bin/bash
     kubectl label node "{{ .hostname }}" node-role.kubernetes.io/{{ .item }}="" --overwrite
+
+- name: Remove traint if node is worker
+  when: .kubernetes.roles | has "worker"
+  ignore_errors: true
+  command: |
+    kubectl taint nodes "{{ .hostname }}" node-role.kubernetes.io/master-
+    kubectl taint nodes "{{ .hostname }}" node-role.kubernetes.io/control-plane-
