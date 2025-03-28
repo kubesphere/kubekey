@@ -262,7 +262,8 @@ func (r *InventoryReconciler) reconcileNormal(ctx context.Context, scope *cluste
 func (r *InventoryReconciler) reconcileInventoryPlaybook(ctx context.Context, scope *clusterScope) error {
 	// get playbook from inventory
 	if scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation] == "" {
-		return nil
+		// cannot find playbook. should create it
+		return r.createHostCheckPlaybook(ctx, scope)
 	}
 	playbook := &kkcorev1.Playbook{}
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Name: scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation], Namespace: scope.Namespace}, playbook); err != nil {
