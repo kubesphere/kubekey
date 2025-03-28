@@ -45,10 +45,10 @@ spec:
   kubeadmConfigSpec:
     initConfiguration:
       nodeRegistration:
-        criSocket: ${CRI_SOCKET=unix:///var/run/containerd/containerd.sock}
+        criSocket: ${CRI_SOCKET=unix:///run/containerd/containerd.sock}
     joinConfiguration:
       nodeRegistration:
-        criSocket: ${CRI_SOCKET=unix:///var/run/containerd/containerd.sock}
+        criSocket: ${CRI_SOCKET=unix:///run/containerd/containerd.sock}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: KKMachineTemplate
@@ -104,4 +104,4 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration:
-          criSocket: ${CRI_SOCKET=unix:///var/run/containerd/containerd.sock}
+          criSocket: ${CRI_SOCKET=unix:///run/containerd/containerd.sock}
