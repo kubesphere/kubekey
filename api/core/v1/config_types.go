@@ -17,13 +17,12 @@ limitations under the License.
 package v1
 
 import (
-	"reflect"
-	"strings"
+	"encoding/json"
 
 	"github.com/cockroachdb/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 // Config store global vars for playbook.
@@ -33,70 +32,44 @@ type Config struct {
 	Spec runtime.RawExtension `json:"spec,omitempty"`
 }
 
-// SetValue to config
-// if key contains "." (a.b), will convert map and set value (a:b:value)
-func (c *Config) SetValue(key string, value any) error {
-	configMap := make(map[string]any)
-	if c.Spec.Raw != nil {
-		if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
-			return errors.WithStack(err)
-		}
+// UnmarshalJSON decodes spec.Raw into spec.Object
+func (c *Config) UnmarshalJSON(data []byte) error {
+	type Alias Config
+	aux := &Alias{}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return errors.Wrap(err, "failed to unmarshal config")
 	}
-	// set value
-	var f func(input map[string]any, key []string, value any) any
-	f = func(input map[string]any, key []string, value any) any {
-		if len(key) == 0 {
-			return input
+	*c = Config(*aux)
+
+	// Decode spec.Raw into spec.Object if it's not already set
+	if len(c.Spec.Raw) > 0 && c.Spec.Object == nil {
+		var objMap map[string]interface{}
+		if err := json.Unmarshal(c.Spec.Raw, &objMap); err != nil {
+			return errors.Wrap(err, "failed to unmarshal spec.Raw")
 		}
-
-		firstKey := key[0]
-		if len(key) == 1 {
-			input[firstKey] = value
-
-			return input
-		}
-
-		// Handle nested maps
-		if v, ok := input[firstKey]; ok && reflect.TypeOf(v).Kind() == reflect.Map {
-			if vd, ok := v.(map[string]any); ok {
-				input[firstKey] = f(vd, key[1:], value)
-			}
-		} else {
-			input[firstKey] = f(make(map[string]any), key[1:], value)
-		}
-
-		return input
+		c.Spec.Object = &unstructured.Unstructured{Object: objMap}
 	}
-	data, err := json.Marshal(f(configMap, strings.Split(key, "."), value))
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal %q value to json", key)
-	}
-	c.Spec.Raw = data
 
 	return nil
 }
 
-// GetValue by key
-// if key contains "." (a.b), find by the key path (if a:b:value in config.and get value)
-func (c *Config) GetValue(key string) (any, error) {
-	configMap := make(map[string]any)
-	if err := json.Unmarshal(c.Spec.Raw, &configMap); err != nil {
-		return nil, errors.WithStack(err)
-	}
-	// get all value
-	if key == "" {
-		return configMap, nil
-	}
-	// get value
-	var result any = configMap
-	for _, k := range strings.Split(key, ".") {
-		r, ok := result.(map[string]any)
-		if !ok {
-			// cannot find value
-			return nil, errors.Errorf("cannot find key: %s", key)
+// MarshalJSON ensures spec.Object is converted back to spec.Raw
+func (c *Config) MarshalJSON() ([]byte, error) {
+	// Ensure spec.Object is serialized into spec.Raw
+	if c.Spec.Object != nil {
+		raw, err := json.Marshal(c.Spec.Object)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to marshal spec.Object")
 		}
-		result = r[k]
+		c.Spec.Raw = raw
 	}
 
-	return result, nil
+	type Alias Config
+	return json.Marshal((*Alias)(c))
+}
+
+// Value returns the underlying map[string]any from the Config's unstructured Object.
+// This provides direct access to the config values stored in Spec.Object.
+func (c *Config) Value() map[string]any {
+	return c.Spec.Object.(*unstructured.Unstructured).Object
 }
