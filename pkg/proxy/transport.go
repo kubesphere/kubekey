@@ -18,7 +18,6 @@ package proxy
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"sort"
@@ -54,14 +53,14 @@ import (
 
 // RestConfig replace the restconfig transport to proxy transport
 func RestConfig(runtimedir string, restconfig *rest.Config) error {
-	var err error
-	restconfig.Transport, err = newProxyTransport(runtimedir, restconfig)
-	if err != nil {
-		return fmt.Errorf("create proxy transport error: %w", err)
-	}
 	restconfig.TLSClientConfig = rest.TLSClientConfig{}
+	transport, err := newProxyTransport(runtimedir, restconfig)
+	if err != nil {
+		return err
+	}
+	restconfig.Transport = transport
 
-	return err
+	return nil
 }
 
 // NewProxyTransport return a new http.RoundTripper use in ctrl.client.
@@ -92,22 +91,22 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	kkv1alpha1 := newAPIIResources(kkcorev1alpha1.SchemeGroupVersion)
 	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create task storage")
+		return nil, err
 	}
 	if err := kkv1alpha1.AddResource(resourceOptions{
 		path:    "tasks",
 		storage: storage.Task,
 	}); err != nil {
-		return nil, errors.Wrap(err, "failed to add tasks resource")
+		return nil, err
 	}
 	if err := kkv1alpha1.AddResource(resourceOptions{
 		path:    "tasks/status",
 		storage: storage.TaskStatus,
 	}); err != nil {
-		return nil, errors.Wrap(err, "failed to add tasks/status resource")
+		return nil, err
 	}
 	if err := lt.registerResources(kkv1alpha1); err != nil {
-		return nil, errors.Wrap(err, "failed to register v1alpha1 resources")
+		return nil, err
 	}
 
 	// when restConfig is null. should store all resource local
@@ -117,34 +116,34 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		// add inventory
 		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create inventory storage")
+			return nil, err
 		}
 		if err := kkv1.AddResource(resourceOptions{
 			path:    "inventories",
 			storage: inventoryStorage.Inventory,
 		}); err != nil {
-			return nil, errors.Wrap(err, "failed to add inventories resource")
+			return nil, err
 		}
 		// add playbook
 		playbookStorage, err := playbook.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create playbook storage")
+			return nil, err
 		}
 		if err := kkv1.AddResource(resourceOptions{
 			path:    "playbooks",
 			storage: playbookStorage.Playbook,
 		}); err != nil {
-			return nil, errors.Wrap(err, "failed to add playbooks resource")
+			return nil, err
 		}
 		if err := kkv1.AddResource(resourceOptions{
 			path:    "playbooks/status",
 			storage: playbookStorage.PlaybookStatus,
 		}); err != nil {
-			return nil, errors.Wrap(err, "failed to add playbooks/status resource")
+			return nil, err
 		}
 
 		if err := lt.registerResources(kkv1); err != nil {
-			return nil, errors.Wrap(err, "failed to register v1 resources")
+			return nil, err
 		}
 	}
 
@@ -197,7 +196,7 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 	// dispatch request
 	handler, err := l.detectDispatcher(request)
 	if err != nil {
-		return response, errors.Wrapf(err, "no router for request. url: %s, method: %s", request.URL.Path, request.Method)
+		return response, err
 	}
 	// call handler
 	l.handlerChainFunc(handler).ServeHTTP(&responseWriter{response}, request)

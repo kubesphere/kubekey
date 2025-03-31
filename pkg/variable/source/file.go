@@ -35,6 +35,9 @@ var _ Source = &fileSource{}
 // NewFileSource returns a new fileSource.
 func NewFileSource(path string) (Source, error) {
 	if _, err := os.Stat(path); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "failed to stat source path %q", path)
+		}
 		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			return nil, errors.Wrapf(err, "failed to create source path %q", path)
 		}

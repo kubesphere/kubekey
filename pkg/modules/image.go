@@ -80,7 +80,7 @@ func (i imagePullArgs) pull(ctx context.Context) error {
 
 		dst, err := newLocalRepository(filepath.Join(domain, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get local repository %q for image %q", i.imagesDir, img)
+			return err
 		}
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions); err != nil {
@@ -104,14 +104,14 @@ type imagePushArgs struct {
 func (i imagePushArgs) push(ctx context.Context) error {
 	manifests, err := findLocalImageManifests(i.imagesDir)
 	if err != nil {
-		return errors.Wrapf(err, "failed to find image manifests in local dir %p", i.imagesDir)
+		return err
 	}
 	klog.V(5).Info("manifests found", "manifests", manifests)
 
 	for _, img := range manifests {
 		src, err := newLocalRepository(filepath.Join(domain, img), i.imagesDir)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get local repository %q for image %q", i.imagesDir, img)
+			return err
 		}
 		repo := src.Reference.Repository
 		if i.namespace != "" {
@@ -251,7 +251,7 @@ func findLocalImageManifests(localDir string) ([]string, error) {
 	var manifests []string
 	if err := filepath.WalkDir(localDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrapf(err, "failed to walkdir %s", path)
 		}
 
 		if path == filepath.Join(localDir, "blobs") {
@@ -290,7 +290,7 @@ func findLocalImageManifests(localDir string) ([]string, error) {
 
 		return nil
 	}); err != nil {
-		return nil, errors.Wrapf(err, "failed to work dir %q", localDir)
+		return nil, err
 	}
 
 	return manifests, nil

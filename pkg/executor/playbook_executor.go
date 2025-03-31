@@ -63,15 +63,13 @@ func (e playbookExecutor) Exec(ctx context.Context) error {
 	klog.V(5).InfoS("deal project", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
 	pj, err := project.New(ctx, *e.playbook, true)
 	if err != nil {
-		return errors.Wrap(err, "failed to deal project")
+		return err
 	}
-
 	// convert to transfer.Playbook struct
 	pb, err := pj.MarshalPlaybook()
 	if err != nil {
-		return errors.Wrap(err, "failed to convert playbook")
+		return err
 	}
-
 	for _, play := range pb.Play {
 		// check tags
 		if !play.Taggable.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
@@ -87,17 +85,17 @@ func (e playbookExecutor) Exec(ctx context.Context) error {
 		}
 		// when gather_fact is set. get host's information from remote.
 		if err := e.dealGatherFacts(ctx, play.GatherFacts, hosts); err != nil {
-			return errors.Wrap(err, "failed to deal gather_facts argument")
+			return err
 		}
 		// Batch execution, with each batch being a group of hosts run in serial.
 		var batchHosts [][]string
 		if err := e.dealSerial(play.Serial.Data, hosts, &batchHosts); err != nil {
-			return errors.Wrap(err, "failed to deal serial argument")
+			return err
 		}
 		e.dealRunOnce(play.RunOnce, hosts, &batchHosts)
 		// exec playbook in each BatchHosts
 		if err := e.execBatchHosts(ctx, play, batchHosts); err != nil {
-			return errors.Wrap(err, "failed to exec batch hosts")
+			return err
 		}
 	}
 
@@ -114,7 +112,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 		}
 
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(play.Vars, serials...)); err != nil {
-			return errors.Wrapf(err, "failed to merge variable with play %q", play.Name)
+			return err
 		}
 		// generate task from pre tasks
 		if err := (blockExecutor{
@@ -124,7 +122,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			blocks:       play.PreTasks,
 			tags:         play.Taggable,
 		}.Exec(ctx)); err != nil {
-			return errors.Wrapf(err, "failed to execute pre-tasks with play %q", play.Name)
+			return err
 		}
 		// generate task from role
 		for _, role := range play.Roles {
@@ -133,7 +131,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 				continue
 			}
 			if err := e.variable.Merge(variable.MergeRuntimeVariable(role.Vars, serials...)); err != nil {
-				return errors.Wrapf(err, "failed to merge variable with role %q", role.Role)
+				return err
 			}
 			// use the most closely configuration
 			ignoreErrors := role.IgnoreErrors
@@ -150,7 +148,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 				when:         role.When.Data,
 				tags:         kkprojectv1.JoinTag(role.Taggable, play.Taggable),
 			}.Exec(ctx)); err != nil {
-				return errors.Wrapf(err, "failed to execute role-tasks")
+				return err
 			}
 		}
 		// generate task from tasks
@@ -161,7 +159,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			blocks:       play.Tasks,
 			tags:         play.Taggable,
 		}.Exec(ctx)); err != nil {
-			return errors.Wrapf(err, "failed to execute tasks")
+			return err
 		}
 		// generate task from post tasks
 		if err := (blockExecutor{
@@ -171,7 +169,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			blocks:       play.PostTasks,
 			tags:         play.Taggable,
 		}.Exec(ctx)); err != nil {
-			return errors.Wrapf(err, "failed to execute post-tasks")
+			return err
 		}
 	}
 
@@ -182,7 +180,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 func (e playbookExecutor) dealHosts(host kkprojectv1.PlayHost, i *[]string) error {
 	ahn, err := e.variable.Get(variable.GetHostnames(host.Hosts))
 	if err != nil {
-		return errors.Wrapf(err, "failed to get hostnames")
+		return err
 	}
 
 	if h, ok := ahn.([]string); ok {
@@ -205,20 +203,20 @@ func (e playbookExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool,
 		// get host connector
 		conn, err := connector.NewConnector(hostname, e.variable)
 		if err != nil {
-			return errors.Wrapf(err, "failed to new connector in host %q", hostname)
+			return err
 		}
 		if err := conn.Init(ctx); err != nil {
-			return errors.Wrapf(err, "failed to init connection in host %q", hostname)
+			return err
 		}
 		defer conn.Close(ctx)
 
 		if gf, ok := conn.(connector.GatherFacts); ok {
 			remoteInfo, err := gf.HostInfo(ctx)
 			if err != nil {
-				return errors.Wrapf(err, "failed to execute gather_facts from connector in host %q", hostname)
+				return err
 			}
 			if err := e.variable.Merge(variable.MergeRemoteVariable(remoteInfo, hostname)); err != nil {
-				return errors.Wrapf(err, "failed to merge gather_facts to in host %q", hostname)
+				return err
 			}
 		}
 
@@ -226,7 +224,7 @@ func (e playbookExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool,
 	}
 	for _, hostname := range hosts {
 		if err := dealGatherFactsInHost(hostname); err != nil {
-			return errors.Wrapf(err, "failed to deal gather_facts for host %q", hostname)
+			return err
 		}
 	}
 
@@ -238,7 +236,7 @@ func (e playbookExecutor) dealSerial(serial []any, hosts []string, batchHosts *[
 	var err error
 	*batchHosts, err = converter.GroupHostBySerial(hosts, serial)
 	if err != nil {
-		return errors.Wrapf(err, "failed to group host by serial")
+		return err
 	}
 
 	return nil

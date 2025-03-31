@@ -109,11 +109,11 @@ func (r *InventoryReconciler) objectToInventoryMapFunc(ctx context.Context, obj 
 func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, retErr error) {
 	inventory := &kkcorev1.Inventory{}
 	if err := r.Client.Get(ctx, req.NamespacedName, inventory); err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get inventory %q", req.String())
 		}
 
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get inventory %q", req.String())
+		return ctrl.Result{}, nil
 	}
 	clusterName := inventory.Labels[clusterv1beta1.ClusterNameLabel]
 	if clusterName == "" {
@@ -126,14 +126,14 @@ func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		Name:      clusterName,
 	}})
 	if err != nil {
-		return ctrl.Result{}, errors.WithStack(err)
+		return ctrl.Result{}, err
 	}
 	if err := scope.newPatchHelper(scope.Inventory); err != nil {
-		return ctrl.Result{}, errors.WithStack(err)
+		return ctrl.Result{}, err
 	}
 	defer func() {
 		if err := scope.PatchHelper.Patch(ctx, scope.Inventory); err != nil {
-			retErr = errors.Join(retErr, errors.WithStack(err))
+			retErr = errors.Join(retErr, err)
 		}
 	}()
 
@@ -154,17 +154,17 @@ func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	// Handle deleted inventory
 	if !scope.Inventory.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, errors.WithStack(r.reconcileDelete(ctx, scope))
+		return ctrl.Result{}, r.reconcileDelete(ctx, scope)
 	}
 
-	return ctrl.Result{}, errors.WithStack(r.reconcileNormal(ctx, scope))
+	return ctrl.Result{}, r.reconcileNormal(ctx, scope)
 }
 
 func (r *InventoryReconciler) reconcileDelete(ctx context.Context, scope *clusterScope) error {
 	// waiting playbook delete
 	playbookList := &kkcorev1.PlaybookList{}
 	if err := util.GetObjectListFromOwner(ctx, r.Client, scope.Inventory, playbookList); err != nil {
-		return errors.Wrapf(err, "failed to get playbook list from inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
+		return err
 	}
 	for _, obj := range playbookList.Items {
 		if err := r.Client.Delete(ctx, &obj); err != nil {
@@ -219,13 +219,13 @@ func (r *InventoryReconciler) reconcileNormal(ctx context.Context, scope *cluste
 		// when it's pending: inventory's host haved changed.
 		scope.Inventory.Status.Ready = false
 		if err := r.createHostCheckPlaybook(ctx, scope); err != nil {
-			return errors.Wrapf(err, "failed to create host check playbook in inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
+			return err
 		}
 		scope.Inventory.Status.Phase = kkcorev1.InventoryPhaseRunning
 	case kkcorev1.InventoryPhaseRunning:
 		// sync inventory's status from playbook
 		if err := r.reconcileInventoryPlaybook(ctx, scope); err != nil {
-			return errors.Wrapf(err, "failed to reconcile running inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
+			return err
 		}
 	case kkcorev1.InventoryPhaseSucceeded:
 		// sync inventory's control_plane groups from ControlPlane
@@ -245,11 +245,11 @@ func (r *InventoryReconciler) reconcileNormal(ctx context.Context, scope *cluste
 			scope.Inventory.Spec.Groups = make(map[string]kkcorev1.InventoryGroup)
 		}
 		if err := r.syncInventoryControlPlaneGroups(ctx, scope); err != nil {
-			return errors.Wrapf(err, "failed to sync control-plane groups in inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
+			return err
 		}
 		// sync inventory's worker groups from machinedeployment
 		if err := r.syncInventoryWorkerGroups(ctx, scope); err != nil {
-			return errors.Wrapf(err, "failed to sync worker groups in inventory %q", ctrlclient.ObjectKeyFromObject(scope.Inventory))
+			return err
 		}
 		scope.Inventory.Spec.Groups[defaultClusterGroup] = kkcorev1.InventoryGroup{
 			Groups: []string{getControlPlaneGroupName(), getWorkerGroupName()},
@@ -267,11 +267,11 @@ func (r *InventoryReconciler) reconcileInventoryPlaybook(ctx context.Context, sc
 	}
 	playbook := &kkcorev1.Playbook{}
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Name: scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation], Namespace: scope.Namespace}, playbook); err != nil {
-		if apierrors.IsNotFound(err) {
-			return r.createHostCheckPlaybook(ctx, scope)
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get playbook with inventory %q annotation %q", ctrlclient.ObjectKeyFromObject(scope.Inventory), kkcorev1.HostCheckPlaybookAnnotation)
 		}
 
-		return errors.Wrapf(err, "failed to get playbook with inventory %q annotation %q", ctrlclient.ObjectKeyFromObject(scope.Inventory), kkcorev1.HostCheckPlaybookAnnotation)
+		return r.createHostCheckPlaybook(ctx, scope)
 	}
 	switch playbook.Status.Phase {
 	case kkcorev1.PlaybookPhaseSucceeded:
@@ -343,7 +343,7 @@ func (r *InventoryReconciler) syncInventoryControlPlaneGroups(ctx context.Contex
 	// get machineList from controlPlane
 	machineList := &clusterv1beta1.MachineList{}
 	if err := util.GetObjectListFromOwner(ctx, r.Client, scope.ControlPlane, machineList); err != nil {
-		return errors.Wrapf(err, "failed to get machineList from controlPlane %q", ctrlclient.ObjectKeyFromObject(scope.ControlPlane))
+		return err
 	}
 	if len(machineList.Items) != int(groupNum) {
 		klog.Info("waiting machine synced.")

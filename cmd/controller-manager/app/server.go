@@ -19,7 +19,6 @@ package app
 import (
 	"context"
 
-	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -37,7 +36,7 @@ func NewControllerManagerCommand() *cobra.Command {
 		Short: "kubekey controller manager",
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			if err := options.InitGOPS(); err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			return options.InitProfiling(ctx)

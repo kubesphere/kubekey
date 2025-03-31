@@ -52,7 +52,7 @@ func newLocalProject(playbook kkcorev1.Playbook) (Project, error) {
 	projectDir := filepath.Dir(filepath.Dir(playbook.Spec.Playbook))
 	pb, err := filepath.Rel(projectDir, playbook.Spec.Playbook)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get rel path for playbook %q", playbook.Spec.Playbook)
 	}
 
 	return &localProject{Playbook: playbook, projectDir: projectDir, playbook: pb}, nil

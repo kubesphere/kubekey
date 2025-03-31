@@ -81,13 +81,11 @@ func InitProfiling(ctx context.Context) error {
 
 	// If the command is interrupted before the end (ctrl-c), flush the
 	// profiling files
-
 	go func() {
 		<-ctx.Done()
 		if err := f.Close(); err != nil {
 			fmt.Printf("failed to close file. file: %v. error: %v \n", profileOutput, err)
 		}
-
 		if err := FlushProfiling(); err != nil {
 			fmt.Printf("failed to FlushProfiling. file: %v. error: %v \n", profileOutput, err)
 		}
@@ -115,12 +113,12 @@ func FlushProfiling() error {
 
 		f, err := os.Create(profileOutput)
 		if err != nil {
-			return errors.Wrap(err, "failed to create profile")
+			return errors.Wrapf(err, "failed to create profile %s", profileName)
 		}
 		defer f.Close()
 
 		if err := profile.WriteTo(f, 0); err != nil {
-			return errors.Wrap(err, "failed to write profile")
+			return errors.Wrapf(err, "failed to write profile %s", profileName)
 		}
 	}
 
@@ -145,7 +143,7 @@ func InitGOPS() error {
 		// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
 		// Bind to a random port on address 127.0.0.1
 		if err := agent.Listen(agent.Options{}); err != nil {
-			return errors.Wrap(err, "failed to listen gops")
+			return errors.Wrap(err, "failed to listen gops agent")
 		}
 	}
 

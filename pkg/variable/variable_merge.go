@@ -49,7 +49,7 @@ var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc 
 			}
 			// parse variable
 			if err := parseVariable(data, runtimeVarParser(v, hostname, data)); err != nil {
-				return errors.Wrap(err, "failed to parseVariable")
+				return err
 			}
 			hv := vv.value.Hosts[hostname]
 			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
@@ -69,7 +69,7 @@ var MergeAllRuntimeVariable = func(data map[string]any, hostname string) MergeFu
 		}
 		// parse variable
 		if err := parseVariable(data, runtimeVarParser(v, hostname, data)); err != nil {
-			return errors.Wrap(err, "failed to parseVariable")
+			return err
 		}
 		for h := range vv.value.Hosts {
 			if _, ok := v.(*variable); !ok {
@@ -88,7 +88,7 @@ func runtimeVarParser(v Variable, hostname string, data map[string]any) func(str
 	return func(s string) (string, error) {
 		curVariable, err := v.Get(GetAllVariable(hostname))
 		if err != nil {
-			return "", errors.Wrapf(err, "get host %s variables", hostname)
+			return "", err
 		}
 		cv, ok := curVariable.(map[string]any)
 		if !ok {

@@ -106,9 +106,6 @@ func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		SkipTags: o.SkipTags,
 		Debug:    o.Debug,
 	}
-	if err := o.CommonOptions.Complete(playbook); err != nil {
-		return nil, errors.WithStack(err)
-	}
 
-	return playbook, nil
+	return playbook, o.CommonOptions.Complete(playbook)
 }

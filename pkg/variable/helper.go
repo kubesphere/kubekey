@@ -160,11 +160,11 @@ func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
 	switch reflect.ValueOf(v).Kind() {
 	case reflect.Map:
 		if err := parseVariableFromMap(v, parseTmplFunc); err != nil {
-			return errors.Wrap(err, "failed to parseVariableFromMap")
+			return err
 		}
 	case reflect.Slice, reflect.Array:
 		if err := parseVariableFromArray(v, parseTmplFunc); err != nil {
-			return errors.Wrap(err, "failed to parseVariableFromArray")
+			return err
 		}
 	}
 
@@ -182,7 +182,7 @@ func parseVariableFromMap(v any, parseTmplFunc func(string) (string, error)) err
 
 			newValue, err := parseTmplFunc(vv)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parseTmplFunc of %q", vv)
+				return err
 			}
 
 			switch {
@@ -195,7 +195,7 @@ func parseVariableFromMap(v any, parseTmplFunc func(string) (string, error)) err
 			}
 		} else {
 			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return errors.Wrap(err, "failed to parseVariable")
+				return err
 			}
 		}
 	}
@@ -214,7 +214,7 @@ func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) e
 
 			newValue, err := parseTmplFunc(vv)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parseTmplFunc of %q", vv)
+				return err
 			}
 
 			switch {
@@ -227,7 +227,7 @@ func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) e
 			}
 		} else {
 			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return errors.Wrap(err, "failed to parseVariable")
+				return err
 			}
 		}
 	}
@@ -305,7 +305,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 	case string:
 		as, err := tmpl.Parse(d, valv)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse variable %q of key %q", valv, key)
+			return nil, err
 		}
 
 		var ss []string
@@ -342,7 +342,7 @@ func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 	case reflect.String:
 		vs, err := tmpl.ParseFunc(d, v.String(), func(b []byte) string { return string(b) })
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse string variable %q of key %q", v.String(), key)
+			return nil, err
 		}
 
 		atoi, err := strconv.Atoi(vs)
@@ -370,7 +370,7 @@ func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 	case reflect.String:
 		vs, err := tmpl.ParseBool(d, v.String())
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse string variable %q to bool of key %q", v.String(), key)
+			return nil, err
 		}
 
 		return ptr.To(vs), nil
@@ -383,7 +383,7 @@ func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 func DurationVar(d map[string]any, args map[string]any, key string) (time.Duration, error) {
 	stringVar, err := StringVar(d, args, key)
 	if err != nil {
-		return 0, errors.Wrapf(err, "failed to get string variable of key %q", key)
+		return 0, err
 	}
 
 	return time.ParseDuration(stringVar)
@@ -443,7 +443,7 @@ func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error
 
 	result, err := tmpl.Parse(d, input)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse %q", input)
+		return "", err
 	}
 
 	return string(result), nil

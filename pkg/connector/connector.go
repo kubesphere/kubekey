@@ -61,7 +61,7 @@ type Connector interface {
 func NewConnector(host string, v variable.Variable) (Connector, error) {
 	vars, err := v.Get(variable.GetAllVariable(host))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get host %q variable", host)
+		return nil, err
 	}
 	connectorVars := make(map[string]any)
 	if c1, ok := vars.(map[string]any)[_const.VariableConnector]; ok {
@@ -79,7 +79,7 @@ func NewConnector(host string, v variable.Variable) (Connector, error) {
 	case connectedKubernetes:
 		workdir, err := v.Get(variable.GetWorkDir())
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get workdir from variable")
+			return nil, err
 		}
 		wd, ok := workdir.(string)
 		if !ok {

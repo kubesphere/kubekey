@@ -17,9 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"os"
-
-	"k8s.io/component-base/cli"
 
 	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app"
 	_ "github.com/kubesphere/kubekey/v4/pkg/controllers/core"
@@ -27,7 +26,8 @@ import (
 )
 
 func main() {
-	command := app.NewControllerManagerCommand()
-	code := cli.Run(command)
-	os.Exit(code)
+	if err := app.NewControllerManagerCommand().Execute(); err != nil {
+		fmt.Printf("%+v", err)
+		os.Exit(1)
+	}
 }

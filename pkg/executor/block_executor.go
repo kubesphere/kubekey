@@ -47,19 +47,19 @@ func (e blockExecutor) Exec(ctx context.Context) error {
 
 		// merge variable which defined in block
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(block.Vars, hosts...)); err != nil {
-			return errors.Wrapf(err, "failed to merge block-variable: %q in playbook %q", block.Name, e.playbook)
+			return err
 		}
 
 		switch {
 		case len(block.Block) != 0:
 			if err := e.dealBlock(ctx, hosts, ignoreErrors, when, tags, block); err != nil {
-				return errors.Wrapf(err, "failed to deal block %q in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook))
+				return err
 			}
 		case block.IncludeTasks != "":
 			// do nothing. include tasks has converted to blocks.
 		default:
 			if err := e.dealTask(ctx, hosts, when, block); err != nil {
-				return errors.Wrapf(err, "failed to deal task %s in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook))
+				return err
 			}
 		}
 	}
@@ -122,7 +122,7 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 		when:         when,
 		tags:         tags,
 	}.Exec(ctx)); err != nil {
-		errs = errors.Join(errs, errors.Wrapf(err, "failed to execute block %q tasks in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook)))
+		errs = errors.Join(errs, err)
 	}
 	// if block exec failed exec rescue
 	if e.playbook.Status.Phase == kkcorev1.PlaybookPhaseFailed && len(block.Rescue) != 0 {
@@ -135,7 +135,7 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 			when:         when,
 			tags:         tags,
 		}.Exec(ctx)); err != nil {
-			errs = errors.Join(errs, errors.Wrapf(err, "failed to execute rescue %q tasks in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook)))
+			errs = errors.Join(errs, err)
 		}
 	}
 	// exec always after block
@@ -149,7 +149,7 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 			when:         when,
 			tags:         tags,
 		}.Exec(ctx)); err != nil {
-			errs = errors.Join(errs, errors.Wrapf(err, "failed to execute always %q tasks in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook)))
+			errs = errors.Join(errs, err)
 		}
 	}
 	// when execute error. return
@@ -182,9 +182,5 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 		return errors.Wrapf(err, "failed to set playbook %q ownerReferences to %q", ctrlclient.ObjectKeyFromObject(e.playbook), block.Name)
 	}
 
-	if err := (&taskExecutor{option: e.option, task: task, taskRunTimeout: 60 * time.Minute}).Exec(ctx); err != nil {
-		return errors.Wrapf(err, "failed to execute task %s in playbook %q", block.Name, ctrlclient.ObjectKeyFromObject(e.playbook))
-	}
-
-	return nil
+	return (&taskExecutor{option: e.option, task: task, taskRunTimeout: 60 * time.Minute}).Exec(ctx)
 }

@@ -152,7 +152,7 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 func (ta templateArgs) readFile(ctx context.Context, data string, mode fs.FileMode, conn connector.Connector, vars map[string]any) error {
 	result, err := tmpl.Parse(vars, data)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse file")
+		return err
 	}
 
 	dest := ta.dest
@@ -164,21 +164,17 @@ func (ta templateArgs) readFile(ctx context.Context, data string, mode fs.FileMo
 		mode = os.FileMode(*ta.mode)
 	}
 
-	if err := conn.PutFile(ctx, result, dest, mode); err != nil {
-		return errors.Wrap(err, "failed to copy file")
-	}
-
-	return nil
+	return conn.PutFile(ctx, result, dest, mode)
 }
 
 // relDir when template.src is relative dir, get all files from project, parse it, and copy to remote.
 func (ta templateArgs) relDir(ctx context.Context, pj project.Project, role string, conn connector.Connector, vars map[string]any) error {
-	if err := pj.WalkDir(ta.src, project.GetFileOption{IsTemplate: true, Role: role}, func(path string, d fs.DirEntry, err error) error {
+	return pj.WalkDir(ta.src, project.GetFileOption{IsTemplate: true, Role: role}, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() { // only copy file
 			return nil
 		}
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		info, err := d.Info()
@@ -209,16 +205,8 @@ func (ta templateArgs) relDir(ctx context.Context, pj project.Project, role stri
 			dest = filepath.Join(ta.dest, rel)
 		}
 
-		if err := conn.PutFile(ctx, result, dest, mode); err != nil {
-			return errors.Wrap(err, "failed to put file")
-		}
-
-		return nil
-	}); err != nil {
-		return errors.Wrapf(err, "failed to walk dir %q", ta.src)
-	}
-
-	return nil
+		return conn.PutFile(ctx, result, dest, mode)
+	})
 }
 
 // absDir when template.src is absolute dir, get all files by os, parse it, and copy to remote.

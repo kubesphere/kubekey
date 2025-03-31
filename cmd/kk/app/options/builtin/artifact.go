@@ -46,9 +46,7 @@ func NewArtifactExportOptions() *ArtifactExportOptions {
 
 // Flags add to newArtifactExportCommand
 func (o *ArtifactExportOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
-
-	return fss
+	return o.CommonOptions.Flags()
 }
 
 // Complete options. create Playbook, Config and Inventory
@@ -75,10 +73,10 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		SkipTags: []string{"certs"},
 	}
 	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, errors.Wrap(err, "failed to get local inventory. Please set it by \"--inventory\"")
+		return nil, err
 	}
 	if err := o.CommonOptions.Complete(playbook); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return playbook, nil
@@ -101,9 +99,7 @@ func NewArtifactImagesOptions() *ArtifactImagesOptions {
 
 // Flags add to newArtifactImagesCommand
 func (o *ArtifactImagesOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
-
-	return fss
+	return o.CommonOptions.Flags()
 }
 
 // Complete options. create Playbook, Config and Inventory

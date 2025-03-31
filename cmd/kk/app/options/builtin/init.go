@@ -50,9 +50,7 @@ func NewInitOSOptions() *InitOSOptions {
 
 // Flags add to newInitOSCommand
 func (o *InitOSOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
-
-	return fss
+	return o.CommonOptions.Flags()
 }
 
 // Complete options. create Playbook, Config and Inventory
@@ -79,14 +77,13 @@ func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.P
 	}
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {
-		return nil, errors.Wrap(err, "failed to complete playbook")
+		return nil, err
 	}
 
-	return playbook, o.complateConfig()
+	return playbook, o.completeConfig()
 }
 
-func (o *InitOSOptions) complateConfig() error {
-
+func (o *InitOSOptions) completeConfig() error {
 	if wd, _, err := unstructured.NestedString(o.CommonOptions.Config.Value(), _const.Workdir); err != nil {
 		// workdir should set by CommonOptions
 		return errors.Wrapf(err, "failed to get %q in config", _const.Workdir)
@@ -120,9 +117,7 @@ func NewInitRegistryOptions() *InitRegistryOptions {
 
 // Flags add to newInitRegistryCommand
 func (o *InitRegistryOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
-
-	return fss
+	return o.CommonOptions.Flags()
 }
 
 // Complete options. create Playbook, Config and Inventory
@@ -147,9 +142,6 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
-	if err := o.CommonOptions.Complete(playbook); err != nil {
-		return nil, errors.Wrap(err, "failed to complete playbook")
-	}
 
-	return playbook, nil
+	return playbook, o.CommonOptions.Complete(playbook)
 }

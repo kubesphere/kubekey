@@ -70,7 +70,7 @@ func ParseBool(ctx map[string]any, inputs ...string) (bool, error) {
 			return bytes.EqualFold(o, []byte("true"))
 		})
 		if err != nil {
-			return false, errors.WithStack(err)
+			return false, err
 		}
 		if !output {
 			return output, nil

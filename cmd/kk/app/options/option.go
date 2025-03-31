@@ -111,14 +111,18 @@ func NewCommonOptions() CommonOptions {
 // resources, and then runs the command manager.
 func (o *CommonOptions) Run(ctx context.Context, playbook *kkcorev1.Playbook) error {
 	// create workdir directory,if not exists
-	if _, err := os.Stat(o.Workdir); os.IsNotExist(err) {
+	if _, err := os.Stat(o.Workdir); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local dir %q for playbook %q", o.Workdir, ctrlclient.ObjectKeyFromObject(playbook))
+		}
+		// if dir is not exist, create it.
 		if err := os.MkdirAll(o.Workdir, os.ModePerm); err != nil {
-			return errors.WithStack(err)
+			return errors.Wrapf(err, "failed to create local dir %q for playbook %q", o.Workdir, ctrlclient.ObjectKeyFromObject(playbook))
 		}
 	}
 	restconfig := &rest.Config{}
 	if err := proxy.RestConfig(filepath.Join(o.Workdir, _const.RuntimeDir), restconfig); err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	client, err := ctrlclient.New(restconfig, ctrlclient.Options{
 		Scheme: _const.Scheme,
@@ -172,13 +176,11 @@ func (o *CommonOptions) Complete(playbook *kkcorev1.Playbook) error {
 		}
 		o.Workdir = filepath.Join(wd, o.Workdir)
 	}
-
 	// Generate and complete the configuration.
 	if err := o.completeConfig(o.Config); err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	playbook.Spec.Config = ptr.Deref(o.Config, kkcorev1.Config{})
-
 	// Complete the inventory reference.
 	o.completeInventory(o.Inventory)
 	playbook.Spec.InventoryRef = &corev1.ObjectReference{
@@ -214,7 +216,7 @@ func (o *CommonOptions) completeConfig(config *kkcorev1.Config) error {
 				return errors.New("--set value should be k=v")
 			}
 			if err := setValue(config, setVal[:i], setVal[i+1:]); err != nil {
-				return errors.Wrapf(err, "failed to set value to config by \"--set\" %q", setVal[:i])
+				return err
 			}
 		}
 	}
@@ -240,29 +242,29 @@ func setValue(config *kkcorev1.Config, key, val string) error {
 		var value map[string]any
 		err := json.Unmarshal([]byte(val), &value)
 		if err != nil {
-			return errors.Wrapf(err, "failed to unmarshal json for %q", key)
+			return errors.Wrapf(err, "failed to unmarshal json object value for \"--set %s\"", key)
 		}
 
 		return errors.Wrapf(unstructured.SetNestedMap(config.Value(), value, key),
-			"failed to set %q to config", key)
+			"failed to set \"--set %s\" to config", key)
 	case strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]"):
 		var value []any
 		err := json.Unmarshal([]byte(val), &value)
 		if err != nil {
-			return errors.Wrapf(err, "failed to unmarshal json for %q", key)
+			return errors.Wrapf(err, "failed to unmarshal json array value for \"--set %s\"", key)
 		}
 
 		return errors.Wrapf(unstructured.SetNestedSlice(config.Value(), value, key),
-			"failed to set %q to config", key)
+			"failed to set \"--set %s\" to config", key)
 	case strings.EqualFold(val, "TRUE") || strings.EqualFold(val, "YES") || strings.EqualFold(val, "Y"):
 		return errors.Wrapf(unstructured.SetNestedField(config.Value(), true, key),
-			"failed to set %q to config", key)
+			"failed to set \"--set %s\" to config", key)
 	case strings.EqualFold(val, "FALSE") || strings.EqualFold(val, "NO") || strings.EqualFold(val, "N"):
 		return errors.Wrapf(unstructured.SetNestedField(config.Value(), false, key),
-			"failed to set %q to config", key)
+			"failed to set \"--set %s\" to config", key)
 	default:
 		return errors.Wrapf(unstructured.SetNestedField(config.Value(), val, key),
-			"failed to set %q to config", key)
+			"failed to set \"--set %s\" to config", key)
 	}
 }
 

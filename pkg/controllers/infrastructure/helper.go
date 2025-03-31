@@ -117,7 +117,7 @@ func newClusterScope(ctx context.Context, client ctrlclient.Client, clusterReq r
 func (p *clusterScope) newPatchHelper(obj ...ctrlclient.Object) error {
 	helper, err := util.NewPatchHelper(p.client, obj...)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper with scope %q", p.String())
+		return err
 	}
 	p.PatchHelper = helper
 
@@ -133,7 +133,7 @@ func (p *clusterScope) isPaused() bool {
 func (p *clusterScope) ifPlaybookCompleted(ctx context.Context, owner ctrlclient.Object) (bool, error) {
 	playbookList := &kkcorev1.PlaybookList{}
 	if err := util.GetObjectListFromOwner(ctx, p.client, owner, playbookList); err != nil {
-		return false, errors.Wrapf(err, "failed to get playbook list from owner %q", ctrlclient.ObjectKeyFromObject(owner))
+		return false, err
 	}
 	for _, playbook := range playbookList.Items {
 		if playbook.Status.Phase != kkcorev1.PlaybookPhaseFailed && playbook.Status.Phase != kkcorev1.PlaybookPhaseSucceeded {

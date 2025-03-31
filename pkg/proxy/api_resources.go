@@ -109,7 +109,7 @@ func newAPIIResources(gv schema.GroupVersion) *apiResources {
 // AddResource add a api-resources
 func (r *apiResources) AddResource(o resourceOptions) error {
 	if err := o.init(); err != nil {
-		return errors.Wrap(err, "failed to initialize resourceOptions")
+		return err
 	}
 	r.resourceOptions = append(r.resourceOptions, o)
 	storageVersionProvider, isStorageVersionProvider := o.storage.(apirest.StorageVersionProvider)
@@ -120,7 +120,7 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 		versioner := storageVersionProvider.StorageVersion()
 		gvk, err := getStorageVersionKind(versioner, o.storage, r.typer)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get storage %q version kind", reflect.TypeOf(o.storage))
+			return err
 		}
 		apiResource.Group = gvk.Group
 		apiResource.Version = gvk.Version
@@ -161,11 +161,11 @@ func getStorageVersionKind(storageVersioner runtime.GroupVersioner, storage apir
 	object := storage.New()
 	fqKinds, _, err := typer.ObjectKinds(object)
 	if err != nil {
-		return schema.GroupVersionKind{}, err
+		return schema.GroupVersionKind{}, errors.Wrap(err, "failed to get object kind")
 	}
 	gvk, ok := storageVersioner.KindForGroupVersionKinds(fqKinds)
 	if !ok {
-		return schema.GroupVersionKind{}, errors.Errorf("cannot find the storage version kind for %v", reflect.TypeOf(object))
+		return schema.GroupVersionKind{}, errors.Errorf("failed to find the storage version kind for %v", reflect.TypeOf(object))
 	}
 
 	return gvk, nil

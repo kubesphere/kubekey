@@ -53,7 +53,7 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 	}()
 	// run task
 	if err := e.runTaskLoop(ctx); err != nil {
-		return errors.Wrapf(err, "failed to run task %q", ctrlclient.ObjectKeyFromObject(e.task))
+		return err
 	}
 	// exit when task run failed
 	if e.task.IsFailed() {
@@ -192,14 +192,14 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 		// task execute
 		ha, err := e.variable.Get(variable.GetAllVariable(h))
 		if err != nil {
-			stderr = fmt.Sprintf("get variable error: %v", err)
+			stderr = fmt.Sprintf("failed to get host %s variable: %v", h, err)
 
 			return
 		}
 		// convert hostVariable to map
 		had, ok := ha.(map[string]any)
 		if !ok {
-			stderr = fmt.Sprintf("variable is not map error: %v", err)
+			stderr = fmt.Sprintf("host: %s variable is not a map", h)
 		}
 		// check when condition
 		if skip := e.dealWhen(had, &stdout, &stderr); skip {
@@ -392,7 +392,7 @@ func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 				"stderr": stderrResult,
 			},
 		}, host)); err != nil {
-			return errors.Wrap(err, "failed to register task result to variable")
+			return err
 		}
 	}
 

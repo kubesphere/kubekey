@@ -66,7 +66,7 @@ func New(ctx context.Context, client ctrlclient.Client, playbook kkcorev1.Playbo
 		path := filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.String(), _const.RuntimePlaybookDir, playbook.Namespace, playbook.Name, _const.RuntimePlaybookVariableDir)
 		s, err = source.NewFileSource(path)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create file source %q", path)
+			return nil, err
 		}
 	default:
 		return nil, errors.Errorf("unsupported source type: %v", st)

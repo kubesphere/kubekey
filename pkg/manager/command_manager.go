@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,7 +83,7 @@ func (m *commandManager) Run(ctx context.Context) error {
 		m.Playbook.Status.FailureReason = kkcorev1.PlaybookFailedReasonTaskFailed
 		m.Playbook.Status.FailureMessage = err.Error()
 
-		return errors.Wrapf(err, "failed to executor playbook %q", ctrlclient.ObjectKeyFromObject(m.Playbook))
+		return err
 	}
 	m.Playbook.Status.Phase = kkcorev1.PlaybookPhaseSucceeded
 

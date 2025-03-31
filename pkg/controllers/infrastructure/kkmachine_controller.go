@@ -86,11 +86,11 @@ func (r *KKMachineReconciler) SetupWithManager(mgr ctrl.Manager, o options.Contr
 func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, retErr error) {
 	kkmachine := &capkkinfrav1beta1.KKMachine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, kkmachine); err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get kkmachine %q", req.String())
 		}
 
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get kkmachine %q", req.String())
+		return ctrl.Result{}, nil
 	}
 	clusterName := kkmachine.Labels[clusterv1beta1.ClusterNameLabel]
 	if clusterName == "" {
@@ -103,14 +103,14 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		Name:      clusterName,
 	}})
 	if err != nil {
-		return ctrl.Result{}, errors.WithStack(err)
+		return ctrl.Result{}, err
 	}
 	if err := scope.newPatchHelper(kkmachine); err != nil {
-		return ctrl.Result{}, errors.WithStack(err)
+		return ctrl.Result{}, err
 	}
 	defer func() {
 		if err := scope.PatchHelper.Patch(ctx, kkmachine); err != nil {
-			retErr = errors.Join(retErr, errors.WithStack(err))
+			retErr = errors.Join(retErr, err)
 		}
 	}()
 
@@ -130,12 +130,12 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	}
 
 	if !kkmachine.DeletionTimestamp.IsZero() {
-		return reconcile.Result{}, errors.WithStack(r.reconcileDelete(ctx, scope, kkmachine))
+		return reconcile.Result{}, r.reconcileDelete(ctx, scope, kkmachine)
 	}
 
 	machine := &clusterv1beta1.Machine{}
 	if err := util.GetOwnerFromObject(ctx, r.Client, kkmachine, machine); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get machine from kkmachine %q", ctrlclient.ObjectKeyFromObject(machine))
+		return reconcile.Result{}, err
 	}
 	kkmachine.Spec.Version = machine.Spec.Version
 
@@ -151,7 +151,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	return reconcile.Result{}, errors.WithStack(r.reconcileNormal(ctx, scope, kkmachine, machine))
+	return reconcile.Result{}, r.reconcileNormal(ctx, scope, kkmachine, machine)
 }
 
 // reconcileDelete handles delete reconcile.
@@ -161,7 +161,7 @@ func (r *KKMachineReconciler) reconcileDelete(ctx context.Context, scope *cluste
 	delNodePlaybookName := kkmachine.Annotations[capkkinfrav1beta1.DeleteNodePlaybookAnnotation]
 	addNodePlaybook, delNodePlaybook, err := r.getPlaybook(ctx, scope, kkmachine)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	switch {
 	case addNodePlaybookName == "" && delNodePlaybookName == "":
@@ -177,11 +177,11 @@ func (r *KKMachineReconciler) reconcileDelete(ctx context.Context, scope *cluste
 		return nil
 	case addNodePlaybookName != "" && delNodePlaybookName != "":
 		if addNodePlaybook != nil && addNodePlaybook.DeletionTimestamp.IsZero() {
-			return r.Client.Delete(ctx, addNodePlaybook)
+			return errors.Wrapf(r.Client.Delete(ctx, addNodePlaybook), "failed to delete addNodePlaybook for kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
 		}
 		if delNodePlaybook != nil && delNodePlaybook.DeletionTimestamp.IsZero() {
 			if delNodePlaybook.Status.Phase == kkcorev1.PlaybookPhaseSucceeded {
-				return r.Client.Delete(ctx, delNodePlaybook)
+				return errors.Wrapf(r.Client.Delete(ctx, delNodePlaybook), "failed to delete delNodePlaybook for kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
 			}
 			// should waiting delNodePlaybook completed
 			return nil
@@ -238,14 +238,13 @@ func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, scope *cluste
 	// check playbook status
 	playbook := &kkcorev1.Playbook{}
 	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: scope.Namespace, Name: playbookName}, playbook); err != nil {
-		if apierrors.IsNotFound(err) {
-			// the playbook has not found.
-			r.EventRecorder.Eventf(kkmachine, corev1.EventTypeWarning, "AddNodeFailed", "add node playbook: %q not found", playbookName)
-
-			return nil
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get playbook %s/%s", scope.Namespace, playbookName)
 		}
+		// the playbook has not found.
+		r.EventRecorder.Eventf(kkmachine, corev1.EventTypeWarning, "AddNodeFailed", "add node playbook: %q not found", playbookName)
 
-		return errors.Wrapf(err, "failed to get playbook %s/%s", scope.Namespace, playbookName)
+		return nil
 	}
 
 	switch playbook.Status.Phase {
@@ -371,7 +370,7 @@ func (r *KKMachineReconciler) getConfig(scope *clusterScope, kkmachine *capkkinf
 		}
 		data, err := kubeVersionConfigs.ReadFile(fmt.Sprintf("versions/%s.yaml", *kkmachine.Spec.Version))
 		if err != nil {
-			return config, errors.Wrap(err, "failed to read default config file")
+			return config, err
 		}
 		if err := yaml.Unmarshal(data, config); err != nil {
 			return config, errors.Wrap(err, "failed to unmarshal config file")

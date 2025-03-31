@@ -59,12 +59,12 @@ func InitProfiling(ctx context.Context) error {
 	case "cpu":
 		f, err = os.Create(profileOutput)
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrap(err, "failed to create cpu profile")
 		}
 
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrap(err, "failed to start cpu profile")
 		}
 	// Block and mutex profiles need a call to Set{Block,Mutex}ProfileRate to
 	// output anything. We choose to sample all events.
@@ -113,12 +113,12 @@ func FlushProfiling() error {
 
 		f, err := os.Create(profileOutput)
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrapf(err, "failed to create profile %s", profileName)
 		}
 		defer f.Close()
 
 		if err := profile.WriteTo(f, 0); err != nil {
-			return errors.WithStack(err)
+			return errors.Wrapf(err, "failed to write profile %s", profileName)
 		}
 	}
 
@@ -142,7 +142,7 @@ func InitGOPS() error {
 		// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
 		// Bind to a random port on address 127.0.0.1
 		if err := agent.Listen(agent.Options{}); err != nil {
-			return errors.WithStack(err)
+			return errors.Wrap(err, "failed to listen gops agent")
 		}
 	}
 

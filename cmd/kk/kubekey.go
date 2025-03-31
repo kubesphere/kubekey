@@ -17,15 +17,15 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"os"
-
-	"k8s.io/component-base/cli"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app"
 )
 
 func main() {
-	command := app.NewRootCommand()
-	code := cli.Run(command)
-	os.Exit(code)
+	if err := app.NewRootCommand().Execute(); err != nil {
+		fmt.Printf("%+v", err)
+		os.Exit(1)
+	}
 }
