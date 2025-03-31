@@ -26,6 +26,7 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -104,13 +105,13 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 func (o *CreateClusterOptions) completeConfig() error {
 	if o.ContainerManager != "" {
 		// override container_manager in config
-		if err := o.CommonOptions.Config.SetValue("cri.container_manager", o.ContainerManager); err != nil {
-			return errors.WithStack(err)
+		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "cri.container_manager")
 		}
 	}
 
-	if err := o.CommonOptions.Config.SetValue("kube_version", o.Kubernetes); err != nil {
-		return errors.WithStack(err)
+	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
+		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 	}
 
 	return nil

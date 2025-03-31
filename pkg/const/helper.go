@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 )
@@ -33,12 +34,8 @@ import (
 // If it fails to get the current working directory, it logs another informational message
 // and returns a default directory path "/opt/kubekey".
 func GetWorkdirFromConfig(config kkcorev1.Config) string {
-	workdir, err := config.GetValue(Workdir)
-	if err == nil {
-		wd, ok := workdir.(string)
-		if ok {
-			return wd
-		}
+	if wd, _, err := unstructured.NestedString(config.Value(), Workdir); err == nil {
+		return wd
 	}
 	klog.Info("work_dir is not set use current dir.")
 	wd, err := os.Getwd()

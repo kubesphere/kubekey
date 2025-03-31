@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -378,41 +379,41 @@ func (r *KKMachineReconciler) getConfig(scope *clusterScope, kkmachine *capkkinf
 		klog.InfoS("get default config", "config", config)
 	}
 
-	if err := config.SetValue(_const.Workdir, _const.CAPKKWorkdir); err != nil {
+	if err := unstructured.SetNestedField(config.Value(), _const.CAPKKWorkdir, _const.Workdir); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", _const.Workdir)
 	}
-	if err := config.SetValue("node_name", _const.ProviderID2Host(scope.Name, kkmachine.Spec.ProviderID)); err != nil {
-		return config, errors.Wrap(err, "failed to set \"node_name\" in config")
+	if err := unstructured.SetNestedField(config.Value(), _const.ProviderID2Host(scope.Name, kkmachine.Spec.ProviderID), "node_name"); err != nil {
+		return config, errors.Wrapf(err, "failed to set %q in config", "node_name")
 	}
-	if err := config.SetValue("kube_version", kkmachine.Spec.Version); err != nil {
-		return config, errors.Wrap(err, "failed to set \"kube_version\" in config")
+	if err := unstructured.SetNestedField(config.Value(), kkmachine.Spec.Version, "kube_version"); err != nil {
+		return config, errors.Wrapf(err, "failed to set %q in config", "kube_version")
 	}
-	if err := config.SetValue("kubernetes.cluster_name", scope.Cluster.Name); err != nil {
-		return config, errors.Wrap(err, "failed to set \"kubernetes.cluster_name\" in config")
+	if err := unstructured.SetNestedField(config.Value(), scope.Cluster.Name, "kubernetes", "cluster_name"); err != nil {
+		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.cluster_name")
 	}
-	if err := config.SetValue("kubernetes.roles", kkmachine.Spec.Roles); err != nil {
-		return config, errors.Wrap(err, "failed to set \"kubernetes.roles\" in config")
+	if err := unstructured.SetNestedField(config.Value(), kkmachine.Spec.Roles, "kubernetes", "roles"); err != nil {
+		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.roles")
 	}
-	if err := config.SetValue("cluster_network", scope.Cluster.Spec.ClusterNetwork); err != nil {
-		return config, errors.Wrap(err, "failed to set \"cluster_network\" in config")
+	if err := unstructured.SetNestedField(config.Value(), scope.Cluster.Spec.ClusterNetwork, "cluster_network"); err != nil {
+		return config, errors.Wrapf(err, "failed to set %q in config", "cluster_network")
 	}
 
 	switch scope.KKCluster.Spec.ControlPlaneEndpointType {
 	case capkkinfrav1beta1.ControlPlaneEndpointTypeVIP:
 		// should set vip addr to config
-		if err := config.SetValue("kubernetes.control_plane_endpoint.kube_vip.address", scope.Cluster.Spec.ControlPlaneEndpoint.Host); err != nil {
-			return config, errors.Wrap(err, "failed to set \"kubernetes.control_plane_endpoint.kube_vip.address\" in config")
+		if err := unstructured.SetNestedField(config.Value(), scope.Cluster.Spec.ControlPlaneEndpoint.Host, "kubernetes", "control_plane_endpoint", "kube_vip", "address"); err != nil {
+			return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.control_plane_endpoint.kube_vip.address")
 		}
 	case capkkinfrav1beta1.ControlPlaneEndpointTypeDNS:
 		// do nothing
 	default:
 		return config, errors.New("unsupport ControlPlaneEndpointType")
 	}
-	if err := config.SetValue("kubernetes.control_plane_endpoint.host", scope.Cluster.Spec.ControlPlaneEndpoint.Host); err != nil {
-		return config, errors.Wrap(err, "failed to set \"kubernetes.kube_vip.address\" in config")
+	if err := unstructured.SetNestedField(config.Value(), scope.Cluster.Spec.ControlPlaneEndpoint.Host, "kubernetes", "control_plane_endpoint", "host"); err != nil {
+		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.control_plane_endpoint.host")
 	}
-	if err := config.SetValue("kubernetes.control_plane_endpoint.type", scope.KKCluster.Spec.ControlPlaneEndpointType); err != nil {
-		return config, errors.Wrap(err, "failed to set \"kubernetes.kube_vip.enabled\" in config")
+	if err := unstructured.SetNestedField(config.Value(), scope.KKCluster.Spec.ControlPlaneEndpointType, "kubernetes", "control_plane_endpoint", "type"); err != nil {
+		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.control_plane_endpoint.kube_vip.type")
 	}
 
 	return config, nil

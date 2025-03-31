@@ -26,6 +26,7 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -85,19 +86,16 @@ func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.P
 }
 
 func (o *InitOSOptions) complateConfig() error {
-	if workdir, err := o.CommonOptions.Config.GetValue(_const.Workdir); err != nil {
+
+	if wd, _, err := unstructured.NestedString(o.CommonOptions.Config.Value(), _const.Workdir); err != nil {
 		// workdir should set by CommonOptions
-		return errors.Wrapf(err, "failed to get value %q in config", _const.Workdir)
+		return errors.Wrapf(err, "failed to get %q in config", _const.Workdir)
 	} else {
-		wd, ok := workdir.(string)
-		if !ok {
-			return errors.New("workdir should be string value")
-		}
 		// set binary dir if not set
-		if _, err := o.CommonOptions.Config.GetValue(_const.BinaryDir); err != nil {
-			// not found set default
-			if err := o.CommonOptions.Config.SetValue(_const.BinaryDir, filepath.Join(wd, "kubekey")); err != nil {
-				return errors.Wrapf(err, "failed to set value %q in config", _const.Workdir)
+		if _, _, err := unstructured.NestedString(o.CommonOptions.Config.Value(), _const.BinaryDir); err != nil {
+			// workdir should set by CommonOptions
+			if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), filepath.Join(wd, "kubekey"), _const.BinaryDir); err != nil {
+				return errors.Wrapf(err, "failed to set %q in config", _const.Workdir)
 			}
 		}
 	}
