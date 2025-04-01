@@ -525,6 +525,18 @@ func TestParseFunction(t *testing.T) {
 			},
 			excepted: []byte("a1: b1\na2: b2"),
 		},
+		// ======= fromYaml =======
+		{
+			name:  "fromYaml 1",
+			input: "{{ .foo | fromYaml | toJson }}",
+			variable: map[string]any{
+				"foo": `
+a1: b1
+a2:
+  b2: 1`,
+			},
+			excepted: []byte("{\"a1\":\"b1\",\"a2\":{\"b2\":1}}"),
+		},
 		// ======= indent =======
 		{
 			name:  "indent 1",

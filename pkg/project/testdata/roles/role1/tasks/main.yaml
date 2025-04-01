@@ -1,3 +1,4 @@
-- name: role1 | block1
+---
+- name: task1
   debug:
-    msg: echo "hello world"
+    msg: "im task1"

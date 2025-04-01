@@ -53,11 +53,12 @@ import (
 
 // RestConfig replace the restconfig transport to proxy transport
 func RestConfig(runtimedir string, restconfig *rest.Config) error {
-	restconfig.TLSClientConfig = rest.TLSClientConfig{}
 	transport, err := newProxyTransport(runtimedir, restconfig)
 	if err != nil {
 		return err
 	}
+	restconfig.TLSClientConfig = rest.TLSClientConfig{}
+
 	restconfig.Transport = transport
 
 	return nil

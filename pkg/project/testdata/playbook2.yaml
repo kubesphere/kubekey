@@ -1,0 +1,6 @@
+---
+- name: playbook2
+  hosts:
+    - node1
+  roles:
+    - role1

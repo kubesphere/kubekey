@@ -38,7 +38,7 @@ func NewPlaybookExecutor(ctx context.Context, client ctrlclient.Client, playbook
 	// get variable
 	v, err := variable.New(ctx, client, *playbook, source.FileSource)
 	if err != nil {
-		klog.V(5).ErrorS(nil, "convert playbook error", "playbook", ctrlclient.ObjectKeyFromObject(playbook))
+		klog.V(5).ErrorS(err, "get variable error", "playbook", ctrlclient.ObjectKeyFromObject(playbook))
 
 		return nil
 	}

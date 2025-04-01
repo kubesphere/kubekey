@@ -158,7 +158,7 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 
 // dealTask "block" argument is not defined in block.
 func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []string, block kkprojectv1.Block) error {
-	task := converter.MarshalBlock(e.role, hosts, when, block)
+	task := converter.MarshalBlock(hosts, when, block)
 	// complete module by unknown field
 	for n, a := range block.UnknownField {
 		data, err := json.Marshal(a)

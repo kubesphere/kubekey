@@ -79,13 +79,11 @@ const ProjectRolesDir = "roles"
 const ProjectRolesTasksDir = "tasks"
 
 // ProjectRolesTasksMainFile is a mandatory file under the tasks directory that must be executed when the role is run. It supports files with .yaml or .yml extensions.
-const ProjectRolesTasksMainFile = "main"
 
 // ProjectRolesDefaultsDir is a fixed directory name under a role, used to set default variables for the role.
 const ProjectRolesDefaultsDir = "defaults"
 
 // ProjectRolesDefaultsMainFile is a mandatory file under the defaults directory. It supports files with .yaml or .yml extensions.
-const ProjectRolesDefaultsMainFile = "main"
 
 // ProjectRolesTemplateDir is a fixed directory name under a role, used to store templates required by tasks.
 const ProjectRolesTemplateDir = "templates"

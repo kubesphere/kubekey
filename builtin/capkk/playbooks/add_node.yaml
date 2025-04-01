@@ -23,7 +23,7 @@
           register: cloud_config_out
         - name: set_fact of cloud-config value
           set_fact:
-            cloud_config: "{{ .cloud_config_out.stdout | toJson }}"
+            cloud_config: "{{ .cloud_config_out.stdout | fromYaml | toJson }}"
   roles:
     - role: init/init-artifacts
       when: .kubernetes_installed | default false | eq false
