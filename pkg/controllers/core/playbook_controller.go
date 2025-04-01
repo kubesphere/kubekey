@@ -94,16 +94,16 @@ func (r PlaybookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// get playbook
 	playbook := &kkcorev1.Playbook{}
 	if err := r.Client.Get(ctx, req.NamespacedName, playbook); err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get playbook %q", req.String())
 		}
 
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get playbook %q", req.String())
+		return ctrl.Result{}, nil
 	}
 
 	helper, err := patch.NewHelper(playbook, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.WithStack(err)
+		return ctrl.Result{}, err
 	}
 	defer func() {
 		if retErr != nil {
@@ -113,10 +113,10 @@ func (r PlaybookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 			playbook.Status.FailureMessage = retErr.Error()
 		}
 		if err := r.reconcileStatus(ctx, playbook); err != nil {
-			retErr = errors.Join(retErr, errors.WithStack(err))
+			retErr = errors.Join(retErr, err)
 		}
 		if err := helper.Patch(ctx, playbook); err != nil {
-			retErr = errors.Join(retErr, errors.WithStack(err))
+			retErr = errors.Join(retErr, err)
 		}
 	}()
 
@@ -130,10 +130,10 @@ func (r PlaybookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 	// Handle deleted clusters
 	if !playbook.DeletionTimestamp.IsZero() {
-		return reconcile.Result{}, errors.WithStack(r.reconcileDelete(ctx, playbook))
+		return reconcile.Result{}, r.reconcileDelete(ctx, playbook)
 	}
 
-	return ctrl.Result{}, errors.WithStack(r.reconcileNormal(ctx, playbook))
+	return ctrl.Result{}, r.reconcileNormal(ctx, playbook)
 }
 
 func (r PlaybookReconciler) reconcileStatus(ctx context.Context, playbook *kkcorev1.Playbook) error {
@@ -171,13 +171,13 @@ func (r PlaybookReconciler) reconcileStatus(ctx context.Context, playbook *kkcor
 func (r *PlaybookReconciler) reconcileDelete(ctx context.Context, playbook *kkcorev1.Playbook) error {
 	podList := &corev1.PodList{}
 	if err := util.GetObjectListFromOwner(ctx, r.Client, playbook, podList); err != nil {
-		return errors.Wrapf(err, "failed to get pod list from playbook %q", ctrlclient.ObjectKeyFromObject(playbook))
+		return err
 	}
 	if playbook.Status.Phase == kkcorev1.PlaybookPhaseFailed || playbook.Status.Phase == kkcorev1.PlaybookPhaseSucceeded {
 		// playbook has completed. delete the owner pods.
 		for _, obj := range podList.Items {
 			if err := r.Client.Delete(ctx, &obj); err != nil {
-				return errors.WithStack(err)
+				return errors.Wrapf(err, "failed to delete pod for %q", ctrlclient.ObjectKeyFromObject(playbook))
 			}
 		}
 	}
@@ -259,5 +259,6 @@ func (r *PlaybookReconciler) dealRunningPlaybook(ctx context.Context, playbook *
 		return errors.Wrapf(err, "failed to set ownerReference to playbook pod %q", pod.GenerateName)
 	}
 
-	return errors.WithStack(r.Client.Create(ctx, pod))
+	return errors.Wrapf(r.Client.Create(ctx, pod),
+		"failed to create pod of playbook %q", ctrlclient.ObjectKeyFromObject(playbook))
 }

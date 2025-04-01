@@ -62,11 +62,11 @@ type genCertArgs struct {
 func (gca genCertArgs) signedCertificate(cfg *cgutilcert.Config) (string, string) {
 	parentKey, err := TryLoadKeyFromDisk(gca.rootKey)
 	if err != nil {
-		return "", fmt.Sprintf("failed to load root key: %+v", err)
+		return "", fmt.Sprintf("failed to load root key: %v", err)
 	}
 	parentCert, _, err := TryLoadCertChainFromDisk(gca.rootCert)
 	if err != nil {
-		return "", fmt.Sprintf("failed to load root certificate: %+v", err)
+		return "", fmt.Sprintf("failed to load root certificate: %v", err)
 	}
 
 	if gca.policy == policyIfNotPresent {

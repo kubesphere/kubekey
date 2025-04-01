@@ -42,7 +42,7 @@ func NewRootCommand() *cobra.Command {
 		Long: "kubekey is a daemon that execute command in a node",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := options.InitGOPS(); err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			return options.InitProfiling(cmd.Context())
@@ -83,7 +83,7 @@ func NewRootCommand() *cobra.Command {
 func CommandRunE(ctx context.Context, workdir string, playbook *kkcorev1.Playbook, config *kkcorev1.Config, inventory *kkcorev1.Inventory) error {
 	restconfig := &rest.Config{}
 	if err := proxy.RestConfig(filepath.Join(workdir, _const.RuntimeDir), restconfig); err != nil {
-		return errors.Wrap(err, "failed to get restconfig")
+		return err
 	}
 	client, err := ctrlclient.New(restconfig, ctrlclient.Options{
 		Scheme: _const.Scheme,

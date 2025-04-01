@@ -42,9 +42,7 @@ type CertsRenewOptions struct {
 
 // Flags add to newCertsRenewCommand
 func (o *CertsRenewOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.CommonOptions.Flags()
-
-	return fss
+	return o.CommonOptions.Flags()
 }
 
 // Complete options. create Playbook, Config and Inventory
@@ -68,9 +66,6 @@ func (o *CertsRenewOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		Debug:    o.Debug,
 		Tags:     []string{"certs"},
 	}
-	if err := o.CommonOptions.Complete(playbook); err != nil {
-		return nil, errors.WithStack(err)
-	}
 
-	return playbook, nil
+	return playbook, o.CommonOptions.Complete(playbook)
 }

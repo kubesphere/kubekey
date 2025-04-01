@@ -103,7 +103,7 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 		return errors.Wrapf(err, "failed to encode object %q", key)
 	}
 	if err := decode(s.codec, data, out); err != nil {
-		return errors.Wrapf(err, "failed to decode object %q", key)
+		return err
 	}
 	// render to file
 	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
@@ -119,7 +119,7 @@ func (s fileStorage) Delete(ctx context.Context, key string, out runtime.Object,
 		out = cachedExistingObject
 	} else {
 		if err := s.Get(ctx, key, apistorage.GetOptions{}, out); err != nil {
-			return errors.Wrapf(err, "failed to get object %q", key)
+			return err
 		}
 	}
 
@@ -128,7 +128,7 @@ func (s fileStorage) Delete(ctx context.Context, key string, out runtime.Object,
 	}
 
 	if err := validateDeletion(ctx, out); err != nil {
-		return errors.Wrapf(err, "failed to validate deletion for object %q", err)
+		return err
 	}
 
 	// delete object: rename file to trigger watcher, it will actual delete by watcher.
@@ -150,11 +150,8 @@ func (s fileStorage) Get(_ context.Context, key string, _ apistorage.GetOptions,
 	if err != nil {
 		return errors.Wrapf(err, "failed to read object file %q", key)
 	}
-	if err := decode(s.codec, data, out); err != nil {
-		return errors.Wrapf(err, "failed to decode object %q", key)
-	}
 
-	return nil
+	return decode(s.codec, data, out)
 }
 
 // GetList local resource files.
@@ -171,13 +168,13 @@ func (s fileStorage) GetList(_ context.Context, key string, opts apistorage.List
 	// Build matching rules for resource version and continue key.
 	resourceVersionMatchRule, continueKeyMatchRule, err := s.buildMatchRules(key, opts, &sync.Once{})
 	if err != nil {
-		return errors.Wrapf(err, "failed to build matchRules %q", key)
+		return err
 	}
 
 	// Get the root entries in the directory corresponding to 'key'.
 	rootEntries, isAllNamespace, err := s.getRootEntries(key)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get root entries %q", key)
+		return err
 	}
 
 	var lastKey string
@@ -286,7 +283,7 @@ func (s fileStorage) processNamespaceDirectory(key string, ns os.DirEntry, v ref
 	for _, entry := range entries {
 		err := s.processResourceFile(nsDir, entry, v, continueKeyMatchRule, resourceVersionMatchRule, lastKey, opts, listObj)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		// Check if we have reached the limit of results requested by the client.
 		if opts.Predicate.Limit != 0 && int64(v.Len()) >= opts.Predicate.Limit {
@@ -372,7 +369,7 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	} else {
 		oldObj = s.newFunc()
 		if err := s.Get(ctx, key, apistorage.GetOptions{IgnoreNotFound: ignoreNotFound}, oldObj); err != nil {
-			return errors.Wrapf(err, "failed to get object %q", key)
+			return err
 		}
 	}
 	if err := preconditions.Check(key, oldObj); err != nil {
@@ -389,7 +386,7 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	}
 	out, _, err := tryUpdate(oldObj, apistorage.ResponseMeta{ResourceVersion: oldVersion + 1})
 	if err != nil {
-		return errors.Wrapf(err, "failed to try update %q", key)
+		return err
 	}
 
 	data, err := runtime.Encode(s.codec, out)
@@ -400,7 +397,7 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	if destination != nil {
 		err = decode(s.codec, data, destination)
 		if err != nil {
-			return errors.Wrapf(err, "failed to decode resource file %q", key)
+			return err
 		}
 	}
 	// render to file

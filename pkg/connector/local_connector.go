@@ -39,7 +39,7 @@ var _ GatherFacts = &localConnector{}
 func newLocalConnector(connectorVars map[string]any) *localConnector {
 	password, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
 	if err != nil { // password is not necessary when execute with root user.
-		klog.V(4).InfoS("get connector sudo password failed, execute command without sudo", "error", err)
+		klog.Warning("Warning: Failed to obtain local connector password when executing command with sudo. Please ensure the 'kk' process is run by a root-privileged user.")
 	}
 
 	return &localConnector{Password: password, Cmd: exec.New(), shell: defaultSHELL}
@@ -113,7 +113,7 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 		output = bytes.Replace(output, []byte("Password:"), []byte(""), -1)
 	}
 
-	return output, err
+	return output, errors.Wrapf(err, "failed to execute command")
 }
 
 // HostInfo gathers and returns host information for the local host.
@@ -124,22 +124,22 @@ func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 		osVars := make(map[string]any)
 		var osRelease bytes.Buffer
 		if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
-			return nil, errors.Wrap(err, "failed to fetch os-release")
+			return nil, err
 		}
 		osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
 		kernel, err := c.ExecuteCommand(ctx, "uname -r")
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get kernel version")
+			return nil, err
 		}
 		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
 		hn, err := c.ExecuteCommand(ctx, "hostname")
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get hostname")
+			return nil, err
 		}
 		osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
 		arch, err := c.ExecuteCommand(ctx, "arch")
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get arch")
+			return nil, err
 		}
 		osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 
@@ -147,12 +147,12 @@ func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 		procVars := make(map[string]any)
 		var cpu bytes.Buffer
 		if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
-			return nil, errors.Wrap(err, "failed to get cpuinfo")
+			return nil, err
 		}
 		procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
 		var mem bytes.Buffer
 		if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
-			return nil, errors.Wrap(err, "failed to get meminfo")
+			return nil, err
 		}
 		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 

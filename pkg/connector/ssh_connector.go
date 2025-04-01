@@ -131,14 +131,14 @@ func (c *sshConnector) Init(context.Context) error {
 		auth = append(auth, ssh.PublicKeys(privateKey))
 	}
 
-	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%v", c.Host, c.Port), &ssh.ClientConfig{
+	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", c.Host, c.Port), &ssh.ClientConfig{
 		User:            c.User,
 		Auth:            auth,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         30 * time.Second,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to dial %q:%d ssh server", c.Host, c.Port)
+		return errors.Wrapf(err, "failed to dial %s:%d ssh server", c.Host, c.Port)
 	}
 	c.client = sshClient
 
@@ -288,7 +288,7 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 
 	output := append(stdoutBuf.Bytes(), stderrBuf.Bytes()...)
 
-	return output, err
+	return output, errors.Wrap(err, "failed to execute ssh command")
 }
 
 // HostInfo for GatherFacts
@@ -297,22 +297,22 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 	osVars := make(map[string]any)
 	var osRelease bytes.Buffer
 	if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
-		return nil, errors.Wrap(err, "failed to fetch os-release")
+		return nil, err
 	}
 	osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
 	kernel, err := c.ExecuteCommand(ctx, "uname -r")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get kernel version")
+		return nil, err
 	}
 	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
 	hn, err := c.ExecuteCommand(ctx, "hostname")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get hostname")
+		return nil, err
 	}
 	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
 	arch, err := c.ExecuteCommand(ctx, "arch")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get arch")
+		return nil, err
 	}
 	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 
@@ -320,12 +320,12 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 	procVars := make(map[string]any)
 	var cpu bytes.Buffer
 	if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
-		return nil, errors.Wrap(err, "failed to get cpuinfo")
+		return nil, err
 	}
 	procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
 	var mem bytes.Buffer
 	if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
-		return nil, errors.Wrap(err, "failed to get meminfo error")
+		return nil, err
 	}
 	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 

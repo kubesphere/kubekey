@@ -38,7 +38,7 @@ var _ Connector = &kubernetesConnector{}
 func newKubernetesConnector(host string, workdir string, connectorVars map[string]any) (*kubernetesConnector, error) {
 	kubeconfig, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorKubeconfig)
 	if err != nil && host != _const.VariableLocalHost {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return &kubernetesConnector{

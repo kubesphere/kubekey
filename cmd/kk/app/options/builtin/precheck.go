@@ -74,11 +74,8 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1
 		Tags:     tags,
 	}
 	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, errors.WithStack(err)
-	}
-	if err := o.CommonOptions.Complete(playbook); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
-	return playbook, nil
+	return playbook, o.CommonOptions.Complete(playbook)
 }

@@ -20,7 +20,6 @@ limitations under the License.
 package builtin
 
 import (
-	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options/builtin"
@@ -49,7 +48,7 @@ func newInitOSCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			playbook, err := o.Complete(cmd, []string{"playbooks/init_os.yaml"})
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			return o.CommonOptions.Run(cmd.Context(), playbook)
@@ -72,7 +71,7 @@ func newInitRegistryCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			playbook, err := o.Complete(cmd, []string{"playbooks/init_registry.yaml"})
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			return o.CommonOptions.Run(cmd.Context(), playbook)

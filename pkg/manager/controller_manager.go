@@ -58,10 +58,10 @@ func (m controllerManager) Run(ctx context.Context) error {
 	}
 
 	if err := m.register(mgr); err != nil {
-		return errors.Wrap(err, "failed to register manager")
+		return err
 	}
 
-	return mgr.Start(ctx)
+	return errors.Wrap(mgr.Start(ctx), "failed to start manager")
 }
 
 func (m controllerManager) register(mgr ctrl.Manager) error {

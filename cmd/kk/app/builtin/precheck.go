@@ -20,7 +20,6 @@ limitations under the License.
 package builtin
 
 import (
-	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options/builtin"
@@ -43,7 +42,7 @@ func NewPreCheckCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			playbook, err := o.Complete(cmd, append(args, "playbooks/precheck.yaml"))
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			return o.CommonOptions.Run(cmd.Context(), playbook)

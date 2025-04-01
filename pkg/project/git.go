@@ -63,12 +63,12 @@ func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool)
 	if _, err := os.Stat(p.projectDir); os.IsNotExist(err) {
 		// git clone
 		if err := p.gitClone(ctx); err != nil {
-			return nil, errors.Wrapf(err, "failed to clone git project")
+			return nil, err
 		}
 	} else if update {
 		// git pull
 		if err := p.gitPull(ctx); err != nil {
-			return nil, errors.Wrapf(err, "failed to pull git project")
+			return nil, err
 		}
 	}
 

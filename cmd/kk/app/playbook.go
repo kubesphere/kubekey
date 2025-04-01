@@ -55,7 +55,7 @@ func newPlaybookCommand() *cobra.Command {
 				return errors.Wrap(err, "failed to get inventory")
 			}
 			if err := proxy.RestConfig(filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir), restconfig); err != nil {
-				return errors.Wrap(err, "failed to get rest config")
+				return err
 			}
 			// use proxy client to store task.
 			proxyclient, err := ctrlclient.New(restconfig, ctrlclient.Options{

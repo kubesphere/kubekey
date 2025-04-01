@@ -61,7 +61,7 @@ type ExecOptions struct {
 func (o ExecOptions) getAllVariables() (map[string]any, error) {
 	ha, err := o.Variable.Get(variable.GetAllVariable(o.Host))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get host %s variable", o.Host)
+		return nil, err
 	}
 
 	vd, ok := ha.(map[string]any)
@@ -119,12 +119,12 @@ func getConnector(ctx context.Context, host string, v variable.Variable) (connec
 	} else {
 		conn, err = connector.NewConnector(host, v)
 		if err != nil {
-			return conn, errors.Wrapf(err, "failed to get connector for host %q", host)
+			return conn, err
 		}
 	}
 
 	if err = conn.Init(ctx); err != nil {
-		return conn, errors.Wrapf(err, "failed to init connector for host %q", host)
+		return conn, err
 	}
 
 	return conn, nil

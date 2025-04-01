@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -98,7 +99,7 @@ func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, ex
 			}
 			cacher, err := cacherstorage.NewCacherFromConfig(cacherConfig)
 			if err != nil {
-				return nil, func() {}, err
+				return nil, func() {}, errors.Wrap(err, "failed to new cache")
 			}
 			var once sync.Once
 			destroyFunc := func() {

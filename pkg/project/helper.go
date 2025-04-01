@@ -34,19 +34,19 @@ func marshalPlaybook(baseFS fs.FS, pbPath string) (*kkprojectv1.Playbook, error)
 	// convert playbook to kkprojectv1.Playbook
 	pb := &kkprojectv1.Playbook{}
 	if err := loadPlaybook(baseFS, pbPath, pb); err != nil {
-		return nil, errors.Wrap(err, "failed to load playbook")
+		return nil, err
 	}
 	// convertRoles.
 	if err := convertRoles(baseFS, pbPath, pb); err != nil {
-		return nil, errors.Wrap(err, "failed to convert roles")
+		return nil, err
 	}
 	// convertIncludeTasks
 	if err := convertIncludeTasks(baseFS, pbPath, pb); err != nil {
-		return nil, errors.Wrap(err, "failed to convert include tasks")
+		return nil, err
 	}
 	// validate playbook
 	if err := pb.Validate(); err != nil {
-		return nil, errors.Wrap(err, "failed to validate playbook")
+		return nil, err
 	}
 
 	return pb, nil
@@ -66,15 +66,15 @@ func loadPlaybook(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) error {
 
 	for _, p := range plays {
 		if err := dealImportPlaybook(p, baseFS, pbPath, pb); err != nil {
-			return errors.Wrapf(err, "failed to load import_playbook in playbook %q", pbPath)
+			return err
 		}
 
 		if err := dealVarsFiles(&p, baseFS, pbPath); err != nil {
-			return errors.Wrapf(err, "failed to load vars_files in playbook %q", pbPath)
+			return err
 		}
 		// fill block in roles
 		if err := dealRoles(p, baseFS, pbPath); err != nil {
-			return errors.Wrapf(err, "failed to load roles in playbook %q failed: %w", pbPath)
+			return err
 		}
 
 		pb.Play = append(pb.Play, p)
@@ -91,7 +91,7 @@ func dealImportPlaybook(p kkprojectv1.Play, baseFS fs.FS, pbPath string, pb *kkp
 			return errors.Errorf("import_playbook %q path is empty, it's maybe [project-dir/playbooks/import_playbook_file, playbook-dir/playbooks/import_playbook-file, playbook-dir/import_playbook-file]", p.ImportPlaybook)
 		}
 		if err := loadPlaybook(baseFS, importPlaybook, pb); err != nil {
-			return errors.Wrapf(err, "failed to load playbook %q", importPlaybook)
+			return err
 		}
 	}
 
@@ -159,11 +159,11 @@ func convertRoles(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) error {
 
 			var err error
 			if p.Roles[i].Block, err = convertRoleBlocks(baseFS, pbPath, roleBase); err != nil {
-				return errors.Wrapf(err, "failed to convert role %q tasks in playbook %q", r.Role, pbPath)
+				return err
 			}
 
 			if err = convertRoleVars(baseFS, roleBase, &p.Roles[i]); err != nil {
-				return errors.Wrapf(err, "failed to convert role %q defaults in playbook %q", r.Role, pbPath)
+				return err
 			}
 		}
 		pb.Play[i] = p
@@ -217,21 +217,21 @@ func convertIncludeTasks(baseFS fs.FS, pbPath string, pb *kkprojectv1.Playbook) 
 	var pbBase = filepath.Dir(filepath.Dir(pbPath))
 	for _, play := range pb.Play {
 		if err := fileToBlock(baseFS, pbBase, play.PreTasks); err != nil {
-			return errors.Wrapf(err, "failed to convert pre_tasks file %q", pbPath)
+			return err
 		}
 
 		if err := fileToBlock(baseFS, pbBase, play.Tasks); err != nil {
-			return errors.Wrapf(err, "failed to convert tasks file %q", pbPath)
+			return err
 		}
 
 		if err := fileToBlock(baseFS, pbBase, play.PostTasks); err != nil {
-			return errors.Wrapf(err, "failed to convert post_tasks file %q", pbPath)
+			return err
 		}
 
 		for _, r := range play.Roles {
 			roleBase := getRoleBaseFromPlaybook(baseFS, pbPath, r.Role)
 			if err := fileToBlock(baseFS, filepath.Join(roleBase, _const.ProjectRolesTasksDir), r.Block); err != nil {
-				return errors.Wrapf(err, "failed to convert role %q", filepath.Join(pbPath, r.Role))
+				return err
 			}
 		}
 	}
@@ -256,15 +256,15 @@ func fileToBlock(baseFS fs.FS, baseDir string, blocks []kkprojectv1.Block) error
 		}
 
 		if err := fileToBlock(baseFS, baseDir, b.Block); err != nil {
-			return errors.Wrapf(err, "failed to convert block file %q", filepath.Join(baseDir, b.IncludeTasks))
+			return err
 		}
 
 		if err := fileToBlock(baseFS, baseDir, b.Rescue); err != nil {
-			return errors.Wrapf(err, "failed to convert rescue file %q", filepath.Join(baseDir, b.IncludeTasks))
+			return err
 		}
 
 		if err := fileToBlock(baseFS, baseDir, b.Always); err != nil {
-			return errors.Wrapf(err, "failed to convert always file %q", filepath.Join(baseDir, b.IncludeTasks))
+			return err
 		}
 	}
 

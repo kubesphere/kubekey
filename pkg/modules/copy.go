@@ -170,12 +170,12 @@ func (ca copyArgs) copyContent(ctx context.Context, mode fs.FileMode, conn conne
 
 // relDir when copy.src is relative dir, get all files from project, and copy to remote.
 func (ca copyArgs) relDir(ctx context.Context, pj project.Project, role string, conn connector.Connector) error {
-	if err := pj.WalkDir(ca.src, project.GetFileOption{IsFile: true, Role: role}, func(path string, d fs.DirEntry, err error) error {
+	return pj.WalkDir(ca.src, project.GetFileOption{IsFile: true, Role: role}, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() { // only copy file
 			return nil
 		}
 		if err != nil {
-			return errors.Wrapf(err, "failed to walk dir %s", ca.src)
+			return err
 		}
 
 		info, err := d.Info()
@@ -202,16 +202,8 @@ func (ca copyArgs) relDir(ctx context.Context, pj project.Project, role string, 
 			dest = filepath.Join(ca.dest, rel)
 		}
 
-		if err := conn.PutFile(ctx, data, dest, mode); err != nil {
-			return errors.Wrap(err, "failed to copy file")
-		}
-
-		return nil
-	}); err != nil {
-		return errors.Wrapf(err, "failed to work dir %a", ca.src)
-	}
-
-	return nil
+		return conn.PutFile(ctx, data, dest, mode)
+	})
 }
 
 // absFile when copy.src is absolute file, get file from os, and copy to remote.
@@ -225,16 +217,12 @@ func (ca copyArgs) readFile(ctx context.Context, data []byte, mode fs.FileMode, 
 		mode = os.FileMode(*ca.mode)
 	}
 
-	if err := conn.PutFile(ctx, data, dest, mode); err != nil {
-		return errors.Wrap(err, "failed to copy file")
-	}
-
-	return nil
+	return conn.PutFile(ctx, data, dest, mode)
 }
 
 // absDir when copy.src is absolute dir, get all files from os, and copy to remote.
 func (ca copyArgs) absDir(ctx context.Context, conn connector.Connector) error {
-	if err := filepath.WalkDir(ca.src, func(path string, d fs.DirEntry, err error) error {
+	return filepath.WalkDir(ca.src, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() { // only copy file
 			return nil
 		}
@@ -267,14 +255,6 @@ func (ca copyArgs) absDir(ctx context.Context, conn connector.Connector) error {
 			dest = filepath.Join(ca.dest, rel)
 		}
 
-		if err := conn.PutFile(ctx, data, dest, mode); err != nil {
-			return errors.Wrap(err, "failed to put file")
-		}
-
-		return nil
-	}); err != nil {
-		return errors.Wrapf(err, "failed to walk dir %q", ca.src)
-	}
-
-	return nil
+		return conn.PutFile(ctx, data, dest, mode)
+	})
 }
