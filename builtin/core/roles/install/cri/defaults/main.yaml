@@ -3,8 +3,8 @@ cri:
   cgroup_driver: systemd
   sandbox_image: |
     {{ .k8s_registry }}/pause:3.5
-  # support: containerd,docker,crio
-  container_manager: docker
+  # support: containerd,docker
+  # container_manager: docker
   # the endpoint of containerd
   cri_socket: |
     {{- if .cri.container_manager | eq "containerd" }}

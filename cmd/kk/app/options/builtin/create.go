@@ -34,7 +34,7 @@ import (
 
 const (
 	defaultKubeVersion      = "v1.23.15"
-	defaultContainerManager = "containerd"
+	defaultContainerManager = "docker"
 )
 
 // NewCreateClusterOptions for newCreateClusterCommand

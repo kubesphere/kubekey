@@ -38,8 +38,8 @@ const (
 )
 
 const (
-	// TaskAnnotationRole is the absolute dir of task in project.
-	TaskAnnotationRole = "kubesphere.io/role"
+	// TaskAnnotationRelativePath is the relative dir of task in project.
+	TaskAnnotationRelativePath = "kubesphere.io/rel-path"
 )
 
 // TaskSpec of Task

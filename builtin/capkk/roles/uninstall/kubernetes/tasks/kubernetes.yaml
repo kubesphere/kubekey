@@ -1,9 +1,13 @@
 ---
 - name: Delete Node
   command: |
-    if kubectl get node {{ .hostname }}; then
+    if kubectl get node {{ .hostname }} > /dev/null 2>&1; then
       kubectl cordon {{ .hostname }}
-      kubectl drain {{ .hostname }} --ignore-daemonsets --delete-emptydir-data --force
+      if [ $(kubectl get nodes --no-headers | wc -l) -gt 1 ]; then
+        kubectl drain {{ .hostname }} --ignore-daemonsets --delete-emptydir-data --force --disable-eviction
+      else
+        kubectl drain {{ .hostname }} --ignore-daemonsets --delete-emptydir-data --force
+      fi
     {{- if .cni.type | eq "calico" }}
       calicoctl delete node {{ .hostname }}
     {{- end }}

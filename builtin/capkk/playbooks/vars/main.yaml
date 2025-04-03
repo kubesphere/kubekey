@@ -35,4 +35,5 @@ k8s_registry: |
   {{- end -}}
 
 cri:
+  # support: containerd,docker
   container_manager: docker

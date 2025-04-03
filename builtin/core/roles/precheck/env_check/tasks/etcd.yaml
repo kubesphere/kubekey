@@ -7,9 +7,9 @@
   run_once: true
   when: and .kubernetes.etcd.deployment_type (ne .kubernetes.etcd.deployment_type "")
 
-- name: Stop if etcd group is empty in internal etcd mode
+- name: Stop if etcd group is empty in external etcd mode
   assert:
-    that: .groups.etcd
+    that: .groups.etcd | len | lt 0
     fail_msg: "group \"etcd\" cannot be empty in external etcd mode"
   run_once: true
   when: .kubernetes.etcd.deployment_type | eq "external"
@@ -18,7 +18,7 @@
   assert:
     that: (mod (.groups.etcd | len) 2) | eq 1
     fail_msg: "etcd number should be odd number"
-  when: .groups.etcd
+  when: .kubernetes.etcd.deployment_type | eq "external"
 
 ## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824
 - name: Check dev io for etcd

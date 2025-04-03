@@ -32,6 +32,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -98,57 +99,106 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 
 // copySrc copy src file to dest
 func (ca copyArgs) copySrc(ctx context.Context, options ExecOptions, conn connector.Connector) (string, string) {
-	dealAbsoluteFilePath := func() (string, string) {
-		fileInfo, err := os.Stat(ca.src)
-		if err != nil {
-			return "", fmt.Sprintf(" get src file %s in local path error: %v", ca.src, err)
-		}
-		if fileInfo.IsDir() { // src is dir
-			if err := ca.absDir(ctx, conn); err != nil {
-				return "", fmt.Sprintf("sync copy absolute dir error %s", err)
-			}
-		} else { // src is file
-			data, err := os.ReadFile(ca.src)
-			if err != nil {
-				return "", fmt.Sprintf("read file error: %s", err)
-			}
-			if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
-				return "", fmt.Sprintf("sync copy absolute dir error %s", err)
-			}
-		}
-
-		return StdoutSuccess, ""
-	}
-	dealRelativeFilePath := func() (string, string) {
-		pj, err := project.New(ctx, options.Playbook, false)
-		if err != nil {
-			return "", fmt.Sprintf("get project error: %v", err)
-		}
-		fileInfo, err := pj.Stat(ca.src, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
-		if err != nil {
-			return "", fmt.Sprintf("get file %s from project error %v", ca.src, err)
-		}
-		if fileInfo.IsDir() {
-			if err := ca.relDir(ctx, pj, options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole], conn); err != nil {
-				return "", fmt.Sprintf("sync copy relative dir error %s", err)
-			}
-		} else {
-			data, err := pj.ReadFile(ca.src, project.GetFileOption{IsFile: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
-			if err != nil {
-				return "", fmt.Sprintf("read file error: %s", err)
-			}
-			if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
-				return "", fmt.Sprintf("sync copy relative dir error %s", err)
-			}
-		}
-
-		return StdoutSuccess, ""
-	}
 	if filepath.IsAbs(ca.src) { // if src is absolute path. find it in local path
-		return dealAbsoluteFilePath()
+		return ca.handleAbsolutePath(ctx, conn)
 	}
 	// if src is not absolute path. find file in project
-	return dealRelativeFilePath()
+	return ca.handleRelativePath(ctx, options, conn)
+}
+
+func (ca copyArgs) handleAbsolutePath(ctx context.Context, conn connector.Connector) (string, string) {
+	fileInfo, err := os.Stat(ca.src)
+	if err != nil {
+		return "", fmt.Sprintf(" get src file %s in local path error: %v", ca.src, err)
+	}
+
+	if fileInfo.IsDir() { // src is dir
+		if err := ca.absDir(ctx, conn); err != nil {
+			return "", fmt.Sprintf("sync copy absolute dir error %s", err)
+		}
+
+		return StdoutSuccess, ""
+	}
+
+	// src is file
+	data, err := os.ReadFile(ca.src)
+	if err != nil {
+		return "", fmt.Sprintf("read file error: %s", err)
+	}
+	if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
+		return "", fmt.Sprintf("sync copy absolute dir error %s", err)
+	}
+
+	return StdoutSuccess, ""
+}
+
+func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, conn connector.Connector) (string, string) {
+	pj, err := project.New(ctx, options.Playbook, false)
+	if err != nil {
+		return "", fmt.Sprintf("get project error: %v", err)
+	}
+
+	relPath := filepath.Join(options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRelativePath], _const.ProjectRolesFilesDir, ca.src)
+	fileInfo, err := pj.Stat(relPath)
+	if err != nil {
+		return "", fmt.Sprintf("get file %s from project error %v", ca.src, err)
+	}
+
+	if fileInfo.IsDir() {
+		if err := ca.handleRelativeDir(ctx, pj, relPath, conn); err != nil {
+			return "", fmt.Sprintf("sync copy relative dir error %s", err)
+		}
+
+		return StdoutSuccess, ""
+	}
+
+	// Handle single file
+	data, err := pj.ReadFile(relPath)
+	if err != nil {
+		return "", fmt.Sprintf("read file error: %s", err)
+	}
+	if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
+		return "", fmt.Sprintf("sync copy relative dir error %s", err)
+	}
+
+	return StdoutSuccess, ""
+}
+
+func (ca copyArgs) handleRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) error {
+	return pj.WalkDir(relPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() { // only copy file
+			return nil
+		}
+
+		info, err := d.Info()
+		if err != nil {
+			return errors.Wrap(err, "failed to get file info")
+		}
+
+		mode := info.Mode()
+		if ca.mode != nil {
+			mode = os.FileMode(*ca.mode)
+		}
+
+		data, err := pj.ReadFile(path)
+		if err != nil {
+			return errors.Wrap(err, "failed to read file")
+		}
+
+		dest := ca.dest
+		if strings.HasSuffix(ca.dest, "/") {
+			rel, err := pj.Rel(relPath, path)
+			if err != nil {
+				return errors.Wrap(err, "failed to get relative file path")
+			}
+			dest = filepath.Join(ca.dest, rel)
+		}
+
+		return conn.PutFile(ctx, data, dest, mode)
+	})
 }
 
 // copyContent convert content param and copy to dest
@@ -166,44 +216,6 @@ func (ca copyArgs) copyContent(ctx context.Context, mode fs.FileMode, conn conne
 	}
 
 	return StdoutSuccess, ""
-}
-
-// relDir when copy.src is relative dir, get all files from project, and copy to remote.
-func (ca copyArgs) relDir(ctx context.Context, pj project.Project, role string, conn connector.Connector) error {
-	return pj.WalkDir(ca.src, project.GetFileOption{IsFile: true, Role: role}, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() { // only copy file
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-
-		info, err := d.Info()
-		if err != nil {
-			return errors.Wrap(err, "failed to get file info")
-		}
-
-		mode := info.Mode()
-		if ca.mode != nil {
-			mode = os.FileMode(*ca.mode)
-		}
-
-		data, err := pj.ReadFile(path, project.GetFileOption{Role: role})
-		if err != nil {
-			return errors.Wrap(err, "failed to read file")
-		}
-
-		dest := ca.dest
-		if strings.HasSuffix(ca.dest, "/") {
-			rel, err := pj.Rel(ca.src, path, project.GetFileOption{Role: role})
-			if err != nil {
-				return errors.Wrap(err, "failed to get relative file path")
-			}
-			dest = filepath.Join(ca.dest, rel)
-		}
-
-		return conn.PutFile(ctx, data, dest, mode)
-	})
 }
 
 // absFile when copy.src is absolute file, get file from os, and copy to remote.

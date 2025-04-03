@@ -22,6 +22,7 @@ func funcMap() template.FuncMap {
 	delete(f, "expandenv")
 	// add custom function
 	f["toYaml"] = toYAML
+	f["fromYaml"] = fromYAML
 	f["ipInCIDR"] = ipInCIDR
 	f["ipFamily"] = ipFamily
 	f["pow"] = pow
@@ -41,6 +42,15 @@ func toYAML(v any) string {
 	}
 
 	return strings.TrimSpace(string(data))
+}
+
+// fromYAML takes a YAML string, unmarshals it into an interface{}, and returns the result.
+// If there is an error during unmarshaling, it will be returned along with nil for the value.
+func fromYAML(v string) (any, error) {
+	var output any
+	err := yaml.Unmarshal([]byte(v), &output)
+
+	return output, err
 }
 
 // ipInCIDR get the IP of a specific location within the cidr range

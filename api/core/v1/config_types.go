@@ -42,13 +42,13 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	*c = Config(*aux)
 
 	// Decode spec.Raw into spec.Object if it's not already set
+	objMap := make(map[string]any)
 	if len(c.Spec.Raw) > 0 && c.Spec.Object == nil {
-		var objMap map[string]interface{}
 		if err := json.Unmarshal(c.Spec.Raw, &objMap); err != nil {
 			return errors.Wrap(err, "failed to unmarshal spec.Raw")
 		}
-		c.Spec.Object = &unstructured.Unstructured{Object: objMap}
 	}
+	c.Spec.Object = &unstructured.Unstructured{Object: objMap}
 
 	return nil
 }
@@ -71,5 +71,9 @@ func (c *Config) MarshalJSON() ([]byte, error) {
 // Value returns the underlying map[string]any from the Config's unstructured Object.
 // This provides direct access to the config values stored in Spec.Object.
 func (c *Config) Value() map[string]any {
+	if c.Spec.Object == nil {
+		return make(map[string]any)
+	}
+
 	return c.Spec.Object.(*unstructured.Unstructured).Object
 }

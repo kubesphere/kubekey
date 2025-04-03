@@ -36,7 +36,7 @@ import (
 )
 
 // MarshalBlock marshal block to task
-func MarshalBlock(role string, hosts []string, when []string, block kkprojectv1.Block) *kkcorev1alpha1.Task {
+func MarshalBlock(hosts []string, when []string, block kkprojectv1.Block) *kkcorev1alpha1.Task {
 	task := &kkcorev1alpha1.Task{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Task",
@@ -44,9 +44,6 @@ func MarshalBlock(role string, hosts []string, when []string, block kkprojectv1.
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Now(),
-			Annotations: map[string]string{
-				kkcorev1alpha1.TaskAnnotationRole: role,
-			},
 		},
 		Spec: kkcorev1alpha1.TaskSpec{
 			Name:        block.Name,
@@ -57,6 +54,9 @@ func MarshalBlock(role string, hosts []string, when []string, block kkprojectv1.
 			FailedWhen:  block.FailedWhen.Data,
 			Register:    block.Register,
 		},
+	}
+	if annotation, ok := block.UnknownField["annotations"].(map[string]string); ok {
+		task.ObjectMeta.Annotations = annotation
 	}
 
 	if block.Loop != nil {

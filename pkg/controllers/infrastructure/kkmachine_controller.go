@@ -13,6 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -384,16 +385,20 @@ func (r *KKMachineReconciler) getConfig(scope *clusterScope, kkmachine *capkkinf
 	if err := unstructured.SetNestedField(config.Value(), _const.ProviderID2Host(scope.Name, kkmachine.Spec.ProviderID), "node_name"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "node_name")
 	}
-	if err := unstructured.SetNestedField(config.Value(), kkmachine.Spec.Version, "kube_version"); err != nil {
+	if err := unstructured.SetNestedField(config.Value(), *kkmachine.Spec.Version, "kube_version"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "kube_version")
 	}
 	if err := unstructured.SetNestedField(config.Value(), scope.Cluster.Name, "kubernetes", "cluster_name"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.cluster_name")
 	}
-	if err := unstructured.SetNestedField(config.Value(), kkmachine.Spec.Roles, "kubernetes", "roles"); err != nil {
+	if err := unstructured.SetNestedStringSlice(config.Value(), kkmachine.Spec.Roles, "kubernetes", "roles"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.roles")
 	}
-	if err := unstructured.SetNestedField(config.Value(), scope.Cluster.Spec.ClusterNetwork, "cluster_network"); err != nil {
+	converted, err := runtime.DefaultUnstructuredConverter.ToUnstructured(scope.Cluster.Spec.ClusterNetwork)
+	if err != nil {
+		return config, errors.Wrap(err, "failed to convert scope.Cluster.Spec.ClusterNetwork")
+	}
+	if err := unstructured.SetNestedMap(config.Value(), converted, "cluster_network"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "cluster_network")
 	}
 
@@ -411,7 +416,7 @@ func (r *KKMachineReconciler) getConfig(scope *clusterScope, kkmachine *capkkinf
 	if err := unstructured.SetNestedField(config.Value(), scope.Cluster.Spec.ControlPlaneEndpoint.Host, "kubernetes", "control_plane_endpoint", "host"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.control_plane_endpoint.host")
 	}
-	if err := unstructured.SetNestedField(config.Value(), scope.KKCluster.Spec.ControlPlaneEndpointType, "kubernetes", "control_plane_endpoint", "type"); err != nil {
+	if err := unstructured.SetNestedField(config.Value(), string(scope.KKCluster.Spec.ControlPlaneEndpointType), "kubernetes", "control_plane_endpoint", "type"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.control_plane_endpoint.kube_vip.type")
 	}
 

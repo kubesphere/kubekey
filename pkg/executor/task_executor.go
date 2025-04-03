@@ -13,7 +13,6 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"github.com/schollz/progressbar/v3"
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,8 +84,8 @@ func (e *taskExecutor) runTaskLoop(ctx context.Context) error {
 
 	// Add role prefix to log output if role annotation exists
 	var roleLog string
-	if e.task.Annotations[kkcorev1alpha1.TaskAnnotationRole] != "" {
-		roleLog = "[" + e.task.Annotations[kkcorev1alpha1.TaskAnnotationRole] + "] "
+	if e.task.Annotations[kkcorev1alpha1.TaskAnnotationRelativePath] != "" {
+		roleLog = "[" + e.task.Annotations[kkcorev1alpha1.TaskAnnotationRelativePath] + "] "
 	}
 	fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.TimeOnly+" MST"), roleLog, e.task.Spec.Name)
 
@@ -241,7 +240,8 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 	// progress bar for task
 	var bar = progressbar.NewOptions(-1,
 		progressbar.OptionSetWriter(e.logOutput),
-		progressbar.OptionSpinnerCustom([]string{"            "}),
+		// progressbar.OptionSpinnerCustom([]string{"            "}),
+		progressbar.OptionSpinnerType(14),
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionSetDescription(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[36mrunning\033[0m", h, placeholder)),
 		progressbar.OptionOnCompletion(func() {
@@ -377,13 +377,10 @@ func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 	if e.task.Spec.Register != "" {
 		var stdoutResult any = stdout
 		var stderrResult any = stderr
-		// try to convert by json or yaml
+		// try to convert by json
 		if json.Valid([]byte(stdout)) {
 			_ = json.Unmarshal([]byte(stdout), &stdoutResult)
 			_ = json.Unmarshal([]byte(stderr), &stderrResult)
-		} else {
-			_ = yaml.Unmarshal([]byte(stdout), &stdoutResult)
-			_ = yaml.Unmarshal([]byte(stderr), &stderrResult)
 		}
 		// set variable to parent location
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(map[string]any{

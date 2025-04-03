@@ -1,4 +1,10 @@
 ---
+# load defaults vars
+- hosts:
+    - all
+  vars_files:
+    - vars/create_cluster.yaml
+
 - import_playbook: hook/pre_install.yaml
 
 # precheck
@@ -67,8 +73,6 @@
 
 - hosts:
     - k8s_cluster
-  vars_files:
-    - vars/create_cluster_kubernetes.yaml
   gather_facts: true
   roles:
     - install/cri
