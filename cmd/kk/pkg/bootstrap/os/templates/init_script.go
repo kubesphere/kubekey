@@ -50,7 +50,7 @@ swapoff -a
 sed -i /^[^#]*swap*/s/^/\#/g /etc/fstab
 
 # See https://github.com/kubernetes/website/issues/14457
-if [ -f /etc/selinux/config ]; then 
+if [ -f /etc/selinux/config ]; then
   sed -ri 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
 fi
 # for ubuntu: sudo apt install selinux-utils
@@ -185,10 +185,20 @@ tmpfile="$$.tmp"
 awk ' !x[$0]++{print > "'$tmpfile'"}' /etc/security/limits.conf
 mv $tmpfile /etc/security/limits.conf
 
-systemctl stop firewalld 1>/dev/null 2>/dev/null
-systemctl disable firewalld 1>/dev/null 2>/dev/null
-systemctl stop ufw 1>/dev/null 2>/dev/null
-systemctl disable ufw 1>/dev/null 2>/dev/null
+# Check if firewalld service exists and is running
+systemctl status firewalld 1>/dev/null 2>/dev/null
+if [ $? -eq 0 ]; then
+    # Firewall service exists and is running, stop and disable it
+    systemctl stop firewalld 1>/dev/null 2>/dev/null
+    systemctl disable firewalld 1>/dev/null 2>/dev/null
+fi
+# Check if ufw service exists and is running
+systemctl status ufw 1>/dev/null 2>/dev/null
+if [ $? -eq 0 ]; then
+    # ufw service exists and is running, stop and disable it
+    systemctl stop ufw 1>/dev/null 2>/dev/null
+    systemctl disable ufw 1>/dev/null 2>/dev/null
+fi
 
 modinfo br_netfilter > /dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -236,7 +246,7 @@ cat >>/etc/hosts<<EOF
 EOF
 
 sync
-echo 3 > /proc/sys/vm/drop_caches
+# echo 3 > /proc/sys/vm/drop_caches
 
 # Make sure the iptables utility doesn't use the nftables backend.
 update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || true

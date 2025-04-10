@@ -55,10 +55,20 @@ sed -r -i  "s@#{0,}?kernel.pid_max ?= ?([0-9]{1,})@kernel.pid_max = 65535@g" /et
 
 awk ' !x[$0]++{print > "/etc/sysctl.conf"}' /etc/sysctl.conf
 
-systemctl stop firewalld 1>/dev/null 2>/dev/null
-systemctl disable firewalld 1>/dev/null 2>/dev/null
-systemctl stop ufw 1>/dev/null 2>/dev/null
-systemctl disable ufw 1>/dev/null 2>/dev/null
+# Check if firewalld service exists and is running
+systemctl status firewalld 1>/dev/null 2>/dev/null
+if [ $? -eq 0 ]; then
+    # Firewall service exists and is running, stop and disable it
+    systemctl stop firewalld 1>/dev/null 2>/dev/null
+    systemctl disable firewalld 1>/dev/null 2>/dev/null
+fi
+# Check if ufw service exists and is running
+systemctl status ufw 1>/dev/null 2>/dev/null
+if [ $? -eq 0 ]; then
+    # ufw service exists and is running, stop and disable it
+    systemctl stop ufw 1>/dev/null 2>/dev/null
+    systemctl disable ufw 1>/dev/null 2>/dev/null
+fi
 
 modinfo br_netfilter > /dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -105,7 +115,7 @@ cat >>/etc/hosts<<EOF
 # kubekey hosts END
 EOF
 
-echo 3 > /proc/sys/vm/drop_caches
+# echo 3 > /proc/sys/vm/drop_caches
 
 # Make sure the iptables utility doesn't use the nftables backend.
 update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || true
