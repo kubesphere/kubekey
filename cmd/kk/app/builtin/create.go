@@ -33,6 +33,7 @@ func NewCreateCommand() *cobra.Command {
 		Short: "Create a cluster or a cluster configuration file",
 	}
 	cmd.AddCommand(newCreateClusterCommand())
+	cmd.AddCommand(newCreateConfigCommand())
 
 	return cmd
 }
@@ -50,6 +51,24 @@ func newCreateClusterCommand() *cobra.Command {
 			}
 
 			return o.CommonOptions.Run(cmd.Context(), playbook)
+		},
+	}
+	flags := cmd.Flags()
+	for _, f := range o.Flags().FlagSets {
+		flags.AddFlagSet(f)
+	}
+
+	return cmd
+}
+
+func newCreateConfigCommand() *cobra.Command {
+	o := builtin.NewCreateConfigOptions()
+
+	cmd := &cobra.Command{
+		Use:   "config",
+		Short: "Create a Kubernetes or KubeSphere cluster",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return o.Run()
 		},
 	}
 	flags := cmd.Flags()
