@@ -21,6 +21,8 @@ package builtin
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -29,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	cliflag "k8s.io/component-base/cli/flag"
 
+	"github.com/kubesphere/kubekey/v4/builtin/core"
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
@@ -36,6 +39,10 @@ const (
 	defaultKubeVersion      = "v1.23.15"
 	defaultContainerManager = "docker"
 )
+
+// ======================================================================================
+//                                  create cluster
+// ======================================================================================
 
 // NewCreateClusterOptions for newCreateClusterCommand
 func NewCreateClusterOptions() *CreateClusterOptions {
@@ -112,6 +119,61 @@ func (o *CreateClusterOptions) completeConfig() error {
 
 	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+	}
+
+	return nil
+}
+
+// ======================================================================================
+//                                  create config
+// ======================================================================================
+
+// NewCreateConfigOptions for newCreateConfigCommand
+func NewCreateConfigOptions() *CreateConfigOptions {
+	// set default value
+	return &CreateConfigOptions{
+		Kubernetes: defaultKubeVersion,
+	}
+}
+
+// CreateConfigOptions for NewCreateConfigOptions
+type CreateConfigOptions struct {
+	// kubernetes version which the config will install.
+	Kubernetes string
+	// OutputDir for config file. if set will generate file in this dir
+	OutputDir string
+}
+
+// Flags add to newCreateConfigCommand
+func (o *CreateConfigOptions) Flags() cliflag.NamedFlagSets {
+	fss := cliflag.NamedFlagSets{}
+	kfs := fss.FlagSet("config")
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+	kfs.StringVarP(&o.OutputDir, "output", "o", o.OutputDir, "Output dir for config. if not set will output to stdout")
+
+	return fss
+}
+
+// Run executes the create config operation. It reads the default config file for the specified
+// Kubernetes version and either writes it to the specified output directory or prints it to stdout.
+// If an output directory is specified, it creates a config file named "config-<kubernetes-version>.yaml".
+func (o *CreateConfigOptions) Run() error {
+	// Read the default config file for the specified Kubernetes version
+	data, err := core.Defaults.ReadFile(fmt.Sprintf("defaults/config/%s.yaml", o.Kubernetes))
+	if err != nil {
+		return errors.Wrapf(err, "failed to get local configFile for kube_version: %q.")
+	}
+
+	if o.OutputDir != "" {
+		// Write config to file if output directory is specified
+		filename := filepath.Join(o.OutputDir, fmt.Sprintf("config-%s.yaml", o.Kubernetes))
+		if err := os.WriteFile(filename, data, os.ModePerm); err != nil {
+			return errors.Wrapf(err, "failed to write config file to %s", filename)
+		}
+		fmt.Printf("write config file to %s success.\n", filename)
+	} else {
+		// Print config to stdout if no output directory specified
+		fmt.Println(string(data))
 	}
 
 	return nil
