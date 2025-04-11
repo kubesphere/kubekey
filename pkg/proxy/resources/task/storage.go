@@ -103,8 +103,7 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 		AttrFunc:    GetAttrs,
-		TriggerFunc: map[string]apistorage.IndexerFunc{kkcorev1alpha1.TaskOwnerField: OwnerPlaybookTriggerFunc},
-		Indexers:    Indexers(),
+		TriggerFunc: map[string]apistorage.IndexerFunc{"metadata.name": NameTriggerFunc},
 	}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return TaskStorage{}, errors.Wrap(err, "failed to complete store")

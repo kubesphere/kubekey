@@ -30,7 +30,6 @@ import (
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
 	apistorage "k8s.io/apiserver/pkg/storage"
 	apinames "k8s.io/apiserver/pkg/storage/names"
-	cgtoolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -148,20 +147,13 @@ func OwnerPlaybookIndexFunc(obj any) ([]string, error) {
 	return []string{index}, nil
 }
 
-// Indexers returns the indexers for pod storage.
-func Indexers() *cgtoolscache.Indexers {
-	return &cgtoolscache.Indexers{
-		apistorage.FieldIndex(kkcorev1alpha1.TaskOwnerField): OwnerPlaybookIndexFunc,
-	}
-}
-
 // MatchTask returns a generic matcher for a given label and field selector.
 func MatchTask(label labels.Selector, fd fields.Selector) apistorage.SelectionPredicate {
 	return apistorage.SelectionPredicate{
 		Label:       label,
 		Field:       fd,
 		GetAttrs:    GetAttrs,
-		IndexFields: []string{kkcorev1alpha1.TaskOwnerField},
+		IndexFields: []string{"metadata.name"},
 	}
 }
 
@@ -169,7 +161,7 @@ func MatchTask(label labels.Selector, fd fields.Selector) apistorage.SelectionPr
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	task, ok := obj.(*kkcorev1alpha1.Task)
 	if !ok {
-		return nil, nil, errors.New("not Task")
+		return nil, nil, errors.New("not task")
 	}
 
 	return task.ObjectMeta.Labels, ToSelectableFields(task), nil
@@ -181,32 +173,14 @@ func ToSelectableFields(task *kkcorev1alpha1.Task) fields.Set {
 	// amount of allocations needed to create the fields.Set. If you add any
 	// field here or the number of object-meta related fields changes, this should
 	// be adjusted.
-	taskSpecificFieldsSet := make(fields.Set)
-	for _, reference := range task.OwnerReferences {
-		if reference.Kind == playbookKind {
-			taskSpecificFieldsSet[kkcorev1alpha1.TaskOwnerField] = types.NamespacedName{
-				Namespace: task.Namespace,
-				Name:      reference.Name,
-			}.String()
-
-			break
-		}
-	}
-
-	return apigeneric.AddObjectMetaFieldsSet(taskSpecificFieldsSet, &task.ObjectMeta, true)
+	return apigeneric.AddObjectMetaFieldsSet(apigeneric.ObjectMetaFieldsSet(&task.ObjectMeta, true), &task.ObjectMeta, true)
 }
 
-// OwnerPlaybookTriggerFunc returns value ownerReference is playbook of given object.
-func OwnerPlaybookTriggerFunc(obj runtime.Object) string {
-	if task, ok := obj.(*kkcorev1alpha1.Task); ok {
-		for _, reference := range task.OwnerReferences {
-			if reference.Kind == playbookKind {
-				return types.NamespacedName{
-					Namespace: task.Namespace,
-					Name:      reference.Name,
-				}.String()
-			}
-		}
+// NameTriggerFunc returns value metadata.namespace of given object.
+func NameTriggerFunc(obj runtime.Object) string {
+	task, ok := obj.(*kkcorev1alpha1.Task)
+	if ok {
+		return task.ObjectMeta.Name
 	}
 
 	return ""

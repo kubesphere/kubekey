@@ -1,0 +1,23 @@
+---
+# load defaults vars
+- hosts:
+    - all
+  vars_files:
+    - vars/delete_cluster.yaml
+
+- import_playbook: hook/pre_install.yaml
+
+- hosts: 
+    - k8s_cluster
+  roles:
+    - uninstall/kubernetes
+    - role: uninstall/cri
+      when: .deleteCRI
+
+- hosts:
+    - etcd
+  roles:
+    - role: uninstall/etcd
+      when: .deleteETCD
+
+- import_playbook: hook/post_install.yaml

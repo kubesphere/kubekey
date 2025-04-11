@@ -13,6 +13,6 @@
               mkdir -p {{ .item }} && chown -R etcd {{ .item }}
             fi
           loop:
-           - "/var/lib/etcd"
+           - "{{ .etcd.env.data_dir }}"
     - include_tasks: install_etcd.yaml
     - include_tasks: backup_etcd.yaml

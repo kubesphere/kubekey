@@ -1,0 +1,7 @@
+cri:
+  containerd:
+    data_root: /var/lib/containerd
+  docker:
+    data_root: /var/lib/docker
+  # support: containerd,docker
+  container_manager: docker

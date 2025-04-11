@@ -51,7 +51,6 @@ func newScheme() *runtime.Scheme {
 	utilruntime.Must(rbacv1.AddToScheme(s))
 	utilruntime.Must(kkcorev1.AddToScheme(s))
 	utilruntime.Must(kkcorev1alpha1.AddToScheme(s))
-	utilruntime.Must(kkcorev1alpha1.AddConversionFuncs(s))
 	utilruntime.Must(capkkinfrav1beta1.AddToScheme(s))
 	utilruntime.Must(clusterv1beta1.AddToScheme(s))
 	utilruntime.Must(kubeadmcpv1beta1.AddToScheme(s))
