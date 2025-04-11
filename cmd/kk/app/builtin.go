@@ -28,6 +28,7 @@ func init() {
 	registerInternalCommand(builtin.NewArtifactCommand())
 	registerInternalCommand(builtin.NewCertsCommand())
 	registerInternalCommand(builtin.NewCreateCommand())
+	registerInternalCommand(builtin.NewDeleteCommand())
 	registerInternalCommand(builtin.NewInitCommand())
 	registerInternalCommand(builtin.NewPreCheckCommand())
 }

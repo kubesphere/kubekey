@@ -55,4 +55,4 @@
   when: .etcd.traffic_priority
 
 - name: Start etcd service
-  command: systemctl daemon-reload &&  systemctl start etcd && systemctl enable etcd
+  command: systemctl daemon-reload && systemctl start etcd && systemctl enable etcd

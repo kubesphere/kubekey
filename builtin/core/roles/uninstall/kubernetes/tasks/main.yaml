@@ -1,0 +1,50 @@
+---
+- name: Reset kubeadm
+  command: |
+    kubeadm reset -f
+
+- name: Delete kubelet
+  command: |
+    rm -rf /etc/systemd/system/kubelet.service
+    rm -rf /etc/systemd/system/kubelet.service.d
+    systemctl daemon-reload
+
+- name: Delete residue files
+  command: |
+    rm -rf /usr/local/bin/kubeadm && rm -rf /usr/local/bin/kubelet && rm -rf /usr/local/bin/kubectl
+    rm -rf /var/lib/kubelet/
+    rm -rf /etc/kubernetes/
+    rm -rf .kube/config
+
+- name: Reset iptables
+  command: |
+    iptables -F
+    iptables -X
+    iptables -F -t nat
+    iptables -X -t nat
+    ipvsadm -C
+    ip link del kube-ipvs0
+    ip link del nodelocaldns
+    ip link del cni0
+    {{- if .kubernetes.kube_network_plugin | eq "flannel" }}
+    ip link del flannel.1
+    ip link del flannel-v6.1
+    ip link del flannel-wg
+    ip link del flannel-wg-v6
+    {{- end }}
+    {{- if .kubernetes.kube_network_plugin | eq "cilium" }}
+    ip link del cilium_host
+    ip link del cilium_vxlan
+    {{- end }}
+    {{- if .kubernetes.kube_network_plugin | eq "calico" }}
+    ip -br link show | grep cali[a-f0-9]* | awk -F @ '{print $1}' | xargs -r -t -n 1 ip link del
+    {{- end }}
+    ip netns show 2>/dev/null | grep cni- | awk '{print $1}' | xargs -r -t -n 1 ip netns del
+
+- name: Delete net.d
+  command: |
+    rm -rf /etc/cni/net.d/
+    rm -rf /var/lib/cni/
+    {{- if .kubernetes.kube_network_plugin | eq "calico" }}
+    rm -rf /usr/local/bin/calicoctl
+    {{- end }}

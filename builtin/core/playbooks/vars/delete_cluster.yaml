@@ -1,0 +1,6 @@
+kubernetes:
+  kube_network_plugin: "calico"
+# if deleteCRI
+deleteCRI: false
+# if deleteETCD
+deleteETCD: false
