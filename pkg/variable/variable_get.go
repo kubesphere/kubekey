@@ -33,7 +33,7 @@ var GetHostnames = func(name []string) GetFunc {
 				n = pn
 			}
 			// add host to hs
-			if _, ok := vv.value.Hosts[n]; ok {
+			if _, exists := vv.value.Hosts[n]; exists {
 				hs = append(hs, n)
 			}
 			// add group's host to gs

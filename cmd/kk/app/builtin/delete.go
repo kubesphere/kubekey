@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package builtin
 
 import (
@@ -24,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options/builtin"
 )
 
+// NewDeleteCommand creates a new delete command that allows deleting nodes or clusters
 func NewDeleteCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete",
@@ -34,6 +36,8 @@ func NewDeleteCommand() *cobra.Command {
 	return cmd
 }
 
+// newDeleteClusterCommand creates a new command for deleting a Kubernetes cluster
+// It uses the delete_cluster.yaml playbook to uninstall Kubernetes components and clean up the cluster
 func newDeleteClusterCommand() *cobra.Command {
 	o := builtin.NewDeleteClusterOptions()
 

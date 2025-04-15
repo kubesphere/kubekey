@@ -178,6 +178,16 @@ func TestParseBool(t *testing.T) {
 			},
 			excepted: true,
 		},
+		// ======= hasPrefix =======
+		{
+			name:      "hasPrefix true-1",
+			condition: []string{`{{ .foo | hasPrefix "version.BuildInfo" }}`},
+			variable: map[string]any{
+				"foo": `version.BuildInfo{Version:"v3.14.3", GitCommit:"f03cc04caaa8f6d7c3e67cf918929150cf6f3f12", GitTreeState:"clean", GoVersion:"go1.22.1"}`,
+				"bar": "v3.14.3",
+			},
+			excepted: true,
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

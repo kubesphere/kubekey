@@ -282,6 +282,17 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 	}
 
 	switch valv := val.(type) {
+	case []string:
+		var ss []string
+		for _, a := range valv {
+			as, err := tmpl.ParseFunc(d, a, func(b []byte) string { return string(b) })
+			if err != nil {
+				return nil, err
+			}
+			ss = append(ss, as)
+		}
+
+		return ss, nil
 	case []any:
 		var ss []string
 
