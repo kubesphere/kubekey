@@ -36,6 +36,7 @@ import (
 //                                  delete cluster
 // ======================================================================================
 
+// NewDeleteClusterOptions creates a new DeleteClusterOptions with default values
 func NewDeleteClusterOptions() *DeleteClusterOptions {
 	// set default value
 	return &DeleteClusterOptions{
@@ -45,6 +46,7 @@ func NewDeleteClusterOptions() *DeleteClusterOptions {
 	}
 }
 
+// DeleteClusterOptions contains options for deleting a Kubernetes cluster
 type DeleteClusterOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
@@ -53,6 +55,7 @@ type DeleteClusterOptions struct {
 	ContainerManager string
 }
 
+// Flags returns the flag sets for DeleteClusterOptions
 func (o *DeleteClusterOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
@@ -62,7 +65,9 @@ func (o *DeleteClusterOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
+// Complete validates and completes the DeleteClusterOptions configuration
 func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	// Initialize playbook metadata
 	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "delete-cluster-",
@@ -73,17 +78,19 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 		},
 	}
 
-	// complete playbook. now only support one playbook
+	// Validate playbook arguments
 	if len(args) != 1 {
 		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 	o.Playbook = args[0]
 
+	// Set playbook specification
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
-	// override kube_version in config
+
+	// Complete configuration with kubernetes version and inventory
 	if err := completeConfig(o.Kubernetes, o.CommonOptions.ConfigFile, o.CommonOptions.Config); err != nil {
 		return nil, err
 	}
@@ -91,6 +98,7 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 		return nil, err
 	}
 
+	// Complete common options
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err
 	}
@@ -98,12 +106,17 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 	return playbook, o.completeConfig()
 }
 
+// completeConfig updates the configuration with container manager settings
 func (o *DeleteClusterOptions) completeConfig() error {
 	if o.ContainerManager != "" {
 		// override container_manager in config
 		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "cri.container_manager")
 		}
+	}
+
+	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
+		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 	}
 
 	return nil

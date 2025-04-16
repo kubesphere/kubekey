@@ -18,7 +18,7 @@ package variable
 
 import (
 	"context"
-	"encoding/json"
+	"maps"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -136,7 +136,7 @@ type variable struct {
 	// value is the data of the variable, which store in memory
 	value *value
 	// lock is the lock for value
-	sync.Mutex
+	sync.RWMutex
 }
 
 // value is the specific data contained in the variable
@@ -154,23 +154,35 @@ type host struct {
 	RuntimeVars map[string]any `json:"runtime"`
 }
 
-func (v value) deepCopy() value {
-	nv := value{}
-
-	data, err := json.Marshal(v)
-	if err != nil {
-		return value{}
+// DeepCopy creates a deep copy of the variable struct, including all nested fields.
+// It copies the Config and Inventory objects, and creates new maps for Hosts with cloned
+// RemoteVars and RuntimeVars. The key and source fields are copied by reference since
+// they don't need deep copying.
+func (v *variable) DeepCopy() *variable {
+	copyVal := &value{
+		Config:    *v.value.Config.DeepCopy(),
+		Inventory: *v.value.Inventory.DeepCopy(),
+		Hosts:     make(map[string]host, len(v.value.Hosts)),
+	}
+	for k, h := range v.value.Hosts {
+		copyVal.Hosts[k] = host{
+			RemoteVars:  maps.Clone(h.RemoteVars),
+			RuntimeVars: maps.Clone(h.RuntimeVars),
+		}
 	}
 
-	if err := json.Unmarshal(data, &nv); err != nil {
-		return value{}
+	return &variable{
+		key:    v.key,
+		source: v.source,
+		value:  copyVal,
 	}
-
-	return nv
 }
 
 // Get vars
 func (v *variable) Get(f GetFunc) (any, error) {
+	v.RLock()
+	defer v.RUnlock()
+
 	return f(v)
 }
 
@@ -179,28 +191,30 @@ func (v *variable) Merge(f MergeFunc) error {
 	v.Lock()
 	defer v.Unlock()
 
-	old := v.value.deepCopy()
-
-	if err := f(v); err != nil {
+	// new variable to avoid get lock in mergeFunc
+	nv := v.DeepCopy()
+	if err := f(nv); err != nil {
 		return err
 	}
 
-	return v.syncSource(old)
+	return v.syncSource(*nv.value)
 }
 
 // syncSource sync hosts vars to source.
-func (v *variable) syncSource(old value) error {
+func (v *variable) syncSource(newVal value) error {
 	for hn, hv := range v.value.Hosts {
-		if reflect.DeepEqual(old.Hosts[hn], hv) {
+		if reflect.DeepEqual(newVal.Hosts[hn], hv) {
 			// nothing change skip.
 			continue
 		}
 		if err := v.source.Write(map[string]any{
-			"remote":  hv.RemoteVars,
-			"runtime": hv.RuntimeVars,
+			"remote":  newVal.Hosts[hn].RemoteVars,
+			"runtime": newVal.Hosts[hn].RuntimeVars,
 		}, hn); err != nil {
 			return errors.Wrapf(err, "failed to write host %s variable to source", hn)
 		}
+		// update new value to variable
+		v.value.Hosts[hn] = newVal.Hosts[hn]
 	}
 
 	return nil
