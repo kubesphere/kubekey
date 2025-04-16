@@ -1,5 +1,6 @@
 ---
-- name: Stop cri-dockerd
+- name: Stop cri-dockerd service
+  ignore_errors: true
   command: |
     systemctl stop cri-dockerd && systemctl disable cri-dockerd
     rm -f /etc/systemd/system/cri-dockerd.service && systemctl daemon-reload
