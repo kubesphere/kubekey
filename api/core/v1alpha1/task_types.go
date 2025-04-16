@@ -53,8 +53,9 @@ type TaskSpec struct {
 	FailedWhen []string             `json:"failedWhen,omitempty"`
 	Loop       runtime.RawExtension `json:"loop,omitempty"`
 
-	Module   Module `json:"module,omitempty"`
-	Register string `json:"register,omitempty"`
+	Module       Module `json:"module,omitempty"`
+	Register     string `json:"register,omitempty"`
+	RegisterType string `json:"register_type,omitempty"`
 }
 
 // Module of Task

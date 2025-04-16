@@ -32,6 +32,7 @@
   ignore_errors: true
   command: kubectl version --short
   register: kubectl_install_version
+  register_type: yaml
 - name: Sync kubectl to remote
   when: |
     or (.kubectl_install_version.stderr | ne "") ((get .kubectl_install_version.stdout "Server Version") | ne  .kube_version)

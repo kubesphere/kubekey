@@ -46,13 +46,14 @@ func MarshalBlock(hosts []string, when []string, block kkprojectv1.Block) *kkcor
 			CreationTimestamp: metav1.Now(),
 		},
 		Spec: kkcorev1alpha1.TaskSpec{
-			Name:        block.Name,
-			Hosts:       hosts,
-			IgnoreError: block.IgnoreErrors,
-			Retries:     block.Retries,
-			When:        when,
-			FailedWhen:  block.FailedWhen.Data,
-			Register:    block.Register,
+			Name:         block.Name,
+			Hosts:        hosts,
+			IgnoreError:  block.IgnoreErrors,
+			Retries:      block.Retries,
+			When:         when,
+			FailedWhen:   block.FailedWhen.Data,
+			Register:     block.Register,
+			RegisterType: block.RegisterType,
 		},
 	}
 	if annotation, ok := block.UnknownField["annotations"].(map[string]string); ok {

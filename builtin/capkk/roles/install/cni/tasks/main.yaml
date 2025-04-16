@@ -2,6 +2,7 @@
 - name: check cni by helm
   command: helm list -a -A -q -o json 2>/dev/null
   register: installed_helm_packages
+  register_type: json
 
 - include_tasks: calico.yaml
   when: 

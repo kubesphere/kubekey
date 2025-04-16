@@ -62,8 +62,10 @@ type Task struct {
 	LoopControl LoopControl `yaml:"loop_control,omitempty"`
 	Poll        int         `yaml:"poll,omitempty"`
 	Register    string      `yaml:"register,omitempty"`
-	Retries     int         `yaml:"retries,omitempty"`
-	Until       When        `yaml:"until,omitempty"`
+	// RegisterType how to register value to variable. support: string(default), json, yaml.
+	RegisterType string `yaml:"register_type,omitempty"`
+	Retries      int    `yaml:"retries,omitempty"`
+	Until        When   `yaml:"until,omitempty"`
 
 	// deprecated, used to be loop and loop_args but loop has been repurposed
 	//LoopWith string	`yaml:"loop_with"`

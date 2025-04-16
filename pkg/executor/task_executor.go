@@ -13,6 +13,7 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"github.com/schollz/progressbar/v3"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -377,10 +378,13 @@ func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 	if e.task.Spec.Register != "" {
 		var stdoutResult any = stdout
 		var stderrResult any = stderr
-		// try to convert by json
-		if json.Valid([]byte(stdout)) {
+		switch e.task.Spec.RegisterType {
+		case "json":
 			_ = json.Unmarshal([]byte(stdout), &stdoutResult)
-			_ = json.Unmarshal([]byte(stderr), &stderrResult)
+		case "yaml", "yml":
+			_ = yaml.Unmarshal([]byte(stdout), &stdoutResult)
+		default:
+			// store by string
 		}
 		// set variable to parent location
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(map[string]any{

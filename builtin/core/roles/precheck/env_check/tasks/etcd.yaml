@@ -57,9 +57,11 @@
       ignore_errors: true
       command: etcd --version
       register: etcd_install_version
+      register_type: yaml
     - name: Check if etcd has match the version
       when: .etcd_install_service.stdout | eq "active"
       assert:
-        that: eq (get .etcd_install_version.stdout "etcd Version") (.etcd_version | default "" | trimPrefix "v")
+        that: |
+          eq (get .etcd_install_version.stdout "etcd Version") (.etcd_version | default "" | trimPrefix "v")
         fail_msg: |
-          etcd has installed with version:v{{ get .etcd_install_version.stdout "etcd Version" }}. but not match etcd_version: {{ .etcd_version }}
+          excepted install etcd with version: {{ .etcd_version }} but has installed with: {{ get .etcd_install_version.stdout "etcd Version" }}.
