@@ -3,6 +3,7 @@
   ignore_errors: true
   command: calicoctl version
   register: calicoctl_install_version
+  register_type: yaml
 - name: Install calicoctl
   when: .calicoctl_install_version.stderr | ne ""
   block:
