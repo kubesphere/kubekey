@@ -2,16 +2,15 @@
 - name: Uninstall etcd service
   block:
     - name: Stop etcd service
+      ignore_errors: true
       command: |
         systemctl stop etcd.service && systemctl disable etcd.service
+        rm /etc/systemd/system/etcd.service && systemctl daemon-reload
     - name: Unset Traffic Priority
       command: |
         tc filter del dev eth0 parent 1: protocol ip prio 1 u32 match ip sport 2379 0xffff
         tc filter del dev eth0 parent 1: protocol ip prio 1 u32 match ip sport 2380 0xffff
       when: .etcd.traffic_priority
-    - name: Remove etcd service
-      command: |
-        rm /etc/systemd/system/etcd.service && systemctl daemon-reload
     - name: Delete residue files
       command: |
         rm -rf {{ .etcd.env.data_dir }}
@@ -20,13 +19,9 @@
         rm -rf /usr/local/bin/etcd*
 
 - name: Uninstall backup-etcd service
-  block:
-    - name: Stop backup-etcd service
-      command: |
-        systemctl disable --now backup-etcd.timer
-    - name: Remove backup-etcd service
-      command: |
-        rm /etc/systemd/system/backup-etcd.timer
-        rm /etc/systemd/system/backup-etcd.service
-        rm /usr/local/bin/kube-scripts/backup_etcd.sh
-        systemctl daemon-reexec && systemctl daemon-reload
+  command: |
+    systemctl disable --now backup-etcd.timer
+    rm /etc/systemd/system/backup-etcd.timer
+    rm /etc/systemd/system/backup-etcd.service
+    rm /usr/local/bin/kube-scripts/backup_etcd.sh
+    systemctl daemon-reexec && systemctl daemon-reload

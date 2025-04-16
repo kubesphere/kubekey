@@ -1,5 +1,6 @@
 ---
-- name: Stop Docker
+- name: Stop docker service
+  ignore_errors: true
   command: |
     systemctl stop docker && systemctl disable docker
     rm -f /etc/systemd/system/docker.service && systemctl daemon-reload    

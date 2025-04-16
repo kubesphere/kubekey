@@ -1,5 +1,6 @@
 ---
 - name: Reset kubeadm
+  ignore_errors: true
   command: |
     kubeadm reset -f
 
