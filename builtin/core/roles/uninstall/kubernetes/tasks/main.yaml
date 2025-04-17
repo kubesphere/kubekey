@@ -4,7 +4,7 @@
   command: |
     kubeadm reset -f
 
-- name: Delete kubelet
+- name: Stop kubelet service
   command: |
     rm -rf /etc/systemd/system/kubelet.service
     rm -rf /etc/systemd/system/kubelet.service.d
