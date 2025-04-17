@@ -10,7 +10,7 @@ spec:
     - manager
     env:
     - name: vip_arp
-      value: "true"
+      value: "false"
     - name: port
       value: "6443"
     - name: vip_interface
@@ -25,21 +25,39 @@ spec:
       value: "false"
     - name: svc_enable
       value: "true"
-    - name: vip_leaderelection
+    - name: bgp_enable
       value: "true"
-    - name: vip_leaseduration
-      value: "5"
-    - name: vip_renewdeadline
-      value: "3"
-    - name: vip_retryperiod
-      value: "1"
+    - name: bgp_routerid
+      value: |
+        {{- $ips := list }}
+        {{- range .groups.kube_control_plane | default list }}
+            {{- $ips = append $ips (index $.inventory_hosts . "internal_ipv4") }}
+        {{- end }}
+        {{ $ips | join "," }}
+    - name: bgp_as
+      value: "65000"
+    - name: bgp_peeraddress
+    - name: bgp_peerpass
+    - name: bgp_peeras
+      value: "65000"
+    - name: bgp_peers
+      value: |
+        {{- $ips := list }}
+        {{- range .groups.kube_control_plane | default list }}
+            {{- $ips = append $ips (printf "%s:65000::false" (index $.inventory_hosts . "internal_ipv4")) }}
+        {{- end }}
+        {{ $ips | join "," }}
     - name: lb_enable
       value: "true"
     - name: lb_port
       value: "6443"
+    - name: lb_fwdmethod
+      value: local
     - name: address
-      value: {{ .kubernetes.kube_vip.address }}
-    image: {{ .kubernetes.kube_vip.image }}
+      value: {{ .kubernetes.control_plane_endpoint.kube_vip.address }}
+    - name: prometheus_server
+      value: :2112
+    image: {{ .kubernetes.control_plane_endpoint.kube_vip.image }}
     imagePullPolicy: IfNotPresent
     name: kube-vip
     resources: {}
@@ -48,7 +66,6 @@ spec:
         add:
         - NET_ADMIN
         - NET_RAW
-        - SYS_TIME
     volumeMounts:
     - mountPath: /etc/kubernetes/admin.conf
       name: kubeconfig

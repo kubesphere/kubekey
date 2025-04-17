@@ -4,6 +4,7 @@
     - all
   vars_files:
     - vars/create_cluster.yaml
+    - vars/create_cluster_kubernetes.yaml
 
 - import_playbook: hook/pre_install.yaml
 
@@ -26,19 +27,6 @@
 - hosts:
     - localhost
   gather_facts: true
-  roles:
-    - init/init-artifact
-    - init/init-cert
-
-# image registry
-- hosts:
-    - image_registry
-  gather_facts: true
-  roles:
-    - install/image-registry
-
-- hosts:
-    - localhost
   roles:
     - init/init-artifact
     - init/init-cert
@@ -76,13 +64,20 @@
   gather_facts: true
   roles:
     - install/cri
-    - install/kubernetes
-
-- hosts:
-    - kube_control_plane
-  roles:
-    - role: install/certs
-      when: .renew_certs.enabled
+    - kubernetes/pre-kubernetes
+    - kubernetes/init-kubernetes
+    - kubernetes/join-kubernetes
+    - role: kubernetes/certs
+      when: 
+        - .kubernetes.renew_certs.enabled
+        - .groups.kube_control_plane | default list | has .inventory_name
+  post_tasks:
+    - name: Add custom label to cluster
+      command: |
+        {{- range $k, $v := .kubernetes.custom_label }}
+        /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
+        {{- end }}
+      when: .kubernetes.custom_label | len | lt 0
 
 - hosts:
     - kube_control_plane|random

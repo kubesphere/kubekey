@@ -158,10 +158,14 @@ mv $tmpfile /etc/security/limits.conf
 
 # ------------------------ 5. Firewall Configurations ---------------------------
 
-systemctl stop firewalld 1>/dev/null 2>/dev/null
-systemctl disable firewalld 1>/dev/null 2>/dev/null
-systemctl stop ufw 1>/dev/null 2>/dev/null
-systemctl disable ufw 1>/dev/null 2>/dev/null
+if systemctl is-active firewalld --quiet; then
+  systemctl stop firewalld 1>/dev/null 2>/dev/null
+  systemctl disable firewalld 1>/dev/null 2>/dev/null
+fi
+if systemctl is-active ufw --quiet; then
+  systemctl stop ufw 1>/dev/null 2>/dev/null
+  systemctl disable ufw 1>/dev/null 2>/dev/null
+fi
 
 # ------------------------ 6. System Module Settings ----------------------------
 
@@ -251,7 +255,7 @@ cat >>/etc/hosts<<EOF
 EOF
 
 sync
-echo 3 > /proc/sys/vm/drop_caches
+# echo 3 > /proc/sys/vm/drop_caches
 
 # Make sure the iptables utility doesn't use the nftables backend.
 {{- if and .internal_ipv4 (.internal_ipv4 | ne "") }}

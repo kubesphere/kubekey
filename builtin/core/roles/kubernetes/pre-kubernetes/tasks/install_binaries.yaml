@@ -32,6 +32,7 @@
   ignore_errors: true
   command: kubectl version --short
   register: kubectl_install_version
+  register_type: yaml
 - name: Sync kubectl to remote
   when: |
     or (.kubectl_install_version.stderr | ne "") ((get .kubectl_install_version.stdout "Server Version") | ne  .kube_version)
@@ -56,7 +57,7 @@
         mode: 0755
     - name: Sync kubelet env to remote
       template:
-        src: kubeadm/kubelet.env
+        src: kubelet/kubelet.env
         dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     - name: Sync kubelet service to remote
       copy:

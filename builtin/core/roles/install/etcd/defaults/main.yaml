@@ -1,5 +1,5 @@
 etcd:
-  #    endpoints: ["https://172.1.1.1:2379"]
+  #    endpoints: ["https://127.1.1.1:2379"]
   # etcd binary
   state: new
 #  env config

@@ -21,8 +21,10 @@ kubernetes:
     # the whole service_cidr in cluster. support: ipv4; ipv6; ipv4,ipv6.
     service_cidr: 10.233.0.0/18
     dns_domain: cluster.local
-    dns_image: |
-      {{ .k8s_registry }}/coredns/coredns:v1.8.6
+    dns_image: 
+      repository: |
+        {{ .k8s_registry }}/coredns
+      tag: v1.8.6
     dns_cache_image: |
       {{ .dockerio_registry }}/kubesphere/k8s-dns-node-cache:1.22.20
     dns_service_ip: |
@@ -160,19 +162,10 @@ kubernetes:
     host: lb.kubesphere.local
     port: "{{ .kubernetes.apiserver.port }}"
     # support local, kube_vip, haproxy
+    # when type is local, # if set will write in /etc/hosts.
+    #  - for control-plane: will use 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    #  - for worker: will use {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
     type: local
-    # if set will write in /etc/hosts.
-    # when type is local, it will write the first node in "kube_control_plane" groups as the control_plane_endpoint's server.
-    etc_hosts: |
-      {{- if .kubernetes.control_plane_endpoint.type | eq "local" }}
-        {{- $internalIPv4 := index .inventory_hosts (.groups.kube_control_plane | default list | first) "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index .inventory_hosts (.groups.kube_control_plane | default list | first) "internal_ipv6" | default "" }}
-        {{- if ne $internalIPv4 "" }}
-      {{ $internalIPv4 }} {{ .kubernetes.control_plane_endpoint.host }}
-        {{- else if ne $internalIPv6 "" }}
-      {{ $internalIPv6 }} {{ .kubernetes.control_plane_endpoint.host }}
-        {{- end }}
-      {{- end }}
     kube_vip:
       # the ip address of node net. usage in node network interface: "eth0"
       # address: 
@@ -190,7 +183,11 @@ kubernetes:
     # It is possible to deploy etcd with three methods.
     # external: Deploy etcd cluster with external etcd cluster.
     # internal: Deploy etcd cluster by static pod.
-    # deployment_type: external
-    image: |
-      {{ .k8s_registry }}/etcd:3.5.0
+    deployment_type: external
+    image: 
+      repository: "{{ .k8s_registry }}"
+      tag: 3.5.0
   custom_label: {}
+  # if auto renew kubernetes certs
+  renew_certs:
+    enabled: true
