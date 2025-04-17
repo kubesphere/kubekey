@@ -1,0 +1,59 @@
+---
+- name: Set init_kubernetes_node hosts to /etc/hosts
+  when: eq .kubernetes.control_plane_endpoint.type "local"
+  command: |
+    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
+    cat >> /etc/hosts <<EOF
+    # kubekey custom BEGIN
+    {{- if and (index .inventory_hosts .init_kubernetes_node "internal_ipv4") (ne (index .inventory_hosts .init_kubernetes_node "internal_ipv4") "") }}
+    {{ index .inventory_hosts .init_kubernetes_node "internal_ipv4" }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
+    {{- if and (index .inventory_hosts .init_kubernetes_node "internal_ipv6") (ne (index .inventory_hosts .init_kubernetes_node "internal_ipv6") "") }}
+    {{ index .inventory_hosts .init_kubernetes_node "internal_ipv6" }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
+    # kubekey custom END
+    EOF
+
+- name: Generate kubeadm join config
+  template:
+    src: |
+      {{- if .kube_version | semverCompare ">=v1.24.0" }}
+      kubeadm/kubeadm-join.v1beta3
+      {{- else }}
+      kubeadm/kubeadm-join.v1beta2
+      {{- end }}
+    dest: /etc/kubernetes/kubeadm-config.yaml
+
+- name: Join kubernetes cluster
+  command: |
+    /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
+
+- name: Sync kubeconfig to remote
+  copy:
+    src: |
+      {{ .work_dir }}/kubekey/kubeconfig
+    dest: /root/.kube/config
+
+- name: Set to worker node
+  when: .groups.kube_worker | default list | has .inventory_name
+  block:
+    - name: Remote master taint
+      ignore_errors: true
+      command: |
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/master=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/control-plane=:NoSchedule-
+    - name: Add work label
+      command: |
+        /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=
+
+- name: Set change custom hosts to /etc/hosts
+  when: 
+    - eq .kubernetes.control_plane_endpoint.type "local"
+    - .groups.kube_control_plane | default list | has .inventory_name
+  command: |
+    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
+    cat >> /etc/hosts <<EOF
+    # kubekey custom BEGIN
+    127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    # kubekey custom END
+    EOF

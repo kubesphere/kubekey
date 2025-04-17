@@ -1,0 +1,42 @@
+- name: Join kubernetes
+  when: ne .inventory_name .init_kubernetes_node
+  block:
+    # HAProxy is deployed as a static Pod, which starts only after Kubelet is running.
+    # Therefore, the control plane must be reachable before HAProxy starts (e.g., by configuring /etc/hosts).
+    - name: Write tmp dns to /etc/hosts
+      command: |
+        cat >> /etc/hosts << EOF
+        # haproxy dns for kubekey begin
+        {{- $internalIPv4 := index .inventory_hosts (.groups.kube_control_plane | default list | first) "internal_ipv4" | default "" }}
+        {{- $internalIPv6 := index .inventory_hosts (.groups.kube_control_plane | default list | first) "internal_ipv6" | default "" }}
+        {{- if ne $internalIPv4 "" }}
+        {{ $internalIPv4 }} {{ .kubernetes.control_plane_endpoint.host }}
+        {{- else if ne $internalIPv6 "" }}
+        {{ $internalIPv6 }} {{ .kubernetes.control_plane_endpoint.host }}
+        {{- end }}
+        # haproxy dns for kubekey end
+        EOF
+      when: .kubernetes.control_plane_endpoint.type | eq "haproxy"
+    - include_tasks: join_kubernetes.yaml
+      when: .kubernetes_install_service.stdout | eq "inactive"
+    - name: Replace haproxy dns to /etc/hosts
+      when: .kubernetes.control_plane_endpoint.type | eq "haproxy"
+      block:
+        - name: Replace control_plane by local hosts
+          when: .groups.kube_control_plane | default list | has .inventory_name
+          command: |
+            new_dns="# haproxy dns for kubekey begin
+            {{- if ne .internal_ipv4 "" }}
+            {{ .internal_ipv4 }} {{ .kubernetes.control_plane_endpoint.host }}
+            {{- else if ne .internal_ipv6 "" }}
+            {{ .internal_ipv6  }} {{ .kubernetes.control_plane_endpoint.host }}
+            {{- end }}
+            # haproxy dns for kubekey end"
+            sed -i '/# haproxy dns for kubekey begin/,/# haproxy dns for kubekey end/c\'"$new_dns" /etc/hosts
+        - name: Replace worker by haproxy hosts
+          when: .groups.worker | default list | has .inventory_name
+          command: |
+            new_dns="# haproxy dns for kubekey begin
+            {{ .kubernetes.control_plane_endpoint.haproxy.address }} {{ .kubernetes.control_plane_endpoint.host }}
+            # haproxy dns for kubekey end"
+            sed -i '/# haproxy dns for kubekey begin/,/# haproxy dns for kubekey end/c\'"$new_dns" /etc/hosts

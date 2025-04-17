@@ -1,0 +1,29 @@
+- include_tasks: install_binaries.yaml
+
+- include_tasks: high-availability/main.yaml
+
+# - name: Add kube user
+#   command: |
+#     useradd -M -c 'Kubernetes user' -s /sbin/nologin -r kube || :
+
+- name: Create kube directories
+  command: |
+    if [ ! -d "{{ .item.path }}" ]; then
+      mkdir -p {{ .item.path }} && chown kube -R {{ .item.chown }}
+    fi
+  loop:
+    - {path: "/usr/local/bin", chown: "/usr/local/bin"}
+    - {path: "/etc/kubernetes", chown: "/etc/kubernetes"}
+    - {path: "/etc/kubernetes/pki", chown: "/etc/kubernetes/pki"}
+    - {path: "/etc/kubernetes/manifests", chown: "/etc/kubernetes/manifests"}
+    - {path: "/usr/local/bin/kube-scripts", chown: "/usr/local/bin/kube-scripts"}
+    - {path: "/usr/libexec/kubernetes/kubelet-plugins/volume/exec", chown: "/usr/libexec/kubernetes"}
+    - {path: "/etc/cni/net.d", chown: "/etc/cni"}
+    - {path: "/opt/cni/bin", chown: "/opt/cni"}
+    - {path: "/var/lib/calico", chown: "/var/lib/calico"}
+
+- name: Sync audit policy file to remote
+  copy:
+    src: audit
+    dest: /etc/kubernetes/audit/
+  when: .kubernetes.audit

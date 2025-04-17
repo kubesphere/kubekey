@@ -1,0 +1,63 @@
+---
+- name: select init node
+  run_once: true
+  set_fact:
+    init_kubernetes_node: |
+      {{- $initNodes := list -}}
+      {{- $notInitNodes := list -}}
+      {{- range .groups.kube_control_plane -}}
+        {{- if index $.inventory_hosts . "kubernetes_install_service" "stdout" | eq "active" -}}
+          {{- $initNodes = append $initNodes . -}}
+        {{- else if index $.inventory_hosts . "kubernetes_install_service" "stdout" | eq "inactive" -}}
+          {{- $notInitNodes = append $notInitNodes . -}}
+        {{- end -}}
+      {{- end -}}
+      {{- if $initNodes | len | eq 1 -}}
+        {{ $initNodes | first }}
+      {{- else if $initNodes | len | lt 1 -}}
+        {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}
+      {{- else if $notInitNodes | len | eq 1 -}}
+        {{ $notInitNodes | first }}
+      {{- else if $notInitNodes | len | lt 1 }}
+        {{ index $notInitNodes (randInt 0 ((sub ($notInitNodes | len) 1) | int)) }}
+      {{- end -}}
+
+- name: Set custom hosts to /etc/hosts
+  when: eq .kubernetes.control_plane_endpoint.type "local"
+  command: |
+    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
+    cat >> /etc/hosts <<EOF
+    # kubekey custom BEGIN
+    127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    # kubekey custom END
+    EOF
+
+- name: Init kubernetes
+  when: eq .inventory_name .init_kubernetes_node
+  block:
+    - include_tasks: init_kubernetes.yaml
+      when: .kubernetes_install_service.stdout | eq "inactive"
+    - include_tasks: deploy_cluster_dns.yaml
+    - name: Fetch kubeconfig to local
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: |
+          {{ .work_dir }}/kubekey/kubeconfig
+    - name: Generate certificate key by kubeadm
+      command: |
+        /usr/local/bin/kubeadm init phase upload-certs --upload-certs --config=/etc/kubernetes/kubeadm-config.yaml 2>&1 \
+          | awk '/Using certificate key:/{getline; print}'
+      register: kubeadm_cert_result
+    - name: Set_Fact certificate key to all hosts
+      set_fact:
+        kubeadm_cert: |
+          {{ .kubeadm_cert_result.stdout }}
+    - name: Generate kubeadm token
+      block:
+        - name: Generate token by kubeadm
+          command: /usr/local/bin/kubeadm token create
+          register: kubeadm_token_result
+        - name: Set_Fact token to all hosts
+          set_fact:
+            kubeadm_token: |
+              {{ .kubeadm_token_result.stdout }}

@@ -6,8 +6,8 @@ kind: ClusterConfiguration
 etcd:
 {{- if .kubernetes.etcd.deployment_type | eq "internal" }}
   local:
-    imageRepository: {{ slice (.kubernetes.etcd.image | splitList ":" | first | splitList "/") 1 (.kubernetes.etcd.image | splitList ":" | first | splitList "/" | len) | join "/" }}
-    imageTag: {{ .kubernetes.etcd.image | splitList ":" | last }}
+    imageRepository: {{ .kubernetes.etcd.image.repository }}
+    imageTag: {{ .kubernetes.etcd.image.tag }}
     serverCertSANs:
     {{- range .groups.etcd | default list }}
       - {{ index $.inventory_hosts . "internal_ipv4" }}
@@ -24,8 +24,8 @@ etcd:
 {{- end }}
 dns:
   type: CoreDNS
-  imageRepository: {{ slice (.kubernetes.networking.dns_image | splitList ":" | first | splitList "/") 1 (.kubernetes.networking.dns_image | splitList ":" | first | splitList "/" | len) | join "/" }}
-  imageTag: {{ .kubernetes.networking.dns_image | splitList ":" | last }}
+  imageRepository: {{ .kubernetes.networking.dns_image.repository }}
+  imageTag: {{ .kubernetes.networking.dns_image.tag }}
 imageRepository: {{ .kubernetes.image_repository }}
 kubernetesVersion: {{ .kube_version }}
 certificatesDir: /etc/kubernetes/pki

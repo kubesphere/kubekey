@@ -31,12 +31,6 @@ k8s_registry: |
 
 security_enhancement: false
 
-kubernetes:
-  etcd:
-    # It is possible to deploy etcd with three methods.
-    # external: Deploy etcd cluster with external etcd cluster.
-    # internal: Deploy etcd cluster by static pod.
-    deployment_type: external
 cri:
   # support: containerd,docker
   container_manager: docker
