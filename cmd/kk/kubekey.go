@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -25,7 +26,12 @@ import (
 
 func main() {
 	if err := app.NewRootCommand().Execute(); err != nil {
-		fmt.Printf("%+v", err)
+		vFlag := flag.Lookup("v")
+		if vFlag != nil {
+			fmt.Printf("%+v", err)
+		} else {
+			fmt.Printf("%v", err)
+		}
 		os.Exit(1)
 	}
 }
