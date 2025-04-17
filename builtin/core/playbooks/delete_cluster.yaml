@@ -13,6 +13,13 @@
     - uninstall/kubernetes
     - role: uninstall/cri
       when: .deleteCRI
+  post_tasks:
+    - name: delete etc/hosts
+      ignore_errors: true
+      command: |
+        sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
+        sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
+      when: .deleteDNS
 
 - hosts:
     - etcd
