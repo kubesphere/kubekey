@@ -50,6 +50,7 @@ func NewRootCommand() *cobra.Command {
 		PersistentPostRunE: func(*cobra.Command, []string) error {
 			return options.FlushProfiling()
 		},
+		SilenceUsage: true,
 	}
 	cmd.SetContext(signals.SetupSignalHandler())
 	// add common flag
