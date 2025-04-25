@@ -42,6 +42,7 @@ const (
 	V130
 	V131
 	V132
+	V133
 )
 
 var VersionList = []Version{
@@ -59,6 +60,7 @@ var VersionList = []Version{
 	V130,
 	V131,
 	V132,
+	V133,
 }
 
 func (v Version) String() string {
@@ -91,6 +93,8 @@ func (v Version) String() string {
 		return "v1.31"
 	case V132:
 		return "v1.32"
+	case V133:
+		return "v1.33"
 	default:
 		return "invalid option"
 	}
