@@ -19,11 +19,13 @@ package connector
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
@@ -101,19 +103,61 @@ func (c *localConnector) FetchFile(_ context.Context, src string, dst io.Writer)
 // ExecuteCommand executes a command on the local host.
 func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
-	// in
-	command := c.Cmd.CommandContext(ctx, "sudo", "-SE", c.shell, "-c", cmd)
-	if c.Password != "" {
-		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
-	}
-	// out
-	output, err := command.CombinedOutput()
-	if c.Password != "" {
-		// Filter out the "Password:" prompt from the output
-		output = bytes.Replace(output, []byte("Password:"), []byte(""), -1)
-	}
 
-	return output, errors.Wrapf(err, "failed to execute command")
+	// For consistency, use HERE document approach for all commands
+	execCmd := fmt.Sprintf("%s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
+
+	// Check if command requires sudo (we don't always need sudo for local execution)
+	if strings.Contains(cmd, "sudo ") || os.Geteuid() != 0 {
+		// Command explicitly uses sudo or we're not running as root
+		// First try running without sudo to see if it works
+		regularCmd := c.Cmd.CommandContext(ctx, "bash", "-c", execCmd)
+		regularOutput, regularErr := regularCmd.CombinedOutput()
+
+		// If the command succeeds or doesn't indicate permission issues, return its results
+		if regularErr == nil || !strings.Contains(string(regularOutput), "permission denied") {
+			return regularOutput, regularErr
+		}
+
+		// Command needs sudo, prepare sudo command
+		if c.Password != "" {
+			// Use a temporary file to avoid showing password in process list
+			pwFile, err := os.CreateTemp("", "kubekey-pw-*")
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to create temp file for sudo password")
+			}
+			pwPath := pwFile.Name()
+			defer os.Remove(pwPath)
+
+			if _, err := pwFile.WriteString(c.Password); err != nil {
+				pwFile.Close()
+				return nil, errors.Wrap(err, "failed to write sudo password to temp file")
+			}
+			pwFile.Close()
+
+			// Use sudo -S to read password from stdin
+			sudoCmd := fmt.Sprintf("sudo -S %s", execCmd)
+			command := c.Cmd.CommandContext(ctx, "bash", "-c", fmt.Sprintf("cat %s | %s", pwPath, sudoCmd))
+			output, err := command.CombinedOutput()
+
+			// Filter out password prompt from output
+			output = bytes.Replace(output, []byte("Password:"), []byte(""), -1)
+			output = bytes.Replace(output, []byte("[sudo] password for "+os.Getenv("USER")+":"), []byte(""), -1)
+
+			return output, errors.Wrap(err, "command execution failed")
+		} else {
+			// Try sudo without password (relies on NOPASSWD in sudoers)
+			sudoCmd := fmt.Sprintf("sudo %s", execCmd)
+			command := c.Cmd.CommandContext(ctx, "bash", "-c", sudoCmd)
+			output, err := command.CombinedOutput()
+			return output, errors.Wrap(err, "command execution failed")
+		}
+	} else {
+		// No need for sudo, run command directly
+		command := c.Cmd.CommandContext(ctx, "bash", "-c", execCmd)
+		output, err := command.CombinedOutput()
+		return output, errors.Wrap(err, "command execution failed")
+	}
 }
 
 // HostInfo gathers and returns host information for the local host.

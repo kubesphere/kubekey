@@ -223,8 +223,12 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 
 // ExecuteCommand in remote host
 func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, error) {
-	cmd = fmt.Sprintf("sudo -SE %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
-	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
+
+	// For consistency, use HERE document approach for all commands
+	sudoCmd := fmt.Sprintf("sudo -S %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
+
+	klog.V(5).InfoS("exec ssh command", "cmd", sudoCmd, "host", c.Host, "multiline", strings.Contains(cmd, "\n"))
+
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {
@@ -232,63 +236,64 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	}
 	defer session.Close()
 
-	// get pipe from session
-	stdin, err := session.StdinPipe()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get stdin pipe")
-	}
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get stdout pipe")
-	}
-	stderr, err := session.StderrPipe()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get stderr pipe")
-	}
-	// Start the remote command
-	if err := session.Start(cmd); err != nil {
-		return nil, errors.Wrap(err, "failed to start session")
-	}
-	if c.Password != "" {
-		if _, err := stdin.Write([]byte(c.Password + "\n")); err != nil {
-			return nil, errors.Wrap(err, "failed to write password")
-		}
-	}
-	if err := stdin.Close(); err != nil {
-		return nil, errors.Wrap(err, "failed to close stdin pipe")
-	}
-
-	// Create buffers to store stdout and stderr output
+	// Create buffers to store output
 	var stdoutBuf, stderrBuf bytes.Buffer
 
-	// When reading large amounts of data from stdout/stderr, the pipe buffer can fill up
-	// and block the remote command from completing if we don't read from it continuously.
-	// To prevent this deadlock scenario, we need to read stdout/stderr asynchronously
-	// in separate goroutines while the command is running.
-	// Create channels to signal when copying is complete
-	stdoutDone := make(chan error, 1)
-	stderrDone := make(chan error, 1)
+	// Set up standard streams
+	session.Stdout = &stdoutBuf
+	session.Stderr = &stderrBuf
 
-	// Copy stdout and stderr concurrently to prevent pipe buffer from filling
-	go func() {
-		_, err := io.Copy(&stdoutBuf, stdout)
-		stdoutDone <- err
-	}()
-	go func() {
-		_, err := io.Copy(&stderrBuf, stderr)
-		stderrDone <- err
-	}()
+	// Only set up stdin if password is provided
+	if c.Password != "" {
+		stdin, err := session.StdinPipe()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get stdin pipe")
+		}
 
-	// Wait for command to complete
-	err = session.Wait()
+		// Send password immediately for sudo
+		// This is simpler and more reliable than trying to detect password prompts
+		go func() {
+			time.Sleep(100 * time.Millisecond) // Small delay to ensure command has started
+			_, _ = stdin.Write([]byte(c.Password + "\n"))
+			// No need to close stdin as session.Close() will handle it
+		}()
+	}
 
-	// Wait for stdout and stderr copying to finish to ensure we've captured all output
-	<-stdoutDone
-	<-stderrDone
+	// Run the command and wait for completion
+	err = session.Run(sudoCmd)
 
+	// Combine output from both streams
 	output := append(stdoutBuf.Bytes(), stderrBuf.Bytes()...)
 
-	return output, errors.Wrap(err, "failed to execute ssh command")
+	// If command failed due to permission issues, try running without sudo
+	if err != nil && strings.Contains(string(output), "Access denied") && !strings.HasPrefix(cmd, "sudo") {
+		klog.V(3).InfoS("command failed with access denied, trying without sudo", "host", c.Host)
+		return c.executeCommandWithoutSudo(cmd)
+	}
+
+	return output, err
+}
+
+// executeCommandWithoutSudo executes a command without using sudo
+func (c *sshConnector) executeCommandWithoutSudo(cmd string) ([]byte, error) {
+	var directCmd string
+	if strings.Contains(cmd, "\n") {
+		// For multi-line scripts, use HERE document approach
+		directCmd = fmt.Sprintf("%s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
+	} else {
+		// For single-line commands, use quoted approach
+		directCmd = fmt.Sprintf("%s -c %q", c.shell, cmd)
+	}
+
+	klog.V(5).InfoS("exec direct ssh command without sudo", "cmd", directCmd, "host", c.Host)
+
+	session, err := c.client.NewSession()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create session")
+	}
+	defer session.Close()
+
+	return session.CombinedOutput(directCmd)
 }
 
 // HostInfo for GatherFacts
