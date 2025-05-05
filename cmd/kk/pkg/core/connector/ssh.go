@@ -259,7 +259,7 @@ func (c *connection) session() (*ssh.Session, error) {
 	}
 
 	if err := sess.Setenv("LANG", "en_US.UTF-8"); err != nil { // try make sure work with english language environments
-		logger.Log.Warningf("Localization warning: Failed to enforce LANG=en_US.UTF-8. (Error: %v)", err)
+		logger.Log.Warningf("Warning: Failed to enforce LANG=en_US.UTF-8. (Error: %v)", err)
 	}
 	
 	return sess, nil
