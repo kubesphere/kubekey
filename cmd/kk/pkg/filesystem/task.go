@@ -19,12 +19,13 @@ package filesystem
 import (
 	"fmt"
 	"os/exec"
-
+    "os"
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 )
 
 type ChownFileAndDir struct {
@@ -64,6 +65,12 @@ type LocalTaskChown struct {
 
 func (l *LocalTaskChown) Execute(runtime connector.Runtime) error {
 	if exist := util.IsExist(l.Path); exist {
+		// Check environment variables first
+		if os.Getenv("SUDO_UID") == "" || os.Getenv("SUDO_GID") == "" {
+			logger.Log.Infof("Skip chown for %s: SUDO_UID/GID missing (not using sudo)", l.Path)
+			return nil
+		}
+
 		if err := exec.Command("/bin/sh", "-c", fmt.Sprintf("chown -R ${SUDO_UID}:${SUDO_GID} %s", l.Path)).Run(); err != nil {
 			return errors.Wrapf(errors.WithStack(err), "chown %s failed", l.Path)
 		}
