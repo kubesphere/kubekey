@@ -85,7 +85,7 @@ func TestSetFact(t *testing.T) {
 				Task:     kkcorev1alpha1.Task{},
 				Playbook: kkcorev1.Playbook{},
 			},
-			exceptStderr: "only support bool, int, float64, string value for \"k\".",
+			exceptStdout: "success",
 		},
 		{
 			name: "array value",
@@ -98,7 +98,7 @@ func TestSetFact(t *testing.T) {
 				Task:     kkcorev1alpha1.Task{},
 				Playbook: kkcorev1.Playbook{},
 			},
-			exceptStderr: "only support bool, int, float64, string value for \"k\".",
+			exceptStdout: "success",
 		},
 	}
 

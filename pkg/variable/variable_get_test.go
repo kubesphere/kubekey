@@ -255,3 +255,122 @@ func TestGetWorkdir(t *testing.T) {
 		})
 	}
 }
+
+func TestCombineVariables(t *testing.T) {
+	testcases := []struct {
+		name     string
+		v1       map[string]any
+		v2       map[string]any
+		excepted map[string]any
+	}{
+		{
+			name: "primary variables value is empty",
+			v1:   nil,
+			v2: map[string]any{
+				"a1": "v1",
+			},
+			excepted: map[string]any{
+				"a1": "v1",
+			},
+		},
+		{
+			name: "auxiliary variables value is empty",
+			v1: map[string]any{
+				"p1": "v1",
+			},
+			v2: nil,
+			excepted: map[string]any{
+				"p1": "v1",
+			},
+		},
+		{
+			name: "non-repeat value",
+			v1: map[string]any{
+				"p1": "v1",
+				"p2": map[string]any{
+					"p21": "v21",
+				},
+			},
+			v2: map[string]any{
+				"a1": "v1",
+			},
+			excepted: map[string]any{
+				"p1": "v1",
+				"p2": map[string]any{
+					"p21": "v21",
+				},
+				"a1": "v1",
+			},
+		},
+		{
+			name: "repeat value",
+			v1: map[string]any{
+				"p1": "v1",
+				"p2": map[string]any{
+					"p21": "v21",
+					"p22": "v22",
+				},
+			},
+			v2: map[string]any{
+				"a1": "v1",
+				"p1": "v2",
+				"p2": map[string]any{
+					"p21": "v22",
+					"a21": "v21",
+				},
+			},
+			excepted: map[string]any{
+				"a1": "v1",
+				"p1": "v2",
+				"p2": map[string]any{
+					"p21": "v22",
+					"a21": "v21",
+					"p22": "v22",
+				},
+			},
+		},
+		{
+			name: "repeat deep value",
+			v1: map[string]any{
+				"p1": map[string]string{
+					"p11": "v11",
+				},
+				"p2": map[string]any{
+					"p21": "v21",
+					"p22": "v22",
+				},
+			},
+			v2: map[string]any{
+				"p1": map[string]string{
+					"p21": "v21",
+				},
+				"p2": map[string]any{
+					"p21": map[string]any{
+						"p211": "v211",
+					},
+					"a21": "v21",
+				},
+			},
+			excepted: map[string]any{
+				"p1": map[string]any{
+					"p11": "v11",
+					"p21": "v21",
+				},
+				"p2": map[string]any{
+					"p21": map[string]any{
+						"p211": "v211",
+					},
+					"p22": "v22",
+					"a21": "v21",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			v := CombineVariables(tc.v1, tc.v2)
+			assert.Equal(t, tc.excepted, v)
+		})
+	}
+}

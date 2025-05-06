@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"net"
 	"regexp"
 	"slices"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/klog/v2"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
@@ -40,7 +42,7 @@ var GetHostnames = func(name []string) GetFunc {
 			for gn, gv := range ConvertGroup(vv.value.Inventory) {
 				if gn == n {
 					if gvd, ok := gv.([]string); ok {
-						hs = mergeSlice(hs, gvd)
+						hs = CombineSlice(hs, gvd)
 					}
 
 					break
@@ -77,6 +79,30 @@ var GetHostnames = func(name []string) GetFunc {
 
 // GetAllVariable get all variable for a given host
 var GetAllVariable = func(hostname string) GetFunc {
+	// getLocalIP get the ipv4 or ipv6 for localhost machine
+	getLocalIP := func(ipType string) string {
+		addrs, err := net.InterfaceAddrs()
+		if err != nil {
+			klog.ErrorS(err, "get network address error")
+		}
+
+		for _, addr := range addrs {
+			if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+				if ipType == _const.VariableIPv4 && ipNet.IP.To4() != nil {
+					return ipNet.IP.String()
+				}
+
+				if ipType == _const.VariableIPv6 && ipNet.IP.To16() != nil && ipNet.IP.To4() == nil {
+					return ipNet.IP.String()
+				}
+			}
+		}
+
+		klog.V(4).Infof("cannot get local %s address", ipType)
+
+		return ""
+	}
+
 	// defaultHostVariable set default vars when hostname is "localhost"
 	defaultHostVariable := func(hostname string, hostVars map[string]any) {
 		if hostname == _const.VariableLocalHost {

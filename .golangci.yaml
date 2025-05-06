@@ -69,8 +69,8 @@ linters:
     - nakedret
     - nestif
     # - nilerr
-    - nilnil
-    - nlreturn
+    # - nilnil
+    # - nlreturn
     - noctx
     - nolintlint
     - nonamedreturns
@@ -459,7 +459,7 @@ linters-settings:
 #      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-map-style
       - name: enforce-map-style
         severity: warning
-        disabled: false
+        disabled: true
         exclude: [""]
         arguments:
           - "make"
@@ -473,7 +473,7 @@ linters-settings:
 #      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-slice-style
       - name: enforce-slice-style
         severity: warning
-        disabled: false
+        disabled: true
         exclude: [""]
         arguments:
           - "make"

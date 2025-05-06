@@ -2,8 +2,7 @@ package variable
 
 import (
 	"github.com/cockroachdb/errors"
-
-	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"gopkg.in/yaml.v3"
 )
 
 // ***************************** MergeFunc ***************************** //
@@ -34,8 +33,8 @@ var MergeRemoteVariable = func(data map[string]any, hostname string) MergeFunc {
 }
 
 // MergeRuntimeVariable parse variable by specific host and merge to the host.
-var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc {
-	if len(data) == 0 || len(hosts) == 0 {
+var MergeRuntimeVariable = func(node yaml.Node, hosts ...string) MergeFunc {
+	if node.IsZero() {
 		// skip
 		return emptyMergeFunc
 	}
@@ -52,24 +51,14 @@ var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc 
 			if err != nil {
 				return err
 			}
-			cv, ok := curVars.(map[string]any)
+			ctx, ok := curVars.(map[string]any)
 			if !ok {
 				return errors.Errorf("host %s variables type error, expect map[string]any", hostname)
 			}
-
-			parser := func(s string) (string, error) {
-				return tmpl.ParseFunc(
-					CombineVariables(data, cv),
-					s,
-					func(b []byte) string { return string(b) },
-				)
-			}
-
-			// parse variable
-			if err := parseVariable(data, parser); err != nil {
+			data, err := parseYamlNode(ctx, node)
+			if err != nil {
 				return err
 			}
-
 			hv := vv.value.Hosts[hostname]
 			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
 			vv.value.Hosts[hostname] = hv
@@ -80,31 +69,29 @@ var MergeRuntimeVariable = func(data map[string]any, hosts ...string) MergeFunc 
 }
 
 // MergeAllRuntimeVariable parse variable by specific host and merge to all hosts.
-var MergeAllRuntimeVariable = func(data map[string]any, hostname string) MergeFunc {
+var MergeAllRuntimeVariable = func(node yaml.Node, hostname string) MergeFunc {
+	if node.IsZero() {
+		// skip
+		return emptyMergeFunc
+	}
+
 	return func(v Variable) error {
 		vv, ok := v.(*variable)
 		if !ok {
 			return errors.New("variable type error")
 		}
 
+		// Avoid nested locking: prepare context for parsing outside locking region
 		curVars, err := v.Get(GetAllVariable(hostname))
 		if err != nil {
 			return err
 		}
-		cv, ok := curVars.(map[string]any)
+		ctx, ok := curVars.(map[string]any)
 		if !ok {
 			return errors.Errorf("host %s variables type error, expect map[string]any", hostname)
 		}
-
-		parser := func(s string) (string, error) {
-			return tmpl.ParseFunc(
-				CombineVariables(data, cv),
-				s,
-				func(b []byte) string { return string(b) },
-			)
-		}
-
-		if err := parseVariable(data, parser); err != nil {
+		data, err := parseYamlNode(ctx, node)
+		if err != nil {
 			return err
 		}
 		for h := range vv.value.Hosts {

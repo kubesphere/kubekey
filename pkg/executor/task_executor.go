@@ -20,11 +20,13 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
+// taskExecutor handles the execution of a single task across multiple hosts.
 type taskExecutor struct {
 	*option
 	task *kkcorev1alpha1.Task
@@ -34,7 +36,8 @@ type taskExecutor struct {
 	taskRunTimeout time.Duration
 }
 
-// Exec and store Task
+// Exec creates and executes a task, updating its status and the parent playbook's status.
+// It returns an error if the task creation or execution fails.
 func (e *taskExecutor) Exec(ctx context.Context) error {
 	// create task
 	if err := e.client.Create(ctx, e.task); err != nil {
@@ -141,7 +144,7 @@ func (e *taskExecutor) runTaskLoop(ctx context.Context) error {
 	}
 }
 
-// execTask
+// execTask executes the task across all specified hosts in parallel and updates the task status.
 func (e *taskExecutor) execTask(ctx context.Context) {
 	// check task host results
 	wg := &wait.Group{}
@@ -165,7 +168,8 @@ func (e *taskExecutor) execTask(ctx context.Context) {
 	}
 }
 
-// execTaskHost deal module in each host parallel.
+// execTaskHost handles executing a task on a single host, including variable setup,
+// condition checking, and module execution. It runs in parallel for each host.
 func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 	return func(ctx context.Context) {
 		// task result
@@ -208,28 +212,13 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 		// execute module in loop with loop item.
 		// if loop is empty. execute once, and the item is null
 		for _, item := range e.dealLoop(had) {
-			// set item to runtime variable
-			if err := e.variable.Merge(variable.MergeRuntimeVariable(map[string]any{
-				_const.VariableItem: item,
-			}, h)); err != nil {
-				stderr = fmt.Sprintf("set loop item to variable error: %v", err)
-
-				return
-			}
-			e.executeModule(ctx, e.task, h, &stdout, &stderr)
-			// delete item
-			if err := e.variable.Merge(variable.MergeRuntimeVariable(map[string]any{
-				_const.VariableItem: nil,
-			}, h)); err != nil {
-				stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
-
-				return
-			}
+			e.executeModule(ctx, e.task, item, h, &stdout, &stderr)
 		}
 	}
 }
 
-// execTaskHostLogs logs for each host
+// execTaskHostLogs sets up and manages progress bar logging for task execution on a host.
+// It returns a cleanup function to be called when execution completes.
 func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, stderr *string) func() {
 	// placeholder format task log
 	var placeholder string
@@ -287,26 +276,62 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 	}
 }
 
-// executeModule find register module and execute it in a single host.
-func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, host string, stdout, stderr *string) {
-	// get all variable. which contains item.
+// executeModule executes a single module task on a specific host. It handles setting up loop item variables,
+// retrieving host variables, checking failure conditions, and executing the actual module.
+func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, item any, host string, stdout, stderr *string) {
+	// Set loop item variable if one was provided
+	if item != nil {
+		// Convert item to runtime variable
+		node, err := converter.ConvertMap2Node(map[string]any{_const.VariableItem: item})
+		if err != nil {
+			*stderr = fmt.Sprintf("convert loop item error: %v", err)
+			return
+		}
+
+		// Merge item into host's runtime variables
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(node, host)); err != nil {
+			*stderr = fmt.Sprintf("set loop item to variable error: %v", err)
+			return
+		}
+
+		// Clean up loop item variable after execution
+		defer func() {
+			if item == nil {
+				return
+			}
+			// Reset item to null
+			resetNode, err := converter.ConvertMap2Node(map[string]any{_const.VariableItem: nil})
+			if err != nil {
+				*stderr = fmt.Sprintf("convert loop item error: %v", err)
+				return
+			}
+			if err := e.variable.Merge(variable.MergeRuntimeVariable(resetNode, host)); err != nil {
+				*stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
+				return
+			}
+		}()
+	}
+
+	// Get all variables for this host, including any loop item
 	ha, err := e.variable.Get(variable.GetAllVariable(host))
 	if err != nil {
 		*stderr = fmt.Sprintf("failed to get host %s variable: %v", host, err)
-
 		return
 	}
-	// convert hostVariable to map
+
+	// Convert host variables to map type
 	had, ok := ha.(map[string]any)
 	if !ok {
 		*stderr = fmt.Sprintf("host: %s variable is not a map", host)
-
 		return
 	}
-	// check failed when condition
+
+	// Check if task should fail based on failed_when conditions
 	if skip := e.dealFailedWhen(had, stdout, stderr); skip {
 		return
 	}
+
+	// Execute the actual module with the prepared context
 	*stdout, *stderr = modules.FindModule(task.Spec.Module.Name)(ctx, modules.ExecOptions{
 		Args:     e.task.Spec.Module.Args,
 		Host:     host,
@@ -316,9 +341,9 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 	})
 }
 
-// execLoop parse loop to item slice and execute it. if loop contains template string. convert it.
-// loop is json string. try convertor to string slice by json.
-// loop is normal string. set it to empty slice and return.
+// dealLoop parses the loop specification into a slice of items to iterate over.
+// If no loop is specified, returns a single nil item. Otherwise converts the loop
+// specification from JSON into a slice of values.
 func (e *taskExecutor) dealLoop(ha map[string]any) []any {
 	var items []any
 	switch {
@@ -332,7 +357,8 @@ func (e *taskExecutor) dealLoop(ha map[string]any) []any {
 	return items
 }
 
-// dealWhen "when" argument in task.
+// dealWhen evaluates the "when" conditions for a task to determine if it should be skipped.
+// Returns true if the task should be skipped, false if it should proceed.
 func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool {
 	if len(e.task.Spec.When) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.When...)
@@ -352,7 +378,8 @@ func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool
 	return false
 }
 
-// dealFailedWhen "failed_when" argument in task.
+// dealFailedWhen evaluates the "failed_when" conditions for a task to determine if it should fail.
+// Returns true if the task should be marked as failed, false if it should proceed.
 func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string) bool {
 	if len(e.task.Spec.FailedWhen) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen...)
@@ -373,7 +400,8 @@ func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string
 	return false
 }
 
-// dealRegister "register" argument in task.
+// dealRegister handles storing task output in a registered variable if specified.
+// The output can be stored as raw string, JSON, or YAML based on the register type.
 func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 	if e.task.Spec.Register != "" {
 		var stdoutResult any = stdout
@@ -387,12 +415,16 @@ func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
 			// store by string
 		}
 		// set variable to parent location
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(map[string]any{
+		node, err := converter.ConvertMap2Node(map[string]any{
 			e.task.Spec.Register: map[string]any{
 				"stdout": stdoutResult,
 				"stderr": stderrResult,
 			},
-		}, host)); err != nil {
+		})
+		if err != nil {
+			return err
+		}
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(node, host)); err != nil {
 			return err
 		}
 	}

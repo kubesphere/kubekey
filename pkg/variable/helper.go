@@ -17,16 +17,14 @@ limitations under the License.
 package variable
 
 import (
-	"net"
 	"reflect"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
-	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
@@ -36,18 +34,53 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
-// CombineVariables merge multiple variables into one variable
-// v2 will override v1 if variable is repeated
+// CombineMappingNode combines two yaml.Node objects representing mapping nodes.
+// If b is nil or zero, returns a.
+// If both a and b are mapping nodes, appends a's content to b.
+// Returns b in all other cases.
+//
+// Parameters:
+//   - a: First yaml.Node to combine
+//   - b: Second yaml.Node to combine
+//
+// Returns:
+//   - Combined yaml.Node, with b taking precedence
+func CombineMappingNode(a, b *yaml.Node) *yaml.Node {
+	if b == nil || b.IsZero() {
+		return a
+	}
+
+	if a.Kind == yaml.MappingNode && b.Kind == yaml.MappingNode {
+		b.Content = append(b.Content, a.Content...)
+	}
+
+	return b
+}
+
+// CombineVariables merge multiple variables into one variable.
+// It recursively combines two maps, where values from m2 override values from m1 if keys overlap.
+// For nested maps, it will recursively merge their contents.
+// For non-map values or when either input is nil, m2's value takes precedence.
+//
+// Parameters:
+//   - m1: The first map to merge (base map)
+//   - m2: The second map to merge (override map)
+//
+// Returns:
+//   - A new map containing the merged key-value pairs from both input maps
 func CombineVariables(m1, m2 map[string]any) map[string]any {
 	var f func(val1, val2 any) any
 	f = func(val1, val2 any) any {
+		// If both values are non-nil maps, merge them recursively
 		if val1 != nil && val2 != nil &&
 			reflect.TypeOf(val1).Kind() == reflect.Map && reflect.TypeOf(val2).Kind() == reflect.Map {
 			mergedVars := make(map[string]any)
+			// Copy all values from val1 first
 			for _, k := range reflect.ValueOf(val1).MapKeys() {
 				mergedVars[k.String()] = reflect.ValueOf(val1).MapIndex(k).Interface()
 			}
 
+			// Merge in values from val2, recursively handling nested maps
 			for _, k := range reflect.ValueOf(val2).MapKeys() {
 				mergedVars[k.String()] = f(mergedVars[k.String()], reflect.ValueOf(val2).MapIndex(k).Interface())
 			}
@@ -55,19 +88,59 @@ func CombineVariables(m1, m2 map[string]any) map[string]any {
 			return mergedVars
 		}
 
+		// For non-map values or nil inputs, return val2
 		return val2
 	}
+
+	// Initialize result map
 	mv := make(map[string]any)
 
+	// Copy all key-value pairs from m1
 	for k, v := range m1 {
 		mv[k] = v
 	}
 
+	// Merge in values from m2
 	for k, v := range m2 {
 		mv[k] = f(mv[k], v)
 	}
 
 	return mv
+}
+
+// CombineSlice combines two string slices while skipping duplicate values.
+// It maintains the order of elements from g1 followed by unique elements from g2.
+//
+// Parameters:
+//   - g1: The first slice of strings
+//   - g2: The second slice of strings
+//
+// Returns:
+//   - A new slice containing unique strings from both input slices,
+//     preserving order with g1 elements appearing before unique g2 elements
+func CombineSlice(g1, g2 []string) []string {
+	uniqueValues := make(map[string]bool)
+	mg := make([]string, 0)
+
+	// Add values from the first slice
+	for _, v := range g1 {
+		if !uniqueValues[v] {
+			uniqueValues[v] = true
+
+			mg = append(mg, v)
+		}
+	}
+
+	// Add values from the second slice
+	for _, v := range g2 {
+		if !uniqueValues[v] {
+			uniqueValues[v] = true
+
+			mg = append(mg, v)
+		}
+	}
+
+	return mg
 }
 
 // ConvertGroup converts the inventory into a map of groups with their respective hosts.
@@ -120,143 +193,13 @@ func HostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
 	if v, ok := inv.Spec.Groups[groupName]; ok {
 		var hosts []string
 		for _, cg := range v.Groups {
-			hosts = mergeSlice(HostsInGroup(inv, cg), hosts)
+			hosts = CombineSlice(HostsInGroup(inv, cg), hosts)
 		}
 
-		return mergeSlice(hosts, v.Hosts)
+		return CombineSlice(hosts, v.Hosts)
 	}
 
 	return nil
-}
-
-// mergeSlice with skip repeat value
-func mergeSlice(g1, g2 []string) []string {
-	uniqueValues := make(map[string]bool)
-	mg := make([]string, 0)
-
-	// Add values from the first slice
-	for _, v := range g1 {
-		if !uniqueValues[v] {
-			uniqueValues[v] = true
-
-			mg = append(mg, v)
-		}
-	}
-
-	// Add values from the second slice
-	for _, v := range g2 {
-		if !uniqueValues[v] {
-			uniqueValues[v] = true
-
-			mg = append(mg, v)
-		}
-	}
-
-	return mg
-}
-
-// parseVariable parse all string values to the actual value.
-func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
-	switch reflect.ValueOf(v).Kind() {
-	case reflect.Map:
-		if err := parseVariableFromMap(v, parseTmplFunc); err != nil {
-			return err
-		}
-	case reflect.Slice, reflect.Array:
-		if err := parseVariableFromArray(v, parseTmplFunc); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// parseVariableFromMap parse to variable when the v is map.
-func parseVariableFromMap(v any, parseTmplFunc func(string) (string, error)) error {
-	for _, kv := range reflect.ValueOf(v).MapKeys() {
-		val := reflect.ValueOf(v).MapIndex(kv)
-		if vv, ok := val.Interface().(string); ok {
-			if !kkprojectv1.IsTmplSyntax(vv) {
-				continue
-			}
-
-			newValue, err := parseTmplFunc(vv)
-			if err != nil {
-				return err
-			}
-
-			switch {
-			case strings.EqualFold(newValue, "TRUE"):
-				reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(true))
-			case strings.EqualFold(newValue, "FALSE"):
-				reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(false))
-			default:
-				reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(newValue))
-			}
-		} else {
-			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// parseVariableFromArray parse to variable when the v is slice.
-func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) error {
-	for i := range reflect.ValueOf(v).Len() {
-		val := reflect.ValueOf(v).Index(i)
-		if vv, ok := val.Interface().(string); ok {
-			if !kkprojectv1.IsTmplSyntax(vv) {
-				continue
-			}
-
-			newValue, err := parseTmplFunc(vv)
-			if err != nil {
-				return err
-			}
-
-			switch {
-			case strings.EqualFold(newValue, "TRUE"):
-				val.Set(reflect.ValueOf(true))
-			case strings.EqualFold(newValue, "FALSE"):
-				val.Set(reflect.ValueOf(false))
-			default:
-				val.Set(reflect.ValueOf(newValue))
-			}
-		} else {
-			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// getLocalIP get the ipv4 or ipv6 for localhost machine
-func getLocalIP(ipType string) string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		klog.ErrorS(err, "get network address error")
-	}
-
-	for _, addr := range addrs {
-		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-			if ipType == _const.VariableIPv4 && ipNet.IP.To4() != nil {
-				return ipNet.IP.String()
-			}
-
-			if ipType == _const.VariableIPv6 && ipNet.IP.To16() != nil && ipNet.IP.To4() == nil {
-				return ipNet.IP.String()
-			}
-		}
-	}
-
-	klog.V(4).Infof("connot get local %s address", ipType)
-
-	return ""
 }
 
 // StringVar get string value by key

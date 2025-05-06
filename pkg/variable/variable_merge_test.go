@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
 
@@ -94,8 +95,11 @@ func TestMergeRuntimeVariable(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.variable.Merge(MergeRuntimeVariable(tc.data, tc.hostname))
+			node, err := converter.ConvertMap2Node(tc.data)
 			if err != nil {
+				t.Fatal(err)
+			}
+			if err := tc.variable.Merge(MergeRuntimeVariable(node, tc.hostname)); err != nil {
 				t.Fatal(err)
 			}
 
@@ -146,8 +150,11 @@ func TestMergeAllRuntimeVariable(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.variable.Merge(MergeAllRuntimeVariable(tc.data, tc.hostname))
+			node, err := converter.ConvertMap2Node(tc.data)
 			if err != nil {
+				t.Fatal(err)
+			}
+			if err := tc.variable.Merge(MergeAllRuntimeVariable(node, tc.hostname)); err != nil {
 				t.Fatal(err)
 			}
 
