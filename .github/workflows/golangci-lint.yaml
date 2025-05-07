@@ -3,6 +3,13 @@ name: GolangCILint
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+    paths:
+      - 'pkg/**'
+      - 'cmd/**'
+      - 'version/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'api/**'
 
 # Remove all permissions from GITHUB_TOKEN except metadata.
 permissions: {}
