@@ -173,18 +173,23 @@ func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error 
 		if file == "" {
 			return errors.Errorf("failed to find vars_files %q base on %q. it's should be:\n %s", varsFile, basePlaybook, PathFormatVarsFile)
 		}
-
 		data, err := fs.ReadFile(f.FS, file)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read file %q", file)
 		}
-		var newVars map[string]any
+		var node yaml.Node
 		// Unmarshal the YAML document into a root node.
-		if err := yaml.Unmarshal(data, &newVars); err != nil {
+		if err := yaml.Unmarshal(data, &node); err != nil {
 			return errors.Wrap(err, "failed to failed to unmarshal YAML")
 		}
-		// store vars in play. the vars defined in file should not be repeated.
-		p.Vars = variable.CombineVariables(newVars, p.Vars)
+		if node.Kind != yaml.DocumentNode || len(node.Content) != 1 {
+			return errors.Errorf("unsupport vars_files format. it should be single map file")
+		}
+		// combine map node
+		if node.Content[0].Kind == yaml.MappingNode {
+			// skip empty file
+			p.Vars = *variable.CombineMappingNode(node.Content[0], &p.Vars)
+		}
 	}
 
 	return nil
@@ -218,13 +223,19 @@ func (f *project) dealRoles(p kkprojectv1.Play, basePlaybook string) error {
 				return errors.Wrapf(err, "failed to read defaults variable file %q", defaults)
 			}
 
-			var newVars map[string]any
+			var node yaml.Node
 			// Unmarshal the YAML document into a root node.
-			if err := yaml.Unmarshal(data, &newVars); err != nil {
+			if err := yaml.Unmarshal(data, &node); err != nil {
 				return errors.Wrap(err, "failed to unmarshal YAML")
 			}
-			// store vars in play. the vars defined in file should not be repeated.
-			p.Roles[i].Vars = variable.CombineVariables(newVars, p.Roles[i].Vars)
+			if node.Kind != yaml.DocumentNode || len(node.Content) != 1 {
+				return errors.Errorf("unsupport vars_files format. it should be single map file")
+			}
+			// combine map node
+			if node.Content[0].Kind == yaml.MappingNode {
+				// skip empty file
+				p.Roles[i].Vars = *variable.CombineMappingNode(node.Content[0], &p.Roles[i].Vars)
+			}
 		}
 	}
 

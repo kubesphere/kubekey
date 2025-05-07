@@ -7,6 +7,7 @@ import (
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestMarshalPlaybook(t *testing.T) {
@@ -290,6 +291,220 @@ func TestMarshalPlaybook(t *testing.T) {
 									},
 								},
 							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "test_vars_1",
+			playbook: kkcorev1.Playbook{
+				Spec: kkcorev1.PlaybookSpec{
+					Playbook: "testdata/playbook_var1.yaml",
+				},
+			},
+			except: &kkprojectv1.Playbook{
+				Play: []kkprojectv1.Play{
+					{
+						Base: kkprojectv1.Base{
+							Name: "playbook-var1",
+							Vars: yaml.Node{
+								Kind:   yaml.MappingNode,
+								Tag:    "!!map",
+								Line:   6,
+								Column: 5,
+								Content: []*yaml.Node{
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a",
+										Line:   6,
+										Column: 5,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "b",
+										Line:   6,
+										Column: 8,
+									},
+								},
+							},
+						},
+						PlayHost: kkprojectv1.PlayHost{
+							Hosts: []string{"node1"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "test_vars_2",
+			playbook: kkcorev1.Playbook{
+				Spec: kkcorev1.PlaybookSpec{
+					Playbook: "testdata/playbook_var2.yaml",
+				},
+			},
+			except: &kkprojectv1.Playbook{
+				Play: []kkprojectv1.Play{
+					{
+						VarsFiles: []string{"vars/var1.yaml", "vars/var2.yaml"},
+						Base: kkprojectv1.Base{
+							Name: "playbook-var2",
+							Vars: yaml.Node{
+								Kind:   yaml.MappingNode,
+								Tag:    "!!map",
+								Line:   2,
+								Column: 1,
+								Content: []*yaml.Node{
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a1",
+										Line:   2,
+										Column: 1,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "aa",
+										Line:   2,
+										Column: 5,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a2",
+										Line:   3,
+										Column: 1,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!int",
+										Value:  "1",
+										Line:   3,
+										Column: 5,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a2",
+										Line:   1,
+										Column: 1,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "aaa",
+										Line:   1,
+										Column: 5,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a3",
+										Line:   2,
+										Column: 1,
+									},
+									{
+										Kind:   yaml.MappingNode,
+										Tag:    "!!map",
+										Value:  "",
+										Line:   3,
+										Column: 2,
+										Content: []*yaml.Node{
+											{
+												Kind:   yaml.ScalarNode,
+												Tag:    "!!str",
+												Value:  "b3",
+												Line:   3,
+												Column: 2,
+											},
+											{
+												Kind:   yaml.ScalarNode,
+												Tag:    "!!int",
+												Value:  "1",
+												Line:   3,
+												Column: 6,
+											},
+										},
+									},
+								},
+							},
+						},
+						PlayHost: kkprojectv1.PlayHost{
+							Hosts: []string{"node1"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "test_vars_3",
+			playbook: kkcorev1.Playbook{
+				Spec: kkcorev1.PlaybookSpec{
+					Playbook: "testdata/playbook_var3.yaml",
+				},
+			},
+			except: &kkprojectv1.Playbook{
+				Play: []kkprojectv1.Play{
+					{
+						VarsFiles: []string{"vars/var1.yaml"},
+						Base: kkprojectv1.Base{
+							Name: "playbook-var3",
+							Vars: yaml.Node{
+								Kind:   yaml.MappingNode,
+								Tag:    "!!map",
+								Line:   8,
+								Column: 5,
+								Content: []*yaml.Node{
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a2",
+										Line:   8,
+										Column: 5,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!int",
+										Value:  "2",
+										Line:   8,
+										Column: 9,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a1",
+										Line:   2,
+										Column: 1,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "aa",
+										Line:   2,
+										Column: 5,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!str",
+										Value:  "a2",
+										Line:   3,
+										Column: 1,
+									},
+									{
+										Kind:   yaml.ScalarNode,
+										Tag:    "!!int",
+										Value:  "1",
+										Line:   3,
+										Column: 5,
+									},
+								},
+							},
+						},
+						PlayHost: kkprojectv1.PlayHost{
+							Hosts: []string{"node1"},
 						},
 					},
 				},

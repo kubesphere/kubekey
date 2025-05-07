@@ -18,44 +18,21 @@ package modules
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
-	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 // ModuleSetFact deal "set_fact" module
 func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
-	ha, err := options.getAllVariables()
-	if err != nil {
-		return "", err.Error()
+	var node yaml.Node
+	// Unmarshal the YAML document into a root node.
+	if err := yaml.Unmarshal(options.Args.Raw, &node); err != nil {
+		return "", fmt.Sprintf("failed to unmarshal YAML error: %v", err)
 	}
-	// get host variable
-	args := variable.Extension2Variables(options.Args)
-	for k, v := range args {
-		switch val := v.(type) {
-		case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-			args[k] = val
-		case string:
-			sv, err := tmpl.Parse(ha, val)
-			if err != nil {
-				return "", fmt.Sprintf("parse %q error: %v", k, err)
-			}
-			var ssvResult any
-			if json.Valid(sv) {
-				_ = json.Unmarshal(sv, &ssvResult)
-			} else {
-				_ = yaml.Unmarshal(sv, &ssvResult)
-			}
-			args[k] = ssvResult
-		default:
-			return "", fmt.Sprintf("only support bool, int, float64, string value for %q.", k)
-		}
-	}
-	if err := options.Variable.Merge(variable.MergeAllRuntimeVariable(args, options.Host)); err != nil {
+	if err := options.Variable.Merge(variable.MergeAllRuntimeVariable(node, options.Host)); err != nil {
 		return "", fmt.Sprintf("set_fact error: %v", err)
 	}
 

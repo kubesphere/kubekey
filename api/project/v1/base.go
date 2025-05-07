@@ -16,6 +16,8 @@ limitations under the License.
 
 package v1
 
+import "gopkg.in/yaml.v3"
+
 // Base defined in project.
 type Base struct {
 	Name string `yaml:"name,omitempty"`
@@ -26,7 +28,7 @@ type Base struct {
 	RemoteUser string `yaml:"remote_user,omitempty"`
 
 	// variables
-	Vars map[string]any `yaml:"vars,omitempty"`
+	Vars yaml.Node `yaml:"vars,omitempty"`
 
 	// module default params
 	//ModuleDefaults []map[string]map[string]any `yaml:"module_defaults,omitempty"`

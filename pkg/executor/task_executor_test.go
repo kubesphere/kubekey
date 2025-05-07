@@ -14,15 +14,16 @@ import (
 
 func TestTaskExecutor(t *testing.T) {
 	testcases := []struct {
-		name string
-		task *kkcorev1alpha1.Task
+		name  string
+		hosts []string
+		task  *kkcorev1alpha1.Task
 	}{
 		{
 			name: "debug module in single host",
 			task: &kkcorev1alpha1.Task{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
+					Name:      "test1",
 					Namespace: corev1.NamespaceDefault,
 				},
 				Spec: kkcorev1alpha1.TaskSpec{
@@ -36,11 +37,33 @@ func TestTaskExecutor(t *testing.T) {
 			},
 		},
 		{
+			name:  "debug module in single host with loop",
+			hosts: []string{"node1"},
+			task: &kkcorev1alpha1.Task{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test2",
+					Namespace: corev1.NamespaceDefault,
+				},
+				Spec: kkcorev1alpha1.TaskSpec{
+					Hosts: []string{"node1"},
+					Module: kkcorev1alpha1.Module{
+						Name: "debug",
+						Args: runtime.RawExtension{Raw: []byte(`{"msg":"hello"}`)},
+					},
+					Loop: runtime.RawExtension{
+						Raw: []byte(string(`["a", "b"]`)),
+					},
+				},
+				Status: kkcorev1alpha1.TaskStatus{},
+			},
+		},
+		{
 			name: "debug module in multiple hosts",
 			task: &kkcorev1alpha1.Task{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
+					Name:      "test3",
 					Namespace: corev1.NamespaceDefault,
 				},
 				Spec: kkcorev1alpha1.TaskSpec{
@@ -56,7 +79,7 @@ func TestTaskExecutor(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			o, err := newTestOption()
+			o, err := newTestOption(tc.hosts)
 			if err != nil {
 				t.Fatal(err)
 			}

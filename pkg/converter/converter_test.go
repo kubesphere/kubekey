@@ -170,3 +170,51 @@ func TestConvertKKClusterToInventoryHost(t *testing.T) {
 		})
 	}
 }
+
+func TestConvertMap2Node(t *testing.T) {
+	testcases := []struct {
+		name    string
+		input   map[string]any
+		wantErr bool
+	}{
+		{
+			name: "simple map",
+			input: map[string]any{
+				"key1": "value1",
+				"key2": 123,
+				"key3": true,
+			},
+		},
+		{
+			name: "nested map",
+			input: map[string]any{
+				"outer": map[string]any{
+					"inner": "value",
+				},
+				"array": []any{"a", "b", "c"},
+			},
+		},
+		{
+			name:  "empty map",
+			input: map[string]any{},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			node, err := ConvertMap2Node(tc.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.NotNil(t, node)
+
+			// Convert back to map to verify roundtrip
+			var result map[string]any
+			err = node.Decode(&result)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.input, result)
+		})
+	}
+}

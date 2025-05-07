@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -148,4 +149,20 @@ func ConvertKKClusterToInventoryHost(kkcluster *capkkinfrav1beta1.KKCluster) (kk
 	}
 
 	return inventoryHosts, nil
+}
+
+// ConvertMap2Node converts a map[string]any to a yaml.Node by first marshaling to YAML bytes
+// then unmarshaling into a Node. This allows working with the YAML node structure directly.
+func ConvertMap2Node(m map[string]any) (yaml.Node, error) {
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		return yaml.Node{}, errors.Wrap(err, "failed to marshal map to yaml")
+	}
+	var node yaml.Node
+	err = yaml.Unmarshal(data, &node)
+	if err != nil {
+		return yaml.Node{}, errors.Wrap(err, "failed to unmarshal yaml to node")
+	}
+
+	return node, nil
 }
