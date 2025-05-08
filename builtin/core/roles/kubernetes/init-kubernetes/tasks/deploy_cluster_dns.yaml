@@ -11,11 +11,11 @@
     kubectl delete svc kube-dns -n kube-system
     kubectl apply -f /etc/kubernetes/coredns.yaml && kubectl rollout restart deployment -n kube-system coredns
 
-- name: Generate nodelocaldns deployment
+- name: Generate nodelocaldns daemonset
   template:
     src: dns/nodelocaldns.yaml
     dest: /etc/kubernetes/nodelocaldns.yaml
 
-- name: Apply coredns deployment
+- name: Apply nodelocaldns daemonset
   command: |
     kubectl apply -f /etc/kubernetes/nodelocaldns.yaml
