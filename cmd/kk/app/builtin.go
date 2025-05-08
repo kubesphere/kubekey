@@ -11,9 +11,6 @@ import (
 
 // registerInternalCommand registers an internal command to the list of internal commands.
 // It ensures that the command is not already registered before adding it to the list.
-//
-// Parameters:
-//   - command: The command to be registered.
 func registerInternalCommand(command *cobra.Command) {
 	for _, c := range internalCommand {
 		if c.Name() == command.Name() {
@@ -25,6 +22,7 @@ func registerInternalCommand(command *cobra.Command) {
 }
 
 func init() {
+	registerInternalCommand(builtin.NewAddCommand())
 	registerInternalCommand(builtin.NewArtifactCommand())
 	registerInternalCommand(builtin.NewCertsCommand())
 	registerInternalCommand(builtin.NewCreateCommand())

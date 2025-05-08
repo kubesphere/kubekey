@@ -199,7 +199,7 @@ func HostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
 		return CombineSlice(hosts, v.Hosts)
 	}
 
-	return nil
+	return make([]string, 0)
 }
 
 // StringVar get string value by key
