@@ -41,19 +41,24 @@ work_dir/
 |-- scripts_dir/
 |
 |-- runtime/
-|-- group/version/
-|   |   |-- playbooks/
-|   |   |   |-- namespace/
-|   |   |   |   |-- playbook.yaml
-|   |   |   |   |-- /playbookName/variable/
-|   |   |   |   |   |-- location.json
-|   |   |   |   |   |-- hostname.json
-|   |   |-- tasks/
-|   |   |   |-- namespace/
-|   |   |   |   |-- task.yaml
-|   |   |-- inventories/
-|   |   |   |-- namespace/
-|   |   |   |   |-- inventory.yaml
+|-- | -- gather_facts_caches
+|-- | -- | -- inventory
+|   |-- group/version/
+|   |   |   |-- playbooks/
+|   |   |   |   |-- namespace/
+|   |   |   |   |   |-- playbook.yaml
+|   |   |   |   |   |-- /playbookName/variable/
+|   |   |   |   |   |   |-- location.yaml
+|   |   |   |   |   |   |-- inventory_name1.yaml
+|   |   |   |   |   |   |-- inventory_name2.yaml
+|
+|   |   |   |-- inventories/
+|   |   |   |   |-- namespace/
+|   |   |   |   |   |-- inventory.yaml
+|   |-- group/version/
+|   |   |   |-- tasks/
+|   |   |   |   |-- namespace/
+|   |   |   |   |   |-- task.yaml
 |
 |-- kubernetes/
 
@@ -102,6 +107,9 @@ const BinaryImagesDir = "images"
 
 // RuntimeDir used to store runtime data for the current task execution. By default, its path is set to {{ .work_dir/runtime }}.
 const RuntimeDir = "runtime"
+
+// RuntimeGatherFactsCacheDir is a fixed directory name under runtime, used to store cached host facts gathered during execution.
+const RuntimeGatherFactsCacheDir = "gather_facts_caches"
 
 // RuntimePlaybookDir stores playbook resources created during playbook execution.
 const RuntimePlaybookDir = "playbooks"

@@ -35,8 +35,8 @@ const kubeconfigRelPath = ".kube/config"
 
 var _ Connector = &kubernetesConnector{}
 
-func newKubernetesConnector(host string, workdir string, connectorVars map[string]any) (*kubernetesConnector, error) {
-	kubeconfig, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorKubeconfig)
+func newKubernetesConnector(host string, workdir string, hostVars map[string]any) (*kubernetesConnector, error) {
+	kubeconfig, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorKubeconfig)
 	if err != nil && host != _const.VariableLocalHost {
 		return nil, err
 	}

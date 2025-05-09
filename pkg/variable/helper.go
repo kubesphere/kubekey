@@ -20,11 +20,13 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
@@ -203,32 +205,34 @@ func HostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
 }
 
 // StringVar get string value by key
-func StringVar(d map[string]any, args map[string]any, key string) (string, error) {
-	val, ok := args[key]
-	if !ok {
-		return "", errors.Errorf("cannot find variable %q", key)
-	}
+func StringVar(ctx map[string]any, args map[string]any, keys ...string) (string, error) {
 	// convert to string
-	sv, ok := val.(string)
-	if !ok {
-		return "", errors.Errorf("variable %q is not string", key)
+	sv, found, err := unstructured.NestedString(args, keys...)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	if !found {
+		return "", errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 
-	return tmpl.ParseFunc(d, sv, func(b []byte) string { return string(b) })
+	return tmpl.ParseFunc(ctx, sv, func(b []byte) string { return string(b) })
 }
 
 // StringSliceVar get string slice value by key
-func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string, error) {
-	val, ok := vars[key]
-	if !ok {
-		return nil, errors.Errorf("cannot find variable %q", key)
+func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]string, error) {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 
 	switch valv := val.(type) {
 	case []string:
 		var ss []string
 		for _, a := range valv {
-			as, err := tmpl.ParseFunc(d, a, func(b []byte) string { return string(b) })
+			as, err := tmpl.ParseFunc(ctx, a, func(b []byte) string { return string(b) })
 			if err != nil {
 				return nil, err
 			}
@@ -242,12 +246,12 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 		for _, a := range valv {
 			av, ok := a.(string)
 			if !ok {
-				klog.V(6).InfoS("variable is not string", "key", key)
+				klog.V(6).InfoS("variable is not string", "key", keys)
 
 				return nil, nil
 			}
 
-			as, err := tmpl.ParseFunc(d, av, func(b []byte) string { return string(b) })
+			as, err := tmpl.ParseFunc(ctx, av, func(b []byte) string { return string(b) })
 			if err != nil {
 				return nil, err
 			}
@@ -257,7 +261,7 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 
 		return ss, nil
 	case string:
-		as, err := tmpl.Parse(d, valv)
+		as, err := tmpl.Parse(ctx, valv)
 		if err != nil {
 			return nil, err
 		}
@@ -269,16 +273,20 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 
 		return []string{string(as)}, nil
 	default:
-		return nil, errors.Errorf("unsupported variable %q type", key)
+		return nil, errors.Errorf("unsupported variable %q type", strings.Join(keys, "."))
 	}
 }
 
 // IntVar get int value by key
-func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
-	val, ok := vars[key]
-	if !ok {
-		return nil, errors.Errorf("cannot find variable %q", key)
+func IntVar(ctx map[string]any, args map[string]any, keys ...string) (*int, error) {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
+	}
+
 	// default convert to int
 	v := reflect.ValueOf(val)
 	switch v.Kind() {
@@ -287,34 +295,37 @@ func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		u := v.Uint()
 		if u > uint64(^uint(0)>>1) {
-			return nil, errors.Errorf("variable %q value %d overflows int", key, u)
+			return nil, errors.Errorf("variable %q value %d overflows int", strings.Join(keys, "."), u)
 		}
 
 		return ptr.To(int(u)), nil
 	case reflect.Float32, reflect.Float64:
 		return ptr.To(int(v.Float())), nil
 	case reflect.String:
-		vs, err := tmpl.ParseFunc(d, v.String(), func(b []byte) string { return string(b) })
+		vs, err := tmpl.ParseFunc(ctx, v.String(), func(b []byte) string { return string(b) })
 		if err != nil {
 			return nil, err
 		}
 
 		atoi, err := strconv.Atoi(vs)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to convert string %q to int of key %q", vs, key)
+			return nil, errors.Wrapf(err, "failed to convert string %q to int of key %q", vs, strings.Join(keys, "."))
 		}
 
 		return ptr.To(atoi), nil
 	default:
-		return nil, errors.Errorf("unsupported variable %q type", key)
+		return nil, errors.Errorf("unsupported variable %q type", strings.Join(keys, "."))
 	}
 }
 
 // BoolVar get bool value by key
-func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
-	val, ok := args[key]
-	if !ok {
-		return nil, errors.Errorf("failed to find variable of key %q", key)
+func BoolVar(ctx map[string]any, args map[string]any, keys ...string) (*bool, error) {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 	// default convert to int
 	v := reflect.ValueOf(val)
@@ -322,7 +333,7 @@ func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 	case reflect.Bool:
 		return ptr.To(v.Bool()), nil
 	case reflect.String:
-		vs, err := tmpl.ParseBool(d, v.String())
+		vs, err := tmpl.ParseBool(ctx, v.String())
 		if err != nil {
 			return nil, err
 		}
@@ -330,12 +341,12 @@ func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 		return ptr.To(vs), nil
 	}
 
-	return nil, errors.Errorf("unsupported variable %q type", key)
+	return nil, errors.Errorf("unsupported variable %q type", strings.Join(keys, "."))
 }
 
 // DurationVar get time.Duration value by key
-func DurationVar(d map[string]any, args map[string]any, key string) (time.Duration, error) {
-	stringVar, err := StringVar(d, args, key)
+func DurationVar(ctx map[string]any, args map[string]any, key string) (time.Duration, error) {
+	stringVar, err := StringVar(ctx, args, key)
 	if err != nil {
 		return 0, err
 	}
@@ -359,7 +370,7 @@ func Extension2Variables(ext runtime.RawExtension) map[string]any {
 
 // Extension2Slice convert runtime.RawExtension to slice
 // if runtime.RawExtension contains tmpl syntax, parse it.
-func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
+func Extension2Slice(ctx map[string]any, ext runtime.RawExtension) []any {
 	if len(ext.Raw) == 0 {
 		return nil
 	}
@@ -370,7 +381,7 @@ func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
 		return data
 	}
 	// try converter template string
-	val, err := Extension2String(d, ext)
+	val, err := Extension2String(ctx, ext)
 	if err != nil {
 		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
 	}
@@ -384,7 +395,7 @@ func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
 
 // Extension2String convert runtime.RawExtension to string.
 // if runtime.RawExtension contains tmpl syntax, parse it.
-func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error) {
+func Extension2String(ctx map[string]any, ext runtime.RawExtension) (string, error) {
 	if len(ext.Raw) == 0 {
 		return "", nil
 	}
@@ -395,7 +406,7 @@ func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error
 		input = ns
 	}
 
-	result, err := tmpl.Parse(d, input)
+	result, err := tmpl.Parse(ctx, input)
 	if err != nil {
 		return "", err
 	}
