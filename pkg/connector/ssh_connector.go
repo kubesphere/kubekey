@@ -56,38 +56,38 @@ func init() {
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
-func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
+func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnector {
 	// get host in connector variable. if empty, set default host: host_name.
-	hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
+	hostParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorHost)
 	if err != nil {
 		klog.V(4).InfoS("get connector host failed use current hostname", "error", err)
 		hostParam = host
 	}
 	// get port in connector variable. if empty, set default port: 22.
-	portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
+	portParam, err := variable.IntVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPort)
 	if err != nil {
 		klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
 		portParam = ptr.To(defaultSSHPort)
 	}
 	// get user in connector variable. if empty, set default user: root.
-	userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
+	userParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
 	if err != nil {
 		klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
 		userParam = defaultSSHUser
 	}
 	// get password in connector variable. if empty, should connector by private key.
-	passwdParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
+	passwdParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil {
 		klog.V(4).InfoS("connector password is empty use public key")
 	}
 	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
-	keyParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPrivateKey)
+	keyParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
 	if err != nil {
 		klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
 		keyParam = defaultSSHPrivateKey
 	}
-
-	return &sshConnector{
+	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
+	connector := &sshConnector{
 		Host:       hostParam,
 		Port:       *portParam,
 		User:       userParam,
@@ -95,6 +95,11 @@ func newSSHConnector(host string, connectorVars map[string]any) *sshConnector {
 		PrivateKey: keyParam,
 		shell:      defaultSHELL,
 	}
+
+	// Initialize the cacheGatherFact with a function that will call getHostInfoFromRemote
+	connector.gatherFacts = newCacheGatherFact(_const.VariableLocalHost, cacheType, workdir, connector.getHostInfo)
+
+	return connector
 }
 
 type sshConnector struct {
@@ -107,6 +112,8 @@ type sshConnector struct {
 	client *ssh.Client
 	// shell to execute command
 	shell string
+
+	gatherFacts *cacheGatherFact
 }
 
 // Init connector, get ssh.Client
@@ -291,8 +298,13 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	return output, errors.Wrap(err, "failed to execute ssh command")
 }
 
-// HostInfo for GatherFacts
+// HostInfo from gatherFacts cache
 func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
+	return c.gatherFacts.HostInfo(ctx)
+}
+
+// getHostInfo from remote
+func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) {
 	// os information
 	osVars := make(map[string]any)
 	var osRelease bytes.Buffer
@@ -328,6 +340,8 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 		return nil, err
 	}
 	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
+
+	// persistence the hostInfo
 
 	return map[string]any{
 		_const.VariableOS:      osVars,

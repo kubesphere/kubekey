@@ -59,53 +59,46 @@ type Connector interface {
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
 func NewConnector(host string, v variable.Variable) (Connector, error) {
-	vars, err := v.Get(variable.GetAllVariable(host))
+	ha, err := v.Get(variable.GetAllVariable(host))
 	if err != nil {
 		return nil, err
 	}
-	connectorVars := make(map[string]any)
-	if c1, ok := vars.(map[string]any)[_const.VariableConnector]; ok {
-		if c2, ok := c1.(map[string]any); ok {
-			connectorVars = c2
-		}
+	vd, ok := ha.(map[string]any)
+	if !ok {
+		return nil, errors.Errorf("host: %s variable is not a map", host)
 	}
 
-	connectedType, _ := variable.StringVar(nil, connectorVars, _const.VariableConnectorType)
+	workdir, err := v.Get(variable.GetWorkDir())
+	if err != nil {
+		return nil, err
+	}
+	wd, ok := workdir.(string)
+	if !ok {
+		return nil, errors.New("workdir in variable should be string")
+	}
+
+	connectedType, _ := variable.StringVar(nil, vd, _const.VariableConnector, _const.VariableConnectorType)
 	switch connectedType {
 	case connectedLocal:
-		return newLocalConnector(connectorVars), nil
+		return newLocalConnector(wd, vd), nil
 	case connectedSSH:
-		return newSSHConnector(host, connectorVars), nil
+		return newSSHConnector(wd, host, vd), nil
 	case connectedKubernetes:
-		workdir, err := v.Get(variable.GetWorkDir())
-		if err != nil {
-			return nil, err
-		}
-		wd, ok := workdir.(string)
-		if !ok {
-			return nil, errors.New("workdir in variable should be string")
-		}
-
-		return newKubernetesConnector(host, wd, connectorVars)
+		return newKubernetesConnector(host, wd, vd)
 	default:
 		localHost, _ := os.Hostname()
 		// get host in connector variable. if empty, set default host: host_name.
-		hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
+		hostParam, err := variable.StringVar(nil, vd, _const.VariableConnector, _const.VariableConnectorHost)
 		if err != nil {
 			klog.V(4).Infof("connector host is empty use: %s", host)
 			hostParam = host
 		}
 		if host == _const.VariableLocalHost || host == localHost || isLocalIP(hostParam) {
-			return newLocalConnector(connectorVars), nil
+			return newLocalConnector(wd, vd), nil
 		}
 
-		return newSSHConnector(host, connectorVars), nil
+		return newSSHConnector(wd, host, vd), nil
 	}
-}
-
-// GatherFacts get host info.
-type GatherFacts interface {
-	HostInfo(ctx context.Context) (map[string]any, error)
 }
 
 // isLocalIP check if given ipAddr is local network ip

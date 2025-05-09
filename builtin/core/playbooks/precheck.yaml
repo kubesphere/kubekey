@@ -15,6 +15,7 @@
   gather_facts: true
   tags: ["always"]
   roles:
-    - precheck/env_check
+    - role: precheck/env_check
+      tags: ["always"]
 
 - import_playbook: hook/post_install.yaml

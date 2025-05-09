@@ -72,7 +72,7 @@ func (c *Config) MarshalJSON() ([]byte, error) {
 // This provides direct access to the config values stored in Spec.Object.
 func (c *Config) Value() map[string]any {
 	if c.Spec.Object == nil {
-		return make(map[string]any)
+		c.Spec.Object = &unstructured.Unstructured{Object: make(map[string]any)}
 	}
 
 	return c.Spec.Object.(*unstructured.Unstructured).Object
