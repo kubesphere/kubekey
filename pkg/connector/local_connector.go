@@ -36,13 +36,21 @@ import (
 var _ Connector = &localConnector{}
 var _ GatherFacts = &localConnector{}
 
-func newLocalConnector(connectorVars map[string]any) *localConnector {
-	password, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
+func newLocalConnector(workdir string, hostVars map[string]any) *localConnector {
+	password, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil { // password is not necessary when execute with root user.
 		klog.V(4).Info("Warning: Failed to obtain local connector password when executing command with sudo. Please ensure the 'kk' process is run by a root-privileged user.")
 	}
+	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
+	connector := &localConnector{
+		Password: password,
+		Cmd:      exec.New(),
+		shell:    defaultSHELL,
+	}
+	// Initialize the cacheGatherFact with a function that will call getHostInfoFromRemote
+	connector.gatherFacts = newCacheGatherFact(_const.VariableLocalHost, cacheType, workdir, connector.getHostInfo)
 
-	return &localConnector{Password: password, Cmd: exec.New(), shell: defaultSHELL}
+	return connector
 }
 
 type localConnector struct {
@@ -50,6 +58,8 @@ type localConnector struct {
 	Cmd      exec.Interface
 	// shell to execute command
 	shell string
+
+	gatherFacts *cacheGatherFact
 }
 
 // Init initializes the local connector. This method does nothing for localConnector.
@@ -116,8 +126,13 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 	return output, errors.Wrapf(err, "failed to execute command")
 }
 
-// HostInfo gathers and returns host information for the local host.
+// HostInfo from gatherFacts cache
 func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
+	return c.gatherFacts.HostInfo(ctx)
+}
+
+// getHostInfo from remote
+func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error) {
 	switch runtime.GOOS {
 	case "linux":
 		// os information
