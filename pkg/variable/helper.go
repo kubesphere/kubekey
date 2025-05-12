@@ -155,9 +155,9 @@ func CombineSlice(g1, g2 []string) []string {
 //
 // Returns:
 //
-//	map[string]any: A map where keys are group names and values are lists of hostnames.
-func ConvertGroup(inv kkcorev1.Inventory) map[string]any {
-	groups := make(map[string]any)
+//	map[string][]string: A map where keys are group names and values are lists of hostnames.
+func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
+	groups := make(map[string][]string)
 	all := make([]string, 0)
 
 	for hn := range inv.Spec.Hosts {
@@ -174,8 +174,8 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string]any {
 	groups[_const.VariableGroupsAll] = all
 
 	for gn := range inv.Spec.Groups {
-		groups[gn] = HostsInGroup(inv, gn)
-		if hosts, ok := groups[gn].([]string); ok {
+		groups[gn] = hostsInGroup(inv, gn)
+		if hosts, ok := groups[gn]; ok {
 			for _, v := range hosts {
 				if slices.Contains(ungrouped, v) {
 					ungrouped = slices.Delete(ungrouped, slices.Index(ungrouped, v), slices.Index(ungrouped, v)+1)
@@ -189,13 +189,13 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string]any {
 	return groups
 }
 
-// HostsInGroup get a host_name slice in a given group
+// hostsInGroup get a host_name slice in a given group
 // if the given group contains other group. convert other group to host_name slice.
-func HostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
+func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
 	if v, ok := inv.Spec.Groups[groupName]; ok {
 		var hosts []string
 		for _, cg := range v.Groups {
-			hosts = CombineSlice(HostsInGroup(inv, cg), hosts)
+			hosts = CombineSlice(hostsInGroup(inv, cg), hosts)
 		}
 
 		return CombineSlice(hosts, v.Hosts)

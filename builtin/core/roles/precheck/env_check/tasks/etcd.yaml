@@ -18,6 +18,7 @@
   assert:
     that: (mod (.groups.etcd | len) 2) | eq 1
     fail_msg: "etcd number should be odd number"
+  run_once: true  
   when: .kubernetes.etcd.deployment_type | eq "external"
 
 ## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824

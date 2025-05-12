@@ -20,7 +20,6 @@
     - image_registry
     - nfs
   gather_facts: true
-  tags: ["always"]
   roles:
     - precheck/env_check
 
@@ -32,7 +31,7 @@
 
 # init os
 - hosts:
-    - add_nodes
+    - k8s_cluster
   roles:
     - init/init-os
 
@@ -78,13 +77,17 @@
               {{ .kubeadm_token_result.stdout }}
 
 - hosts:
-    - add_nodes
+    - k8s_cluster
   roles:
     - role: install/cri
+      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)
     - role: kubernetes/pre-kubernetes
+      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)    
     - role: kubernetes/join-kubernetes
+      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)
     - role: kubernetes/certs
       when: 
+        - or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)
         - .groups.kube_control_plane | default list | has .inventory_name
         - .kubernetes.renew_certs.enabled    
 

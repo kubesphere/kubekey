@@ -30,6 +30,11 @@ import (
 	"github.com/kubesphere/kubekey/v4/builtin/core"
 )
 
+const (
+	defaultGroupControlPlane = "kube_control_plane"
+	defaultGroupWorker       = "kube_worker"
+)
+
 func completeInventory(inventoryFile string, inventory *kkcorev1.Inventory) error {
 	if inventoryFile != "" {
 		data, err := os.ReadFile(inventoryFile)

@@ -20,7 +20,6 @@
     - image_registry
     - nfs
   gather_facts: true
-  tags: ["always"]
   roles:
     - precheck/env_check
 

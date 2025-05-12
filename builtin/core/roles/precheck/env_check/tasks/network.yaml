@@ -1,18 +1,18 @@
 ---
-# - name: Should found network interface
-#   command:  |
-#     {{- if and .internal_ipv4 (.internal_ipv4 | ne "") }}
-#     if [ ! ip -o addr show | grep -q {{ .internal_ipv4 }} ]; then
-#       echo 'No ipv4 network interface found'
-#       exit 1
-#     fi
-#     {{- end }}
-#     {{- if and .internal_ipv6 (.internal_ipv6 | ne "") }}
-#     if [ ! ip -o addr show | grep -q {{ .internal_ipv6 }} ]; then
-#       echo 'No ipv6 network interface found'
-#       exit 1
-#     fi
-#     {{- end }}
+- name: Should found network interface
+  command:  |
+    {{- if and .internal_ipv4 (.internal_ipv4 | ne "") }}
+    if [ ! ip -o addr show | grep -q {{ .internal_ipv4 }} ]; then
+      echo 'No ipv4 network interface found'
+      exit 1
+    fi
+    {{- end }}
+    {{- if and .internal_ipv6 (.internal_ipv6 | ne "") }}
+    if [ ! ip -o addr show | grep -q {{ .internal_ipv6 }} ]; then
+      echo 'No ipv6 network interface found'
+      exit 1
+    fi
+    {{- end }}
 
 # https://kubernetes.io/docs/concepts/services-networking/dual-stack/
 - name: Stop if cidr is not valid

@@ -41,9 +41,7 @@ var GetHostnames = func(name []string) GetFunc {
 			// add group's host to gs
 			for gn, gv := range ConvertGroup(vv.value.Inventory) {
 				if gn == n {
-					if gvd, ok := gv.([]string); ok {
-						hs = CombineSlice(hs, gvd)
-					}
+					hs = CombineSlice(hs, gv)
 
 					break
 				}
@@ -56,7 +54,7 @@ var GetHostnames = func(name []string) GetFunc {
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to convert %q to int", match[2])
 				}
-				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]].([]string); ok {
+				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]]; ok {
 					if index >= len(group) {
 						return nil, errors.Errorf("index %v out of range for group %s", index, group)
 					}
@@ -67,7 +65,7 @@ var GetHostnames = func(name []string) GetFunc {
 			// add random host in group
 			regexForRandom := regexp.MustCompile(`^(.+?)\s*\|\s*random$`)
 			if match := regexForRandom.FindStringSubmatch(strings.TrimSpace(n)); match != nil {
-				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]].([]string); ok {
+				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]]; ok {
 					hs = append(hs, group[rand.Intn(len(group))])
 				}
 			}

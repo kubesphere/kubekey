@@ -22,6 +22,7 @@ package builtin
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -31,6 +32,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -51,6 +53,10 @@ type AddNodeOptions struct {
 	Kubernetes string
 	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
 	ContainerManager string
+	// ControlPlane nodes which will be added.
+	ControlPlane string
+	// Worker nodes which will to be added.
+	Worker string
 }
 
 // Flags adds flags for configuring AddNodeOptions to the specified FlagSet
@@ -58,7 +64,9 @@ func (o *AddNodeOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.StringVar(&o.ContainerManager, "container-manager", o.ContainerManager, fmt.Sprintf("Container runtime: docker, crio, containerd and isula. default is %s", o.ContainerManager))
+	kfs.StringVar(&o.ContainerManager, "container-manager", o.ContainerManager, fmt.Sprintf("Container runtime: docker, containerd. default is %s", o.ContainerManager))
+	kfs.StringVar(&o.ControlPlane, "control-plane", o.ControlPlane, "Which nodes will be installed as control-plane. Multiple nodes are supported, separated by commas (e.g., node1, node2, ...)")
+	kfs.StringVar(&o.Worker, "worker", o.Worker, "Which nodes will be installed as workers. Multiple nodes are supported, separated by commas (e.g., node1, node2, ...)")
 
 	return fss
 }
@@ -77,15 +85,10 @@ func (o *AddNodeOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.
 	}
 
 	// complete playbook. now only support one playbook
-	var nodes []string
-	if len(args) < 1 {
+	if len(args) != 1 {
 		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
-	} else if len(args) == 1 {
-		o.Playbook = args[0]
-	} else {
-		nodes = args[:len(args)-1]
-		o.Playbook = args[len(args)-1]
 	}
+	o.Playbook = args[0]
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
@@ -102,11 +105,11 @@ func (o *AddNodeOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.
 		return nil, err
 	}
 
-	return playbook, o.complete(nodes)
+	return playbook, o.complete()
 }
 
 // complete updates the configuration with container manager and kubernetes version settings
-func (o *AddNodeOptions) complete(nodes []string) error {
+func (o *AddNodeOptions) complete() error {
 	if o.ContainerManager != "" {
 		// override container_manager in config
 		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
@@ -118,15 +121,38 @@ func (o *AddNodeOptions) complete(nodes []string) error {
 		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 	}
 
-	// override add_nodes_group in inventory
-	if len(nodes) > 0 {
-		addNodesGroups := o.Inventory.Spec.Groups["add_nodes"]
-		for _, n := range nodes {
-			if !slices.Contains(variable.HostsInGroup(*o.Inventory, "add_nodes"), n) {
-				addNodesGroups.Hosts = append(addNodesGroups.Hosts, n)
+	var addNodes []string
+	groups := variable.ConvertGroup(*o.Inventory)
+	// add nodes to control_plane group
+	if o.ControlPlane != "" {
+		for _, node := range strings.Split(o.ControlPlane, ",") {
+			if !slices.Contains(groups[_const.VariableGroupsAll], node) {
+				return fmt.Errorf("%q is not defined in inventory.", node)
 			}
+			if !slices.Contains(groups[defaultGroupControlPlane], node) {
+				group := o.Inventory.Spec.Groups[defaultGroupControlPlane]
+				group.Hosts = append(group.Hosts, node)
+				o.Inventory.Spec.Groups[defaultGroupControlPlane] = group
+			}
+			addNodes = append(addNodes, node)
 		}
-		o.Inventory.Spec.Groups["add_nodes"] = addNodesGroups
+	}
+	// add nodes to worker group
+	if o.Worker != "" {
+		for _, node := range strings.Split(o.ControlPlane, ",") {
+			if !slices.Contains(groups[_const.VariableGroupsAll], node) {
+				return fmt.Errorf("%q is not defined in inventory.", node)
+			}
+			if !slices.Contains(groups[defaultGroupWorker], node) {
+				group := o.Inventory.Spec.Groups[defaultGroupWorker]
+				group.Hosts = append(group.Hosts, node)
+				o.Inventory.Spec.Groups[defaultGroupControlPlane] = group
+			}
+			addNodes = append(addNodes, node)
+		}
+	}
+	if err := unstructured.SetNestedStringSlice(o.CommonOptions.Config.Value(), addNodes, "add_nodes"); err != nil {
+		return errors.Wrapf(err, "failed to set %q to config", "add_nodes")
 	}
 
 	return nil
