@@ -90,7 +90,7 @@ func New(ctx context.Context, client ctrlclient.Client, playbook kkcorev1.Playbo
 		},
 	}
 
-	if gd, ok := ConvertGroup(*inventory)["all"].([]string); ok {
+	if gd, ok := ConvertGroup(*inventory)["all"]; ok {
 		for _, hostname := range gd {
 			v.value.Hosts[hostname] = host{
 				RemoteVars:  make(map[string]any),

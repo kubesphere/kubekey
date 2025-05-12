@@ -126,7 +126,7 @@ func TestHostsInGroup(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(t, tc.except, HostsInGroup(tc.inventory, tc.groupName))
+			assert.ElementsMatch(t, tc.except, hostsInGroup(tc.inventory, tc.groupName))
 		})
 	}
 }

@@ -27,7 +27,7 @@ var SequenceSelector = func(ctx context.Context, groupName string, remain int, i
 	groups := inventory.Spec.Groups[groupName]
 	if remain > 0 {
 		// Add hosts from ungrouped
-		ungrouped, ok := variable.ConvertGroup(*inventory)[_const.VariableUnGrouped].([]string)
+		ungrouped, ok := variable.ConvertGroup(*inventory)[_const.VariableUnGrouped]
 		if !ok {
 			klog.ErrorS(nil, "Failed to get ungrouped hosts")
 
@@ -59,7 +59,7 @@ var RandomSelector = func(ctx context.Context, groupName string, remain int, inv
 	groups := inventory.Spec.Groups[groupName]
 	if remain > 0 {
 		// Add hosts from ungrouped
-		ungrouped, ok := variable.ConvertGroup(*inventory)[_const.VariableUnGrouped].([]string)
+		ungrouped, ok := variable.ConvertGroup(*inventory)[_const.VariableUnGrouped]
 		if !ok {
 			klog.ErrorS(nil, "Failed to get ungrouped hosts")
 
