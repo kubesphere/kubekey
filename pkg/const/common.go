@@ -17,7 +17,7 @@ limitations under the License.
 package _const
 
 // variable specific key in system
-const ( // === From inventory ===
+const ( // === From Global Parameter ===
 	// VariableLocalHost is the default local host name in inventory.
 	VariableLocalHost = "localhost"
 	// VariableIPv4 is the ipv4 in inventory.
@@ -42,6 +42,8 @@ const ( // === From inventory ===
 	VariableConnectorPrivateKey = "private_key"
 	// VariableConnectorKubeconfig is connected auth key for VariableConnector.
 	VariableConnectorKubeconfig = "kubeconfig"
+	// VariableGatherFactsCache type in runtimedir. support jsonfile, yamlfile, memory.
+	VariableGatherFactsCache = "fact_caching"
 )
 
 const ( // === From system generate ===

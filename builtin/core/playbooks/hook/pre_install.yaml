@@ -2,7 +2,7 @@
 - hosts:
     - all
   vars:
-    work_dir: /root/kubekey
+    # work_dir: default is <current_dir>/kubekey
     binary_dir: |
       {{ .work_dir }}/kubekey
     scripts_dir: |

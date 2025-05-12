@@ -177,7 +177,7 @@ func (o *CommonOptions) Complete(playbook *kkcorev1.Playbook) error {
 		o.Workdir = filepath.Join(wd, o.Workdir)
 	}
 	// Generate and complete the configuration.
-	if err := o.completeConfig(o.Config); err != nil {
+	if err := o.completeConfig(); err != nil {
 		return err
 	}
 	playbook.Spec.Config = ptr.Deref(o.Config, kkcorev1.Config{})
@@ -196,7 +196,7 @@ func (o *CommonOptions) Complete(playbook *kkcorev1.Playbook) error {
 }
 
 // genConfig generate config by ConfigFile and set value by command args.
-func (o *CommonOptions) completeConfig(config *kkcorev1.Config) error {
+func (o *CommonOptions) completeConfig() error {
 	// set value by command args
 	if o.Workdir != "" {
 		if err := unstructured.SetNestedField(o.Config.Value(), o.Workdir, _const.Workdir); err != nil {
@@ -215,7 +215,7 @@ func (o *CommonOptions) completeConfig(config *kkcorev1.Config) error {
 			if i == 0 || i == -1 {
 				return errors.New("--set value should be k=v")
 			}
-			if err := setValue(config, setVal[:i], setVal[i+1:]); err != nil {
+			if err := setValue(o.Config, setVal[:i], setVal[i+1:]); err != nil {
 				return err
 			}
 		}
