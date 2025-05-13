@@ -166,3 +166,64 @@ func TestExtension2Slice(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintVar(t *testing.T) {
+	testcases := []struct {
+		name     string
+		ctx      map[string]any
+		keys     []string
+		excepted any
+	}{
+		{
+			name: "strings value",
+			ctx: map[string]any{
+				"msg": "a",
+			},
+			keys:     []string{"msg"},
+			excepted: "a",
+		},
+		{
+			name: "int value",
+			ctx: map[string]any{
+				"msg": 1,
+			},
+			keys:     []string{"msg"},
+			excepted: 1,
+		},
+		{
+			name: "float value",
+			ctx: map[string]any{
+				"msg": 1.1,
+			},
+			keys:     []string{"msg"},
+			excepted: 1.1,
+		},
+		{
+			name: "map value",
+			ctx: map[string]any{
+				"msg": map[string]any{
+					"a1": "b1",
+				},
+			},
+			keys: []string{"msg"},
+			excepted: map[string]any{
+				"a1": "b1",
+			},
+		},
+		{
+			name: "slice value",
+			ctx: map[string]any{
+				"msg": []any{"a1", 1},
+			},
+			keys:     []string{"msg"},
+			excepted: []any{"a1", 1},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, _ := PrintVar(tc.ctx, tc.keys...)
+			assert.Equal(t, tc.excepted, actual)
+		})
+	}
+}

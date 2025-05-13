@@ -35,6 +35,7 @@ const (
 	connectedSSH        = "ssh"
 	connectedLocal      = "local"
 	connectedKubernetes = "kubernetes"
+	connectedPrometheus = "prometheus"
 	defaultSHELL        = "/bin/bash"
 )
 
@@ -56,6 +57,7 @@ type Connector interface {
 // if set connector to "local", use local connector
 // if set connector to "ssh", use ssh connector
 // if set connector to "kubernetes", use kubernetes connector
+// if set connector to "prometheus", use prometheus connector
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
 func NewConnector(host string, v variable.Variable) (Connector, error) {
@@ -85,6 +87,8 @@ func NewConnector(host string, v variable.Variable) (Connector, error) {
 		return newSSHConnector(wd, host, vd), nil
 	case connectedKubernetes:
 		return newKubernetesConnector(host, wd, vd)
+	case connectedPrometheus:
+		return newPrometheusConnector(vd), nil
 	default:
 		localHost, _ := os.Hostname()
 		// get host in connector variable. if empty, set default host: host_name.

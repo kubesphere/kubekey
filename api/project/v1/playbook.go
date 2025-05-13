@@ -60,3 +60,7 @@ func IsTmplSyntax(s string) bool {
 func ParseTmplSyntax(s string) string {
 	return "{{ " + s + "}}"
 }
+
+func TrimTmplSyntax(s string) string {
+	return strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(s, "{{"), "}}"))
+}

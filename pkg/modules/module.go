@@ -18,6 +18,7 @@ package modules
 
 import (
 	"context"
+	"io"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -44,7 +45,7 @@ const (
 // ModuleExecFunc exec module
 type ModuleExecFunc func(ctx context.Context, options ExecOptions) (stdout string, stderr string)
 
-// ExecOptions for module
+// ExecOptions represents options for module execution
 type ExecOptions struct {
 	// the defined Args for module
 	Args runtime.RawExtension
@@ -56,6 +57,8 @@ type ExecOptions struct {
 	Task kkcorev1alpha1.Task
 	// the playbook to be executed
 	Playbook kkcorev1.Playbook
+	// the logout for module
+	LogOutput io.Writer
 }
 
 func (o ExecOptions) getAllVariables() (map[string]any, error) {
