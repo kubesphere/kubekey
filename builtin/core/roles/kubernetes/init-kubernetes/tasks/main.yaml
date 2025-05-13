@@ -6,9 +6,9 @@
       {{- $initNodes := list -}}
       {{- $notInitNodes := list -}}
       {{- range .groups.kube_control_plane -}}
-        {{- if index $.inventory_hosts . "kubernetes_install_service" "stdout" | eq "active" -}}
+        {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
           {{- $initNodes = append $initNodes . -}}
-        {{- else if index $.inventory_hosts . "kubernetes_install_service" "stdout" | eq "inactive" -}}
+        {{- else if index $.hostvars . "kubernetes_install_service" "stdout" | eq "inactive" -}}
           {{- $notInitNodes = append $notInitNodes . -}}
         {{- end -}}
       {{- end -}}

@@ -10,13 +10,13 @@ etcd:
     imageTag: {{ .kubernetes.etcd.image.tag }}
     serverCertSANs:
     {{- range .groups.etcd | default list }}
-    - {{ index $.inventory_hosts . "internal_ipv4" }}
+    - {{ index $.hostvars . "internal_ipv4" }}
     {{- end }}
 {{- else }}
   external:
     endpoints:
     {{- range .groups.etcd | default list }}
-      - https://{{ index $.inventory_hosts . "internal_ipv4" }}:2379
+      - https://{{ index $.hostvars . "internal_ipv4" }}:2379
     {{- end }}
     caFile: /etc/kubernetes/pki/etcd/ca.crt
     certFile: /etc/kubernetes/pki/etcd/client.crt
@@ -72,11 +72,11 @@ apiServer:
     - {{ .kubernetes.networking.service_cidr | ipInCIDR 0 }}
     - {{ .kubernetes.control_plane_endpoint.host }}
   {{- range .groups.k8s_cluster | default list }}
-    - {{ index $.inventory_hosts . "hostname" }}
-    - {{ index $.inventory_hosts . "hostname" }}.{{ $.kubernetes.cluster_name }}
-    - {{ index $.inventory_hosts . "hostname" }}.{{ $.kubernetes.cluster_name }}.{{ $.kubernetes.networking.dns_domain }}
-    {{- $internalIPv4 := index $.inventory_hosts . "internal_ipv4" | default "" }}
-    {{- $internalIPv6 := index $.inventory_hosts . "internal_ipv6" | default "" }}
+    - {{ index $.hostvars . "hostname" }}
+    - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}
+    - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}.{{ $.kubernetes.networking.dns_domain }}
+    {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
+    {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
     {{- if ne $internalIPv4 "" }}
     - {{ $internalIPv4 }}
     {{- end }}

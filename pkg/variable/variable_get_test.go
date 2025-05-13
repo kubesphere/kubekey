@@ -159,7 +159,7 @@ func TestGetAllVariable(t *testing.T) {
 					"images": []any{"abc"},
 				},
 				"groups": map[string][]string{"all": {"localhost"}, "ungrouped": {"localhost"}},
-				"inventory_hosts": map[string]any{
+				"hostvars": map[string]any{
 					"localhost": map[string]any{
 						"internal_ipv4": "127.0.0.1",
 						"internal_ipv6": "::1",

@@ -20,7 +20,7 @@
         --name={{ .inventory_name }} --endpoints=https://{{ .internal_ipv4 }}:2379 \
     {{- $ips := list -}}
     {{- range $element := .groups.etcd -}}
-      {{- $ips = append $ips (printf "%s=https://%s:2380" (index .inventory_hosts $element "inventory_name") (index .inventory_hosts $element "internal_ipv4") -}}
+      {{- $ips = append $ips (printf "%s=https://%s:2380" (index .hostvars $element "inventory_name") (index .hostvars $element "internal_ipv4") -}}
     {{- end -}}
         --initial-cluster={{ $ips | join "," }} \
         --initial-advertise-peer-urls=https://{{ .internal_ipv4 }}:2380\

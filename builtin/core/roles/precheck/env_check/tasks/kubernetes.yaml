@@ -13,7 +13,7 @@
       - |
         {{- $existIP := false }}
         {{- range .groups.all | default list }}
-          {{- if eq $.kubernetes.control_plane_endpoint.kube_vip.address (index $.inventory_hosts . "internal_ipv4") }}
+          {{- if eq $.kubernetes.control_plane_endpoint.kube_vip.address (index $.hostvars . "internal_ipv4") }}
           {{- $existIP = true }}
           {{- end }}
         {{- end }}

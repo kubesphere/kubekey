@@ -53,7 +53,7 @@ const ( // === From system generate ===
 	// If VariableInventoryName is "localhost". try to set the actual name.
 	VariableHostName = "hostname"
 	// VariableGlobalHosts the value is host_var which defined in inventory.
-	VariableGlobalHosts = "inventory_hosts"
+	VariableGlobalHosts = "hostvars"
 	// VariableGroupsAll the value is a all host_name slice of VariableGroups.
 	VariableGroupsAll = "all"
 	// VariableUnGrouped the value is a all host_name slice of VariableGroups.

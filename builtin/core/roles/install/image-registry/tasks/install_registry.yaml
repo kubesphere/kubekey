@@ -14,8 +14,8 @@
     apt update && apt install -y nfs-common
     {{- end }}
     {{- if }}
-    {{- $internalIPv4 := index .inventory_hosts (.groups.nfs | default list | first) "internal_ipv4" | default "" }}
-    {{- $internalIPv6 := index .inventory_hosts (.groups.nfs | default list | first) "internal_ipv6" | default "" }}
+    {{- $internalIPv4 := index .hostvars (.groups.nfs | default list | first) "internal_ipv4" | default "" }}
+    {{- $internalIPv6 := index .hostvars (.groups.nfs | default list | first) "internal_ipv6" | default "" }}
     {{- if ne $internalIPv4 "" }}
     mount -t nfs {{ $internalIPv4 }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registry.registry.storage.filesystem.rootdir }}
     {{- else if ne $internalIPv6 "" }}

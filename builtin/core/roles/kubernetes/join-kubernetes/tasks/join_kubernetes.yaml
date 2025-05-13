@@ -5,11 +5,11 @@
     sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
     cat >> /etc/hosts <<EOF
     # kubekey custom BEGIN
-    {{- if and (index .inventory_hosts .init_kubernetes_node "internal_ipv4") (ne (index .inventory_hosts .init_kubernetes_node "internal_ipv4") "") }}
-    {{ index .inventory_hosts .init_kubernetes_node "internal_ipv4" }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- if and (index .hostvars .init_kubernetes_node "internal_ipv4") (ne (index .hostvars .init_kubernetes_node "internal_ipv4") "") }}
+    {{ index .hostvars .init_kubernetes_node "internal_ipv4" }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
-    {{- if and (index .inventory_hosts .init_kubernetes_node "internal_ipv6") (ne (index .inventory_hosts .init_kubernetes_node "internal_ipv6") "") }}
-    {{ index .inventory_hosts .init_kubernetes_node "internal_ipv6" }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- if and (index .hostvars .init_kubernetes_node "internal_ipv6") (ne (index .hostvars .init_kubernetes_node "internal_ipv6") "") }}
+    {{ index .hostvars .init_kubernetes_node "internal_ipv6" }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
     # kubekey custom END
     EOF
