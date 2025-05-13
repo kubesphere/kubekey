@@ -1,29 +1,32 @@
 ---
-- include_tasks: init_repository.yaml
+- name: Init for all nodes always
+  block:
+    - include_tasks: init_ntpserver.yaml
+    - include_tasks: init_localdns.yaml
 
-- include_tasks: init_ntpserver.yaml
+- name: Init for new kubernetes nodes
+  when: .kubernetes_install_service.stdout | eq "inactive"
+  block:
+    - include_tasks: init_repository.yaml
+    - name: Reset tmp dir
+      command: |
+        if [ -d {{ .tmp_dir }} ]; then
+          rm -rf {{ .tmp_dir }}
+        fi
+        mkdir -m 777 -p {{ .tmp_dir }}
+    - name: Set hostname
+      command: |
+        hostnamectl set-hostname {{ .inventory_hostname }} \
+          && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' /etc/hosts
+      when: 
+        - .set_hostname
+        - .inventory_hostname | ne "localhost"
+    - name: Sync init os to remote
+      template:
+        src: init-os.sh
+        dest: /etc/kubekey/scripts/init-os.sh
+        mode: 0755
+    - name: Execute init os script
+      command: |
+        /etc/kubekey/scripts/init-os.sh
 
-- name: Reset tmp dir
-  command: |
-    if [ -d {{ .tmp_dir }} ]; then
-      rm -rf {{ .tmp_dir }}
-    fi
-    mkdir -m 777 -p {{ .tmp_dir }}
-
-- name: Set hostname
-  command: |
-    hostnamectl set-hostname {{ .inventory_hostname }} \
-      && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' /etc/hosts
-  when: 
-    - .set_hostname
-    - .inventory_hostname | ne "localhost"
-
-- name: Sync init os to remote
-  template:
-    src: init-os.sh
-    dest: /etc/kubekey/scripts/init-os.sh
-    mode: 0755
-
-- name: Execute init os script
-  command: |
-    /etc/kubekey/scripts/init-os.sh
