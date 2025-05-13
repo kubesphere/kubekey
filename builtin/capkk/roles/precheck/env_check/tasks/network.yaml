@@ -59,21 +59,21 @@
       kube_network_plugin:"{{ .kubernetes.kube_network_plugin }}" is not supported
   when: and .kubernetes.kube_network_plugin (ne .kubernetes.kube_network_plugin "")
   
-# # This assertion will fail on the safe side: One can indeed schedule more pods
-# # on a node than the CIDR-range has space for when additional pods use the host
-# # network namespace. It is impossible to ascertain the number of such pods at
-# # provisioning time, so to establish a guarantee, we factor these out.
-# # NOTICE: the check blatantly ignores the inet6-case
-# - name: Guarantee that enough network address space is available for all pods
-#   when: .groups.k8s_cluster | default list | has .inventory_name
-#   block:
-#     - name: Guarantee that enough ipv4 network address space is available for all pods
-#       when: .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily | eq "IPv4"
-#       assert:
-#         that: le .kubernetes.kubelet.max_pods  (sub (pow 2 (sub 32 .kubernetes.networking.ipv4_mask_size | default 24 | float64)) 2)
-#         fail_msg: do not schedule more pods on a node than ipv4 inet addresses are available.
-#     - name: Guarantee that enough ipv6 network address space is available for all pods
-#       when: .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily | eq "IPv6"
-#       assert:
-#         that: le .kubernetes.kubelet.max_pods  (sub (pow 2 (sub 128 .kubernetes.networking.ipv6_mask_size | default 64 | float64)) 2)
-#         fail_msg: do not schedule more pods on a node than ipv6 inet addresses are available.
+# This assertion will fail on the safe side: One can indeed schedule more pods
+# on a node than the CIDR-range has space for when additional pods use the host
+# network namespace. It is impossible to ascertain the number of such pods at
+# provisioning time, so to establish a guarantee, we factor these out.
+# NOTICE: the check blatantly ignores the inet6-case
+- name: Guarantee that enough network address space is available for all pods
+  when: .groups.k8s_cluster | default list | has .inventory_hostname
+  block:
+    - name: Guarantee that enough ipv4 network address space is available for all pods
+      when: .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily | eq "IPv4"
+      assert:
+        that: le .kubernetes.kubelet.max_pods  (sub (pow 2 (sub 32 .kubernetes.networking.ipv4_mask_size | default 24 | float64)) 2)
+        fail_msg: do not schedule more pods on a node than ipv4 inet addresses are available.
+    - name: Guarantee that enough ipv6 network address space is available for all pods
+      when: .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily | eq "IPv6"
+      assert:
+        that: le .kubernetes.kubelet.max_pods  (sub (pow 2 (sub 128 .kubernetes.networking.ipv6_mask_size | default 64 | float64)) 2)
+        fail_msg: do not schedule more pods on a node than ipv6 inet addresses are available.

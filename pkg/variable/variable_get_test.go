@@ -166,12 +166,12 @@ func TestGetAllVariable(t *testing.T) {
 						"artifact": map[string]any{
 							"images": []any{"abc"},
 						},
-						"inventory_name": "localhost",
-						"hostname":       "localhost",
+						"inventory_hostname": "localhost",
+						"hostname":           "localhost",
 					},
 				},
-				"inventory_name": "localhost",
-				"hostname":       "localhost",
+				"inventory_hostname": "localhost",
+				"hostname":           "localhost",
 			},
 		},
 	}

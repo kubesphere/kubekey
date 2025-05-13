@@ -2,10 +2,10 @@
 - include_tasks: high-availability/kube_vip.yaml
   when:
     - .kubernetes.control_plane_endpoint.type | eq "kube_vip"
-    - .groups.kube_control_plane | default list | has .inventory_name
+    - .groups.kube_control_plane | default list | has .inventory_hostname
 
 # only deploy haproxy in worker node. control_plane node use local static pod: kube-apiserver.
 - include_tasks: high-availability/haproxy.yaml
   when:
     - .kubernetes.control_plane_endpoint.type | eq "haproxy"
-    - .groups.kube_worker | default list | has .inventory_name
+    - .groups.kube_worker | default list | has .inventory_hostname

@@ -65,7 +65,7 @@
 # provisioning time, so to establish a guarantee, we factor these out.
 # NOTICE: the check blatantly ignores the inet6-case
 - name: Guarantee that enough network address space is available for all pods
-  when: .groups.k8s_cluster | default list | has .inventory_name
+  when: .groups.k8s_cluster | default list | has .inventory_hostname
   block:
     - name: Guarantee that enough ipv4 network address space is available for all pods
       when: .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily | eq "IPv4"

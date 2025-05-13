@@ -24,7 +24,7 @@
 ## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824
 - name: Check dev io for etcd
   when:
-    - .groups.etcd | default list | has .inventory_name
+    - .groups.etcd | default list | has .inventory_hostname
   block:
     - name: Check fio is exist
       ignore_errors: true
@@ -48,7 +48,7 @@
           command: rm -rf {{ .tmp_dir }}/etcd/test-data
 
 - name: Check if etcd has installed
-  when: .groups.etcd | default list | has .inventory_name
+  when: .groups.etcd | default list | has .inventory_hostname
   block:
     - name: Get etcd service
       ignore_errors: true

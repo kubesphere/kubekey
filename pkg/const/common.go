@@ -48,7 +48,7 @@ const ( // === From Global Parameter ===
 
 const ( // === From system generate ===
 	// VariableInventoryName the value which defined in inventory.spec.host.
-	VariableInventoryName = "inventory_name"
+	VariableInventoryName = "inventory_hostname"
 	// VariableHostName the value is node hostname, default VariableInventoryName.
 	// If VariableInventoryName is "localhost". try to set the actual name.
 	VariableHostName = "hostname"

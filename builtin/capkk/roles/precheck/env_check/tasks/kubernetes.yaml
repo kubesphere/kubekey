@@ -31,7 +31,7 @@
   when: and .kube_version (ne .kube_version "")
 
 - name: Check if kubernetes installed
-  when: .groups.k8s_cluster | default list | has .inventory_name
+  when: .groups.k8s_cluster | default list | has .inventory_hostname
   block:
     - name: Get kubernetes service
       ignore_errors: true

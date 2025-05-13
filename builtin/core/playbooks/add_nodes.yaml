@@ -49,12 +49,12 @@
             {{- end -}}
           {{- end -}}
           {{- if $initNodes | len | eq 1 -}}
-            {{ $initNodes | first }}
+          {{ $initNodes | first }}
           {{- else if $initNodes | len | lt 1 -}}
-            {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}            
+          {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}            
           {{- end -}}
     - name: init node
-      when: eq .inventory_name .init_kubernetes_node
+      when: eq .inventory_hostname .init_kubernetes_node
       block:
         - name: Generate certificate key by kubeadm
           command: |
@@ -80,15 +80,15 @@
     - k8s_cluster
   roles:
     - role: install/cri
-      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)
+      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_hostname)
     - role: kubernetes/pre-kubernetes
-      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)    
+      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_hostname)    
     - role: kubernetes/join-kubernetes
-      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)
+      when: or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_hostname)
     - role: kubernetes/certs
       when: 
-        - or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_name)
-        - .groups.kube_control_plane | default list | has .inventory_name
+        - or (.add_nodes | default list | len | eq 0) (.add_nodes | default list | has .inventory_hostname)
+        - .groups.kube_control_plane | default list | has .inventory_hostname
         - .kubernetes.renew_certs.enabled    
 
 - import_playbook: hook/post_install.yaml
