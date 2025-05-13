@@ -69,7 +69,7 @@
     - role: kubernetes/certs
       when: 
         - .kubernetes.renew_certs.enabled
-        - .groups.kube_control_plane | default list | has .inventory_name
+        - .groups.kube_control_plane | default list | has .inventory_hostname
   post_tasks:
     - name: Add custom label to cluster
       command: |

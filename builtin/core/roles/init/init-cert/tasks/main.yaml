@@ -19,8 +19,8 @@
     sans: |
       {{- $ips := list }}
       {{- range .groups.etcd | default list }}
-        {{- $internalIPv4 := index $.inventory_hosts . "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index $.inventory_hosts . "internal_ipv6" | default "" }}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
         {{- if ne $internalIPv4 "" }}
           {{- $ips = append $ips $internalIPv4 }}
         {{- end }}
@@ -47,8 +47,8 @@
     sans: |
       {{- $ips := list }}
       {{- range .groups.image_registry | default list }}
-        {{- $internalIPv4 := index $.inventory_hosts . "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index $.inventory_hosts . "internal_ipv6" | default "" }}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
         {{- if ne $internalIPv4 "" }}
           {{- $ips = append $ips $internalIPv4 }}
         {{- end }}

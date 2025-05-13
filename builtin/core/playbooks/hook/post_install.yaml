@@ -7,9 +7,9 @@
       ignore_errors: true
       copy:
         src: |
-          {{ .scripts_dir }}/post_install_{{ .inventory_name }}.sh
+          {{ .scripts_dir }}/post_install_{{ .inventory_hostname }}.sh
         dest: |
-          /etc/kubekey/scripts/post_install_{{ .inventory_name }}.sh
+          /etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh
         mode: 0755
       register: execute_result
 

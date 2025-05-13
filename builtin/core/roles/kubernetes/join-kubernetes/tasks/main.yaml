@@ -1,5 +1,5 @@
 - name: Join kubernetes
-  when: ne .inventory_name .init_kubernetes_node
+  when: ne .inventory_hostname .init_kubernetes_node
   block:
     # HAProxy is deployed as a static Pod, which starts only after Kubelet is running.
     # Therefore, the control plane must be reachable before HAProxy starts (e.g., by configuring /etc/hosts).
@@ -7,8 +7,8 @@
       command: |
         cat >> /etc/hosts << EOF
         # haproxy dns for kubekey begin
-        {{- $internalIPv4 := index .inventory_hosts (.groups.kube_control_plane | default list | first) "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index .inventory_hosts (.groups.kube_control_plane | default list | first) "internal_ipv6" | default "" }}
+        {{- $internalIPv4 := index .hostvars (.groups.kube_control_plane | default list | first) "internal_ipv4" | default "" }}
+        {{- $internalIPv6 := index .hostvars (.groups.kube_control_plane | default list | first) "internal_ipv6" | default "" }}
         {{- if ne $internalIPv4 "" }}
         {{ $internalIPv4 }} {{ .kubernetes.control_plane_endpoint.host }}
         {{- else if ne $internalIPv6 "" }}
@@ -23,7 +23,7 @@
       when: .kubernetes.control_plane_endpoint.type | eq "haproxy"
       block:
         - name: Replace control_plane by local hosts
-          when: .groups.kube_control_plane | default list | has .inventory_name
+          when: .groups.kube_control_plane | default list | has .inventory_hostname
           command: |
             new_dns="# haproxy dns for kubekey begin
             {{- if ne .internal_ipv4 "" }}
@@ -34,7 +34,7 @@
             # haproxy dns for kubekey end"
             sed -i '/# haproxy dns for kubekey begin/,/# haproxy dns for kubekey end/c\'"$new_dns" /etc/hosts
         - name: Replace worker by haproxy hosts
-          when: .groups.worker | default list | has .inventory_name
+          when: .groups.worker | default list | has .inventory_hostname
           command: |
             new_dns="# haproxy dns for kubekey begin
             {{ .kubernetes.control_plane_endpoint.haproxy.address }} {{ .kubernetes.control_plane_endpoint.host }}

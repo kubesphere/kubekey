@@ -13,7 +13,7 @@
       - |
         {{- $existIP := false }}
         {{- range .groups.all | default list }}
-          {{- if eq $.kubernetes.control_plane_endpoint.kube_vip.address (index $.inventory_hosts . "internal_ipv4") }}
+          {{- if eq $.kubernetes.control_plane_endpoint.kube_vip.address (index $.hostvars . "internal_ipv4") }}
           {{- $existIP = true }}
           {{- end }}
         {{- end }}
@@ -31,7 +31,7 @@
   when: and .kube_version (ne .kube_version "")
 
 - name: Check if kubernetes installed
-  when: .groups.k8s_cluster | default list | has .inventory_name
+  when: .groups.k8s_cluster | default list | has .inventory_hostname
   block:
     - name: Get kubernetes service
       ignore_errors: true

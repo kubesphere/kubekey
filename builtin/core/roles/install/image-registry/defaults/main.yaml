@@ -9,8 +9,8 @@ image_registry:
       {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
         {{ .image_registry.ha_vip }}
       {{- else if .groups.image_registry | default list | len | lt 0 }}
-        {{- $internalIPv4 := index .inventory_hosts (.groups.image_registry | default list | first) "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index .inventory_hosts (.groups.image_registry | default list | first) "internal_ipv6" | default "" }}
+        {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" }}
+        {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" }}
         {{- if ne $internalIPv4 "" }}
           {{ $internalIPv4 }}
         {{- else if ne $internalIPv6 "" }}

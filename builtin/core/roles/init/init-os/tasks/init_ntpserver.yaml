@@ -15,7 +15,7 @@
     {{- range $server := .ntp.servers }}
       {{- $internalIPv4 := "" }}
       {{- $internalIPv6 := "" }}
-      {{- range $.inventory_hosts }}
+      {{- range $.hostvars }}
         {{- if eq .hostname $server }}
           {{- $internalIPv4 = .internal_ipv4 | default "" }}
           {{- $internalIPv6 = .internal_ipv6 | default "" }}

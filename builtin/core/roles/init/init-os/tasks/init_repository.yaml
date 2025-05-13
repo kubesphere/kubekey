@@ -42,7 +42,7 @@
           mv /etc/apt/sources.list.kubekey.bak-$now /etc/apt/sources.list
           mv /etc/apt/sources.list.d.kubekey.bak-$now /etc/apt/sources.list.d
         else
-          apt-get update && apt install -y socat conntrack ipset ebtables chrony ipvsadm {{ if .groups.nfs | default list | has .inventory_name }}nfs-kernel-server{{ end }}
+          apt-get update && apt install -y socat conntrack ipset ebtables chrony ipvsadm {{ if .groups.nfs | default list | has .inventory_hostname }}nfs-kernel-server{{ end }}
         fi
       when: .os.release.ID_LIKE | eq "debian"
     - name: Init rhel repository
@@ -68,7 +68,7 @@
           # update repository
           yum clean all && yum makecache
           # install
-          yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm {{ if .groups.nfs | default list | has .inventory_name }}nfs-utils{{ end }}
+          yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm {{ if .groups.nfs | default list | has .inventory_hostname }}nfs-utils{{ end }}
           # reset repository
           rm -rf /etc/yum.repos.d
           mv /etc/yum.repos.d.kubekey.bak-$now /etc/yum.repos.d

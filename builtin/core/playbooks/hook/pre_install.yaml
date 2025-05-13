@@ -18,9 +18,9 @@
       ignore_errors: true
       copy:
         src: |
-          {{ .work_dir }}/scripts/pre_install_{{ .inventory_name }}.sh
+          {{ .work_dir }}/scripts/pre_install_{{ .inventory_hostname }}.sh
         dest: |
-          /etc/kubekey/scripts/pre_install_{{ .inventory_name }}.sh
+          /etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh
         mode: 0755
       register: execute_result
 

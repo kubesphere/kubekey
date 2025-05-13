@@ -49,8 +49,8 @@ work_dir/
 |   |   |   |   |   |-- playbook.yaml
 |   |   |   |   |   |-- /playbookName/variable/
 |   |   |   |   |   |   |-- location.yaml
-|   |   |   |   |   |   |-- inventory_name1.yaml
-|   |   |   |   |   |   |-- inventory_name2.yaml
+|   |   |   |   |   |   |-- inventory_hostname1.yaml
+|   |   |   |   |   |   |-- inventory_hostname2.yaml
 |
 |   |   |   |-- inventories/
 |   |   |   |   |-- namespace/
