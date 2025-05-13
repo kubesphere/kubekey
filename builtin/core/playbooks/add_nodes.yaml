@@ -31,7 +31,10 @@
 
 # init os
 - hosts:
+    - etcd
     - k8s_cluster
+    - registry
+    - nfs
   roles:
     - init/init-os
 

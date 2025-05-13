@@ -201,55 +201,6 @@ else
 fi
 sysctl -p
 
-# ------------------------ 8. Local Host DNS Configuration ---------------------
-
-sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
-sed -i '/^$/N;/\n$/N;//D' /etc/hosts
-
-cat >>/etc/hosts<<EOF
-# kubekey hosts BEGIN
-# kubernetes hosts
-{{- range .groups.k8s_cluster | default list }}
-  {{- $hostname := index $.hostvars . "hostname" -}}
-  {{- $clusterName := $.kubernetes.cluster_name | default "kubekey" -}}
-  {{- $dnsDomain := $.kubernetes.networking.dns_domain | default "cluster.local" -}}
-  {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
-{{ index $.hostvars . "internal_ipv4" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
-  {{- end }}
-  {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
-{{ index $.hostvars . "internal_ipv6" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
-  {{- end }}
-{{- end }}
-# etcd hosts
-{{- range .groups.etcd | default list }}
-  {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
-{{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-  {{- end }}
-  {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
-{{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-  {{- end }}
-{{- end }}
-# image registry hosts
-{{- range .groups.image_registry | default list }}
-  {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
-{{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-  {{- end }}
-  {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
-{{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-  {{- end }}
-{{- end }}
-# nfs hosts
-{{- range .groups.nfs | default list }}
-  {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
-{{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-  {{- end }}
-  {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
-{{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-  {{- end }}
-{{- end }}
-# kubekey hosts END
-EOF
-
 sync
 echo 3 > /proc/sys/vm/drop_caches
 
