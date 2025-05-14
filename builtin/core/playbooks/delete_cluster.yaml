@@ -14,12 +14,13 @@
     - role: uninstall/cri
       when: .deleteCRI
   post_tasks:
-    - name: delete etc/hosts
+    - name: delete localDNS file
       ignore_errors: true
       command: |
-        sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
-        sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
+        sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
+        sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' {{ .item }}
       when: .deleteDNS
+      loop: "{{ .localDNS | toJson }}"
 
 - hosts:
     - etcd

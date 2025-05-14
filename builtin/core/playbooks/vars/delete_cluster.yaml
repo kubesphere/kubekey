@@ -4,5 +4,7 @@ kubernetes:
 deleteCRI: false
 # if deleteETCD
 deleteETCD: false
-# if true. will delete local dns in /etc/hosts which create by kubekey
+# if true. will delete local dns in localDNS file which create by kubekey
 deleteDNS: false
+localDNS:
+  - /etc/hosts

@@ -17,10 +17,11 @@
     - name: Set hostname
       command: |
         hostnamectl set-hostname {{ .inventory_hostname }} \
-          && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' /etc/hosts
+          && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' {{ .item }}
       when: 
         - .set_hostname
         - .inventory_hostname | ne "localhost"
+      loop: "{{ .localDNS | toJson }}"
     - name: Sync init os to remote
       template:
         src: init-os.sh

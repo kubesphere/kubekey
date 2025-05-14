@@ -1,9 +1,9 @@
 ---
-- name: Set init_kubernetes_node hosts to /etc/hosts
+- name: Set init_kubernetes_node hosts to localDNS file
   when: eq .kubernetes.control_plane_endpoint.type "local"
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
-    cat >> /etc/hosts <<EOF
+    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' {{ .item }}
+    cat >> {{ .item }} <<EOF
     # kubekey custom BEGIN
     {{- if and (index .hostvars .init_kubernetes_node "internal_ipv4") (ne (index .hostvars .init_kubernetes_node "internal_ipv4") "") }}
     {{ index .hostvars .init_kubernetes_node "internal_ipv4" }} {{ .kubernetes.control_plane_endpoint.host }}
@@ -13,6 +13,7 @@
     {{- end }}
     # kubekey custom END
     EOF
+  loop: "{{ .localDNS | toJson }}"
 
 - name: Generate kubeadm join config
   template:
@@ -46,14 +47,15 @@
       command: |
         /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=
 
-- name: Set change custom hosts to /etc/hosts
+- name: Set change custom hosts to localDNS file
   when: 
     - eq .kubernetes.control_plane_endpoint.type "local"
     - .groups.kube_control_plane | default list | has .inventory_hostname
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
-    cat >> /etc/hosts <<EOF
+    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' {{ .item }}
+    cat >> {{ .item }} <<EOF
     # kubekey custom BEGIN
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     # kubekey custom END
     EOF
+  loop: "{{ .localDNS | toJson }}"

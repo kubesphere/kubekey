@@ -57,14 +57,15 @@
         - .deleteCRI
         - .delete_nodes | default list | has .inventory_hostname
   post_tasks:
-    - name: delete etc/hosts
+    - name: delete localDNS file
       ignore_errors: true
       command: |
-        sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
-        sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
+        sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
+        sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' {{ .item }}
       when: 
         - .deleteDNS
         - .delete_nodes | default list | has .inventory_hostname
+      loop: "{{ .localDNS | toJson }}"
 
 - hosts:
     - etcd
