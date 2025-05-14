@@ -121,3 +121,97 @@ func (o *DeleteClusterOptions) completeConfig() error {
 
 	return nil
 }
+
+// ======================================================================================
+//                                  delete nodes
+// ======================================================================================
+
+// NewDeleteNodesOptions creates a new DeleteNodesOptions with default values
+func NewDeleteNodesOptions() *DeleteNodesOptions {
+	// set default value
+	return &DeleteNodesOptions{
+		CommonOptions:    options.NewCommonOptions(),
+		Kubernetes:       defaultKubeVersion,
+		ContainerManager: defaultContainerManager,
+	}
+}
+
+// DeleteNodesOptions contains options for deleting a Kubernetes cluster nodes
+type DeleteNodesOptions struct {
+	options.CommonOptions
+	// kubernetes version which the cluster will install.
+	Kubernetes string
+	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
+	ContainerManager string
+}
+
+// Flags returns the flag sets for DeleteNodesOptions
+func (o *DeleteNodesOptions) Flags() cliflag.NamedFlagSets {
+	fss := o.CommonOptions.Flags()
+	kfs := fss.FlagSet("config")
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+	kfs.StringVar(&o.ContainerManager, "container-manager", o.ContainerManager, fmt.Sprintf("Container runtime: docker, containerd. default is %s", o.ContainerManager))
+
+	return fss
+}
+
+// Complete validates and completes the DeleteNodesOptions configuration
+func (o *DeleteNodesOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	// Initialize playbook metadata
+	playbook := &kkcorev1.Playbook{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "delete-nodes-",
+			Namespace:    o.Namespace,
+			Annotations: map[string]string{
+				kkcorev1.BuiltinsProjectAnnotation: "",
+			},
+		},
+	}
+
+	// Validate playbook arguments
+	if len(args) < 1 {
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+	}
+	nodes := args[:len(args)-1]
+	o.Playbook = args[len(args)-1]
+
+	// Set playbook specification
+	playbook.Spec = kkcorev1.PlaybookSpec{
+		Playbook: o.Playbook,
+		Debug:    o.Debug,
+	}
+
+	// Complete configuration with kubernetes version and inventory
+	if err := completeConfig(o.Kubernetes, o.CommonOptions.ConfigFile, o.CommonOptions.Config); err != nil {
+		return nil, err
+	}
+	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
+		return nil, err
+	}
+
+	// Complete common options
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, err
+	}
+
+	return playbook, o.completeConfig(nodes)
+}
+
+// completeConfig updates the configuration with container manager settings
+func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
+	if o.ContainerManager != "" {
+		// override container_manager in config
+		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "cri.container_manager")
+		}
+	}
+
+	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
+		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+	}
+	if err := unstructured.SetNestedStringSlice(o.CommonOptions.Config.Value(), nodes, "delete_nodes"); err != nil {
+		return errors.Wrapf(err, "failed to set %q to config", "delete_nodes")
+	}
+
+	return nil
+}

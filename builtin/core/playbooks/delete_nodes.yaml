@@ -1,0 +1,77 @@
+---
+# load defaults vars
+- hosts:
+    - all
+  vars_files:
+    - vars/delete_cluster.yaml
+
+- import_playbook: hook/pre_install.yaml
+
+- hosts:
+    - kube_control_plane
+  gather_facts: true
+  tasks:
+    - name: Get kubernetes service
+      ignore_errors: true
+      command: systemctl is-active kubelet.service
+      register: kubernetes_install_service
+    - name: Keep at least one control_plane node.
+      run_once: true
+      command: |
+        {{- $cpNodes := list -}}
+        {{- range .groups.kube_control_plane -}}
+          {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
+            {{- $cpNodes = append $cpNodes . -}}
+          {{- end -}}
+        {{- end -}}
+        {{- if (subtractList $cpNodes .delete_nodes) | len | lt 0 }}
+        exit 0
+        {{- else }}
+        echo "should keep at least one control_plane"
+        exit 1
+        {{- end }}
+
+- hosts: 
+    - k8s_cluster
+  pre_tasks:
+    - name: delete node from cluster
+      when: .delete_nodes | default list | has .inventory_hostname
+      command: |
+        if kubectl get node {{ .hostname }} > /dev/null 2>&1; then
+          kubectl cordon {{ .hostname }}
+          if [ $(kubectl get nodes --no-headers | wc -l) -gt 1 ]; then
+            kubectl drain {{ .hostname }} --ignore-daemonsets --delete-emptydir-data --force --disable-eviction
+          else
+            kubectl drain {{ .hostname }} --ignore-daemonsets --delete-emptydir-data --force
+          fi
+        {{- if .kubernetes.kube_network_plugin | eq "calico" }}
+          calicoctl delete node {{ .hostname }}
+        {{- end }}
+          kubectl delete node {{ .hostname }}
+        fi
+  roles:
+    - role: uninstall/kubernetes
+      when: .delete_nodes | default list | has .inventory_hostname
+    - role: uninstall/cri
+      when: 
+        - .deleteCRI
+        - .delete_nodes | default list | has .inventory_hostname
+  post_tasks:
+    - name: delete etc/hosts
+      ignore_errors: true
+      command: |
+        sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
+        sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' /etc/hosts
+      when: 
+        - .deleteDNS
+        - .delete_nodes | default list | has .inventory_hostname
+
+- hosts:
+    - etcd
+  roles:
+    - role: uninstall/etcd
+      when: 
+        - .deleteETCD
+        - .delete_nodes | default list | has .inventory_hostname
+
+- import_playbook: hook/post_install.yaml

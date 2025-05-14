@@ -523,30 +523,6 @@ func TestParseFunction(t *testing.T) {
 			},
 			excepted: []byte("[\"a\",\"b\"]"),
 		},
-		// ======= toYaml =======
-		{
-			name:  "toYaml 1",
-			input: "{{ .foo | toYaml }}",
-			variable: map[string]any{
-				"foo": map[string]any{
-					"a1": "b1",
-					"a2": "b2",
-				},
-			},
-			excepted: []byte("a1: b1\na2: b2"),
-		},
-		// ======= fromYaml =======
-		{
-			name:  "fromYaml 1",
-			input: "{{ .foo | fromYaml | toJson }}",
-			variable: map[string]any{
-				"foo": `
-a1: b1
-a2:
-  b2: 1`,
-			},
-			excepted: []byte("{\"a1\":\"b1\",\"a2\":{\"b2\":1}}"),
-		},
 		// ======= indent =======
 		{
 			name:  "indent 1",
@@ -644,6 +620,30 @@ func TestParseCustomFunction(t *testing.T) {
 		variable map[string]any
 		excepted string
 	}{
+		// ======= toYaml =======
+		{
+			name:  "toYaml 1",
+			input: "{{ .foo | toYaml }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"a1": "b1",
+					"a2": "b2",
+				},
+			},
+			excepted: "a1: b1\na2: b2",
+		},
+		// ======= fromYaml =======
+		{
+			name:  "fromYaml 1",
+			input: "{{ .foo | fromYaml | toJson }}",
+			variable: map[string]any{
+				"foo": `
+a1: b1
+a2:
+  b2: 1`,
+			},
+			excepted: "{\"a1\":\"b1\",\"a2\":{\"b2\":1}}",
+		},
 		// ======= ipInCIDR =======
 		{
 			name:  "ipInCIDR true-1",
@@ -669,13 +669,6 @@ func TestParseCustomFunction(t *testing.T) {
 			},
 			excepted: "10.233.63.254",
 		},
-		// ======= pow =======
-		{
-			name:     "pow true-1",
-			input:    "{{ pow 2 3 }}",
-			variable: make(map[string]any),
-			excepted: "8",
-		},
 		// ======= ipFamily =======
 		{
 			name:     "ipFamily for ip address",
@@ -688,6 +681,41 @@ func TestParseCustomFunction(t *testing.T) {
 			input:    `{{ .ip_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily }}`,
 			variable: make(map[string]any),
 			excepted: "IPv4",
+		},
+		// ======= pow =======
+		{
+			name:     "pow true-1",
+			input:    "{{ pow 2 3 }}",
+			variable: make(map[string]any),
+			excepted: "8",
+		},
+		// ======= subtractList =======
+		{
+			name:     "subtractList true-1",
+			input:    `{{ subtractList (list 1 2 3 4)  (list 2 4) }}`,
+			variable: make(map[string]any),
+			excepted: "[1 3]",
+		},
+		{
+			name:  "subtractList true-2",
+			input: `{{ subtractList .list1 .list2 }}`,
+			variable: map[string]any{
+				"list1": []any{1, 2, 3, 4},
+				"list2": []any{2, 4},
+			},
+			excepted: "[1 3]",
+		},
+		{
+			name:     "subtractList empty result",
+			input:    `{{ subtractList (list 1 2)  (list 1 2) }}`,
+			variable: make(map[string]any),
+			excepted: "[]",
+		},
+		{
+			name:     "subtractList with empty second list",
+			input:    `{{ subtractList (list 1 2 3)  (list) }}`,
+			variable: make(map[string]any),
+			excepted: "[1 2 3]",
 		},
 	}
 
