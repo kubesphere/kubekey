@@ -1,10 +1,11 @@
 - name: Set local DNS
+  loop: "{{ .localDNS | toJson }}"
   command: |
     # clear old dns configuration
-    sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
-    sed -i '/^$/N;/\n$/N;//D' /etc/hosts
+    sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
+    sed -i '/^$/N;/\n$/N;//D' {{ .item }}
     # defined new dns configuration
-    cat >>/etc/hosts<<EOF
+    cat >>{{ .item }}<<EOF
     # kubekey hosts BEGIN
     # kubernetes hosts
     {{- range .groups.k8s_cluster | default list }}

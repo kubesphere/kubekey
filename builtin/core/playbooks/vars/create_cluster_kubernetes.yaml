@@ -149,7 +149,7 @@ kubernetes:
   # 1. When a DNS domain name is available:
   # Set control_plane_endpoint to the DNS domain name, and configure the domain name to point to all control_plane node IPs.
   # 2. When a DNS domain name is not available:
-  # Set control_plane_endpoint to a DNS domain name that can be extended later. Add the DNS domain name resolution to the local /etc/hosts file on each node with the format:
+  # Set control_plane_endpoint to a DNS domain name that can be extended later. Add the DNS domain name resolution to the localDNS file on each node with the format:
   #{{ vip }} {{ control_plane_endpoint }}
   #  - When a VIP is available:
   # Deploy kube-vip on the control_plane nodes to map the VIP to the actual control_plane node IPs.
@@ -162,7 +162,7 @@ kubernetes:
     host: lb.kubesphere.local
     port: "{{ .kubernetes.apiserver.port }}"
     # support local, kube_vip, haproxy
-    # when type is local, # if set will write in /etc/hosts.
+    # when type is local, # if set will write in localDNS file.
     #  - for control-plane: will use 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     #  - for worker: will use {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
     type: local
@@ -191,3 +191,6 @@ kubernetes:
   # if auto renew kubernetes certs
   renew_certs:
     enabled: true
+
+localDNS:
+  - /etc/hosts
