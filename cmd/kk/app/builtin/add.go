@@ -43,8 +43,9 @@ func newAddNodeCommand() *cobra.Command {
 	o := builtin.NewAddNodeOptions()
 
 	cmd := &cobra.Command{
-		Use:   "nodes",
-		Short: "Add nodes to the cluster according to the new nodes information from the specified configuration file",
+		Use:     "nodes",
+		Aliases: []string{"node"},
+		Short:   "Add nodes to the cluster according to the new nodes information from the specified configuration file",
 		Long: `There are two executors available for adding nodes:
 
 1. kk add nodes
@@ -55,7 +56,7 @@ func newAddNodeCommand() *cobra.Command {
    Ensure their connection details are provided in the inventory's hosts file.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Complete the configuration and create a playbook for adding nodes
-			playbook, err := o.Complete(cmd, append(args, "playbooks/add_nodes.yaml"))
+			playbook, err := o.Complete(cmd, []string{"playbooks/add_nodes.yaml"})
 			if err != nil {
 				return err
 			}

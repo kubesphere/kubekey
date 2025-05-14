@@ -26,6 +26,7 @@ func funcMap() template.FuncMap {
 	f["ipInCIDR"] = ipInCIDR
 	f["ipFamily"] = ipFamily
 	f["pow"] = pow
+	f["subtractList"] = subtractList
 
 	return f
 }
@@ -92,4 +93,23 @@ func ipFamily(addrOrCIDR string) (string, error) {
 // pow Get the "pow" power of "base". (base ** pow)
 func pow(base, pow float64) (float64, error) {
 	return math.Pow(base, pow), nil
+}
+
+// subtractList returns a new list containing elements from list a that are not in list b.
+// It first creates a set from list b for O(1) lookups, then builds a result list by
+// including only elements from a that don't exist in the set.
+func subtractList(a, b []any) ([]any, error) {
+	set := make(map[any]struct{}, len(b))
+	for _, v := range b {
+		set[v] = struct{}{}
+	}
+
+	result := make([]any, 0, len(a))
+	for _, v := range a {
+		if _, exists := set[v]; !exists {
+			result = append(result, v)
+		}
+	}
+
+	return result, nil
 }
