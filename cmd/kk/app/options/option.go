@@ -232,10 +232,13 @@ func (o *CommonOptions) completeInventory(inventory *kkcorev1.Inventory) {
 	}
 }
 
-// setValue set key: val in config.
-// If val is json string. convert to map or slice
-// If val is TRUE,YES,Y. convert to bool type true.
-// If val is FALSE,NO,N. convert to bool type false.
+// setValue sets a value in the config based on a key-value pair.
+// It supports different value types:
+// - JSON objects (starting with '{' and ending with '}')
+// - JSON arrays (starting with '[' and ending with ']')
+// - Boolean values (true/false, yes/no, y/n - case insensitive)
+// - String values (default case)
+// The key can contain dots to indicate nested fields.
 func setValue(config *kkcorev1.Config, key, val string) error {
 	switch {
 	case strings.HasPrefix(val, "{") && strings.HasSuffix(val, "{"):
@@ -245,7 +248,7 @@ func setValue(config *kkcorev1.Config, key, val string) error {
 			return errors.Wrapf(err, "failed to unmarshal json object value for \"--set %s\"", key)
 		}
 
-		return errors.Wrapf(unstructured.SetNestedMap(config.Value(), value, key),
+		return errors.Wrapf(unstructured.SetNestedMap(config.Value(), value, strings.Split(key, ".")...),
 			"failed to set \"--set %s\" to config", key)
 	case strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]"):
 		var value []any
@@ -254,16 +257,16 @@ func setValue(config *kkcorev1.Config, key, val string) error {
 			return errors.Wrapf(err, "failed to unmarshal json array value for \"--set %s\"", key)
 		}
 
-		return errors.Wrapf(unstructured.SetNestedSlice(config.Value(), value, key),
+		return errors.Wrapf(unstructured.SetNestedSlice(config.Value(), value, strings.Split(key, ".")...),
 			"failed to set \"--set %s\" to config", key)
 	case strings.EqualFold(val, "TRUE") || strings.EqualFold(val, "YES") || strings.EqualFold(val, "Y"):
-		return errors.Wrapf(unstructured.SetNestedField(config.Value(), true, key),
+		return errors.Wrapf(unstructured.SetNestedField(config.Value(), true, strings.Split(key, ".")...),
 			"failed to set \"--set %s\" to config", key)
 	case strings.EqualFold(val, "FALSE") || strings.EqualFold(val, "NO") || strings.EqualFold(val, "N"):
-		return errors.Wrapf(unstructured.SetNestedField(config.Value(), false, key),
+		return errors.Wrapf(unstructured.SetNestedField(config.Value(), false, strings.Split(key, ".")...),
 			"failed to set \"--set %s\" to config", key)
 	default:
-		return errors.Wrapf(unstructured.SetNestedField(config.Value(), val, key),
+		return errors.Wrapf(unstructured.SetNestedField(config.Value(), val, strings.Split(key, ".")...),
 			"failed to set \"--set %s\" to config", key)
 	}
 }
