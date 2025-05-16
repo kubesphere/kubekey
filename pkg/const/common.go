@@ -32,16 +32,22 @@ const ( // === From Global Parameter ===
 	VariableConnectorType = "type"
 	// VariableConnectorHost is connected address for VariableConnector.
 	VariableConnectorHost = "host"
+	// VariableConnectorURL is connected port for VariableConnectorURL.
+	VariableConnectorURL = "url"
 	// VariableConnectorPort is connected address for VariableConnector.
 	VariableConnectorPort = "port"
 	// VariableConnectorUser is connected user for VariableConnector.
 	VariableConnectorUser = "user"
+	// VariableConnectorUserName is connected username for VariableConnector.
+	VariableConnectorUserName = "username"
 	// VariableConnectorPassword is connected type for VariableConnector.
 	VariableConnectorPassword = "password"
 	// VariableConnectorPrivateKey is connected auth key for VariableConnector.
 	VariableConnectorPrivateKey = "private_key"
 	// VariableConnectorKubeconfig is connected auth key for VariableConnector.
 	VariableConnectorKubeconfig = "kubeconfig"
+	// VariableConnectorToken is connected auth key for VariableConnector.
+	VariableConnectorToken = "token"
 	// VariableGatherFactsCache type in runtimedir. support jsonfile, yamlfile, memory.
 	VariableGatherFactsCache = "fact_caching"
 )

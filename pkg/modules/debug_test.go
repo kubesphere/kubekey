@@ -39,25 +39,10 @@ func TestDebug(t *testing.T) {
 				Host:     "local",
 				Variable: &testVariable{},
 			},
-			exceptStderr: "unknown args for debug. only support var or msg",
+			exceptStderr: "\"msg\" is not found",
 		},
 		{
-			name: "var value",
-			opt: ExecOptions{
-				Args: runtime.RawExtension{
-					Raw: []byte(`{"var": ".k"}`),
-				},
-				Host: "local",
-				Variable: &testVariable{
-					value: map[string]any{
-						"k": "v",
-					},
-				},
-			},
-			exceptStdout: "v",
-		},
-		{
-			name: "msg value",
+			name: "string value",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
 					Raw: []byte(`{"msg": "{{ .k }}"}`),
@@ -69,7 +54,41 @@ func TestDebug(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: "v",
+			exceptStdout: "\"v\"",
+		},
+		{
+			name: "int value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"msg": "{{ .k }}"}`),
+				},
+				Host: "local",
+				Variable: &testVariable{
+					value: map[string]any{
+						"k": 1,
+					},
+				},
+			},
+			exceptStdout: "1",
+		},
+		{
+			name: "map value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"msg": "{{ .k }}"}`),
+				},
+				Host: "local",
+				Variable: &testVariable{
+					value: map[string]any{
+						"k": map[string]any{
+							"a1": 1,
+							"a2": 1.1,
+							"a3": "b3",
+						},
+					},
+				},
+			},
+			exceptStdout: "{\n  \"a1\": 1,\n  \"a2\": 1.1,\n  \"a3\": \"b3\"\n}",
 		},
 	}
 

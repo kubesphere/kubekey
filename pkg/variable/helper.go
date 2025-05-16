@@ -204,6 +204,19 @@ func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
 	return make([]string, 0)
 }
 
+// PrintVar get variable by key
+func PrintVar(ctx map[string]any, keys ...string) (any, error) {
+	sv, found, err := unstructured.NestedFieldNoCopy(ctx, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
+	}
+	// try to marshal by json
+	return sv, nil
+}
+
 // StringVar get string value by key
 func StringVar(ctx map[string]any, args map[string]any, keys ...string) (string, error) {
 	// convert to string

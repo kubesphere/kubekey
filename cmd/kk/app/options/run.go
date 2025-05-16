@@ -17,10 +17,13 @@ limitations under the License.
 package options
 
 import (
+	"os"
+
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
@@ -105,6 +108,18 @@ func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		Tags:     o.Tags,
 		SkipTags: o.SkipTags,
 		Debug:    o.Debug,
+	}
+
+	if o.InventoryFile != "" {
+		data, err := os.ReadFile(o.InventoryFile)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get inventory for inventoryFile: %q", &o.InventoryFile)
+		}
+
+		err = yaml.Unmarshal(data, o.Inventory)
+		if err != nil {
+			return nil, errors.Wrapf(yaml.Unmarshal(data, o.Inventory), "failed to unmarshal inventoryFile %s", o.InventoryFile)
+		}
 	}
 
 	return playbook, o.CommonOptions.Complete(playbook)

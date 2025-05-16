@@ -18,9 +18,14 @@ package modules
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"reflect"
+	"strings"
 
-	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -31,21 +36,44 @@ func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
 	if err != nil {
 		return "", err.Error()
 	}
-
 	args := variable.Extension2Variables(options.Args)
-	// var is defined. return the value of var
-	if varParam, err := variable.StringVar(ha, args, "var"); err == nil {
-		result, err := tmpl.Parse(ha, fmt.Sprintf("{{ %s }}", varParam))
-		if err != nil {
-			return "", fmt.Sprintf("failed to parse var: %v", err)
+	v := reflect.ValueOf(args["msg"])
+	switch v.Kind() {
+	case reflect.Invalid:
+		return "", "\"msg\" is not found"
+	case reflect.String:
+		if !kkprojectv1.IsTmplSyntax(v.String()) {
+			return FormatOutput([]byte(v.String()), options.LogOutput), ""
 		}
-
-		return string(result), ""
+		val := kkprojectv1.TrimTmplSyntax(v.String())
+		if !strings.HasPrefix(val, ".") {
+			return "", "error tmpl value syntax"
+		}
+		data, err := variable.PrintVar(ha, strings.Split(val, ".")[1:]...)
+		if err != nil {
+			return "", err.Error()
+		}
+		return FormatOutput(data, options.LogOutput), ""
+	default:
+		// do not parse by ctx
+		data, err := json.Marshal(v.Interface())
+		if err != nil {
+			return "", err.Error()
+		}
+		return FormatOutput(data, options.LogOutput), ""
 	}
-	// msg is defined. return the actual msg
-	if msgParam, err := variable.StringVar(ha, args, "msg"); err == nil {
-		return msgParam, ""
-	}
+}
 
-	return "", "unknown args for debug. only support var or msg"
+// FormatOutput formats data as pretty JSON and logs it with DEBUG prefix if output is provided
+// Returns the formatted string
+func FormatOutput(data any, output io.Writer) string {
+	var msg string
+	prettyJSON, err := json.MarshalIndent(data, "", "  ")
+	if err == nil {
+		msg = string(prettyJSON)
+	}
+	if output != nil {
+		_, _ = fmt.Fprintln(output, "DEBUG: \n"+msg) // Ignore error in test context
+	}
+	return msg
 }

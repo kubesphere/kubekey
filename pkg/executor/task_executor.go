@@ -276,8 +276,7 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 	}
 }
 
-// executeModule executes a single module task on a specific host. It handles setting up loop item variables,
-// retrieving host variables, checking failure conditions, and executing the actual module.
+// executeModule executes a single module task on a specific host.
 func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, item any, host string, stdout, stderr *string) {
 	// Set loop item variable if one was provided
 	if item != nil {
@@ -333,11 +332,12 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 
 	// Execute the actual module with the prepared context
 	*stdout, *stderr = modules.FindModule(task.Spec.Module.Name)(ctx, modules.ExecOptions{
-		Args:     e.task.Spec.Module.Args,
-		Host:     host,
-		Variable: e.variable,
-		Task:     *e.task,
-		Playbook: *e.playbook,
+		Args:      e.task.Spec.Module.Args,
+		Host:      host,
+		Variable:  e.variable,
+		Task:      *e.task,
+		Playbook:  *e.playbook,
+		LogOutput: e.logOutput,
 	})
 }
 
