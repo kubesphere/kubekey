@@ -4,7 +4,7 @@ Documentation=https://docs.mirantis.com
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/cri-dockerd --pod-infra-container-image {{ .SandBoxImage }}
+ExecStart=/usr/local/bin/cri-dockerd --pod-infra-container-image "{{ .k8s_registry }}/pause:{{ .cri.sandbox_image_tag }}"
 ExecReload=/bin/kill -s HUP $MAINPID
 TimeoutSec=0
 RestartSec=2

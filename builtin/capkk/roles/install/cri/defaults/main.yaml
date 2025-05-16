@@ -1,8 +1,7 @@
 cri:
   # support: systemd, cgroupfs
   cgroup_driver: systemd
-  sandbox_image: |
-    {{ .k8s_registry }}/pause:3.5
+  sandbox_image_tag: 3.5
   # support: containerd,docker,crio
   # the endpoint of containerd
   cri_socket: |
