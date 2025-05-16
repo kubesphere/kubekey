@@ -24,39 +24,39 @@ artifact:
         {{- if .kkzone | eq "cn" }}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/amd64/kubeadm
         {{- else }}
-        https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/amd64/kubeadm
+        https://dl.k8s.io/release/{{ .kube_version }}/bin/linux/amd64/kubeadm
         {{- end }}
       arm64: |
         {{- if .kkzone | eq "cn" }}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/arm64/kubeadm
         {{- else }}
-        https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/arm64/kubeadm
+        https://dl.k8s.io/release/{{ .kube_version }}/bin/linux/arm64/kubeadm
         {{- end }}
     kubelet:
       amd64: |
         {{- if .kkzone | eq "cn" }}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/amd64/kubelet
         {{- else }}
-        https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/amd64/kubelet
+        https://dl.k8s.io/release/{{ .kube_version }}/bin/linux/amd64/kubelet
         {{- end }}
       arm64: |
         {{- if .kkzone | eq "cn" }}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/arm64/kubelet
         {{- else }}
-        https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/arm64/kubelet
+        https://dl.k8s.io/release/{{ .kube_version }}/bin/linux/arm64/kubelet
         {{- end }}
     kubectl:
       amd64: |
         {{- if .kkzone | eq "cn" }}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/amd64/kubectl
         {{- else }}
-        https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/amd64/kubectl
+        https://dl.k8s.io/release/{{ .kube_version }}/bin/linux/amd64/kubectl
         {{- end }}
       arm64: |
         {{- if .kkzone | eq "cn" }}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/arm64/kubectl
         {{- else }}
-        https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/arm64/kubectl
+        https://dl.k8s.io/release/{{ .kube_version }}/bin/linux/arm64/kubectl
         {{- end }}
     cni_plugins:
       amd64: |
