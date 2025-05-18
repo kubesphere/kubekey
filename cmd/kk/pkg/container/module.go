@@ -232,6 +232,8 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
 				"Auths":              registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths),
 				"DataRoot":           templates.ContainerdDataDir(m.KubeConf),
+				"RegistryMirror":     m.KubeConf.Cluster.Registry.DockerMirrorURL != "",
+				"NvidiaRuntime":      m.KubeConf.Cluster.Kubernetes.EnableNvidiaRuntime(),
 			},
 		},
 		Parallel: true,

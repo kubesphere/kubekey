@@ -52,6 +52,7 @@ type Kubernetes struct {
 	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration" json:"kubeProxyConfiguration,omitempty"`
 	Audit                    Audit                `yaml:"audit" json:"audit,omitempty"`
 	ClusterAutoscale         *bool                `yaml:"clusterAutoscale" json:"clusterAutoscale,omitempty"`
+	NvidiaRuntime            *bool                `yaml:"nvidiaRuntime" json:"nvidiaRuntime,omitempty"`
 }
 
 // Kata contains the configuration for the kata in cluster
@@ -121,4 +122,12 @@ func (k *Kubernetes) IsAtLeastV124() bool {
 	}
 
 	return false
+}
+
+// EnableNvidiaRuntime is used to determine whether to enable NVIDIA container runtime.
+func (k *Kubernetes) EnableNvidiaRuntime() bool {
+	if k.NvidiaRuntime == nil {
+		return false
+	}
+	return *k.NvidiaRuntime
 }

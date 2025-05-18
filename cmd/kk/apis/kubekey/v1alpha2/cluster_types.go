@@ -118,6 +118,7 @@ type RegistryConfig struct {
 	BridgeIP           string               `yaml:"bridgeIP" json:"bridgeIP,omitempty"`
 	Auths              runtime.RawExtension `yaml:"auths" json:"auths,omitempty"`
 	NamespaceRewrite   *NamespaceRewrite    `yaml:"namespaceRewrite" json:"namespaceRewrite"`
+	DockerMirrorURL    string               `yaml:"dockerMirrorURL" json:"dockerMirrorURL,omitempty"`
 }
 
 // NamespaceRewritePolicy define namespaceRewrite policy

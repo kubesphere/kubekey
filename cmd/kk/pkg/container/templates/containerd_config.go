@@ -69,6 +69,12 @@ state = "/run/containerd"
     runtime_type = "io.containerd.runc.v2"
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
       SystemdCgroup = true
+  {{- if .NvidiaRuntime }}
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes."nvidia"]
+    runtime_type = "io.containerd.runc.v2"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes."nvidia".options]
+      BinaryName = "/usr/bin/nvidia-container-runtime"
+  {{- end }}
   [plugins."io.containerd.grpc.v1.cri"]
     sandbox_image = "{{ .SandBoxImage }}"
     [plugins."io.containerd.grpc.v1.cri".cni]
@@ -84,6 +90,10 @@ state = "/run/containerd"
         {{ else }}
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
           endpoint = ["https://registry-1.docker.io"]
+          {{- if .RegistryMirror }}
+          [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io".rewrite]
+             "^(.*)" = "docker/$1"
+          {{- end }}
         {{- end}}
         {{- range $value := .InsecureRegistries }}
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."{{$value}}"]
