@@ -31,6 +31,10 @@ import (
 )
 
 const (
+	defaultKubeVersion = "v1.23.15"
+)
+
+const (
 	defaultGroupControlPlane = "kube_control_plane"
 	defaultGroupWorker       = "kube_worker"
 )

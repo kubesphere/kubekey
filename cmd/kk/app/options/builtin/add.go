@@ -40,9 +40,8 @@ import (
 func NewAddNodeOptions() *AddNodeOptions {
 	// set default value
 	return &AddNodeOptions{
-		CommonOptions:    options.NewCommonOptions(),
-		Kubernetes:       defaultKubeVersion,
-		ContainerManager: defaultContainerManager,
+		CommonOptions: options.NewCommonOptions(),
+		Kubernetes:    defaultKubeVersion,
 	}
 }
 
@@ -51,8 +50,6 @@ type AddNodeOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
 	Kubernetes string
-	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
-	ContainerManager string
 	// ControlPlane nodes which will be added.
 	ControlPlane string
 	// Worker nodes which will to be added.
@@ -64,7 +61,6 @@ func (o *AddNodeOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.StringVar(&o.ContainerManager, "container-manager", o.ContainerManager, fmt.Sprintf("Container runtime: docker, containerd. default is %s", o.ContainerManager))
 	kfs.StringVar(&o.ControlPlane, "control-plane", o.ControlPlane, "Which nodes will be installed as control-plane. Multiple nodes are supported, separated by commas (e.g., node1, node2, ...)")
 	kfs.StringVar(&o.Worker, "worker", o.Worker, "Which nodes will be installed as workers. Multiple nodes are supported, separated by commas (e.g., node1, node2, ...)")
 
@@ -110,13 +106,6 @@ func (o *AddNodeOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.
 
 // complete updates the configuration with container manager and kubernetes version settings
 func (o *AddNodeOptions) complete() error {
-	if o.ContainerManager != "" {
-		// override container_manager in config
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
-			return errors.Wrapf(err, "failed to set %q to config", "cri.container_manager")
-		}
-	}
-
 	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 	}

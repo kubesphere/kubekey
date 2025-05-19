@@ -35,11 +35,6 @@ import (
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
-const (
-	defaultKubeVersion      = "v1.23.15"
-	defaultContainerManager = "docker"
-)
-
 // ======================================================================================
 //                                  create cluster
 // ======================================================================================
@@ -48,9 +43,8 @@ const (
 func NewCreateClusterOptions() *CreateClusterOptions {
 	// set default value
 	return &CreateClusterOptions{
-		CommonOptions:    options.NewCommonOptions(),
-		Kubernetes:       defaultKubeVersion,
-		ContainerManager: defaultContainerManager,
+		CommonOptions: options.NewCommonOptions(),
+		Kubernetes:    defaultKubeVersion,
 	}
 }
 
@@ -59,8 +53,6 @@ type CreateClusterOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
 	Kubernetes string
-	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
-	ContainerManager string
 }
 
 // Flags add to newCreateClusterCommand
@@ -68,7 +60,6 @@ func (o *CreateClusterOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.StringVar(&o.ContainerManager, "container-manager", o.ContainerManager, fmt.Sprintf("Container runtime: docker, containerd. default is %s", o.ContainerManager))
 
 	return fss
 }
@@ -110,12 +101,6 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 }
 
 func (o *CreateClusterOptions) completeConfig() error {
-	if o.ContainerManager != "" {
-		// override container_manager in config
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
-			return errors.Wrapf(err, "failed to set %q to config", "cri.container_manager")
-		}
-	}
 
 	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
