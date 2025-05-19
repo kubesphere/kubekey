@@ -40,9 +40,8 @@ import (
 func NewDeleteClusterOptions() *DeleteClusterOptions {
 	// set default value
 	return &DeleteClusterOptions{
-		CommonOptions:    options.NewCommonOptions(),
-		Kubernetes:       defaultKubeVersion,
-		ContainerManager: defaultContainerManager,
+		CommonOptions: options.NewCommonOptions(),
+		Kubernetes:    defaultKubeVersion,
 	}
 }
 
@@ -51,8 +50,6 @@ type DeleteClusterOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
 	Kubernetes string
-	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
-	ContainerManager string
 }
 
 // Flags returns the flag sets for DeleteClusterOptions
@@ -60,7 +57,6 @@ func (o *DeleteClusterOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.StringVar(&o.ContainerManager, "container-manager", o.ContainerManager, fmt.Sprintf("Container runtime: docker, containerd. default is %s", o.ContainerManager))
 
 	return fss
 }
@@ -108,13 +104,6 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 
 // completeConfig updates the configuration with container manager settings
 func (o *DeleteClusterOptions) completeConfig() error {
-	if o.ContainerManager != "" {
-		// override container_manager in config
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
-			return errors.Wrapf(err, "failed to set %q to config", "cri.container_manager")
-		}
-	}
-
 	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 	}
@@ -130,9 +119,8 @@ func (o *DeleteClusterOptions) completeConfig() error {
 func NewDeleteNodesOptions() *DeleteNodesOptions {
 	// set default value
 	return &DeleteNodesOptions{
-		CommonOptions:    options.NewCommonOptions(),
-		Kubernetes:       defaultKubeVersion,
-		ContainerManager: defaultContainerManager,
+		CommonOptions: options.NewCommonOptions(),
+		Kubernetes:    defaultKubeVersion,
 	}
 }
 
@@ -141,8 +129,6 @@ type DeleteNodesOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
 	Kubernetes string
-	// ContainerRuntime for kubernetes. Such as docker, containerd etc.
-	ContainerManager string
 }
 
 // Flags returns the flag sets for DeleteNodesOptions
@@ -150,7 +136,6 @@ func (o *DeleteNodesOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.StringVar(&o.ContainerManager, "container-manager", o.ContainerManager, fmt.Sprintf("Container runtime: docker, containerd. default is %s", o.ContainerManager))
 
 	return fss
 }
@@ -199,13 +184,6 @@ func (o *DeleteNodesOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 
 // completeConfig updates the configuration with container manager settings
 func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
-	if o.ContainerManager != "" {
-		// override container_manager in config
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.ContainerManager, "cri", "container_manager"); err != nil {
-			return errors.Wrapf(err, "failed to set %q to config", "cri.container_manager")
-		}
-	}
-
 	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 	}
