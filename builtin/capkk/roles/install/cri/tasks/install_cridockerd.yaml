@@ -10,16 +10,12 @@
     - name: Sync cri-dockerd Binary to remote
       copy:
         src: |
-          {{ .binary_dir }}/cri-dockerd/{{ .cridockerd_version }}/{{ .binary_type.stdout }}/cri-dockerd-{{ .cridockerd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+          {{ .binary_dir }}/cri-dockerd/{{ .cridockerd_version }}/{{ .binary_type.stdout }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type.stdout }}.tgz
         dest: |
-          {{ .tmp_dir }}/cri-dockerd-{{ .cridockerd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
-    - name: Generate cri-dockerd config file
-      template:
-        src: cri-dockerd.config
-        dest: /etc/cri-dockerd.yaml
+          {{ .tmp_dir }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type.stdout }}.tgz
     - name: Unpackage cri-dockerd binary
       command: |
-        tar -xvf {{ .tmp_dir }}/cri-dockerd-{{ .cridockerd_version }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
+        tar -xvf {{ .tmp_dir }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type.stdout }}.tgz --strip-components=1 -C /usr/local/bin/
     - name: Generate cri-dockerd Service file
       template:
         src: cri-dockerd.service
