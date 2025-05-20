@@ -259,6 +259,14 @@ func (s fileStorage) getRootEntries(key string) ([]os.DirEntry, bool, error) {
 	default:
 		return nil, false, errors.Errorf("key is invalid: %s", key)
 	}
+	if _, err := os.Stat(key); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, allNamespace, errors.Wrapf(err, "failed to stat path %q", key)
+		}
+		if err := os.MkdirAll(key, os.ModePerm); err != nil {
+			return nil, allNamespace, errors.Wrapf(err, "failed to create dir %q", key)
+		}
+	}
 	rootEntries, err := os.ReadDir(key)
 
 	return rootEntries, allNamespace, err
