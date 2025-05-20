@@ -26,7 +26,7 @@
           {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
     - name: Unpackage containerd binary
       command: |
-        tar -xvf {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
+        tar -xvf {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz --strip-components=1 -C /usr/local/bin/
     - name: Generate containerd config file
       template:
         src: containerd.config

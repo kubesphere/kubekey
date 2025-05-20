@@ -8,7 +8,11 @@ cri:
   # the endpoint of containerd
   cri_socket: |
     {{- if .cri.container_manager | eq "containerd" }}
-    unix:///var/run/containerd.sock
+    unix:///var/run/containerd/containerd.sock
+    {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare ">=v1.24.0") }}
+    unix:///var/run/cri-dockerd.sock
+    {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare "<v1.24.0") }}
+    unix:///var/run/docker.sock
     {{- end }}
   containerd:
     data_root: /var/lib/containerd
