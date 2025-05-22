@@ -12,7 +12,7 @@ cri:
     {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare ">=v1.24.0") }}
     unix:///var/run/cri-dockerd.sock
     {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare "<v1.24.0") }}
-    unix:///var/run/docker.sock
+    unix:///var/run/dockershim.sock
     {{- end }}
   containerd:
     data_root: /var/lib/containerd
