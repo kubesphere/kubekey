@@ -28,6 +28,7 @@ import (
 	"github.com/cockroachdb/errors"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
@@ -37,6 +38,43 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
+
+/*
+The Template module processes files using Go templates before copying them to remote hosts.
+This module allows users to template files with variables before transferring them.
+
+Configuration:
+Users can specify source and destination paths:
+
+template:
+  src: /path/to/file    # required: local file path to template
+  dest: /remote/path    # required: destination path on remote host
+  mode: 0644           # optional: file permissions (default: 0644)
+
+Usage Examples in Playbook Tasks:
+1. Basic file templating:
+   ```yaml
+   - name: Template configuration file
+     template:
+       src: config.yaml.tmpl
+       dest: /etc/app/config.yaml
+       mode: 0644
+     register: template_result
+   ```
+
+2. Template with variables:
+   ```yaml
+   - name: Template with variables
+     template:
+       src: app.conf.tmpl
+       dest: /etc/app/app.conf
+     register: app_config
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
 
 type templateArgs struct {
 	src  string
@@ -73,7 +111,7 @@ func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[strin
 	return ta, nil
 }
 
-// ModuleTemplate deal "template" module
+// ModuleTemplate handles the "template" module, processing files with Go templates
 func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 	ha, ta, conn, err := prepareTemplate(ctx, options)
 	if err != nil {
@@ -270,4 +308,8 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 	}
 
 	return nil
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("template", ModuleTemplate))
 }

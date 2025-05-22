@@ -22,10 +22,47 @@ import (
 	"os"
 	"path/filepath"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// ModuleFetch deal fetch module
+/*
+The Fetch module retrieves files from remote hosts to the local machine.
+This module allows users to download files from remote hosts to specified local destinations.
+
+Configuration:
+Users can specify the source and destination paths:
+
+fetch:
+  src: /remote/path/file    # required: source file path on remote host
+  dest: /local/path/file    # required: destination path on local machine
+
+Usage Examples in Playbook Tasks:
+1. Basic file fetch:
+   ```yaml
+   - name: Download configuration file
+     fetch:
+       src: /etc/app/config.yaml
+       dest: ./configs/
+     register: fetch_result
+   ```
+
+2. Fetch with variables:
+   ```yaml
+   - name: Download log file
+     fetch:
+       src: /var/log/{{ app_name }}.log
+       dest: ./logs/
+     register: log_file
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
+
+// ModuleFetch handles the "fetch" module, retrieving files from remote hosts
 func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -68,4 +105,8 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	}
 
 	return StdoutSuccess, ""
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("fetch", ModuleFetch))
 }

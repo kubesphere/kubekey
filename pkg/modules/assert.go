@@ -23,12 +23,67 @@ import (
 	"github.com/cockroachdb/errors"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
+
+/*
+The Assert module evaluates boolean conditions and returns success/failure messages.
+This module allows users to perform assertions in playbooks and control flow based on conditions.
+
+Configuration:
+Users can specify conditions to evaluate and customize success/failure messages:
+
+assert:
+  that:                    # List of conditions to evaluate (required)
+    - "{{ condition1 }}"
+    - "{{ condition2 }}"
+  success_msg: "Success"   # optional: message to return on success (default: "True")
+  fail_msg: "Failed"       # optional: high priority failure message
+  msg: "Error"            # optional: fallback failure message (default: "False")
+
+Usage Examples in Playbook Tasks:
+1. Basic assertion:
+   ```yaml
+   - name: Check if service is running
+     assert:
+       that:
+         - "{{ service_status == 'running' }}"
+     register: check_result
+   ```
+
+2. Custom messages:
+   ```yaml
+   - name: Verify deployment
+     assert:
+       that:
+         - "{{ deployment_ready }}"
+         - "{{ pods_running }}"
+       success_msg: "Deployment is healthy"
+       fail_msg: "Deployment check failed"
+     register: verify_result
+   ```
+
+3. Multiple conditions:
+   ```yaml
+   - name: Validate configuration
+     assert:
+       that:
+         - "{{ config_valid }}"
+         - "{{ required_fields_present }}"
+         - "{{ values_in_range }}"
+       msg: "Configuration validation failed"
+     register: config_check
+   ```
+
+Return Values:
+- On success: Returns success_msg (or "True") in stdout
+- On failure: Returns fail_msg (or msg or "False") in stderr
+*/
 
 type assertArgs struct {
 	that       []string
@@ -63,7 +118,7 @@ func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]
 	return aa, nil
 }
 
-// ModuleAssert deal "assert" module
+// ModuleAssert handles the "assert" module, evaluating boolean conditions and returning appropriate messages
 func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -108,4 +163,8 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 	}
 
 	return StdoutFalse, "False"
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("assert", ModuleAssert))
 }

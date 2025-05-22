@@ -24,7 +24,6 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -91,19 +90,6 @@ func RegisterModule(moduleName string, exec ModuleExecFunc) error {
 // FindModule by module name which has register.
 func FindModule(moduleName string) ModuleExecFunc {
 	return module[moduleName]
-}
-
-func init() {
-	utilruntime.Must(RegisterModule("assert", ModuleAssert))
-	utilruntime.Must(RegisterModule("command", ModuleCommand))
-	utilruntime.Must(RegisterModule("shell", ModuleCommand))
-	utilruntime.Must(RegisterModule("copy", ModuleCopy))
-	utilruntime.Must(RegisterModule("fetch", ModuleFetch))
-	utilruntime.Must(RegisterModule("debug", ModuleDebug))
-	utilruntime.Must(RegisterModule("template", ModuleTemplate))
-	utilruntime.Must(RegisterModule("set_fact", ModuleSetFact))
-	utilruntime.Must(RegisterModule("gen_cert", ModuleGenCert))
-	utilruntime.Must(RegisterModule("image", ModuleImage))
 }
 
 type key struct{}
