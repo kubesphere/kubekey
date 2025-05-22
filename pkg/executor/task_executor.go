@@ -335,7 +335,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		LogOutput: e.logOutput,
 	})
 
-	e.dealFailedWhen(had, stdout, stderr)
+	e.dealFailedWhen(had, stderr)
 }
 
 // dealLoop parses the loop specification into a slice of items to iterate over.
@@ -377,7 +377,7 @@ func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool
 
 // dealFailedWhen evaluates the "failed_when" conditions for a task to determine if it should fail.
 // Returns true if the task should be marked as failed, false if it should proceed.
-func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string) {
+func (e *taskExecutor) dealFailedWhen(had map[string]any, stderr *string) {
 	if len(e.task.Spec.FailedWhen) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen...)
 		if err != nil {
@@ -385,7 +385,6 @@ func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string
 			*stderr = fmt.Sprintf("parse failed_when condition error: %v", err)
 		}
 		if ok {
-			// *stdout = modules.StdoutFalse
 			*stderr = "reach failed_when, failed"
 		}
 	}

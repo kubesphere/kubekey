@@ -26,7 +26,7 @@ import (
 
 	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/util"
+	"github.com/kubesphere/kubekey/v4/pkg/controllers/util"
 )
 
 // InventoryReconciler reconciles a Inventory object
