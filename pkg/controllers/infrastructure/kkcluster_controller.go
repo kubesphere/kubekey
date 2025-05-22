@@ -28,8 +28,8 @@ import (
 
 	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/controllers/util"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
-	"github.com/kubesphere/kubekey/v4/pkg/util"
 )
 
 // KKClusterReconciler reconciles a KKCluster object

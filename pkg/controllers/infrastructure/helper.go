@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/util"
+	"github.com/kubesphere/kubekey/v4/pkg/controllers/util"
 )
 
 const (
