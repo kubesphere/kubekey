@@ -325,11 +325,6 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		return
 	}
 
-	// Check if task should fail based on failed_when conditions
-	if skip := e.dealFailedWhen(had, stdout, stderr); skip {
-		return
-	}
-
 	// Execute the actual module with the prepared context
 	*stdout, *stderr = modules.FindModule(task.Spec.Module.Name)(ctx, modules.ExecOptions{
 		Args:      e.task.Spec.Module.Args,
@@ -339,6 +334,8 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		Playbook:  *e.playbook,
 		LogOutput: e.logOutput,
 	})
+
+	e.dealFailedWhen(had, stdout, stderr)
 }
 
 // dealLoop parses the loop specification into a slice of items to iterate over.
@@ -380,24 +377,18 @@ func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool
 
 // dealFailedWhen evaluates the "failed_when" conditions for a task to determine if it should fail.
 // Returns true if the task should be marked as failed, false if it should proceed.
-func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string) bool {
+func (e *taskExecutor) dealFailedWhen(had map[string]any, stdout, stderr *string) {
 	if len(e.task.Spec.FailedWhen) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen...)
 		if err != nil {
 			klog.V(5).ErrorS(err, "validate failed_when condition error", "task", ctrlclient.ObjectKeyFromObject(e.task))
 			*stderr = fmt.Sprintf("parse failed_when condition error: %v", err)
-
-			return true
 		}
 		if ok {
-			*stdout = modules.StdoutFalse
+			// *stdout = modules.StdoutFalse
 			*stderr = "reach failed_when, failed"
-
-			return true
 		}
 	}
-
-	return false
 }
 
 // dealRegister handles storing task output in a registered variable if specified.
