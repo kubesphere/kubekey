@@ -44,6 +44,8 @@ const ( // === From Global Parameter ===
 	VariableConnectorPassword = "password"
 	// VariableConnectorPrivateKey is connected auth key for VariableConnector.
 	VariableConnectorPrivateKey = "private_key"
+	// VariableConnectorPrivateKeyContent is connected auth key content for VariableConnector.
+	VariableConnectorPrivateKeyContent = "private_key_content"
 	// VariableConnectorKubeconfig is connected auth key for VariableConnector.
 	VariableConnectorKubeconfig = "kubeconfig"
 	// VariableConnectorToken is connected auth key for VariableConnector.
