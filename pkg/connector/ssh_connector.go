@@ -86,14 +86,20 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 		klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
 		keyParam = defaultSSHPrivateKey
 	}
+	keycontentParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
+	if err != nil {
+		klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
+		keyParam = defaultSSHPrivateKey
+	}
 	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &sshConnector{
-		Host:       hostParam,
-		Port:       *portParam,
-		User:       userParam,
-		Password:   passwdParam,
-		PrivateKey: keyParam,
-		shell:      defaultSHELL,
+		Host:              hostParam,
+		Port:              *portParam,
+		User:              userParam,
+		Password:          passwdParam,
+		PrivateKey:        keyParam,
+		PrivateKeyContent: keycontentParam,
+		shell:             defaultSHELL,
 	}
 
 	// Initialize the cacheGatherFact with a function that will call getHostInfoFromRemote
@@ -103,11 +109,12 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 }
 
 type sshConnector struct {
-	Host       string
-	Port       int
-	User       string
-	Password   string
-	PrivateKey string
+	Host              string
+	Port              int
+	User              string
+	Password          string
+	PrivateKey        string
+	PrivateKeyContent string
 
 	client *ssh.Client
 	// shell to execute command
@@ -125,6 +132,13 @@ func (c *sshConnector) Init(context.Context) error {
 	var auth []ssh.AuthMethod
 	if c.Password != "" {
 		auth = append(auth, ssh.Password(c.Password))
+	}
+	if c.PrivateKeyContent != "" {
+		privateKey, err := ssh.ParsePrivateKey([]byte(c.PrivateKeyContent))
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
+		}
+		auth = append(auth, ssh.PublicKeys(privateKey))
 	}
 	if _, err := os.Stat(c.PrivateKey); err == nil {
 		key, err := os.ReadFile(c.PrivateKey)
