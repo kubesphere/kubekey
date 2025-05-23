@@ -21,10 +21,48 @@ import (
 	"fmt"
 	"strings"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// ModuleCommand deal "command" module.
+/*
+The Command module executes shell commands on remote hosts and returns their output.
+This module allows users to run arbitrary shell commands and capture their output.
+
+Configuration:
+Users can specify the command to execute:
+
+command: "ls -l"    # The shell command to execute
+
+Usage Examples in Playbook Tasks:
+1. Basic command execution:
+   ```yaml
+   - name: List directory contents
+     command: ls -l
+     register: ls_result
+   ```
+
+2. Command with variables:
+   ```yaml
+   - name: Check service status
+     command: systemctl status {{ service_name }}
+     register: service_status
+   ```
+
+3. Complex command:
+   ```yaml
+   - name: Get disk usage
+     command: df -h | grep /dev/sda1
+     register: disk_usage
+   ```
+
+Return Values:
+- On success: Returns command output in stdout
+- On failure: Returns error message in stderr
+*/
+
+// ModuleCommand handles the "command" module, executing shell commands on remote hosts
 func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -53,4 +91,9 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 	}
 
 	return stdout, stderr
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("command", ModuleCommand))
+	utilruntime.Must(RegisterModule("shell", ModuleCommand))
 }

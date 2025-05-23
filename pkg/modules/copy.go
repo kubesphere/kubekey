@@ -28,6 +28,7 @@ import (
 	"github.com/cockroachdb/errors"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
@@ -36,6 +37,55 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
+
+/*
+The Copy module copies files or content from local to remote hosts.
+This module allows users to transfer files or create files with specified content on remote hosts.
+
+Configuration:
+Users can specify either a source file or content to copy.
+
+copy:
+  src: /path/to/file    # optional: local file path to copy
+  content: "text"       # optional: content to write to file
+  dest: /remote/path    # required: destination path on remote host
+  mode: 0644           # optional: file permissions (default: 0644)
+
+Usage Examples in Playbook Tasks:
+1. Copy local file:
+   ```yaml
+   - name: Copy configuration file
+     copy:
+       src: config.yaml
+       dest: /etc/app/config.yaml
+       mode: 0644
+     register: copy_result
+   ```
+
+2. Create file with content:
+   ```yaml
+   - name: Create config file
+     copy:
+       content: |
+         server: localhost
+         port: 8080
+       dest: /etc/app/config.yaml
+     register: config_result
+   ```
+
+3. Copy directory:
+   ```yaml
+   - name: Copy application files
+     copy:
+       src: app/
+       dest: /opt/app/
+     register: app_files
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
 
 type copyArgs struct {
 	src     string
@@ -67,7 +117,7 @@ func newCopyArgs(_ context.Context, raw runtime.RawExtension, vars map[string]an
 	return ca, nil
 }
 
-// ModuleCopy deal "copy" module
+// ModuleCopy handles the "copy" module, copying files or content to remote hosts
 func ModuleCopy(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -269,4 +319,8 @@ func (ca copyArgs) absDir(ctx context.Context, conn connector.Connector) error {
 
 		return conn.PutFile(ctx, data, dest, mode)
 	})
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("copy", ModuleCopy))
 }

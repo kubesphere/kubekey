@@ -18,6 +18,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	cgutilcert "k8s.io/client-go/util/cert"
@@ -27,6 +28,56 @@ import (
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
+
+/*
+The GenCert module generates SSL/TLS certificates for secure communication.
+This module can create both self-signed certificates and certificates signed by a root CA.
+
+Configuration:
+Users can specify various certificate parameters:
+
+gen_cert:
+  cn: example.com           # required: Common Name for the certificate
+  out_key: /path/to/key     # required: output path for private key
+  out_cert: /path/to/cert   # required: output path for certificate
+  root_key: /path/to/ca.key # optional: root CA private key path
+  root_cert: /path/to/ca.crt # optional: root CA certificate path
+  sans:                     # optional: Subject Alternative Names
+    - example.com
+    - www.example.com
+  policy: IfNotPresent      # optional: certificate generation policy
+  date: 8760h              # optional: certificate validity period
+
+Usage Examples in Playbook Tasks:
+1. Generate self-signed certificate:
+   ```yaml
+   - name: Generate self-signed certificate
+     gen_cert:
+       cn: example.com
+       out_key: /etc/ssl/private/example.key
+       out_cert: /etc/ssl/certs/example.crt
+       sans:
+         - example.com
+         - www.example.com
+     register: cert_result
+   ```
+
+2. Generate certificate signed by root CA:
+   ```yaml
+   - name: Generate signed certificate
+     gen_cert:
+       cn: example.com
+       root_key: /etc/ssl/private/ca.key
+       root_cert: /etc/ssl/certs/ca.crt
+       out_key: /etc/ssl/private/example.key
+       out_cert: /etc/ssl/certs/example.crt
+     register: signed_cert
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
 
 const (
 	// DefaultSignCertAfter defines the default timeout for sign certificates.
@@ -164,8 +215,7 @@ func newGenCertArgs(_ context.Context, raw runtime.RawExtension, vars map[string
 	return gca, nil
 }
 
-// ModuleGenCert generate cert file.
-// if root_key and root_cert is empty, generate Self-signed certificate.
+// ModuleGenCert handles the "gen_cert" module, generating SSL/TLS certificates
 func ModuleGenCert(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -464,4 +514,8 @@ func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg 
 	}
 
 	return nil
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("gen_cert", ModuleGenCert))
 }

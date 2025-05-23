@@ -21,11 +21,46 @@ import (
 	"fmt"
 
 	"gopkg.in/yaml.v3"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// ModuleSetFact deal "set_fact" module
+/*
+The SetFact module allows setting variables during playbook execution.
+This module enables users to define and update variables that can be used in subsequent tasks.
+
+Configuration:
+Users can specify key-value pairs to set as variables:
+
+set_fact:
+  key1: value1    # required: variable name and value
+  key2: value2    # optional: additional variables
+
+Usage Examples in Playbook Tasks:
+1. Set single variable:
+   ```yaml
+   - name: Set version variable
+     set_fact:
+       app_version: "1.0.0"
+     register: version_result
+   ```
+
+2. Set multiple variables:
+   ```yaml
+   - name: Set configuration variables
+     set_fact:
+       db_host: "localhost"
+       db_port: 5432
+     register: config_vars
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
+
+// ModuleSetFact handles the "set_fact" module, setting variables during playbook execution
 func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
 	var node yaml.Node
 	// Unmarshal the YAML document into a root node.
@@ -37,4 +72,8 @@ func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
 	}
 
 	return StdoutSuccess, ""
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("set_fact", ModuleSetFact))
 }

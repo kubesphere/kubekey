@@ -33,6 +33,7 @@ import (
 	"github.com/containerd/containerd/images"
 	imagev1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"oras.land/oras-go/v2"
@@ -43,6 +44,56 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
+
+/*
+The Image module handles container image operations including pulling images from registries and pushing images to private registries.
+
+Configuration:
+Users can specify image operations through the following parameters:
+
+image:
+  pull:                    # optional: pull configuration
+    manifests: []string    # required: list of image manifests to pull
+    images_dir: string     # optional: directory to store pulled images
+    skipTLSVerify: bool    # optional: skip TLS verification
+  push:                    # optional: push configuration
+    registry: string       # required: target registry URL
+    username: string       # optional: registry username
+    password: string       # optional: registry password
+    namespace_override: string # optional: override image namespace
+    images_dir: string     # optional: directory containing images to push
+    skipTLSVerify: bool    # optional: skip TLS verification
+
+Usage Examples in Playbook Tasks:
+1. Pull images from registry:
+   ```yaml
+   - name: Pull container images
+     image:
+       pull:
+         manifests:
+           - nginx:latest
+           - prometheus:v2.45.0
+         images_dir: /path/to/images
+     register: pull_result
+   ```
+
+2. Push images to private registry:
+   ```yaml
+   - name: Push images to private registry
+     image:
+       push:
+         registry: registry.example.com
+         username: admin
+         password: secret
+         namespace_override: custom-ns
+         images_dir: /path/to/images
+     register: push_result
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
 
 type imageArgs struct {
 	pull *imagePullArgs
@@ -211,7 +262,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	return ia, nil
 }
 
-// ModuleImage deal "image" module
+// ModuleImage handles the "image" module, managing container image operations including pulling and pushing images
 func ModuleImage(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -524,4 +575,8 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 	}
 
 	return responseNotAllowed
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("image", ModuleImage))
 }

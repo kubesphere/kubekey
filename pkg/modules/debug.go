@@ -25,11 +25,45 @@ import (
 	"strings"
 
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// ModuleDebug deal "debug" module
+/*
+The Debug module provides debugging capabilities by printing variable values and messages.
+This module allows users to inspect variable values and debug playbook execution.
+
+Configuration:
+Users can specify either a message or a variable path to debug.
+
+debug:
+  msg: "message"        # optional: direct message to print
+  msg: "{{ .var }}"     # optional: template syntax to print variable value
+
+Usage Examples in Playbook Tasks:
+1. Print direct message:
+   ```yaml
+   - name: Debug message
+     debug:
+       msg: "Starting deployment"
+     register: debug_result
+   ```
+
+2. Print variable value:
+   ```yaml
+   - name: Debug variable
+     debug:
+       msg: "{{ .config.version }}"
+     register: var_debug
+   ```
+
+Return Values:
+- On success: Returns formatted message/variable value in stdout
+- On failure: Returns error message in stderr
+*/
+
+// ModuleDebug handles the "debug" module, printing debug information
 func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -43,7 +77,7 @@ func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
 		return "", "\"msg\" is not found"
 	case reflect.String:
 		if !kkprojectv1.IsTmplSyntax(v.String()) {
-			return FormatOutput([]byte(v.String()), options.LogOutput), ""
+			return formatOutput([]byte(v.String()), options.LogOutput), ""
 		}
 		val := kkprojectv1.TrimTmplSyntax(v.String())
 		if !strings.HasPrefix(val, ".") {
@@ -53,20 +87,20 @@ func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
 		if err != nil {
 			return "", err.Error()
 		}
-		return FormatOutput(data, options.LogOutput), ""
+		return formatOutput(data, options.LogOutput), ""
 	default:
 		// do not parse by ctx
 		data, err := json.Marshal(v.Interface())
 		if err != nil {
 			return "", err.Error()
 		}
-		return FormatOutput(data, options.LogOutput), ""
+		return formatOutput(data, options.LogOutput), ""
 	}
 }
 
-// FormatOutput formats data as pretty JSON and logs it with DEBUG prefix if output is provided
+// formatOutput formats data as pretty JSON and logs it with DEBUG prefix if output is provided
 // Returns the formatted string
-func FormatOutput(data any, output io.Writer) string {
+func formatOutput(data any, output io.Writer) string {
 	var msg string
 	prettyJSON, err := json.MarshalIndent(data, "", "  ")
 	if err == nil {
@@ -76,4 +110,8 @@ func FormatOutput(data any, output io.Writer) string {
 		_, _ = fmt.Fprintln(output, "DEBUG: \n"+msg) // Ignore error in test context
 	}
 	return msg
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("debug", ModuleDebug))
 }
