@@ -36,7 +36,6 @@ const (
 	connectedLocal      = "local"
 	connectedKubernetes = "kubernetes"
 	connectedPrometheus = "prometheus"
-	defaultSHELL        = "/bin/bash"
 )
 
 // Connector is the interface for connecting to a remote host

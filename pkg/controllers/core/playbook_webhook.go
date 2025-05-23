@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"os"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -60,9 +59,9 @@ func (w *PlaybookWebhook) Default(ctx context.Context, obj runtime.Object) error
 	if !ok {
 		return errors.Errorf("failed to convert %q to playbooks", obj.GetObjectKind().GroupVersionKind().String())
 	}
-	if playbook.Spec.ServiceAccountName == "" && os.Getenv(_const.ENV_EXECUTOR_CLUSTERROLE) != "" {
+	if playbook.Spec.ServiceAccountName == "" && _const.Getenv(_const.ExecutorClusterRole) != "" {
 		// should create default service account in current namespace
-		if err := w.syncServiceAccount(ctx, playbook, os.Getenv(_const.ENV_EXECUTOR_CLUSTERROLE)); err != nil {
+		if err := w.syncServiceAccount(ctx, playbook, _const.Getenv(_const.ExecutorClusterRole)); err != nil {
 			return err
 		}
 		playbook.Spec.ServiceAccountName = defaultServiceAccountName

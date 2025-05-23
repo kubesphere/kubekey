@@ -18,7 +18,6 @@ package core
 
 import (
 	"context"
-	"os"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -43,9 +42,8 @@ import (
 
 const (
 	// playbookPodLabel set in pod. value is which playbook belongs to.
-	podPlaybookLabel     = "kubekey.kubesphere.io/playbook"
-	defaultExecutorImage = "docker.io/kubesphere/executor:latest"
-	executorContainer    = "executor"
+	podPlaybookLabel  = "kubekey.kubesphere.io/playbook"
+	executorContainer = "executor"
 )
 
 // PlaybookReconciler reconcile playbook
@@ -229,7 +227,7 @@ func (r *PlaybookReconciler) dealRunningPlaybook(ctx context.Context, playbook *
 			Containers: []corev1.Container{
 				{
 					Name:    executorContainer,
-					Image:   defaultExecutorImage,
+					Image:   _const.Getenv(_const.ExecutorImage),
 					Command: []string{"kk"},
 					Args: []string{"playbook",
 						"--name", playbook.Name,
@@ -244,15 +242,11 @@ func (r *PlaybookReconciler) dealRunningPlaybook(ctx context.Context, playbook *
 		},
 	}
 	// get verbose from env
-	if verbose := os.Getenv(_const.ENV_EXECUTOR_VERBOSE); verbose != "" {
+	if verbose := _const.Getenv(_const.ExecutorVerbose); verbose != "" {
 		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, "-v", verbose)
 	}
-	// get image from env
-	if image := os.Getenv(_const.ENV_EXECUTOR_IMAGE); image != "" {
-		pod.Spec.Containers[0].Image = image
-	}
-	// get image from env
-	if imagePullPolicy := os.Getenv(_const.ENV_EXECUTOR_IMAGE_PULLPOLICY); imagePullPolicy != "" {
+	// get ImagePullPolicy from env
+	if imagePullPolicy := _const.Getenv(_const.ExecutorImagePullPolicy); imagePullPolicy != "" {
 		pod.Spec.Containers[0].ImagePullPolicy = corev1.PullPolicy(imagePullPolicy)
 	}
 	if err := ctrl.SetControllerReference(playbook, pod, r.Client.Scheme()); err != nil {

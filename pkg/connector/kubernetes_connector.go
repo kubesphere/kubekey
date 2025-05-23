@@ -46,7 +46,6 @@ func newKubernetesConnector(host string, workdir string, hostVars map[string]any
 		cmd:         exec.New(),
 		clusterName: host,
 		kubeconfig:  kubeconfig,
-		shell:       defaultSHELL,
 	}, nil
 }
 
@@ -94,10 +93,7 @@ func (c *kubernetesConnector) Init(_ context.Context) error {
 		return errors.Wrapf(err, "failed to create kubeconfig file for cluster %q", c.clusterName)
 	}
 	// find command interpreter in env. default /bin/bash
-	sl, ok := os.LookupEnv(_const.ENV_SHELL)
-	if ok {
-		c.shell = sl
-	}
+	c.shell = _const.Getenv(_const.Shell)
 
 	return nil
 }

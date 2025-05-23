@@ -99,7 +99,6 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 		Password:          passwdParam,
 		PrivateKey:        keyParam,
 		PrivateKeyContent: keycontentParam,
-		shell:             defaultSHELL,
 	}
 
 	// Initialize the cacheGatherFact with a function that will call getHostInfoFromRemote
@@ -177,6 +176,8 @@ func (c *sshConnector) Init(context.Context) error {
 
 	if strings.TrimSpace(string(output)) != "" {
 		c.shell = strings.TrimSpace(string(output))
+	} else {
+		c.shell = "/bin/bash"
 	}
 
 	return nil

@@ -2,7 +2,6 @@ package infrastructure
 
 import (
 	"context"
-	"os"
 
 	"github.com/cockroachdb/errors"
 	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
@@ -23,27 +22,16 @@ import (
 )
 
 const (
-	defaultGroupControlPlane = "kube_control_plane"
-	defaultGroupWorker       = "kube_worker"
-	defaultClusterGroup      = "k8s_cluster"
+	defaultGroupWorker  = "kube_worker"
+	defaultClusterGroup = "k8s_cluster"
 )
 
 func getControlPlaneGroupName() string {
-	groupName := os.Getenv(_const.ENV_CAPKK_GROUP_CONTROLPLANE)
-	if groupName == "" {
-		groupName = defaultGroupControlPlane
-	}
-
-	return groupName
+	return _const.Getenv(_const.CapkkGroupControlPlane)
 }
 
 func getWorkerGroupName() string {
-	groupName := os.Getenv(_const.ENV_CAPKK_GROUP_WORKER)
-	if groupName == "" {
-		groupName = defaultGroupWorker
-	}
-
-	return groupName
+	return _const.Getenv(_const.CapkkGroupWorker)
 }
 
 // the cluster resource in kubernetes. only contains the single resource for cluster.
@@ -148,7 +136,7 @@ func (p *clusterScope) getVolumeMounts(ctx context.Context) ([]corev1.Volume, []
 	volumeMounts := make([]corev1.VolumeMount, 0)
 	volumes := make([]corev1.Volume, 0)
 
-	if binaryPVC := os.Getenv(_const.ENV_CAPKK_VOLUME_BINARY); binaryPVC != "" {
+	if binaryPVC := _const.Getenv(_const.CapkkVolumeBinary); binaryPVC != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      "kubekey",
 			MountPath: _const.CAPKKBinarydir,
@@ -162,7 +150,7 @@ func (p *clusterScope) getVolumeMounts(ctx context.Context) ([]corev1.Volume, []
 			},
 		})
 	}
-	if projectPVC := os.Getenv(_const.ENV_CAPKK_VOLUME_PROJECT); projectPVC != "" {
+	if projectPVC := _const.Getenv(_const.CapkkVolumeProject); projectPVC != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      "project",
 			MountPath: _const.CAPKKProjectdir,
@@ -177,7 +165,7 @@ func (p *clusterScope) getVolumeMounts(ctx context.Context) ([]corev1.Volume, []
 			},
 		})
 	}
-	if workdirPVC := os.Getenv(_const.ENV_CAPKK_VOLUME_WORKDIR); workdirPVC != "" {
+	if workdirPVC := _const.Getenv(_const.CapkkVolumeWorkdir); workdirPVC != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      "workdir",
 			MountPath: _const.CAPKKWorkdir,

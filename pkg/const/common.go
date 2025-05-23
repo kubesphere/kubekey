@@ -92,31 +92,6 @@ const ( // === From runtime ===
 	VariableItem = "item"
 )
 
-const ( // === From env ===
-	// ENV_SHELL which shell operator use in local connector.
-	ENV_SHELL = "SHELL"
-	// ENV_EXECUTOR_VERBOSE which verbose use in playbook pod.
-	ENV_EXECUTOR_VERBOSE = "EXECUTOR_VERBOSE"
-	// ENV_EXECUTOR_IMAGE which image use in playbook pod.
-	ENV_EXECUTOR_IMAGE = "EXECUTOR_IMAGE"
-	// ENV_EXECUTOR_IMAGE_PULLPOLICY which imagePolicy use in playbook pod.
-	ENV_EXECUTOR_IMAGE_PULLPOLICY = "EXECUTOR_IMAGE_PULLPOLICY"
-	// ENV_EXECUTOR_CLUSTERROLE which clusterrole use in playbook pod.
-	ENV_EXECUTOR_CLUSTERROLE = "EXECUTOR_CLUSTERROLE"
-	// ENV_CAPKK_GROUP_CONTROLPLANE the control_plane groups for capkk playbook
-	ENV_CAPKK_GROUP_CONTROLPLANE = "CAPKK_GROUP_CONTROLPLANE"
-	// ENV_CAPKK_GROUP_WORKER the worker groups for capkk playbook
-	ENV_CAPKK_GROUP_WORKER = "CAPKK_GROUP_WORKER"
-	// ENV_CAPKK_VOLUME_BINARY is the binary dir for capkk playbook. used in offline installer.
-	// the value should be a pvc name.
-	ENV_CAPKK_VOLUME_BINARY = "CAPKK_VOLUME_BINARY"
-	// ENV_CAPKK_VOLUME_PROJECT is the project dir for capkk playbook. the default project has contained in IMAGE.
-	// the value should be a pvc name.
-	ENV_CAPKK_VOLUME_PROJECT = "CAPKK_VOLUME_PROJECT"
-	// ENV_CAPKK_VOLUME_WORKDIR is the workdir for capkk playbook.
-	ENV_CAPKK_VOLUME_WORKDIR = "CAPKK_VOLUME_WORKDIR"
-)
-
 const ( // === From CAPKK base on GetCAPKKProject() ===
 	// CAPKKWorkdir is the work dir for capkk playbook.
 	CAPKKWorkdir = "/kubekey/"
