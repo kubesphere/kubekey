@@ -39,6 +39,9 @@ type taskExecutor struct {
 // Exec creates and executes a task, updating its status and the parent playbook's status.
 // It returns an error if the task creation or execution fails.
 func (e *taskExecutor) Exec(ctx context.Context) error {
+	if e.taskRunTimeout == time.Duration(0) {
+		e.taskRunTimeout = 60 * time.Minute
+	}
 	// create task
 	if err := e.client.Create(ctx, e.task); err != nil {
 		return errors.Wrapf(err, "failed to create task %q", e.task.Spec.Name)

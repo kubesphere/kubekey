@@ -22,11 +22,12 @@ import (
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -199,36 +200,21 @@ func (e playbookExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool,
 		// skip
 		return nil
 	}
-	dealGatherFactsInHost := func(hostname string) error {
-		// get host connector
-		conn, err := connector.NewConnector(hostname, e.variable)
-		if err != nil {
-			return err
-		}
-		if err := conn.Init(ctx); err != nil {
-			return err
-		}
-		defer conn.Close(ctx)
+	// run as option
 
-		if gf, ok := conn.(connector.GatherFacts); ok {
-			remoteInfo, err := gf.HostInfo(ctx)
-			if err != nil {
-				return err
-			}
-			if err := e.variable.Merge(variable.MergeRemoteVariable(remoteInfo, hostname)); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-	for _, hostname := range hosts {
-		if err := dealGatherFactsInHost(hostname); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return (&taskExecutor{option: e.option, task: &kkcorev1alpha1.Task{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: e.playbook.Name + "-",
+			Namespace:    e.playbook.Namespace,
+		},
+		Spec: kkcorev1alpha1.TaskSpec{
+			Name:  "gather_facts",
+			Hosts: hosts,
+			Module: kkcorev1alpha1.Module{
+				Name: "setup",
+			},
+		},
+	}}).Exec(ctx)
 }
 
 // dealSerial "serial" argument in playbook.
