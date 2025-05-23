@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"slices"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -182,5 +181,5 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 		return errors.Wrapf(err, "failed to set playbook %q ownerReferences to %q", ctrlclient.ObjectKeyFromObject(e.playbook), block.Name)
 	}
 
-	return (&taskExecutor{option: e.option, task: task, taskRunTimeout: 60 * time.Minute}).Exec(ctx)
+	return (&taskExecutor{option: e.option, task: task}).Exec(ctx)
 }
