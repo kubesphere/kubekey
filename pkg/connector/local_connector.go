@@ -45,7 +45,6 @@ func newLocalConnector(workdir string, hostVars map[string]any) *localConnector 
 	connector := &localConnector{
 		Password: password,
 		Cmd:      exec.New(),
-		shell:    defaultSHELL,
 	}
 	// Initialize the cacheGatherFact with a function that will call getHostInfoFromRemote
 	connector.gatherFacts = newCacheGatherFact(_const.VariableLocalHost, cacheType, workdir, connector.getHostInfo)
@@ -65,10 +64,7 @@ type localConnector struct {
 // Init initializes the local connector. This method does nothing for localConnector.
 func (c *localConnector) Init(context.Context) error {
 	// find command interpreter in env. default /bin/bash
-	sl, ok := os.LookupEnv(_const.ENV_SHELL)
-	if ok {
-		c.shell = sl
-	}
+	c.shell = _const.Getenv(_const.Shell)
 
 	return nil
 }
