@@ -83,17 +83,16 @@ state = "/run/containerd"
       max_conf_num = 1
       conf_template = ""
     [plugins."io.containerd.grpc.v1.cri".registry]
-      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+      {{- if .HasRemoteMirrors }}
+      config_path = "/etc/containerd/certs.d"
+      {{- end }}
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
         {{- if .Mirrors }}
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
           endpoint = [{{ .Mirrors }}, "https://registry-1.docker.io"]
         {{ else }}
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
           endpoint = ["https://registry-1.docker.io"]
-          {{- if .RegistryMirror }}
-          [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io".rewrite]
-             "^(.*)" = "docker/$1"
-          {{- end }}
         {{- end}}
         {{- range $value := .InsecureRegistries }}
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."{{$value}}"]

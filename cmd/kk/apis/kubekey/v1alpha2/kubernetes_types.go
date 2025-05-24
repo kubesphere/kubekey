@@ -51,7 +51,6 @@ type Kubernetes struct {
 	KubeletConfiguration     runtime.RawExtension `yaml:"kubeletConfiguration" json:"kubeletConfiguration,omitempty"`
 	KubeProxyConfiguration   runtime.RawExtension `yaml:"kubeProxyConfiguration" json:"kubeProxyConfiguration,omitempty"`
 	Audit                    Audit                `yaml:"audit" json:"audit,omitempty"`
-	ClusterAutoscale         *bool                `yaml:"clusterAutoscale" json:"clusterAutoscale,omitempty"`
 	NvidiaRuntime            *bool                `yaml:"nvidiaRuntime" json:"nvidiaRuntime,omitempty"`
 }
 

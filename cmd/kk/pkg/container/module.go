@@ -232,8 +232,8 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 				"SandBoxImage":       images.GetImage(m.Runtime, m.KubeConf, "pause").ImageName(),
 				"Auths":              registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths),
 				"DataRoot":           templates.ContainerdDataDir(m.KubeConf),
-				"RegistryMirror":     m.KubeConf.Cluster.Registry.ContainerdMirrorURL != "",
 				"NvidiaRuntime":      m.KubeConf.Cluster.Kubernetes.EnableNvidiaRuntime(),
+				"HasRemoteMirrors":   len(m.KubeConf.Cluster.Registry.RemoteMirrors) > 0,
 			},
 		},
 		Parallel: true,
@@ -282,7 +282,20 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		Parallel: true,
 	}
 
-	return []task.Interface{
+	// 添加生成远程镜像代理配置的任务
+	generateContainerdMirrorConfig := &task.RemoteTask{
+		Name:  "GenerateContainerdMirrorConfig",
+		Desc:  "Generate containerd mirror config",
+		Hosts: m.Runtime.GetHostsByRole(common.K8s),
+		Prepare: &prepare.PrepareCollection{
+			&kubernetes.NodeInCluster{Not: true},
+			&ContainerdExist{Not: true},
+		},
+		Action:   new(GenerateContainerdMirrorConfig),
+		Parallel: true,
+	}
+
+	tasks := []task.Interface{
 		syncContainerd,
 		generateContainerdService,
 		generateContainerdConfig,
@@ -290,6 +303,13 @@ func InstallContainerd(m *InstallContainerModule) []task.Interface {
 		syncCrictlBinaries,
 		generateCrictlConfig,
 	}
+
+	// 只有在配置了远程镜像代理时才添加这个任务
+	if len(m.KubeConf.Cluster.Registry.RemoteMirrors) > 0 {
+		tasks = append(tasks, generateContainerdMirrorConfig)
+	}
+
+	return tasks
 }
 
 type InstallCriDockerdModule struct {
