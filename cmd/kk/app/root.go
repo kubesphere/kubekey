@@ -17,20 +17,10 @@ limitations under the License.
 package app
 
 import (
-	"context"
-	"path/filepath"
-
-	"github.com/cockroachdb/errors"
-	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/rest"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/manager"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
 var internalCommand = make([]*cobra.Command, 0)
@@ -62,50 +52,9 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newRunCommand())
 	cmd.AddCommand(newPlaybookCommand())
 	cmd.AddCommand(newVersionCommand())
+	cmd.AddCommand(newWebCommand())
 	// internal command
 	cmd.AddCommand(internalCommand...)
 
 	return cmd
-}
-
-// CommandRunE executes the main command logic for the application.
-// It sets up the necessary configurations, creates the inventory and playbook
-// resources, and then runs the command manager.
-//
-// Parameters:
-//   - ctx: The context for controlling the execution flow.
-//   - workdir: The working directory path.
-//   - playbook: The playbook resource to be created and managed.
-//   - config: The configuration resource.
-//   - inventory: The inventory resource to be created.
-//
-// Returns:
-//   - error: An error if any step in the process fails, otherwise nil.
-func CommandRunE(ctx context.Context, workdir string, playbook *kkcorev1.Playbook, config *kkcorev1.Config, inventory *kkcorev1.Inventory) error {
-	restconfig := &rest.Config{}
-	if err := proxy.RestConfig(filepath.Join(workdir, _const.RuntimeDir), restconfig); err != nil {
-		return err
-	}
-	client, err := ctrlclient.New(restconfig, ctrlclient.Options{
-		Scheme: _const.Scheme,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to get runtime-client")
-	}
-	// create inventory
-	if err := client.Create(ctx, inventory); err != nil {
-		return errors.Wrap(err, "failed to create inventory")
-	}
-	// create playbook
-	if err := client.Create(ctx, playbook); err != nil {
-		return errors.Wrap(err, "failed to create playbook")
-	}
-
-	return manager.NewCommandManager(manager.CommandManagerOptions{
-		Workdir:   workdir,
-		Playbook:  playbook,
-		Config:    config,
-		Inventory: inventory,
-		Client:    client,
-	}).Run(ctx)
 }

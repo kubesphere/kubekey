@@ -140,7 +140,6 @@ func (o *CommonOptions) Run(ctx context.Context, playbook *kkcorev1.Playbook) er
 	}
 
 	return manager.NewCommandManager(manager.CommandManagerOptions{
-		Workdir:   o.Workdir,
 		Playbook:  playbook,
 		Config:    o.Config,
 		Inventory: o.Inventory,

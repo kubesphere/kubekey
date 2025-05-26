@@ -32,17 +32,17 @@ func ModuleSetup(ctx context.Context, options ExecOptions) (string, string) {
 	// get connector
 	conn, err := getConnector(ctx, options.Host, options.Variable)
 	if err != nil {
-		return "", fmt.Sprintf("failed to connector of %q error: %v", options.Host, err)
+		return StdoutFailed, fmt.Sprintf("failed to connector of %q error: %v", options.Host, err)
 	}
 	defer conn.Close(ctx)
 
 	if gf, ok := conn.(connector.GatherFacts); ok {
 		remoteInfo, err := gf.HostInfo(ctx)
 		if err != nil {
-			return "", err.Error()
+			return StdoutFailed, err.Error()
 		}
 		if err := options.Variable.Merge(variable.MergeRemoteVariable(remoteInfo, options.Host)); err != nil {
-			return "", err.Error()
+			return StdoutFailed, err.Error()
 		}
 	}
 

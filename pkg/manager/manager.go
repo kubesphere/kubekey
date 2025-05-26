@@ -21,20 +21,20 @@ import (
 	"os"
 
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	"k8s.io/client-go/rest"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app/options"
 )
 
-// Manager shared dependencies such as Addr and , and provides them to Runnable.
+// Manager defines the interface for different types of managers that can run operations
 type Manager interface {
-	// Run the driver
+	// Run executes the manager's main functionality with the given context
 	Run(ctx context.Context) error
 }
 
-// CommandManagerOptions for NewCommandManager
+// CommandManagerOptions contains the configuration options for creating a new command manager
 type CommandManagerOptions struct {
-	Workdir string
 	*kkcorev1.Playbook
 	*kkcorev1.Config
 	*kkcorev1.Inventory
@@ -42,10 +42,9 @@ type CommandManagerOptions struct {
 	ctrlclient.Client
 }
 
-// NewCommandManager return a new commandManager
+// NewCommandManager creates and returns a new command manager instance with the provided options
 func NewCommandManager(o CommandManagerOptions) Manager {
 	return &commandManager{
-		workdir:   o.Workdir,
 		Playbook:  o.Playbook,
 		Inventory: o.Inventory,
 		Client:    o.Client,
@@ -53,9 +52,27 @@ func NewCommandManager(o CommandManagerOptions) Manager {
 	}
 }
 
-// NewControllerManager return a new controllerManager
+// NewControllerManager creates and returns a new controller manager instance with the provided options
 func NewControllerManager(o *options.ControllerManagerServerOptions) Manager {
 	return &controllerManager{
 		ControllerManagerServerOptions: o,
+	}
+}
+
+// WebManagerOptions contains the configuration options for creating a new web manager
+type WebManagerOptions struct {
+	Workdir string
+	Port    int
+	ctrlclient.Client
+	*rest.Config
+}
+
+// NewWebManager creates and returns a new web manager instance with the provided options
+func NewWebManager(o WebManagerOptions) Manager {
+	return &webManager{
+		workdir: o.Workdir,
+		port:    o.Port,
+		Client:  o.Client,
+		Config:  o.Config,
 	}
 }

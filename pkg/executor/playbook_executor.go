@@ -18,7 +18,11 @@ package executor
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -28,6 +32,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -60,7 +65,21 @@ type playbookExecutor struct {
 }
 
 // Exec playbook. covert playbook to block and executor it.
-func (e playbookExecutor) Exec(ctx context.Context) error {
+func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
+	defer e.syncStatus(ctx, retErr)
+	fmt.Fprint(e.logOutput, `
+
+	_   __      _          _   __           
+   | | / /     | |        | | / /           
+   | |/ / _   _| |__   ___| |/ /  ___ _   _ 
+   |    \| | | | '_ \ / _ \    \ / _ \ | | |
+   | |\  \ |_| | |_) |  __/ |\  \  __/ |_| |
+   \_| \_/\__,_|_.__/ \___\_| \_/\___|\__, |
+									   __/ |
+									  |___/
+   
+   `)
+	fmt.Fprintf(e.logOutput, "%s [Playbook %s] start\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(e.playbook))
 	klog.V(5).InfoS("deal project", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
 	pj, err := project.New(ctx, *e.playbook, true)
 	if err != nil {
@@ -101,6 +120,36 @@ func (e playbookExecutor) Exec(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (e playbookExecutor) syncStatus(ctx context.Context, err error) {
+	cp := e.playbook.DeepCopy()
+	if err != nil {
+		e.playbook.Status.Phase = kkcorev1.PlaybookPhaseFailed
+		e.playbook.Status.FailureReason = kkcorev1.PlaybookFailedReasonTaskFailed
+		e.playbook.Status.FailureMessage = err.Error()
+	} else {
+		e.playbook.Status.Phase = kkcorev1.PlaybookPhaseSucceeded
+	}
+
+	fmt.Fprintf(e.logOutput, "%s [Playbook %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(e.playbook),
+		e.playbook.Status.TaskResult.Total, e.playbook.Status.TaskResult.Success, e.playbook.Status.TaskResult.Ignored, e.playbook.Status.TaskResult.Failed)
+
+	// update playbook status
+	if err := e.client.Status().Patch(ctx, e.playbook, ctrlclient.MergeFrom(cp)); err != nil {
+		klog.ErrorS(err, "update playbook error", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
+	}
+
+	go func() {
+		if !e.playbook.Spec.Debug && e.playbook.Status.Phase == kkcorev1.PlaybookPhaseSucceeded {
+			<-ctx.Done()
+			fmt.Fprintf(e.logOutput, "%s [Playbook %s] clean runtime directory\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(e.playbook))
+			// clean runtime directory
+			if err := os.RemoveAll(filepath.Join(_const.GetWorkdirFromConfig(e.playbook.Spec.Config), _const.RuntimeDir)); err != nil {
+				klog.ErrorS(err, "clean runtime directory error", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook), "runtime_dir", filepath.Join(_const.GetWorkdirFromConfig(e.playbook.Spec.Config), _const.RuntimeDir))
+			}
+		}
+	}()
 }
 
 // execBatchHosts executor block in play order by: "pre_tasks" > "roles" > "tasks" > "post_tasks"

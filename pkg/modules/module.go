@@ -29,15 +29,16 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// message for stdout
 const (
-	// StdoutSuccess message for common module
+	// StdoutSuccess is the standard message indicating a successful module execution.
 	StdoutSuccess = "success"
-	StdoutSkip    = "skip"
-
-	// StdoutTrue for bool module
+	// StdoutFailed is the standard message indicating a failed module execution.
+	StdoutFailed = "failed"
+	// StdoutSkip is the standard message indicating a skipped module execution.
+	StdoutSkip = "skip"
+	// StdoutTrue is the standard message indicating a boolean true result (used in bool/assert modules).
 	StdoutTrue = "True"
-	// StdoutFalse for bool module
+	// StdoutFalse is the standard message indicating a boolean false result (used in bool/assert modules).
 	StdoutFalse = "False"
 )
 
