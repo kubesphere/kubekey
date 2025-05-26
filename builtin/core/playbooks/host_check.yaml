@@ -1,0 +1,8 @@
+- name: Check Connect
+  hosts: 
+    - all
+  gather_facts: true
+  tasks:
+    - name: get_arch
+      debug:
+        msg: "{{ .os.architecture }}"

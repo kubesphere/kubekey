@@ -169,11 +169,20 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 
 // ToSelectableFields returns a field set that represents the object
 func ToSelectableFields(task *kkcorev1alpha1.Task) fields.Set {
-	// The purpose of allocation with a given number of elements is to reduce
-	// amount of allocations needed to create the fields.Set. If you add any
-	// field here or the number of object-meta related fields changes, this should
-	// be adjusted.
-	return apigeneric.AddObjectMetaFieldsSet(apigeneric.ObjectMetaFieldsSet(&task.ObjectMeta, true), &task.ObjectMeta, true)
+	objectMetaFieldsSet := apigeneric.ObjectMetaFieldsSet(&task.ObjectMeta, true)
+	taskSpecificFieldsSet := fields.Set{
+		"spec.name": task.Spec.Name,
+	}
+	for _, reference := range task.OwnerReferences {
+		if reference.Kind == playbookKind {
+			taskSpecificFieldsSet["playbook.name"] = reference.Name
+			taskSpecificFieldsSet["playbook.uid"] = string(reference.UID)
+
+			break
+		}
+	}
+
+	return apigeneric.MergeFieldsSets(taskSpecificFieldsSet, objectMetaFieldsSet)
 }
 
 // NameTriggerFunc returns value metadata.namespace of given object.
