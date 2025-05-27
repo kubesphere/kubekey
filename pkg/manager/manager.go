@@ -61,8 +61,9 @@ func NewControllerManager(o *options.ControllerManagerServerOptions) Manager {
 
 // WebManagerOptions contains the configuration options for creating a new web manager
 type WebManagerOptions struct {
-	Workdir string
-	Port    int
+	Workdir    string
+	Port       int
+	SchemaPath string
 	ctrlclient.Client
 	*rest.Config
 }
@@ -70,9 +71,10 @@ type WebManagerOptions struct {
 // NewWebManager creates and returns a new web manager instance with the provided options
 func NewWebManager(o WebManagerOptions) Manager {
 	return &webManager{
-		workdir: o.Workdir,
-		port:    o.Port,
-		Client:  o.Client,
-		Config:  o.Config,
+		workdir:    o.Workdir,
+		port:       o.Port,
+		schemaPath: o.SchemaPath,
+		Client:     o.Client,
+		Config:     o.Config,
 	}
 }

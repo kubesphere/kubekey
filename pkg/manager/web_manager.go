@@ -22,6 +22,8 @@ type webManager struct {
 	port    int
 	workdir string
 
+	schemaPath string
+
 	ctrlclient.Client
 	*rest.Config
 }
@@ -34,6 +36,7 @@ func (m webManager) Run(ctx context.Context) error {
 		logStackOnRecover(panicReason, httpWriter)
 	})
 	container.Add(web.NewWebService(ctx, m.workdir, m.Client, m.Config)).
+		Add(web.NewSchemaService(m.schemaPath)).
 		// openapi
 		Add(web.NewSwaggerUIService()).
 		Add(web.NewAPIService(container.RegisteredWebServices()))
