@@ -19,7 +19,6 @@ import (
 func NewSwaggerUIService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/swagger-ui")
-	ws.Produces(restful.MIME_JSON)
 
 	subFS, err := fs.Sub(config.Swagger, "swagger-ui")
 	if err != nil {
