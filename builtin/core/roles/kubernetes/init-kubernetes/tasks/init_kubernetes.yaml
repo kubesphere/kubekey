@@ -73,3 +73,8 @@
     - name: Add work label
       command: |
         /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=
+
+- name: Add annotations
+  when: .annotations | empty | not
+  command: |
+    kubectl annotate {{ .hostname }} {{- range $k,$v := .annotations }}{{ printf "%s=%s" $k $v}} {{- end }}

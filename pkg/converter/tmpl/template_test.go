@@ -188,6 +188,23 @@ func TestParseBool(t *testing.T) {
 			},
 			excepted: true,
 		},
+		// ======= empty =======
+		{
+			name:      "empty true-1",
+			condition: []string{`{{ empty .foo }}`},
+			variable: map[string]any{
+				"foo": map[string]any{},
+			},
+			excepted: true,
+		},
+		{
+			name:      "empty true-2",
+			condition: []string{`{{ empty .foo }}`},
+			variable: map[string]any{
+				"foo": []any{},
+			},
+			excepted: true,
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
