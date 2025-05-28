@@ -36,4 +36,4 @@
   when: eq .kubernetes.control_plane_endpoint.type "kube_vip"
   command: |
     ip neigh show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{print $1 " dev " $3}' | xargs -r -L1 ip neigh delete
-  
+    ip -o addr show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{system("ip addr del "$4" dev "$2)}'
