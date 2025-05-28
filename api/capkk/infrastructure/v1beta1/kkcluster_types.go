@@ -80,7 +80,7 @@ const (
 	// - ARP Mode: Requires the management cluster and worker cluster nodes to be in the same network segment.
 	// - BGP Mode: Requires a network environment that supports BGP, with proper configuration in both
 	//   the management and worker clusters.
-	ControlPlaneEndpointTypeVIP ControlPlaneEndpointType = "vip"
+	ControlPlaneEndpointTypeVIP ControlPlaneEndpointType = "kube_vip"
 )
 
 type InventoryHostConnector struct {

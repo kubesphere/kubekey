@@ -1,3 +1,59 @@
+# set localDNS for each .kubernetes.control_plane_endpoint.type
+# local:
+# before init cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# after init cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# before join cluster
+# - control_plane: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# after join cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+#
+# kube_vip:
+# before init cluster
+# - control_plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+# after init cluster
+# - control_plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+# before join cluster
+# - control_plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+# after join cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#
+# haproxy:
+# before init cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# after init cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# before join cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# after join cluster
+# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+- name: Set Control Plane to localDNS file
+  command: |
+    sed -i ':a;$!{N;ba};s@# kubekey control_plane BEGIN.*# kubekey control_plane END@@' {{ .item }}
+    cat >> {{ .item }} << EOF
+    # kubekey control_plane BEGIN.
+    {{- if .kubernetes.control_plane_endpoint.type | eq "kube_vip" }}
+    {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- else }}
+    127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
+    # kubekey control_plane END
+    EOF
+  loop: "{{ .localDNS | toJson }}"
+
 # install with static pod: https://kube-vip.io/docs/installation/static/
 - include_tasks: high-availability/kube_vip.yaml
   when:

@@ -1,7 +1,7 @@
 ---   
 - name: Install kube-vip
   when: 
-    - eq .kubernetes.control_plane_endpoint.type "vip"
+    - eq .kubernetes.control_plane_endpoint.type "kube_vip"
     - or (.kubernetes.roles | has "master") (.kubernetes.roles | has "control-plane")
   template:
     src: kube-vip.yaml
