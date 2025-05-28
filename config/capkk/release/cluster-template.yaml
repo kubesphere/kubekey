@@ -27,7 +27,7 @@ kind: KKCluster
 metadata:
   name: '${CLUSTER_NAME}'
 spec:
-  controlPlaneEndpointType: ${CONTROL_PLANE_ENDPOINT_TYPE="vip"}
+  controlPlaneEndpointType: ${CONTROL_PLANE_ENDPOINT_TYPE="kube_vip"}
   inventory: ${INVENTORY_HOSTS}
 ---
 kind: KubeadmControlPlane

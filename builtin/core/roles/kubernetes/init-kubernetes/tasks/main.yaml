@@ -22,14 +22,16 @@
       {{ index $notInitNodes (randInt 0 ((sub ($notInitNodes | len) 1) | int)) }}
       {{- end -}}
 
-- name: Set custom hosts to localDNS file
-  when: eq .kubernetes.control_plane_endpoint.type "local"
+- name: Set control_plane hosts to localDNS file
+  when: 
+    - .kubernetes.control_plane_endpoint.type | eq  "local"
+    - .inventory_hostname | eq .init_kubernetes_node | not
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey custom BEGIN.*# kubekey custom END@@' {{ .item }}
+    sed -i ':a;$!{N;ba};s@# kubekey control_plane BEGIN.*# kubekey control_plane END@@' {{ .item }}
     cat >> {{ .item }} <<EOF
-    # kubekey custom BEGIN
-    127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-    # kubekey custom END
+    # kubekey control_plane BEGIN.
+    {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+    # kubekey control_plane END
     EOF
   loop: "{{ .localDNS | toJson }}"
 

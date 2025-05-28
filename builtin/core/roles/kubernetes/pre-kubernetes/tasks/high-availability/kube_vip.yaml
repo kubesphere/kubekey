@@ -2,9 +2,9 @@
 - name: Get network interface for kube_vip
   command: |
     {{- if .kubernetes.control_plane_endpoint.kube_vip.address | ipFamily | eq "IPv4" }}
-    ip route | grep ' {{ .internal_ipv4 }} ' | grep 'proto kernel scope link src' | sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\"| uniq
+    ip route | grep '{{ .internal_ipv4 }}' | grep 'proto kernel scope link src' | awk '{print $3}'
     {{- else if .kubernetes.control_plane_endpoint.host | ipFamily | eq "IPv6" }}
-    ip route | grep ' {{ .internal_ipv6 }} ' | grep 'proto kernel scope link src' | sed -e \"s/^.*dev.//\" -e \"s/.proto.*//\"| uniq
+    ip route | grep '{{ .internal_ipv6 }}' | grep 'proto kernel scope link src' | awk '{print $3}'
     {{- else }}
     echo "kubernetes.control_plane_endpoint.kube_vip.address" should be ipv4 or ipv6
     exit 1
@@ -14,12 +14,12 @@
 - name: Check if network is exist
   assert:
     that:
-      - .interface.stderr == ""
-      - .interface.stdout != ""
+      - .interface.stderr | eq ""
+      - .interface.stdout | ne ""
     fail_msg: "cannot find network interface to match kube_vip"
 
 - name: Generate kube_vip manifest
   template:
     src: |
       kubevip/kubevip.{{ .kubernetes.control_plane_endpoint.kube_vip.mode }}
-    dest: /etc/kubernetes/manifests/kubevip.yaml
+    dest: /etc/kubernetes/manifests/kube-vip.yaml
