@@ -69,16 +69,16 @@ func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
 	defer e.syncStatus(ctx, retErr)
 	fmt.Fprint(e.logOutput, `
 
-	_   __      _          _   __           
-   | | / /     | |        | | / /           
-   | |/ / _   _| |__   ___| |/ /  ___ _   _ 
-   |    \| | | | '_ \ / _ \    \ / _ \ | | |
-   | |\  \ |_| | |_) |  __/ |\  \  __/ |_| |
-   \_| \_/\__,_|_.__/ \___\_| \_/\___|\__, |
-									   __/ |
-									  |___/
-   
-   `)
+ _   __      _          _   __           
+| | / /     | |        | | / /           
+| |/ / _   _| |__   ___| |/ /  ___ _   _ 
+|    \| | | | '_ \ / _ \    \ / _ \ | | |
+| |\  \ |_| | |_) |  __/ |\  \  __/ |_| |
+\_| \_/\__,_|_.__/ \___\_| \_/\___|\__, |
+                                    __/ |
+                                   |___/
+
+`)
 	fmt.Fprintf(e.logOutput, "%s [Playbook %s] start\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(e.playbook))
 	klog.V(5).InfoS("deal project", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
 	pj, err := project.New(ctx, *e.playbook, true)

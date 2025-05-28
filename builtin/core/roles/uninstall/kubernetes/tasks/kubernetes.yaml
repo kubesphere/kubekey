@@ -1,0 +1,19 @@
+---
+- name: Delete Node
+  ignore_errors: true
+  command: |
+    kubeadm reset -f
+
+- name: Stop kubelet service
+  command: |
+    rm -rf /etc/systemd/system/kubelet.service
+    rm -rf /etc/systemd/system/kubelet.service.d
+    systemctl daemon-reload
+
+- name: Delete residue files
+  command: |
+    rm -rf /usr/local/bin/kubeadm && rm -rf /usr/local/bin/kubelet && rm -rf /usr/local/bin/kubectl
+    rm -rf /var/lib/kubelet/
+    rm -rf /etc/kubernetes/
+    rm -rf .kube/config
+    rm -rf /var/lib/etcd
