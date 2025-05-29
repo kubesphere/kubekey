@@ -231,8 +231,8 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 		}
 	}
 	// progress bar for task
-	var bar = progressbar.NewOptions(-1,
-		progressbar.OptionSetWriter(e.logOutput),
+	options := []progressbar.Option{
+		progressbar.OptionSetWriter(os.Stdout),
 		// progressbar.OptionSpinnerCustom([]string{"            "}),
 		progressbar.OptionSpinnerType(14),
 		progressbar.OptionEnableColorCodes(true),
@@ -242,7 +242,11 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 				klog.ErrorS(err, "failed to write output", "host", h)
 			}
 		}),
-	)
+	}
+	if e.logOutput != os.Stdout {
+		options = append(options, progressbar.OptionSetVisibility(false))
+	}
+	bar := progressbar.NewOptions(-1, options...)
 	// run progress
 	go func() {
 		err := wait.PollUntilContextCancel(ctx, 100*time.Millisecond, true, func(context.Context) (bool, error) {
@@ -265,13 +269,25 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 		case *stderr != "":
 			if e.task.Spec.IgnoreError != nil && *e.task.Spec.IgnoreError { // ignore
 				bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mignore \033[0m", h, placeholder))
+				if e.logOutput != os.Stdout {
+					fmt.Fprintf(e.logOutput, "[%s]%s ignore \n", h, placeholder)
+				}
 			} else { // failed
 				bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[31mfailed \033[0m", h, placeholder))
+				if e.logOutput != os.Stdout {
+					fmt.Fprintf(e.logOutput, "[%s]%s failed \n", h, placeholder)
+				}
 			}
 		case *stdout == modules.StdoutSkip: // skip
 			bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mskip   \033[0m", h, placeholder))
+			if e.logOutput != os.Stdout {
+				fmt.Fprintf(e.logOutput, "[%s]%s skip   \n", h, placeholder)
+			}
 		default: //success
 			bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34msuccess\033[0m", h, placeholder))
+			if e.logOutput != os.Stdout {
+				fmt.Fprintf(e.logOutput, "[%s]%s success\n", h, placeholder)
+			}
 		}
 		if err := bar.Finish(); err != nil {
 			klog.ErrorS(err, "finish bar error")
