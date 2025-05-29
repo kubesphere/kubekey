@@ -45,5 +45,5 @@
       when: .kubernetes_install_service.stdout | eq "active"
       assert:
         that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
-      fail_msg: |
-        kubernetes has installed with version:{{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}. but not match kube_version: {{ .kube_version }}
+        fail_msg: |
+          kubernetes has installed with version:{{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}. but not match kube_version: {{ .kube_version }}

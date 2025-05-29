@@ -2,6 +2,7 @@ package web
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -303,14 +304,15 @@ func (h handler) createPlaybook(request *restful.Request, response *restful.Resp
 				return
 			}
 		}
-		file, err := os.Create(filename)
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			klog.ErrorS(err, "failed to open file", "file", filename)
 			return
 		}
 		defer file.Close()
 
-		if err := executor.NewPlaybookExecutor(request.Request.Context(), h.client, playbook, file).Exec(request.Request.Context()); err != nil {
+		ctx := context.TODO()
+		if err := executor.NewPlaybookExecutor(ctx, h.client, playbook, file).Exec(ctx); err != nil {
 			klog.ErrorS(err, "failed to exec playbook", "playbook", playbook.Name)
 		}
 	}()

@@ -231,6 +231,7 @@ linters-settings:
     excludes:
       - G106 # Deferring unsafe method "InsecureIgnoreHostKey" on type "\*ssh"
       - G301 # Deferring unsafe method "MkdirAll" on type "\*os.File"
+      - G302 # Deferring unsafe method "Create" or "Open" on type "\*os.File"
       - G304 # Deferring unsafe method "Create" or "Open" on type "\*os.File"
       - G306 # Deferring unsafe method "WriteFile" on type "\*os.File"
       - G307 # Deferring unsafe method "Close" on type "\*os.File"
