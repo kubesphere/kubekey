@@ -2,3 +2,7 @@
 - include_tasks: kubernetes.yaml
 
 - include_tasks: network.yaml
+
+- name: Delete residue files
+  command: |
+    rm -rf /etc/kubekey/

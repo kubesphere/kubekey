@@ -1,8 +1,8 @@
 renew_certs:
   enabled: false
-  is_kubeadm_alpha: |
-    {{- if .kube_version | semverCompare "<v1.20.0" }}
+  is_kubeadm_alpha: >-
+    {{- if .kube_version | semverCompare "<v1.20.0" -}}
     true
-    {{- else }}
+    {{- else -}}
     false
-    {{- end }}
+    {{- end -}}

@@ -1,9 +1,9 @@
 ---
 - name: Sync nfs provisioner helm to remote
   copy:
-    src: |
+    src: >-
       {{ .work_dir }}/kubekey/sc/nfs-subdir-external-provisioner-{{ .nfs_provisioner_version }}.tgz
-    dest: |
+    dest: >-
       /etc/kubernetes/addons/nfs-subdir-external-provisioner-{{ .nfs_provisioner_version }}.tgz
 
 - name: Deploy nfs provisioner

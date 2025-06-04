@@ -9,9 +9,9 @@
   block:
     - name: Sync crictl binary to remote
       copy:
-        src: |
+        src: >-
           {{ .binary_dir }}/crictl/{{ .crictl_version }}/{{ .binary_type.stdout }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz
-        dest: |
+        dest: >-
           {{ .tmp_dir }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz
     - name: Unpackage crictl binary
       command: |

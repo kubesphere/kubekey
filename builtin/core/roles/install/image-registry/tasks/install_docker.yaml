@@ -9,9 +9,9 @@
   block:
     - name: Sync docker binary to remote
       copy:
-        src: |
+        src: >-
           {{ .binary_dir }}/docker/{{ .docker_version }}/{{ .binary_type.stdout }}/docker-{{ .docker_version }}.tgz
-        dest: |
+        dest: >-
           {{ .tmp_dir }}/docker-{{ .docker_version }}.tgz
     - name: Generate docker config file
       template:

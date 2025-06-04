@@ -6,180 +6,180 @@ artifact:
   artifact_md5: ""
   artifact_url:
     etcd:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/{{ .etcd_version }}/etcd-{{ .etcd_version }}-linux-amd64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://github.com/etcd-io/etcd/releases/download/{{ .etcd_version }}/etcd-{{ .etcd_version }}-linux-amd64.tar.gz
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/etcd/release/download/{{ .etcd_version }}/etcd-{{ .etcd_version }}-linux-arm64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://github.com/etcd-io/etcd/releases/download/{{ .etcd_version }}/etcd-{{ .etcd_version }}-linux-arm64.tar.gz
-        {{- end }}
+        {{- end -}}
     kubeadm:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/amd64/kubeadm
-        {{- else }}
+        {{- else -}}
         https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/amd64/kubeadm
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/arm64/kubeadm
-        {{- else }}
+        {{- else -}}
         https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/arm64/kubeadm
-        {{- end }}
+        {{- end -}}
     kubelet:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/amd64/kubelet
-        {{- else }}
+        {{- else -}}
         https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/amd64/kubelet
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/arm64/kubelet
-        {{- else }}
+        {{- else -}}
         https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/arm64/kubelet
-        {{- end }}
+        {{- end -}}
     kubectl:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/amd64/kubectl
-        {{- else }}
+        {{- else -}}
         https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/amd64/kubectl
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/release/{{ .kube_version }}/bin/linux/arm64/kubectl
-        {{- else }}
+        {{- else -}}
         https://storage.googleapis.com/kubernetes-release/release/{{ .kube_version }}/bin/linux/arm64/kubectl
-        {{- end }}
+        {{- end -}}
     cni_plugins:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://github.com/containernetworking/plugins/releases/download/{{ .cni_plugins_version }}/cni-plugins-linux-amd64-{{ .cni_plugins_version }}.tgz
-        {{- else }}
+        {{- else -}}
         https://containernetworking.pek3b.qingstor.com/plugins/releases/download/{{ .cni_plugins_version }}/cni-plugins-linux-amd64-{{ .cni_plugins_version }}.tgz
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://github.com/containernetworking/plugins/releases/download/{{ .cni_plugins_version }}/cni-plugins-linux-arm64-{{ .cni_plugins_version }}.tgz
-        {{- else }}
+        {{- else -}}
         https://containernetworking.pek3b.qingstor.com/plugins/releases/download/{{ .cni_plugins_version }}/cni-plugins-linux-arm64-{{ .cni_plugins_version }}.tgz
-        {{- end }}
+        {{- end -}}
     helm:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-helm.pek3b.qingstor.com/helm-{{ .helm_version }}-linux-amd64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://get.helm.sh/helm-{{ .helm_version }}-linux-amd64.tar.gz
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-helm.pek3b.qingstor.com/helm-{{ .helm_version }}-linux-arm64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://get.helm.sh/helm-{{ .helm_version }}-linux-arm64.tar.gz
-        {{- end }}
+        {{- end -}}
     crictl:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/{{ .crictl_version }}/crictl-{{ .crictl_version }}-linux-amd64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ .crictl_version }}/crictl-{{ .crictl_version }}-linux-amd64.tar.gz
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/cri-tools/releases/download/{{ .crictl_version }}/crictl-{{ .crictl_version }}-linux-arm64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ .crictl_version }}/crictl-{{ .crictl_version }}-linux-arm64.tar.gz
-        {{- end }}
+        {{- end -}}
     docker:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://mirrors.aliyun.com/docker-ce/linux/static/stable/x86_64/docker-{{ .docker_version }}.tgz
-        {{- else }}
+        {{- else -}}
         https://download.docker.com/linux/static/stable/x86_64/docker-{{ .docker_version }}.tgz
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://mirrors.aliyun.com/docker-ce/linux/static/stable/aarch64/docker-{{ .docker_version }}.tgz
-        {{- else }}
+        {{- else -}}
         https://download.docker.com/linux/static/stable/aarch64/docker-{{ .docker_version }}.tgz
-        {{- end }}
+        {{- end -}}
     cridockerd:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/releases/download/{{ .cridockerd_version }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.amd64.tgz
-        {{- else }}
+        {{- else -}}
         https://github.com/Mirantis/cri-dockerd/releases/download/{{ .cridockerd_version }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.amd64.tgz
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/releases/download/{{ .cridockerd_version }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.arm64.tgz
-        {{- else }}
+        {{- else -}}
         https://github.com/Mirantis/cri-dockerd/releases/download/{{ .cridockerd_version }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.arm64.tgz
-        {{- end }}
+        {{- end -}}
     containerd:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/containerd/containerd/releases/download/{{ .containerd_version }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-amd64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://github.com/containerd/containerd/releases/download/{{ .containerd_version }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-amd64.tar.gz
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/containerd/containerd/releases/download/{{ .containerd_version }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-arm64.tar.gz
-        {{- else }}
+        {{- else -}}
         https://github.com/containerd/containerd/releases/download/{{ .containerd_version }}/containerd-{{ .containerd_version | default "" | trimPrefix "v"  }}-linux-arm64.tar.gz
-        {{- end }}
+        {{- end -}}
     runc:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/{{ .runc_version }}/runc.amd64
-        {{- else }}
+        {{- else -}}
         https://github.com/opencontainers/runc/releases/download/{{ .runc_version }}/runc.amd64
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/opencontainers/runc/releases/download/{{ .runc_version }}/runc.arm64
-        {{- else }}
+        {{- else -}}
         https://github.com/opencontainers/runc/releases/download/{{ .runc_version }}/runc.arm64
-        {{- end }}
+        {{- end -}}
     dockercompose:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/docker/compose/releases/download/{{ .dockercompose_version }}/docker-compose-linux-x86_64
-        {{- else }}
+        {{- else -}}
         https://github.com/docker/compose/releases/download/{{ .dockercompose_version }}/docker-compose-linux-x86_64
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/docker/compose/releases/download/{{ .dockercompose_version }}/docker-compose-linux-aarch64
-        {{- else }}
+        {{- else -}}
         https://github.com/docker/compose/releases/download/{{ .dockercompose_version }}/docker-compose-linux-aarch64
-        {{- end }}
+        {{- end -}}
     # Notice: In the early calico helm chart, appVersion is not same as version(eg. v3.17.4)
     calico: https://github.com/projectcalico/calico/releases/download/{{ .calico_version }}/tigera-operator-{{ .calico_version }}.tgz
     calicoctl:
-      amd64: |
-        {{- if .kkzone | eq "cn" }}
+      amd64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/projectcalico/calico/releases/download/{{ .calico_version }}/calicoctl-linux-amd64
-        {{- else }}
+        {{- else -}}
         https://github.com/projectcalico/calico/releases/download/{{ .calico_version }}/calicoctl-linux-amd64
-        {{- end }}
-      arm64: |
-        {{- if .kkzone | eq "cn" }}
+        {{- end -}}
+      arm64: >-
+        {{- if .kkzone | eq "cn" -}}
         https://kubernetes-release.pek3b.qingstor.com/projectcalico/calico/releases/download/{{ .calico_version }}/calicoctl-linux-arm64
-        {{- else }}
+        {{- else -}}
         https://github.com/projectcalico/calico/releases/download/{{ .calico_version }}/calicoctl-linux-arm64
-        {{- end }}
+        {{- end -}}
     flannel: https://github.com/flannel-io/flannel/releases/download/{{ .fannel_version }}/flannel.tgz
     cilium: https://helm.cilium.io/cilium-{{ .cilium_version }}.tgz
     ciliumcli:
-      amd64: |
+      amd64: >-
         https://github.com/cilium/cilium-cli/releases/download/{{ .ciliumcli_version }}/cilium-linux-amd64.tar.gz
-      arm64: |
+      arm64: >-
         https://github.com/cilium/cilium-cli/releases/download/{{ .ciliumcli_version }}/cilium-linux-arm64.tar.gz

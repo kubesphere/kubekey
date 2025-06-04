@@ -3,7 +3,7 @@ kubernetes:
   # support: flannel, calico
   kube_network_plugin: calico
   # the image repository of kubernetes.
-  image_repository: |
+  image_repository: >-
     {{ .k8s_registry }}
   # memory size for each kube_worker node.(unit kB)
   # should be greater than or equal to minimal_node_memory_mb.
@@ -22,12 +22,12 @@ kubernetes:
     service_cidr: 10.233.0.0/18
     dns_domain: cluster.local
     dns_image: 
-      repository: |
+      repository: >-
         {{ .k8s_registry }}/coredns
       tag: v1.8.6
-    dns_cache_image: |
+    dns_cache_image: >-
       {{ .dockerio_registry }}/kubesphere/k8s-dns-node-cache:1.22.20
-    dns_service_ip: |
+    dns_service_ip: >-
       {{ .kubernetes.networking.service_cidr | ipInCIDR 2 }}
   apiserver:
     port: 6443
@@ -171,13 +171,13 @@ kubernetes:
       # address: 
       # support ARP or BGP
       mode: ARP
-      image: |
+      image: >-
         {{ .dockerio_registry }}/plndr/kube-vip:v0.7.2
     haproxy:
       # the ip address in node network interface: "lo" 
       address: 127.0.0.1
       health_port: 8081
-      image: |
+      image: >-
         {{ .dockerio_registry }}/library/haproxy:2.9.6-alpine
   etcd:
     # It is possible to deploy etcd with three methods.

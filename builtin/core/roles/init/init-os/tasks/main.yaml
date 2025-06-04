@@ -1,9 +1,4 @@
 ---
-- name: Init for all nodes always
-  block:
-    - include_tasks: init_ntpserver.yaml
-    - include_tasks: init_localdns.yaml
-
 - name: Init for new kubernetes nodes
   when: .kubernetes_install_service.stdout | eq "inactive"
   block:
@@ -31,3 +26,7 @@
       command: |
         /etc/kubekey/scripts/init-os.sh
 
+- name: Init for all nodes always
+  block:
+    - include_tasks: init_ntpserver.yaml
+    - include_tasks: init_localdns.yaml

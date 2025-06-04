@@ -16,20 +16,21 @@
 
 # https://kubernetes.io/docs/concepts/services-networking/dual-stack/
 - name: Stop if cidr is not valid
+  run_once: true
   block:
     - name: Stop if pod cidr is not valid
       when: and .kubernetes.networking.pod_cidr (.kubernetes.networking.pod_cidr | ne "")
       assert:
         that: .kubernetes.networking.pod_cidr | splitList "," | len | ge 2
-        fail_msg: |
+        fail_msg: >-
           kubernetes.networking.pod_cidr should be ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
     - name: Stop if service cidr is not valid
       when: and .kubernetes.networking.service_cidr (.kubernetes.networking.service_cidr | ne "")
       assert:
         that: .kubernetes.networking.service_cidr | splitList "," | len | ge 2
-        fail_msg: |
+        fail_msg: >-
           kubernetes.networking.service_cidr should be ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
-    - name: Stop if pod networking is not support dual-stack 
+    - name: Stop if pod networking is not support dual-stack
       when:
         - and .kubernetes.networking.pod_cidr (.kubernetes.networking.pod_cidr | ne "") 
         - .kubernetes.networking.pod_cidr | splitList "," | len | eq 2
@@ -38,7 +39,7 @@
           - .kube_version | semverCompare ">=v1.20.0"
           - .kubernetes.networking.pod_cidr | splitList "," | first | ipFamily | eq "IPv4"
           - .kubernetes.networking.pod_cidr | splitList "," | last | ipFamily | eq "IPv6"
-        fail_msg: |
+        fail_msg: >-
           Kubernetes introduced support for pod dual-stack networking starting from version v1.20.0.
     - name: Stop if service networking is not support dual-stack 
       when:
@@ -49,13 +50,14 @@
           - .kube_version | semverCompare ">=v1.20.0"
           - .kubernetes.networking.service_cidr | splitList "," | first | ipFamily | eq "IPv4"
           - .kubernetes.networking.service_cidr | splitList "," | last | ipFamily | eq "IPv6"
-        fail_msg: |
+        fail_msg: >-
           Kubernetes introduced support for service dual-stack networking starting from version v1.20.0.
 
 - name: Stop if unknown network plugin
+  run_once: true
   assert:
     that: .cluster_require.require_network_plugin | has .kubernetes.kube_network_plugin
-    fail_msg: |
+    fail_msg: >-
       kube_network_plugin:"{{ .kubernetes.kube_network_plugin }}" is not supported
   when: and .kubernetes.kube_network_plugin (ne .kubernetes.kube_network_plugin "")
 
@@ -65,6 +67,7 @@
 # provisioning time, so to establish a guarantee, we factor these out.
 # NOTICE: the check blatantly ignores the inet6-case
 - name: Guarantee that enough network address space is available for all pods
+  run_once: true
   when: .groups.k8s_cluster | default list | has .inventory_hostname
   block:
     - name: Guarantee that enough ipv4 network address space is available for all pods
@@ -80,6 +83,7 @@
   
 # https://github.com/alibaba/hybridnet/wiki/Getting-Started#install
 - name: Stop install hybridnet if Kubernetes version is not satisfied
+  run_once: true
   assert:
     that: .kube_version | semverCompare ">=v1.16.0"
     fail_msg: To install hybridnet in an exist Kubernetes (version > 1.16) cluster

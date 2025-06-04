@@ -1,17 +1,16 @@
 ---
 - name: Sync kubeovn package to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/cni/kubeovn/kubeovn-{{ .kubeovn_version }}.tgz
-    dest: |
+    dest: >-
       /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz
 
 - name: Generate kubeovn custom value file
   copy:
     content: |
       {{ .cni.kubeovn.values }}
-    dest: |
-      /etc/kubernetes/cni/kubeovn-values.yaml
+    dest: /etc/kubernetes/cni/kubeovn-values.yaml
 
 - name: Add kubeovn label to node
   command: |

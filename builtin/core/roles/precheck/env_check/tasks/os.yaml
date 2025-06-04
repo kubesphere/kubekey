@@ -12,12 +12,12 @@
 - name: Stop if arch supported
   assert:
     that: or (.cluster_require.supported_architectures.amd64 | has .os.architecture) (.cluster_require.supported_architectures.arm64 | has .os.architecture)
-    success_msg: |
-      {{- if .cluster_require.supported_architectures.amd64 | has .os.architecture }}
+    success_msg: >-
+      {{- if .cluster_require.supported_architectures.amd64 | has .os.architecture -}}
       amd64
-      {{- else }}
+      {{- else -}}
       arm64
-      {{- end }}
+      {{- end -}}
     fail_msg: "{{ .os.architecture }} is not a known arch"
   register: binary_type
 

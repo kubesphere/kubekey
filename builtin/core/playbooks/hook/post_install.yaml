@@ -6,9 +6,9 @@
     - name: Copy post install scripts to remote
       ignore_errors: true
       copy:
-        src: |
+        src: >-
           {{ .scripts_dir }}/post_install_{{ .inventory_hostname }}.sh
-        dest: |
+        dest: >-
           /etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh
         mode: 0755
       register: execute_result

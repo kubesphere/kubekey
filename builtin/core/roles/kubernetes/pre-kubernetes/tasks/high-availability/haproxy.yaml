@@ -6,7 +6,7 @@
 
 - name: Get md5 for haproxy config
   command: |
-    md5sum /etc/kubekey/haproxy/haproxy.cfg | cut -d\" \" -f1
+    md5sum /etc/kubekey/haproxy/haproxy.cfg | cut -d" " -f1
   register: haproxy_cfg_md5
 
 - name: Genrate haproxy manifest

@@ -1,11 +1,11 @@
 ntp:
-  servers: |
+  servers: >-
     {{- with .cloud_config.ntp.servers }}
     {{ . | toJson }}
     {{- else }}
     [ "cn.pool.ntp.org" ]
     {{- end }}
-  enabled: |
+  enabled: >-
     {{ .cloud_config.ntp.enabled | default true }}
 timezone: Asia/Shanghai
 # set hostname by inventory_host's name which defined in inventory.yaml

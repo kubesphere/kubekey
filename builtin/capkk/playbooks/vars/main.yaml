@@ -9,25 +9,25 @@ tmp_dir: /tmp/kubekey
 
 # image registry
 global_registry: ""
-dockerio_registry: |
+dockerio_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}
   docker.io
   {{- end -}}
-quayio_registry: |
+quayio_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}
   quay.io
   {{- end -}}
-ghcrio_registry: |
+ghcrio_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}
   ghcr.io
   {{- end -}}
-k8s_registry: |
+k8s_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}

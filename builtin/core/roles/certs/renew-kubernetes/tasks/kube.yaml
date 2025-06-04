@@ -40,12 +40,12 @@
   run_once: true
   fetch:
     src: /etc/kubernetes/admin.conf
-    dest: |
+    dest: >-
       {{ .binary_dir }}/kubeconfig
 
 - name: Sync kubeconfig to remote
   tags: ["certs"]
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/kubeconfig
     dest: /root/.kube/config

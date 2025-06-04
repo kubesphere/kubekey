@@ -8,7 +8,7 @@
 # - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 # before join cluster
 # - control_plane: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
 # after join cluster
 # - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 # - worker: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
@@ -35,22 +35,23 @@
 # - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 # - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 # before join cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+# - control_plane: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+# - worker: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
 # after join cluster
 # - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 # - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 - name: Set Control Plane to localDNS file
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey control_plane BEGIN.*# kubekey control_plane END@@' {{ .item }}
+    sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
     cat >> {{ .item }} << EOF
-    # kubekey control_plane BEGIN.
+    # kubekey control_plane_endpoint BEGIN.
     {{- if .kubernetes.control_plane_endpoint.type | eq "kube_vip" }}
     {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- else }}
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    ::1 {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
-    # kubekey control_plane END
+    # kubekey control_plane_endpoint END
     EOF
   loop: "{{ .localDNS | toJson }}"
 
@@ -65,3 +66,4 @@
   when:
     - .kubernetes.control_plane_endpoint.type | eq "haproxy"
     - .groups.kube_worker | default list | has .inventory_hostname
+    - .groups.kube_control_plane | default list | has .inventory_hostname | not

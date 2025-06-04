@@ -1,28 +1,28 @@
 # global_registry for all image
 global_registry: ""
 # dockerio_registry for docker.io image.
-dockerio_registry: |
+dockerio_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}
   docker.io
   {{- end -}}
 # quayio_registry for quay.io image.
-quayio_registry: |
+quayio_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}
   quay.io
   {{- end -}}
 # ghcrio_registry for ghcr.io image.
-ghcrio_registry: |
+ghcrio_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}
   ghcr.io
   {{- end -}}
 # k8s_registry for registry.k8s.io image.
-k8s_registry: |
+k8s_registry: >-
   {{- if ne .global_registry "" -}}
   {{ .global_registry }}
   {{- else -}}

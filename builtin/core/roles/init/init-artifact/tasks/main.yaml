@@ -18,7 +18,7 @@
     - name: Download images
       image:
         pull:
-          images_dir: |
+          images_dir: >-
             {{ .binary_dir }}/images/
           manifests: "{{ .image_manifests | toJson }}"
       when: .image_manifests | default list | len | lt 0
