@@ -12,11 +12,14 @@ const (
 	// This tag is used to identify and categorize KubeKey-specific resources
 	// in the system, making it easier to filter and manage them
 	KubeKeyTag = "kubekey"
-
 	// OpenAPITag is the tag used for OpenAPI documentation
 	// This tag helps organize and identify OpenAPI/Swagger documentation
 	// related to the KubeKey API endpoints
 	OpenAPITag = "api"
+	// ResourceTag is the tag used for resource-related endpoints
+	// This tag helps organize and identify API endpoints that deal with
+	// resource management and operations
+	ResourceTag = "resources"
 
 	// StatusOK represents a successful operation status
 	// Used to indicate that an API operation completed successfully
