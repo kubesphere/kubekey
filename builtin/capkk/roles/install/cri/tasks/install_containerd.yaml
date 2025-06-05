@@ -6,7 +6,7 @@
 - name: Sync runc binary to remote
   when: or (.runc_install_version.stderr | ne "") (.runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | default "" | trimPrefix "v" )) | not)
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/runc/{{ .runc_version }}/{{ .binary_type.stdout }}/runc.{{ .binary_type.stdout }}
     dest: /usr/local/bin/runc
     mode: 0755
@@ -20,9 +20,9 @@
   block:
     - name: Sync containerd binary to remote
       copy:
-        src: |
+        src: >-
           {{ .binary_dir }}/containerd/{{ .containerd_version }}/{{ .binary_type.stdout }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
-        dest: |
+        dest: >-
           {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type.stdout }}.tar.gz
     - name: Unpackage containerd binary
       command: |

@@ -2,17 +2,15 @@
 # https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md
 - name: Sync flannel package to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/cni/flannel/flannel.tgz
-    dest: |
-      /etc/kubernetes/cni/flannel.tgz
+    dest: /etc/kubernetes/cni/flannel.tgz
 
 - name: Generate flannel custom value file
   copy:
     content: |
       {{ .cni.flannel.values }}
-    dest: |
-      /etc/kubernetes/cni/flannel-values.yaml
+    dest: /etc/kubernetes/cni/flannel-values.yaml
 
 - name: Apply flannel
   command: |

@@ -1,9 +1,9 @@
 ---
 - name: Sync registry image to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/image-registry/registry/{{ .registry_version }}/{{ .binary_type.stdout }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
-    dest: |
+    dest: >-
       /opt/registry/{{ .registry_version }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
 
 - name: Mount NFS dir
@@ -33,28 +33,28 @@
 
 - name: Sync image registry cert file to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/pki/image_registry.crt
-    dest: |
+    dest: >-
       /opt/registry/{{ .registry_version }}/ssl/server.crt
 
 - name: Sync image registry key file to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/pki/image_registry.key
-    dest: |
+    dest: >-
       /opt/registry/{{ .registry_version }}/ssl/server.key
 
 - name: Generate registry docker compose
   template:
     src: registry.docker-compose
-    dest: |
+    dest: >-
       /opt/registry/{{ .registry_version }}/docker-compose.yml
 
 - name: Generate registry config
   template:
     src: registry.config
-    dest: |
+    dest: >-
       /opt/registry/{{ .registry_version }}/config.yml
 
 - name: Register registry service

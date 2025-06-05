@@ -4,64 +4,64 @@
     cn: root
     date: 87600h
     policy: "{{ .artifact.gen_cert_policy }}"
-    out_key: |
+    out_key: >-
       {{ .binary_dir }}/pki/root.key
-    out_cert: |
+    out_cert: >-
       {{ .binary_dir }}/pki/root.crt
 
 - name: Generate etcd cert file
   gen_cert:
-    root_key: |
+    root_key: >-
       {{ .binary_dir }}/pki/root.key
-    root_cert: |
+    root_cert: >-
       {{ .binary_dir }}/pki/root.crt
     cn: etcd
-    sans: |
-      {{- $ips := list }}
-      {{- range .groups.etcd | default list }}
-        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
-        {{- if ne $internalIPv4 "" }}
-          {{- $ips = append $ips $internalIPv4 }}
-        {{- end }}
-        {{- if ne $internalIPv6 "" }}
-          {{- $ips = append $ips $internalIPv6 }}
-        {{- end }}
-      {{- end }}
+    sans: >-
+      {{- $ips := list -}}
+      {{- range .groups.etcd | default list -}}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
+        {{- if ne $internalIPv4 "" -}}
+          {{- $ips = append $ips $internalIPv4 -}}
+        {{- end -}}
+        {{- if ne $internalIPv6 "" -}}
+          {{- $ips = append $ips $internalIPv6 -}}
+        {{- end -}}
+      {{- end -}}
       {{ $ips | toJson }}
     date: 87600h
     policy: "{{ .artifact.gen_cert_policy }}"
-    out_key: |
+    out_key: >-
       {{ .binary_dir }}/pki/etcd.key
-    out_cert: |
+    out_cert: >-
       {{ .binary_dir }}/pki/etcd.crt
   when: .groups.etcd | default list | len | lt 0
 
 - name: Generate registry image cert file
   gen_cert:
-    root_key: |
+    root_key: >-
       {{ .binary_dir }}/pki/root.key
-    root_cert: |
+    root_cert: >-
       {{ .binary_dir }}/pki/root.crt
     cn: image_registry
-    sans: |
-      {{- $ips := list }}
-      {{- range .groups.image_registry | default list }}
-        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
-        {{- if ne $internalIPv4 "" }}
-          {{- $ips = append $ips $internalIPv4 }}
-        {{- end }}
-        {{- if ne $internalIPv6 "" }}
-          {{- $ips = append $ips $internalIPv6 }}
-        {{- end }}
-      {{- end }}
+    sans: >-
+      {{- $ips := list -}}
+      {{- range .groups.image_registry | default list -}}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
+        {{- if ne $internalIPv4 "" -}}
+          {{- $ips = append $ips $internalIPv4 -}}
+        {{- end -}}
+        {{- if ne $internalIPv6 "" -}}
+          {{- $ips = append $ips $internalIPv6 -}}
+        {{- end -}}
+      {{- end -}}
       {{ $ips | toJson }}
     date: 87600h
     policy: "{{ .artifact.gen_cert_policy }}"
-    out_key: |
+    out_key: >-
       {{ .binary_dir }}/pki/image_registry.key
-    out_cert: |
+    out_cert: >-
       {{ .binary_dir }}/pki/image_registry.crt
   when: and .groups.image_registry (.groups.image_registry | default list | len | lt 0)
 

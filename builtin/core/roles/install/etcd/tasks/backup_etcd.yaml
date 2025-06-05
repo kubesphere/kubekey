@@ -1,7 +1,7 @@
 ---
 - name: Sync custom backup etcd script
   template:
-    src: |
+    src: >-
       {{ .etcd.backup.etcd_backup_script }}
     dest: /usr/local/bin/kube-scripts/backup_etcd.sh
     mode: 777

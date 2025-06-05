@@ -2,21 +2,21 @@ image_registry:
   #  ha_vip: 192.168.122.59
   namespace_override: ""
   # which store images data which will push to registry.
-  images_dir: |
+  images_dir: >-
     {{ .tmp_dir }}/images/
   auth:
-    registry: |
-      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
+    registry: >-
+      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") -}}
         {{ .image_registry.ha_vip }}
-      {{- else if .groups.image_registry | default list | len | lt 0 }}
-        {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" }}
-        {{- if ne $internalIPv4 "" }}
+      {{- else if .groups.image_registry | default list | len | lt 0 -}}
+        {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
+        {{- if ne $internalIPv4 "" -}}
           {{ $internalIPv4 }}
-        {{- else if ne $internalIPv6 "" }}
+        {{- else if ne $internalIPv6 "" -}}
           {{ $internalIPv6 }}
-        {{- end }}
-      {{- end }}
+        {{- end -}}
+      {{- end -}}
     username: admin
     password: Harbor12345
   # registry type. support: harbor, registry

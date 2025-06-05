@@ -9,9 +9,9 @@
   block:
     - name: Sync cri-dockerd Binary to remote
       copy:
-        src: |
+        src: >-
           {{ .binary_dir }}/cri-dockerd/{{ .cridockerd_version }}/{{ .binary_type.stdout }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type.stdout }}.tgz
-        dest: |
+        dest: >-
           {{ .tmp_dir }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type.stdout }}.tgz
     - name: Unpackage cri-dockerd binary
       command: |

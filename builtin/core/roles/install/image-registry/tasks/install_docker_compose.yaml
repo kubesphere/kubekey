@@ -7,7 +7,7 @@
 - name: Sync docker-compose to remote
   when: or (.dockercompose_install_version.stderr | ne "") (.dockercompose_install_version.stdout | ne (printf "Docker Compose version %s" .dockercompose_version))
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/image-registry/docker-compose/{{ .dockercompose_version }}/{{ .binary_type.stdout }}/docker-compose
     dest: /usr/local/bin/docker-compose
     mode: 0755

@@ -2,7 +2,7 @@
 - name: select init node
   run_once: true
   set_fact:
-    init_kubernetes_node: |
+    init_kubernetes_node: >-
       {{- $initNodes := list -}}
       {{- $notInitNodes := list -}}
       {{- range .groups.kube_control_plane -}}
@@ -18,20 +18,25 @@
       {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}
       {{- else if $notInitNodes | len | eq 1 -}}
       {{ $notInitNodes | first }}
-      {{- else if $notInitNodes | len | lt 1 }}
+      {{- else if $notInitNodes | len | lt 1 -}}
       {{ index $notInitNodes (randInt 0 ((sub ($notInitNodes | len) 1) | int)) }}
       {{- end -}}
 
-- name: Set control_plane hosts to localDNS file
+- name: Set control_plane_endpoint hosts to localDNS file
   when: 
-    - .kubernetes.control_plane_endpoint.type | eq  "local"
+    - or (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.type | eq "haproxy")
     - .inventory_hostname | eq .init_kubernetes_node | not
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey control_plane BEGIN.*# kubekey control_plane END@@' {{ .item }}
+    sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
     cat >> {{ .item }} <<EOF
-    # kubekey control_plane BEGIN.
-    {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
-    # kubekey control_plane END
+    # kubekey control_plane_endpoint BEGIN.
+    {{- if and (index .hostvars .init_kubernetes_node "internal_ipv4") (ne (index .hostvars .init_kubernetes_node "internal_ipv4") "") }}
+    {{ index .hostvars .init_kubernetes_node "internal_ipv4" }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
+    {{- if and (index .hostvars .init_kubernetes_node "internal_ipv6") (ne (index .hostvars .init_kubernetes_node "internal_ipv6") "") }}
+    {{ index .hostvars .init_kubernetes_node "internal_ipv6" }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
+    # kubekey control_plane_endpoint END
     EOF
   loop: "{{ .localDNS | toJson }}"
 
@@ -44,7 +49,7 @@
     - name: Fetch kubeconfig to local
       fetch:
         src: /etc/kubernetes/admin.conf
-        dest: |
+        dest: >-
           {{ .work_dir }}/kubekey/kubeconfig
     - name: Generate certificate key by kubeadm
       command: |
@@ -53,7 +58,7 @@
       register: kubeadm_cert_result
     - name: Set_Fact certificate key to all hosts
       set_fact:
-        kubeadm_cert: |
+        kubeadm_cert: >-
           {{ .kubeadm_cert_result.stdout }}
     - name: Generate kubeadm token
       block:
@@ -62,5 +67,5 @@
           register: kubeadm_token_result
         - name: Set_Fact token to all hosts
           set_fact:
-            kubeadm_token: |
+            kubeadm_token: >-
               {{ .kubeadm_token_result.stdout }}

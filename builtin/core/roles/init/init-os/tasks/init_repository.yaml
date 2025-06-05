@@ -4,9 +4,9 @@
     - name: Sync repository file
       ignore_errors: true
       copy:
-        src: |
+        src: >-
           {{ .binary_dir }}/repository/{{ .os.release.ID_LIKE }}-{{ .os.release.VERSION_ID }}-{{ .binary_type.stdout }}.iso
-        dest: |
+        dest: >-
           {{ .tmp_dir }}/repository.iso
     - name: Mount iso file
       command: |

@@ -6,31 +6,31 @@
   block:
     - name: Sync etcd ca file to remote
       copy:
-        src: |
+        src: >-
           {{ .work_dir }}/kubekey/pki/root.crt
         dest: /etc/kubernetes/pki/etcd/ca.crt
         mode: 0755
     - name: Sync etcd cert files to remote
       copy:
-        src: |
+        src: >-
           {{ .work_dir }}/kubekey/pki/etcd.crt
         dest: /etc/kubernetes/pki/etcd/client.crt
         mode: 0755
     - name: Sync etcd key files to remote
       copy:
-        src: |
+        src: >-
           {{ .work_dir }}/kubekey/pki/etcd.key
         dest: /etc/kubernetes/pki/etcd/client.key
         mode: 0755
 
 - name: Generate kubeadm init config
   template:
-    src: |
-      {{- if .kube_version | semverCompare ">=v1.24.0" }}
+    src: >-
+      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
       kubeadm/kubeadm-init.v1beta3
-      {{- else }}
+      {{- else -}}
       kubeadm/kubeadm-init.v1beta2
-      {{- end }}
+      {{- end -}}
     dest: /etc/kubernetes/kubeadm-config.yaml
 
 - name: Init kubernetes cluster
@@ -55,13 +55,14 @@
 
 # reset localDNS 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}. 
 # if not the control_plane_endpoint will valid after kube_vip pod running. the task which will execute kubectl apply in current node may be failed.
-- name: reset control_plane localDNS
+- name: reset control_plane_endpoint localDNS
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey control_plane BEGIN.*# kubekey control_plane END@@' {{ .item }}
+    sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
     cat >> {{ .item }} << EOF
-    # kubekey control_plane BEGIN.
+    # kubekey control_plane_endpoint BEGIN.
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-    # kubekey control_plane END
+    ::1 {{ .kubernetes.control_plane_endpoint.host }}
+    # kubekey control_plane_endpoint END
     EOF 
   loop: "{{ .localDNS | toJson }}"
     

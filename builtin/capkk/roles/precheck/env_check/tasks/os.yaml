@@ -2,7 +2,8 @@
 - name: Stop if bad hostname
   assert:
     that: .hostname | regexMatch "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"
-    fail_msg: "Hostname must consist of lower case alphanumeric characters, '.' or '-', and must start and end with an alphanumeric character"
+    fail_msg: >-
+      "Hostname must consist of lower case alphanumeric characters, '.' or '-', and must start and end with an alphanumeric character"
 
 - name: Stop if the os does not support
   assert:
@@ -12,12 +13,12 @@
 - name: Stop if arch supported
   assert:
     that: or (.cluster_require.supported_architectures.amd64 | has .os.architecture) (.cluster_require.supported_architectures.arm64 | has .os.architecture)
-    success_msg: |
-      {{- if .cluster_require.supported_architectures.amd64 | has .os.architecture }}
+    success_msg: >-
+      {{- if .cluster_require.supported_architectures.amd64 | has .os.architecture -}}
       amd64
-      {{- else }}
+      {{- else -}}
       arm64
-      {{- end }}
+      {{- end -}}
     fail_msg: "{{ .os.architecture }} is not a known arch"
   register: binary_type
 
@@ -35,4 +36,5 @@
 - name: Stop if kernel version is too low
   assert:
     that: .os.kernel_version | splitList "-" | first | semverCompare (printf ">=%s" .cluster_require.min_kernel_version)
-    fail_msg: "kernel version: {{ .os.kernel_version }} is too low, required at least: {{ .cluster_require.min_kernel_version }} "
+    fail_msg: >-
+      "kernel version: {{ .os.kernel_version }} is too low, required at least: {{ .cluster_require.min_kernel_version }} "

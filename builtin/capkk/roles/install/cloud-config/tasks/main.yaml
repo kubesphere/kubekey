@@ -11,7 +11,8 @@
 - name: Deal cloud-config write_files
   loop: "{{ .cloud_config.write_files | toJson }}"
   copy:
-    content: "{{ .item.content }}"
+    content: |
+      {{ .item.content }}
     dest: "{{ .item.path }}"
     mode: "{{ .item.permissions }}"
 
@@ -131,7 +132,7 @@
 
 - name: Sync kubeconfig
   copy:
-    src: |
+    src: >-
       {{ .cloud_config_dir }}/kubeconfig/value
     dest: /root/.kube/config
     mode: 0600

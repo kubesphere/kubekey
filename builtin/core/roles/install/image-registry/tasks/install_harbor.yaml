@@ -1,9 +1,9 @@
 ---
 - name: Sync harbor package to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/image-registry/harbor/{{ .harbor_version }}/{{ .binary_type.stdout }}/harbor-offline-installer-{{ .harbor_version }}.tgz
-    dest: |
+    dest: >-
       /opt/harbor/{{ .harbor_version }}/harbor-offline-installer-{{ .harbor_version }}.tgz
 
 - name: Untar harbor package
@@ -12,28 +12,28 @@
 
 - name: Sync image registry cert file to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/pki/image_registry.crt
-    dest: |
+    dest: >-
       /opt/harbor/{{ .harbor_version }}/ssl/server.crt
 
 - name: Sync image registry key file to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/pki/image_registry.key
-    dest: |
+    dest: >-
       /opt/harbor/{{ .harbor_version }}/ssl/server.key
 
 - name: Generate harbor config
   template:
     src: harbor.config
-    dest: |
+    dest: >-
       /opt/harbor/{{ .harbor_version }}/harbor/harbor.yml
 
 - name: Generate keepalived docker compose
   template:
     src: harbor_keepalived.docker-compose
-    dest: |
+    dest: >-
       /opt/harbor/{{ .harbor_version }}/harbor/docker-compose-keepalived.yml
   when:
     - and .image_registry.ha_vip (ne .image_registry.ha_vip "")

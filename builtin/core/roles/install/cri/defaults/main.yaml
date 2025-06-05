@@ -1,19 +1,17 @@
 cri:
   # support: systemd, cgroupfs
   cgroup_driver: systemd
-  sandbox_image: |
+  sandbox_image: >-
     {{ .k8s_registry }}/pause:3.5
   # support: containerd,docker
   # container_manager: docker
   # the endpoint of containerd
-  cri_socket: |
-    {{- if .cri.container_manager | eq "containerd" }}
+  cri_socket: >-
+    {{- if .cri.container_manager | eq "containerd" -}}
     unix:///var/run/containerd/containerd.sock
-    {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare ">=v1.24.0") }}
+    {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare ">=v1.24.0") -}}
     unix:///var/run/cri-dockerd.sock
-    {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare "<v1.24.0") }}
-    unix:///var/run/dockershim.sock
-    {{- end }}
+    {{- end -}}
   containerd:
     data_root: /var/lib/containerd
   docker:
@@ -26,17 +24,17 @@ cri:
 image_registry:
   #  ha_vip: 192.168.122.59
   auth:
-    registry: |
-      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
+    registry: >-
+      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") -}}
         {{ .image_registry.ha_vip }}
-      {{- else if .groups.image_registry | default list | len | lt 0 }}
-        {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" }}
-        {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" }}
-        {{- if ne $internalIPv4 "" }}
+      {{- else if .groups.image_registry | default list | len | lt 0 -}}
+        {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
+        {{- if ne $internalIPv4 "" -}}
           {{ $internalIPv4 }}
-        {{- else if ne $internalIPv6 "" }}
+        {{- else if ne $internalIPv6 "" -}}
           {{ $internalIPv6 }}
-        {{- end }}
-      {{- end }}
+        {{- end -}}
+      {{- end -}}
     username: admin
     password: Harbor12345

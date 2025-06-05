@@ -20,6 +20,6 @@
 
 - name: Generate kube_vip manifest
   template:
-    src: |
+    src: >-
       kubevip/kubevip.{{ .kubernetes.control_plane_endpoint.kube_vip.mode }}
     dest: /etc/kubernetes/manifests/kube-vip.yaml

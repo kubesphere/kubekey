@@ -9,24 +9,23 @@
   block:
     - name: Sync calicoctl to remote
       copy:
-        src: |
+        src: >-
           {{ .binary_dir }}/cni/calico/{{ .calico_version }}/{{ .binary_type.stdout }}/calicoctl
         dest: /usr/local/bin/calicoctl
         mode: 0755
 
 - name: Sync calico package to remote
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/cni/calico/tigera-operator-{{ .calico_version }}.tgz
-    dest: |
+    dest: >-
       /etc/kubernetes/cni/tigera-operator-{{ .calico_version }}.tgz
 
 - name: Generate calico custom value file
   copy:
     content: |
       {{ .cni.calico.values }}
-    dest: |
-      /etc/kubernetes/cni/calico-values.yaml
+    dest: /etc/kubernetes/cni/calico-values.yaml
 
 - name: Apply calico
   command: |

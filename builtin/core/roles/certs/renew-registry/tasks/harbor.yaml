@@ -2,17 +2,17 @@
 - name: Sync image registry cert file to remote
   tags: ["certs"]
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/pki/image_registry.crt
-    dest: |
+    dest: >-
       /opt/harbor/{{ .harbor_version }}/ssl/server.crt
 
 - name: Sync image registry key file to remote
   tags: ["certs"]
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/pki/image_registry.key
-    dest: |
+    dest: >-
       /opt/harbor/{{ .harbor_version }}/ssl/server.key
 
 - name: Restart harbor service

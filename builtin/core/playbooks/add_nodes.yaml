@@ -44,7 +44,7 @@
     - name: select init node
       run_once: true
       set_fact:
-        init_kubernetes_node: |
+        init_kubernetes_node: >-
           {{- $initNodes := list -}}
           {{- range .groups.kube_control_plane -}}
             {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
@@ -69,14 +69,14 @@
           register: kubeadm_cert_result
         - name: Set_Fact certificate key to all hosts
           set_fact:
-            kubeadm_cert: |
+            kubeadm_cert: >-
               {{ .kubeadm_cert_result.stdout }}
         - name: Generate token by kubeadm
           command: /usr/local/bin/kubeadm token create
           register: kubeadm_token_result
         - name: Set_Fact token to all hosts
           set_fact:
-            kubeadm_token: |
+            kubeadm_token: >-
               {{ .kubeadm_token_result.stdout }}
 
 - hosts:

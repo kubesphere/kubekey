@@ -1,7 +1,7 @@
 - name: Should defined internal_ipv4 or internal_ipv6
   assert:
     that: or (and .internal_ipv4 (ne .internal_ipv4 "")) (and .internal_ipv6 (ne .internal_ipv6 ""))
-    fail_msg: |
+    fail_msg: >-
       "internal_ipv4" and "internal_ipv6" cannot both be empty
 
 - name: Check kubevip if valid
@@ -18,7 +18,7 @@
           {{- end }}
         {{- end }}
         {{ not $existIP }}
-    fail_msg: |
+    fail_msg: >-
       "kubernetes.control_plane_endpoint.kube_vip.address" should be a un-used ip address.
   when: .kubernetes.control_plane_endpoint.type | eq "kube_vip"
 
@@ -26,7 +26,7 @@
   run_once: true
   assert:
     that: .kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
-    fail_msg: |
+    fail_msg: >-
       the current release of KubeKey only support newer version of Kubernetes than {{ .cluster_require.kube_version_min_required }} - You are trying to apply {{ .kube_version }}
   when: and .kube_version (ne .kube_version "")
 
@@ -45,5 +45,5 @@
       when: .kubernetes_install_service.stdout | eq "active"
       assert:
         that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
-        fail_msg: |
+        fail_msg: >-
           kubernetes has installed with version:{{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}. but not match kube_version: {{ .kube_version }}

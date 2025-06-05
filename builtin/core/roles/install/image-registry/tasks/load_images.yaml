@@ -2,9 +2,9 @@
 - name: Sync images to remote
   tags: ["only_image"]
   copy:
-    src: |
+    src: >-
       {{ .binary_dir }}/images/
-    dest: |
+    dest: >-
       {{ .image_registry.images_dir }}
 
 - name: Create harbor project for each image
@@ -45,13 +45,13 @@
   tags: ["only_image"]
   image:
     push:
-      images_dir: |
+      images_dir: >-
         {{ .image_registry.images_dir }}
-      registry: |
+      registry: >-
         {{ .image_registry.auth.registry }}
-      namespace_override: |
+      namespace_override: >-
         {{ .image_registry.namespace_override }}
-      username: |
+      username: >-
         {{ .image_registry.auth.username }}
-      password: |
+      password: >-
         {{ .image_registry.auth.password }}
