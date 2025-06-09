@@ -51,18 +51,6 @@ func TestModuleImage(t *testing.T) {
 			},
 			exceptStderr: "\"push\" should be map",
 		},
-		{
-			name: "push.registry is empty",
-			opt: ExecOptions{
-				Args: runtime.RawExtension{
-					Raw: []byte(`{
-"push": {}
-}`),
-				},
-				Variable: &testVariable{},
-			},
-			exceptStderr: "\"push.registry\" is required",
-		},
 	}
 
 	for _, testcase := range testcases {

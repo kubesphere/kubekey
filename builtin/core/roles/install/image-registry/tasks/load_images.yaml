@@ -47,11 +47,10 @@
     push:
       images_dir: >-
         {{ .image_registry.images_dir }}
-      registry: >-
-        {{ .image_registry.auth.registry }}
-      namespace_override: >-
-        {{ .image_registry.namespace_override }}
+      dest: >-
+        {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
       username: >-
         {{ .image_registry.auth.username }}
       password: >-
         {{ .image_registry.auth.password }}
+      skip_tls_verify: true
