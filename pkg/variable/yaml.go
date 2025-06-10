@@ -176,6 +176,10 @@ func handleMap(current reflect.Value, key string, isLast bool, value any,
 	rKey := reflect.ValueOf(key)
 	existing := current.MapIndex(rKey)
 	if isLast {
+		if existing.IsValid() && !isNil(existing) {
+			// skip
+			return current, nil
+		}
 		if value == nil {
 			current.SetMapIndex(rKey, reflect.Zero(reflect.TypeOf((*any)(nil)).Elem()))
 		} else {
@@ -229,6 +233,11 @@ func handleSlice(current reflect.Value, val string, isLast bool, value any,
 	}
 	// Handle setting the final value
 	if isLast {
+		existingItem := current.Index(index)
+		if existingItem.IsValid() && !isNil(existingItem) {
+			// skip
+			return current, nil
+		}
 		if value == nil {
 			current.Index(index).Set(reflect.Zero(reflect.TypeOf((*any)(nil)).Elem()))
 		} else {

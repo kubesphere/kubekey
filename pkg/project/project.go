@@ -188,7 +188,7 @@ func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error 
 		// combine map node
 		if node.Content[0].Kind == yaml.MappingNode {
 			// skip empty file
-			p.Vars = *variable.CombineMappingNode(node.Content[0], &p.Vars)
+			p.Vars = *variable.CombineMappingNode(&p.Vars, node.Content[0])
 		}
 	}
 
@@ -234,7 +234,7 @@ func (f *project) dealRoles(p kkprojectv1.Play, basePlaybook string) error {
 			// combine map node
 			if node.Content[0].Kind == yaml.MappingNode {
 				// skip empty file
-				p.Roles[i].Vars = *variable.CombineMappingNode(node.Content[0], &p.Roles[i].Vars)
+				p.Roles[i].Vars = *variable.CombineMappingNode(&p.Roles[i].Vars, node.Content[0])
 			}
 		}
 	}
