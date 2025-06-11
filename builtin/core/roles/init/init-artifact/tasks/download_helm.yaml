@@ -8,7 +8,7 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.calico }}
     fi
-  when: and .calico_version (ne .calico_version "")
+  when: .calico_version | empty | not
 
 - name: Check binaries for cilium
   command: |
@@ -19,7 +19,7 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.cilium }}
     fi
-  when: and .cilium_version (ne .cilium_version "")
+  when: .cilium_version | empty | not
 
 - name: Check binaries for flannel
   command: |
@@ -30,7 +30,7 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.flannel }}
     fi
-  when: and .flannel_version (ne .flannel_version "")
+  when: .flannel_version | empty | not
 
 - name: Check binaries for kubeovn
   tags: ["kubeovn"]
@@ -42,7 +42,7 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.kubeovn }}
     fi
-  when: and .kubeovn_version (ne .kubeovn_version "")
+  when: .kubeovn_version | empty | not
 
 - name: Check binaries for hybridnet
   tags: ["hybridnet"]
@@ -54,7 +54,7 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.hybridnet }}
     fi
-  when: and .hybridnet_version (ne .hybridnet_version "")
+  when: .hybridnet_version | empty | not
 
 - name: Check binaries for nfs_provisioner
   tags: ["nfs_provisioner"]
@@ -66,4 +66,4 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.nfs_provisioner }}
     fi
-  when: and .nfs_provisioner_version (ne .nfs_provisioner_version "")
+  when: .nfs_provisioner_version | empty | not

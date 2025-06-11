@@ -5,7 +5,7 @@
   register: docker_install_version
 
 - name: Install docker
-  when: or (.docker_install_version.stderr | ne "") (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version) | not)
+  when: or (.docker_install_version.stderr | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version) | not)
   block:
     - name: Sync docker binary to remote
       copy:
@@ -34,7 +34,7 @@
         systemctl daemon-reload && systemctl start docker.service && systemctl enable docker.service
 
 - name: Sync image registry tls to remote
-  when: .groups.image_registry | default list | len | lt 0
+  when: .groups.image_registry | default list | empty | not
   block:
     - name: Sync image registry cert file to remote
       copy:

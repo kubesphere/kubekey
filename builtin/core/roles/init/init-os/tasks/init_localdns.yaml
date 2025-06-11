@@ -12,37 +12,37 @@
       {{- $hostname := index $.hostvars . "hostname" -}}
       {{- $clusterName := $.kubernetes.cluster_name | default "kubekey" -}}
       {{- $dnsDomain := $.kubernetes.networking.dns_domain | default "cluster.local" -}}
-      {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
+      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
       {{- end }}
-      {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
+      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
     {{ index $.hostvars . "internal_ipv6" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
       {{- end }}
     {{- end }}
     # etcd hosts
     {{- range .groups.etcd | default list }}
-      {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
+      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
-      {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
+      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}
     # image registry hosts
     {{- range .groups.image_registry | default list }}
-      {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
+      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
-      {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
+      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}
     # nfs hosts
     {{- range .groups.nfs | default list }}
-      {{- if and (index $.hostvars . "internal_ipv4") (ne (index $.hostvars . "internal_ipv4") "") }}
+      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
-      {{- if and (index $.hostvars . "internal_ipv6") (ne (index $.hostvars . "internal_ipv6") "") }}
+      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}

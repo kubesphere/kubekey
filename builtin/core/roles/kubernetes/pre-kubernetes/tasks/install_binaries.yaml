@@ -4,7 +4,7 @@
   command: helm version
   register: helm_install_version
 - name: Install helm
-  when: or (.helm_install_version.stderr | ne "") (.helm_install_version.stdout | contains (printf "Version:\"%s\"" .helm_version) | not)
+  when: or (.helm_install_version.stderr | empty | not) (.helm_install_version.stdout | contains (printf "Version:\"%s\"" .helm_version) | not)
   block:
     - name: Sync helm to remote
       copy:
@@ -21,7 +21,7 @@
   command: kubeadm version -o short
   register: kubeadm_install_version
 - name: Install kubeadm
-  when: or (.kubeadm_install_version.stderr | ne "") (.kubeadm_install_version.stdout | ne .kube_version)
+  when: or (.kubeadm_install_version.stderr | empty | not) (.kubeadm_install_version.stdout | ne .kube_version)
   copy:
     src: >-
       {{ .binary_dir }}/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubeadm
@@ -35,7 +35,7 @@
   register_type: yaml
 - name: Sync kubectl to remote
   when: |
-    or (.kubectl_install_version.stderr | ne "") ((get .kubectl_install_version.stdout "Server Version") | ne  .kube_version)
+    or (.kubectl_install_version.stderr | empty | not) ((get .kubectl_install_version.stdout "Server Version") | ne  .kube_version)
   copy:
     src: >-
       {{ .binary_dir }}/kube/{{ .kube_version }}/{{ .binary_type.stdout }}/kubectl
@@ -47,7 +47,7 @@
   command: kubelet --version
   register: kubelet_install_version
 - name: Install kubelet
-  when: or (.kubelet_install_version.stderr | ne "") (.kubelet_install_version.stdout | ne (printf "Kubernetes %s" .kube_version))
+  when: or (.kubelet_install_version.stderr | empty | not) (.kubelet_install_version.stdout | ne (printf "Kubernetes %s" .kube_version))
   block:
     - name: Sync kubelet to remote
       copy:
@@ -67,7 +67,7 @@
       command: systemctl daemon-reload && systemctl enable kubelet.service
 
 - name: Install cni plugins
-  when: and .cni_plugins_version (ne .cni_plugins_version "")
+  when: .cni_plugins_version | empty | not
   block:
     - name: Sync cni-plugin to remote
       copy:

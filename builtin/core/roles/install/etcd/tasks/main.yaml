@@ -1,6 +1,6 @@
 ---
 - name: Install etcd
-  when: .etcd_install_version.stderr | ne ""
+  when: .etcd_install_version.stderr | empty | not
   block:
     - name: Init etcd
       block:

@@ -56,7 +56,7 @@ data:
         lameduck 5s
       }
 
-    {{- if .kubernetes.zones | len | lt 0 }}
+    {{- if .kubernetes.zones | empty | not }}
       kubernetes {{ .kubernetes.zones | join " " }} in-addr.arpa ip6.arpa {
         pods insecure
         fallthrough in-addr.arpa ip6.arpa
@@ -99,7 +99,7 @@ data:
       }
     {{- end }}
 
-    {{- if $.kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
+    {{- if $.kubernetes.coredns.dns_etc_hosts | empty | not }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
@@ -107,7 +107,7 @@ data:
     }
   {{- end }}
 
-{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
+{{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}
   hosts: |
   {{- range .kubernetes.coredns.dns_etc_hosts }}
     {{ . }}

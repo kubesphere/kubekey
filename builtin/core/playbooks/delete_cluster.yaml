@@ -12,7 +12,9 @@
   roles:
     - uninstall/kubernetes
     - role: uninstall/cri
-      when: .deleteCRI
+      when: 
+        - .deleteCRI
+        - .groups.image_registry | default list | has .inventory_hostname | not
   post_tasks:
     - name: delete localDNS file
       ignore_errors: true

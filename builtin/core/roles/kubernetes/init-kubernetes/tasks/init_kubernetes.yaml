@@ -1,7 +1,7 @@
 ---
 - name: Sync external etcd config
   when: 
-    - and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | len | lt 0)
+    - and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | empty | not)
     - .groups.kube_control_plane | default list | has .inventory_hostname
   block:
     - name: Sync etcd ca file to remote

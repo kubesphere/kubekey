@@ -47,7 +47,7 @@ echo 'fs.aio-max-nr = 262144' >> /etc/sysctl.conf
 echo 'kernel.pid_max = 65535' >> /etc/sysctl.conf
 echo 'kernel.watchdog_thresh = 5' >> /etc/sysctl.conf
 echo 'kernel.hung_task_timeout_secs = 5' >> /etc/sysctl.conf
-{{- if and .internal_ipv4 (.internal_ipv4 | ne "") }}
+{{- if .internal_ipv4 | empty | not }}
 # add for ipv4
 echo 'net.ipv4.ip_forward = 1' >> /etc/sysctl.conf
 echo 'net.bridge.bridge-nf-call-ip6tables = 1' >> /etc/sysctl.conf
@@ -68,7 +68,7 @@ echo 'net.ipv4.conf.default.arp_accept = 1' >> /etc/sysctl.conf
 echo 'net.ipv4.conf.all.arp_ignore = 1' >> /etc/sysctl.conf
 echo 'net.ipv4.conf.default.arp_ignore = 1' >> /etc/sysctl.conf
 {{- end }}
-{{- if and .internal_ipv6 (.internal_ipv6 | ne "") }}
+{{- if .internal_ipv6 | empty | not }}
 # add for ipv6
 echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf
 echo 'net.ipv6.conf.all.disable_ipv6 = 0' >> /etc/sysctl.conf
@@ -98,7 +98,7 @@ sed -r -i  "s@#{0,}?net.core.somaxconn ?= ?([0-9]{1,})@net.core.somaxconn = 3276
 sed -r -i  "s@#{0,}?fs.aio-max-nr ?= ?([0-9]{1,})@fs.aio-max-nr = 262144@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?kernel.watchdog_thresh ?= ?([0-9]{1,})@kernel.watchdog_thresh = 5@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?kernel.hung_task_timeout_secs ?= ?([0-9]{1,})@kernel.hung_task_timeout_secs = 5@g" /etc/sysctl.conf
-{{- if and .internal_ipv4 (.internal_ipv4 | ne "") }}
+{{- if .internal_ipv4 | empty | not }}
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1|2)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_reuse ?= ?(0|1)@net.ipv4.tcp_tw_reuse = 0@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv4.conf.all.rp_filter ?= ?(0|1|2)@net.ipv4.conf.all.rp_filter = 1@g" /etc/sysctl.conf
@@ -119,7 +119,7 @@ sed -r -i  "s@#{0,}?net.ipv4.udp_wmem_min ?= ?([0-9]{1,})@net.ipv4.udp_wmem_min 
 sed -r -i  "s@#{0,}?net.ipv4.conf.all.arp_ignore ?= ??(0|1|2)@net.ipv4.conf.all.arp_ignore = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.ipv4.conf.default.arp_ignore ?= ??(0|1|2)@net.ipv4.conf.default.arp_ignore = 1@g" /etc/sysctl.conf
 {{- end }}
-{{- if and .internal_ipv6 (.internal_ipv6 | ne "") }}
+{{- if .internal_ipv6 | empty | not }}
 #add for ipv6
 sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-ip6tables ?= ?(0|1)@net.bridge.bridge-nf-call-ip6tables = 1@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv6.conf.all.disable_ipv6 ?= ?([0-9]{1,})@net.ipv6.conf.all.disable_ipv6 = 0@g" /etc/sysctl.conf
@@ -205,10 +205,10 @@ sync
 echo 3 > /proc/sys/vm/drop_caches
 
 # Make sure the iptables utility doesn't use the nftables backend.
-{{- if and .internal_ipv4 (.internal_ipv4 | ne "") }}
+{{- if .internal_ipv4 | empty | not }}
 update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || true
 {{- end }}
-{{- if and .internal_ipv6 (.internal_ipv6 | ne "") }}
+{{- if .internal_ipv6 | empty | not }}
 update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 || true
 {{- end }}
 update-alternatives --set arptables /usr/sbin/arptables-legacy >/dev/null 2>&1 || true

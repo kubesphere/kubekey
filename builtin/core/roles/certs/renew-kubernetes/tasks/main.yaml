@@ -5,7 +5,8 @@
 - include_tasks: etcd.yaml
   tags: ["certs"]
   when:
-  - and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | len | lt 0)
+  - .kubernetes.etcd.deployment_type | eq "external"
+  - .groups.etcd | default list | empty | not
   - .renew_etcd
 
 - name: Reload kubernetes pods

@@ -35,7 +35,7 @@
       {{ .binary_dir }}/pki/etcd.key
     out_cert: >-
       {{ .binary_dir }}/pki/etcd.crt
-  when: .groups.etcd | default list | len | lt 0
+  when: .groups.etcd | default list | empty | not
 
 - name: Generate registry image cert file
   gen_cert:
@@ -63,7 +63,7 @@
       {{ .binary_dir }}/pki/image_registry.key
     out_cert: >-
       {{ .binary_dir }}/pki/image_registry.crt
-  when: and .groups.image_registry (.groups.image_registry | default list | len | lt 0)
+  when: .groups.image_registry | default list | empty | not
 
 - name: Chown pki to sudo
   block:

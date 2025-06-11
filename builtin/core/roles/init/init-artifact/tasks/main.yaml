@@ -6,9 +6,10 @@
       mkdir -p {{ .binary_dir }}
       tar -zxvf {{ .artifact_file }} -C {{ .binary_dir }}
     fi
-  when: and .artifact_file (ne .artifact_file "")
+  when: .artifact_file | empty | not
 
 - name: Download binaries
+  when: .artifact_file | empty
   block:
     # the binaries which download binary
     - include_tasks: download_binary.yaml
@@ -21,7 +22,8 @@
           images_dir: >-
             {{ .binary_dir }}/images/
           manifests: "{{ .image_manifests | toJson }}"
-      when: .image_manifests | default list | len | lt 0
+      when:
+        - .image_manifests | default list | empty | not
 
 - name: Chown work_dir to sudo
   tags: ["always"]

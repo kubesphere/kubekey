@@ -15,7 +15,7 @@
         curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.etcd .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .etcd_version (ne .etcd_version "")
+  when: .etcd_version | empty | not
 
 - name: Check binaries for kube
   tags: ["kube"]
@@ -52,7 +52,7 @@
         curl -L -o $kube_path/kubectl {{ get .artifact.artifact_url.kubectl .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .kube_version (ne .kube_version "")
+  when: .kube_version | empty | not
 
 - name: Check binaries for cni
   tags: ["cni"]
@@ -70,7 +70,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cni_plugins .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .cni_plugins_version (ne .cni_plugins_version "")
+  when: .cni_plugins_version | empty | not
 
 - name: Check binaries for helm
   tags: ["helm"]
@@ -88,7 +88,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.helm .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .helm_version (ne .helm_version "")
+  when: .helm_version | empty | not
 
 - name: Check binaries for crictl
   tags: ["crictl"]
@@ -106,7 +106,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.crictl .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .crictl_version (ne .crictl_version "")
+  when: .crictl_version | empty | not
 
 - name: Check binaries for docker
   tags: ["docker"]
@@ -124,7 +124,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.docker .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .docker_version (ne .docker_version "")
+  when: .docker_version | empty | not
 
 - name: Check binaries for cridockerd
   tags: ["cridockerd"]
@@ -142,7 +142,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cridockerd .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .cridockerd_version (ne .docker_version "")
+  when: .cridockerd_version | empty | not
 
 - name: Check binaries for containerd
   tags: ["containerd"]
@@ -160,7 +160,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.containerd .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .containerd_version (ne .containerd_version "")
+  when: .containerd_version | empty | not
 
 - name: Check binaries for runc
   tags: ["runc"]
@@ -178,7 +178,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.runc .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .runc_version (ne .runc_version "")
+  when: .runc_version | empty | not
 
 - name: Check binaries for calicoctl
   tags: ["calicoctl"]
@@ -196,7 +196,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.calicoctl .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .calico_version (ne .calico_version "")
+  when: .calico_version | empty | not
 
 - name: Check binaries for registry
   tags: ["registry"]
@@ -214,7 +214,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.registry .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .registry_version (ne .registry_version "")
+  when: .registry_version | empty | not
 
 - name: Check binaries for docker-compose
   tags: ["docker-compose"]
@@ -227,7 +227,7 @@
       curl -L -o $compose_path/$compose_name {{ get .artifact.artifact_url.dockercompose .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .dockercompose_version (ne .dockercompose_version "")
+  when: .dockercompose_version | empty | not
 
 - name: Check binaries for harbor
   tags: ["harbor"]
@@ -245,7 +245,7 @@
       curl -L -o $harbor_path/$harbor_name {{ get .artifact.artifact_url.harbor .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .harbor_version (ne .harbor_version "")
+  when: .harbor_version | empty | not
 
 - name: Check binaries for keepalived
   tags: ["keepalived"]
@@ -263,4 +263,4 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.keepalived .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .keepalived_version (ne .keepalived_version "")
+  when: .keepalived_version | empty | not
