@@ -1,19 +1,18 @@
 image_registry:
   #  ha_vip: 192.168.122.59
-  namespace_override: ""
   # which store images data which will push to registry.
   images_dir: >-
     {{ .tmp_dir }}/images/
   auth:
     registry: >-
-      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") -}}
+      {{- if .image_registry.ha_vip | empty | not -}}
         {{ .image_registry.ha_vip }}
-      {{- else if .groups.image_registry | default list | len | lt 0 -}}
+      {{- else if .groups.image_registry | default list | empty | not -}}
         {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
         {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
-        {{- if ne $internalIPv4 "" -}}
+        {{- if $internalIPv4 | empty | not -}}
           {{ $internalIPv4 }}
-        {{- else if ne $internalIPv6 "" -}}
+        {{- else if $internalIPv6 | empty | not -}}
           {{ $internalIPv6 }}
         {{- end -}}
       {{- end -}}
@@ -22,6 +21,8 @@ image_registry:
   # registry type. support: harbor, registry
   type: harbor
   # Virtual IP address for repository High Availability. the Virtual IP address should be available.
+  harbor:
+    data_dir: /opt/harbor/data
   registry:
     version: 2
     config:

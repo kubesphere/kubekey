@@ -4,7 +4,7 @@
   command: runc --version
   register: runc_install_version
 - name: Sync runc binary to remote
-  when: or (.runc_install_version.stderr | ne "") (.runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | default "" | trimPrefix "v" )) | not)
+  when: or (.runc_install_version.stderr | empty | not) (.runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | default "" | trimPrefix "v" )) | not)
   copy:
     src: >-
       {{ .binary_dir }}/runc/{{ .runc_version }}/{{ .binary_type.stdout }}/runc.{{ .binary_type.stdout }}
@@ -16,7 +16,7 @@
   command: containerd --version
   register: containerd_install_version
 - name: Install containerd
-  when: or (.containerd_install_version.stderr | ne "") (.containerd_install_version.stdout | contains (printf " %s " .containerd_version) | not)
+  when: or (.containerd_install_version.stderr | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .containerd_version) | not)
   block:
     - name: Sync containerd binary to remote
       copy:

@@ -220,6 +220,4 @@ artifact:
     kubeovn: https://kubeovn.github.io/kube-ovn/kube-ovn-{{ .kubeovn_version }}.tgz
     hybridnet: https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .hybridnet_version }}/hybridnet-{{ .hybridnet_version }}.tgz
     nfs_provisioner: https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .nfs_provisioner_version }}.tgz
-  images:
-    auth: []
-    list: []
+  download_image: true

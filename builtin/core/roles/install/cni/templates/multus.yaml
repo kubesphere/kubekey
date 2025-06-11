@@ -169,7 +169,7 @@ spec:
       serviceAccountName: multus
       containers:
         - name: kube-multus
-          image: {{ .cni.multus.image }}
+          image: {{ .cni.multus.image.registry }}/{{ .cni.multus.image.repository }}:{{ .cni.multus.image.tag }}
           command: ["/entrypoint.sh"]
           args:
             - "--multus-conf-file=auto"

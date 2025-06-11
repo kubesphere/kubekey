@@ -8,7 +8,7 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.calico }}
     fi
-  when: and .calico_version (ne .calico_version "")
+  when: .calico_version | empty | not
 
 - name: Check binaries for cilium
   command: |
@@ -19,7 +19,7 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.cilium }}
     fi
-  when: and .cilium_version (ne .cilium_version "")
+  when: .cilium_version | empty | not
 
 - name: Check binaries for flannel
   command: |
@@ -30,4 +30,4 @@
       # download online
       curl -Lo $artifact_path/$artifact_name {{ .artifact.artifact_url.flannel }}
     fi
-  when: and .flannel_version (ne .flannel_version "")
+  when: .flannel_version | empty | not

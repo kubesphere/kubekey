@@ -7,31 +7,28 @@ cloud_config_dir: /capkk/cloud
 # tmp_dir for kubekey in remote node. it will store file like binary package, iso file etc.
 tmp_dir: /tmp/kubekey
 
-# image registry
+# global_registry for all image
 global_registry: ""
+# dockerio_registry for docker.io image.
 dockerio_registry: >-
-  {{- if ne .global_registry "" -}}
+  {{- if .global_registry | empty | not -}}
   {{ .global_registry }}
   {{- else -}}
   docker.io
   {{- end -}}
+# quayio_registry for quay.io image.
 quayio_registry: >-
-  {{- if ne .global_registry "" -}}
+  {{- if .global_registry | empty | not -}}
   {{ .global_registry }}
   {{- else -}}
   quay.io
   {{- end -}}
+# ghcrio_registry for ghcr.io image.
 ghcrio_registry: >-
-  {{- if ne .global_registry "" -}}
+  {{- if .global_registry | empty | not -}}
   {{ .global_registry }}
   {{- else -}}
   ghcr.io
-  {{- end -}}
-k8s_registry: >-
-  {{- if ne .global_registry "" -}}
-  {{ .global_registry }}
-  {{- else -}}
-  registry.k8s.io
   {{- end -}}
 
 cri:

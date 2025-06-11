@@ -33,7 +33,7 @@
         curl -L -o $kube_path/kubectl {{ get .artifact.artifact_url.kubectl .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .kube_version (ne .kube_version "")
+  when: .kube_version | empty | not
 
 - name: Check binaries for cni_plugins
   command: |
@@ -50,7 +50,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cni_plugins .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .cni_plugins_version (ne .cni_plugins_version "")
+  when: .cni_plugins_version  | empty | not
 
 - name: Check binaries for ciliumcli
   command: |
@@ -68,8 +68,8 @@
     fi
   loop: "{{ .artifact.arch | toJson }}"
   when: 
-    - and .cilium_version (ne .cilium_version "")
-    - and .ciliumcli_version (ne .ciliumcli_version "")
+    - .cilium_version | empty | not
+    - .ciliumcli_version  | empty | not
 
 - name: Check binaries for helm
   command: |
@@ -86,7 +86,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.helm .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .helm_version (ne .helm_version "")
+  when: .helm_version  | empty | not
 
 - name: Check binaries for crictl
   command: |
@@ -103,7 +103,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.crictl .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .crictl_version (ne .crictl_version "")
+  when: .crictl_version  | empty | not
 
 - name: Check binaries for docker
   command: |
@@ -120,7 +120,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.docker .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .docker_version (ne .docker_version "")
+  when: .docker_version  | empty | not
 
 - name: Check binaries for cridockerd
   command: |
@@ -137,7 +137,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cridockerd .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .cridockerd_version (ne .docker_version "")
+  when: .cridockerd_version | empty | not
 
 - name: Check binaries for containerd
   command: |
@@ -154,7 +154,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.containerd .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .containerd_version (ne .containerd_version "")
+  when: .containerd_version | empty | not
 
 - name: Check binaries for runc
   command: |
@@ -171,7 +171,7 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.runc .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .runc_version (ne .runc_version "")
+  when: .runc_version | empty | not
 
 - name: Check binaries for calicoctl
   command: |
@@ -188,4 +188,4 @@
       curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.calicoctl .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: and .calico_version (ne .calico_version "")
+  when: .calico_version | empty | not

@@ -2,10 +2,16 @@ sc:
   local:
     enabled: true
     default: true
-    provisioner_image: >-
-      {{ .dockerio_registry }}/openebs/provisioner-localpv:3.3.0
-    linux_utils_image: >-
-      {{ .dockerio_registry }}/openebs/linux-utils:3.3.0
+    provisioner_image:
+      registry: >-
+        {{ .dockerio_registry }}
+      repository: openebs/provisioner-localpv
+      tag: 3.3.0
+    linux_utils_image:
+      registry: >-
+        {{ .dockerio_registry }}
+      repository: openebs/linux-utils
+      tag: 3.3.0
     path: /var/openebs/local
   nfs: # each k8s_cluster node should install nfs-utils
     enabled: false

@@ -43,7 +43,7 @@ spec:
         operator: "Exists"
       containers:
       - name: node-cache
-        image: {{ .kubernetes.networking.dns_cache_image }}
+        image: {{ .kubernetes.networking.dns_cache_image.registry }}/{{ .kubernetes.networking.dns_cache_image.repository }}:{{ .kubernetes.networking.dns_cache_image.tag }}
         resources:
           limits:
             memory: 200Mi
@@ -132,7 +132,7 @@ data:
 
     {{- range .forward }}
       forward {{ .from }} {{ .to | join " " }} {
-      {{- if .except | len | lt 0 }}
+      {{- if .except | empty | not }}
         except {{ .except | join " " }}
       {{- end }}
       {{- if .force_tcp }}
@@ -161,7 +161,7 @@ data:
       }
     {{- end }}
 
-    {{- if $.kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
+    {{- if $.kubernetes.coredns.dns_etc_hosts | empty | not }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
@@ -214,14 +214,14 @@ data:
       bind 169.254.25.10
       forward . /etc/resolv.conf
       prometheus :9253
-    {{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
+    {{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
     {{- end }}
     }
 
-{{- if .kubernetes.coredns.dns_etc_hosts | len | lt 0 }}
+{{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}
   hosts: |
   {{- range .kubernetes.coredns.dns_etc_hosts }}
     {{ . }}
