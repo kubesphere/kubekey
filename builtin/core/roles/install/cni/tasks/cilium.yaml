@@ -1,6 +1,6 @@
 ---
 - name: Sync cilium cli package
-  when: and .ciliumcli_version (ne .ciliumcli_version "")
+  when: .ciliumcli_version | empty | not
   copy:
     src: >-
       {{ .binary_dir }}/cni/cilium/ciliumcli-{{ .ciliumcli_version }}/{{ .item }}

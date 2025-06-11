@@ -5,9 +5,9 @@ set -o nounset
 set -o pipefail
 
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
-{{- if and .internal_ipv4 (ne .internal_ipv4 "") }}
+{{- if .internal_ipv4 | empty | not }}
 ENDPOINTS='https://{{ .internal_ipv4 }}:2379'
-{{- else if and .internal_ipv6 (ne .internal_ipv6 "") }}
+{{- else if .internal_ipv6 | empty | not }}
 ENDPOINTS='https://{{ .internal_ipv6 }}:2379'
 {{- end }}
 ETCD_DATA_DIR="{{ .etcd.env.data_dir }}"

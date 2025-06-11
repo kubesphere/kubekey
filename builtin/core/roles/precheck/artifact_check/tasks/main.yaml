@@ -18,4 +18,4 @@
       exit 1
     fi
   when:
-    - and .artifact.artifact_md5 (ne .artifact.artifact_md5 "")
+    - .artifact.artifact_md5 | empty | not

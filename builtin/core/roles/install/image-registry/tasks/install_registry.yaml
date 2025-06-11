@@ -16,16 +16,16 @@
     {{- if }}
     {{- $internalIPv4 := index .hostvars (.groups.nfs | default list | first) "internal_ipv4" | default "" }}
     {{- $internalIPv6 := index .hostvars (.groups.nfs | default list | first) "internal_ipv6" | default "" }}
-    {{- if ne $internalIPv4 "" }}
+    {{- if $internalIPv4 | empty | not }}
     mount -t nfs {{ $internalIPv4 }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registry.registry.storage.filesystem.rootdir }}
     {{- else if ne $internalIPv6 "" }}
-      {{ $internalIPv6 }}
+      {{ $internalIPv6 | empty | not }}
     mount -t nfs {{ $internalIPv6 }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registry.registry.storage.filesystem.rootdir }}
     {{- end }}
   when:
     - and .image_registry.registry.storage.filesystem.nfs_mount (ne .image_registry.registry.storage.filesystem.nfs_mount "")
     - .groups.nfs | default list | len | eq 1
-    - .image_registry_service.stderr | ne ""
+    - .image_registry_service.stderr | empty | not
 
 - name: Load registry image
   command: |

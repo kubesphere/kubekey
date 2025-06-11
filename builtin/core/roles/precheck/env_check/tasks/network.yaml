@@ -1,13 +1,13 @@
 ---
 - name: Should found network interface
   command:  |
-    {{- if and .internal_ipv4 (.internal_ipv4 | ne "") }}
+    {{- if .internal_ipv4 | empty | not }}
     if [ ! ip -o addr show | grep -q {{ .internal_ipv4 }} ]; then
       echo 'No ipv4 network interface found'
       exit 1
     fi
     {{- end }}
-    {{- if and .internal_ipv6 (.internal_ipv6 | ne "") }}
+    {{- if .internal_ipv6 | empty | not }}
     if [ ! ip -o addr show | grep -q {{ .internal_ipv6 }} ]; then
       echo 'No ipv6 network interface found'
       exit 1
@@ -43,7 +43,7 @@
           Kubernetes introduced support for pod dual-stack networking starting from version v1.20.0.
     - name: Stop if service networking is not support dual-stack 
       when:
-        - and .kubernetes.networking.service_cidr (.kubernetes.networking.service_cidr | ne "")
+        - .kubernetes.networking.service_cidr | empty | not
         - .kubernetes.networking.service_cidr | splitList "," | len | eq 2
       assert:
         that: 
@@ -59,7 +59,7 @@
     that: .cluster_require.require_network_plugin | has .kubernetes.kube_network_plugin
     fail_msg: >-
       kube_network_plugin:"{{ .kubernetes.kube_network_plugin }}" is not supported
-  when: and .kubernetes.kube_network_plugin (ne .kubernetes.kube_network_plugin "")
+  when: .kubernetes.kube_network_plugin | empty | not
 
 # This assertion will fail on the safe side: One can indeed schedule more pods
 # on a node than the CIDR-range has space for when additional pods use the host

@@ -5,7 +5,7 @@
     fail_msg: >-
       the etcd deployment type, should be internal or external but got {{ .kubernetes.etcd.deployment_type }}
   run_once: true
-  when: and .kubernetes.etcd.deployment_type (ne .kubernetes.etcd.deployment_type "")
+  when: .kubernetes.etcd.deployment_type | empty | not
 
 - name: Stop if etcd group is empty in external etcd mode
   assert:
@@ -31,7 +31,7 @@
       command: fio --version
       register: fio_install_version
     - name: Test dev io by fio
-      when: .fio_install_version.stderr | eq ""
+      when: .fio_install_version.stderr | empty
       block:
         - name: Get fio result
           command: |

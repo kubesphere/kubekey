@@ -5,7 +5,7 @@
   register: crictl_install_version
 
 - name: Install crictl
-  when: or (.crictl_install_version.stderr | ne "") (.crictl_install_version.stdout | ne (printf "crictl version %s" .crictl_version))
+  when: or (.crictl_install_version.stderr | empty | not) (.crictl_install_version.stdout | ne (printf "crictl version %s" .crictl_version))
   block:
     - name: Sync crictl binary to remote
       copy:

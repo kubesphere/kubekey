@@ -1,6 +1,6 @@
 - name: Should defined internal_ipv4 or internal_ipv6
   assert:
-    that: or (and .internal_ipv4 (ne .internal_ipv4 "")) (and .internal_ipv6 (ne .internal_ipv6 ""))
+    that: or (.internal_ipv4 | empty | not) (.internal_ipv6 | empty | not)
     fail_msg: >-
       "internal_ipv4" and "internal_ipv6" cannot both be empty
 
@@ -28,7 +28,7 @@
     that: .kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
     fail_msg: >-
       the current release of KubeKey only support newer version of Kubernetes than {{ .cluster_require.kube_version_min_required }} - You are trying to apply {{ .kube_version }}
-  when: and .kube_version (ne .kube_version "")
+  when: .kube_version | empty | not
 
 - name: Check if kubernetes installed
   when: .groups.k8s_cluster | default list | has .inventory_hostname

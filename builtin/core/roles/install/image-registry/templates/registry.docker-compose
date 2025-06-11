@@ -24,7 +24,7 @@ services:
       - 443:5000
     networks:
       - registry
-{{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") }}
+{{- if .image_registry.ha_vip | empty | not }}
   keepalived:
     image: osixia/keepalived:{{ .keepalived_version }}
     container_name: keepalived

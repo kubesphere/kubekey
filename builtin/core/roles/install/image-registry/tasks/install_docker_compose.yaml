@@ -5,7 +5,7 @@
   register: dockercompose_install_version
 
 - name: Sync docker-compose to remote
-  when: or (.dockercompose_install_version.stderr | ne "") (.dockercompose_install_version.stdout | ne (printf "Docker Compose version %s" .dockercompose_version))
+  when: or (.dockercompose_install_version.stderr | empty | not) (.dockercompose_install_version.stdout | ne (printf "Docker Compose version %s" .dockercompose_version))
   copy:
     src: >-
       {{ .binary_dir }}/image-registry/docker-compose/{{ .dockercompose_version }}/{{ .binary_type.stdout }}/docker-compose
