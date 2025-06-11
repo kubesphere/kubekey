@@ -37,9 +37,9 @@ import (
 )
 
 // CombineMappingNode combines two yaml.Node objects representing mapping nodes.
-// If b is nil or zero, returns a.
-// If both a and b are mapping nodes, appends a's content to b.
-// Returns b in all other cases.
+// If a is nil or zero, returns b.
+// If both a and b are mapping nodes, appends b's content to a.
+// Returns a in all other cases.
 //
 // Parameters:
 //   - a: First yaml.Node to combine
@@ -48,15 +48,15 @@ import (
 // Returns:
 //   - Combined yaml.Node, with b taking precedence
 func CombineMappingNode(a, b *yaml.Node) *yaml.Node {
-	if b == nil || b.IsZero() {
-		return a
+	if a == nil || a.IsZero() {
+		return b
 	}
 
 	if a.Kind == yaml.MappingNode && b.Kind == yaml.MappingNode {
-		b.Content = append(b.Content, a.Content...)
+		a.Content = append(a.Content, b.Content...)
 	}
 
-	return b
+	return a
 }
 
 // CombineVariables merge multiple variables into one variable.
