@@ -17,8 +17,9 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 var ContainerdService = template.Must(template.New("containerd.service").Parse(
@@ -41,6 +42,7 @@ RestartSec=5
 LimitNPROC=infinity
 LimitCORE=infinity
 LimitNOFILE=1048576
+LimitMEMLOCK=infinity
 # Comment TasksMax if your systemd version does not supports it.
 # Only systemd 226 and above support this version.
 TasksMax=infinity
