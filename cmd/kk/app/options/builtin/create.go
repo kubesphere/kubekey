@@ -101,9 +101,10 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 }
 
 func (o *CreateClusterOptions) completeConfig() error {
-
-	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
-		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+		}
 	}
 
 	return nil
