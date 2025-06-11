@@ -104,8 +104,10 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 
 // completeConfig updates the configuration with container manager settings
 func (o *DeleteClusterOptions) completeConfig() error {
-	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
-		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+		}
 	}
 
 	return nil
@@ -184,8 +186,10 @@ func (o *DeleteNodesOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 
 // completeConfig updates the configuration with container manager settings
 func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
-	if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
-		return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+		}
 	}
 	if err := unstructured.SetNestedStringSlice(o.CommonOptions.Config.Value(), nodes, "delete_nodes"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "delete_nodes")
