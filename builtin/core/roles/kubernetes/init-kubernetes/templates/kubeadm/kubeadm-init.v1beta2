@@ -6,7 +6,7 @@ kind: ClusterConfiguration
 etcd:
 {{- if .kubernetes.etcd.deployment_type | eq "internal" }}
   local:
-    imageRepository: {{ .kubernetes.etcd.image.repository }}
+    imageRepository: {{ .kubernetes.etcd.image.registry }}
     imageTag: {{ .kubernetes.etcd.image.tag }}
     serverCertSANs:
     {{- range .groups.etcd | default list }}
@@ -24,7 +24,7 @@ etcd:
 {{- end }}
 dns:
   type: CoreDNS
-  imageRepository: {{ .kubernetes.networking.dns_image.repository }}
+  imageRepository: {{ .kubernetes.networking.dns_image.registry }}/{{ .kubernetes.networking.dns_image.repository }}
   imageTag: {{ .kubernetes.networking.dns_image.tag }}
 imageRepository: {{ .kubernetes.image_repository }}
 kubernetesVersion: {{ .kube_version }}
@@ -37,9 +37,9 @@ networking:
   serviceSubnet: {{ .kubernetes.networking.service_cidr }}
 apiServer:
   extraArgs:
-{{- if ne $internalIPv4 "" }}
+{{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
-{{- else if ne $internalIPv6 "" }}
+{{- else if $internalIPv6 | empty | not }}
     bind-address: ::
 {{- end }}
 {{- if .security_enhancement }}
@@ -58,7 +58,7 @@ apiServer:
     audit-policy-file: /etc/kubernetes/audit/policy.yaml
     audit-webhook-config-file: /etc/kubernetes/audit/webhook.yaml
 {{- end }}
-{{- if .kubernetes.apiserver.extra_args }}
+{{- if .kubernetes.apiserver.extra_args | empty | not }}
 {{ .kubernetes.apiserver.extra_args | toYaml | indent 4 }}
 {{- end }}
   certSANs:
@@ -78,10 +78,10 @@ apiServer:
     - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}.{{ $.kubernetes.networking.dns_domain }}
     {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
     {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
-    {{- if ne $internalIPv4 "" }}
+    {{- if $internalIPv4 | empty | not }}
     - {{ $internalIPv4 }}
     {{- end }}
-    {{- if ne $internalIPv6 "" }}
+    {{- if $internalIPv6 | empty | not }}
     - {{ $internalIPv6 }}
     {{- end }}
   {{- end }}
@@ -104,18 +104,18 @@ controllerManager:
     node-cidr-mask-size-ipv6: "{{ .kubernetes.networking.ipv6_mask_size }}"
 {{- end }}
 {{- if .security_enhancement }}
-  {{- if ne $internalIPv4 "" }}
+  {{- if $internalIPv4 | empty | not }}
     bind-address: 127.0.0.1
-  {{- else if ne $internalIPv6 "" }}
+  {{- else if $internalIPv6 | empty | not }}
     bind-address: ::1
   {{- end }}
     profiling: false
     terminated-pod-gc-threshold: 50
     use-service-account-credentials: true
 {{- else }}
-  {{- if ne $internalIPv4 "" }}
+  {{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
-  {{- else if ne $internalIPv6 "" }}
+  {{- else if $internalIPv6 | empty | not }}
     bind-address: ::
   {{- end }}
 {{- end }}
@@ -130,16 +130,16 @@ controllerManager:
 scheduler:
   extraArgs:
 {{- if .security_enhancement }}
-  {{- if ne $internalIPv4 "" }}
+  {{- if $internalIPv4 | empty | not }}
     bind-address: 127.0.0.1
-  {{- else if ne $internalIPv6 "" }}
+  {{- else if $internalIPv6 | empty | not }}
     bind-address: ::1
   {{- end }}
     profiling: false
 {{- else }}
-  {{- if ne $internalIPv4 "" }}
+  {{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
-  {{- else if ne $internalIPv6 "" }}
+  {{- else if $internalIPv6 | empty | not }}
     bind-address: ::
   {{- end }}
 {{- end }}
@@ -150,9 +150,9 @@ scheduler:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-{{- if ne $internalIPv4 "" }}
+{{- if $internalIPv4 | empty | not }}
   advertiseAddress: {{ $internalIPv4 }}
-{{- else if ne $internalIPv6 "" }}
+{{- else if $internalIPv6 | empty | not }}
   advertiseAddress: {{ $internalIPv6 }}
 {{- end }}
   bindPort: {{ .kubernetes.apiserver.port }}
@@ -160,14 +160,14 @@ nodeRegistration:
   criSocket: {{ .cri.cri_socket }}
   kubeletExtraArgs:
     cgroup-driver: {{ .cri.cgroup_driver }}
-    pod-infra-container-image: "{{ .k8s_registry }}/pause:{{ .cri.sandbox_image_tag }}"
+    pod-infra-container-image: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
 
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 clusterCIDR: {{ .kubernetes.networking.pod_cidr }}
 mode: {{ .kubernetes.kube_proxy.mode }}
-{{- if .kubernetes.kube_proxy.config }}
+{{- if .kubernetes.kube_proxy.config | empty | not }}
 {{ .kubernetes.kube_proxy.config | toYaml }}
 {{- end }}
 ---
@@ -205,13 +205,13 @@ tlsCipherSuites:
   - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
   - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
 {{- end }}
-{{- if .kubernetes.kubelet.feature_gates }} 
+{{- if .kubernetes.kubelet.feature_gates | empty | not }} 
 featureGates:
 {{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
 {{- end }}
 cgroupDriver: {{ .cri.cgroup_driver }}
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
 containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
-{{- if .kubernetes.kubelet.extra_args }}
+{{- if .kubernetes.kubelet.extra_args | empty | not }}
 {{ .kubernetes.kubelet.extra_args | toYaml }}
 {{- end }}

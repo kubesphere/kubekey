@@ -10,35 +10,30 @@
 - name: Create harbor project for each image
   tags: ["only_image"]
   command: |
-    {{- if .image_registry.namespace_override | eq "" }}
-    for dir in {{ .image_registry.images_dir }}*; do
-      if [ ! -d "$dir" ]; then
-        # only deal with directories
+    # Iterate through first-level subdirectories in images_dir (skip blobs)
+    for registry_dir in {{ .image_registry.images_dir }}*; do
+      if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
         continue
       fi
-    
-      project=${dir##*/}
-    
-      if [[ "$project" == "blobs" ]]; then
-        # skip blobs dir
-        continue
-      fi
-  
-      # if project is not exist, create it
-      resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET  "https://{{ .image_registry.auth.registry }}/api/v2.0/projects/${project}")
-      if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
-          # create project
-          curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://{{ .image_registry.auth.registry }}/api/v2.0/projects" -d "{ \"project_name\": \"${project}\", \"public\": true}"
-      fi    
+      
+      # Iterate through second-level subdirectories in registry_dir
+      for project_dir in "$registry_dir"/*; do
+        if [ ! -d "$project_dir" ]; then
+          continue
+        fi
+        
+        project=$(basename "$project_dir")
+        
+        # Check if project exists, create if not
+        resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://{{ .image_registry.auth.registry }}/api/v2.0/projects/${project}")
+        if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
+          curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
+            -H "Content-Type: application/json" \
+            "https://{{ .image_registry.auth.registry }}/api/v2.0/projects" \
+            -d "{ \"project_name\": \"${project}\", \"public\": true}"
+        fi
+      done
     done
-    {{- else }}
-    # if project is not exist, create it
-    resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://{{ .image_registry.auth.registry }}/api/v2.0/projects/{{ .image_registry.namespace_override }}")
-    if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
-        # create project
-        curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST -H "Content-Type: application/json" "https://{{ .image_registry.auth.registry }}/api/v2.0/projects" -d "{ \"project_name\": \"{{ .image_registry.namespace_override }}\", \"public\": true}"
-    fi
-    {{- end }}
   when: .image_registry.type | eq "harbor"
 
 - name: Sync images package to harbor

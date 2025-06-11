@@ -1,8 +1,11 @@
 cri:
   # support: systemd, cgroupfs
   cgroup_driver: systemd
-  sandbox_image: >-
-    {{ .k8s_registry }}/pause:3.5
+  sandbox_image: 
+    registry: >-
+      {{ .dockerio_registry }}
+    repository: kubesphere/pause
+    tag: 3.5
   # support: containerd,docker
   # container_manager: docker
   # the endpoint of containerd
@@ -25,14 +28,14 @@ image_registry:
   #  ha_vip: 192.168.122.59
   auth:
     registry: >-
-      {{- if and .image_registry.ha_vip (ne .image_registry.ha_vip "") -}}
+      {{- if .image_registry.ha_vip | empty | not -}}
         {{ .image_registry.ha_vip }}
       {{- else if .groups.image_registry | default list | len | lt 0 -}}
         {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
         {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
-        {{- if ne $internalIPv4 "" -}}
+        {{- if  $internalIPv4 | empty | not -}}
           {{ $internalIPv4 }}
-        {{- else if ne $internalIPv6 "" -}}
+        {{- else if $internalIPv6 | empty | not -}}
           {{ $internalIPv6 }}
         {{- end -}}
       {{- end -}}

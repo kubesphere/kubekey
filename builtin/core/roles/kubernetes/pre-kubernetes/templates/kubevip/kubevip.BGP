@@ -57,7 +57,7 @@ spec:
       value: {{ .kubernetes.control_plane_endpoint.kube_vip.address }}
     - name: prometheus_server
       value: :2112
-    image: {{ .kubernetes.control_plane_endpoint.kube_vip.image }}
+    image: {{ .kubernetes.control_plane_endpoint.kube_vip.image.registry }}/{{ .kubernetes.control_plane_endpoint.kube_vip.image.repository }}:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}
     imagePullPolicy: IfNotPresent
     name: kube-vip
     resources: {}

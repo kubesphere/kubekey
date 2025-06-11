@@ -17,7 +17,7 @@ spec:
   priorityClassName: system-node-critical
   containers:
     - name: haproxy
-      image: {{ .kubernetes.control_plane_endpoint.haproxy.image }}
+      image: {{ .kubernetes.control_plane_endpoint.haproxy.image.registry }}/{{ .kubernetes.control_plane_endpoint.haproxy.image.repository }}:{{ .kubernetes.control_plane_endpoint.haproxy.image.tag }}
       imagePullPolicy: IfNotPresent
       resources:
         requests:

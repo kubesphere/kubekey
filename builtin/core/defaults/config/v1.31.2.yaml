@@ -60,6 +60,36 @@ spec:
       extra_args:
         cluster-signing-duration: 87600h
   cri:
-    sandbox_image_tag: 3.10
+    sandbox_image:
+      tag: 3.10
     # support: containerd,docker
     container_manager: containerd
+  
+  # image_manifests:
+  #  - docker.io/calico/apiserver:v3.29.2
+  #  - docker.io/calico/cni:v3.29.2
+  #  - docker.io/calico/csi:v3.29.2
+  #  - docker.io/calico/kube-controllers:v3.29.2
+  #  - docker.io/calico/node-driver-registrar:v3.29.2
+  #  - docker.io/calico/node:v3.29.2
+  #  - docker.io/calico/pod2daemon-flexvol:v3.29.2
+  #  - docker.io/kubesphere/k8s-dns-node-cache:1.22.20
+  #  - docker.io/openebs/provisioner-localpv:3.3.0
+  #  - docker.io/coredns/coredns:1.8.6
+  #  - docker.io/kubesphere/kube-apiserver:v1.31.2
+  #  - docker.io/kubesphere/kube-controller-manager:v1.31.2
+  #  - docker.io/kubesphere/kube-proxy:v1.31.2
+  #  - docker.io/kubesphere/kube-scheduler:v1.31.2
+  #  - docker.io/kubesphere/pause:3.10
+  #  - quay.io/tigera/operator:v1.36.5
+  #  - docker.io/kubesphere/pause:3.1
+  #  - docker.io/calico/ctl:v3.29.2
+  #  - docker.io/calico/typha:v3.29.2
+  #  - docker.io/calico/apiserver:v3.29.2
+  #  - docker.io/calico/kube-controllers:v3.29.2
+  #  - docker.io/calico/node:v3.29.2
+  #  - docker.io/calico/pod2daemon-flexvol:v3.29.2
+  #  - docker.io/calico/cni:v3.29.2
+  #  - docker.io/calico/node-driver-registrar:v3.29.2
+  #  - docker.io/calico/csi:v3.29.2
+

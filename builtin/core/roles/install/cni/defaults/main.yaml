@@ -5,7 +5,11 @@ cni:
   multus: 
     # if install multus thick plugins. 
     enabled: false
-    image: "{{ .dockerio_registry }}/kubesphere/multus-cni:v3.8"
+    image: 
+      registry:  >-
+        {{ .dockerio_registry }}
+      repository: kubesphere/multus-cni
+      tag: v3.8
   # In Kubernetes, the Pod CIDR supports both IPv4 and IPv6 configurations. It can be specified as follows:
   # "Single-stack IPv4": the pod_cidr value format "ipv4"
   # "Single-stack IPv6": the pod_cidr value format "ipv6"
@@ -35,6 +39,10 @@ cni:
   calico:
     values: |
       # calico helm values
+      tigeraOperator:
+        registry: {{ .quayio_registry }}
+      calicoctl:
+        image: {{ .dockerio_registry }}/calico/ctl
       installation:
         registry: {{ .dockerio_registry }}
         calicoNetwork:

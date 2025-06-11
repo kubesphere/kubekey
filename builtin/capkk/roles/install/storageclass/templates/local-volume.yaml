@@ -100,7 +100,7 @@ spec:
       containers:
         - name: openebs-provisioner-hostpath
           imagePullPolicy: IfNotPresent
-          image: {{ .sc.local.provisioner_image }}
+          image: {{ .sc.local.provisioner_image.registry }}/{{ .sc.local.provisioner_image.repository }}:{{ .sc.local.provisioner_image.tag }}
           env:
             # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
             # based on this address. This is ignored if empty.
@@ -131,7 +131,7 @@ spec:
             - name: OPENEBS_IO_INSTALLER_TYPE
               value: "openebs-operator-lite"
             - name: OPENEBS_IO_HELPER_IMAGE
-              value: "{{ .sc.local.linux_utils_image }}"
+              value: "{{ .sc.local.linux_utils_image.registry }}/{{ .sc.local.linux_utils_image.repository }}:{{ .sc.local.linux_utils_image.tag }}"
           # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
           # leader election is enabled.
           #- name: LEADER_ELECTION_ENABLED

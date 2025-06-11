@@ -60,4 +60,5 @@ spec:
       extra_args:
         cluster-signing-duration: 87600h
   cri:
-    sandbox_image_tag: 3.5
+    sandbox_image:
+      tag: 3.5

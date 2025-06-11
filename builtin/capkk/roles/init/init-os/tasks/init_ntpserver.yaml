@@ -17,8 +17,8 @@
       {{- $internalIPv6 := "" }}
       {{- range $.hostvars }}
         {{- if eq .hostname $server }}
-          {{- $internalIPv4 = .internal_ipv4 | default "" }}
-          {{- $internalIPv6 = .internal_ipv6 | default "" }}
+          {{- $internalIPv4 = .internal_ipv4 }}
+          {{- $internalIPv6 = .internal_ipv6 }}
         {{- end }}
       {{- end }}
     # add ntp server: {{ $server }}
@@ -28,19 +28,19 @@
       {{- if $internalIPv6 }}
     grep -q '^server {{ $internalIPv6 }} iburst' $chronyConfigFile || sed '1a server [{{ $internalIPv6 }}] iburst' -i $chronyConfigFile
       {{- end }}
-      {{- if and (eq $internalIPv4 "") (eq $internalIPv6 "") }}
+      {{- if and ($internalIPv4 | empty) ($internalIPv6 | empty) }}
     grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
       {{- end }}      
     {{- end }}
   when:
     - .ntp.enabled
-    - .ntp.servers | fromJson | len | lt 0
+    - .ntp.servers | fromJson | empty | not
 
 - name: Set timezone
   command: |
     timedatectl set-timezone {{ .timezone }}
-    timedatectl set-ntp {{ and .ntp.enabled (.ntp.servers | fromJson | len | lt 0) }}
-  when: or (and .ntp.enabled (.ntp.servers | fromJson | len | lt 0)) (.timezone | ne "")
+    timedatectl set-ntp {{ and .ntp.enabled (.ntp.servers | fromJson empty | not) }}
+  when: or (and .ntp.enabled (.ntp.servers | fromJson | empty | not)) (.timezone | empty | not)
 
 - name: Restart ntp server
   command: |
@@ -48,4 +48,4 @@
     systemctl restart chrony.service
     {{- end }}
     systemctl restart chronyd.service
-  when: or (and .ntp.enabled (.ntp.servers | fromJson | len | lt 0)) (.timezone | ne "")
+  when: or (and .ntp.enabled (.ntp.servers | fromJson | empty | not)) (.timezone | empty | not)

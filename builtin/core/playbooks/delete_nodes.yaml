@@ -55,6 +55,7 @@
     - role: uninstall/cri
       when: 
         - .deleteCRI
+        - .groups.image_registry | default list | has .inventory_hostname | not
         - .delete_nodes | default list | has .inventory_hostname
   post_tasks:
     - name: delete localDNS file

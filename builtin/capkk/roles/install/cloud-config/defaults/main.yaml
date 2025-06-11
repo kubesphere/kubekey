@@ -1,5 +1,8 @@
 kubernetes:
   control_plane_endpoint:
     kube_vip:
-      image: >-
-        {{ .dockerio_registry }}/plndr/kube-vip:v0.7.2
+      image: 
+        registry: >-
+          {{ .dockerio_registry }}
+        repository: plndr/kube-vip
+        tag: v0.7.2
