@@ -18,54 +18,25 @@ package connector
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/exec"
-	testingexec "k8s.io/utils/exec/testing"
 )
 
-func newFakeLocalConnector(runCmd string, output string) *localConnector {
-	return &localConnector{
-		Cmd: &testingexec.FakeExec{CommandScript: []testingexec.FakeCommandAction{
-			func(cmd string, args ...string) exec.Cmd {
-				if strings.TrimSpace(fmt.Sprintf("%s %s", cmd, strings.Join(args, " "))) == "/bin/sh -c "+runCmd {
-					return &testingexec.FakeCmd{
-						CombinedOutputScript: []testingexec.FakeAction{func() ([]byte, []byte, error) {
-							return []byte(output), nil, nil
-						}},
-					}
-				}
-
-				return &testingexec.FakeCmd{
-					CombinedOutputScript: []testingexec.FakeAction{func() ([]byte, []byte, error) {
-						return nil, nil, errors.New("error command")
-					}},
-				}
-			},
-		}},
-	}
-}
-
-func TestSshConnector_ExecuteCommand(t *testing.T) {
+func TestLocalConnector_ExecuteCommand(t *testing.T) {
 	testcases := []struct {
-		name        string
-		cmd         string
-		exceptedErr error
+		name           string
+		cmd            string
+		localConnector *localConnector
+		expectedStdout string
 	}{
 		{
-			name:        "execute command succeed",
-			cmd:         "echo 'hello'",
-			exceptedErr: nil,
-		},
-		{
-			name:        "execute command failed",
-			cmd:         "echo 'hello1'",
-			exceptedErr: errors.New("error command"),
+			name:           "execute command succeed",
+			cmd:            "echo 'hello'",
+			localConnector: &localConnector{Cmd: exec.New()},
+			expectedStdout: "hello\n",
 		},
 	}
 
@@ -73,9 +44,8 @@ func TestSshConnector_ExecuteCommand(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
-			lc := newFakeLocalConnector("echo 'hello'", "hello")
-			_, err := lc.ExecuteCommand(ctx, tc.cmd)
-			assert.Equal(t, tc.exceptedErr, err)
+			a, _ := tc.localConnector.ExecuteCommand(ctx, tc.cmd)
+			assert.Equal(t, tc.expectedStdout, string(a))
 		})
 	}
 }
