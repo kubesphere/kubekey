@@ -124,6 +124,9 @@ Contributions of any kind are welcome! Thanks goes to these wonderful contributo
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/LazyBusyYang"><img src="https://avatars.githubusercontent.com/u/26729379?v=4?s=100" width="100px;" alt="LazyBusyYang"/><br /><sub><b>LazyBusyYang</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=LazyBusyYang" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/endlesstravel"><img src="https://avatars.githubusercontent.com/u/10757838?v=4?s=100" width="100px;" alt="Yx"/><br /><sub><b>Yx</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=endlesstravel" title="Code">💻</a></td>
     </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Kevinz857"><img src="https://avatars.githubusercontent.com/u/20255934?v=4?s=100" width="100px;" alt="Kevin"/><br /><sub><b>Kevin</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=Kevinz857" title="Code">💻</a></td>
+    </tr>
   </tbody>
 </table>
 

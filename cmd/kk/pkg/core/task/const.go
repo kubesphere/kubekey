@@ -17,7 +17,7 @@
 package task
 
 const (
-	DefaultTimeout = 120
+	DefaultTimeout = 300
 	DefaultCon     = 10
 
 	DefaultTaskName = "DefaultTask"
