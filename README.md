@@ -410,6 +410,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Kevinz857"><img src="https://avatars.githubusercontent.com/u/20255934?v=4?s=100" width="100px;" alt="Kevin"/><br /><sub><b>Kevin</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=Kevinz857" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/zmoon460"><img src="https://avatars.githubusercontent.com/u/42328751?v=4?s=100" width="100px;" alt="zmoon460"/><br /><sub><b>zmoon460</b></sub></a><br /><a href="https://github.com/kubesphere/kubekey/commits?author=zmoon460" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
