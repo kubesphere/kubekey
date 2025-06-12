@@ -16,4 +16,4 @@
 
 - name: Delete residue files
   command: |
-   rm -f /usr/local/bin/crictl
+    rm -f /usr/local/bin/crictl

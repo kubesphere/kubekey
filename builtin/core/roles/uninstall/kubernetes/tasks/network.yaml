@@ -1,5 +1,5 @@
 ---
-- name: Reset iptables
+- name: Clean iptables
   command: |
     iptables -F
     iptables -X
@@ -37,3 +37,14 @@
   command: |
     ip neigh show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{print $1 " dev " $3}' | xargs -r -L1 ip neigh delete
     ip -o addr show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{system("ip addr del "$4" dev "$2)}'
+
+- name: Rebuild cri iptables
+  ignore_errors: true
+  when: or (.deleteCRI | not) (.groups.image_registry | default list | has .inventory_hostname)
+  command: |
+    {{- if .cri.container_manager | eq "docker" }}
+    systemctl restart containerd
+    systemctl restart docker
+    {{- else if .cri.container_manager | eq "containerd" }}
+    systemctl restart containerd
+    {{- end }}
