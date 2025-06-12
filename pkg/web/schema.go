@@ -14,10 +14,10 @@ import (
 // The {subpath:*} parameter allows for matching any path under /resources/schema/.
 func NewSchemaService(rootPath string) *restful.WebService {
 	ws := new(restful.WebService)
-	ws.Path("resources/schema")
+	ws.Path("/resources/schema")
 
 	ws.Route(ws.GET("/{subpath:*}").To(func(req *restful.Request, resp *restful.Response) {
-		http.StripPrefix("resources/schema/", http.FileServer(http.Dir(rootPath))).ServeHTTP(resp.ResponseWriter, req.Request)
+		http.StripPrefix("/resources/schema/", http.FileServer(http.Dir(rootPath))).ServeHTTP(resp.ResponseWriter, req.Request)
 	}).Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
 
 	return ws
