@@ -10,7 +10,7 @@ cluster_require:
     - '"centos"'
   require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
   # the minimal version of kubernetes to be installed.
-  kube_version_min_required: v1.19.10
+  kube_version_min_required: v1.23.0
   # memory size for each kube_control_plane node.(unit kB)
   # should be greater than or equal to minimal_master_memory_mb.
   minimal_master_memory_mb: 10

@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	cliflag "k8s.io/component-base/cli/flag"
 
-	"github.com/kubesphere/kubekey/v4/builtin/core"
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
@@ -145,11 +144,10 @@ func (o *CreateConfigOptions) Flags() cliflag.NamedFlagSets {
 // If an output directory is specified, it creates a config file named "config-<kubernetes-version>.yaml".
 func (o *CreateConfigOptions) Run() error {
 	// Read the default config file for the specified Kubernetes version
-	data, err := core.Defaults.ReadFile(fmt.Sprintf("defaults/config/%s.yaml", o.Kubernetes))
+	data, err := getConfig(o.Kubernetes, "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to get local configFile for kube_version: %q.")
+		return err
 	}
-
 	if o.OutputDir != "" {
 		// Write config to file if output directory is specified
 		filename := filepath.Join(o.OutputDir, fmt.Sprintf("config-%s.yaml", o.Kubernetes))

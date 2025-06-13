@@ -20,8 +20,10 @@ limitations under the License.
 package builtin
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -31,7 +33,7 @@ import (
 )
 
 const (
-	defaultKubeVersion = "v1.23.15"
+	defaultKubeVersion = "v1.33.1"
 )
 
 const (
@@ -56,18 +58,31 @@ func completeInventory(inventoryFile string, inventory *kkcorev1.Inventory) erro
 }
 
 func completeConfig(kubeVersion string, configFile string, config *kkcorev1.Config) error {
-	if configFile != "" {
-		data, err := os.ReadFile(configFile)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get configFile %q", configFile)
-		}
-
-		return errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal configFile %q", configFile)
-	}
-	data, err := core.Defaults.ReadFile(fmt.Sprintf("defaults/config/%s.yaml", kubeVersion))
+	data, err := getConfig(kubeVersion, configFile)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get local configFile for kube_version: %q. Please set it by \"--config\"", kubeVersion)
+		return err
 	}
 
 	return errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", kubeVersion)
+}
+
+func getConfig(kubeVersion string, configFile string) ([]byte, error) {
+	if configFile != "" {
+		data, err := os.ReadFile(configFile)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get configFile %q", configFile)
+		}
+
+		return data, nil
+	}
+	t, err := template.ParseFS(core.Defaults, fmt.Sprintf("defaults/config/%s.yaml", kubeVersion[:5]))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get local configFile template for kube_version: %q. Please set it by \"--config\"", kubeVersion)
+	}
+	data := bytes.NewBuffer(nil)
+	if err := t.Execute(data, map[string]string{"kube_version": kubeVersion}); err != nil {
+		return nil, errors.Wrapf(err, "failed to parse local configFile template for kube_version: %q. Please set it by \"--config\"", kubeVersion)
+	}
+
+	return data.Bytes(), nil
 }
