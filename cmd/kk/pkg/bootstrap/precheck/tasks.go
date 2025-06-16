@@ -18,6 +18,7 @@ package precheck
 
 import (
 	"fmt"
+	"os/exec"
 	"regexp"
 	"strings"
 
@@ -54,7 +55,8 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 	results["name"] = runtime.RemoteHost().GetName()
 	for _, software := range baseSoftware {
 		var (
-			cmd string
+			res, cmd string
+			err      error
 		)
 
 		switch software {
@@ -62,18 +64,13 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 			cmd = "docker version --format '{{.Server.Version}}'"
 		case containerd:
 			cmd = "containerd --version | cut -d ' ' -f 3"
-		default:
-			cmd = fmt.Sprintf("which %s", software)
 		}
 
-		switch software {
-		case sudo:
-			// sudo skip sudo prefix
-		default:
-			cmd = connector.SudoPrefix(cmd)
+		if cmd == "" {
+			res, err = exec.LookPath(software)
+		} else {
+			res, err = runtime.GetRunner().Cmd(connector.SudoPrefix(cmd), false)
 		}
-
-		res, err := runtime.GetRunner().Cmd(cmd, false)
 		switch software {
 		case showmount:
 			software = nfs
@@ -82,7 +79,7 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		case glusterfs:
 			software = glusterfs
 		}
-		if err != nil || strings.Contains(res, "not found") {
+		if err != nil {
 			results[software] = ""
 		} else {
 			// software in path
