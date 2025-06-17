@@ -232,7 +232,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ipl.username, _ = variable.StringVar(vars, pull, "username")
 		ipl.password, _ = variable.StringVar(vars, pull, "password")
 		ipl.imagesDir, _ = variable.StringVar(vars, pull, "images_dir")
-		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skipTLSVerify")
+		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skip_tls_verify")
 		if ipl.skipTLSVerify == nil {
 			ipl.skipTLSVerify = ptr.To(false)
 		}
