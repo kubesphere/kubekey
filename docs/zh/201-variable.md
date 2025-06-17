@@ -14,13 +14,13 @@ metadata:
   name: default
 spec:
   hosts:
-    - hostname1: 
-        k1: v1
-        #...
-    - hostname2: 
-        k2: v2
-        #...
-    - hostname3:
+    hostname1: 
+      k1: v1
+      #...
+    hostname2: 
+      k2: v2
+      #...
+    hostname3:
       #...
   groups:
     groupname1:
