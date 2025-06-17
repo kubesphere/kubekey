@@ -7,8 +7,8 @@
 - name: Stop kubelet service
   command: |
     systemctl stop kubelet.service
-    rm -rf /etc/systemd/system/kubelet.service
-    rm -rf /etc/systemd/system/kubelet.service.d
+    systemctl disable kubelet.service
+    rm -rf /etc/systemd/system/kubelet.service*
     systemctl daemon-reload
 
 - name: Delete residue files
