@@ -22,9 +22,12 @@
             cat {{ .cloud_config_dir }}/cloud-config/value
           register: cloud_config_out
           register_type: yaml
-        - name: set_fact of cloud-config value
-          set_fact:
-            cloud_config: "{{ .cloud_config_out.stdout | toJson }}"
+        - name: add cloud_config to all hosts
+          add_hostvars:
+            hosts: all
+            vars:
+              cloud_config: >-
+                {{ .hostVars.localhost.cloud_config_out.stdout }}
   roles:
     - role: init/init-artifacts
       when: .kubernetes_installed | default false | eq false

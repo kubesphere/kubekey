@@ -66,7 +66,7 @@ data:
 
     {{- range .forward }}
       forward {{ .from }} {{ .to | join " " }} {
-      {{- if .except | len | lt 0 }}
+      {{- if .except | empty | not }}
         except {{ .except | join " " }}
       {{- end }}
       {{- if .force_tcp }}

@@ -10,12 +10,12 @@
     - name: Sync crictl binary to remote
       copy:
         src: >-
-          {{ .binary_dir }}/crictl/{{ .crictl_version }}/{{ .binary_type.stdout }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+          {{ .binary_dir }}/crictl/{{ .crictl_version }}/{{ .binary_type }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type }}.tar.gz
         dest: >-
-          {{ .tmp_dir }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+          {{ .tmp_dir }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type }}.tar.gz
     - name: Unpackage crictl binary
       command: |
-        tar -xvf {{ .tmp_dir }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type.stdout }}.tar.gz -C /usr/local/bin/
+        tar -xvf {{ .tmp_dir }}/crictl-{{ .crictl_version }}-linux-{{ .binary_type }}.tar.gz -C /usr/local/bin/
     - name: Generate crictl config file
       template:
         src: crictl.config

@@ -30,7 +30,7 @@ image_registry:
     registry: >-
       {{- if .image_registry.ha_vip | empty | not -}}
         {{ .image_registry.ha_vip }}
-      {{- else if .groups.image_registry | default list | len | lt 0 -}}
+      {{- else if .groups.image_registry | default list | empty | not -}}
         {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
         {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
         {{- if  $internalIPv4 | empty | not -}}

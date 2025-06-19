@@ -76,7 +76,7 @@
         {{- range $k, $v := .kubernetes.custom_label }}
         /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
         {{- end }}
-      when: .kubernetes.custom_label | len | lt 0
+      when: .kubernetes.custom_label | empty | not
 
 - hosts:
     - kube_control_plane|random

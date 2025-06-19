@@ -75,6 +75,9 @@ func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.P
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 	}
+	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
+		return nil, err
+	}
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err
@@ -141,6 +144,9 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
+	}
+	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
+		return nil, err
 	}
 
 	return playbook, o.CommonOptions.Complete(playbook)

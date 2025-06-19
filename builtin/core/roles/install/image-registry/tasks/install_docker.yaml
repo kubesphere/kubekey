@@ -10,7 +10,7 @@
     - name: Sync docker binary to remote
       copy:
         src: >-
-          {{ .binary_dir }}/docker/{{ .docker_version }}/{{ .binary_type.stdout }}/docker-{{ .docker_version }}.tgz
+          {{ .binary_dir }}/docker/{{ .docker_version }}/{{ .binary_type }}/docker-{{ .docker_version }}.tgz
         dest: >-
           {{ .tmp_dir }}/docker-{{ .docker_version }}.tgz
     - name: Generate docker config file

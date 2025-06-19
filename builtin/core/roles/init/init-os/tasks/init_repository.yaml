@@ -5,7 +5,7 @@
       ignore_errors: true
       copy:
         src: >-
-          {{ .binary_dir }}/repository/{{ .os.release.ID_LIKE }}-{{ .os.release.VERSION_ID }}-{{ .binary_type.stdout }}.iso
+          {{ .binary_dir }}/repository/{{ .os.release.ID_LIKE }}-{{ .os.release.VERSION_ID }}-{{ .binary_type }}.iso
         dest: >-
           {{ .tmp_dir }}/repository.iso
     - name: Mount iso file

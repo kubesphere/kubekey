@@ -55,6 +55,7 @@ task执行时, 会在定义的host分别上执行.
 **rescue**: task集合, 非必填, 当block执行失败(task集合有一个执行失败即为该block失败)时,执行该task集合.   
 **always**: task集合, 非必填, 当block和rescue执行完毕后(无论成功失败)都会执行该task集合.  
 **module**: task实际要执行的操作, 非必填(当未block字段时, 必填).map格式的数据, key为module_name, value为args. 可用的module需提前在项目中进行注册。已注册的module如下
+- [add_hostvars](modules/add_hostvars.md)
 - [assert](modules/assert.md)
 - [command](modules/command.md)
 - [copy](modules/copy.md)
