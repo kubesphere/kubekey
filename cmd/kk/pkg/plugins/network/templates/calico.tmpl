@@ -4967,8 +4967,13 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+{{- if .IPAutoDetectionMethod }}
+            - name: IP_AUTODETECTION_METHOD
+              value: "{{ .IPAutoDetectionMethod }}"
+{{- else }}
             - name: IP_AUTODETECTION_METHOD
               value: "can-reach=$(NODEIP)"
+{{- end }}
             - name: IP
               value: "autodetect"
 {{- if .IPv6Support }}
