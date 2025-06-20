@@ -102,12 +102,12 @@ func (e *taskExecutor) runTaskLoop(ctx context.Context) error {
 		}
 		e.task.Status.Phase = kkcorev1alpha1.TaskPhaseRunning
 		if err := e.client.Status().Patch(ctx, e.task, ctrlclient.MergeFrom(task)); err != nil {
-			return errors.Wrap(err, "failed to patch task status")
+			return errors.Wrapf(err, "failed to patch task status of %s", ctrlclient.ObjectKeyFromObject(task))
 		}
 		task = e.task.DeepCopy()
 		e.execTask(ctx)
 		if err := e.client.Status().Patch(ctx, e.task, ctrlclient.MergeFrom(task)); err != nil {
-			return errors.Wrap(err, "failed to patch task status")
+			return errors.Wrapf(err, "failed to patch task status of %s", ctrlclient.ObjectKeyFromObject(task))
 		}
 	}
 	return nil
