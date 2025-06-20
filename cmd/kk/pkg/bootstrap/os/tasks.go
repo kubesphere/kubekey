@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containerd/cgroups/v3"
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os/repository"
@@ -244,6 +245,9 @@ func (r *RemoveNodeFiles) Execute(runtime connector.Runtime) error {
 		"/etc/kubekey",
 	}
 
+	if cgroups.Mode() == cgroups.Unified || cgroups.Mode() == cgroups.Hybrid {
+		_, _ = runtime.GetRunner().SudoCmd("umount /run/calico/cgroup", true)
+	}
 	for _, file := range nodeFiles {
 		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
 	}
@@ -255,6 +259,9 @@ type RemoveFiles struct {
 }
 
 func (r *RemoveFiles) Execute(runtime connector.Runtime) error {
+	if cgroups.Mode() == cgroups.Unified || cgroups.Mode() == cgroups.Hybrid {
+		_, _ = runtime.GetRunner().SudoCmd("umount /run/calico/cgroup", true)
+	}
 	for _, file := range clusterFiles {
 		_, _ = runtime.GetRunner().SudoCmd(fmt.Sprintf("rm -rf %s", file), true)
 	}
