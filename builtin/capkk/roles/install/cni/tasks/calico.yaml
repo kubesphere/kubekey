@@ -10,7 +10,7 @@
     - name: Sync calicoctl to remote
       copy:
         src: >-
-          {{ .binary_dir }}/cni/calico/{{ .calico_version }}/{{ .binary_type.stdout }}/calicoctl
+          {{ .binary_dir }}/cni/calico/{{ .calico_version }}/{{ .binary_type }}/calicoctl
         dest: /usr/local/bin/calicoctl
         mode: 0755
 

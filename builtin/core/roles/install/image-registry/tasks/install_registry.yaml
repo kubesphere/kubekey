@@ -2,9 +2,9 @@
 - name: Sync registry image to remote
   copy:
     src: >-
-      {{ .binary_dir }}/image-registry/registry/{{ .registry_version }}/{{ .binary_type.stdout }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
+      {{ .binary_dir }}/image-registry/registry/{{ .registry_version }}/{{ .binary_type }}/registry-{{ .registry_version }}-linux-{{ .binary_type }}.tgz
     dest: >-
-      /opt/registry/{{ .registry_version }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
+      /opt/registry/{{ .registry_version }}/registry-{{ .registry_version }}-linux-{{ .binary_type }}.tgz
 
 - name: Mount NFS dir
   command: |
@@ -29,7 +29,7 @@
 
 - name: Load registry image
   command: |
-    docker load -i /opt/registry/{{ .registry_version }}/registry-{{ .registry_version }}-linux-{{ .binary_type.stdout }}.tgz
+    docker load -i /opt/registry/{{ .registry_version }}/registry-{{ .registry_version }}-linux-{{ .binary_type }}.tgz
 
 - name: Sync image registry cert file to remote
   copy:

@@ -2,14 +2,14 @@
 - name: Sync etcd binary to node
   copy:
     src: >-
-      {{ .binary_dir }}/etcd/{{ .etcd_version }}/{{ .binary_type.stdout }}/etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+      {{ .binary_dir }}/etcd/{{ .etcd_version }}/{{ .binary_type }}/etcd-{{ .etcd_version }}-linux-{{ .binary_type }}.tar.gz
     dest: >-
-      {{ .tmp_dir }}/etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}.tar.gz
+      {{ .tmp_dir }}/etcd-{{ .etcd_version }}-linux-{{ .binary_type }}.tar.gz
 
 - name: Extract etcd binary
   command: |
-    tar --strip-components=1 -C /usr/local/bin/ -xvf {{ .tmp_dir }}/etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}.tar.gz \
-      --wildcards etcd-{{ .etcd_version }}-linux-{{ .binary_type.stdout }}/etcd*
+    tar --strip-components=1 -C /usr/local/bin/ -xvf {{ .tmp_dir }}/etcd-{{ .etcd_version }}-linux-{{ .binary_type }}.tar.gz \
+      --wildcards etcd-{{ .etcd_version }}-linux-{{ .binary_type }}/etcd*
 
 - name: Sync ca file to remote
   copy:

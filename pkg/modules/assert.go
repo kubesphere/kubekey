@@ -110,6 +110,9 @@ func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]
 		aa.successMsg = StdoutTrue
 	}
 	aa.failMsg, _ = variable.StringVar(vars, args, "fail_msg")
+	if aa.failMsg == "" {
+		aa.failMsg = StdoutFalse
+	}
 	aa.msg, _ = variable.StringVar(vars, args, "msg")
 	if aa.msg == "" {
 		aa.msg = StdoutFalse

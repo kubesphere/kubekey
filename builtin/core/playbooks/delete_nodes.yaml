@@ -24,7 +24,7 @@
             {{- $cpNodes = append $cpNodes . -}}
           {{- end -}}
         {{- end -}}
-        {{- if (subtractList $cpNodes .delete_nodes) | len | lt 0 }}
+        {{- if (subtractList $cpNodes .delete_nodes) | empty | not }}
         exit 0
         {{- else }}
         echo "should keep at least one control_plane"

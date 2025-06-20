@@ -18,7 +18,7 @@
   tags: ["certs"]
   roles:
     - role: certs/renew-etcd
-      when: and (.groups.etcd | default list | len | lt 0) .renew_etcd
+      when: and (.groups.etcd | default list | empty | not) .renew_etcd
 
 - hosts:
     - image_registry

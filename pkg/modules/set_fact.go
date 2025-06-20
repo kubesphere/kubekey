@@ -67,7 +67,7 @@ func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
 	if err := yaml.Unmarshal(options.Args.Raw, &node); err != nil {
 		return "", fmt.Sprintf("failed to unmarshal YAML error: %v", err)
 	}
-	if err := options.Variable.Merge(variable.MergeAllRuntimeVariable(node, options.Host)); err != nil {
+	if err := options.Variable.Merge(variable.MergeRuntimeVariable(node, options.Host)); err != nil {
 		return "", fmt.Sprintf("set_fact error: %v", err)
 	}
 

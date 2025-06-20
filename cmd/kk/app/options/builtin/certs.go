@@ -66,6 +66,9 @@ func (o *CertsRenewOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		Debug:    o.Debug,
 		Tags:     []string{"certs"},
 	}
+	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
+		return nil, err
+	}
 
 	return playbook, o.CommonOptions.Complete(playbook)
 }

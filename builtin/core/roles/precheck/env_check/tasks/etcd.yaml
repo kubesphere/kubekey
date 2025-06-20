@@ -9,7 +9,7 @@
 
 - name: Stop if etcd group is empty in external etcd mode
   assert:
-    that: .groups.etcd | len | lt 0
+    that: .groups.etcd | empty | not
     fail_msg: "group \"etcd\" cannot be empty in external etcd mode"
   run_once: true
   when: .kubernetes.etcd.deployment_type | eq "external"

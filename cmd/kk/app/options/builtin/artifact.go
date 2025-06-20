@@ -125,6 +125,9 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		Debug:    o.Debug,
 		Tags:     []string{"only_image"},
 	}
+	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
+		return nil, err
+	}
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, errors.WithStack(err)

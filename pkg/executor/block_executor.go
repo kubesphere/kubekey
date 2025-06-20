@@ -7,6 +7,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -172,7 +173,7 @@ func (e blockExecutor) dealTask(ctx context.Context, hosts []string, when []stri
 		}
 	}
 	if task.Spec.Module.Name == "" { // action is necessary for a task
-		return errors.Errorf("no module/action detected in task: %s", task.Name)
+		return errors.Errorf("no module/action detected in task: [%s]%s", task.Annotations[kkcorev1alpha1.TaskAnnotationRelativePath], task.Spec.Name)
 	}
 	// complete by playbook
 	task.GenerateName = e.playbook.Name + "-"

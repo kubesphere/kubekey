@@ -43,19 +43,21 @@
   tasks:
     - name: select init node
       run_once: true
-      set_fact:
-        init_kubernetes_node: >-
-          {{- $initNodes := list -}}
-          {{- range .groups.kube_control_plane -}}
-            {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
-              {{- $initNodes = append $initNodes . -}}
+      add_hostvars:
+        hosts: k8s_cluster
+        vars:
+          init_kubernetes_node: >-
+            {{- $initNodes := list -}}
+            {{- range .groups.kube_control_plane -}}
+              {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
+                {{- $initNodes = append $initNodes . -}}
+              {{- end -}}
             {{- end -}}
-          {{- end -}}
-          {{- if $initNodes | len | eq 1 -}}
-          {{ $initNodes | first }}
-          {{- else if $initNodes | len | lt 1 -}}
-          {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}            
-          {{- end -}}
+            {{- if $initNodes | len | eq 1 -}}
+            {{ $initNodes | first }}
+            {{- else if $initNodes | len | lt 1 -}}
+            {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}            
+            {{- end -}}
     - name: init node
       when: eq .inventory_hostname .init_kubernetes_node
       block:
@@ -67,17 +69,21 @@
             /usr/local/bin/kubeadm init phase upload-certs --upload-certs --config /etc/kubernetes/kubeadm-config.yaml 2>&1 \
               | awk '/Using certificate key:/{getline; print}'
           register: kubeadm_cert_result
-        - name: Set_Fact certificate key to all hosts
-          set_fact:
-            kubeadm_cert: >-
-              {{ .kubeadm_cert_result.stdout }}
+        - name: add certificate key to all hosts
+          add_hostvars:
+            hosts: k8s_cluster
+            vars:
+              kubeadm_cert: >-
+                {{ .kubeadm_cert_result.stdout }}
         - name: Generate token by kubeadm
           command: /usr/local/bin/kubeadm token create
           register: kubeadm_token_result
-        - name: Set_Fact token to all hosts
-          set_fact:
-            kubeadm_token: >-
-              {{ .kubeadm_token_result.stdout }}
+        - name: add token to all hosts
+          add_hostvars:
+            hosts: k8s_cluster
+            vars:
+              kubeadm_token: >-
+                {{ .kubeadm_token_result.stdout }}
 
 - hosts:
     - k8s_cluster

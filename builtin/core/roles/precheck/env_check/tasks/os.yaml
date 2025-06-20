@@ -12,14 +12,16 @@
 - name: Stop if arch supported
   assert:
     that: or (.cluster_require.supported_architectures.amd64 | has .os.architecture) (.cluster_require.supported_architectures.arm64 | has .os.architecture)
-    success_msg: >-
+    fail_msg: "{{ .os.architecture }} is not a known arch"
+
+- name: Set binary_type for each hosts
+  set_fact:
+    binary_type: >-
       {{- if .cluster_require.supported_architectures.amd64 | has .os.architecture -}}
       amd64
       {{- else -}}
       arm64
       {{- end -}}
-    fail_msg: "{{ .os.architecture }} is not a known arch"
-  register: binary_type
 
 - name: Stop if memory is too small for masters
   assert:

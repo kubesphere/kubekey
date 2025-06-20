@@ -68,8 +68,8 @@ var MergeRuntimeVariable = func(node yaml.Node, hosts ...string) MergeFunc {
 	}
 }
 
-// MergeAllRuntimeVariable parse variable by specific host and merge to all hosts.
-var MergeAllRuntimeVariable = func(node yaml.Node, hostname string) MergeFunc {
+// MergeHostsRuntimeVariable parse variable by specific host and merge to given hosts.
+var MergeHostsRuntimeVariable = func(node yaml.Node, hostname string, hosts ...string) MergeFunc {
 	if node.IsZero() {
 		// skip
 		return emptyMergeFunc
@@ -94,7 +94,7 @@ var MergeAllRuntimeVariable = func(node yaml.Node, hostname string) MergeFunc {
 		if err != nil {
 			return err
 		}
-		for h := range vv.value.Hosts {
+		for _, h := range hosts {
 			hv := vv.value.Hosts[h]
 			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
 			vv.value.Hosts[h] = hv
