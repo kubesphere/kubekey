@@ -464,6 +464,7 @@ func (g *GenerateCalicoManifests) Execute(runtime connector.Runtime) error {
 			"VethMTU":                 g.KubeConf.Cluster.Network.Calico.VethMTU,
 			"NodeCidrMaskSize":        g.KubeConf.Cluster.Kubernetes.NodeCidrMaskSize,
 			"IPIPMode":                g.KubeConf.Cluster.Network.Calico.IPIPMode,
+			"IPAutoDetectionMethod":   g.KubeConf.Cluster.Network.Calico.IPAutoDetectionMethod,
 			"VXLANMode":               g.KubeConf.Cluster.Network.Calico.VXLANMode,
 			"ConatinerManagerIsIsula": g.KubeConf.Cluster.Kubernetes.ContainerManager == "isula",
 			"IPV4POOLNATOUTGOING":     g.KubeConf.Cluster.Network.Calico.EnableIPV4POOL_NAT_OUTGOING(),

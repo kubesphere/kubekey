@@ -28,14 +28,15 @@ type NetworkConfig struct {
 }
 
 type CalicoCfg struct {
-	IPIPMode        string     `yaml:"ipipMode" json:"ipipMode,omitempty"`
-	VXLANMode       string     `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
-	VethMTU         int        `yaml:"vethMTU" json:"vethMTU,omitempty"`
-	Ipv4NatOutgoing *bool      `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
-	Ipv6NatOutgoing *bool      `yaml:"ipv6NatOutgoing" json:"ipv6NatOutgoing,omitempty"`
-	DefaultIPPOOL   *bool      `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
-	Typha           Typha      `yaml:"typha" json:"typha,omitempty"`
-	Controller      Controller `yaml:"controller" json:"controller,omitempty"`
+	IPIPMode              string     `yaml:"ipipMode" json:"ipipMode,omitempty"`
+	IPAutoDetectionMethod string     `yaml:"ipAutoDetectionMethod" json:"ipAutoDetectionMethod,omitempty"`
+	VXLANMode             string     `yaml:"vxlanMode" json:"vxlanMode,omitempty"`
+	VethMTU               int        `yaml:"vethMTU" json:"vethMTU,omitempty"`
+	Ipv4NatOutgoing       *bool      `yaml:"ipv4NatOutgoing" json:"ipv4NatOutgoing,omitempty"`
+	Ipv6NatOutgoing       *bool      `yaml:"ipv6NatOutgoing" json:"ipv6NatOutgoing,omitempty"`
+	DefaultIPPOOL         *bool      `yaml:"defaultIPPOOL" json:"defaultIPPOOL,omitempty"`
+	Typha                 Typha      `yaml:"typha" json:"typha,omitempty"`
+	Controller            Controller `yaml:"controller" json:"controller,omitempty"`
 }
 
 type Typha struct {
