@@ -24,8 +24,6 @@ import (
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/klog/v2"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -140,29 +138,15 @@ func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
 	}
 	// condition is true
 	if ok {
-		r, err := tmpl.Parse(ha, aa.successMsg)
-		if err == nil {
-			return string(r), ""
-		}
-		klog.V(4).ErrorS(err, "parse \"success_msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
-
-		return StdoutTrue, ""
+		return aa.successMsg, ""
 	}
 	// condition is false and fail_msg is not empty
 	if aa.failMsg != "" {
-		r, err := tmpl.Parse(ha, aa.failMsg)
-		if err == nil {
-			return StdoutFalse, string(r)
-		}
-		klog.V(4).ErrorS(err, "parse \"fail_msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
+		return "", aa.failMsg
 	}
 	// condition is false and msg is not empty
 	if aa.msg != "" {
-		r, err := tmpl.Parse(ha, aa.msg)
-		if err == nil {
-			return StdoutFalse, string(r)
-		}
-		klog.V(4).ErrorS(err, "parse \"msg\" error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
+		return "", aa.msg
 	}
 
 	return StdoutFalse, "False"

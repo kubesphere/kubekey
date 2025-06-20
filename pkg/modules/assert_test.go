@@ -86,7 +86,6 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: StdoutFalse,
 			exceptStderr: "False",
 		},
 		{
@@ -103,7 +102,6 @@ func TestAssert(t *testing.T) {
 					},
 				},
 			},
-			exceptStdout: StdoutFalse,
 			exceptStderr: "failed v2",
 		},
 	}
