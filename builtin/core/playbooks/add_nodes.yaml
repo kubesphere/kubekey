@@ -13,7 +13,7 @@
     - localhost
   roles:
     - role: precheck/artifact_check
-      when: and .artifact.artifact_file (ne .artifact.artifact_file "")
+      when: .artifact.artifact_file | empty | not
 - hosts:
     - k8s_cluster
     - etcd

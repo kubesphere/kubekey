@@ -1,6 +1,27 @@
 ---
 - hosts:
     - all
+  gather_facts: true
+  vars:
+    architectures:
+      amd64:
+        - amd64
+        - x86_64
+      arm64:
+        - arm64
+        - aarch64
+  tasks:
+    - name: Get os arch for each node
+      set_fact:
+        binary_type: >-
+          {{- if .architectures.amd64 | has .os.architecture -}}
+          amd64
+          {{- else if .architectures.arm64 | has .os.architecture -}}
+          arm64
+          {{- end -}}
+
+- hosts:
+    - all
   vars:
     # work_dir: default is <current_dir>/kubekey
     binary_dir: >-
@@ -25,7 +46,7 @@
       register: execute_result
 
     - name: Execute pre install scripts
-      when: .execute_result.stderr | eq ""
+      when: .execute_result.stderr | empty
       command: |
         for file in /etc/kubekey/scripts/pre_install_*.sh; do
           if [ -f $file ]; then

@@ -14,8 +14,8 @@
 - name: Check if network is exist
   assert:
     that:
-      - .interface.stderr | eq ""
-      - .interface.stdout | ne ""
+      - .interface.stderr | empty
+      - .interface.stdout | empty | not
     fail_msg: "cannot find network interface to match kube_vip"
 
 - name: Generate kube_vip manifest

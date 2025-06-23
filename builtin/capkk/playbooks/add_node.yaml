@@ -2,6 +2,27 @@
 - hosts:
     - "{{ .node_name }}"
   gather_facts: true
+  vars:
+    architectures:
+      amd64:
+        - amd64
+        - x86_64
+      arm64:
+        - arm64
+        - aarch64
+  tasks:
+    - name: Get os arch for each node
+      set_fact:
+        binary_type: >-
+          {{- if .architectures.amd64 | has .os.architecture -}}
+          amd64
+          {{- else if .architectures.arm64 | has .os.architecture -}}
+          arm64
+          {{- end -}}
+
+- hosts:
+    - "{{ .node_name }}"
+  gather_facts: true
   vars_files:
     - vars/main.yaml
   roles:

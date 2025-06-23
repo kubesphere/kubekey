@@ -22,10 +22,8 @@ cluster_require:
   # the minimal required version of containerd to be installed.
   containerd_min_version_required: v1.6.0
   supported_architectures:
-    amd64:
-      - amd64
-      - x86_64
-    arm64:
-      - arm64
-      - aarch64
+    - amd64
+    - x86_64
+    - arm64
+    - aarch64
   min_kernel_version: 4.9.17
