@@ -12,7 +12,7 @@
   when:
   - .cri.container_manager | eq  "docker"
   - .kube_version | semverCompare ">=v1.24.0"
-  - and .cridockerd_version (.cridockerd_version | ne "")
+  - .cridockerd_version | empty | not
 
 - name: Delete residue files
   command: |

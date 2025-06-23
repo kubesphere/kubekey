@@ -19,20 +19,20 @@
   run_once: true
   block:
     - name: Stop if pod cidr is not valid
-      when: and .kubernetes.networking.pod_cidr (.kubernetes.networking.pod_cidr | ne "")
+      when: .kubernetes.networking.pod_cidr | empty | not
       assert:
         that: .kubernetes.networking.pod_cidr | splitList "," | len | ge 2
         fail_msg: >-
           kubernetes.networking.pod_cidr should be ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
     - name: Stop if service cidr is not valid
-      when: and .kubernetes.networking.service_cidr (.kubernetes.networking.service_cidr | ne "")
+      when: .kubernetes.networking.service_cidr | empty | not
       assert:
         that: .kubernetes.networking.service_cidr | splitList "," | len | ge 2
         fail_msg: >-
           kubernetes.networking.service_cidr should be ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
     - name: Stop if pod networking is not support dual-stack
       when:
-        - and .kubernetes.networking.pod_cidr (.kubernetes.networking.pod_cidr | ne "") 
+        - .kubernetes.networking.pod_cidr | empty | not
         - .kubernetes.networking.pod_cidr | splitList "," | len | eq 2
       assert:
         that: 
