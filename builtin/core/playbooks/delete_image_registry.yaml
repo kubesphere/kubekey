@@ -1,0 +1,17 @@
+---
+# load defaults vars
+- hosts:
+    - all
+  vars_files:
+    - vars/delete_cluster.yaml
+
+- import_playbook: hook/pre_install.yaml
+
+- hosts:
+   - image_registry
+  roles:
+    - role: uninstall/image_registry
+    - role: uninstall/cri
+      when: .deleteCRI
+
+- import_playbook: hook/post_install.yaml

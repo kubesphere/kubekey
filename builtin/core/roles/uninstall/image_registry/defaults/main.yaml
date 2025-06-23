@@ -1,0 +1,10 @@
+image_registry:
+  type: harbor
+  # Virtual IP address for repository High Availability. the Virtual IP address should be available.
+  harbor:
+    data_dir: /opt/harbor/data
+  registry:
+    storage:
+      filesystem:
+        rootdir: /opt/registry
+#        nfs_mount: /repository/registry # if set. will mount rootdirectory to nfs server in nfs_mount.

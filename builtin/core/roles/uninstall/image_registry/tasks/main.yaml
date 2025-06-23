@@ -1,0 +1,10 @@
+- include_tasks: harbor.yaml
+  when: .image_registry.type | eq "harbor"
+
+- include_tasks: registry.yaml
+  when: .image_registry.type | eq "registry"
+
+- include_tasks: keepalived.yaml
+  when: 
+   - .image_registry.ha_vip | empty | not
+   - .groups.image_registry | len | lt 1

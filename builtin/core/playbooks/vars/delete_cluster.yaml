@@ -1,10 +1,24 @@
+# Default Kubernetes configuration for deletion playbooks
 kubernetes:
+  # The CNI plugin used by the cluster. Default is "calico"
   kube_network_plugin: "calico"
-# if deleteCRI
+
+# Whether to delete the container runtime interface (CRI) on target nodes
+# Set to true to uninstall CRI (e.g., containerd, docker)
 deleteCRI: false
-# if deleteETCD
+
+# Whether to delete etcd on target nodes
+# Set to true to uninstall etcd
 deleteETCD: false
-# if true. will delete local dns in localDNS file which create by kubekey
+
+# Whether to delete local DNS entries in the localDNS file created by kubekey
+# Set to true to remove kubekey-managed DNS entries from the specified files
 deleteDNS: false
+
+# Whether to delete the image registry on target nodes
+# Set to true to uninstall the image registry
+deleteImageRegistry: false
+
+# List of local DNS files to be cleaned up if deleteDNS is true
 localDNS:
   - /etc/hosts
