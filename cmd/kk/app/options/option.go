@@ -25,6 +25,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,8 +40,13 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
-// // CTX cancel by shutdown signal
-// var CTX = signals.SetupSignalHandler()
+// InventoryFunc defines a function type that returns a pointer to a kkcorev1.Inventory and an error.
+// It is used to provide a custom way to retrieve or generate an Inventory object.
+type InventoryFunc func() (*kkcorev1.Inventory, error)
+
+// ConfigFunc defines a function type that returns a pointer to a kkcorev1.Config and an error.
+// It is used to provide a custom way to retrieve or generate a Config object.
+type ConfigFunc func() (*kkcorev1.Config, error)
 
 // CommonOptions holds the configuration options for executing a playbook.
 // It includes paths to various configuration files, runtime settings, and
@@ -65,9 +71,11 @@ type CommonOptions struct {
 	Namespace string
 
 	// Config is the kubekey core configuration.
-	Config *kkcorev1.Config
+	Config        *kkcorev1.Config
+	GetConfigFunc ConfigFunc
 	// Inventory is the kubekey core inventory.
-	Inventory *kkcorev1.Inventory
+	Inventory        *kkcorev1.Inventory
+	GetInventoryFunc InventoryFunc
 }
 
 // NewCommonOptions creates a new CommonOptions object with default values.
@@ -100,7 +108,7 @@ func NewCommonOptions() CommonOptions {
 			APIVersion: kkcorev1.SchemeGroupVersion.String(),
 			Kind:       "Inventory",
 		},
-		ObjectMeta: metav1.ObjectMeta{Name: "default"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "default"},
 	}
 
 	return o
@@ -175,13 +183,47 @@ func (o *CommonOptions) Complete(playbook *kkcorev1.Playbook) error {
 		}
 		o.Workdir = filepath.Join(wd, o.Workdir)
 	}
-	// Generate and complete the configuration.
+
+	if o.ConfigFile != "" {
+		data, err := os.ReadFile(o.ConfigFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get config from file %q", o.ConfigFile)
+		}
+		if err := yaml.Unmarshal(data, o.Config); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal config from file %q", o.ConfigFile)
+		}
+	} else if o.GetConfigFunc != nil {
+		config, err := o.GetConfigFunc()
+		if err != nil {
+			return err
+		}
+		o.Config = config
+	}
+	if o.InventoryFile != "" {
+		data, err := os.ReadFile(o.InventoryFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get inventory from file %q", o.InventoryFile)
+		}
+		if err := yaml.Unmarshal(data, o.Inventory); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal inventory from file %q", o.InventoryFile)
+		}
+	} else if o.GetInventoryFunc != nil {
+		inventory, err := o.GetInventoryFunc()
+		if err != nil {
+			return err
+		}
+		o.Inventory = inventory
+	}
+
+	// Complete the configuration.
 	if err := o.completeConfig(); err != nil {
 		return err
 	}
 	playbook.Spec.Config = ptr.Deref(o.Config, kkcorev1.Config{})
 	// Complete the inventory reference.
-	o.completeInventory(o.Inventory)
+	if err := o.completeInventory(o.Inventory); err != nil {
+		return err
+	}
 	playbook.Spec.InventoryRef = &corev1.ObjectReference{
 		Kind:            o.Inventory.Kind,
 		Namespace:       o.Inventory.Namespace,
@@ -224,11 +266,13 @@ func (o *CommonOptions) completeConfig() error {
 }
 
 // genConfig generate config by ConfigFile and set value by command args.
-func (o *CommonOptions) completeInventory(inventory *kkcorev1.Inventory) {
+func (o *CommonOptions) completeInventory(inventory *kkcorev1.Inventory) error {
 	// set value by command args
 	if o.Namespace != "" {
 		inventory.Namespace = o.Namespace
 	}
+
+	return nil
 }
 
 // setValue sets a value in the config based on a key-value pair.

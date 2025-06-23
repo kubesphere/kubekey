@@ -45,7 +45,10 @@ type InitOSOptions struct {
 // NewInitOSOptions for newInitOSCommand
 func NewInitOSOptions() *InitOSOptions {
 	// set default value
-	return &InitOSOptions{CommonOptions: options.NewCommonOptions()}
+	o := &InitOSOptions{CommonOptions: options.NewCommonOptions()}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // Flags add to newInitOSCommand
@@ -74,9 +77,6 @@ func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.P
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
-	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
 	}
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {
@@ -115,7 +115,10 @@ type InitRegistryOptions struct {
 // NewInitRegistryOptions for newInitRegistryCommand
 func NewInitRegistryOptions() *InitRegistryOptions {
 	// set default value
-	return &InitRegistryOptions{CommonOptions: options.NewCommonOptions()}
+	o := &InitRegistryOptions{CommonOptions: options.NewCommonOptions()}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // Flags add to newInitRegistryCommand
@@ -144,9 +147,6 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
-	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
 	}
 
 	return playbook, o.CommonOptions.Complete(playbook)
