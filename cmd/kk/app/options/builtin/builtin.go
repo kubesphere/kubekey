@@ -22,7 +22,6 @@ package builtin
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"text/template"
 
 	"github.com/cockroachdb/errors"
@@ -30,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/kubesphere/kubekey/v4/builtin/core"
+	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
 const (
@@ -41,40 +41,17 @@ const (
 	defaultGroupWorker       = "kube_worker"
 )
 
-func completeInventory(inventoryFile string, inventory *kkcorev1.Inventory) error {
-	if inventoryFile != "" {
-		data, err := os.ReadFile(inventoryFile)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get inventory for inventoryFile: %q", inventoryFile)
-		}
-		return errors.Wrapf(yaml.Unmarshal(data, inventory), "failed to unmarshal inventoryFile %s", inventoryFile)
-	}
+var getInventory options.InventoryFunc = func() (*kkcorev1.Inventory, error) {
 	data, err := core.Defaults.ReadFile("defaults/inventory/localhost.yaml")
 	if err != nil {
-		return errors.Wrap(err, "failed to get local inventory. Please set it by \"--inventory\"")
+		return nil, errors.Wrap(err, "failed to get local inventory. Please set it by \"--inventory\"")
 	}
 
-	return errors.Wrapf(yaml.Unmarshal(data, inventory), "failed to unmarshal local inventoryFile %q", inventoryFile)
+	inventory := &kkcorev1.Inventory{}
+	return inventory, errors.Wrap(yaml.Unmarshal(data, inventory), "failed to unmarshal local inventory file: %q.")
 }
 
-func completeConfig(kubeVersion string, configFile string, config *kkcorev1.Config) error {
-	data, err := getConfig(kubeVersion, configFile)
-	if err != nil {
-		return err
-	}
-
-	return errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", kubeVersion)
-}
-
-func getConfig(kubeVersion string, configFile string) ([]byte, error) {
-	if configFile != "" {
-		data, err := os.ReadFile(configFile)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get configFile %q", configFile)
-		}
-
-		return data, nil
-	}
+func getConfig(kubeVersion string) ([]byte, error) {
 	t, err := template.ParseFS(core.Defaults, fmt.Sprintf("defaults/config/%s.yaml", kubeVersion[:5]))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get local configFile template for kube_version: %q. Please set it by \"--config\"", kubeVersion)

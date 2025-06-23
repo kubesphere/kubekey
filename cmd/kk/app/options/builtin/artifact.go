@@ -41,7 +41,10 @@ type ArtifactExportOptions struct {
 // NewArtifactExportOptions for newArtifactExportCommand
 func NewArtifactExportOptions() *ArtifactExportOptions {
 	// set default value
-	return &ArtifactExportOptions{CommonOptions: options.NewCommonOptions()}
+	o := &ArtifactExportOptions{CommonOptions: options.NewCommonOptions()}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // Flags add to newArtifactExportCommand
@@ -72,9 +75,6 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		Debug:    o.Debug,
 		SkipTags: []string{"certs"},
 	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
-	}
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err
 	}
@@ -93,8 +93,10 @@ type ArtifactImagesOptions struct {
 
 // NewArtifactImagesOptions for newArtifactImagesCommand
 func NewArtifactImagesOptions() *ArtifactImagesOptions {
-	// set default value
-	return &ArtifactImagesOptions{CommonOptions: options.NewCommonOptions()}
+	o := &ArtifactImagesOptions{CommonOptions: options.NewCommonOptions()}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // Flags add to newArtifactImagesCommand
@@ -124,9 +126,6 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		Tags:     []string{"only_image"},
-	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
 	}
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {

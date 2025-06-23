@@ -20,10 +20,13 @@ limitations under the License.
 package builtin
 
 import (
+	"fmt"
+
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -32,17 +35,37 @@ import (
 // NewPreCheckOptions for newPreCheckCommand
 func NewPreCheckOptions() *PreCheckOptions {
 	// set default value
-	return &PreCheckOptions{CommonOptions: options.NewCommonOptions()}
+	o := &PreCheckOptions{
+		CommonOptions: options.NewCommonOptions(),
+		Kubernetes:    defaultKubeVersion,
+	}
+	o.CommonOptions.GetConfigFunc = func() (*kkcorev1.Config, error) {
+		data, err := getConfig(o.Kubernetes)
+		if err != nil {
+			return nil, err
+		}
+		config := &kkcorev1.Config{}
+		return config, errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", o.Kubernetes)
+	}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // PreCheckOptions for NewPreCheckOptions
 type PreCheckOptions struct {
 	options.CommonOptions
+	// kubernetes version which the cluster will install.
+	Kubernetes string
 }
 
 // Flags add to newPreCheckCommand
 func (o *PreCheckOptions) Flags() cliflag.NamedFlagSets {
-	return o.CommonOptions.Flags()
+	fss := o.CommonOptions.Flags()
+	kfs := fss.FlagSet("config")
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+
+	return fss
 }
 
 // Complete options. create Playbook, Config and Inventory
@@ -72,9 +95,6 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		Tags:     tags,
-	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
 	}
 
 	return playbook, o.CommonOptions.Complete(playbook)

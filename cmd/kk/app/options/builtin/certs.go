@@ -32,7 +32,10 @@ import (
 // NewCertsRenewOptions for newCertsRenewCommand
 func NewCertsRenewOptions() *CertsRenewOptions {
 	// set default value
-	return &CertsRenewOptions{CommonOptions: options.NewCommonOptions()}
+	o := &CertsRenewOptions{CommonOptions: options.NewCommonOptions()}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // CertsRenewOptions for NewCertsRenewOptions
@@ -65,9 +68,6 @@ func (o *CertsRenewOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
 		Tags:     []string{"certs"},
-	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
 	}
 
 	return playbook, o.CommonOptions.Complete(playbook)

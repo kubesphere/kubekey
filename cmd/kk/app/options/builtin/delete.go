@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -39,10 +40,21 @@ import (
 // NewDeleteClusterOptions creates a new DeleteClusterOptions with default values
 func NewDeleteClusterOptions() *DeleteClusterOptions {
 	// set default value
-	return &DeleteClusterOptions{
+	o := &DeleteClusterOptions{
 		CommonOptions: options.NewCommonOptions(),
 		Kubernetes:    defaultKubeVersion,
 	}
+	o.CommonOptions.GetConfigFunc = func() (*kkcorev1.Config, error) {
+		data, err := getConfig(o.Kubernetes)
+		if err != nil {
+			return nil, err
+		}
+		config := &kkcorev1.Config{}
+		return config, errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", o.Kubernetes)
+	}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // DeleteClusterOptions contains options for deleting a Kubernetes cluster
@@ -86,14 +98,6 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 		Debug:    o.Debug,
 	}
 
-	// Complete configuration with kubernetes version and inventory
-	if err := completeConfig(o.Kubernetes, o.CommonOptions.ConfigFile, o.CommonOptions.Config); err != nil {
-		return nil, err
-	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
-	}
-
 	// Complete common options
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err
@@ -120,10 +124,21 @@ func (o *DeleteClusterOptions) completeConfig() error {
 // NewDeleteNodesOptions creates a new DeleteNodesOptions with default values
 func NewDeleteNodesOptions() *DeleteNodesOptions {
 	// set default value
-	return &DeleteNodesOptions{
+	o := &DeleteNodesOptions{
 		CommonOptions: options.NewCommonOptions(),
 		Kubernetes:    defaultKubeVersion,
 	}
+	o.CommonOptions.GetConfigFunc = func() (*kkcorev1.Config, error) {
+		data, err := getConfig(o.Kubernetes)
+		if err != nil {
+			return nil, err
+		}
+		config := &kkcorev1.Config{}
+		return config, errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", o.Kubernetes)
+	}
+	o.CommonOptions.GetInventoryFunc = getInventory
+
+	return o
 }
 
 // DeleteNodesOptions contains options for deleting a Kubernetes cluster nodes
@@ -166,14 +181,6 @@ func (o *DeleteNodesOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		Debug:    o.Debug,
-	}
-
-	// Complete configuration with kubernetes version and inventory
-	if err := completeConfig(o.Kubernetes, o.CommonOptions.ConfigFile, o.CommonOptions.Config); err != nil {
-		return nil, err
-	}
-	if err := completeInventory(o.CommonOptions.InventoryFile, o.CommonOptions.Inventory); err != nil {
-		return nil, err
 	}
 
 	// Complete common options
