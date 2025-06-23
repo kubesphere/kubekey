@@ -1,0 +1,10 @@
+- name: Stop harbor service
+  command: |
+    systemctl stop harbor.service
+    systemctl disable harbor.service
+    rm -rf /etc/systemd/system/harbor.service*
+    systemctl daemon-reload
+
+- name: Delete residue harbor files
+  command: |
+    rm -rf /opt/harbor/

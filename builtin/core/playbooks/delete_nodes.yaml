@@ -76,4 +76,17 @@
         - .deleteETCD
         - .delete_nodes | default list | has .inventory_hostname
 
+- hosts:
+   - image_registry
+  roles:
+    - role: uninstall/image_registry
+      when:
+       - .deleteImageRegistry
+       - .delete_nodes | default list | has .inventory_hostname
+    - role: uninstall/cri
+      when:
+       - .deleteImageRegistry
+       - .deleteCRI
+       - .delete_nodes | default list | has .inventory_hostname
+
 - import_playbook: hook/post_install.yaml
