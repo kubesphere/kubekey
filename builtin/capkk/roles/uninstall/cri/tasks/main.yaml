@@ -11,9 +11,8 @@
 - include_tasks: uninstall_cridockerd.yaml
   when:
   - .cri.container_manager | eq  "docker"
-  - .kube_version | semverCompare ">=v1.24.0"
   - .cridockerd_version | empty | not
 
-- name: Delete residue files
+- name: Delete cri residue files
   command: |
    rm -f /usr/local/bin/crictl

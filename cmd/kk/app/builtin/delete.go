@@ -35,7 +35,7 @@ func NewDeleteCommand() *cobra.Command {
 	// Add subcommands for cluster, nodes, and image registry deletion
 	cmd.AddCommand(newDeleteClusterCommand())
 	cmd.AddCommand(newDeleteNodesCommand())
-	cmd.AddCommand(newDeleteImageRegistryCommand())
+	cmd.AddCommand(newDeleteRegistryCommand())
 
 	return cmd
 }
@@ -108,18 +108,18 @@ func newDeleteNodesCommand() *cobra.Command {
 	return cmd
 }
 
-// newDeleteImageRegistryCommand creates a new command for deleting the image registry created by kubekey.
+// newDeleteRegistryCommand creates a new command for deleting the image registry created by kubekey.
 // It uses the delete_image_registry.yaml playbook to remove the image registry and optionally its container runtime.
-func newDeleteImageRegistryCommand() *cobra.Command {
+func newDeleteRegistryCommand() *cobra.Command {
 	// Initialize options for deleting the image registry
-	o := builtin.NewDeleteImageRegistryOptions()
+	o := builtin.NewDeleteRegistryOptions()
 
 	cmd := &cobra.Command{
-		Use:   "image_registry",
-		Short: "Delete a image_registry which create by kubekey.",
+		Use:   "registry",
+		Short: "Delete a image registry which create by kubekey.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Complete the configuration and create a playbook for deleting the image registry
-			playbook, err := o.Complete(cmd, []string{"playbooks/delete_image_registry.yaml"})
+			playbook, err := o.Complete(cmd, []string{"playbooks/delete_registry.yaml"})
 			if err != nil {
 				return err
 			}

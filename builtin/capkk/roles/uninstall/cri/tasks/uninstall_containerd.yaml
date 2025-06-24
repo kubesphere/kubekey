@@ -6,7 +6,7 @@
     rm -rf /etc/systemd/system/containerd.service*
     systemctl daemon-reload
 
-- name: Delete residue files
+- name: Delete containerd residue files
   command: |
     rm -rf {{ .cri.containerd.data_root }}
     rm -rf /etc/containerd
