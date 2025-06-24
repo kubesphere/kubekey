@@ -8,6 +8,7 @@
         systemctl disable etcd.service
         rm -rf /etc/systemd/system/etcd.service*
         systemctl daemon-reload
+        systemctl reset-failed etcd.service
     - name: Unset Traffic Priority
       command: |
         tc filter del dev eth0 parent 1: protocol ip prio 1 u32 match ip sport 2379 0xffff

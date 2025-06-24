@@ -16,11 +16,13 @@
     fi
 
 - name: Stop kubelet service
+  ignore_errors: true
   command: |
     systemctl stop kubelet.service
     systemctl disable kubelet.service
     rm -rf /etc/systemd/system/kubelet.service*
     systemctl daemon-reload
+    systemctl reset-failed kubelet.service
 
 - name: Delete residue files
   command: |

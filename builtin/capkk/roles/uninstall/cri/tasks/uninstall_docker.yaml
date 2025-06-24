@@ -5,7 +5,8 @@
     systemctl stop docker.service
     systemctl disable docker.service
     rm -rf /etc/systemd/system/docker.service*
-    systemctl daemon-reload    
+    systemctl daemon-reload
+    systemctl reset-failed docker.service
 
 - name: Uninstall containerd
   include_tasks: uninstall_containerd.yaml
