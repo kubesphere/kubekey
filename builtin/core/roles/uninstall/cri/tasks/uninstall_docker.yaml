@@ -10,7 +10,7 @@
 - name: Uninstall containerd
   include_tasks: uninstall_containerd.yaml
 
-- name: Delete residue files
+- name: Delete docker residue files
   command: |
     rm -rf {{ .cri.docker.data_root }}
     rm -rf /etc/docker

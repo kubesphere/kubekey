@@ -7,7 +7,7 @@
     rm -rf /etc/systemd/system/cri-dockerd.service*
     systemctl daemon-reload
 
-- name: Delete residue files
+- name: Delete cri-dockerd residue files
   command: |
     rm -rf /etc/cri-dockerd
     rm -f /usr/local/bin/cri-dockerd

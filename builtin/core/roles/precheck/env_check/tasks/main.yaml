@@ -15,3 +15,6 @@
 
 - include_tasks: nfs.yaml
   tags: ["nfs"]
+
+- include_tasks: image_registry.yaml
+  tags: ["image_registry"]

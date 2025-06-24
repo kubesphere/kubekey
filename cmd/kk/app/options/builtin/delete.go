@@ -218,24 +218,14 @@ func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
 }
 
 // ======================================================================================
-//                                  delete image_registry
+//                                  delete registry
 // ======================================================================================
 
-// NewDeleteImageRegistryOptions creates a new DeleteImageRegistryOptions with default values
-func NewDeleteImageRegistryOptions() *DeleteImageRegistryOptions {
+// NewDeleteRegistryOptions creates a new DeleteRegistryOptions with default values
+func NewDeleteRegistryOptions() *DeleteRegistryOptions {
 	// set default value for DeleteImageRegistryOptions
-	o := &DeleteImageRegistryOptions{
+	o := &DeleteRegistryOptions{
 		CommonOptions: options.NewCommonOptions(),
-		Kubernetes:    defaultKubeVersion,
-	}
-	// Set the function to get the config for the specified Kubernetes version
-	o.CommonOptions.GetConfigFunc = func() (*kkcorev1.Config, error) {
-		data, err := getConfig(o.Kubernetes)
-		if err != nil {
-			return nil, err
-		}
-		config := &kkcorev1.Config{}
-		return config, errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", o.Kubernetes)
 	}
 	// Set the function to get the inventory
 	o.CommonOptions.GetInventoryFunc = getInventory
@@ -243,25 +233,20 @@ func NewDeleteImageRegistryOptions() *DeleteImageRegistryOptions {
 	return o
 }
 
-// DeleteImageRegistryOptions contains options for deleting an image_registry created by kubekey
-type DeleteImageRegistryOptions struct {
+// DeleteRegistryOptions contains options for deleting an image_registry created by kubekey
+type DeleteRegistryOptions struct {
 	options.CommonOptions
-	// Kubernetes version which the cluster will install.
-	Kubernetes string
 }
 
 // Flags returns the flag sets for DeleteImageRegistryOptions
-func (o *DeleteImageRegistryOptions) Flags() cliflag.NamedFlagSets {
+func (o *DeleteRegistryOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
-	kfs := fss.FlagSet("config")
-	// Add a flag for specifying the Kubernetes version
-	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
 
 	return fss
 }
 
 // Complete validates and completes the DeleteImageRegistryOptions configuration
-func (o *DeleteImageRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+func (o *DeleteRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
 	// Initialize playbook metadata for deleting image registry
 	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
@@ -291,17 +276,5 @@ func (o *DeleteImageRegistryOptions) Complete(cmd *cobra.Command, args []string)
 	}
 
 	// Complete config specific to delete image registry
-	return playbook, o.completeConfig()
-}
-
-// completeConfig updates the configuration with container manager settings
-func (o *DeleteImageRegistryOptions) completeConfig() error {
-	// If kube_version is not set in config, set it to the specified Kubernetes version
-	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kube_version"); !ok {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
-			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
-		}
-	}
-
-	return nil
+	return playbook, nil
 }

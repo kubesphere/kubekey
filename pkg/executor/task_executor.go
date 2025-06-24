@@ -82,8 +82,8 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 // runTaskLoop runs a task in a loop until it completes or times out.
 // It periodically reconciles the task status and executes the task when it enters the running phase.
 func (e *taskExecutor) runTaskLoop(ctx context.Context) error {
-	klog.V(5).InfoS("begin run task", "task", ctrlclient.ObjectKeyFromObject(e.task))
-	defer klog.V(5).InfoS("end run task", "task", ctrlclient.ObjectKeyFromObject(e.task))
+	klog.V(3).InfoS("begin run task", "task", ctrlclient.ObjectKeyFromObject(e.task))
+	defer klog.V(3).InfoS("end run task", "task", ctrlclient.ObjectKeyFromObject(e.task))
 
 	// Add role prefix to log output if role annotation exists
 	var roleLog string
