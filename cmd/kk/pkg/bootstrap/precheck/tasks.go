@@ -327,7 +327,7 @@ func (g *GetKubernetesNodesStatus) Execute(runtime connector.Runtime) error {
 	}
 	g.PipelineCache.Set(common.ClusterNodeStatus, nodeStatus)
 
-	cri, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl get node -o jsonpath=\"{.items[*].status.nodeInfo.containerRuntimeVersion}\"", false)
+	cri, err := runtime.GetRunner().SudoCmd("/usr/local/bin/kubectl get node -o jsonpath='{.items[*].status.nodeInfo.containerRuntimeVersion}'", false)
 	if err != nil {
 		return err
 	}
