@@ -18,6 +18,21 @@ common:
   - ebtables
   - haproxy
   - keepalived
+  # uni-virt
+  - wget
+  - cloud-tils
+  - usbutils
+  - usbutils
+  - virt-manager
+  - gcc
+  - qemu-kvm
+  - ceph
+  - python-openvswitch
+  - openvswitch-test
+  - openvswitch-ipsec
+  - jq
+  - python3-pip
+
 rpms:
   - nfs-utils
   - yum-utils
@@ -28,6 +43,21 @@ rpms:
   - nss-sysinit
   - nss-tools
   - conntrack-tools
+  # uni-virt
+  - libguestfs-tools-c
+  - python3-devel
+  - libvirt-devel
+  - gcc-c++
+  - glib-devel
+  - glibc-devel
+  - libvirt
+  - virt-install
+  - glusterfs-client-xlators
+  - glusterfs-cli
+  - openvswitch
+  - openvswitch-devel
+
+
 debs:
   - apt-transport-https
   - ca-certificates
@@ -39,6 +69,15 @@ debs:
   - openssh-server
   - software-properties-common
   - sudo
+  # uni-virt
+  - pkg-config
+  - python3-libvirt
+  - libvirt-dev
+  - libvirt-daemon-system
+  - virtinst
+  - libvirt-clients
+  - bridge-utils
+  - openvswitch-switch
 
 centos: []
 
