@@ -14,16 +14,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: almalinux-9.0-rpms
-            dockerfile: dockerfile.almalinux90
-          - name: debian10-debs
-            dockerfile: dockerfile.debian10
-          - name: debian11-debs
-            dockerfile: dockerfile.debian11
-          - name: ubuntu-18.04-debs
-            dockerfile: dockerfile.ubuntu1804
-          - name: ubuntu-20.04-debs
-            dockerfile: dockerfile.ubuntu2004
+          # - name: almalinux-9.0-rpms
+          #   dockerfile: dockerfile.almalinux90
+          # - name: debian10-debs
+          #   dockerfile: dockerfile.debian10
+          # - name: debian11-debs
+          #   dockerfile: dockerfile.debian11
+          # - name: ubuntu-18.04-debs
+          #   dockerfile: dockerfile.ubuntu1804
+          # - name: ubuntu-20.04-debs
+          #   dockerfile: dockerfile.ubuntu2004
           - name: ubuntu-22.04-debs
             dockerfile: dockerfile.ubuntu2204
     steps:
