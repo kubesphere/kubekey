@@ -1,6 +1,6 @@
 module github.com/kubesphere/kubekey/v3
 
-go 1.23.0
+go 1.23
 
 toolchain go1.23.2
 
