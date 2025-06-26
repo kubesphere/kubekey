@@ -45,3 +45,7 @@ jobs:
       - name: Build command-line tool
         run: |
           make kk
+      - name: Prepare for upload iso
+        shell: bash
+        run: |
+          mv ./bin/kk .
