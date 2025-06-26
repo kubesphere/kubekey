@@ -419,7 +419,7 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \
-		go build -a -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS) -extldflags '-static'" \
+		go build -a -trimpath -buildvcs=false -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS) -extldflags '-static'" \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(RELEASE_BINARY)
 
 release-archive: $(RELEASE_DIR)
