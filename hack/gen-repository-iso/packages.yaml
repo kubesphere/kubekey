@@ -18,6 +18,11 @@ common:
   - ebtables
   - haproxy
   - keepalived
+  - rpcbind
+  - iperf3
+  - stress-ng
+  - htop
+  - fio
   # uni-virt
   - wget
   - cloud-utils
@@ -32,6 +37,7 @@ common:
   - jq
   - python3-pip
   - make
+  - openssh-server
 
 rpms:
   - nfs-utils
@@ -43,6 +49,8 @@ rpms:
   - nss-sysinit
   - nss-tools
   - conntrack-tools
+  - openssh-clients
+  - openssh
   # uni-virt
   - libguestfs-tools-c
   - python3-devel
@@ -56,6 +64,10 @@ rpms:
   - glusterfs-cli
   - openvswitch
   - openvswitch-devel
+  - man-pages
+  - kernel-devel
+  - elfutils-libelf-devel
+  
 
 
 debs:
@@ -69,6 +81,7 @@ debs:
   - openssh-server
   - software-properties-common
   - sudo
+  - openssh-client
   # uni-virt
   - pkg-config
   - python3-libvirt
@@ -78,6 +91,7 @@ debs:
   - libvirt-clients
   - bridge-utils
   - openvswitch-switch
+  
 
 centos: []
 
