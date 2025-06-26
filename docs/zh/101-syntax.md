@@ -16,9 +16,9 @@
 ```
 
 ## ipInCIDR
-获取IP范围(cidr)内特定下标的IP地址
+获取IP范围(cidr)内的所有ip列表(数组)
 ```yaml
-{{ .cidr_variable | ipInCIDR 1 }}
+{{ .cidr_variable | ipInCIDR }}
 ```
 
 ## ipFamily

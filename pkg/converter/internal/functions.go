@@ -54,20 +54,15 @@ func fromYAML(v string) (any, error) {
 	return output, err
 }
 
-// ipInCIDR get the IP of a specific location within the cidr range
-func ipInCIDR(index int, cidr string) (string, error) {
+// ipInCIDR takes a comma-separated list of CIDR strings, parses each one to extract IPs using parseIP,
+// and returns a combined slice of all IPs found. Returns an error only if parseIP fails (not shown here).
+func ipInCIDR(cidr string) ([]string, error) {
 	var ips = make([]string, 0)
 	for _, s := range strings.Split(cidr, ",") {
 		ips = append(ips, parseIP(s)...)
 	}
 
-	if index < 0 {
-		index = max(len(ips)+index, 0)
-	}
-	index = max(index, 0)
-	index = min(index, len(ips)-1)
-
-	return ips[index], nil
+	return ips, nil
 }
 
 // ipFamily returns the IP family (IPv4 or IPv6) of the given IP address or IP cidr.
