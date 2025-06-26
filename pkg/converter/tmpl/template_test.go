@@ -664,27 +664,11 @@ a2:
 		// ======= ipInCIDR =======
 		{
 			name:  "ipInCIDR true-1",
-			input: "{{ ipInCIDR 0 .foo }}",
+			input: "{{ index (.foo | ipInCIDR) 0  }}",
 			variable: map[string]any{
 				"foo": "10.233.0.0/18",
 			},
 			excepted: "10.233.0.1",
-		},
-		{
-			name:  "ipInCIDR true-2",
-			input: "{{ .foo | ipInCIDR 0 }}",
-			variable: map[string]any{
-				"foo": "10.233.0.0/18",
-			},
-			excepted: "10.233.0.1",
-		},
-		{
-			name:  "ipInCIDR true-3",
-			input: "{{ ipInCIDR -1 .foo }}",
-			variable: map[string]any{
-				"foo": "10.233.0.0/18",
-			},
-			excepted: "10.233.63.254",
 		},
 		// ======= ipFamily =======
 		{

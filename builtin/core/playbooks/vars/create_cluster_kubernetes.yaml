@@ -33,7 +33,7 @@ kubernetes:
       repository: kubesphere/k8s-dns-node-cache
       tag: 1.22.20
     dns_service_ip: >-
-      {{ .kubernetes.networking.service_cidr | ipInCIDR 2 }}
+      {{ index (.kubernetes.networking.service_cidr | ipInCIDR) 2 }}
   apiserver:
     port: 6443
     certSANs: []
