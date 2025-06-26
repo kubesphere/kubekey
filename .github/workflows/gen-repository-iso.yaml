@@ -26,6 +26,8 @@ jobs:
           #   dockerfile: dockerfile.ubuntu2004
           - name: ubuntu-22.04-debs
             dockerfile: dockerfile.ubuntu2204
+          - name: centos7-rpms
+            dockerfile: dockerfile.centos7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
