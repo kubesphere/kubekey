@@ -23,9 +23,8 @@
     mount -t nfs {{ $internalIPv6 }}:{{ .image_registry.registry.storage.filesystem.nfs_mount }} {{ .image_registry.registry.storage.filesystem.rootdir }}
     {{- end }}
   when:
-    - and .image_registry.registry.storage.filesystem.nfs_mount (ne .image_registry.registry.storage.filesystem.nfs_mount "")
+    - .image_registry.registry.storage.filesystem.nfs_mount | empty | not
     - .groups.nfs | default list | len | eq 1
-    - .image_registry_service.stderr | empty | not
 
 - name: Load registry image
   command: |
@@ -58,9 +57,16 @@
       /opt/registry/{{ .registry_version }}/config.yml
 
 - name: Register registry service
-  copy:
+  template:
     src: registry.service
     dest: /etc/systemd/system/registry.service
 
 - name: Start registry service
   command: systemctl daemon-reload && systemctl start registry.service && systemctl enable registry.service
+
+- name: wait registry service ready
+  command: |
+    if ! timeout 300 bash -c 'while ! nc -zv localhost 443; do sleep 2; done'; then
+        echo "ERROR: Harbor did not start within 5 minutes!"
+        exit 1
+    fi  

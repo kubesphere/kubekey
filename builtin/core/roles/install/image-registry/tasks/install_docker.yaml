@@ -5,7 +5,7 @@
   register: docker_install_version
 
 - name: Install docker
-  when: .docker_install_version.stderr | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version) | not)
+  when: or (.docker_install_version.stderr | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version) | not)
   block:
     - name: Sync docker binary to remote
       copy:

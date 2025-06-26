@@ -1,5 +1,5 @@
 [Unit]
-Description=harbor
+Description=registry
 After=docker.service systemd-networkd.service systemd-resolved.service
 Requires=docker.service
 

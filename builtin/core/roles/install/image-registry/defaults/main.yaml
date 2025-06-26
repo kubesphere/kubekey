@@ -30,7 +30,7 @@ image_registry:
       nfs_dir: /share/registry
     storage:
       filesystem:
-        rootdir: /var/lib/registry
+        rootdir: /opt/registry/data
 #        nfs_mount: /repository/registry # if set. will mount rootdirectory to nfs server in nfs_mount.
 #      azure:
 #        accountname: accountname

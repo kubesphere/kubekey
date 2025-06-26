@@ -2,10 +2,10 @@
 - import_playbook: hook/pre_install.yaml
 
 - hosts:
-   - localhost
+    - localhost
   roles:
-   - init/init-artifact
-   - init/init-cert
+    - init/init-artifact
+    - init/init-cert
 
 - hosts:
     - image_registry

@@ -36,7 +36,7 @@
     done
   when: .image_registry.type | eq "harbor"
 
-- name: Sync images package to harbor
+- name: Sync images package to image_registry
   tags: ["only_image"]
   image:
     push:
