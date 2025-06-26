@@ -4,7 +4,9 @@
 - include_tasks: install_docker_compose.yaml
 
 - include_tasks: install_keepalived.yaml
-  when: .image_registry.ha_vip | empty | not
+  when: 
+   - .image_registry.ha_vip | empty | not
+   - .groups.image_registry | len | lt 1
 
 - name: Install harbor
   when: .image_registry.type | eq "harbor"

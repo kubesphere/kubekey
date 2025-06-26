@@ -1,0 +1,18 @@
+# image_registry is installed by docker_compose
+- name: docker_version and dockercompose_version should not be empty
+  when: .groups.image_registry | empty | not
+  assert:
+    that:
+     - .docker_version | empty | not
+     - .dockercompose_version | empty | not
+    msg: >-
+      "docker_version" and "dockercompose_version" should not be empty
+
+- name: keepalived_version should not be empty when image_registry is high availability
+  when: 
+    - .image_registry.ha_vip | empty | not
+    - .groups.image_registry | len | lt 1
+  assert:
+    that: .keepalived_version | empty | not
+    msg: >-
+      "keepalived_version" should not be empty when image_registry is high availability

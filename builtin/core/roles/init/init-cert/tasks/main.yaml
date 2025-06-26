@@ -21,10 +21,10 @@
       {{- range .groups.etcd | default list -}}
         {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
         {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
-        {{- if ne $internalIPv4 "" -}}
+        {{- if $internalIPv4 | empty | not -}}
           {{- $ips = append $ips $internalIPv4 -}}
         {{- end -}}
-        {{- if ne $internalIPv6 "" -}}
+        {{- if $internalIPv6 | empty | not -}}
           {{- $ips = append $ips $internalIPv6 -}}
         {{- end -}}
       {{- end -}}
@@ -46,13 +46,16 @@
     cn: image_registry
     sans: >-
       {{- $ips := list -}}
+      {{- if .image_registry.ha_vip | empty | not -}}
+        {{- $ips = append $ips .image_registry.ha_vip -}}
+      {{- end -}}
       {{- range .groups.image_registry | default list -}}
         {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
         {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
-        {{- if ne $internalIPv4 "" -}}
+        {{- if $internalIPv4 | empty | not -}}
           {{- $ips = append $ips $internalIPv4 -}}
         {{- end -}}
-        {{- if ne $internalIPv6 "" -}}
+        {{- if $internalIPv6 | empty | not -}}
           {{- $ips = append $ips $internalIPv6 -}}
         {{- end -}}
       {{- end -}}

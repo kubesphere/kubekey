@@ -1,3 +1,8 @@
+- name: Delete arp by kube-vip
+  command: |
+    ip neigh show | grep {{ .image_registry.ha_vip }} | awk '{print $1 " dev " $3}' | xargs -r -L1 ip neigh delete
+    ip -o addr show | grep {{ .image_registry.ha_vip }} | awk '{system("ip addr del "$4" dev "$2)}'
+
 - name: Delete residue keepalived files
   command: |
     rm -rf /opt/keepalived/

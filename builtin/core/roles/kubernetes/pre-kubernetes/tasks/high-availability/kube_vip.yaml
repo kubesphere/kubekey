@@ -1,22 +1,43 @@
 ---
-- name: Get network interface for kube_vip
-  command: |
-    {{- if .kubernetes.control_plane_endpoint.kube_vip.address | ipFamily | eq "IPv4" }}
-    ip route | grep '{{ .internal_ipv4 }}' | grep 'proto kernel scope link src' | awk '{print $3}'
-    {{- else if .kubernetes.control_plane_endpoint.host | ipFamily | eq "IPv6" }}
-    ip route | grep '{{ .internal_ipv6 }}' | grep 'proto kernel scope link src' | awk '{print $3}'
-    {{- else }}
-    echo "kubernetes.control_plane_endpoint.kube_vip.address" should be ipv4 or ipv6
-    exit 1
-    {{- end }}
-  register: interface
-
-- name: Check if network is exist
-  assert:
-    that:
-      - .interface.stderr | empty
-      - .interface.stdout | empty | not
-    fail_msg: "cannot find network interface to match kube_vip"
+- name: Get interface from kube_vip
+  block:
+    - name: Get all interface with cidr
+      command: |
+        ip -o addr show | awk '
+          BEGIN {
+            printf "[\n"; 
+            first = 1;
+          }
+          /inet / && !/ lo|docker|br-|veth/ {
+            if (!first) {
+              printf ",\n";
+            }
+            first = 0;
+            printf "  {\n";
+            printf "    \"interface\": \"%s\",\n", $2;
+            printf "    \"cidr\": \"%s\"\n", $4;
+            printf "  }";
+          }
+          END {
+            printf "\n]\n";
+          }
+        '
+      register: interface
+      register_type: json
+    - name: filter interface by ha_vip
+      set_fact: 
+          kube_vip_interface: >-
+            {{- $interface := "" }}
+            {{- range .interface.stdout | default list -}}
+              {{- if .cidr | ipInCIDR | has $.kubernetes.control_plane_endpoint.kube_vip.address -}}
+                {{- $interface = .interface -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $interface }}
+    - name: Check if network is exist
+      assert:
+        that: .kube_vip_interface | empty
+        fail_msg: "cannot find network interface to match kube_vip"    
 
 - name: Generate kube_vip manifest
   template:
