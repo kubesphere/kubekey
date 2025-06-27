@@ -1,4 +1,4 @@
-module github.com/kubesphere/kubekey/v3
+module github.com/kubesys/kubekey/v3
 
 go 1.23
 
@@ -22,6 +22,7 @@ require (
 	github.com/hashicorp/go-getter v1.6.2
 	github.com/imdario/mergo v0.3.13
 	github.com/jinzhu/copier v0.3.5
+	github.com/kubesphere/kubekey/v3 v3.1.10
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
@@ -209,7 +210,7 @@ require (
 	github.com/rubenv/sql-migrate v1.1.1 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/smartystreets/goconvey v1.7.2 // indirect
+	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
@@ -233,7 +234,6 @@ require (
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
 	golang.org/x/sync v0.1.0 // indirect
