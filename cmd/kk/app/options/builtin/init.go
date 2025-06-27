@@ -76,7 +76,6 @@ func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.P
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 	}
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {
@@ -146,7 +145,6 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 	}
 
 	return playbook, o.CommonOptions.Complete(playbook)

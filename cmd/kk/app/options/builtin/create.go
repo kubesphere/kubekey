@@ -95,7 +95,6 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 	}
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err

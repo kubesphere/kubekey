@@ -73,10 +73,6 @@ type PlaybookSpec struct {
 	// SkipTags is the tags of playbook which skip execute
 	// +optional
 	SkipTags []string `json:"skipTags,omitempty"`
-	// If Debug mode is true, It will retain runtime data after a successful execution of Playbook,
-	// which includes task execution status and parameters.
-	// +optional
-	Debug bool `json:"debug,omitempty"`
 	// Volumes in job pod.
 	// +optional
 	Volumes []corev1.Volume `json:"workVolume,omitempty"`

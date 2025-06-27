@@ -98,7 +98,6 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 	// Set playbook specification
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 	}
 
 	// Complete common options (e.g., config, inventory)
@@ -189,7 +188,6 @@ func (o *DeleteNodesOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 	// Set playbook specification
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 	}
 
 	// Complete common options (e.g., config, inventory)
@@ -267,7 +265,6 @@ func (o *DeleteRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kk
 	// Set playbook specification
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 	}
 
 	// Complete common options (e.g., config, inventory)

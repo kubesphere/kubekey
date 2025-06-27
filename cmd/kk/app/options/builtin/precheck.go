@@ -93,7 +93,6 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 		Tags:     tags,
 	}
 

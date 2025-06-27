@@ -66,7 +66,6 @@ func (o *CertsRenewOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 	o.Playbook = args[0]
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 		Tags:     []string{"certs"},
 	}
 
