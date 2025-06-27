@@ -107,7 +107,6 @@ func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		Playbook: o.Playbook,
 		Tags:     o.Tags,
 		SkipTags: o.SkipTags,
-		Debug:    o.Debug,
 	}
 
 	if o.InventoryFile != "" {

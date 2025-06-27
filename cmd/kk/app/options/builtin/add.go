@@ -101,7 +101,6 @@ func (o *AddNodeOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 	}
 	// override kube_version in config
 	if err := o.CommonOptions.Complete(playbook); err != nil {

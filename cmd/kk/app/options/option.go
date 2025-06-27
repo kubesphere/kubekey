@@ -64,9 +64,6 @@ type CommonOptions struct {
 	Workdir string
 	// Artifact is the path to the offline package for kubekey.
 	Artifact string
-	// Debug indicates whether to retain runtime data after a successful execution of the playbook.
-	// This includes task execution status and parameters.
-	Debug bool
 	// Namespace specifies the namespace for all resources.
 	Namespace string
 
@@ -166,7 +163,6 @@ func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
 	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val or --set k1=v1,k2=v2")
 	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.yaml")
-	gfs.BoolVarP(&o.Debug, "debug", "d", o.Debug, "Debug mode, after a successful execution of Playbook, will retain runtime data, which includes task execution status and parameters.")
 	gfs.StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "the namespace which playbook will be executed, all reference resources(playbook, config, inventory, task) should in the same namespace")
 
 	return fss

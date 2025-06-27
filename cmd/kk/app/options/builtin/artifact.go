@@ -72,7 +72,6 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 		SkipTags: []string{"certs"},
 	}
 	if err := o.CommonOptions.Complete(playbook); err != nil {
@@ -124,7 +123,6 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Debug:    o.Debug,
 		Tags:     []string{"only_image"},
 	}
 

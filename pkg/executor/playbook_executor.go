@@ -20,8 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -32,7 +30,6 @@ import (
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -139,17 +136,6 @@ func (e playbookExecutor) syncStatus(ctx context.Context, err error) {
 	if err := e.client.Status().Patch(ctx, e.playbook, ctrlclient.MergeFrom(cp)); err != nil {
 		klog.ErrorS(err, "update playbook error", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
 	}
-
-	go func() {
-		if !e.playbook.Spec.Debug && e.playbook.Status.Phase == kkcorev1.PlaybookPhaseSucceeded {
-			<-ctx.Done()
-			fmt.Fprintf(e.logOutput, "%s [Playbook %s] clean runtime directory\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(e.playbook))
-			// clean runtime directory
-			if err := os.RemoveAll(filepath.Join(_const.GetWorkdirFromConfig(e.playbook.Spec.Config), _const.RuntimeDir)); err != nil {
-				klog.ErrorS(err, "clean runtime directory error", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook), "runtime_dir", filepath.Join(_const.GetWorkdirFromConfig(e.playbook.Spec.Config), _const.RuntimeDir))
-			}
-		}
-	}()
 }
 
 // execBatchHosts executor block in play order by: "pre_tasks" > "roles" > "tasks" > "post_tasks"
