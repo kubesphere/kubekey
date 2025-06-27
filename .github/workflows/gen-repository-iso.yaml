@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           mv ./output/linux_amd64/*.iso ${{ matrix.name }}-amd64.iso
-          mv ./output/linux_arm64/*.iso ${{ matrix.name }}-arm64.iso
+          #   mv ./output/linux_arm64/*.iso ${{ matrix.name }}-arm64.iso
           sha256sum *.iso >  ${{ matrix.name }}.iso.sha256sum.txt
 
       - name: Wait for release workflow to finish
@@ -72,4 +72,3 @@ jobs:
           files: |
             ${{ matrix.name }}.iso.sha256sum.txt
             ${{ matrix.name }}-amd64.iso
-            # ${{ matrix.name }}-arm64.iso
