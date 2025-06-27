@@ -23,6 +23,7 @@ common:
   - stress-ng
   - htop
   - fio
+  - npm
   # uni-virt
   - wget
   - cloud-utils

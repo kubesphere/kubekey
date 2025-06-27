@@ -72,4 +72,3 @@ jobs:
           files: |
             ${{ matrix.name }}.iso.sha256sum.txt
             ${{ matrix.name }}-amd64.iso
-            kk
