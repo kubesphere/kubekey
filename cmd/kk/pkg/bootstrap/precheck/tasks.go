@@ -63,7 +63,7 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		case containerd:
 			cmd = "containerd --version | cut -d ' ' -f 3"
 		default:
-			cmd = fmt.Sprintf("which %s", software)
+			cmd = fmt.Sprintf("command -v %s", software)
 		}
 
 		switch software {
@@ -82,7 +82,7 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		case glusterfs:
 			software = glusterfs
 		}
-		if err != nil || strings.Contains(res, "not found") {
+		if err != nil {
 			results[software] = ""
 		} else {
 			// software in path
