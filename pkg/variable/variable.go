@@ -145,6 +145,8 @@ type value struct {
 	Inventory kkcorev1.Inventory
 	// Hosts store the variable for running tasks on specific hosts
 	Hosts map[string]host
+	// result store the variable which set by result task.
+	Result map[string]any
 }
 
 type host struct {
@@ -163,6 +165,7 @@ func (v *variable) DeepCopy() *variable {
 		Config:    *v.value.Config.DeepCopy(),
 		Inventory: *v.value.Inventory.DeepCopy(),
 		Hosts:     make(map[string]host, len(v.value.Hosts)),
+		Result:    maps.Clone(v.value.Result),
 	}
 	for k, h := range v.value.Hosts {
 		copyVal.Hosts[k] = host{
@@ -196,12 +199,12 @@ func (v *variable) Merge(f MergeFunc) error {
 	if err := f(nv); err != nil {
 		return err
 	}
-
 	return v.syncSource(*nv.value)
 }
 
 // syncSource sync hosts vars to source.
 func (v *variable) syncSource(newVal value) error {
+	v.value.Result = newVal.Result
 	for hn, hv := range v.value.Hosts {
 		if reflect.DeepEqual(newVal.Hosts[hn], hv) {
 			// nothing change skip.

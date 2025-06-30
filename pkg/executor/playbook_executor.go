@@ -18,6 +18,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
@@ -130,7 +131,17 @@ func (e playbookExecutor) syncStatus(ctx context.Context, err error) {
 	}
 
 	fmt.Fprintf(e.logOutput, "%s [Playbook %s] finish. total: %v,success: %v,ignored: %v,failed: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(e.playbook),
-		e.playbook.Status.TaskResult.Total, e.playbook.Status.TaskResult.Success, e.playbook.Status.TaskResult.Ignored, e.playbook.Status.TaskResult.Failed)
+		e.playbook.Status.Statistics.Total, e.playbook.Status.Statistics.Success, e.playbook.Status.Statistics.Ignored, e.playbook.Status.Statistics.Failed)
+
+	// fill results from variable
+	rv, err := e.variable.Get(variable.GetResultVariable())
+	if err != nil {
+		klog.ErrorS(err, "failed to get playbook results detail", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
+	}
+	e.playbook.Status.Result.Raw, err = json.Marshal(rv)
+	if err != nil {
+		klog.ErrorS(err, "failed to marshal playbook results detail", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
+	}
 
 	// update playbook status
 	if err := e.client.Status().Patch(ctx, e.playbook, ctrlclient.MergeFrom(cp)); err != nil {

@@ -19,6 +19,7 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -43,6 +44,7 @@ const (
 	PlaybookPhaseSucceeded PlaybookPhase = "Succeeded"
 )
 
+// PlaybookFailedReason is the reason why a Playbook failed.
 type PlaybookFailedReason string
 
 const (
@@ -54,7 +56,7 @@ const (
 	PlaybookFailedReasonTaskFailed PlaybookFailedReason = "task executor failed"
 )
 
-// PlaybookSpec of playbook.
+// PlaybookSpec defines the desired state of Playbook.
 type PlaybookSpec struct {
 	// Project is storage for executable packages
 	// +optional
@@ -109,10 +111,12 @@ type PlaybookProject struct {
 	Token string `json:"token,omitempty"`
 }
 
-// PlaybookStatus of Playbook
+// PlaybookStatus defines the observed state of Playbook.
 type PlaybookStatus struct {
-	// TaskResult total related tasks execute result.
-	TaskResult PlaybookTaskResult `json:"taskResult,omitempty"`
+	// Statistics statistics of task counts
+	Statistics PlaybookStatistics `json:"statistics,omitempty"`
+	// Result will record the results detail.
+	Result runtime.RawExtension `json:"result,omitempty"`
 	// Phase of playbook.
 	Phase PlaybookPhase `json:"phase,omitempty"`
 	// FailureReason will be set in the event that there is a terminal problem
@@ -121,38 +125,18 @@ type PlaybookStatus struct {
 	// FailureMessage will be set in the event that there is a terminal problem
 	// +optional
 	FailureMessage string `json:"failureMessage,omitempty"`
-	// FailedDetail will record the failed tasks.
-	FailedDetail []PlaybookFailedDetail `json:"failedDetail,omitempty"`
 }
 
-// PlaybookTaskResult of Playbook
-type PlaybookTaskResult struct {
-	// Total number of tasks.
+// PlaybookStatistics contains statistics of task counts.
+type PlaybookStatistics struct {
+	// Total number of tasks
 	Total int `json:"total,omitempty"`
-	// Success number of tasks.
+	// Number of successful tasks
 	Success int `json:"success,omitempty"`
-	// Failed number of tasks.
+	// Number of failed tasks
 	Failed int `json:"failed,omitempty"`
-	// Ignored number of tasks.
+	// Number of ignored tasks
 	Ignored int `json:"ignored,omitempty"`
-}
-
-// PlaybookFailedDetail store failed message when playbook run failed.
-type PlaybookFailedDetail struct {
-	// Task name of failed task.
-	Task string `json:"task,omitempty"`
-	// failed Hosts Result of failed task.
-	Hosts []PlaybookFailedDetailHost `json:"hosts,omitempty"`
-}
-
-// PlaybookFailedDetailHost detail failed message for each host.
-type PlaybookFailedDetailHost struct {
-	// Host name of failed task.
-	Host string `json:"host,omitempty"`
-	// Stdout of failed task.
-	Stdout string `json:"stdout,omitempty"`
-	// StdErr of failed task.
-	StdErr string `json:"stdErr,omitempty"`
 }
 
 // +genclient
@@ -165,6 +149,7 @@ type PlaybookFailedDetailHost struct {
 // +kubebuilder:printcolumn:name="Total",type="integer",JSONPath=".status.taskResult.total"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
+// Playbook is the Schema for the playbooks API.
 // Playbook resource executor a playbook.
 type Playbook struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -176,13 +161,14 @@ type Playbook struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PlaybookList of Playbook
+// PlaybookList contains a list of Playbook.
 type PlaybookList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Playbook `json:"items"`
 }
 
+// Register Playbook and PlaybookList types with the scheme.
 func init() {
 	SchemeBuilder.Register(&Playbook{}, &PlaybookList{})
 }

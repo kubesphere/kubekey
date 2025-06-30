@@ -107,3 +107,72 @@ func TestMergeRuntimeVariable(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeResultVariable(t *testing.T) {
+	testcases := []struct {
+		name     string
+		host     string
+		variable *variable
+		data     map[string]any
+		except   value
+	}{
+		{
+			name: "success",
+			host: "n1",
+			variable: &variable{
+				source: source.NewMemorySource(),
+				value: &value{
+					Hosts: map[string]host{
+						"n1": {
+							RuntimeVars: map[string]any{
+								"k1": "v1",
+							},
+						},
+						"n2": {
+							RuntimeVars: map[string]any{
+								"k1": "v2",
+							},
+						},
+					},
+				},
+			},
+			data: map[string]any{
+				"v1": "{{ .k1 }}",
+				"v2": "vv",
+			},
+			except: value{
+				Hosts: map[string]host{
+					"n1": {
+						RuntimeVars: map[string]any{
+							"k1": "v1",
+						},
+					},
+					"n2": {
+						RuntimeVars: map[string]any{
+							"k1": "v2",
+						},
+					},
+				},
+				Result: map[string]any{
+					"v1": "v1",
+					"v2": "vv",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			node, err := converter.ConvertMap2Node(tc.data)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err = tc.variable.Merge(MergeResultVariable(node, tc.host)); err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, tc.except, *tc.variable.value)
+		})
+	}
+}

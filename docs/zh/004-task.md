@@ -64,6 +64,7 @@ task执行时, 会在定义的host分别上执行.
 - [gen_cert](modules/gen_cert.md)
 - [image](modules/image.md)
 - [prometheus](modules/prometheus.md)
+- [result](modules/result.md)
 - [set_fact](modules/set_fact.md)
 - [setup](modules/setup.md)
 - [template](modules/template.md)

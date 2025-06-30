@@ -30,7 +30,9 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Playbook resource executor a playbook.
+        description: |-
+          Playbook is the Schema for the playbooks API.
+          Playbook resource executor a playbook.
         properties:
           apiVersion:
             description: |-
@@ -50,7 +52,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: PlaybookSpec of playbook.
+            description: PlaybookSpec defines the desired state of Playbook.
             properties:
               config:
                 description: Config is the global variable configuration for playbook
@@ -74,11 +76,6 @@ spec:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                 type: object
-              debug:
-                description: |-
-                  If Debug mode is true, It will retain runtime data after a successful execution of Playbook,
-                  which includes task execution status and parameters.
-                type: boolean
               inventoryRef:
                 description: InventoryRef is the node configuration for playbook
                 properties:
@@ -1996,36 +1993,8 @@ spec:
             - playbook
             type: object
           status:
-            description: PlaybookStatus of Playbook
+            description: PlaybookStatus defines the observed state of Playbook.
             properties:
-              failedDetail:
-                description: FailedDetail will record the failed tasks.
-                items:
-                  description: PlaybookFailedDetail store failed message when playbook
-                    run failed.
-                  properties:
-                    hosts:
-                      description: failed Hosts Result of failed task.
-                      items:
-                        description: PlaybookFailedDetailHost detail failed message
-                          for each host.
-                        properties:
-                          host:
-                            description: Host name of failed task.
-                            type: string
-                          stdErr:
-                            description: StdErr of failed task.
-                            type: string
-                          stdout:
-                            description: Stdout of failed task.
-                            type: string
-                        type: object
-                      type: array
-                    task:
-                      description: Task name of failed task.
-                      type: string
-                  type: object
-                type: array
               failureMessage:
                 description: FailureMessage will be set in the event that there is
                   a terminal problem
@@ -2037,20 +2006,24 @@ spec:
               phase:
                 description: Phase of playbook.
                 type: string
-              taskResult:
-                description: TaskResult total related tasks execute result.
+              result:
+                description: Result will record the results detail.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              statistics:
+                description: Statistics statistics of task counts
                 properties:
                   failed:
-                    description: Failed number of tasks.
+                    description: Number of failed tasks
                     type: integer
                   ignored:
-                    description: Ignored number of tasks.
+                    description: Number of ignored tasks
                     type: integer
                   success:
-                    description: Success number of tasks.
+                    description: Number of successful tasks
                     type: integer
                   total:
-                    description: Total number of tasks.
+                    description: Total number of tasks
                     type: integer
                 type: object
             type: object
