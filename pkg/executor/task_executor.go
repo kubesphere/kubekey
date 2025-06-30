@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v3"
@@ -43,14 +42,14 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to create task %q", e.task.Spec.Name)
 	}
 	defer func() {
-		e.playbook.Status.TaskResult.Total++
+		e.playbook.Status.Statistics.Total++
 		switch e.task.Status.Phase {
 		case kkcorev1alpha1.TaskPhaseSuccess:
-			e.playbook.Status.TaskResult.Success++
+			e.playbook.Status.Statistics.Success++
 		case kkcorev1alpha1.TaskPhaseIgnored:
-			e.playbook.Status.TaskResult.Ignored++
+			e.playbook.Status.Statistics.Ignored++
 		case kkcorev1alpha1.TaskPhaseFailed:
-			e.playbook.Status.TaskResult.Failed++
+			e.playbook.Status.Statistics.Failed++
 		}
 	}()
 	// run task
@@ -59,20 +58,6 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 	}
 	// exit when task run failed
 	if e.task.IsFailed() {
-		var hostReason []kkcorev1.PlaybookFailedDetailHost
-		for _, tr := range e.task.Status.HostResults {
-			hostReason = append(hostReason, kkcorev1.PlaybookFailedDetailHost{
-				Host:   tr.Host,
-				Stdout: tr.Stdout,
-				StdErr: tr.StdErr,
-			})
-		}
-		e.playbook.Status.FailedDetail = append(e.playbook.Status.FailedDetail, kkcorev1.PlaybookFailedDetail{
-			Task:  e.task.Spec.Name,
-			Hosts: hostReason,
-		})
-		e.playbook.Status.Phase = kkcorev1.PlaybookPhaseFailed
-
 		return errors.Errorf("task %q run failed", e.task.Spec.Name)
 	}
 

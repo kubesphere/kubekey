@@ -17,7 +17,10 @@ import (
 
 // ***************************** GetFunc ***************************** //
 
-// GetHostnames get all hostnames from a group or host
+// GetHostnames retrieves all hostnames from specified groups or hosts.
+// It supports various hostname patterns including direct hostnames, group names,
+// indexed group access (e.g., "group[0]"), and random selection (e.g., "group|random").
+// The function also supports template parsing for hostnames using configuration variables.
 var GetHostnames = func(name []string) GetFunc {
 	if len(name) == 0 {
 		return emptyGetFunc
@@ -30,24 +33,23 @@ var GetHostnames = func(name []string) GetFunc {
 		}
 		var hs []string
 		for _, n := range name {
-			// try parse hostname by Config.
+			// Try to parse hostname using configuration variables as template context
 			if pn, err := tmpl.ParseFunc(Extension2Variables(vv.value.Config.Spec), n, func(b []byte) string { return string(b) }); err == nil {
 				n = pn
 			}
-			// add host to hs
+			// Add direct hostname if it exists in the hosts map
 			if _, exists := vv.value.Hosts[n]; exists {
 				hs = append(hs, n)
 			}
-			// add group's host to gs
+			// Add all hosts from matching groups
 			for gn, gv := range ConvertGroup(vv.value.Inventory) {
 				if gn == n {
 					hs = CombineSlice(hs, gv)
-
 					break
 				}
 			}
 
-			// Add the specified host in the specified group to the hs.
+			// Handle indexed group access (e.g., "group[0]")
 			regexForIndex := regexp.MustCompile(`^(.*?)\[(\d+)\]$`)
 			if match := regexForIndex.FindStringSubmatch(strings.TrimSpace(n)); match != nil {
 				index, err := strconv.Atoi(match[2])
@@ -62,7 +64,7 @@ var GetHostnames = func(name []string) GetFunc {
 				}
 			}
 
-			// add random host in group
+			// Handle random host selection from group (e.g., "group|random")
 			regexForRandom := regexp.MustCompile(`^(.+?)\s*\|\s*random$`)
 			if match := regexForRandom.FindStringSubmatch(strings.TrimSpace(n)); match != nil {
 				if group, ok := ConvertGroup(vv.value.Inventory)[match[1]]; ok {
@@ -75,9 +77,11 @@ var GetHostnames = func(name []string) GetFunc {
 	}
 }
 
-// GetAllVariable get all variable for a given host
+// GetAllVariable retrieves all variables for a given host, including group variables,
+// remote variables, runtime variables, inventory variables, and configuration variables.
+// It also sets default variables for localhost and provides access to global host and group information.
 var GetAllVariable = func(hostname string) GetFunc {
-	// getLocalIP get the ipv4 or ipv6 for localhost machine
+	// getLocalIP retrieves the IPv4 or IPv6 address for the localhost machine
 	getLocalIP := func(ipType string) string {
 		addrs, err := net.InterfaceAddrs()
 		if err != nil {
@@ -101,7 +105,8 @@ var GetAllVariable = func(hostname string) GetFunc {
 		return ""
 	}
 
-	// defaultHostVariable set default vars when hostname is "localhost"
+	// defaultHostVariable sets default variables when hostname is "localhost"
+	// It automatically detects and sets IPv4/IPv6 addresses and hostname information
 	defaultHostVariable := func(hostname string, hostVars map[string]any) {
 		if hostname == _const.VariableLocalHost {
 			if _, ok := hostVars[_const.VariableIPv4]; !ok {
@@ -112,7 +117,7 @@ var GetAllVariable = func(hostname string) GetFunc {
 			}
 		}
 		if os, ok := hostVars[_const.VariableOS]; ok {
-			// try to set hostname by current actual hostname.
+			// Try to set hostname by current actual hostname from OS information
 			if osd, ok := os.(map[string]any); ok {
 				hostVars[_const.VariableHostName] = osd[_const.VariableOSHostName]
 			}
@@ -125,28 +130,30 @@ var GetAllVariable = func(hostname string) GetFunc {
 		}
 	}
 
+	// getHostsVariable builds a complete variable map for all hosts
+	// by combining variables from multiple sources in a specific order
 	getHostsVariable := func(v *variable) map[string]any {
 		globalHosts := make(map[string]any)
 		for hostname := range v.value.Hosts {
 			hostVars := make(map[string]any)
-			// set groups vars
+			// Set group variables for hosts that belong to groups
 			for _, gv := range v.value.Inventory.Spec.Groups {
 				if slices.Contains(gv.Hosts, hostname) {
 					hostVars = CombineVariables(hostVars, Extension2Variables(gv.Vars))
 				}
 			}
-			// find from remote
+			// Merge remote variables (variables collected from the actual host)
 			hostVars = CombineVariables(hostVars, v.value.Hosts[hostname].RemoteVars)
-			// merge from runtime
+			// Merge runtime variables (variables set during playbook execution)
 			hostVars = CombineVariables(hostVars, v.value.Hosts[hostname].RuntimeVars)
 
-			// merge from inventory vars
+			// Merge inventory-level variables
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Inventory.Spec.Vars))
-			// merge from inventory host vars
+			// Merge host-specific variables from inventory
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Inventory.Spec.Hosts[hostname]))
-			// merge from config
+			// Merge configuration variables
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Config.Spec))
-			// set default localhost
+			// Set default variables for localhost
 			defaultHostVariable(hostname, hostVars)
 			globalHosts[hostname] = hostVars
 		}
@@ -162,12 +169,14 @@ var GetAllVariable = func(hostname string) GetFunc {
 		hosts := getHostsVariable(vv)
 		hostVars, ok := hosts[hostname].(map[string]any)
 		if !ok {
-			// cannot found hosts variable.
+			// Return empty map if host variables cannot be found
 			return make(map[string]any), nil
 		}
+		// Add global hosts information to the host variables
 		hostVars = CombineVariables(hostVars, map[string]any{
 			_const.VariableGlobalHosts: hosts,
 		})
+		// Add group information to the host variables
 		hostVars = CombineVariables(hostVars, map[string]any{
 			_const.VariableGroups: ConvertGroup(vv.value.Inventory),
 		})
@@ -176,7 +185,8 @@ var GetAllVariable = func(hostname string) GetFunc {
 	}
 }
 
-// GetHostMaxLength get the max length for all hosts
+// GetHostMaxLength calculates the maximum length of all hostnames.
+// This is useful for formatting output or determining display widths.
 var GetHostMaxLength = func() GetFunc {
 	return func(v Variable) (any, error) {
 		vv, ok := v.(*variable)
@@ -201,5 +211,18 @@ var GetWorkDir = func() GetFunc {
 		}
 
 		return _const.GetWorkdirFromConfig(vv.value.Config), nil
+	}
+}
+
+// GetResultVariable returns the global result variables.
+// This function retrieves the result variables that are set globally and accessible across all hosts.
+var GetResultVariable = func() GetFunc {
+	return func(v Variable) (any, error) {
+		vv, ok := v.(*variable)
+		if !ok {
+			return nil, errors.New("variable type error")
+		}
+
+		return vv.value.Result, nil
 	}
 }
