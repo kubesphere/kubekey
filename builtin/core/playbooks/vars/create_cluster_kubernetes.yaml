@@ -200,7 +200,7 @@ kubernetes:
         {{ .dockerio_registry }}
       repository: kubesphere/etcd
       tag: 3.5.0
-  custom_label: {}
+  # custom_labels: {}
   # if auto renew kubernetes certs
   renew_certs:
     enabled: true

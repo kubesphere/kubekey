@@ -18,12 +18,11 @@ package tmpl
 
 import (
 	"bytes"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/klog/v2"
-
-	"github.com/kubesphere/kubekey/v4/pkg/converter/internal"
 )
 
 // ParseFunc parses a template string using the provided context and parse function.
@@ -39,7 +38,7 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 		return f([]byte(input)), nil
 	}
 	// Parse the template string
-	tl, err := internal.Template.Parse(input)
+	tl, err := template.New("kubekey").Funcs(funcMap()).Parse(input)
 	if err != nil {
 		return f(nil), errors.Wrapf(err, "failed to parse template '%s'", input)
 	}
