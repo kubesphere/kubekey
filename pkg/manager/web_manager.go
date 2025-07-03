@@ -35,8 +35,8 @@ func (m webManager) Run(ctx context.Context) error {
 	container.RecoverHandler(func(panicReason any, httpWriter http.ResponseWriter) {
 		logStackOnRecover(panicReason, httpWriter)
 	})
-	container.Add(web.NewWebService(ctx, m.workdir, m.Client, m.Config)).
-		Add(web.NewSchemaService(m.schemaPath)).
+	container.Add(web.NewSchemaService(m.schemaPath, m.workdir, m.Client)).
+		Add(web.NewCoreService(m.workdir, m.Client, m.Config)).
 		// openapi
 		Add(web.NewSwaggerUIService()).
 		Add(web.NewAPIService(container.RegisteredWebServices()))

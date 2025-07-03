@@ -73,7 +73,7 @@
   post_tasks:
     - name: Add custom label to cluster
       command: |
-        {{- range $k, $v := .kubernetes.custom_label }}
+        {{- range $k, $v := .kubernetes.custom_labels }}
         /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
         {{- end }}
       when: .kubernetes.custom_label | empty | not

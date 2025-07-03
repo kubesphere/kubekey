@@ -1,4 +1,4 @@
-package internal
+package tmpl
 
 import (
 	"math"
@@ -9,12 +9,11 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // default function docs: http://masterminds.github.io/sprig
-
-// Template parse file or vars which defined in project.
-var Template = template.New("kubekey").Funcs(funcMap())
 
 func funcMap() template.FuncMap {
 	var f = sprig.TxtFuncMap()
@@ -59,7 +58,7 @@ func fromYAML(v string) (any, error) {
 func ipInCIDR(cidr string) ([]string, error) {
 	var ips = make([]string, 0)
 	for _, s := range strings.Split(cidr, ",") {
-		ips = append(ips, parseIP(s)...)
+		ips = append(ips, _const.ParseIP(s)...)
 	}
 
 	return ips, nil

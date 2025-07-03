@@ -16,6 +16,8 @@ limitations under the License.
 
 package query
 
+import "reflect"
+
 // Field represents a query field name used for filtering and sorting
 type Field string
 
@@ -50,3 +52,39 @@ const (
 	// FieldOwnerKind represents the owner kind field of a resource
 	FieldOwnerKind = "ownerKind"
 )
+
+// GetFieldByJSONTag returns the value of the struct field whose JSON tag matches the given field name (filed).
+// If not found by JSON tag, it tries to find the field by its struct field name.
+// The function expects obj to be a struct or a pointer to a struct.
+func GetFieldByJSONTag(obj reflect.Value, filed Field) reflect.Value {
+	// If obj is a pointer, get the element it points to
+	if obj.Kind() == reflect.Ptr {
+		obj = obj.Elem()
+	}
+	// If obj is not a struct, return zero Value
+	if obj.Kind() != reflect.Struct {
+		return reflect.Value{}
+	}
+	typ := obj.Type()
+	// Iterate over all struct fields
+	for i := range obj.NumField() {
+		structField := typ.Field(i)
+		jsonTag := structField.Tag.Get("json")
+		// The tag may have options, e.g. "name,omitempty"
+		// Check for exact match or prefix match before comma
+		if jsonTag == string(filed) ||
+			(jsonTag != "" && jsonTag == string(filed)+",omitempty") ||
+			(jsonTag != "" && len(jsonTag) >= len(string(filed)) &&
+				jsonTag[:len(string(filed))] == string(filed) &&
+				(len(jsonTag) == len(string(filed)) || jsonTag[len(string(filed))] == ',')) {
+			// Return the field value if the JSON tag matches
+			return obj.Field(i)
+		}
+	}
+	// If not found by json tag, try by field name (case-sensitive)
+	if f := obj.FieldByName(string(filed)); f.IsValid() {
+		return f
+	}
+	// Return zero Value if not found
+	return reflect.Value{}
+}
