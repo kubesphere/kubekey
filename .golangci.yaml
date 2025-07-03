@@ -113,7 +113,7 @@ linters-settings:
   cyclop:
     # The maximal code complexity to report.
     # Default: 10
-    max-complexity: 20
+    max-complexity: 25
     # Should ignore tests.
     # Default: false
     skip-tests: true

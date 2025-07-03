@@ -31,11 +31,6 @@ var (
 	CapkkVolumeProject = Environment{env: "CAPKK_VOLUME_PROJECT"}
 	// CapkkVolumeWorkdir specifies the working directory for capkk playbook
 	CapkkVolumeWorkdir = Environment{env: "CAPKK_VOLUME_WORKDIR"}
-
-	// TaskNameGatherFacts the task name for gather_facts in playbook
-	TaskNameGatherFacts = Environment{env: "TASK_GATHER_FACTS", def: "gather_facts"}
-	// TaskNameGetArch the task name for get_arch in playbook, used to get host architecture
-	TaskNameGetArch = Environment{env: "", def: "get_arch"}
 )
 
 // Getenv retrieves the value of the environment variable. If the environment variable is not set,

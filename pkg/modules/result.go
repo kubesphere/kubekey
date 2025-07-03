@@ -47,13 +47,19 @@ Return Values:
 
 // ModuleResult handles the "result" module, setting result variables during playbook execution
 func ModuleResult(ctx context.Context, options ExecOptions) (string, string) {
-	var node yaml.Node
+	// get host variable
+	ha, err := options.getAllVariables()
+	if err != nil {
+		return "", err.Error()
+	}
+	arg, _ := variable.Extension2String(ha, options.Args)
+	var result any
 	// Unmarshal the YAML document into a root node.
-	if err := yaml.Unmarshal(options.Args.Raw, &node); err != nil {
+	if err := yaml.Unmarshal(arg, &result); err != nil {
 		return "", fmt.Sprintf("failed to unmarshal YAML error: %v", err)
 	}
 
-	if err := options.Variable.Merge(variable.MergeResultVariable(node, options.Host)); err != nil {
+	if err := options.Variable.Merge(variable.MergeResultVariable(result)); err != nil {
 		return "", fmt.Sprintf("result error: %v", err)
 	}
 

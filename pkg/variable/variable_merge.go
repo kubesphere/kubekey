@@ -118,32 +118,14 @@ var MergeHostsRuntimeVariable = func(node yaml.Node, hostname string, hosts ...s
 // 1. Gets all variables for the host to create a parsing context
 // 2. Parses the YAML node using that context
 // 3. Sets the parsed data as the global result variables (accessible across all hosts)
-var MergeResultVariable = func(node yaml.Node, hostname string) MergeFunc {
-	if node.IsZero() {
-		// skip
-		return emptyMergeFunc
-	}
-
+var MergeResultVariable = func(result any) MergeFunc {
 	return func(v Variable) error {
 		vv, ok := v.(*variable)
 		if !ok {
 			return errors.New("variable type error")
 		}
 
-		// Avoid nested locking: prepare context for parsing outside locking region
-		curVars, err := v.Get(GetAllVariable(hostname))
-		if err != nil {
-			return err
-		}
-		ctx, ok := curVars.(map[string]any)
-		if !ok {
-			return errors.Errorf("host %s variables type error, expect map[string]any", hostname)
-		}
-		result, err := parseYamlNode(ctx, node)
-		if err != nil {
-			return err
-		}
-		vv.value.Result = CombineVariables(vv.value.Result, result)
+		vv.value.Result = CombineVariables(vv.value.Result, map[string]any{resultKey: result})
 
 		return nil
 	}

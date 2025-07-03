@@ -164,13 +164,7 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 		val := query.GetFieldByJSONTag(reflect.ValueOf(o), f.Field)
 		switch val.Kind() {
 		case reflect.String:
-			return val.String() == string(f.Value)
-		case reflect.Int:
-			v, err := strconv.Atoi(string(f.Value))
-			if err != nil {
-				return false
-			}
-			return v == int(val.Int())
+			return strings.Contains(val.String(), string(f.Value))
 		default:
 			return true
 		}
@@ -255,7 +249,7 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 		val := query.GetFieldByJSONTag(reflect.ValueOf(o), f.Field)
 		switch val.Kind() {
 		case reflect.String:
-			return val.String() == string(f.Value)
+			return strings.Contains(val.String(), string(f.Value))
 		case reflect.Int:
 			v, err := strconv.Atoi(string(f.Value))
 			if err != nil {
