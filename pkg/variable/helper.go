@@ -399,30 +399,26 @@ func Extension2Slice(ctx map[string]any, ext runtime.RawExtension) []any {
 		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
 	}
 
-	if err := json.Unmarshal([]byte(val), &data); err == nil {
+	if err := json.Unmarshal(val, &data); err == nil {
 		return data
 	}
 
 	return []any{val}
 }
 
-// Extension2String convert runtime.RawExtension to string.
-// if runtime.RawExtension contains tmpl syntax, parse it.
-func Extension2String(ctx map[string]any, ext runtime.RawExtension) (string, error) {
+// Extension2String converts a runtime.RawExtension to a string, optionally parsing it as a template.
+// If the extension is empty, it returns nil. If the string is quoted, it unquotes it first.
+// Finally, it parses the string as a template using the provided context.
+func Extension2String(ctx map[string]any, ext runtime.RawExtension) ([]byte, error) {
 	if len(ext.Raw) == 0 {
-		return "", nil
+		return nil, nil
 	}
 
 	var input = string(ext.Raw)
-	// try to escape string
-	if ns, err := strconv.Unquote(string(ext.Raw)); err == nil {
+	// try to escape string if it's quoted
+	if ns, err := strconv.Unquote(input); err == nil {
 		input = ns
 	}
 
-	result, err := tmpl.Parse(ctx, input)
-	if err != nil {
-		return "", err
-	}
-
-	return string(result), nil
+	return tmpl.Parse(ctx, input)
 }

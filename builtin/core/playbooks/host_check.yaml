@@ -1,8 +1,22 @@
 - name: Check Connect
   hosts: 
     - all
-  gather_facts: true
   tasks:
-    - name: get_arch
-      debug:
-        msg: "{{ .os.architecture }}"
+    - name: get host info
+      ignore_errors: true
+      setup: {}
+    - name: set result
+      run_once: true
+      vars:
+        architectures:
+          amd64:
+            - amd64
+            - x86_64
+          arm64:
+            - arm64
+            - aarch64
+      result: |
+        {{- range $k,$v := .hostvars }}
+        {{ $k }}: {{ if $.architectures.amd64 | has ($v.os.architecture | default "") }}amd64{{ else if $.architectures.arm64 | has .os.architecture }}arm64{{ else }}{{ $v.os.architecture | default "" }}{{ end }}
+        {{- end }}
+        

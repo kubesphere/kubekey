@@ -223,6 +223,6 @@ var GetResultVariable = func() GetFunc {
 			return nil, errors.New("variable type error")
 		}
 
-		return vv.value.Result, nil
+		return vv.value.Result[resultKey], nil
 	}
 }

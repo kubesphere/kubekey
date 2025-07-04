@@ -318,10 +318,12 @@ func (h *coreHandler) inventoryInfo(request *restful.Request, response *restful.
 // listInventoryHosts lists all hosts in an inventory with their details
 // It includes information about SSH configuration, IP addresses, and group membership
 func (h *coreHandler) listInventoryHosts(request *restful.Request, response *restful.Response) {
+	// Parse query parameters from the request
 	queryParam := query.ParseQueryParameter(request)
 	namespace := request.PathParameter("namespace")
 	name := request.PathParameter("inventory")
 
+	// Retrieve the inventory object from the cluster
 	inventory := &kkcorev1.Inventory{}
 	err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: name}, inventory)
 	if err != nil {
@@ -329,15 +331,19 @@ func (h *coreHandler) listInventoryHosts(request *restful.Request, response *res
 		return
 	}
 
-	// Retrieve the list of tasks associated with the inventory
-	taskList := &kkcorev1alpha1.TaskList{}
-	_ = h.client.List(request.Request.Context(), taskList, ctrlclient.InNamespace(namespace), ctrlclient.MatchingFields{
-		"playbook.name": inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation],
-	})
+	// get host-check playbook if annotation exists
+	playbook := &kkcorev1.Playbook{}
+	if playbookName, ok := inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation]; ok {
+		if err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Name: playbookName, Namespace: inventory.Namespace}, playbook); err != nil {
+			klog.Warningf("cannot found host-check playbook for inventory %q", ctrlclient.ObjectKeyFromObject(inventory))
+		}
+	}
 
 	// buildHostItem constructs an InventoryHostTable from the hostname and raw extension
 	buildHostItem := func(hostname string, raw runtime.RawExtension) api.InventoryHostTable {
+		// Convert the raw extension to a map of variables
 		vars := variable.Extension2Variables(raw)
+		// Extract relevant fields from the variables
 		internalIPV4, _ := variable.StringVar(nil, vars, _const.VariableIPv4)
 		internalIPV6, _ := variable.StringVar(nil, vars, _const.VariableIPv6)
 		sshHost, _ := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorHost)
@@ -351,6 +357,7 @@ func (h *coreHandler) listInventoryHosts(request *restful.Request, response *res
 		delete(vars, _const.VariableIPv6)
 		delete(vars, _const.VariableConnector)
 
+		// Return the constructed InventoryHostTable
 		return api.InventoryHostTable{
 			Name:          hostname,
 			InternalIPV4:  internalIPV4,
@@ -361,49 +368,61 @@ func (h *coreHandler) listInventoryHosts(request *restful.Request, response *res
 			SSHPassword:   sshPassword,
 			SSHPrivateKey: sshPrivateKey,
 			Vars:          vars,
-			Groups:        []string{},
+			Groups:        []api.InventoryHostGroups{},
 		}
 	}
 
 	// Convert inventory groups for host membership lookup
 	groups := variable.ConvertGroup(*inventory)
 
+	// Helper to check if a host is in a group and get its index
+	getGroupIndex := func(groupName, hostName string) int {
+		for i, h := range inventory.Spec.Groups[groupName].Hosts {
+			if h == hostName {
+				return i
+			}
+		}
+		return -1
+	}
+
 	// fillGroups adds group names to the InventoryHostTable item if the host is a member
 	fillGroups := func(item *api.InventoryHostTable) {
 		for groupName, hosts := range groups {
-			if groupName == _const.VariableGroupsAll || groupName == _const.VariableUnGrouped {
+			// Skip special groups
+			if groupName == _const.VariableGroupsAll || groupName == _const.VariableUnGrouped || groupName == "k8s_cluster" {
 				continue
 			}
+			// If the host is in the group, add the group info to the item
 			if slices.Contains(hosts, item.Name) {
-				item.Groups = append(item.Groups, groupName)
+				g := api.InventoryHostGroups{
+					Role:  groupName,
+					Index: getGroupIndex(groupName, item.Name),
+				}
+				item.Groups = append(item.Groups, g)
 			}
 		}
 	}
 
-	// fillTaskInfo populates status and architecture info for the host from task results
-	fillTaskInfo := func(item *api.InventoryHostTable) {
-		for _, task := range taskList.Items {
-			switch task.Name {
-			case _const.Getenv(_const.TaskNameGatherFacts):
-				for _, result := range task.Status.HostResults {
-					if result.Host == item.Name {
-						item.Status = result.Stdout
-						break
-					}
-				}
-			case _const.Getenv(_const.TaskNameGetArch):
-				for _, result := range task.Status.HostResults {
-					if result.Host == item.Name {
-						item.Arch = result.Stdout
-						break
-					}
-				}
+	// fillByPlaybook populates status and architecture info for the host from task results
+	fillByPlaybook := func(playbook kkcorev1.Playbook, item *api.InventoryHostTable) {
+		// Set status and architecture based on playbook phase and result
+		switch playbook.Status.Phase {
+		case kkcorev1.PlaybookPhaseFailed:
+			item.Status = api.ResultFailed
+		case kkcorev1.PlaybookPhaseSucceeded:
+			item.Status = api.ResultFailed
+			// Extract architecture info from playbook result
+			results := variable.Extension2Variables(playbook.Status.Result)
+			if arch, ok := results[item.Name].(string); ok && arch != "" {
+				item.Arch = arch
+				item.Status = api.ResultSucceed
 			}
 		}
 	}
 
 	// less is a comparison function for sorting InventoryHostTable items by a given field
 	less := func(left, right api.InventoryHostTable, sortBy query.Field) bool {
+		// Compare fields for sorting
 		leftVal := query.GetFieldByJSONTag(reflect.ValueOf(left), sortBy)
 		rightVal := query.GetFieldByJSONTag(reflect.ValueOf(right), sortBy)
 		switch leftVal.Kind() {
@@ -418,21 +437,26 @@ func (h *coreHandler) listInventoryHosts(request *restful.Request, response *res
 
 	// filter is a function to filter InventoryHostTable items based on query filters
 	filter := func(o api.InventoryHostTable, f query.Filter) bool {
+		// Filter by string fields, otherwise always true
 		val := query.GetFieldByJSONTag(reflect.ValueOf(o), f.Field)
 		switch val.Kind() {
 		case reflect.String:
-			return val.String() == string(f.Value)
+			return strings.Contains(val.String(), string(f.Value))
 		default:
 			return true
 		}
 	}
 
 	// Build the host table for the inventory
-	hostTable := make([]api.InventoryHostTable, 0)
+	hostTable := make([]api.InventoryHostTable, 0, len(inventory.Spec.Hosts))
 	for hostname, raw := range inventory.Spec.Hosts {
+		// Build the host item from raw data
 		item := buildHostItem(hostname, raw)
+		// Fill in group membership
 		fillGroups(&item)
-		fillTaskInfo(&item)
+		// Fill in playbook status and architecture
+		fillByPlaybook(*playbook, &item)
+		// Add the item to the host table
 		hostTable = append(hostTable, item)
 	}
 

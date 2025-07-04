@@ -246,8 +246,7 @@ func (e playbookExecutor) dealGatherFacts(ctx context.Context, gatherFacts bool,
 		// skip
 		return nil
 	}
-	// run as option
-
+	// run setup task
 	return (&taskExecutor{option: e.option, task: &kkcorev1alpha1.Task{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: e.playbook.Name + "-",
