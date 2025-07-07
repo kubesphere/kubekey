@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/klog/v2"
 	netutils "k8s.io/utils/net"
+	"k8s.io/utils/ptr"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -107,6 +108,7 @@ type genCertArgs struct {
 	cn       string
 	outKey   string
 	outCert  string
+	isCA     *bool
 }
 
 // signedCertificate generate certificate signed by root certificate
@@ -151,7 +153,7 @@ NEW:
 	if err != nil {
 		return "", fmt.Sprintf("generate rsa key error: %v", err)
 	}
-	newCert, err := NewSignedCert(*cfg, gca.date, newKey, parentCert, parentKey, true)
+	newCert, err := NewSignedCert(*cfg, gca.date, newKey, parentCert, parentKey, ptr.Deref(gca.isCA, false))
 	if err != nil {
 		return "", fmt.Sprintf("failed to generate certificate: %v", err)
 	}
@@ -201,6 +203,7 @@ func newGenCertArgs(_ context.Context, raw runtime.RawExtension, vars map[string
 	gca.cn, _ = variable.StringVar(vars, args, "cn")
 	gca.outKey, _ = variable.StringVar(vars, args, "out_key")
 	gca.outCert, _ = variable.StringVar(vars, args, "out_cert")
+	gca.isCA, _ = variable.BoolVar(vars, args, "is_ca")
 	// check args
 	if gca.policy != policyAlways && gca.policy != policyIfNotPresent {
 		return nil, errors.New("\"policy\" should be one of [Always, IfNotPresent]")

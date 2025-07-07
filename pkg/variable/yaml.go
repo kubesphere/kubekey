@@ -154,7 +154,7 @@ func setContextValue(ctx map[string]any, value any, path ...string) error {
 		case seqTag:
 			current, err = handleSlice(current, val, isLast, value, &parents, &keys, path, i)
 		default:
-			return fmt.Errorf("unsupported tag: %s", tag)
+			return errors.Errorf("unsupported tag: %s", tag)
 		}
 		if err != nil {
 			return err
@@ -171,7 +171,17 @@ func setContextValue(ctx map[string]any, value any, path ...string) error {
 func handleMap(current reflect.Value, key string, isLast bool, value any,
 	parents *[]reflect.Value, keys *[]any, path []string, i int) (reflect.Value, error) {
 	if current.Kind() != reflect.Map {
-		return reflect.Value{}, fmt.Errorf("expected map, got %s", current.Kind())
+		return reflect.Value{}, errors.Errorf("expected map, got %s of path %q", current.Kind(), strings.Join(func() []string {
+			out := make([]string, len(path))
+			for i, p := range path {
+				if len(p) > 5 {
+					out[i] = p[5:]
+				} else {
+					out[i] = ""
+				}
+			}
+			return out
+		}(), "."))
 	}
 	rKey := reflect.ValueOf(key)
 	existing := current.MapIndex(rKey)
@@ -191,7 +201,7 @@ func handleMap(current reflect.Value, key string, isLast bool, value any,
 	var next reflect.Value
 	if !existing.IsValid() || isNil(existing) {
 		if i+1 >= len(path) {
-			return reflect.Value{}, fmt.Errorf("path incomplete after index %d", i)
+			return reflect.Value{}, errors.Errorf("path incomplete after index %d", i)
 		}
 		if strings.HasPrefix(path[i+1], mapTag) {
 			next = reflect.ValueOf(make(map[string]any))
@@ -216,10 +226,10 @@ func handleSlice(current reflect.Value, val string, isLast bool, value any,
 	// Parse index from path value
 	index, err := strconv.Atoi(val)
 	if err != nil {
-		return reflect.Value{}, fmt.Errorf("invalid index %s: %w", val, err)
+		return reflect.Value{}, errors.Errorf("invalid index %s: %w", val, err)
 	}
 	if current.Kind() != reflect.Slice {
-		return reflect.Value{}, fmt.Errorf("expected slice, got %s", current.Kind())
+		return reflect.Value{}, errors.Errorf("expected slice, got %s", current.Kind())
 	}
 	// Grow slice if requested index is beyond current length
 	if index >= current.Len() {
@@ -249,7 +259,7 @@ func handleSlice(current reflect.Value, val string, isLast bool, value any,
 	item := current.Index(index)
 	if isNil(item) {
 		if i+1 >= len(path) {
-			return reflect.Value{}, fmt.Errorf("path incomplete after index %d", i)
+			return reflect.Value{}, errors.Errorf("path incomplete after index %d", i)
 		}
 
 		var newItem reflect.Value
