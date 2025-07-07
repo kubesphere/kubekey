@@ -124,7 +124,7 @@ func (o *AddNodeOptions) complete() error {
 	if o.ControlPlane != "" {
 		for _, node := range strings.Split(o.ControlPlane, ",") {
 			if !slices.Contains(groups[_const.VariableGroupsAll], node) {
-				return fmt.Errorf("%q is not defined in inventory.", node)
+				return errors.Errorf("%q is not defined in inventory.", node)
 			}
 			if !slices.Contains(groups[defaultGroupControlPlane], node) {
 				group := o.Inventory.Spec.Groups[defaultGroupControlPlane]
@@ -138,7 +138,7 @@ func (o *AddNodeOptions) complete() error {
 	if o.Worker != "" {
 		for _, node := range strings.Split(o.ControlPlane, ",") {
 			if !slices.Contains(groups[_const.VariableGroupsAll], node) {
-				return fmt.Errorf("%q is not defined in inventory.", node)
+				return errors.Errorf("%q is not defined in inventory.", node)
 			}
 			if !slices.Contains(groups[defaultGroupWorker], node) {
 				group := o.Inventory.Spec.Groups[defaultGroupWorker]

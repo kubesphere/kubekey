@@ -27,3 +27,37 @@
     src: audit
     dest: /etc/kubernetes/audit/
   when: .kubernetes.audit
+
+- name: Sync ca file to kube_control_plane
+  when: 
+    - .kubernetes.certs.ca_cert | empty | not
+    - .kubernetes.certs.ca_key | empty | not
+    - .groups.kube_control_plane | has .inventory_hostname
+  block:
+    - name: Sync ca cert to kube_control_plane
+      copy: 
+        src: >-
+          {{ .kubernetes.certs.ca_cert }}
+        dest: /etc/kubernetes/pki/ca.crt
+    - name: Sync ca key to kube_control_plane
+      copy:
+        src: >-
+          {{ .kubernetes.certs.ca_key }}
+        dest: /etc/kubernetes/pki/ca.key
+
+- name: Sync front-proxy ca file to kube_control_plane
+  when:
+    - .kubernetes.certs.front_proxy_cert | empty | not
+    - .kubernetes.certs.front_proxy_key | empty | not
+    - .groups.kube_control_plane | has .inventory_hostname
+  block:
+    - name: Sync front-proxy cert to kube_control_plane
+      copy: 
+        src: >-
+          {{ .kubernetes.certs.front_proxy_cert }}
+        dest: /etc/kubernetes/pki/front-proxy-ca.crt
+    - name: Sync front-proxy key to kube_control_plane
+      copy:
+        src: >-
+          {{ .kubernetes.certs.front_proxy_key }}
+        dest: /etc/kubernetes/pki/front-proxy-ca.key

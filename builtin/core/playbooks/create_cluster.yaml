@@ -68,7 +68,7 @@
     - kubernetes/join-kubernetes
     - role: kubernetes/certs
       when: 
-        - .kubernetes.renew_certs.enabled
+        - .kubernetes.certs.renew
         - .groups.kube_control_plane | default list | has .inventory_hostname
   post_tasks:
     - name: Add custom label to cluster
