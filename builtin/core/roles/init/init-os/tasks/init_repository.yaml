@@ -50,11 +50,11 @@
         now=$(date +"%Y-%m-%d %H:%M:%S")
         if [ -f "{{ .tmp_dir }}/repository.iso" ];then
           # backup
-          mv /etc/yum.repos.d /etc/yum.repos.d.kubekey-$now.bak
+          mv /etc/yum.repos.d /etc/yum.repos.d.kubekey.bak-$now
           mkdir -p /etc/yum.repos.d
           # add repository
           rm -rf /etc/yum.repos.d/*
-          cat << EOF > /etc/yum.repos.d/CentOS-local.repo
+          cat <<EOF > /etc/yum.repos.d/CentOS-local.repo
         [base-local]
         name=rpms-local
       

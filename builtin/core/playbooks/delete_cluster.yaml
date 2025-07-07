@@ -36,9 +36,5 @@
     - role: uninstall/image_registry
       when:
        - .deleteImageRegistry
-    - role: uninstall/cri
-      when:
-       - .deleteImageRegistry
-       - .deleteCRI
 
 - import_playbook: hook/post_install.yaml

@@ -58,12 +58,12 @@
 - name: reset control_plane_endpoint localDNS
   command: |
     sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
-    cat >> {{ .item }} << EOF
+    cat >> {{ .item }} <<EOF
     # kubekey control_plane_endpoint BEGIN.
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
     # kubekey control_plane_endpoint END
-    EOF 
+    EOF
   loop: "{{ .localDNS | toJson }}"
     
 - name: Copy kubeconfig to default dir

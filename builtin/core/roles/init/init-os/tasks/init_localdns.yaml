@@ -5,7 +5,7 @@
     sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
     sed -i '/^$/N;/\n$/N;//D' {{ .item }}
     # defined new dns configuration
-    cat >>{{ .item }}<<EOF
+    cat >> {{ .item }} <<EOF
     # kubekey hosts BEGIN
     # kubernetes hosts
     {{- range .groups.k8s_cluster | default list }}
@@ -35,6 +35,19 @@
       {{- end }}
       {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
+      {{- end }}
+    {{- end }}
+    {{- if and (.image_registry.auth.registry | empty | not) (.groups.image_registry | empty | not) }}
+      {{- if .image_registry.ha_vip | empty | not }}
+    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry }}
+      {{- else }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry }}
+        {{- end }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
+        {{- end }}
+    {{ .image_registry.auth.registry }} 
       {{- end }}
     {{- end }}
     # nfs hosts
