@@ -16,9 +16,16 @@ limitations under the License.
 
 package api
 
+const (
+	// ResultSucceed indicates a successful operation result.
+	ResultSucceed = "success"
+	// ResultFailed indicates a failed operation result.
+	ResultFailed = "failed"
+)
+
 // SUCCESS is a global variable representing a successful operation result with a default success message.
 // It can be used as a standard response for successful API calls.
-var SUCCESS = Result{Message: "success"}
+var SUCCESS = Result{Message: ResultSucceed}
 
 // Result represents a basic API response structure containing a message field.
 // The Message field is typically used to convey error or success information.
@@ -37,18 +44,25 @@ type ListResult[T any] struct {
 // InventoryHostTable represents a host entry in an inventory with its configuration details.
 // It includes network information, SSH credentials, group membership, and architecture.
 type InventoryHostTable struct {
-	Name          string         `json:"name"`          // Hostname of the inventory host
-	Status        string         `json:"status"`        // Current status of the host
-	InternalIPV4  string         `json:"internalIPV4"`  // IPv4 address of the host
-	InternalIPV6  string         `json:"internalIPV6"`  // IPv6 address of the host
-	SSHHost       string         `json:"sshHost"`       // SSH hostname for connection
-	SSHPort       string         `json:"sshPort"`       // SSH port for connection
-	SSHUser       string         `json:"sshUser"`       // SSH username for authentication
-	SSHPassword   string         `json:"sshPassword"`   // SSH password for authentication
-	SSHPrivateKey string         `json:"sshPrivateKey"` // SSH private key for authentication
-	Vars          map[string]any `json:"vars"`          // Additional host variables
-	Groups        []string       `json:"groups"`        // Groups the host belongs to
-	Arch          string         `json:"arch"`          // Architecture of the host
+	Name          string                `json:"name"`          // Hostname of the inventory host
+	Status        string                `json:"status"`        // Current status of the host
+	InternalIPV4  string                `json:"internalIPV4"`  // IPv4 address of the host
+	InternalIPV6  string                `json:"internalIPV6"`  // IPv6 address of the host
+	SSHHost       string                `json:"sshHost"`       // SSH hostname for connection
+	SSHPort       string                `json:"sshPort"`       // SSH port for connection
+	SSHUser       string                `json:"sshUser"`       // SSH username for authentication
+	SSHPassword   string                `json:"sshPassword"`   // SSH password for authentication
+	SSHPrivateKey string                `json:"sshPrivateKey"` // SSH private key for authentication
+	Vars          map[string]any        `json:"vars"`          // Additional host variables
+	Groups        []InventoryHostGroups `json:"groups"`        // Groups the host belongs to
+	Arch          string                `json:"arch"`          // Architecture of the host
+}
+
+// InventoryHostGroups represents the group information for a host in the inventory.
+// Role is the name of the group, and Index is the index of the group to which the host belongs.
+type InventoryHostGroups struct {
+	Role  string `json:"role"`  // the groups name
+	Index int    `json:"index"` // the index of groups which hosts belong to
 }
 
 // SchemaTable represents schema metadata for a resource.

@@ -82,7 +82,7 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 	}
 	// execute command
 	var stdout, stderr string
-	data, err := conn.ExecuteCommand(ctx, command)
+	data, err := conn.ExecuteCommand(ctx, string(command))
 	if err != nil {
 		stderr = err.Error()
 	}

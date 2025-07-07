@@ -137,7 +137,7 @@ func TestMergeResultVariable(t *testing.T) {
 				},
 			},
 			data: map[string]any{
-				"v1": "{{ .k1 }}",
+				"v1": "v1",
 				"v2": "vv",
 			},
 			except: value{
@@ -154,8 +154,10 @@ func TestMergeResultVariable(t *testing.T) {
 					},
 				},
 				Result: map[string]any{
-					"v1": "v1",
-					"v2": "vv",
+					resultKey: map[string]any{
+						"v1": "v1",
+						"v2": "vv",
+					},
 				},
 			},
 		},
@@ -163,12 +165,7 @@ func TestMergeResultVariable(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			node, err := converter.ConvertMap2Node(tc.data)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if err = tc.variable.Merge(MergeResultVariable(node, tc.host)); err != nil {
+			if err := tc.variable.Merge(MergeResultVariable(tc.data)); err != nil {
 				t.Fatal(err)
 			}
 

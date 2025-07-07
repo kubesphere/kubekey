@@ -139,13 +139,19 @@ type variable struct {
 	sync.RWMutex
 }
 
-// value is the specific data contained in the variable
+// resultKey is the key used to store global result variables in the value struct.
+// It is used as the only key in the Result map to hold result data set by result tasks.
+const resultKey = "result"
+
+// value holds all variable data for a playbook execution.
+// It contains configuration, inventory, per-host variables, and global result variables.
 type value struct {
-	Config    kkcorev1.Config
-	Inventory kkcorev1.Inventory
-	// Hosts store the variable for running tasks on specific hosts
+	Config    kkcorev1.Config    // Playbook configuration
+	Inventory kkcorev1.Inventory // Playbook inventory
+	// Hosts stores variables for each host, including remote and runtime variables.
 	Hosts map[string]host
-	// result store the variable which set by result task.
+	// Result stores global result variables set by result tasks.
+	// The map always contains a single key (resultKey) for easy cloning and merging.
 	Result map[string]any
 }
 
