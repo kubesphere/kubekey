@@ -51,6 +51,18 @@ const (
 |   |-- [role]/
 `
 
+	// PathFormatRoleMeta defines the directory structure for role meta information.
+	// The meta/main.yaml (or main.yml) file can contain dependencies on other roles via the "dependencies" key.
+	PathFormatRoleMeta = `
+|-- baseRole/
+|   |-- meta/
+|   |   |-- main.yaml
+
+|-- baseRole/
+|   |-- meta/
+|   |   |-- main.yml
+`
+
 	// PathFormatRoleTask defines the directory structure for role tasks
 	// Role tasks are expected to be in tasks/main.yaml or tasks/main.yml under the role directory
 	PathFormatRoleTask = `
@@ -129,6 +141,15 @@ func GetRoleRelPath(basePlaybook string, role string) []string {
 		filepath.Join(filepath.Dir(filepath.Dir(basePlaybook)), _const.ProjectRolesDir, role),
 		filepath.Join(filepath.Dir(basePlaybook), _const.ProjectRolesDir, role),
 		filepath.Join(_const.ProjectRolesDir, role),
+	}
+}
+
+// GetRoleMetaRelPath returns possible relative paths for a role's meta file (main.yaml or main.yml) within the meta directory.
+// The format follows the standard Ansible role meta directory structure.
+func GetRoleMetaRelPath(baseRole string) []string {
+	return []string{
+		filepath.Join(baseRole, _const.ProjectRolesMetaDir, "main.yaml"),
+		filepath.Join(baseRole, _const.ProjectRolesMetaDir, "main.yml"),
 	}
 }
 

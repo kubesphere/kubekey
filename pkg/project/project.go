@@ -107,10 +107,6 @@ func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
 	if err := f.loadPlaybook(f.basePlaybook); err != nil {
 		return nil, err
 	}
-	// convertIncludeTasks
-	if err := f.convertIncludeTasks(f.basePlaybook); err != nil {
-		return nil, err
-	}
 	// validate playbook
 	if err := f.Playbook.Validate(); err != nil {
 		return nil, err
@@ -139,9 +135,28 @@ func (f *project) loadPlaybook(basePlaybook string) error {
 		if err := f.dealVarsFiles(&p, basePlaybook); err != nil {
 			return err
 		}
-		// fill block in roles
-		if err := f.dealRoles(p, basePlaybook); err != nil {
+		// deal "pre_tasks"
+		if err := f.dealBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), p.PreTasks); err != nil {
 			return err
+		}
+		// deal "tasks"
+		if err := f.dealBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), p.Tasks); err != nil {
+			return err
+		}
+		// deal "post_tasks"
+		if err := f.dealBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), p.PostTasks); err != nil {
+			return err
+		}
+
+		//deal "roles"
+		for i := range p.Roles {
+			if err := f.dealRole(&p.Roles[i], basePlaybook); err != nil {
+				return err
+			}
+			// deal tasks
+			if err := f.dealRoleTask(&p.Roles[i], basePlaybook); err != nil {
+				return err
+			}
 		}
 
 		f.Playbook.Play = append(f.Playbook.Play, p)
@@ -195,18 +210,30 @@ func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error 
 	return nil
 }
 
-// dealRoles handles the "roles" argument in a play
-func (f *project) dealRoles(p kkprojectv1.Play, basePlaybook string) error {
-	for i, r := range p.Roles {
-		baseRole := f.getPath(GetRoleRelPath(basePlaybook, r.Role))
-		if baseRole == "" {
-			return errors.Errorf("failed to find role %q base on %q. it's should be:\n %s", r.Role, basePlaybook, PathFormatRole)
+func (f *project) dealRole(role *kkprojectv1.Role, basePlaybook string) error {
+	baseRole := f.getPath(GetRoleRelPath(basePlaybook, role.Role))
+	if baseRole == "" {
+		return errors.Errorf("failed to find role %q base on %q. it's should be:\n %s", role.Role, basePlaybook, PathFormatRole)
+	}
+	// deal dependency
+	if meta := f.getPath(GetRoleMetaRelPath(baseRole)); meta != "" {
+		mdata, err := fs.ReadFile(f.FS, meta)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read role meta file %q", meta)
 		}
-		// deal tasks
-		task := f.getPath(GetRoleTaskRelPath(baseRole))
-		if task == "" {
-			return errors.Errorf("cannot found main task for Role %q. it's should be: \n %s", r.Role, PathFormatRoleTask)
+		roleMeta := &kkprojectv1.Role{}
+		if err := yaml.Unmarshal(mdata, roleMeta); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal role meta file %q", meta)
 		}
+		for _, dep := range roleMeta.RoleDependency {
+			if err := f.dealRole(&dep, basePlaybook); err != nil {
+				return errors.Wrapf(err, "failed to deal dependency role base %q", role.Role)
+			}
+			role.RoleDependency = append(role.RoleDependency, dep)
+		}
+	}
+	// deal tasks
+	if task := f.getPath(GetRoleTaskRelPath(baseRole)); task != "" {
 		rdata, err := fs.ReadFile(f.FS, task)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read file %q", task)
@@ -215,91 +242,85 @@ func (f *project) dealRoles(p kkprojectv1.Play, basePlaybook string) error {
 		if err := yaml.Unmarshal(rdata, &blocks); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal yaml file %q", task)
 		}
-		p.Roles[i].Block = blocks
-		// deal defaults (optional)
-		if defaults := f.getPath(GetRoleDefaultsRelPath(baseRole)); defaults != "" {
-			data, err := fs.ReadFile(f.FS, defaults)
-			if err != nil {
-				return errors.Wrapf(err, "failed to read defaults variable file %q", defaults)
-			}
+		role.Block = blocks
+	}
+	// deal defaults (optional)
+	if defaults := f.getPath(GetRoleDefaultsRelPath(baseRole)); defaults != "" {
+		data, err := fs.ReadFile(f.FS, defaults)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read defaults variable file %q", defaults)
+		}
 
-			var node yaml.Node
-			// Unmarshal the YAML document into a root node.
-			if err := yaml.Unmarshal(data, &node); err != nil {
-				return errors.Wrap(err, "failed to unmarshal YAML")
-			}
-			if node.Kind != yaml.DocumentNode || len(node.Content) != 1 {
-				return errors.Errorf("unsupport vars_files format. it should be single map file")
-			}
-			// combine map node
-			if node.Content[0].Kind == yaml.MappingNode {
-				// skip empty file
-				p.Roles[i].Vars = *variable.CombineMappingNode(&p.Roles[i].Vars, node.Content[0])
-			}
+		var node yaml.Node
+		// Unmarshal the YAML document into a root node.
+		if err := yaml.Unmarshal(data, &node); err != nil {
+			return errors.Wrap(err, "failed to unmarshal YAML")
+		}
+		if node.Kind != yaml.DocumentNode || len(node.Content) != 1 {
+			return errors.Errorf("unsupport vars_files format. it should be single map file")
+		}
+		// combine map node
+		if node.Content[0].Kind == yaml.MappingNode {
+			// skip empty file
+			role.Vars = *variable.CombineMappingNode(&role.Vars, node.Content[0])
 		}
 	}
-
 	return nil
 }
 
-// convertIncludeTasks converts tasks from files into blocks
-func (f *project) convertIncludeTasks(basePlaybook string) error {
-	for _, play := range f.Playbook.Play {
-		if err := f.fileToBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), play.PreTasks); err != nil {
+// dealRoleTask recursively processes the tasks for a given role and its dependencies.
+// It ensures that all dependent roles are processed before handling the current role's tasks.
+func (f *project) dealRoleTask(role *kkprojectv1.Role, basePlaybook string) error {
+	for i := range role.RoleDependency {
+		if err := f.dealRoleTask(&role.RoleDependency[i], basePlaybook); err != nil {
 			return err
-		}
-		if err := f.fileToBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), play.Tasks); err != nil {
-			return err
-		}
-		if err := f.fileToBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), play.PostTasks); err != nil {
-			return err
-		}
-		for _, r := range play.Roles {
-			baseRole := f.getPath(GetRoleRelPath(basePlaybook, r.Role))
-			if baseRole == "" {
-				return errors.Errorf("failed to find role %q base on %q. it's should be:\n %s", r.Role, basePlaybook, PathFormatRole)
-			}
-			if err := f.fileToBlock(baseRole, filepath.Join(baseRole, _const.ProjectRolesTasksDir), r.Block); err != nil {
-				return err
-			}
 		}
 	}
-
-	return nil
+	// Get the base path for the current role
+	baseRole := f.getPath(GetRoleRelPath(basePlaybook, role.Role))
+	// Process the tasks for the current role
+	return f.dealBlock(baseRole, filepath.Join(baseRole, _const.ProjectRolesTasksDir), role.Block)
 }
 
-// fileToBlock converts task files into blocks, handling include_tasks directives
-func (f *project) fileToBlock(top string, source string, blocks []kkprojectv1.Block) error {
+// dealBlock recursively processes blocks, handling nested blocks, include_tasks, and annotating tasks with their relative path.
+func (f *project) dealBlock(top string, source string, blocks []kkprojectv1.Block) error {
 	for i, block := range blocks {
 		switch {
-		case len(block.Block) != 0: // it blocks
-			if err := f.fileToBlock(top, source, block.Block); err != nil {
+		case len(block.Block) != 0: // it's a block with nested blocks (block, rescue, always)
+			// Recursively process nested blocks
+			if err := f.dealBlock(top, source, block.Block); err != nil {
 				return err
 			}
-			if err := f.fileToBlock(top, source, block.Rescue); err != nil {
+			if err := f.dealBlock(top, source, block.Rescue); err != nil {
 				return err
 			}
-			if err := f.fileToBlock(top, source, block.Always); err != nil {
+			if err := f.dealBlock(top, source, block.Always); err != nil {
 				return err
 			}
-		case block.IncludeTasks != "": // it's include_tasks
+		case block.IncludeTasks != "": // it's an include_tasks directive
+			// Resolve the path to the include_tasks file
 			includeTask := f.getPath(GetIncludeTaskRelPath(top, source, block.IncludeTasks))
 			if includeTask == "" {
 				return errors.Errorf("failed to find include_task %q base on %q. it's should be:\n %s", block.IncludeTasks, source, PathFormatIncludeTask)
 			}
+			// Read the include_tasks file
 			data, err := fs.ReadFile(f.FS, includeTask)
 			if err != nil {
 				return errors.Wrapf(err, "failed to read includeTask file %q", includeTask)
 			}
+			// Unmarshal the file into blocks
 			var includeBlocks []kkprojectv1.Block
 			if err := yaml.Unmarshal(data, &includeBlocks); err != nil {
 				return errors.Wrapf(err, "failed to unmarshal includeTask file %q", includeTask)
 			}
-			if err := f.fileToBlock(top, filepath.Dir(includeTask), includeBlocks); err != nil {
+			// Recursively process the included blocks
+			if err := f.dealBlock(top, filepath.Dir(includeTask), includeBlocks); err != nil {
 				return err
 			}
+			// Assign the included blocks to the current block
 			blocks[i].Block = includeBlocks
-		default: // it tasks
+		default: // it's a regular task
+			// Annotate the task with its relative path
 			blocks[i].UnknownField["annotations"] = map[string]string{
 				kkcorev1alpha1.TaskAnnotationRelativePath: top,
 			}

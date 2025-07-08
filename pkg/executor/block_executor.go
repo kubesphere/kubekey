@@ -39,7 +39,7 @@ func (e blockExecutor) Exec(ctx context.Context) error {
 		ignoreErrors := e.dealIgnoreErrors(block.IgnoreErrors)
 		when := e.dealWhen(block.When)
 
-		// // check tags
+		// check tags
 		if !tags.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
 			// if not match the tags. skip
 			continue

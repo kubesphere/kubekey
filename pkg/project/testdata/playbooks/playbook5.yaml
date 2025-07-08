@@ -1,0 +1,4 @@
+- name: dependency role
+  hosts: node1
+  roles: 
+    - role3
