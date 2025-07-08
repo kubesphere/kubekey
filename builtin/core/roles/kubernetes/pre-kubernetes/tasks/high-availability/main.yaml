@@ -43,7 +43,7 @@
 - name: Set Control Plane to localDNS file
   command: |
     sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
-    cat >> {{ .item }} << EOF
+    cat >> {{ .item }} <<EOF
     # kubekey control_plane_endpoint BEGIN.
     {{- if .kubernetes.control_plane_endpoint.type | eq "kube_vip" }}
     {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}

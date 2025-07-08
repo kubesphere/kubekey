@@ -8,3 +8,6 @@
   when: 
    - .image_registry.ha_vip | empty | not
    - .groups.image_registry | len | lt 1
+
+- include_tasks: docker.yaml
+  when: .deleteCRI

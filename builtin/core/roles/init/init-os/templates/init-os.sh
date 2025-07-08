@@ -185,7 +185,7 @@ modprobe ip_vs_rr
 modprobe ip_vs_wrr
 modprobe ip_vs_sh
 
-cat > /etc/modules-load.d/kube_proxy-ipvs.conf << EOF
+cat > /etc/modules-load.d/kube_proxy-ipvs.conf <<EOF
 ip_vs
 ip_vs_rr
 ip_vs_wrr

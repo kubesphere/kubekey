@@ -83,10 +83,5 @@
       when:
        - .deleteImageRegistry
        - .delete_nodes | default list | has .inventory_hostname
-    - role: uninstall/cri
-      when:
-       - .deleteImageRegistry
-       - .deleteCRI
-       - .delete_nodes | default list | has .inventory_hostname
 
 - import_playbook: hook/post_install.yaml
