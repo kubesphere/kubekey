@@ -24,6 +24,8 @@ work_dir/
 |   |   |-- playbooks/
 |   |   |-- roles/
 |   |   |   |-- roleName/
+|   |   |   |   |-- meta/
+|   |   |   |   |   |-- main.yml
 |   |   |   |   |-- tasks/
 |   |   |   |   |   |-- main.yml
 |   |   |   |   |-- defaults/
@@ -79,6 +81,9 @@ const ProjectPlaybooksDir = "playbooks"
 const ProjectRolesDir = "roles"
 
 // roleName represents the name of individual roles.
+
+// ProjectRolesMetaDir is a fixed directory name under a role, used to store meta information such as dependencies.
+const ProjectRolesMetaDir = "meta"
 
 // ProjectRolesTasksDir is a fixed directory name under a role, used to store tasks required by the role.
 const ProjectRolesTasksDir = "tasks"

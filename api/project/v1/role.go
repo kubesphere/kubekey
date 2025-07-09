@@ -32,6 +32,8 @@ type RoleInfo struct {
 	Taggable         `yaml:",inline"`
 	CollectionSearch `yaml:",inline"`
 
+	RoleDependency []Role `yaml:"dependencies,omitempty"`
+
 	// Role ref in playbook
 	Role string `yaml:"role,omitempty"`
 

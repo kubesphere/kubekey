@@ -510,6 +510,59 @@ func TestMarshalPlaybook(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "test_playbook5_dependency_role",
+			playbook: kkcorev1.Playbook{
+				Spec: kkcorev1.PlaybookSpec{
+					Playbook: "testdata/playbooks/playbook5.yaml",
+				},
+			},
+			except: &kkprojectv1.Playbook{
+				Play: []kkprojectv1.Play{
+					{
+						Base: kkprojectv1.Base{
+							Name: "dependency role",
+						},
+						PlayHost: kkprojectv1.PlayHost{
+							Hosts: []string{"node1"},
+						},
+						Roles: []kkprojectv1.Role{
+							{
+								RoleInfo: kkprojectv1.RoleInfo{
+									Role: "role3",
+									RoleDependency: []kkprojectv1.Role{
+										{
+											RoleInfo: kkprojectv1.RoleInfo{
+												Role: "role1",
+												Block: []kkprojectv1.Block{
+													{
+														BlockBase: kkprojectv1.BlockBase{
+															Base: kkprojectv1.Base{
+																Name: "task1",
+															},
+														},
+														Task: kkprojectv1.Task{
+															UnknownField: map[string]any{
+																"annotations": map[string]string{
+																	kkcorev1alpha1.TaskAnnotationRelativePath: "roles/role1",
+																},
+																"debug": map[string]any{
+																	"msg": "im task1",
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testcases {

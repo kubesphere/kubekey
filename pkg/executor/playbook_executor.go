@@ -173,25 +173,18 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 		}
 		// generate task from role
 		for _, role := range play.Roles {
-			if !kkprojectv1.JoinTag(role.Taggable, play.Taggable).IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
-				// if not match the tags. skip
-				continue
-			}
-			if err := e.variable.Merge(variable.MergeRuntimeVariable(role.Vars, serials...)); err != nil {
-				return err
-			}
 			// use the most closely configuration
 			ignoreErrors := role.IgnoreErrors
 			if ignoreErrors == nil {
 				ignoreErrors = play.IgnoreErrors
 			}
-			// role is block.
-			if err := (blockExecutor{
+
+			// role has block.
+			if err := (roleExecutor{
 				option:       e.option,
 				hosts:        serials,
 				ignoreErrors: ignoreErrors,
-				blocks:       role.Block,
-				role:         role.Role,
+				role:         role,
 				when:         role.When.Data,
 				tags:         kkprojectv1.JoinTag(role.Taggable, play.Taggable),
 			}.Exec(ctx)); err != nil {
