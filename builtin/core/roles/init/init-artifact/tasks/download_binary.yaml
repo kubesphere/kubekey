@@ -201,20 +201,20 @@
 - name: Check binaries for registry
   tags: ["registry"]
   command: |
-    artifact_name={{ get .artifact.artifact_url.registry .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/image-registry/registry/{{ .registry_version }}/{{ .item }}
+    artifact_name={{ get .artifact.artifact_url.docker_registry .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/image-registry/docker-registry/{{ .docker_registry_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
       mkdir -p $artifact_path
       # download online
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.registry .item }})
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.docker_registry .item }})
       if [ $http_code != 200 ]; then
         echo "http code is $http_code"
         exit 1
       fi
-      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.registry .item }}
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.docker_registry .item }}
     fi
   loop: "{{ .artifact.arch | toJson }}"
-  when: .registry_version | empty | not
+  when: .docker_registry_version | empty | not
 
 - name: Check binaries for docker-compose
   tags: ["docker-compose"]

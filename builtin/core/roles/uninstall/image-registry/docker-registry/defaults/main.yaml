@@ -1,0 +1,6 @@
+image_registry:
+  docker_registry:
+    storage:
+      filesystem:
+        rootdir: /opt/docker-registry/data
+#        nfs_mount: /repository/registry # if set. will mount rootdirectory to nfs server in nfs_mount.

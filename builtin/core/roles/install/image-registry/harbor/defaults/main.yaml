@@ -1,0 +1,4 @@
+image_registry:
+  # Virtual IP address for repository High Availability. the Virtual IP address should be available.
+  harbor:
+    data_dir: /opt/harbor/data

@@ -1,32 +1,51 @@
 ---
-- include_tasks: install_docker.yaml
-
-- include_tasks: install_docker_compose.yaml
-
-- include_tasks: install_keepalived.yaml
-  when: 
-   - .image_registry.ha_vip | empty | not
-   - .groups.image_registry | len | lt 1
-
-- name: Install harbor
-  when: .image_registry.type | eq "harbor"
-  block:
-    - name: Check if harbor installed
-      ignore_errors: true
-      command: systemctl is-active harbor.service
-      register: harbor_install_service
-    - include_tasks: install_harbor.yaml
-      when: .harbor_install_service.stdout | eq "inactive"
-
-- name: Install registry
-  when: .image_registry.type | eq "registry"
-  block:
-    - name: Check if registry installed
-      ignore_errors: true
-      command: systemctl is-active registry.service
-      register: registry_install_service
-    - include_tasks: install_registry.yaml
-      when: .registry_install_service.stdout | eq "inactive"
-
-- include_tasks: load_images.yaml
+- name: Sync images to remote
   tags: ["only_image"]
+  copy:
+    src: >-
+      {{ .binary_dir }}/images/
+    dest: >-
+      {{ .image_registry.images_dir }}
+
+- name: Create harbor project for each image
+  tags: ["only_image"]
+  command: |
+    # Iterate through first-level subdirectories in images_dir (skip blobs)
+    for registry_dir in {{ .image_registry.images_dir }}*; do
+      if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
+        continue
+      fi
+      
+      # Iterate through second-level subdirectories in registry_dir
+      for project_dir in "$registry_dir"/*; do
+        if [ ! -d "$project_dir" ]; then
+          continue
+        fi
+        
+        project=$(basename "$project_dir")
+        
+        # Check if project exists, create if not
+        resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://{{ .image_registry.auth.registry }}/api/v2.0/projects/${project}")
+        if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
+          curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
+            -H "Content-Type: application/json" \
+            "https://{{ .image_registry.auth.registry }}/api/v2.0/projects" \
+            -d "{ \"project_name\": \"${project}\", \"public\": true}"
+        fi
+      done
+    done
+  when: .image_registry.type | eq "harbor"
+
+- name: Sync images package to image_registry
+  tags: ["only_image"]
+  image:
+    push:
+      images_dir: >-
+        {{ .image_registry.images_dir }}
+      dest: >-
+        {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
+      username: >-
+        {{ .image_registry.auth.username }}
+      password: >-
+        {{ .image_registry.auth.password }}
+      skip_tls_verify: true

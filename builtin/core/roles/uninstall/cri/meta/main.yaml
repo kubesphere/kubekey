@@ -1,0 +1,10 @@
+---
+dependencies:
+  - role: uninstall/cri/containerd
+    when: .cri.container_manager | eq "containerd"
+
+  - role: uninstall/cri/docker
+    when: .cri.container_manager | eq "docker"
+
+  - role: uninstall/cri/crictl
+

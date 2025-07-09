@@ -1,0 +1,4 @@
+---
+- include_tasks: docker.yaml
+
+- include_tasks: docker_compose.yaml

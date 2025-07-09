@@ -10,6 +10,6 @@
 - hosts:
    - image_registry
   roles:
-    - role: uninstall/image_registry
+    - role: uninstall/image-registry
 
 - import_playbook: hook/post_install.yaml
