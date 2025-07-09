@@ -1,0 +1,218 @@
+version: 0.1
+log:
+  accesslog:
+    disabled: true
+  level: info
+  formatter: text
+  fields:
+    service: registry
+    environment: staging
+#  hooks:
+#    - type: mail
+#      disabled: true
+#      levels:
+#        - panic
+#      options:
+#        smtp:
+#          addr: mail.example.com:25
+#          username: mailuser
+#          password: password
+#          insecure: true
+#        from: sender@example.com
+#        to:
+#          - errors@example.com
+storage:
+{{- if .image_registry.docker_registry.storage.filesystem.rootdir | empty | not }}
+  filesystem:
+    rootdirectory: {{ .image_registry.docker_registry.storage.filesystem.rootdir }}
+    maxthreads: 100
+{{- end }}
+{{- if .image_registry.docker_registry.storage.azure }}
+  azure:
+    accountname: {{ .image_registry.docker_registry.storage.azure.accountname }}
+    accountkey: {{ .image_registry.docker_registry.storage.azure.accountkey }}
+    container: {{ .image_registry.docker_registry.storage.azure.container }}
+{{- end }}
+{{- if .image_registry.docker_registry.storage.gcs | empty | not }}
+  gcs:
+    bucket: {{ .image_registry.docker_registry.storage.gcs.bucket }}
+    keyfile: {{ .image_registry.docker_registry.storage.gcs.keyfile }}
+    credentials:
+      type: service_account
+      project_id: {{ .image_registry.docker_registry.storage.gcs.credentials.project_id }}
+      private_key_id: {{ .image_registry.docker_registry.storage.gcs.credentials.private_key_id }}
+      private_key: {{ .image_registry.docker_registry.storage.gcs.credentials.private_key }}
+      client_email: {{ .image_registry.docker_registry.storage.gcs.credentials.client_email }}
+      client_id: {{ .image_registry.docker_registry.storage.gcs.credentials.client_id }}
+      auth_uri: {{ .image_registry.docker_registry.storage.gcs.credentials.auth_uri }}
+      token_uri: {{ .image_registry.docker_registry.storage.gcs.credentials.token_uri }}
+      auth_provider_x509_cert_url: {{ .image_registry.docker_registry.storage.gcs.credentials.auth_provider_x509_cert_url }}
+      client_x509_cert_url: {{ .image_registry.docker_registry.storage.gcs.credentials.client_x509_cert_url }}
+    rootdirectory: {{ .image_registry.docker_registry.storage.gcs.rootdirectory }}
+{{- end }}
+{{- if .image_registry.docker_registry.storage.s3 | empty | not }}
+  s3:
+    accesskey: {{ .image_registry.docker_registry.storage.s3.accesskey }}
+    secretkey: {{ .image_registry.docker_registry.storage.s3.secretkey }}
+    region: {{ .image_registry.docker_registry.storage.s3.region }}
+    regionendpoint: {{ .image_registry.docker_registry.storage.s3.regionendpoint }}
+    forcepathstyle: true
+    accelerate: false
+    bucket: {{ .image_registry.docker_registry.storage.s3.bucket }}
+    encrypt: true
+    keyid: {{ .image_registry.docker_registry.storage.s3.keyid }}
+    secure: true
+    v4auth: true
+    chunksize: 5242880
+    multipartcopychunksize: 33554432
+    multipartcopymaxconcurrency: 100
+    multipartcopythresholdsize: 33554432
+    rootdirectory: {{ .image_registry.docker_registry.storage.s3.rootdirectory }}
+    usedualstack: false
+    loglevel: debug
+{{- end }}
+# inmemory:  # This driver takes no parameters
+  delete:
+    enabled: false
+  redirect:
+    disable: false
+  cache:
+    blobdescriptor: inmemory
+    blobdescriptorsize: 10000
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 168h
+      interval: 24h
+      dryrun: false
+    readonly:
+      enabled: false
+#auth:
+#  silly:
+#    realm: silly-realm
+#    service: silly-service
+#  token:
+#    autoredirect: true
+#    realm: token-realm
+#    service: token-service
+#    issuer: registry-token-issuer
+#    rootcertbundle: /root/certs/bundle
+#  htpasswd:
+#    realm: basic-realm
+#    path: /path/to/htpasswd
+#middleware:
+#  registry:
+#    - name: ARegistryMiddleware
+#      options:
+#        foo: bar
+#  repository:
+#    - name: ARepositoryMiddleware
+#      options:
+#        foo: bar
+#  storage:
+#    - name: cloudfront
+#      options:
+#        baseurl: https://my.cloudfronted.domain.com/
+#        privatekey: /path/to/pem
+#        keypairid: cloudfrontkeypairid
+#        duration: 3000s
+#        ipfilteredby: awsregion
+#        awsregion: us-east-1, use-east-2
+#        updatefrequency: 12h
+#        iprangesurl: https://ip-ranges.amazonaws.com/ip-ranges.json
+#    - name: redirect
+#      options:
+#        baseurl: https://example.com/
+http:
+  addr: 0.0.0.0:5000
+#  prefix: /my/nested/registry/
+#  host: https://myregistryaddress.org:5000
+  secret: asecretforlocaldevelopment
+  relativeurls: false
+  draintimeout: 60s
+  tls:
+    certificate: /etc/registry/ssl/server.crt
+    key: /etc/registry/ssl/server.key
+#    clientcas:
+#      - /path/to/ca.pem
+#      - /path/to/another/ca.pem
+#    letsencrypt:
+#      cachefile: /path/to/cache-file
+#      email: emailused@letsencrypt.com
+#      hosts: [myregistryaddress.org]
+#      directoryurl: https://acme-v02.api.letsencrypt.org/directory
+#  debug:
+#    addr: localhost:5001
+#    prometheus:
+#      enabled: true
+#      path: /metrics
+  headers:
+    X-Content-Type-Options: [nosniff]
+  http2:
+    disabled: false
+  h2c:
+    enabled: false
+#notifications:
+#  events:
+#    includereferences: true
+#  endpoints:
+#    - name: alistener
+#      disabled: false
+#      url: https://my.listener.com/event
+#      headers: <http.Header>
+#      timeout: 1s
+#      threshold: 10
+#      backoff: 1s
+#      ignoredmediatypes:
+#        - application/octet-stream
+#      ignore:
+#        mediatypes:
+#           - application/octet-stream
+#        actions:
+#           - pull
+#redis:
+#  addr: localhost:6379
+#  password: asecret
+#  db: 0
+#  dialtimeout: 10ms
+#  readtimeout: 10ms
+#  writetimeout: 10ms
+#  pool:
+#    maxidle: 16
+#    maxactive: 64
+#    idletimeout: 300s
+#  tls:
+#    enabled: false
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+#  file:
+#    - file: /path/to/checked/file
+#      interval: 10s
+#  http:
+#    - uri: http://server.to.check/must/return/200
+#      headers:
+#        Authorization: [Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==]
+#      statuscode: 200
+#      timeout: 3s
+#      interval: 10s
+#      threshold: 3
+#  tcp:
+#    - addr: redis-server.domain.com:6379
+#      timeout: 3s
+#      interval: 10s
+##      threshold: 3
+#proxy:
+#  remoteurl: https://registry-1.docker.io
+#  username: [username]
+#  password: [password]
+#  ttl: 168h
+#validation:
+#  manifests:
+#    urls:
+#      allow:
+#        - ^https?://([^/]+\.)*example\.com/
+#      deny:
+#        - ^https?://www\.example\.com/

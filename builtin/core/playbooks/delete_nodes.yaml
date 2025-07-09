@@ -79,7 +79,7 @@
 - hosts:
    - image_registry
   roles:
-    - role: uninstall/image_registry
+    - role: uninstall/image-registry
       when:
        - .deleteImageRegistry
        - .delete_nodes | default list | has .inventory_hostname

@@ -1,0 +1,5 @@
+cri:
+  docker:
+    data_root: /var/lib/docker
+  containerd:
+    data_root: /var/lib/containerd

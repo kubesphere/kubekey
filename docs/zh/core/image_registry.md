@@ -1,6 +1,6 @@
 # image_registry
 
-image_registry允许用户安装镜像仓库。支持harbor和registry两种镜像仓库
+image_registry允许用户安装镜像仓库。支持`harbor`和`docker-registry`两种类型
 
 ## requirement
 
@@ -70,7 +70,7 @@ harbor是默认安装的镜像仓库
     ```
 
 - 在创建集群时，自动安装
-在创建集群时，会检测 `image_registry` 节点是否安装了harbor, 没有安装时会自动根据配置安装harbor。
+在创建集群时，会检测 `image_registry` 节点是否安装了`harbor`, 没有安装时会自动根据配置安装`harbor`。
     ```shell
     kk create cluster -i inventory.yaml --set harbor_version=v2.10.1,docker_version=24.0.7,   dockercompose_version=v2.20.3
     ```
@@ -161,32 +161,32 @@ spec:
 kubekey暂未提供registry的离线镜像包地址，需通过手动打包的方式来实现。
     ```shell
     # download registry images
-    docker pull registry:{{ .registry_version }}
+    docker pull registry:{{ .docker_registry_version }}
     # package image
-    docker save -o registry-{{ .registry_version }}-linux-{{ .binary_type }}.tgz registry:{{ .registry_version }}
+    docker save -o docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz registry:{{ .docker_registry_version }}
     # move image to workdir
-    mv registry-{{ .registry_version }}-linux-{{ .binary_type }}.tgz {{ .binary_dir }}/ image-registry/registry/{{ .registry_version }}/{{ .binary_type }}/
+    mv docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz {{ .binary_dir }}/ image-registry/docker-registry/{{ .docker_registry_version }}/{{ .binary_type }}/
     ```
     `binary_type`: 是机器的架构（目前支持amd64和arm64，可通过 `gather_fact` 自动获取）  
     `binary_dir`: 软件包存放地址，通常为: `{{ .work_dir}}/kubekey`  
 
 ### 安装
-安装registry需要设置`image_registry.type`值为`registry`
+安装registry需要设置`image_registry.type`值为`docker-registry`
 1. 安装前检查
     ```shell
-    kk precheck image_registry -i inventory.yaml --set image_registry.type=registry --set registry_version=2.8.3,docker_version=24.0.7,dockercompose_version=v2.20.3
+    kk precheck image_registry -i inventory.yaml --set image_registry.type=docker-registry --set docker_registry_version=2.8.3,docker_version=24.0.7,dockercompose_version=v2.20.3
     ```
 2. 安装
 - 单独安装
 `image_registry` 可以脱离集群单独进行安装。
     ```shell
-    kk init registry -i inventory.yaml --set image_registry.type=registry --set registry_version=2.8.3,docker_version=24.0.7,dockercompose_version=v2.20.3 --set artifact.artifact_url.registry.amd64=registry-2.8.3-linux.amd64.tgz
+    kk init registry -i inventory.yaml --set image_registry.type=docker-registry --set docker_registry_version=2.8.3,docker_version=24.0.7,dockercompose_version=v2.20.3 --set artifact.artifact_url.docker_registry.amd64=docker-registry-2.8.3-linux.amd64.tgz
     ```
 
 - 在创建集群时，自动安装
-在创建集群时，会检测 `image_registry` 节点是否安装了harbor, 没有安装时会自动根据配置安装harbor。
+在创建集群时，会检测 `image_registry` 节点是否安装了`docker-registry`, 没有安装时会自动根据配置安装`docker-registry`。
     ```shell
-    kk create cluster -i inventory.yaml --set image_registry.type=registry --set registry_version=2.8.3,docker_version=24.0.7,dockercompose_version=v2.20.3 --set artifact.artifact_url.registry.amd64=registry-2.8.3-linux.amd64.tgz
+    kk create cluster -i inventory.yaml --set image_registry.type=docker-registry --set docker_registry_version=2.8.3,docker_version=24.0.7,dockercompose_version=v2.20.3 --set artifact.artifact_url.docker_registry.amd64=docker-registry-2.8.3-linux.amd64.tgz
     ```
 
 ### registry高可用
@@ -194,22 +194,22 @@ kubekey暂未提供registry的离线镜像包地址，需通过手动打包的�
 ![ha-registry](../../images/ha-registry.png)
 - load balancer: 通过docker compose部署keepalived服务实现。
 - registry service: 通过docker compose部署registry实现。
-- storage service: registry 高可用可通过共享存储的方式来实现。registry 支持多种存储后端，常见的有：
-  - **filesystem**: 本地存储。默认情况下，registry 使用本地磁盘存储镜像数据。如果需要实现高可用，可以将本地存储目 录挂载到 NFS 等共享存储上。配置示例：
+- storage service: docker-registry 高可用可通过共享存储的方式来实现。docker-registry 支持多种存储后端，常见的有：
+  - **filesystem**: 本地存储。默认情况下，docker-registry 使用本地磁盘存储镜像数据。如果需要实现高可用，可以将本地存储目 录挂载到 NFS 等共享存储上。配置示例：
       ```yaml
       image_registry:
-        registry:
+        docker_registry:
           storage:
             filesystem:
-              rootdir: /opt/registry/data
-              nfs_mount: /repository/registry # 可选，将 rootdir 挂载到 NFS 服务器
+              rootdir: /opt/docker-registry/data
+              nfs_mount: /repository/docker-registry # 可选，将 rootdir 挂载到 NFS 服务器
       ```
       需要在 `nfs` 节点配置和挂载好共享目录，保证所有 registry 实例的数据一致性。
   
   - **azure**: 使用 Azure Blob Storage 作为后端存储。适用于部署在 Azure 云环境下的场景。配置示例：
       ```yaml
       image_registry:
-        registry:
+        docker_registry:
           storage:
             azure:
               accountname: <your-account-name>
@@ -220,7 +220,7 @@ kubekey暂未提供registry的离线镜像包地址，需通过手动打包的�
   - **gcs**: 使用 Google Cloud Storage 作为后端存储。适用于部署在 GCP 云环境下的场景。配置示例：
       ```yaml
       image_registry:
-        registry:
+        docker_registry:
           storage:
             gcs:
               bucket: <your-bucket-name>
@@ -230,7 +230,7 @@ kubekey暂未提供registry的离线镜像包地址，需通过手动打包的�
   - **s3**: 使用 Amazon S3 或兼容 S3 协议的对象存储作为后端存储。适用于 AWS 或支持 S3 协议的私有云。配置示例：
       ```yaml
       image_registry:
-        registry:
+        docker_registry:
           storage:
             s3:
               accesskey: <your-access-key>

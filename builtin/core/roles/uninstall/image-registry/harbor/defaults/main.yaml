@@ -1,0 +1,3 @@
+image_registry:
+  harbor:
+    data_dir: /opt/harbor/data
