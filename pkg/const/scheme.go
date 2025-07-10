@@ -55,5 +55,7 @@ func newScheme() *runtime.Scheme {
 	utilruntime.Must(clusterv1beta1.AddToScheme(s))
 	utilruntime.Must(kubeadmcpv1beta1.AddToScheme(s))
 
+	utilruntime.Must(kkcorev1alpha1.RegisterFieldLabelConversion(s))
+
 	return s
 }

@@ -17,6 +17,11 @@ limitations under the License.
 package api
 
 const (
+	// SchemaLabelSubfix is the label key used to indicate which schema a playbook belongs to.
+	SchemaLabelSubfix = "kubekey.kubesphere.io/schema"
+)
+
+const (
 	// ResultSucceed indicates a successful operation result.
 	ResultSucceed = "success"
 	// ResultFailed indicates a failed operation result.
@@ -69,15 +74,15 @@ type InventoryHostGroups struct {
 // It includes fields such as name, type, title, description, version, namespace, logo, priority, and associated playbooks.
 // The Playbook field is a slice of SchemaTablePlaybook, each representing a playbook reference.
 type SchemaTable struct {
-	Name        string                `json:"name"`        // Name of schema, defined by filename
-	SchemaType  string                `json:"schemaType"`  // Type of the schema (e.g., CRD, built-in)
-	Title       string                `json:"title"`       // Title of the schema
-	Description string                `json:"description"` // Description of the schema
-	Version     string                `json:"version"`     // Version of the schema
-	Namespace   string                `json:"namespace"`   // Namespace of the schema
-	Logo        string                `json:"logo"`        // Logo URL or identifier
-	Priority    int                   `json:"priority"`    // Priority for display or ordering
-	Playbook    []SchemaTablePlaybook `json:"playbook"`    // List of reference playbooks
+	Name        string              `json:"name"`        // Name of schema, defined by filename
+	SchemaType  string              `json:"schemaType"`  // Type of the schema (e.g., CRD, built-in)
+	Title       string              `json:"title"`       // Title of the schema
+	Description string              `json:"description"` // Description of the schema
+	Version     string              `json:"version"`     // Version of the schema
+	Namespace   string              `json:"namespace"`   // Namespace of the schema
+	Logo        string              `json:"logo"`        // Logo URL or identifier
+	Priority    int                 `json:"priority"`    // Priority for display or ordering
+	Playbook    SchemaTablePlaybook `json:"playbook"`    // List of reference playbooks
 }
 
 // SchemaTablePlaybook represents a reference to a playbook associated with a schema.

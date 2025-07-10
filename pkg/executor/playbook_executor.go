@@ -64,7 +64,9 @@ type playbookExecutor struct {
 
 // Exec playbook. covert playbook to block and executor it.
 func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
-	defer e.syncStatus(ctx, retErr)
+	defer func() {
+		e.syncStatus(ctx, retErr)
+	}()
 	fmt.Fprint(e.logOutput, `
 
  _   __      _          _   __           
