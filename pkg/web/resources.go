@@ -108,6 +108,7 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 					mu.Lock()
 					ipTable = append(ipTable, api.IPTable{
 						IP:            ip,
+						SSHPort:       string(sshPort),
 						Localhost:     true,
 						SSHReachable:  true,
 						SSHAuthorized: true,
@@ -126,6 +127,7 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 				mu.Lock()
 				ipTable = append(ipTable, api.IPTable{
 					IP:            ip,
+					SSHPort:       string(sshPort),
 					SSHReachable:  reachable,
 					SSHAuthorized: authorized,
 				})
