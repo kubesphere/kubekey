@@ -2,7 +2,7 @@ package web
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/netip"
@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -44,6 +45,7 @@ func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client)
 		Doc("list available ip from ip cidr").
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
 		Param(ws.QueryParameter("cidr", "the cidr for ip").Required(true)).
+		Param(ws.QueryParameter("sshPort", "the ssh port for ip").Required(false)).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
@@ -57,7 +59,7 @@ func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client)
 		Doc("list all schema as table").
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
 		Param(ws.QueryParameter("schemaType", "the type of schema json").Required(false)).
-		Param(ws.QueryParameter("playbookLabel", "the reference playbook of schema. eg: install.kubekey.kubesphere.io/schema,check.kubekey.kubesphere.io/schema"+
+		Param(ws.QueryParameter("playbookLabel", "the reference playbook of schema. eg: \"install.kubekey.kubesphere.io/schema\", \"check.kubekey.kubesphere.io/schema\" \\n"+
 			"if empty will not return any reference playbook").Required(false)).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
@@ -83,9 +85,13 @@ type schemaHandler struct {
 func (h schemaHandler) listIP(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
 	cidr, ok := queryParam.Filters["cidr"]
-	if !ok || len(cidr) == 0 {
+	if !ok || string(cidr) == "" {
 		api.HandleBadRequest(response, request, errors.New("cidr parameter is required"))
 		return
+	}
+	sshPort, ok := queryParam.Filters["sshPort"]
+	if !ok || string(sshPort) == "" {
+		sshPort = "22"
 	}
 	ips := _const.ParseIP(string(cidr))
 	ipTable := make([]api.IPTable, 0, len(ips))
@@ -115,7 +121,7 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 				if !ifIPOnline(ip) {
 					continue
 				}
-				reachable, authorized := ifIPSSHAuthorized(ip)
+				reachable, authorized := ifIPSSHAuthorized(ip, string(sshPort))
 
 				mu.Lock()
 				ipTable = append(ipTable, api.IPTable{
@@ -220,13 +226,22 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 				api.HandleBadRequest(response, request, err)
 				return
 			}
-			schema.Playbook = make([]api.SchemaTablePlaybook, len(playbookList.Items))
-			for i, playbook := range playbookList.Items {
-				schema.Playbook[i] = api.SchemaTablePlaybook{
-					Name:      playbook.Name,
-					Namespace: playbook.Namespace,
-					Phase:     string(playbook.Status.Phase),
+			switch len(playbookList.Items) {
+			case 0: // skip
+			case 1:
+				item := &playbookList.Items[0]
+				schema.Playbook = api.SchemaTablePlaybook{
+					Name:      item.Name,
+					Namespace: item.Namespace,
+					Phase:     string(item.Status.Phase),
 				}
+			default:
+				playbookNames := make([]string, 0, len(playbookList.Items))
+				for _, playbook := range playbookList.Items {
+					playbookNames = append(playbookNames, playbook.Name)
+				}
+				api.HandleBadRequest(response, request, errors.Errorf("schema %q has multiple playbooks: %q", entry.Name(), playbookNames))
+				return
 			}
 		}
 		schemaTable = append(schemaTable, schema)
@@ -439,9 +454,9 @@ func isValidICMPReply(n int, reply []byte, src net.Addr, expectedIP net.IP, prot
 // ifIPSSHAuthorized checks if SSH authorization to the given IP is possible using the local private key.
 // It returns two booleans: the first indicates if the SSH port (22) is reachable, and the second indicates if SSH authorization using the local private key is successful.
 // The function attempts to find the user's private key, read and parse it, and then connect via SSH.
-func ifIPSSHAuthorized(ipStr string) (bool, bool) {
+func ifIPSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 	// First check if port 22 is reachable on the target IP address.
-	conn, err := net.DialTimeout("tcp", ipStr+":22", time.Second)
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ipStr, sshPort), time.Second)
 	if err != nil {
 		klog.V(6).Infof("port 22 not reachable on ip %q, error %v", ipStr, err)
 		return false, false

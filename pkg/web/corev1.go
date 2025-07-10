@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -38,15 +39,9 @@ import (
 // NewCoreService creates and configures a new RESTful web service for managing inventories and playbooks.
 // It sets up routes for CRUD operations on inventories and playbooks, including pagination, sorting, and filtering.
 func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Config) *restful.WebService {
-	ws := new(restful.WebService)
-	// the GroupVersion might be empty, we need to remove the final /
-	ws.Path(strings.TrimRight(_const.APIPath+kkcorev1.SchemeGroupVersion.String(), "/")).
-		Produces(restful.MIME_JSON).Consumes(
-		string(types.JSONPatchType),
-		string(types.MergePatchType),
-		string(types.StrategicMergePatchType),
-		string(types.ApplyPatchType),
-		restful.MIME_JSON)
+	ws := new(restful.WebService).
+		// the GroupVersion might be empty, we need to remove the final /
+		Path(strings.TrimRight(_const.APIPath+kkcorev1.SchemeGroupVersion.String(), "/"))
 
 	h := newCoreHandler(workdir, client, config)
 
@@ -54,20 +49,23 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.POST("/inventories").To(h.createInventory).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("create a inventory.").
+		Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Inventory{}).
 		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
 
 	ws.Route(ws.PATCH("/namespaces/{namespace}/inventories/{inventory}").To(h.patchInventory).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("patch a inventory.").
+		Consumes(string(types.JSONPatchType), string(types.MergePatchType), string(types.ApplyPatchType)).Produces(restful.MIME_JSON).
+		Reads(kkcorev1.Inventory{}).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
-		Reads(kkcorev1.Inventory{}).
 		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
 
 	ws.Route(ws.GET("/inventories").To(h.listInventories).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("list all inventories.").
+		Produces(restful.MIME_JSON).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
@@ -77,6 +75,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories").To(h.listInventories).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("list all inventories in a namespace.").
+		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
@@ -87,6 +86,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories/{inventory}").To(h.inventoryInfo).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("get a inventory in a namespace.").
+		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
 		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
@@ -94,6 +94,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories/{inventory}/hosts").To(h.listInventoryHosts).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("list all hosts in a inventory.").
+		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
@@ -106,13 +107,14 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.POST("/playbooks").To(h.createPlaybook).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("create a playbook.").
+		Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Playbook{}).
 		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Playbook{}))
 
 	ws.Route(ws.GET("/playbooks").To(h.listPlaybooks).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("list all playbooks.").
-		Reads(kkcorev1.Playbook{}).
+		Produces(restful.MIME_JSON).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
@@ -122,6 +124,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks").To(h.listPlaybooks).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("list all playbooks in a namespace.").
+		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
@@ -132,6 +135,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks/{playbook}").To(h.playbookInfo).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("get or watch a playbook in a namespace.").
+		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
 		Param(ws.QueryParameter("watch", "set to true to watch this playbook")).
@@ -140,13 +144,15 @@ func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Confi
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks/{playbook}/log").To(h.logPlaybook).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("get a playbook execute log.").
+		Produces("text/plain").
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
-		Returns(http.StatusOK, _const.StatusOK, "text/plain"))
+		Returns(http.StatusOK, _const.StatusOK, ""))
 
 	ws.Route(ws.DELETE("/namespaces/{namespace}/playbooks/{playbook}").To(h.deletePlaybook).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("delete a playbook.").
+		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
 		Returns(http.StatusOK, _const.StatusOK, api.Result{}))
@@ -469,37 +475,83 @@ func (h *coreHandler) listInventoryHosts(request *restful.Request, response *res
 // It reads the playbook from the request, sets the workdir, creates the resource, and starts execution in a goroutine.
 func (h *coreHandler) createPlaybook(request *restful.Request, response *restful.Response) {
 	playbook := &kkcorev1.Playbook{}
+	// Read the playbook entity from the request body
 	if err := request.ReadEntity(playbook); err != nil {
 		api.HandleBadRequest(response, request, err)
 		return
 	}
-	// Set workdir to playbook spec config.
+
+	// Check for schema label: only one allowed, must not be empty, and must be unique among playbooks
+	hasSchemaLabel := false
+	for labelKey, labelValue := range playbook.Labels {
+		// Only consider labels with the schema label suffix
+		if !strings.HasSuffix(labelKey, api.SchemaLabelSubfix) {
+			continue
+		}
+		// If a schema label was already found, this is a conflict
+		if hasSchemaLabel {
+			api.HandleConflict(response, request, errors.New("a playbook can only have one schema label. Please ensure only one schema label is set"))
+			return
+		}
+		// The schema label value must not be empty
+		if labelValue == "" {
+			api.HandleConflict(response, request, errors.New("the schema label value must not be empty. Please provide a valid schema label value"))
+			return
+		}
+		hasSchemaLabel = true
+		// Check if there is already a playbook with the same schema label
+		playbookList := &kkcorev1.PlaybookList{}
+		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.MatchingLabels{
+			labelKey: labelValue,
+		}); err != nil {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+		// If any playbook with the same schema label exists, this is a conflict
+		if len(playbookList.Items) > 0 {
+			api.HandleConflict(response, request, errors.New("a playbook with the same schema label already exists. Please use a different schema label or remove the existing playbook"))
+			return
+		}
+	}
+
+	// Set the workdir in the playbook's spec config
 	if err := unstructured.SetNestedField(playbook.Spec.Config.Value(), h.workdir, _const.Workdir); err != nil {
 		api.HandleBadRequest(response, request, err)
 		return
 	}
 
+	// Create the playbook resource in the cluster
 	if err := h.client.Create(request.Request.Context(), playbook); err != nil {
 		api.HandleBadRequest(response, request, err)
 		return
 	}
 
+	// Start playbook execution in a separate goroutine
 	go func() {
-		// Create playbook log file and execute the playbook, writing output to the log.
-		filename := filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.Group, kkcorev1.SchemeGroupVersion.Version, "playbooks", playbook.Namespace, playbook.Name, playbook.Name+".log")
-		// Check if the directory for the log file exists, and create it if it does not.
+		// Build the log file path for the playbook execution
+		filename := filepath.Join(
+			_const.GetWorkdirFromConfig(playbook.Spec.Config),
+			_const.RuntimeDir,
+			kkcorev1.SchemeGroupVersion.Group,
+			kkcorev1.SchemeGroupVersion.Version,
+			"playbooks",
+			playbook.Namespace,
+			playbook.Name,
+			playbook.Name+".log",
+		)
+		// Ensure the directory for the log file exists
 		if _, err := os.Stat(filepath.Dir(filename)); err != nil {
 			if !os.IsNotExist(err) {
 				api.HandleBadRequest(response, request, err)
 				return
 			}
-			// If directory does not exist, create it.
+			// If directory does not exist, create it
 			if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 				api.HandleBadRequest(response, request, err)
 				return
 			}
 		}
-		// Open the log file for writing.
+		// Open the log file for writing
 		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			klog.ErrorS(err, "failed to open file", "file", filename)
@@ -507,15 +559,15 @@ func (h *coreHandler) createPlaybook(request *restful.Request, response *restful
 		}
 		defer file.Close()
 
-		// Create a cancellable context for the playbook execution.
+		// Create a cancellable context for playbook execution
 		ctx, cancel := context.WithCancel(context.Background())
-		// Add the playbook and its cancel function to the playbookManager.
+		// Register the playbook and its cancel function in the playbookManager
 		h.playbookManager.addPlaybook(playbook, cancel)
-		// Execute the playbook and write output to the log file.
+		// Execute the playbook and write output to the log file
 		if err := executor.NewPlaybookExecutor(ctx, h.client, playbook, file).Exec(ctx); err != nil {
 			klog.ErrorS(err, "failed to exec playbook", "playbook", playbook.Name)
 		}
-		// Remove the playbook from the playbookManager after execution.
+		// Remove the playbook from the playbookManager after execution
 		h.playbookManager.deletePlaybook(playbook)
 	}()
 
@@ -697,10 +749,11 @@ func (h *coreHandler) deletePlaybook(request *restful.Request, response *restful
 	}
 	// delete relative filepath: variable and log
 	_ = os.Remove(filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.Group, kkcorev1.SchemeGroupVersion.Version, "playbooks", playbook.Namespace, playbook.Name, playbook.Name+".log"))
-	_ = os.RemoveAll(filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.Group, kkcorev1.SchemeGroupVersion.Version, "playbooks", playbook.Namespace, playbook.Name, playbook.Name))
+	_ = os.RemoveAll(filepath.Join(_const.GetWorkdirFromConfig(playbook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.Group, kkcorev1.SchemeGroupVersion.Version, "playbooks", playbook.Namespace, playbook.Name))
 	// Delete all tasks owned by this playbook.
-	if err := h.client.DeleteAllOf(request.Request.Context(), &kkcorev1alpha1.Task{}, ctrlclient.MatchingFields{
-		"playbook.name": playbook.Name, "playbook.namespace": playbook.Namespace,
+	if err := h.client.DeleteAllOf(request.Request.Context(), &kkcorev1alpha1.Task{}, ctrlclient.InNamespace(playbook.Namespace), ctrlclient.MatchingFields{
+		"playbook.name": playbook.Name,
+		"playbook.uid":  string(playbook.UID),
 	}); err != nil {
 		api.HandleError(response, request, err)
 		return

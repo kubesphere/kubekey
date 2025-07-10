@@ -141,7 +141,7 @@ func (w *fileWatcher) watch() {
 
 // watchFile for resource.
 func (w *fileWatcher) watchFile(event fsnotify.Event) error {
-	if !strings.HasSuffix(event.Name, yamlSuffix) {
+	if !strings.HasSuffix(event.Name, yamlSuffix) && !strings.HasSuffix(event.Name, yamlSuffix+deleteTagSuffix) {
 		return nil
 	}
 	data, err := os.ReadFile(event.Name)
@@ -164,11 +164,6 @@ func (w *fileWatcher) watchFile(event fsnotify.Event) error {
 
 	switch event.Op {
 	case fsnotify.Create:
-		w.watchEvents <- watch.Event{
-			Type:   watch.Added,
-			Object: obj,
-		}
-	case fsnotify.Write:
 		if strings.HasSuffix(filepath.Base(event.Name), deleteTagSuffix) {
 			// delete event
 			w.watchEvents <- watch.Event{
@@ -179,11 +174,16 @@ func (w *fileWatcher) watchFile(event fsnotify.Event) error {
 				klog.ErrorS(err, "failed to remove file", "event", event)
 			}
 		} else {
-			// update event
 			w.watchEvents <- watch.Event{
-				Type:   watch.Modified,
+				Type:   watch.Added,
 				Object: obj,
 			}
+		}
+	case fsnotify.Write:
+		// update event
+		w.watchEvents <- watch.Event{
+			Type:   watch.Modified,
+			Object: obj,
 		}
 	}
 
