@@ -97,6 +97,7 @@ type SchemaTablePlaybook struct {
 // It indicates whether the IP is a localhost, if SSH is reachable, and if SSH authorization is present.
 type IPTable struct {
 	IP            string `json:"ip"`            // IP address
+	SSHPort       string `json:"sshPort"`       // SSH port
 	Localhost     bool   `json:"localhost"`     // Whether the IP is a localhost IP
 	SSHReachable  bool   `json:"sshReachable"`  // Whether SSH port is reachable on this IP
 	SSHAuthorized bool   `json:"sshAuthorized"` // Whether SSH is authorized for this IP
