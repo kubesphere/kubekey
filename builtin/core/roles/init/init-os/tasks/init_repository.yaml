@@ -25,6 +25,13 @@
     - name: Init debian repository
       command: |
         now=$(date +"%Y-%m-%d %H:%M:%S")
+        PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
+        PKGS_TO_INSTALL=""
+        for pkg in $PKGS; do
+          if [ -n "$pkg" ]; then
+            dpkg -s $pkg >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
+          fi
+        done
         if [ -f "{{ .tmp_dir }}/repository.iso" ];then
           # backup
           mv /etc/apt/sources.list /etc/apt/sources.list.kubekey-$now.bak
@@ -36,18 +43,29 @@
           # update repository
           apt-get update
           # install
-          apt install -y socat conntrack ipset ebtables chrony ipvsadm
+          if [ -n "$PKGS_TO_INSTALL" ]; then
+            apt install -y $PKGS_TO_INSTALL
+          fi
           # reset repository
           rm -rf /etc/apt/sources.list.d
           mv /etc/apt/sources.list.kubekey.bak-$now /etc/apt/sources.list
           mv /etc/apt/sources.list.d.kubekey.bak-$now /etc/apt/sources.list.d
         else
-          apt-get update && apt install -y socat conntrack ipset ebtables chrony ipvsadm {{ if .groups.nfs | default list | has .inventory_hostname }}nfs-kernel-server{{ end }}
+          apt-get update
+          if [ -n "$PKGS_TO_INSTALL" ]; then
+            apt install -y $PKGS_TO_INSTALL
+          fi
         fi
       when: .os.release.ID_LIKE | eq "debian"
     - name: Init rhel repository
       command: |
         now=$(date +"%Y-%m-%d %H:%M:%S")
+        PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
+        PKGS_TO_INSTALL=""
+        for pkg in $PKGS; do
+          if [ -n "$pkg" ]; then
+            rpm -q $pkg >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
+          fi
         if [ -f "{{ .tmp_dir }}/repository.iso" ];then
           # backup
           mv /etc/yum.repos.d /etc/yum.repos.d.kubekey.bak-$now
@@ -68,12 +86,16 @@
           # update repository
           yum clean all && yum makecache
           # install
-          yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm {{ if .groups.nfs | default list | has .inventory_hostname }}nfs-utils{{ end }}
+          if [ -n "$PKGS_TO_INSTALL" ]; then
+            yum install -y $PKGS_TO_INSTALL
+          fi
           # reset repository
           rm -rf /etc/yum.repos.d
           mv /etc/yum.repos.d.kubekey.bak-$now /etc/yum.repos.d
         else
           # install
-          yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
+          if [ -n "$PKGS_TO_INSTALL" ]; then
+            yum install -y $PKGS_TO_INSTALL
+          fi
         fi
       when: .os.release.ID_LIKE | eq "\"rhel fedora\""
