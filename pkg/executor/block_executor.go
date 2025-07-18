@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/cockroachdb/errors"
-	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -122,22 +121,22 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 		when:         when,
 		tags:         tags,
 	}.Exec(ctx)); err != nil {
-		errs = errors.Join(errs, err)
-	}
-	// if block exec failed exec rescue
-	if e.playbook.Status.Phase == kkcorev1.PlaybookPhaseFailed && len(block.Rescue) != 0 {
-		if err := (blockExecutor{
-			option:       e.option,
-			hosts:        hosts,
-			ignoreErrors: ignoreErrors,
-			blocks:       block.Rescue,
-			role:         e.role,
-			when:         when,
-			tags:         tags,
-		}.Exec(ctx)); err != nil {
-			errs = errors.Join(errs, err)
+		// if block exec failed exec rescue
+		if len(block.Rescue) != 0 {
+			if err := (blockExecutor{
+				option:       e.option,
+				hosts:        hosts,
+				ignoreErrors: ignoreErrors,
+				blocks:       block.Rescue,
+				role:         e.role,
+				when:         when,
+				tags:         tags,
+			}.Exec(ctx)); err != nil {
+				errs = errors.Join(errs, err)
+			}
 		}
 	}
+
 	// exec always after block
 	if len(block.Always) != 0 {
 		if err := (blockExecutor{
