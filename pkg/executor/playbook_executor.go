@@ -64,8 +64,9 @@ type playbookExecutor struct {
 
 // Exec playbook. covert playbook to block and executor it.
 func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
+	old := e.playbook.DeepCopy()
 	defer func() {
-		e.syncStatus(ctx, retErr)
+		e.syncStatus(ctx, old, retErr)
 	}()
 	fmt.Fprint(e.logOutput, `
 
@@ -122,8 +123,7 @@ func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
 	return nil
 }
 
-func (e playbookExecutor) syncStatus(ctx context.Context, err error) {
-	cp := e.playbook.DeepCopy()
+func (e playbookExecutor) syncStatus(ctx context.Context, old *kkcorev1.Playbook, err error) {
 	if err != nil {
 		e.playbook.Status.Phase = kkcorev1.PlaybookPhaseFailed
 		e.playbook.Status.FailureReason = kkcorev1.PlaybookFailedReasonTaskFailed
@@ -146,7 +146,7 @@ func (e playbookExecutor) syncStatus(ctx context.Context, err error) {
 	}
 
 	// update playbook status
-	if err := e.client.Status().Patch(ctx, e.playbook, ctrlclient.MergeFrom(cp)); err != nil {
+	if err := e.client.Status().Patch(ctx, e.playbook, ctrlclient.MergeFrom(old)); err != nil {
 		klog.ErrorS(err, "update playbook error", "playbook", ctrlclient.ObjectKeyFromObject(e.playbook))
 	}
 }
