@@ -46,6 +46,7 @@ const (
 type TaskSpec struct {
 	Name        string   `json:"name,omitempty"`
 	Hosts       []string `json:"hosts,omitempty"`
+	DelegateTo  string   `yaml:"delegate_to,omitempty"`
 	IgnoreError *bool    `json:"ignoreError,omitempty"`
 	Retries     int      `json:"retries,omitempty"`
 

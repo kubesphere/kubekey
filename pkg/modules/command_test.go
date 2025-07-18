@@ -39,7 +39,7 @@ func TestCommand(t *testing.T) {
 				Variable: &testVariable{},
 			},
 			ctxFunc:      context.Background,
-			exceptStderr: "failed to connector of \"\" error: workdir in variable should be string",
+			exceptStderr: "failed to connector for \"\" error: workdir in variable should be string",
 		},
 		{
 			name: "exec command success",

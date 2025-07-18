@@ -81,7 +81,7 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	}
 
 	// get connector
-	conn, err := getConnector(ctx, options.Host, options.Variable)
+	conn, err := options.getConnector(ctx)
 	if err != nil {
 		return "", fmt.Sprintf("get connector error: %v", err)
 	}
