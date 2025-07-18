@@ -49,6 +49,7 @@ func MarshalBlock(hosts []string, when []string, block kkprojectv1.Block) *kkcor
 		Spec: kkcorev1alpha1.TaskSpec{
 			Name:         block.Name,
 			Hosts:        hosts,
+			DelegateTo:   block.DelegateTo,
 			IgnoreError:  block.IgnoreErrors,
 			Retries:      block.Retries,
 			When:         when,

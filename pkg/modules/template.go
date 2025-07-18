@@ -137,7 +137,7 @@ func prepareTemplate(ctx context.Context, options ExecOptions) (map[string]any, 
 		return nil, nil, nil, err
 	}
 
-	conn, err := getConnector(ctx, options.Host, options.Variable)
+	conn, err := options.getConnector(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}

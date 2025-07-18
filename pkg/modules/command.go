@@ -70,9 +70,9 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		return "", err.Error()
 	}
 	// get connector
-	conn, err := getConnector(ctx, options.Host, options.Variable)
+	conn, err := options.getConnector(ctx)
 	if err != nil {
-		return "", fmt.Sprintf("failed to connector of %q error: %v", options.Host, err)
+		return "", fmt.Sprintf("failed to connector for %q error: %v", options.Host, err)
 	}
 	defer conn.Close(ctx)
 	// command string

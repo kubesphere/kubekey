@@ -30,7 +30,7 @@ Usage:
 // It returns StdoutSuccess if successful, or an error message if any step fails.
 func ModuleSetup(ctx context.Context, options ExecOptions) (string, string) {
 	// get connector
-	conn, err := getConnector(ctx, options.Host, options.Variable)
+	conn, err := options.getConnector(ctx)
 	if err != nil {
 		return StdoutFailed, fmt.Sprintf("failed to connector of %q error: %v", options.Host, err)
 	}

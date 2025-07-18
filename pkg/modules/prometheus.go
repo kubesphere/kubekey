@@ -95,7 +95,7 @@ func ModulePrometheus(ctx context.Context, options ExecOptions) (string, string)
 	}
 
 	// Get or create Prometheus connector
-	conn, err := getConnector(ctx, host, options.Variable)
+	conn, err := options.getConnector(ctx)
 	if err != nil {
 		return "", fmt.Sprintf("failed to get prometheus connector: %v", err)
 	}
