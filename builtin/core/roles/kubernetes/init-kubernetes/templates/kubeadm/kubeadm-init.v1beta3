@@ -174,7 +174,7 @@ apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 clusterDomain: {{ .kubernetes.networking.dns_domain }}
 clusterDNS:
-  - {{ .kubernetes.networking.dns_service_ip }}
+  - {{ .kubernetes.networking.clusterDNS }}
 maxPods: {{ .kubernetes.max_pods }}
 podPidsLimit: {{ .kubernetes.kubelet.pod_pids_limit }}
 rotateCertificates: true

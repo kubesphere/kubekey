@@ -50,7 +50,7 @@ spec:
           requests:
             cpu: 100m
             memory: 70Mi
-        args: [ "-localip", "169.254.25.10", "-conf", "/etc/coredns/Corefile", "-upstreamsvc", "coredns" ]
+        args: [ "-localip", "{{ .kubernetes.networking.clusterDNS }}", "-conf", "/etc/coredns/Corefile", "-upstreamsvc", "coredns" ]
         securityContext:
           privileged: true
         ports:
@@ -65,7 +65,7 @@ spec:
           protocol: TCP
         livenessProbe:
           httpGet:
-            host: 169.254.25.10
+            host: {{ .kubernetes.networking.clusterDNS }}
             path: /health
             port: 9254
             scheme: HTTP
@@ -74,7 +74,7 @@ spec:
           failureThreshold: 10
         readinessProbe:
           httpGet:
-            host: 169.254.25.10
+            host: {{ .kubernetes.networking.clusterDNS }}
             path: /health
             port: 9254
             scheme: HTTP
@@ -120,7 +120,7 @@ data:
       cache {{ .cache }}
       reload
       loop
-      bind 169.254.25.10
+      bind {{ .kubernetes.networking.clusterDNS }}
       prometheus :9253
 
     {{- range .rewrite }}
@@ -177,19 +177,19 @@ data:
       }
       reload
       loop
-      bind 169.254.25.10
+      bind {{ .kubernetes.networking.clusterDNS }}
       forward . {{ .kubernetes.networking.dns_service_ip }} {
         force_tcp
       }
       prometheus :9253
-      health 169.254.25.10:9254
+      health {{ .kubernetes.networking.clusterDNS }}:9254
     }
     in-addr.arpa:53 {
       errors
       cache 30
       reload
       loop
-      bind 169.254.25.10
+      bind {{ .kubernetes.networking.clusterDNS }}
       forward . {{ .kubernetes.networking.dns_service_ip }} {
         force_tcp
       }
@@ -200,7 +200,7 @@ data:
       cache 30
       reload
       loop
-      bind 169.254.25.10
+      bind {{ .kubernetes.networking.clusterDNS }}
       forward . {{ .kubernetes.networking.dns_service_ip }} {
           force_tcp
       }
@@ -211,7 +211,7 @@ data:
       cache 30
       reload
       loop
-      bind 169.254.25.10
+      bind {{ .kubernetes.networking.clusterDNS }}
       forward . /etc/resolv.conf
       prometheus :9253
     {{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}

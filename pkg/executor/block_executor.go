@@ -106,12 +106,16 @@ func (e blockExecutor) dealWhen(when kkprojectv1.When) []string {
 	return w
 }
 
-// dealBlock "block" argument has defined in block. execute order is: block -> rescue -> always
-// If rescue is defined, execute it when block execute error.
-// If always id defined, execute it.
+// dealBlock handles the execution of a block, including its "block", "rescue", and "always" sections.
+// The execution order is: block -> rescue (if block fails) -> always (always runs after block/rescue).
+// - If the main block fails and a rescue block is defined, the rescue block is executed.
+// - If the main block fails and no rescue block is defined, the error is collected and returned.
+// - The always block is executed after the main block (and rescue, if run), regardless of errors.
+// All errors encountered are joined and returned.
 func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErrors *bool, when []string, tags kkprojectv1.Taggable, block kkprojectv1.Block) error {
 	var errs error
-	// exec block
+
+	// Execute the main block section
 	if err := (blockExecutor{
 		option:       e.option,
 		hosts:        hosts,
@@ -121,7 +125,7 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 		when:         when,
 		tags:         tags,
 	}.Exec(ctx)); err != nil {
-		// if block exec failed exec rescue
+		// If the main block fails and a rescue block is defined, execute the rescue block
 		if len(block.Rescue) != 0 {
 			if err := (blockExecutor{
 				option:       e.option,
@@ -132,12 +136,16 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 				when:         when,
 				tags:         tags,
 			}.Exec(ctx)); err != nil {
+				// Collect errors from rescue block
 				errs = errors.Join(errs, err)
 			}
+		} else {
+			// If no rescue block, collect the error from the main block
+			errs = errors.Join(errs, err)
 		}
 	}
 
-	// exec always after block
+	// Execute the always block after the main/rescue block(s)
 	if len(block.Always) != 0 {
 		if err := (blockExecutor{
 			option:       e.option,
@@ -148,10 +156,12 @@ func (e blockExecutor) dealBlock(ctx context.Context, hosts []string, ignoreErro
 			when:         when,
 			tags:         tags,
 		}.Exec(ctx)); err != nil {
+			// Collect errors from always block
 			errs = errors.Join(errs, err)
 		}
 	}
-	// when execute error. return
+
+	// Return any collected errors (nil if none)
 	return errs
 }
 
