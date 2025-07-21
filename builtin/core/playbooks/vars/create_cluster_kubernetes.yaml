@@ -34,6 +34,8 @@ kubernetes:
       tag: 1.22.20
     dns_service_ip: >-
       {{ index (.kubernetes.networking.service_cidr | ipInCIDR) 2 }}
+    # nodelocaldns bind ip
+    clusterDNS: 169.254.25.10   
   apiserver:
     port: 6443
     certSANs: []
