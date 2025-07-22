@@ -7,27 +7,26 @@ import (
 
 // ***************************** MergeFunc ***************************** //
 
-// MergeRemoteVariable merges remote variables to a specific host.
-// It takes a map of data and a hostname, and merges the data into the host's RemoteVars
-// if the RemoteVars are currently empty. This prevents overwriting existing remote variables.
-var MergeRemoteVariable = func(data map[string]any, hostname string) MergeFunc {
+// MergeRemoteVariable merges the provided data as remote variables into the specified hosts.
+// For each hostname, if the host exists and its RemoteVars is empty, it sets RemoteVars to the provided data.
+// If the host does not exist, it returns an error.
+var MergeRemoteVariable = func(data map[string]any, hostnames ...string) MergeFunc {
 	return func(v Variable) error {
 		vv, ok := v.(*variable)
 		if !ok {
 			return errors.New("variable type error")
 		}
 
-		if hostname == "" {
-			return errors.New("when merge source is remote. HostName cannot be empty")
-		}
-		if _, ok := vv.value.Hosts[hostname]; !ok {
-			return errors.Errorf("when merge source is remote. HostName %s not exist", hostname)
-		}
+		for _, hostname := range hostnames {
+			if _, ok := vv.value.Hosts[hostname]; !ok {
+				return errors.Errorf("when merge source is remote. HostName %s not exist", hostname)
+			}
 
-		// it should not be changed
-		if hv := vv.value.Hosts[hostname]; len(hv.RemoteVars) == 0 {
-			hv.RemoteVars = data
-			vv.value.Hosts[hostname] = hv
+			// Only set RemoteVars if it is currently empty to avoid overwriting existing remote variables.
+			if hv := vv.value.Hosts[hostname]; len(hv.RemoteVars) == 0 {
+				hv.RemoteVars = data
+				vv.value.Hosts[hostname] = hv
+			}
 		}
 
 		return nil

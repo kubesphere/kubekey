@@ -22,31 +22,13 @@ import (
 	"io/fs"
 
 	"github.com/cockroachdb/errors"
+	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
+	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
-
-type testVariable struct {
-	value map[string]any
-	err   error
-}
-
-func (v testVariable) Key() string {
-	return "testModule"
-}
-
-func (v testVariable) Get(variable.GetFunc) (any, error) {
-	return v.value, v.err
-}
-
-func (v *testVariable) Merge(variable.MergeFunc) error {
-	v.value = map[string]any{
-		"k": "v",
-	}
-
-	return nil
-}
 
 var successConnector = &testConnector{output: []byte("success")}
 var failedConnector = &testConnector{
@@ -89,4 +71,25 @@ func (t testConnector) FetchFile(context.Context, string, io.Writer) error {
 
 func (t testConnector) ExecuteCommand(context.Context, string) ([]byte, error) {
 	return t.output, t.commandErr
+}
+
+// newTestVariable creates a new variable.Variable for testing purposes.
+// It initializes a test playbook and client, creates a new in-memory variable source,
+// and merges the provided vars as remote variables for the specified hosts.
+func newTestVariable(hosts []string, vars map[string]any) variable.Variable {
+	client, playbook, err := _const.NewTestPlaybook(hosts)
+	if err != nil {
+		klog.Error(err)
+	}
+	// Create a new variable in memory using the test client and playbook
+	v, err := variable.New(context.TODO(), client, *playbook, source.MemorySource)
+	if err != nil {
+		klog.Error(err)
+	}
+	// Set default values by merging the provided vars as remote variables for the hosts
+	if err := v.Merge(variable.MergeRemoteVariable(vars, hosts...)); err != nil {
+		klog.Error(err)
+	}
+
+	return v
 }

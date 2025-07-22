@@ -40,7 +40,7 @@ func TestCopy(t *testing.T) {
 					Raw: []byte(`{"dest": "hello world"}`),
 				},
 				Host:     "local",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -54,7 +54,7 @@ func TestCopy(t *testing.T) {
 					Raw: []byte(`{"content": "hello world"}`),
 				},
 				Host:     "local",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -68,7 +68,7 @@ func TestCopy(t *testing.T) {
 					Raw: []byte(`{"content": "hello world", "dest": "/etc/"}`),
 				},
 				Host:     "local",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -82,7 +82,7 @@ func TestCopy(t *testing.T) {
 					Raw: []byte(`{"content": "hello world", "dest": "/etc/test.txt"}`),
 				},
 				Host:     "local",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -96,7 +96,7 @@ func TestCopy(t *testing.T) {
 					Raw: []byte(`{"content": "hello world", "dest": "/etc/test.txt"}`),
 				},
 				Host:     "local",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, failedConnector)

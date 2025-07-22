@@ -38,7 +38,7 @@ func TestFetch(t *testing.T) {
 			opt: ExecOptions{
 				Args:     runtime.RawExtension{},
 				Host:     "local",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -52,7 +52,7 @@ func TestFetch(t *testing.T) {
 					Raw: []byte(`{"src": "/etc/test.txt"}`),
 				},
 				Host:     "local",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)

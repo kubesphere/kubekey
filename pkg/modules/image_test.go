@@ -23,7 +23,7 @@ func TestModuleImage(t *testing.T) {
 "pull": ""
 }`),
 				},
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			exceptStderr: "\"pull\" should be map",
 		},
@@ -35,7 +35,7 @@ func TestModuleImage(t *testing.T) {
 "pull": {}
 }`),
 				},
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			exceptStderr: "\"pull.manifests\" is required",
 		},
@@ -47,7 +47,7 @@ func TestModuleImage(t *testing.T) {
 "push": ""
 }`),
 				},
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			exceptStderr: "\"push\" should be map",
 		},

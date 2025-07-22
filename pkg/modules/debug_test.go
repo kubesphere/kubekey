@@ -36,8 +36,8 @@ func TestDebug(t *testing.T) {
 			name: "non-var and non-msg",
 			opt: ExecOptions{
 				Args:     runtime.RawExtension{},
-				Host:     "local",
-				Variable: &testVariable{},
+				Host:     "node1",
+				Variable: newTestVariable(nil, nil),
 			},
 			exceptStderr: "\"msg\" is not found",
 		},
@@ -47,12 +47,10 @@ func TestDebug(t *testing.T) {
 				Args: runtime.RawExtension{
 					Raw: []byte(`{"msg": "{{ .k }}"}`),
 				},
-				Host: "local",
-				Variable: &testVariable{
-					value: map[string]any{
-						"k": "v",
-					},
-				},
+				Host: "node1",
+				Variable: newTestVariable([]string{"node1"}, map[string]any{
+					"k": "v",
+				}),
 			},
 			exceptStdout: "\"v\"",
 		},
@@ -62,12 +60,10 @@ func TestDebug(t *testing.T) {
 				Args: runtime.RawExtension{
 					Raw: []byte(`{"msg": "{{ .k }}"}`),
 				},
-				Host: "local",
-				Variable: &testVariable{
-					value: map[string]any{
-						"k": 1,
-					},
-				},
+				Host: "node1",
+				Variable: newTestVariable([]string{"node1"}, map[string]any{
+					"k": 1,
+				}),
 			},
 			exceptStdout: "1",
 		},
@@ -77,16 +73,14 @@ func TestDebug(t *testing.T) {
 				Args: runtime.RawExtension{
 					Raw: []byte(`{"msg": "{{ .k }}"}`),
 				},
-				Host: "local",
-				Variable: &testVariable{
-					value: map[string]any{
-						"k": map[string]any{
-							"a1": 1,
-							"a2": 1.1,
-							"a3": "b3",
-						},
+				Host: "node1",
+				Variable: newTestVariable([]string{"node1"}, map[string]any{
+					"k": map[string]any{
+						"a1": 1,
+						"a2": 1.1,
+						"a3": "b3",
 					},
-				},
+				}),
 			},
 			exceptStdout: "{\n  \"a1\": 1,\n  \"a2\": 1.1,\n  \"a3\": \"b3\"\n}",
 		},
