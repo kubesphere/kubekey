@@ -111,72 +111,79 @@ type genCertArgs struct {
 	isCA     *bool
 }
 
-// signedCertificate generate certificate signed by root certificate
-func (gca genCertArgs) signedCertificate(cfg *cgutilcert.Config) (string, string) {
-	parentKey, err := TryLoadKeyFromDisk(gca.rootKey)
+// signedCertificate generates a certificate signed by the root certificate
+func (gca genCertArgs) signedCertificate(cfg cgutilcert.Config) (string, string) {
+	// Load CA private key
+	caKey, err := TryLoadKeyFromDisk(gca.rootKey)
 	if err != nil {
 		return "", fmt.Sprintf("failed to load root key: %v", err)
 	}
-	parentCert, _, err := TryLoadCertChainFromDisk(gca.rootCert)
+	// Load CA certificate
+	caCert, _, err := TryLoadCertChainFromDisk(gca.rootCert)
 	if err != nil {
 		return "", fmt.Sprintf("failed to load root certificate: %v", err)
 	}
 
-	if gca.policy == policyIfNotPresent {
-		if _, err := TryLoadKeyFromDisk(gca.outKey); err != nil {
-			klog.V(4).InfoS("Failed to load out key, new it")
-
-			goto NEW
-		}
-
-		existCert, intermediates, err := TryLoadCertChainFromDisk(gca.outCert)
+	// Function to generate and write new certificate and key
+	generateAndWrite := func() (string, string) {
+		newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 		if err != nil {
-			klog.V(4).InfoS("Failed to load out cert, new it")
-
-			goto NEW
+			return "", fmt.Sprintf("generate rsa key error: %v", err)
 		}
-		// check if the existing key and cert match the root key and cert
+		newCert, err := NewSignedCert(cfg, gca.date, newKey, caCert, caKey, ptr.Deref(gca.isCA, false))
+		if err != nil {
+			return "", fmt.Sprintf("failed to generate certificate: %v", err)
+		}
+		if err := WriteKey(gca.outKey, newKey, gca.policy); err != nil {
+			return "", fmt.Sprintf("failed to write key: %v", err)
+		}
+		if err := WriteCert(gca.outCert, newCert, gca.policy); err != nil {
+			return "", fmt.Sprintf("failed to write certificate: %v", err)
+		}
+		return StdoutSuccess, ""
+	}
+
+	switch gca.policy {
+	case policyIfNotPresent:
+		// Check if key exists
+		if _, err := TryLoadKeyFromDisk(gca.outKey); err != nil {
+			klog.V(4).InfoS("Failed to load out key, create it")
+			return generateAndWrite()
+		}
+		// Check if certificate exists
+		existCert, existIntermediates, err := TryLoadCertChainFromDisk(gca.outCert)
+		if err != nil {
+			klog.V(4).InfoS("Failed to load out cert, create it")
+			return generateAndWrite()
+		}
+		// Validate certificate period
 		if err := ValidateCertPeriod(existCert, 0); err != nil {
 			return "", fmt.Sprintf("failed to ValidateCertPeriod: %v", err)
 		}
-		if err := VerifyCertChain(existCert, intermediates, parentCert); err != nil {
+		// Validate certificate chain
+		if err := VerifyCertChain(existCert, existIntermediates, caCert); err != nil {
 			return "", fmt.Sprintf("failed to VerifyCertChain: %v", err)
 		}
+		// Validate certificate SAN and other config
 		if err := validateCertificateWithConfig(existCert, gca.outCert, cfg); err != nil {
 			return "", fmt.Sprintf("failed to validateCertificateWithConfig: %v", err)
 		}
-
+		// Existing certificate and key are valid, skip generation
 		return StdoutSkip, ""
+	default:
+		// Otherwise, always generate new certificate and key
+		return generateAndWrite()
 	}
-NEW:
-	newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
-	if err != nil {
-		return "", fmt.Sprintf("generate rsa key error: %v", err)
-	}
-	newCert, err := NewSignedCert(*cfg, gca.date, newKey, parentCert, parentKey, ptr.Deref(gca.isCA, false))
-	if err != nil {
-		return "", fmt.Sprintf("failed to generate certificate: %v", err)
-	}
-
-	// write key and cert to file
-	if err := WriteKey(gca.outKey, newKey, gca.policy); err != nil {
-		return "", fmt.Sprintf("failed to write key: %v", err)
-	}
-	if err := WriteCert(gca.outCert, newCert, gca.policy); err != nil {
-		return "", fmt.Sprintf("failed to write certificate: %v", err)
-	}
-
-	return StdoutSuccess, ""
 }
 
 // selfSignedCertificate generate Self-signed certificate
-func (gca genCertArgs) selfSignedCertificate(cfg *cgutilcert.Config) (string, string) {
+func (gca genCertArgs) selfSignedCertificate(cfg cgutilcert.Config) (string, string) {
 	newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 	if err != nil {
 		return "", fmt.Sprintf("generate rsa key error: %v", err)
 	}
 
-	newCert, err := NewSelfSignedCACert(*cfg, gca.date, newKey)
+	newCert, err := NewSelfSignedCACert(cfg, gca.date, newKey)
 	if err != nil {
 		return "", fmt.Sprintf("failed to generate self-signed certificate: %v", err)
 	}
@@ -239,9 +246,9 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (string, string) {
 
 	switch {
 	case gca.rootKey == "" || gca.rootCert == "":
-		return gca.selfSignedCertificate(cfg)
+		return gca.selfSignedCertificate(*cfg)
 	default:
-		return gca.signedCertificate(cfg)
+		return gca.signedCertificate(*cfg)
 	}
 }
 
@@ -503,7 +510,7 @@ func VerifyCertChain(cert *x509.Certificate, intermediates []*x509.Certificate, 
 
 // validateCertificateWithConfig makes sure that a given certificate is valid at
 // least for the SANs defined in the configuration.
-func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg *cgutilcert.Config) error {
+func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg cgutilcert.Config) error {
 	for _, dnsName := range cfg.AltNames.DNSNames {
 		if err := cert.VerifyHostname(dnsName); err != nil {
 			return errors.Wrapf(err, "certificate %s is invalid", baseName)
