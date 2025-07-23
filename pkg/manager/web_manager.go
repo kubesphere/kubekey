@@ -39,7 +39,8 @@ func (m webManager) Run(ctx context.Context) error {
 		Add(web.NewCoreService(m.workdir, m.Client, m.Config)).
 		// openapi
 		Add(web.NewSwaggerUIService()).
-		Add(web.NewAPIService(container.RegisteredWebServices()))
+		Add(web.NewAPIService(container.RegisteredWebServices())).
+		Add(web.NewUIService())
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", m.port),

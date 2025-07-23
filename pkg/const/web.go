@@ -3,10 +3,17 @@ package _const
 import "k8s.io/apimachinery/pkg/runtime"
 
 const (
-	// APIPath defines the base path for API endpoints in the KubeKey API server.
-	// This path is used as the prefix for all API routes, including those for
-	// managing inventories, playbooks, and other KubeKey resources.
-	APIPath = "/kapis/"
+	// CoreAPIPath defines the base path for core API endpoints in the KubeKey API server.
+	// All core resource management routes (inventories, playbooks, etc.) are prefixed with this path.
+	CoreAPIPath = "/kapis/"
+
+	// SwaggerAPIPath defines the base path for serving the Swagger UI (OpenAPI documentation).
+	// This is used to provide interactive API documentation for the KubeKey API server.
+	SwaggerAPIPath = "/swagger-ui/"
+
+	// ResourcesAPIPath defines the base path for resource-related endpoints.
+	// This path is used as the prefix for routes that serve static resources, schemas, and related files.
+	ResourcesAPIPath = "/resources/"
 
 	// KubeKeyTag is the tag used for KubeKey related resources
 	// This tag is used to identify and categorize KubeKey-specific resources

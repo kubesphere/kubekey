@@ -41,7 +41,7 @@ import (
 func NewCoreService(workdir string, client ctrlclient.Client, config *rest.Config) *restful.WebService {
 	ws := new(restful.WebService).
 		// the GroupVersion might be empty, we need to remove the final /
-		Path(strings.TrimRight(_const.APIPath+kkcorev1.SchemeGroupVersion.String(), "/"))
+		Path(strings.TrimRight(_const.CoreAPIPath+kkcorev1.SchemeGroupVersion.String(), "/"))
 
 	h := newCoreHandler(workdir, client, config)
 

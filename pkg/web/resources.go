@@ -36,7 +36,7 @@ import (
 // The {subpath:*} parameter allows for matching any path under /resources/schema/.
 func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client) *restful.WebService {
 	ws := new(restful.WebService)
-	ws.Path("/resources").
+	ws.Path(strings.TrimRight(_const.ResourcesAPIPath, "/")).
 		Produces(restful.MIME_JSON, "text/plain")
 
 	h := newSchemaHandler(rootPath, workdir, client)
