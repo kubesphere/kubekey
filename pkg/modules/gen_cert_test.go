@@ -44,12 +44,10 @@ func TestModuleGenCert(t *testing.T) {
 "out_cert": "./test_gen_cert/test-crt.pem"
 }`),
 				},
-				Host: "local",
-				Variable: &testVariable{
-					value: map[string]any{
-						"policy": "IfNotPresent",
-					},
-				},
+				Host: "node1",
+				Variable: newTestVariable([]string{"node1"}, map[string]any{
+					"policy": "IfNotPresent",
+				}),
 			},
 			exceptStdout: "success",
 		},

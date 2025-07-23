@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -14,38 +12,99 @@ import (
 func TestModuleAddHostvars(t *testing.T) {
 	type testcase struct {
 		name         string
-		args         []byte
+		opt          ExecOptions
 		expectStdout string
 		expectStderr string
 	}
 	cases := []testcase{
 		{
 			name: "missing hosts",
-			args: []byte(`
+			opt: ExecOptions{
+				Host:     "node1",
+				Variable: newTestVariable([]string{"node1"}, nil),
+				Args: runtime.RawExtension{
+					Raw: []byte(`
 vars:
   foo: bar
 `),
+				},
+			},
 			expectStdout: "",
 			expectStderr: "\"hosts\" should be string or string array",
 		},
 		{
 			name: "missing vars",
-			args: []byte(`
+			opt: ExecOptions{
+				Host:     "node1",
+				Variable: newTestVariable([]string{"node1"}, nil),
+				Args: runtime.RawExtension{
+					Raw: []byte(`
 hosts: node1
 `),
+				},
+			},
 			expectStdout: "",
 			expectStderr: "\"vars\" should not be empty",
 		},
 		{
 			name: "invalid hosts type",
-			args: []byte(`
+			opt: ExecOptions{
+				Host:     "node1",
+				Variable: newTestVariable([]string{"node1"}, nil),
+				Args: runtime.RawExtension{
+					Raw: []byte(`
 hosts:
   foo: bar
 vars:
   a: b
 `),
+				},
+			},
 			expectStdout: "",
 			expectStderr: "\"hosts\" should be string or string array",
+		},
+		{
+			name: "string value",
+			opt: ExecOptions{
+				Host:     "node1",
+				Variable: newTestVariable([]string{"node1"}, nil),
+				Args: runtime.RawExtension{
+					Raw: []byte(`
+hosts: node1
+vars:
+  a: b
+`),
+				},
+			},
+		},
+		{
+			name: "string var value",
+			opt: ExecOptions{
+				Host:     "node1",
+				Variable: newTestVariable([]string{"node1"}, map[string]any{"a": "b"}),
+				Args: runtime.RawExtension{
+					Raw: []byte(`
+hosts: node1
+vars:
+  a: "{{ .a }}"		
+`),
+				},
+			},
+		},
+		{
+			name: "map value",
+			opt: ExecOptions{
+				Host:     "node1",
+				Variable: newTestVariable([]string{"node1"}, nil),
+				Args: runtime.RawExtension{
+					Raw: []byte(`
+hosts: node1
+vars:
+  a:
+    b: c
+`),
+				},
+			},
 		},
 	}
 
@@ -53,14 +112,7 @@ vars:
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
-			opt := ExecOptions{
-				Args:     runtime.RawExtension{Raw: tc.args},
-				Host:     "",
-				Variable: &testVariable{},
-				Task:     kkcorev1alpha1.Task{},
-				Playbook: kkcorev1.Playbook{},
-			}
-			stdout, stderr := ModuleAddHostvars(ctx, opt)
+			stdout, stderr := ModuleAddHostvars(ctx, tc.opt)
 			require.Equal(t, tc.expectStdout, stdout, "stdout mismatch")
 			require.Equal(t, tc.expectStderr, stderr, "stderr mismatch")
 		})

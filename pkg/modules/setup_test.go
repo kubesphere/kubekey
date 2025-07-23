@@ -20,7 +20,7 @@ func TestModuleSetup(t *testing.T) {
 			name: "successful setup with fact gathering",
 			opt: ExecOptions{
 				Host:     "test-host",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -32,7 +32,7 @@ func TestModuleSetup(t *testing.T) {
 			name: "failed connector setup",
 			opt: ExecOptions{
 				Host:     "invalid-host",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc:      context.Background,
 			exceptStdout: "",

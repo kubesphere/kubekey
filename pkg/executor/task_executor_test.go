@@ -79,12 +79,12 @@ func TestTaskExecutor(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
 			o, err := newTestOption(tc.hosts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-			defer cancel()
 
 			if err := (&taskExecutor{
 				option:         o,

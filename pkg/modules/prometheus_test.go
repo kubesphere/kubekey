@@ -51,7 +51,7 @@ func TestPrometheus(t *testing.T) {
 					"query": "up",
 				}),
 				Host:     "", // Empty host
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc:      context.Background, // Add context background
 			exceptStderr: "host name is empty, please specify a prometheus host",
@@ -63,7 +63,7 @@ func TestPrometheus(t *testing.T) {
 					"query": "up", // Add required query parameter
 				}),
 				Host:     "test",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -77,7 +77,7 @@ func TestPrometheus(t *testing.T) {
 					"query": "up", // Add required query parameter
 				}),
 				Host:     "test",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, failedConnector)
