@@ -1,0 +1,1 @@
+const o={"actions.cancel":"取消","actions.close":"关闭","actions.complete":"完成","actions.confirm":"确认","actions.copy":"复制","actions.copy.done":"已复制","actions.delete":"删除","actions.exit":"退出","actions.submit":"提交","meta.version":"版本","nav.next":"下一步","nav.previous":"上一步"};export{o as default};

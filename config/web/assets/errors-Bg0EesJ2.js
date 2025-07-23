@@ -1,0 +1,1 @@
+const t={"app.actions.retry":"Retry","app.title":"Something went wrong","notFound.actions.back":"Back to Home","notFound.title":"404 - Not Found","route.title":"An unexpected error occurred"};export{t as default};

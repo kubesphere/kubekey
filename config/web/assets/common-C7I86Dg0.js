@@ -1,0 +1,1 @@
+const o={"actions.cancel":"Cancel","actions.close":"Close","actions.complete":"Complete","actions.confirm":"Confirm","actions.copy":"Copy","actions.copy.done":"Copied","actions.delete":"Delete","actions.exit":"Exit","actions.submit":"Submit","meta.version":"Version","nav.next":"Next","nav.previous":"Previous"};export{o as default};
