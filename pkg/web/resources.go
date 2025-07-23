@@ -59,7 +59,7 @@ func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client)
 		Doc("list all schema as table").
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
 		Param(ws.QueryParameter("schemaType", "the type of schema json").Required(false)).
-		Param(ws.QueryParameter("playbookLabel", "the reference playbook of schema. eg: \"install.kubekey.kubesphere.io/schema\", \"check.kubekey.kubesphere.io/schema\" \\n"+
+		Param(ws.QueryParameter("playbookLabel", "the reference playbook of schema. eg: \"install.kubekey.kubesphere.io/schema\", \"check.kubekey.kubesphere.io/schema\" "+
 			"if empty will not return any reference playbook").Required(false)).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
@@ -232,10 +232,19 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 			case 0: // skip
 			case 1:
 				item := &playbookList.Items[0]
+				var result any
+				if len(item.Status.Result.Raw) != 0 {
+					if err := json.Unmarshal(item.Status.Result.Raw, &result); err != nil {
+						api.HandleBadRequest(response, request, errors.Errorf("failed to unmarshal result from playbook of schema %q", schema.Name))
+						return
+					}
+				}
 				schema.Playbook = api.SchemaTablePlaybook{
+					Path:      schema.PlaybookPath[playbookLabel],
 					Name:      item.Name,
 					Namespace: item.Namespace,
 					Phase:     string(item.Status.Phase),
+					Result:    result,
 				}
 			default:
 				playbookNames := make([]string, 0, len(playbookList.Items))
@@ -246,6 +255,8 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 				return
 			}
 		}
+		// clear PlaybookPath
+		schema.PlaybookPath = nil
 		schemaTable = append(schemaTable, schema)
 	}
 	// less is a comparison function for sorting SchemaTable items by a given field.
