@@ -74,23 +74,26 @@ type InventoryHostGroups struct {
 // It includes fields such as name, type, title, description, version, namespace, logo, priority, and associated playbooks.
 // The Playbook field is a slice of SchemaTablePlaybook, each representing a playbook reference.
 type SchemaTable struct {
-	Name        string              `json:"name"`        // Name of schema, defined by filename
-	SchemaType  string              `json:"schemaType"`  // Type of the schema (e.g., CRD, built-in)
-	Title       string              `json:"title"`       // Title of the schema
-	Description string              `json:"description"` // Description of the schema
-	Version     string              `json:"version"`     // Version of the schema
-	Namespace   string              `json:"namespace"`   // Namespace of the schema
-	Logo        string              `json:"logo"`        // Logo URL or identifier
-	Priority    int                 `json:"priority"`    // Priority for display or ordering
-	Playbook    SchemaTablePlaybook `json:"playbook"`    // List of reference playbooks
+	Name         string              `json:"name"`                   // Name of schema, defined by filename
+	SchemaType   string              `json:"schemaType"`             // Type of the schema (e.g., CRD, built-in)
+	Title        string              `json:"title"`                  // Title of the schema
+	Description  string              `json:"description"`            // Description of the schema
+	Version      string              `json:"version"`                // Version of the schema
+	Namespace    string              `json:"namespace"`              // Namespace of the schema
+	Logo         string              `json:"logo"`                   // Logo URL or identifier
+	Priority     int                 `json:"priority"`               // Priority for display or ordering
+	Playbook     SchemaTablePlaybook `json:"playbook"`               // List of reference playbooks
+	PlaybookPath map[string]string   `json:"playbookPath,omitempty"` // PlaybookPath for current schema
 }
 
 // SchemaTablePlaybook represents a reference to a playbook associated with a schema.
 // It includes the playbook's name, namespace, and phase.
 type SchemaTablePlaybook struct {
+	Path      string `json:"path"`      // Path of playbook template.
 	Name      string `json:"name"`      // Name of the playbook
 	Namespace string `json:"namespace"` // Namespace of the playbook
 	Phase     string `json:"phase"`     // Phase of the playbook
+	Result    any    `json:"result"`    // Result of the playbook
 }
 
 // IPTable represents an IP address entry and its SSH status information.
