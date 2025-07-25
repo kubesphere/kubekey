@@ -117,6 +117,7 @@ func (h schemaHandler) storeConfig(request *restful.Request, response *restful.R
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
+	_ = response.WriteEntity(api.SUCCESS)
 }
 
 func (h schemaHandler) listIP(request *restful.Request, response *restful.Response) {
