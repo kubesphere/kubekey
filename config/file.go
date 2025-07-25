@@ -7,9 +7,3 @@ import "embed"
 //
 //go:embed swagger-ui
 var Swagger embed.FS
-
-// WebUI embeds the web directory containing the static web UI assets
-// This allows serving the web UI directly from the binary without needing external files
-//
-//go:embed all:web
-var WebUI embed.FS

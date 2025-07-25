@@ -3,6 +3,7 @@ package web
 import (
 	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -20,20 +21,16 @@ import (
 // - Serves "/" with index.html
 // - Serves static assets (e.g., .js, .css, .png) from the embedded web directory
 // - Forwards all other non-API paths to index.html for SPA client-side routing
-func NewUIService() *restful.WebService {
+func NewUIService(path string) *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/")
 
 	// Create a sub-filesystem for the embedded web UI assets
-	subFS, err := fs.Sub(config.WebUI, "web")
-	if err != nil {
-		panic(err)
-	}
-	fileServer := http.FileServer(http.FS(subFS))
+	fileServer := http.FileServer(http.FS(os.DirFS(path)))
 
 	// Serve the root path "/" with index.html
 	ws.Route(ws.GET("").To(func(req *restful.Request, resp *restful.Response) {
-		data, err := fs.ReadFile(subFS, "index.html")
+		data, err := fs.ReadFile(os.DirFS(path), "index.html")
 		if err != nil {
 			_ = resp.WriteError(http.StatusNotFound, err)
 			return
@@ -64,7 +61,7 @@ func NewUIService() *restful.WebService {
 		}
 
 		// For all other paths, serve index.html (SPA client-side routing)
-		data, err := fs.ReadFile(subFS, "index.html")
+		data, err := fs.ReadFile(os.DirFS(path), "index.html")
 		if err != nil {
 			_ = resp.WriteError(http.StatusInternalServerError, err)
 			return
