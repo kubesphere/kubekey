@@ -64,6 +64,7 @@ type WebManagerOptions struct {
 	Workdir    string
 	Port       int
 	SchemaPath string
+	UIPath     string
 	ctrlclient.Client
 	*rest.Config
 }
@@ -74,6 +75,7 @@ func NewWebManager(o WebManagerOptions) Manager {
 		workdir:    o.Workdir,
 		port:       o.Port,
 		schemaPath: o.SchemaPath,
+		uiPath:     o.UIPath,
 		Client:     o.Client,
 		Config:     o.Config,
 	}

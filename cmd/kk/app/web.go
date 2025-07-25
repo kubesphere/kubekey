@@ -42,6 +42,7 @@ func newWebCommand() *cobra.Command {
 				Workdir:    o.Workdir,
 				Port:       o.Port,
 				SchemaPath: o.SchemaPath,
+				UIPath:     o.UIPath,
 				Client:     client,
 				Config:     restconfig,
 			}).Run(cmd.Context())

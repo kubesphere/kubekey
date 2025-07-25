@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/netip"
@@ -58,14 +59,21 @@ func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client)
 	ws.Route(ws.GET("/schema").To(h.allSchema).
 		Doc("list all schema as table").
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
-		Param(ws.QueryParameter("schemaType", "the type of schema json").Required(false)).
-		Param(ws.QueryParameter("playbookLabel", "the reference playbook of schema. eg: \"install.kubekey.kubesphere.io/schema\", \"check.kubekey.kubesphere.io/schema\" "+
-			"if empty will not return any reference playbook").Required(false)).
+		Param(ws.PathParameter("namespace", "the namespace of the playbook").Required(false).DefaultValue("default")).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=priority")).
 		Returns(http.StatusOK, _const.StatusOK, api.ListResult[api.SchemaTable]{}))
+
+	ws.Route(ws.POST("/schema/config").To(h.storeConfig).
+		Doc("storing user-defined configuration information").
+		Reads(struct{}{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
+
+	ws.Route(ws.GET("/schema/config").To(h.configInfo).
+		Doc("get user-defined configuration information").
+		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
 
 	return ws
 }
@@ -80,6 +88,35 @@ type schemaHandler struct {
 	rootPath string
 	workdir  string
 	client   ctrlclient.Client
+}
+
+func (h schemaHandler) configInfo(request *restful.Request, response *restful.Response) {
+	file, err := os.Open(filepath.Join(h.rootPath, api.SchemaConfigFile))
+	if err != nil {
+		if os.IsNotExist(err) {
+			_ = response.WriteError(http.StatusNotFound, err)
+		} else {
+			_ = response.WriteError(http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer file.Close()
+
+	_, _ = io.Copy(response.ResponseWriter, file)
+}
+
+func (h schemaHandler) storeConfig(request *restful.Request, response *restful.Response) {
+	file, err := os.OpenFile(filepath.Join(h.rootPath, api.SchemaConfigFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+	defer file.Close()
+	_, err = io.Copy(file, request.Request.Body)
+	if err != nil {
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (h schemaHandler) listIP(request *restful.Request, response *restful.Response) {
@@ -193,8 +230,7 @@ func (h schemaHandler) schemaInfo(request *restful.Request, response *restful.Re
 // It supports filtering, sorting, and pagination via query parameters.
 func (h schemaHandler) allSchema(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
-	playbookLabel := string(queryParam.Filters["playbookLabel"])
-	// Get all entries in the rootPath directory.
+	// Read all entries in the rootPath directory.
 	entries, err := os.ReadDir(h.rootPath)
 	if err != nil {
 		api.HandleBadRequest(response, request, err)
@@ -202,9 +238,10 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 	}
 	schemaTable := make([]api.SchemaTable, 0)
 	for _, entry := range entries {
-		if entry.IsDir() || // Skip directories.
-			!strings.HasSuffix(entry.Name(), ".json") || // Only process files with .json suffix.
-			entry.Name() == "product.json" { // "product.json" is agreed file name
+		// Skip directories, non-JSON files, and special schema files.
+		if entry.IsDir() ||
+			!strings.HasSuffix(entry.Name(), ".json") ||
+			entry.Name() == api.SchemaProductFile || entry.Name() == api.SchemaConfigFile {
 			continue
 		}
 		// Read the JSON file.
@@ -213,50 +250,49 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 			api.HandleBadRequest(response, request, err)
 			return
 		}
-		schema := api.SchemaTable{Name: entry.Name()}
+		var schemaFile api.SchemaFile
 		// Unmarshal the JSON data into a SchemaTable struct.
-		if err := json.Unmarshal(data, &schema); err != nil {
+		if err := json.Unmarshal(data, &schemaFile); err != nil {
 			api.HandleBadRequest(response, request, err)
 			return
 		}
-		// get reference playbook
-		if playbookLabel != "" {
-			playbookList := &kkcorev1.PlaybookList{}
-			if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.MatchingLabels{
-				playbookLabel: entry.Name(),
-			}); err != nil {
-				api.HandleBadRequest(response, request, err)
-				return
-			}
-			switch len(playbookList.Items) {
-			case 0: // skip
-			case 1:
-				item := &playbookList.Items[0]
-				var result any
-				if len(item.Status.Result.Raw) != 0 {
-					if err := json.Unmarshal(item.Status.Result.Raw, &result); err != nil {
-						api.HandleBadRequest(response, request, errors.Errorf("failed to unmarshal result from playbook of schema %q", schema.Name))
+		// Get all playbooks in the given namespace.
+		playbookList := &kkcorev1.PlaybookList{}
+		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.InNamespace(request.PathParameter("namespace"))); err != nil {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+		schema := api.SchemaFile2Table(schemaFile, entry.Name())
+		// For each playbook, if it matches a label in schema.Playbook and the label value equals schema.Name, add its info.
+		for _, playbook := range playbookList.Items {
+			for label, schemaName := range playbook.Labels {
+				// Only process playbooks whose label is defined in schema.Playbook and value matches schema.Name.
+				if _, ok := schema.Playbook[label]; ok && schemaName == schema.Name {
+					// If a playbook for this label already exists, return an error.
+					if schema.Playbook[label].Name != "" {
+						api.HandleBadRequest(response, request, errors.Errorf("schema %q has multiple playbooks of label %q", entry.Name(), label))
 						return
 					}
+					var result any
+					// If the playbook has a result, unmarshal it.
+					if len(playbook.Status.Result.Raw) != 0 {
+						if err := json.Unmarshal(playbook.Status.Result.Raw, &result); err != nil {
+							api.HandleBadRequest(response, request, errors.Errorf("failed to unmarshal result from playbook of schema %q", schema.Name))
+							return
+						}
+					}
+					// Fill in playbook info for this label.
+					schema.Playbook[label] = api.SchemaTablePlaybook{
+						Path:      schema.Playbook[label].Path,
+						Name:      playbook.Name,
+						Namespace: playbook.Namespace,
+						Phase:     string(playbook.Status.Phase),
+						Result:    result,
+					}
 				}
-				schema.Playbook = api.SchemaTablePlaybook{
-					Path:      schema.PlaybookPath[playbookLabel],
-					Name:      item.Name,
-					Namespace: item.Namespace,
-					Phase:     string(item.Status.Phase),
-					Result:    result,
-				}
-			default:
-				playbookNames := make([]string, 0, len(playbookList.Items))
-				for _, playbook := range playbookList.Items {
-					playbookNames = append(playbookNames, playbook.Name)
-				}
-				api.HandleBadRequest(response, request, errors.Errorf("schema %q has multiple playbooks: %q", entry.Name(), playbookNames))
-				return
 			}
 		}
-		// clear PlaybookPath
-		schema.PlaybookPath = nil
+		// Add the processed schema to the schemaTable slice.
 		schemaTable = append(schemaTable, schema)
 	}
 	// less is a comparison function for sorting SchemaTable items by a given field.
@@ -269,6 +305,7 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 		case reflect.Int, reflect.Int64:
 			return leftVal.Int() > rightVal.Int()
 		default:
+			// If the field is not a string or int, sort by Priority as a fallback.
 			return left.Priority > right.Priority
 		}
 	}
@@ -290,6 +327,7 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 	}
 
 	// Use the DefaultList function to apply filtering, sorting, and pagination.
+	// The results variable contains the filtered, sorted, and paginated schemaTable.
 	results := query.DefaultList(schemaTable, queryParam, less, filter)
 	_ = response.WriteEntity(results)
 }

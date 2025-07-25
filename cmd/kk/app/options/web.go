@@ -20,6 +20,7 @@ type KubeKeyWebOptions struct {
 	Workdir string // Workdir specifies the base directory for KubeKey
 
 	SchemaPath string
+	UIPath     string
 }
 
 // NewKubeKeyWebOptions creates and returns a new KubeKeyWebOptions instance with default values
@@ -46,6 +47,7 @@ func (o *KubeKeyWebOptions) Flags() cliflag.NamedFlagSets {
 	wfs.IntVar(&o.Port, "port", o.Port, fmt.Sprintf("the server port of kubekey web default is: %d", o.Port))
 	wfs.StringVar(&o.Workdir, "workdir", o.Workdir, "the base Dir for kubekey. Default current dir. ")
 	wfs.StringVar(&o.SchemaPath, "schema-path", o.SchemaPath, "the json schema dir path to render web ui.")
+	wfs.StringVar(&o.UIPath, "ui-path", o.SchemaPath, "the web ui package path.")
 
 	return fss
 }

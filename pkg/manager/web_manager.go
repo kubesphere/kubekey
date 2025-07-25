@@ -23,6 +23,7 @@ type webManager struct {
 	workdir string
 
 	schemaPath string
+	uiPath     string
 
 	ctrlclient.Client
 	*rest.Config
@@ -40,7 +41,7 @@ func (m webManager) Run(ctx context.Context) error {
 		// openapi
 		Add(web.NewSwaggerUIService()).
 		Add(web.NewAPIService(container.RegisteredWebServices())).
-		Add(web.NewUIService())
+		Add(web.NewUIService(m.uiPath))
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", m.port),
