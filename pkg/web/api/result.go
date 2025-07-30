@@ -41,6 +41,7 @@ var SUCCESS = Result{Message: ResultSucceed}
 // The Message field is typically used to convey error or success information.
 type Result struct {
 	Message string `description:"error message" json:"message"` // Message provides details about the result or error.
+	Result  any    `json:"result"`
 }
 
 // ListResult is a generic struct representing a paginated list response.
@@ -54,18 +55,18 @@ type ListResult[T any] struct {
 // InventoryHostTable represents a host entry in an inventory with its configuration details.
 // It includes network information, SSH credentials, group membership, and architecture.
 type InventoryHostTable struct {
-	Name          string                `json:"name"`          // Hostname of the inventory host
-	Status        string                `json:"status"`        // Current status of the host
-	InternalIPV4  string                `json:"internalIPV4"`  // IPv4 address of the host
-	InternalIPV6  string                `json:"internalIPV6"`  // IPv6 address of the host
-	SSHHost       string                `json:"sshHost"`       // SSH hostname for connection
-	SSHPort       string                `json:"sshPort"`       // SSH port for connection
-	SSHUser       string                `json:"sshUser"`       // SSH username for authentication
-	SSHPassword   string                `json:"sshPassword"`   // SSH password for authentication
-	SSHPrivateKey string                `json:"sshPrivateKey"` // SSH private key for authentication
-	Vars          map[string]any        `json:"vars"`          // Additional host variables
-	Groups        []InventoryHostGroups `json:"groups"`        // Groups the host belongs to
-	Arch          string                `json:"arch"`          // Architecture of the host
+	Name                 string                `json:"name"`                 // Hostname of the inventory host
+	Status               string                `json:"status"`               // Current status of the host
+	InternalIPV4         string                `json:"internalIPV4"`         // IPv4 address of the host
+	InternalIPV6         string                `json:"internalIPV6"`         // IPv6 address of the host
+	SSHHost              string                `json:"sshHost"`              // SSH hostname for connection
+	SSHPort              string                `json:"sshPort"`              // SSH port for connection
+	SSHUser              string                `json:"sshUser"`              // SSH username for authentication
+	SSHPassword          string                `json:"sshPassword"`          // SSH password for authentication
+	SSHPrivateKeyContent string                `json:"sshPrivateKeyContent"` // SSH private key content for authentication
+	Vars                 map[string]any        `json:"vars"`                 // Additional host variables
+	Groups               []InventoryHostGroups `json:"groups"`               // Groups the host belongs to
+	Arch                 string                `json:"arch"`                 // Architecture of the host
 }
 
 // InventoryHostGroups represents the group information for a host in the inventory.

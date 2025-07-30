@@ -244,40 +244,40 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 }
 
 // ExecuteCommand in remote host
-func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, error) {
+func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []byte, error) {
 	cmd = fmt.Sprintf("sudo -SE %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
 	// create ssh session
 	session, err := c.client.NewSession()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create ssh session")
+		return nil, nil, errors.Wrap(err, "failed to create ssh session")
 	}
 	defer session.Close()
 
 	// get pipe from session
 	stdin, err := session.StdinPipe()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get stdin pipe")
+		return nil, nil, errors.Wrap(err, "failed to get stdin pipe")
 	}
 	stdout, err := session.StdoutPipe()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get stdout pipe")
+		return nil, nil, errors.Wrap(err, "failed to get stdout pipe")
 	}
 	stderr, err := session.StderrPipe()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get stderr pipe")
+		return nil, nil, errors.Wrap(err, "failed to get stderr pipe")
 	}
 	// Start the remote command
 	if err := session.Start(cmd); err != nil {
-		return nil, errors.Wrap(err, "failed to start session")
+		return nil, nil, errors.Wrap(err, "failed to start session")
 	}
 	if c.Password != "" {
 		if _, err := stdin.Write([]byte(c.Password + "\n")); err != nil {
-			return nil, errors.Wrap(err, "failed to write password")
+			return nil, nil, errors.Wrap(err, "failed to write password")
 		}
 	}
 	if err := stdin.Close(); err != nil {
-		return nil, errors.Wrap(err, "failed to close stdin pipe")
+		return nil, nil, errors.Wrap(err, "failed to close stdin pipe")
 	}
 
 	// Create buffers to store stdout and stderr output
@@ -308,9 +308,7 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, er
 	<-stdoutDone
 	<-stderrDone
 
-	output := append(stdoutBuf.Bytes(), stderrBuf.Bytes()...)
-
-	return output, errors.Wrap(err, "failed to execute ssh command")
+	return stdoutBuf.Bytes(), stderrBuf.Bytes(), errors.Wrap(err, "failed to execute ssh command")
 }
 
 // HostInfo from gatherFacts cache
@@ -327,19 +325,30 @@ func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) 
 		return nil, err
 	}
 	osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
-	kernel, err := c.ExecuteCommand(ctx, "uname -r")
+	kernel, kernelStderr, err := c.ExecuteCommand(ctx, "uname -r")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(kernelStderr))
+	}
+	if len(kernelStderr) > 0 {
+		return nil, errors.Errorf("failed to get kernel, stderr: %q", string(kernelStderr))
 	}
 	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
-	hn, err := c.ExecuteCommand(ctx, "hostname")
+
+	hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
+	}
+	if len(hnStderr) > 0 {
+		return nil, errors.Errorf("failed to get hostname, stderr: %q", string(hnStderr))
 	}
 	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
-	arch, err := c.ExecuteCommand(ctx, "arch")
+
+	arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
+	}
+	if len(archStderr) > 0 {
+		return nil, errors.Errorf("failed to get arch, stderr: %q", string(archStderr))
 	}
 	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 

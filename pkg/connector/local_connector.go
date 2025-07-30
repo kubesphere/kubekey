@@ -105,7 +105,7 @@ func (c *localConnector) FetchFile(_ context.Context, src string, dst io.Writer)
 }
 
 // ExecuteCommand executes a command on the local host.
-func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
+func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error) {
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
 	// in
 	command := c.Cmd.CommandContext(ctx, "sudo", "-SE", c.shell, "-c", cmd)
@@ -113,13 +113,19 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
 	}
 	// out
-	output, err := command.CombinedOutput()
+	var stdoutBuf, stderrBuf bytes.Buffer
+	command.SetStdout(&stdoutBuf)
+	command.SetStderr(&stderrBuf)
+	err := command.Run()
+	stdout := stdoutBuf.Bytes()
+	stderr := stderrBuf.Bytes()
 	if c.Password != "" {
 		// Filter out the "Password:" prompt from the output
-		output = bytes.Replace(output, []byte("Password:"), []byte(""), -1)
+		stdout = bytes.Replace(stdout, []byte("Password:"), []byte(""), -1)
+		stderr = bytes.Replace(stderr, []byte("Password:"), []byte(""), -1)
 	}
 
-	return output, errors.Wrapf(err, "failed to execute command")
+	return stdout, stderr, err
 }
 
 // HostInfo from gatherFacts cache
@@ -138,19 +144,30 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 			return nil, err
 		}
 		osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
-		kernel, err := c.ExecuteCommand(ctx, "uname -r")
+		kernel, stderr, err := c.ExecuteCommand(ctx, "uname -r")
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(stderr))
+		}
+		if len(stderr) > 0 {
+			return nil, errors.Errorf("failed to get kernel, stderr: %q", string(stderr))
 		}
 		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
-		hn, err := c.ExecuteCommand(ctx, "hostname")
+
+		hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
+		}
+		if len(hnStderr) > 0 {
+			return nil, errors.Errorf("failed to get hostname, stderr: %q", string(hnStderr))
 		}
 		osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
-		arch, err := c.ExecuteCommand(ctx, "arch")
+
+		arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
+		}
+		if len(archStderr) > 0 {
+			return nil, errors.Errorf("failed to get arch, stderr: %q", string(archStderr))
 		}
 		osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 

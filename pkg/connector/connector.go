@@ -38,18 +38,21 @@ const (
 	connectedPrometheus = "prometheus"
 )
 
-// Connector is the interface for connecting to a remote host
+// Connector is the interface for connecting to a remote host.
+// It abstracts the operations required to interact with different types of hosts (e.g., SSH, local, Kubernetes, Prometheus).
+// Implementations of this interface should provide mechanisms for initialization, cleanup, file transfer, and command execution.
 type Connector interface {
-	// Init initializes the connection
+	// Init initializes the connection.
 	Init(ctx context.Context) error
-	// Close closes the connection
+	// Close closes the connection and releases any resources.
 	Close(ctx context.Context) error
-	// PutFile copies a file from src to dst with mode.
+	// PutFile copies a file from src (as bytes) to dst (remote path) with the specified file mode.
 	PutFile(ctx context.Context, src []byte, dst string, mode fs.FileMode) error
-	// FetchFile copies a file from src to dst writer.
+	// FetchFile copies a file from src (remote path) to dst (local writer).
 	FetchFile(ctx context.Context, src string, dst io.Writer) error
-	// ExecuteCommand executes a command on the remote host
-	ExecuteCommand(ctx context.Context, cmd string) ([]byte, error)
+	// ExecuteCommand executes a command on the remote host.
+	// Returns stdout, stderr, and error (if any).
+	ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error)
 }
 
 // NewConnector creates a new connector

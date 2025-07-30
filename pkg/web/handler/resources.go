@@ -1,6 +1,7 @@
-package web
+package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,13 +18,16 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,65 +36,20 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/web/query"
 )
 
-// NewSchemaService creates a new WebService that serves schema files from the specified root path.
-// It sets up a route that handles GET requests to /resources/schema/{subpath} and serves files from the rootPath directory.
-// The {subpath:*} parameter allows for matching any path under /resources/schema/.
-func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client) *restful.WebService {
-	ws := new(restful.WebService)
-	ws.Path(strings.TrimRight(_const.ResourcesAPIPath, "/")).
-		Produces(restful.MIME_JSON, "text/plain")
-
-	h := newSchemaHandler(rootPath, workdir, client)
-
-	ws.Route(ws.GET("/ip").To(h.listIP).
-		Doc("list available ip from ip cidr").
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
-		Param(ws.QueryParameter("cidr", "the cidr for ip").Required(true)).
-		Param(ws.QueryParameter("sshPort", "the ssh port for ip").Required(false)).
-		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
-		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
-		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
-		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=ip").Required(false).DefaultValue("ip")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[api.IPTable]{}))
-
-	ws.Route(ws.GET("/schema/{subpath:*}").To(h.schemaInfo).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
-
-	ws.Route(ws.GET("/schema").To(h.allSchema).
-		Doc("list all schema as table").
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
-		Param(ws.PathParameter("namespace", "the namespace of the playbook").Required(false).DefaultValue("default")).
-		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
-		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
-		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
-		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=priority")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[api.SchemaTable]{}))
-
-	ws.Route(ws.POST("/schema/config").To(h.storeConfig).
-		Doc("storing user-defined configuration information").
-		Reads(struct{}{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
-
-	ws.Route(ws.GET("/schema/config").To(h.configInfo).
-		Doc("get user-defined configuration information").
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
-
-	return ws
-}
-
-// newSchemaHandler creates a new schemaHandler instance with the given rootPath, workdir, and client.
-func newSchemaHandler(rootPath string, workdir string, client ctrlclient.Client) *schemaHandler {
-	return &schemaHandler{rootPath: rootPath, workdir: workdir, client: client}
-}
-
-// schemaHandler handles schema-related HTTP requests.
-type schemaHandler struct {
+// ResourceHandler handles resource-related HTTP requests.
+type ResourceHandler struct {
 	rootPath string
 	workdir  string
 	client   ctrlclient.Client
 }
 
-func (h schemaHandler) configInfo(request *restful.Request, response *restful.Response) {
+// NewResourceHandler creates a new ResourceHandler instance.
+func NewResourceHandler(rootPath string, workdir string, client ctrlclient.Client) *ResourceHandler {
+	return &ResourceHandler{rootPath: rootPath, workdir: workdir, client: client}
+}
+
+// ConfigInfo serves the config file content as the HTTP response.
+func (h ResourceHandler) ConfigInfo(request *restful.Request, response *restful.Response) {
 	file, err := os.Open(filepath.Join(h.rootPath, api.SchemaConfigFile))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -105,22 +64,122 @@ func (h schemaHandler) configInfo(request *restful.Request, response *restful.Re
 	_, _ = io.Copy(response.ResponseWriter, file)
 }
 
-func (h schemaHandler) storeConfig(request *restful.Request, response *restful.Response) {
-	file, err := os.OpenFile(filepath.Join(h.rootPath, api.SchemaConfigFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+// PostConfig updates the config file and triggers precheck playbooks if needed.
+func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.Response) {
+	var (
+		oldConfig map[string]any
+		newConfig map[string]any
+	)
+	// Read new config from request body.
+	if err := request.ReadEntity(&newConfig); err != nil {
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	configPath := filepath.Join(h.rootPath, api.SchemaConfigFile)
+	// Open config file for reading and writing.
+	configFile, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	defer file.Close()
-	_, err = io.Copy(file, request.Request.Body)
-	if err != nil {
+	defer configFile.Close()
+
+	// Decode old config if present.
+	if err := json.NewDecoder(configFile).Decode(&oldConfig); err != nil && err != io.EOF {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	_ = response.WriteEntity(api.SUCCESS)
+
+	queryParam := query.ParseQueryParameter(request)
+	namespace := queryParam.Filters["cluster"]
+	inventory := queryParam.Filters["inventory"]
+
+	playbooks := make(map[string]*kkcorev1.Playbook)
+	wg := wait.Group{}
+
+	// Iterate over new config and trigger precheck playbooks if config changed.
+	for fileName, newVal := range newConfig {
+		if reflect.DeepEqual(newVal, oldConfig[fileName]) {
+			continue
+		}
+		schemaInfo, err := os.ReadFile(filepath.Join(h.rootPath, fileName))
+		if err != nil {
+			_ = response.WriteError(http.StatusInternalServerError, err)
+			return
+		}
+		var schemaFile api.SchemaFile
+		if err := json.Unmarshal(schemaInfo, &schemaFile); err != nil {
+			_ = response.WriteError(http.StatusInternalServerError, err)
+			return
+		}
+		// If a precheck playbook is defined, create and execute it.
+		if pbpath := schemaFile.PlaybookPath["precheck."+api.SchemaLabelSubfix]; pbpath != "" {
+			configRaw, err := json.Marshal(newVal)
+			if err != nil {
+				_ = response.WriteError(http.StatusInternalServerError, err)
+				return
+			}
+			playbook := &kkcorev1.Playbook{
+				Spec: kkcorev1.PlaybookSpec{
+					Config: kkcorev1.Config{
+						Spec: runtime.RawExtension{Raw: configRaw},
+					},
+					InventoryRef: &corev1.ObjectReference{
+						Kind:      "Inventory",
+						Namespace: string(namespace),
+						Name:      string(inventory),
+					},
+					Playbook: pbpath,
+				},
+				Status: kkcorev1.PlaybookStatus{
+					Phase: kkcorev1.PlaybookPhasePending,
+				},
+			}
+			// Set the workdir in the playbook's spec config
+			if err := unstructured.SetNestedField(playbook.Spec.Config.Value(), h.workdir, _const.Workdir); err != nil {
+				api.HandleBadRequest(response, request, err)
+				return
+			}
+			if err := h.client.Create(context.TODO(), playbook); err != nil {
+				api.HandleBadRequest(response, request, err)
+				return
+			}
+			playbooks[fileName] = playbook
+			wg.Start(func() {
+				// Execute the playbook asynchronously.
+				if err := playbookManager.executor(playbook, h.client); err != nil {
+					klog.ErrorS(err, "failed to executor precheck playbook", "schema", fileName)
+				}
+			})
+		}
+	}
+	wg.Wait()
+
+	// Collect precheck results.
+	preCheckResult := make(map[string]string)
+	for fileName, playbook := range playbooks {
+		if playbook.Status.FailureMessage != "" {
+			preCheckResult[fileName] = playbook.Status.FailureMessage
+		}
+	}
+
+	// Write new config to file.
+	if _, err := io.Copy(configFile, request.Request.Body); err != nil {
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	// Respond with precheck results if any failures, otherwise success.
+	if len(preCheckResult) > 0 {
+		_ = response.WriteEntity(api.Result{Message: api.ResultFailed, Result: preCheckResult})
+	} else {
+		_ = response.WriteEntity(api.SUCCESS)
+	}
 }
 
-func (h schemaHandler) listIP(request *restful.Request, response *restful.Response) {
+// ListIP lists all IPs in the given CIDR, checks their online and SSH status, and returns the result.
+func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
 	cidr, ok := queryParam.Filters["cidr"]
 	if !ok || string(cidr) == "" {
@@ -137,12 +196,13 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 	mu := sync.Mutex{}
 	jobChannel := make(chan string, 20)
 	wg := sync.WaitGroup{}
+	// Start worker goroutines for concurrent IP checking.
 	for range maxConcurrency {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for ip := range jobChannel {
-				if ifLocalhostIP(ip) {
+				if _const.IsLocalhostIP(ip) {
 					mu.Lock()
 					ipTable = append(ipTable, api.IPTable{
 						IP:            ip,
@@ -157,10 +217,10 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 
 				// Check if the host is online using the ICMP protocol (ping).
 				// Requires root privileges or CAP_NET_RAW capability.
-				if !ifIPOnline(ip) {
+				if !isIPOnline(ip) {
 					continue
 				}
-				reachable, authorized := ifIPSSHAuthorized(ip, string(sshPort))
+				reachable, authorized := isSSHAuthorized(ip, string(sshPort))
 
 				mu.Lock()
 				ipTable = append(ipTable, api.IPTable{
@@ -174,6 +234,7 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 		}()
 	}
 
+	// Send IPs to job channel for processing.
 	for _, ip := range ips {
 		jobChannel <- ip
 	}
@@ -181,7 +242,7 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 	close(jobChannel)
 	wg.Wait()
 
-	// less is a comparison function for sorting SchemaTable items by a given field.
+	// less is a comparison function for sorting IPTable items by a given field.
 	less := func(left, right api.IPTable, sortBy query.Field) bool {
 		leftVal := query.GetFieldByJSONTag(reflect.ValueOf(left), sortBy)
 		rightVal := query.GetFieldByJSONTag(reflect.ValueOf(right), sortBy)
@@ -205,7 +266,7 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 			return true
 		}
 	}
-	// filter is a function for filtering SchemaTable items by a given field and value.
+	// filter is a function for filtering IPTable items by a given field and value.
 	filter := func(o api.IPTable, f query.Filter) bool {
 		val := query.GetFieldByJSONTag(reflect.ValueOf(o), f.Field)
 		switch val.Kind() {
@@ -221,15 +282,15 @@ func (h schemaHandler) listIP(request *restful.Request, response *restful.Respon
 	_ = response.WriteEntity(results)
 }
 
-// schemaInfo serves static schema files from the rootPath directory.
+// SchemaInfo serves static schema files from the rootPath directory.
 // It strips the /resources/schema/ prefix and serves files using http.FileServer.
-func (h schemaHandler) schemaInfo(request *restful.Request, response *restful.Response) {
+func (h ResourceHandler) SchemaInfo(request *restful.Request, response *restful.Response) {
 	http.StripPrefix("/resources/schema/", http.FileServer(http.Dir(h.rootPath))).ServeHTTP(response.ResponseWriter, request.Request)
 }
 
-// allSchema lists all schema JSON files in the rootPath directory as a table.
+// ListSchema lists all schema JSON files in the rootPath directory as a table.
 // It supports filtering, sorting, and pagination via query parameters.
-func (h schemaHandler) allSchema(request *restful.Request, response *restful.Response) {
+func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
 	// Read all entries in the rootPath directory.
 	entries, err := os.ReadDir(h.rootPath)
@@ -248,18 +309,18 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 		// Read the JSON file.
 		data, err := os.ReadFile(filepath.Join(h.rootPath, entry.Name()))
 		if err != nil {
-			api.HandleBadRequest(response, request, err)
+			api.HandleBadRequest(response, request, errors.Wrapf(err, "failed to read file for schema %q", entry.Name()))
 			return
 		}
 		var schemaFile api.SchemaFile
 		// Unmarshal the JSON data into a SchemaTable struct.
 		if err := json.Unmarshal(data, &schemaFile); err != nil {
-			api.HandleBadRequest(response, request, err)
+			api.HandleBadRequest(response, request, errors.Wrapf(err, "failed to unmarshal file for schema %q", entry.Name()))
 			return
 		}
 		// Get all playbooks in the given namespace.
 		playbookList := &kkcorev1.PlaybookList{}
-		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.InNamespace(request.PathParameter("namespace"))); err != nil {
+		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.InNamespace(request.PathParameter("cluster"))); err != nil {
 			api.HandleBadRequest(response, request, err)
 			return
 		}
@@ -333,42 +394,14 @@ func (h schemaHandler) allSchema(request *restful.Request, response *restful.Res
 	_ = response.WriteEntity(results)
 }
 
-// ifLocalhostIP checks if the given IP address string (ipStr) is bound to any local network interface.
-// It returns true if the IP is found on any interface, false otherwise.
-func ifLocalhostIP(ipStr string) bool {
-	targetIP := net.ParseIP(ipStr)
-	if targetIP == nil {
-		return false
-	}
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return false
-	}
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-		for _, addr := range addrs {
-			switch v := addr.(type) {
-			case *net.IPNet:
-				if v.IP.Equal(targetIP) {
-					return true
-				}
-			case *net.IPAddr:
-				if v.IP.Equal(targetIP) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
+// ===========================================================================
+// =============================   isIPOnline   ==============================
+// ===========================================================================
 
-// ifIPOnline checks if the given IP address is online by sending an ICMP Echo Request (ping).
+// isIPOnline checks if the given IP address is online by sending an ICMP Echo Request (ping).
 // It returns true if a reply is received, false otherwise.
 // The timeout for the ICMP connection and reply is set to 1 second.
-func ifIPOnline(ipStr string) bool {
+func isIPOnline(ipStr string) bool {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return false
@@ -473,6 +506,15 @@ func ifIPOnline(ipStr string) bool {
 	return false
 }
 
+// isValidICMPReply checks if the received ICMP reply is valid and matches the expected parameters.
+// n: number of bytes read
+// reply: the reply buffer
+// src: source address of the reply
+// expectedIP: the IP we expect the reply from
+// protocol: ICMP protocol number
+// pid: process ID used in the Echo request
+// seq: sequence number used in the Echo request
+// replyFilter: function to filter valid ICMP types
 func isValidICMPReply(n int, reply []byte, src net.Addr, expectedIP net.IP, protocol int, pid, seq int, replyFilter func(icmp.Type) bool) bool {
 	srcIP, ok := src.(*net.IPAddr)
 	if !ok || !srcIP.IP.Equal(expectedIP) {
@@ -503,10 +545,14 @@ func isValidICMPReply(n int, reply []byte, src net.Addr, expectedIP net.IP, prot
 	return false
 }
 
-// ifIPSSHAuthorized checks if SSH authorization to the given IP is possible using the local private key.
+// ===========================================================================
+// =============================   isSSHAuthorized   =========================
+// ===========================================================================
+
+// isSSHAuthorized checks if SSH authorization to the given IP is possible using the local private key.
 // It returns two booleans: the first indicates if the SSH port (22) is reachable, and the second indicates if SSH authorization using the local private key is successful.
 // The function attempts to find the user's private key, read and parse it, and then connect via SSH.
-func ifIPSSHAuthorized(ipStr, sshPort string) (bool, bool) {
+func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 	// First check if port 22 is reachable on the target IP address.
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ipStr, sshPort), time.Second)
 	if err != nil {

@@ -17,6 +17,7 @@ limitations under the License.
 package connector
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/fs"
@@ -137,12 +138,16 @@ func (c *kubernetesConnector) FetchFile(ctx context.Context, src string, dst io.
 }
 
 // ExecuteCommand in a kubernetes cluster
-func (c *kubernetesConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
+func (c *kubernetesConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error) {
 	// add "--kubeconfig" to src command
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
 	command := c.cmd.CommandContext(ctx, c.shell, "-c", cmd)
 	command.SetDir(c.homedir)
 	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homedir, kubeconfigRelPath)})
 
-	return command.CombinedOutput()
+	var stdoutBuf, stderrBuf bytes.Buffer
+	command.SetStdout(&stdoutBuf)
+	command.SetStderr(&stderrBuf)
+	err := command.Run()
+	return stdoutBuf.Bytes(), stderrBuf.Bytes(), err
 }

@@ -30,7 +30,7 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
 
-var successConnector = &testConnector{output: []byte("success")}
+var successConnector = &testConnector{stdout: []byte("success")}
 var failedConnector = &testConnector{
 	copyErr:    errors.New("failed"),
 	fetchErr:   errors.New("failed"),
@@ -49,7 +49,8 @@ type testConnector struct {
 	// return for fetch
 	fetchErr error
 	// return for command
-	output     []byte
+	stdout     []byte
+	stderr     []byte
 	commandErr error
 }
 
@@ -69,8 +70,8 @@ func (t testConnector) FetchFile(context.Context, string, io.Writer) error {
 	return t.fetchErr
 }
 
-func (t testConnector) ExecuteCommand(context.Context, string) ([]byte, error) {
-	return t.output, t.commandErr
+func (t testConnector) ExecuteCommand(context.Context, string) ([]byte, []byte, error) {
+	return t.stdout, t.stderr, t.commandErr
 }
 
 // newTestVariable creates a new variable.Variable for testing purposes.
