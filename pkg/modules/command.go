@@ -19,7 +19,6 @@ package modules
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -81,16 +80,11 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		return "", err.Error()
 	}
 	// execute command
-	var stdout, stderr string
-	data, err := conn.ExecuteCommand(ctx, string(command))
+	stdout, stderr, err := conn.ExecuteCommand(ctx, string(command))
 	if err != nil {
-		stderr = err.Error()
+		return "", err.Error()
 	}
-	if data != nil {
-		stdout = strings.TrimSpace(string(data))
-	}
-
-	return stdout, stderr
+	return string(stdout), string(stderr)
 }
 
 func init() {

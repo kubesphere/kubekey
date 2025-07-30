@@ -172,7 +172,7 @@ func ModulePrometheus(ctx context.Context, options ExecOptions) (string, string)
 	}
 
 	// Execute query
-	result, err := conn.ExecuteCommand(ctx, string(cmdBytes))
+	result, _, err := conn.ExecuteCommand(ctx, string(cmdBytes))
 	if err != nil {
 		return "", fmt.Sprintf("failed to execute prometheus query: %v", err)
 	}

@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+// ===========================================================================
+// =============================   ParseIP   =================================
+// ===========================================================================
+
 // ParseIP parses a CIDR, an IP range string (e.g., "xxx-xxx"), or a single IP into a slice of actual IPs.
 // Supports both IPv4 and IPv6.
 func ParseIP(ip string) []string {
@@ -210,4 +214,48 @@ func networkRange(network *net.IPNet) (net.IP, net.IP) {
 		endIP[i] = startIP[i] | ^mask[i]
 	}
 	return startIP, endIP
+}
+
+// ===========================================================================
+// =============================   IsLocalhostIP   ===========================
+// ===========================================================================
+
+// IsLocalhostIP checks if the given IP address string (ipStr) is bound to any local network interface.
+// It returns true if the IP is found on any interface, false otherwise.
+// This function parses the input string as an IP address, iterates over all network interfaces on the host,
+// and checks if any of the interface addresses match the target IP.
+func IsLocalhostIP(ipStr string) bool {
+	targetIP := net.ParseIP(ipStr)
+	if targetIP == nil {
+		// The input string is not a valid IP address.
+		return false
+	}
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		// Failed to retrieve network interfaces.
+		return false
+	}
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			// Skip this interface if its addresses cannot be retrieved.
+			continue
+		}
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				// Check if the IP address of this interface matches the target IP.
+				if v.IP.Equal(targetIP) {
+					return true
+				}
+			case *net.IPAddr:
+				// Check if the IP address of this interface matches the target IP.
+				if v.IP.Equal(targetIP) {
+					return true
+				}
+			}
+		}
+	}
+	// The target IP was not found on any local network interface.
+	return false
 }

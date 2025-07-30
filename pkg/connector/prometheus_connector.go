@@ -36,13 +36,13 @@ import (
 )
 
 const (
-	// Prometheus API default timeout
+	// Default timeout for Prometheus API
 	defaultPrometheusTimeout = 10 * time.Second
 )
 
 var _ Connector = &PrometheusConnector{}
 
-// PrometheusConnector implements Connector interface for Prometheus connections
+// PrometheusConnector implements the Connector interface for Prometheus connections
 type PrometheusConnector struct {
 	url       string
 	username  string
@@ -54,48 +54,47 @@ type PrometheusConnector struct {
 	connected bool
 }
 
-// newPrometheusConnector creates a new PrometheusConnector
+// newPrometheusConnector creates a new PrometheusConnector instance
 func newPrometheusConnector(vars map[string]any) *PrometheusConnector {
 	pc := &PrometheusConnector{
 		headers: make(map[string]string),
 		timeout: defaultPrometheusTimeout,
 	}
 
-	// 修正变量名以避免导入遮蔽
+	// Retrieve Prometheus URL
 	promURL, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorURL)
 	if err != nil {
-		klog.V(4).InfoS("get connector host failed use current hostname", "error", err)
+		klog.V(4).InfoS("Failed to get connector host, using current hostname", "error", err)
 	}
-
 	pc.url = promURL
 
+	// Retrieve username
 	username, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorUserName)
 	if err != nil {
-		klog.V(4).InfoS("get connector username failed use current username", "error", err)
+		klog.V(4).InfoS("Failed to get connector username, using current username", "error", err)
 	}
-
 	pc.username = username
 
+	// Retrieve password
 	password, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil {
-		klog.V(4).InfoS("get connector password failed use current password", "error", err)
+		klog.V(4).InfoS("Failed to get connector password, using current password", "error", err)
 	}
-
 	pc.password = password
 
+	// Retrieve token
 	token, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorToken)
 	if err != nil {
-		klog.V(4).InfoS("get connector token failed use current token", "error", err)
+		klog.V(4).InfoS("Failed to get connector token, using current token", "error", err)
 	}
-
 	pc.token = token
 
+	// Retrieve custom headers and timeout from connector variables
 	prometheusVars, ok := vars["connector"].(map[string]any)
 	if !ok {
-		klog.V(4).InfoS("connector configuration is not a map")
+		klog.V(4).InfoS("Connector configuration is not a map")
 		return nil
 	}
-	// Get custom headers from connector variables
 	if headers, ok := prometheusVars["headers"].(map[string]any); ok {
 		for k, v := range headers {
 			if strVal, ok := v.(string); ok {
@@ -103,8 +102,6 @@ func newPrometheusConnector(vars map[string]any) *PrometheusConnector {
 			}
 		}
 	}
-
-	// Get timeout from connector variables
 	if timeoutStr, ok := prometheusVars["timeout"].(string); ok {
 		if timeout, err := time.ParseDuration(timeoutStr); err == nil {
 			pc.timeout = timeout
@@ -116,7 +113,7 @@ func newPrometheusConnector(vars map[string]any) *PrometheusConnector {
 
 // Init initializes the Prometheus connection
 func (pc *PrometheusConnector) Init(ctx context.Context) error {
-	// Ensure URL is properly formatted
+	// Ensure URL is provided
 	if pc.url == "" {
 		return errors.New("prometheus URL is required")
 	}
@@ -127,7 +124,7 @@ func (pc *PrometheusConnector) Init(ctx context.Context) error {
 		return errors.Wrapf(err, "invalid prometheus URL: %s", pc.url)
 	}
 
-	// If scheme is missing, default to http
+	// Default to http if scheme is missing
 	if parsedURL.Scheme == "" {
 		klog.V(4).InfoS("No scheme specified in Prometheus URL, defaulting to HTTP", "url", pc.url)
 		parsedURL.Scheme = "http"
@@ -160,7 +157,7 @@ func (pc *PrometheusConnector) Init(ctx context.Context) error {
 		return errors.Wrap(err, "failed to create request")
 	}
 
-	// Add auth headers if provided
+	// Add authentication headers if provided
 	pc.addAuthHeaders(req)
 
 	klog.V(4).InfoS("Testing connection to Prometheus server")
@@ -186,7 +183,7 @@ func (pc *PrometheusConnector) Init(ctx context.Context) error {
 
 // Close closes the Prometheus connection
 func (pc *PrometheusConnector) Close(ctx context.Context) error {
-	// HTTP client doesn't need explicit closing
+	// HTTP client does not require explicit closing
 	pc.connected = false
 	return nil
 }
@@ -201,26 +198,29 @@ func (pc *PrometheusConnector) FetchFile(ctx context.Context, src string, dst io
 	return errors.New("fetchFile operation is not supported for Prometheus connector")
 }
 
-// ExecuteCommand executes a PromQL query
+// ExecuteCommand executes a PromQL query and returns both stdout and stderr
 // For Prometheus connector, the command is interpreted as a PromQL query
-func (pc *PrometheusConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
+// The returned []byte is the stdout, []byte is stderr (always nil), and error is the error if any
+func (pc *PrometheusConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error) {
 	if !pc.connected {
-		return nil, errors.New("prometheus connector is not initialized, call Init() first")
+		// If not initialized, return error and nil stderr
+		return nil, nil, errors.New("prometheus connector is not initialized, call Init() first")
 	}
 
-	// Parse the command
+	// Parse the command into query parameters
 	queryParams := parseCommand(cmd)
 	queryString := queryParams["query"]
 	if queryString == "" {
-		return nil, errors.New("query parameter is required for Prometheus queries")
+		// If query is missing, return error and nil stderr
+		return nil, nil, errors.New("query parameter is required for Prometheus queries")
 	}
 
 	klog.V(4).InfoS("Executing Prometheus query", "query", queryString)
 
-	// Build query URL
+	// Build the Prometheus query URL
 	apiURL, err := url.Parse(pc.url + "api/v1/query")
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse URL with base: %s", pc.url)
+		return nil, nil, errors.Wrapf(err, "failed to parse URL with base: %s", pc.url)
 	}
 
 	// Add query parameters
@@ -235,56 +235,58 @@ func (pc *PrometheusConnector) ExecuteCommand(ctx context.Context, cmd string) (
 
 	apiURL.RawQuery = params.Encode()
 
-	// Create request
+	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL.String(), http.NoBody)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create HTTP request")
+		return nil, nil, errors.Wrap(err, "failed to create HTTP request")
 	}
 
-	// Add auth headers
+	// Add authentication and custom headers
 	pc.addAuthHeaders(req)
 
-	// Execute request
+	// Execute HTTP request
 	klog.V(4).InfoS("Sending request to Prometheus", "url", req.URL.String())
 	resp, err := pc.client.Do(req)
 	if err != nil {
 		klog.ErrorS(err, "Failed to execute Prometheus query", "query", queryString)
-		return nil, errors.Wrap(err, "failed to execute prometheus query")
+		return nil, nil, errors.Wrap(err, "failed to execute prometheus query")
 	}
 	defer resp.Body.Close()
 
-	// Read response
+	// Read response body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		klog.ErrorS(err, "Failed to read response body")
-		return nil, errors.Wrap(err, "failed to read response body")
+		return nil, nil, errors.Wrap(err, "failed to read response body")
 	}
 
-	// Check if response is successful
+	// If HTTP status is not OK, return error and nil stderr
 	if resp.StatusCode != http.StatusOK {
 		klog.ErrorS(err, "Prometheus query failed",
 			"statusCode", resp.StatusCode,
 			"response", string(bodyBytes),
 			"query", queryString)
-		return nil, errors.Errorf("prometheus query failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		return nil, nil, errors.Errorf("prometheus query failed with status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	// Format the response based on the format parameter
 	format := queryParams["format"]
 	if format != "" {
 		klog.V(4).InfoS("Formatting response", "format", format)
-		return pc.formatResponse(bodyBytes, format)
+		stdout, ferr := pc.formatResponse(bodyBytes, format)
+		// Always return nil for stderr as per requirement
+		return stdout, nil, ferr
 	}
 
 	// Default to prettified JSON
 	var prettyJSON bytes.Buffer
 	if err := json.Indent(&prettyJSON, bodyBytes, "", "  "); err != nil {
 		klog.V(4).InfoS("Failed to prettify JSON response, returning raw response")
-		// If prettifying fails, return the original response
-		return bodyBytes, nil
+		// If prettifying fails, return the original response and nil stderr
+		return bodyBytes, nil, nil
 	}
 	klog.V(4).InfoS("Prometheus query executed successfully")
-	return prettyJSON.Bytes(), nil
+	return prettyJSON.Bytes(), nil, nil
 }
 
 // addAuthHeaders adds authentication headers to the request
@@ -376,7 +378,7 @@ func (pc *PrometheusConnector) formatResponse(bodyBytes []byte, format string) (
 
 // extractSimpleValue attempts to extract a simple value from the Prometheus response
 func (pc *PrometheusConnector) extractSimpleValue(response map[string]any) ([]byte, error) {
-	// 验证响应格式
+	// Validate response format
 	if err := validatePrometheusResponse(response); err != nil {
 		return nil, err
 	}
@@ -396,7 +398,7 @@ func (pc *PrometheusConnector) extractSimpleValue(response map[string]any) ([]by
 		return nil, errors.New("invalid response format: result field missing")
 	}
 
-	// 根据不同的结果类型处理
+	// Handle different result types
 	switch resultType {
 	case "vector":
 		return extractVectorValue(result)
@@ -411,7 +413,7 @@ func (pc *PrometheusConnector) extractSimpleValue(response map[string]any) ([]by
 	}
 }
 
-// validatePrometheusResponse 验证Prometheus响应的基本结构
+// validatePrometheusResponse validates the basic structure of a Prometheus response
 func validatePrometheusResponse(response map[string]any) error {
 	if status, ok := response["status"].(string); !ok || status != "success" {
 		return errors.New("prometheus query failed")
@@ -419,7 +421,7 @@ func validatePrometheusResponse(response map[string]any) error {
 	return nil
 }
 
-// extractVectorValue 从向量结果中提取值
+// extractVectorValue extracts value from a vector result
 func extractVectorValue(result any) ([]byte, error) {
 	samples, ok := result.([]any)
 	if !ok || len(samples) == 0 {
@@ -439,7 +441,7 @@ func extractVectorValue(result any) ([]byte, error) {
 	return []byte(fmt.Sprintf("%v", value[1])), nil
 }
 
-// extractScalarValue 从标量结果中提取值
+// extractScalarValue extracts value from a scalar result
 func extractScalarValue(result any) ([]byte, error) {
 	value, ok := result.([]any)
 	if !ok || len(value) < 2 {
@@ -449,7 +451,7 @@ func extractScalarValue(result any) ([]byte, error) {
 	return []byte(fmt.Sprintf("%v", value[1])), nil
 }
 
-// extractStringValue 从字符串结果中提取值
+// extractStringValue extracts value from a string result
 func extractStringValue(result any) ([]byte, error) {
 	value, ok := result.([]any)
 	if !ok || len(value) < 2 {
@@ -459,7 +461,7 @@ func extractStringValue(result any) ([]byte, error) {
 	return []byte(fmt.Sprintf("%v", value[1])), nil
 }
 
-// extractMatrixValue 从矩阵结果中提取值
+// extractMatrixValue extracts value from a matrix result
 func extractMatrixValue(result any) ([]byte, error) {
 	matrixData, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
@@ -468,9 +470,9 @@ func extractMatrixValue(result any) ([]byte, error) {
 	return matrixData, nil
 }
 
-// formatAsTable 重构以降低认知复杂度
+// formatAsTable formats the response as a table to reduce cognitive complexity
 func (pc *PrometheusConnector) formatAsTable(response map[string]any) ([]byte, error) {
-	// 验证响应格式并获取结果集
+	// Validate response and get result set
 	result, err := getValidVectorResult(response)
 	if err != nil {
 		return nil, err
@@ -480,11 +482,11 @@ func (pc *PrometheusConnector) formatAsTable(response map[string]any) ([]byte, e
 		return []byte("No data"), nil
 	}
 
-	// 构建表格
+	// Build table from result set
 	return buildTableFromResult(result)
 }
 
-// getValidVectorResult 验证响应并获取vector类型的结果集
+// getValidVectorResult validates the response and gets the vector result set
 func getValidVectorResult(response map[string]any) ([]any, error) {
 	if status, ok := response["status"].(string); !ok || status != "success" {
 		return nil, errors.New("prometheus query failed")
@@ -512,26 +514,26 @@ func getValidVectorResult(response map[string]any) ([]any, error) {
 	return result, nil
 }
 
-// buildTableFromResult 从结果集构建表格
+// buildTableFromResult builds a table from the result set
 func buildTableFromResult(result []any) ([]byte, error) {
 	var builder strings.Builder
 
-	// 表格标题
+	// Table header
 	if _, err := builder.WriteString("METRIC\tVALUE\tTIMESTAMP\n"); err != nil {
 		return nil, err
 	}
 
-	// 表格行
+	// Table rows
 	for _, item := range result {
 		sample, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
 
-		// 获取指标名称
+		// Get metric name
 		metric := getMetricName(sample)
 
-		// 添加值和时间戳
+		// Add value and timestamp
 		if err := addValueAndTimestamp(&builder, sample, metric); err != nil {
 			return nil, err
 		}
@@ -540,7 +542,7 @@ func buildTableFromResult(result []any) ([]byte, error) {
 	return []byte(builder.String()), nil
 }
 
-// getMetricName 提取指标名称
+// getMetricName extracts the metric name
 func getMetricName(sample map[string]any) string {
 	metric := "undefined"
 	m, ok := sample["metric"].(map[string]any)
@@ -548,7 +550,7 @@ func getMetricName(sample map[string]any) string {
 		return metric
 	}
 
-	// 提取指标名称
+	// Extract metric name and labels
 	parts := []string{}
 	for k, v := range m {
 		if k == "__name__" {
@@ -558,7 +560,7 @@ func getMetricName(sample map[string]any) string {
 		}
 	}
 
-	// 如果有标签，在指标名称中包含它们
+	// If there are labels, include them in the metric name
 	if len(parts) > 0 {
 		metric = fmt.Sprintf("%s{%s}", metric, strings.Join(parts, ", "))
 	}
@@ -566,11 +568,11 @@ func getMetricName(sample map[string]any) string {
 	return metric
 }
 
-// addValueAndTimestamp 添加值和时间戳到表格行
+// addValueAndTimestamp adds value and timestamp to a table row
 func addValueAndTimestamp(builder *strings.Builder, sample map[string]any, metric string) error {
 	value, ok := sample["value"].([]any)
 	if !ok || len(value) < 2 {
-		return nil // 跳过无效数据
+		return nil // Skip invalid data
 	}
 
 	timestamp := ""
@@ -606,7 +608,7 @@ func (pc *PrometheusConnector) GetServerInfo(ctx context.Context) (map[string]an
 		return nil, errors.Wrap(err, "failed to create request for server info")
 	}
 
-	// Add auth headers
+	// Add authentication headers
 	pc.addAuthHeaders(req)
 
 	// Execute request
