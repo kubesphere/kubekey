@@ -1,3 +1,3 @@
-- name: Delete cri residue files
+- name: Crictl | Remove crictl binary and clean up any residual files
   command: |
     rm -f /usr/local/bin/crictl

@@ -1,5 +1,5 @@
 ---
-- name: Extract artifact to work_dir
+- name: Artifact | Extract artifact archive to working directory
   tags: ["always"]
   command: |
     if [ -f "{{ .artifact_file }}" ]; then
@@ -8,15 +8,15 @@
     fi
   when: .artifact_file | empty | not
 
-- name: Download binaries
+- name: Artifact | Download required binaries and images
   when: .artifact_file | empty
   block:
-    # the binaries which download binary
+    # Download core binaries
     - include_tasks: download_binary.yaml
-    # the binaries which download helm
+    # Download Helm and CNI binaries
     - include_tasks: download_helm.yaml
-    # download remote images to local
-    - name: Download images
+    # Download remote images to the local images directory
+    - name: Download container images
       image:
         pull:
           images_dir: >-
@@ -25,7 +25,7 @@
       when:
         - .image_manifests | default list | empty | not
 
-- name: Chown work_dir to sudo
+- name: Artifact | Set ownership of working directory to sudo user
   tags: ["always"]
   ignore_errors: true
   command: |

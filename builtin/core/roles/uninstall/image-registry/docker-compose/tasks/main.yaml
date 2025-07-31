@@ -1,16 +1,16 @@
 ---
-- name: Stop docker service
+- name: DockerCompose | Gracefully stop and disable the Docker service
   ignore_errors: true
   command: |
     systemctl stop docker.service
     systemctl disable docker.service
     rm -rf /etc/systemd/system/docker.service*
-    systemctl daemon-reload    
+    systemctl daemon-reload
     systemctl reset-failed docker.service
 
-- name: Uninstall containerd
+- name: DockerCompose | Completely uninstall containerd and remove all related files
   block:
-    - name: Uninstall containerd service
+    - name: DockerCompose | Stop and disable the containerd service
       ignore_errors: true
       command: |
         systemctl stop containerd.service
@@ -18,21 +18,21 @@
         rm -rf /etc/systemd/system/containerd.service*
         systemctl daemon-reload
         systemctl reset-failed containerd.service
-    
-    - name: Delete containerd residue files
+
+    - name: DockerCompose | Remove all containerd-related files and binaries
       command: |
         rm -rf {{ .cri.containerd.data_root }}
         rm -rf /etc/containerd
         rm -rf /usr/local/bin/containerd*
         rm -f /usr/local/bin/runc
-        rm -f /usr/local/bin/ctr  
+        rm -f /usr/local/bin/ctr
 
-- name: Delete docker residue files
+- name: DockerCompose | Remove all Docker residual files and binaries
   command: |
     rm -rf {{ .cri.docker.data_root }}
     rm -rf /etc/docker
     rm -rf /usr/local/bin/docker*
 
-- name: Uninstall docker interface
+- name: DockerCompose | Remove the docker0 network interface
   ignore_errors: true
   command: ip link delete docker0

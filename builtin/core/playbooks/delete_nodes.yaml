@@ -11,16 +11,26 @@
     - kube_control_plane
   gather_facts: true
   tasks:
-    - name: Get kubernetes service
-      ignore_errors: true
-      command: systemctl is-active kubelet.service
-      register: kubernetes_install_service
+    - name: Get kubelet.service LoadState and save to variable
+      command: systemctl show kubelet.service -p LoadState --value
+      register: kubernetes_install_LoadState
+    - name: Get kubelet.service ActiveState and save to variable
+      command: systemctl show kubelet.service -p ActiveState --value
+      register: kubernetes_install_ActiveState
+    - name: Check kubernetes service and version 
+      when: .kubernetes_install_LoadState.stdout | eq "loaded"
+      block:
+        - name: Kubernetes should be active
+          assert:
+            that: .kubernetes_install_ActiveState.stdout | eq "active"
+            fail_msg: >-
+              kubernetes should be active when it's loaded
     - name: Keep at least one control_plane node.
       run_once: true
       command: |
         {{- $cpNodes := list -}}
         {{- range .groups.kube_control_plane -}}
-          {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
+          {{- if index $.hostvars . "kubernetes_install_LoadState" "stdout" | eq "loaded" -}}
             {{- $cpNodes = append $cpNodes . -}}
           {{- end -}}
         {{- end -}}

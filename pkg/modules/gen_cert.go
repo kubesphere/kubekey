@@ -112,35 +112,35 @@ type genCertArgs struct {
 }
 
 // signedCertificate generates a certificate signed by the root certificate
-func (gca genCertArgs) signedCertificate(cfg cgutilcert.Config) (string, string) {
+func (gca genCertArgs) signedCertificate(cfg cgutilcert.Config) (string, string, error) {
 	// Load CA private key
 	caKey, err := TryLoadKeyFromDisk(gca.rootKey)
 	if err != nil {
-		return "", fmt.Sprintf("failed to load root key: %v", err)
+		return StdoutFailed, "failed to load root key", err
 	}
 	// Load CA certificate
 	caCert, _, err := TryLoadCertChainFromDisk(gca.rootCert)
 	if err != nil {
-		return "", fmt.Sprintf("failed to load root certificate: %v", err)
+		return StdoutFailed, "failed to load root cert", err
 	}
 
 	// Function to generate and write new certificate and key
-	generateAndWrite := func() (string, string) {
+	generateAndWrite := func() (string, string, error) {
 		newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 		if err != nil {
-			return "", fmt.Sprintf("generate rsa key error: %v", err)
+			return StdoutFailed, "failed to generate rsa key", err
 		}
 		newCert, err := NewSignedCert(cfg, gca.date, newKey, caCert, caKey, ptr.Deref(gca.isCA, false))
 		if err != nil {
-			return "", fmt.Sprintf("failed to generate certificate: %v", err)
+			return StdoutFailed, "failed to generate signed cert", err
 		}
 		if err := WriteKey(gca.outKey, newKey, gca.policy); err != nil {
-			return "", fmt.Sprintf("failed to write key: %v", err)
+			return StdoutFailed, "failed to write out key", err
 		}
 		if err := WriteCert(gca.outCert, newCert, gca.policy); err != nil {
-			return "", fmt.Sprintf("failed to write certificate: %v", err)
+			return StdoutFailed, "failed to write out cert", err
 		}
-		return StdoutSuccess, ""
+		return StdoutSuccess, "", nil
 	}
 
 	switch gca.policy {
@@ -158,18 +158,18 @@ func (gca genCertArgs) signedCertificate(cfg cgutilcert.Config) (string, string)
 		}
 		// Validate certificate period
 		if err := ValidateCertPeriod(existCert, 0); err != nil {
-			return "", fmt.Sprintf("failed to ValidateCertPeriod: %v", err)
+			return StdoutFailed, "failed to validate cert period", err
 		}
 		// Validate certificate chain
 		if err := VerifyCertChain(existCert, existIntermediates, caCert); err != nil {
-			return "", fmt.Sprintf("failed to VerifyCertChain: %v", err)
+			return StdoutFailed, "failed to validate cert chain", err
 		}
 		// Validate certificate SAN and other config
 		if err := validateCertificateWithConfig(existCert, gca.outCert, cfg); err != nil {
-			return "", fmt.Sprintf("failed to validateCertificateWithConfig: %v", err)
+			return StdoutFailed, "failed to validate cert config", err
 		}
 		// Existing certificate and key are valid, skip generation
-		return StdoutSkip, ""
+		return StdoutSkip, "", nil
 	default:
 		// Otherwise, always generate new certificate and key
 		return generateAndWrite()
@@ -177,25 +177,25 @@ func (gca genCertArgs) signedCertificate(cfg cgutilcert.Config) (string, string)
 }
 
 // selfSignedCertificate generate Self-signed certificate
-func (gca genCertArgs) selfSignedCertificate(cfg cgutilcert.Config) (string, string) {
+func (gca genCertArgs) selfSignedCertificate(cfg cgutilcert.Config) (string, string, error) {
 	newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 	if err != nil {
-		return "", fmt.Sprintf("generate rsa key error: %v", err)
+		return StdoutFailed, "failed to generate rsa key", err
 	}
 
 	newCert, err := NewSelfSignedCACert(cfg, gca.date, newKey)
 	if err != nil {
-		return "", fmt.Sprintf("failed to generate self-signed certificate: %v", err)
+		return StdoutFailed, "failed to generate ca cert", err
 	}
 	// write key and cert to file
 	if err := WriteKey(gca.outKey, newKey, gca.policy); err != nil {
-		return "", fmt.Sprintf("failed to write key: %v", err)
+		return StdoutFailed, "failed to write out key", err
 	}
 	if err := WriteCert(gca.outCert, newCert, gca.policy); err != nil {
-		return "", fmt.Sprintf("failed to write certificate: %v", err)
+		return StdoutFailed, "failed to write out cert", err
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
 func newGenCertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*genCertArgs, error) {
@@ -226,16 +226,16 @@ func newGenCertArgs(_ context.Context, raw runtime.RawExtension, vars map[string
 }
 
 // ModuleGenCert handles the "gen_cert" module, generating SSL/TLS certificates
-func ModuleGenCert(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleGenCert(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 
 	gca, err := newGenCertArgs(ctx, options.Args, ha)
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrParseArgument, err
 	}
 
 	cfg := &cgutilcert.Config{

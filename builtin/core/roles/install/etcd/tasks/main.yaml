@@ -1,18 +1,20 @@
 ---
-- name: Install etcd
-  when: .etcd_install_version.stderr | empty | not
+- include_tasks: prepare.yaml
+
+- name: ETCD | Upgrade etcd if a newer version is available
+  when: 
+    - .etcd_install_LoadState.stdout | eq "loaded"
+    - .etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version"))
+  include_tasks: upgrade.yaml
+
+- name: ETCD | Expand the etcd cluster by adding new nodes if required
+  when:
+    - .installed_etcd | empty | not
+    - .need_installed_etcd | fromJson | empty | not
+  include_tasks: expansion.yaml
+
+- name: ETCD | Install etcd and set up the backup service if not already present
+  when: .etcd_install_LoadState.stdout | eq "not-found"
   block:
-    - name: Init etcd
-      block:
-        - name: Add etcd user
-          command: |
-            id etcd &>/dev/null || useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd
-        - name: Create etcd directories
-          command: |
-            if [ ! -d "{{ .item }}" ]; then
-              mkdir -p {{ .item }} && chown -R etcd {{ .item }}
-            fi
-          loop:
-           - "{{ .etcd.env.data_dir }}"
-    - include_tasks: install_etcd.yaml
-    - include_tasks: backup_etcd.yaml
+    - include_tasks: install.yaml
+    - include_tasks: backup_service.yaml

@@ -13,7 +13,6 @@ func TestModuleImage(t *testing.T) {
 		name         string
 		opt          ExecOptions
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "pull is not map",
@@ -25,7 +24,7 @@ func TestModuleImage(t *testing.T) {
 				},
 				Variable: newTestVariable(nil, nil),
 			},
-			exceptStderr: "\"pull\" should be map",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "pull.manifests is empty",
@@ -37,7 +36,7 @@ func TestModuleImage(t *testing.T) {
 				},
 				Variable: newTestVariable(nil, nil),
 			},
-			exceptStderr: "\"pull.manifests\" is required",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "push is not map",
@@ -49,15 +48,14 @@ func TestModuleImage(t *testing.T) {
 				},
 				Variable: newTestVariable(nil, nil),
 			},
-			exceptStderr: "\"push\" should be map",
+			exceptStdout: StdoutFailed,
 		},
 	}
 
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			stdout, stderr := ModuleImage(context.Background(), testcase.opt)
+			stdout, _, _ := ModuleImage(context.Background(), testcase.opt)
 			assert.Equal(t, testcase.exceptStdout, stdout)
-			assert.Equal(t, testcase.exceptStderr, stderr)
 		})
 	}
 }

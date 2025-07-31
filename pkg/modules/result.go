@@ -2,7 +2,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 
 	"gopkg.in/yaml.v3"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -46,24 +45,27 @@ Return Values:
 */
 
 // ModuleResult handles the "result" module, setting result variables during playbook execution
-func ModuleResult(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleResult(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
-	arg, _ := variable.Extension2String(ha, options.Args)
+	arg, err := variable.Extension2String(ha, options.Args)
+	if err != nil {
+		return StdoutFailed, StderrParseArgument, err
+	}
 	var result any
 	// Unmarshal the YAML document into a root node.
 	if err := yaml.Unmarshal(arg, &result); err != nil {
-		return "", fmt.Sprintf("failed to unmarshal YAML error: %v", err)
+		return StdoutFailed, "failed to unmarshal YAML", err
 	}
 
 	if err := options.Variable.Merge(variable.MergeResultVariable(result)); err != nil {
-		return "", fmt.Sprintf("result error: %v", err)
+		return StdoutFailed, "failed to merge result variable", err
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
 func init() {

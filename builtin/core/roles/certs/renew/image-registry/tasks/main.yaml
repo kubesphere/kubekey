@@ -1,6 +1,4 @@
 - include_tasks: harbor.yaml
-  tags: ["certs"]
   when: .image_registry.type | eq "harbor"
 - include_tasks: registry.yaml
-  tags: ["certs"]
-  when: .image_registry.type | eq "registry"
+  when: .image_registry.type | eq "docker-registry"

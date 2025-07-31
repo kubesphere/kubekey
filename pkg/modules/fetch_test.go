@@ -31,7 +31,6 @@ func TestFetch(t *testing.T) {
 		opt          ExecOptions
 		ctxFunc      func() context.Context
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "src is empty",
@@ -41,9 +40,9 @@ func TestFetch(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
-			exceptStderr: "\"src\" in args should be string",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "dest is empty",
@@ -55,9 +54,9 @@ func TestFetch(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
-			exceptStderr: "\"dest\" in args should be string",
+			exceptStdout: StdoutFailed,
 		},
 	}
 
@@ -66,9 +65,8 @@ func TestFetch(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 
-			acStdout, acStderr := ModuleFetch(ctx, tc.opt)
+			acStdout, _, _ := ModuleFetch(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
-			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

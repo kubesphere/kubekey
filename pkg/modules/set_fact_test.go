@@ -33,7 +33,6 @@ func TestSetFact(t *testing.T) {
 		name         string
 		opt          ExecOptions
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "string value",
@@ -46,7 +45,7 @@ func TestSetFact(t *testing.T) {
 				Task:     kkcorev1alpha1.Task{},
 				Playbook: kkcorev1.Playbook{},
 			},
-			exceptStdout: "success",
+			exceptStdout: StdoutSuccess,
 		},
 		{
 			name: "int value",
@@ -59,7 +58,7 @@ func TestSetFact(t *testing.T) {
 				Task:     kkcorev1alpha1.Task{},
 				Playbook: kkcorev1.Playbook{},
 			},
-			exceptStdout: "success",
+			exceptStdout: StdoutSuccess,
 		},
 		{
 			name: "float value",
@@ -72,7 +71,7 @@ func TestSetFact(t *testing.T) {
 				Task:     kkcorev1alpha1.Task{},
 				Playbook: kkcorev1.Playbook{},
 			},
-			exceptStdout: "success",
+			exceptStdout: StdoutSuccess,
 		},
 		{
 			name: "map value",
@@ -85,7 +84,7 @@ func TestSetFact(t *testing.T) {
 				Task:     kkcorev1alpha1.Task{},
 				Playbook: kkcorev1.Playbook{},
 			},
-			exceptStdout: "success",
+			exceptStdout: StdoutSuccess,
 		},
 		{
 			name: "array value",
@@ -98,7 +97,7 @@ func TestSetFact(t *testing.T) {
 				Task:     kkcorev1alpha1.Task{},
 				Playbook: kkcorev1.Playbook{},
 			},
-			exceptStdout: "success",
+			exceptStdout: StdoutSuccess,
 		},
 	}
 
@@ -107,9 +106,8 @@ func TestSetFact(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
 
-			stdout, stderr := ModuleSetFact(ctx, tc.opt)
+			stdout, _, _ := ModuleSetFact(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, stdout)
-			assert.Equal(t, tc.exceptStderr, stderr)
 		})
 	}
 }

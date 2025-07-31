@@ -1,5 +1,5 @@
 ---
-- name: Generate root ca file
+- name: Cert | Generate the root CA certificate file
   gen_cert:
     cn: root
     date: "{{ .certs.ca.date }}"
@@ -9,9 +9,9 @@
     out_cert: >-
       {{ .binary_dir }}/pki/root.crt
 
-- name: Generate kubernetes ca file
+- name: Cert | Generate Kubernetes CA certificates
   block:
-    - name: Generate ca file for kubernetes
+    - name: Cert | Generate the Kubernetes CA certificate file
       gen_cert:
         root_key: >-
           {{ .binary_dir }}/pki/root.key
@@ -25,7 +25,7 @@
           {{ .binary_dir }}/pki/kubernetes.key
         out_cert: >-
           {{ .binary_dir }}/pki/kubernetes.crt
-    - name: Generate front-proxy ca file for kubernetes
+    - name: Cert | Generate the front-proxy CA certificate for Kubernetes
       gen_cert:
         root_key: >-
           {{ .binary_dir }}/pki/root.key
@@ -40,7 +40,7 @@
         out_cert: >-
           {{ .binary_dir }}/pki/front-proxy.crt
 
-- name: Generate etcd cert file
+- name: Cert | Generate the etcd certificate file
   gen_cert:
     root_key: >-
       {{ .binary_dir }}/pki/root.key
@@ -68,7 +68,7 @@
       {{ .binary_dir }}/pki/etcd.crt
   when: .groups.etcd | default list | empty | not
 
-- name: Generate registry image cert file
+- name: Cert | Generate the image registry certificate file
   gen_cert:
     root_key: >-
       {{ .binary_dir }}/pki/root.key
@@ -99,9 +99,9 @@
       {{ .binary_dir }}/pki/image_registry.crt
   when: .groups.image_registry | default list | empty | not
 
-- name: Chown pki to sudo
+- name: Cert | Set ownership of the PKI directory to the sudo user
   block:
-    - name: Chown pki to sudo
+    - name: Cert | Change ownership of the PKI directory to the sudo user
       ignore_errors: true
       command: |
         chown -R ${SUDO_UID}:${SUDO_GID} {{ .binary_dir }}/pki

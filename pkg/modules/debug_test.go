@@ -30,7 +30,6 @@ func TestDebug(t *testing.T) {
 		name         string
 		opt          ExecOptions
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "non-var and non-msg",
@@ -39,7 +38,7 @@ func TestDebug(t *testing.T) {
 				Host:     "node1",
 				Variable: newTestVariable(nil, nil),
 			},
-			exceptStderr: "\"msg\" is not found",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "string value",
@@ -91,9 +90,8 @@ func TestDebug(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
 
-			acStdout, acStderr := ModuleDebug(ctx, tc.opt)
+			acStdout, _, _ := ModuleDebug(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
-			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

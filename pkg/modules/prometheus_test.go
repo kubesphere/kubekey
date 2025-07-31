@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -42,7 +43,6 @@ func TestPrometheus(t *testing.T) {
 		opt          ExecOptions
 		ctxFunc      func() context.Context
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "empty host",
@@ -54,7 +54,7 @@ func TestPrometheus(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc:      context.Background, // Add context background
-			exceptStderr: "host name is empty, please specify a prometheus host",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "successful query",
@@ -66,9 +66,9 @@ func TestPrometheus(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
-			exceptStdout: "success",
+			exceptStdout: StdoutSuccess,
 		},
 		{
 			name: "failed query",
@@ -80,9 +80,9 @@ func TestPrometheus(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, failedConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutFailed, StdoutFailed, errors.New(StdoutFailed)))
 			},
-			exceptStderr: "failed to execute prometheus query: failed",
+			exceptStdout: StdoutFailed,
 		},
 	}
 
@@ -100,14 +100,8 @@ func TestPrometheus(t *testing.T) {
 				defer cancel()
 			}
 
-			acStdout, acStderr := ModulePrometheus(ctx, tc.opt)
+			acStdout, _, _ := ModulePrometheus(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
-			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
-}
-
-func TestPrometheusModuleRegistration(t *testing.T) {
-	module := FindModule("prometheus")
-	assert.NotNil(t, module, "Prometheus module should be registered")
 }

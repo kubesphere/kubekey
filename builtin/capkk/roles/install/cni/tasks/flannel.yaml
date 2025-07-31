@@ -14,4 +14,4 @@
 
 - name: Apply flannel
   command: |
-    helm install --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel.tgz -f /etc/kubernetes/cni/flannel-values.yaml
+    helm upgrade --install --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel.tgz -f /etc/kubernetes/cni/flannel-values.yaml

@@ -1,7 +1,7 @@
 ---
-- name: Get interface from ha_vip
+- name: Keepalived | Discover network interface for HA VIP
   block:
-    - name: Get all interface with cidr
+    - name: Keepalived | Gather all network interfaces with CIDR addresses
       command: |
         ip -o addr show | awk '
           BEGIN {
@@ -24,40 +24,40 @@
         '
       register: interface
       register_type: json
-    - name: filter interface by ha_vip
+    - name: Keepalived | Select interface matching HA VIP
       set_fact: 
-          ha_vip_interface: >-
-            {{- $interface := "" }}
-            {{- range .interface.stdout | default list -}}
-              {{- if .cidr | ipInCIDR | has $.image_registry.ha_vip -}}
-                {{- $interface = .interface -}}
-              {{- end -}}
+        ha_vip_interface: >-
+          {{- $interface := "" }}
+          {{- range .interface.stdout | default list -}}
+            {{- if .cidr | ipInCIDR | has $.image_registry.ha_vip -}}
+              {{- $interface = .interface -}}
             {{- end -}}
-            {{ $interface }}
-    - name: Check if network is exist
+          {{- end -}}
+          {{ $interface }}
+    - name: Keepalived | Ensure matching network interface exists
       assert:
         that: .kube_vip_interface | empty
-        fail_msg: "cannot find network interface to match ha_vip"  
+        fail_msg: "Cannot find a network interface that matches the HA VIP."
 
-- name: Sync keepalived image to remote
+- name: Keepalived | Synchronize keepalived image to remote host
   copy:
     src: >-
       {{ .binary_dir }}/image-registry/keepalived/{{ .keepalived_version }}/{{ .binary_type }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type }}.tgz
     dest: >-
       /opt/keepalived/{{ .keepalived_version }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type }}.tgz
 
-- name: Load keeplived image
+- name: Keepalived | Load keepalived image into Docker
   command: |
     docker load -i /opt/keepalived/{{ .keepalived_version }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type }}.tgz
 
-- name: Sync keeplived config to remote
+- name: Keepalived | Synchronize keepalived configuration file to remote host
   template:
     src: keepalived.conf
     dest: >-
       /opt/keepalived/{{ .keepalived_version }}/keepalived.conf
     mode: 0664
 
-- name: Sync healthcheck shell to remote
+- name: Keepalived | Synchronize healthcheck script to remote host
   copy:
     src: healthcheck.sh
     dest: >-

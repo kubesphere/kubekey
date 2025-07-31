@@ -5,7 +5,7 @@
   register: calicoctl_install_version
   register_type: yaml
 - name: Install calicoctl
-  when: .calicoctl_install_version.stderr | empty | not
+  when: .calicoctl_install_version.error | empty | not
   block:
     - name: Sync calicoctl to remote
       copy:
@@ -29,4 +29,4 @@
 
 - name: Apply calico
   command: |
-    helm install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .calico_version }}.tgz -f /etc/kubernetes/cni/calico-values.yaml
+    helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .calico_version }}.tgz -f /etc/kubernetes/cni/calico-values.yaml

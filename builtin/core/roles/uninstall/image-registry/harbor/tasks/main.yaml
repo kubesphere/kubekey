@@ -1,4 +1,4 @@
-- name: Stop harbor service
+- name: Harbor | Gracefully stop and disable the Harbor service
   ignore_errors: true
   command: |
     systemctl stop harbor.service
@@ -7,6 +7,6 @@
     systemctl daemon-reload
     systemctl reset-failed harbor.service
 
-- name: Delete residue harbor files
+- name: Harbor | Remove all residual Harbor files and directories
   command: |
     rm -rf /opt/harbor/

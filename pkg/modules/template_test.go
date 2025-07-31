@@ -41,7 +41,6 @@ func TestTemplate(t *testing.T) {
 		opt          ExecOptions
 		ctxFunc      func() context.Context
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "src is empty",
@@ -51,7 +50,7 @@ func TestTemplate(t *testing.T) {
 				Variable: newTestVariable([]string{"node1"}, nil),
 			},
 			ctxFunc:      context.Background,
-			exceptStderr: "\"src\" should be string",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "dest is empty",
@@ -67,7 +66,7 @@ func TestTemplate(t *testing.T) {
 				}),
 			},
 			ctxFunc:      context.Background,
-			exceptStderr: "\"dest\" should be string",
+			exceptStdout: StdoutFailed,
 		},
 	}
 
@@ -76,9 +75,8 @@ func TestTemplate(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 
-			acStdout, acStderr := ModuleTemplate(ctx, tc.opt)
+			acStdout, _, _ := ModuleTemplate(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
-			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

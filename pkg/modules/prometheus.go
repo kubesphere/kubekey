@@ -19,11 +19,9 @@ package modules
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -87,66 +85,26 @@ Format Options:
 */
 
 // ModulePrometheus handles the "prometheus" module, using prometheus connector to execute PromQL queries
-func ModulePrometheus(ctx context.Context, options ExecOptions) (string, string) {
-	// Get the hostname to execute on
-	host := options.Host
-	if host == "" {
-		return "", "host name is empty, please specify a prometheus host"
+func ModulePrometheus(ctx context.Context, options ExecOptions) (string, string, error) {
+	// get host variable
+	ha, err := options.getAllVariables()
+	if err != nil {
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 
 	// Get or create Prometheus connector
 	conn, err := options.getConnector(ctx)
 	if err != nil {
-		return "", fmt.Sprintf("failed to get prometheus connector: %v", err)
+		return StdoutFailed, "failed to get prometheus connector", err
 	}
-
-	// Initialize connection
-	if err := conn.Init(ctx); err != nil {
-		return "", fmt.Sprintf("failed to initialize prometheus connector: %v", err)
-	}
-	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			// Just log the error, don't return it as we've already executed the main command
-			fmt.Printf("Warning: failed to close prometheus connection: %v\n", closeErr)
-		}
-	}()
-
-	// Get all variables
-	ha, err := options.getAllVariables()
-	if err != nil {
-		return "", err.Error()
-	}
+	defer conn.Close(ctx)
 
 	args := variable.Extension2Variables(options.Args)
-
-	// Check if user wants server info instead of running a query
-	infoOnly, _ := variable.BoolVar(ha, args, "info")
-	if infoOnly != nil && *infoOnly {
-		// Try to cast connector to PrometheusConnector
-		pc, ok := conn.(*connector.PrometheusConnector)
-		if !ok {
-			return "", "connector is not a prometheus connector, cannot get server info"
-		}
-
-		// Get server info
-		info, err := pc.GetServerInfo(ctx)
-		if err != nil {
-			return "", fmt.Sprintf("failed to get prometheus server info: %v", err)
-		}
-
-		// Marshal the info to JSON
-		infoBytes, err := json.MarshalIndent(info, "", "  ")
-		if err != nil {
-			return "", fmt.Sprintf("failed to marshal server info: %v", err)
-		}
-
-		return string(infoBytes), ""
-	}
 
 	// Get query parameters
 	query, err := variable.StringVar(ha, args, "query")
 	if err != nil {
-		return "", "failed to get prometheus query. Please provide a query parameter."
+		return StdoutFailed, "failed to get prometheus query. Please provide a query parameter.", err
 	}
 
 	// Get optional parameters
@@ -168,16 +126,16 @@ func ModulePrometheus(ctx context.Context, options ExecOptions) (string, string)
 
 	cmdBytes, err := json.Marshal(cmdMap)
 	if err != nil {
-		return "", fmt.Sprintf("failed to marshal query params: %v", err)
+		return StdoutFailed, "failed to marshal query params", err
 	}
 
 	// Execute query
 	result, _, err := conn.ExecuteCommand(ctx, string(cmdBytes))
 	if err != nil {
-		return "", fmt.Sprintf("failed to execute prometheus query: %v", err)
+		return StdoutFailed, "failed to execute prometheus query", err
 	}
 
-	return string(result), ""
+	return string(result), "", nil
 }
 
 func init() {

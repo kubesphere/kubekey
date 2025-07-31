@@ -1,10 +1,10 @@
 ---
-- name: Generate nfs config
+- name: NFS | Generate NFS server export configuration
   template:
     src: exports
     dest: /etc/exports
 
-- name: Create share directory
+- name: NFS | Ensure NFS share directories exist with correct permissions
   loop: "{{ .nfs.share_dir | toJson }}"
   command: |
     if [ ! -d {{ .item }} ]; then
@@ -13,11 +13,11 @@
       chown nobody:nobody {{ .item }}
     fi
 
-- name: Export share directory and start nfs server
+- name: NFS | Export share directories and start NFS server service
   command: |
     exportfs -a
     {{- if .os.release.ID_LIKE | eq "debian" }}
     systemctl enable nfs-kernel-server && systemctl restart nfs-kernel-server 
     {{- else if .os.release.ID_LIKE | eq "rhel fedora"}}
-    systemctl enable nfs-server.service &&  systemctl restart nfs-server.service
+    systemctl enable nfs-server.service && systemctl restart nfs-server.service
     {{- end }}

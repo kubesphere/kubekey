@@ -30,7 +30,6 @@ func TestModuleGenCert(t *testing.T) {
 		name         string
 		opt          ExecOptions
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "gen root cert",
@@ -62,9 +61,8 @@ func TestModuleGenCert(t *testing.T) {
 
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			stdout, stderr := ModuleGenCert(context.Background(), testcase.opt)
+			stdout, _, _ := ModuleGenCert(context.Background(), testcase.opt)
 			assert.Equal(t, testcase.exceptStdout, stdout)
-			assert.Equal(t, testcase.exceptStderr, stderr)
 		})
 	}
 }

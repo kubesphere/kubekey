@@ -1,10 +1,10 @@
-- name: Should defined internal_ipv4 or internal_ipv6
+- name: Kubernetes | Ensure either internal_ipv4 or internal_ipv6 is defined
   assert:
     that: or (.internal_ipv4 | empty | not) (.internal_ipv6 | empty | not)
     fail_msg: >-
-      "internal_ipv4" and "internal_ipv6" cannot both be empty
+      Either "internal_ipv4" or "internal_ipv6" must be specified. Both cannot be empty.
 
-- name: Check kubevip if valid
+- name: Kubernetes | Validate kube-vip address
   run_once: true
   assert:
     that:
@@ -19,31 +19,41 @@
         {{- end }}
         {{ not $existIP }}
     fail_msg: >-
-      "kubernetes.control_plane_endpoint.kube_vip.address" should be a un-used ip address.
+      The value of "kubernetes.control_plane_endpoint.kube_vip.address" must be an IP address that is not currently assigned to any node.
+
   when: .kubernetes.control_plane_endpoint.type | eq "kube_vip"
 
-- name: Stop if unsupported version of Kubernetes
+- name: Kubernetes | Fail if unsupported Kubernetes version
   run_once: true
   assert:
     that: .kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
     fail_msg: >-
-      the current release of KubeKey only support newer version of Kubernetes than {{ .cluster_require.kube_version_min_required }} - You are trying to apply {{ .kube_version }}
+      This version of KubeKey only supports Kubernetes versions greater than or equal to {{ .cluster_require.kube_version_min_required }}. You are attempting to use version {{ .kube_version }}.
   when: .kube_version | empty | not
 
-- name: Check if kubernetes installed
+- name: Kubernetes | Check if Kubernetes is installed
   when: .groups.k8s_cluster | default list | has .inventory_hostname
   block:
-    - name: Get kubernetes service
-      ignore_errors: true
-      command: systemctl is-active kubelet.service
-      register: kubernetes_install_service
-    - name: Get kubernetes version
+    - name: Kubernetes | Retrieve kubelet.service LoadState
+      command: systemctl show kubelet.service -p LoadState --value
+      register: kubernetes_install_LoadState
+    - name: Retrieve kubelet.service ActiveState
+      command: systemctl show kubelet.service -p ActiveState --value
+      register: kubernetes_install_ActiveState
+    - name: Retrieve installed Kubernetes version
       ignore_errors: true
       command: kubelet --version
       register: kubernetes_install_version
-    - name: Check kubernetes service and version 
-      when: .kubernetes_install_service.stdout | eq "active"
-      assert:
-        that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
-        fail_msg: >-
-          kubernetes has installed with version:{{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}. but not match kube_version: {{ .kube_version }}
+    - name: Validate Kubernetes service status and version
+      when: .kubernetes_install_LoadState.stdout | eq "loaded"
+      block:
+        - name: Ensure kubelet service is active
+          assert:
+            that: .kubernetes_install_ActiveState.stdout | eq "active"
+            fail_msg: >-
+              The kubelet service must be running and active when it is loaded.
+        - name: Ensure installed Kubernetes version matches expected version
+          assert:
+            that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
+            fail_msg: >-
+              The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kube_version }}).

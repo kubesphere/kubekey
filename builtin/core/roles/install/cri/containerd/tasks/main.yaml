@@ -1,60 +1,62 @@
 ---
-- name: Check if runc is installed
+- name: Containerd | Verify if runc is installed on the system
   ignore_errors: true
   command: runc --version
   register: runc_install_version
-- name: Sync runc binary to remote
-  when: or (.runc_install_version.stderr | empty | not) (.runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | default "" | trimPrefix "v" )) | not)
+
+- name: Containerd | Ensure the runc binary is present on the remote node
+  when: or (.runc_install_version.error | empty | not) (.runc_install_version.stdout | contains (printf "runc version %s\n" (.runc_version | default "" | trimPrefix "v" )) | not)
   copy:
     src: >-
       {{ .binary_dir }}/runc/{{ .runc_version }}/{{ .binary_type }}/runc.{{ .binary_type }}
     dest: /usr/local/bin/runc
     mode: 0755
 
-- name: Check if containerd is installed
+- name: Containerd | Check if containerd is installed on the system
   ignore_errors: true
   command: containerd --version
   register: containerd_install_version
-- name: Install containerd
-  when: or (.containerd_install_version.stderr | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .containerd_version) | not)
+
+- name: Containerd | Install and configure containerd if not present or version mismatch
+  when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .containerd_version) | not)
   block:
-    - name: Sync containerd binary to remote
+    - name: Containerd | Copy containerd binary archive to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/containerd/{{ .containerd_version }}/{{ .binary_type }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
         dest: >-
           {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
-    - name: Unpackage containerd binary
+    - name: Containerd | Extract containerd binaries to /usr/local/bin
       command: |
         tar -xvf {{ .tmp_dir }}/containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz --strip-components=1 -C /usr/local/bin/
-    - name: Generate containerd config file
+    - name: Containerd | Generate the containerd configuration file
       template:
         src: config.toml
         dest: /etc/containerd/config.toml
-    - name: Generate containerd Service file
+    - name: Containerd | Deploy the containerd systemd service file
       copy:
         src: containerd.service
         dest: /etc/systemd/system/containerd.service
-    - name: Start containerd
+    - name: Containerd | Start and enable the containerd service
       command: |
         systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
 
-- name: Sync image registry tls to remote
+- name: Containerd | Synchronize image registry TLS certificates to the remote node
   when: .groups.image_registry | default list | empty | not
   block:
-    - name: Sync image registry cert file to remote
+    - name: Containerd | Copy image registry CA certificate to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/pki/root.crt
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry }}/ca.crt
-    - name: Sync image registry cert file to remote
+    - name: Containerd | Copy image registry server certificate to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/pki/image_registry.crt
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.crt
-    - name: Sync image registry key file to remote
+    - name: Containerd | Copy image registry server key to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/pki/image_registry.key

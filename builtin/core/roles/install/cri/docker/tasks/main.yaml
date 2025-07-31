@@ -1,59 +1,59 @@
 ---
-# install cridockerd
+# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
 - include_tasks: cridockerd.yaml
   when:
-  - .kube_version | semverCompare ">=v1.24.0"
+    - .kube_version | semverCompare ">=v1.24.0"
 
-- name: Check if docker is installed
+- name: Docker | Check if Docker is installed on the system
   ignore_errors: true
   command: docker --version
   register: docker_install_version
 
-- name: Install docker
-  when: or (.docker_install_version.stderr | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version) | not)
+- name: Docker | Install and configure Docker if not present or version mismatch
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version) | not)
   block:
-    - name: Sync docker binary to remote
+    - name: Docker | Copy Docker binary archive to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/docker/{{ .docker_version }}/{{ .binary_type }}/docker-{{ .docker_version }}.tgz
         dest: >-
           {{ .tmp_dir }}/docker-{{ .docker_version }}.tgz
-    - name: Unpackage docker binary
+    - name: Docker | Extract Docker binaries to /usr/local/bin
       command: |
         tar -C /usr/local/bin/ --strip-components=1 -xvf {{ .tmp_dir }}/docker-{{ .docker_version }}.tgz --wildcards docker/*
-    - name: Generate docker config file
+    - name: Docker | Generate Docker configuration file
       template:
         src: daemon.json
         dest: /etc/docker/daemon.json
-    - name: Generate docker service file
+    - name: Docker | Deploy the Docker systemd service file
       copy:
         src: docker.service
         dest: /etc/systemd/system/docker.service
-    - name: Generate containerd service file
+    - name: Docker | Deploy the containerd systemd service file
       copy:
         src: containerd.service
         dest: /etc/systemd/system/containerd.service
-    - name: Start docker service
+    - name: Docker | Start and enable Docker and containerd services
       command: |
         systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
         systemctl daemon-reload && systemctl start docker.service && systemctl enable docker.service
 
-- name: Sync image registry tls to remote
+- name: Docker | Synchronize image registry TLS certificates to the remote node
   when: .groups.image_registry | default list | empty | not
   block:
-    - name: Sync image registry cert file to remote
+    - name: Docker | Copy image registry CA certificate to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/pki/root.crt
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry }}/ca.crt
-    - name: Sync image registry cert file to remote
+    - name: Docker | Copy image registry client certificate to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/pki/image_registry.crt
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.cert
-    - name: Sync image registry key file to remote
+    - name: Docker | Copy image registry client key to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/pki/image_registry.key

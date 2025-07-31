@@ -2,7 +2,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -28,25 +27,25 @@ Usage:
 
 // ModuleSetup establishes a connection to a remote host and gathers facts about it.
 // It returns StdoutSuccess if successful, or an error message if any step fails.
-func ModuleSetup(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleSetup(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get connector
 	conn, err := options.getConnector(ctx)
 	if err != nil {
-		return StdoutFailed, fmt.Sprintf("failed to connector of %q error: %v", options.Host, err)
+		return StdoutFailed, StderrGetConnector, nil
 	}
 	defer conn.Close(ctx)
 
 	if gf, ok := conn.(connector.GatherFacts); ok {
 		remoteInfo, err := gf.HostInfo(ctx)
 		if err != nil {
-			return StdoutFailed, err.Error()
+			return StdoutFailed, "failed to get host info", err
 		}
 		if err := options.Variable.Merge(variable.MergeRemoteVariable(remoteInfo, options.Host)); err != nil {
-			return StdoutFailed, err.Error()
+			return StdoutFailed, "failed to merge setup variable", err
 		}
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
 func init() {

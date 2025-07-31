@@ -26,7 +26,6 @@ prometheus:
 | query | PromQL查询语句 | 字符串 | 是（除非使用info参数） | - |
 | format | 结果格式化选项：raw、value、table | 字符串 | 否 | raw |
 | time | 查询的时间点（RFC3339格式或Unix时间戳） | 字符串 | 否 | 当前时间 |
-| info | 获取Prometheus服务器信息而不执行查询 | 布尔值 | 否 | false |
 
 ## 输出
 
@@ -67,9 +66,9 @@ prometheus:
 4. 获取Prometheus服务器信息：
 ```yaml
 - name: 获取Prometheus服务器信息
-  prometheus:
-    info: true
-  register: prometheus_info
+  fetch:
+    src: api/v1/status/buildinfo
+    dest: info.json
 ```
 
 5. 使用表格格式化结果：
@@ -84,7 +83,6 @@ prometheus:
 ## 注意事项
 
 1. 如果需要执行查询，`query`参数是必需的
-2. 当指定`info: true`时，会忽略所有查询相关的参数
-3. 时间参数需要符合RFC3339格式（如：2023-01-01T12:00:00Z）或Unix时间戳格式
-4. 表格格式化仅适用于向量类型的结果，其他类型的结果会返回错误
-5. 为了确保安全，推荐使用HTTPS连接到Prometheus服务器
+2. 时间参数需要符合RFC3339格式（如：2023-01-01T12:00:00Z）或Unix时间戳格式
+3. 表格格式化仅适用于向量类型的结果，其他类型的结果会返回错误
+4. 为了确保安全，推荐使用HTTPS连接到Prometheus服务器

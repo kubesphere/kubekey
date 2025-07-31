@@ -46,7 +46,7 @@
       register: execute_result
 
     - name: Execute pre install scripts
-      when: .execute_result.stderr | empty
+      when: .execute_result.error | empty
       command: |
         for file in /etc/kubekey/scripts/pre_install_*.sh; do
           if [ -f $file ]; then

@@ -49,7 +49,7 @@
           init_kubernetes_node: >-
             {{- $initNodes := list -}}
             {{- range .groups.kube_control_plane -}}
-              {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
+              {{- if index $.hostvars . "kubernetes_install_LoadState" "stdout" | eq "loaded" -}}
                 {{- $initNodes = append $initNodes . -}}
               {{- end -}}
             {{- end -}}

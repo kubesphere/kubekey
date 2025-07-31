@@ -33,17 +33,24 @@
 - name: Check if kubernetes installed
   when: .groups.k8s_cluster | default list | has .inventory_hostname
   block:
-    - name: Get kubernetes service
-      ignore_errors: true
-      command: systemctl is-active kubelet.service
-      register: kubernetes_install_service
+    - name: Get kubelet.service LoadState and save to variable
+      command: systemctl show kubelet.service -p LoadState --value
+      register: kubernetes_install_LoadState
+    - name: Get kubelet.service ActiveState and save to variable
+      command: systemctl show kubelet.service -p ActiveState --value
+      register: kubernetes_install_ActiveState
     - name: Get kubernetes version
       ignore_errors: true
       command: kubelet --version
       register: kubernetes_install_version
     - name: Check kubernetes service and version 
-      when: .kubernetes_install_service.stdout | eq "active"
+      when: .kubernetes_install_LoadState.stdout | eq "loaded"
       block:
+        - name: Kubernetes should be active
+          assert:
+            that: .kubernetes_install_ActiveState.stdout | eq "active"
+            fail_msg: >-
+              kubernetes should be active when it's loaded
         - name: Check kubernetes version
           assert:
             that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version

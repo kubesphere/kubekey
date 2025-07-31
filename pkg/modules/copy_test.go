@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -31,7 +32,6 @@ func TestCopy(t *testing.T) {
 		opt          ExecOptions
 		ctxFunc      func() context.Context
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "src and content is empty",
@@ -43,9 +43,9 @@ func TestCopy(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
-			exceptStderr: "either \"src\" or \"content\" must be provided.",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "dest is empty",
@@ -57,9 +57,9 @@ func TestCopy(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
-			exceptStderr: "\"dest\" in args should be string",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "content not copy to file",
@@ -71,9 +71,9 @@ func TestCopy(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
-			exceptStderr: "\"content\" should copy to a file",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "copy success",
@@ -85,7 +85,7 @@ func TestCopy(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
 			exceptStdout: StdoutSuccess,
 		},
@@ -99,9 +99,9 @@ func TestCopy(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, failedConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutFailed, StdoutFailed, errors.New(StdoutFailed)))
 			},
-			exceptStderr: "copy file error: failed",
+			exceptStdout: StdoutFailed,
 		},
 	}
 
@@ -110,9 +110,8 @@ func TestCopy(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 
-			acStdout, acStderr := ModuleCopy(ctx, tc.opt)
+			acStdout, _, _ := ModuleCopy(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
-			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

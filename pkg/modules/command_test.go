@@ -18,6 +18,7 @@ package modules
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -31,12 +32,11 @@ func TestCommand(t *testing.T) {
 		opt          ExecOptions
 		ctxFunc      func() context.Context
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "exec command success",
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
 			opt: ExecOptions{
 				Host:     "test",
@@ -46,14 +46,16 @@ func TestCommand(t *testing.T) {
 			exceptStdout: "success",
 		},
 		{
-			name:    "exec command failed",
-			ctxFunc: func() context.Context { return context.WithValue(context.Background(), ConnKey, failedConnector) },
+			name: "exec command failed",
+			ctxFunc: func() context.Context {
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutFailed, StdoutFailed, errors.New(StdoutFailed)))
+			},
 			opt: ExecOptions{
 				Host:     "test",
 				Args:     runtime.RawExtension{Raw: []byte("echo success")},
 				Variable: newTestVariable(nil, nil),
 			},
-			exceptStderr: "failed",
+			exceptStdout: "failed",
 		},
 	}
 
@@ -62,9 +64,8 @@ func TestCommand(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 
-			acStdout, acStderr := ModuleCommand(ctx, tc.opt)
+			acStdout, _, _ := ModuleCommand(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
-			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

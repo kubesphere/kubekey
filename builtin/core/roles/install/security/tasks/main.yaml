@@ -1,5 +1,5 @@
 ---
-- name: security enhancement for etcd
+- name: Security | Enhance etcd node security permissions
   command: |
     chmod 700 /etc/ssl/etcd/ssl && chown root:root /etc/ssl/etcd/ssl
     chmod 600 /etc/ssl/etcd/ssl/* && chown root:root /etc/ssl/etcd/ssl/*
@@ -7,7 +7,7 @@
     chmod 550 /usr/local/bin/etcd* && chown root:root /usr/local/bin/etcd*
   when: .groups.etcd | default list | has .inventory_hostname
 
-- name: security enhancement for control plane
+- name: Security | Apply security best practices for control plane nodes
   command: |
     chmod 644 /etc/kubernetes && chown root:root /etc/kubernetes
     chmod 600 -R /etc/kubernetes && chown root:root -R /etc/kubernetes/*
@@ -23,7 +23,7 @@
     chmod 640 /etc/systemd/system/k8s-certs-renew* && chown root:root /etc/systemd/system/k8s-certs-renew*
   when: .groups.kube_control_plane | default list | has .inventory_hostname
 
-- name: security enhancement for worker
+- name: Security | Apply security best practices for worker nodes
   command: |
     chmod 644 /etc/kubernetes && chown root:root /etc/kubernetes
     chmod 600 -R /etc/kubernetes && chown root:root -R /etc/kubernetes/*
@@ -36,4 +36,4 @@
     chmod 550 -R /opt/cni/bin && chown root:root -R /opt/cni/bin
     chmod 640 /var/lib/kubelet/config.yaml && chown root:root /var/lib/kubelet/config.yaml
     chmod 640 -R /etc/systemd/system/kubelet.service* && chown root:root -R /etc/systemd/system/kubelet.service*
-  when:  .groups.kube_worker | default list | has .inventory_hostname
+  when: .groups.kube_worker | default list | has .inventory_hostname

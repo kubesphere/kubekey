@@ -1,13 +1,13 @@
-- name: Set local DNS
+- name: DNS | Configure local DNS entries
   loop: "{{ .localDNS | toJson }}"
   command: |
-    # clear old dns configuration
+    # Remove any previous Kubekey-managed DNS entries
     sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
     sed -i '/^$/N;/\n$/N;//D' {{ .item }}
-    # defined new dns configuration
+    # Add updated Kubekey DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey hosts BEGIN
-    # kubernetes hosts
+    # Kubernetes cluster hosts
     {{- range .groups.k8s_cluster | default list }}
       {{- $hostname := index $.hostvars . "hostname" -}}
       {{- $clusterName := $.kubernetes.cluster_name | default "kubekey" -}}
@@ -19,7 +19,7 @@
     {{ index $.hostvars . "internal_ipv6" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
       {{- end }}
     {{- end }}
-    # etcd hosts
+    # etcd cluster hosts
     {{- range .groups.etcd | default list }}
       {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
@@ -28,7 +28,7 @@
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}
-    # image registry hosts
+    # Image registry hosts
     {{- range .groups.image_registry | default list }}
       {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
@@ -47,16 +47,16 @@
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
         {{- end }}
-    {{ .image_registry.auth.registry }} 
+    {{ .image_registry.auth.registry }}
       {{- end }}
     {{- end }}
-    # nfs hosts
+    # NFS server hosts
     {{- range .groups.nfs | default list }}
       {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
     {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
       {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
+    {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}
     # kubekey hosts END

@@ -1,5 +1,5 @@
 ---
-- name: Generate kubeadm join config
+- name: Join | Generate kubeadm join configuration file
   template:
     src: >-
       {{- if .kube_version | semverCompare ">=v1.24.0" -}}
@@ -9,38 +9,39 @@
       {{- end -}}
     dest: /etc/kubernetes/kubeadm-config.yaml
 
-- name: Join kubernetes cluster
+- name: Join | Execute kubeadm join to add node to the Kubernetes cluster
   command: |
     /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
 
-- name: Sync kubeconfig to remote
+- name: Join | Synchronize kubeconfig to remote node
   copy:
     src: >-
       {{ .work_dir }}/kubekey/kubeconfig
     dest: /root/.kube/config
 
-- name: Set to worker node
+- name: Join | Configure node as worker
   when: .groups.kube_worker | default list | has .inventory_hostname
   block:
-    - name: Remote master taint
+    - name: Join | Remove master and control-plane taints from node
       ignore_errors: true
       command: |
         /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/master=:NoSchedule-
         /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/control-plane=:NoSchedule-
-    - name: Add work label
+    - name: Join | Add worker label to node
       command: |
         /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=
 
-- name: Add annotations
+- name: Join | Add custom annotations to node
   when: .annotations | empty | not
   command: |
     kubectl annotate {{ .hostname }} {{- range $k,$v := .annotations }}{{ printf "%s=%s" $k $v}} {{- end }}
 
-# reset localDNS 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}. 
-# if not the control_plane_endpoint will valid after kube_vip pod running. the task which will execute kubectl apply in current node may be failed.
-- name: reset control_plane_endpoint localDNS
+# Reset local DNS for control_plane_endpoint to 127.0.0.1 and ::1.
+# This ensures the control_plane_endpoint resolves locally before kube-vip is running,
+# preventing failures for tasks that execute kubectl apply on the current node.
+- name: Join | Reset local DNS for control_plane_endpoint
   block:
-    - name: reset control_plane localDNS
+    - name: Join | Reset local DNS on control plane nodes
       when:
         - .groups.kube_control_plane | default list | has .inventory_hostname
       command: |
@@ -52,7 +53,7 @@
         # kubekey control_plane_endpoint END
         EOF
       loop: "{{ .localDNS | toJson }}"
-    - name: reset worker localDNS
+    - name: Join | Reset local DNS on worker nodes (for haproxy endpoint)
       when:
         - .groups.kube_worker | default list | has .inventory_hostname
         - .kubernetes.control_plane_endpoint.type | eq "haproxy"

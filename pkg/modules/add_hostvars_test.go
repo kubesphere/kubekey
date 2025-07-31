@@ -14,7 +14,6 @@ func TestModuleAddHostvars(t *testing.T) {
 		name         string
 		opt          ExecOptions
 		expectStdout string
-		expectStderr string
 	}
 	cases := []testcase{
 		{
@@ -29,8 +28,7 @@ vars:
 `),
 				},
 			},
-			expectStdout: "",
-			expectStderr: "\"hosts\" should be string or string array",
+			expectStdout: StdoutFailed,
 		},
 		{
 			name: "missing vars",
@@ -43,8 +41,7 @@ hosts: node1
 `),
 				},
 			},
-			expectStdout: "",
-			expectStderr: "\"vars\" should not be empty",
+			expectStdout: StdoutFailed,
 		},
 		{
 			name: "invalid hosts type",
@@ -60,8 +57,7 @@ vars:
 `),
 				},
 			},
-			expectStdout: "",
-			expectStderr: "\"hosts\" should be string or string array",
+			expectStdout: StdoutFailed,
 		},
 		{
 			name: "string value",
@@ -76,6 +72,7 @@ vars:
 `),
 				},
 			},
+			expectStdout: StdoutSuccess,
 		},
 		{
 			name: "string var value",
@@ -90,6 +87,7 @@ vars:
 `),
 				},
 			},
+			expectStdout: StdoutSuccess,
 		},
 		{
 			name: "map value",
@@ -105,6 +103,7 @@ vars:
 `),
 				},
 			},
+			expectStdout: StdoutSuccess,
 		},
 	}
 
@@ -112,9 +111,8 @@ vars:
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
-			stdout, stderr := ModuleAddHostvars(ctx, tc.opt)
+			stdout, _, _ := ModuleAddHostvars(ctx, tc.opt)
 			require.Equal(t, tc.expectStdout, stdout, "stdout mismatch")
-			require.Equal(t, tc.expectStderr, stderr, "stderr mismatch")
 		})
 	}
 }

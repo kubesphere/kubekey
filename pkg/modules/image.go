@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -294,32 +293,32 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 }
 
 // ModuleImage handles the "image" module, managing container image operations including pulling and pushing images
-func ModuleImage(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleImage(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 
 	ia, err := newImageArgs(ctx, options.Args, ha)
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrParseArgument, err
 	}
 
 	// pull image manifests to local dir
 	if ia.pull != nil {
 		if err := ia.pull.pull(ctx); err != nil {
-			return "", fmt.Sprintf("failed to pull image: %v", err)
+			return StdoutFailed, "failed to pull image", err
 		}
 	}
 	// push image to private registry
 	if ia.push != nil {
 		if err := ia.push.push(ctx, ha); err != nil {
-			return "", fmt.Sprintf("failed to push image: %v", err)
+			return StdoutFailed, "failed to push image", err
 		}
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
 // findLocalImageManifests get image manifests with whole image's name.

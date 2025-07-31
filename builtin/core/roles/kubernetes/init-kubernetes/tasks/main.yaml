@@ -1,5 +1,5 @@
 ---
-- name: select init node
+- name: InitKubernetes | Select the initialization node for the cluster
   run_once: true
   add_hostvars:
     hosts: k8s_cluster
@@ -8,9 +8,9 @@
         {{- $initNodes := list -}}
         {{- $notInitNodes := list -}}
         {{- range .groups.kube_control_plane -}}
-          {{- if index $.hostvars . "kubernetes_install_service" "stdout" | eq "active" -}}
+          {{- if index $.hostvars . "kubernetes_install_LoadState" "stdout" | eq "loaded" -}}
             {{- $initNodes = append $initNodes . -}}
-          {{- else if index $.hostvars . "kubernetes_install_service" "stdout" | eq "inactive" -}}
+          {{- else if index $.hostvars . "kubernetes_install_LoadState" "stdout" | eq "not-found" -}}
             {{- $notInitNodes = append $notInitNodes . -}}
           {{- end -}}
         {{- end -}}
@@ -24,7 +24,7 @@
         {{ index $notInitNodes (randInt 0 ((sub ($notInitNodes | len) 1) | int)) }}
         {{- end -}}
 
-- name: Set control_plane_endpoint hosts to localDNS file
+- name: InitKubernetes | Configure control_plane_endpoint in local DNS files
   when: 
     - or (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.type | eq "haproxy")
     - .inventory_hostname | eq .init_kubernetes_node | not
@@ -42,34 +42,34 @@
     EOF
   loop: "{{ .localDNS | toJson }}"
 
-- name: Init kubernetes
+- name: InitKubernetes | Initialize the Kubernetes cluster and distribute credentials
   when: eq .inventory_hostname .init_kubernetes_node
   block:
     - include_tasks: init_kubernetes.yaml
-      when: .kubernetes_install_service.stdout | eq "inactive"
+      when: .kubernetes_install_LoadState.stdout | eq "not-found"
     - include_tasks: deploy_cluster_dns.yaml
-    - name: Fetch kubeconfig to local
+    - name: InitKubernetes | Fetch kubeconfig to local workspace
       fetch:
         src: /etc/kubernetes/admin.conf
         dest: >-
           {{ .work_dir }}/kubekey/kubeconfig
-    - name: Generate certificate key by kubeadm
+    - name: InitKubernetes | Generate certificate key using kubeadm
       command: |
         /usr/local/bin/kubeadm init phase upload-certs --upload-certs --config=/etc/kubernetes/kubeadm-config.yaml 2>&1 \
           | awk '/Using certificate key:/{getline; print}'
       register: kubeadm_cert_result
-    - name: add certificate key to all hosts
+    - name: InitKubernetes | Distribute certificate key to all cluster hosts
       add_hostvars:
         hosts: k8s_cluster
         vars:
           kubeadm_cert: >-
             {{ .kubeadm_cert_result.stdout }}
-    - name: Generate kubeadm token
+    - name: InitKubernetes | Generate and distribute kubeadm token
       block:
-        - name: Generate token by kubeadm
+        - name: InitKubernetes | Generate kubeadm join token
           command: /usr/local/bin/kubeadm token create
           register: kubeadm_token_result
-        - name: add token to all hosts
+        - name: InitKubernetes | Share kubeadm token with all cluster hosts
           add_hostvars:
             hosts: k8s_cluster
             vars:
