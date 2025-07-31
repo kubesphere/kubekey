@@ -130,7 +130,7 @@ func (h *PlaybookHandler) List(request *restful.Request, response *restful.Respo
 	}
 
 	// Sort and filter the playbook list using DefaultList.
-	results := query.DefaultList(playbookList.Items, queryParam, func(left, right kkcorev1.Playbook, sortBy query.Field) bool {
+	results := query.DefaultList(playbookList.Items, queryParam, func(left, right kkcorev1.Playbook, sortBy string) bool {
 		leftMeta, err := meta.Accessor(left)
 		if err != nil {
 			return false

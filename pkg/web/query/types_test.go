@@ -38,10 +38,10 @@ func TestParseQueryParameter(t *testing.T) {
 				Pagination: newPagination(10, 0),
 				SortBy:     FieldCreationTimeStamp,
 				Ascending:  true,
-				Filters: map[Field]Value{
-					FieldLabel:  Value("app.kubernetes.io/name=book"),
-					FieldName:   Value("foo"),
-					FieldStatus: Value("Running"),
+				Filters: map[string]string{
+					FieldLabel:  "app.kubernetes.io/name=book",
+					FieldName:   "foo",
+					FieldStatus: "Running",
 				},
 			},
 		},
@@ -52,9 +52,9 @@ func TestParseQueryParameter(t *testing.T) {
 				Pagination: NoPagination,
 				SortBy:     FieldCreationTimeStamp,
 				Ascending:  false,
-				Filters: map[Field]Value{
-					Field("xxxx"):  Value("xxxx"),
-					Field("dsfsw"): Value("xxxx"),
+				Filters: map[string]string{
+					"xxxx":  "xxxx",
+					"dsfsw": "xxxx",
 				},
 			},
 		},

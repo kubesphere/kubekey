@@ -103,7 +103,7 @@ func (h *InventoryHandler) List(request *restful.Request, response *restful.Resp
 	}
 
 	// Sort and filter the inventory list using DefaultList.
-	results := query.DefaultList(inventoryList.Items, queryParam, func(left, right kkcorev1.Inventory, sortBy query.Field) bool {
+	results := query.DefaultList(inventoryList.Items, queryParam, func(left, right kkcorev1.Inventory, sortBy string) bool {
 		leftMeta, err := meta.Accessor(left)
 		if err != nil {
 			return false
@@ -253,7 +253,7 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 	}
 
 	// less is a comparison function for sorting InventoryHostTable items by a given field.
-	less := func(left, right api.InventoryHostTable, sortBy query.Field) bool {
+	less := func(left, right api.InventoryHostTable, sortBy string) bool {
 		// Compare fields for sorting.
 		leftVal := query.GetFieldByJSONTag(reflect.ValueOf(left), sortBy)
 		rightVal := query.GetFieldByJSONTag(reflect.ValueOf(right), sortBy)

@@ -68,18 +68,22 @@ func (h ResourceHandler) ConfigInfo(request *restful.Request, response *restful.
 // PostConfig updates the config file and triggers precheck playbooks if needed.
 func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.Response) {
 	var (
-		oldConfig map[string]any
-		newConfig map[string]any
+		oldConfig map[string]map[string]any
+		newConfig map[string]map[string]any
 	)
+	bodyBytes, err := io.ReadAll(request.Request.Body)
+	if err != nil {
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
 	// Read new config from request body.
-	if err := request.ReadEntity(&newConfig); err != nil {
+	if err := json.Unmarshal(bodyBytes, &newConfig); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	configPath := filepath.Join(h.rootPath, api.SchemaConfigFile)
 	// Open config file for reading and writing.
-	configFile, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	configFile, err := os.OpenFile(filepath.Join(h.rootPath, api.SchemaConfigFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -93,9 +97,8 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 	}
 
 	queryParam := query.ParseQueryParameter(request)
-	namespace := queryParam.Filters["cluster"]
-	inventory := queryParam.Filters["inventory"]
-
+	namespace := query.DefaultString(queryParam.Filters["cluster"], "default")
+	inventory := query.DefaultString(queryParam.Filters["inventory"], "default")
 	playbooks := make(map[string]*kkcorev1.Playbook)
 	wg := wait.Group{}
 
@@ -116,24 +119,19 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 		}
 		// If a precheck playbook is defined, create and execute it.
 		if pbpath := schemaFile.PlaybookPath["precheck."+api.SchemaLabelSubfix]; pbpath != "" {
-			configRaw, err := json.Marshal(newVal)
-			if err != nil {
-				_ = response.WriteError(http.StatusInternalServerError, err)
-				return
-			}
 			playbook := &kkcorev1.Playbook{
 				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "precheck-" + pbpath[:strings.Index(pbpath, ".")] + "-",
-					Namespace:    string(namespace),
+					GenerateName: "precheck-" + fileName[:strings.Index(fileName, ".")] + "-",
+					Namespace:    namespace,
 				},
 				Spec: kkcorev1.PlaybookSpec{
 					Config: kkcorev1.Config{
-						Spec: runtime.RawExtension{Raw: configRaw},
+						Spec: runtime.RawExtension{Object: &unstructured.Unstructured{Object: newVal}},
 					},
 					InventoryRef: &corev1.ObjectReference{
 						Kind:      "Inventory",
-						Namespace: string(namespace),
-						Name:      string(inventory),
+						Namespace: namespace,
+						Name:      inventory,
 					},
 					Playbook: pbpath,
 				},
@@ -170,14 +168,14 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 	}
 
 	// Write new config to file.
-	if _, err := io.Copy(configFile, request.Request.Body); err != nil {
+	if _, err := configFile.Write(bodyBytes); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
 	// Respond with precheck results if any failures, otherwise success.
 	if len(preCheckResult) > 0 {
-		_ = response.WriteEntity(api.Result{Message: api.ResultFailed, Result: preCheckResult})
+		_ = response.WriteHeaderAndEntity(http.StatusUnprocessableEntity, api.Result{Message: api.ResultFailed, Result: preCheckResult})
 	} else {
 		_ = response.WriteEntity(api.SUCCESS)
 	}
@@ -187,15 +185,15 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
 	cidr, ok := queryParam.Filters["cidr"]
-	if !ok || string(cidr) == "" {
+	if !ok || cidr == "" {
 		api.HandleBadRequest(response, request, errors.New("cidr parameter is required"))
 		return
 	}
 	sshPort, ok := queryParam.Filters["sshPort"]
-	if !ok || string(sshPort) == "" {
+	if !ok || sshPort == "" {
 		sshPort = "22"
 	}
-	ips := _const.ParseIP(string(cidr))
+	ips := _const.ParseIP(cidr)
 	ipTable := make([]api.IPTable, 0, len(ips))
 	maxConcurrency := 20
 	mu := sync.Mutex{}
@@ -211,7 +209,7 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 					mu.Lock()
 					ipTable = append(ipTable, api.IPTable{
 						IP:            ip,
-						SSHPort:       string(sshPort),
+						SSHPort:       sshPort,
 						Localhost:     true,
 						SSHReachable:  true,
 						SSHAuthorized: true,
@@ -225,12 +223,12 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 				if !isIPOnline(ip) {
 					continue
 				}
-				reachable, authorized := isSSHAuthorized(ip, string(sshPort))
+				reachable, authorized := isSSHAuthorized(ip, sshPort)
 
 				mu.Lock()
 				ipTable = append(ipTable, api.IPTable{
 					IP:            ip,
-					SSHPort:       string(sshPort),
+					SSHPort:       sshPort,
 					SSHReachable:  reachable,
 					SSHAuthorized: authorized,
 				})
@@ -248,7 +246,7 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 	wg.Wait()
 
 	// less is a comparison function for sorting IPTable items by a given field.
-	less := func(left, right api.IPTable, sortBy query.Field) bool {
+	less := func(left, right api.IPTable, sortBy string) bool {
 		leftVal := query.GetFieldByJSONTag(reflect.ValueOf(left), sortBy)
 		rightVal := query.GetFieldByJSONTag(reflect.ValueOf(right), sortBy)
 		switch leftVal.Kind() {
@@ -363,7 +361,7 @@ func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.
 		schemaTable = append(schemaTable, schema)
 	}
 	// less is a comparison function for sorting SchemaTable items by a given field.
-	less := func(left, right api.SchemaTable, sortBy query.Field) bool {
+	less := func(left, right api.SchemaTable, sortBy string) bool {
 		leftVal := query.GetFieldByJSONTag(reflect.ValueOf(left), sortBy)
 		rightVal := query.GetFieldByJSONTag(reflect.ValueOf(right), sortBy)
 		switch leftVal.Kind() {
@@ -381,9 +379,9 @@ func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.
 		val := query.GetFieldByJSONTag(reflect.ValueOf(o), f.Field)
 		switch val.Kind() {
 		case reflect.String:
-			return strings.Contains(val.String(), string(f.Value))
+			return strings.Contains(val.String(), f.Value)
 		case reflect.Int:
-			v, err := strconv.Atoi(string(f.Value))
+			v, err := strconv.Atoi(f.Value)
 			if err != nil {
 				return false
 			}
