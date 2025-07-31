@@ -6,9 +6,13 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/emicklei/go-restful/v3"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,6 +76,50 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	// Apply the patch.
 	if err := h.client.Patch(request.Request.Context(), inventory, ctrlclient.RawPatch(types.PatchType(patchType), data)); err != nil {
 		api.HandleBadRequest(response, request, err)
+		return
+	}
+	// create host-check playbook
+	playbook := &kkcorev1.Playbook{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "host-check-",
+			Namespace:    namespace,
+		},
+		Spec: kkcorev1.PlaybookSpec{
+			InventoryRef: &corev1.ObjectReference{
+				Kind:      "Inventory",
+				Namespace: namespace,
+				Name:      name,
+			},
+			Playbook: "host_check.yaml",
+		},
+		Status: kkcorev1.PlaybookStatus{
+			Phase: kkcorev1.PlaybookPhasePending,
+		},
+	}
+	// Set the workdir in the playbook's spec config
+	if err := unstructured.SetNestedField(playbook.Spec.Config.Value(), h.workdir, _const.Workdir); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	if err := h.client.Create(request.Request.Context(), playbook); err != nil {
+		api.HandleBadRequest(response, request, errors.Wrap(err, "failed to create hostcheck playbook"))
+		return
+	}
+
+	// Execute the playbook asynchronously.
+	if err := playbookManager.executor(playbook, h.client); err != nil {
+		api.HandleBadRequest(response, request, errors.Wrap(err, "failed to execute hostcheck playbook"))
+		return
+	}
+
+	// update inventory annotation
+	old := inventory.DeepCopy()
+	if inventory.Annotations == nil {
+		inventory.Annotations = make(map[string]string)
+	}
+	inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation] = playbook.Name
+	if err := h.client.Patch(request.Request.Context(), inventory, ctrlclient.MergeFrom(old)); err != nil {
+		api.HandleBadRequest(response, request, errors.Wrap(err, "failed to execute hostcheck playbook"))
 		return
 	}
 
