@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -121,6 +122,10 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 				return
 			}
 			playbook := &kkcorev1.Playbook{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "precheck-" + pbpath[:strings.Index(pbpath, ".")] + "-",
+					Namespace:    string(namespace),
+				},
 				Spec: kkcorev1.PlaybookSpec{
 					Config: kkcorev1.Config{
 						Spec: runtime.RawExtension{Raw: configRaw},
@@ -142,7 +147,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 				return
 			}
 			if err := h.client.Create(context.TODO(), playbook); err != nil {
-				api.HandleBadRequest(response, request, err)
+				api.HandleBadRequest(response, request, errors.Wrap(err, "failed to create precheck playbook"))
 				return
 			}
 			playbooks[fileName] = playbook
