@@ -184,6 +184,7 @@
 | v1.31.8 | :white_check_mark: |
 | v1.31.9 | :white_check_mark: |
 | v1.31.10 | :white_check_mark: |
+| v1.31.11 | :white_check_mark: |
 | v1.32.0 | :white_check_mark: |
 | v1.32.1 | :white_check_mark: |
 | v1.32.2 | :white_check_mark: |
@@ -191,6 +192,8 @@
 | v1.32.4 | :white_check_mark: |
 | v1.32.5 | :white_check_mark: |
 | v1.32.6 | :white_check_mark: |
+| v1.32.7 | :white_check_mark: |
 | v1.33.0 | :white_check_mark: |
 | v1.33.1 | :white_check_mark: |
 | v1.33.2 | :white_check_mark: |
+| v1.33.3 | :white_check_mark: |
