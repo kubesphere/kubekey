@@ -139,13 +139,18 @@ linters-settings:
         # List of allowed packages.
         allow:
           - $gostd
+          - github.com/Masterminds/sprig
           - github.com/cockroachdb/errors
           - github.com/containerd/containerd/images
+          - github.com/emicklei/go-restful-openapi/v2
+          - github.com/emicklei/go-restful/v3
+          - github.com/evanphx/json-patch
           - github.com/fsnotify/fsnotify
           - github.com/go-git/go-git
+          - github.com/go-openapi/spec
+          - github.com/google/go-cmp/cmp
           - github.com/google/gops
           - github.com/kubesphere/kubekey
-          - github.com/Masterminds/sprig
           - github.com/opencontainers/image-spec
           - github.com/pkg/sftp
           - github.com/schollz/progressbar
@@ -154,10 +159,6 @@ linters-settings:
           - k8s.io
           - oras.land/oras-go
           - sigs.k8s.io
-          - github.com/emicklei/go-restful/v3
-          - github.com/google/go-cmp/cmp
-          - github.com/emicklei/go-restful-openapi/v2
-          - github.com/go-openapi/spec
   forbidigo:
     # Forbid the following identifiers (list of regexp).
     # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
@@ -244,19 +245,30 @@ linters-settings:
       # oci
       - pkg: github.com/opencontainers/image-spec/specs-go/v1
         alias: imagev1
+      # kubekey
+      - pkg: "github.com/kubesphere/kubekey/v4/pkg/const"
+        alias: _const
+      - pkg: "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+        alias: capkkinfrav1beta1
+      - pkg: "github.com/kubesphere/kubekey/api/core/v1"
+        alias: kkcorev1
+      - pkg: "github.com/kubesphere/kubekey/api/core/v1alpha1"
+        alias: kkcorev1alpha1
+      - pkg: "github.com/kubesphere/kubekey/api/project/v1"
+        alias: kkprojectv1
       # Kubernetes
+      - pkg: "k8s.io/api/batch/v1"
+        alias: batchv1
       - pkg: "k8s.io/api/coordination/v1"
         alias: coordinationv1
       - pkg: "k8s.io/api/core/v1"
         alias: corev1
-      - pkg: "k8s.io/api/batch/v1"
-        alias: batchv1
       - pkg: "k8s.io/api/rbac/v1"
         alias: rbacv1
-      - pkg: "k8s.io/apimachinery/pkg/apis/meta/v1"
-        alias: metav1
       - pkg: "k8s.io/apimachinery/pkg/api/errors"
         alias: apierrors
+      - pkg: "k8s.io/apimachinery/pkg/apis/meta/v1"
+        alias: metav1
       - pkg:  "k8s.io/apimachinery/pkg/util/runtime"
         alias: utilruntime
       - pkg:  "k8s.io/client-go/tools/cache"
@@ -278,24 +290,16 @@ linters-settings:
         alias: ctrlcontroller
       - pkg: "sigs.k8s.io/controller-runtime/pkg/finalizer"
         alias: ctrlfinalizer
-      # kubekey
-      - pkg: "github.com/kubesphere/kubekey/v4/pkg/const"
-        alias: _const
-      - pkg: "github.com/kubesphere/kubekey/api/core/v1"
-        alias: kkcorev1
-      - pkg: "github.com/kubesphere/kubekey/api/core/v1alpha1"
-        alias: kkcorev1alpha1
-      - pkg: "github.com/kubesphere/kubekey/api/project/v1"
-        alias: kkprojectv1
-      - pkg: "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
-        alias: capkkinfrav1beta1
       # cluster-api
       - pkg: "sigs.k8s.io/cluster-api/api/v1beta1"
         alias: clusterv1beta1
-      - pkg: "sigs.k8s.io/cluster-api/util"
-        alias: clusterutil
       - pkg: "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
         alias: kubeadmcpv1beta1
+      - pkg: "sigs.k8s.io/cluster-api/util"
+        alias: clusterutil
+      # common
+      - pkg:  "github.com/evanphx/json-patch"
+        alias: jsonpatch
   nestif:
     # Minimal complexity of if statements to report.
     # Default: 5

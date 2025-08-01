@@ -33,6 +33,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
 	"github.com/kubesphere/kubekey/v4/pkg/web/query"
 )
@@ -96,9 +97,8 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 		return
 	}
 
-	queryParam := query.ParseQueryParameter(request)
-	namespace := query.DefaultString(queryParam.Filters["cluster"], "default")
-	inventory := query.DefaultString(queryParam.Filters["inventory"], "default")
+	namespace := query.DefaultString(request.QueryParameter("cluster"), "default")
+	inventory := query.DefaultString(request.QueryParameter("inventory"), "default")
 	playbooks := make(map[string]*kkcorev1.Playbook)
 	wg := wait.Group{}
 
@@ -121,7 +121,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 		if pbpath := schemaFile.PlaybookPath["precheck."+api.SchemaLabelSubfix]; pbpath != "" {
 			playbook := &kkcorev1.Playbook{
 				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "precheck-" + fileName[:strings.Index(fileName, ".")] + "-",
+					GenerateName: "precheck-" + strings.TrimSuffix(fileName, filepath.Ext(fileName)) + "-",
 					Namespace:    namespace,
 				},
 				Spec: kkcorev1.PlaybookSpec{
@@ -141,17 +141,17 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 			}
 			// Set the workdir in the playbook's spec config
 			if err := unstructured.SetNestedField(playbook.Spec.Config.Value(), h.workdir, _const.Workdir); err != nil {
-				api.HandleBadRequest(response, request, err)
+				api.HandleError(response, request, err)
 				return
 			}
 			if err := h.client.Create(context.TODO(), playbook); err != nil {
-				api.HandleBadRequest(response, request, errors.Wrap(err, "failed to create precheck playbook"))
+				api.HandleError(response, request, errors.Wrap(err, "failed to create precheck playbook"))
 				return
 			}
 			playbooks[fileName] = playbook
 			wg.Start(func() {
 				// Execute the playbook asynchronously.
-				if err := playbookManager.executor(playbook, h.client); err != nil {
+				if err := playbookManager.executor(playbook, h.client, "false"); err != nil {
 					klog.ErrorS(err, "failed to executor precheck playbook", "schema", fileName)
 				}
 			})
@@ -184,28 +184,20 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 // ListIP lists all IPs in the given CIDR, checks their online and SSH status, and returns the result.
 func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
-	cidr, ok := queryParam.Filters["cidr"]
-	if !ok || cidr == "" {
-		api.HandleBadRequest(response, request, errors.New("cidr parameter is required"))
-		return
-	}
-	sshPort, ok := queryParam.Filters["sshPort"]
-	if !ok || sshPort == "" {
-		sshPort = "22"
-	}
-	ips := _const.ParseIP(cidr)
+	cidr := request.QueryParameter("cidr")
+	sshPort := query.DefaultString(request.QueryParameter("sshPort"), "22")
+
+	ips := utils.ParseIP(cidr)
 	ipTable := make([]api.IPTable, 0, len(ips))
 	maxConcurrency := 20
 	mu := sync.Mutex{}
 	jobChannel := make(chan string, 20)
-	wg := sync.WaitGroup{}
+	wg := wait.Group{}
 	// Start worker goroutines for concurrent IP checking.
 	for range maxConcurrency {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Start(func() {
 			for ip := range jobChannel {
-				if _const.IsLocalhostIP(ip) {
+				if utils.IsLocalhostIP(ip) {
 					mu.Lock()
 					ipTable = append(ipTable, api.IPTable{
 						IP:            ip,
@@ -234,7 +226,7 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 				})
 				mu.Unlock()
 			}
-		}()
+		})
 	}
 
 	// Send IPs to job channel for processing.
@@ -274,7 +266,7 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 		val := query.GetFieldByJSONTag(reflect.ValueOf(o), f.Field)
 		switch val.Kind() {
 		case reflect.String:
-			return strings.Contains(val.String(), string(f.Value))
+			return strings.Contains(val.String(), f.Value)
 		default:
 			return true
 		}
@@ -298,7 +290,7 @@ func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.
 	// Read all entries in the rootPath directory.
 	entries, err := os.ReadDir(h.rootPath)
 	if err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	schemaTable := make([]api.SchemaTable, 0)
@@ -312,19 +304,19 @@ func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.
 		// Read the JSON file.
 		data, err := os.ReadFile(filepath.Join(h.rootPath, entry.Name()))
 		if err != nil {
-			api.HandleBadRequest(response, request, errors.Wrapf(err, "failed to read file for schema %q", entry.Name()))
+			api.HandleError(response, request, errors.Wrapf(err, "failed to read file for schema %q", entry.Name()))
 			return
 		}
 		var schemaFile api.SchemaFile
 		// Unmarshal the JSON data into a SchemaTable struct.
 		if err := json.Unmarshal(data, &schemaFile); err != nil {
-			api.HandleBadRequest(response, request, errors.Wrapf(err, "failed to unmarshal file for schema %q", entry.Name()))
+			api.HandleError(response, request, errors.Wrapf(err, "failed to unmarshal file for schema %q", entry.Name()))
 			return
 		}
 		// Get all playbooks in the given namespace.
 		playbookList := &kkcorev1.PlaybookList{}
 		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.InNamespace(request.PathParameter("cluster"))); err != nil {
-			api.HandleBadRequest(response, request, err)
+			api.HandleError(response, request, err)
 			return
 		}
 		schema := api.SchemaFile2Table(schemaFile, entry.Name())
@@ -335,14 +327,14 @@ func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.
 				if _, ok := schema.Playbook[label]; ok && schemaName == schema.Name {
 					// If a playbook for this label already exists, return an error.
 					if schema.Playbook[label].Name != "" {
-						api.HandleBadRequest(response, request, errors.Errorf("schema %q has multiple playbooks of label %q", entry.Name(), label))
+						api.HandleError(response, request, errors.Errorf("schema %q has multiple playbooks of label %q", entry.Name(), label))
 						return
 					}
 					var result any
 					// If the playbook has a result, unmarshal it.
 					if len(playbook.Status.Result.Raw) != 0 {
 						if err := json.Unmarshal(playbook.Status.Result.Raw, &result); err != nil {
-							api.HandleBadRequest(response, request, errors.Errorf("failed to unmarshal result from playbook of schema %q", schema.Name))
+							api.HandleError(response, request, errors.Errorf("failed to unmarshal result from playbook of schema %q", schema.Name))
 							return
 						}
 					}

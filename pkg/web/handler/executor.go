@@ -26,46 +26,57 @@ type manager struct {
 	manager map[string]context.CancelFunc // Map of playbook key to its cancel function
 }
 
-func (m *manager) executor(playbook *kkcorev1.Playbook, client ctrlclient.Client) error {
-	// Build the log file path for the playbook execution
-	filename := filepath.Join(
-		_const.GetWorkdirFromConfig(playbook.Spec.Config),
-		_const.RuntimeDir,
-		kkcorev1.SchemeGroupVersion.Group,
-		kkcorev1.SchemeGroupVersion.Version,
-		"playbooks",
-		playbook.Namespace,
-		playbook.Name,
-		playbook.Name+".log",
-	)
-	// Ensure the directory for the log file exists
-	if _, err := os.Stat(filepath.Dir(filename)); err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "failed to stat playbook dir %q", filepath.Dir(filename))
+func (m *manager) executor(playbook *kkcorev1.Playbook, client ctrlclient.Client, promise string) error {
+	f := func() error {
+		// Build the log file path for the playbook execution
+		filename := filepath.Join(
+			_const.GetWorkdirFromConfig(playbook.Spec.Config),
+			_const.RuntimeDir,
+			kkcorev1.SchemeGroupVersion.Group,
+			kkcorev1.SchemeGroupVersion.Version,
+			"playbooks",
+			playbook.Namespace,
+			playbook.Name,
+			playbook.Name+".log",
+		)
+		// Ensure the directory for the log file exists
+		if _, err := os.Stat(filepath.Dir(filename)); err != nil {
+			if !os.IsNotExist(err) {
+				return errors.Wrapf(err, "failed to stat playbook dir %q", filepath.Dir(filename))
+			}
+			// If directory does not exist, create it
+			if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
+				return errors.Wrapf(err, "failed to create playbook dir %q", filepath.Dir(filename))
+			}
 		}
-		// If directory does not exist, create it
-		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			return errors.Wrapf(err, "failed to create playbook dir %q", filepath.Dir(filename))
+		// Open the log file for writing
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open log file", "file", filename)
 		}
-	}
-	// Open the log file for writing
-	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		return errors.Wrapf(err, "failed to open log file", "file", filename)
-	}
-	defer file.Close()
+		defer file.Close()
 
-	// Create a cancellable context for playbook execution
-	ctx, cancel := context.WithCancel(context.Background())
-	// Register the playbook and its cancel function in the playbookManager
-	m.addPlaybook(playbook, cancel)
-	// Execute the playbook and write output to the log file
-	if err := executor.NewPlaybookExecutor(ctx, client, playbook, file).Exec(ctx); err != nil {
-		klog.ErrorS(err, "failed to exec playbook", "playbook", playbook.Name)
+		// Create a cancellable context for playbook execution
+		ctx, cancel := context.WithCancel(context.Background())
+		// Register the playbook and its cancel function in the playbookManager
+		m.addPlaybook(playbook, cancel)
+		// Execute the playbook and write output to the log file
+		if err := executor.NewPlaybookExecutor(ctx, client, playbook, file).Exec(ctx); err != nil {
+			klog.ErrorS(err, "failed to exec playbook", "playbook", playbook.Name)
+		}
+		// Remove the playbook from the playbookManager after execution
+		m.deletePlaybook(playbook)
+		return nil
 	}
-	// Remove the playbook from the playbookManager after execution
-	m.deletePlaybook(playbook)
-	return nil
+	if promise == "true" {
+		go func() {
+			if err := f(); err != nil {
+				klog.ErrorS(err, "failed to execute playbook", "playbook", ctrlclient.ObjectKeyFromObject(playbook))
+			}
+		}()
+		return nil
+	}
+	return f()
 }
 
 // addPlaybook adds a playbook and its cancel function to the manager map.

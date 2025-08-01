@@ -102,7 +102,7 @@ func newAPIIResources(gv schema.GroupVersion) *apiResources {
 		minRequestTimeout: defaultMinRequestTimeout,
 
 		typer:      _const.Scheme,
-		serializer: _const.Codecs,
+		serializer: _const.CodecFactory,
 	}
 }
 

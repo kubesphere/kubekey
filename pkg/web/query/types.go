@@ -171,7 +171,7 @@ func ParseQueryParameter(request *restful.Request) *Query {
 	return query
 }
 
-// defaultString returns the default value if the input string is empty
+// DefaultString returns the default value if the input string is empty
 func DefaultString(value, defaultValue string) string {
 	if value == "" {
 		return defaultValue

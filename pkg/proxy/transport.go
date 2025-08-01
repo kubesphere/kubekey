@@ -287,7 +287,7 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 			Namer:         meta.NewAccessor(),
 			ClusterScoped: false,
 		},
-		Serializer:                  _const.Codecs,
+		Serializer:                  _const.CodecFactory,
 		ParameterCodec:              _const.ParameterCodec,
 		Creater:                     _const.Scheme,
 		Convertor:                   _const.Scheme,
