@@ -35,23 +35,24 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 	// Inventory management routes
 	ws.Route(ws.POST("/inventories").To(inventoryHandler.Post).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("create a inventory.").
+		Doc("create a inventory.").Operation("createInventory").
 		Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Inventory{}).
 		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
 
 	ws.Route(ws.PATCH("/namespaces/{namespace}/inventories/{inventory}").To(inventoryHandler.Patch).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("patch a inventory.").
+		Doc("patch a inventory.").Operation("patchInventory").
 		Consumes(string(types.JSONPatchType), string(types.MergePatchType), string(types.ApplyPatchType)).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Inventory{}).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
+		Param(ws.QueryParameter("promise", "promise to execute playbook").Required(false).DefaultValue("true")).
 		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
 
 	ws.Route(ws.GET("/inventories").To(inventoryHandler.List).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("list all inventories.").
+		Doc("list all inventories.").Operation("listInventory").
 		Produces(restful.MIME_JSON).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
@@ -62,7 +63,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories").To(inventoryHandler.List).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
 		Doc("list all inventories in a namespace.").
-		Produces(restful.MIME_JSON).
+		Produces(restful.MIME_JSON).Operation("listInventoryInNamespace").
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
@@ -72,7 +73,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories/{inventory}").To(inventoryHandler.Info).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("get a inventory in a namespace.").
+		Doc("get a inventory in a namespace.").Operation("getInventory").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
@@ -80,7 +81,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories/{inventory}/hosts").To(inventoryHandler.ListHosts).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("list all hosts in a inventory.").
+		Doc("list all hosts in a inventory.").Operation("listInventoryHosts").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
@@ -94,14 +95,15 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 	// Playbook management routes
 	ws.Route(ws.POST("/playbooks").To(playbookHandler.Post).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("create a playbook.").
+		Doc("create a playbook.").Operation("createPlaybook").
+		Param(ws.QueryParameter("promise", "promise to execute playbook").Required(false).DefaultValue("true")).
 		Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Playbook{}).
 		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Playbook{}))
 
 	ws.Route(ws.GET("/playbooks").To(playbookHandler.List).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("list all playbooks.").
+		Doc("list all playbooks.").Operation("listPlaybook").
 		Produces(restful.MIME_JSON).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
@@ -111,7 +113,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks").To(playbookHandler.List).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("list all playbooks in a namespace.").
+		Doc("list all playbooks in a namespace.").Operation("listPlaybookInNamespace").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
@@ -122,7 +124,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks/{playbook}").To(playbookHandler.Info).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("get or watch a playbook in a namespace.").
+		Doc("get or watch a playbook in a namespace.").Operation("getPlaybook").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
@@ -131,7 +133,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks/{playbook}/log").To(playbookHandler.Log).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("get a playbook execute log.").
+		Doc("get a playbook execute log.").Operation("getPlaybookLog").
 		Produces("text/plain").
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
@@ -139,7 +141,7 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 
 	ws.Route(ws.DELETE("/namespaces/{namespace}/playbooks/{playbook}").To(playbookHandler.Delete).
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
-		Doc("delete a playbook.").
+		Doc("delete a playbook.").Operation("deletePlaybook").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).

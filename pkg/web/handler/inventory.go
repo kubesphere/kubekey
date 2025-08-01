@@ -43,11 +43,11 @@ func NewInventoryHandler(workdir string, restconfig *rest.Config, client ctrlcli
 func (h *InventoryHandler) Post(request *restful.Request, response *restful.Response) {
 	inventory := &kkcorev1.Inventory{}
 	if err := request.ReadEntity(inventory); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	if err := h.client.Create(request.Request.Context(), inventory); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	name := request.PathParameter("inventory")
 	data, err := io.ReadAll(request.Request.Body)
 	if err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	patchType := request.HeaderParameter("Content-Type")
@@ -69,13 +69,13 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	// Get the existing inventory object.
 	inventory := &kkcorev1.Inventory{}
 	if err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: name}, inventory); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 
 	// Apply the patch.
 	if err := h.client.Patch(request.Request.Context(), inventory, ctrlclient.RawPatch(types.PatchType(patchType), data)); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	// create host-check playbook
@@ -98,20 +98,19 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	}
 	// Set the workdir in the playbook's spec config
 	if err := unstructured.SetNestedField(playbook.Spec.Config.Value(), h.workdir, _const.Workdir); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	if err := h.client.Create(request.Request.Context(), playbook); err != nil {
-		api.HandleBadRequest(response, request, errors.Wrap(err, "failed to create hostcheck playbook"))
+		api.HandleError(response, request, errors.Wrap(err, "failed to create hostcheck playbook"))
 		return
 	}
 
 	// Execute the playbook asynchronously.
-	if err := playbookManager.executor(playbook, h.client); err != nil {
-		api.HandleBadRequest(response, request, errors.Wrap(err, "failed to execute hostcheck playbook"))
+	if err := playbookManager.executor(playbook, h.client, query.DefaultString(request.QueryParameter("promise"), "true")); err != nil {
+		api.HandleError(response, request, errors.Wrap(err, "failed to execute hostcheck playbook"))
 		return
 	}
-
 	// update inventory annotation
 	old := inventory.DeepCopy()
 	if inventory.Annotations == nil {
@@ -119,7 +118,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	}
 	inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation] = playbook.Name
 	if err := h.client.Patch(request.Request.Context(), inventory, ctrlclient.MergeFrom(old)); err != nil {
-		api.HandleBadRequest(response, request, errors.Wrap(err, "failed to execute hostcheck playbook"))
+		api.HandleError(response, request, errors.Wrap(err, "failed to execute hostcheck playbook"))
 		return
 	}
 
@@ -133,18 +132,17 @@ func (h *InventoryHandler) List(request *restful.Request, response *restful.Resp
 	var fieldselector fields.Selector
 	// Parse field selector from query parameters if present.
 	if v, ok := queryParam.Filters[query.ParameterFieldSelector]; ok {
-		fs, err := fields.ParseSelector(string(v))
+		fs, err := fields.ParseSelector(v)
 		if err != nil {
 			api.HandleError(response, request, err)
 			return
 		}
 		fieldselector = fs
 	}
-	namespace := request.PathParameter("namespace")
 
 	inventoryList := &kkcorev1.InventoryList{}
 	// List inventory resources from the Kubernetes API.
-	err := h.client.List(request.Request.Context(), inventoryList, &ctrlclient.ListOptions{Namespace: namespace, LabelSelector: queryParam.Selector(), FieldSelector: fieldselector})
+	err := h.client.List(request.Request.Context(), inventoryList, &ctrlclient.ListOptions{Namespace: request.PathParameter("namespace"), LabelSelector: queryParam.Selector(), FieldSelector: fieldselector})
 	if err != nil {
 		api.HandleError(response, request, err)
 		return
@@ -202,7 +200,6 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 	queryParam := query.ParseQueryParameter(request)
 	namespace := request.PathParameter("namespace")
 	name := request.PathParameter("inventory")
-
 	// Retrieve the inventory object from the cluster.
 	inventory := &kkcorev1.Inventory{}
 	err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: name}, inventory)
@@ -287,6 +284,8 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 	fillByPlaybook := func(playbook kkcorev1.Playbook, item *api.InventoryHostTable) {
 		// Set status and architecture based on playbook phase and result.
 		switch playbook.Status.Phase {
+		case kkcorev1.PlaybookPhasePending, kkcorev1.PlaybookPhaseRunning:
+			item.Status = api.ResultPending
 		case kkcorev1.PlaybookPhaseFailed:
 			item.Status = api.ResultFailed
 		case kkcorev1.PlaybookPhaseSucceeded:
@@ -321,7 +320,7 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 		val := query.GetFieldByJSONTag(reflect.ValueOf(o), f.Field)
 		switch val.Kind() {
 		case reflect.String:
-			return strings.Contains(val.String(), string(f.Value))
+			return strings.Contains(val.String(), f.Value)
 		default:
 			return true
 		}
