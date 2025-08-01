@@ -19,6 +19,8 @@ builds:
       - arm64
     binary: kk
     ldflags: "{{ .Env.LDFLAGS }}"
+    flags:
+      - -trimpath
     tags:
       - builtin
 

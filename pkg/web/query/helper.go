@@ -29,7 +29,7 @@ import (
 
 // CompareFunc is a generic function type that compares two objects of type T
 // Returns true if left is greater than right
-type CompareFunc[T any] func(T, T, Field) bool
+type CompareFunc[T any] func(T, T, string) bool
 
 // FilterFunc is a generic function type that filters objects of type T
 // Returns true if the object matches the filter criteria
@@ -93,7 +93,7 @@ func DefaultList[T any](objects []T, q *Query, compareFunc CompareFunc[T], filte
 // DefaultObjectMetaCompare compares two metav1.Object instances
 // Returns true if left is greater than right based on the specified sort field
 // Supports sorting by name or creation timestamp
-func DefaultObjectMetaCompare(left, right metav1.Object, sortBy Field) bool {
+func DefaultObjectMetaCompare(left, right metav1.Object, sortBy string) bool {
 	switch sortBy {
 	// ?sortBy=name
 	case FieldName:
@@ -121,7 +121,7 @@ func DefaultObjectMetaCompare(left, right metav1.Object, sortBy Field) bool {
 func DefaultObjectMetaFilter(item metav1.Object, filter Filter) bool {
 	switch filter.Field {
 	case FieldNames:
-		for _, name := range strings.Split(string(filter.Value), ",") {
+		for _, name := range strings.Split(filter.Value, ",") {
 			if item.GetName() == name {
 				return true
 			}
@@ -129,17 +129,17 @@ func DefaultObjectMetaFilter(item metav1.Object, filter Filter) bool {
 		return false
 	// /namespaces?page=1&limit=10&name=default
 	case FieldName:
-		return strings.Contains(item.GetName(), string(filter.Value))
+		return strings.Contains(item.GetName(), filter.Value)
 	// /namespaces?page=1&limit=10&uid=a8a8d6cf-f6a5-4fea-9c1b-e57610115706
 	case FieldUID:
-		return string(item.GetUID()) == string(filter.Value)
+		return string(item.GetUID()) == filter.Value
 	// /deployments?page=1&limit=10&namespace=kubesphere-system
 	case FieldNamespace:
-		return item.GetNamespace() == string(filter.Value)
+		return item.GetNamespace() == filter.Value
 	// /namespaces?page=1&limit=10&ownerReference=a8a8d6cf-f6a5-4fea-9c1b-e57610115706
 	case FieldOwnerReference:
 		for _, ownerReference := range item.GetOwnerReferences() {
-			if string(ownerReference.UID) == string(filter.Value) {
+			if string(ownerReference.UID) == filter.Value {
 				return true
 			}
 		}
@@ -147,17 +147,17 @@ func DefaultObjectMetaFilter(item metav1.Object, filter Filter) bool {
 	// /namespaces?page=1&limit=10&ownerKind=Workspace
 	case FieldOwnerKind:
 		for _, ownerReference := range item.GetOwnerReferences() {
-			if ownerReference.Kind == string(filter.Value) {
+			if ownerReference.Kind == filter.Value {
 				return true
 			}
 		}
 		return false
 	// /namespaces?page=1&limit=10&annotation=openpitrix_runtime
 	case FieldAnnotation:
-		return labelMatch(item.GetAnnotations(), string(filter.Value))
+		return labelMatch(item.GetAnnotations(), filter.Value)
 	// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
 	case FieldLabel:
-		return labelMatch(item.GetLabels(), string(filter.Value))
+		return labelMatch(item.GetLabels(), filter.Value)
 	// not supported filter
 	default:
 		return true

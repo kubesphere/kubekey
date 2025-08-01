@@ -40,13 +40,13 @@ type Query struct {
 	Pagination *Pagination // Pagination settings for the query results
 
 	// SortBy specifies which field to sort results by, defaults to FieldCreationTimeStamp
-	SortBy Field
+	SortBy string
 
 	// Ascending determines sort direction, defaults to descending (false)
 	Ascending bool
 
 	// Filters contains field-value pairs for filtering results
-	Filters map[Field]Value
+	Filters map[string]string
 
 	// LabelSelector contains the label selector string for filtering by labels
 	LabelSelector string
@@ -118,14 +118,14 @@ func New() *Query {
 		Pagination: NoPagination,
 		SortBy:     "",
 		Ascending:  false,
-		Filters:    map[Field]Value{},
+		Filters:    map[string]string{},
 	}
 }
 
 // Filter represents a single field-value filter pair
 type Filter struct {
-	Field Field `json:"field"` // Field to filter on
-	Value Value `json:"value"` // Value to filter by
+	Field string `json:"field"` // Field to filter on
+	Value string `json:"value"` // Value to filter by
 }
 
 // ParseQueryParameter parses query parameters from a RESTful request into a Query struct
@@ -145,9 +145,9 @@ func ParseQueryParameter(request *restful.Request) *Query {
 	query.Pagination = newPagination(limit, (page-1)*limit)
 
 	// Parse sorting parameters
-	query.SortBy = Field(defaultString(request.QueryParameter(ParameterOrderBy), FieldCreationTimeStamp))
+	query.SortBy = DefaultString(request.QueryParameter(ParameterOrderBy), FieldCreationTimeStamp)
 
-	ascending, err := strconv.ParseBool(defaultString(request.QueryParameter(ParameterAscending), "false"))
+	ascending, err := strconv.ParseBool(DefaultString(request.QueryParameter(ParameterAscending), "false"))
 	if err != nil {
 		query.Ascending = false
 	} else {
@@ -164,15 +164,15 @@ func ParseQueryParameter(request *restful.Request) *Query {
 			if len(values) > 0 {
 				value = values[0]
 			}
-			query.Filters[Field(key)] = Value(value)
+			query.Filters[key] = value
 		}
 	}
 
 	return query
 }
 
-// defaultString returns the default value if the input string is empty
-func defaultString(value, defaultValue string) string {
+// DefaultString returns the default value if the input string is empty
+func DefaultString(value, defaultValue string) string {
 	if value == "" {
 		return defaultValue
 	}

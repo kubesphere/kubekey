@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,14 +12,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/emicklei/go-restful/v3"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -46,7 +46,7 @@ func (h *PlaybookHandler) Post(request *restful.Request, response *restful.Respo
 	playbook := &kkcorev1.Playbook{}
 	// Read the playbook entity from the request body
 	if err := request.ReadEntity(playbook); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *PlaybookHandler) Post(request *restful.Request, response *restful.Respo
 		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.MatchingLabels{
 			labelKey: labelValue,
 		}); err != nil {
-			api.HandleBadRequest(response, request, err)
+			api.HandleError(response, request, err)
 			return
 		}
 		// If any playbook with the same schema label exists, this is a conflict
@@ -85,22 +85,20 @@ func (h *PlaybookHandler) Post(request *restful.Request, response *restful.Respo
 
 	// Set the workdir in the playbook's spec config
 	if err := unstructured.SetNestedField(playbook.Spec.Config.Value(), h.workdir, _const.Workdir); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	playbook.Status.Phase = kkcorev1.PlaybookPhasePending
 	// Create the playbook resource in Kubernetes
 	if err := h.client.Create(context.TODO(), playbook); err != nil {
-		api.HandleBadRequest(response, request, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	// Start playbook execution in a separate goroutine
-	go func() {
-		if err := playbookManager.executor(playbook, h.client); err != nil {
-			klog.ErrorS(err, "failed to executor playbook", "playbook", ctrlclient.ObjectKeyFromObject(playbook))
-		}
-	}()
-
+	if err := playbookManager.executor(playbook, h.client, query.DefaultString(request.QueryParameter("promise"), "true")); err != nil {
+		api.HandleError(response, request, errors.Wrap(err, "failed to execute playbook"))
+		return
+	}
 	// For web UI: it does not run in Kubernetes, so execute playbook immediately.
 	_ = response.WriteEntity(playbook)
 }
@@ -112,25 +110,22 @@ func (h *PlaybookHandler) List(request *restful.Request, response *restful.Respo
 	var fieldselector fields.Selector
 	// Parse field selector from query parameters if present.
 	if v, ok := queryParam.Filters[query.ParameterFieldSelector]; ok {
-		fs, err := fields.ParseSelector(string(v))
+		fs, err := fields.ParseSelector(v)
 		if err != nil {
 			api.HandleError(response, request, err)
 			return
 		}
 		fieldselector = fs
 	}
-	namespace := request.PathParameter("namespace")
-
 	playbookList := &kkcorev1.PlaybookList{}
 	// List playbooks from the Kubernetes API with the specified options.
-	err := h.client.List(request.Request.Context(), playbookList, &ctrlclient.ListOptions{Namespace: namespace, LabelSelector: queryParam.Selector(), FieldSelector: fieldselector})
+	err := h.client.List(request.Request.Context(), playbookList, &ctrlclient.ListOptions{Namespace: request.PathParameter("namespace"), LabelSelector: queryParam.Selector(), FieldSelector: fieldselector})
 	if err != nil {
 		api.HandleError(response, request, err)
 		return
 	}
-
 	// Sort and filter the playbook list using DefaultList.
-	results := query.DefaultList(playbookList.Items, queryParam, func(left, right kkcorev1.Playbook, sortBy query.Field) bool {
+	results := query.DefaultList(playbookList.Items, queryParam, func(left, right kkcorev1.Playbook, sortBy string) bool {
 		leftMeta, err := meta.Accessor(left)
 		if err != nil {
 			return false
@@ -267,7 +262,11 @@ func (h *PlaybookHandler) Delete(request *restful.Request, response *restful.Res
 	// Retrieve the playbook resource to delete.
 	err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: name}, playbook)
 	if err != nil {
-		api.HandleError(response, request, err)
+		if apierrors.IsNotFound(err) {
+			_ = response.WriteEntity(api.SUCCESS)
+		} else {
+			api.HandleError(response, request, err)
+		}
 		return
 	}
 	// Stop the playbook execution if it is running.

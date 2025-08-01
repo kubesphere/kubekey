@@ -1,36 +1,34 @@
 ---
-- name: Should found network interface
+- name: Ensure required network interfaces are present
   command:  |
     {{- if .internal_ipv4 | empty | not }}
-    if [ ! ip -o addr show | grep -q {{ .internal_ipv4 }} ]; then
-      echo 'No ipv4 network interface found'
-      exit 1
+    if ! ip -o addr show | grep -q {{ .internal_ipv4 }}; then
+      echo 'IPv4 network interface not found' >&2
     fi
     {{- end }}
     {{- if .internal_ipv6 | empty | not }}
-    if [ ! ip -o addr show | grep -q {{ .internal_ipv6 }} ]; then
-      echo 'No ipv6 network interface found'
-      exit 1
+    if ! ip -o addr show | grep -q {{ .internal_ipv6 }}; then
+      echo 'IPv6 network interface not found' >&2
     fi
     {{- end }}
 
 # https://kubernetes.io/docs/concepts/services-networking/dual-stack/
-- name: Stop if cidr is not valid
+- name: Validate CIDR configuration
   run_once: true
   block:
-    - name: Stop if pod cidr is not valid
+    - name: Validate pod CIDR format
       when: .kubernetes.networking.pod_cidr | empty | not
       assert:
         that: .kubernetes.networking.pod_cidr | splitList "," | len | ge 2
         fail_msg: >-
-          kubernetes.networking.pod_cidr should be ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
-    - name: Stop if service cidr is not valid
+          kubernetes.networking.pod_cidr must be specified as ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
+    - name: Validate service CIDR format
       when: .kubernetes.networking.service_cidr | empty | not
       assert:
         that: .kubernetes.networking.service_cidr | splitList "," | len | ge 2
         fail_msg: >-
-          kubernetes.networking.service_cidr should be ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
-    - name: Stop if pod networking is not support dual-stack
+          kubernetes.networking.service_cidr must be specified as ipv4_cidr/ipv6_cidr or ipv4_cidr,ipv6_cidr
+    - name: Ensure pod networking supports dual-stack
       when:
         - .kubernetes.networking.pod_cidr | empty | not
         - .kubernetes.networking.pod_cidr | splitList "," | len | eq 2
@@ -40,8 +38,8 @@
           - .kubernetes.networking.pod_cidr | splitList "," | first | ipFamily | eq "IPv4"
           - .kubernetes.networking.pod_cidr | splitList "," | last | ipFamily | eq "IPv6"
         fail_msg: >-
-          Kubernetes introduced support for pod dual-stack networking starting from version v1.20.0.
-    - name: Stop if service networking is not support dual-stack 
+          Dual-stack pod networking is supported in Kubernetes version v1.20.0 and above.
+    - name: Ensure service networking supports dual-stack 
       when:
         - .kubernetes.networking.service_cidr | empty | not
         - .kubernetes.networking.service_cidr | splitList "," | len | eq 2
@@ -51,41 +49,38 @@
           - .kubernetes.networking.service_cidr | splitList "," | first | ipFamily | eq "IPv4"
           - .kubernetes.networking.service_cidr | splitList "," | last | ipFamily | eq "IPv6"
         fail_msg: >-
-          Kubernetes introduced support for service dual-stack networking starting from version v1.20.0.
+          Dual-stack service networking is supported in Kubernetes version v1.20.0 and above.
 
-- name: Stop if unknown network plugin
+- name: Fail if network plugin is unsupported
   run_once: true
   assert:
     that: .cluster_require.require_network_plugin | has .kubernetes.kube_network_plugin
     fail_msg: >-
-      kube_network_plugin:"{{ .kubernetes.kube_network_plugin }}" is not supported
+      The specified kube_network_plugin "{{ .kubernetes.kube_network_plugin }}" is not supported.
   when: .kubernetes.kube_network_plugin | empty | not
 
-# This assertion will fail on the safe side: One can indeed schedule more pods
-# on a node than the CIDR-range has space for when additional pods use the host
-# network namespace. It is impossible to ascertain the number of such pods at
-# provisioning time, so to establish a guarantee, we factor these out.
-# NOTICE: the check blatantly ignores the inet6-case
-- name: Guarantee that enough network address space is available for all pods
+# Note: This assertion errs on the side of caution. It is technically possible to schedule more pods on a node than the available CIDR range allows, especially if some pods use the host network namespace. Since the number of such pods cannot be determined at provisioning time, this check provides a conservative guarantee. 
+# Note: This check intentionally ignores the IPv6-only case.
+- name: Ensure sufficient network address space for all pods
   run_once: true
   when: .groups.k8s_cluster | default list | has .inventory_hostname
   block:
-    - name: Guarantee that enough ipv4 network address space is available for all pods
+    - name: Ensure sufficient IPv4 address space for pods
       when: .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily | eq "IPv4"
       assert:
         that: le (.kubernetes.kubelet.max_pods | default 110) (sub (pow 2 (float64 (sub 32 (.kubernetes.networking.ipv4_mask_size | default 24)))) 2)
-        fail_msg: do not schedule more pods on a node than ipv4 inet addresses are available.
-    - name: Guarantee that enough ipv6 network address space is available for all pods
+        fail_msg: Do not schedule more pods on a node than there are available IPv4 addresses in the pod CIDR range.
+    - name: Ensure sufficient IPv6 address space for pods
       when: .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily | eq "IPv6"
       assert:
         that: le (.kubernetes.kubelet.max_pods | default 110) (sub (pow 2 (float64 (sub 128 (.kubernetes.networking.ipv4_mask_size | default 64)))) 2)
-        fail_msg: do not schedule more pods on a node than ipv6 inet addresses are available.
+        fail_msg: Do not schedule more pods on a node than there are available IPv6 addresses in the pod CIDR range.
   
 # https://github.com/alibaba/hybridnet/wiki/Getting-Started#install
-- name: Stop install hybridnet if Kubernetes version is not satisfied
+- name: Fail if Kubernetes version is too low for hybridnet
   run_once: true
   assert:
     that: .kube_version | semverCompare ">=v1.16.0"
-    fail_msg: To install hybridnet in an exist Kubernetes (version > 1.16) cluster
+    fail_msg: Hybridnet requires Kubernetes version 1.16 or higher.
   when:
     - .kubernetes.kube_network_plugin | eq "hybridnet"

@@ -31,6 +31,8 @@ const (
 	ResultSucceed = "success"
 	// ResultFailed indicates a failed operation result.
 	ResultFailed = "failed"
+	// ResultPending indicates a pending operation result.
+	ResultPending = "pending"
 )
 
 // SUCCESS is a global variable representing a successful operation result with a default success message.
