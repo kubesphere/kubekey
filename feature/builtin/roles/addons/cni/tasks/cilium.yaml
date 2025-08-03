@@ -35,3 +35,6 @@
       --set k8sServiceHost={{ .cni.cilium.k8s_endpoint }} \
       --set k8sServicePort={{ .cni.cilium.k8s_port }}
     {{- end }}
+    {{- if .cni.cilium.exclusive }}
+      --set cni.exclusive={{ .cni.cilium.exclusive }}
+    {{- end }}
