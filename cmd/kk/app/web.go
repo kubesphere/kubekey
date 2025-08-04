@@ -24,7 +24,7 @@ func newWebCommand() *cobra.Command {
 		Short: "start a http server with web UI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Initialize REST config for Kubernetes client
-			restconfig := &rest.Config{}
+			restconfig := &rest.Config{QPS: 100, Burst: 200}
 			if err := proxy.RestConfig(filepath.Join(o.Workdir, _const.RuntimeDir), restconfig); err != nil {
 				return err
 			}

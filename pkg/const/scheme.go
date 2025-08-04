@@ -37,8 +37,8 @@ var (
 	// the api group, unless you really know what you're doing.
 	Scheme = newScheme()
 
-	// Codecs provides access to encoding and decoding for the scheme
-	Codecs = serializer.NewCodecFactory(Scheme)
+	// CodecFactory provides access to encoding and decoding for the scheme
+	CodecFactory = serializer.NewCodecFactory(Scheme)
 
 	// ParameterCodec handles versioning of objects that are converted to query parameters.
 	ParameterCodec = runtime.NewParameterCodec(Scheme)

@@ -1,18 +1,29 @@
+- name: Ensure image registry authentication is successful
+  when: .image_registry.auth | empty | not
+  run_once: true
+  command: |
+    HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" "https://{{ .image_registry.auth.registry }}/v2/" -o /dev/null)
+    if [[ "$HTTP_CODE" == "200" ]]; then
+      echo "Authentication to image registry succeeded."
+    else
+      echo "Authentication to image registry {{ .image_registry.auth.registry }} failed." >&2
+    fi
+
 # image_registry is installed by docker_compose
-- name: docker_version and dockercompose_version should not be empty
+- name: Ensure docker and docker-compose versions are set for image registry
   when: .groups.image_registry | empty | not
   assert:
     that:
      - .docker_version | empty | not
      - .dockercompose_version | empty | not
     msg: >-
-      "docker_version" and "dockercompose_version" should not be empty
+      Both "docker_version" and "dockercompose_version" must be specified for the image registry.
 
-- name: keepalived_version should not be empty when image_registry is high availability
+- name: Ensure keepalived_version is set for high availability image registry
   when: 
     - .image_registry.ha_vip | empty | not
     - .groups.image_registry | len | lt 1
   assert:
     that: .keepalived_version | empty | not
     msg: >-
-      "keepalived_version" should not be empty when image_registry is high availability
+      "keepalived_version" must be specified when the image registry is configured for high availability.

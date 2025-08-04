@@ -10,7 +10,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
 
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 // default function docs: http://masterminds.github.io/sprig
@@ -58,7 +58,7 @@ func fromYAML(v string) (any, error) {
 func ipInCIDR(cidr string) ([]string, error) {
 	var ips = make([]string, 0)
 	for _, s := range strings.Split(cidr, ",") {
-		ips = append(ips, _const.ParseIP(s)...)
+		ips = append(ips, utils.ParseIP(s)...)
 	}
 
 	return ips, nil

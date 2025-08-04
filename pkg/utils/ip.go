@@ -1,4 +1,4 @@
-package _const
+package utils
 
 import (
 	"encoding/binary"
