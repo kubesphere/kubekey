@@ -4,11 +4,16 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    allow:
+      - dependency-type: "security"
     pull-request-branch-name:
       separator: "-"
+  
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "daily"
+    allow:
+      - dependency-type: "security"
     pull-request-branch-name:
       separator: "-"
