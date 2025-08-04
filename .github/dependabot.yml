@@ -3,17 +3,19 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     allow:
       - dependency-type: "security"
+    open-pull-requests-limit: 5
     pull-request-branch-name:
       separator: "-"
   
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     allow:
       - dependency-type: "security"
+    open-pull-requests-limit: 5
     pull-request-branch-name:
       separator: "-"
