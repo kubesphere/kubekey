@@ -178,10 +178,40 @@ func TestParseBool(t *testing.T) {
 			},
 			excepted: true,
 		},
+		// ======= hasPrefix =======
+		{
+			name:      "hasPrefix true-1",
+			condition: []string{`{{ .foo | hasPrefix "version.BuildInfo" }}`},
+			variable: map[string]any{
+				"foo": `version.BuildInfo{Version:"v3.14.3", GitCommit:"f03cc04caaa8f6d7c3e67cf918929150cf6f3f12", GitTreeState:"clean", GoVersion:"go1.22.1"}`,
+				"bar": "v3.14.3",
+			},
+			excepted: true,
+		},
+		// ======= empty =======
+		{
+			name:      "empty true-1",
+			condition: []string{`{{ empty .foo }}`},
+			variable: map[string]any{
+				"foo": map[string]any{},
+			},
+			excepted: true,
+		},
+		{
+			name:      "empty true-2",
+			condition: []string{`{{ empty .foo }}`},
+			variable: map[string]any{
+				"foo": []any{},
+			},
+			excepted: true,
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			b, _ := ParseBool(tc.variable, tc.condition)
+			b, err := ParseBool(tc.variable, tc.condition...)
+			if err != nil {
+				t.Fatal(err)
+			}
 			assert.Equal(t, tc.excepted, b)
 		})
 	}
@@ -192,7 +222,7 @@ func TestParseValue(t *testing.T) {
 		name     string
 		input    string
 		variable map[string]any
-		excepted string
+		excepted []byte
 	}{
 		{
 			name:  "single level",
@@ -200,7 +230,7 @@ func TestParseValue(t *testing.T) {
 			variable: map[string]any{
 				"foo": "bar",
 			},
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 		{
 			name:  "multi level 1",
@@ -210,7 +240,7 @@ func TestParseValue(t *testing.T) {
 					"foo": "bar",
 				},
 			},
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 		{
 			name:  "multi level 2",
@@ -220,7 +250,7 @@ func TestParseValue(t *testing.T) {
 					"foo": "bar",
 				},
 			},
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 		{
 			name:  "multi level 2",
@@ -230,7 +260,7 @@ func TestParseValue(t *testing.T) {
 					"foo": "bar",
 				},
 			},
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 		{
 			name:  "multi level 3",
@@ -244,7 +274,7 @@ func TestParseValue(t *testing.T) {
 					},
 				},
 			},
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 		{
 			name:  "exist value",
@@ -252,13 +282,13 @@ func TestParseValue(t *testing.T) {
 			variable: map[string]any{
 				"foo": "bar",
 			},
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, _ := ParseString(tc.variable, tc.input)
+			output, _ := Parse(tc.variable, tc.input)
 			assert.Equal(t, tc.excepted, output)
 		})
 	}
@@ -269,7 +299,7 @@ func TestParseFunction(t *testing.T) {
 		name     string
 		input    string
 		variable map[string]any
-		excepted string
+		excepted []byte
 	}{
 		// ======= if =======
 		{
@@ -283,7 +313,7 @@ func TestParseFunction(t *testing.T) {
 					},
 				},
 			},
-			excepted: "bar2",
+			excepted: []byte("bar2"),
 		},
 		{
 			name:  "if map 1",
@@ -296,7 +326,7 @@ func TestParseFunction(t *testing.T) {
 					},
 				},
 			},
-			excepted: "bar2",
+			excepted: []byte("bar2"),
 		},
 		// ======= range =======
 		{
@@ -310,7 +340,7 @@ func TestParseFunction(t *testing.T) {
 					},
 				},
 			},
-			excepted: "bar1bar2",
+			excepted: []byte("bar1bar2"),
 		},
 		{
 			name:  "range map value 1",
@@ -323,7 +353,7 @@ func TestParseFunction(t *testing.T) {
 					},
 				},
 			},
-			excepted: "bar1",
+			excepted: []byte("bar1"),
 		},
 		{
 			name:  "range map top-value 1",
@@ -337,7 +367,7 @@ func TestParseFunction(t *testing.T) {
 				},
 				"foo1": "bar11",
 			},
-			excepted: "bar11",
+			excepted: []byte("bar11"),
 		},
 		{
 			name:  "range slice value 1",
@@ -350,7 +380,7 @@ func TestParseFunction(t *testing.T) {
 					},
 				},
 			},
-			excepted: "bar1",
+			excepted: []byte("bar1"),
 		},
 		{
 			name:  "range slice value 1",
@@ -360,27 +390,27 @@ func TestParseFunction(t *testing.T) {
 					"foo1", "bar1",
 				},
 			},
-			excepted: "foo1bar1",
+			excepted: []byte("foo1bar1"),
 		},
 		// ======= default =======
 		{
 			name:     "default string 1",
 			input:    "{{ .foo | default \"bar\" }}",
 			variable: make(map[string]any),
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 		{
 			name:     "default string 2",
 			input:    "{{ default .foo \"bar\" }}",
 			variable: make(map[string]any),
-			excepted: "bar",
+			excepted: []byte("bar"),
 		},
 
 		{
 			name:     "default number 1",
 			input:    "{{ .foo | default 1 }}",
 			variable: make(map[string]any),
-			excepted: "1",
+			excepted: []byte("1"),
 		},
 		// ======= split =======
 		{
@@ -389,7 +419,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": "a,b",
 			},
-			excepted: "map[_0:a _1:b]",
+			excepted: []byte("map[_0:a _1:b]"),
 		},
 		{
 			name:  "split 2",
@@ -397,7 +427,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": "a,b",
 			},
-			excepted: "map[_0:a _1:b]",
+			excepted: []byte("map[_0:a _1:b]"),
 		},
 		// ======= len =======
 		{
@@ -406,7 +436,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "2",
+			excepted: []byte("2"),
 		},
 		{
 			name:  "len 2",
@@ -414,7 +444,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "2",
+			excepted: []byte("2"),
 		},
 		// ======= index =======
 		{
@@ -425,17 +455,29 @@ func TestParseFunction(t *testing.T) {
 					"foo": "a",
 				},
 			},
-			excepted: "a",
+			excepted: []byte("a"),
 		},
 		{
-			name:  "index 1",
+			name:  "index 2",
 			input: "{{ if index .foo \"a\" }}true{{else}}false{{end}}",
 			variable: map[string]any{
 				"foo": map[string]any{
 					"foo": "a",
 				},
 			},
-			excepted: "false",
+			excepted: []byte("false"),
+		},
+		{
+			name:  "index 3",
+			input: "{{ index .foo \"foo\" \"a\"}}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": map[string]any{
+						"a": "b",
+					},
+				},
+			},
+			excepted: []byte("b"),
 		},
 		// ======= first =======
 		{
@@ -444,7 +486,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "a",
+			excepted: []byte("a"),
 		},
 		{
 			name:  "first 2",
@@ -452,7 +494,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "a",
+			excepted: []byte("a"),
 		},
 		// ======= last =======
 		{
@@ -461,7 +503,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "b",
+			excepted: []byte("b"),
 		},
 		{
 			name:  "last 2",
@@ -469,7 +511,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "b",
+			excepted: []byte("b"),
 		},
 		// ======= slice =======
 		{
@@ -478,7 +520,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "[a b]",
+			excepted: []byte("[a b]"),
 		},
 		// ======= join =======
 		{
@@ -487,7 +529,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "a.b",
+			excepted: []byte("a.b"),
 		},
 		// ======= toJson =======
 		{
@@ -496,19 +538,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": []string{"a", "b"},
 			},
-			excepted: "[\"a\",\"b\"]",
-		},
-		// ======= toYaml =======
-		{
-			name:  "toYaml 1",
-			input: "{{ .foo | toYaml }}",
-			variable: map[string]any{
-				"foo": map[string]any{
-					"a1": "b1",
-					"a2": "b2",
-				},
-			},
-			excepted: "a1: b1\na2: b2",
+			excepted: []byte("[\"a\",\"b\"]"),
 		},
 		// ======= indent =======
 		{
@@ -517,7 +547,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": "a1: b1\na2: b2",
 			},
-			excepted: "  a1: b1\n  a2: b2",
+			excepted: []byte("  a1: b1\n  a2: b2"),
 		},
 		// ======= printf =======
 		{
@@ -526,7 +556,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": "a",
 			},
-			excepted: "http://a",
+			excepted: []byte("http://a"),
 		},
 		{
 			name:  "printf 2",
@@ -534,7 +564,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": "a",
 			},
-			excepted: "http://a",
+			excepted: []byte("http://a"),
 		},
 
 		// ======= div =======
@@ -544,7 +574,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": 5,
 			},
-			excepted: "1",
+			excepted: []byte("1"),
 		},
 		{
 			name:  "div 1",
@@ -552,7 +582,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": 4,
 			},
-			excepted: "0",
+			excepted: []byte("0"),
 		},
 		// ======= sub =======
 		{
@@ -561,7 +591,7 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": 5,
 			},
-			excepted: "3",
+			excepted: []byte("3"),
 		},
 		// ======= trimPrefix =======
 		{
@@ -570,19 +600,28 @@ func TestParseFunction(t *testing.T) {
 			variable: map[string]any{
 				"foo": "v1.1",
 			},
-			excepted: "1.1",
+			excepted: []byte("1.1"),
 		},
 		{
 			name:     "trimPrefix 2",
 			input:    `{{ .foo | default "" |trimPrefix "v" }}`,
 			variable: make(map[string]any),
-			excepted: "",
+			excepted: nil,
+		},
+		// ======= fromJson =======
+		{
+			name:  "fromJson 1",
+			input: `{{ .foo | fromJson | first }}`,
+			variable: map[string]any{
+				"foo": "[\"a\",\"b\"]",
+			},
+			excepted: []byte("a"),
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := ParseString(tc.variable, tc.input)
+			output, err := Parse(tc.variable, tc.input)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -598,30 +637,51 @@ func TestParseCustomFunction(t *testing.T) {
 		variable map[string]any
 		excepted string
 	}{
+		// ======= toYaml =======
+		{
+			name:  "toYaml 1",
+			input: "{{ .foo | toYaml }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"a1": "b1",
+					"a2": "b2",
+				},
+			},
+			excepted: "a1: b1\na2: b2",
+		},
+		// ======= fromYaml =======
+		{
+			name:  "fromYaml 1",
+			input: "{{ .foo | fromYaml | toJson }}",
+			variable: map[string]any{
+				"foo": `
+a1: b1
+a2:
+  b2: 1`,
+			},
+			excepted: "{\"a1\":\"b1\",\"a2\":{\"b2\":1}}",
+		},
 		// ======= ipInCIDR =======
 		{
 			name:  "ipInCIDR true-1",
-			input: "{{ ipInCIDR 0 .foo }}",
+			input: "{{ index (.foo | ipInCIDR) 0  }}",
 			variable: map[string]any{
 				"foo": "10.233.0.0/18",
 			},
 			excepted: "10.233.0.1",
 		},
+		// ======= ipFamily =======
 		{
-			name:  "ipInCIDR true-2",
-			input: "{{ .foo | ipInCIDR 0 }}",
-			variable: map[string]any{
-				"foo": "10.233.0.0/18",
-			},
-			excepted: "10.233.0.1",
+			name:     "ipFamily for ip address",
+			input:    `{{ .ip_addr | default "10.233.64.0/18" | splitList "," | first | ipFamily }}`,
+			variable: make(map[string]any),
+			excepted: "IPv4",
 		},
 		{
-			name:  "ipInCIDR true-3",
-			input: "{{ ipInCIDR -1 .foo }}",
-			variable: map[string]any{
-				"foo": "10.233.0.0/18",
-			},
-			excepted: "10.233.63.254",
+			name:     "ipFamily for ip cidr",
+			input:    `{{ .ip_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily }}`,
+			variable: make(map[string]any),
+			excepted: "IPv4",
 		},
 		// ======= pow =======
 		{
@@ -630,11 +690,39 @@ func TestParseCustomFunction(t *testing.T) {
 			variable: make(map[string]any),
 			excepted: "8",
 		},
+		// ======= subtractList =======
+		{
+			name:     "subtractList true-1",
+			input:    `{{ subtractList (list 1 2 3 4)  (list 2 4) }}`,
+			variable: make(map[string]any),
+			excepted: "[1 3]",
+		},
+		{
+			name:  "subtractList true-2",
+			input: `{{ subtractList .list1 .list2 }}`,
+			variable: map[string]any{
+				"list1": []any{1, 2, 3, 4},
+				"list2": []any{2, 4},
+			},
+			excepted: "[1 3]",
+		},
+		{
+			name:     "subtractList empty result",
+			input:    `{{ subtractList (list 1 2)  (list 1 2) }}`,
+			variable: make(map[string]any),
+			excepted: "[]",
+		},
+		{
+			name:     "subtractList with empty second list",
+			input:    `{{ subtractList (list 1 2 3)  (list) }}`,
+			variable: make(map[string]any),
+			excepted: "[1 2 3]",
+		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := ParseString(tc.variable, tc.input)
+			output, err := ParseFunc(tc.variable, tc.input, func(b []byte) string { return string(b) })
 			if err != nil {
 				t.Fatal(err)
 			}

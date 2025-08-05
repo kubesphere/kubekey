@@ -1,0 +1,107 @@
+---
+- name: Generate root ca file
+  gen_cert:
+    cn: root
+    date: "{{ .certs.ca.date }}"
+    policy: "{{ .certs.ca.gen_cert_policy }}"
+    out_key: >-
+      {{ .binary_dir }}/pki/root.key
+    out_cert: >-
+      {{ .binary_dir }}/pki/root.crt
+
+- name: Generate kubernetes ca file
+  block:
+    - name: Generate ca file for kubernetes
+      gen_cert:
+        root_key: >-
+          {{ .binary_dir }}/pki/root.key
+        root_cert: >-
+          {{ .binary_dir }}/pki/root.crt
+        cn: kubernetes-ca
+        is_ca: true
+        date: "{{ .certs.kubernetes_ca.date }}"
+        policy: "{{ .certs.kubernetes_ca.gen_cert_policy }}"
+        out_key: >-
+          {{ .binary_dir }}/pki/kubernetes.key
+        out_cert: >-
+          {{ .binary_dir }}/pki/kubernetes.crt
+    - name: Generate front-proxy ca file for kubernetes
+      gen_cert:
+        root_key: >-
+          {{ .binary_dir }}/pki/root.key
+        root_cert: >-
+          {{ .binary_dir }}/pki/root.crt
+        cn: front-proxy-ca
+        is_ca: true
+        date: "{{ .certs.front_proxy_ca.date }}"
+        policy: "{{ .certs.front_proxy_ca.gen_cert_policy }}"
+        out_key: >-
+          {{ .binary_dir }}/pki/front-proxy.key
+        out_cert: >-
+          {{ .binary_dir }}/pki/front-proxy.crt
+
+- name: Generate etcd cert file
+  gen_cert:
+    root_key: >-
+      {{ .binary_dir }}/pki/root.key
+    root_cert: >-
+      {{ .binary_dir }}/pki/root.crt
+    cn: etcd
+    sans: >-
+      {{- $ips := list -}}
+      {{- range .groups.etcd | default list -}}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
+        {{- if $internalIPv4 | empty | not -}}
+          {{- $ips = append $ips $internalIPv4 -}}
+        {{- end -}}
+        {{- if $internalIPv6 | empty | not -}}
+          {{- $ips = append $ips $internalIPv6 -}}
+        {{- end -}}
+      {{- end -}}
+      {{ $ips | toJson }}
+    date: "{{ .certs.etcd.date }}"
+    policy: "{{ .certs.etcd.gen_cert_policy }}"
+    out_key: >-
+      {{ .binary_dir }}/pki/etcd.key
+    out_cert: >-
+      {{ .binary_dir }}/pki/etcd.crt
+  when: .groups.etcd | default list | empty | not
+
+- name: Generate registry image cert file
+  gen_cert:
+    root_key: >-
+      {{ .binary_dir }}/pki/root.key
+    root_cert: >-
+      {{ .binary_dir }}/pki/root.crt
+    cn: image_registry
+    sans: >-
+      {{- $ips := list -}}
+      {{- if .image_registry.ha_vip | empty | not -}}
+        {{- $ips = append $ips .image_registry.ha_vip -}}
+      {{- end -}}
+      {{- range .groups.image_registry | default list -}}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
+        {{- if $internalIPv4 | empty | not -}}
+          {{- $ips = append $ips $internalIPv4 -}}
+        {{- end -}}
+        {{- if $internalIPv6 | empty | not -}}
+          {{- $ips = append $ips $internalIPv6 -}}
+        {{- end -}}
+      {{- end -}}
+      {{ $ips | toJson }}
+    date: "{{ .certs.image_registry.date }}"
+    policy: "{{ .certs.image_registry.gen_cert_policy }}"
+    out_key: >-
+      {{ .binary_dir }}/pki/image_registry.key
+    out_cert: >-
+      {{ .binary_dir }}/pki/image_registry.crt
+  when: .groups.image_registry | default list | empty | not
+
+- name: Chown pki to sudo
+  block:
+    - name: Chown pki to sudo
+      ignore_errors: true
+      command: |
+        chown -R ${SUDO_UID}:${SUDO_GID} {{ .binary_dir }}/pki

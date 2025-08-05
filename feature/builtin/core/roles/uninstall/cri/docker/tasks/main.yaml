@@ -1,0 +1,7 @@
+---
+- include_tasks: docker.yaml
+
+# uninstall cridockerd
+- include_tasks: cridockerd.yaml
+  when:
+  - .cridockerd_version | empty | not

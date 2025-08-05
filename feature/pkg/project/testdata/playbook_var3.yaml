@@ -1,0 +1,9 @@
+---
+- name: playbook-var3
+  hosts:
+    - node1
+  vars_files:
+    - vars/var1.yaml
+  vars:
+    a2: 2
+    

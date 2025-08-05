@@ -1,0 +1,24 @@
+---
+- name: Delete Node
+  ignore_errors: true
+  command: |
+    kubeadm reset -f
+
+- name: Stop kubelet service
+  ignore_errors: true
+  command: |
+    systemctl stop kubelet.service
+    systemctl disable kubelet.service
+    rm -rf /etc/systemd/system/kubelet.service*
+    systemctl daemon-reload
+    systemctl reset-failed kubelet.service
+
+- name: Delete residue files
+  command: |
+    rm -rf /usr/local/bin/kubeadm && rm -rf /usr/local/bin/kubelet && rm -rf /usr/local/bin/kubectl
+    rm -rf /var/lib/kubelet/
+    # If /var/log/pods/ is not cleaned up, static pods may accumulate unexpected restarts due to lingering log files interfering with their lifecycle.
+    rm -rf /var/log/pods/
+    rm -rf /etc/kubernetes/
+    rm -rf .kube/config
+    rm -rf /var/lib/etcd

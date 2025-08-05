@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -17,16 +16,69 @@ import (
 	"os"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	cgutilcert "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/klog/v2"
 	netutils "k8s.io/utils/net"
+	"k8s.io/utils/ptr"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
+
+/*
+The GenCert module generates SSL/TLS certificates for secure communication.
+This module can create both self-signed certificates and certificates signed by a root CA.
+
+Configuration:
+Users can specify various certificate parameters:
+
+gen_cert:
+  cn: example.com           # required: Common Name for the certificate
+  out_key: /path/to/key     # required: output path for private key
+  out_cert: /path/to/cert   # required: output path for certificate
+  root_key: /path/to/ca.key # optional: root CA private key path
+  root_cert: /path/to/ca.crt # optional: root CA certificate path
+  sans:                     # optional: Subject Alternative Names
+    - example.com
+    - www.example.com
+  policy: IfNotPresent      # optional: certificate generation policy
+  date: 8760h              # optional: certificate validity period
+
+Usage Examples in Playbook Tasks:
+1. Generate self-signed certificate:
+   ```yaml
+   - name: Generate self-signed certificate
+     gen_cert:
+       cn: example.com
+       out_key: /etc/ssl/private/example.key
+       out_cert: /etc/ssl/certs/example.crt
+       sans:
+         - example.com
+         - www.example.com
+     register: cert_result
+   ```
+
+2. Generate certificate signed by root CA:
+   ```yaml
+   - name: Generate signed certificate
+     gen_cert:
+       cn: example.com
+       root_key: /etc/ssl/private/ca.key
+       root_cert: /etc/ssl/certs/ca.crt
+       out_key: /etc/ssl/private/example.key
+       out_cert: /etc/ssl/certs/example.crt
+     register: signed_cert
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
 
 const (
 	// DefaultSignCertAfter defines the default timeout for sign certificates.
@@ -56,74 +108,82 @@ type genCertArgs struct {
 	cn       string
 	outKey   string
 	outCert  string
+	isCA     *bool
 }
 
-// signedCertificate generate certificate signed by root certificate
-func (gca genCertArgs) signedCertificate(cfg *cgutilcert.Config) (string, string) {
-	parentKey, err := TryLoadKeyFromDisk(gca.rootKey)
+// signedCertificate generates a certificate signed by the root certificate
+func (gca genCertArgs) signedCertificate(cfg cgutilcert.Config) (string, string) {
+	// Load CA private key
+	caKey, err := TryLoadKeyFromDisk(gca.rootKey)
 	if err != nil {
 		return "", fmt.Sprintf("failed to load root key: %v", err)
 	}
-	parentCert, _, err := TryLoadCertChainFromDisk(gca.rootCert)
+	// Load CA certificate
+	caCert, _, err := TryLoadCertChainFromDisk(gca.rootCert)
 	if err != nil {
 		return "", fmt.Sprintf("failed to load root certificate: %v", err)
 	}
 
-	if gca.policy == policyIfNotPresent {
-		if _, err := TryLoadKeyFromDisk(gca.outKey); err != nil {
-			klog.V(4).InfoS("Failed to load out key, new it")
-
-			goto NEW
-		}
-
-		existCert, intermediates, err := TryLoadCertChainFromDisk(gca.outCert)
+	// Function to generate and write new certificate and key
+	generateAndWrite := func() (string, string) {
+		newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 		if err != nil {
-			klog.V(4).InfoS("Failed to load out cert, new it")
-
-			goto NEW
+			return "", fmt.Sprintf("generate rsa key error: %v", err)
 		}
-		// check if the existing key and cert match the root key and cert
+		newCert, err := NewSignedCert(cfg, gca.date, newKey, caCert, caKey, ptr.Deref(gca.isCA, false))
+		if err != nil {
+			return "", fmt.Sprintf("failed to generate certificate: %v", err)
+		}
+		if err := WriteKey(gca.outKey, newKey, gca.policy); err != nil {
+			return "", fmt.Sprintf("failed to write key: %v", err)
+		}
+		if err := WriteCert(gca.outCert, newCert, gca.policy); err != nil {
+			return "", fmt.Sprintf("failed to write certificate: %v", err)
+		}
+		return StdoutSuccess, ""
+	}
+
+	switch gca.policy {
+	case policyIfNotPresent:
+		// Check if key exists
+		if _, err := TryLoadKeyFromDisk(gca.outKey); err != nil {
+			klog.V(4).InfoS("Failed to load out key, create it")
+			return generateAndWrite()
+		}
+		// Check if certificate exists
+		existCert, existIntermediates, err := TryLoadCertChainFromDisk(gca.outCert)
+		if err != nil {
+			klog.V(4).InfoS("Failed to load out cert, create it")
+			return generateAndWrite()
+		}
+		// Validate certificate period
 		if err := ValidateCertPeriod(existCert, 0); err != nil {
 			return "", fmt.Sprintf("failed to ValidateCertPeriod: %v", err)
 		}
-		if err := VerifyCertChain(existCert, intermediates, parentCert); err != nil {
+		// Validate certificate chain
+		if err := VerifyCertChain(existCert, existIntermediates, caCert); err != nil {
 			return "", fmt.Sprintf("failed to VerifyCertChain: %v", err)
 		}
+		// Validate certificate SAN and other config
 		if err := validateCertificateWithConfig(existCert, gca.outCert, cfg); err != nil {
 			return "", fmt.Sprintf("failed to validateCertificateWithConfig: %v", err)
 		}
-
+		// Existing certificate and key are valid, skip generation
 		return StdoutSkip, ""
+	default:
+		// Otherwise, always generate new certificate and key
+		return generateAndWrite()
 	}
-NEW:
-	newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
-	if err != nil {
-		return "", fmt.Sprintf("generate rsa key error: %v", err)
-	}
-	newCert, err := NewSignedCert(*cfg, gca.date, newKey, parentCert, parentKey, true)
-	if err != nil {
-		return "", fmt.Sprintf("failed to generate certificate: %v", err)
-	}
-
-	// write key and cert to file
-	if err := WriteKey(gca.outKey, newKey, gca.policy); err != nil {
-		return "", fmt.Sprintf("failed to write key: %v", err)
-	}
-	if err := WriteCert(gca.outCert, newCert, gca.policy); err != nil {
-		return "", fmt.Sprintf("failed to write certificate: %v", err)
-	}
-
-	return StdoutSuccess, ""
 }
 
 // selfSignedCertificate generate Self-signed certificate
-func (gca genCertArgs) selfSignedCertificate(cfg *cgutilcert.Config) (string, string) {
+func (gca genCertArgs) selfSignedCertificate(cfg cgutilcert.Config) (string, string) {
 	newKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 	if err != nil {
 		return "", fmt.Sprintf("generate rsa key error: %v", err)
 	}
 
-	newCert, err := NewSelfSignedCACert(*cfg, gca.date, newKey)
+	newCert, err := NewSelfSignedCACert(cfg, gca.date, newKey)
 	if err != nil {
 		return "", fmt.Sprintf("failed to generate self-signed certificate: %v", err)
 	}
@@ -150,6 +210,7 @@ func newGenCertArgs(_ context.Context, raw runtime.RawExtension, vars map[string
 	gca.cn, _ = variable.StringVar(vars, args, "cn")
 	gca.outKey, _ = variable.StringVar(vars, args, "out_key")
 	gca.outCert, _ = variable.StringVar(vars, args, "out_cert")
+	gca.isCA, _ = variable.BoolVar(vars, args, "is_ca")
 	// check args
 	if gca.policy != policyAlways && gca.policy != policyIfNotPresent {
 		return nil, errors.New("\"policy\" should be one of [Always, IfNotPresent]")
@@ -164,8 +225,7 @@ func newGenCertArgs(_ context.Context, raw runtime.RawExtension, vars map[string
 	return gca, nil
 }
 
-// ModuleGenCert generate cert file.
-// if root_key and root_cert is empty, generate Self-signed certificate.
+// ModuleGenCert handles the "gen_cert" module, generating SSL/TLS certificates
 func ModuleGenCert(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -186,9 +246,9 @@ func ModuleGenCert(ctx context.Context, options ExecOptions) (string, string) {
 
 	switch {
 	case gca.rootKey == "" || gca.rootCert == "":
-		return gca.selfSignedCertificate(cfg)
+		return gca.selfSignedCertificate(*cfg)
 	default:
-		return gca.signedCertificate(cfg)
+		return gca.signedCertificate(*cfg)
 	}
 }
 
@@ -204,10 +264,10 @@ func WriteKey(outKey string, key crypto.Signer, policy string) error {
 
 	encoded, err := keyutil.MarshalPrivateKeyToPEM(key)
 	if err != nil {
-		return fmt.Errorf("unable to marshal private key to PEM, error: %w", err)
+		return errors.Wrap(err, "failed to marshal private key to PEM")
 	}
 	if err := keyutil.WriteKey(outKey, encoded); err != nil {
-		return fmt.Errorf("unable to write private key to file %s, error: %w", outKey, err)
+		return errors.Wrapf(err, "failed to write private key to file %s", outKey)
 	}
 
 	return nil
@@ -224,7 +284,7 @@ func WriteCert(outCert string, cert *x509.Certificate, policy string) error {
 	}
 
 	if err := cgutilcert.WriteCert(outCert, EncodeCertPEM(cert)); err != nil {
-		return fmt.Errorf("unable to write certificate to file %s, error: %w", outCert, err)
+		return errors.Wrapf(err, "failed to write certificate to file %s", outCert)
 	}
 
 	return nil
@@ -245,7 +305,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 	// Parse the private key from a file
 	privKey, err := keyutil.PrivateKeyFromFile(rootKey)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't load the private key file %s, error: %w", rootKey, err)
+		return nil, errors.Wrapf(err, "failed to load the private key file %s", rootKey)
 	}
 
 	// Allow RSA and ECDSA formats only
@@ -256,7 +316,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 	case *ecdsa.PrivateKey:
 		key = k
 	default:
-		return nil, fmt.Errorf("the private key file %s is neither in RSA nor ECDSA format", rootKey)
+		return nil, errors.Errorf("the private key file %s is neither in RSA nor ECDSA format", rootKey)
 	}
 
 	return key, nil
@@ -266,7 +326,7 @@ func TryLoadKeyFromDisk(rootKey string) (crypto.Signer, error) {
 func TryLoadCertChainFromDisk(rootCert string) (*x509.Certificate, []*x509.Certificate, error) {
 	certs, err := cgutilcert.CertsFromFile(rootCert)
 	if err != nil {
-		return nil, nil, fmt.Errorf("couldn't load the certificate file %s, error: %w", rootCert, err)
+		return nil, nil, errors.Wrapf(err, "failed to load the certificate file %s", rootCert)
 	}
 
 	cert := certs[0]
@@ -306,7 +366,7 @@ func NewSelfSignedCACert(cfg cgutilcert.Config, after time.Duration, key crypto.
 	// returns a uniform random value in [0, max-1), then add 1 to serial to make it a uniform random value in [1, max).
 	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64-1))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate certificate's SerialNumber number")
 	}
 	serial = new(big.Int).Add(serial, big.NewInt(1))
 
@@ -334,7 +394,7 @@ func NewSelfSignedCACert(cfg cgutilcert.Config, after time.Duration, key crypto.
 
 	certDERBytes, err := x509.CreateCertificate(cryptorand.Reader, &tmpl, &tmpl, key.Public(), key)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create certificate")
 	}
 
 	return x509.ParseCertificate(certDERBytes)
@@ -345,7 +405,7 @@ func NewSignedCert(cfg cgutilcert.Config, after time.Duration, key crypto.Signer
 	// returns a uniform random value in [0, max-1), then add 1 to serial to make it a uniform random value in [1, max).
 	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64-1))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate certificate's SerialNumber number")
 	}
 	serial = new(big.Int).Add(serial, big.NewInt(1))
 
@@ -382,7 +442,7 @@ func NewSignedCert(cfg cgutilcert.Config, after time.Duration, key crypto.Signer
 
 	certDERBytes, err := x509.CreateCertificate(cryptorand.Reader, &certTmpl, caCert, key.Public(), caKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create certificate")
 	}
 
 	return x509.ParseCertificate(certDERBytes)
@@ -415,10 +475,10 @@ func ValidateCertPeriod(cert *x509.Certificate, offset time.Duration) error {
 	period := fmt.Sprintf("NotBefore: %v, NotAfter: %v", cert.NotBefore, cert.NotAfter)
 	now := time.Now().Add(offset)
 	if now.Before(cert.NotBefore) {
-		return fmt.Errorf("the certificate is not valid yet: %s", period)
+		return errors.Errorf("the certificate is not valid yet: %s", period)
 	}
 	if now.After(cert.NotAfter) {
-		return fmt.Errorf("the certificate has expired: %s", period)
+		return errors.Errorf("the certificate has expired: %s", period)
 	}
 
 	return nil
@@ -442,7 +502,7 @@ func VerifyCertChain(cert *x509.Certificate, intermediates []*x509.Certificate, 
 	}
 
 	if _, err := cert.Verify(verifyOptions); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to verify certificate")
 	}
 
 	return nil
@@ -450,18 +510,22 @@ func VerifyCertChain(cert *x509.Certificate, intermediates []*x509.Certificate, 
 
 // validateCertificateWithConfig makes sure that a given certificate is valid at
 // least for the SANs defined in the configuration.
-func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg *cgutilcert.Config) error {
+func validateCertificateWithConfig(cert *x509.Certificate, baseName string, cfg cgutilcert.Config) error {
 	for _, dnsName := range cfg.AltNames.DNSNames {
 		if err := cert.VerifyHostname(dnsName); err != nil {
-			return fmt.Errorf("certificate %s is invalid, error: %w", baseName, err)
+			return errors.Wrapf(err, "certificate %s is invalid", baseName)
 		}
 	}
 
 	for _, ipAddress := range cfg.AltNames.IPs {
 		if err := cert.VerifyHostname(ipAddress.String()); err != nil {
-			return fmt.Errorf("certificate %s is invalid, error: %w", baseName, err)
+			return errors.Wrapf(err, "certificate %s is invalid", baseName)
 		}
 	}
 
 	return nil
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("gen_cert", ModuleGenCert))
 }

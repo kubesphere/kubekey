@@ -23,48 +23,36 @@ import (
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
-// ctx cancel by shutdown signal
-var ctx = signals.SetupSignalHandler()
-
 var internalCommand = make([]*cobra.Command, 0)
-
-func registerInternalCommand(command *cobra.Command) {
-	for _, c := range internalCommand {
-		if c.Name() == command.Name() {
-			// command has register. skip
-			return
-		}
-	}
-	internalCommand = append(internalCommand, command)
-}
 
 // NewRootCommand console command.
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "kk",
 		Long: "kubekey is a daemon that execute command in a node",
-		PersistentPreRunE: func(*cobra.Command, []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := options.InitGOPS(); err != nil {
 				return err
 			}
 
-			return options.InitProfiling(ctx)
+			return options.InitProfiling(cmd.Context())
 		},
 		PersistentPostRunE: func(*cobra.Command, []string) error {
 			return options.FlushProfiling()
 		},
+		SilenceUsage: true,
 	}
-	cmd.SetContext(ctx)
-
+	cmd.SetContext(signals.SetupSignalHandler())
 	// add common flag
 	flags := cmd.PersistentFlags()
 	options.AddProfilingFlags(flags)
 	options.AddKlogFlags(flags)
 	options.AddGOPSFlags(flags)
-
+	// add children command
 	cmd.AddCommand(newRunCommand())
-	cmd.AddCommand(newPipelineCommand())
+	cmd.AddCommand(newPlaybookCommand())
 	cmd.AddCommand(newVersionCommand())
+	cmd.AddCommand(newWebCommand())
 	// internal command
 	cmd.AddCommand(internalCommand...)
 

@@ -1,0 +1,266 @@
+---
+- name: Check binaries for etcd
+  tags: ["etcd"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.etcd .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/etcd/{{ .etcd_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+        mkdir -p $artifact_path
+        # download online
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.etcd .item }})
+        if [ $http_code != 200 ]; then
+          echo "http code is $http_code"
+          exit 1
+        fi
+        curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.etcd .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .etcd_version | empty | not
+
+- name: Check binaries for kube
+  tags: ["kube"]
+  command: |
+    kube_path={{ .binary_dir }}/kube/{{ .kube_version }}/{{ .item }}
+    if [ ! -f $kube_path/kubelet ]; then
+        mkdir -p $kube_path
+        # download online
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.kubelet .item }})
+        if [ $http_code != 200 ]; then
+          echo "http code is $http_code"
+          exit 1
+        fi
+        curl -L -o $kube_path/kubelet {{ get .artifact.artifact_url.kubelet .item }}
+    fi
+    if [ ! -f $kube_path/kubeadm ]; then
+        mkdir -p $kube_path
+        # download online
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.kubeadm .item }})
+        if [ $http_code != 200 ]; then
+          echo "http code is $http_code"
+          exit 1
+        fi
+        curl -L -o $kube_path/kubeadm {{ get .artifact.artifact_url.kubeadm .item }}
+    fi
+    if [ ! -f $kube_path/kubectl ]; then
+        mkdir -p $kube_path
+        # download online
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.kubectl .item }})
+        if [ $http_code != 200 ]; then
+          echo "http code is $http_code"
+          exit 1
+        fi
+        curl -L -o $kube_path/kubectl {{ get .artifact.artifact_url.kubectl .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .kube_version | empty | not
+
+- name: Check binaries for cni
+  tags: ["cni"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.cni_plugins .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/plugins/{{ .cni_plugins_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.cni_plugins .item }})
+        if [ $http_code != 200 ]; then
+          echo "http code is $http_code"
+          exit 1
+        fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cni_plugins .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .cni_plugins_version | empty | not
+
+- name: Check binaries for helm
+  tags: ["helm"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.helm .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/helm/{{ .helm_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.helm .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.helm .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .helm_version | empty | not
+
+- name: Check binaries for crictl
+  tags: ["crictl"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.crictl .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/crictl/{{ .crictl_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.crictl .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.crictl .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .crictl_version | empty | not
+
+- name: Check binaries for docker
+  tags: ["docker"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.docker .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/docker/{{ .docker_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.docker .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.docker .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .docker_version | empty | not
+
+- name: Check binaries for cridockerd
+  tags: ["cridockerd"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.cridockerd .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cri-dockerd/{{ .cridockerd_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.cridockerd .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.cridockerd .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .cridockerd_version | empty | not
+
+- name: Check binaries for containerd
+  tags: ["containerd"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.containerd .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/containerd/{{ .containerd_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.containerd .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.containerd .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .containerd_version | empty | not
+
+- name: Check binaries for runc
+  tags: ["runc"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.runc .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/runc/{{ .runc_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.runc .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.runc .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .runc_version | empty | not
+
+- name: Check binaries for calicoctl
+  tags: ["calicoctl"]
+  command: |
+    artifact_name=calicoctl
+    artifact_path={{ .binary_dir }}/cni/calico/{{ .calico_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.calicoctl .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.calicoctl .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .calico_version | empty | not
+
+- name: Check binaries for registry
+  tags: ["registry"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.docker_registry .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/image-registry/docker-registry/{{ .docker_registry_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.docker_registry .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.docker_registry .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .docker_registry_version | empty | not
+
+- name: Check binaries for docker-compose
+  tags: ["docker-compose"]
+  command: |
+    compose_name=docker-compose
+    compose_path={{ .binary_dir }}/image-registry/docker-compose/{{ .dockercompose_version }}/{{ .item }}
+    if [ ! -f $compose_path/$compose_name ]; then
+      mkdir -p $compose_path
+      # download online
+      curl -L -o $compose_path/$compose_name {{ get .artifact.artifact_url.dockercompose .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .dockercompose_version | empty | not
+
+- name: Check binaries for harbor
+  tags: ["harbor"]
+  command: |
+    harbor_name={{ get .artifact.artifact_url.harbor .item | splitList "/" | last }}
+    harbor_path={{ .binary_dir }}/image-registry/harbor/{{ .harbor_version }}/{{ .item }}
+    if [ ! -f $harbor_path/$harbor_name ]; then
+      mkdir -p $harbor_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.harbor .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $harbor_path/$harbor_name {{ get .artifact.artifact_url.harbor .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .harbor_version | empty | not
+
+- name: Check binaries for keepalived
+  tags: ["keepalived"]
+  command: |
+    artifact_name={{ get .artifact.artifact_url.keepalived .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/image-registry/keepalived/{{ .keepalived_version }}/{{ .item }}
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      mkdir -p $artifact_path
+      # download online
+      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .artifact.artifact_url.keepalived .item }})
+      if [ $http_code != 200 ]; then
+        echo "http code is $http_code"
+        exit 1
+      fi
+      curl -L -o $artifact_path/$artifact_name {{ get .artifact.artifact_url.keepalived .item }}
+    fi
+  loop: "{{ .artifact.arch | toJson }}"
+  when: .keepalived_version | empty | not

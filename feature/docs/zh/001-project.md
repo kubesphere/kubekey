@@ -26,9 +26,9 @@ kk precheck
 ### 本地
 执行命令示例：
 ```shell
-kk run playbooks/demo.yaml --project-addr=$(ProjectDir) 
+kk run demo.yaml
 ```
-执行`$(ProjectDir)`目录中的`playbooks/demo.yaml`流程文件. 
+执行当前目录的`demo.yaml`流程文件. 
 ### git
 执行命令示例：
 ```shell

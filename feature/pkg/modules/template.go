@@ -18,29 +18,68 @@ package modules
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/cockroachdb/errors"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/utils/ptr"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
-
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
+/*
+The Template module processes files using Go templates before copying them to remote hosts.
+This module allows users to template files with variables before transferring them.
+
+Configuration:
+Users can specify source and destination paths:
+
+template:
+  src: /path/to/file    # required: local file path to template
+  dest: /remote/path    # required: destination path on remote host
+  mode: 0644           # optional: file permissions (default: 0644)
+
+Usage Examples in Playbook Tasks:
+1. Basic file templating:
+   ```yaml
+   - name: Template configuration file
+     template:
+       src: config.yaml.tmpl
+       dest: /etc/app/config.yaml
+       mode: 0644
+     register: template_result
+   ```
+
+2. Template with variables:
+   ```yaml
+   - name: Template with variables
+     template:
+       src: app.conf.tmpl
+       dest: /etc/app/app.conf
+     register: app_config
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
+
 type templateArgs struct {
 	src  string
 	dest string
-	mode *int
+	mode *uint32
 }
 
 func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*templateArgs, error) {
@@ -51,8 +90,6 @@ func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[strin
 
 	ta.src, err = variable.StringVar(vars, args, "src")
 	if err != nil {
-		klog.V(4).ErrorS(err, "\"src\" should be string")
-
 		return nil, errors.New("\"src\" should be string")
 	}
 
@@ -61,114 +98,120 @@ func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[strin
 		return nil, errors.New("\"dest\" should be string")
 	}
 
-	ta.mode, _ = variable.IntVar(vars, args, "mode")
+	mode, err := variable.IntVar(vars, args, "mode")
+	if err != nil {
+		klog.V(4).InfoS("get mode error", "error", err)
+	} else {
+		if *mode < 0 || *mode > math.MaxUint32 {
+			return nil, errors.New("mode should be uint32")
+		}
+		ta.mode = ptr.To(uint32(*mode))
+	}
 
 	return ta, nil
 }
 
-// ModuleTemplate deal "template" module
+// ModuleTemplate handles the "template" module, processing files with Go templates
 func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
-	// get host variable
-	ha, err := options.getAllVariables()
-	if err != nil {
-		return "", err.Error()
-	}
-
-	ta, err := newTemplateArgs(ctx, options.Args, ha)
-	if err != nil {
-		klog.V(4).ErrorS(err, "get template args error", "task", ctrlclient.ObjectKeyFromObject(&options.Task))
-
-		return "", err.Error()
-	}
-
-	// get connector
-	conn, err := getConnector(ctx, options.Host, ha)
+	ha, ta, conn, err := prepareTemplate(ctx, options)
 	if err != nil {
 		return "", err.Error()
 	}
 	defer conn.Close(ctx)
 
 	if filepath.IsAbs(ta.src) {
-		fileInfo, err := os.Stat(ta.src)
-		if err != nil {
-			return "", fmt.Sprintf(" get src file %s in local path error: %v", ta.src, err)
+		return handleAbsoluteTemplate(ctx, ta, conn, ha)
+	}
+
+	return handleRelativeTemplate(ctx, ta, conn, ha, options)
+}
+
+func prepareTemplate(ctx context.Context, options ExecOptions) (map[string]any, *templateArgs, connector.Connector, error) {
+	ha, err := options.getAllVariables()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	ta, err := newTemplateArgs(ctx, options.Args, ha)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	conn, err := options.getConnector(ctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return ha, ta, conn, nil
+}
+
+func handleAbsoluteTemplate(ctx context.Context, ta *templateArgs, conn connector.Connector, vars map[string]any) (string, string) {
+	fileInfo, err := os.Stat(ta.src)
+	if err != nil {
+		return "", fmt.Sprintf(" get src file %s in local path error: %v", ta.src, err)
+	}
+
+	if fileInfo.IsDir() {
+		if err := ta.absDir(ctx, conn, vars); err != nil {
+			return "", fmt.Sprintf("sync template absolute dir error %s", err)
 		}
 
-		if fileInfo.IsDir() { // src is dir
-			if err := ta.absDir(ctx, conn, ha); err != nil {
-				return "", fmt.Sprintf("sync template absolute dir error %s", err)
-			}
-		} else { // src is file
-			if err := ta.absFile(ctx, fileInfo.Mode(), conn, ha); err != nil {
-				return "", fmt.Sprintf("sync template absolute file error %s", err)
-			}
-		}
-	} else {
-		pj, err := project.New(ctx, options.Pipeline, false)
-		if err != nil {
-			return "", fmt.Sprintf("get project error: %v", err)
-		}
+		return StdoutSuccess, ""
+	}
 
-		fileInfo, err := pj.Stat(ta.src, project.GetFileOption{IsTemplate: true, Role: options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole]})
-		if err != nil {
-			return "", fmt.Sprintf("get file %s from project error: %v", ta.src, err)
-		}
-
-		if fileInfo.IsDir() {
-			if err := ta.relDir(ctx, pj, options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole], conn, ha); err != nil {
-				return "", fmt.Sprintf("sync template relative dir error: %s", err)
-			}
-		} else {
-			if err := ta.relFile(ctx, pj, options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRole], fileInfo.Mode(), conn, ha); err != nil {
-				return "", fmt.Sprintf("sync template relative dir error: %s", err)
-			}
-		}
+	data, err := os.ReadFile(ta.src)
+	if err != nil {
+		return "", fmt.Sprintf("read file error: %s", err)
+	}
+	if err := ta.readFile(ctx, string(data), fileInfo.Mode(), conn, vars); err != nil {
+		return "", fmt.Sprintf("sync template absolute file error %s", err)
 	}
 
 	return StdoutSuccess, ""
 }
 
-// relFile when template.src is relative file, get file from project, parse it, and copy to remote.
-func (ta templateArgs) relFile(ctx context.Context, pj project.Project, role string, mode fs.FileMode, conn connector.Connector, vars map[string]any) any {
-	data, err := pj.ReadFile(ta.src, project.GetFileOption{IsTemplate: true, Role: role})
+func handleRelativeTemplate(ctx context.Context, ta *templateArgs, conn connector.Connector, vars map[string]any, options ExecOptions) (string, string) {
+	pj, err := project.New(ctx, options.Playbook, false)
 	if err != nil {
-		return fmt.Errorf("read file error: %w", err)
+		return "", fmt.Sprintf("get project error: %v", err)
 	}
 
-	result, err := tmpl.ParseString(vars, string(data))
+	relPath := filepath.Join(options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRelativePath], _const.ProjectRolesTemplateDir, ta.src)
+	fileInfo, err := pj.Stat(relPath)
 	if err != nil {
-		return fmt.Errorf("parse file error: %w", err)
+		return "", fmt.Sprintf("get file %s from project error: %v", ta.src, err)
 	}
 
-	dest := ta.dest
-	if strings.HasSuffix(ta.dest, "/") {
-		dest = filepath.Join(ta.dest, filepath.Base(ta.src))
+	if fileInfo.IsDir() {
+		if err := handleRelativeDir(ctx, pj, relPath, ta, conn, vars); err != nil {
+			return "", fmt.Sprintf("sync template relative dir error: %s", err)
+		}
+
+		return StdoutSuccess, ""
 	}
 
-	if ta.mode != nil {
-		mode = os.FileMode(*ta.mode)
+	data, err := pj.ReadFile(relPath)
+	if err != nil {
+		return "", fmt.Sprintf("read file error: %s", err)
+	}
+	if err := ta.readFile(ctx, string(data), fileInfo.Mode(), conn, vars); err != nil {
+		return "", fmt.Sprintf("sync template relative dir error: %s", err)
 	}
 
-	if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
-		return fmt.Errorf("copy file error: %w", err)
-	}
-
-	return nil
+	return StdoutSuccess, ""
 }
 
-// relDir when template.src is relative dir, get all files from project, parse it, and copy to remote.
-func (ta templateArgs) relDir(ctx context.Context, pj project.Project, role string, conn connector.Connector, vars map[string]any) error {
-	if err := pj.WalkDir(ta.src, project.GetFileOption{IsTemplate: true, Role: role}, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() { // only copy file
+func handleRelativeDir(ctx context.Context, pj project.Project, relPath string, ta *templateArgs, conn connector.Connector, vars map[string]any) error {
+	return pj.WalkDir(relPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() { // only deal file
 			return nil
 		}
-		if err != nil {
-			return fmt.Errorf("walk dir %s error: %w", ta.src, err)
-		}
-
 		info, err := d.Info()
 		if err != nil {
-			return fmt.Errorf("get file info error: %w", err)
+			return errors.Wrapf(err, "failed to get file %q info", path)
 		}
 
 		mode := info.Mode()
@@ -176,46 +219,33 @@ func (ta templateArgs) relDir(ctx context.Context, pj project.Project, role stri
 			mode = os.FileMode(*ta.mode)
 		}
 
-		data, err := pj.ReadFile(path, project.GetFileOption{IsTemplate: true, Role: role})
+		data, err := pj.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("read file error: %w", err)
+			return errors.Wrapf(err, "failed to read file %q", path)
 		}
-		result, err := tmpl.ParseString(vars, string(data))
+		result, err := tmpl.Parse(vars, string(data))
 		if err != nil {
-			return fmt.Errorf("parse file error: %w", err)
+			return errors.Wrapf(err, "failed to parse file %q", path)
 		}
 
 		dest := ta.dest
 		if strings.HasSuffix(ta.dest, "/") {
-			rel, err := pj.Rel(ta.src, path, project.GetFileOption{IsTemplate: true, Role: role})
+			rel, err := pj.Rel(relPath, path)
 			if err != nil {
-				return fmt.Errorf("get relative file path error: %w", err)
+				return errors.Wrap(err, "failed to get relative filepath")
 			}
 			dest = filepath.Join(ta.dest, rel)
 		}
 
-		if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
-			return fmt.Errorf("copy file error: %w", err)
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
+		return conn.PutFile(ctx, result, dest, mode)
+	})
 }
 
-// absFile when template.src is absolute file, get file by os, parse it, and copy to remote.
-func (ta templateArgs) absFile(ctx context.Context, mode fs.FileMode, conn connector.Connector, vars map[string]any) error {
-	data, err := os.ReadFile(ta.src)
+// relFile when template.src is relative file, get file from project, parse it, and copy to remote.
+func (ta templateArgs) readFile(ctx context.Context, data string, mode fs.FileMode, conn connector.Connector, vars map[string]any) error {
+	result, err := tmpl.Parse(vars, data)
 	if err != nil {
-		return fmt.Errorf("read file error: %w", err)
-	}
-
-	result, err := tmpl.ParseString(vars, string(data))
-	if err != nil {
-		return fmt.Errorf("parse file error: %w", err)
+		return err
 	}
 
 	dest := ta.dest
@@ -227,11 +257,7 @@ func (ta templateArgs) absFile(ctx context.Context, mode fs.FileMode, conn conne
 		mode = os.FileMode(*ta.mode)
 	}
 
-	if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
-		return fmt.Errorf("copy file error: %w", err)
-	}
-
-	return nil
+	return conn.PutFile(ctx, result, dest, mode)
 }
 
 // absDir when template.src is absolute dir, get all files by os, parse it, and copy to remote.
@@ -241,13 +267,13 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 			return nil
 		}
 		if err != nil {
-			return fmt.Errorf("walk dir %s error: %w", ta.src, err)
+			return errors.WithStack(err)
 		}
 
 		// get file old mode
 		info, err := d.Info()
 		if err != nil {
-			return fmt.Errorf("get file info error: %w", err)
+			return errors.Wrapf(err, "failed to get file %q info", path)
 		}
 		mode := info.Mode()
 		if ta.mode != nil {
@@ -256,30 +282,34 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 		// read file
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("read file error: %w", err)
+			return errors.Wrapf(err, "failed to read file %q", path)
 		}
-		result, err := tmpl.ParseString(vars, string(data))
+		result, err := tmpl.Parse(vars, string(data))
 		if err != nil {
-			return fmt.Errorf("parse file error: %w", err)
+			return errors.Wrapf(err, "failed to parse file %q", path)
 		}
 		// copy file to remote
 		dest := ta.dest
 		if strings.HasSuffix(ta.dest, "/") {
 			rel, err := filepath.Rel(ta.src, path)
 			if err != nil {
-				return fmt.Errorf("get relative file path error: %w", err)
+				return errors.Wrap(err, "failed to get relative filepath")
 			}
 			dest = filepath.Join(ta.dest, rel)
 		}
 
-		if err := conn.PutFile(ctx, []byte(result), dest, mode); err != nil {
-			return fmt.Errorf("copy file error: %w", err)
+		if err := conn.PutFile(ctx, result, dest, mode); err != nil {
+			return errors.Wrap(err, "failed to put file")
 		}
 
 		return nil
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to walk dir %q", ta.src)
 	}
 
 	return nil
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("template", ModuleTemplate))
 }

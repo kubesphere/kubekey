@@ -23,9 +23,8 @@ import (
 	"net"
 	"os"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/exec"
-	"k8s.io/utils/ptr"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -36,127 +35,76 @@ const (
 	connectedSSH        = "ssh"
 	connectedLocal      = "local"
 	connectedKubernetes = "kubernetes"
+	connectedPrometheus = "prometheus"
 )
 
-// Connector is the interface for connecting to a remote host
+// Connector is the interface for connecting to a remote host.
+// It abstracts the operations required to interact with different types of hosts (e.g., SSH, local, Kubernetes, Prometheus).
+// Implementations of this interface should provide mechanisms for initialization, cleanup, file transfer, and command execution.
 type Connector interface {
-	// Init initializes the connection
+	// Init initializes the connection.
 	Init(ctx context.Context) error
-	// Close closes the connection
+	// Close closes the connection and releases any resources.
 	Close(ctx context.Context) error
-	// PutFile copies a file from src to dst with mode.
+	// PutFile copies a file from src (as bytes) to dst (remote path) with the specified file mode.
 	PutFile(ctx context.Context, src []byte, dst string, mode fs.FileMode) error
-	// FetchFile copies a file from src to dst writer.
+	// FetchFile copies a file from src (remote path) to dst (local writer).
 	FetchFile(ctx context.Context, src string, dst io.Writer) error
-	// ExecuteCommand executes a command on the remote host
-	ExecuteCommand(ctx context.Context, cmd string) ([]byte, error)
+	// ExecuteCommand executes a command on the remote host.
+	// Returns stdout, stderr, and error (if any).
+	ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error)
 }
 
 // NewConnector creates a new connector
 // if set connector to "local", use local connector
 // if set connector to "ssh", use ssh connector
 // if set connector to "kubernetes", use kubernetes connector
+// if set connector to "prometheus", use prometheus connector
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
-func NewConnector(host string, connectorVars map[string]any) (Connector, error) {
-	connectedType, _ := variable.StringVar(nil, connectorVars, _const.VariableConnectorType)
+func NewConnector(host string, v variable.Variable) (Connector, error) {
+	ha, err := v.Get(variable.GetAllVariable(host))
+	if err != nil {
+		return nil, err
+	}
+	vd, ok := ha.(map[string]any)
+	if !ok {
+		return nil, errors.Errorf("host: %s variable is not a map", host)
+	}
 
+	workdir, err := v.Get(variable.GetWorkDir())
+	if err != nil {
+		return nil, err
+	}
+	wd, ok := workdir.(string)
+	if !ok {
+		return nil, errors.New("workdir in variable should be string")
+	}
+
+	connectedType, _ := variable.StringVar(nil, vd, _const.VariableConnector, _const.VariableConnectorType)
 	switch connectedType {
 	case connectedLocal:
-		return &localConnector{Cmd: exec.New()}, nil
+		return newLocalConnector(wd, vd), nil
 	case connectedSSH:
-		// get host in connector variable. if empty, set default host: host_name.
-		hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
-		if err != nil {
-			klog.InfoS("get ssh port failed use default port 22", "error", err)
-			hostParam = host
-		}
-		// get port in connector variable. if empty, set default port: 22.
-		portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
-		if err != nil {
-			klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
-			portParam = ptr.To(defaultSSHPort)
-		}
-		// get user in connector variable. if empty, set default user: root.
-		userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
-		if err != nil {
-			klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
-			userParam = defaultSSHUser
-		}
-		// get password in connector variable. if empty, should connector by private key.
-		passwdParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
-		if err != nil {
-			klog.V(4).InfoS("connector password is empty use public key")
-		}
-		// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
-		keyParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPrivateKey)
-		if err != nil {
-			klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
-			keyParam = defaultSSHPrivateKey
-		}
-
-		return &sshConnector{
-			Host:       hostParam,
-			Port:       *portParam,
-			User:       userParam,
-			Password:   passwdParam,
-			PrivateKey: keyParam,
-		}, nil
+		return newSSHConnector(wd, host, vd), nil
 	case connectedKubernetes:
-		kubeconfig, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorKubeconfig)
-		if err != nil && host != _const.VariableLocalHost {
-			return nil, err
-		}
-
-		return &kubernetesConnector{Cmd: exec.New(), clusterName: host, kubeconfig: kubeconfig}, nil
+		return newKubernetesConnector(host, wd, vd)
+	case connectedPrometheus:
+		return newPrometheusConnector(vd), nil
 	default:
 		localHost, _ := os.Hostname()
 		// get host in connector variable. if empty, set default host: host_name.
-		hostParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorHost)
+		hostParam, err := variable.StringVar(nil, vd, _const.VariableConnector, _const.VariableConnectorHost)
 		if err != nil {
 			klog.V(4).Infof("connector host is empty use: %s", host)
 			hostParam = host
 		}
 		if host == _const.VariableLocalHost || host == localHost || isLocalIP(hostParam) {
-			return &localConnector{Cmd: exec.New()}, nil
-		}
-		// get port in connector variable. if empty, set default port: 22.
-		portParam, err := variable.IntVar(nil, connectorVars, _const.VariableConnectorPort)
-		if err != nil {
-			klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
-			portParam = ptr.To(defaultSSHPort)
-		}
-		// get user in connector variable. if empty, set default user: root.
-		userParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorUser)
-		if err != nil {
-			klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
-			userParam = defaultSSHUser
-		}
-		// get password in connector variable. if empty, should connector by private key.
-		passwdParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPassword)
-		if err != nil {
-			klog.V(4).InfoS("connector password is empty use public key")
-		}
-		// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
-		keyParam, err := variable.StringVar(nil, connectorVars, _const.VariableConnectorPrivateKey)
-		if err != nil {
-			klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
-			keyParam = defaultSSHPrivateKey
+			return newLocalConnector(wd, vd), nil
 		}
 
-		return &sshConnector{
-			Host:       hostParam,
-			Port:       *portParam,
-			User:       userParam,
-			Password:   passwdParam,
-			PrivateKey: keyParam,
-		}, nil
+		return newSSHConnector(wd, host, vd), nil
 	}
-}
-
-// GatherFacts get host info.
-type GatherFacts interface {
-	HostInfo(ctx context.Context) (map[string]any, error)
 }
 
 // isLocalIP check if given ipAddr is local network ip

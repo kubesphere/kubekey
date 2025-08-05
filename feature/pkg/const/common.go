@@ -17,7 +17,7 @@ limitations under the License.
 package _const
 
 // variable specific key in system
-const ( // === From inventory ===
+const ( // === From Global Parameter ===
 	// VariableLocalHost is the default local host name in inventory.
 	VariableLocalHost = "localhost"
 	// VariableIPv4 is the ipv4 in inventory.
@@ -32,28 +32,40 @@ const ( // === From inventory ===
 	VariableConnectorType = "type"
 	// VariableConnectorHost is connected address for VariableConnector.
 	VariableConnectorHost = "host"
+	// VariableConnectorURL is connected port for VariableConnectorURL.
+	VariableConnectorURL = "url"
 	// VariableConnectorPort is connected address for VariableConnector.
 	VariableConnectorPort = "port"
 	// VariableConnectorUser is connected user for VariableConnector.
 	VariableConnectorUser = "user"
+	// VariableConnectorUserName is connected username for VariableConnector.
+	VariableConnectorUserName = "username"
 	// VariableConnectorPassword is connected type for VariableConnector.
 	VariableConnectorPassword = "password"
 	// VariableConnectorPrivateKey is connected auth key for VariableConnector.
 	VariableConnectorPrivateKey = "private_key"
+	// VariableConnectorPrivateKeyContent is connected auth key content for VariableConnector.
+	VariableConnectorPrivateKeyContent = "private_key_content"
 	// VariableConnectorKubeconfig is connected auth key for VariableConnector.
 	VariableConnectorKubeconfig = "kubeconfig"
+	// VariableConnectorToken is connected auth key for VariableConnector.
+	VariableConnectorToken = "token"
+	// VariableGatherFactsCache type in runtimedir. support jsonfile, yamlfile, memory.
+	VariableGatherFactsCache = "fact_caching"
 )
 
 const ( // === From system generate ===
 	// VariableInventoryName the value which defined in inventory.spec.host.
-	VariableInventoryName = "inventory_name"
+	VariableInventoryName = "inventory_hostname"
 	// VariableHostName the value is node hostname, default VariableInventoryName.
 	// If VariableInventoryName is "localhost". try to set the actual name.
 	VariableHostName = "hostname"
 	// VariableGlobalHosts the value is host_var which defined in inventory.
-	VariableGlobalHosts = "inventory_hosts"
+	VariableGlobalHosts = "hostvars"
 	// VariableGroupsAll the value is a all host_name slice of VariableGroups.
 	VariableGroupsAll = "all"
+	// VariableUnGrouped the value is a all host_name slice of VariableGroups.
+	VariableUnGrouped = "ungrouped"
 )
 
 const ( // === From GatherFact ===
@@ -78,4 +90,23 @@ const ( // === From GatherFact ===
 const ( // === From runtime ===
 	// VariableItem for "loop" argument when run a task.
 	VariableItem = "item"
+)
+
+const ( // === From CAPKK base on GetCAPKKProject() ===
+	// CAPKKWorkdir is the work dir for capkk playbook.
+	CAPKKWorkdir = "/kubekey/"
+	// CAPKKProjectdir is the project dir for capkk playbook.
+	CAPKKProjectdir = "/capkk/project/"
+	// CAPKKBinarydir is the path of binary.
+	CAPKKBinarydir = "/capkk/kubekey/"
+	// CAPKKCloudConfigPath is the cloud-config path.
+	CAPKKCloudConfigPath = "/capkk/cloud/cloud-config"
+	// CAPKKCloudKubeConfigPath is the cloud-config path.
+	CAPKKCloudKubeConfigPath = "/capkk/cloud/kubeconfig"
+	// CAPKKPlaybookHostCheck is the playbook for host check.
+	CAPKKPlaybookHostCheck = "playbooks/host_check.yaml"
+	// CAPKKPlaybookAddNode is the playbook for add node.
+	CAPKKPlaybookAddNode = "playbooks/add_node.yaml"
+	// CAPKKPlaybookDeleteNode is the playbook for delete node.
+	CAPKKPlaybookDeleteNode = "playbooks/delete_node.yaml"
 )

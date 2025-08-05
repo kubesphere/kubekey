@@ -1,0 +1,8 @@
+---
+- include_tasks: include_task2.yaml
+
+- include_tasks: include_task3.yaml
+
+- name: task1
+  debug:
+    msg: "im task1"

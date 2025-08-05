@@ -34,14 +34,6 @@ func TestCommand(t *testing.T) {
 		exceptStderr string
 	}{
 		{
-			name: "non-host variable",
-			opt: ExecOptions{
-				Variable: &testVariable{},
-			},
-			ctxFunc:      context.Background,
-			exceptStderr: "host is not set",
-		},
-		{
 			name: "exec command success",
 			ctxFunc: func() context.Context {
 				return context.WithValue(context.Background(), ConnKey, successConnector)
@@ -49,7 +41,7 @@ func TestCommand(t *testing.T) {
 			opt: ExecOptions{
 				Host:     "test",
 				Args:     runtime.RawExtension{Raw: []byte("echo success")},
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			exceptStdout: "success",
 		},
@@ -59,7 +51,7 @@ func TestCommand(t *testing.T) {
 			opt: ExecOptions{
 				Host:     "test",
 				Args:     runtime.RawExtension{Raw: []byte("echo success")},
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 			},
 			exceptStderr: "failed",
 		},

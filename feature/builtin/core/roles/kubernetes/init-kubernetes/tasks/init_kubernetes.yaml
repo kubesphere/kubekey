@@ -1,0 +1,92 @@
+---
+- name: Sync external etcd config
+  when: 
+    - and (.kubernetes.etcd.deployment_type | eq "external") (.groups.etcd | default list | empty | not)
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+  block:
+    - name: Sync etcd ca file to remote
+      copy:
+        src: >-
+          {{ .work_dir }}/kubekey/pki/root.crt
+        dest: /etc/kubernetes/pki/etcd/ca.crt
+        mode: 0755
+    - name: Sync etcd cert files to remote
+      copy:
+        src: >-
+          {{ .work_dir }}/kubekey/pki/etcd.crt
+        dest: /etc/kubernetes/pki/etcd/client.crt
+        mode: 0755
+    - name: Sync etcd key files to remote
+      copy:
+        src: >-
+          {{ .work_dir }}/kubekey/pki/etcd.key
+        dest: /etc/kubernetes/pki/etcd/client.key
+        mode: 0755
+
+- name: Generate kubeadm init config
+  template:
+    src: >-
+      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
+      kubeadm/kubeadm-init.v1beta3
+      {{- else -}}
+      kubeadm/kubeadm-init.v1beta2
+      {{- end -}}
+    dest: /etc/kubernetes/kubeadm-config.yaml
+
+- name: Init kubernetes cluster
+  block:
+    - name: pre init
+      when: 
+        - .kube_version | semverCompare ">=v1.29.0"
+        - eq .kubernetes.control_plane_endpoint.type "kube_vip"
+      command: |
+        sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' \
+          /etc/kubernetes/manifests/kube-vip.yaml
+    - name: init
+      command: |
+        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
+    - name: post init
+      when: 
+        - .kube_version | semverCompare ">=v1.29.0"
+        - eq .kubernetes.control_plane_endpoint.type "kube_vip"
+      command: |
+        sed -i 's#path: /etc/kubernetes/super-admin.conf#path: /etc/kubernetes/admin.conf#' \
+          /etc/kubernetes/manifests/kube-vip.yaml
+
+# reset localDNS 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}. 
+# if not the control_plane_endpoint will valid after kube_vip pod running. the task which will execute kubectl apply in current node may be failed.
+- name: reset control_plane_endpoint localDNS
+  command: |
+    sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
+    cat >> {{ .item }} <<EOF
+    # kubekey control_plane_endpoint BEGIN.
+    127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    ::1 {{ .kubernetes.control_plane_endpoint.host }}
+    # kubekey control_plane_endpoint END
+    EOF
+  loop: "{{ .localDNS | toJson }}"
+    
+- name: Copy kubeconfig to default dir
+  command: |
+    if [ ! -d /root/.kube ]; then
+      mkdir -p /root/.kube
+    fi
+    cp -f /etc/kubernetes/admin.conf /root/.kube/config
+  when: .kubernetes_install_service.stdout | eq "inactive"
+
+- name: Set to worker node
+  when: .groups.kube_worker | default list | has .inventory_hostname
+  block:
+    - name: Remote master taint
+      ignore_errors: true
+      command: |
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/master=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/control-plane=:NoSchedule-
+    - name: Add work label
+      command: |
+        /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=
+
+- name: Add annotations
+  when: .annotations | empty | not
+  command: |
+    kubectl annotate {{ .hostname }} {{- range $k,$v := .annotations }}{{ printf "%s=%s" $k $v}} {{- end }}

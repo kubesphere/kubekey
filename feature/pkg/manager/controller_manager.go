@@ -18,54 +18,84 @@ package manager
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/client-go/rest"
+	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/controllers"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy"
 )
 
 type controllerManager struct {
-	MaxConcurrentReconciles int
-	LeaderElection          bool
+	*options.ControllerManagerServerOptions
 }
 
 // Run controllerManager, run controller in kubernetes
-func (c controllerManager) Run(ctx context.Context) error {
+func (m controllerManager) Run(ctx context.Context) error {
 	ctrl.SetLogger(klog.NewKlogr())
 	restconfig, err := ctrl.GetConfig()
 	if err != nil {
-		klog.Infof("kubeconfig in empty, store resources local")
-		restconfig = &rest.Config{}
-	}
-	restconfig, err = proxy.NewConfig(restconfig)
-	if err != nil {
-		return fmt.Errorf("could not get rest config: %w", err)
+		return errors.Wrap(err, "failed to get restconfig in kubernetes")
 	}
 
 	mgr, err := ctrl.NewManager(restconfig, ctrl.Options{
-		Scheme:           _const.Scheme,
-		LeaderElection:   c.LeaderElection,
-		LeaderElectionID: "controller-leader-election-kk",
+		Scheme:                     _const.Scheme,
+		LeaderElection:             m.LeaderElection,
+		LeaderElectionID:           m.LeaderElectionID,
+		LeaderElectionResourceLock: m.LeaderElectionResourceLock,
+		HealthProbeBindAddress:     ":9440",
 	})
 	if err != nil {
-		return fmt.Errorf("could not create controller manager: %w", err)
+		return errors.Wrap(err, "failed to create controller manager")
+	}
+	if err := mgr.AddHealthzCheck("default", healthz.Ping); err != nil {
+		return errors.Wrap(err, "failed to add default healthcheck")
+	}
+	if err := mgr.AddReadyzCheck("default", healthz.Ping); err != nil {
+		return errors.Wrap(err, "failed to add default readycheck")
 	}
 
-	if err := (&controllers.PipelineReconciler{
-		Client:                  mgr.GetClient(),
-		EventRecorder:           mgr.GetEventRecorderFor("pipeline"),
-		Scheme:                  mgr.GetScheme(),
-		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
-	}).SetupWithManager(mgr); err != nil {
-		klog.ErrorS(err, "create pipeline controller error")
-
+	if err := m.register(mgr); err != nil {
 		return err
 	}
 
-	return mgr.Start(ctx)
+	return errors.Wrap(mgr.Start(ctx), "failed to start manager")
+}
+
+func (m controllerManager) register(mgr ctrl.Manager) error {
+	if len(m.Controllers) == 0 {
+		return errors.New("register controllers is empty")
+	}
+	for _, c := range m.Controllers {
+		if !m.IsControllerEnabled(c.Name()) {
+			klog.Infof("controller %q is disabled", c.Name())
+
+			continue
+		}
+		if err := c.SetupWithManager(mgr, *m.ControllerManagerServerOptions); err != nil {
+			return errors.Wrapf(err, "failed to register controller %q", c.Name())
+		}
+	}
+
+	return nil
+}
+
+// IsControllerEnabled check if a specified controller enabled or not.
+func (m *controllerManager) IsControllerEnabled(name string) bool {
+	allowedAll := false
+	for _, controllerGate := range m.ControllerGates {
+		if controllerGate == name {
+			return true
+		}
+		if controllerGate == "-"+name {
+			return false
+		}
+		if controllerGate == "*" {
+			allowedAll = true
+		}
+	}
+
+	return allowedAll
 }

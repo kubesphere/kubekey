@@ -1,8 +1,0 @@
-- hosts:
-    - localhost
-  roles:
-    - init/init-artifact
-  tasks:
-    - name: Export artifact
-      command: |
-        cd {{ .work_dir }}/kubekey && tar -czvf ../kubekey-artifact.tar.gz *

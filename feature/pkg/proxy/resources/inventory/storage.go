@@ -17,12 +17,11 @@ limitations under the License.
 package inventory
 
 import (
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
 	apiregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
-
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 // InventoryStorage storage for Inventory

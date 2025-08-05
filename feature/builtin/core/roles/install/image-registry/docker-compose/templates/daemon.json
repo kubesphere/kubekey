@@ -1,0 +1,19 @@
+{
+  "log-opts": {
+    "max-size": "5m",
+    "max-file":"3"
+  },
+{{- if .cri.docker.data_root | empty | not }}
+  "data-root": "{{ .cri.docker.data_root }}",
+{{- end }}
+{{- if .cri.registry.mirrors | empty | not }}
+  "registry-mirrors": {{ .cri.registry.mirrors | toJson }},
+{{- end }}
+ {{- if .cri.registry.insecure_registries | empty | not }}
+  "insecure-registries": {{ .cri.registry.insecure_registries | toJson }},
+{{- end }}
+ {{- if .cri.docker.bridge_ip | empty | not }}
+  "bip": "{{ .cri.docker.bridge_ip }}",
+{{- end }}
+  "exec-opts": ["native.cgroupdriver={{ .cri.cgroup_driver | default "systemd" }}"]
+}

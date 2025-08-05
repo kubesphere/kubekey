@@ -1,0 +1,22 @@
+image_registry:
+  # registry type. support: harbor, docker-registry
+  type: harbor
+  #  ha_vip: 192.168.122.59
+  # which store images data which will push to registry.
+  images_dir: >-
+    {{ .tmp_dir }}/images/
+  auth:
+    registry: >-
+      {{- if .image_registry.ha_vip | empty | not -}}
+        {{ .image_registry.ha_vip }}
+      {{- else if .groups.image_registry | default list | empty | not -}}
+        {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
+        {{- if $internalIPv4 | empty | not -}}
+          {{ $internalIPv4 }}
+        {{- else if $internalIPv6 | empty | not -}}
+          {{ $internalIPv6 }}
+        {{- end -}}
+      {{- end -}}
+    username: admin
+    password: Harbor12345

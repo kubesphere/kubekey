@@ -17,27 +17,47 @@ limitations under the License.
 package connector
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/exec"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 const kubeconfigRelPath = ".kube/config"
 
 var _ Connector = &kubernetesConnector{}
 
+func newKubernetesConnector(host string, workdir string, hostVars map[string]any) (*kubernetesConnector, error) {
+	kubeconfig, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorKubeconfig)
+	if err != nil && host != _const.VariableLocalHost {
+		return nil, err
+	}
+
+	return &kubernetesConnector{
+		workdir:     workdir,
+		cmd:         exec.New(),
+		clusterName: host,
+		kubeconfig:  kubeconfig,
+	}, nil
+}
+
 type kubernetesConnector struct {
+	workdir     string
+	homedir     string
 	clusterName string
 	kubeconfig  string
-	homeDir     string
-	Cmd         exec.Interface
+	// shell to execute command
+	shell string
+	cmd   exec.Interface
 }
 
 // Init connector, create home dir in local for each kubernetes.
@@ -48,29 +68,33 @@ func (c *kubernetesConnector) Init(_ context.Context) error {
 		return nil
 	}
 	// set home dir for each kubernetes
-	c.homeDir = filepath.Join(_const.GetWorkDir(), _const.KubernetesDir, c.clusterName)
-	if _, err := os.Stat(c.homeDir); err != nil && os.IsNotExist(err) {
-		if err := os.MkdirAll(c.homeDir, os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "cluster", c.clusterName)
-			// if dir is not exist, create it.
-			return err
+	c.homedir = filepath.Join(c.workdir, _const.KubernetesDir, c.clusterName)
+	if _, err := os.Stat(c.homedir); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local dir %q for cluster %q", c.homedir, c.clusterName)
+		}
+		// if dir is not exist, create it.
+		if err := os.MkdirAll(c.homedir, os.ModePerm); err != nil {
+			return errors.Wrapf(err, "failed to create local dir %q for cluster %q", c.homedir, c.clusterName)
 		}
 	}
 	// create kubeconfig path in home dir
-	kubeconfigPath := filepath.Join(c.homeDir, kubeconfigRelPath)
-	if _, err := os.Stat(kubeconfigPath); err != nil && os.IsNotExist(err) {
+	kubeconfigPath := filepath.Join(c.homedir, kubeconfigRelPath)
+	if _, err := os.Stat(kubeconfigPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local path %q for cluster %q", kubeconfigPath, c.clusterName)
+		}
 		if err := os.MkdirAll(filepath.Dir(kubeconfigPath), os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "cluster", c.clusterName)
-
-			return err
+			return errors.Wrapf(err, "failed to create local path %q for cluster %q", kubeconfigPath, c.clusterName)
 		}
 	}
+
 	// write kubeconfig to home dir
 	if err := os.WriteFile(kubeconfigPath, []byte(c.kubeconfig), os.ModePerm); err != nil {
-		klog.V(4).ErrorS(err, "Failed to create kubeconfig file", "cluster", c.clusterName)
-
-		return err
+		return errors.Wrapf(err, "failed to create kubeconfig file for cluster %q", c.clusterName)
 	}
+	// find command interpreter in env. default /bin/bash
+	c.shell = _const.Getenv(_const.Shell)
 
 	return nil
 }
@@ -84,25 +108,29 @@ func (c *kubernetesConnector) Close(_ context.Context) error {
 // Typically, the configuration file for each cluster may be different,
 // and it may be necessary to keep them in separate directories locally.
 func (c *kubernetesConnector) PutFile(_ context.Context, src []byte, dst string, mode fs.FileMode) error {
-	dst = filepath.Join(c.homeDir, dst)
-	if _, err := os.Stat(filepath.Dir(dst)); err != nil && os.IsNotExist(err) {
+	dst = filepath.Join(c.homedir, dst)
+	if _, err := os.Stat(filepath.Dir(dst)); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to stat local dir %q for cluster %q", dst, c.clusterName)
+		}
 		if err := os.MkdirAll(filepath.Dir(dst), mode); err != nil {
-			klog.V(4).ErrorS(err, "Failed to create local dir", "dst_file", dst)
-
-			return err
+			return errors.Wrapf(err, "failed to create local dir %q for cluster %q", dst, c.clusterName)
 		}
 	}
+	if err := os.WriteFile(dst, src, mode); err != nil {
+		return errors.Wrapf(err, "failed to write file %q for cluster %q", dst, c.clusterName)
+	}
 
-	return os.WriteFile(dst, src, mode)
+	return nil
 }
 
 // FetchFile copy src file to dst writer. src is the local filename, dst is the local writer.
 func (c *kubernetesConnector) FetchFile(ctx context.Context, src string, dst io.Writer) error {
 	// add "--kubeconfig" to src command
 	klog.V(5).InfoS("exec local command", "cmd", src)
-	command := c.Cmd.CommandContext(ctx, "/bin/sh", "-c", src)
-	command.SetDir(c.homeDir)
-	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homeDir, kubeconfigRelPath)})
+	command := c.cmd.CommandContext(ctx, c.shell, "-c", src)
+	command.SetDir(c.homedir)
+	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homedir, kubeconfigRelPath)})
 	command.SetStdout(dst)
 	_, err := command.CombinedOutput()
 
@@ -110,12 +138,16 @@ func (c *kubernetesConnector) FetchFile(ctx context.Context, src string, dst io.
 }
 
 // ExecuteCommand in a kubernetes cluster
-func (c *kubernetesConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, error) {
+func (c *kubernetesConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error) {
 	// add "--kubeconfig" to src command
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
-	command := c.Cmd.CommandContext(ctx, "/bin/sh", "-c", cmd)
-	command.SetDir(c.homeDir)
-	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homeDir, kubeconfigRelPath)})
+	command := c.cmd.CommandContext(ctx, c.shell, "-c", cmd)
+	command.SetDir(c.homedir)
+	command.SetEnv([]string{"KUBECONFIG=" + filepath.Join(c.homedir, kubeconfigRelPath)})
 
-	return command.CombinedOutput()
+	var stdoutBuf, stderrBuf bytes.Buffer
+	command.SetStdout(&stdoutBuf)
+	command.SetStderr(&stderrBuf)
+	err := command.Run()
+	return stdoutBuf.Bytes(), stderrBuf.Bytes(), err
 }

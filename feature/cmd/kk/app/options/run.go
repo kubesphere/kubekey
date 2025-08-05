@@ -17,18 +17,19 @@ limitations under the License.
 package options
 
 import (
-	"fmt"
+	"os"
 
+	"github.com/cockroachdb/errors"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	cliflag "k8s.io/component-base/cli/flag"
-
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 )
 
 // KubeKeyRunOptions for NewKubeKeyRunOptions
 type KubeKeyRunOptions struct {
-	commonOptions
+	CommonOptions
 	// ProjectAddr is the storage for executable packages (in Ansible format).
 	// When starting with http or https, it will be obtained from a Git repository.
 	// When starting with file path, it will be obtained from the local path.
@@ -54,7 +55,7 @@ type KubeKeyRunOptions struct {
 func NewKubeKeyRunOptions() *KubeKeyRunOptions {
 	// add default values
 	o := &KubeKeyRunOptions{
-		commonOptions: newCommonOptions(),
+		CommonOptions: NewCommonOptions(),
 	}
 
 	return o
@@ -62,7 +63,7 @@ func NewKubeKeyRunOptions() *KubeKeyRunOptions {
 
 // Flags add to newRunCommand
 func (o *KubeKeyRunOptions) Flags() cliflag.NamedFlagSets {
-	fss := o.commonOptions.flags()
+	fss := o.CommonOptions.Flags()
 	gitfs := fss.FlagSet("project")
 	gitfs.StringVar(&o.ProjectAddr, "project-addr", o.ProjectAddr, "the storage for executable packages (in Ansible format)."+
 		" When starting with http or https, it will be obtained from a Git repository."+
@@ -79,9 +80,9 @@ func (o *KubeKeyRunOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-// Complete options. create Pipeline, Config and Inventory
-func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Pipeline, *kkcorev1.Config, *kkcorev1.Inventory, error) {
-	pipeline := &kkcorev1.Pipeline{
+// Complete options. create Playbook, Config and Inventory
+func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.Playbook, error) {
+	playbook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "run-",
 			Namespace:    o.Namespace,
@@ -90,12 +91,12 @@ func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 	}
 	// complete playbook. now only support one playbook
 	if len(args) != 1 {
-		return nil, nil, nil, fmt.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
+		return nil, errors.Errorf("%s\nSee '%s -h' for help and examples", cmd.Use, cmd.CommandPath())
 	}
 	o.Playbook = args[0]
 
-	pipeline.Spec = kkcorev1.PipelineSpec{
-		Project: kkcorev1.PipelineProject{
+	playbook.Spec = kkcorev1.PlaybookSpec{
+		Project: kkcorev1.PlaybookProject{
 			Addr:            o.ProjectAddr,
 			Name:            o.ProjectName,
 			Branch:          o.ProjectBranch,
@@ -106,12 +107,19 @@ func (o *KubeKeyRunOptions) Complete(cmd *cobra.Command, args []string) (*kkcore
 		Playbook: o.Playbook,
 		Tags:     o.Tags,
 		SkipTags: o.SkipTags,
-		Debug:    o.Debug,
-	}
-	config, inventory, err := o.completeRef(pipeline)
-	if err != nil {
-		return nil, nil, nil, err
 	}
 
-	return pipeline, config, inventory, nil
+	if o.InventoryFile != "" {
+		data, err := os.ReadFile(o.InventoryFile)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get inventory for inventoryFile: %q", &o.InventoryFile)
+		}
+
+		err = yaml.Unmarshal(data, o.Inventory)
+		if err != nil {
+			return nil, errors.Wrapf(yaml.Unmarshal(data, o.Inventory), "failed to unmarshal inventoryFile %s", o.InventoryFile)
+		}
+	}
+
+	return playbook, o.CommonOptions.Complete(playbook)
 }

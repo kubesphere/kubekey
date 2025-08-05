@@ -17,13 +17,12 @@ limitations under the License.
 package proxy
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,7 +33,6 @@ import (
 	"k8s.io/apiserver/pkg/features"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/klog/v2"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
@@ -67,7 +65,7 @@ func (o *resourceOptions) init() error {
 	var prefix string
 	scoper, ok := o.storage.(apirest.Scoper)
 	if !ok {
-		return fmt.Errorf("%q must implement scoper", o.path)
+		return errors.Errorf("%q must implement scoper", o.path)
 	}
 	if scoper.NamespaceScoped() {
 		prefix = "/namespaces/{namespace}/"
@@ -104,15 +102,13 @@ func newAPIIResources(gv schema.GroupVersion) *apiResources {
 		minRequestTimeout: defaultMinRequestTimeout,
 
 		typer:      _const.Scheme,
-		serializer: _const.Codecs,
+		serializer: _const.CodecFactory,
 	}
 }
 
 // AddResource add a api-resources
 func (r *apiResources) AddResource(o resourceOptions) error {
 	if err := o.init(); err != nil {
-		klog.V(6).ErrorS(err, "Failed to initialize resourceOptions")
-
 		return err
 	}
 	r.resourceOptions = append(r.resourceOptions, o)
@@ -124,8 +120,6 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 		versioner := storageVersionProvider.StorageVersion()
 		gvk, err := getStorageVersionKind(versioner, o.storage, r.typer)
 		if err != nil {
-			klog.V(6).ErrorS(err, "failed to get storage version kind", "storage", reflect.TypeOf(o.storage))
-
 			return err
 		}
 		apiResource.Group = gvk.Group
@@ -146,7 +140,7 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 	if o.subresource == "" {
 		singularNameProvider, ok := o.storage.(apirest.SingularNameProvider)
 		if !ok {
-			return fmt.Errorf("resource %s must implement SingularNameProvider", o.path)
+			return errors.Errorf("resource %s must implement SingularNameProvider", o.path)
 		}
 		apiResource.SingularName = singularNameProvider.GetSingularName()
 	}
@@ -167,11 +161,11 @@ func getStorageVersionKind(storageVersioner runtime.GroupVersioner, storage apir
 	object := storage.New()
 	fqKinds, _, err := typer.ObjectKinds(object)
 	if err != nil {
-		return schema.GroupVersionKind{}, err
+		return schema.GroupVersionKind{}, errors.Wrap(err, "failed to get object kind")
 	}
 	gvk, ok := storageVersioner.KindForGroupVersionKinds(fqKinds)
 	if !ok {
-		return schema.GroupVersionKind{}, fmt.Errorf("cannot find the storage version kind for %v", reflect.TypeOf(object))
+		return schema.GroupVersionKind{}, errors.Errorf("failed to find the storage version kind for %v", reflect.TypeOf(object))
 	}
 
 	return gvk, nil

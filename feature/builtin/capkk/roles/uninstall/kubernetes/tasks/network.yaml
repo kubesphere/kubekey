@@ -1,0 +1,39 @@
+---
+- name: Reset iptables
+  command: |
+    iptables -F
+    iptables -X
+    iptables -F -t nat
+    iptables -X -t nat
+    ipvsadm -C
+    ip link del kube-ipvs0
+    ip link del nodelocaldns
+    ip link del cni0
+    {{- if .cni.type | eq "flannel" }}
+    ip link del flannel.1
+    ip link del flannel-v6.1
+    ip link del flannel-wg
+    ip link del flannel-wg-v6
+    {{- end }}
+    {{- if .cni.type | eq "cilium" }}
+    ip link del cilium_host
+    ip link del cilium_vxlan
+    {{- end }}
+    {{- if .cni.type | eq "calico" }}
+    ip -br link show | grep cali[a-f0-9]* | awk -F @ '{print $1}' | xargs -r -t -n 1 ip link del
+    {{- end }}
+    ip netns show 2>/dev/null | grep cni- | awk '{print $1}' | xargs -r -t -n 1 ip netns del
+
+- name: Delete net.d
+  command: |
+    rm -rf /etc/cni/net.d/
+    rm -rf /var/lib/cni/
+    {{- if .cni.type | eq "calico" }}
+    rm -rf /usr/local/bin/calicoctl
+    {{- end }}
+
+- name: Delete arp by kube-vip
+  when: eq .kubernetes.control_plane_endpoint.type "kube_vip"
+  command: |
+    ip neigh show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{print $1 " dev " $3}' | xargs -r -L1 ip neigh delete
+    ip -o addr show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{system("ip addr del "$4" dev "$2)}'

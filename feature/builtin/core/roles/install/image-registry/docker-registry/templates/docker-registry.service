@@ -1,0 +1,12 @@
+[Unit]
+Description=docker-registry
+After=docker.service systemd-networkd.service systemd-resolved.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/docker-compose -p registry -f /opt/docker-registry/{{ .docker_registry_version }}/docker-compose.yml up
+ExecStop=/usr/local/bin/docker-compose -p registry down
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target

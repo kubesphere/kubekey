@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 )
 
 func TestSetFact(t *testing.T) {
@@ -36,15 +36,67 @@ func TestSetFact(t *testing.T) {
 		exceptStderr string
 	}{
 		{
-			name: "success",
+			name: "string value",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
 					Raw: []byte(`{"k": "v"}`),
 				},
 				Host:     "",
-				Variable: &testVariable{},
+				Variable: newTestVariable(nil, nil),
 				Task:     kkcorev1alpha1.Task{},
-				Pipeline: kkcorev1.Pipeline{},
+				Playbook: kkcorev1.Playbook{},
+			},
+			exceptStdout: "success",
+		},
+		{
+			name: "int value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": 1}`),
+				},
+				Host:     "",
+				Variable: newTestVariable(nil, nil),
+				Task:     kkcorev1alpha1.Task{},
+				Playbook: kkcorev1.Playbook{},
+			},
+			exceptStdout: "success",
+		},
+		{
+			name: "float value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": 1.1}`),
+				},
+				Host:     "",
+				Variable: newTestVariable(nil, nil),
+				Task:     kkcorev1alpha1.Task{},
+				Playbook: kkcorev1.Playbook{},
+			},
+			exceptStdout: "success",
+		},
+		{
+			name: "map value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": {"k1": "v1", "k2": "v2"}}`),
+				},
+				Host:     "",
+				Variable: newTestVariable(nil, nil),
+				Task:     kkcorev1alpha1.Task{},
+				Playbook: kkcorev1.Playbook{},
+			},
+			exceptStdout: "success",
+		},
+		{
+			name: "array value",
+			opt: ExecOptions{
+				Args: runtime.RawExtension{
+					Raw: []byte(`{"k": ["v1", "v2"]}`),
+				},
+				Host:     "",
+				Variable: newTestVariable(nil, nil),
+				Task:     kkcorev1alpha1.Task{},
+				Playbook: kkcorev1.Playbook{},
 			},
 			exceptStdout: "success",
 		},

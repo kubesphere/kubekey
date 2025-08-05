@@ -17,23 +17,27 @@ limitations under the License.
 package converter
 
 import (
-	"errors"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
-	kkprojectv1 "github.com/kubesphere/kubekey/v4/pkg/apis/project/v1"
+	"github.com/cockroachdb/errors"
+	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // MarshalBlock marshal block to task
-func MarshalBlock(role string, hosts []string, when []string, block kkprojectv1.Block) *kkcorev1alpha1.Task {
+func MarshalBlock(hosts []string, when []string, block kkprojectv1.Block) *kkcorev1alpha1.Task {
 	task := &kkcorev1alpha1.Task{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Task",
@@ -41,19 +45,21 @@ func MarshalBlock(role string, hosts []string, when []string, block kkprojectv1.
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Now(),
-			Annotations: map[string]string{
-				kkcorev1alpha1.TaskAnnotationRole: role,
-			},
 		},
 		Spec: kkcorev1alpha1.TaskSpec{
-			Name:        block.Name,
-			Hosts:       hosts,
-			IgnoreError: block.IgnoreErrors,
-			Retries:     block.Retries,
-			When:        when,
-			FailedWhen:  block.FailedWhen.Data,
-			Register:    block.Register,
+			Name:         block.Name,
+			Hosts:        hosts,
+			DelegateTo:   block.DelegateTo,
+			IgnoreError:  block.IgnoreErrors,
+			Retries:      block.Retries,
+			When:         when,
+			FailedWhen:   block.FailedWhen.Data,
+			Register:     block.Register,
+			RegisterType: block.RegisterType,
 		},
+	}
+	if annotation, ok := block.UnknownField["annotations"].(map[string]string); ok {
+		task.ObjectMeta.Annotations = annotation
 	}
 
 	if block.Loop != nil {
@@ -85,13 +91,13 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 			if strings.HasSuffix(val, "%") {
 				b, err := strconv.ParseFloat(val[:len(val)-1], 64)
 				if err != nil {
-					return nil, fmt.Errorf("convert serial %v to float error: %w", a, err)
+					return nil, errors.Wrapf(err, "convert serial %q to float", val)
 				}
 				sis[i] = int(math.Ceil(float64(len(hosts)) * b / 100.0))
 			} else {
 				b, err := strconv.Atoi(val)
 				if err != nil {
-					return nil, fmt.Errorf("convert serial %v to int error: %w", a, err)
+					return nil, errors.Wrapf(err, "convert serial %q to int", val)
 				}
 				sis[i] = b
 			}
@@ -99,7 +105,7 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 			return nil, errors.New("unknown serial type. only support int or percent")
 		}
 		if sis[i] == 0 {
-			return nil, fmt.Errorf("serial %v should not be zero", a)
+			return nil, errors.Errorf("serial %v should not be zero", a)
 		}
 		count += sis[i]
 	}
@@ -123,4 +129,41 @@ func GroupHostBySerial(hosts []string, serial []any) ([][]string, error) {
 	}
 
 	return result, nil
+}
+
+// ConvertKKClusterToInventoryHost convert inventoryHost which defined in kkclusters.infrastructure.cluster.x-k8s.io to inventoryHost which defined in inventories.kubekey.kubesphere.io .
+func ConvertKKClusterToInventoryHost(kkcluster *capkkinfrav1beta1.KKCluster) (kkcorev1.InventoryHost, error) {
+	inventoryHosts := make(kkcorev1.InventoryHost)
+	for _, ih := range kkcluster.Spec.InventoryHosts {
+		vars := make(map[string]any)
+		if ih.Vars.Raw != nil {
+			if err := json.Unmarshal(ih.Vars.Raw, &vars); err != nil {
+				return nil, errors.Wrapf(err, "failed to unmarshal kkcluster.spec.InventoryHost %s to inventoryHost", ih.Name)
+			}
+		}
+		vars[_const.VariableConnector] = ih.Connector
+		data, err := json.Marshal(vars)
+		if err != nil {
+			return nil, errors.Wrapf(err, "marshal kkclusters %s to inventory", ih.Name)
+		}
+		inventoryHosts[ih.Name] = runtime.RawExtension{Raw: data}
+	}
+
+	return inventoryHosts, nil
+}
+
+// ConvertMap2Node converts a map[string]any to a yaml.Node by first marshaling to YAML bytes
+// then unmarshaling into a Node. This allows working with the YAML node structure directly.
+func ConvertMap2Node(m map[string]any) (yaml.Node, error) {
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		return yaml.Node{}, errors.Wrap(err, "failed to marshal map to yaml")
+	}
+	var node yaml.Node
+	err = yaml.Unmarshal(data, &node)
+	if err != nil {
+		return yaml.Node{}, errors.Wrap(err, "failed to unmarshal yaml to node")
+	}
+
+	return node, nil
 }

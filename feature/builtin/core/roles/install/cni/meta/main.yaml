@@ -1,0 +1,19 @@
+---
+dependencies:
+  - role: install/cni/multus
+    when: .cni.multus.enabled
+
+  - role: install/cni/calico
+    when: .cni.type | eq "calico"
+
+  - role: install/cni/cilium
+    when: .cni.type | eq "cilium"
+
+  - role: install/cni/flannel
+    when: .cni.type | eq "flannel"
+
+  - role: install/cni/kubeovn
+    when: .cni.type | eq "kubeovn"
+
+  - role: install/cni/hybridnet
+    when: .cni.type | eq "hyvbridnet"

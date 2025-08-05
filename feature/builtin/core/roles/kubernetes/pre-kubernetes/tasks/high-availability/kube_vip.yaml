@@ -1,0 +1,46 @@
+---
+- name: Get interface from kube_vip
+  block:
+    - name: Get all interface with cidr
+      command: |
+        ip -o addr show | awk '
+          BEGIN {
+            printf "[\n"; 
+            first = 1;
+          }
+          /inet / && !/ lo|docker|br-|veth/ {
+            if (!first) {
+              printf ",\n";
+            }
+            first = 0;
+            printf "  {\n";
+            printf "    \"interface\": \"%s\",\n", $2;
+            printf "    \"cidr\": \"%s\"\n", $4;
+            printf "  }";
+          }
+          END {
+            printf "\n]\n";
+          }
+        '
+      register: interface
+      register_type: json
+    - name: filter interface by ha_vip
+      set_fact: 
+          kube_vip_interface: >-
+            {{- $interface := "" }}
+            {{- range .interface.stdout | default list -}}
+              {{- if .cidr | ipInCIDR | has $.kubernetes.control_plane_endpoint.kube_vip.address -}}
+                {{- $interface = .interface -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $interface }}
+    - name: Check if network is exist
+      assert:
+        that: .kube_vip_interface | empty
+        fail_msg: "cannot find network interface to match kube_vip"    
+
+- name: Generate kube_vip manifest
+  template:
+    src: >-
+      kubevip/kubevip.{{ .kubernetes.control_plane_endpoint.kube_vip.mode }}
+    dest: /etc/kubernetes/manifests/kube-vip.yaml

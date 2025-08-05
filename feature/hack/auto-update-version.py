@@ -60,7 +60,7 @@ def fetch_kubernetes_sha256(versions):
         for binary in K8S_COMPONENTS:
             for arch in ARCH_LIST:
                 response = requests.get(
-                    "https://dl.k8s.io/release/{}/bin/linux/{}/{}.sha256".format(
+                    "https://storage.googleapis.com/kubernetes-release/release/{}/bin/linux/{}/{}.sha256".format(
                         version, arch, binary))
                 if response.status_code == 200:
                     new_sha256["{}-{}-{}".format(binary, arch, version)] = response.text

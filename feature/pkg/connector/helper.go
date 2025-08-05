@@ -22,7 +22,15 @@ import (
 	"strings"
 )
 
-// convertBytesToMap with split string, only convert line which contain split
+// convertBytesToMap parses the given byte slice into a map[string]string using the provided split string.
+// Only lines containing the split string are processed. Each such line is split into key and value at the first occurrence of the split string.
+// Leading and trailing spaces are trimmed from both key and value.
+// Example input (split = "="):
+//
+//	FOO=bar
+//	BAZ = qux
+//
+// Result: map[string]string{"FOO": "bar", "BAZ": "qux"}
 func convertBytesToMap(bs []byte, split string) map[string]string {
 	config := make(map[string]string)
 	scanner := bufio.NewScanner(bytes.NewBuffer(bs))
@@ -39,8 +47,21 @@ func convertBytesToMap(bs []byte, split string) map[string]string {
 	return config
 }
 
-// convertBytesToSlice with split string. only convert line which contain split.
-// group by empty line
+// convertBytesToSlice parses the given byte slice into a slice of map[string]string using the provided split string.
+// Only lines containing the split string are processed. Each such line is split into key and value at the first occurrence of the split string.
+// Leading and trailing spaces are trimmed from both key and value.
+// Groups of key-value pairs are separated by empty lines. Each group is stored as a separate map in the resulting slice.
+// Example input (split = ":"):
+//
+//	foo: bar
+//	baz: qux
+//
+//	hello: world
+//
+//	Result: []map[string]string{
+//	  {"foo": "bar", "baz": "qux"},
+//	  {"hello": "world"},
+//	}
 func convertBytesToSlice(bs []byte, split string) []map[string]string {
 	var config []map[string]string
 	currentMap := make(map[string]string)
