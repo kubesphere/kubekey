@@ -1,0 +1,21 @@
+---
+- name: Check artifact is exits
+  command:
+    if [ ! -f "{{ .artifact.artifact_file }}" ]; then
+      exit 1
+    fi
+
+- name: Check artifact file type
+  command:
+    if [[ "{{ .artifact.artifact_file }}" != *{{ .item }} ]]; then
+      exit 1
+    fi
+  loop: ['.tgz','.tar.gz']
+
+- name: Check md5 of artifact
+  command:
+    if [[ "$(md5sum {{ .artifact.artifact_file }})" != "{{ .artifact.artifact_md5 }}" ]]; then
+      exit 1
+    fi
+  when:
+    - .artifact.artifact_md5 | empty | not

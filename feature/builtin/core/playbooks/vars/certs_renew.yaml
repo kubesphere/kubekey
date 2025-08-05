@@ -1,0 +1,11 @@
+renew_etcd: true
+renew_image_registry: true
+renew_kubernetes: true
+kubernetes:
+  etcd:
+    deployment_type: external
+cri:
+  # support: containerd,docker
+  container_manager: docker
+image_registry:
+  type: harbor

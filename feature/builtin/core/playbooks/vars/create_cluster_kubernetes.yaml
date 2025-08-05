@@ -1,0 +1,229 @@
+kubernetes:
+  cluster_name: kubekey
+  # support: flannel, calico
+  kube_network_plugin: calico
+  # the image repository of kubernetes.
+  image_repository: >-
+    {{ .dockerio_registry }}/kubesphere
+  # memory size for each kube_worker node.(unit kB)
+  # should be greater than or equal to minimal_node_memory_mb.
+  minimal_node_memory_mb: 10
+  # the maximum number of pods that can be run on each node.
+  max_pods: 110
+  audit: false
+  networking:
+    # the whole pod_cidr in cluster. support: ipv4; ipv6; ipv4,ipv6.
+    pod_cidr: 10.233.64.0/18
+    # the subnet ipv4 pod_cidr in each node.
+    ipv4_mask_size: 24
+    # the subnet ipv6 pod_cidr in each node.
+    ipv6_mask_size: 64
+    # the whole service_cidr in cluster. support: ipv4; ipv6; ipv4,ipv6.
+    service_cidr: 10.233.0.0/18
+    dns_domain: cluster.local
+    dns_image: 
+      registry: >-
+        {{ .dockerio_registry }}
+      repository: >-
+        coredns
+      tag: 1.8.6
+    dns_cache_image: 
+      registry: >-
+        {{ .dockerio_registry }}
+      repository: kubesphere/k8s-dns-node-cache
+      tag: 1.22.20
+    dns_service_ip: >-
+      {{ index (.kubernetes.networking.service_cidr | ipInCIDR) 2 }}
+    # nodelocaldns bind ip
+    clusterDNS: 169.254.25.10   
+  apiserver:
+    port: 6443
+    certSANs: []
+    extra_args:
+      # feature-gates: ExpandCSIVolumes=true,CSIStorageCapacity=true,RotateKubeletServerCertificate=true
+  controller_manager:
+    extra_args:
+      # feature-gates: ExpandCSIVolumes=true,CSIStorageCapacity=true,RotateKubeletServerCertificate=true
+  scheduler:
+    extra_args:
+      # feature-gates: ExpandCSIVolumes=true,CSIStorageCapacity=true,RotateKubeletServerCertificate=true
+  kube_proxy:
+    enabled: true
+    # support ipvs and iptables
+    mode: "ipvs"
+    config:
+      iptables:
+        masqueradeAll: false
+        masqueradeBit: 14
+        minSyncPeriod: 0s
+        syncPeriod: 30s
+  kubelet:
+    max_pod: 110
+    pod_pids_limit: 10000
+#    feature_gates:
+    container_log_max_size: 5Mi
+    container_log_max_files: 3
+#    extra_args:
+  coredns:
+    dns_etc_hosts: []
+    # the config for zones
+    zone_configs:
+        # DNS zones to match. default use port of 53. the format like this.
+        # .: all dns zone.
+        # example.com: match *.example.com use dns server with port 53
+        # example.com:54: match *.example.com use dns server with port 54
+      - zones: [".:53"]
+        additional_configs:
+          - errors
+          - ready
+          - prometheus :9153
+          - loop
+          - reload
+          - loadbalance
+        cache: 30
+        kubernetes:
+          zones:
+            - "{{ .kubernetes.networking.dns_domain }}"
+        # rewrite performs internal message rewriting.
+#        rewrite:
+#            #  specify multiple rules and an incoming query matches multiple rules.
+#            # continue: if the rewrite rule is not matched, the next rule will be matched.
+#            # stop: if the rewrite rule is not matched, the next rule will not be matched.
+#          - rule: continue
+#            # support: type, name, class, edns0, ttl, cname
+#            # type: the type field of the request will be rewritten. FROM/TO must be a DNS record type (A, MX, etc.).
+#            # name: the query name in the request is rewritten; by default this is a full match of the name
+#            # class: the class of the message will be rewritten.
+#            # edns0: an EDNS0 option can be appended to the request as described below in the EDNS0 Options section.
+#            # ttl: the TTL value in the response is rewritten.
+#            # cname: the CNAME target if the response has a CNAME record
+#            field: name
+#            # this optional element can be specified for a name or ttl field.
+#            # exact: the name must be exactly the same as the value.
+#            # prefix: the name must start with the value.
+#            # suffix: the name must end with the value.
+#            # substring: the name must contain the value.
+#            # regex: the name must match the value.
+#            type: exact
+#            value: "example.com example2.com"
+#            # for field name further options are possible controlling the response rewrites.
+#            # answer auto: the names in the response is rewritten in a best effort manner.
+#            # answer name FROM TO: the query name in the response is rewritten matching the from regex pattern.
+#            # answer value FROM TO: the names in the response is rewritten matching the from regex pattern.
+#            options: ""
+        forward:
+            # the base domain to match for the request to be forwarded.
+          - from: "."
+            # the destination endpoints to forward to. The TO syntax allows you to specify a protocol
+            to: ["/etc/resolv.conf"]
+            # a space-separated list of domains to exclude from forwarding.
+            except: []
+            # use TCP even when the request comes in over UDP.
+            force_tcp: false
+            # try first using UDP even when the request comes in over TCP.
+            # If response is truncated (TC flag set in response) then do another attempt over TCP.
+            prefer_udp: false
+            # the number of subsequent failed health checks that are needed before considering an upstream to be down
+            # If 0, the upstream will never be marked as down (nor health checked).
+#            max_fails: 2
+            # expire (cached) connections after this time,
+#            expire: 10s
+            # define the TLS properties for TLS connection.
+#            tls:
+#              # the path to the certificate file.
+#              cert_file: ""
+#              # the path to the key file.
+#              key_file: ""
+#              # the path to the CA certificate file.
+#              ca_file: ""
+#            # allows you to set a server name in the TLS configuration
+#            tls_servername: ""
+            # specifies the policy to use for selecting upstream servers. The default is random.
+            # random: a policy that implements random upstream selection.
+            # round_robin: a policy that selects hosts based on round robin ordering.
+            # sequential: a policy that selects hosts based on sequential ordering.
+#            policy: "random"
+            # configure the behaviour of health checking of the upstream servers
+            # format: DURATION [no_rec] [domain FQDN]
+            # <duration>: use a different duration for health checking, the default duration is 0.5s.
+            # no_rec:optional argument that sets the RecursionDesired-flag of the dns-query used in health checking to false. The flag is default true.
+            # domain FQDN: set the domain name used for health checks to FQDN. If not configured, the domain name used for health checks is .
+#            health_check: ""
+            # limit the number of concurrent queries to MAX.
+            max_concurrent: 1000
+  # Specify a stable IP address or DNS name for the control plane.
+  # To achieve high availability in a cluster, it is recommended to set control_plane_endpoint to a DNS domain name when deploying the cluster. You can choose from the following options:
+  # 1. When a DNS domain name is available:
+  # Set control_plane_endpoint to the DNS domain name, and configure the domain name to point to all control_plane node IPs.
+  # 2. When a DNS domain name is not available:
+  # Set control_plane_endpoint to a DNS domain name that can be extended later. Add the DNS domain name resolution to the localDNS file on each node with the format:
+  #{{ vip }} {{ control_plane_endpoint }}
+  #  - When a VIP is available:
+  # Deploy kube-vip on the control_plane nodes to map the VIP to the actual control_plane node IPs.
+  #  - When a VIP is not available:
+  # Deploy HAProxy on the worker nodes. Map a fixed IP address (e.g., 127.0.0.2) as the VIP and route this VIP to all control_plane node IPs.
+  # 
+  # Non-High-Availability Scenario: (Installation is not provided; parameters are provided for users to configure manually.)
+  # In this case, set the VIP to one of the control_plane nodes.
+  control_plane_endpoint:
+    host: lb.kubesphere.local
+    port: "{{ .kubernetes.apiserver.port }}"
+    # support local, kube_vip, haproxy
+    # when type is local, # if set will write in localDNS file.
+    #  - for control-plane: will use 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    #  - for worker: will use {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+    type: local
+    kube_vip:
+      # the ip address of node net. usage in node network interface: "eth0"
+      # address: 
+      # support ARP or BGP
+      mode: ARP
+      image: 
+        registry: >-
+          {{ .dockerio_registry }}
+        repository: plndr/kube-vip
+        tag: v0.7.2
+    haproxy:
+      # the ip address in node network interface: "lo" 
+      address: 127.0.0.1
+      health_port: 8081
+      image: 
+        registry: >-
+          {{ .dockerio_registry }}
+        repository: library/haproxy
+        tag: 2.9.6-alpine
+  etcd:
+    # It is possible to deploy etcd with three methods.
+    # external: Deploy etcd cluster with external etcd cluster.
+    # internal: Deploy etcd cluster by static pod.
+    deployment_type: external
+    image: 
+      registry: >-
+        {{ .dockerio_registry }}
+      repository: kubesphere/etcd
+      tag: 3.5.0
+  # custom_labels: {}
+  # if auto renew kubernetes certs
+  certs:
+    # Certificate Authority (CA) files in Kubernetes come from three sources:
+    # 1. kubeadm: ca_cert and ca_key set empty. Automatically generated by kubeadm. 
+    #    These certificates have a 10-year expiration period and remain unchanged.
+    # 2. kubekey: ca_cert set to {{ .binary_dir }}/pki/ca.cert and ca_key set to {{ .binary_dir }}/pki/ca.key. 
+    #    Automatically generated by kubekey. These certificates also have a 10-year validity period 
+    #    and can be modified using `cert.ca_date`.
+    # 3. custom: ca_cert and ca_key set to existing files. Custom CA files provided manually.
+    # 
+    # If you want to use custom CA files, specify the absolute paths to your ca_cert and ca_key files below.
+    # If left empty, the default behavior (kubeadm or kubekey) will be used.
+    ca_cert: ""
+    ca_key: ""
+    # The following fields are for the Kubernetes front-proxy CA certificate and key.
+    # If you want to use custom front-proxy CA files, specify the absolute paths below.
+    # If left empty, the default behavior will be used.
+    front_proxy_cert: ""
+    front_proxy_key: ""
+    renew: true
+  
+
+localDNS:
+  - /etc/hosts

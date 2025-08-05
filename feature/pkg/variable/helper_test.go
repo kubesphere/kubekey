@@ -19,132 +19,12 @@ package variable
 import (
 	"testing"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/stretchr/testify/assert"
-
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func TestMergeVariable(t *testing.T) {
-	testcases := []struct {
-		name     string
-		v1       map[string]any
-		v2       map[string]any
-		excepted map[string]any
-	}{
-		{
-			name: "primary variables value is empty",
-			v1:   nil,
-			v2: map[string]any{
-				"a1": "v1",
-			},
-			excepted: map[string]any{
-				"a1": "v1",
-			},
-		},
-		{
-			name: "auxiliary variables value is empty",
-			v1: map[string]any{
-				"p1": "v1",
-			},
-			v2: nil,
-			excepted: map[string]any{
-				"p1": "v1",
-			},
-		},
-		{
-			name: "non-repeat value",
-			v1: map[string]any{
-				"p1": "v1",
-				"p2": map[string]any{
-					"p21": "v21",
-				},
-			},
-			v2: map[string]any{
-				"a1": "v1",
-			},
-			excepted: map[string]any{
-				"p1": "v1",
-				"p2": map[string]any{
-					"p21": "v21",
-				},
-				"a1": "v1",
-			},
-		},
-		{
-			name: "repeat value",
-			v1: map[string]any{
-				"p1": "v1",
-				"p2": map[string]any{
-					"p21": "v21",
-					"p22": "v22",
-				},
-			},
-			v2: map[string]any{
-				"a1": "v1",
-				"p1": "v2",
-				"p2": map[string]any{
-					"p21": "v22",
-					"a21": "v21",
-				},
-			},
-			excepted: map[string]any{
-				"a1": "v1",
-				"p1": "v2",
-				"p2": map[string]any{
-					"p21": "v22",
-					"a21": "v21",
-					"p22": "v22",
-				},
-			},
-		},
-		{
-			name: "repeat deep value",
-			v1: map[string]any{
-				"p1": map[string]string{
-					"p11": "v11",
-				},
-				"p2": map[string]any{
-					"p21": "v21",
-					"p22": "v22",
-				},
-			},
-			v2: map[string]any{
-				"p1": map[string]string{
-					"p21": "v21",
-				},
-				"p2": map[string]any{
-					"p21": map[string]any{
-						"p211": "v211",
-					},
-					"a21": "v21",
-				},
-			},
-			excepted: map[string]any{
-				"p1": map[string]any{
-					"p11": "v11",
-					"p21": "v21",
-				},
-				"p2": map[string]any{
-					"p21": map[string]any{
-						"p211": "v211",
-					},
-					"p22": "v22",
-					"a21": "v21",
-				},
-			},
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			v := combineVariables(tc.v1, tc.v2)
-			assert.Equal(t, tc.excepted, v)
-		})
-	}
-}
-
-func TestMergeGroup(t *testing.T) {
+func TestCombineSlice(t *testing.T) {
 	testcases := []struct {
 		name   string
 		g1     []string
@@ -179,114 +59,8 @@ func TestMergeGroup(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ac := mergeSlice(tc.g1, tc.g2)
+			ac := CombineSlice(tc.g1, tc.g2)
 			assert.Equal(t, tc.except, ac)
-		})
-	}
-}
-
-func TestParseVariable(t *testing.T) {
-	testcases := []struct {
-		name   string
-		data   map[string]any
-		base   map[string]any
-		except map[string]any
-	}{
-		{
-			name: "parse string",
-			data: map[string]any{
-				"a": "{{ .a }}",
-			},
-			base: map[string]any{
-				"a": "b",
-			},
-			except: map[string]any{
-				"a": "b",
-			},
-		},
-		{
-			name: "parse map",
-			data: map[string]any{
-				"a": "{{ .a.b }}",
-			},
-			base: map[string]any{
-				"a": map[string]any{
-					"b": "c",
-				},
-			},
-			except: map[string]any{
-				"a": "c",
-			},
-		},
-		{
-			name: "parse slice",
-			data: map[string]any{
-				"a": []string{"{{ .b }}"},
-			},
-			base: map[string]any{
-				"b": "c",
-			},
-			except: map[string]any{
-				"a": []string{"c"},
-			},
-		},
-		{
-			name: "parse map in slice",
-			data: map[string]any{
-				"a": []map[string]any{
-					{
-						"a1": []any{"{{ .b }}"},
-					},
-				},
-			},
-			base: map[string]any{
-				"b": "c",
-			},
-			except: map[string]any{
-				"a": []map[string]any{
-					{
-						"a1": []any{"c"},
-					},
-				},
-			},
-		},
-		{
-			name: "parse slice with bool value",
-			data: map[string]any{
-				"a": []any{"{{ .b }}"},
-			},
-			base: map[string]any{
-				"b": "true",
-			},
-			except: map[string]any{
-				"a": []any{true},
-			},
-		},
-		{
-			name: "parse map with bool value",
-			data: map[string]any{
-				"a": "{{ .b }}",
-			},
-			base: map[string]any{
-				"b": "true",
-			},
-			except: map[string]any{
-				"a": true,
-			},
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := parseVariable(tc.data, func(s string) (string, error) {
-				// parse use total variable. the task variable should not contain template syntax.
-				return tmpl.ParseString(combineVariables(tc.data, tc.base), s)
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			assert.Equal(t, tc.except, tc.data)
 		})
 	}
 }
@@ -353,6 +127,103 @@ func TestHostsInGroup(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.ElementsMatch(t, tc.except, hostsInGroup(tc.inventory, tc.groupName))
+		})
+	}
+}
+
+func TestExtension2Slice(t *testing.T) {
+	testcases := []struct {
+		name   string
+		data   map[string]any
+		ext    runtime.RawExtension
+		except []any
+	}{
+		{
+			name: "succeed",
+			data: map[string]any{
+				"a": []any{"a1", "a2"},
+			},
+			ext: runtime.RawExtension{
+				Raw: []byte(`{{ .a | toJson }}`),
+			},
+			except: []any{"a1", "a2"},
+		},
+		{
+			name: "empty ext",
+			data: map[string]any{
+				"b": []any{"b1", "b2"},
+			},
+			ext: runtime.RawExtension{
+				Raw: []byte(`{{ .a | toJson }}`),
+			},
+			except: make([]any, 0),
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.ElementsMatch(t, tc.except, Extension2Slice(tc.data, tc.ext))
+		})
+	}
+}
+
+func TestPrintVar(t *testing.T) {
+	testcases := []struct {
+		name     string
+		ctx      map[string]any
+		keys     []string
+		excepted any
+	}{
+		{
+			name: "strings value",
+			ctx: map[string]any{
+				"msg": "a",
+			},
+			keys:     []string{"msg"},
+			excepted: "a",
+		},
+		{
+			name: "int value",
+			ctx: map[string]any{
+				"msg": 1,
+			},
+			keys:     []string{"msg"},
+			excepted: 1,
+		},
+		{
+			name: "float value",
+			ctx: map[string]any{
+				"msg": 1.1,
+			},
+			keys:     []string{"msg"},
+			excepted: 1.1,
+		},
+		{
+			name: "map value",
+			ctx: map[string]any{
+				"msg": map[string]any{
+					"a1": "b1",
+				},
+			},
+			keys: []string{"msg"},
+			excepted: map[string]any{
+				"a1": "b1",
+			},
+		},
+		{
+			name: "slice value",
+			ctx: map[string]any{
+				"msg": []any{"a1", 1},
+			},
+			keys:     []string{"msg"},
+			excepted: []any{"a1", 1},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, _ := PrintVar(tc.ctx, tc.keys...)
+			assert.Equal(t, tc.excepted, actual)
 		})
 	}
 }

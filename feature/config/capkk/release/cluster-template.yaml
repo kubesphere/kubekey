@@ -1,0 +1,107 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  controlPlaneEndpoint:
+    host: "${CONTROL_PLANE_ENDPOINT_HOST}"
+    port: ${CONTROL_PLANE_ENDPOINT_PORT=6443}
+  clusterNetwork:
+    services:
+      cidrBlocks: ${SERVICE_CIDR=["10.233.0.0/18"]}
+    pods:
+      cidrBlocks: ${POD_CIDR=["10.233.64.0/18"]}
+    serviceDomain: ${SERVICE_DOMAIN="cluster.local"}
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: KKCluster
+    name: '${CLUSTER_NAME}'
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    name: "${CLUSTER_NAME}-control-plane"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKCluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  controlPlaneEndpointType: ${CONTROL_PLANE_ENDPOINT_TYPE="kube_vip"}
+  inventory: ${INVENTORY_HOSTS}
+---
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  version: "${KUBERNETES_VERSION}"
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  machineTemplate:
+    infrastructureRef:
+      kind: KKMachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: "${CLUSTER_NAME}-control-plane"
+  kubeadmConfigSpec:
+    initConfiguration:
+      nodeRegistration:
+        criSocket: ${CRI_SOCKET=unix:///run/containerd/containerd.sock}
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: ${CRI_SOCKET=unix:///run/containerd/containerd.sock}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    spec:
+      roles:
+        - control-plane
+        - master
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels: 
+      "cluster.x-k8s.io/cluster-name": "${CLUSTER_NAME}"
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      version: "${KUBERNETES_VERSION}"
+      bootstrap:
+        configRef:
+          name: "${CLUSTER_NAME}-md-0"
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-md-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: KKMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: KKMachineTemplate
+metadata:
+  name: '${CLUSTER_NAME}-md-0'
+spec:
+  template:
+    spec:
+      roles:
+        - worker
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: ${CRI_SOCKET=unix:///run/containerd/containerd.sock}

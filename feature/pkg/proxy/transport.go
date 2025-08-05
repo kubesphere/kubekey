@@ -18,13 +18,14 @@ package proxy
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"sort"
 	"strings"
 
+	"github.com/cockroachdb/errors"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,36 +44,34 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
-	kkcorev1alpha1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1alpha1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/internal"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/config"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/inventory"
-	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/pipeline"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/playbook"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/task"
 )
 
-// NewConfig replace the restconfig transport to proxy transport
-func NewConfig(restconfig *rest.Config) (*rest.Config, error) {
-	var err error
-	restconfig.Transport, err = newProxyTransport(restconfig)
+// RestConfig replace the restconfig transport to proxy transport
+func RestConfig(runtimedir string, restconfig *rest.Config) error {
+	transport, err := newProxyTransport(runtimedir, restconfig)
 	if err != nil {
-		return nil, fmt.Errorf("create proxy transport error: %w", err)
+		return err
 	}
 	restconfig.TLSClientConfig = rest.TLSClientConfig{}
 
-	return restconfig, nil
+	restconfig.Transport = transport
+
+	return nil
 }
 
 // NewProxyTransport return a new http.RoundTripper use in ctrl.client.
 // When restConfig is not empty: should connect a kubernetes cluster and store some resources in there.
-// Such as: pipeline.kubekey.kubesphere.io/v1, inventory.kubekey.kubesphere.io/v1, config.kubekey.kubesphere.io/v1
+// Such as: playbook.kubekey.kubesphere.io/v1, inventory.kubekey.kubesphere.io/v1, config.kubekey.kubesphere.io/v1
 // when restConfig is empty: store all resource in local.
 //
 // SPECIFICALLY: since tasks is running data, which is reentrant and large in quantity,
 // they should always store in local.
-func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
+func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTripper, error) {
 	lt := &transport{
 		authz: authorizerfactory.NewAlwaysAllowAuthorizer(),
 		handlerChainFunc: func(handler http.Handler) http.Handler {
@@ -84,100 +83,67 @@ func newProxyTransport(restConfig *rest.Config) (http.RoundTripper, error) {
 	if restConfig.Host != "" {
 		clientFor, err := rest.HTTPClientFor(restConfig)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to create http client")
 		}
 		lt.restClient = clientFor
 	}
 
 	// register kkcorev1alpha1 resources
 	kkv1alpha1 := newAPIIResources(kkcorev1alpha1.SchemeGroupVersion)
-	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1alpha1.SchemeGroupVersion))
+	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion))
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to create storage")
-
 		return nil, err
 	}
 	if err := kkv1alpha1.AddResource(resourceOptions{
 		path:    "tasks",
 		storage: storage.Task,
 	}); err != nil {
-		klog.V(6).ErrorS(err, "failed to add resource")
-
 		return nil, err
 	}
 	if err := kkv1alpha1.AddResource(resourceOptions{
 		path:    "tasks/status",
 		storage: storage.TaskStatus,
 	}); err != nil {
-		klog.V(6).ErrorS(err, "failed to add resource")
-
 		return nil, err
 	}
 	if err := lt.registerResources(kkv1alpha1); err != nil {
-		klog.V(6).ErrorS(err, "failed to register resources")
+		return nil, err
 	}
 
 	// when restConfig is null. should store all resource local
 	if restConfig.Host == "" {
 		// register kkcorev1 resources
 		kkv1 := newAPIIResources(kkcorev1.SchemeGroupVersion)
-		// add config
-		configStorage, err := config.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
-		if err != nil {
-			klog.V(6).ErrorS(err, "failed to create storage")
-
-			return nil, err
-		}
-		if err := kkv1.AddResource(resourceOptions{
-			path:    "configs",
-			storage: configStorage.Config,
-		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
-			return nil, err
-		}
 		// add inventory
-		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
+		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
-			klog.V(6).ErrorS(err, "failed to create storage")
-
 			return nil, err
 		}
 		if err := kkv1.AddResource(resourceOptions{
 			path:    "inventories",
 			storage: inventoryStorage.Inventory,
 		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
 			return nil, err
 		}
-		// add pipeline
-		pipelineStorage, err := pipeline.NewStorage(internal.NewFileRESTOptionsGetter(kkcorev1.SchemeGroupVersion))
+		// add playbook
+		playbookStorage, err := playbook.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
 		if err != nil {
-			klog.V(6).ErrorS(err, "failed to create storage")
-
 			return nil, err
 		}
 		if err := kkv1.AddResource(resourceOptions{
-			path:    "pipelines",
-			storage: pipelineStorage.Pipeline,
+			path:    "playbooks",
+			storage: playbookStorage.Playbook,
 		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
 			return nil, err
 		}
 		if err := kkv1.AddResource(resourceOptions{
-			path:    "pipelines/status",
-			storage: pipelineStorage.PipelineStatus,
+			path:    "playbooks/status",
+			storage: playbookStorage.PlaybookStatus,
 		}); err != nil {
-			klog.V(6).ErrorS(err, "failed to add resource")
-
 			return nil, err
 		}
 
 		if err := lt.registerResources(kkv1); err != nil {
-			klog.V(6).ErrorS(err, "failed to register resources")
-
 			return nil, err
 		}
 	}
@@ -231,7 +197,7 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 	// dispatch request
 	handler, err := l.detectDispatcher(request)
 	if err != nil {
-		return response, fmt.Errorf("no router for request. url: %s, method: %s", request.URL.Path, request.Method)
+		return response, err
 	}
 	// call handler
 	l.handlerChainFunc(handler).ServeHTTP(&responseWriter{response}, request)
@@ -273,7 +239,7 @@ func (l *transport) registerResources(resources *apiResources) error {
 		_, isTableProvider := o.storage.(apirest.TableConvertor)
 		if isLister && !isTableProvider {
 			// All listers must implement TableProvider
-			return fmt.Errorf("%q must implement TableConvertor", o.path)
+			return errors.Errorf("%q must implement TableConvertor", o.path)
 		}
 
 		// Get the list of actions for the given scope.
@@ -314,14 +280,14 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 	// request scope
 	fqKindToRegister, err := apiendpoints.GetResourceKind(resources.gv, o.storage, _const.Scheme)
 	if err != nil {
-		return apihandlers.RequestScope{}, err
+		return apihandlers.RequestScope{}, errors.Wrap(err, "failed to get resourcekind")
 	}
 	reqScope := apihandlers.RequestScope{
 		Namer: apihandlers.ContextBasedNaming{
 			Namer:         meta.NewAccessor(),
 			ClusterScoped: false,
 		},
-		Serializer:                  _const.Codecs,
+		Serializer:                  _const.CodecFactory,
 		ParameterCodec:              _const.ParameterCodec,
 		Creater:                     _const.Scheme,
 		Convertor:                   _const.Scheme,
@@ -354,7 +320,7 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 		resetFields,
 	)
 	if err != nil {
-		return apihandlers.RequestScope{}, err
+		return apihandlers.RequestScope{}, errors.Wrap(err, "failed to create default fieldManager")
 	}
 
 	return reqScope, nil

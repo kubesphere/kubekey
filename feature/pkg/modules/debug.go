@@ -18,34 +18,100 @@ package modules
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"reflect"
+	"strings"
 
-	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// ModuleDebug deal "debug" module
+/*
+The Debug module provides debugging capabilities by printing variable values and messages.
+This module allows users to inspect variable values and debug playbook execution.
+
+Configuration:
+Users can specify either a message or a variable path to debug.
+
+debug:
+  msg: "message"        # optional: direct message to print
+  msg: "{{ .var }}"     # optional: template syntax to print variable value
+
+Usage Examples in Playbook Tasks:
+1. Print direct message:
+   ```yaml
+   - name: Debug message
+     debug:
+       msg: "Starting deployment"
+     register: debug_result
+   ```
+
+2. Print variable value:
+   ```yaml
+   - name: Debug variable
+     debug:
+       msg: "{{ .config.version }}"
+     register: var_debug
+   ```
+
+Return Values:
+- On success: Returns formatted message/variable value in stdout
+- On failure: Returns error message in stderr
+*/
+
+// ModuleDebug handles the "debug" module, printing debug information
 func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
 		return "", err.Error()
 	}
-
 	args := variable.Extension2Variables(options.Args)
-	// var is defined. return the value of var
-	if varParam, err := variable.StringVar(ha, args, "var"); err == nil {
-		result, err := tmpl.ParseString(ha, fmt.Sprintf("{{ %s }}", varParam))
-		if err != nil {
-			return "", fmt.Sprintf("failed to parse var: %v", err)
+	v := reflect.ValueOf(args["msg"])
+	switch v.Kind() {
+	case reflect.Invalid:
+		return "", "\"msg\" is not found"
+	case reflect.String:
+		if !kkprojectv1.IsTmplSyntax(v.String()) {
+			return formatOutput([]byte(v.String()), options.LogOutput), ""
 		}
-
-		return result, ""
+		val := kkprojectv1.TrimTmplSyntax(v.String())
+		if !strings.HasPrefix(val, ".") {
+			return "", "error tmpl value syntax"
+		}
+		data, err := variable.PrintVar(ha, strings.Split(val, ".")[1:]...)
+		if err != nil {
+			return "", err.Error()
+		}
+		return formatOutput(data, options.LogOutput), ""
+	default:
+		// do not parse by ctx
+		data, err := json.Marshal(v.Interface())
+		if err != nil {
+			return "", err.Error()
+		}
+		return formatOutput(data, options.LogOutput), ""
 	}
-	// msg is defined. return the actual msg
-	if msgParam, err := variable.StringVar(ha, args, "msg"); err == nil {
-		return msgParam, ""
-	}
+}
 
-	return "", "unknown args for debug. only support var or msg"
+// formatOutput formats data as pretty JSON and logs it with DEBUG prefix if output is provided
+// Returns the formatted string
+func formatOutput(data any, output io.Writer) string {
+	var msg string
+	prettyJSON, err := json.MarshalIndent(data, "", "  ")
+	if err == nil {
+		msg = string(prettyJSON)
+	}
+	if output != nil {
+		_, _ = fmt.Fprintln(output, "DEBUG: \n"+msg) // Ignore error in test context
+	}
+	return msg
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("debug", ModuleDebug))
 }

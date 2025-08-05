@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capkk-controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/provider: infrastructure-kk
+      app: capkk-controller-manager
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/provider: infrastructure-kk
+        app: capkk-controller-manager
+    spec:
+      containers:
+      - name: controller-manager
+        image: capkk-controller-manager-image
+        imagePullPolicy: IfNotPresent
+        command:
+          - controller-manager
+          - --leader-election
+          - --leader-election-id=controller-leader-election-capkk
+          - --v=4
+        resources:
+          requests:
+            cpu: 20m
+            memory: 100Mi
+          limits:
+            cpu: 1
+            memory: 1024Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9440
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9440
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+          - mountPath: /tmp/k8s-webhook-server/serving-certs
+            name: cert
+            readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+      serviceAccountName: capkk
+      terminationGracePeriodSeconds: 10
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: capkk-webhook-service-cert
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: capkk-webhook-service
+  namespace: capkk-system
+spec:
+  ports:
+  - port: 443
+    targetPort: 9443
+  selector:
+   app: capkk-controller-manager

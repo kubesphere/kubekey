@@ -1,0 +1,46 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: default-capkk
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: kk-webhook-service
+      namespace: capkk-system
+      path: /mutate-kubekey-kubesphere-io-v1-playbook
+  failurePolicy: Fail
+  name: default.playbook.kubekey.kubesphere.io
+  rules:
+  - apiGroups:
+    - kubekey.kubesphere.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - playbooks
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: capkk-webhook-service
+      namespace: capkk-system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-kkcluster
+  failurePolicy: Fail
+  name: default.kkcluster.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - kkclusters
+  sideEffects: None

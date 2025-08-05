@@ -1,0 +1,43 @@
+cri:
+  # support: systemd, cgroupfs
+  cgroup_driver: systemd
+  sandbox_image: 
+    registry: >-
+      {{ .dockerio_registry }}
+    repository: kubesphere/pause
+    tag: 3.5
+  # support: containerd,docker
+  # container_manager: docker
+  # the endpoint of containerd
+  cri_socket: >-
+    {{- if .cri.container_manager | eq "containerd" -}}
+    unix:///var/run/containerd/containerd.sock
+    {{- else if and (.cri.container_manager | eq "docker") (.kube_version | semverCompare ">=v1.24.0") -}}
+    unix:///var/run/cri-dockerd.sock
+    {{- end -}}
+  containerd:
+    data_root: /var/lib/containerd
+  docker:
+    data_root: /var/lib/docker
+  registry:
+    mirrors: ["https://registry-1.docker.io"]
+    insecure_registries: []
+    auths: []
+
+image_registry:
+  #  ha_vip: 192.168.122.59
+  auth:
+    registry: >-
+      {{- if .image_registry.ha_vip | empty | not -}}
+        {{ .image_registry.ha_vip }}
+      {{- else if .groups.image_registry | default list | empty | not -}}
+        {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
+        {{- if  $internalIPv4 | empty | not -}}
+          {{ $internalIPv4 }}
+        {{- else if $internalIPv6 | empty | not -}}
+          {{ $internalIPv6 }}
+        {{- end -}}
+      {{- end -}}
+    username: admin
+    password: Harbor12345

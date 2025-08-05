@@ -20,47 +20,63 @@ import (
 	"context"
 	"os"
 
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	"k8s.io/client-go/rest"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
+	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app/options"
 )
 
-// Manager shared dependencies such as Addr and , and provides them to Runnable.
+// Manager defines the interface for different types of managers that can run operations
 type Manager interface {
-	// Run the driver
+	// Run executes the manager's main functionality with the given context
 	Run(ctx context.Context) error
 }
 
-// CommandManagerOptions for NewCommandManager
+// CommandManagerOptions contains the configuration options for creating a new command manager
 type CommandManagerOptions struct {
-	*kkcorev1.Pipeline
+	*kkcorev1.Playbook
 	*kkcorev1.Config
 	*kkcorev1.Inventory
 
 	ctrlclient.Client
 }
 
-// NewCommandManager return a new commandManager
+// NewCommandManager creates and returns a new command manager instance with the provided options
 func NewCommandManager(o CommandManagerOptions) Manager {
 	return &commandManager{
-		Pipeline:  o.Pipeline,
-		Config:    o.Config,
+		Playbook:  o.Playbook,
 		Inventory: o.Inventory,
 		Client:    o.Client,
 		logOutput: os.Stdout,
 	}
 }
 
-// ControllerManagerOptions for NewControllerManager
-type ControllerManagerOptions struct {
-	MaxConcurrentReconciles int
-	LeaderElection          bool
+// NewControllerManager creates and returns a new controller manager instance with the provided options
+func NewControllerManager(o *options.ControllerManagerServerOptions) Manager {
+	return &controllerManager{
+		ControllerManagerServerOptions: o,
+	}
 }
 
-// NewControllerManager return a new controllerManager
-func NewControllerManager(o ControllerManagerOptions) Manager {
-	return &controllerManager{
-		MaxConcurrentReconciles: o.MaxConcurrentReconciles,
-		LeaderElection:          o.LeaderElection,
+// WebManagerOptions contains the configuration options for creating a new web manager
+type WebManagerOptions struct {
+	Workdir    string
+	Port       int
+	SchemaPath string
+	UIPath     string
+	ctrlclient.Client
+	*rest.Config
+}
+
+// NewWebManager creates and returns a new web manager instance with the provided options
+func NewWebManager(o WebManagerOptions) Manager {
+	return &webManager{
+		workdir:    o.Workdir,
+		port:       o.Port,
+		schemaPath: o.SchemaPath,
+		uiPath:     o.UIPath,
+		Client:     o.Client,
+		Config:     o.Config,
 	}
 }

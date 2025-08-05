@@ -1,0 +1,27 @@
+---
+- name: Sync kubeovn package to remote
+  copy:
+    src: >-
+      {{ .binary_dir }}/cni/kubeovn/kubeovn-{{ .kubeovn_version }}.tgz
+    dest: >-
+      /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz
+
+- name: Generate kubeovn custom value file
+  copy:
+    content: |
+      {{ .cni.kubeovn.values }}
+    dest: /etc/kubernetes/cni/kubeovn-values.yaml
+
+- name: Add kubeovn label to node
+  command: |
+    kubectl label node -lbeta.kubernetes.io/os=linux kubernetes.io/os=linux --overwrite
+    kubectl label node -lnode-role.kubernetes.io/control-plane kube-ovn/role=master --overwrite
+
+- name: Apply kubeovn
+  command: |
+    helm install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz -f /etc/kubernetes/cni/kubeovn-values.yaml
+
+# https://kubeovn.github.io/docs/stable/start/one-step-install/#helm-chart
+- name: Install kubeovn
+  command: |
+    helm install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz 

@@ -1,0 +1,21 @@
+---
+- import_playbook: hook/pre_install.yaml
+
+- hosts:
+    - localhost
+  roles:
+    - role: precheck/artifact_check
+      when: .artifact.artifact_file | empty | not
+
+- hosts:
+    - k8s_cluster
+    - etcd
+    - image_registry
+    - nfs
+  gather_facts: true
+  tags: ["always"]
+  roles:
+    - role: precheck/env_check
+      tags: ["always"]
+
+- import_playbook: hook/post_install.yaml

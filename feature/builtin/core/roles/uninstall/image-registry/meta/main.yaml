@@ -1,0 +1,14 @@
+dependencies:
+  - role: uninstall/image-registry/harbor
+    when: .image_registry.type | eq "harbor"
+
+  - role: uninstall/image-registry/docker-registry
+    when: .image_registry.type | eq "docker-registry"
+
+  - role: uninstall/image-registry/keepalived
+    when: 
+     - .image_registry.ha_vip | empty | not
+     - .groups.image_registry | len | lt 1
+
+  - role: uninstall/image-registry/docker-compose
+    when: .deleteCRI

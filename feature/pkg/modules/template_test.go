@@ -47,8 +47,8 @@ func TestTemplate(t *testing.T) {
 			name: "src is empty",
 			opt: ExecOptions{
 				Args:     runtime.RawExtension{},
-				Host:     "local",
-				Variable: &testVariable{},
+				Host:     "node1",
+				Variable: newTestVariable([]string{"node1"}, nil),
 			},
 			ctxFunc:      context.Background,
 			exceptStderr: "\"src\" should be string",
@@ -61,12 +61,10 @@ func TestTemplate(t *testing.T) {
 "src": "{{ .absPath }}"
 }`),
 				},
-				Host: "local",
-				Variable: &testVariable{
-					value: map[string]any{
-						"absPath": absPath,
-					},
-				},
+				Host: "node1",
+				Variable: newTestVariable([]string{"node1"}, map[string]any{
+					"absPath": absPath,
+				}),
 			},
 			ctxFunc:      context.Background,
 			exceptStderr: "\"dest\" should be string",

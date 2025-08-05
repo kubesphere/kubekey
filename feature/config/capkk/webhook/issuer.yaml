@@ -1,0 +1,24 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: capkk-serving-cert
+  namespace: capkk-system
+spec:
+  dnsNames:
+  - capkk-webhook-service.capkk-system
+  - capkk-webhook-service.capkk-system.svc
+  - kk-webhook-service.capkk-system
+  - kk-webhook-service.capkk-system.svc
+  issuerRef:
+    kind: Issuer
+    name: capkk-selfsigned-issuer
+  secretName: capkk-webhook-service-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: capkk-selfsigned-issuer
+  namespace: capkk-system
+spec:
+  selfSigned: {}

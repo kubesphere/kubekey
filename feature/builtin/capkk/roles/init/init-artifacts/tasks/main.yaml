@@ -1,0 +1,11 @@
+---
+- name: Create binaries dir
+  command: |
+    mkdir -p {{ .binary_dir }}
+
+- name: Download binaries
+  block:
+    # the binaries which download binary
+    - include_tasks: download_binary.yaml
+    # the binaries which download helm
+    - include_tasks: download_helm.yaml

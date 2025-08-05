@@ -18,12 +18,50 @@ package modules
 
 import (
 	"context"
-	"strings"
+	"fmt"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// ModuleCommand deal "command" module.
+/*
+The Command module executes shell commands on remote hosts and returns their output.
+This module allows users to run arbitrary shell commands and capture their output.
+
+Configuration:
+Users can specify the command to execute:
+
+command: "ls -l"    # The shell command to execute
+
+Usage Examples in Playbook Tasks:
+1. Basic command execution:
+   ```yaml
+   - name: List directory contents
+     command: ls -l
+     register: ls_result
+   ```
+
+2. Command with variables:
+   ```yaml
+   - name: Check service status
+     command: systemctl status {{ service_name }}
+     register: service_status
+   ```
+
+3. Complex command:
+   ```yaml
+   - name: Get disk usage
+     command: df -h | grep /dev/sda1
+     register: disk_usage
+   ```
+
+Return Values:
+- On success: Returns command output in stdout
+- On failure: Returns error message in stderr
+*/
+
+// ModuleCommand handles the "command" module, executing shell commands on remote hosts
 func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -31,9 +69,9 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		return "", err.Error()
 	}
 	// get connector
-	conn, err := getConnector(ctx, options.Host, ha)
+	conn, err := options.getConnector(ctx)
 	if err != nil {
-		return "", err.Error()
+		return "", fmt.Sprintf("failed to connector for %q error: %v", options.Host, err)
 	}
 	defer conn.Close(ctx)
 	// command string
@@ -42,14 +80,14 @@ func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
 		return "", err.Error()
 	}
 	// execute command
-	var stdout, stderr string
-	data, err := conn.ExecuteCommand(ctx, command)
+	stdout, stderr, err := conn.ExecuteCommand(ctx, string(command))
 	if err != nil {
-		stderr = err.Error()
+		return "", err.Error()
 	}
-	if data != nil {
-		stdout = strings.TrimSuffix(string(data), "\n")
-	}
+	return string(stdout), string(stderr)
+}
 
-	return stdout, stderr
+func init() {
+	utilruntime.Must(RegisterModule("command", ModuleCommand))
+	utilruntime.Must(RegisterModule("shell", ModuleCommand))
 }

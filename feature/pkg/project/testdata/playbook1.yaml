@@ -1,0 +1,8 @@
+---
+- name: playbook1
+  hosts:
+    - node1
+  pre_tasks:
+    - name: task1
+      debug:
+        msg: "im task1"

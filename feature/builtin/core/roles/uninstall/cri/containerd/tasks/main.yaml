@@ -1,0 +1,17 @@
+---
+- name: Uninstall containerd service
+  ignore_errors: true
+  command: |
+    systemctl stop containerd.service
+    systemctl disable containerd.service
+    rm -rf /etc/systemd/system/containerd.service*
+    systemctl daemon-reload
+    systemctl reset-failed containerd.service
+
+- name: Delete containerd residue files
+  command: |
+    rm -rf {{ .cri.containerd.data_root }}
+    rm -rf /etc/containerd
+    rm -rf /usr/local/bin/containerd*
+    rm -f /usr/local/bin/runc
+    rm -f /usr/local/bin/ctr

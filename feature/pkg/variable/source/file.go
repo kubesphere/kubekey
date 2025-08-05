@@ -17,11 +17,17 @@ limitations under the License.
 package source
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"k8s.io/klog/v2"
+	"github.com/cockroachdb/errors"
+	"gopkg.in/yaml.v3"
+)
+
+const (
+	prefixYAML = "# Generate by variable\n"
 )
 
 var _ Source = &fileSource{}
@@ -29,10 +35,11 @@ var _ Source = &fileSource{}
 // NewFileSource returns a new fileSource.
 func NewFileSource(path string) (Source, error) {
 	if _, err := os.Stat(path); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "failed to stat source path %q", path)
+		}
 		if err := os.MkdirAll(path, os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "create source path error", "path", path)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create source path %q", path)
 		}
 	}
 
@@ -43,52 +50,50 @@ type fileSource struct {
 	path string
 }
 
-func (f *fileSource) Read() (map[string][]byte, error) {
+func (f *fileSource) Read() (map[string]map[string]any, error) {
 	de, err := os.ReadDir(f.path)
 	if err != nil {
-		klog.V(4).ErrorS(err, "read dir error", "path", f.path)
-
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to read dir %s", f.path)
 	}
 
-	var result map[string][]byte
+	result := make(map[string]map[string]any)
 	for _, entry := range de {
 		if entry.IsDir() {
 			continue
 		}
-
-		if result == nil {
-			result = make(map[string][]byte)
-		}
 		// only read json data
-		if strings.HasSuffix(entry.Name(), ".json") {
-			data, err := os.ReadFile(filepath.Join(f.path, entry.Name()))
+		if strings.HasSuffix(entry.Name(), ".yaml") {
+			fdata, err := os.ReadFile(filepath.Join(f.path, entry.Name()))
 			if err != nil {
-				klog.V(4).ErrorS(err, "read file error", "filename", entry.Name())
-
-				return nil, err
+				return nil, errors.Wrapf(err, "failed to read file %q", entry.Name())
 			}
-
-			result[entry.Name()] = data
+			if bytes.HasPrefix(fdata, []byte(prefixYAML)) {
+				var data map[string]any
+				if err := yaml.Unmarshal(fdata, data); err != nil {
+					return nil, errors.Wrapf(err, "failed to unmarshal file %q", entry.Name())
+				}
+				result[strings.TrimSuffix(entry.Name(), ".yaml")] = data
+			}
 		}
 	}
 
 	return result, nil
 }
 
-func (f *fileSource) Write(data []byte, filename string) error {
+func (f *fileSource) Write(data map[string]any, host string) error {
+	filename := host + ".yaml"
 	file, err := os.Create(filepath.Join(f.path, filename))
 	if err != nil {
-		klog.V(4).ErrorS(err, "create file error", "filename", filename)
-
-		return err
+		return errors.Wrapf(err, "failed to create file %q", filename)
 	}
 	defer file.Close()
-
-	if _, err := file.Write(data); err != nil {
-		klog.V(4).ErrorS(err, "write file error", "filename", filename)
-
-		return err
+	// convert to yaml file
+	fdata, err := yaml.Marshal(data)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal file %q", filename)
+	}
+	if _, err := file.Write(append([]byte(prefixYAML), fdata...)); err != nil {
+		return errors.Wrapf(err, "failed to write file %q", filename)
 	}
 
 	return nil

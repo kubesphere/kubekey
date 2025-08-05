@@ -17,10 +17,10 @@
     export $(cat /etc/etcd.env | grep ETCDCTL_CERT)
     export $(cat /etc/etcd.env | grep ETCDCTL_KEY)
     etcdctl snapshot restore /tmp/kubekey/etcd/snapshot.db \
-        --name={{ .inventory_name }} --endpoints=https://{{ .internal_ipv4 }}:2379 \
+        --name={{ .inventory_hostname }} --endpoints=https://{{ .internal_ipv4 }}:2379 \
     {{- $ips := list -}}
-    {{- range $element := .groups.etcd -}}
-      {{- $ips = append $ips (printf "%s=https://%s:2380" (index .inventory_hosts $element "inventory_name") (index .inventory_hosts $element "internal_ipv4") -}}
+    {{- range .groups.etcd -}}
+      {{- $ips = append $ips (printf "%s=https://%s:2380" . (index $.hostvars . "internal_ipv4") -}}
     {{- end -}}
         --initial-cluster={{ $ips | join "," }} \
         --initial-advertise-peer-urls=https://{{ .internal_ipv4 }}:2380\

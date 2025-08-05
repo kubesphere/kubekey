@@ -17,36 +17,72 @@ limitations under the License.
 package variable
 
 import (
-	"fmt"
-	"net"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
+	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
-	kkcorev1 "github.com/kubesphere/kubekey/v4/pkg/apis/core/v1"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
-// combineVariables merge multiple variables into one variable
-// v2 will override v1 if variable is repeated
-func combineVariables(m1, m2 map[string]any) map[string]any {
+// CombineMappingNode combines two yaml.Node objects representing mapping nodes.
+// If a is nil or zero, returns b.
+// If both a and b are mapping nodes, appends b's content to a.
+// Returns a in all other cases.
+//
+// Parameters:
+//   - a: First yaml.Node to combine
+//   - b: Second yaml.Node to combine
+//
+// Returns:
+//   - Combined yaml.Node, with b taking precedence
+func CombineMappingNode(a, b *yaml.Node) *yaml.Node {
+	if a == nil || a.IsZero() {
+		return b
+	}
+
+	if a.Kind == yaml.MappingNode && b.Kind == yaml.MappingNode {
+		a.Content = append(a.Content, b.Content...)
+	}
+
+	return a
+}
+
+// CombineVariables merge multiple variables into one variable.
+// It recursively combines two maps, where values from m2 override values from m1 if keys overlap.
+// For nested maps, it will recursively merge their contents.
+// For non-map values or when either input is nil, m2's value takes precedence.
+//
+// Parameters:
+//   - m1: The first map to merge (base map)
+//   - m2: The second map to merge (override map)
+//
+// Returns:
+//   - A new map containing the merged key-value pairs from both input maps
+func CombineVariables(m1, m2 map[string]any) map[string]any {
 	var f func(val1, val2 any) any
 	f = func(val1, val2 any) any {
+		// If both values are non-nil maps, merge them recursively
 		if val1 != nil && val2 != nil &&
 			reflect.TypeOf(val1).Kind() == reflect.Map && reflect.TypeOf(val2).Kind() == reflect.Map {
 			mergedVars := make(map[string]any)
+			// Copy all values from val1 first
 			for _, k := range reflect.ValueOf(val1).MapKeys() {
 				mergedVars[k.String()] = reflect.ValueOf(val1).MapIndex(k).Interface()
 			}
 
+			// Merge in values from val2, recursively handling nested maps
 			for _, k := range reflect.ValueOf(val2).MapKeys() {
 				mergedVars[k.String()] = f(mergedVars[k.String()], reflect.ValueOf(val2).MapIndex(k).Interface())
 			}
@@ -54,14 +90,19 @@ func combineVariables(m1, m2 map[string]any) map[string]any {
 			return mergedVars
 		}
 
+		// For non-map values or nil inputs, return val2
 		return val2
 	}
+
+	// Initialize result map
 	mv := make(map[string]any)
 
+	// Copy all key-value pairs from m1
 	for k, v := range m1 {
 		mv[k] = v
 	}
 
+	// Merge in values from m2
 	for k, v := range m2 {
 		mv[k] = f(mv[k], v)
 	}
@@ -69,44 +110,17 @@ func combineVariables(m1, m2 map[string]any) map[string]any {
 	return mv
 }
 
-func convertGroup(inv kkcorev1.Inventory) map[string]any {
-	groups := make(map[string]any)
-	all := make([]string, 0)
-
-	for hn := range inv.Spec.Hosts {
-		all = append(all, hn)
-	}
-
-	if !slices.Contains(all, _const.VariableLocalHost) { // set default localhost
-		all = append(all, _const.VariableLocalHost)
-	}
-
-	groups[_const.VariableGroupsAll] = all
-
-	for gn := range inv.Spec.Groups {
-		groups[gn] = hostsInGroup(inv, gn)
-	}
-
-	return groups
-}
-
-// hostsInGroup get a host_name slice in a given group
-// if the given group contains other group. convert other group to host_name slice.
-func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
-	if v, ok := inv.Spec.Groups[groupName]; ok {
-		var hosts []string
-		for _, cg := range v.Groups {
-			hosts = mergeSlice(hostsInGroup(inv, cg), hosts)
-		}
-
-		return mergeSlice(hosts, v.Hosts)
-	}
-
-	return nil
-}
-
-// mergeSlice with skip repeat value
-func mergeSlice(g1, g2 []string) []string {
+// CombineSlice combines two string slices while skipping duplicate values.
+// It maintains the order of elements from g1 followed by unique elements from g2.
+//
+// Parameters:
+//   - g1: The first slice of strings
+//   - g2: The second slice of strings
+//
+// Returns:
+//   - A new slice containing unique strings from both input slices,
+//     preserving order with g1 elements appearing before unique g2 elements
+func CombineSlice(g1, g2 []string) []string {
 	uniqueValues := make(map[string]bool)
 	mg := make([]string, 0)
 
@@ -131,171 +145,126 @@ func mergeSlice(g1, g2 []string) []string {
 	return mg
 }
 
-// parseVariable parse all string values to the actual value.
-func parseVariable(v any, parseTmplFunc func(string) (string, error)) error {
-	switch reflect.ValueOf(v).Kind() {
-	case reflect.Map:
-		if err := parseVariableFromMap(v, parseTmplFunc); err != nil {
-			return err
-		}
-	case reflect.Slice, reflect.Array:
-		if err := parseVariableFromArray(v, parseTmplFunc); err != nil {
-			return err
-		}
+// ConvertGroup converts the inventory into a map of groups with their respective hosts.
+// It ensures that all hosts are included in the "all" group and adds a default localhost if not present.
+// It also creates an "ungrouped" group for hosts that are not part of any specific group.
+//
+// Parameters:
+//
+//	inv (kkcorev1.Inventory): The inventory containing hosts and groups specifications.
+//
+// Returns:
+//
+//	map[string][]string: A map where keys are group names and values are lists of hostnames.
+func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
+	groups := make(map[string][]string)
+	all := make([]string, 0)
+
+	for hn := range inv.Spec.Hosts {
+		all = append(all, hn)
 	}
 
-	return nil
-}
+	ungrouped := make([]string, len(all))
+	copy(ungrouped, all)
 
-// parseVariableFromMap parse to variable when the v is map.
-func parseVariableFromMap(v any, parseTmplFunc func(string) (string, error)) error {
-	for _, kv := range reflect.ValueOf(v).MapKeys() {
-		val := reflect.ValueOf(v).MapIndex(kv)
-		if vv, ok := val.Interface().(string); ok {
-			if !tmpl.IsTmplSyntax(vv) {
-				continue
-			}
+	if !slices.Contains(all, _const.VariableLocalHost) { // set default localhost
+		all = append(all, _const.VariableLocalHost)
+	}
 
-			newValue, err := parseTmplFunc(vv)
-			if err != nil {
-				return err
-			}
+	groups[_const.VariableGroupsAll] = all
 
-			switch {
-			case strings.EqualFold(newValue, "TRUE"):
-				reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(true))
-			case strings.EqualFold(newValue, "FALSE"):
-				reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(false))
-			default:
-				reflect.ValueOf(v).SetMapIndex(kv, reflect.ValueOf(newValue))
-			}
-		} else {
-			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return err
+	for gn := range inv.Spec.Groups {
+		groups[gn] = hostsInGroup(inv, gn)
+		if hosts, ok := groups[gn]; ok {
+			for _, v := range hosts {
+				if slices.Contains(ungrouped, v) {
+					ungrouped = slices.Delete(ungrouped, slices.Index(ungrouped, v), slices.Index(ungrouped, v)+1)
+				}
 			}
 		}
 	}
 
-	return nil
+	groups[_const.VariableUnGrouped] = ungrouped
+
+	return groups
 }
 
-// parseVariableFromArray parse to variable when the v is slice.
-func parseVariableFromArray(v any, parseTmplFunc func(string) (string, error)) error {
-	for i := range reflect.ValueOf(v).Len() {
-		val := reflect.ValueOf(v).Index(i)
-		if vv, ok := val.Interface().(string); ok {
-			if !tmpl.IsTmplSyntax(vv) {
-				continue
-			}
-
-			newValue, err := parseTmplFunc(vv)
-			if err != nil {
-				return err
-			}
-
-			switch {
-			case strings.EqualFold(newValue, "TRUE"):
-				val.Set(reflect.ValueOf(true))
-			case strings.EqualFold(newValue, "FALSE"):
-				val.Set(reflect.ValueOf(false))
-			default:
-				val.Set(reflect.ValueOf(newValue))
-			}
-		} else {
-			if err := parseVariable(val.Interface(), parseTmplFunc); err != nil {
-				return err
-			}
+// hostsInGroup get a host_name slice in a given group
+// if the given group contains other group. convert other group to host_name slice.
+func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
+	if v, ok := inv.Spec.Groups[groupName]; ok {
+		var hosts []string
+		for _, cg := range v.Groups {
+			hosts = CombineSlice(hostsInGroup(inv, cg), hosts)
 		}
+
+		return CombineSlice(hosts, v.Hosts)
 	}
 
-	return nil
+	return make([]string, 0)
 }
 
-// setlocalhostVarialbe set default vars when hostname is "localhost"
-func setlocalhostVarialbe(hostname string, v value, hostVars map[string]any) {
-	if hostname == _const.VariableLocalHost {
-		if os, ok := v.Hosts[hostname].RemoteVars[_const.VariableOS]; ok {
-			// try to set hostname by current actual hostname.
-			if osd, ok := os.(map[string]any); ok {
-				hostVars[_const.VariableHostName] = osd[_const.VariableOSHostName]
-			}
-		}
-
-		if _, ok := hostVars[_const.VariableIPv4]; !ok {
-			hostVars[_const.VariableIPv4] = getLocalIP(_const.VariableIPv4)
-		}
-
-		if _, ok := hostVars[_const.VariableIPv6]; !ok {
-			hostVars[_const.VariableIPv6] = getLocalIP(_const.VariableIPv6)
-		}
-	}
-}
-
-// getLocalIP get the ipv4 or ipv6 for localhost machine
-func getLocalIP(ipType string) string {
-	addrs, err := net.InterfaceAddrs()
+// PrintVar get variable by key
+func PrintVar(ctx map[string]any, keys ...string) (any, error) {
+	sv, found, err := unstructured.NestedFieldNoCopy(ctx, keys...)
 	if err != nil {
-		klog.ErrorS(err, "get network address error")
+		return nil, errors.WithStack(err)
 	}
-
-	for _, addr := range addrs {
-		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-			if ipType == _const.VariableIPv4 && ipNet.IP.To4() != nil {
-				return ipNet.IP.String()
-			}
-
-			if ipType == _const.VariableIPv6 && ipNet.IP.To16() != nil && ipNet.IP.To4() == nil {
-				return ipNet.IP.String()
-			}
-		}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
-
-	klog.V(4).Infof("connot get local %s address", ipType)
-
-	return ""
+	// try to marshal by json
+	return sv, nil
 }
 
 // StringVar get string value by key
-func StringVar(d map[string]any, args map[string]any, key string) (string, error) {
-	val, ok := args[key]
-	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return "", fmt.Errorf("cannot find variable \"%s\"", key)
-	}
+func StringVar(ctx map[string]any, args map[string]any, keys ...string) (string, error) {
 	// convert to string
-	sv, ok := val.(string)
-	if !ok {
-		klog.V(4).ErrorS(nil, "variable is not string", "key", key)
-
-		return "", fmt.Errorf("variable \"%s\" is not string", key)
+	sv, found, err := unstructured.NestedString(args, keys...)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	if !found {
+		return "", errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 
-	return tmpl.ParseString(d, sv)
+	return tmpl.ParseFunc(ctx, sv, func(b []byte) string { return string(b) })
 }
 
 // StringSliceVar get string slice value by key
-func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string, error) {
-	val, ok := vars[key]
-	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
+func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]string, error) {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 
 	switch valv := val.(type) {
+	case []string:
+		var ss []string
+		for _, a := range valv {
+			as, err := tmpl.ParseFunc(ctx, a, func(b []byte) string { return string(b) })
+			if err != nil {
+				return nil, err
+			}
+			ss = append(ss, as)
+		}
+
+		return ss, nil
 	case []any:
 		var ss []string
 
 		for _, a := range valv {
 			av, ok := a.(string)
 			if !ok {
-				klog.V(6).InfoS("variable is not string", "key", key)
+				klog.V(6).InfoS("variable is not string", "key", keys)
 
 				return nil, nil
 			}
 
-			as, err := tmpl.ParseString(d, av)
+			as, err := tmpl.ParseFunc(ctx, av, func(b []byte) string { return string(b) })
 			if err != nil {
 				return nil, err
 			}
@@ -305,73 +274,71 @@ func StringSliceVar(d map[string]any, vars map[string]any, key string) ([]string
 
 		return ss, nil
 	case string:
-		as, err := tmpl.ParseString(d, valv)
+		as, err := tmpl.Parse(ctx, valv)
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse variable error", "key", key)
-
 			return nil, err
 		}
 
 		var ss []string
-		if err := json.Unmarshal([]byte(as), &ss); err == nil {
+		if err := json.Unmarshal(as, &ss); err == nil {
 			return ss, nil
 		}
 
-		return []string{as}, nil
+		return []string{string(as)}, nil
 	default:
-		klog.V(4).ErrorS(nil, "unsupported variable type", "key", key)
-
-		return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
+		return nil, errors.Errorf("unsupported variable %q type", strings.Join(keys, "."))
 	}
 }
 
 // IntVar get int value by key
-func IntVar(d map[string]any, vars map[string]any, key string) (*int, error) {
-	val, ok := vars[key]
-	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
+func IntVar(ctx map[string]any, args map[string]any, keys ...string) (*int, error) {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
+	}
+
 	// default convert to int
 	v := reflect.ValueOf(val)
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return ptr.To(int(v.Int())), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return ptr.To(int(v.Uint())), nil
+		u := v.Uint()
+		if u > uint64(^uint(0)>>1) {
+			return nil, errors.Errorf("variable %q value %d overflows int", strings.Join(keys, "."), u)
+		}
+
+		return ptr.To(int(u)), nil
 	case reflect.Float32, reflect.Float64:
 		return ptr.To(int(v.Float())), nil
 	case reflect.String:
-		vs, err := tmpl.ParseString(d, v.String())
+		vs, err := tmpl.ParseFunc(ctx, v.String(), func(b []byte) string { return string(b) })
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse string variable error", "key", key)
-
 			return nil, err
 		}
 
 		atoi, err := strconv.Atoi(vs)
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse convert string to int error", "key", key)
-
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to convert string %q to int of key %q", vs, strings.Join(keys, "."))
 		}
 
 		return ptr.To(atoi), nil
 	default:
-		klog.V(4).ErrorS(nil, "unsupported variable type", "key", key)
-
-		return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
+		return nil, errors.Errorf("unsupported variable %q type", strings.Join(keys, "."))
 	}
 }
 
 // BoolVar get bool value by key
-func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
-	val, ok := args[key]
-	if !ok {
-		klog.V(4).InfoS("cannot find variable", "key", key)
-
-		return nil, fmt.Errorf("cannot find variable \"%s\"", key)
+func BoolVar(ctx map[string]any, args map[string]any, keys ...string) (*bool, error) {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 	// default convert to int
 	v := reflect.ValueOf(val)
@@ -379,28 +346,20 @@ func BoolVar(d map[string]any, args map[string]any, key string) (*bool, error) {
 	case reflect.Bool:
 		return ptr.To(v.Bool()), nil
 	case reflect.String:
-		vs, err := tmpl.ParseString(d, v.String())
+		vs, err := tmpl.ParseBool(ctx, v.String())
 		if err != nil {
-			klog.V(4).ErrorS(err, "parse string variable error", "key", key)
-
 			return nil, err
 		}
 
-		if strings.EqualFold(vs, "TRUE") {
-			return ptr.To(true), nil
-		}
-
-		if strings.EqualFold(vs, "FALSE") {
-			return ptr.To(false), nil
-		}
+		return ptr.To(vs), nil
 	}
 
-	return nil, fmt.Errorf("unsupported variable \"%s\" type", key)
+	return nil, errors.Errorf("unsupported variable %q type", strings.Join(keys, "."))
 }
 
 // DurationVar get time.Duration value by key
-func DurationVar(d map[string]any, args map[string]any, key string) (time.Duration, error) {
-	stringVar, err := StringVar(d, args, key)
+func DurationVar(ctx map[string]any, args map[string]any, key string) (time.Duration, error) {
+	stringVar, err := StringVar(ctx, args, key)
 	if err != nil {
 		return 0, err
 	}
@@ -424,7 +383,7 @@ func Extension2Variables(ext runtime.RawExtension) map[string]any {
 
 // Extension2Slice convert runtime.RawExtension to slice
 // if runtime.RawExtension contains tmpl syntax, parse it.
-func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
+func Extension2Slice(ctx map[string]any, ext runtime.RawExtension) []any {
 	if len(ext.Raw) == 0 {
 		return nil
 	}
@@ -435,35 +394,31 @@ func Extension2Slice(d map[string]any, ext runtime.RawExtension) []any {
 		return data
 	}
 	// try converter template string
-	val, err := Extension2String(d, ext)
+	val, err := Extension2String(ctx, ext)
 	if err != nil {
 		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
 	}
 
-	if err := json.Unmarshal([]byte(val), &data); err == nil {
+	if err := json.Unmarshal(val, &data); err == nil {
 		return data
 	}
 
 	return []any{val}
 }
 
-// Extension2String convert runtime.RawExtension to string.
-// if runtime.RawExtension contains tmpl syntax, parse it.
-func Extension2String(d map[string]any, ext runtime.RawExtension) (string, error) {
+// Extension2String converts a runtime.RawExtension to a string, optionally parsing it as a template.
+// If the extension is empty, it returns nil. If the string is quoted, it unquotes it first.
+// Finally, it parses the string as a template using the provided context.
+func Extension2String(ctx map[string]any, ext runtime.RawExtension) ([]byte, error) {
 	if len(ext.Raw) == 0 {
-		return "", nil
+		return nil, nil
 	}
 
 	var input = string(ext.Raw)
-	// try to escape string
-	if ns, err := strconv.Unquote(string(ext.Raw)); err == nil {
+	// try to escape string if it's quoted
+	if ns, err := strconv.Unquote(input); err == nil {
 		input = ns
 	}
 
-	result, err := tmpl.ParseString(d, input)
-	if err != nil {
-		return "", err
-	}
-
-	return result, nil
+	return tmpl.Parse(ctx, input)
 }

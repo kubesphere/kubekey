@@ -1,0 +1,11 @@
+---
+- name: uninstall node
+  hosts:
+    - "{{ .node_name }}"
+  vars_files:
+    - vars/main.yaml
+  gather_facts: true
+  roles:
+    - uninstall/kubernetes
+    - uninstall/cri
+    - uninstall/cloud-config

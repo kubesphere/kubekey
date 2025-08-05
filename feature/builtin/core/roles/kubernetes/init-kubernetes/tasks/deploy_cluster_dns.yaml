@@ -1,0 +1,21 @@
+---
+- name: Generate coredns config
+  template:
+    src: dns/coredns.yaml
+    dest: /etc/kubernetes/coredns.yaml
+
+# change clusterIP for service
+# change configmap for coredns
+- name: Apply coredns config
+  command: |
+    kubectl delete svc kube-dns -n kube-system
+    kubectl apply -f /etc/kubernetes/coredns.yaml && kubectl rollout restart deployment -n kube-system coredns
+
+- name: Generate nodelocaldns daemonset
+  template:
+    src: dns/nodelocaldns.yaml
+    dest: /etc/kubernetes/nodelocaldns.yaml
+
+- name: Apply nodelocaldns daemonset
+  command: |
+    kubectl apply -f /etc/kubernetes/nodelocaldns.yaml

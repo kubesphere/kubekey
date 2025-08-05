@@ -1,0 +1,67 @@
+---
+- name: Generate kubeadm join config
+  template:
+    src: >-
+      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
+      kubeadm/kubeadm-join.v1beta3
+      {{- else -}}
+      kubeadm/kubeadm-join.v1beta2
+      {{- end -}}
+    dest: /etc/kubernetes/kubeadm-config.yaml
+
+- name: Join kubernetes cluster
+  command: |
+    /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
+
+- name: Sync kubeconfig to remote
+  copy:
+    src: >-
+      {{ .work_dir }}/kubekey/kubeconfig
+    dest: /root/.kube/config
+
+- name: Set to worker node
+  when: .groups.kube_worker | default list | has .inventory_hostname
+  block:
+    - name: Remote master taint
+      ignore_errors: true
+      command: |
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/master=:NoSchedule-
+        /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/control-plane=:NoSchedule-
+    - name: Add work label
+      command: |
+        /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=
+
+- name: Add annotations
+  when: .annotations | empty | not
+  command: |
+    kubectl annotate {{ .hostname }} {{- range $k,$v := .annotations }}{{ printf "%s=%s" $k $v}} {{- end }}
+
+# reset localDNS 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}. 
+# if not the control_plane_endpoint will valid after kube_vip pod running. the task which will execute kubectl apply in current node may be failed.
+- name: reset control_plane_endpoint localDNS
+  block:
+    - name: reset control_plane localDNS
+      when:
+        - .groups.kube_control_plane | default list | has .inventory_hostname
+      command: |
+        sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
+        cat >> {{ .item }} <<EOF
+        # kubekey control_plane_endpoint BEGIN.
+        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+        ::1 {{ .kubernetes.control_plane_endpoint.host }}
+        # kubekey control_plane_endpoint END
+        EOF
+      loop: "{{ .localDNS | toJson }}"
+    - name: reset worker localDNS
+      when:
+        - .groups.kube_worker | default list | has .inventory_hostname
+        - .kubernetes.control_plane_endpoint.type | eq "haproxy"
+      command: |
+        sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
+        cat >> {{ .item }} <<EOF
+        # kubekey control_plane_endpoint BEGIN.
+        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+        ::1 {{ .kubernetes.control_plane_endpoint.host }}
+        # kubekey control_plane_endpoint END
+        EOF
+      loop: "{{ .localDNS | toJson }}"

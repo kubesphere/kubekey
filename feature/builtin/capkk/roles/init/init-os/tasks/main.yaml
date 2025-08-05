@@ -1,0 +1,23 @@
+---
+- include_tasks: init_repository.yaml
+
+- include_tasks: init_ntpserver.yaml
+  when: .ntp.enabled
+
+- name: Set hostname
+  command: |
+    hostnamectl set-hostname {{ .inventory_hostname }} \
+      && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' /etc/hosts
+  when: 
+   - .set_hostname
+   - .inventory_hostname | ne "localhost"
+
+- name: Sync init os to remote
+  template:
+    src: init-os.sh
+    dest: /etc/kubekey/scripts/init-os.sh
+    mode: 0755
+
+- name: Execute init os script
+  command: |
+    /etc/kubekey/scripts/init-os.sh

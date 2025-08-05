@@ -1,0 +1,4 @@
+---
+- name: task2
+  debug:
+    msg: "im task2"

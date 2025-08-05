@@ -22,12 +22,47 @@ import (
 	"os"
 	"path/filepath"
 
-	"k8s.io/klog/v2"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
-// ModuleFetch deal fetch module
+/*
+The Fetch module retrieves files from remote hosts to the local machine.
+This module allows users to download files from remote hosts to specified local destinations.
+
+Configuration:
+Users can specify the source and destination paths:
+
+fetch:
+  src: /remote/path/file    # required: source file path on remote host
+  dest: /local/path/file    # required: destination path on local machine
+
+Usage Examples in Playbook Tasks:
+1. Basic file fetch:
+   ```yaml
+   - name: Download configuration file
+     fetch:
+       src: /etc/app/config.yaml
+       dest: ./configs/
+     register: fetch_result
+   ```
+
+2. Fetch with variables:
+   ```yaml
+   - name: Download log file
+     fetch:
+       src: /var/log/{{ app_name }}.log
+       dest: ./logs/
+     register: log_file
+   ```
+
+Return Values:
+- On success: Returns "Success" in stdout
+- On failure: Returns error message in stderr
+*/
+
+// ModuleFetch handles the "fetch" module, retrieving files from remote hosts
 func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -46,7 +81,7 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	}
 
 	// get connector
-	conn, err := getConnector(ctx, options.Host, ha)
+	conn, err := options.getConnector(ctx)
 	if err != nil {
 		return "", fmt.Sprintf("get connector error: %v", err)
 	}
@@ -61,8 +96,6 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 
 	destFile, err := os.Create(destParam)
 	if err != nil {
-		klog.V(4).ErrorS(err, "failed to create dest file")
-
 		return "", err.Error()
 	}
 	defer destFile.Close()
@@ -72,4 +105,8 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
 	}
 
 	return StdoutSuccess, ""
+}
+
+func init() {
+	utilruntime.Must(RegisterModule("fetch", ModuleFetch))
 }

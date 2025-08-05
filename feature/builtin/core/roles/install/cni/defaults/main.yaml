@@ -1,0 +1,39 @@
+cni:
+  type: >-
+    {{ .kubernetes.kube_network_plugin | default "calico" }}
+  # Multus CNI is a container network interface (CNI) plugin for Kubernetes that enables attaching multiple network interfaces to pods
+  multus: 
+    # if install multus thick plugins. 
+    enabled: false
+    image: 
+      registry:  >-
+        {{ .dockerio_registry }}
+      repository: kubesphere/multus-cni
+      tag: v3.8
+  # In Kubernetes, the Pod CIDR supports both IPv4 and IPv6 configurations. It can be specified as follows:
+  # "Single-stack IPv4": the pod_cidr value format "ipv4"
+  # "Single-stack IPv6": the pod_cidr value format "ipv6"
+  # "Dual-stack (IPv4 and IPv6)": the pod_cidr value format "ipv4,ipv6"
+  ipv4_support: >-
+    {{ eq (.kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily) "IPv4" }}
+  ipv4_pods_cidr: >-
+    {{- if eq (.kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first | ipFamily) "IPv4" -}}
+    {{ .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | first }}
+    {{- end -}}
+  # kubernetes.networking.ipv4_mask_size: determines the size of the IP block allocated to each node from the clusterCIDR. 
+  #   It controls how many IP addresses Kubernetes will assign to each node for Pod usage. 
+  # cni.ipv4_block_size: defines the size of the IP block that cni reserves for each node. 
+  # To avoid wasting IP addresses and to make management simpler, it’s best to align maskSize and blockSize as closely as possible
+  ipv4_block_size: >-
+    {{ .kubernetes.networking.ipv4_mask_size | default 24 }}
+  ipv6_support: >-
+    {{- eq (.kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" }}
+  ipv6_pods_cidr: >-
+    {{- if eq (.kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" -}}
+    {{ .kubernetes.networking.pod_cidr | default "10.233.64.0/18" | splitList "," | last }}
+    {{- end -}}
+  ipv6_block_size: >-
+    {{ .kubernetes.networking.ipv4_mask_size | default 64 }}
+  kube_svc_cidr: >-
+    {{ .kubernetes.networking.service_cidr | default "10.233.0.0/18" }}
+

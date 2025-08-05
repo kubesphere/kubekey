@@ -1,0 +1,7 @@
+---
+- name: playbook3
+  hosts:
+    - node1
+  tasks:
+    - include_tasks: include_task1.yaml
+    

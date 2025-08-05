@@ -1,0 +1,37 @@
+---
+# load defaults vars
+- hosts:
+    - all
+  vars_files:
+    - vars/certs_renew.yaml
+
+- import_playbook: hook/pre_install.yaml
+
+- hosts:
+    - localhost
+  tags: ["certs"]
+  roles:
+    - init/init-cert
+
+- hosts:
+    - etcd
+  tags: ["certs"]
+  roles:
+    - role: certs/renew-etcd
+      when: and (.groups.etcd | default list | empty | not) .renew_etcd
+
+- hosts:
+    - image_registry
+  tags: ["certs"]
+  roles:
+    - role: certs/renew-registry
+      when: and (.groups.image_registry | default list | empty | not) .renew_image_registry
+
+- hosts:
+    - kube_control_plane
+  tags: ["certs"]
+  roles:
+    - role: certs/renew-kubernetes
+      when: and (.groups.kube_control_plane | default list | empty | not) .renew_kubernetes
+
+- import_playbook: hook/post_install.yaml

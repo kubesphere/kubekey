@@ -1,0 +1,76 @@
+---
+- hosts:
+    - "{{ .node_name }}"
+  gather_facts: true
+  vars:
+    architectures:
+      amd64:
+        - amd64
+        - x86_64
+      arm64:
+        - arm64
+        - aarch64
+  tasks:
+    - name: Get os arch for each node
+      set_fact:
+        binary_type: >-
+          {{- if .architectures.amd64 | has .os.architecture -}}
+          amd64
+          {{- else if .architectures.arm64 | has .os.architecture -}}
+          arm64
+          {{- end -}}
+
+- hosts:
+    - "{{ .node_name }}"
+  gather_facts: true
+  vars_files:
+    - vars/main.yaml
+  roles:
+    - precheck/env_check
+
+- name: init cluster
+  hosts:
+    - localhost
+  vars_files:
+    - vars/main.yaml
+  tasks:
+    # https://cluster-api.sigs.k8s.io/tasks/bootstrap/kubeadm-bootstrap/index.html?highlight=ntp#additional-features
+    - name: init cloud-config
+      when: .kubernetes_installed | default false | eq false
+      block:
+        - name: get cloud-config value
+          command: |
+            cat {{ .cloud_config_dir }}/cloud-config/value
+          register: cloud_config_out
+          register_type: yaml
+        - name: add cloud_config to all hosts
+          add_hostvars:
+            hosts: all
+            vars:
+              cloud_config: >-
+                {{ .hostVars.localhost.cloud_config_out.stdout }}
+  roles:
+    - role: init/init-artifacts
+      when: .kubernetes_installed | default false | eq false
+
+- hosts:
+    - "{{ .node_name }}"
+  roles:
+    - role: init/init-os
+      when: .kubernetes_installed | default false | eq false
+
+- name: install cluster
+  hosts:
+    - "{{ .node_name }}"
+  gather_facts: true
+  roles:
+    - role: install/cri
+      when: .kubernetes_installed | default false | eq false
+    - role: install/kubernetes
+      when: .kubernetes_installed | default false | eq false
+    - role: install/cloud-config
+      when: .kubernetes_installed | default false | eq false
+    - role: install/cni
+      when: .kubernetes_installed | default false | eq false
+    - role: install/storageclass
+      when: .kubernetes_installed | default false | eq false

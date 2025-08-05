@@ -28,6 +28,6 @@ const (
 
 // Source is the source from which config is loaded.
 type Source interface {
-	Read() (map[string][]byte, error)
-	Write(data []byte, filename string) error
+	Read() (map[string]map[string]any, error)
+	Write(data map[string]any, host string) error
 }

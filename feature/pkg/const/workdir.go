@@ -16,13 +16,16 @@ limitations under the License.
 
 package _const
 
-/** a kubekey workdir like that:
-workdir/
-|-- projects/
-|   |-- ansible-project1/
+/**
+The structure of a typical KubeKey working directory:
+work_dir/
+|-- projects_dir/
+|   |-- project1/
 |   |   |-- playbooks/
 |   |   |-- roles/
 |   |   |   |-- roleName/
+|   |   |   |   |-- meta/
+|   |   |   |   |   |-- main.yml
 |   |   |   |   |-- tasks/
 |   |   |   |   |   |-- main.yml
 |   |   |   |   |-- defaults/
@@ -30,104 +33,108 @@ workdir/
 |   |   |   |   |-- templates/
 |   |   |   |   |-- files/
 |   |
-|   |-- ansible-project2/
+|   |-- project2/
 |   |-- ...
 |
-|-- runtime/
-|-- group/version/
-|   |   |-- pipelines/
-|   |   |   |-- namespace/
-|   |   |   |   |-- pipeline.yaml
-|   |   |   |   |-- /pipelineName/variable/
-|   |   |   |   |   |-- location.json
-|   |   |   |   |   |-- hostname.json
-|   |   |-- tasks/
-|   |   |   |-- namespace/
-|   |   |   |   |-- task.yaml
-|   |   |-- configs/
-|   |   |   |-- namespace/
-|   |   |   |   |   |-- config.yaml
-|   |   |-- inventories/
-|   |   |   |-- namespace/
-|   |   |   |   |-- inventory.yaml
+|-- binary_dir/
+|   |-- artifact-path...
+|   |-- images
 |
-|-- kubekey/
-|-- artifact-path...
-|-- images
+|-- scripts_dir/
+|
+|-- runtime/
+|-- | -- gather_facts_caches
+|-- | -- | -- inventory
+|   |-- group/version/
+|   |   |   |-- playbooks/
+|   |   |   |   |-- namespace/
+|   |   |   |   |   |-- playbook.yaml
+|   |   |   |   |   |-- /playbookName/variable/
+|   |   |   |   |   |   |-- location.yaml
+|   |   |   |   |   |   |-- inventory_hostname1.yaml
+|   |   |   |   |   |   |-- inventory_hostname2.yaml
+|
+|   |   |   |-- inventories/
+|   |   |   |   |-- namespace/
+|   |   |   |   |   |-- inventory.yaml
+|   |-- group/version/
+|   |   |   |-- tasks/
+|   |   |   |   |-- namespace/
+|   |   |   |   |   |-- task.yaml
 |
 |-- kubernetes/
 
 */
 
-// workDir is the user-specified working directory. By default, it is the same as the directory where the kubekey command is executed.
-var workDir string
+// Workdir is the user-specified working directory. By default, it is the same as the directory where the KubeKey command is executed.
+const Workdir = "work_dir"
 
-// ProjectDir is a fixed directory name under workdir, used to store the Ansible project.
-const ProjectDir = "projects"
+// ProjectsDir stores runnable projects. By default, its path is set to {{ .work_dir/projects }}.
+const ProjectsDir = "projects_dir"
 
-// ansible-project is the name of different Ansible projects
+// project represents the name of individual projects.
 
-// ProjectPlaybooksDir is a fixed directory name under ansible-project. used to store executable playbook files.
+// ProjectPlaybooksDir is a fixed directory name under a project, used to store executable playbook files.
 const ProjectPlaybooksDir = "playbooks"
 
-// ProjectRolesDir is a fixed directory name under ansible-project. used to store roles which playbook need.
+// ProjectRolesDir is a fixed directory name under a project, used to store roles required by playbooks.
 const ProjectRolesDir = "roles"
 
-// roleName is the name of different roles
+// roleName represents the name of individual roles.
 
-// ProjectRolesTasksDir is a fixed directory name under roleName. used to store task which role need.
+// ProjectRolesMetaDir is a fixed directory name under a role, used to store meta information such as dependencies.
+const ProjectRolesMetaDir = "meta"
+
+// ProjectRolesTasksDir is a fixed directory name under a role, used to store tasks required by the role.
 const ProjectRolesTasksDir = "tasks"
 
-// ProjectRolesTasksMainFile is a fixed file under tasks. it must run if the role run. support *.yaml or *yml
-const ProjectRolesTasksMainFile = "main"
+// ProjectRolesTasksMainFile is a mandatory file under the tasks directory that must be executed when the role is run. It supports files with .yaml or .yml extensions.
 
-// ProjectRolesDefaultsDir is a fixed directory name under roleName. it set default variables to role.
+// ProjectRolesDefaultsDir is a fixed directory name under a role, used to set default variables for the role.
 const ProjectRolesDefaultsDir = "defaults"
 
-// ProjectRolesDefaultsMainFile is a fixed file under defaults. support *.yaml or *yml
-const ProjectRolesDefaultsMainFile = "main"
+// ProjectRolesDefaultsMainFile is a mandatory file under the defaults directory. It supports files with .yaml or .yml extensions.
 
-// ProjectRolesTemplateDir is a fixed directory name under roleName. used to store template which task need.
+// ProjectRolesTemplateDir is a fixed directory name under a role, used to store templates required by tasks.
 const ProjectRolesTemplateDir = "templates"
 
-// ProjectRolesFilesDir is a fixed directory name under roleName. used to store files which task need.
+// ProjectRolesFilesDir is a fixed directory name under a role, used to store files required by tasks.
 const ProjectRolesFilesDir = "files"
 
-// RuntimeDir is a fixed directory name under workdir, used to store the runtime data of the current task execution.
+// ScriptsDir stores custom scripts. By default, its path is set to {{ .work_dir/scripts }}.
+const ScriptsDir = "scripts_dir"
+
+// BinaryDir refers to a portable software package that can typically be bundled into an offline package. By default, its path is set to {{ .work_dir/kubekey }}.
+const BinaryDir = "binary_dir"
+
+// BinaryImagesDir stores image files, including blobs and manifests.
+const BinaryImagesDir = "images"
+
+// RuntimeDir used to store runtime data for the current task execution. By default, its path is set to {{ .work_dir/runtime }}.
 const RuntimeDir = "runtime"
 
-// the resources dir store as etcd key.
-// like: /prefix/group/version/resource/namespace/name
+// RuntimeGatherFactsCacheDir is a fixed directory name under runtime, used to store cached host facts gathered during execution.
+const RuntimeGatherFactsCacheDir = "gather_facts_caches"
 
-// RuntimePipelineDir store Pipeline resources
-const RuntimePipelineDir = "pipelines"
+// RuntimePlaybookDir stores playbook resources created during playbook execution.
+const RuntimePlaybookDir = "playbooks"
 
-// pipeline.yaml is the data of Pipeline resource
+// playbook.yaml contains the data for a playbook resource.
 
-// RuntimePipelineVariableDir is a fixed directory name under runtime, used to store the task execution parameters.
-const RuntimePipelineVariableDir = "variable"
+// RuntimePlaybookVariableDir is a fixed directory name under runtime, used to store task execution parameters.
+const RuntimePlaybookVariableDir = "variable"
 
-// RuntimePipelineTaskDir is a fixed directory name under runtime, used to store the task execution status.
+// RuntimePlaybookTaskDir is a fixed directory name under runtime, used to store the task execution status.
 
-// task.yaml is the data of Task resource
+// task.yaml contains the data for a task resource.
 
-// RuntimeConfigDir store Config resources
+// RuntimeConfigDir stores configuration resources.
 
-// config.yaml is the data of Config resource
+// config.yaml contains the data for a configuration resource.
 
-// RuntimeInventoryDir store Inventory resources
+// RuntimeInventoryDir stores inventory resources.
 
-// inventory.yaml is the data of Inventory resource
+// inventory.yaml contains the data for an inventory resource.
 
-// ArtifactDir is the default directory name under the working directory. It is used to store
-// files required when executing the kubekey command (such as: docker, etcd, image packages, etc.).
-// These files will be downloaded locally and distributed to remote nodes.
-const ArtifactDir = "kubekey"
-
-// artifact-path store artifact package.
-
-// ArtifactImagesDir store images files. contains blobs and manifests.
-const ArtifactImagesDir = "images"
-
-// KubernetesDir represents the remote host directory for each kubernetes connection
+// KubernetesDir represents the remote host directory for each Kubernetes connection created during playbook execution.
 const KubernetesDir = "kubernetes"

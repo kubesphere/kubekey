@@ -1,0 +1,49 @@
+- name: Should defined internal_ipv4 or internal_ipv6
+  assert:
+    that: or (.internal_ipv4 | empty | not) (.internal_ipv6 | empty | not)
+    fail_msg: >-
+      "internal_ipv4" and "internal_ipv6" cannot both be empty
+
+- name: Check kubevip if valid
+  run_once: true
+  assert:
+    that:
+      - .kubernetes.control_plane_endpoint.kube_vip.address | empty | not
+      - .kubernetes.control_plane_endpoint.kube_vip.address | regexMatch "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:)|(([0-9a-fA-F]{1,4}:){1,6}|:):([0-9a-fA-F]{1,4}|:){1,6}([0-9a-fA-F]{1,4}|:)))$"
+      - |
+        {{- $existIP := false }}
+        {{- range .groups.all | default list }}
+          {{- if eq $.kubernetes.control_plane_endpoint.kube_vip.address (index $.hostvars . "internal_ipv4") }}
+          {{- $existIP = true }}
+          {{- end }}
+        {{- end }}
+        {{ not $existIP }}
+    fail_msg: >-
+      "kubernetes.control_plane_endpoint.kube_vip.address" should be a un-used ip address.
+  when: .kubernetes.control_plane_endpoint.type | eq "kube_vip"
+
+- name: Stop if unsupported version of Kubernetes
+  run_once: true
+  assert:
+    that: .kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
+    fail_msg: >-
+      the current release of KubeKey only support newer version of Kubernetes than {{ .cluster_require.kube_version_min_required }} - You are trying to apply {{ .kube_version }}
+  when: .kube_version | empty | not
+
+- name: Check if kubernetes installed
+  when: .groups.k8s_cluster | default list | has .inventory_hostname
+  block:
+    - name: Get kubernetes service
+      ignore_errors: true
+      command: systemctl is-active kubelet.service
+      register: kubernetes_install_service
+    - name: Get kubernetes version
+      ignore_errors: true
+      command: kubelet --version
+      register: kubernetes_install_version
+    - name: Check kubernetes service and version 
+      when: .kubernetes_install_service.stdout | eq "active"
+      assert:
+        that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
+        fail_msg: >-
+          kubernetes has installed with version:{{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}. but not match kube_version: {{ .kube_version }}
