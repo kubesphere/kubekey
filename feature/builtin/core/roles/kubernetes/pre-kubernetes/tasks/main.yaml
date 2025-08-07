@@ -4,7 +4,7 @@
 
 - name: Add kube user
   command: |
-    useradd -M -c 'Kubernetes user' -s /sbin/nologin -r kube || :
+    id kube &>/dev/null || useradd -M -c 'Kubernetes user' -s /sbin/nologin -r kube
 
 - name: Create kube directories
   command: |

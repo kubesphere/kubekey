@@ -6,7 +6,7 @@
       block:
         - name: Add etcd user
           command: |
-            useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd || :
+            id etcd &>/dev/null || useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd
         - name: Create etcd directories
           command: |
             if [ ! -d "{{ .item }}" ]; then
