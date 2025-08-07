@@ -77,6 +77,7 @@ type TaskHostResult struct {
 	Host   string `json:"host,omitempty"`
 	Stdout string `json:"stdout,omitempty"`
 	StdErr string `json:"stdErr,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 // +genclient

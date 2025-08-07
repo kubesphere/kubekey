@@ -18,7 +18,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cockroachdb/errors"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
@@ -105,51 +104,51 @@ func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]
 	}
 	aa.successMsg, _ = variable.StringVar(vars, args, "success_msg")
 	if aa.successMsg == "" {
-		aa.successMsg = StdoutTrue
+		aa.successMsg = StdoutSuccess
 	}
 	aa.failMsg, _ = variable.StringVar(vars, args, "fail_msg")
 	if aa.failMsg == "" {
-		aa.failMsg = StdoutFalse
+		aa.failMsg = StdoutFailed
 	}
 	aa.msg, _ = variable.StringVar(vars, args, "msg")
 	if aa.msg == "" {
-		aa.msg = StdoutFalse
+		aa.msg = StdoutFailed
 	}
 
 	return aa, nil
 }
 
 // ModuleAssert handles the "assert" module, evaluating boolean conditions and returning appropriate messages
-func ModuleAssert(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleAssert(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 
 	aa, err := newAssertArgs(ctx, options.Args, ha)
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrParseArgument, err
 	}
 
 	ok, err := tmpl.ParseBool(ha, aa.that...)
 	if err != nil {
-		return "", fmt.Sprintf("parse \"that\" error: %v", err)
+		return StdoutFailed, "failed to parse argument of that", err
 	}
 	// condition is true
 	if ok {
-		return aa.successMsg, ""
+		return aa.successMsg, "", nil
 	}
 	// condition is false and fail_msg is not empty
 	if aa.failMsg != "" {
-		return "", aa.failMsg
+		return StdoutFailed, aa.failMsg, errors.New(aa.failMsg)
 	}
 	// condition is false and msg is not empty
 	if aa.msg != "" {
-		return "", aa.msg
+		return StdoutFailed, aa.msg, errors.New(aa.msg)
 	}
 
-	return StdoutFalse, "False"
+	return StdoutFailed, StdoutFailed, errors.New(StdoutFailed)
 }
 
 func init() {

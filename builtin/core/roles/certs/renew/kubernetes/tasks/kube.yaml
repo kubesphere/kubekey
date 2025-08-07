@@ -1,50 +1,48 @@
 ---
-- name: Check kubeadm version
-  tags: ["certs"]
+- name: Kubernetes | Determine installed kubeadm version
   run_once: true
   command: kubeadm version -o short
   register: kubeadm_install_version
 
-- name: Renew cert by kubeadm
-  tags: ["certs"]
+- name: Kubernetes | Renew certificates using kubeadm
   run_once: true
   command: |
     {{- if .kubeadm_install_version.stdout | semverCompare "<v1.20.0" }}
+    # Using legacy kubeadm alpha certs renew commands for versions older than v1.20.0
     /usr/local/bin/kubeadm alpha certs renew apiserver
     /usr/local/bin/kubeadm alpha certs renew apiserver-kubelet-client
     /usr/local/bin/kubeadm alpha certs renew front-proxy-client
     /usr/local/bin/kubeadm alpha certs renew admin.conf
     /usr/local/bin/kubeadm alpha certs renew controller-manager.conf
     /usr/local/bin/kubeadm alpha certs renew scheduler.conf
-      {{- if and (.kubernetes.etcd.deployment_type | eq "internal") .renew_etcd }}
+      {{- if .kubernetes.etcd.deployment_type | eq "internal" }}
     /usr/local/bin/kubeadm alpha certs renew etcd-healthcheck-client
     /usr/local/bin/kubeadm alpha certs renew etcd-peer
     /usr/local/bin/kubeadm alpha certs renew etcd-server
       {{- end }}
     {{- else }}
+    # Using stable kubeadm certs renew commands for v1.20.0 and newer
     /usr/local/bin/kubeadm certs renew apiserver
     /usr/local/bin/kubeadm certs renew apiserver-kubelet-client
     /usr/local/bin/kubeadm certs renew front-proxy-client
     /usr/local/bin/kubeadm certs renew admin.conf
     /usr/local/bin/kubeadm certs renew controller-manager.conf
     /usr/local/bin/kubeadm certs renew scheduler.conf
-      {{- if and (.kubernetes.etcd.deployment_type | eq "internal") .renew_etcd }}
+      {{- if .kubernetes.etcd.deployment_type | eq "internal" }}
     /usr/local/bin/kubeadm certs renew etcd-healthcheck-client
     /usr/local/bin/kubeadm certs renew etcd-peer
     /usr/local/bin/kubeadm certs renew etcd-server
       {{- end }}
     {{- end }}
 
-- name: Fetch kubeconfig to local
-  tags: ["certs"]
+- name: Kubernetes | Retrieve kubeconfig from remote host
   run_once: true
   fetch:
     src: /etc/kubernetes/admin.conf
     dest: >-
       {{ .binary_dir }}/kubeconfig
 
-- name: Sync kubeconfig to remote
-  tags: ["certs"]
+- name: Kubernetes | Distribute kubeconfig to remote host
   copy:
     src: >-
       {{ .binary_dir }}/kubeconfig

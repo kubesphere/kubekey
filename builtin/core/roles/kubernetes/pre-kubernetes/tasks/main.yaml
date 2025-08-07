@@ -2,11 +2,11 @@
 
 - include_tasks: high-availability/main.yaml
 
-- name: Add kube user
+- name: PreKubernetes | Ensure the 'kube' system user exists
   command: |
     id kube &>/dev/null || useradd -M -c 'Kubernetes user' -s /sbin/nologin -r kube
 
-- name: Create kube directories
+- name: PreKubernetes | Create and set ownership for required Kubernetes directories
   command: |
     if [ ! -d "{{ .item.path }}" ]; then
       mkdir -p {{ .item.path }} && chown kube -R {{ .item.chown }}
@@ -22,41 +22,62 @@
     - {path: "/opt/cni/bin", chown: "/opt/cni"}
     - {path: "/var/lib/calico", chown: "/var/lib/calico"}
 
-- name: Sync audit policy file to remote
+- name: PreKubernetes | Synchronize audit policy file to remote node
   copy:
     src: audit
     dest: /etc/kubernetes/audit/
   when: .kubernetes.audit
 
-- name: Sync ca file to kube_control_plane
+- name: PreKubernetes | Synchronize cluster CA files to control plane nodes
   when: 
     - .kubernetes.certs.ca_cert | empty | not
     - .kubernetes.certs.ca_key | empty | not
     - .groups.kube_control_plane | has .inventory_hostname
   block:
-    - name: Sync ca cert to kube_control_plane
+    - name: PreKubernetes | Copy CA certificate to control plane node
       copy: 
         src: >-
           {{ .kubernetes.certs.ca_cert }}
         dest: /etc/kubernetes/pki/ca.crt
-    - name: Sync ca key to kube_control_plane
+    - name: PreKubernetes | Copy CA private key to control plane node
       copy:
         src: >-
           {{ .kubernetes.certs.ca_key }}
         dest: /etc/kubernetes/pki/ca.key
 
-- name: Sync front-proxy ca file to kube_control_plane
+- name: PreKubernetes | Ensure external etcd certificates are present on control plane nodes
+  when: 
+    - .kubernetes.etcd.deployment_type | eq "external"
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+  block:
+    - name: PreKubernetes | Copy etcd CA certificate to control plane node
+      copy:
+        src: >-
+          {{ .work_dir }}/kubekey/pki/root.crt
+        dest: /etc/kubernetes/pki/etcd/ca.crt
+    - name: PreKubernetes | Copy etcd client certificate to control plane node
+      copy:
+        src: >-
+          {{ .work_dir }}/kubekey/pki/etcd.crt
+        dest: /etc/kubernetes/pki/etcd/client.crt
+    - name: PreKubernetes | Copy etcd client key to control plane node
+      copy:
+        src: >-
+          {{ .work_dir }}/kubekey/pki/etcd.key
+        dest: /etc/kubernetes/pki/etcd/client.key
+
+- name: PreKubernetes | Synchronize front-proxy CA files to control plane nodes
   when:
     - .kubernetes.certs.front_proxy_cert | empty | not
     - .kubernetes.certs.front_proxy_key | empty | not
     - .groups.kube_control_plane | has .inventory_hostname
   block:
-    - name: Sync front-proxy cert to kube_control_plane
+    - name: PreKubernetes | Copy front-proxy CA certificate to control plane node
       copy: 
         src: >-
           {{ .kubernetes.certs.front_proxy_cert }}
         dest: /etc/kubernetes/pki/front-proxy-ca.crt
-    - name: Sync front-proxy key to kube_control_plane
+    - name: PreKubernetes | Copy front-proxy CA private key to control plane node
       copy:
         src: >-
           {{ .kubernetes.certs.front_proxy_key }}

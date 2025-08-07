@@ -18,7 +18,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -62,29 +61,26 @@ Return Values:
 */
 
 // ModuleCommand handles the "command" module, executing shell commands on remote hosts
-func ModuleCommand(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleCommand(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 	// get connector
 	conn, err := options.getConnector(ctx)
 	if err != nil {
-		return "", fmt.Sprintf("failed to connector for %q error: %v", options.Host, err)
+		return StdoutFailed, StderrGetConnector, err
 	}
 	defer conn.Close(ctx)
 	// command string
 	command, err := variable.Extension2String(ha, options.Args)
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrParseArgument, err
 	}
 	// execute command
 	stdout, stderr, err := conn.ExecuteCommand(ctx, string(command))
-	if err != nil {
-		return "", err.Error()
-	}
-	return string(stdout), string(stderr)
+	return string(stdout), string(stderr), err
 }
 
 func init() {

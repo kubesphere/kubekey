@@ -3,6 +3,6 @@
 
 - include_tasks: network.yaml
 
-- name: Delete residue files
+- name: Kubernetes | Remove all residual Kubekey files and directories
   command: |
     rm -rf /etc/kubekey/

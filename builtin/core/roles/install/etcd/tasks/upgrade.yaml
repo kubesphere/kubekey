@@ -1,0 +1,23 @@
+- name: Upgrade | Backup etcd data before upgrade
+  command: BACKUP_DIR="{{ .etcd.backup.backup_dir }}/install/etcd-v{{ index .etcd_install_version "stdout" "etcd Version" }}-$(date +%Y-%m-%d-%H-%M-%S)" /usr/local/bin/kube-scripts/backup_etcd.sh
+
+- name: Upgrade | Restart etcd service after upgrade
+  command: |
+    systemctl restart etcd.service
+
+- name: Upgrade | Ensure etcd service becomes healthy within 1 minute
+  command: |
+    for ((i=1; i<=12; i++)); do
+      if ETCDCTL_API=3 etcdctl \
+        --endpoints=https://localhost:2379 \
+        --cacert=/etc/ssl/etcd/ssl/ca.crt \
+        --cert=/etc/ssl/etcd/ssl/server.crt \
+        --key=/etc/ssl/etcd/ssl/server.key \
+        endpoint health >/dev/null 2>&1; then
+        echo "✅ etcd is healthy"
+        exit 0
+      fi
+      sleep 5
+    done
+    echo "❌ etcd is not healthy within 1 minute"
+    exit 1

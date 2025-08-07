@@ -18,7 +18,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"math"
 	"os"
@@ -112,10 +111,20 @@ func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[strin
 }
 
 // ModuleTemplate handles the "template" module, processing files with Go templates
-func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
-	ha, ta, conn, err := prepareTemplate(ctx, options)
+func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string, error) {
+	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
+	}
+
+	ta, err := newTemplateArgs(ctx, options.Args, ha)
+	if err != nil {
+		return StdoutFailed, StderrParseArgument, err
+	}
+
+	conn, err := options.getConnector(ctx)
+	if err != nil {
+		return StdoutFailed, StderrGetConnector, err
 	}
 	defer conn.Close(ctx)
 
@@ -126,79 +135,60 @@ func ModuleTemplate(ctx context.Context, options ExecOptions) (string, string) {
 	return handleRelativeTemplate(ctx, ta, conn, ha, options)
 }
 
-func prepareTemplate(ctx context.Context, options ExecOptions) (map[string]any, *templateArgs, connector.Connector, error) {
-	ha, err := options.getAllVariables()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	ta, err := newTemplateArgs(ctx, options.Args, ha)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	conn, err := options.getConnector(ctx)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return ha, ta, conn, nil
-}
-
-func handleAbsoluteTemplate(ctx context.Context, ta *templateArgs, conn connector.Connector, vars map[string]any) (string, string) {
+func handleAbsoluteTemplate(ctx context.Context, ta *templateArgs, conn connector.Connector, vars map[string]any) (string, string, error) {
 	fileInfo, err := os.Stat(ta.src)
 	if err != nil {
-		return "", fmt.Sprintf(" get src file %s in local path error: %v", ta.src, err)
+		return StdoutFailed, "failed to get src file in local path", err
 	}
 
 	if fileInfo.IsDir() {
 		if err := ta.absDir(ctx, conn, vars); err != nil {
-			return "", fmt.Sprintf("sync template absolute dir error %s", err)
+			return StdoutFailed, "failed to template absolute dir", err
 		}
 
-		return StdoutSuccess, ""
+		return StdoutSuccess, "", nil
 	}
 
 	data, err := os.ReadFile(ta.src)
 	if err != nil {
-		return "", fmt.Sprintf("read file error: %s", err)
+		return StdoutFailed, "failed to read file", err
 	}
 	if err := ta.readFile(ctx, string(data), fileInfo.Mode(), conn, vars); err != nil {
-		return "", fmt.Sprintf("sync template absolute file error %s", err)
+		return StdoutFailed, "failed to template file", err
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
-func handleRelativeTemplate(ctx context.Context, ta *templateArgs, conn connector.Connector, vars map[string]any, options ExecOptions) (string, string) {
+func handleRelativeTemplate(ctx context.Context, ta *templateArgs, conn connector.Connector, vars map[string]any, options ExecOptions) (string, string, error) {
 	pj, err := project.New(ctx, options.Playbook, false)
 	if err != nil {
-		return "", fmt.Sprintf("get project error: %v", err)
+		return StdoutFailed, "failed to get playbook", nil
 	}
 
 	relPath := filepath.Join(options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRelativePath], _const.ProjectRolesTemplateDir, ta.src)
 	fileInfo, err := pj.Stat(relPath)
 	if err != nil {
-		return "", fmt.Sprintf("get file %s from project error: %v", ta.src, err)
+		return StdoutFailed, "failed to stat relative path", err
 	}
 
 	if fileInfo.IsDir() {
 		if err := handleRelativeDir(ctx, pj, relPath, ta, conn, vars); err != nil {
-			return "", fmt.Sprintf("sync template relative dir error: %s", err)
+			return StdoutFailed, "failed to template relative dir", err
 		}
 
-		return StdoutSuccess, ""
+		return StdoutSuccess, "", nil
 	}
 
 	data, err := pj.ReadFile(relPath)
 	if err != nil {
-		return "", fmt.Sprintf("read file error: %s", err)
+		return StdoutFailed, "failed to read relative file", err
 	}
 	if err := ta.readFile(ctx, string(data), fileInfo.Mode(), conn, vars); err != nil {
-		return "", fmt.Sprintf("sync template relative dir error: %s", err)
+		return StdoutFailed, "failed to template relative file", err
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
 func handleRelativeDir(ctx context.Context, pj project.Project, relPath string, ta *templateArgs, conn connector.Connector, vars map[string]any) error {

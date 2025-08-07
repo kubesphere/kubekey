@@ -21,7 +21,6 @@ import (
 	"io"
 	"io/fs"
 
-	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
@@ -30,48 +29,38 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
 
-var successConnector = &testConnector{stdout: []byte("success")}
-var failedConnector = &testConnector{
-	copyErr:    errors.New("failed"),
-	fetchErr:   errors.New("failed"),
-	commandErr: errors.New("failed"),
+func newTestConnector(stdout, stderr string, err error) connector.Connector {
+	return &testConnector{
+		stdout: stdout,
+		stderr: stderr,
+		err:    err,
+	}
 }
 
-var _ connector.Connector = &testConnector{}
-
 type testConnector struct {
-	// return for init
-	initErr error
-	// return for close
-	closeErr error
-	// return for copy
-	copyErr error
-	// return for fetch
-	fetchErr error
-	// return for command
-	stdout     []byte
-	stderr     []byte
-	commandErr error
+	stdout string
+	stderr string
+	err    error
 }
 
 func (t testConnector) Init(context.Context) error {
-	return t.initErr
+	return t.err
 }
 
 func (t testConnector) Close(context.Context) error {
-	return t.closeErr
+	return t.err
 }
 
 func (t testConnector) PutFile(context.Context, []byte, string, fs.FileMode) error {
-	return t.copyErr
+	return t.err
 }
 
 func (t testConnector) FetchFile(context.Context, string, io.Writer) error {
-	return t.fetchErr
+	return t.err
 }
 
 func (t testConnector) ExecuteCommand(context.Context, string) ([]byte, []byte, error) {
-	return t.stdout, t.stderr, t.commandErr
+	return []byte(t.stdout), []byte(t.stderr), t.err
 }
 
 // newTestVariable creates a new variable.Variable for testing purposes.

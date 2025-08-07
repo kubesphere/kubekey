@@ -1,5 +1,5 @@
 ---
-- name: Stop cri-dockerd service
+- name: Cridockerd | Stop and disable the cri-dockerd system service
   ignore_errors: true
   command: |
     systemctl stop cri-dockerd.service
@@ -8,7 +8,7 @@
     systemctl daemon-reload
     systemctl reset-failed cri-dockerd.service
 
-- name: Delete cri-dockerd residue files
+- name: Cridockerd | Remove all cri-dockerd related files and binaries
   command: |
     rm -rf /etc/cri-dockerd
     rm -f /usr/local/bin/cri-dockerd

@@ -1,32 +1,33 @@
 ---
-- name: Check if calicoctl is installed
+- name: Calico | calico-check-calicoctl-installed
   ignore_errors: true
   command: calicoctl version
   register: calicoctl_install_version
   register_type: yaml
-- name: Install calicoctl
-  when: .calicoctl_install_version.stderr | empty | not
+
+- name: Calico | calico-install-calicoctl-if-missing
+  when: .calicoctl_install_version.error | empty | not
   block:
-    - name: Sync calicoctl to remote
+    - name: Calico | calico-sync-calicoctl-to-remote
       copy:
         src: >-
           {{ .binary_dir }}/cni/calico/{{ .calico_version }}/{{ .binary_type }}/calicoctl
         dest: /usr/local/bin/calicoctl
         mode: 0755
 
-- name: Sync calico package to remote
+- name: Calico | calico-sync-calico-package-to-remote
   copy:
     src: >-
       {{ .binary_dir }}/cni/calico/tigera-operator-{{ .calico_version }}.tgz
     dest: >-
       /etc/kubernetes/cni/tigera-operator-{{ .calico_version }}.tgz
 
-- name: Generate calico custom value file
+- name: Calico | calico-generate-custom-values-file
   copy:
     content: |
       {{ .cni.calico.values }}
     dest: /etc/kubernetes/cni/calico-values.yaml
 
-- name: Apply calico
+- name: Calico | calico-apply-helm-chart
   command: |
-    helm install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .calico_version }}.tgz -f /etc/kubernetes/cni/calico-values.yaml
+    helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .calico_version }}.tgz -f /etc/kubernetes/cni/calico-values.yaml

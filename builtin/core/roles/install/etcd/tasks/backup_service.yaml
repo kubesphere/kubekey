@@ -1,21 +1,21 @@
 ---
-- name: Sync custom backup etcd script
+- name: Backup | Synchronize custom etcd backup script
   template:
     src: >-
       {{ .etcd.backup.etcd_backup_script }}
     dest: /usr/local/bin/kube-scripts/backup_etcd.sh
     mode: 777
 
-- name: Generate backup etcd service
+- name: Backup | Deploy systemd service for etcd backup
   copy:
     src: backup.service
     dest: /etc/systemd/system/backup-etcd.service
 
-- name: Generate backup etcd timer
+- name: Backup | Deploy systemd timer for scheduled etcd backup
   template:
     src: backup.timer
     dest: /etc/systemd/system/backup-etcd.timer
 
-- name: Enable etcd timer
+- name: Backup | Reload systemd and enable etcd backup timer
   command: |
     systemctl daemon-reload && systemctl enable --now backup-etcd.timer

@@ -1,20 +1,19 @@
 ---
-- name: Generate renew script
+- name: Certs | Generate Kubernetes certificate renewal script
   template:
     src: renew_script.sh
     dest: /usr/local/bin/kube-scripts/renew_script.sh
     mode: 0755
 
-- name: Sync renew service
+- name: Certs | Deploy certificate renewal systemd service
   copy:
     src: k8s-certs-renew.service
     dest: /etc/systemd/system/k8s-certs-renew.service
 
-- name: Sync renew timer
+- name: Certs | Deploy certificate renewal systemd timer
   copy:
     src: k8s-certs-renew.timer
     dest: /etc/systemd/system/k8s-certs-renew.timer
 
-- name: Enable renew service
-  command:
-    systemctl daemon-reload && systemctl enable --now k8s-certs-renew.timer
+- name: Certs | Enable and start certificate renewal timer
+  command: systemctl daemon-reload && systemctl enable --now k8s-certs-renew.timer

@@ -1,25 +1,25 @@
 ---
-- name: Check if cri-dockerd is installed
+- name: Cridockerd | Check if cri-dockerd is installed on the system
   ignore_errors: true
   command: cri-dockerd --version
   register: cridockerd_install_version
 
-- name: Install cri-dockerd
-  when: or (.cridockerd_install_version.stderr | empty | not) (.cridockerd_install_version.stdout | hasPrefix (printf "cri-dockerd %s " .cridockerd_version) | not)
+- name: Cridockerd | Install and configure cri-dockerd if not present or version mismatch
+  when: or (.cridockerd_install_version.error | empty | not) (.cridockerd_install_version.stdout | hasPrefix (printf "cri-dockerd %s " .cridockerd_version) | not)
   block:
-    - name: Sync cri-dockerd Binary to remote
+    - name: Cridockerd | Copy cri-dockerd binary archive to the remote node
       copy:
         src: >-
           {{ .binary_dir }}/cri-dockerd/{{ .cridockerd_version }}/{{ .binary_type }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz
         dest: >-
           {{ .tmp_dir }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz
-    - name: Unpackage cri-dockerd binary
+    - name: Cridockerd | Extract cri-dockerd binary to /usr/local/bin
       command: |
         tar -xvf {{ .tmp_dir }}/cri-dockerd-{{ .cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz --strip-components=1 -C /usr/local/bin/
-    - name: Generate cri-dockerd Service file
+    - name: Cridockerd | Generate cri-dockerd systemd service file
       template:
         src: cri-dockerd.service
         dest: /etc/systemd/system/cri-dockerd.service
-    - name: Start cri-dockerd service
+    - name: Cridockerd | Start and enable the cri-dockerd service
       command: |
         systemctl daemon-reload && systemctl start cri-dockerd.service && systemctl enable cri-dockerd.service

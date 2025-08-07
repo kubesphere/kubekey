@@ -1,25 +1,25 @@
 ---
-- name: Sync cilium cli package
+- name: Cilium | Ensure cilium CLI package is present
   when: .ciliumcli_version | empty | not
   copy:
     src: >-
       {{ .binary_dir }}/cni/cilium/ciliumcli-{{ .ciliumcli_version }}/{{ .item }}
     dest: /usr/local/bin/cilium
 
-- name: Sync cilium helm chart package
+- name: Cilium | Ensure cilium Helm chart package is present
   copy:
     src: >-
       {{ .binary_dir }}/cni/cilium/cilium-{{ .cilium_version }}.tgz
     dest: >-
       /etc/kubernetes/cni/cilium-{{ .cilium_version }}.tgz
 
-- name: Sync cilium helm chart custom value file
+- name: Cilium | Generate cilium Helm custom values file
   copy:
     content: |
       {{ .cni.cilium.values }}
     dest: /etc/kubernetes/cni/cilium-values.yaml
 
-# https://docs.cilium.io/en/stable/installation/k8s-install-helm/
-- name: Install cilium
+# Reference: https://docs.cilium.io/en/stable/installation/k8s-install-helm/
+- name: Cilium | Install cilium using Helm
   command: |
-    helm install --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-values.yaml
+    helm upgrade --install --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-values.yaml

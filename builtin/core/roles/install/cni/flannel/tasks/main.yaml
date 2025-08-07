@@ -1,17 +1,18 @@
 ---
-# https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md
-- name: Sync flannel package to remote
+# For more information, see: https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md
+
+- name: Flannel | Sync flannel package to remote node
   copy:
     src: >-
       {{ .binary_dir }}/cni/flannel/flannel.tgz
     dest: /etc/kubernetes/cni/flannel.tgz
 
-- name: Generate flannel custom value file
+- name: Flannel | Generate flannel custom values file
   copy:
     content: |
       {{ .cni.flannel.values }}
     dest: /etc/kubernetes/cni/flannel-values.yaml
 
-- name: Apply flannel
+- name: Flannel | Install flannel using Helm
   command: |
-    helm install --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel.tgz -f /etc/kubernetes/cni/flannel-values.yaml
+    helm upgrade --install --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel.tgz -f /etc/kubernetes/cni/flannel-values.yaml

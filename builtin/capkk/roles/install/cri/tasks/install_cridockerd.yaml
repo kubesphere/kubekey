@@ -5,7 +5,7 @@
   register: cridockerd_install_version
 
 - name: Install cri-dockerd
-  when: or (.cridockerd_install_version.stderr | empty | not) (.cridockerd_install_version.stdout | hasPrefix (printf "cri-dockerd %s " .cridockerd_version) | not)
+  when: or (.cridockerd_install_version.error | empty | not) (.cridockerd_install_version.stdout | hasPrefix (printf "cri-dockerd %s " .cridockerd_version) | not)
   block:
     - name: Sync cri-dockerd Binary to remote
       copy:

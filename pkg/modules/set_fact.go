@@ -18,7 +18,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 
 	"gopkg.in/yaml.v3"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -61,17 +60,17 @@ Return Values:
 */
 
 // ModuleSetFact handles the "set_fact" module, setting variables during playbook execution
-func ModuleSetFact(_ context.Context, options ExecOptions) (string, string) {
+func ModuleSetFact(_ context.Context, options ExecOptions) (string, string, error) {
 	var node yaml.Node
 	// Unmarshal the YAML document into a root node.
 	if err := yaml.Unmarshal(options.Args.Raw, &node); err != nil {
-		return "", fmt.Sprintf("failed to unmarshal YAML error: %v", err)
+		return StdoutFailed, "failed to unmarshal YAML", err
 	}
 	if err := options.Variable.Merge(variable.MergeRuntimeVariable(node, options.Host)); err != nil {
-		return "", fmt.Sprintf("set_fact error: %v", err)
+		return StdoutFailed, "failed to merge set_fact variable", err
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
 func init() {

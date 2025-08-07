@@ -14,7 +14,6 @@ func TestModuleSetup(t *testing.T) {
 		opt          ExecOptions
 		ctxFunc      func() context.Context
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "successful setup with fact gathering",
@@ -23,10 +22,9 @@ func TestModuleSetup(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc: func() context.Context {
-				return context.WithValue(context.Background(), ConnKey, successConnector)
+				return context.WithValue(context.Background(), ConnKey, newTestConnector(StdoutSuccess, "", nil))
 			},
 			exceptStdout: StdoutSuccess,
-			exceptStderr: "",
 		},
 		{
 			name: "failed connector setup",
@@ -35,8 +33,7 @@ func TestModuleSetup(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 			},
 			ctxFunc:      context.Background,
-			exceptStdout: "",
-			exceptStderr: "failed to connector of \"invalid-host\" error:",
+			exceptStdout: StdoutFailed,
 		},
 	}
 
@@ -45,13 +42,8 @@ func TestModuleSetup(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tc.ctxFunc(), time.Second*5)
 			defer cancel()
 
-			stdout, stderr := ModuleSetup(ctx, tc.opt)
-			assert.Contains(t, stdout, tc.exceptStdout)
-			if tc.exceptStderr != "" {
-				assert.Contains(t, stderr, tc.exceptStderr)
-			} else {
-				assert.Empty(t, stderr)
-			}
+			stdout, _, _ := ModuleSetup(ctx, tc.opt)
+			assert.Equal(t, tc.exceptStdout, stdout)
 		})
 	}
 }

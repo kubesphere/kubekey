@@ -18,7 +18,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -63,48 +62,48 @@ Return Values:
 */
 
 // ModuleFetch handles the "fetch" module, retrieving files from remote hosts
-func ModuleFetch(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleFetch(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 	// check args
 	args := variable.Extension2Variables(options.Args)
 	srcParam, err := variable.StringVar(ha, args, "src")
 	if err != nil {
-		return "", "\"src\" in args should be string"
+		return StdoutFailed, "\"src\" in args should be string", err
 	}
 	destParam, err := variable.StringVar(ha, args, "dest")
 	if err != nil {
-		return "", "\"dest\" in args should be string"
+		return StdoutFailed, "\"dest\" in args should be string", err
 	}
 
 	// get connector
 	conn, err := options.getConnector(ctx)
 	if err != nil {
-		return "", fmt.Sprintf("get connector error: %v", err)
+		return StdoutFailed, StderrGetConnector, err
 	}
 	defer conn.Close(ctx)
 
 	// fetch file
 	if _, err := os.Stat(filepath.Dir(destParam)); os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(destParam), os.ModePerm); err != nil {
-			return "", fmt.Sprintf("failed to create dest dir: %v", err)
+			return StdoutFailed, "failed to create dest dir", err
 		}
 	}
 
 	destFile, err := os.Create(destParam)
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, "failed to create dest file", err
 	}
 	defer destFile.Close()
 
 	if err := conn.FetchFile(ctx, srcParam, destFile); err != nil {
-		return "", fmt.Sprintf("failed to fetch file: %v", err)
+		return StdoutFailed, "failed to fetch file", err
 	}
 
-	return StdoutSuccess, ""
+	return StdoutSuccess, "", nil
 }
 
 func init() {

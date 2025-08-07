@@ -1,20 +1,24 @@
 ---
-- name: Check artifact is exits
-  command:
+- name: Artifact | Ensure artifact file exists
+  command: |
     if [ ! -f "{{ .artifact.artifact_file }}" ]; then
+      echo "Error: Artifact file '{{ .artifact.artifact_file }}' does not exist."
       exit 1
     fi
 
-- name: Check artifact file type
-  command:
+- name: Artifact | Validate artifact file extension
+  command: |
     if [[ "{{ .artifact.artifact_file }}" != *{{ .item }} ]]; then
+      echo "Error: Artifact file '{{ .artifact.artifact_file }}' does not have the required extension '{{ .item }}'."
       exit 1
     fi
   loop: ['.tgz','.tar.gz']
 
-- name: Check md5 of artifact
-  command:
-    if [[ "$(md5sum {{ .artifact.artifact_file }})" != "{{ .artifact.artifact_md5 }}" ]]; then
+- name: Artifact | Verify artifact MD5 checksum
+  command: |
+    actual_md5=$(md5sum {{ .artifact.artifact_file }} | awk '{print $1}')
+    if [[ "$actual_md5" != "{{ .artifact.artifact_md5 }}" ]]; then
+      echo "Error: MD5 checksum mismatch for '{{ .artifact.artifact_file }}'. Expected '{{ .artifact.artifact_md5 }}', got '$actual_md5'."
       exit 1
     fi
   when:

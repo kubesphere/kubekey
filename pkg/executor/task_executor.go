@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -60,7 +61,7 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 	if e.task.IsFailed() {
 		failedMsg := "\n"
 		for _, result := range e.task.Status.HostResults {
-			if result.StdErr != "" {
+			if result.Error != "" {
 				failedMsg += fmt.Sprintf("[%s]: %s\n", result.Host, result.StdErr)
 			}
 		}
@@ -116,7 +117,7 @@ func (e *taskExecutor) execTask(ctx context.Context) {
 	// host result for task
 	e.task.Status.Phase = kkcorev1alpha1.TaskPhaseSuccess
 	for _, data := range e.task.Status.HostResults {
-		if data.StdErr != "" {
+		if data.Error != "" {
 			if e.task.Spec.IgnoreError != nil && *e.task.Spec.IgnoreError {
 				e.task.Status.Phase = kkcorev1alpha1.TaskPhaseIgnored
 			} else {
@@ -133,37 +134,41 @@ func (e *taskExecutor) execTask(ctx context.Context) {
 func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 	return func(ctx context.Context) {
 		// task result
-		var stdout, stderr string
+		var resErr error
+		var stdout, stderr, errMsg string
+		// task log
+		deferFunc := e.execTaskHostLogs(ctx, h, &stdout, &stderr, &errMsg)
+		defer deferFunc()
 		defer func() {
-			if err := e.dealRegister(stdout, stderr, h); err != nil {
-				stderr = err.Error()
+			if resErr != nil {
+				errMsg = resErr.Error()
+				if e.task.Spec.IgnoreError != nil && *e.task.Spec.IgnoreError {
+					klog.V(5).ErrorS(resErr, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "error", errMsg, "task", ctrlclient.ObjectKeyFromObject(e.task))
+				} else {
+					klog.ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "error", errMsg, "task", ctrlclient.ObjectKeyFromObject(e.task))
+				}
 			}
-			if stderr != "" && e.task.Spec.IgnoreError != nil && *e.task.Spec.IgnoreError {
-				klog.V(5).ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(e.task))
-			} else if stderr != "" {
-				klog.ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "task", ctrlclient.ObjectKeyFromObject(e.task))
-			}
+			resErr = errors.Join(resErr, e.dealRegister(h, stdout, stderr, errMsg))
+
 			// fill result
 			e.task.Status.HostResults[i] = kkcorev1alpha1.TaskHostResult{
 				Host:   h,
 				Stdout: stdout,
 				StdErr: stderr,
+				Error:  errMsg,
 			}
 		}()
-		// task log
-		deferFunc := e.execTaskHostLogs(ctx, h, &stdout, &stderr)
-		defer deferFunc()
 		// task execute
 		ha, err := e.variable.Get(variable.GetAllVariable(h))
 		if err != nil {
-			stderr = fmt.Sprintf("failed to get host %s variable: %v", h, err)
-
+			resErr = err
 			return
 		}
 		// convert hostVariable to map
 		had, ok := ha.(map[string]any)
 		if !ok {
-			stderr = fmt.Sprintf("host: %s variable is not a map", h)
+			resErr = errors.Errorf("host: %s variable is not a map", h)
+			return
 		}
 		// check when condition
 		if skip := e.dealWhen(had, &stdout, &stderr); skip {
@@ -172,14 +177,14 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 		// execute module in loop with loop item.
 		// if loop is empty. execute once, and the item is null
 		for _, item := range e.dealLoop(had) {
-			e.executeModule(ctx, e.task, item, h, &stdout, &stderr)
+			resErr = e.executeModule(ctx, e.task, item, h, &stdout, &stderr)
 		}
 	}
 }
 
 // execTaskHostLogs sets up and manages progress bar logging for task execution on a host.
 // It returns a cleanup function to be called when execution completes.
-func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, stderr *string) func() {
+func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, _, errMsg *string) func() {
 	// placeholder format task log
 	var placeholder string
 	if hostnameMaxLen, err := e.variable.Get(variable.GetHostMaxLength()); err == nil {
@@ -206,7 +211,7 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 	bar := progressbar.NewOptions(-1, options...)
 	// run progress
 	go func() {
-		err := wait.PollUntilContextCancel(ctx, 100*time.Millisecond, true, func(context.Context) (bool, error) {
+		if err := wait.PollUntilContextCancel(ctx, 100*time.Millisecond, true, func(context.Context) (bool, error) {
 			if bar.IsFinished() {
 				return true, nil
 			}
@@ -215,15 +220,14 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 			}
 
 			return false, nil
-		})
-		if err != nil {
+		}); err != nil {
 			klog.ErrorS(err, "failed to wait for task run to finish", "host", h)
 		}
 	}()
 
 	return func() {
 		switch {
-		case *stderr != "":
+		case ptr.Deref(errMsg, "") != "":
 			if e.task.Spec.IgnoreError != nil && *e.task.Spec.IgnoreError { // ignore
 				bar.Describe(fmt.Sprintf("[\033[36m%s\033[0m]%s \033[34mignore \033[0m", h, placeholder))
 				if e.logOutput != os.Stdout {
@@ -253,20 +257,18 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, s
 }
 
 // executeModule executes a single module task on a specific host.
-func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, item any, host string, stdout, stderr *string) {
+func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, item any, host string, stdout, stderr *string) (resErr error) {
 	// Set loop item variable if one was provided
 	if item != nil {
 		// Convert item to runtime variable
 		node, err := converter.ConvertMap2Node(map[string]any{_const.VariableItem: item})
 		if err != nil {
-			*stderr = fmt.Sprintf("convert loop item error: %v", err)
-			return
+			return errors.Wrap(err, "failed to convert loop item")
 		}
 
 		// Merge item into host's runtime variables
 		if err := e.variable.Merge(variable.MergeRuntimeVariable(node, host)); err != nil {
-			*stderr = fmt.Sprintf("set loop item to variable error: %v", err)
-			return
+			return errors.Wrap(err, "failed to set loop item to variable")
 		}
 
 		// Clean up loop item variable after execution
@@ -277,11 +279,11 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 			// Reset item to null
 			resetNode, err := converter.ConvertMap2Node(map[string]any{_const.VariableItem: nil})
 			if err != nil {
-				*stderr = fmt.Sprintf("convert loop item error: %v", err)
+				resErr = errors.Wrap(err, "failed to convert loop item")
 				return
 			}
 			if err := e.variable.Merge(variable.MergeRuntimeVariable(resetNode, host)); err != nil {
-				*stderr = fmt.Sprintf("clean loop item to variable error: %v", err)
+				resErr = errors.Wrap(err, "failed to clean loop item to variable")
 				return
 			}
 		}()
@@ -290,19 +292,17 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 	// Get all variables for this host, including any loop item
 	ha, err := e.variable.Get(variable.GetAllVariable(host))
 	if err != nil {
-		*stderr = fmt.Sprintf("failed to get host %s variable: %v", host, err)
-		return
+		return errors.Wrapf(err, "failed to get host %s variable", host)
 	}
 
 	// Convert host variables to map type
 	had, ok := ha.(map[string]any)
 	if !ok {
-		*stderr = fmt.Sprintf("host: %s variable is not a map", host)
-		return
+		return errors.Wrapf(err, "host %s variable is not a map", host)
 	}
 
 	// Execute the actual module with the prepared context
-	*stdout, *stderr = modules.FindModule(task.Spec.Module.Name)(ctx, modules.ExecOptions{
+	*stdout, *stderr, resErr = modules.FindModule(task.Spec.Module.Name)(ctx, modules.ExecOptions{
 		Args:      e.task.Spec.Module.Args,
 		Host:      host,
 		Variable:  e.variable,
@@ -310,8 +310,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		Playbook:  *e.playbook,
 		LogOutput: e.logOutput,
 	})
-
-	e.dealFailedWhen(had, stderr)
+	return e.dealFailedWhen(had, resErr)
 }
 
 // dealLoop parses the loop specification into a slice of items to iterate over.
@@ -353,38 +352,49 @@ func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool
 
 // dealFailedWhen evaluates the "failed_when" conditions for a task to determine if it should fail.
 // Returns true if the task should be marked as failed, false if it should proceed.
-func (e *taskExecutor) dealFailedWhen(had map[string]any, stderr *string) {
+func (e *taskExecutor) dealFailedWhen(had map[string]any, err error) error {
+	if err != nil {
+		return err
+	}
 	if len(e.task.Spec.FailedWhen) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen...)
 		if err != nil {
-			klog.V(5).ErrorS(err, "validate failed_when condition error", "task", ctrlclient.ObjectKeyFromObject(e.task))
-			*stderr = fmt.Sprintf("parse failed_when condition error: %v", err)
+			return errors.Wrap(err, "failed to parse failed_when condition")
 		}
 		if ok {
-			*stderr = "reach failed_when, failed"
+			return errors.New("reach failed_when, failed")
 		}
 	}
+	return nil
 }
 
 // dealRegister handles storing task output in a registered variable if specified.
 // The output can be stored as raw string, JSON, or YAML based on the register type.
-func (e *taskExecutor) dealRegister(stdout, stderr, host string) error {
+func (e *taskExecutor) dealRegister(host string, stdout, stderr, errMsg string) error {
 	if e.task.Spec.Register != "" {
 		var stdoutResult any = stdout
 		var stderrResult any = stderr
-		switch e.task.Spec.RegisterType {
+		switch e.task.Spec.RegisterType { // if failed the stdout may not be json or yaml
 		case "json":
-			_ = json.Unmarshal([]byte(stdout), &stdoutResult)
+			if err := json.Unmarshal([]byte(stdout), &stdoutResult); err != nil {
+				klog.V(5).ErrorS(err, "failed to register json value")
+			}
 		case "yaml", "yml":
-			_ = yaml.Unmarshal([]byte(stdout), &stdoutResult)
+			if err := yaml.Unmarshal([]byte(stdout), &stdoutResult); err != nil {
+				klog.V(5).ErrorS(err, "failed to register yaml value")
+			}
 		default:
 			// store by string
+			if s, ok := stdoutResult.(string); ok {
+				stdoutResult = strings.TrimRight(s, "\n")
+			}
 		}
 		// set variable to parent location
 		node, err := converter.ConvertMap2Node(map[string]any{
 			e.task.Spec.Register: map[string]any{
 				"stdout": stdoutResult,
 				"stderr": stderrResult,
+				"error":  errMsg,
 			},
 		})
 		if err != nil {

@@ -1,46 +1,48 @@
-# set localDNS for each .kubernetes.control_plane_endpoint.type
-# local:
-# before init cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# after init cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# before join cluster
-# - control_plane: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
-# after join cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+# HighAvailability: Configure localDNS for each .kubernetes.control_plane_endpoint.type
+# 
+# For 'local' endpoint type:
+#   Before cluster initialization:
+#     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#   After cluster initialization:
+#     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#   Before joining cluster:
+#     - Control plane: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+#   After joining cluster:
+#     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
 #
-# kube_vip:
-# before init cluster
-# - control_plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
-# after init cluster
-# - control_plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
-# before join cluster
-# - control_plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
-# after join cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+# For 'kube_vip' endpoint type:
+#   Before cluster initialization:
+#     - Control plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#   After cluster initialization:
+#     - Control plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#   Before joining cluster:
+#     - Control plane: {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#   After joining cluster:
+#     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
 #
-# haproxy:
-# before init cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# after init cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# before join cluster
-# - control_plane: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
-# after join cluster
-# - control_plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-# - worker: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-- name: Set Control Plane to localDNS file
+# For 'haproxy' endpoint type:
+#   Before cluster initialization:
+#     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#   After cluster initialization:
+#     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#   Before joining cluster:
+#     - Control plane: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+#   After joining cluster:
+#     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+
+- name: HighAvailability | Configure localDNS for control plane endpoint
   command: |
     sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
     cat >> {{ .item }} <<EOF
@@ -55,14 +57,16 @@
     EOF
   loop: "{{ .localDNS | toJson }}"
 
-# install with static pod: https://kube-vip.io/docs/installation/static/
-- include_tasks: high-availability/kube_vip.yaml
+# HighAvailability: Install kube-vip as a static pod. See: https://kube-vip.io/docs/installation/static/
+- name: HighAvailability | Include kube-vip static pod tasks
+  include_tasks: high-availability/kube_vip.yaml
   when:
     - .kubernetes.control_plane_endpoint.type | eq "kube_vip"
     - .groups.kube_control_plane | default list | has .inventory_hostname
 
-# only deploy haproxy in worker node. control_plane node use local static pod: kube-apiserver.
-- include_tasks: high-availability/haproxy.yaml
+# HighAvailability: Deploy HAProxy only on worker nodes. Control plane nodes use the local static pod for kube-apiserver.
+- name: HighAvailability | Include HAProxy deployment tasks for worker nodes
+  include_tasks: high-availability/haproxy.yaml
   when:
     - .kubernetes.control_plane_endpoint.type | eq "haproxy"
     - .groups.kube_worker | default list | has .inventory_hostname

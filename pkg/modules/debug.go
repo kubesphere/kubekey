@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -64,37 +65,37 @@ Return Values:
 */
 
 // ModuleDebug handles the "debug" module, printing debug information
-func ModuleDebug(_ context.Context, options ExecOptions) (string, string) {
+func ModuleDebug(_ context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 	args := variable.Extension2Variables(options.Args)
 	v := reflect.ValueOf(args["msg"])
 	switch v.Kind() {
 	case reflect.Invalid:
-		return "", "\"msg\" is not found"
+		return StdoutFailed, StderrUnsupportArgs, errors.New("\"msg\" is not found")
 	case reflect.String:
 		if !kkprojectv1.IsTmplSyntax(v.String()) {
-			return formatOutput([]byte(v.String()), options.LogOutput), ""
+			return formatOutput([]byte(v.String()), options.LogOutput), "", nil
 		}
 		val := kkprojectv1.TrimTmplSyntax(v.String())
 		if !strings.HasPrefix(val, ".") {
-			return "", "error tmpl value syntax"
+			return StdoutFailed, StderrUnsupportArgs, errors.New("error tmpl value syntax")
 		}
 		data, err := variable.PrintVar(ha, strings.Split(val, ".")[1:]...)
 		if err != nil {
-			return "", err.Error()
+			return StdoutFailed, StderrParseArgument, err
 		}
-		return formatOutput(data, options.LogOutput), ""
+		return formatOutput(data, options.LogOutput), "", nil
 	default:
 		// do not parse by ctx
 		data, err := json.Marshal(v.Interface())
 		if err != nil {
-			return "", err.Error()
+			return StdoutFailed, "failed to marshal value to json", err
 		}
-		return formatOutput(data, options.LogOutput), ""
+		return formatOutput(data, options.LogOutput), "", nil
 	}
 }
 

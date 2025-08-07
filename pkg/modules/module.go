@@ -37,15 +37,20 @@ const (
 	StdoutFailed = "failed"
 	// StdoutSkip is the standard message indicating a skipped module execution.
 	StdoutSkip = "skip"
-	// StdoutTrue is the standard message indicating a boolean true result (used in bool/assert modules).
-	StdoutTrue = "True"
-	// StdoutFalse is the standard message indicating a boolean false result (used in bool/assert modules).
-	StdoutFalse = "False"
+
+	// StderrGetConnector is returned when the connector cannot be obtained.
+	StderrGetConnector = "failed to get connector"
+	// StderrGetHostVariable is returned when host variables cannot be retrieved.
+	StderrGetHostVariable = "failed to get host variable"
+	// StderrParseArgument is returned when module arguments cannot be parsed.
+	StderrParseArgument = "failed to parse argument"
+	// StderrUnsupportArgs is returned when the provided arguments are not supported.
+	StderrUnsupportArgs = "unsupport args"
 )
 
 // ModuleExecFunc defines the function signature for executing a module.
 // It takes a context and ExecOptions, and returns stdout and stderr strings.
-type ModuleExecFunc func(ctx context.Context, options ExecOptions) (stdout string, stderr string)
+type ModuleExecFunc func(ctx context.Context, options ExecOptions) (stdout string, stderr string, err error)
 
 // ExecOptions represents options for module execution.
 type ExecOptions struct {

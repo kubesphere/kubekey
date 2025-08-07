@@ -1,25 +1,21 @@
 ---
-- name: Sync ca file to remote
-  tags: ["certs"]
+- name: ETCD | Copy CA certificate to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/root.crt
     dest: /etc/ssl/etcd/ssl/ca.crt
 
-- name: Sync etcd cert file to remote
-  tags: ["certs"]
+- name: ETCD | Copy server certificate to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/etcd.crt
     dest: /etc/ssl/etcd/ssl/server.crt
 
-- name: Sync etcd key file to remote
-  tags: ["certs"]
+- name: ETCD | Copy server private key to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/etcd.key
     dest: /etc/ssl/etcd/ssl/server.key
 
-- name: Restart etcd service
-  tags: ["certs"]
+- name: ETCD | Restart etcd service to apply new certificates
   command: systemctl restart etcd

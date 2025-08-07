@@ -1,0 +1,41 @@
+---
+- name: Install | Initialize etcd environment
+  block:
+    - name: Install | Create etcd system user
+      command: |
+        id etcd &>/dev/null || useradd -M -c 'Etcd user' -s /sbin/nologin -r etcd || :
+    - name: Install | Create etcd data directory and set ownership
+      command: |
+        if [ ! -d "{{ .item }}" ]; then
+          mkdir -p {{ .item }} && chown -R etcd {{ .item }}
+        fi
+      loop:
+       - "{{ .etcd.env.data_dir }}"
+
+- name: Install | Generate etcd environment configuration file
+  template:
+    src: etcd.env
+    dest: /etc/etcd.env
+
+- name: Install | Deploy etcd systemd service file
+  copy:
+    src: etcd.service
+    dest: /etc/systemd/system/etcd.service
+
+# refer: https://etcd.io/docs/v3.5/tuning/
+- name: Install | Set CPU governor to performance mode
+  command: |
+    echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+  when: .etcd.performance
+
+- name: Install | Configure network traffic priority for etcd
+  command: |
+    tc qdisc add dev eth0 root handle 1: prio bands 3
+    tc filter add dev eth0 parent 1: protocol ip prio 1 u32 match ip sport 2380 0xffff flowid 1:1
+    tc filter add dev eth0 parent 1: protocol ip prio 1 u32 match ip dport 2380 0xffff flowid 1:1
+    tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip sport 2379 0xffff flowid 1:1
+    tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip dport 2379 0xffff flowid 1:1
+  when: .etcd.traffic_priority
+
+- name: Install | Start and enable etcd systemd service
+  command: systemctl daemon-reload && systemctl start etcd && systemctl enable etcd

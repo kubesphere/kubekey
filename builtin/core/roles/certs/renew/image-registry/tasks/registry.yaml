@@ -1,20 +1,17 @@
 ---
-- name: Sync image registry cert file to remote
-  tags: ["certs"]
+- name: Docker Registry | Copy image registry certificate to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.crt
     dest: >-
       /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.crt
 
-- name: Sync image registry key file to remote
-  tags: ["certs"]
+- name: Docker Registry | Copy image registry private key to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.key
     dest: >-
       /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.key
 
-- name: Restart registry service
-  tags: ["certs"]
+- name: Docker Registry | Restart registry service to apply new certificates
   command: systemctl restart registry.service

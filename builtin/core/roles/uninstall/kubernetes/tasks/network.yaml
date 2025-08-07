@@ -1,5 +1,6 @@
 ---
-- name: Clean iptables
+- name: Network | Thoroughly clean up iptables and network interfaces
+  ignore_errors: true
   command: |
     iptables -F
     iptables -X
@@ -24,7 +25,7 @@
     {{- end }}
     ip netns show 2>/dev/null | grep cni- | awk '{print $1}' | xargs -r -t -n 1 ip netns del
 
-- name: Delete net.d
+- name: Network | Remove all CNI network configuration and state
   command: |
     rm -rf /etc/cni/net.d/
     rm -rf /var/lib/cni/
@@ -32,13 +33,13 @@
     rm -rf /usr/local/bin/calicoctl
     {{- end }}
 
-- name: Delete arp by kube-vip
+- name: Network | Remove ARP and IP address entries for kube-vip
   when: eq .kubernetes.control_plane_endpoint.type "kube_vip"
   command: |
     ip neigh show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{print $1 " dev " $3}' | xargs -r -L1 ip neigh delete
     ip -o addr show | grep {{ .kubernetes.control_plane_endpoint.kube_vip.address }} | awk '{system("ip addr del "$4" dev "$2)}'
 
-- name: Rebuild cri iptables
+- name: Network | Restart container runtime to rebuild iptables rules
   ignore_errors: true
   when: or (.deleteCRI | not) (.groups.image_registry | default list | has .inventory_hostname)
   command: |

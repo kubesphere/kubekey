@@ -1,68 +1,50 @@
 ---
-- name: Stop if etcd deployment type is not internal or external
+- name: ETCD | Fail if etcd deployment type is not 'internal' or 'external'
   assert:
     that: .cluster_require.require_etcd_deployment_type | has .kubernetes.etcd.deployment_type
     fail_msg: >-
-      the etcd deployment type, should be internal or external but got {{ .kubernetes.etcd.deployment_type }}
+      Invalid etcd deployment type: '{{ .kubernetes.etcd.deployment_type }}'. Expected 'internal' or 'external'.
   run_once: true
   when: .kubernetes.etcd.deployment_type | empty | not
 
-- name: Stop if etcd group is empty in external etcd mode
+- name: ETCD | Fail if etcd group is empty in external etcd mode
   assert:
     that: .groups.etcd | empty | not
-    fail_msg: "group \"etcd\" cannot be empty in external etcd mode"
+    fail_msg: >-
+      The "etcd" group must not be empty when using external etcd mode.
   run_once: true
   when: .kubernetes.etcd.deployment_type | eq "external"
 
-- name: Stop if even number of etcd hosts
+- name: ETCD | Fail if the number of etcd hosts is even
   assert:
     that: (mod (.groups.etcd | len) 2) | eq 1
-    fail_msg: "etcd number should be odd number"
+    fail_msg: >-
+      The number of etcd nodes must be odd to ensure quorum. Current count: {{ .groups.etcd | len }}.
   run_once: true  
   when: .kubernetes.etcd.deployment_type | eq "external"
 
 ## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824
-- name: Check dev io for etcd
+- name: ETCD | Validate disk I/O performance for etcd
   when:
     - .groups.etcd | default list | has .inventory_hostname
   block:
-    - name: Check fio is exist
+    - name: ETCD | Check if fio is installed
       ignore_errors: true
       command: fio --version
       register: fio_install_version
-    - name: Test dev io by fio
-      when: .fio_install_version.stderr | empty
+    - name: ETCD | Run fio disk I/O test
+      when: .fio_install_version.error | empty
       block:
-        - name: Get fio result
+        - name: ETCD | Execute fio and collect results
           command: |
             mkdir -p {{ .tmp_dir }}/etcd/test-data
             fio --rw=write --ioengine=sync --fdatasync=1 --directory={{ .tmp_dir }}/etcd/test-data --size=22m --bs=2300 --name=mytest --output-format=json
           register: fio_result
-        - name: Check fio result
+        - name: ETCD | Assert disk fsync latency meets requirements
           assert:
             that: (index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000") | le .cluster_require.etcd_disk_wal_fysnc_duration_seconds
             fail_msg: >-
-              etcd_disk_wal_fysnc_duration_seconds: {{ index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000" }}ns is more than {{ .cluster_require.etcd_disk_wal_fysnc_duration_seconds }}ns
+              The 90th percentile fsync latency is {{ index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000" }}ns, which exceeds the maximum allowed: {{ .cluster_require.etcd_disk_wal_fysnc_duration_seconds }}ns.
       always:
-        - name: Clean test data dir
+        - name: ETCD | Clean up fio test data directory
           command: rm -rf {{ .tmp_dir }}/etcd/test-data
-
-- name: Check if etcd has installed
-  when: .groups.etcd | default list | has .inventory_hostname
-  block:
-    - name: Get etcd service
-      ignore_errors: true
-      command: systemctl is-active etcd.service
-      register: etcd_install_service
-    - name: Get etcd version
-      ignore_errors: true
-      command: etcd --version
-      register: etcd_install_version
-      register_type: yaml
-    - name: Check if etcd has match the version
-      when: .etcd_install_service.stdout | eq "active"
-      assert:
-        that: |
-          eq (get .etcd_install_version.stdout "etcd Version") (.etcd_version | default "" | trimPrefix "v")
-        fail_msg: >-
-          excepted install etcd with version: {{ .etcd_version }} but has installed with: {{ get .etcd_install_version.stdout "etcd Version" }}.

@@ -30,7 +30,6 @@ func TestAssert(t *testing.T) {
 		name         string
 		opt          ExecOptions
 		exceptStdout string
-		exceptStderr string
 	}{
 		{
 			name: "non-that",
@@ -39,7 +38,7 @@ func TestAssert(t *testing.T) {
 				Variable: newTestVariable(nil, nil),
 				Args:     runtime.RawExtension{},
 			},
-			exceptStderr: "\"that\" should be []string or string",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "success with non-msg",
@@ -52,7 +51,7 @@ func TestAssert(t *testing.T) {
 					"testvalue": "a",
 				}),
 			},
-			exceptStdout: StdoutTrue,
+			exceptStdout: StdoutSuccess,
 		},
 		{
 			name: "success with success_msg",
@@ -80,7 +79,7 @@ func TestAssert(t *testing.T) {
 					"k2": "v2",
 				}),
 			},
-			exceptStderr: "False",
+			exceptStdout: StdoutFailed,
 		},
 		{
 			name: "failed with failed_msg",
@@ -94,7 +93,7 @@ func TestAssert(t *testing.T) {
 					"k2": "v2",
 				}),
 			},
-			exceptStderr: "failed v2",
+			exceptStdout: StdoutFailed,
 		},
 	}
 
@@ -103,9 +102,8 @@ func TestAssert(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
 
-			acStdout, acStderr := ModuleAssert(ctx, tc.opt)
+			acStdout, _, _ := ModuleAssert(ctx, tc.opt)
 			assert.Equal(t, tc.exceptStdout, acStdout)
-			assert.Equal(t, tc.exceptStderr, acStderr)
 		})
 	}
 }

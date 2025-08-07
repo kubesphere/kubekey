@@ -1,12 +1,12 @@
 ---
-- name: Sync registry image to remote
+- name: DockerRegistry | Synchronize registry image archive to remote host
   copy:
     src: >-
       {{ .binary_dir }}/image-registry/docker-registry/{{ .docker_registry_version }}/{{ .binary_type }}/docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz
     dest: >-
       /opt/docker-registry/{{ .docker_registry_version }}/docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz
 
-- name: Mount NFS dir
+- name: DockerRegistry | Ensure NFS directory is mounted for registry storage
   command: |
     {{- if .os.release.ID_LIKE | eq "debian" }}
     yum update && yum install -y nfs-utils
@@ -26,47 +26,47 @@
     - .image_registry.docker_registry.storage.filesystem.nfs_mount | empty | not
     - .groups.nfs | default list | len | eq 1
 
-- name: Load registry image
+- name: DockerRegistry | Load registry image into Docker
   command: |
     docker load -i /opt/docker-registry/{{ .docker_registry_version }}/docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz
 
-- name: Sync image registry cert file to remote
+- name: DockerRegistry | Synchronize registry certificate to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.crt
     dest: >-
       /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.crt
 
-- name: Sync image registry key file to remote
+- name: DockerRegistry | Synchronize registry private key to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.key
     dest: >-
       /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.key
 
-- name: Generate registry docker compose
+- name: DockerRegistry | Generate Docker Compose file for registry
   template:
     src: docker-compose.yaml
     dest: >-
       /opt/docker-registry/{{ .docker_registry_version }}/docker-compose.yml
 
-- name: Generate registry config
+- name: DockerRegistry | Generate registry configuration file
   template:
     src: config.yaml
     dest: >-
       /opt/docker-registry/{{ .docker_registry_version }}/config.yml
 
-- name: Register registry service
+- name: DockerRegistry | Register registry as a systemd service
   template:
     src: docker-registry.service
     dest: /etc/systemd/system/docker-registry.service
 
-- name: Start registry service
+- name: DockerRegistry | Start and enable registry systemd service
   command: systemctl daemon-reload && systemctl start docker-registry.service && systemctl enable docker-registry.service
 
-- name: wait registry service ready
+- name: DockerRegistry | Wait for registry service to become available
   command: |
     if ! timeout 300 bash -c 'while ! nc -zv localhost 443; do sleep 2; done'; then
-        echo "ERROR: Harbor did not start within 5 minutes!"
+        echo "ERROR: Docker Registry did not start within 5 minutes!"
         exit 1
     fi  

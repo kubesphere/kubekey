@@ -1,15 +1,15 @@
 ---
-- name: Init for new kubernetes nodes
-  when: .kubernetes_install_service.stdout | eq "inactive"
+- name: OS | Initialize new Kubernetes nodes
+  when: .kubernetes_install_LoadState.stdout | eq "not-found"
   block:
     - include_tasks: init_repository.yaml
-    - name: Reset tmp dir
+    - name: OS | Reset temporary directory
       command: |
         if [ -d {{ .tmp_dir }} ]; then
           rm -rf {{ .tmp_dir }}
         fi
         mkdir -m 777 -p {{ .tmp_dir }}
-    - name: Set hostname
+    - name: OS | Set system hostname
       command: |
         hostnamectl set-hostname {{ .inventory_hostname }} \
           && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' {{ .item }}
@@ -17,16 +17,16 @@
         - .set_hostname
         - .inventory_hostname | ne "localhost"
       loop: "{{ .localDNS | toJson }}"
-    - name: Sync init os to remote
+    - name: OS | Synchronize initialization script to remote node
       template:
         src: init-os.sh
         dest: /etc/kubekey/scripts/init-os.sh
         mode: 0755
-    - name: Execute init os script
+    - name: OS | Execute initialization script on remote node
       command: |
         /etc/kubekey/scripts/init-os.sh
 
-- name: Init for all nodes always
+- name: OS | Always perform initialization steps for all nodes
   block:
     - include_tasks: init_ntpserver.yaml
     - include_tasks: init_localdns.yaml

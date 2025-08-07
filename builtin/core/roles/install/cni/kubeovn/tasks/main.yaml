@@ -1,27 +1,27 @@
 ---
-- name: Sync kubeovn package to remote
+- name: Kubeovn | Synchronize Kube-OVN Helm chart package to remote node
   copy:
     src: >-
       {{ .binary_dir }}/cni/kubeovn/kubeovn-{{ .kubeovn_version }}.tgz
     dest: >-
       /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz
 
-- name: Generate kubeovn custom value file
+- name: Kubeovn | Generate Kube-OVN custom values file
   copy:
     content: |
       {{ .cni.kubeovn.values }}
     dest: /etc/kubernetes/cni/kubeovn-values.yaml
 
-- name: Add kubeovn label to node
+- name: Kubeovn | Add Kube-OVN labels to nodes
   command: |
     kubectl label node -lbeta.kubernetes.io/os=linux kubernetes.io/os=linux --overwrite
     kubectl label node -lnode-role.kubernetes.io/control-plane kube-ovn/role=master --overwrite
 
-- name: Apply kubeovn
+- name: Kubeovn | Install Kube-OVN using Helm with custom values
   command: |
-    helm install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz -f /etc/kubernetes/cni/kubeovn-values.yaml
+    helm upgrade --install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz -f /etc/kubernetes/cni/kubeovn-values.yaml
 
-# https://kubeovn.github.io/docs/stable/start/one-step-install/#helm-chart
-- name: Install kubeovn
+# Reference: https://kubeovn.github.io/docs/stable/start/one-step-install/#helm-chart
+- name: Kubeovn | Install Kube-OVN using Helm
   command: |
-    helm install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz 
+    helm upgrade --install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .kubeovn_version }}.tgz 

@@ -195,7 +195,47 @@ func (pc *PrometheusConnector) PutFile(ctx context.Context, src []byte, dst stri
 
 // FetchFile is not supported for Prometheus connector
 func (pc *PrometheusConnector) FetchFile(ctx context.Context, src string, dst io.Writer) error {
-	return errors.New("fetchFile operation is not supported for Prometheus connector")
+	// Build query URL for server info
+	infoURL, err := url.Parse(pc.url + src)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse URL for server info")
+	}
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, infoURL.String(), http.NoBody)
+	if err != nil {
+		return errors.Wrap(err, "failed to create request for server info")
+	}
+
+	// Add authentication headers
+	pc.addAuthHeaders(req)
+
+	// Execute request
+	resp, err := pc.client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "failed to get prometheus server info")
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "failed to read server info response body")
+	}
+
+	// Check if response is successful
+	if resp.StatusCode != http.StatusOK {
+		klog.ErrorS(err, "Prometheus server info request failed",
+			"statusCode", resp.StatusCode,
+			"response", string(bodyBytes))
+		return errors.Errorf("prometheus server info request failed with status %d", resp.StatusCode)
+	}
+
+	// Parse response
+	if _, err := io.Copy(dst, resp.Body); err != nil {
+		return errors.Wrap(err, "failed to copy response")
+	}
+	return nil
 }
 
 // ExecuteCommand executes a PromQL query and returns both stdout and stderr
@@ -585,62 +625,4 @@ func addValueAndTimestamp(builder *strings.Builder, sample map[string]any, metri
 	}
 
 	return nil
-}
-
-// GetServerInfo returns information about the Prometheus server
-// This is useful for checking server version, uptime, and other details
-func (pc *PrometheusConnector) GetServerInfo(ctx context.Context) (map[string]any, error) {
-	if !pc.connected {
-		return nil, errors.New("prometheus connector is not initialized, call Init() first")
-	}
-
-	klog.V(4).InfoS("Getting Prometheus server information")
-
-	// Build query URL for server info
-	infoURL, err := url.Parse(pc.url + "api/v1/status/buildinfo")
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse URL for server info")
-	}
-
-	// Create request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, infoURL.String(), http.NoBody)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request for server info")
-	}
-
-	// Add authentication headers
-	pc.addAuthHeaders(req)
-
-	// Execute request
-	resp, err := pc.client.Do(req)
-	if err != nil {
-		klog.ErrorS(err, "Failed to get Prometheus server info")
-		return nil, errors.Wrap(err, "failed to get prometheus server info")
-	}
-	defer resp.Body.Close()
-
-	// Read response
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		klog.ErrorS(err, "Failed to read server info response body")
-		return nil, errors.Wrap(err, "failed to read server info response body")
-	}
-
-	// Check if response is successful
-	if resp.StatusCode != http.StatusOK {
-		klog.ErrorS(err, "Prometheus server info request failed",
-			"statusCode", resp.StatusCode,
-			"response", string(bodyBytes))
-		return nil, errors.Errorf("prometheus server info request failed with status %d", resp.StatusCode)
-	}
-
-	// Parse response
-	var result map[string]any
-	if err := json.Unmarshal(bodyBytes, &result); err != nil {
-		klog.ErrorS(err, "Failed to parse server info response")
-		return nil, errors.Wrap(err, "failed to parse server info response")
-	}
-
-	klog.V(4).InfoS("Successfully retrieved Prometheus server information")
-	return result, nil
 }

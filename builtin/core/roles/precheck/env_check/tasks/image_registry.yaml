@@ -1,29 +1,29 @@
-- name: Ensure image registry authentication is successful
+- name: ImageRegistry | Verify successful authentication to image registry
   when: .image_registry.auth | empty | not
   run_once: true
   command: |
     HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" "https://{{ .image_registry.auth.registry }}/v2/" -o /dev/null)
     if [[ "$HTTP_CODE" == "200" ]]; then
-      echo "Authentication to image registry succeeded."
+      echo "Successfully authenticated to the image registry."
     else
-      echo "Authentication to image registry {{ .image_registry.auth.registry }} failed." >&2
+      echo "Failed to authenticate to the image registry at {{ .image_registry.auth.registry }}." >&2
     fi
 
-# image_registry is installed by docker_compose
-- name: Ensure docker and docker-compose versions are set for image registry
+# The image_registry is deployed using docker_compose
+- name: ImageRegistry | Ensure docker and docker-compose versions are specified
   when: .groups.image_registry | empty | not
   assert:
     that:
-     - .docker_version | empty | not
-     - .dockercompose_version | empty | not
+      - .docker_version | empty | not
+      - .dockercompose_version | empty | not
     msg: >-
-      Both "docker_version" and "dockercompose_version" must be specified for the image registry.
+      Both "docker_version" and "dockercompose_version" must be provided for the image registry deployment.
 
-- name: Ensure keepalived_version is set for high availability image registry
+- name: ImageRegistry | Ensure keepalived_version is specified for high availability
   when: 
     - .image_registry.ha_vip | empty | not
     - .groups.image_registry | len | lt 1
   assert:
     that: .keepalived_version | empty | not
     msg: >-
-      "keepalived_version" must be specified when the image registry is configured for high availability.
+      "keepalived_version" must be specified when configuring the image registry for high availability.

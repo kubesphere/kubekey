@@ -1,4 +1,4 @@
 - include_tasks: join_kubernetes.yaml
   when: 
     - ne .inventory_hostname .init_kubernetes_node
-    - .kubernetes_install_service.stdout | eq "inactive"
+    - .kubernetes_install_LoadState.stdout | eq "not-found"

@@ -11,7 +11,7 @@ ENDPOINTS='https://{{ .internal_ipv4 }}:2379'
 ENDPOINTS='https://{{ .internal_ipv6 }}:2379'
 {{- end }}
 ETCD_DATA_DIR="{{ .etcd.env.data_dir }}"
-BACKUP_DIR="{{ .etcd.backup.backup_dir }}/etcd-$(date +%Y-%m-%d-%H-%M-%S)"
+BACKUP_DIR="${BACKUP_DIR:-{{ .etcd.backup.backup_dir }}/timer/etcd-$(date +%Y-%m-%d-%H-%M-%S)}"
 KEEPBACKUPNUMBER='{{ .etcd.backup.keep_backup_number }}'
 ((KEEPBACKUPNUMBER++))
 
@@ -21,7 +21,7 @@ ETCDCTL_CA_FILE="/etc/ssl/etcd/ssl/ca.crt"
 
 [ ! -d $BACKUP_DIR ] && mkdir -p $BACKUP_DIR
 
-export ETCDCTL_API=2;$ETCDCTL_PATH backup --data-dir $ETCD_DATA_DIR --backup-dir $BACKUP_DIR
+export ETCDCTL_API=3;$ETCDCTL_PATH backup --data-dir $ETCD_DATA_DIR --backup-dir $BACKUP_DIR
 
 sleep 3
 

@@ -22,4 +22,4 @@
 # https://docs.cilium.io/en/stable/installation/k8s-install-helm/
 - name: Install cilium
   command: |
-    helm install --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-values.yaml
+    helm upgrade --install --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-values.yaml

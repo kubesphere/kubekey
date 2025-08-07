@@ -2,7 +2,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
@@ -84,32 +83,32 @@ func newAddHostvarsArgs(_ context.Context, raw runtime.RawExtension, vars map[st
 
 // ModuleAddHostvars handles the "add_hostvars" module, merging variables into the specified hosts.
 // Returns empty stdout and stderr on success, or error message in stderr on failure.
-func ModuleAddHostvars(ctx context.Context, options ExecOptions) (string, string) {
+func ModuleAddHostvars(ctx context.Context, options ExecOptions) (string, string, error) {
 	// Get all host variables (for context, not used directly here).
 	ha, err := options.getAllVariables()
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrGetHostVariable, err
 	}
 	// Parse module arguments.
 	args, err := newAddHostvarsArgs(ctx, options.Args, ha)
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, StderrParseArgument, err
 	}
 	ahn, err := options.Variable.Get(variable.GetHostnames(args.hosts))
 	if err != nil {
-		return "", err.Error()
+		return StdoutFailed, "failed to get hostnames", err
 	}
 	hosts, ok := ahn.([]string)
 	if !ok {
-		return "", "failed to get actual hosts from given \"hosts\""
+		return StdoutFailed, "failed to get actual hosts from given \"hosts\"", errors.Errorf("failed to get actual hosts from given \"hosts\"")
 	}
 
 	// Merge the provided variables into the specified hosts.
 	if err := options.Variable.Merge(variable.MergeHostsRuntimeVariable(args.vars, options.Host, hosts...)); err != nil {
-		return "", fmt.Sprintf("add_hostvars error: %v", err)
+		return StdoutFailed, "failed to add_hostvars", errors.Wrap(err, "failed to add_hostvars")
 	}
 
-	return "", ""
+	return StdoutSuccess, "", nil
 }
 
 func init() {
