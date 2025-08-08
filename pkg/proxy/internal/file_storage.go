@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -148,7 +149,11 @@ func (s fileStorage) Watch(_ context.Context, key string, _ apistorage.ListOptio
 func (s fileStorage) Get(_ context.Context, key string, _ apistorage.GetOptions, out runtime.Object) error {
 	data, err := os.ReadFile(key + yamlSuffix)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read object file %q", key)
+		if os.IsNotExist(err) {
+			// Return a NotFound error with dummy GroupResource and key as name.
+			return apierrors.NewNotFound(s.resource, key)
+		}
+		return err
 	}
 
 	return decode(s.codec, data, out)
@@ -174,6 +179,10 @@ func (s fileStorage) GetList(_ context.Context, key string, opts apistorage.List
 	// Get the root entries in the directory corresponding to 'key'.
 	rootEntries, isAllNamespace, err := s.getRootEntries(key)
 	if err != nil {
+		if os.IsNotExist(err) {
+			// Return a NotFound error with dummy GroupResource and key as name.
+			return apierrors.NewNotFound(s.resource, key)
+		}
 		return err
 	}
 
@@ -189,6 +198,10 @@ func (s fileStorage) GetList(_ context.Context, key string, opts apistorage.List
 			err = s.processResourceFile(key, entry, v, continueKeyMatchRule, resourceVersionMatchRule, &lastKey, opts, listObj)
 		}
 		if err != nil {
+			if os.IsNotExist(err) {
+				// Return a NotFound error with dummy GroupResource and key as name.
+				return apierrors.NewNotFound(s.resource, key)
+			}
 			return err
 		}
 		// Check if we have reached the limit of results requested by the client.

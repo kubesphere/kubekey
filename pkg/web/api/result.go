@@ -46,6 +46,13 @@ type Result struct {
 	Result  any    `json:"result"`
 }
 
+// SetResult sets the Result field of the Result struct and returns the updated Result.
+// This is useful for chaining or for returning a Result with additional data.
+func (r Result) SetResult(result any) Result {
+	r.Result = result
+	return r
+}
+
 // ListResult is a generic struct representing a paginated list response.
 // T is a type parameter for the type of items in the list.
 // Items contains the list of results, and TotalItems indicates the total number of items available.
