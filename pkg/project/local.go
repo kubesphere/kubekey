@@ -50,5 +50,6 @@ func newLocalProject(playbook kkcorev1.Playbook) (Project, error) {
 		FS:           os.DirFS(projectPath),
 		basePlaybook: relPath,
 		Playbook:     &kkprojectv1.Playbook{},
+		config:       playbook.Spec.Config.Value(),
 	}, nil
 }

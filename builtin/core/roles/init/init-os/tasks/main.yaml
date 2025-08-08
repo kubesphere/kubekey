@@ -1,6 +1,8 @@
 ---
 - name: OS | Initialize new Kubernetes nodes
-  when: .kubernetes_install_LoadState.stdout | eq "not-found"
+  when: 
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .kubernetes_install_LoadState.stdout | eq "not-found"
   block:
     - include_tasks: init_repository.yaml
     - name: OS | Reset temporary directory
