@@ -43,6 +43,7 @@ func init() {
 			FS:           core.BuiltinPlaybook,
 			basePlaybook: playbook.Spec.Playbook,
 			Playbook:     &kkprojectv1.Playbook{},
+			config:       playbook.Spec.Config.Value(),
 		}, nil
 	}
 }

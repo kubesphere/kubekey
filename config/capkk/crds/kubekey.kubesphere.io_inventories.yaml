@@ -59,6 +59,8 @@ spec:
                     vars:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
+                  required:
+                  - hosts
                   type: object
                 description: Groups nodes. a group contains repeated nodes
                 type: object
@@ -73,6 +75,8 @@ spec:
                   > group vars > inventory vars'
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
+            required:
+            - hosts
             type: object
           status:
             description: InventoryStatus of Inventory

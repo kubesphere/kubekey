@@ -263,7 +263,7 @@ func (h *PlaybookHandler) Delete(request *restful.Request, response *restful.Res
 	err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: name}, playbook)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_ = response.WriteEntity(api.SUCCESS)
+			_ = response.WriteEntity(api.SUCCESS.SetResult("playbook has deleted"))
 		} else {
 			api.HandleError(response, request, err)
 		}
@@ -273,7 +273,11 @@ func (h *PlaybookHandler) Delete(request *restful.Request, response *restful.Res
 	playbookManager.stopPlaybook(playbook)
 	// Delete the playbook resource.
 	if err := h.client.Delete(request.Request.Context(), playbook); err != nil {
-		api.HandleError(response, request, err)
+		if apierrors.IsNotFound(err) {
+			_ = response.WriteEntity(api.SUCCESS.SetResult("playbook has deleted"))
+		} else {
+			api.HandleError(response, request, err)
+		}
 		return
 	}
 	// Delete related log file and directory.
@@ -284,7 +288,11 @@ func (h *PlaybookHandler) Delete(request *restful.Request, response *restful.Res
 		"playbook.name": playbook.Name,
 		"playbook.uid":  string(playbook.UID),
 	}); err != nil {
-		api.HandleError(response, request, err)
+		if apierrors.IsNotFound(err) {
+			_ = response.WriteEntity(api.SUCCESS.SetResult("playbook has deleted"))
+		} else {
+			api.HandleError(response, request, err)
+		}
 		return
 	}
 

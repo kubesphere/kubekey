@@ -11,6 +11,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -81,6 +82,17 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 		api.HandleError(response, request, errors.Wrapf(err, "failed to get Inventory %s/%s from cluster", namespace, inventoryName))
 		return
 	}
+	// Pre-process: ensure all groups have hosts as arrays instead of null
+	// This is necessary because JSON patch operations like "add" with "-" path
+	// require the target to be an array, not null
+	if oldInventory.Spec.Groups != nil {
+		for groupName, group := range oldInventory.Spec.Groups {
+			if group.Hosts == nil {
+				group.Hosts = []string{}
+				oldInventory.Spec.Groups[groupName] = group
+			}
+		}
+	}
 	// Encode the old inventory object to JSON
 	oldInventoryJSON, err := runtime.Encode(codec, oldInventory)
 	if err != nil {
@@ -89,7 +101,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	}
 
 	// Apply the patch to the old inventory and decode the result
-	applyPatchAndDecode := func() (*kkcorev1.Inventory, error) {
+	applyPatchAndDecode := func(objectJSON []byte) (*kkcorev1.Inventory, error) {
 		var patchedJSON []byte
 		switch patchType {
 		case types.JSONPatchType:
@@ -97,13 +109,13 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to decode JSON patch")
 			}
-			patchedJSON, err = patchObj.Apply(oldInventoryJSON)
+			patchedJSON, err = patchObj.Apply(objectJSON)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to apply JSON patch to old inventory JSON")
 			}
 		case types.MergePatchType:
 			var err error
-			patchedJSON, err = jsonpatch.MergePatch(oldInventoryJSON, patchBody)
+			patchedJSON, err = jsonpatch.MergePatch(objectJSON, patchBody)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to apply merge patch to old inventory JSON")
 			}
@@ -118,7 +130,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 		return newInventory, nil
 	}
 
-	updatedInventory, err := applyPatchAndDecode()
+	updatedInventory, err := applyPatchAndDecode(oldInventoryJSON)
 	if err != nil {
 		api.HandleError(response, request, errors.Wrap(err, "failed to apply patch and decode inventory"))
 		return
@@ -264,10 +276,13 @@ func (h *InventoryHandler) Info(request *restful.Request, response *restful.Resp
 	name := request.PathParameter("inventory")
 
 	inventory := &kkcorev1.Inventory{}
-
 	err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: name}, inventory)
 	if err != nil {
-		api.HandleError(response, request, err)
+		if apierrors.IsNotFound(err) {
+			_ = response.WriteEntity(api.SUCCESS.SetResult("waiting for inventory to be created"))
+		} else {
+			api.HandleError(response, request, err)
+		}
 		return
 	}
 
@@ -285,7 +300,11 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 	inventory := &kkcorev1.Inventory{}
 	err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: name}, inventory)
 	if err != nil {
-		api.HandleError(response, request, err)
+		if apierrors.IsNotFound(err) {
+			_ = response.WriteEntity(api.SUCCESS.SetResult("waiting for inventory to be created"))
+		} else {
+			api.HandleError(response, request, err)
+		}
 		return
 	}
 

@@ -32,6 +32,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -74,10 +75,10 @@ func New(ctx context.Context, playbook kkcorev1.Playbook, update bool) (Project,
 // project implements the Project interface using an fs.FS
 type project struct {
 	fs.FS
-
 	basePlaybook string
-
 	*kkprojectv1.Playbook
+
+	config map[string]any
 }
 
 // ReadFile reads and returns the contents of the file at the given path
@@ -182,8 +183,12 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 
 // dealVarsFiles handles the "var_files" argument in a play
 func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error {
-	for _, varsFile := range p.VarsFiles {
+	for _, varsFileStr := range p.VarsFiles {
 		// load vars from vars_files
+		varsFile, err := tmpl.ParseFunc(f.config, varsFileStr, func(b []byte) string { return string(b) })
+		if err != nil {
+			return errors.Errorf("failed to parse varFile %q", varsFileStr)
+		}
 		file := f.getPath(GetVarsFilesRelPath(basePlaybook, varsFile))
 		if file == "" {
 			return errors.Errorf("failed to find vars_files %q base on %q. it's should be:\n %s", varsFile, basePlaybook, PathFormatVarsFile)
