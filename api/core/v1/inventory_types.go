@@ -49,14 +49,14 @@ type InventoryHost map[string]runtime.RawExtension
 // InventoryGroup of Inventory
 type InventoryGroup struct {
 	Groups []string             `json:"groups,omitempty"`
-	Hosts  []string             `json:"hosts,omitempty"`
+	Hosts  []string             `json:"hosts"`
 	Vars   runtime.RawExtension `json:"vars,omitempty"`
 }
 
 // InventorySpec of Inventory
 type InventorySpec struct {
 	// Hosts is all nodes
-	Hosts InventoryHost `json:"hosts,omitempty"`
+	Hosts InventoryHost `json:"hosts"`
 	// Vars for all host. the priority for vars is: host vars > group vars > inventory vars
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields

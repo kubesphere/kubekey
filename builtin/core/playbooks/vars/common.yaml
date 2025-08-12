@@ -1,0 +1,45 @@
+# The global registry used for all images. Leave empty to use default registries.
+global_registry: ""
+
+# The registry to use for docker.io images.
+dockerio_registry: >-
+  {{- if .global_registry | empty | not -}}
+  {{ .global_registry }}
+  {{- else -}}
+  docker.io
+  {{- end -}}
+
+# The registry to use for quay.io images.
+quayio_registry: >-
+  {{- if .global_registry | empty | not -}}
+  {{ .global_registry }}
+  {{- else -}}
+  quay.io
+  {{- end -}}
+
+# The registry to use for ghcr.io images.
+ghcrio_registry: >-
+  {{- if .global_registry | empty | not -}}
+  {{ .global_registry }}
+  {{- else -}}
+  ghcr.io
+  {{- end -}}
+
+# Enable or disable security enhancement features.
+security_enhancement: false
+
+# Set to true to remove the container runtime interface (CRI) such as containerd or Docker from target nodes.
+deleteCRI: false
+
+# Set to true to uninstall etcd from target nodes.
+deleteETCD: false
+
+# Set to true to remove local DNS entries managed by Kubekey from the specified files.
+deleteDNS: false
+
+# Set to true to uninstall the image registry from target nodes.
+deleteImageRegistry: false
+
+# List of local DNS files to clean up if deleteDNS is enabled.
+localDNS:
+  - /etc/hosts

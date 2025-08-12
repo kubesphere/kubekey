@@ -55,7 +55,7 @@ func (h ResourceHandler) ConfigInfo(request *restful.Request, response *restful.
 	file, err := os.Open(filepath.Join(h.rootPath, api.SchemaConfigFile))
 	if err != nil {
 		if os.IsNotExist(err) {
-			_ = response.WriteError(http.StatusNotFound, err)
+			_ = response.WriteEntity(api.SUCCESS.SetResult("waiting for config to be created"))
 		} else {
 			_ = response.WriteError(http.StatusInternalServerError, err)
 		}

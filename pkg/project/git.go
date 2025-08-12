@@ -68,6 +68,7 @@ func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool)
 		FS:           os.DirFS(filepath.Join(projectDir, playbook.Spec.Project.Name)),
 		basePlaybook: playbook.Spec.Playbook,
 		Playbook:     &kkprojectv1.Playbook{},
+		config:       playbook.Spec.Config.Value(),
 	}, nil
 }
 

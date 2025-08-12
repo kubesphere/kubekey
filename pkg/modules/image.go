@@ -111,10 +111,11 @@ type imagePullArgs struct {
 	skipTLSVerify *bool
 	username      string
 	password      string
+	platform      string
 }
 
 // pull retrieves images from a remote registry and stores them locally
-func (i imagePullArgs) pull(ctx context.Context) error {
+func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	for _, img := range i.manifests {
 		src, err := remote.NewRepository(img)
 		if err != nil {
@@ -140,12 +141,42 @@ func (i imagePullArgs) pull(ctx context.Context) error {
 			return err
 		}
 
-		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions); err != nil {
+		copyOption := oras.DefaultCopyOptions
+		if platform != "" {
+			plat, err := parsePlatform(platform)
+			// only work when input a correct platform like "linux/amd64" or "linux/arm64"
+			// if input a wrong platform,all platform of this image will be pulled
+			if err == nil {
+				copyOption.WithTargetPlatform(&plat)
+			}
+		}
+
+		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", copyOption); err != nil {
 			return errors.Wrapf(err, "failed to pull image %q to local dir", img)
 		}
 	}
 
 	return nil
+}
+
+// 解析平台字符串为 ocispec.Platform
+func parsePlatform(platformStr string) (imagev1.Platform, error) {
+	parts := strings.Split(platformStr, "/")
+	if len(parts) < 2 {
+		return imagev1.Platform{}, errors.New("invalid platform input: " + platformStr)
+	}
+
+	plat := imagev1.Platform{
+		OS:           parts[0],
+		Architecture: parts[1],
+	}
+
+	// 处理变体 (如 arm/v7)
+	if len(parts) > 2 {
+		plat.Variant = strings.Join(parts[2:], "/")
+	}
+
+	return plat, nil
 }
 
 // imagePushArgs contains parameters for pushing images
@@ -235,6 +266,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		if ipl.skipTLSVerify == nil {
 			ipl.skipTLSVerify = ptr.To(false)
 		}
+		ipl.platform, _ = variable.StringVar(vars, pull, "platform")
 		// check args
 		if len(ipl.manifests) == 0 {
 			return nil, errors.New("\"pull.manifests\" is required")
@@ -307,7 +339,7 @@ func ModuleImage(ctx context.Context, options ExecOptions) (string, string, erro
 
 	// pull image manifests to local dir
 	if ia.pull != nil {
-		if err := ia.pull.pull(ctx); err != nil {
+		if err := ia.pull.pull(ctx, ia.pull.platform); err != nil {
 			return StdoutFailed, "failed to pull image", err
 		}
 	}

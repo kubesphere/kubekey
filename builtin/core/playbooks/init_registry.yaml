@@ -11,6 +11,7 @@
     - image_registry
   gather_facts: true
   roles:
+    - init/init-os
     - install/image-registry
 
 - import_playbook: hook/post_install.yaml
