@@ -1,4 +1,6 @@
 ---
+- import_playbook: hook/default.yaml
+
 # load defaults vars
 - hosts:
     - all
@@ -6,11 +8,7 @@
     - vars/common.yaml
     - vars/kubernetes.yaml
 
-- import_playbook: hook/pre_install.yaml
-
 - hosts:
    - image_registry
   roles:
     - role: uninstall/image-registry
-
-- import_playbook: hook/post_install.yaml

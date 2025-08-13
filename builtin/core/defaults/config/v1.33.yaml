@@ -9,7 +9,7 @@ spec:
   # should be greater than or equal to kube_version_min_required.
   kube_version: {{ .kube_version }}
   # helm binary
-  helm_version: v3.13.3
+  helm_version: v3.18.5
   # etcd binary
   etcd_version: v3.5.11
   # ========== image registry ==========
@@ -81,7 +81,7 @@ spec:
   #  - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
   #  - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
   #  - docker.io/kubesphere/pause:3.9
-  #  - quay.io/tigera/operator:v1.36.5
+  #  - quay.io/tigera/operator:v1.34.5
   #  - docker.io/calico/ctl:v3.28.2
   #  - docker.io/calico/typha:v3.28.2
   #  - docker.io/calico/apiserver:v3.28.2

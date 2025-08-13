@@ -1,15 +1,19 @@
 ---
-- import_playbook: hook/pre_install.yaml
+- import_playbook: hook/default.yaml
 
 - hosts:
     - localhost
   tags: ["always"]
+  pre_tasks:
+    - name: Image | Download container images
+      tags: ["always"]
+      image:
+        pull:
+          images_dir: >-
+            {{ .binary_dir }}/images/
+          manifests: "{{ .image_manifests | toJson }}"
+      when:
+        - .image_manifests | default list | empty | not
   roles:
-    - role: init/init-artifact
-      tags: ["always"]
-    - role: init/init-cert
-      tags: ["always"]
     - role: install/image-registry
       tags: ["always"]
-
-- import_playbook: hook/post_install.yaml

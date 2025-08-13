@@ -1,5 +1,5 @@
 ---
-- import_playbook: hook/pre_install.yaml
+- import_playbook: hook/default.yaml
 
 - hosts:
     - localhost
@@ -13,5 +13,3 @@
   roles:
     - init/init-os
     - install/image-registry
-
-- import_playbook: hook/post_install.yaml

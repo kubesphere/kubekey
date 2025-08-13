@@ -62,7 +62,7 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 		failedMsg := "\n"
 		for _, result := range e.task.Status.HostResults {
 			if result.Error != "" {
-				failedMsg += fmt.Sprintf("[%s]: %s\n", result.Host, result.StdErr)
+				failedMsg += fmt.Sprintf("[%s]: %s: %s\n", result.Host, result.StdErr, result.Error)
 			}
 		}
 		return errors.Errorf("task [%s](%s) run failed: %s", e.task.Spec.Name, ctrlclient.ObjectKeyFromObject(e.task), failedMsg)

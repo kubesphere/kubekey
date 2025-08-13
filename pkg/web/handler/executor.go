@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -62,7 +64,8 @@ func (m *manager) executor(playbook *kkcorev1.Playbook, client ctrlclient.Client
 		m.addPlaybook(playbook, cancel)
 		// Execute the playbook and write output to the log file
 		if err := executor.NewPlaybookExecutor(ctx, client, playbook, file).Exec(ctx); err != nil {
-			klog.ErrorS(err, "failed to exec playbook", "playbook", playbook.Name)
+			// recode to log file
+			fmt.Fprintf(file, "%s [Playbook %s] ERROR: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(playbook), err)
 		}
 		// Remove the playbook from the playbookManager after execution
 		m.deletePlaybook(playbook)

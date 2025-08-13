@@ -1,12 +1,12 @@
 ---
+- import_playbook: hook/default.yaml
+
 # load defaults vars
 - hosts:
     - all
   vars_files:
     - vars/common.yaml
     - vars/kubernetes.yaml
-
-- import_playbook: hook/pre_install.yaml
 
 - hosts:
     - kube_control_plane
@@ -94,5 +94,3 @@
       when:
        - .deleteImageRegistry
        - .delete_nodes | default list | has .inventory_hostname
-
-- import_playbook: hook/post_install.yaml

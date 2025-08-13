@@ -59,15 +59,16 @@ state = "/run/containerd"
 {{- if or (.cri.registry.auths | empty | not) (.groups.image_registry | default list | empty | not) }}
         [plugins."io.containerd.grpc.v1.cri".registry.configs]
 {{- end }}
-{{- if .groups.image_registry | default list | empty | not }}
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .image_registry.auth.registry }}".auth]
             username = "{{ .image_registry.auth.username }}"
             password = "{{ .image_registry.auth.password }}"
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .image_registry.auth.registry }}".tls]
+{{- if .groups.image_registry | default list | empty | not }}ecure_skip_verify = true
             ca_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/ca.crt"
             cert_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.crt"
             key_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.key"
 {{- end }}
+            insecure_skip_verify = {{ .image_registry.auth.skip_ssl | default true }}
 {{- if .cri.registry.auths | empty | not }}
   {{- range .cri.registry.auths }}
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .repo }}".auth]

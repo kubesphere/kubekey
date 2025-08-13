@@ -84,17 +84,12 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 	}
 
 	// Open config file for reading and writing.
-	configFile, err := os.OpenFile(filepath.Join(h.rootPath, api.SchemaConfigFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		_ = response.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-	defer configFile.Close()
-
-	// Decode old config if present.
-	if err := json.NewDecoder(configFile).Decode(&oldConfig); err != nil && err != io.EOF {
-		_ = response.WriteError(http.StatusInternalServerError, err)
-		return
+	if oldConfigFile, err := os.ReadFile(filepath.Join(h.rootPath, api.SchemaConfigFile)); err == nil {
+		// Decode old config if present.
+		if err := json.Unmarshal(oldConfigFile, &oldConfig); err != nil && !errors.Is(err, io.EOF) {
+			_ = response.WriteError(http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	namespace := query.DefaultString(request.QueryParameter("cluster"), "default")
@@ -104,7 +99,18 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 
 	// Iterate over new config and trigger precheck playbooks if config changed.
 	for fileName, newVal := range newConfig {
+		// if config is not change skip it
 		if reflect.DeepEqual(newVal, oldConfig[fileName]) {
+			continue
+		}
+		// if playbook has created should skip it.
+		playbookList := &kkcorev1.PlaybookList{}
+		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.InNamespace(namespace),
+			ctrlclient.MatchingLabels{"install." + api.SchemaLabelSubfix: fileName}); err != nil {
+			_ = response.WriteError(http.StatusInternalServerError, err)
+			return
+		}
+		if len(playbookList.Items) > 0 {
 			continue
 		}
 		schemaInfo, err := os.ReadFile(filepath.Join(h.rootPath, fileName))
@@ -168,7 +174,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 	}
 
 	// Write new config to file.
-	if _, err := configFile.Write(bodyBytes); err != nil {
+	if err := os.WriteFile(filepath.Join(h.rootPath, api.SchemaConfigFile), bodyBytes, 0644); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -177,7 +183,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 	if len(preCheckResult) > 0 {
 		_ = response.WriteHeaderAndEntity(http.StatusUnprocessableEntity, api.Result{Message: api.ResultFailed, Result: preCheckResult})
 	} else {
-		_ = response.WriteEntity(api.SUCCESS)
+		_ = response.WriteEntity(api.SUCCESS.SetResult(newConfig))
 	}
 }
 

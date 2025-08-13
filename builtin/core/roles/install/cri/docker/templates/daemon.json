@@ -9,9 +9,11 @@
 {{- if .cri.registry.mirrors }}
   "registry-mirrors": {{ .cri.registry.mirrors | toJson }},
 {{- end }}
- {{- if .cri.registry.insecure_registries }}
-  "insecure-registries": {{ .cri.registry.insecure_registries | toJson }},
-{{- end }}
+{{- $insecure_registries := .cri.registry.insecure_registries | default list -}} 
+{{- if .image_registry.auth.skip_ssl -}}
+  {{- $insecure_registries = append $insecure_registries .image_registry.auth.registry -}}
+{{- end -}}
+  "insecure-registries": {{ $insecure_registries | toJson }},
  {{- if .cri.docker.bridge_ip }}
   "bip": "{{ .cri.docker.bridge_ip }}",
 {{- end }}
