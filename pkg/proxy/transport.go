@@ -57,6 +57,8 @@ func RestConfig(runtimedir string, restconfig *rest.Config) error {
 	if err != nil {
 		return err
 	}
+	restconfig.QPS = 500
+	restconfig.Burst = 200
 	restconfig.TLSClientConfig = rest.TLSClientConfig{}
 
 	restconfig.Transport = transport

@@ -1,12 +1,13 @@
 ---
+- import_playbook: hook/default.yaml
+- import_playbook: hook/pre_install.yaml
+
 # load defaults vars
 - hosts:
     - all
   vars_files:
     - vars/common.yaml
     - vars/kubernetes.yaml
-
-- import_playbook: hook/pre_install.yaml
 
 # precheck
 - hosts:

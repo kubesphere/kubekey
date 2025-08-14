@@ -41,3 +41,4 @@ image_registry:
       {{- end -}}
     username: admin
     password: Harbor12345
+    insecure: true

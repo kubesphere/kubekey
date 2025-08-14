@@ -81,7 +81,7 @@ spec:
   #  - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
   #  - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
   #  - docker.io/kubesphere/pause:3.6
-  #  - quay.io/tigera/operator:v1.36.5
+  #  - quay.io/tigera/operator:v1.29.3
   #  - docker.io/calico/ctl:v3.25.1
   #  - docker.io/calico/typha:v3.25.1
   #  - docker.io/calico/apiserver:v3.25.1

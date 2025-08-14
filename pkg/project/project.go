@@ -181,7 +181,7 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 	return nil
 }
 
-// dealVarsFiles handles the "var_files" argument in a play
+// dealVarsFiles handles the "vars_files" argument in a play
 func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error {
 	for _, varsFileStr := range p.VarsFiles {
 		// load vars from vars_files

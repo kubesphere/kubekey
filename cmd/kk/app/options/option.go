@@ -125,7 +125,7 @@ func (o *CommonOptions) Run(ctx context.Context, playbook *kkcorev1.Playbook) er
 			return errors.Wrapf(err, "failed to create local dir %q for playbook %q", o.Workdir, ctrlclient.ObjectKeyFromObject(playbook))
 		}
 	}
-	restconfig := &rest.Config{QPS: 100, Burst: 200}
+	restconfig := &rest.Config{}
 	if err := proxy.RestConfig(filepath.Join(o.Workdir, _const.RuntimeDir), restconfig); err != nil {
 		return err
 	}

@@ -21,12 +21,10 @@ var MergeRemoteVariable = func(data map[string]any, hostnames ...string) MergeFu
 			if _, ok := vv.value.Hosts[hostname]; !ok {
 				return errors.Errorf("when merge source is remote. HostName %s not exist", hostname)
 			}
-
-			// Only set RemoteVars if it is currently empty to avoid overwriting existing remote variables.
-			if hv := vv.value.Hosts[hostname]; len(hv.RemoteVars) == 0 {
-				hv.RemoteVars = data
-				vv.value.Hosts[hostname] = hv
-			}
+			// always update remote variable
+			hv := vv.value.Hosts[hostname]
+			hv.RemoteVars = data
+			vv.value.Hosts[hostname] = hv
 		}
 
 		return nil
