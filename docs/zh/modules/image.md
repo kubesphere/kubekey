@@ -11,6 +11,7 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
 | pull.manifests | 需要拉取的镜像列表 | 字符串数组 | 是 | - |
 | pull.username | 用于认证远程仓库的用户 | 字符串 | 否 | - |
 | pull.password | 用于认证远程仓库的密码 | 字符串 | 否 | - |
+| pull.platform | 镜像的架构信息 | 字符串 | 否 | - |
 | pull.skip_tls_verify | 是否跳过远程仓库的tls认证 | bool | 否 | - |
 | push | 从本地目录中推送镜像到远程仓库 | map | 否 | - |
 | push.images_dir | 镜像存放的本地目录 | 字符串 | 否 | - |
@@ -48,7 +49,8 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
   image:
     pull:
       images_dir: /tmp/images/
-      manifests: 
+      platform: linux/amd64
+      manifests:
        - "docker.io/kubesphere/ks-apiserver:v4.1.3"
        - "docker.io/kubesphere/ks-controller-manager:v4.1.3"
        - "docker.io/kubesphere/ks-console:3.19"
