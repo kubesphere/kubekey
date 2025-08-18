@@ -13,7 +13,7 @@ WORKDIR /tmp
 RUN apk add --no-cache ca-certificates
 
 # Build the manager binary
-FROM golang:1.19 as builder
+FROM golang:1.23 as builder
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://goproxy.cn,direct
