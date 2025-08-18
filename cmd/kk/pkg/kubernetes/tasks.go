@@ -53,42 +53,46 @@ type GetClusterStatus struct {
 }
 
 func (g *GetClusterStatus) Execute(runtime connector.Runtime) error {
-	exist, err := runtime.GetRunner().FileExist("/etc/kubernetes/admin.conf")
+	adminConfExist, err := runtime.GetRunner().FileExist("/etc/kubernetes/admin.conf")
+	if err != nil {
+		return err
+	}
+	apiserverManifestExist, err := runtime.GetRunner().FileExist("/etc/kubernetes/manifests/kube-apiserver.yaml")
 	if err != nil {
 		return err
 	}
 
-	if !exist {
+	if !(adminConfExist || apiserverManifestExist) {
 		g.PipelineCache.Set(common.ClusterExist, false)
 		return nil
-	} else {
-		g.PipelineCache.Set(common.ClusterExist, true)
+	}
 
-		if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
-			cluster := v.(*KubernetesStatus)
-			if err := cluster.SearchVersion(runtime); err != nil {
-				return err
-			}
-			if err := cluster.SearchKubeConfig(runtime); err != nil {
-				return err
-			}
-			if err := cluster.LoadKubeConfig(runtime, g.KubeConf); err != nil {
-				return err
-			}
-			if err := cluster.SearchClusterInfo(runtime); err != nil {
-				return err
-			}
-			if err := cluster.SearchNodesInfo(runtime); err != nil {
-				return err
-			}
-			if err := cluster.SearchJoinInfo(runtime); err != nil {
-				return err
-			}
+	g.PipelineCache.Set(common.ClusterExist, true)
 
-			g.PipelineCache.Set(common.ClusterStatus, cluster)
-		} else {
-			return errors.New("get kubernetes cluster status by pipeline cache failed")
+	if v, ok := g.PipelineCache.Get(common.ClusterStatus); ok {
+		cluster := v.(*KubernetesStatus)
+		if err := cluster.SearchVersion(runtime); err != nil {
+			return err
 		}
+		if err := cluster.SearchKubeConfig(runtime); err != nil {
+			return err
+		}
+		if err := cluster.LoadKubeConfig(runtime, g.KubeConf); err != nil {
+			return err
+		}
+		if err := cluster.SearchClusterInfo(runtime); err != nil {
+			return err
+		}
+		if err := cluster.SearchNodesInfo(runtime); err != nil {
+			return err
+		}
+		if err := cluster.SearchJoinInfo(runtime); err != nil {
+			return err
+		}
+
+		g.PipelineCache.Set(common.ClusterStatus, cluster)
+	} else {
+		return errors.New("get kubernetes cluster status by pipeline cache failed")
 	}
 	return nil
 }
