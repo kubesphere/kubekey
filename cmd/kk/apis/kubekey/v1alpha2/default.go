@@ -56,7 +56,7 @@ const (
 	DefaulthybridnetVersion        = "v0.8.6"
 	DefaultKubeovnVersion          = "v1.10.10"
 	DefalutMultusVersion           = "v3.8"
-	DefaultHelmVersion             = "v3.14.3"
+	DefaultHelmVersion             = "v3.18.5"
 	DefaultDockerComposeVersion    = "v2.26.1"
 	DefaultRegistryVersion         = "2"
 	DefaultHarborVersion           = "v2.10.1"
