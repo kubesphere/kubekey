@@ -35,12 +35,12 @@ spec:
       hostNetwork: true
       dnsPolicy: Default  # Don't use cluster DNS.
       tolerations:
-      - effect: NoSchedule
-        operator: "Exists"
-      - effect: NoExecute
-        operator: "Exists"
-      - key: "CriticalAddonsOnly"
-        operator: "Exists"
+        - effect: NoSchedule
+          operator: "Exists"
+        - effect: NoExecute
+          operator: "Exists"
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
       containers:
       - name: node-cache
         image: {{ .kubernetes.networking.dns_cache_image.registry }}/{{ .kubernetes.networking.dns_cache_image.repository }}:{{ .kubernetes.networking.dns_cache_image.tag }}
@@ -50,19 +50,27 @@ spec:
           requests:
             cpu: 100m
             memory: 70Mi
-        args: [ "-localip", "{{ .kubernetes.networking.clusterDNS }}", "-conf", "/etc/coredns/Corefile", "-upstreamsvc", "coredns" ]
+        args: 
+          - -localip
+          - {{ .kubernetes.networking.clusterDNS }}
+          - -conf
+          - /etc/coredns/Corefile
+          - -upstreamsvc
+          - coredns
+          - metrics-listen-address
+          - 127.0.0.1:9353
         securityContext:
           privileged: true
         ports:
-        - containerPort: 53
-          name: dns
-          protocol: UDP
-        - containerPort: 53
-          name: dns-tcp
-          protocol: TCP
-        - containerPort: 9253
-          name: metrics
-          protocol: TCP
+          - containerPort: 53
+            name: dns
+            protocol: UDP
+          - containerPort: 53
+            name: dns-tcp
+            protocol: TCP
+          - containerPort: 9253
+            name: metrics
+            protocol: TCP
         livenessProbe:
           httpGet:
             host: {{ .kubernetes.networking.clusterDNS }}
@@ -82,10 +90,10 @@ spec:
           successThreshold: 1
           failureThreshold: 10
         volumeMounts:
-        - name: config-volume
-          mountPath: /etc/coredns
-        - name: xtables-lock
-          mountPath: /run/xtables.lock
+          - name: config-volume
+            mountPath: /etc/coredns
+          - name: xtables-lock
+            mountPath: /run/xtables.lock
       volumes:
         - name: config-volume
           configMap:
@@ -121,7 +129,6 @@ data:
       reload
       loop
       bind {{ .kubernetes.networking.clusterDNS }}
-      prometheus :9253
 
     {{- range .rewrite }}
       rewrite {{ .rule }} {
@@ -181,7 +188,6 @@ data:
       forward . {{ .kubernetes.networking.dns_service_ip }} {
         force_tcp
       }
-      prometheus :9253
       health {{ .kubernetes.networking.clusterDNS }}:9254
     }
     in-addr.arpa:53 {
@@ -193,7 +199,6 @@ data:
       forward . {{ .kubernetes.networking.dns_service_ip }} {
         force_tcp
       }
-      prometheus :9253
     }
     ip6.arpa:53 {
       errors
@@ -204,7 +209,6 @@ data:
       forward . {{ .kubernetes.networking.dns_service_ip }} {
           force_tcp
       }
-      prometheus :9253
     }
     .:53 {
       errors
@@ -213,7 +217,6 @@ data:
       loop
       bind {{ .kubernetes.networking.clusterDNS }}
       forward . /etc/resolv.conf
-      prometheus :9253
     {{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}
       hosts /etc/coredns/hosts {
         fallthrough
