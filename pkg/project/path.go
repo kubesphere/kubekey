@@ -171,6 +171,14 @@ func GetRoleDefaultsRelPath(baseRole string) []string {
 	}
 }
 
+// GetRoleDefaultsRelDirPath returns possible relative dir paths for a role's defaults files
+// The format follows similar structure to role tasks
+func GetRoleDefaultsRelDirPath(baseRole string) []string {
+	return []string{
+		filepath.Join(baseRole, _const.ProjectRolesDefaultsDir, "main"),
+	}
+}
+
 // GetIncludeTaskRelPath returns possible relative paths for included task files
 // The format follows PathFormatIncludeTask structure
 func GetIncludeTaskRelPath(top string, source string, includeTask string) []string {
