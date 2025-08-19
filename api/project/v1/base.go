@@ -28,7 +28,8 @@ type Base struct {
 	RemoteUser string `yaml:"remote_user,omitempty"`
 
 	// variables
-	Vars yaml.Node `yaml:"vars,omitempty"`
+	Vars            []yaml.Node `yaml:"-"`
+	VarsFromMarshal yaml.Node   `yaml:"vars,omitempty"`
 
 	// module default params
 	//ModuleDefaults []map[string]map[string]any `yaml:"module_defaults,omitempty"`

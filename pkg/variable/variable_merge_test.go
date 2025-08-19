@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
@@ -99,7 +100,7 @@ func TestMergeRuntimeVariable(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := tc.variable.Merge(MergeRuntimeVariable(node, tc.hostname)); err != nil {
+			if err := tc.variable.Merge(MergeRuntimeVariable([]yaml.Node{node}, tc.hostname)); err != nil {
 				t.Fatal(err)
 			}
 

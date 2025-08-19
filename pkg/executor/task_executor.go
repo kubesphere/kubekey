@@ -267,7 +267,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		}
 
 		// Merge item into host's runtime variables
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(node, host)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, host)); err != nil {
 			return errors.Wrap(err, "failed to set loop item to variable")
 		}
 
@@ -282,7 +282,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 				resErr = errors.Wrap(err, "failed to convert loop item")
 				return
 			}
-			if err := e.variable.Merge(variable.MergeRuntimeVariable(resetNode, host)); err != nil {
+			if err := e.variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{resetNode}, host)); err != nil {
 				resErr = errors.Wrap(err, "failed to clean loop item to variable")
 				return
 			}
@@ -400,7 +400,7 @@ func (e *taskExecutor) dealRegister(host string, stdout, stderr, errMsg string) 
 		if err != nil {
 			return err
 		}
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(node, host)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, host)); err != nil {
 			return err
 		}
 	}

@@ -36,8 +36,8 @@ var MergeRemoteVariable = func(data map[string]any, hostnames ...string) MergeFu
 // 1. Gets all variables for the host to create a parsing context
 // 2. Parses the YAML node using that context
 // 3. Merges the parsed data into the host's RuntimeVars
-var MergeRuntimeVariable = func(node yaml.Node, hosts ...string) MergeFunc {
-	if node.IsZero() {
+var MergeRuntimeVariable = func(nodes []yaml.Node, hosts ...string) MergeFunc {
+	if len(nodes) == 0 {
 		// skip
 		return emptyMergeFunc
 	}
@@ -58,13 +58,18 @@ var MergeRuntimeVariable = func(node yaml.Node, hosts ...string) MergeFunc {
 			if !ok {
 				return errors.Errorf("host %s variables type error, expect map[string]any", hostname)
 			}
-			data, err := parseYamlNode(ctx, node)
-			if err != nil {
-				return err
+			for _, node := range nodes {
+				if node.IsZero() {
+					continue
+				}
+				data, err := parseYamlNode(ctx, node)
+				if err != nil {
+					return err
+				}
+				hv := vv.value.Hosts[hostname]
+				hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
+				vv.value.Hosts[hostname] = hv
 			}
-			hv := vv.value.Hosts[hostname]
-			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
-			vv.value.Hosts[hostname] = hv
 		}
 
 		return nil
