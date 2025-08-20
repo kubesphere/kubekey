@@ -308,7 +308,7 @@ func TestMarshalPlaybook(t *testing.T) {
 					{
 						Base: kkprojectv1.Base{
 							Name: "playbook-var1",
-							Vars: yaml.Node{
+							VarsFromMarshal: yaml.Node{
 								Kind:   yaml.MappingNode,
 								Tag:    "!!map",
 								Line:   6,
@@ -327,6 +327,30 @@ func TestMarshalPlaybook(t *testing.T) {
 										Value:  "b",
 										Line:   6,
 										Column: 8,
+									},
+								},
+							},
+							Vars: []yaml.Node{
+								{
+									Kind:   yaml.MappingNode,
+									Tag:    "!!map",
+									Line:   6,
+									Column: 5,
+									Content: []*yaml.Node{
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a",
+											Line:   6,
+											Column: 5,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "b",
+											Line:   6,
+											Column: 8,
+										},
 									},
 								},
 							},
@@ -351,81 +375,90 @@ func TestMarshalPlaybook(t *testing.T) {
 						VarsFiles: []string{"vars/var1.yaml", "vars/var2.yaml"},
 						Base: kkprojectv1.Base{
 							Name: "playbook-var2",
-							Vars: yaml.Node{
-								Kind:   yaml.MappingNode,
-								Tag:    "!!map",
-								Line:   2,
-								Column: 1,
-								Content: []*yaml.Node{
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "a1",
-										Line:   2,
-										Column: 1,
+							Vars: []yaml.Node{
+								{
+									Kind:   yaml.MappingNode,
+									Tag:    "!!map",
+									Line:   2,
+									Column: 1,
+									Content: []*yaml.Node{
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a1",
+											Line:   2,
+											Column: 1,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "aa",
+											Line:   2,
+											Column: 5,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a2",
+											Line:   3,
+											Column: 1,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!int",
+											Value:  "1",
+											Line:   3,
+											Column: 5,
+										},
 									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "aa",
-										Line:   2,
-										Column: 5,
-									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "a2",
-										Line:   3,
-										Column: 1,
-									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!int",
-										Value:  "1",
-										Line:   3,
-										Column: 5,
-									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "a2",
-										Line:   1,
-										Column: 1,
-									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "aaa",
-										Line:   1,
-										Column: 5,
-									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "a3",
-										Line:   2,
-										Column: 1,
-									},
-									{
-										Kind:   yaml.MappingNode,
-										Tag:    "!!map",
-										Value:  "",
-										Line:   3,
-										Column: 2,
-										Content: []*yaml.Node{
-											{
-												Kind:   yaml.ScalarNode,
-												Tag:    "!!str",
-												Value:  "b3",
-												Line:   3,
-												Column: 2,
-											},
-											{
-												Kind:   yaml.ScalarNode,
-												Tag:    "!!int",
-												Value:  "1",
-												Line:   3,
-												Column: 6,
+								}, {
+									Kind:   yaml.MappingNode,
+									Tag:    "!!map",
+									Line:   1,
+									Column: 1,
+									Content: []*yaml.Node{
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a2",
+											Line:   1,
+											Column: 1,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "aaa",
+											Line:   1,
+											Column: 5,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a3",
+											Line:   2,
+											Column: 1,
+										},
+										{
+											Kind:   yaml.MappingNode,
+											Tag:    "!!map",
+											Value:  "",
+											Line:   3,
+											Column: 2,
+											Content: []*yaml.Node{
+												{
+													Kind:   yaml.ScalarNode,
+													Tag:    "!!str",
+													Value:  "b3",
+													Line:   3,
+													Column: 2,
+												},
+												{
+													Kind:   yaml.ScalarNode,
+													Tag:    "!!int",
+													Value:  "1",
+													Line:   3,
+													Column: 6,
+												},
 											},
 										},
 									},
@@ -452,7 +485,7 @@ func TestMarshalPlaybook(t *testing.T) {
 						VarsFiles: []string{"vars/var1.yaml"},
 						Base: kkprojectv1.Base{
 							Name: "playbook-var3",
-							Vars: yaml.Node{
+							VarsFromMarshal: yaml.Node{
 								Kind:   yaml.MappingNode,
 								Tag:    "!!map",
 								Line:   8,
@@ -472,33 +505,64 @@ func TestMarshalPlaybook(t *testing.T) {
 										Line:   8,
 										Column: 9,
 									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "a1",
-										Line:   2,
-										Column: 1,
+								},
+							},
+							Vars: []yaml.Node{
+								{
+									Kind:   yaml.MappingNode,
+									Tag:    "!!map",
+									Line:   8,
+									Column: 5,
+									Content: []*yaml.Node{
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a2",
+											Line:   8,
+											Column: 5,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!int",
+											Value:  "2",
+											Line:   8,
+											Column: 9,
+										},
 									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "aa",
-										Line:   2,
-										Column: 5,
-									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!str",
-										Value:  "a2",
-										Line:   3,
-										Column: 1,
-									},
-									{
-										Kind:   yaml.ScalarNode,
-										Tag:    "!!int",
-										Value:  "1",
-										Line:   3,
-										Column: 5,
+								}, {
+									Kind:   yaml.MappingNode,
+									Tag:    "!!map",
+									Line:   2,
+									Column: 1,
+									Content: []*yaml.Node{
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a1",
+											Line:   2,
+											Column: 1,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "aa",
+											Line:   2,
+											Column: 5,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!str",
+											Value:  "a2",
+											Line:   3,
+											Column: 1,
+										},
+										{
+											Kind:   yaml.ScalarNode,
+											Tag:    "!!int",
+											Value:  "1",
+											Line:   3,
+											Column: 5,
+										},
 									},
 								},
 							},
@@ -575,7 +639,7 @@ func TestMarshalPlaybook(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			assert.Equal(t, tc.except, actual)
+			assert.Equal(t, tc.except, actual, tc.name)
 		})
 	}
 }

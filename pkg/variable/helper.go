@@ -25,7 +25,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -35,29 +34,6 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
-
-// CombineMappingNode combines two yaml.Node objects representing mapping nodes.
-// If a is nil or zero, returns b.
-// If both a and b are mapping nodes, appends b's content to a.
-// Returns a in all other cases.
-//
-// Parameters:
-//   - a: First yaml.Node to combine
-//   - b: Second yaml.Node to combine
-//
-// Returns:
-//   - Combined yaml.Node, with b taking precedence
-func CombineMappingNode(a, b *yaml.Node) *yaml.Node {
-	if a == nil || a.IsZero() {
-		return b
-	}
-
-	if a.Kind == yaml.MappingNode && b.Kind == yaml.MappingNode {
-		a.Content = append(a.Content, b.Content...)
-	}
-
-	return a
-}
 
 // CombineVariables merge multiple variables into one variable.
 // It recursively combines two maps, where values from m2 override values from m1 if keys overlap.
