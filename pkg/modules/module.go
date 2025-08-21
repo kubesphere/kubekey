@@ -46,6 +46,8 @@ const (
 	StderrParseArgument = "failed to parse argument"
 	// StderrUnsupportArgs is returned when the provided arguments are not supported.
 	StderrUnsupportArgs = "unsupport args"
+	// StderrGetPlaybook is returned when get playbook error
+	StderrGetPlaybook = "failed to get playbook"
 )
 
 // ModuleExecFunc defines the function signature for executing a module.
