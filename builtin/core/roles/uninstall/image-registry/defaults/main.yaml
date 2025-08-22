@@ -1,3 +1,0 @@
-image_registry:
-  type: harbor
-  # Virtual IP address for repository High Availability. the Virtual IP address should be available.

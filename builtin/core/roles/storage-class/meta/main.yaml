@@ -1,0 +1,7 @@
+---
+dependencies:
+  - role: storage-class/local
+    when: .storage_class.local.enabled
+
+  - role: storage-class/nfs
+    when: .storage_class.nfs.enabled

@@ -40,7 +40,7 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 	}
 	// create task
 	if err := e.client.Create(ctx, e.task); err != nil {
-		return errors.Wrapf(err, "failed to create task %q", e.task.Spec.Name)
+		return errors.Wrapf(err, "failed to create task %v", e.task)
 	}
 	defer func() {
 		e.playbook.Status.Statistics.Total++
@@ -142,11 +142,7 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 		defer func() {
 			if resErr != nil {
 				errMsg = resErr.Error()
-				if e.task.Spec.IgnoreError != nil && *e.task.Spec.IgnoreError {
-					klog.V(5).ErrorS(resErr, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "error", errMsg, "task", ctrlclient.ObjectKeyFromObject(e.task))
-				} else {
-					klog.ErrorS(nil, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "error", errMsg, "task", ctrlclient.ObjectKeyFromObject(e.task))
-				}
+				klog.V(5).ErrorS(resErr, "task run failed", "host", h, "stdout", stdout, "stderr", stderr, "error", errMsg, "task", ctrlclient.ObjectKeyFromObject(e.task))
 			}
 			resErr = errors.Join(resErr, e.dealRegister(h, stdout, stderr, errMsg))
 
@@ -171,7 +167,11 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 			return
 		}
 		// check when condition
-		if skip := e.dealWhen(had, &stdout, &stderr); skip {
+		if skip, err := e.dealWhen(had); err != nil {
+			resErr = err
+			return
+		} else if skip {
+			stdout = modules.StdoutSkip
 			return
 		}
 		// execute module in loop with loop item.
@@ -331,23 +331,18 @@ func (e *taskExecutor) dealLoop(ha map[string]any) []any {
 
 // dealWhen evaluates the "when" conditions for a task to determine if it should be skipped.
 // Returns true if the task should be skipped, false if it should proceed.
-func (e *taskExecutor) dealWhen(had map[string]any, stdout, stderr *string) bool {
+func (e *taskExecutor) dealWhen(had map[string]any) (bool, error) {
 	if len(e.task.Spec.When) > 0 {
 		ok, err := tmpl.ParseBool(had, e.task.Spec.When...)
 		if err != nil {
-			klog.V(5).ErrorS(err, "validate when condition error", "task", ctrlclient.ObjectKeyFromObject(e.task))
-			*stderr = fmt.Sprintf("parse when condition error: %v", err)
-
-			return true
+			return false, err
 		}
 		if !ok {
-			*stdout = modules.StdoutSkip
-
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // dealFailedWhen evaluates the "failed_when" conditions for a task to determine if it should fail.

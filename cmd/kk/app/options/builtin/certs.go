@@ -20,6 +20,8 @@ limitations under the License.
 package builtin
 
 import (
+	"fmt"
+
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
@@ -41,11 +43,17 @@ func NewCertsRenewOptions() *CertsRenewOptions {
 // CertsRenewOptions for NewCertsRenewOptions
 type CertsRenewOptions struct {
 	options.CommonOptions
+	// kubernetes version which the cluster will install.
+	Kubernetes string
 }
 
 // Flags add to newCertsRenewCommand
 func (o *CertsRenewOptions) Flags() cliflag.NamedFlagSets {
-	return o.CommonOptions.Flags()
+	fss := o.CommonOptions.Flags()
+	kfs := fss.FlagSet("config")
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+
+	return fss
 }
 
 // Complete options. create Playbook, Config and Inventory

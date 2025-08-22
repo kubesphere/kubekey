@@ -1,0 +1,8 @@
+- name: Image | Download container images
+  image:
+    pull:
+      images_dir: >-
+        {{ .binary_dir }}/images/
+      manifests: "{{ .image_manifests | toJson }}"
+  when:
+    - .image_manifests | default list | empty | not

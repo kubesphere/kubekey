@@ -4,14 +4,14 @@
     src: >-
       {{ .binary_dir }}/pki/image_registry.crt
     dest: >-
-      /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.crt
+      /opt/docker-registry/{{ .image_registry.docker_registry_version }}/ssl/server.crt
 
 - name: Docker Registry | Copy image registry private key to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.key
     dest: >-
-      /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.key
+      /opt/docker-registry/{{ .image_registry.docker_registry_version }}/ssl/server.key
 
 - name: Docker Registry | Restart registry service to apply new certificates
-  command: systemctl restart registry.service
+  command: systemctl restart docker-registry.service

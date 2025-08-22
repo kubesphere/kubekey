@@ -129,10 +129,6 @@ func (f *project) loadPlaybook(basePlaybook string) error {
 	}
 
 	for _, p := range plays {
-		if !p.VarsFromMarshal.IsZero() {
-			p.Vars = append(p.Vars, p.VarsFromMarshal)
-		}
-
 		if err := f.dealImportPlaybook(p, basePlaybook); err != nil {
 			return err
 		}
@@ -212,7 +208,7 @@ func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error 
 		// combine map node
 		if node.Content[0].Kind == yaml.MappingNode {
 			// skip empty file
-			p.Vars = append(p.Vars, *node.Content[0])
+			p.Vars.Nodes = append(p.Vars.Nodes, *node.Content[0])
 		}
 	}
 
@@ -234,9 +230,6 @@ func (f *project) dealRole(role *kkprojectv1.Role, basePlaybook string) error {
 		if err := yaml.Unmarshal(mdata, roleMeta); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal role meta file %q", meta)
 		}
-		if !roleMeta.VarsFromMarshal.IsZero() {
-			roleMeta.Vars = append(roleMeta.Vars, roleMeta.VarsFromMarshal)
-		}
 		for _, dep := range roleMeta.RoleDependency {
 			if err := f.dealRole(&dep, basePlaybook); err != nil {
 				return errors.Wrapf(err, "failed to deal dependency role base %q", role.Role)
@@ -253,11 +246,6 @@ func (f *project) dealRole(role *kkprojectv1.Role, basePlaybook string) error {
 		var blocks []kkprojectv1.Block
 		if err := yaml.Unmarshal(rdata, &blocks); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal yaml file %q", task)
-		}
-		for i, b := range blocks {
-			if !b.VarsFromMarshal.IsZero() {
-				blocks[i].Vars = append(b.Vars, b.VarsFromMarshal)
-			}
 		}
 		role.Block = blocks
 	}
@@ -299,7 +287,7 @@ func (f *project) combineRoleVars(role *kkprojectv1.Role, content []byte) error 
 	// combine map node
 	if node.Content[0].Kind == yaml.MappingNode {
 		// skip empty file
-		role.Vars = append(role.Vars, *node.Content[0])
+		role.Vars.Nodes = append(role.Vars.Nodes, *node.Content[0])
 	}
 	return nil
 }
@@ -348,11 +336,6 @@ func (f *project) dealBlock(top string, source string, blocks []kkprojectv1.Bloc
 			var includeBlocks []kkprojectv1.Block
 			if err := yaml.Unmarshal(data, &includeBlocks); err != nil {
 				return errors.Wrapf(err, "failed to unmarshal includeTask file %q", includeTask)
-			}
-			for i, b := range includeBlocks {
-				if !b.VarsFromMarshal.IsZero() {
-					includeBlocks[i].Vars = append(b.Vars, b.VarsFromMarshal)
-				}
 			}
 			// Recursively process the included blocks
 			if err := f.dealBlock(top, filepath.Dir(includeTask), includeBlocks); err != nil {

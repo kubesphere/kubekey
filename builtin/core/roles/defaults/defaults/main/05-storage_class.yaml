@@ -1,0 +1,32 @@
+# Storage class configuration for Kubernetes persistent storage integration
+storage_class:
+  # Local storage class configuration
+  local:
+    enabled: true  # Enable local storage class
+    default: true  # Set as the default storage class
+    provisioner_image:
+      registry: >-
+        {{ .image_registry.dockerio_registry }}
+      repository: openebs/provisioner-localpv
+      tag: 4.3.0
+    linux_utils_image:
+      registry: >-
+        {{ .image_registry.dockerio_registry }}
+      repository: openebs/linux-utils
+      tag: 4.3.0
+    path: /var/openebs/local  # Host path for local storage volumes
+
+  # NFS storage class configuration
+  nfs:
+    # Ensure nfs-utils is installed on every node in the k8s_cluster group
+    enabled: false  # Enable NFS storage class
+    default: false  # Set as the default storage class
+    # NFS server address
+    server: >-
+      {{ .groups.nfs | default list | first }}  
+    path: /share/kubernetes  # NFS export path for persistent volumes
+
+  # ========== storageclass ==========
+  # ========== storageclass: nfs ==========
+  # nfs provisioner helm version
+  nfs_provisioner_version: 4.0.20

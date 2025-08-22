@@ -1,0 +1,48 @@
+---
+- name: ImageRegistry | Synchronize images to remote host
+  copy:
+    src: >-
+      {{ .binary_dir }}/images/
+    dest: >-
+      {{ .image_registry.images_dir }}
+
+- name: ImageRegistry | Ensure Harbor project exists for each image
+  when: .image_registry.type | eq "harbor"
+  command: |
+    # Traverse first-level subdirectories in images_dir, skipping 'blobs'
+    for registry_dir in {{ .image_registry.images_dir }}*; do
+      if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
+        continue
+      fi
+
+      # Traverse second-level subdirectories in each registry_dir
+      for project_dir in "$registry_dir"/*; do
+        if [ ! -d "$project_dir" ]; then
+          continue
+        fi
+
+        project=$(basename "$project_dir")
+
+        # Check if the Harbor project exists; create it if it does not
+        resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://{{ .image_registry.auth.registry }}/api/v2.0/projects/${project}")
+        if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
+          curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
+            -H "Content-Type: application/json" \
+            "https://{{ .image_registry.auth.registry }}/api/v2.0/projects" \
+            -d "{ \"project_name\": \"${project}\", \"public\": true}"
+        fi
+      done
+    done
+
+- name: ImageRegistry | Push images package to image registry
+  image:
+    push:
+      images_dir: >-
+        {{ .image_registry.images_dir }}
+      dest: >-
+        {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
+      username: >-
+        {{ .image_registry.auth.username }}
+      password: >-
+        {{ .image_registry.auth.password }}
+      skip_tls_verify: true

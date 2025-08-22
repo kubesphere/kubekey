@@ -1,0 +1,63 @@
+---
+# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
+- include_tasks: cridockerd.yaml
+  when:
+    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+
+- name: Docker | Check if Docker is installed on the system
+  ignore_errors: true
+  command: docker --version
+  register: docker_install_version
+
+- name: Docker | Install and configure Docker if not present or version mismatch
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not)
+  block:
+    - name: Docker | Copy Docker binary archive to the remote node
+      copy:
+        src: >-
+          {{ .binary_dir }}/docker/{{ .cri.docker_version }}/{{ .binary_type }}/docker-{{ .cri.docker_version }}.tgz
+        dest: >-
+          {{ .tmp_dir }}/docker-{{ .cri.docker_version }}.tgz
+    - name: Docker | Extract Docker binaries to /usr/local/bin
+      command: |
+        tar -C /usr/local/bin/ --strip-components=1 -xvf {{ .tmp_dir }}/docker-{{ .cri.docker_version }}.tgz --wildcards 'docker/*'
+    - name: Docker | Generate Docker configuration file
+      template:
+        src: daemon.json
+        dest: /etc/docker/daemon.json
+    - name: Docker | Deploy the Docker systemd service file
+      copy:
+        src: docker.service
+        dest: /etc/systemd/system/docker.service
+    - name: Docker | Deploy the containerd systemd service file
+      copy:
+        src: containerd.service
+        dest: /etc/systemd/system/containerd.service
+    - name: Docker | Start and enable Docker and containerd services
+      command: |
+        systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
+        systemctl daemon-reload && systemctl start docker.service && systemctl enable docker.service
+
+- name: Docker | Synchronize image registry TLS certificates to the remote node
+  block:
+    - name: Docker | Copy image registry CA certificate to the remote node
+      when: .image_registry.auth.ca_file | empty | not
+      copy:
+        src: >-
+          {{ .image_registry.auth.ca_file }}
+        dest: >-
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/ca.crt
+    - name: Docker | Copy image registry server certificate to the remote node
+      when: .image_registry.auth.cert_file | empty | not
+      copy:
+        src: >-
+          {{ .image_registry.auth.cert_file }}
+        dest: >-
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.cert
+    - name: Docker | Copy image registry server key to the remote node
+      when: .image_registry.auth.key_file | empty | not
+      copy:
+        src: >-
+          {{ .image_registry.auth.key_file }}
+        dest: >-
+          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.key

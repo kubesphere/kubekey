@@ -1,7 +1,0 @@
----
-dependencies:
-  - role: install/storageclass/local
-    when: .sc.local.enabled
-
-  - role: install/storageclass/nfs
-    when: .sc.nfs.enabled

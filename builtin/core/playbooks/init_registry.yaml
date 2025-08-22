@@ -1,15 +1,25 @@
 ---
-- import_playbook: hook/default.yaml
-
+# Load default variables and perform prechecks on all hosts
 - hosts:
-    - localhost
-  roles:
-    - init/init-artifact
-    - init/init-cert
-
-- hosts:
-    - image_registry
+    - all
+  tags: ["always"]
   gather_facts: true
   roles:
-    - init/init-os
-    - install/image-registry
+    - role: defaults
+
+
+# Download all required software and generate certificates on the localhost
+- hosts:
+    - localhost
+  gather_facts: true
+  roles:
+    - role: certs/init
+    - role: download
+
+# Initialize all nodes and install necessary software packages
+- hosts:
+    - image_registry
+  tags: ["always"]
+  roles:
+    - role: native
+    - role: image-registry

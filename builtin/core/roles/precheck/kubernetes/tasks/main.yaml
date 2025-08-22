@@ -1,0 +1,56 @@
+- name: Kubernetes | Validate kube-vip address
+  run_once: true
+  when: .kubernetes.control_plane_endpoint.type | eq "kube_vip"
+  assert:
+    that:
+      - .kubernetes.control_plane_endpoint.kube_vip.address | empty | not
+      - .kubernetes.control_plane_endpoint.kube_vip.address | regexMatch "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:)|(([0-9a-fA-F]{1,4}:){1,6}|:):([0-9a-fA-F]{1,4}|:){1,6}([0-9a-fA-F]{1,4}|:)))$"
+      - |
+        {{- $existIP := false }}
+        {{- range .groups.all | default list }}
+          {{- if or ($.kubernetes.control_plane_endpoint.kube_vip.address | eq (index $.hostvars . "internal_ipv4" | default "")) ($.kubernetes.control_plane_endpoint.kube_vip.address | eq (index $.hostvars . "internal_ipv6" | default "")) }}
+          {{- $existIP = true }}
+          {{- end }}
+        {{- end }}
+        {{ not $existIP }}
+    fail_msg: >-
+      The value of "kubernetes.control_plane_endpoint.kube_vip.address" must be an IP address that is not currently assigned to any node.
+
+- name: Kubernetes | Fail if unsupported Kubernetes version
+  run_once: true
+  assert:
+    that: 
+      - .kubernetes.kube_version | empty | not
+      - .kubernetes.kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
+    fail_msg: >-
+      This version of KubeKey only supports Kubernetes versions greater than or equal to {{ .cluster_require.kube_version_min_required }}. You are attempting to use version {{ .kube_version }}.
+
+- name: Kubernetes | Check if Kubernetes is installed
+  block:
+    - name: Kubernetes | Validate Kubernetes service status and version
+      when: .kubernetes_install_LoadState.stdout | eq "loaded"
+      block:
+        - name: Kubernetes | Ensure kubelet service is active
+          assert:
+            that: .kubernetes_install_ActiveState.stdout | eq "active"
+            fail_msg: >-
+              The kubelet service must be running and active when it is loaded.
+        - name: Kubernetes | Ensure installed Kubernetes version matches expected version
+          assert:
+            that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
+            fail_msg: >-
+              The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kube_version }}).
+
+- name: ImageRegistry | Verify successful authentication to image registry
+  when:
+    - .image_registry.auth.registry | empty | not
+    - .image_registry.type | empty
+  run_once: true
+  command: |
+    HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" "https://{{ .image_registry.auth.registry }}/v2/" -o /dev/null)
+    if [[ "$HTTP_CODE" == "200" ]]; then
+      echo "Successfully authenticated to the image registry."
+    else
+      echo "Failed to authenticate to the image registry at {{ .image_registry.auth.registry }}." >&2
+      exit 1
+    fi

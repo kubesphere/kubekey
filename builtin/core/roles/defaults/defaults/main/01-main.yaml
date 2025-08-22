@@ -1,0 +1,39 @@
+work_dir: /root/kubekey
+binary_dir: >-
+  {{ .work_dir }}/kubekey
+scripts_dir: >-
+  {{ .binary_dir }}/scripts
+tmp_dir: /tmp/kubekey
+
+# Mapping of common machine architecture names to their standard forms
+transform_architectures:
+  amd64:
+    - amd64
+    - x86_64
+  arm64:
+    - arm64
+    - aarch64
+
+
+# Enable enhanced security features for stricter cluster security requirements.
+security_enhancement: false
+
+# Enable Kubernetes audit logging.
+# Audit logs record and track critical operations within the cluster, helping administrators monitor security events, troubleshoot issues, and meet compliance requirements (e.g., SOC2, ISO 27001).
+audit: false
+
+# When removing a node, also uninstall the node's container runtime (CRI), such as Docker or containerd.
+deleteCRI: true
+
+# When removing a node, also uninstall etcd from the node.
+deleteETCD: true
+
+# When removing a node, restore the node's DNS configuration.
+deleteDNS: true
+
+# When removing a node, also uninstall any private image registry (such as Harbor or registry) installed on the node.
+# This is typically used in conjunction with nodes defined in inventory.groups.image_registry.
+deleteImageRegistry: false
+
+# image_manifests: List of container images to be synchronized to the private registry
+image_manifests: []

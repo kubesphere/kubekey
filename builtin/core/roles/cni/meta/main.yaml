@@ -1,0 +1,19 @@
+---
+dependencies:
+  - role: cni/multus
+    when: .cni.multus.enabled
+
+  - role: cni/calico
+    when: .cni.type | eq "calico"
+
+  - role: cni/cilium
+    when: .cni.type | eq "cilium"
+
+  - role: cni/flannel
+    when: .cni.type | eq "flannel"
+
+  - role: cni/kubeovn
+    when: .cni.type | eq "kubeovn"
+
+  - role: cni/hybridnet
+    when: .cni.type | eq "hybridnet"

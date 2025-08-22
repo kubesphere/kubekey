@@ -1,0 +1,16 @@
+- name: OS | Set system hostname
+  command: |
+    hostnamectl set-hostname {{ .inventory_hostname }} \
+      && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' {{ .item }}
+  when: 
+    - .set_hostname
+    - .inventory_hostname | ne "localhost"
+  loop: "{{ .native.localDNS | toJson }}"
+- name: OS | Synchronize initialization script to remote node
+  template:
+    src: init-os.sh
+    dest: /etc/kubekey/scripts/init-os.sh
+    mode: 0755
+- name: OS | Execute initialization script on remote node
+  command: |
+    /etc/kubekey/scripts/init-os.sh

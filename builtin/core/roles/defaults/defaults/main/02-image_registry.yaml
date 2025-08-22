@@ -1,0 +1,79 @@
+# In an online environment (when image_registry.auth.registry is empty), images are pulled directly from their original registries to the cluster.
+# In an offline environment (when image_registry.auth.registry is set), images are first pulled from the source registry, cached locally, pushed to a private registry (such as Harbor), and then used by the cluster.
+
+image_registry:
+  # Specify which image registry to install. Supported values: harbor, docker-registry
+  # If left empty, no image registry will be installed (assumes an existing registry is already available).
+  type: ""
+  ha_vip: ""
+  # Directory where images to be pushed to the registry are stored.
+  # Path for storing offline images
+  images_dir: >- 
+    {{ .tmp_dir }}/images/
+  # Image registry authentication settings
+  auth:
+    registry: >-
+      {{- if .image_registry.type | empty | not }}
+        {{- if .image_registry.ha_vip | empty | not -}}
+      {{ .image_registry.ha_vip }}
+        {{- else if .groups.image_registry | default list | empty | not -}}
+          {{- $internalIPv4 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv4" | default "" -}}
+          {{- $internalIPv6 := index .hostvars (.groups.image_registry | default list | first) "internal_ipv6" | default "" -}}
+          {{- if $internalIPv4 | empty | not -}}
+      {{ $internalIPv4 }}
+          {{- else if $internalIPv6 | empty | not -}}
+      {{ $internalIPv6 }}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    username: admin
+    password: Harbor12345
+    insecure: >-
+      {{- if .image_registry.type | empty -}}
+      true
+      {{- end -}}
+    ca_file: >-
+      {{- if .image_registry.type | empty | not -}}
+      {{ .binary_dir }}/pki/root.crt
+      {{- end -}}
+    cert_file: >-
+      {{- if .image_registry.type | empty | not -}}
+      {{ .binary_dir }}/pki/image_registry.crt
+      {{- end -}}
+    key_file: >-
+      {{- if .image_registry.type | empty | not -}}
+      {{ .binary_dir }}/pki/image_registry.key
+      {{- end -}}
+  # Registry endpoint for images from docker.io
+  dockerio_registry: >-
+    {{- if .image_registry.auth.registry | empty | not -}}
+    {{ .image_registry.auth.registry }}
+    {{- else -}}
+    docker.io
+    {{- end -}}
+
+  # Registry endpoint for images from quay.io
+  quayio_registry: >-
+    {{- if .image_registry.auth.registry | empty | not -}}
+    {{ .image_registry.auth.registry }}
+    {{- else -}}
+    quay.io
+    {{- end -}}
+
+  # Registry endpoint for images from ghcr.io
+  ghcrio_registry: >-
+    {{- if .image_registry.auth.registry | empty | not -}}
+    {{ .image_registry.auth.registry }}
+    {{- else -}}
+    ghcr.io
+    {{- end -}}
+
+  # ========== image registry ==========
+  # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
+  keepalived_version: 2.0.20
+  # ========== image registry: harbor ==========
+  # harbor image tag
+  harbor_version: v2.10.1
+  # ========== image registry: docker-registry ==========
+  # docker-registry image tag
+  docker_registry_version: 2.8.3

@@ -4,26 +4,25 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"strings"
+	"path/filepath"
+	"sort"
 )
 
 // ReadDirFiles read all file in input fs and dir
 func ReadDirFiles(fsys fs.FS, dir string, handler func(data []byte) error) error {
-	d, err := fsys.Open(dir)
+	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
-		return fmt.Errorf("failed to open path %s with error: %w", dir, err)
+		return fmt.Errorf("failed to read dir %q: %w", dir, err)
 	}
-	defer d.Close()
-	entries, err := d.(fs.ReadDirFile).ReadDir(-1)
-	if err != nil {
-		return fmt.Errorf("read dir %s failed with error: %w", dir, err)
-	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
 	for _, entry := range entries {
 		if entry.IsDir() {
 			// skip dir
 			continue
 		}
-		if !HasSuffixIn(entry.Name(), []string{"yaml", "yml"}) {
+		if filepath.Ext(entry.Name()) != ".yaml" && filepath.Ext(entry.Name()) != ".yml" {
 			continue
 		}
 		filePath := dir + "/" + entry.Name()
@@ -50,14 +49,4 @@ func ReadDirFiles(fsys fs.FS, dir string, handler func(data []byte) error) error
 		}
 	}
 	return nil
-}
-
-// HasSuffixIn check input string a end with one of slice b
-func HasSuffixIn(a string, b []string) bool {
-	for _, suffix := range b {
-		if strings.HasSuffix(a, suffix) {
-			return true
-		}
-	}
-	return false
 }

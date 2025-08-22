@@ -2,7 +2,7 @@
 - name: Init | Generate kubeadm initialization configuration
   template:
     src: >-
-      {{- if .kube_version | semverCompare ">=v1.24.0" -}}
+      {{- if .kubernetes.kube_version | semverCompare ">=v1.24.0" -}}
       kubeadm/kubeadm-init.v1beta3
       {{- else -}}
       kubeadm/kubeadm-init.v1beta2
@@ -13,7 +13,7 @@
   block:
     - name: Init | Pre-initialization for kube-vip
       when: 
-        - .kube_version | semverCompare ">=v1.29.0"
+        - .kubernetes.kube_version | semverCompare ">=v1.29.0"
         - eq .kubernetes.control_plane_endpoint.type "kube_vip"
       command: |
         sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' \
@@ -23,7 +23,7 @@
         /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
     - name: Init | Post-initialization for kube-vip
       when: 
-        - .kube_version | semverCompare ">=v1.29.0"
+        - .kubernetes.kube_version | semverCompare ">=v1.29.0"
         - eq .kubernetes.control_plane_endpoint.type "kube_vip"
       command: |
         sed -i 's#path: /etc/kubernetes/super-admin.conf#path: /etc/kubernetes/admin.conf#' \
@@ -33,15 +33,15 @@
 # This ensures the control_plane_endpoint resolves locally before kube-vip is running,
 # preventing failures for tasks that execute kubectl apply on the current node.
 - name: Init | Reset local DNS for control_plane_endpoint
+  loop: "{{ .native.localDNS | toJson }}"
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
+    sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
     cat >> {{ .item }} <<EOF
-    # kubekey control_plane_endpoint BEGIN.
+    # kubekey kubernetes control_plane_endpoint BEGIN
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
     # kubekey control_plane_endpoint END
     EOF
-  loop: "{{ .localDNS | toJson }}"
     
 - name: Init | Copy kubeconfig to default directory
   command: |

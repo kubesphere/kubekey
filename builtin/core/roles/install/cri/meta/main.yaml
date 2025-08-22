@@ -1,8 +1,0 @@
-dependencies:
-  - role: install/cri/crictl
-
-  - role: install/cri/docker
-    when: .cri.container_manager | eq "docker"
-
-  - role: install/cri/containerd
-    when: .cri.container_manager | eq "containerd"

@@ -1,4 +1,0 @@
-etcd:
-  env:
-    data_dir: /var/lib/etcd
-  traffic_priority: false

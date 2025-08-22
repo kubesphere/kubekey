@@ -1,0 +1,55 @@
+---
+- name: NTP | Configure NTP server
+  command: |
+    # Determine the correct chrony configuration file based on OS type
+    chronyConfigFile={{ if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}"/etc/chrony/chrony.conf"{{ else }}"/etc/chrony.conf"{{ end }}
+
+    # Remove any existing server, allow, or local entries to ensure a clean configuration
+    sed -i '/^server/d' $chronyConfigFile
+    sed -i 's/^pool /#pool /g' $chronyConfigFile
+    sed -i '/^allow/d' $chronyConfigFile
+    sed -i '/^local/d' $chronyConfigFile
+
+    # Add base configuration to allow all clients and set local stratum
+    echo "allow 0.0.0.0/0" >> $chronyConfigFile
+    echo "allow ::/0" >> $chronyConfigFile
+    echo "local stratum 10" >> $chronyConfigFile
+
+    # Add NTP server entries
+    {{- range $server := .native.ntp.servers }}
+      {{- $internalIPv4 := "" }}
+      {{- $internalIPv6 := "" }}
+      {{- range $.hostvars }}
+        {{- if eq .hostname $server }}
+          {{- $internalIPv4 = .internal_ipv4 | default "" }}
+          {{- $internalIPv6 = .internal_ipv6 | default "" }}
+        {{- end }}
+      {{- end }}
+    # Configuring NTP server: {{ $server }}
+      {{- if $internalIPv4 | empty | not }}
+    grep -q '^server {{ $internalIPv4 }} iburst' $chronyConfigFile || sed '1a server {{ $internalIPv4 }} iburst' -i $chronyConfigFile
+      {{- end }}
+      {{- if $internalIPv6 | empty | not }}
+    grep -q '^server {{ $internalIPv6 }} iburst' $chronyConfigFile || sed '1a server [{{ $internalIPv6 }}] iburst' -i $chronyConfigFile
+      {{- end }}
+      {{- if and ($internalIPv4 | empty) ($internalIPv6 | empty) }}
+    grep -q '^server {{ $server }} iburst' $chronyConfigFile || sed '1a server {{ $server }} iburst' -i $chronyConfigFile
+      {{- end }}
+    {{- end }}
+  when:
+    - .native.ntp.enabled
+    - .native.ntp.servers | empty | not
+
+- name: Timezone | Set system timezone and NTP synchronization
+  command: |
+    timedatectl set-timezone {{ .native.timezone }}
+    timedatectl set-ntp {{ and .native.ntp.enabled (.native.ntp.servers | empty | not) }}
+  when: or (and .native.ntp.enabled (.native.ntp.servers | empty | not)) (.native.timezone | empty | not)
+
+- name: NTP | Restart NTP service
+  command: |
+    {{- if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}
+    systemctl restart chrony.service
+    {{- end }}
+    systemctl restart chronyd.service
+  when: or (and .native.ntp.enabled (.native.ntp.servers | empty | not)) (.native.timezone | empty | not)

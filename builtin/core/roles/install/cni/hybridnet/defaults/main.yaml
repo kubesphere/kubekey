@@ -1,6 +1,0 @@
-cni:
-  hybridnet:
-    values: |
-      # hybridnet helm values
-      images:
-        registryURL: {{ .dockerio_registry }}

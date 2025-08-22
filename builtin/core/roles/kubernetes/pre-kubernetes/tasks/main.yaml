@@ -26,7 +26,7 @@
   copy:
     src: audit
     dest: /etc/kubernetes/audit/
-  when: .kubernetes.audit
+  when: .audit
 
 - name: PreKubernetes | Synchronize cluster CA files to control plane nodes
   when: 
@@ -47,23 +47,23 @@
 
 - name: PreKubernetes | Ensure external etcd certificates are present on control plane nodes
   when: 
-    - .kubernetes.etcd.deployment_type | eq "external"
+    - .etcd.deployment_type | eq "external"
     - .groups.kube_control_plane | default list | has .inventory_hostname
   block:
     - name: PreKubernetes | Copy etcd CA certificate to control plane node
       copy:
         src: >-
-          {{ .work_dir }}/kubekey/pki/root.crt
+          {{ .etcd.ca_file }}
         dest: /etc/kubernetes/pki/etcd/ca.crt
     - name: PreKubernetes | Copy etcd client certificate to control plane node
       copy:
         src: >-
-          {{ .work_dir }}/kubekey/pki/etcd.crt
+          {{ .etcd.cert_file }}
         dest: /etc/kubernetes/pki/etcd/client.crt
     - name: PreKubernetes | Copy etcd client key to control plane node
       copy:
         src: >-
-          {{ .work_dir }}/kubekey/pki/etcd.key
+          {{ .etcd.key_file }}
         dest: /etc/kubernetes/pki/etcd/client.key
 
 - name: PreKubernetes | Synchronize front-proxy CA files to control plane nodes

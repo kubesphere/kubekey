@@ -1,0 +1,15 @@
+---
+dependencies:
+  - role: image-registry/docker-compose
+
+  - role: image-registry/keepalived
+    when: 
+      - .image_registry.ha_vip | empty | not
+      - .groups.image_registry | len | lt 1
+
+  - role: image-registry/harbor
+    when: .image_registry.type | eq "harbor"
+
+  - role: image-registry/docker-registry
+    when: .image_registry.type | eq "docker-registry"
+

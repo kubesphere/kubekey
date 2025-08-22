@@ -1,53 +1,37 @@
 ---
-- name: InitKubernetes | Select the initialization node for the cluster
-  run_once: true
-  add_hostvars:
-    hosts: k8s_cluster
-    vars:
-      init_kubernetes_node: >-
-        {{- $initNodes := list -}}
-        {{- $notInitNodes := list -}}
-        {{- range .groups.kube_control_plane -}}
-          {{- if index $.hostvars . "kubernetes_install_LoadState" "stdout" | eq "loaded" -}}
-            {{- $initNodes = append $initNodes . -}}
-          {{- else if index $.hostvars . "kubernetes_install_LoadState" "stdout" | eq "not-found" -}}
-            {{- $notInitNodes = append $notInitNodes . -}}
-          {{- end -}}
-        {{- end -}}
-        {{- if $initNodes | len | eq 1 -}}
-        {{ $initNodes | first }}
-        {{- else if $initNodes | len | lt 1 -}}
-        {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}
-        {{- else if $notInitNodes | len | eq 1 -}}
-        {{ $notInitNodes | first }}
-        {{- else if $notInitNodes | len | lt 1 -}}
-        {{ index $notInitNodes (randInt 0 ((sub ($notInitNodes | len) 1) | int)) }}
-        {{- end -}}
-
 - name: InitKubernetes | Configure control_plane_endpoint in local DNS files
   when: 
     - or (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.type | eq "haproxy")
     - .inventory_hostname | eq .init_kubernetes_node | not
+  loop: "{{ .native.localDNS | toJson }}"
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
+    sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
     cat >> {{ .item }} <<EOF
-    # kubekey control_plane_endpoint BEGIN.
+    # kubekey kubernetes control_plane_endpoint BEGIN
     {{- if and (index .hostvars .init_kubernetes_node "internal_ipv4") (ne (index .hostvars .init_kubernetes_node "internal_ipv4") "") }}
     {{ index .hostvars .init_kubernetes_node "internal_ipv4" }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
     {{- if and (index .hostvars .init_kubernetes_node "internal_ipv6") (ne (index .hostvars .init_kubernetes_node "internal_ipv6") "") }}
     {{ index .hostvars .init_kubernetes_node "internal_ipv6" }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
-    # kubekey control_plane_endpoint END
+    # kubekey kubernetes control_plane_endpoint END
     EOF
-  loop: "{{ .localDNS | toJson }}"
 
 - name: InitKubernetes | Initialize the Kubernetes cluster and distribute credentials
-  when: eq .inventory_hostname .init_kubernetes_node
+  when: .init_kubernetes_node | eq .inventory_hostname
   block:
-    - include_tasks: init_kubernetes.yaml
+    - name: InitKubernetes | 新安装
       when: .kubernetes_install_LoadState.stdout | eq "not-found"
-    - include_tasks: deploy_cluster_dns.yaml
+      block:
+        - include_tasks: init_kubernetes.yaml
+          when: .kubernetes_install_LoadState.stdout | eq "not-found"
+        - include_tasks: deploy_cluster_dns.yaml
+    - name: InitKubernetes | 已安装
+      when: .kubernetes_install_LoadState.stdout | eq "load"
+      command: |
+        if [ ! -f /etc/kubernetes/kubeadm-config.yaml ]; then
+          kubectl get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
+        fi
     - name: InitKubernetes | Fetch kubeconfig to local workspace
       fetch:
         src: /etc/kubernetes/admin.conf

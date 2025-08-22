@@ -4,13 +4,13 @@
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 etcd:
-{{- if .kubernetes.etcd.deployment_type | eq "internal" }}
+{{- if .etcd.deployment_type | eq "internal" }}
   local:
-    imageRepository: {{ .kubernetes.etcd.image.registry }}
-    imageTag: {{ .kubernetes.etcd.image.tag }}
+    imageRepository: {{ .etcd.image.registry }}
+    imageTag: {{ .etcd.image.tag }}
     serverCertSANs:
     {{- range .groups.etcd | default list }}
-    - {{ index $.hostvars . "internal_ipv4" }}
+      - {{ index $.hostvars . "internal_ipv4" }}
     {{- end }}
 {{- else }}
   external:
@@ -23,17 +23,17 @@ etcd:
     keyFile: /etc/kubernetes/pki/etcd/client.key
 {{- end }}
 dns:
-  imageRepository: {{ .kubernetes.networking.dns_image.registry }}/{{ .kubernetes.networking.dns_image.repository }}
-  imageTag: {{ .kubernetes.networking.dns_image.tag }}
+  imageRepository: {{ .dns.dns_image.registry }}/{{ .dns.dns_image.repository }}
+  imageTag: {{ .dns.dns_image.tag }}
 imageRepository: {{ .kubernetes.image_repository }}
-kubernetesVersion: {{ .kube_version }}
+kubernetesVersion: {{ .kubernetes.kube_version }}
 certificatesDir: /etc/kubernetes/pki
 clusterName: {{ .kubernetes.cluster_name }}
 controlPlaneEndpoint: {{ .kubernetes.control_plane_endpoint.host }}
 networking:
-  dnsDomain: {{ .kubernetes.networking.dns_domain }}
-  podSubnet: {{ .kubernetes.networking.pod_cidr }}
-  serviceSubnet: {{ .kubernetes.networking.service_cidr }}
+  dnsDomain: {{ .dns.dns_domain }}
+  podSubnet: {{ .cni.pod_cidr }}
+  serviceSubnet: {{ .cni.service_cidr }}
 apiServer:
   extraArgs:
 {{- if $internalIPv4 | empty | not }}
@@ -50,7 +50,7 @@ apiServer:
     tls-min-version: VersionTLS12
     tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
 {{- end }}
-{{- if .kubernetes.audit }}
+{{- if .audit }}
     audit-log-format: json
     audit-log-maxbackup: 2
     audit-log-maxsize: 200
@@ -68,13 +68,13 @@ apiServer:
     - kubernetes.default
     - kubernetes.default.svc
     - kubernetes.default.svc.{{ .kubernetes.cluster_name }}
-    - kubernetes.default.svc.{{ .kubernetes.cluster_name }}.{{ .kubernetes.networking.dns_domain }}
-    - {{ index (.kubernetes.networking.service_cidr | ipInCIDR) 0 }}
+    - kubernetes.default.svc.{{ .kubernetes.cluster_name }}.{{ .dns.dns_domain }}
+    - {{ index (.cni.service_cidr | ipInCIDR) 0 }}
     - {{ .kubernetes.control_plane_endpoint.host }}
   {{- range .groups.k8s_cluster | default list }}
     - {{ index $.hostvars . "hostname" }}
     - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}
-    - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}.{{ $.kubernetes.networking.dns_domain }}
+    - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}.{{ $.dns.dns_domain }}
     {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
     {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
     {{- if $internalIPv4 | empty | not }}
@@ -87,7 +87,7 @@ apiServer:
   {{- range .kubernetes.apiserver.certSANs }}
     - {{ . }}
   {{- end }}
-{{- if .kubernetes.audit }}
+{{- if .audit }}
   extraVolumes:
     - name: k8s-audit
       hostPath: /etc/kubernetes/audit
@@ -96,11 +96,11 @@ apiServer:
 {{- end }}
 controllerManager:
   extraArgs:
-{{- if eq (.kubernetes.networking.pod_cidr | splitList "," | first | ipFamily) "IPv4" }}
-    node-cidr-mask-size-ipv4: "{{ .kubernetes.networking.ipv4_mask_size }}"
+{{- if eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" }}
+    node-cidr-mask-size-ipv4: "{{ .cni.ipv4_mask_size }}"
 {{- end }}
-{{- if eq (.kubernetes.networking.pod_cidr | splitList "," | last | ipFamily) "IPv6" }}
-    node-cidr-mask-size-ipv6: "{{ .kubernetes.networking.ipv6_mask_size }}"
+{{- if eq (.cni.pod_cidr | splitList "," | last | ipFamily) "IPv6" }}
+    node-cidr-mask-size-ipv6: "{{ .cni.ipv6_mask_size }}"
 {{- end }}
 {{- if .security_enhancement }}
   {{- if $internalIPv4 | empty | not }}
@@ -118,7 +118,7 @@ controllerManager:
     bind-address: ::
   {{- end }}
 {{- end }}
-{{- if .kubernetes.controller_manager.extra_args | empty | not }}
+{{- if .kubernetes.controller_manager.extra_args }}
 {{ .kubernetes.controller_manager.extra_args | toYaml | indent 4 }}
 {{- end }}
   extraVolumes:
@@ -142,7 +142,7 @@ scheduler:
     bind-address: ::
   {{- end }}
 {{- end }}
-{{- if .kubernetes.scheduler.extra_args | empty | not }}
+{{- if .kubernetes.scheduler.extra_args }}
 {{ .kubernetes.scheduler.extra_args | toYaml | indent 4 }}
 {{- end }}
 ---
@@ -164,18 +164,18 @@ nodeRegistration:
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
-clusterCIDR: {{ .kubernetes.networking.pod_cidr }}
+clusterCIDR: {{ .cni.pod_cidr }}
 mode: {{ .kubernetes.kube_proxy.mode }}
-{{- if .kubernetes.kube_proxy.config }}
+{{- if .kubernetes.kube_proxy.config | empty | not }}
 {{ .kubernetes.kube_proxy.config | toYaml }}
 {{- end }}
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
-clusterDomain: {{ .kubernetes.networking.dns_domain }}
+clusterDomain: {{ .dns.dns_domain }}
 clusterDNS:
-  - {{ .kubernetes.networking.clusterDNS }}
-maxPods: {{ .kubernetes.max_pods }}
+  - {{ .dns.dns_cache_ip }}
+maxPods: {{ .cni.max_pods }}
 podPidsLimit: {{ .kubernetes.kubelet.pod_pids_limit }}
 rotateCertificates: true
 kubeReserved:

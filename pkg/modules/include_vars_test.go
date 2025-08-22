@@ -18,9 +18,7 @@ func TestModuleIncludeVars(t *testing.T) {
 			name: "include remote path",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
-					Raw: []byte(`{
-"include_vars": "http://127.0.0.1:8080/include_vars",
-}`),
+					Raw: []byte("http://127.0.0.1:8080/include_vars"),
 				},
 				Variable: newTestVariable(nil, nil),
 			},
@@ -29,9 +27,7 @@ func TestModuleIncludeVars(t *testing.T) {
 			name: "include empty path",
 			opt: ExecOptions{
 				Args: runtime.RawExtension{
-					Raw: []byte(`{
-"include_vars": "",
-}`),
+					Raw: []byte(""),
 				},
 				Variable: newTestVariable(nil, nil),
 			},
@@ -39,10 +35,9 @@ func TestModuleIncludeVars(t *testing.T) {
 		}, {
 			name: "include path not exist",
 			opt: ExecOptions{
+
 				Args: runtime.RawExtension{
-					Raw: []byte(`{
-"include_vars": "/path/not/exist/not_exist.yaml",
-}`),
+					Raw: []byte("/path/not/exist/not_exist.yaml"),
 				},
 				Variable: newTestVariable(nil, nil),
 			},
