@@ -182,7 +182,7 @@ func (ca copyArgs) handleAbsolutePath(ctx context.Context, conn connector.Connec
 func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, conn connector.Connector) (string, string, error) {
 	pj, err := project.New(ctx, options.Playbook, false)
 	if err != nil {
-		return StdoutFailed, "failed to get playbook", err
+		return StdoutFailed, StderrGetPlaybook, err
 	}
 
 	relPath := filepath.Join(options.Task.Annotations[kkcorev1alpha1.TaskAnnotationRelativePath], _const.ProjectRolesFilesDir, ca.src)

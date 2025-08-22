@@ -138,3 +138,6 @@ const RuntimePlaybookVariableDir = "variable"
 
 // KubernetesDir represents the remote host directory for each Kubernetes connection created during playbook execution.
 const KubernetesDir = "kubernetes"
+
+// VarsDir is a directory name for vars
+const VarsDir = "vars"
