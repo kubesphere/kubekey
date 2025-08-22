@@ -1,0 +1,13 @@
+---
+- name: NFS | Synchronize NFS provisioner Helm chart to remote host
+  copy:
+    src: >-
+      {{ .work_dir }}/kubekey/sc/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
+    dest: >-
+      /etc/kubernetes/addons/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
+
+- name: NFS | Deploy the NFS provisioner using Helm
+  command: |
+    helm upgrade --install nfs-subdir-external-provisioner /etc/kubernetes/addons/nfs-subdir-external-provisioner-{{ .nfs_provisioner_version }}.tgz --namespace kube-system \
+      --set nfs.server={{ .storage_class.nfs.server }} --set nfs.path={{ .storage_class.nfs.path }} \
+      --set storageClass.defaultClass={{ if .storage_class.local.default }}true{{ else }}false{{ end }}

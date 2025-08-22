@@ -1,9 +1,10 @@
 #!/bin/bash
-{{- if .renew_certs.is_kubeadm_alpha }}
+{{- if .kubernetes.kube_version | semverCompare "<v1.20.0" -}}
 kubeadmCerts='/usr/local/bin/kubeadm alpha certs'
-{{- else }}
+{{- else -}}
 kubeadmCerts='/usr/local/bin/kubeadm certs'
-{{- end }}
+{{- end -}}
+
 getCertValidDays() {
   local earliestExpireDate; earliestExpireDate=$(${kubeadmCerts} check-expiration | grep -o "[A-Za-z]\{3,4\}\s\w\w,\s[0-9]\{4,\}\s\w*:\w*\s\w*\s*" | xargs -I {} date -d {} +%s | sort | head -n 1)
   local today; today="$(date +%s)"

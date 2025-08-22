@@ -1,0 +1,78 @@
+dns: 
+  # ====== In-Cluster DNS Service Configuration ======
+  # The DNS domain suffix used for all services and pods within the cluster.
+  dns_domain: cluster.local
+  # CoreDNS image settings
+  dns_image: 
+    registry: >-
+      {{ .image_registry.dockerio_registry }}
+    repository: >-
+      kubesphere
+    tag: v1.11.1
+  # NodeLocalDNS image settings
+  dns_cache_image: 
+    registry: >-
+      {{ .image_registry.dockerio_registry }}
+    repository: kubesphere/k8s-dns-node-cache
+    tag: 1.24.0
+  # The IP address assigned to the cluster DNS service
+  dns_service_ip: >-
+    {{ index (.cni.service_cidr | ipInCIDR) 2 }}
+  # The IP address NodeLocalDNS will bind to on each node
+  dns_cache_ip: 169.254.25.10
+
+  # CoreDNS pod configuration
+  coredns:
+    dns_etc_hosts: []
+    # DNS zone matching configuration
+    zone_configs:
+      # Each entry defines which DNS zones to match. The default port is 53.
+      # ".": matches all DNS zones.
+      # "example.com": matches *.example.com using DNS server on port 53.
+      # "example.com:54": matches *.example.com using DNS server on port 54.
+      - zones: [".:53"]
+        additional_configs:
+          - errors
+          - ready
+          - prometheus :9153
+          - loop
+          - reload
+          - loadbalance
+        cache: 30
+        kubernetes:
+          zones:
+            - "{{ .dns.dns_domain }}"
+        # You can configure internal DNS message rewriting here if needed.
+#        rewrite:
+#          - rule: continue
+#            field: name
+#            type: exact
+#            value: "example.com example2.com"
+#            options: ""
+        forward:
+          # DNS query forwarding rules.
+          - from: "."
+            # Destination endpoints for forwarding. The 'to' syntax allows protocol specification.
+            to: ["/etc/resolv.conf"]
+            # Domains to exclude from forwarding.
+            except: []
+            # Use TCP for forwarding, even if the original request was UDP.
+            force_tcp: false
+            # Prefer UDP for forwarding; fallback to TCP if the response is truncated.
+            prefer_udp: false
+            # Number of consecutive failed health checks before marking an upstream as down.
+#            max_fails: 2
+            # Time after which cached connections expire.
+#            expire: 10s
+            # TLS properties for secure connections can be set here.
+#            tls:
+#              cert_file: ""
+#              key_file: ""
+#              ca_file: ""
+#            tls_servername: ""
+            # Policy for selecting upstream servers: random (default), round_robin, sequential.
+#            policy: "random"
+            # Health check configuration for upstream servers.
+#            health_check: ""
+            # Maximum number of concurrent DNS queries allowed.
+            max_concurrent: 1000

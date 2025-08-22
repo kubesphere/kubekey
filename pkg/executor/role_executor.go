@@ -27,13 +27,8 @@ type roleExecutor struct {
 // Exec executes the role, including its dependencies and blocks.
 // It checks tags, merges variables, and recursively executes dependent roles and blocks.
 func (e roleExecutor) Exec(ctx context.Context) error {
-	// check tags: skip execution if tags do not match
-	if !e.tags.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
-		// if not match the tags. skip
-		return nil
-	}
 	// merge variables defined in the role for the current hosts
-	if err := e.variable.Merge(variable.MergeRuntimeVariable(e.role.Vars, e.hosts...)); err != nil {
+	if err := e.variable.Merge(variable.MergeRuntimeVariable(e.role.Vars.Nodes, e.hosts...)); err != nil {
 		return err
 	}
 	// deal dependency role: execute all role dependencies recursively

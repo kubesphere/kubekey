@@ -1,90 +1,71 @@
 ---
-- import_playbook: hook/default.yaml
 - import_playbook: hook/pre_install.yaml
 
-# load defaults vars
+# Load default variables and perform prechecks on all hosts
 - hosts:
     - all
-  vars_files:
-    - vars/common.yaml
-    - vars/kubernetes.yaml
+  gather_facts: true
+  roles:
+    - defaults
+    - precheck
 
-# precheck
+# Download all required software and generate certificates on the localhost
 - hosts:
     - localhost
   roles:
-    - role: precheck/artifact_check
-      when: .artifact.artifact_file | empty | not
-- hosts:
-    - k8s_cluster
-    - etcd
-    - image_registry
-    - nfs
-  gather_facts: true
-  roles:
-    - precheck/env_check
+    - certs/init
+    - download
 
-- hosts:
-    - localhost
-  gather_facts: true
-  roles:
-    - init/init-artifact
-    - init/init-cert
-
-# init os
+# Initialize all nodes and install necessary software packages
 - hosts:
     - etcd
     - k8s_cluster
     - image_registry
     - nfs
   roles:
-    - init/init-os
+    - native
 
-# install
-- hosts:
-    - nfs
-  gather_facts: true
-  roles:
-    - install/nfs
-
+# Install the etcd cluster
 - hosts:
     - etcd
-  gather_facts: true
   roles:
-    - install/etcd
+    - etcd
 
+# Install the private image registry
 - hosts:
     - image_registry
-  gather_facts: true
   roles:
-    - install/image-registry
+    - image-registry
 
+# Install the Kubernetes cluster
 - hosts:
     - k8s_cluster
   gather_facts: true
   roles:
-    - install/cri
+    - cri
     - kubernetes/pre-kubernetes
     - kubernetes/init-kubernetes
-    - kubernetes/join-kubernetes
+    - role: kubernetes/join-kubernetes
+      when: 
+        - .init_kubernetes_node | ne .inventory_hostname 
+        - .kubernetes_install_LoadState.stdout | eq "not-found"    
     - role: kubernetes/certs
       when: 
         - .kubernetes.certs.renew
         - .groups.kube_control_plane | default list | has .inventory_hostname
   post_tasks:
-    - name: Add custom label to cluster
+    - name: Add custom labels to the cluster nodes
       command: |
         {{- range $k, $v := .kubernetes.custom_labels }}
         /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
         {{- end }}
       when: .kubernetes.custom_label | empty | not
 
+# Install Kubernetes cluster software components (CNI and storage class) on a random control plane node
 - hosts:
     - kube_control_plane|random
   roles:
-    - install/cni
-    - install/storageclass
-    - role: install/security
-      when: .security_enhancement
+    - cni
+    - storage-class
 
 - import_playbook: hook/post_install.yaml

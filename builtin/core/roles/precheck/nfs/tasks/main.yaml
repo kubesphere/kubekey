@@ -1,0 +1,5 @@
+---
+- name: NFS | Fail if more than one NFS server is defined
+  assert:
+    that: .groups.nfs | default list | len | eq 1
+    fail_msg: "Exactly one NFS server must be specified. Multiple NFS servers are not supported."

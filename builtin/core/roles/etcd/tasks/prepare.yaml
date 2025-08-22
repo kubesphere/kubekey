@@ -1,0 +1,81 @@
+---
+- name: Prepare | Ensure installed etcd is running and healthy
+  when: .etcd_install_LoadState.stdout | eq "loaded"
+  assert:
+    that: .etcd_install_ActiveState.stdout | eq "active"
+    fail_msg: >-
+      etcd service is installed but not running
+
+- name: Prepare | Set etcd node parameters
+  block:
+    - name: Prepare | Identify nodes with installed or missing etcd
+      run_once: true
+      add_hostvars:
+        hosts: etcd
+        vars:
+          installed_etcd: >-
+            {{- $needInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if (index $.hostvars . "etcd_install_LoadState" "stdout") | eq "loaded" -}}
+                {{- $needInstalled = append $needInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needInstalled | first | default "" }}
+          need_installed_etcd: >-
+            {{- $needInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if (index $.hostvars . "etcd_install_LoadState" "stdout") | eq "not-found" -}}
+                {{- $needInstalled = append $needInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needInstalled | toJson }}
+
+- name: Prepare | Check installed etcd version
+  when: .etcd_install_LoadState.stdout | eq "loaded"
+  block:
+    - name: Prepare | Ensure target etcd version is not lower than installed version
+      when: .etcd_install_LoadState.stdout | eq "loaded"
+      assert:
+        that: .etcd_version | semverCompare (printf ">=v%s" (index .etcd_install_version "stdout" "etcd Version"))
+        fail_msg: >-
+          Installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }} is lower than target etcd version: {{ .etcd.etcd_version }}
+
+- name: Prepare | Synchronize etcd package to node if new install or upgrade
+  when:
+    - or (.etcd_install_version.error | empty | not) (.etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version")))
+  block:
+    - name: Prepare | Copy etcd binary package to remote node
+      copy:
+        src: >-
+          {{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .binary_type }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
+        dest: >-
+          {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
+    - name: Prepare | Extract etcd binary package to /usr/local/bin/
+      command: |
+        tar --strip-components=1 -C /usr/local/bin/ -xvf {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz \
+          --wildcards 'etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}/etcd*'
+
+- name: Prepare | Synchronize certificates to node for new install or expansion
+  when: >-
+    or
+      (.etcd_install_version.error | empty | not)
+      (and
+        (.installed_etcd | empty | not)
+        (.need_installed_etcd | fromJson | empty | not)
+      )
+  block:
+    - name: Prepare | Copy CA certificate to etcd node
+      copy:
+        src: >-
+          {{ .etcd.ca_file }}
+        dest: /etc/ssl/etcd/ssl/ca.crt
+    - name: Prepare | Copy server certificate to etcd node
+      copy:
+        src: >-
+          {{ .etcd.cert_file }}
+        dest: /etc/ssl/etcd/ssl/server.crt
+    - name: Prepare | Copy server key to etcd node
+      copy:
+        src: >-
+          {{ .etcd.key_file }}
+        dest: /etc/ssl/etcd/ssl/server.key

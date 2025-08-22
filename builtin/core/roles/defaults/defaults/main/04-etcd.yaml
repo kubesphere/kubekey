@@ -1,0 +1,44 @@
+# etcd service configuration
+etcd:
+  # etcd supports two deployment types:
+  # - external: Use an external etcd cluster.
+  # - internal: Deploy etcd as static Pods within the cluster.
+  deployment_type: external
+  etcd_version: v3.5.11
+  image: 
+    registry: >-
+      {{ .image_registry.dockerio_registry }}
+    repository: kubesphere/etcd
+    tag: "{{ .etcd.etcd_version }}"
+  #    endpoints: ["https://127.1.1.1:2379"]
+  # Environment variables for etcd service
+  env:
+    election_timeout: 5000
+    heartbeat_interval: 250
+    compaction_retention: 8
+    snapshot_count: 10000
+    data_dir: /var/lib/etcd
+    token: k8s_etcd
+    # metrics: basic
+    # quota_backend_bytes: 100
+    # max_request_bytes: 100
+    # max_snapshots: 100
+    # max_wals: 5
+    # log_level: info
+    # unsupported_arch: arm64
+  # etcd backup configuration
+  backup:
+    backup_dir: /var/lib/etcd-backup
+    keep_backup_number: 5
+    etcd_backup_script: "backup.sh"
+    on_calendar: "*-*-* *:00/30:00"
+  # Enable etcd performance tuning (set to true to enable)
+  performance: false
+  # Enable etcd traffic prioritization (set to true to enable)
+  traffic_priority: false
+  ca_file: >-
+    {{ .binary_dir }}/pki/root.crt
+  cert_file: >-
+    {{ .binary_dir }}/pki/etcd.crt
+  key_file: >-
+    {{ .binary_dir }}/pki/etcd.key

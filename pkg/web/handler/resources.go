@@ -72,13 +72,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 		oldConfig map[string]map[string]any
 		newConfig map[string]map[string]any
 	)
-	bodyBytes, err := io.ReadAll(request.Request.Body)
-	if err != nil {
-		_ = response.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-	// Read new config from request body.
-	if err := json.Unmarshal(bodyBytes, &newConfig); err != nil {
+	if err := request.ReadEntity(&newConfig); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -170,11 +164,17 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 	for fileName, playbook := range playbooks {
 		if playbook.Status.FailureMessage != "" {
 			preCheckResult[fileName] = playbook.Status.FailureMessage
+			delete(newConfig, fileName)
 		}
 	}
 
+	data, err := json.Marshal(newConfig)
+	if err != nil {
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
 	// Write new config to file.
-	if err := os.WriteFile(filepath.Join(h.rootPath, api.SchemaConfigFile), bodyBytes, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(h.rootPath, api.SchemaConfigFile), data, 0644); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}

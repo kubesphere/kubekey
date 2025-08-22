@@ -4,14 +4,14 @@
     src: >-
       {{ .binary_dir }}/pki/image_registry.crt
     dest: >-
-      /opt/harbor/{{ .harbor_version }}/ssl/server.crt
+      /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.crt
 
 - name: Harbor | Copy image registry private key to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.key
     dest: >-
-      /opt/harbor/{{ .harbor_version }}/ssl/server.key
+      /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.key
 
 - name: Harbor | Restart Harbor service to apply new certificates
   command: systemctl restart harbor.service

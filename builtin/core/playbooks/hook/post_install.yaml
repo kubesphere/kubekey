@@ -1,9 +1,16 @@
 ---
-- name: Execute post install scripts
+- name: Post | Apply Security Enhancements
+  hosts:
+    - all
+  roles:
+    - role: security
+      when: .security_enhancement
+
+- name: Post | Run Post-Installation Scripts
   hosts:
     - all
   tasks:
-    - name: Copy post install scripts to remote
+    - name: Post | Copy post-installation scripts to remote hosts
       ignore_errors: true
       copy:
         src: >-
@@ -11,15 +18,15 @@
         dest: >-
           /etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh
         mode: 0755
-      register: execute_result
+      register: post_install_copy_result
 
-    - name: Execute post install scripts
-      when: .execute_result.error | empty
+    - name: Post | Execute post-installation scripts on remote hosts
+      when: .post_install_copy_result.error | empty
       command: |
         for file in /etc/kubekey/scripts/post_install_*.sh; do
-          if [ -f $file ]; then
-            # execute file
-            chmod +x $file
-            $file
+          if [ -f "$file" ]; then
+            # Make the script executable and run it
+            chmod +x "$file"
+            "$file"
           fi
         done

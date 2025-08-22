@@ -1,0 +1,23 @@
+---
+- name: Repository | Synchronize local repository ISO image
+  block:
+    - name: Repository | Copy local repository ISO file
+      ignore_errors: true
+      copy:
+        src: >-
+          {{ .binary_dir }}/repository/{{ .os.release.ID_LIKE }}-{{ .os.release.VERSION_ID }}-{{ .binary_type }}.iso
+        dest: >-
+          {{ .tmp_dir }}/repository.iso
+    - name: Repository | Mount repository ISO to temporary directory
+      command: |
+        if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+          mount -t iso9660 -o loop {{ .tmp_dir }}/repository.iso {{ .tmp_dir }}/iso
+        fi
+    - name: Repository | Initialize package repositories and install system dependencies
+      include_tasks: install_package.yaml
+  always:
+    - name: Repository | Unmount repository ISO from temporary directory
+      command: |
+        if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+          umount {{ .tmp_dir }}/iso
+        fi

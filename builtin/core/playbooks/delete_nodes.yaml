@@ -1,32 +1,17 @@
 ---
-- import_playbook: hook/default.yaml
-
-# load defaults vars
+# Load default variables and perform prechecks on all hosts
 - hosts:
     - all
-  vars_files:
-    - vars/common.yaml
-    - vars/kubernetes.yaml
+  gather_facts: true
+  roles:
+    - defaults
+    - precheck
 
 - hosts:
     - kube_control_plane
   gather_facts: true
   tasks:
-    - name: Get kubelet.service LoadState and save to variable
-      command: systemctl show kubelet.service -p LoadState --value
-      register: kubernetes_install_LoadState
-    - name: Get kubelet.service ActiveState and save to variable
-      command: systemctl show kubelet.service -p ActiveState --value
-      register: kubernetes_install_ActiveState
-    - name: Check kubernetes service and version 
-      when: .kubernetes_install_LoadState.stdout | eq "loaded"
-      block:
-        - name: Kubernetes should be active
-          assert:
-            that: .kubernetes_install_ActiveState.stdout | eq "active"
-            fail_msg: >-
-              kubernetes should be active when it's loaded
-    - name: Keep at least one control_plane node.
+    - name: DeleteNode | Ensure at least one control plane node remains in the cluster
       run_once: true
       command: |
         {{- $cpNodes := list -}}
@@ -35,17 +20,15 @@
             {{- $cpNodes = append $cpNodes . -}}
           {{- end -}}
         {{- end -}}
-        {{- if (subtractList $cpNodes .delete_nodes) | empty | not }}
-        exit 0
-        {{- else }}
-        echo "should keep at least one control_plane"
+        {{- if (subtractList $cpNodes .delete_nodes) | empty }}
+        echo "At least one control plane node must be retained in the cluster." >&2
         exit 1
         {{- end }}
 
 - hosts: 
     - k8s_cluster
   pre_tasks:
-    - name: delete node from cluster
+    - name: DeleteNode | Remove node from Kubernetes cluster
       when: .delete_nodes | default list | has .inventory_hostname
       command: |
         if kubectl get node {{ .hostname }} > /dev/null 2>&1; then
@@ -55,7 +38,7 @@
           else
             kubectl drain {{ .hostname }} --ignore-daemonsets --delete-emptydir-data --force
           fi
-        {{- if .kubernetes.kube_network_plugin | eq "calico" }}
+        {{- if .cni.type | eq "calico" }}
           calicoctl delete node {{ .hostname }}
         {{- end }}
           kubectl delete node {{ .hostname }}
@@ -69,15 +52,16 @@
         - .groups.image_registry | default list | has .inventory_hostname | not
         - .delete_nodes | default list | has .inventory_hostname
   post_tasks:
-    - name: delete localDNS file
+    - name: DeleteNode | Clean up local DNS configuration files
       ignore_errors: true
+      loop: "{{ .native.localDNS | toJson }}"
       command: |
         sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
-        sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
+        sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+        sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
       when: 
         - .deleteDNS
         - .delete_nodes | default list | has .inventory_hostname
-      loop: "{{ .localDNS | toJson }}"
 
 - hosts:
     - etcd

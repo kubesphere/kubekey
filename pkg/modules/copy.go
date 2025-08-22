@@ -86,13 +86,15 @@ Return Values:
 - On failure: Returns error message in stderr
 */
 
+// copyArgs holds the arguments for the copy module.
 type copyArgs struct {
-	src     string
-	content string
-	dest    string
-	mode    *uint32
+	src     string  // Source file or directory path (local)
+	content string  // Content to write to the destination file (if no src)
+	dest    string  // Destination path on the remote host
+	mode    *uint32 // Optional file mode/permissions
 }
 
+// newCopyArgs parses and validates the arguments for the copy module.
 func newCopyArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*copyArgs, error) {
 	var err error
 	ca := &copyArgs{}
@@ -116,7 +118,7 @@ func newCopyArgs(_ context.Context, raw runtime.RawExtension, vars map[string]an
 	return ca, nil
 }
 
-// ModuleCopy handles the "copy" module, copying files or content to remote hosts
+// ModuleCopy handles the "copy" module, copying files or content to remote hosts.
 func ModuleCopy(ctx context.Context, options ExecOptions) (string, string, error) {
 	// get host variable
 	ha, err := options.getAllVariables()
@@ -146,15 +148,16 @@ func ModuleCopy(ctx context.Context, options ExecOptions) (string, string, error
 	}
 }
 
-// copySrc copy src file to dest
+// copySrc copies the source file or directory to the destination on the remote host.
 func (ca copyArgs) copySrc(ctx context.Context, options ExecOptions, conn connector.Connector) (string, string, error) {
-	if filepath.IsAbs(ca.src) { // if src is absolute path. find it in local path
+	if filepath.IsAbs(ca.src) { // if src is absolute path, find it in local path
 		return ca.handleAbsolutePath(ctx, conn)
 	}
-	// if src is not absolute path. find file in project
+	// if src is not absolute path, find file in project
 	return ca.handleRelativePath(ctx, options, conn)
 }
 
+// handleAbsolutePath handles copying when the source is an absolute path.
 func (ca copyArgs) handleAbsolutePath(ctx context.Context, conn connector.Connector) (string, string, error) {
 	fileInfo, err := os.Stat(ca.src)
 	if err != nil {
@@ -162,7 +165,7 @@ func (ca copyArgs) handleAbsolutePath(ctx context.Context, conn connector.Connec
 	}
 
 	if fileInfo.IsDir() { // src is dir
-		if err := ca.absDir(ctx, conn); err != nil {
+		if err := ca.copyAbsoluteDir(ctx, conn); err != nil {
 			return StdoutFailed, "failed to copy absolute dir", err
 		}
 		return StdoutSuccess, "", nil
@@ -173,12 +176,13 @@ func (ca copyArgs) handleAbsolutePath(ctx context.Context, conn connector.Connec
 	if err != nil {
 		return StdoutFailed, "failed to read absolute file", err
 	}
-	if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
+	if err := ca.copyFile(ctx, data, fileInfo.Mode(), conn); err != nil {
 		return StdoutFailed, "failed to copy absolute file", err
 	}
 	return StdoutSuccess, "", nil
 }
 
+// handleRelativePath handles copying when the source is a relative path (from the project).
 func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, conn connector.Connector) (string, string, error) {
 	pj, err := project.New(ctx, options.Playbook, false)
 	if err != nil {
@@ -192,7 +196,7 @@ func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, 
 	}
 
 	if fileInfo.IsDir() {
-		if err := ca.handleRelativeDir(ctx, pj, relPath, conn); err != nil {
+		if err := ca.copyRelativeDir(ctx, pj, relPath, conn); err != nil {
 			return StdoutFailed, "failed to copy relative dir", err
 		}
 
@@ -204,85 +208,18 @@ func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, 
 	if err != nil {
 		return StdoutFailed, "failed to read relative file", err
 	}
-	if err := ca.readFile(ctx, data, fileInfo.Mode(), conn); err != nil {
+	if err := ca.copyFile(ctx, data, fileInfo.Mode(), conn); err != nil {
 		return StdoutFailed, "failed to copy relative file", err
 	}
 
 	return StdoutSuccess, "", nil
 }
 
-func (ca copyArgs) handleRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) error {
-	return pj.WalkDir(relPath, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() { // only copy file
-			return nil
-		}
-
-		info, err := d.Info()
-		if err != nil {
-			return errors.Wrap(err, "failed to get file info")
-		}
-
-		mode := info.Mode()
-		if ca.mode != nil {
-			mode = os.FileMode(*ca.mode)
-		}
-
-		data, err := pj.ReadFile(path)
-		if err != nil {
-			return errors.Wrap(err, "failed to read file")
-		}
-
-		dest := ca.dest
-		if strings.HasSuffix(ca.dest, "/") {
-			rel, err := pj.Rel(relPath, path)
-			if err != nil {
-				return errors.Wrap(err, "failed to get relative file path")
-			}
-			dest = filepath.Join(ca.dest, rel)
-		}
-
-		return conn.PutFile(ctx, data, dest, mode)
-	})
-}
-
-// copyContent convert content param and copy to dest
-func (ca copyArgs) copyContent(ctx context.Context, mode fs.FileMode, conn connector.Connector) (string, string, error) {
-	if strings.HasSuffix(ca.dest, "/") {
-		return StdoutFailed, StderrUnsupportArgs, errors.New("\"content\" should copy to a file")
-	}
-
-	if ca.mode != nil {
-		mode = os.FileMode(*ca.mode)
-	}
-
-	if err := conn.PutFile(ctx, []byte(ca.content), ca.dest, mode); err != nil {
-		return StdoutFailed, "failed to copy file", err
-	}
-
-	return StdoutSuccess, "", nil
-}
-
-// absFile when copy.src is absolute file, get file from os, and copy to remote.
-func (ca copyArgs) readFile(ctx context.Context, data []byte, mode fs.FileMode, conn connector.Connector) error {
-	dest := ca.dest
-	if strings.HasSuffix(ca.dest, "/") {
-		dest = filepath.Join(ca.dest, filepath.Base(ca.src))
-	}
-
-	if ca.mode != nil {
-		mode = os.FileMode(*ca.mode)
-	}
-
-	return conn.PutFile(ctx, data, dest, mode)
-}
-
-// absDir when copy.src is absolute dir, get all files from os, and copy to remote.
-func (ca copyArgs) absDir(ctx context.Context, conn connector.Connector) error {
+// copyAbsoluteDir copies all files from an absolute directory to the remote host.
+func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector) error {
 	return filepath.WalkDir(ca.src, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() { // only copy file
+		// Only copy files, skip directories
+		if d.IsDir() {
 			return nil
 		}
 
@@ -318,6 +255,79 @@ func (ca copyArgs) absDir(ctx context.Context, conn connector.Connector) error {
 	})
 }
 
+// copyRelativeDir copies all files from a relative directory (in the project) to the remote host.
+func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) error {
+	return pj.WalkDir(relPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Only copy files, skip directories
+		if d.IsDir() {
+			return nil
+		}
+
+		info, err := d.Info()
+		if err != nil {
+			return errors.Wrap(err, "failed to get file info")
+		}
+
+		mode := info.Mode()
+		if ca.mode != nil {
+			mode = os.FileMode(*ca.mode)
+		}
+
+		data, err := pj.ReadFile(path)
+		if err != nil {
+			return errors.Wrap(err, "failed to read file")
+		}
+
+		dest := ca.dest
+		if strings.HasSuffix(ca.dest, "/") {
+			rel, err := pj.Rel(relPath, path)
+			if err != nil {
+				return errors.Wrap(err, "failed to get relative file path")
+			}
+			dest = filepath.Join(ca.dest, rel)
+		}
+
+		return conn.PutFile(ctx, data, dest, mode)
+	})
+}
+
+// copyContent converts the content param and copies it to the destination file on the remote host.
+func (ca copyArgs) copyContent(ctx context.Context, mode fs.FileMode, conn connector.Connector) (string, string, error) {
+	// Content must be copied to a file, not a directory
+	if strings.HasSuffix(ca.dest, "/") {
+		return StdoutFailed, StderrUnsupportArgs, errors.New("\"content\" should copy to a file")
+	}
+
+	if ca.mode != nil {
+		mode = os.FileMode(*ca.mode)
+	}
+
+	if err := conn.PutFile(ctx, []byte(ca.content), ca.dest, mode); err != nil {
+		return StdoutFailed, "failed to copy file", err
+	}
+
+	return StdoutSuccess, "", nil
+}
+
+// copyFile copies a file (data) to the destination on the remote host.
+// If the destination is a directory, the file is placed inside it with its base name.
+func (ca copyArgs) copyFile(ctx context.Context, data []byte, mode fs.FileMode, conn connector.Connector) error {
+	dest := ca.dest
+	if strings.HasSuffix(ca.dest, "/") {
+		dest = filepath.Join(ca.dest, filepath.Base(ca.src))
+	}
+
+	if ca.mode != nil {
+		mode = os.FileMode(*ca.mode)
+	}
+
+	return conn.PutFile(ctx, data, dest, mode)
+}
+
+// Register the "copy" module at init.
 func init() {
 	utilruntime.Must(RegisterModule("copy", ModuleCopy))
 }

@@ -3,7 +3,7 @@
 
 - include_tasks: etcd.yaml
   when:
-    - .kubernetes.etcd.deployment_type | eq "external"
+    - .etcd.deployment_type | eq "external"
     - .groups.etcd | default list | empty | not
 
 - name: Kubernetes | Restart Kubernetes control plane pods
@@ -13,7 +13,7 @@
     docker ps -af name=k8s_PODS_kube-apiserver* -q | xargs --no-run-if-empty docker rm -f
     docker ps -af name=k8s_PODS_kube-controller-manager* -q | xargs --no-run-if-empty docker rm -f
     docker ps -af name=k8s_PODS_kube-scheduler* -q | xargs --no-run-if-empty docker rm -f
-      {{- if .kubernetes.etcd.deployment_type | eq "docker" }}
+      {{- if .etcd.deployment_type | eq "docker" }}
     # Restarting etcd pods managed by Docker
     docker ps -af name=k8s_PODS_etcd* -q | xargs --no-run-if-empty docker rm -f
       {{- end }}
@@ -22,7 +22,7 @@
     crictl pods --name kube-apiserver-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
     crictl pods --name kube-controller-manager-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
     crictl pods --name kube-scheduler-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
-      {{- if .kubernetes.etcd.deployment_type | eq "internal" }}
+      {{- if .etcd.deployment_type | eq "internal" }}
     # Restarting etcd pods managed by the container runtime
     crictl pods --name etcd-* -q | xargs -I% --no-run-if-empty bash -c 'crictl stopp % && crictl rmp %'
       {{- end }}

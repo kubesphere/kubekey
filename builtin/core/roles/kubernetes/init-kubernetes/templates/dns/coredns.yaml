@@ -14,7 +14,7 @@ metadata:
     prometheus.io/scrape: "true"
     createdby: 'kubekey'
 spec:
-  clusterIP: {{ .kubernetes.networking.dns_service_ip }}
+  clusterIP: {{ .dns.dns_service_ip }}
   selector:
     k8s-app: kube-dns
   ports:
@@ -38,7 +38,7 @@ metadata:
       addonmanager.kubernetes.io/mode: EnsureExists
 data:
   Corefile: |
-  {{- range .kubernetes.coredns.zone_configs }}
+  {{- range .dns.coredns.zone_configs }}
     {{ .zones | join " " }} {
       cache {{ .cache }}
     {{- range .additional_configs }}
@@ -99,7 +99,7 @@ data:
       }
     {{- end }}
 
-    {{- if $.kubernetes.coredns.dns_etc_hosts | empty | not }}
+    {{- if $.dns.dns_etc_hosts | empty | not }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
@@ -107,9 +107,9 @@ data:
     }
   {{- end }}
 
-{{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}
+{{- if .dns.coredns.dns_etc_hosts | empty | not }}
   hosts: |
-  {{- range .kubernetes.coredns.dns_etc_hosts }}
+  {{- range .dns.coredns.dns_etc_hosts }}
     {{ . }}
   {{- end }}
 {{- end }}

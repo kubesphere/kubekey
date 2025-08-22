@@ -1,12 +1,10 @@
 ---
-- import_playbook: hook/default.yaml
-
-# load defaults vars
+# Load default variables and perform prechecks on all hosts
 - hosts:
     - all
-  vars_files:
-    - vars/common.yaml
-    - vars/kubernetes.yaml
+  gather_facts: true
+  roles:
+    - defaults
 
 - hosts:
    - image_registry

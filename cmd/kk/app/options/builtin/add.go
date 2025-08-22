@@ -29,7 +29,6 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -43,15 +42,6 @@ func NewAddNodeOptions() *AddNodeOptions {
 	o := &AddNodeOptions{
 		CommonOptions: options.NewCommonOptions(),
 		Kubernetes:    defaultKubeVersion,
-	}
-
-	o.CommonOptions.GetConfigFunc = func() (*kkcorev1.Config, error) {
-		data, err := getConfig(o.Kubernetes)
-		if err != nil {
-			return nil, err
-		}
-		config := &kkcorev1.Config{}
-		return config, errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", o.Kubernetes)
 	}
 	o.CommonOptions.GetInventoryFunc = getInventory
 

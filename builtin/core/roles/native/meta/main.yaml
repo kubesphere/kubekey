@@ -1,0 +1,15 @@
+dependencies:
+  # install nfs for nfs nodes
+  - role: native/nfs
+    when: .groups.nfs | default list | has .inventory_hostname
+  # Always perform initialization steps for all nodes
+  - role: native/ntp
+  - role: native/dns
+  # Initialize new Kubernetes nodes
+  - role: native/repository
+    when:
+      - .groups.k8s_cluster | default list | has .inventory_hostname
+      - .kubernetes_install_LoadState.stdout | eq "not-found"
+  - role: native/init
+
+

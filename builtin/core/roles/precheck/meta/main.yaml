@@ -1,0 +1,32 @@
+dependencies:
+  - role: precheck/inventory
+    when: .inventory_hostname | eq "localhost"
+
+  - role: precheck/artifact
+    tags: ["artifact"]
+    when: .inventory_hostname | eq "localhost"
+
+  - role: precheck/kubernetes
+    tags: ["kubernetes"]
+    when: .groups.k8s_cluster | default list | has .inventory_hostname
+
+  - role: precheck/etcd
+    tags: ["etcd"]
+    when: .groups.etcd | default list | has .inventory_hostname
+
+  - role: precheck/os
+    tags: ["os"]
+    when: .inventory_hostname | ne "localhost"
+
+  - role: precheck/network
+    tags: ["network"]
+    when: .inventory_hostname | ne "localhost"
+
+  - role: precheck/cri
+    tags: ["cri"]
+    when: .groups.k8s_cluster | default list | has .inventory_hostname
+
+  - role: precheck/nfs
+    tags: ["nfs"]
+    when: .groups.nfs | default list | has .inventory_hostname
+

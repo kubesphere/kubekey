@@ -20,6 +20,7 @@ limitations under the License.
 package builtin
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/cockroachdb/errors"
@@ -109,6 +110,8 @@ func (o *InitOSOptions) completeConfig() error {
 // InitRegistryOptions for NewInitRegistryOptions
 type InitRegistryOptions struct {
 	options.CommonOptions
+	// kubernetes version which the config will install.
+	Kubernetes string
 }
 
 // NewInitRegistryOptions for newInitRegistryCommand
@@ -122,7 +125,11 @@ func NewInitRegistryOptions() *InitRegistryOptions {
 
 // Flags add to newInitRegistryCommand
 func (o *InitRegistryOptions) Flags() cliflag.NamedFlagSets {
-	return o.CommonOptions.Flags()
+	fss := o.CommonOptions.Flags()
+	kfs := fss.FlagSet("config")
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+
+	return fss
 }
 
 // Complete options. create Playbook, Config and Inventory
@@ -145,6 +152,7 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
+		Tags:     []string{"image_registry"},
 	}
 
 	return playbook, o.CommonOptions.Complete(playbook)

@@ -37,15 +37,8 @@ func (e blockExecutor) Exec(ctx context.Context) error {
 		tags := e.dealTags(block.Taggable)
 		ignoreErrors := e.dealIgnoreErrors(block.IgnoreErrors)
 		when := e.dealWhen(block.When)
-
-		// check tags
-		if !tags.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
-			// if not match the tags. skip
-			continue
-		}
-
 		// merge variable which defined in block
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(block.Vars, hosts...)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(block.Vars.Nodes, hosts...)); err != nil {
 			return err
 		}
 
@@ -57,8 +50,12 @@ func (e blockExecutor) Exec(ctx context.Context) error {
 		case block.IncludeTasks != "":
 			// do nothing. include tasks has converted to blocks.
 		default:
-			if err := e.dealTask(ctx, hosts, when, block); err != nil {
-				return err
+			// check tags
+			if tags.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
+				// if not match the tags. skip
+				if err := e.dealTask(ctx, hosts, when, block); err != nil {
+					return err
+				}
 			}
 		}
 	}

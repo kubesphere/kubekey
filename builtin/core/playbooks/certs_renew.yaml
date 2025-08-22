@@ -1,20 +1,17 @@
 ---
-# load defaults vars
-- import_playbook: hook/default.yaml
-
+# Load default variables and perform prechecks on all hosts
 - hosts:
     - all
-  vars_files:
-    - vars/certs_renew.yaml
+  gather_facts: true
+  roles:
+    - defaults
 
 - hosts:
     - localhost
-  tags: ["certs"]
   roles:
-    - init/init-cert
+    - cert/init
 
 - hosts:
     - all
-  tags: ["certs"]
   roles:
     - role: certs/renew

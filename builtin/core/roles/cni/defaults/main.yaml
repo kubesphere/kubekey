@@ -1,0 +1,17 @@
+cni:
+  # In Kubernetes, Pod CIDR supports IPv4, IPv6, and dual-stack. Specify as:
+  # "Single-stack IPv4": pod_cidr in "ipv4" format
+  # "Single-stack IPv6": pod_cidr in "ipv6" format
+  # "Dual-stack": pod_cidr in "ipv4,ipv6" format
+  ipv4_support: >-
+    {{ eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" }}
+  ipv4_pods_cidr: >-
+    {{- if eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" -}}
+    {{ .cni.pod_cidr | splitList "," | first }}
+    {{- end -}}
+  ipv6_support: >-
+    {{- eq (.cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" }}
+  ipv6_pods_cidr: >-
+    {{- if eq (.cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" -}}
+    {{ .cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last }}
+    {{- end -}}

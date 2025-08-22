@@ -15,7 +15,7 @@
     /usr/local/bin/kubeadm alpha certs renew admin.conf
     /usr/local/bin/kubeadm alpha certs renew controller-manager.conf
     /usr/local/bin/kubeadm alpha certs renew scheduler.conf
-      {{- if .kubernetes.etcd.deployment_type | eq "internal" }}
+      {{- if .etcd.deployment_type | eq "internal" }}
     /usr/local/bin/kubeadm alpha certs renew etcd-healthcheck-client
     /usr/local/bin/kubeadm alpha certs renew etcd-peer
     /usr/local/bin/kubeadm alpha certs renew etcd-server
@@ -28,7 +28,7 @@
     /usr/local/bin/kubeadm certs renew admin.conf
     /usr/local/bin/kubeadm certs renew controller-manager.conf
     /usr/local/bin/kubeadm certs renew scheduler.conf
-      {{- if .kubernetes.etcd.deployment_type | eq "internal" }}
+      {{- if .etcd.deployment_type | eq "internal" }}
     /usr/local/bin/kubeadm certs renew etcd-healthcheck-client
     /usr/local/bin/kubeadm certs renew etcd-peer
     /usr/local/bin/kubeadm certs renew etcd-server

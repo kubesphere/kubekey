@@ -1,0 +1,29 @@
+---
+- name: Artifact | Ensure artifact file exists
+  when: .download.artifact_file | empty | not
+  command: |
+    if [ ! -f "{{ .download.artifact_file }}" ]; then
+      echo "Error: Artifact file '{{ .download.artifact_file }}' does not exist."
+      exit 1
+    fi
+
+- name: Artifact | Validate artifact file extension
+  when:
+    - .download.artifact_file | empty | not
+  loop: ['.tgz','.tar.gz']
+  command: |
+    if [[ "{{ .download.artifact_file }}" != *{{ .item }} ]]; then
+      echo "Error: Artifact file '{{ .download.artifact_file }}' does not have the required extension '{{ .item }}'."
+      exit 1
+    fi
+
+- name: Artifact | Verify artifact MD5 checksum
+  when: 
+    - .download.artifact_md5 | empty | not
+    - .download.artifact_file | empty | not
+  command: |
+    actual_md5=$(md5sum {{ .download.artifact_file }} | awk '{print $1}')
+    if [[ "$actual_md5" != "{{ .download.artifact_md5 }}" ]]; then
+      echo "Error: MD5 checksum mismatch for '{{ .download.artifact_file }}'. Expected '{{ .download.artifact_md5 }}', got '$actual_md5'."
+      exit 1
+    fi

@@ -1,0 +1,22 @@
+---
+- name: Crictl | Verify if crictl is installed on the system
+  ignore_errors: true
+  command: crictl --version
+  register: crictl_install_version
+
+- name: Crictl | Install and configure crictl if not present or version mismatch
+  when: or (.crictl_install_version.error | empty | not) (.crictl_install_version.stdout | ne (printf "crictl version %s" .cri.crictl_version))
+  block:
+    - name: Crictl | Copy crictl binary archive to the remote node
+      copy:
+        src: >-
+          {{ .binary_dir }}/crictl/{{ .cri.crictl_version }}/{{ .binary_type }}/crictl-{{ .cri.crictl_version }}-linux-{{ .binary_type }}.tar.gz
+        dest: >-
+          {{ .tmp_dir }}/crictl-{{ .cri.crictl_version }}-linux-{{ .binary_type }}.tar.gz
+    - name: Crictl | Extract crictl binary to /usr/local/bin
+      command: |
+        tar -xvf {{ .tmp_dir }}/crictl-{{ .cri.crictl_version }}-linux-{{ .binary_type }}.tar.gz -C /usr/local/bin/
+    - name: Crictl | Generate crictl configuration file
+      template:
+        src: crictl.yaml
+        dest: /etc/crictl.yaml

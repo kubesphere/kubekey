@@ -92,11 +92,6 @@ func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
 		return err
 	}
 	for _, play := range pb.Play {
-		// check tags
-		if !play.Taggable.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
-			// if not match the tags. skip
-			continue
-		}
 		// hosts should contain all host's name. hosts should not be empty.
 		var hosts []string
 		if err := e.dealHosts(play.PlayHost, &hosts); err != nil {
@@ -104,10 +99,14 @@ func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
 
 			continue
 		}
-		// when gather_fact is set. get host's information from remote.
-		if err := e.dealGatherFacts(ctx, play.GatherFacts, hosts); err != nil {
-			return err
+		// check tags
+		if play.Taggable.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
+			// when gather_fact is set. get host's information from remote.
+			if err := e.dealGatherFacts(ctx, play.GatherFacts, hosts); err != nil {
+				return err
+			}
 		}
+
 		// Batch execution, with each batch being a group of hosts run in serial.
 		var batchHosts [][]string
 		if err := e.dealSerial(play.Serial.Data, hosts, &batchHosts); err != nil {
@@ -160,7 +159,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			return errors.Errorf("host is empty")
 		}
 
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(play.Vars, serials...)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(play.Vars.Nodes, serials...)); err != nil {
 			return err
 		}
 		// generate task from pre tasks

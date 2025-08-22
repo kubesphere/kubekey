@@ -1,8 +1,0 @@
-kubernetes:
-  etcd:
-    deployment_type: external
-cri:
-  # support: containerd,docker
-  container_manager: docker
-image_registry:
-  type: harbor

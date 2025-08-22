@@ -1,97 +1,47 @@
 ---
-- import_playbook: hook/default.yaml
+- import_playbook: hook/pre_install.yaml
 
-# load defaults vars
+# Load default variables and perform prechecks on all hosts
 - hosts:
     - all
-  vars_files:
-    - vars/common.yaml
-    - vars/kubernetes.yaml
+  gather_facts: true
+  roles:
+    - defaults
+    - precheck
 
-# precheck
+# Download all required software and generate certificates on the localhost
 - hosts:
     - localhost
+  gather_facts: true
   roles:
-    - role: precheck/artifact_check
-      when: .artifact.artifact_file | empty | not
+    - certs/init
+    - download
+
+# Initialize all nodes and install necessary software packages
 - hosts:
-    - k8s_cluster
     - etcd
+    - k8s_cluster
     - image_registry
     - nfs
-  gather_facts: true
   roles:
-    - precheck/env_check
+    - native
 
-- hosts:
-    - localhost
-  gather_facts: true
-  roles:
-    - init/init-artifact
-
-# init os
+# Install the etcd cluster
 - hosts:
     - etcd
-    - k8s_cluster
-    - registry
-    - nfs
+  gather_facts: true
   roles:
-    - init/init-os
-
-- hosts:
-    - kube_control_plane
-  tasks:
-    - name: select init node
-      run_once: true
-      add_hostvars:
-        hosts: k8s_cluster
-        vars:
-          init_kubernetes_node: >-
-            {{- $initNodes := list -}}
-            {{- range .groups.kube_control_plane -}}
-              {{- if index $.hostvars . "kubernetes_install_LoadState" "stdout" | eq "loaded" -}}
-                {{- $initNodes = append $initNodes . -}}
-              {{- end -}}
-            {{- end -}}
-            {{- if $initNodes | len | eq 1 -}}
-            {{ $initNodes | first }}
-            {{- else if $initNodes | len | lt 1 -}}
-            {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}            
-            {{- end -}}
-    - name: init node
-      when: eq .inventory_hostname .init_kubernetes_node
-      block:
-        - name: Generate certificate key by kubeadm
-          command: |
-            if [ ! -f /etc/kubernetes/kubeadm-config.yaml ]; then
-              kubectl get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
-            fi
-            /usr/local/bin/kubeadm init phase upload-certs --upload-certs --config /etc/kubernetes/kubeadm-config.yaml 2>&1 \
-              | awk '/Using certificate key:/{getline; print}'
-          register: kubeadm_cert_result
-        - name: add certificate key to all hosts
-          add_hostvars:
-            hosts: k8s_cluster
-            vars:
-              kubeadm_cert: >-
-                {{ .kubeadm_cert_result.stdout }}
-        - name: Generate token by kubeadm
-          command: /usr/local/bin/kubeadm token create
-          register: kubeadm_token_result
-        - name: add token to all hosts
-          add_hostvars:
-            hosts: k8s_cluster
-            vars:
-              kubeadm_token: >-
-                {{ .kubeadm_token_result.stdout }}
+    - etcd
 
 - hosts:
     - k8s_cluster
   roles:
-    - role: install/cri
+    - role: cri
+      when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
+    - role: kubernetes/init-kubernetes
       when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
     - role: kubernetes/pre-kubernetes
-      when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)    
+      when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname) 
     - role: kubernetes/join-kubernetes
       when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
     - role: kubernetes/certs

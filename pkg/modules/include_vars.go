@@ -12,7 +12,6 @@ import (
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
-	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -56,7 +55,7 @@ func ModuleIncludeVars(ctx context.Context, options ExecOptions) (string, string
 	if !filepath.IsLocal(arg.includeVars) {
 		return StdoutFailed, "can not read remote file", errors.New("can not read remote file")
 	}
-	if !utils.HasSuffixIn(arg.includeVars, []string{"yaml", "yml"}) {
+	if filepath.Ext(arg.includeVars) != ".yaml" && filepath.Ext(arg.includeVars) != ".yml" {
 		return StdoutFailed, "input file type wrong", errors.New("input file type wrong")
 	}
 

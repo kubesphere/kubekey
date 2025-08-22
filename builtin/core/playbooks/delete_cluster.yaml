@@ -1,12 +1,12 @@
 ---
-- import_playbook: hook/default.yaml
+- import_playbook: hook/pre_install.yaml
 
-# load defaults vars
+# Load default variables and perform prechecks on all hosts
 - hosts:
     - all
-  vars_files:
-    - vars/common.yaml
-    - vars/kubernetes.yaml
+  gather_facts: true
+  roles:
+    - defaults
 
 - hosts: 
     - k8s_cluster
@@ -19,11 +19,12 @@
   post_tasks:
     - name: delete localDNS file
       ignore_errors: true
+      loop: "{{ .native.localDNS | toJson }}"
       command: |
         sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
-        sed -i ':a;$!{N;ba};s@# kubekey control_plane_endpoint BEGIN.*# kubekey control_plane_endpoint END@@' {{ .item }}
+        sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+        sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
       when: .deleteDNS
-      loop: "{{ .localDNS | toJson }}"
 
 - hosts:
     - etcd

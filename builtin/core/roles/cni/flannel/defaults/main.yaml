@@ -1,0 +1,14 @@
+cni:
+  flannel:
+    # https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md
+    values: |
+      # flannel helm values 
+      podCidr: {{ .cni.ipv4_pod_cidr }}
+      podCidrv6: {{ .cni.ipv6_pod_cidr }}
+      flannel:
+        image:
+          repository: {{ .image_registry.dockerio_registry }}/flannel/flannel
+        image_cni:
+          repository: {{ .image_registry.dockerio_registry }}/flannel/flannel-cni-plugin
+        # support "vxlan" and "host-gw"
+        backend: vxlan

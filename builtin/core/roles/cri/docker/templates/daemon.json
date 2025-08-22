@@ -1,0 +1,21 @@
+{
+  "log-opts": {
+    "max-size": "5m",
+    "max-file":"3"
+  },
+{{- if .cri.docker.data_root }}
+  "data-root": "{{ .cri.docker.data_root }}",
+{{- end }}
+{{- if .cri.registry.mirrors }}
+  "registry-mirrors": {{ .cri.registry.mirrors | toJson }},
+{{- end }}
+{{- $insecure_registries := .cri.registry.insecure_registries | default list -}} 
+{{- if .image_registry.auth.insecure -}}
+  {{- $insecure_registries = append $insecure_registries .image_registry.auth.registry -}}
+{{- end -}}
+  "insecure-registries": {{ $insecure_registries | toJson }},
+ {{- if .cri.docker.bridge_ip }}
+  "bip": "{{ .cri.docker.bridge_ip }}",
+{{- end }}
+  "exec-opts": ["native.cgroupdriver={{ .cri.cgroup_driver }}"]
+}

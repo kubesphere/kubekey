@@ -28,8 +28,7 @@ type Base struct {
 	RemoteUser string `yaml:"remote_user,omitempty"`
 
 	// variables
-	Vars            []yaml.Node `yaml:"-"`
-	VarsFromMarshal yaml.Node   `yaml:"vars,omitempty"`
+	Vars Vars `yaml:"vars,omitempty"`
 
 	// module default params
 	//ModuleDefaults []map[string]map[string]any `yaml:"module_defaults,omitempty"`
@@ -54,4 +53,17 @@ type Base struct {
 	BecomeUser   string `yaml:"become_user,omitempty"`
 	BecomeFlags  string `yaml:"become_flags,omitempty"`
 	BecomeExe    string `yaml:"become_exe,omitempty"`
+}
+
+// Vars is a custom type to hold a list of YAML nodes representing variables.
+// This allows for flexible unmarshalling of various YAML structures into Vars.
+type Vars struct {
+	Nodes []yaml.Node
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface for Vars.
+// It appends the unmarshalled YAML node to the Vars.Nodes slice.
+func (v *Vars) UnmarshalYAML(node *yaml.Node) error {
+	v.Nodes = append(v.Nodes, *node)
+	return nil
 }

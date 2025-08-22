@@ -1,0 +1,27 @@
+---
+- name: Artifact | Extract artifact archive to working directory
+  tags: ["always"]
+  command: |
+    if [ -f "{{ .download.artifact_file }}" ]; then
+      mkdir -p {{ .binary_dir }}
+      tar -zxvf {{ .artifact_file }} -C {{ .binary_dir }}
+    fi
+  when: .download.artifact_file | empty | not
+
+- name: Artifact | Download required binaries and images
+  when: .download.artifact_file | empty
+  block:
+    # Download core binaries
+    - include_tasks: binary.yaml
+    # Download Helm and CNI binaries
+    - include_tasks: helm.yaml
+      tags: ["kubernetes"]
+    # Download remote images to the local images directory
+    - include_tasks: images.yaml
+      tags: ["kubernetes", "image_registry"]
+
+- name: Artifact | Set ownership of working directory to sudo user
+  tags: ["always"]
+  ignore_errors: true
+  command: |
+    chown -R ${SUDO_UID}:${SUDO_GID} {{ .work_dir }}

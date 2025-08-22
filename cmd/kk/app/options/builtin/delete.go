@@ -27,7 +27,6 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -45,14 +44,6 @@ func NewDeleteClusterOptions() *DeleteClusterOptions {
 		Kubernetes:    defaultKubeVersion,
 	}
 	// Set the function to get the config for the specified Kubernetes version
-	o.CommonOptions.GetConfigFunc = func() (*kkcorev1.Config, error) {
-		data, err := getConfig(o.Kubernetes)
-		if err != nil {
-			return nil, err
-		}
-		config := &kkcorev1.Config{}
-		return config, errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", o.Kubernetes)
-	}
 	// Set the function to get the inventory
 	o.CommonOptions.GetInventoryFunc = getInventory
 
@@ -131,15 +122,6 @@ func NewDeleteNodesOptions() *DeleteNodesOptions {
 	o := &DeleteNodesOptions{
 		CommonOptions: options.NewCommonOptions(),
 		Kubernetes:    defaultKubeVersion,
-	}
-	// Set the function to get the config for the specified Kubernetes version
-	o.CommonOptions.GetConfigFunc = func() (*kkcorev1.Config, error) {
-		data, err := getConfig(o.Kubernetes)
-		if err != nil {
-			return nil, err
-		}
-		config := &kkcorev1.Config{}
-		return config, errors.Wrapf(yaml.Unmarshal(data, config), "failed to unmarshal local configFile for kube_version: %q.", o.Kubernetes)
 	}
 	// Set the function to get the inventory
 	o.CommonOptions.GetInventoryFunc = getInventory
@@ -234,11 +216,15 @@ func NewDeleteRegistryOptions() *DeleteRegistryOptions {
 // DeleteRegistryOptions contains options for deleting an image_registry created by kubekey
 type DeleteRegistryOptions struct {
 	options.CommonOptions
+	// kubernetes version which the config will install.
+	Kubernetes string
 }
 
 // Flags returns the flag sets for DeleteImageRegistryOptions
 func (o *DeleteRegistryOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
+	kfs := fss.FlagSet("config")
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
 
 	return fss
 }

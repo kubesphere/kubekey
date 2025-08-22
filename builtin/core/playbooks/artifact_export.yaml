@@ -1,11 +1,16 @@
 ---
-- import_playbook: hook/default.yaml
+# Load default variables and perform prechecks on all hosts
+- hosts:
+    - all
+  gather_facts: true
+  roles:
+    - defaults
 
+# Download all required software and generate certificates on the localhost
 - hosts:
     - localhost
   roles:
-    - init/init-artifact
-    - init/init-cert
+    - download
   tasks:
     - name: Export artifact
       command: |

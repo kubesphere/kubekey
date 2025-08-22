@@ -1,19 +1,8 @@
 ---
-- import_playbook: hook/default.yaml
-
+# Load default variables and perform prechecks on all hosts
 - hosts:
-    - localhost
-  roles:
-    - role: precheck/artifact_check
-      when: .artifact.artifact_file | empty | not
-
-- hosts:
-    - k8s_cluster
-    - etcd
-    - image_registry
-    - nfs
+    - all
   gather_facts: true
-  tags: ["always"]
   roles:
-    - role: precheck/env_check
-      tags: ["always"]
+    - defaults
+    - precheck

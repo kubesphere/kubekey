@@ -1,7 +1,0 @@
-sc:
-  nfs: # each k8s_cluster node should install nfs-utils
-    enabled: false
-    default: false
-    server: >-
-      {{ .groups.nfs | default list | first }}
-    path: /share/kubernetes

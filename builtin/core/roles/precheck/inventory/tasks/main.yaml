@@ -1,0 +1,21 @@
+- name: Inventory | Kubernetes groups must not be empty
+  when: .kubernetes.kube_version | empty | not
+  assert:
+    that:
+      - .groups.k8s_cluster | empty | not
+      - .groups.kube_control_plane | empty | not
+    fail_msg: >-
+      The Kubernetes inventory groups "k8s_cluster" and "kube_control_plane" must not be empty. Please ensure both groups are present and correctly specified in your inventory file.
+
+- name: Inventory | etcd group must not be empty
+  when: .kubernetes.kube_version | empty | not
+  assert:
+    that: .groups.etcd | empty | not
+    fail_msg: >-
+      The etcd inventory group "etcd" must not be empty. Please verify that this group is properly defined in your inventory.
+
+- name: Inventory | Fail if the number of etcd hosts is even
+  assert:
+    that: (mod (.groups.etcd | len) 2) | eq 1
+    fail_msg: >-
+      The number of etcd nodes must be odd to maintain quorum. The current count is {{ .groups.etcd | len }}. Please adjust your inventory so that the etcd group contains an odd number of hosts.

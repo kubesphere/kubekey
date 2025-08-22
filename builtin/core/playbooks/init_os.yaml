@@ -1,16 +1,25 @@
 ---
-- import_playbook: hook/default.yaml
+# Load default variables and perform prechecks on all hosts
+- hosts:
+    - all
+  gather_facts: true
+  roles:
+    - defaults
 
+# Download all required software and generate certificates on the localhost
 - hosts:
     - localhost
+  gather_facts: true
   roles:
-    - init/init-artifact
-    - init/init-cert
+    - certs/init
+    - download
 
+# Initialize all nodes and install necessary software packages
 - hosts:
     - etcd
     - k8s_cluster
-    - registry
+    - image_registry
     - nfs
   roles:
-    - init/init-os
+    - native
+

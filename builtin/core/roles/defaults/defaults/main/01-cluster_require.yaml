@@ -1,0 +1,36 @@
+# Cluster parameter boundaries
+cluster_require:
+  # Maximum etcd WAL fsync duration for 99th percentile (in nanoseconds)
+  etcd_disk_wal_fysnc_duration_seconds: 10000000
+  # Allow installation on unsupported Linux distributions
+  allow_unsupported_distribution_setup: false
+  # Supported operating system distributions
+  supported_os_distributions:
+    - ubuntu
+    - '"ubuntu"'
+    - centos
+    - '"centos"'
+  # Required network plugins
+  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
+  # Minimum supported Kubernetes version
+  kube_version_min_required: v1.23.0
+  # Minimum memory (in MB) required for each control plane node
+  # Must be greater than or equal to minimal_master_memory_mb
+  minimal_master_memory_mb: 10
+  # Minimum memory (in MB) required for each worker node
+  # Must be greater than or equal to minimal_node_memory_mb
+  minimal_node_memory_mb: 10
+  # Supported etcd deployment types
+  require_etcd_deployment_type: ['internal', 'external']
+  # Supported container runtimes
+  require_container_manager: ['docker', 'containerd']
+  # Minimum required version of containerd
+  containerd_min_version_required: v1.6.0
+  # Supported CPU architectures
+  supported_architectures:
+    - amd64
+    - x86_64
+    - arm64
+    - aarch64
+  # Minimum required Linux kernel version
+  min_kernel_version: 4.9.17

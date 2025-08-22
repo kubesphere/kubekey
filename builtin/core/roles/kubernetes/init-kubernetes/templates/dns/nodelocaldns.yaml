@@ -24,9 +24,6 @@ spec:
     metadata:
       labels:
         k8s-app: nodelocaldns
-      annotations:
-        prometheus.io/scrape: 'true'
-        prometheus.io/port: '9253'
     spec:
       nodeSelector:
         kubernetes.io/os: linux
@@ -43,7 +40,7 @@ spec:
           operator: "Exists"
       containers:
       - name: node-cache
-        image: {{ .kubernetes.networking.dns_cache_image.registry }}/{{ .kubernetes.networking.dns_cache_image.repository }}:{{ .kubernetes.networking.dns_cache_image.tag }}
+        image: {{ .dns.dns_cache_image.registry }}/{{ .dns.dns_cache_image.repository }}:{{ .dns.dns_cache_image.tag }}
         resources:
           limits:
             memory: 200Mi
@@ -52,12 +49,12 @@ spec:
             memory: 70Mi
         args: 
           - -localip
-          - {{ .kubernetes.networking.clusterDNS }}
+          - {{ .dns.dns_cache_ip }}
           - -conf
           - /etc/coredns/Corefile
           - -upstreamsvc
           - coredns
-          - metrics-listen-address
+          - -metrics-listen-address
           - 127.0.0.1:9353
         securityContext:
           privileged: true
@@ -68,12 +65,9 @@ spec:
           - containerPort: 53
             name: dns-tcp
             protocol: TCP
-          - containerPort: 9253
-            name: metrics
-            protocol: TCP
         livenessProbe:
           httpGet:
-            host: {{ .kubernetes.networking.clusterDNS }}
+            host: {{ .dns.dns_cache_ip }}
             path: /health
             port: 9254
             scheme: HTTP
@@ -82,7 +76,7 @@ spec:
           failureThreshold: 10
         readinessProbe:
           httpGet:
-            host: {{ .kubernetes.networking.clusterDNS }}
+            host: {{ .dns.dns_cache_ip }}
             path: /health
             port: 9254
             scheme: HTTP
@@ -120,7 +114,7 @@ metadata:
     addonmanager.kubernetes.io/mode: EnsureExists
 data:
   Corefile: |
-  {{- range .kubernetes.coredns.external_zones }}
+  {{- range .dns.coredns.external_zones }}
     {{ .zones | join " " }}{
       log
       errors
@@ -128,7 +122,7 @@ data:
       cache {{ .cache }}
       reload
       loop
-      bind {{ .kubernetes.networking.clusterDNS }}
+      bind {{ .kubernetes.networking.dns_cache_ip }}
 
     {{- range .rewrite }}
       rewrite {{ .rule }} {
@@ -176,7 +170,7 @@ data:
     }
   {{- end }}
 
-    {{ .kubernetes.networking.dns_domain }}:53 {
+    {{ .dns.dns_domain }}:53 {
       errors
       cache {
          success 9984 30
@@ -184,19 +178,19 @@ data:
       }
       reload
       loop
-      bind {{ .kubernetes.networking.clusterDNS }}
-      forward . {{ .kubernetes.networking.dns_service_ip }} {
+      bind {{ .dns.dns_cache_ip }}
+      forward . {{ .dns.dns_service_ip }} {
         force_tcp
       }
-      health {{ .kubernetes.networking.clusterDNS }}:9254
+      health {{ .dns.dns_cache_ip }}:9254
     }
     in-addr.arpa:53 {
       errors
       cache 30
       reload
       loop
-      bind {{ .kubernetes.networking.clusterDNS }}
-      forward . {{ .kubernetes.networking.dns_service_ip }} {
+      bind {{ .dns.dns_cache_ip }}
+      forward . {{ .dns.dns_service_ip }} {
         force_tcp
       }
     }
@@ -205,8 +199,8 @@ data:
       cache 30
       reload
       loop
-      bind {{ .kubernetes.networking.clusterDNS }}
-      forward . {{ .kubernetes.networking.dns_service_ip }} {
+      bind {{ .dns.dns_cache_ip }}
+      forward . {{ .dns.dns_service_ip }} {
           force_tcp
       }
     }
@@ -215,18 +209,18 @@ data:
       cache 30
       reload
       loop
-      bind {{ .kubernetes.networking.clusterDNS }}
+      bind {{ .dns.dns_cache_ip }}
       forward . /etc/resolv.conf
-    {{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}
+    {{- if .dns.dns_etc_hosts | empty | not }}
       hosts /etc/coredns/hosts {
         fallthrough
       }
     {{- end }}
     }
 
-{{- if .kubernetes.coredns.dns_etc_hosts | empty | not }}
+{{- if .dns.coredns.dns_etc_hosts | empty | not }}
   hosts: |
-  {{- range .kubernetes.coredns.dns_etc_hosts }}
+  {{- range .dns.coredns.dns_etc_hosts }}
     {{ . }}
   {{- end }}
 {{- end }}

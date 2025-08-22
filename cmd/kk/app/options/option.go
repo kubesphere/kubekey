@@ -68,8 +68,7 @@ type CommonOptions struct {
 	Namespace string
 
 	// Config is the kubekey core configuration.
-	Config        *kkcorev1.Config
-	GetConfigFunc ConfigFunc
+	Config *kkcorev1.Config
 	// Inventory is the kubekey core inventory.
 	Inventory        *kkcorev1.Inventory
 	GetInventoryFunc InventoryFunc
@@ -188,12 +187,6 @@ func (o *CommonOptions) Complete(playbook *kkcorev1.Playbook) error {
 		if err := yaml.Unmarshal(data, o.Config); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal config from file %q", o.ConfigFile)
 		}
-	} else if o.GetConfigFunc != nil {
-		config, err := o.GetConfigFunc()
-		if err != nil {
-			return err
-		}
-		o.Config = config
 	}
 	if o.InventoryFile != "" {
 		data, err := os.ReadFile(o.InventoryFile)

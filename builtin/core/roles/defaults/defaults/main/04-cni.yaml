@@ -1,0 +1,41 @@
+cni:
+  # CNI plugin to use (equivalent to kubernetes.kube_network_plugin)
+  # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
+  # kube_network_plugin: calico
+  type: calico
+  # Maximum number of pods supported per node
+  max_pods: 110
+  # The complete Pod IP pool for the cluster. Supports IPv4, IPv6, and dual-stack.
+  pod_cidr: 10.233.64.0/18
+  # IPv4 subnet mask length for pod allocation per node. Determines the size of each node's pod IP pool.
+  ipv4_mask_size: 24
+  # IPv6 subnet mask length for pod allocation per node.
+  ipv6_mask_size: 64
+  # The complete Service IP pool for the cluster. Supports IPv4, IPv6, and dual-stack.
+  service_cidr: 10.233.0.0/18
+
+  # Network enhancement plugin for multiple pod network interfaces (Multus)
+  multus:
+    # Enable or disable the network enhancement plugin
+    enabled: false
+    image:
+      registry: >-
+        {{ .image_registry.ghcrio_registry }}
+      repository: k8snetworkplumbingwg/multus-cni
+      tag: v4.3.0
+
+  # ========== cni ==========
+  # cni_plugins binary
+  # cni_plugins_version: v1.2.0
+  # ========== cni: calico ==========
+  # calicoctl binary
+  calico_version: v3.28.2
+  # ========== cni: cilium ==========
+  # cilium helm
+  cilium_version: 1.15.4
+  # ========== cni: kubeovn ==========
+  # kubeovn helm
+  kubeovn_version: 1.13.0
+  # ========== cni: hybridnet ==========
+  # hybridnet helm
+  hybridnet_version: 0.6.8

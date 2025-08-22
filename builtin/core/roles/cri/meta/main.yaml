@@ -1,0 +1,8 @@
+dependencies:
+  - role: cri/crictl
+
+  - role: cri/docker
+    when: .cri.container_manager | eq "docker"
+
+  - role: cri/containerd
+    when: .cri.container_manager | eq "containerd"
