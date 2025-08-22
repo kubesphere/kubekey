@@ -33,7 +33,7 @@ func (e roleExecutor) Exec(ctx context.Context) error {
 		return nil
 	}
 	// merge variables defined in the role for the current hosts
-	if err := e.variable.Merge(variable.MergeRuntimeVariable(e.role.Vars, e.hosts...)); err != nil {
+	if err := e.variable.Merge(variable.MergeRuntimeVariable(e.role.Vars.Nodes, e.hosts...)); err != nil {
 		return err
 	}
 	// deal dependency role: execute all role dependencies recursively

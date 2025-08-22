@@ -17,6 +17,7 @@ limitations under the License.
 package project
 
 import (
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"os"
 	"path/filepath"
 
@@ -47,9 +48,10 @@ func newLocalProject(playbook kkcorev1.Playbook) (Project, error) {
 	}
 
 	return &project{
-		FS:           os.DirFS(projectPath),
-		basePlaybook: relPath,
-		Playbook:     &kkprojectv1.Playbook{},
-		config:       playbook.Spec.Config.Value(),
+		FS:            os.DirFS(projectPath),
+		basePlaybook:  relPath,
+		Playbook:      &kkprojectv1.Playbook{},
+		config:        playbook.Spec.Config.Value(),
+		playbookGraph: utils.NewGraph(),
 	}, nil
 }

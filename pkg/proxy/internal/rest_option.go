@@ -71,7 +71,7 @@ type fileRESTOptionsGetter struct {
 
 // GetRESTOptions implements generic.RESTOptionsGetter.
 func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, example runtime.Object) (apigeneric.RESTOptions, error) {
-	prefix := filepath.Join(f.runtimedir, f.gv.Group, f.gv.Version, resource.Resource)
+	prefix := filepath.Join(f.gv.Group, f.gv.Version, resource.Resource)
 
 	return apigeneric.RESTOptions{
 		StorageConfig: f.storageConfig.ForResource(resource),
@@ -82,7 +82,10 @@ func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, ex
 			getAttrsFunc apistorage.AttrFunc,
 			triggerFuncs apistorage.IndexerFuncs,
 			indexers *cgtoolscache.Indexers) (apistorage.Interface, factory.DestroyFunc, error) {
+
 			s, d := newFileStorage(prefix, resource, storageConfig.Codec, newFunc)
+
+			resourcePrefix = filepath.Join(f.runtimedir, resourcePrefix)
 
 			cacherConfig := cacherstorage.Config{
 				Storage:        s,

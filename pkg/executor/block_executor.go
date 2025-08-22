@@ -45,7 +45,7 @@ func (e blockExecutor) Exec(ctx context.Context) error {
 		}
 
 		// merge variable which defined in block
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(block.Vars, hosts...)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(block.Vars.Nodes, hosts...)); err != nil {
 			return err
 		}
 

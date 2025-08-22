@@ -160,7 +160,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			return errors.Errorf("host is empty")
 		}
 
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(play.Vars, serials...)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(play.Vars.Nodes, serials...)); err != nil {
 			return err
 		}
 		// generate task from pre tasks

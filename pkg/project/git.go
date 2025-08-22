@@ -18,6 +18,7 @@ package project
 
 import (
 	"context"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,10 +66,11 @@ func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool)
 	}
 
 	return &project{
-		FS:           os.DirFS(filepath.Join(projectDir, playbook.Spec.Project.Name)),
-		basePlaybook: playbook.Spec.Playbook,
-		Playbook:     &kkprojectv1.Playbook{},
-		config:       playbook.Spec.Config.Value(),
+		FS:            os.DirFS(filepath.Join(projectDir, playbook.Spec.Project.Name)),
+		basePlaybook:  playbook.Spec.Playbook,
+		Playbook:      &kkprojectv1.Playbook{},
+		config:        playbook.Spec.Config.Value(),
+		playbookGraph: utils.NewGraph(),
 	}, nil
 }
 

@@ -20,6 +20,8 @@ package project
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -78,7 +80,8 @@ type project struct {
 	basePlaybook string
 	*kkprojectv1.Playbook
 
-	config map[string]any
+	config        map[string]any
+	playbookGraph *utils.Graph
 }
 
 // ReadFile reads and returns the contents of the file at the given path
@@ -105,7 +108,7 @@ func (f *project) WalkDir(path string, fn fs.WalkDirFunc) error {
 func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
 	f.Playbook = &kkprojectv1.Playbook{}
 	// convert playbook to kkprojectv1.Playbook
-	if err := f.loadPlaybook(f.basePlaybook); err != nil {
+	if err := f.loadPlaybook("", f.basePlaybook); err != nil {
 		return nil, err
 	}
 	// validate playbook
@@ -117,8 +120,13 @@ func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
 }
 
 // loadPlaybook loads a playbook and all its included playbooks into a single playbook
-func (f *project) loadPlaybook(basePlaybook string) error {
+func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 	// baseDir is the local ansible project dir which playbook belong to
+	if f.playbookGraph.AddEdgeAndCheckCycle(fromPlayBook, basePlaybook) {
+		// play book already imported
+		return errors.Errorf("failed to import %s because it is already imported", basePlaybook)
+	}
+
 	pbData, err := fs.ReadFile(f.FS, basePlaybook)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read playbook %q", basePlaybook)
@@ -129,10 +137,6 @@ func (f *project) loadPlaybook(basePlaybook string) error {
 	}
 
 	for _, p := range plays {
-		if !p.VarsFromMarshal.IsZero() {
-			p.Vars = append(p.Vars, p.VarsFromMarshal)
-		}
-
 		if err := f.dealImportPlaybook(p, basePlaybook); err != nil {
 			return err
 		}
@@ -148,6 +152,8 @@ func (f *project) loadPlaybook(basePlaybook string) error {
 		if err := f.dealBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), p.Tasks); err != nil {
 			return err
 		}
+		bs, _ := json.Marshal(p.Tasks)
+		fmt.Println(string(bs))
 		// deal "post_tasks"
 		if err := f.dealBlock(filepath.Dir(basePlaybook), filepath.Dir(basePlaybook), p.PostTasks); err != nil {
 			return err
@@ -177,7 +183,11 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 		if importPlaybook == "" {
 			return errors.Errorf("failed to find import_playbook %q base on %q. it's should be:\n %s", p.ImportPlaybook, basePlaybook, PathFormatImportPlaybook)
 		}
-		if err := f.loadPlaybook(importPlaybook); err != nil {
+		if basePlaybook == importPlaybook {
+			// play book import self
+			return errors.Errorf("failed to import %s because it is already imported", p.ImportPlaybook)
+		}
+		if err := f.loadPlaybook(basePlaybook, importPlaybook); err != nil {
 			return err
 		}
 	}
@@ -212,7 +222,7 @@ func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error 
 		// combine map node
 		if node.Content[0].Kind == yaml.MappingNode {
 			// skip empty file
-			p.Vars = append(p.Vars, *node.Content[0])
+			p.Vars.Nodes = append(p.Vars.Nodes, *node.Content[0])
 		}
 	}
 
@@ -234,9 +244,6 @@ func (f *project) dealRole(role *kkprojectv1.Role, basePlaybook string) error {
 		if err := yaml.Unmarshal(mdata, roleMeta); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal role meta file %q", meta)
 		}
-		if !roleMeta.VarsFromMarshal.IsZero() {
-			roleMeta.Vars = append(roleMeta.Vars, roleMeta.VarsFromMarshal)
-		}
 		for _, dep := range roleMeta.RoleDependency {
 			if err := f.dealRole(&dep, basePlaybook); err != nil {
 				return errors.Wrapf(err, "failed to deal dependency role base %q", role.Role)
@@ -253,11 +260,6 @@ func (f *project) dealRole(role *kkprojectv1.Role, basePlaybook string) error {
 		var blocks []kkprojectv1.Block
 		if err := yaml.Unmarshal(rdata, &blocks); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal yaml file %q", task)
-		}
-		for i, b := range blocks {
-			if !b.VarsFromMarshal.IsZero() {
-				blocks[i].Vars = append(b.Vars, b.VarsFromMarshal)
-			}
 		}
 		role.Block = blocks
 	}
@@ -299,7 +301,7 @@ func (f *project) combineRoleVars(role *kkprojectv1.Role, content []byte) error 
 	// combine map node
 	if node.Content[0].Kind == yaml.MappingNode {
 		// skip empty file
-		role.Vars = append(role.Vars, *node.Content[0])
+		role.Vars.Nodes = append(role.Vars.Nodes, *node.Content[0])
 	}
 	return nil
 }
@@ -348,11 +350,6 @@ func (f *project) dealBlock(top string, source string, blocks []kkprojectv1.Bloc
 			var includeBlocks []kkprojectv1.Block
 			if err := yaml.Unmarshal(data, &includeBlocks); err != nil {
 				return errors.Wrapf(err, "failed to unmarshal includeTask file %q", includeTask)
-			}
-			for i, b := range includeBlocks {
-				if !b.VarsFromMarshal.IsZero() {
-					includeBlocks[i].Vars = append(b.Vars, b.VarsFromMarshal)
-				}
 			}
 			// Recursively process the included blocks
 			if err := f.dealBlock(top, filepath.Dir(includeTask), includeBlocks); err != nil {
