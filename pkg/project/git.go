@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool) (Project, error) {
@@ -65,10 +66,11 @@ func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool)
 	}
 
 	return &project{
-		FS:           os.DirFS(filepath.Join(projectDir, playbook.Spec.Project.Name)),
-		basePlaybook: playbook.Spec.Playbook,
-		Playbook:     &kkprojectv1.Playbook{},
-		config:       playbook.Spec.Config.Value(),
+		FS:            os.DirFS(filepath.Join(projectDir, playbook.Spec.Project.Name)),
+		basePlaybook:  playbook.Spec.Playbook,
+		Playbook:      &kkprojectv1.Playbook{},
+		config:        playbook.Spec.Config.Value(),
+		playbookGraph: utils.NewGraph(),
 	}, nil
 }
 

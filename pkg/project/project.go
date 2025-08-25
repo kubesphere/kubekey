@@ -78,7 +78,8 @@ type project struct {
 	basePlaybook string
 	*kkprojectv1.Playbook
 
-	config map[string]any
+	config        map[string]any
+	playbookGraph *utils.Graph
 }
 
 // ReadFile reads and returns the contents of the file at the given path
@@ -105,7 +106,7 @@ func (f *project) WalkDir(path string, fn fs.WalkDirFunc) error {
 func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
 	f.Playbook = &kkprojectv1.Playbook{}
 	// convert playbook to kkprojectv1.Playbook
-	if err := f.loadPlaybook(f.basePlaybook); err != nil {
+	if err := f.loadPlaybook("", f.basePlaybook); err != nil {
 		return nil, err
 	}
 	// validate playbook
@@ -117,8 +118,13 @@ func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
 }
 
 // loadPlaybook loads a playbook and all its included playbooks into a single playbook
-func (f *project) loadPlaybook(basePlaybook string) error {
+func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 	// baseDir is the local ansible project dir which playbook belong to
+	if f.playbookGraph.AddEdgeAndCheckCycle(fromPlayBook, basePlaybook) {
+		// play book cycle imported
+		return errors.Errorf("failed to import %s because it cause a cycle import", basePlaybook)
+	}
+
 	pbData, err := fs.ReadFile(f.FS, basePlaybook)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read playbook %q", basePlaybook)
@@ -173,7 +179,11 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 		if importPlaybook == "" {
 			return errors.Errorf("failed to find import_playbook %q base on %q. it's should be:\n %s", p.ImportPlaybook, basePlaybook, PathFormatImportPlaybook)
 		}
-		if err := f.loadPlaybook(importPlaybook); err != nil {
+		if basePlaybook == importPlaybook {
+			// play book import self
+			return errors.Errorf("failed to import %s because it is already imported", p.ImportPlaybook)
+		}
+		if err := f.loadPlaybook(basePlaybook, importPlaybook); err != nil {
 			return err
 		}
 	}
