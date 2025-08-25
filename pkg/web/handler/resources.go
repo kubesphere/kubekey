@@ -322,7 +322,8 @@ func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.
 			api.HandleError(response, request, err)
 			return
 		}
-		schema := api.SchemaFile2Table(schemaFile, entry.Name())
+
+		schema := api.SchemaFile2Table(schemaFile, filepath.Join(h.rootPath, api.SchemaConfigFile), entry.Name())
 		// For each playbook, if it matches a label in schema.Playbook and the label value equals schema.Name, add its info.
 		for _, playbook := range playbookList.Items {
 			for label, schemaName := range playbook.Labels {
