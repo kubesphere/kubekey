@@ -79,7 +79,7 @@ type project struct {
 	*kkprojectv1.Playbook
 
 	config        map[string]any
-	playbookGraph *utils.Graph
+	playbookGraph *utils.KahnGraph
 }
 
 // ReadFile reads and returns the contents of the file at the given path

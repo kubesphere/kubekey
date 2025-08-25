@@ -70,7 +70,7 @@ func newGitProject(ctx context.Context, playbook kkcorev1.Playbook, update bool)
 		basePlaybook:  playbook.Spec.Playbook,
 		Playbook:      &kkprojectv1.Playbook{},
 		config:        playbook.Spec.Config.Value(),
-		playbookGraph: utils.NewGraph(),
+		playbookGraph: utils.NewKahnGraph(),
 	}, nil
 }
 

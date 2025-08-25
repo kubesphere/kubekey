@@ -53,6 +53,6 @@ func newLocalProject(playbook kkcorev1.Playbook) (Project, error) {
 		basePlaybook:  relPath,
 		Playbook:      &kkprojectv1.Playbook{},
 		config:        playbook.Spec.Config.Value(),
-		playbookGraph: utils.NewGraph(),
+		playbookGraph: utils.NewKahnGraph(),
 	}, nil
 }
