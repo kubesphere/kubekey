@@ -72,7 +72,13 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 		oldConfig map[string]map[string]any
 		newConfig map[string]map[string]any
 	)
-	if err := request.ReadEntity(&newConfig); err != nil {
+	bodyBytes, err := io.ReadAll(request.Request.Body)
+	if err != nil {
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+	// Read new config from request body.
+	if err := json.Unmarshal(bodyBytes, &newConfig); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -93,10 +99,6 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 
 	// Iterate over new config and trigger precheck playbooks if config changed.
 	for fileName, newVal := range newConfig {
-		// if config is not change skip it
-		if reflect.DeepEqual(newVal, oldConfig[fileName]) {
-			continue
-		}
 		// if playbook has created should skip it.
 		playbookList := &kkcorev1.PlaybookList{}
 		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.InNamespace(namespace),
@@ -168,13 +170,8 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 		}
 	}
 
-	data, err := json.Marshal(newConfig)
-	if err != nil {
-		_ = response.WriteError(http.StatusInternalServerError, err)
-		return
-	}
 	// Write new config to file.
-	if err := os.WriteFile(filepath.Join(h.rootPath, api.SchemaConfigFile), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(h.rootPath, api.SchemaConfigFile), bodyBytes, 0644); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
