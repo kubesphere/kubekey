@@ -27,6 +27,7 @@ import (
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 
 	"github.com/kubesphere/kubekey/v4/builtin/core"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 func init() {
@@ -40,10 +41,11 @@ func init() {
 		}
 
 		return &project{
-			FS:           core.BuiltinPlaybook,
-			basePlaybook: playbook.Spec.Playbook,
-			Playbook:     &kkprojectv1.Playbook{},
-			config:       playbook.Spec.Config.Value(),
+			FS:            core.BuiltinPlaybook,
+			basePlaybook:  playbook.Spec.Playbook,
+			Playbook:      &kkprojectv1.Playbook{},
+			config:        playbook.Spec.Config.Value(),
+			playbookGraph: utils.NewKahnGraph(),
 		}, nil
 	}
 }
