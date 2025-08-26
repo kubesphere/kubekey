@@ -23,6 +23,8 @@ import (
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 func newLocalProject(playbook kkcorev1.Playbook) (Project, error) {
@@ -47,9 +49,10 @@ func newLocalProject(playbook kkcorev1.Playbook) (Project, error) {
 	}
 
 	return &project{
-		FS:           os.DirFS(projectPath),
-		basePlaybook: relPath,
-		Playbook:     &kkprojectv1.Playbook{},
-		config:       playbook.Spec.Config.Value(),
+		FS:            os.DirFS(projectPath),
+		basePlaybook:  relPath,
+		Playbook:      &kkprojectv1.Playbook{},
+		config:        playbook.Spec.Config.Value(),
+		playbookGraph: utils.NewKahnGraph(),
 	}, nil
 }

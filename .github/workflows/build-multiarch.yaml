@@ -44,7 +44,7 @@ jobs:
         run: |
           tag=${{ steps.prepare.outputs.version }}
           if [[ $tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            REGISTRY=docker.io/kubesphere TAG=$tag make docker-build
+            REGISTRY=docker.io/kubesphere TAG=$tag make docker-push
           else
-            REGISTRY=docker.io/kubespheredev TAG=$tag make docker-build
+            REGISTRY=docker.io/kubespheredev TAG=$tag make docker-push
           fi

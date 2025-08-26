@@ -1,6 +1,4 @@
 ---
-- import_playbook: hook/pre_install.yaml
-
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
