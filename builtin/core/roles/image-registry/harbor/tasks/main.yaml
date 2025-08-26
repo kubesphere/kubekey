@@ -2,37 +2,37 @@
 - name: Harbor | Synchronize Harbor offline package to remote host
   copy:
     src: >-
-      {{ .binary_dir }}/image-registry/harbor/{{ .harbor_version }}/{{ .binary_type }}/harbor-offline-installer-{{ .harbor_version }}.tgz
+      {{ .binary_dir }}/image-registry/harbor/{{ .image_registry.harbor_version }}/{{ .binary_type }}/harbor-offline-installer-{{ .image_registry.harbor_version }}.tgz
     dest: >-
-      /opt/harbor/{{ .harbor_version }}/harbor-offline-installer-{{ .harbor_version }}.tgz
+      /opt/harbor/{{ .image_registry.harbor_version }}/harbor-offline-installer-{{ .image_registry.harbor_version }}.tgz
 
 - name: Harbor | Extract Harbor offline package
   command: |
-    cd /opt/harbor/{{ .harbor_version }}/ && tar -zxvf harbor-offline-installer-{{ .harbor_version }}.tgz
+    cd /opt/harbor/{{ .image_registry.harbor_version }}/ && tar -zxvf harbor-offline-installer-{{ .image_registry.harbor_version }}.tgz
 
 - name: Harbor | Synchronize image registry certificate to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.crt
     dest: >-
-      /opt/harbor/{{ .harbor_version }}/ssl/server.crt
+      /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.crt
 
 - name: Harbor | Synchronize image registry private key to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.key
     dest: >-
-      /opt/harbor/{{ .harbor_version }}/ssl/server.key
+      /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.key
 
 - name: Harbor | Generate Harbor configuration file
   template:
     src: harbor.yml
     dest: >-
-      /opt/harbor/{{ .harbor_version }}/harbor/harbor.yml
+      /opt/harbor/{{ .image_registry.harbor_version }}/harbor/harbor.yml
 
 - name: Harbor | Install Harbor registry
   command: |
-    cd /opt/harbor/{{ .harbor_version }}/harbor && /bin/bash install.sh
+    cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash install.sh
 
 - name: Harbor | Register Harbor as a systemd service
   template:
@@ -75,8 +75,8 @@
               - type: bind
                 source: /opt/keepalived/{{ .keepalived_version }}/healthcheck.sh
                 target: /etc/keepalived/healthcheck.sh'
-        TARGET_FILE="/opt/harbor/{{ .harbor_version }}/harbor/docker-compose.yml"
-        TMP_FILE="/opt/harbor/{{ .harbor_version }}/harbor/docker-compose.yml.tmp"
+        TARGET_FILE="/opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml"
+        TMP_FILE="/opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml.tmp"
         awk -v service="$KEEPALIVED_SERVICE" '
           /^services:/ {
             print
