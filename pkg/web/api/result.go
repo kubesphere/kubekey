@@ -16,6 +16,11 @@ limitations under the License.
 
 package api
 
+import (
+	"encoding/json"
+	"os"
+)
+
 const (
 	// SchemaLabelSubfix is the label key used to indicate which schema a playbook belongs to.
 	SchemaLabelSubfix = "kubekey.kubesphere.io/schema"
@@ -140,7 +145,7 @@ type IPTable struct {
 // SchemaFile2Table converts a SchemaFile and its filename into a SchemaTable structure.
 // It initializes the SchemaTable fields from the SchemaFile's DataSchema and sets up the Playbook map
 // with playbook labels and their corresponding paths. Other playbook fields are left empty for later population.
-func SchemaFile2Table(schemaFile SchemaFile, filename string) SchemaTable {
+func SchemaFile2Table(schemaFile SchemaFile, configFile string, filename string) SchemaTable {
 	table := SchemaTable{
 		Name:        filename,
 		Title:       schemaFile.DataSchema.Title,
@@ -155,6 +160,27 @@ func SchemaFile2Table(schemaFile SchemaFile, filename string) SchemaTable {
 	for k, v := range schemaFile.PlaybookPath {
 		table.Playbook[k] = SchemaTablePlaybook{
 			Path: v,
+		}
+	}
+
+	// If the schema is for kubernetes.json, try to supplement the version field from the config file.
+	if filename == "kubernetes.json" {
+		// Attempt to read the config file.
+		if configFileBytes, err := os.ReadFile(configFile); err == nil {
+			var config map[string]map[string]any
+			// Attempt to unmarshal the config file into a map.
+			if err := json.Unmarshal(configFileBytes, &config); err == nil {
+				// Check if the config contains an entry for "kubernetes.json".
+				if v, ok := config[filename]; ok {
+					// Check if the "kubernetes" key exists and is a map.
+					if kube, ok := v["kubernetes"].(map[string]any); ok {
+						// If "kube_version" exists and is a string, set it as the table's version.
+						if kubeVer, ok := kube["kube_version"].(string); ok {
+							table.Version = kubeVer
+						}
+					}
+				}
+			}
 		}
 	}
 
