@@ -1,8 +1,4 @@
 ---
-# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
-- include_tasks: cridockerd.yaml
-  when:
-    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
 
 - name: Docker | Check if Docker is installed on the system
   ignore_errors: true
@@ -48,16 +44,25 @@
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry }}/ca.crt
     - name: Docker | Copy image registry server certificate to the remote node
-      when: .image_registry.auth.cert_file | empty | not
+      when:
+      - .image_registry.auth.cert_file | empty | not
+      - .image_registry.auth.cert_file | fileExist
       copy:
         src: >-
           {{ .image_registry.auth.cert_file }}
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.cert
     - name: Docker | Copy image registry server key to the remote node
-      when: .image_registry.auth.key_file | empty | not
+      when:
+      - .image_registry.auth.key_file | empty | not
+      - .image_registry.auth.key_file | fileExist
       copy:
         src: >-
           {{ .image_registry.auth.key_file }}
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.key
+
+# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
+- include_tasks: cridockerd.yaml
+  when:
+    - .kubernetes.kube_version | semverCompare ">=v1.24.0"

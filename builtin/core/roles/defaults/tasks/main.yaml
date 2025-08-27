@@ -1,6 +1,7 @@
 - name: Defaults | Load defaults based on Kubernetes version
   block:
     - name: Defaults | Load version-specific settings for Kubernetes
+      tags: ["image_registry"]
       when: .kubernetes.kube_version | empty | not
       include_vars: >-
         {{ slice (.kubernetes.kube_version | splitList ".") 0 2 | join "." }}.yaml

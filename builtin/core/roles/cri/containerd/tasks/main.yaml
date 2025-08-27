@@ -51,14 +51,18 @@
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry }}/ca.crt
     - name: Containerd | Copy image registry server certificate to the remote node
-      when: .image_registry.auth.cert_file | empty | not
+      when:
+      - .image_registry.auth.cert_file | empty | not
+      - .image_registry.auth.cert_file | fileExist
       copy:
         src: >-
           {{ .image_registry.auth.cert_file }}
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.crt
     - name: Containerd | Copy image registry server key to the remote node
-      when: .image_registry.auth.key_file | empty | not
+      when:
+      - .image_registry.auth.key_file | empty | not
+      - .image_registry.auth.key_file | fileExist
       copy:
         src: >-
           {{ .image_registry.auth.key_file }}
