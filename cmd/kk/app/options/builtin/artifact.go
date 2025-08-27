@@ -139,7 +139,7 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 	}
 	o.Playbook = args[0]
 
-	var tags []string
+	var tags = []string{"image_registry"}
 	if o.Push {
 		tags = append(tags, "push")
 	}
