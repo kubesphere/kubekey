@@ -3,7 +3,6 @@
 - hosts:
     - all
   tags: ["always"]
-  gather_facts: true
   roles:
     - defaults
 
@@ -11,7 +10,7 @@
     - localhost
   tasks:
     - name: PullImage | Download container images
-      tags: ["pull"]
+      tags: ["pull","image_registry"]
       image:
         pull:
           images_dir: >-
@@ -20,12 +19,13 @@
       when:
         - .image_manifests | default list | empty | not
     - name: PushImage | Push images to registry
-      tags: ["push"]
+      tags: ["push","image_registry"]
       block:
         - name: PushImage | Ensure Harbor project exists for each image
           when: .image_registry.type | eq "harbor"
           command: |
             # Traverse first-level subdirectories in images_dir, skipping 'blobs'
+            
             for registry_dir in {{ .binary_dir }}/images/*; do
               if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
                 continue

@@ -1,6 +1,8 @@
 - name: Image | Download container images
   image:
     pull:
+      username: "{{ .image_registry.auth.username }}"
+      password: "{{ .image_registry.auth.password }}"
       images_dir: >-
         {{ .binary_dir }}/images/
       manifests: "{{ .image_manifests | toJson }}"
