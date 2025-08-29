@@ -40,3 +40,10 @@
 # 返回一个新列表，该列表中的元素在a中存在，但在b中不存在
 {{ .b | subtractList .a }}
 ```
+
+## fileExist
+数组不包含
+```yaml
+# 判断文件是否存在
+{{ .file_path | fileExist }}
+```

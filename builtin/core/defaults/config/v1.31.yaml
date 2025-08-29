@@ -73,7 +73,7 @@ spec:
     nfs_provisioner_version: 4.2.0
   dns:
     dns_image:
-      tag: v1.12.0
+      tag: v1.11.1
     dns_cache_image:
       tag: 1.23.1
     image_manifests:
@@ -86,7 +86,7 @@ spec:
     - docker.io/calico/pod2daemon-flexvol:v3.28.2
     - docker.io/kubesphere/k8s-dns-node-cache:1.23.1
     - docker.io/openebs/provisioner-localpv:4.1.0
-    - docker.io/kubesphere/coredns:v1.12.0
+    - docker.io/kubesphere/coredns:v1.11.1
     - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
     - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
     - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
