@@ -17,7 +17,6 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/config"
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
 	"github.com/kubesphere/kubekey/v4/pkg/web/handler"
 	"github.com/kubesphere/kubekey/v4/pkg/web/query"
@@ -29,39 +28,39 @@ import (
 func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.Config) *restful.WebService {
 	ws := new(restful.WebService).
 		// the GroupVersion might be empty, we need to remove the final /
-		Path(strings.TrimRight(_const.CoreAPIPath+kkcorev1.SchemeGroupVersion.String(), "/"))
+		Path(strings.TrimRight(api.CoreAPIPath+kkcorev1.SchemeGroupVersion.String(), "/"))
 
 	inventoryHandler := handler.NewInventoryHandler(workdir, restconfig, client)
 	// Inventory management routes
 	ws.Route(ws.POST("/inventories").To(inventoryHandler.Post).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("create a inventory.").Operation("createInventory").
 		Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Inventory{}).
-		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
+		Returns(http.StatusOK, api.StatusOK, kkcorev1.Inventory{}))
 
 	ws.Route(ws.PATCH("/namespaces/{namespace}/inventories/{inventory}").To(inventoryHandler.Patch).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("patch a inventory.").Operation("patchInventory").
 		Consumes(string(types.JSONPatchType), string(types.MergePatchType), string(types.ApplyPatchType)).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Inventory{}).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
 		Param(ws.QueryParameter("promise", "promise to execute playbook").Required(false).DefaultValue("true")).
-		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
+		Returns(http.StatusOK, api.StatusOK, kkcorev1.Inventory{}))
 
 	ws.Route(ws.GET("/inventories").To(inventoryHandler.List).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("list all inventories.").Operation("listInventory").
 		Produces(restful.MIME_JSON).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[kkcorev1.Inventory]{}))
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[kkcorev1.Inventory]{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories").To(inventoryHandler.List).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("list all inventories in a namespace.").
 		Produces(restful.MIME_JSON).Operation("listInventoryInNamespace").
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
@@ -69,18 +68,18 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[kkcorev1.Inventory]{}))
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[kkcorev1.Inventory]{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories/{inventory}").To(inventoryHandler.Info).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("get a inventory in a namespace.").Operation("getInventory").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
 		Param(ws.PathParameter("inventory", "the name of the inventory")).
-		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Inventory{}))
+		Returns(http.StatusOK, api.StatusOK, kkcorev1.Inventory{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/inventories/{inventory}/hosts").To(inventoryHandler.ListHosts).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("list all hosts in a inventory.").Operation("listInventoryHosts").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the inventory")).
@@ -89,30 +88,30 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[api.InventoryHostTable]{}))
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.InventoryHostTable]{}))
 
 	playbookHandler := handler.NewPlaybookHandler(workdir, restconfig, client)
 	// Playbook management routes
 	ws.Route(ws.POST("/playbooks").To(playbookHandler.Post).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("create a playbook.").Operation("createPlaybook").
 		Param(ws.QueryParameter("promise", "promise to execute playbook").Required(false).DefaultValue("true")).
 		Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON).
 		Reads(kkcorev1.Playbook{}).
-		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Playbook{}))
+		Returns(http.StatusOK, api.StatusOK, kkcorev1.Playbook{}))
 
 	ws.Route(ws.GET("/playbooks").To(playbookHandler.List).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("list all playbooks.").Operation("listPlaybook").
 		Produces(restful.MIME_JSON).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[kkcorev1.Playbook]{}))
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[kkcorev1.Playbook]{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks").To(playbookHandler.List).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("list all playbooks in a namespace.").Operation("listPlaybookInNamespace").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
@@ -120,32 +119,32 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[kkcorev1.Playbook]{}))
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[kkcorev1.Playbook]{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks/{playbook}").To(playbookHandler.Info).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("get or watch a playbook in a namespace.").Operation("getPlaybook").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
 		Param(ws.QueryParameter("watch", "set to true to watch this playbook")).
-		Returns(http.StatusOK, _const.StatusOK, kkcorev1.Playbook{}))
+		Returns(http.StatusOK, api.StatusOK, kkcorev1.Playbook{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/playbooks/{playbook}/log").To(playbookHandler.Log).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("get a playbook execute log.").Operation("getPlaybookLog").
 		Produces("text/plain").
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
-		Returns(http.StatusOK, _const.StatusOK, ""))
+		Returns(http.StatusOK, api.StatusOK, ""))
 
 	ws.Route(ws.DELETE("/namespaces/{namespace}/playbooks/{playbook}").To(playbookHandler.Delete).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.KubeKeyTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
 		Doc("delete a playbook.").Operation("deletePlaybook").
 		Produces(restful.MIME_JSON).
 		Param(ws.PathParameter("namespace", "the namespace of the playbook")).
 		Param(ws.PathParameter("playbook", "the name of the playbook")).
-		Returns(http.StatusOK, _const.StatusOK, api.Result{}))
+		Returns(http.StatusOK, api.StatusOK, api.Result{}))
 
 	return ws
 }
@@ -155,44 +154,44 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 // The {subpath:*} parameter allows for matching any path under /resources/schema/.
 func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client) *restful.WebService {
 	ws := new(restful.WebService)
-	ws.Path(strings.TrimRight(_const.ResourcesAPIPath, "/")).
+	ws.Path(strings.TrimRight(api.ResourcesAPIPath, "/")).
 		Produces(restful.MIME_JSON, "text/plain")
 
 	resourceHandler := handler.NewResourceHandler(rootPath, workdir, client)
 	ws.Route(ws.GET("/ip").To(resourceHandler.ListIP).
 		Doc("list available ip from ip cidr").
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}).
 		Param(ws.QueryParameter("cidr", "the cidr for ip").Required(true)).
 		Param(ws.QueryParameter("sshPort", "the ssh port for ip").Required(false)).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=ip").Required(false).DefaultValue("ip")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[api.IPTable]{}))
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.IPTable]{}))
 
 	ws.Route(ws.GET("/schema/{subpath:*}").To(resourceHandler.SchemaInfo).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
 
 	ws.Route(ws.GET("/schema").To(resourceHandler.ListSchema).
 		Doc("list all schema as table").
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}).
 		Param(ws.QueryParameter("cluster", "The namespace where the cluster resides").Required(false).DefaultValue("default")).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=priority")).
-		Returns(http.StatusOK, _const.StatusOK, api.ListResult[api.SchemaTable]{}))
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.SchemaTable]{}))
 
 	ws.Route(ws.POST("/schema/config").To(resourceHandler.PostConfig).
 		Doc("storing user-defined configuration information").
 		Reads(struct{}{}).
 		Param(ws.QueryParameter("cluster", "The namespace where the cluster resides").Required(false).DefaultValue("default")).
 		Param(ws.QueryParameter("inventory", "the inventory of the playbook").Required(false).DefaultValue("default")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
 
 	ws.Route(ws.GET("/schema/config").To(resourceHandler.ConfigInfo).
 		Doc("get user-defined configuration information").
-		Metadata(restfulspec.KeyOpenAPITags, []string{_const.ResourceTag}))
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
 
 	return ws
 }
@@ -227,9 +226,9 @@ func NewUIService(path string) *restful.WebService {
 		requestedPath := req.PathParameter("subpath")
 
 		// If the path matches any API route, return 404 so other WebServices can handle it
-		if strings.HasPrefix(requestedPath, strings.TrimLeft(_const.CoreAPIPath, "/")) ||
-			strings.HasPrefix(requestedPath, strings.TrimLeft(_const.SwaggerAPIPath, "/")) ||
-			strings.HasPrefix(requestedPath, strings.TrimLeft(_const.ResourcesAPIPath, "/")) {
+		if strings.HasPrefix(requestedPath, strings.TrimLeft(api.CoreAPIPath, "/")) ||
+			strings.HasPrefix(requestedPath, strings.TrimLeft(api.SwaggerAPIPath, "/")) ||
+			strings.HasPrefix(requestedPath, strings.TrimLeft(api.ResourcesAPIPath, "/")) {
 			_ = resp.WriteError(http.StatusNotFound, errors.New("not found"))
 			return
 		}
@@ -257,7 +256,7 @@ func NewUIService(path string) *restful.WebService {
 // It mounts the embedded swagger-ui files and handles requests to display the API documentation
 func NewSwaggerUIService() *restful.WebService {
 	ws := new(restful.WebService)
-	ws.Path(strings.TrimRight(_const.SwaggerAPIPath, "/"))
+	ws.Path(strings.TrimRight(api.SwaggerAPIPath, "/"))
 
 	subFS, err := fs.Sub(config.Swagger, "swagger-ui")
 	if err != nil {
@@ -274,10 +273,10 @@ func NewSwaggerUIService() *restful.WebService {
 		}
 		resp.AddHeader("Content-Type", "text/html")
 		_, _ = resp.Write(data)
-	}).Metadata(restfulspec.KeyOpenAPITags, []string{_const.OpenAPITag}))
+	}).Metadata(restfulspec.KeyOpenAPITags, []string{api.OpenAPITag}))
 	ws.Route(ws.GET("/{subpath:*}").To(func(req *restful.Request, resp *restful.Response) {
 		fileServer.ServeHTTP(resp.ResponseWriter, req.Request)
-	}).Metadata(restfulspec.KeyOpenAPITags, []string{_const.OpenAPITag}))
+	}).Metadata(restfulspec.KeyOpenAPITags, []string{api.OpenAPITag}))
 
 	return ws
 }
