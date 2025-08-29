@@ -40,6 +40,38 @@ const (
 	ResultPending = "pending"
 )
 
+const (
+	// CoreAPIPath defines the base path for core API endpoints in the KubeKey API server.
+	// All core resource management routes (inventories, playbooks, etc.) are prefixed with this path.
+	CoreAPIPath = "/kapis/"
+
+	// SwaggerAPIPath defines the base path for serving the Swagger UI (OpenAPI documentation).
+	// This is used to provide interactive API documentation for the KubeKey API server.
+	SwaggerAPIPath = "/swagger-ui/"
+
+	// ResourcesAPIPath defines the base path for resource-related endpoints.
+	// This path is used as the prefix for routes that serve static resources, schemas, and related files.
+	ResourcesAPIPath = "/resources/"
+
+	// KubeKeyTag is the tag used for KubeKey related resources
+	// This tag is used to identify and categorize KubeKey-specific resources
+	// in the system, making it easier to filter and manage them
+	KubeKeyTag = "kubekey"
+	// OpenAPITag is the tag used for OpenAPI documentation
+	// This tag helps organize and identify OpenAPI/Swagger documentation
+	// related to the KubeKey API endpoints
+	OpenAPITag = "api"
+	// ResourceTag is the tag used for resource-related endpoints
+	// This tag helps organize and identify API endpoints that deal with
+	// resource management and operations
+	ResourceTag = "resources"
+
+	// StatusOK represents a successful operation status
+	// Used to indicate that an API operation completed successfully
+	// without any errors or issues
+	StatusOK = "ok"
+)
+
 // SUCCESS is a global variable representing a successful operation result with a default success message.
 // It can be used as a standard response for successful API calls.
 var SUCCESS = Result{Message: ResultSucceed}
