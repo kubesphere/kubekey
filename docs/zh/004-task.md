@@ -68,3 +68,4 @@ task执行时, 会在定义的host分别上执行.
 - [set_fact](modules/set_fact.md)
 - [setup](modules/setup.md)
 - [template](modules/template.md)
+- [include_vars](modules/include_vars.md)

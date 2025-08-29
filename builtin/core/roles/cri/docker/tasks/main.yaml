@@ -44,14 +44,18 @@
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry }}/ca.crt
     - name: Docker | Copy image registry server certificate to the remote node
-      when: .image_registry.auth.cert_file | empty | not
+      when:
+      - .image_registry.auth.cert_file | empty | not
+      - .image_registry.auth.cert_file | fileExist
       copy:
         src: >-
           {{ .image_registry.auth.cert_file }}
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.cert
     - name: Docker | Copy image registry server key to the remote node
-      when: .image_registry.auth.key_file | empty | not
+      when:
+      - .image_registry.auth.key_file | empty | not
+      - .image_registry.auth.key_file | fileExist
       copy:
         src: >-
           {{ .image_registry.auth.key_file }}

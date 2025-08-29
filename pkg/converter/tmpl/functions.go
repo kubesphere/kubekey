@@ -3,6 +3,7 @@ package tmpl
 import (
 	"math"
 	"net"
+	"os"
 	"strings"
 	"text/template"
 
@@ -26,6 +27,7 @@ func funcMap() template.FuncMap {
 	f["ipFamily"] = ipFamily
 	f["pow"] = pow
 	f["subtractList"] = subtractList
+	f["fileExist"] = fileExist
 
 	return f
 }
@@ -106,4 +108,9 @@ func subtractList(a, b []any) ([]any, error) {
 	}
 
 	return result, nil
+}
+
+func fileExist(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
