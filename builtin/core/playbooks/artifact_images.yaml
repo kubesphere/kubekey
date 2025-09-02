@@ -1,7 +1,7 @@
 ---
 # Load default variables and perform prechecks on all hosts
 - hosts:
-    - all
+    - localhost
   tags: ["always"]
   roles:
     - defaults
