@@ -80,7 +80,6 @@
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
         {{- end }}
-    {{ .image_registry.auth.registry }}
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END
@@ -132,7 +131,9 @@
 #     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 
 - name: DNS | Set local DNS for kubernetes control plane endpoint
-  loop: "{{ .native.localDNS | toJson }}"    
+  loop: "{{ .native.localDNS | toJson }}"
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
   command: |
     # Remove any previous Kubekey-managed kubernetes control plane endpoint DNS entries
     sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
@@ -145,5 +146,5 @@
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
-    # kubekey kubernetes kubernetes control_plane_endpoint END
+    # kubekey kubernetes control_plane_endpoint END
     EOF
