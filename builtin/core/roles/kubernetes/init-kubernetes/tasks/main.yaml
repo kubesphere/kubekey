@@ -20,13 +20,13 @@
 - name: InitKubernetes | Initialize the Kubernetes cluster and distribute credentials
   when: .init_kubernetes_node | eq .inventory_hostname
   block:
-    - name: InitKubernetes | 新安装
+    - name: InitKubernetes | Fresh Kubernetes Installation
       when: .kubernetes_install_LoadState.stdout | eq "not-found"
       block:
         - include_tasks: init_kubernetes.yaml
           when: .kubernetes_install_LoadState.stdout | eq "not-found"
         - include_tasks: deploy_cluster_dns.yaml
-    - name: InitKubernetes | 已安装
+    - name: InitKubernetes | Kubernetes Already Installed
       when: .kubernetes_install_LoadState.stdout | eq "load"
       command: |
         if [ ! -f /etc/kubernetes/kubeadm-config.yaml ]; then
