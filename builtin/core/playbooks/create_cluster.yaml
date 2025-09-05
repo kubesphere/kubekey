@@ -8,6 +8,7 @@
   roles:
     - defaults
     - precheck
+    - native/root
 
 # Download all required software and generate certificates on the localhost
 - hosts:

@@ -5,6 +5,7 @@
   gather_facts: true
   roles:
     - defaults
+    - native/root
 
 - hosts:
    - image_registry
