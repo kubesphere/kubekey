@@ -5,6 +5,7 @@
   tags: ["always"]
   roles:
     - defaults
+    - native/root
 
 - hosts:
     - localhost

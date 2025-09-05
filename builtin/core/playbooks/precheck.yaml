@@ -6,3 +6,4 @@
   roles:
     - defaults
     - precheck
+    - native/root

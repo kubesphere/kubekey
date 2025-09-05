@@ -6,6 +6,7 @@
   roles:
     - defaults
     - precheck
+    - native/root
 
 - hosts:
     - kube_control_plane

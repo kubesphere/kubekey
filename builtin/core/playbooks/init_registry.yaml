@@ -5,7 +5,8 @@
   tags: ["always"]
   gather_facts: true
   roles:
-    - role: defaults
+    - defaults
+    - native/root
 
 
 # Download all required software and generate certificates on the localhost

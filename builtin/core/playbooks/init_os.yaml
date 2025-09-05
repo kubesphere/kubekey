@@ -5,6 +5,7 @@
   gather_facts: true
   roles:
     - defaults
+    - native/root
 
 # Download all required software and generate certificates on the localhost
 - hosts:
