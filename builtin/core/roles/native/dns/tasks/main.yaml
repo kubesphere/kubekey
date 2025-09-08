@@ -46,7 +46,6 @@
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
         {{- end }}
-    {{ .image_registry.auth.registry }}
       {{- end }}
     {{- end }}
     # NFS server nodes
