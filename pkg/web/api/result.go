@@ -164,6 +164,17 @@ type SchemaTable struct {
 	Playbook    map[string]SchemaTablePlaybook `json:"playbook"`    // Map of playbook labels to playbook details
 }
 
+// InventoryConnect only use for list ip connect check
+type InventoryConnect struct {
+	Connector InventoryConnectHostPort `json:"connector"`
+}
+
+// InventoryConnectHostPort only use for list ip connect check ,show connector host and port
+type InventoryConnectHostPort struct {
+	Host string `json:"host"`
+	Port string `json:"port"`
+}
+
 // IPTable represents an IP address entry and its SSH status information.
 // It indicates whether the IP is a localhost, if SSH is reachable, and if SSH authorization is present.
 type IPTable struct {
@@ -172,6 +183,7 @@ type IPTable struct {
 	Localhost     bool   `json:"localhost"`     // Whether the IP is a localhost IP
 	SSHReachable  bool   `json:"sshReachable"`  // Whether SSH port is reachable on this IP
 	SSHAuthorized bool   `json:"sshAuthorized"` // Whether SSH is authorized for this IP
+	Added         bool   `json:"added"`         // Indicates whether this IP has already been added to the inventory
 }
 
 // SchemaFile2Table converts a SchemaFile and its filename into a SchemaTable structure.

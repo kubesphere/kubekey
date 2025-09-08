@@ -190,6 +190,30 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 	cidr := request.QueryParameter("cidr")
 	sshPort := query.DefaultString(request.QueryParameter("sshPort"), "22")
 
+	var existsInventoryList kkcorev1.InventoryList
+	err := h.client.List(request.Request.Context(), &existsInventoryList)
+
+	if err != nil && ctrlclient.IgnoreNotFound(err) != nil {
+		klog.Errorf("failed to list inventory objects: %v", err)
+		_ = response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
+	var addedPorts = make(map[string]struct{})
+	for _, item := range existsInventoryList.Items {
+		for _, iData := range item.Spec.Hosts {
+			var iHost api.InventoryConnect
+			err = json.Unmarshal(iData.Raw, &iHost)
+			if err != nil {
+				continue
+			}
+			if iHost.Connector.Port == "" {
+				iHost.Connector.Port = "22"
+			}
+			addedPorts[iHost.Connector.Host+":"+iHost.Connector.Port] = struct{}{}
+		}
+	}
+
 	ips := utils.ParseIP(cidr)
 	ipTable := make([]api.IPTable, 0, len(ips))
 	maxConcurrency := 20
@@ -202,12 +226,17 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 			for ip := range jobChannel {
 				if utils.IsLocalhostIP(ip) {
 					mu.Lock()
+					var added = false
+					if _, ok := addedPorts[ip+":"+sshPort]; ok {
+						added = true
+					}
 					ipTable = append(ipTable, api.IPTable{
 						IP:            ip,
 						SSHPort:       sshPort,
 						Localhost:     true,
 						SSHReachable:  true,
 						SSHAuthorized: true,
+						Added:         added,
 					})
 					mu.Unlock()
 					continue
