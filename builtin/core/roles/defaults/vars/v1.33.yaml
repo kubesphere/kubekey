@@ -58,9 +58,9 @@ storage_class:
   # ========== storageclass: local ==========
   local:
     provisioner_image:
-      tag: 4.3.0
+      tag: 4.2.0
     linux_utils_image:
-      tag: 4.3.0
+      tag: 4.2.0
   # ========== storageclass: nfs ==========
   # nfs provisioner helm version
   nfs_provisioner_version: 4.3.0
@@ -78,7 +78,7 @@ dns:
   - docker.io/calico/node:v3.28.2
   - docker.io/calico/pod2daemon-flexvol:v3.28.2
   - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
-  - docker.io/openebs/provisioner-localpv:4.3.0
+  - docker.io/openebs/provisioner-localpv:4.2.0
   - docker.io/kubesphere/coredns:v1.11.1
   - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
   - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
