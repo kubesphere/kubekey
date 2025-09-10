@@ -3,45 +3,52 @@
   command: |
     ADD_PATHS="/usr/local/bin"
     BACKUP_FILE="/etc/sudoers.backup.$(date +%Y%m%d_%H%M%S)"
-    cp /etc/sudoers "$BACKUP_FILE"
-    echo "tmp file created: $BACKUP_FILE"
+    cp -p /etc/sudoers "$BACKUP_FILE"
     TMP_FILE=$(mktemp /tmp/sudoers_update.XXXXXX)
     chmod 600 "$TMP_FILE"
-    cat /etc/sudoers > "$TMP_FILE"
+    cp -p /etc/sudoers "$TMP_FILE"
     cleanup() {
-        rm -rf "$TMP_FILE"
-        rm -rf "$BACKUP_FILE"
-        exit
+        rm -f "$TMP_FILE"
+        rm -f "$BACKUP_FILE"
     }
     trap cleanup EXIT INT TERM
     if grep -q "^Defaults.*secure_path" "$TMP_FILE"; then
-        EXISTING_PATH=$(grep "^Defaults.*secure_path" "$TMP_FILE" | sed -n 's/.*secure_path="\([^"]*\)".*/\1/p')
+        echo "find current secure_path 配置"
+        EXISTING_LINE=$(grep "^Defaults.*secure_path" "$TMP_FILE")
+        EXISTING_PATH=$(echo "$EXISTING_LINE" | sed -e 's/.*secure_path[[:space:]]*=[[:space:]]*"\{0,1\}\([^"[:space:]]*\)"\{0,1\}.*/\1/')
         if [ -n "$EXISTING_PATH" ]; then
+            echo "current secure_path: $EXISTING_PATH"
             NEW_PATH="$EXISTING_PATH"
-            IFS_BAK=$IFS
-            IFS=':'
-            for path in $ADD_PATHS; do
+            IFS=':' read -ra PATHS_TO_ADD <<< "$ADD_PATHS"
+            for path in "${PATHS_TO_ADD[@]}"; do
                 if [[ ":$NEW_PATH:" != *":$path:"* ]]; then
                     NEW_PATH="$NEW_PATH:$path"
                 fi
             done
-            IFS=$IFS_BAK
-            sed -i "s|^Defaults.*secure_path=.*|Defaults secure_path=\"$NEW_PATH\"|" "$TMP_FILE"
-            echo "already updated secure_path: $NEW_PATH"
+            echo "new secure_path: $NEW_PATH"
+            sed -i "s/^Defaults.*secure_path/# &/" "$TMP_FILE"
+            echo "Defaults secure_path=\"$NEW_PATH\"" >> "$TMP_FILE"
+        else
+            echo "warning: can not get current secure_path"
+            echo "Defaults secure_path=\"$ADD_PATHS\"" >> "$TMP_FILE"
         fi
     else
+        echo "current secure_path config not found,set new data"
         echo "Defaults secure_path=\"$ADD_PATHS\"" >> "$TMP_FILE"
-        echo "already added secure_path: $ADD_PATHS"
     fi
-    if visudo -cf "$TMP_FILE"; then
-        cp "$TMP_FILE" /etc/sudoers
+    if /usr/sbin/visudo -cf "$TMP_FILE" > /dev/null 2>&1; then
+        cp -f "$TMP_FILE" /etc/sudoers
         chmod 440 /etc/sudoers
-        echo "already updated /etc/sudoers"
+        echo "already update /etc/sudoers"
+        echo "after update secure_path config:"
+        grep "^Defaults.*secure_path" /etc/sudoers
     else
-        echo "something went wrong ,file roll back"
-        cp "$BACKUP_FILE" /etc/sudoers
+        echo "error: something went wrong,roll back"
+        echo "please check visudo log:"
+        /usr/sbin/visudo -cf "$TMP_FILE"
+        cp -f "$BACKUP_FILE" /etc/sudoers
         chmod 440 /etc/sudoers
         echo "already roll back"
         exit 1
     fi
-    echo "finish"
+    echo "success"
