@@ -102,8 +102,8 @@ func (o *AddNodeOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.
 
 // complete updates the configuration with container manager and kubernetes version settings
 func (o *AddNodeOptions) complete() error {
-	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kube_version"); !ok {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kube_version"); err != nil {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 		}
 	}
