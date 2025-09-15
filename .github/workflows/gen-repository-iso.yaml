@@ -28,6 +28,8 @@ jobs:
             dockerfile: dockerfile.ubuntu2004
           - name: ubuntu-22.04-debs
             dockerfile: dockerfile.ubuntu2204
+          - name: ubuntu-24.04-debs
+            dockerfile: dockerfile.ubuntu2404
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,6 +75,7 @@ jobs:
             ${{ matrix.name }}.iso.sha256sum.txt
             ${{ matrix.name }}-amd64.iso
             ${{ matrix.name }}-arm64.iso
+
 
   build-harbor:
     runs-on: ubuntu-latest
