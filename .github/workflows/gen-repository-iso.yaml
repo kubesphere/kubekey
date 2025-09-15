@@ -1,0 +1,75 @@
+---
+name: GenRepositoryISO
+on:
+  push:
+    tags:
+      - 'ISO-*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: almalinux-9.0-rpms
+            dockerfile: dockerfile.almalinux90
+          - name: debian10-debs
+            dockerfile: dockerfile.debian10
+          - name: debian11-debs
+            dockerfile: dockerfile.debian11
+          - name: debian12-debs
+            dockerfile: dockerfile.debian12
+          - name: ubuntu-18.04-debs
+            dockerfile: dockerfile.ubuntu1804
+          - name: ubuntu-20.04-debs
+            dockerfile: dockerfile.ubuntu2004
+          - name: ubuntu-22.04-debs
+            dockerfile: dockerfile.ubuntu2204
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build iso image to local
+        uses: docker/build-push-action@v6
+        with:
+          context: hack/gen-repository-iso
+          file: hack/gen-repository-iso/${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          outputs: type=local,dest=./output
+
+      - name: Prepare for upload iso
+        shell: bash
+        run: |
+          mv ./output/linux_amd64/*.iso ${{ matrix.name }}-amd64.iso
+          mv ./output/linux_arm64/*.iso ${{ matrix.name }}-arm64.iso
+          sha256sum *.iso >  ${{ matrix.name }}.iso.sha256sum.txt
+
+      - name: Wait for release workflow to finish
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'create draft release'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+          allowed-conclusions: success
+
+      - name: Release and upload packages
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          files: |
+            ${{ matrix.name }}.iso.sha256sum.txt
+            ${{ matrix.name }}-amd64.iso
+            ${{ matrix.name }}-arm64.iso
