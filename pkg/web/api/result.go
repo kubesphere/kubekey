@@ -186,6 +186,22 @@ type IPTable struct {
 	Added         bool   `json:"added"`         // Indicates whether this IP has already been added to the inventory
 }
 
+// IPHostCheckData represents an IP address entry and its SSH connect data information.
+type IPHostCheckData struct {
+	IP                   string `json:"ip"`
+	SSHPort              string `json:"sshPort"`
+	SSHUser              string `json:"sshUser"`
+	SSHPwd               string `json:"sshPwd"`
+	SSHPrivateKeyContent string `json:"sshPrivateKeyContent"`
+}
+
+// IPHostCheckResult returns ip host check result
+type IPHostCheckResult struct {
+	IP      string `json:"ip"`
+	SSHPort string `json:"sshPort"`
+	Status  string `json:"status"`
+}
+
 // SchemaFile2Table converts a SchemaFile and its filename into a SchemaTable structure.
 // It initializes the SchemaTable fields from the SchemaFile's DataSchema and sets up the Playbook map
 // with playbook labels and their corresponding paths. Other playbook fields are left empty for later population.

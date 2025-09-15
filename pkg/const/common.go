@@ -110,3 +110,16 @@ const ( // === From CAPKK base on GetCAPKKProject() ===
 	// CAPKKPlaybookDeleteNode is the playbook for delete node.
 	CAPKKPlaybookDeleteNode = "playbooks/delete_node.yaml"
 )
+
+const (
+	// SSHVerifyStatusSuccess means ssh connect success
+	SSHVerifyStatusSuccess = "success"
+	// SSHVerifyStatusFailed means ssh connect failed
+	SSHVerifyStatusFailed = "ssh_failed"
+	// SSHVerifyStatusOffline means ssh target offline
+	SSHVerifyStatusOffline = "offline"
+	// SSHVerifyStatusSSHIncomplete means ssh connect information incomplete
+	SSHVerifyStatusSSHIncomplete = "ssh_incomplete"
+	// SSHVerifyStatusUnreachable means host server cannot connect to target ssh
+	SSHVerifyStatusUnreachable = "unreachable"
+)

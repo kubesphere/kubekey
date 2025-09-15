@@ -224,12 +224,12 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 	for range maxConcurrency {
 		wg.Start(func() {
 			for ip := range jobChannel {
+				var added = false
+				if _, ok := addedPorts[ip+":"+sshPort]; ok {
+					added = true
+				}
 				if utils.IsLocalhostIP(ip) {
 					mu.Lock()
-					var added = false
-					if _, ok := addedPorts[ip+":"+sshPort]; ok {
-						added = true
-					}
 					ipTable = append(ipTable, api.IPTable{
 						IP:            ip,
 						SSHPort:       sshPort,
@@ -255,6 +255,7 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 					SSHPort:       sshPort,
 					SSHReachable:  reachable,
 					SSHAuthorized: authorized,
+					Added:         added,
 				})
 				mu.Unlock()
 			}
@@ -640,4 +641,180 @@ func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 
 	// Port 22 is reachable and SSH authentication succeeded.
 	return true, true
+}
+
+func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent string) (bool, bool) {
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ipStr, sshPort), time.Second)
+	if err != nil {
+		klog.V(6).Infof("port %s not reachable on ip %q, error %v", sshPort, ipStr, err)
+		return false, false
+	}
+	defer conn.Close()
+
+	var authMethods []ssh.AuthMethod
+
+	if sshPwd != "" {
+		authMethods = append(authMethods, ssh.Password(sshPwd))
+		klog.V(6).Infof("Added password authentication for user %s", sshUser)
+	}
+
+	if sshPrivateKeyContent != "" {
+		signer, err := ssh.ParsePrivateKey([]byte(sshPrivateKeyContent))
+		if err != nil {
+			klog.V(6).Infof("Failed to parse provided private key: %v", err)
+		} else {
+			authMethods = append(authMethods, ssh.PublicKeys(signer))
+			klog.V(6).Infof("Added public key authentication from provided content for user %s", sshUser)
+		}
+	} else {
+		klog.V(6).Infof("No private key content provided, checking for default private keys")
+		foundKeys := findSSHPrivateKeys()
+		if len(foundKeys) > 0 {
+			klog.V(6).Infof("Found %d potential private key files", len(foundKeys))
+			for _, keyPath := range foundKeys {
+				keyBytes, err := os.ReadFile(keyPath)
+				if err != nil {
+					klog.V(6).Infof("Failed to read private key file %s: %v", keyPath, err)
+					continue
+				}
+
+				signer, err := ssh.ParsePrivateKey(keyBytes)
+				if err != nil {
+					klog.V(6).Infof("Failed to parse private key from %s: %v", keyPath, err)
+					continue
+				}
+
+				authMethods = append(authMethods, ssh.PublicKeys(signer))
+				klog.V(6).Infof("Added public key authentication from %s for user %s", keyPath, sshUser)
+				// stop when one correct key found
+				break
+			}
+		} else {
+			klog.V(6).Infof("No default private key files found")
+		}
+	}
+
+	if len(authMethods) == 0 {
+		klog.V(6).Infof("No authentication methods available for user %s", sshUser)
+		return true, false
+	}
+
+	klog.V(6).Infof("Using %d authentication methods for SSH connection", len(authMethods))
+
+	config := &ssh.ClientConfig{
+		User:            sshUser,
+		Auth:            authMethods,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         5 * time.Second,
+	}
+
+	sshClient, err := ssh.Dial("tcp", net.JoinHostPort(ipStr, sshPort), config)
+	if err != nil {
+		klog.V(6).Infof("SSH connection failed: %v", err)
+		return true, false
+	}
+	defer sshClient.Close()
+
+	session, err := sshClient.NewSession()
+	if err != nil {
+		klog.V(6).Infof("SSH session creation failed: %v", err)
+		return true, false
+	}
+	defer session.Close()
+
+	err = session.Run("echo 'SSH connection test'")
+	if err != nil {
+		klog.V(6).Infof("SSH command execution failed: %v", err)
+		return true, false
+	}
+
+	klog.V(6).Infof("SSH connection successful for user %s", sshUser)
+	return true, true
+}
+
+func findSSHPrivateKeys() []string {
+	var keyFiles = make([]string, 0)
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		klog.V(6).Infof("Failed to get user home directory: %v", err)
+		homeDir = "/root"
+	}
+
+	sshDir := filepath.Join(homeDir, ".ssh")
+	var sshDirInfo os.FileInfo
+
+	if sshDirInfo, err = os.Stat(sshDir); os.IsNotExist(err) {
+		klog.V(6).Infof("SSH directory %s does not exist", sshDir)
+		return keyFiles
+	}
+
+	if !sshDirInfo.IsDir() {
+		return keyFiles
+	}
+
+	dirs, _ := os.ReadDir(sshDirInfo.Name())
+	for _, dir := range dirs {
+		if dir.IsDir() {
+			continue
+		}
+		keyFiles = append(keyFiles, dir.Name())
+	}
+
+	return keyFiles
+}
+
+// PreCheckHost check input ssh information.
+func (h ResourceHandler) PreCheckHost(request *restful.Request, response *restful.Response) {
+	var hosts []api.IPHostCheckData
+	if err := request.ReadEntity(&hosts); err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+	var wg = sync.WaitGroup{}
+	var result = make([]api.IPHostCheckResult, len(hosts))
+	wg.Add(len(hosts))
+	for i, host := range hosts {
+		go func(idx int, currentHost api.IPHostCheckData) {
+			defer wg.Done()
+			var status string
+			if utils.IsLocalhostIP(currentHost.IP) {
+				status = _const.SSHVerifyStatusSuccess
+			}
+			if !isIPOnline(currentHost.IP) {
+				status = _const.SSHVerifyStatusOffline
+			}
+			if currentHost.SSHUser == "" {
+				status = _const.SSHVerifyStatusSSHIncomplete
+			}
+			if status == "" {
+				reachable, authorized := checkSSHConnect(currentHost.IP, currentHost.SSHPort,
+					currentHost.SSHUser, currentHost.SSHPwd, currentHost.SSHPrivateKeyContent)
+				switch {
+				case authorized && reachable:
+					status = _const.SSHVerifyStatusSuccess
+				case !authorized && reachable:
+					status = _const.SSHVerifyStatusFailed
+				case !reachable && !authorized:
+					status = _const.SSHVerifyStatusUnreachable
+				default:
+					klog.Warningf("check ssh connect show authorized but unreachable! ip:%s,port=%s",
+						currentHost.IP, currentHost.SSHPort)
+					status = _const.SSHVerifyStatusFailed
+				}
+			}
+			// if ssh_failed, it means current host can access target host but unauthorized
+			// in this case,if user did not input pwd or key,it means ssh information incomplete
+			if status == _const.SSHVerifyStatusFailed && currentHost.SSHPwd == "" && currentHost.SSHPrivateKeyContent == "" {
+				status = _const.SSHVerifyStatusSSHIncomplete
+			}
+			result[idx] = api.IPHostCheckResult{
+				IP:      currentHost.IP,
+				SSHPort: currentHost.SSHPort,
+				Status:  status,
+			}
+		}(i, host)
+	}
+	wg.Wait()
+	_ = response.WriteEntity(result)
 }
