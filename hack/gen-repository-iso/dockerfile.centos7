@@ -1,22 +1,43 @@
 FROM centos:7 as centos7
+
 ARG TARGETARCH
-ENV OS=centos
-ENV OS_VERSION=7
-ARG BUILD_TOOLS="yum-utils createrepo mkisofs epel-release"
-ARG DIR=${OS}${OS_VERSION}-${TARGETARCH}-rpms
+ARG CENTOS_VERSION=7.9.2009
+ARG DIR=centos7-amd64-rpms
+ARG PKGS=".common[],.rpms[]"
+ARG BUILD_TOOLS="createrepo genisoimage"
 
-RUN yum install -q -y ${BUILD_TOOLS} \
-    && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
-    && yum makecache
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
-WORKDIR package
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        echo "[base]" > /etc/yum.repos.d/CentOS-Base.repo && \
+        echo "name=CentOS-Base" >> /etc/yum.repos.d/CentOS-Base.repo && \
+        echo "baseurl=http://vault.centos.org/${CENTOS_VERSION}/os/x86_64/" >> /etc/yum.repos.d/CentOS-Base.repo && \
+        echo "enabled=1" >> /etc/yum.repos.d/CentOS-Base.repo && \
+        echo "gpgcheck=0" >> /etc/yum.repos.d/CentOS-Base.repo && \
+        yum clean all && yum makecache && \
+        yum install -y $BUILD_TOOLS && yum clean all; \
+    else \
+        echo "Skipping yum setup for $TARGETARCH"; \
+    fi
+
+WORKDIR /package
 COPY packages.yaml .
 COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
-RUN yq eval ".common[],.rpms[],.${OS}[],.${OS}${OS_VERSION}[]" packages.yaml > packages.list
 
-RUN sort -u packages.list | xargs repotrack -p ${DIR} \
-    && createrepo -d ${DIR} \
-    && mkisofs -r -o ${DIR}.iso ${DIR}
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        mkdir -p ${DIR} && \
+        yq eval "${PKGS}" packages.yaml | while read pkg; do \
+            if [ -n "$pkg" ]; then \
+                echo "Processing $pkg..."; \
+                yum install -y --downloadonly --downloaddir=${DIR} $pkg || echo "not found: $pkg"; \
+            fi; \
+        done && \
+        createrepo ${DIR} && \
+        genisoimage -r -o ${DIR}.iso ${DIR}; \
+    else \
+        echo "Skipping package download for $TARGETARCH"; \
+    fi
 
 FROM scratch
 COPY --from=centos7 /package/*.iso /
