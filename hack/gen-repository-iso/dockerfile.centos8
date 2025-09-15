@@ -1,0 +1,52 @@
+FROM centos:8 as centos8
+
+ARG TARGETARCH
+ARG DIR=centos8-${TARGETARCH}-rpms
+ARG PKGS=".common[],.rpms[]"
+ARG BUILD_TOOLS="createrepo_c genisoimage dnf-plugins-core"
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+RUN rm -f /etc/yum.repos.d/CentOS-*.repo \
+    && if [ "$TARGETARCH" = "amd64" ]; then \
+       BASEOS="http://vault.centos.org/8.5.2111/BaseOS/x86_64/os/"; \
+       APPSTREAM="http://vault.centos.org/8.5.2111/AppStream/x86_64/os/"; \
+    else \
+       BASEOS="http://vault.centos.org/8.5.2111/BaseOS/aarch64/os/"; \
+       APPSTREAM="http://vault.centos.org/8.5.2111/AppStream/aarch64/os/"; \
+    fi \
+    && echo "[BaseOS]" > /etc/yum.repos.d/centos8-vault.repo \
+    && echo "name=CentOS-8 BaseOS" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "baseurl=$BASEOS" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "enabled=1" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "gpgcheck=0" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "[AppStream]" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "name=CentOS-8 AppStream" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "baseurl=$APPSTREAM" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "enabled=1" >> /etc/yum.repos.d/centos8-vault.repo \
+    && echo "gpgcheck=0" >> /etc/yum.repos.d/centos8-vault.repo \
+    && dnf --disablerepo="*" --enablerepo="BaseOS,AppStream" clean all \
+    && dnf --disablerepo="*" --enablerepo="BaseOS,AppStream" makecache
+
+RUN dnf install -y --setopt=tsflags=nodocs --disablerepo="*" --enablerepo="BaseOS,AppStream" $BUILD_TOOLS \
+    && dnf clean all
+
+WORKDIR /package
+
+COPY packages.yaml .
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+
+RUN mkdir -p ${DIR} \
+    && yq eval "${PKGS}" packages.yaml | while read pkg; do \
+         if [ -n "$pkg" ]; then \
+             echo "Downloading $pkg..."; \
+             dnf install -y --downloadonly --downloaddir=${DIR} --disablerepo="*" --enablerepo="BaseOS,AppStream" $pkg || echo "not found: $pkg"; \
+         fi; \
+    done
+
+RUN createrepo_c ${DIR} \
+    && genisoimage -r -o ${DIR}.iso ${DIR}
+
+FROM scratch
+COPY --from=centos8 /package/*.iso /
