@@ -28,6 +28,7 @@ func funcMap() template.FuncMap {
 	f["pow"] = pow
 	f["subtractList"] = subtractList
 	f["fileExist"] = fileExist
+	f["unescape"] = unescapeString
 
 	return f
 }
@@ -113,4 +114,24 @@ func subtractList(a, b []any) ([]any, error) {
 func fileExist(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func unescapeString(s string) string {
+	replacements := map[string]string{
+		`\\`: `\`,
+		`\"`: `"`,
+		`\'`: `'`,
+		`\n`: "\n",
+		`\r`: "\r",
+		`\t`: "\t",
+		`\b`: "\b",
+		`\f`: "\f",
+	}
+
+	// Iterate over the replacements map and replace escape sequences in the string
+	for o, n := range replacements {
+		s = strings.ReplaceAll(s, o, n)
+	}
+
+	return s
 }

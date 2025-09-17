@@ -1,11 +1,53 @@
 ---
 - name: Repository | Synchronize local repository ISO image
   block:
+    - name: Repository | Prepare tmp files
+      command: |
+        mkdir -p {{ .tmp_dir }}/iso
+
+    - name: Repository | Check system version when use Kylin
+      set_fact:
+        sp_version: >-
+          {{- if .os.release.VERSION | contains "Tercel" }}
+          SP1
+          {{- else if .os.release.VERSION | contains "Sword" }}
+          SP2
+          {{- else if .os.release.VERSION | contains "Lance" }}
+          SP3
+          {{- end -}}
+      when: .os.release.ID | unescape | eq "kylin"
+
+    - name: Repository | Define the system string based on distribution
+      set_fact:
+        system_string: >-
+          {{- if .os.release.ID | unescape | eq "kylin" }}
+          kylin-{{ .os.release.VERSION_ID }}-{{ .sp_version }}
+          {{- else if .os.release.ID_LIKE | unescape | eq "rhel fedora" }}
+          {{ .os.release.ID }}{{ .os.release.VERSION_ID }}
+          {{- else }}
+          {{ .os.release.ID }}-{{ .os.release.VERSION_ID }}
+          {{- end -}}
+
+    - name: Repository | Define the package file type by system info
+      set_fact:
+        iso_type: >-
+          {{- if .os.release.ID_LIKE | eq "debian" }}
+          debs
+          {{- else  }}
+          rpms
+          {{- end -}}
+
+    - name: Repository | Set iso file name
+      when:
+        - .iso_name | empty
+      set_fact:
+        iso_name: "{{ .system_string | unescape | trim | lower }}-{{ .iso_type | trim }}-{{ .binary_type }}.iso"
+
     - name: Repository | Copy local repository ISO file
       ignore_errors: true
       copy:
         src: >-
-          {{ .binary_dir }}/repository/{{ .os.release.ID_LIKE }}-{{ .os.release.VERSION_ID }}-{{ .binary_type }}.iso
+          {{ .binary_dir }}/repository/{{ .iso_name }}
         dest: >-
           {{ .tmp_dir }}/repository.iso
     - name: Repository | Mount repository ISO to temporary directory
