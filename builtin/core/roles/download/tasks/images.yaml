@@ -8,3 +8,4 @@
       manifests: "{{ .image_manifests | toJson }}"
   when:
     - .image_manifests | default list | empty | not
+    - download.download_image
