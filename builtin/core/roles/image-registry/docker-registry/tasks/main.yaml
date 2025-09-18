@@ -10,7 +10,7 @@
   command: |
     {{- if .os.release.ID_LIKE | eq "debian" }}
     yum update && yum install -y nfs-utils
-    {{- else if .os.release.ID_LIKE | eq "rhel fedora" }}
+    {{- else if .os.release.ID_LIKE | unescape | eq "rhel fedora" }}
     apt update && apt install -y nfs-common
     {{- end }}
     {{- if }}

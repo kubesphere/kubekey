@@ -1,6 +1,17 @@
+- name: Repository | Check current host debian or rhel
+  set_fact:
+    current_host_type: >-
+      {{- if .os.release.ID_LIKE | eq "debian" }}
+      ubuntu
+      {{- else if .os.release.ID_LIKE | unescape | eq "rhel fedora" }}
+      centos
+      {{- else if .os.release.ID | unescape | eq "kylin" }}
+      centos
+      {{- end -}}
+
 - name: Repository | Initialize Debian-based repository and install required system packages
   command: |
-    now=$(date +"%Y-%m-%d %H:%M:%S")
+    now=$(date +"%Y%m%d%H%M%S")
     PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
@@ -8,7 +19,7 @@
         dpkg -s $pkg >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
       fi
     done
-    if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+    if [ -f "{{ .tmp_dir }}/iso" ]; then
       # Backup current APT sources
       mv /etc/apt/sources.list /etc/apt/sources.list.kubekey-$now.bak
       mv /etc/apt/sources.list.d /etc/apt/sources.list.d.kubekey-$now.bak
@@ -33,11 +44,11 @@
         apt install -y $PKGS_TO_INSTALL
       fi
     fi
-  when: .os.release.ID_LIKE | eq "debian"
-  
+  when: .current_host_type | trim | eq "ubuntu"
+
 - name: Repository | Initialize RHEL-based repository and install required system packages
   command: |
-    now=$(date +"%Y-%m-%d %H:%M:%S")
+    BACKUP_FILE="/etc/yum.repos.d.kubekey.bak-$(date +%Y%m%d%H%M%S)"
     PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
@@ -45,16 +56,16 @@
         rpm -q $pkg >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
       fi
     done
-    if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+    if [ -f "{{ .tmp_dir }}/iso" ]; then
       # Backup current YUM repositories
-      mv /etc/yum.repos.d /etc/yum.repos.d.kubekey.bak-$now
+      mv /etc/yum.repos.d "$BACKUP_FILE"
       mkdir -p /etc/yum.repos.d
       # Configure local repository
       rm -rf /etc/yum.repos.d/*
       cat <<EOF > /etc/yum.repos.d/CentOS-local.repo
     [base-local]
     name=Local RPM Repository
-    baseurl=file://{{ .tmp_dir }}/repository.iso
+    baseurl=file://{{ .tmp_dir }}/iso
     enabled=1
     gpgcheck=0
     EOF
@@ -66,11 +77,11 @@
       fi
       # Restore original YUM repositories
       rm -rf /etc/yum.repos.d
-      mv /etc/yum.repos.d.kubekey.bak-$now /etc/yum.repos.d
+      mv "$BACKUP_FILE" /etc/yum.repos.d
     else
       # No local ISO found, using default repositories
       if [ -n "$PKGS_TO_INSTALL" ]; then
         yum install -y $PKGS_TO_INSTALL
       fi
     fi
-  when: .os.release.ID_LIKE | eq "\"rhel fedora\""
+  when: .current_host_type | trim | eq "centos"
