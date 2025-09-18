@@ -18,6 +18,6 @@
     exportfs -a
     {{- if .os.release.ID_LIKE | eq "debian" }}
     systemctl enable nfs-kernel-server && systemctl restart nfs-kernel-server 
-    {{- else if .os.release.ID_LIKE | unescape | eq "rhel fedora"}}
+    {{- else if .os.release.ID_LIKE | unquote | eq "rhel fedora"}}
     systemctl enable nfs-server.service && systemctl restart nfs-server.service
     {{- end }}

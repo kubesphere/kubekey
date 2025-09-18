@@ -15,14 +15,14 @@
           {{- else if .os.release.VERSION | contains "Lance" }}
           SP3
           {{- end -}}
-      when: .os.release.ID | unescape | eq "kylin"
+      when: .os.release.ID | unquote | eq "kylin"
 
     - name: Repository | Define the system string based on distribution
       set_fact:
         system_string: >-
-          {{- if .os.release.ID | unescape | eq "kylin" }}
+          {{- if .os.release.ID | unquote | eq "kylin" }}
           kylin-{{ .os.release.VERSION_ID }}-{{ .sp_version }}
-          {{- else if .os.release.ID_LIKE | unescape | eq "rhel fedora" }}
+          {{- else if .os.release.ID_LIKE | unquote | eq "rhel fedora" }}
           {{ .os.release.ID }}{{ .os.release.VERSION_ID }}
           {{- else }}
           {{ .os.release.ID }}-{{ .os.release.VERSION_ID }}
@@ -41,7 +41,7 @@
       when:
         - .iso_name | empty
       set_fact:
-        iso_name: "{{ .system_string | unescape | trim | lower }}-{{ .iso_type | trim }}-{{ .binary_type }}.iso"
+        iso_name: "{{ .system_string | unquote | trim | lower }}-{{ .iso_type | trim }}-{{ .binary_type }}.iso"
 
     - name: Repository | Copy local repository ISO file
       ignore_errors: true

@@ -3,9 +3,9 @@
     current_host_type: >-
       {{- if .os.release.ID_LIKE | eq "debian" }}
       ubuntu
-      {{- else if .os.release.ID_LIKE | unescape | eq "rhel fedora" }}
+      {{- else if .os.release.ID_LIKE | unquote | eq "rhel fedora" }}
       centos
-      {{- else if .os.release.ID | unescape | eq "kylin" }}
+      {{- else if .os.release.ID | unquote | eq "kylin" }}
       centos
       {{- end -}}
 

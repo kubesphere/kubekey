@@ -4,6 +4,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -28,7 +29,7 @@ func funcMap() template.FuncMap {
 	f["pow"] = pow
 	f["subtractList"] = subtractList
 	f["fileExist"] = fileExist
-	f["unescape"] = unescapeString
+	f["unquote"] = unquote
 
 	return f
 }
@@ -116,22 +117,17 @@ func fileExist(path string) bool {
 	return err == nil
 }
 
-func unescapeString(s string) string {
-	replacements := map[string]string{
-		`\\`: `\`,
-		`\"`: `"`,
-		`\'`: `'`,
-		`\n`: "\n",
-		`\r`: "\r",
-		`\t`: "\t",
-		`\b`: "\b",
-		`\f`: "\f",
+func unquote(input any) string {
+	if input == nil {
+		return ""
 	}
-
-	// Iterate over the replacements map and replace escape sequences in the string
-	for o, n := range replacements {
-		s = strings.ReplaceAll(s, o, n)
+	inputStr, ok := input.(string)
+	if !ok {
+		return ""
 	}
-
-	return s
+	output, err := strconv.Unquote(inputStr)
+	if err != nil {
+		return inputStr
+	}
+	return output
 }
