@@ -193,6 +193,11 @@ func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client)
 		Doc("get user-defined configuration information").
 		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
 
+	ws.Route(ws.POST("/ip").To(resourceHandler.PreCheckHost).
+		Doc("pre check host ssh connect information").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}).
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.IPHostCheckResult]{}))
+
 	return ws
 }
 
