@@ -9,15 +9,19 @@ gen_cert模块允许用户校验或生成证书文件。
 | root_key | CA证书的key路径 | 字符串 | 否 | - |
 | root_cert | CA证书路径 | 字符串 | 否 | - |
 | date | 证书过期时间 | 字符串 | 否 | 1y |
-| policy | 证书生成策略（Always, IfNotPresent） | 字符串 | 否 | IfNotPresent |
+| policy | 证书生成策略（Always, IfNotPresent, None） | 字符串 | 否 | IfNotPresent |
 | sans | Subject Alternative Names. 允许的IP和DNS | 字符串 | 否 | - |
 | cn | Common Name | 字符串 | 是 | - |
 | out_key | 生成的证书key路径 | 字符串 | 是 | - |
 | out_cert | 生成的证书路径 | 字符串 | 是 | - |
 
-证书生成策略:
-Always: 无论`out_key`和`out_cert`指向的证书路径是否存在，都会生成新的证书进行覆盖。
-IfNotPresent: 当`out_key`和`out_cert`指向的证书路径存在时，只对该证书进行校验，并不会生成新的证书。
+证书生成策略说明：
+
+- **Always**：无论`out_key`和`out_cert`指定的证书文件是否已存在，始终重新生成证书并覆盖原有文件。
+- **IfNotPresent**：仅当`out_key`和`out_cert`指定的证书文件不存在时才生成新证书；如果文件已存在，则先对现有证书进行校验，校验不通过时才会重新生成证书。
+- **None**：如果`out_key`和`out_cert`指定的证书文件已存在，仅对其进行校验，不会生成或覆盖证书文件；若文件不存在则不会生成新证书。
+
+该策略可灵活控制证书的生成和校验行为，满足不同场景下的需求。
 
 ## 使用示例
 
