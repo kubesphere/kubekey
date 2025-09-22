@@ -669,34 +669,24 @@ func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent strin
 	} else {
 		klog.V(6).Infof("No private key content provided, checking for default private keys")
 		foundKeys := findSSHPrivateKeys()
-		if len(foundKeys) > 0 {
-			klog.V(6).Infof("Found %d potential private key files", len(foundKeys))
-			for _, keyPath := range foundKeys {
-				keyBytes, err := os.ReadFile(keyPath)
-				if err != nil {
-					klog.V(6).Infof("Failed to read private key file %s: %v", keyPath, err)
-					continue
-				}
-
-				signer, err := ssh.ParsePrivateKey(keyBytes)
-				if err != nil {
-					klog.V(6).Infof("Failed to parse private key from %s: %v", keyPath, err)
-					continue
-				}
-
-				authMethods = append(authMethods, ssh.PublicKeys(signer))
-				klog.V(6).Infof("Added public key authentication from %s for user %s", keyPath, sshUser)
-				// stop when one correct key found
-				break
+		var signers = make([]ssh.Signer, 0)
+		for _, keyPath := range foundKeys {
+			keyBytes, err := os.ReadFile(keyPath)
+			if err != nil {
+				klog.V(6).Infof("Failed to read private key file %s: %v", keyPath, err)
+				continue
 			}
-		} else {
-			klog.V(6).Infof("No default private key files found")
-		}
-	}
 
-	if len(authMethods) == 0 {
-		klog.V(6).Infof("No authentication methods available for user %s", sshUser)
-		return true, false
+			signer, err := ssh.ParsePrivateKey(keyBytes)
+			if err != nil {
+				klog.V(6).Infof("Failed to parse private key from %s: %v", keyPath, err)
+				continue
+			}
+			signers = append(signers, signer)
+		}
+		if len(signers) > 0 {
+			authMethods = append(authMethods, ssh.PublicKeys(signers...))
+		}
 	}
 
 	klog.V(6).Infof("Using %d authentication methods for SSH connection", len(authMethods))
@@ -753,12 +743,12 @@ func findSSHPrivateKeys() []string {
 		return keyFiles
 	}
 
-	dirs, _ := os.ReadDir(sshDirInfo.Name())
+	dirs, _ := os.ReadDir(sshDir)
 	for _, dir := range dirs {
 		if dir.IsDir() {
 			continue
 		}
-		keyFiles = append(keyFiles, dir.Name())
+		keyFiles = append(keyFiles, filepath.Join(sshDir, dir.Name()))
 	}
 
 	return keyFiles
@@ -790,6 +780,8 @@ func (h ResourceHandler) PreCheckHost(request *restful.Request, response *restfu
 			if status == "" {
 				reachable, authorized := checkSSHConnect(currentHost.IP, currentHost.SSHPort,
 					currentHost.SSHUser, currentHost.SSHPwd, currentHost.SSHPrivateKeyContent)
+				klog.V(6).Infof("check ssh connect for %s:%s with result:%v,%v",
+					currentHost.IP, currentHost.SSHPort, reachable, authorized)
 				switch {
 				case authorized && reachable:
 					status = _const.SSHVerifyStatusSuccess
