@@ -32,7 +32,77 @@
     - etcd
   gather_facts: true
   roles:
-    - etcd
+    - role: etcd
+      when:
+        - .etcd.deployment_type | eq "external"
+
+- hosts:
+    - kube_control_plane
+  tasks:
+    - name: AddNodes | Check if should update apiserver certificates
+      run_once: true
+      add_hostvars:
+        hosts: kube_control_plane
+        vars:
+          need_installed_etcd: >-
+            {{- $needInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if and ((index $.hostvars . "etcd_install_LoadState" "stdout") | eq "not-found") ($.delete_nodes | default list | has . | not) -}}
+                {{- $needInstalled = append $needInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needInstalled | toJson }} 
+    - name: DeleteNode | Update apiserver etcd certificates
+      when:
+        - .need_installed_etcd | fromJson | empty | not
+        - .etcd.deployment_type | eq "external"
+      block:
+        - name: PreKubernetes | Copy CA certificate to control plane node
+          copy: 
+            src: >-
+              {{ .kubernetes.certs.ca_cert }}
+            dest: /etc/kubernetes/pki/ca.crt
+        - name: PreKubernetes | Copy CA private key to control plane node
+          copy:
+            src: >-
+              {{ .kubernetes.certs.ca_key }}
+            dest: /etc/kubernetes/pki/ca.key
+        - name: PreKubernetes | update ks-apiserver
+          command: |
+            {{- $endpoints := list -}}
+            {{- range .groups.etcd | default list -}}
+              {{- $endpoints = append $endpoints (printf "https://%s:2379" (index $.hostvars . "internal_ipv4")) -}}
+            {{- end -}}
+            ETCD_ENDPOINTS="{{ join "," $endpoints }}"
+                
+            if [ ! -f /etc/kubernetes/kubeadm-config.yaml ]; then
+              kubectl get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
+            fi
+        
+            awk -v ep="$ETCD_ENDPOINTS" '
+              BEGIN {
+                n = split(ep, arr, ",")
+                print "    endpoints:"
+                for (i = 1; i <= n; i++) {
+                  print "      - " arr[i]
+                }
+              }
+            ' > /tmp/new_endpoints.yaml
+        
+            sed -i "/endpoints:/,/^ *[^ -]/d" /etc/kubernetes/kubeadm-config.yaml
+        
+            awk '
+              {print}
+              /^ *external:/ {
+                while ((getline line < "/tmp/new_endpoints.yaml") > 0) print line
+                close("/tmp/new_endpoints.yaml")
+              }
+            ' /etc/kubernetes/kubeadm-config.yaml > /etc/kubernetes/kubeadm-config.yaml.tmp
+        
+            mv /etc/kubernetes/kubeadm-config.yaml.tmp /etc/kubernetes/kubeadm-config.yaml
+        
+            kubeadm config upload from-file --config=/etc/kubernetes/kubeadm-config.yaml
+            kubeadm init phase control-plane apiserver --config=/etc/kubernetes/kubeadm-config.yaml
 
 - hosts:
     - k8s_cluster
