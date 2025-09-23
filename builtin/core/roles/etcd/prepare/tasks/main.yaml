@@ -1,0 +1,113 @@
+---
+- name: Prepare | Gather etcd node state and membership
+  block:
+    - name: Prepare | Detect installed, to-install, and to-remove etcd nodes
+      run_once: true
+      add_hostvars:
+        hosts: all
+        vars:
+          installed_etcd: >-
+            {{- $installed := list -}}
+            {{- range .groups.etcd -}}
+              {{- if and ((index $.hostvars . "etcd_install_LoadState" "stdout") | eq "loaded") ($.delete_nodes | default list | has . | not) -}}
+                {{- $installed = append $installed . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $installed | first | default "" }}
+          need_installed_etcd: >-
+            {{- $needInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if and ((index $.hostvars . "etcd_install_LoadState" "stdout") | eq "not-found") ($.delete_nodes | default list | has . | not) -}}
+                {{- $needInstalled = append $needInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needInstalled | toJson }}
+          need_uninstall_etcd: >-
+            {{- $needUnInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if $.delete_nodes | default list | has . -}}
+                {{- $needUnInstalled = append $needUnInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needUnInstalled | toJson }}            
+
+- name: Prepare | Validate installed etcd version
+  when: .etcd_install_LoadState.stdout | eq "loaded"
+  block:
+    - name: Prepare | Ensure target etcd version is not lower than installed version
+      when: .etcd_install_LoadState.stdout | eq "loaded"
+      assert:
+        that: .etcd.etcd_version | semverCompare (printf ">=v%s" (index .etcd_install_version "stdout" "etcd Version"))
+        fail_msg: >-
+          Installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }} is lower than target etcd version: {{ .etcd.etcd_version }}
+
+- name: Prepare | Distribute etcd package for install or upgrade
+  when: >-
+    or 
+      (.etcd_install_version.error | empty | not)
+      (.etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version")))
+  block:
+    - name: Prepare | Copy etcd binary package to node
+      copy:
+        src: >-
+          {{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .binary_type }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
+        dest: >-
+          {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
+    - name: Prepare | Extract etcd binaries to /usr/local/bin/
+      command: |
+        tar --strip-components=1 -C /usr/local/bin/ -xvf {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz \
+          --wildcards 'etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}/etcd*'
+
+- name: Prepare | Remove ETCD_FORCE_NEW_CLUSTER if exists and restart etcd
+  when:
+    - .installed_etcd | eq .inventory_hostname
+    - .need_installed_etcd | empty | not
+    - .groups.etcd | len | eq 1
+  block:
+    - name: Prepare | Check if ETCD_FORCE_NEW_CLUSTER exists in etcd.env
+      command: grep "^ETCD_FORCE_NEW_CLUSTER=true" /etc/etcd.env
+      ignore_errors: true
+      register: force_new_cluster_check
+    - name: Prepare | Remove ETCD_FORCE_NEW_CLUSTER and restart etcd
+      when: .force_new_cluster_check.stdout | eq "ETCD_FORCE_NEW_CLUSTER=true"
+      command: |
+        sed -i '/^ETCD_FORCE_NEW_CLUSTER=/d' /etc/etcd.env
+        systemctl restart etcd
+
+        for ((i=1; i<=12; i++)); do
+          if ETCDCTL_API=3 etcdctl \
+            --endpoints=https://localhost:{{ .etcd.port }} \
+            --cacert=/etc/ssl/etcd/ssl/ca.crt \
+            --cert=/etc/ssl/etcd/ssl/server.crt \
+            --key=/etc/ssl/etcd/ssl/server.key \
+            endpoint health >/dev/null 2>&1; then
+            echo "✅ etcd restarted successfully without FORCE_NEW_CLUSTER"
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "❌ etcd did not become healthy within 1 minute"
+        exit 1
+
+- name: Prepare | Synchronize certificates to need install node 
+  when: 
+    - .etcd_install_LoadState.stdout | eq "not-found"
+    - .need_installed_etcd | has .inventory_hostname
+  block:
+    - name: Prepare | Synchronize certificates and etcd.env when changed
+      block:
+        - name: Prepare | Copy CA certificate to etcd node
+          copy:
+            src: >-
+              {{ .etcd.ca_file }}
+            dest: /etc/ssl/etcd/ssl/ca.crt
+        - name: Prepare | Copy server certificate to etcd node
+          copy:
+            src: >-
+              {{ tpl .etcd.server_cert_file .inventory_hostname }}
+            dest: /etc/ssl/etcd/ssl/server.crt
+        - name: Prepare | Copy server key to etcd node
+          copy:
+            src: >-
+              {{ tpl .etcd.server_key_file .inventory_hostname }}
+            dest: /etc/ssl/etcd/ssl/server.key

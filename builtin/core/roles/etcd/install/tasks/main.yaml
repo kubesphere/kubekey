@@ -1,0 +1,14 @@
+---
+- name: Install | Set when
+  when: 
+    - .etcd_install_LoadState.stdout | eq "not-found"
+    - .need_installed_etcd | has .inventory_hostname
+  block:
+    - name: Install | Render /etc/etcd.env configuration file
+      template:
+        src: etcd.env
+        dest: /etc/etcd.env
+
+    - include_tasks: install.yaml
+
+    - include_tasks: backup_service.yaml

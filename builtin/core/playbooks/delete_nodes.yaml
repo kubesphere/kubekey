@@ -10,14 +10,39 @@
   gather_facts: true
   roles:
     - defaults
-    - precheck
+
+- hosts:
+    - etcd
+  roles:
+    - role: etcd/prepare
+      when: 
+        - .delete.etcd
+        - .etcd.deployment_type | eq "external"
+- hosts:
+    - etcd
+  serial: 1 
+  roles:
+    - role: etcd/scaling_down
+      when: 
+        - .delete.etcd
+        - .etcd.deployment_type | eq "external"
+        - .need_uninstall_etcd | has .inventory_hostname
+- hosts:
+    - etcd
+  gather_facts: true
+  roles:
+    - role: etcd/postprocess
+      when: 
+        - .delete.etcd
+        - .etcd.deployment_type | eq "external"
+        - .need_uninstall_etcd | empty | not
+        - .need_uninstall_etcd | has .inventory_hostname | not 
 
 - hosts:
     - kube_control_plane
-  gather_facts: true
-  tasks:
+  serial: 1
+  pre_tasks:
     - name: DeleteNode | Ensure at least one control plane node remains in the cluster
-      run_once: true
       command: |
         {{- $cpNodes := list -}}
         {{- range .groups.kube_control_plane -}}
@@ -29,6 +54,13 @@
         echo "At least one control plane node must be retained in the cluster." >&2
         exit 1
         {{- end }}
+  roles:
+    - role: kubernetes/sync-etcd-config
+      when:
+        - .need_installed_etcd | empty | not
+        - .etcd.deployment_type | eq "external"
+        - .kubernetes_install_ActiveState.stdout | eq "active"
+        - .delete_nodes | default list | has .inventory_hostname | not
 
 - hosts: 
     - k8s_cluster
@@ -71,7 +103,7 @@
 - hosts:
     - etcd
   roles:
-    - role: uninstall/etcd
+    - role: etcd
       when: 
         - .delete.etcd
         - .etcd.deployment_type | eq "external"

@@ -35,8 +35,11 @@
 - hosts:
     - etcd
   roles:
-    - role: etcd
+    - role: etcd/prepare
       when: .etcd.deployment_type | eq "external"
+    - role: etcd/install
+      when: .etcd.deployment_type | eq "external"
+
 
 # Install the private image registry
 - hosts:

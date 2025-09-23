@@ -96,7 +96,12 @@ func newDeleteNodesCommand() *cobra.Command {
 			}
 
 			// Execute the playbook to delete the specified nodes
-			return o.Run(cmd.Context(), playbook)
+			if err := o.Run(cmd.Context(), playbook); err != nil {
+				return err
+			}
+
+			// Update inventory file only after successful execution
+			return o.OverrideInventory()
 		},
 	}
 	// Add all relevant flag sets to the command
