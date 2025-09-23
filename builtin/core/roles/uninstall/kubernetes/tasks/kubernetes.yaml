@@ -2,7 +2,8 @@
 - name: Kubernetes | Completely reset the node using kubeadm
   ignore_errors: true
   command: |
-    kubeadm reset -f
+    # After Kubernetes v1.27.0, the remove-etcd-member phase will automatically clean up /var/lib/etcd
+    kubeadm reset -f {{ if .etcd.deployment_type | eq "external" }}--skip-phases remove-etcd-member{{ end }}
 
 - name: Kubernetes | Gracefully stop and disable the kubelet service
   ignore_errors: true
@@ -24,4 +25,3 @@
     rm -rf /etc/kubernetes/
     rm -rf ~/.kube/config
     rm -rf /root/.kube/config
-    rm -rf /var/lib/etcd
