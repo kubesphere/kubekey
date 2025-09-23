@@ -28,7 +28,7 @@
 - hosts:
     - etcd
   roles:
-    - role: uninstall/etcd
+    - role: etcd/scaling_down
       when: .deleteETCD
 
 - hosts:

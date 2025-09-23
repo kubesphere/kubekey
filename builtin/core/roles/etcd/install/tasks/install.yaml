@@ -12,11 +12,6 @@
       loop:
        - "{{ .etcd.env.data_dir }}"
 
-- name: Install | Generate etcd environment configuration file
-  template:
-    src: etcd.env
-    dest: /etc/etcd.env
-
 - name: Install | Deploy etcd systemd service file
   copy:
     src: etcd.service
