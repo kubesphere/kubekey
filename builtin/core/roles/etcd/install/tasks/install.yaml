@@ -12,11 +12,6 @@
       loop:
        - "{{ .etcd.env.data_dir }}"
 
-- name: Install | Generate etcd environment configuration file
-  template:
-    src: etcd.env
-    dest: /etc/etcd.env
-
 - name: Install | Deploy etcd systemd service file
   copy:
     src: etcd.service
@@ -39,3 +34,7 @@
 
 - name: Install | Start and enable etcd systemd service
   command: systemctl daemon-reload && systemctl start etcd && systemctl enable etcd
+
+- name: Install | Refresh etcd.env to set ETCD_INITIAL_CLUSTER_STATE=existing
+  command: sed -i 's/^ETCD_INITIAL_CLUSTER_STATE=new$/ETCD_INITIAL_CLUSTER_STATE=existing/' /etc/etcd.env
+  

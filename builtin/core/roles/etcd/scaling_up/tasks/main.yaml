@@ -1,14 +1,11 @@
-- name: Expansion | Expand cluster on existing etcd nodes
-  when: .etcd_install_LoadState.stdout | eq "loaded"
+- name: ScalingUp | Restart etcd cluster on existing members
+  when: 
+    - .etcd_install_LoadState.stdout | eq "loaded"
   block:
-    - name: Expansion | Update /etc/etcd.env configuration file
-      template:
-        src: etcd.env
-        dest: /etc/etcd.env
-    - name: Expansion | Restart etcd service
+    - name: ScalingUp | Restart the etcd service
       command: |
         systemctl restart etcd.service
-    - name: Expansion | Verify etcd service becomes healthy within 1 minute
+    - name: ScalingUp | Ensure etcd service becomes healthy
       command: |
         for ((i=1; i<=12; i++)); do
           if ETCDCTL_API=3 etcdctl \
@@ -17,16 +14,18 @@
             --cert=/etc/ssl/etcd/ssl/server.crt \
             --key=/etc/ssl/etcd/ssl/server.key \
             endpoint health >/dev/null 2>&1; then
-            echo "✅ etcd is health"
+            echo "✅ etcd is healthy"
             exit 0
           fi
           sleep 5
         done
-        echo "❌ etcd etcd is not health in 1 minute"
+        echo "❌ etcd did not become healthy within 1 minute"
         exit 1
 
-- name: Expansion | Add new etcd member from non-installed node
-  when: .etcd_install_LoadState.stdout | eq "not-found"
+- name: ScalingUp | Add new etcd member from a node where etcd is not yet installed
+  when: 
+    - .etcd_install_LoadState.stdout | eq "not-found"
+    - .need_installed_etcd | fromJson | has .inventory_hostname
   delegate_to: "{{ .installed_etcd }}"
   command: |
     ETCDCTL_API=3 etcdctl \
@@ -34,4 +33,4 @@
       --cacert=/etc/ssl/etcd/ssl/ca.crt \
       --cert=/etc/ssl/etcd/ssl/server.crt \
       --key=/etc/ssl/etcd/ssl/server.key \
-      member add {{ .inventory_hostname }}
+      member add {{ .hostname }}

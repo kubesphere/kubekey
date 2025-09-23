@@ -35,7 +35,8 @@
 - hosts:
     - etcd
   roles:
-    - etcd
+    - role: etcd
+      when: .etcd.deployment_type | eq "external"
 
 # Install the private image registry
 - hosts:
