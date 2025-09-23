@@ -37,7 +37,11 @@ etcd:
   traffic_priority: false
   ca_file: >-
     {{ .binary_dir }}/pki/root.crt
-  cert_file: >-
-    {{ .binary_dir }}/pki/etcd.crt
-  key_file: >-
-    {{ .binary_dir }}/pki/etcd.key
+  server_cert_file: >-
+    {{ .binary_dir }}/pki/etcd-{{ "{{ . }}" }}.crt
+  server_key_file: >-
+    {{ .binary_dir }}/pki/etcd-{{ "{{ . }}" }}.key
+  client_cert_file: >-
+    {{ .binary_dir }}/pki/etcd-client.crt
+  client_key_file: >-
+    {{ .binary_dir }}/pki/etcd-client.key

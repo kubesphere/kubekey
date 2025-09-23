@@ -39,6 +39,7 @@ const (
 const (
 	defaultGroupControlPlane = "kube_control_plane"
 	defaultGroupWorker       = "kube_worker"
+	defaultGroupEtcd         = "etcd"
 )
 
 var getInventory options.InventoryFunc = func() (*kkcorev1.Inventory, error) {

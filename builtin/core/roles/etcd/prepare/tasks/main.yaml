@@ -1,0 +1,66 @@
+---
+- name: Prepare | Ensure installed etcd is running and healthy
+  when: .etcd_install_LoadState.stdout | eq "loaded"
+  assert:
+    that: .etcd_install_ActiveState.stdout | eq "active"
+    fail_msg: >-
+      etcd service is installed but not running
+
+- name: Prepare | Gather etcd node state and membership
+  block:
+    - name: Prepare | Detect installed, to-install, and to-remove etcd nodes
+      run_once: true
+      add_hostvars:
+        hosts: etcd
+        vars:
+          installed_etcd: >-
+            {{- $installed := list -}}
+            {{- range .groups.etcd -}}
+              {{- if and ((index $.hostvars . "etcd_install_LoadState" "stdout") | eq "loaded") ($.delete_nodes | default list | has . | not) -}}
+                {{- $installed = append $installed . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $installed | first | default "" }}
+          need_installed_etcd: >-
+            {{- $needInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if and ((index $.hostvars . "etcd_install_LoadState" "stdout") | eq "not-found") ($.delete_nodes | default list | has . | not) -}}
+                {{- $needInstalled = append $needInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needInstalled | toJson }}
+          need_uninstall_etcd: >-
+            {{- $needUnInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if $.delete_nodes | default list | has . -}}
+                {{- $needUnInstalled = append $needUnInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needUnInstalled | toJson }}            
+
+- name: Prepare | Validate installed etcd version
+  when: .etcd_install_LoadState.stdout | eq "loaded"
+  block:
+    - name: Prepare | Ensure target etcd version is not lower than installed version
+      when: .etcd_install_LoadState.stdout | eq "loaded"
+      assert:
+        that: .etcd.etcd_version | semverCompare (printf ">=v%s" (index .etcd_install_version "stdout" "etcd Version"))
+        fail_msg: >-
+          Installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }} is lower than target etcd version: {{ .etcd.etcd_version }}
+
+- name: Prepare | Distribute etcd package for install or upgrade
+  when: >-
+    or 
+      (.etcd_install_version.error | empty | not)
+      (.etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version")))
+  block:
+    - name: Prepare | Copy etcd binary package to node
+      copy:
+        src: >-
+          {{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .binary_type }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
+        dest: >-
+          {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
+    - name: Prepare | Extract etcd binaries to /usr/local/bin/
+      command: |
+        tar --strip-components=1 -C /usr/local/bin/ -xvf {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz \
+          --wildcards 'etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}/etcd*'
