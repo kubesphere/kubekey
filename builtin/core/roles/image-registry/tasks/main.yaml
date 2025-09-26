@@ -2,7 +2,7 @@
 - name: ImageRegistry | Synchronize images to remote host
   when:
     - .image_manifests | default list | empty | not
-    - download.download_image
+    - .download.download_image
   copy:
     src: >-
       {{ .binary_dir }}/images/
