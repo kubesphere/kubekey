@@ -18,9 +18,12 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -99,7 +102,19 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string, erro
 	}
 	defer destFile.Close()
 
-	if err := conn.FetchFile(ctx, srcParam, destFile); err != nil {
+	tmpFetchFileName := filepath.Join("/tmp", rand.String(16))
+
+	_, _, err = ModuleCommand(ctx, ExecOptions{
+		Host:     options.Host,
+		Args:     runtime.RawExtension{Raw: []byte(fmt.Sprintf("cp %s %s\nchmod 777 %s", srcParam, tmpFetchFileName, tmpFetchFileName))},
+		Variable: options.Variable,
+	})
+
+	if err != nil {
+		return StdoutFailed, "failed to fetch file", err
+	}
+
+	if err = conn.FetchFile(ctx, tmpFetchFileName, destFile); err != nil {
 		return StdoutFailed, "failed to fetch file", err
 	}
 

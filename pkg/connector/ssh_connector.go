@@ -25,8 +25,10 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/cockroachdb/errors"
 	"github.com/pkg/sftp"
@@ -245,7 +247,7 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 
 // ExecuteCommand in remote host
 func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []byte, error) {
-	cmd = fmt.Sprintf("sudo -SE %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
+	cmd = fmt.Sprintf("sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
 	// create ssh session
 	session, err := c.client.NewSession()
@@ -253,6 +255,17 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []
 		return nil, nil, errors.Wrap(err, "failed to create ssh session")
 	}
 	defer session.Close()
+
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          0,     // disable echoing
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
+
+	err = session.RequestPty("xterm", 100, 50, modes)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// get pipe from session
 	stdin, err := session.StdinPipe()
@@ -308,7 +321,197 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []
 	<-stdoutDone
 	<-stderrDone
 
-	return stdoutBuf.Bytes(), stderrBuf.Bytes(), errors.Wrap(err, "failed to execute ssh command")
+	outDataStr := strings.TrimSpace(CleanCommandOutput(stdoutBuf.String(), cmd))
+	if (strings.HasPrefix(outDataStr, "[sudo] password for ") || strings.HasPrefix(outDataStr, "Password")) && strings.Contains(outDataStr, ":") {
+		outDataSlice := strings.Split(outDataStr, ":")
+		if len(outDataSlice) > 1 {
+			outDataStr = strings.Join(outDataSlice[1:], ":")
+		}
+	}
+
+	return []byte(strings.TrimSpace(outDataStr)), stderrBuf.Bytes(), errors.Wrap(err, "failed to execute ssh command")
+}
+
+// CleanOutput clean cmd output data
+func CleanOutput(output string) string {
+	if output == "" {
+		return output
+	}
+
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+	cleaned := ansiRegex.ReplaceAllString(output, "")
+
+	decPrivateModeRegex := regexp.MustCompile(`\x1b\[\?[0-9;]*[hl]`)
+	cleaned = decPrivateModeRegex.ReplaceAllString(cleaned, "")
+
+	otherEscapeRegex := regexp.MustCompile(`\x1b[\(\)][BC0-9]|\x1b\][0-9][;:].*?\x07|\x1b[=>?]`)
+	cleaned = otherEscapeRegex.ReplaceAllString(cleaned, "")
+
+	titleRegex := regexp.MustCompile(`\x1b\]0;.*?\x07`)
+	cleaned = titleRegex.ReplaceAllString(cleaned, "")
+
+	cleaned = removeControlChars(cleaned)
+
+	cleaned = removeTerminalNoise(cleaned)
+
+	cleaned = normalizeWhitespace(cleaned)
+
+	return strings.TrimSpace(cleaned)
+}
+
+// removeControlChars remove all control chars in cmd output
+func removeControlChars(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\t' || (r >= 0x20 && r <= 0x7E) {
+			return r
+		}
+		if r > 0x7E && r <= 0xFF && unicode.IsPrint(r) {
+			return r
+		}
+		return -1
+	}, s)
+}
+
+// removeTerminalNoise remove all terminal noise in cmd output
+func removeTerminalNoise(s string) string {
+	promptPatterns := []string{
+		`^.*@.*:[/~].*[\$#]\s*`,        // user@host:path$
+		`^\[\d+\]\s*`,                  // [0]
+		`^\s*➜\s*`,                     // ➜
+		`^\s*›\s*`,                     // ›
+		`^\s*>\s*`,                     // >
+		`^.*(Last login|Welcome to).*`, // login data
+		`^.*(\x1b\]0;).*`,              // terminal title
+	}
+
+	for _, pattern := range promptPatterns {
+		regex := regexp.MustCompile(pattern)
+		s = regex.ReplaceAllString(s, "")
+	}
+
+	lines := strings.Split(s, "\n")
+	var cleanLines []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" && !isLikelyCommandEcho(trimmed) {
+			cleanLines = append(cleanLines, trimmed)
+		}
+	}
+
+	return strings.Join(cleanLines, "\n")
+}
+
+// isLikelyCommandEcho check is cmd echo or not
+func isLikelyCommandEcho(line string) bool {
+	// 匹配常见的命令模式
+	commandPatterns := []string{
+		`^\s*(sudo|apt|docker|kubectl|systemctl|journalctl|cat|ls|cd|pwd|echo|printf)\s`,
+		`^\s*[a-zA-Z0-9_\-]+\s+[a-zA-Z0-9_\-]`, // looks like cmd + args
+	}
+
+	for _, pattern := range commandPatterns {
+		matched, _ := regexp.MatchString(pattern, line)
+		if matched {
+			return true
+		}
+	}
+
+	return false
+}
+
+// normalizeWhitespace change cmd output white space to normal white space
+func normalizeWhitespace(s string) string {
+	s = strings.ReplaceAll(s, "\t", " ")
+
+	spaceRegex := regexp.MustCompile(`\s+`)
+	s = spaceRegex.ReplaceAllString(s, " ")
+
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimSpace(line)
+	}
+
+	var nonEmptyLines []string
+	for _, line := range lines {
+		if line != "" {
+			nonEmptyLines = append(nonEmptyLines, line)
+		}
+	}
+
+	return strings.Join(nonEmptyLines, "\n")
+}
+
+// CleanCommandOutput clean cmd output
+func CleanCommandOutput(output, command string) string {
+	cleaned := CleanOutput(output)
+
+	if strings.Contains(command, "systemctl") {
+		cleaned = cleanSystemctlOutput(cleaned)
+	}
+
+	if command != "" {
+		commandRegex := regexp.MustCompile(regexp.QuoteMeta(command) + `\s*\n?`)
+		cleaned = commandRegex.ReplaceAllString(cleaned, "")
+	}
+
+	return cleaned
+}
+
+// cleanSystemctlOutput clean system cmd output
+func cleanSystemctlOutput(output string) string {
+	statusValues := []string{
+		"enabled", "disabled", "static", "masked", "linked", "indirect",
+		"active", "inactive", "failed", "activating", "deactivating",
+		"loaded", "not-found", "bad-setting", "error", "waiting",
+	}
+
+	lines := strings.Split(output, "\n")
+	var cleanLines []string
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+
+		isStatus := false
+		for _, status := range statusValues {
+			if strings.Contains(strings.ToLower(trimmed), status) {
+				isStatus = true
+				break
+			}
+		}
+
+		if isStatus || isValidOutput(trimmed) {
+			cleanLines = append(cleanLines, trimmed)
+		}
+	}
+
+	return strings.Join(cleanLines, "\n")
+}
+
+// isValidOutput check is cmd output line valid
+func isValidOutput(line string) bool {
+	if line == "" {
+		return false
+	}
+
+	if len(line) > 200 {
+		return false
+	}
+
+	// Count non-printable characters (excluding spaces and tabs which are valid whitespace)
+	// This detects lines dominated by control sequences, escape codes, or other terminal artifacts
+	specialCharCount := 0
+	for _, r := range line {
+		if r != '\t' && (r != ' ' && !unicode.IsPrint(r)) {
+			specialCharCount++
+		}
+	}
+
+	// If more than 10% of characters are non-printable, this line is likely terminal noise
+	// This heuristic helps distinguish between legitimate output and control sequence remnants
+	return float64(specialCharCount)/float64(len(line)) <= 0.1
 }
 
 // HostInfo from gatherFacts cache
