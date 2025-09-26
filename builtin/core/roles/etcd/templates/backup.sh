@@ -21,9 +21,9 @@ ETCDCTL_CA_FILE="/etc/ssl/etcd/ssl/ca.crt"
 
 [ ! -d $BACKUP_DIR ] && mkdir -p $BACKUP_DIR
 
-export ETCDCTL_API=3;$ETCDCTL_PATH backup --data-dir $ETCD_DATA_DIR --backup-dir $BACKUP_DIR
+# export ETCDCTL_API=3;$ETCDCTL_PATH backup --data-dir $ETCD_DATA_DIR --backup-dir $BACKUP_DIR
 
-sleep 3
+# sleep 3
 
 {
 export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ENDPOINTS" snapshot save $BACKUP_DIR/snapshot.db \
