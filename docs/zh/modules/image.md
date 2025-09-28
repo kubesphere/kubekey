@@ -9,8 +9,10 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
 | pull | 把镜像从远程仓库中拉取到本地目录 | map | 否 | - |
 | pull.images_dir | 镜像存放的本地目录 | 字符串 | 否 | - |
 | pull.manifests | 需要拉取的镜像列表 | 字符串数组 | 是 | - |
-| pull.username | 用于认证远程仓库的用户 | 字符串 | 否 | - |
-| pull.password | 用于认证远程仓库的密码 | 字符串 | 否 | - |
+| pull.auths | 远程仓库的认证信息 | Object数组 | 否 | - |
+| pull.auths.repo | 用于认证远程仓库的地址 | 字符串 | 否 | - |
+| pull.auths.username | 用于认证远程仓库的用户名 | 字符串 | 否 | - |
+| pull.auths.password | 用于认证远程仓库的密码 | 字符串 | 否 | - |
 | pull.platform | 镜像的架构信息 | 字符串 | 否 | - |
 | pull.skip_tls_verify | 是否跳过远程仓库的tls认证 | bool | 否 | - |
 | push | 从本地目录中推送镜像到远程仓库 | map | 否 | - |

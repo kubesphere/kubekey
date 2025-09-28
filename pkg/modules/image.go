@@ -59,6 +59,10 @@ image:
     manifests: []string    # required: list of image manifests to pull
     images_dir: string     # required: directory to store pulled images
     skipTLSVerify: bool    # optional: skip TLS verification
+    autus:                 # optional: target image repo access information, slice type
+      - repo: string       # optional: target image repo
+        username: string   # optional: target image repo access username
+        password: string   # optional: target image repo access password
   push:                    # optional: push configuration
     username: string       # optional: registry username
     password: string       # optional: registry password
@@ -77,6 +81,13 @@ Usage Examples in Playbook Tasks:
            - nginx:latest
            - prometheus:v2.45.0
          images_dir: /path/to/images
+         auths:
+           - repo: docker.io
+             username: MyDockerAccount
+             password: my_password
+           - repo: my.dockerhub.local
+             username: MyHubAccount
+             password: my_password
      register: pull_result
    ```
 
@@ -109,9 +120,14 @@ type imagePullArgs struct {
 	imagesDir     string
 	manifests     []string
 	skipTLSVerify *bool
-	username      string
-	password      string
 	platform      string
+	auths         []imagePullAuth
+}
+
+type imagePullAuth struct {
+	Repo     string `json:"repo"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 // pull retrieves images from a remote registry and stores them locally
@@ -129,11 +145,8 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 					},
 				},
 			},
-			Cache: auth.NewCache(),
-			Credential: auth.StaticCredential(src.Reference.Registry, auth.Credential{
-				Username: i.username,
-				Password: i.password,
-			}),
+			Cache:      auth.NewCache(),
+			Credential: i.pullAuthFunc(),
 		}
 
 		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
@@ -157,6 +170,30 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	}
 
 	return nil
+}
+
+func (i imagePullArgs) pullAuthFunc() func(ctx context.Context, hostport string) (auth.Credential, error) {
+	var creds = make(map[string]auth.Credential)
+	for _, inputAuth := range i.auths {
+		var rp = inputAuth.Repo
+		if rp == "docker.io" {
+			rp = "registry-1.docker.io"
+		}
+		if rp == "" {
+			continue
+		}
+		creds[rp] = auth.Credential{
+			Username: inputAuth.Username,
+			Password: inputAuth.Password,
+		}
+	}
+	return func(_ context.Context, hostport string) (auth.Credential, error) {
+		cred, ok := creds[hostport]
+		if !ok {
+			cred = auth.EmptyCredential
+		}
+		return cred, nil
+	}
 }
 
 // parse platform string to ocispec.Platform
@@ -259,8 +296,13 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		}
 		ipl := &imagePullArgs{}
 		ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
-		ipl.username, _ = variable.StringVar(vars, pull, "username")
-		ipl.password, _ = variable.StringVar(vars, pull, "password")
+		ipl.auths = make([]imagePullAuth, 0)
+		_ = variable.AnyVar(vars, &ipl.auths, "cri", "registry", "auths")
+		for _, a := range ipl.auths {
+			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
+			a.Username, _ = tmpl.ParseFunc(vars, a.Username, func(b []byte) string { return string(b) })
+			a.Password, _ = tmpl.ParseFunc(vars, a.Password, func(b []byte) string { return string(b) })
+		}
 		ipl.imagesDir, _ = variable.StringVar(vars, pull, "images_dir")
 		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skip_tls_verify")
 		if ipl.skipTLSVerify == nil {
