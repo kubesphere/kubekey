@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"io"
 	"reflect"
 	"slices"
@@ -133,6 +134,11 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	updatedInventory, err := applyPatchAndDecode(oldInventoryJSON)
 	if err != nil {
 		api.HandleError(response, request, errors.Wrap(err, "failed to apply patch and decode inventory"))
+		return
+	}
+
+	if err := validateUniqueHostVariables(updatedInventory); err != nil {
+		api.HandleBadRequest(response, request, errors.Wrapf(err, "unable to patch Inventory %s/%s in the cluster: %v", namespace, inventoryName, err))
 		return
 	}
 
@@ -442,4 +448,48 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 	// Sort and filter the host table, then write the result.
 	results := query.DefaultList(hostTable, queryParam, less, filter)
 	_ = response.WriteEntity(results)
+}
+
+// validateUniqueHostVariables ensures that certain host variables are unique across all hosts in the inventory.
+// Specifically, it checks that:
+//   - Each internal IPv4 address (_const.VariableIPv4) is assigned to only one host.
+//   - Each SSH connection (the combination of ssh_host and ssh_port under the "connector" variable) is unique to a single host.
+func validateUniqueHostVariables(inventory *kkcorev1.Inventory) error {
+	// Maps to track uniqueness: internal IPv4 address -> hostname, and "ssh_host:ssh_port" -> hostname
+	internalIPv4ToHostname := make(map[string]string)
+	sshConnectionToHostname := make(map[string]string)
+
+	for hostname, rawHostVars := range inventory.Spec.Hosts {
+		hostVars := variable.Extension2Variables(rawHostVars)
+
+		// 1. Ensure internal IPv4 address is unique across all hosts
+		if internalIPv4, ok := hostVars[_const.VariableIPv4].(string); ok && internalIPv4 != "" {
+			if existingHost, found := internalIPv4ToHostname[internalIPv4]; found && existingHost != hostname {
+				return fmt.Errorf("duplicate internal_ipv4 detected: %s is assigned to both %s and %s", internalIPv4, existingHost, hostname)
+			}
+			internalIPv4ToHostname[internalIPv4] = hostname
+		}
+
+		// 2. Ensure SSH connection (ssh_host + ssh_port) is unique across all hosts
+		var sshHost, sshPort string
+		if connector, ok := hostVars[_const.VariableConnector].(map[string]any); ok {
+			if v, ok := connector[_const.VariableConnectorHost].(string); ok {
+				sshHost = v
+			}
+			switch v := connector[_const.VariableConnectorPort].(type) {
+			case string:
+				sshPort = v
+			case float64:
+				sshPort = fmt.Sprintf("%.0f", v)
+			}
+		}
+		if sshHost != "" && sshPort != "" {
+			sshKey := sshHost + ":" + sshPort
+			if existingHost, found := sshConnectionToHostname[sshKey]; found && existingHost != hostname {
+				return fmt.Errorf("duplicate SSH connection detected: %s is assigned to both %s and %s", sshKey, existingHost, hostname)
+			}
+			sshConnectionToHostname[sshKey] = hostname
+		}
+	}
+	return nil
 }
