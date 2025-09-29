@@ -37,9 +37,9 @@
               The kubelet service must be running and active when it is loaded.
         - name: Kubernetes | Ensure installed Kubernetes version matches expected version
           assert:
-            that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
+            that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kubernetes.kube_version
             fail_msg: >-
-              The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kube_version }}).
+              The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kubernetes.kube_version }}).
 
 - name: ImageRegistry | Verify successful authentication to image registry
   when:

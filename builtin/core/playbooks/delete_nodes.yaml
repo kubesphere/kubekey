@@ -9,9 +9,15 @@
     - native/root
 
 - hosts:
+    - etcd
+  roles:
+    - role: etcd
+      when: 
+        - .deleteETCD
+
+- hosts:
     - kube_control_plane
-  gather_facts: true
-  tasks:
+  pre_tasks:
     - name: DeleteNode | Ensure at least one control plane node remains in the cluster
       run_once: true
       command: |
@@ -25,6 +31,37 @@
         echo "At least one control plane node must be retained in the cluster." >&2
         exit 1
         {{- end }}
+  tasks:
+    - name: DeleteNode | Check if should update apiserver certificates
+      run_once: true
+      add_hostvars:
+        hosts: kube_control_plane
+        vars:
+          need_uninstall_etcd: >-
+            {{- $needUnInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if $.delete_nodes | default list | has . -}}
+                {{- $needUnInstalled = append $needUnInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needUnInstalled | toJson }}  
+    - name: DeleteNode | Update apiserver etcd certificates
+      when: .need_uninstall_etcd | fromJson | empty | not
+      block:
+        - name: PreKubernetes | Copy CA certificate to control plane node
+          copy: 
+            src: >-
+              {{ .kubernetes.certs.ca_cert }}
+            dest: /etc/kubernetes/pki/ca.crt
+        - name: PreKubernetes | Copy CA private key to control plane node
+          copy:
+            src: >-
+              {{ .kubernetes.certs.ca_key }}
+            dest: /etc/kubernetes/pki/ca.key
+        - name: PreKubernetes | Restart ks-apiserver to apply new certificates
+          run_once: true
+          command: |
+            kubectl delete pod -n kube-system -l app=ks-apiserver --ignore-not-found
 
 - hosts: 
     - k8s_cluster
@@ -62,14 +99,6 @@
         sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
       when: 
         - .deleteDNS
-        - .delete_nodes | default list | has .inventory_hostname
-
-- hosts:
-    - etcd
-  roles:
-    - role: uninstall/etcd
-      when: 
-        - .deleteETCD
         - .delete_nodes | default list | has .inventory_hostname
 
 - hosts:
