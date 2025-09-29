@@ -14,6 +14,7 @@
       tags: ["pull","image_registry"]
       image:
         pull:
+          auths: "{{ .cri.registry.auths | toJson }}"
           images_dir: >-
             {{ .binary_dir }}/images/
           manifests: "{{ .image_manifests | toJson }}"

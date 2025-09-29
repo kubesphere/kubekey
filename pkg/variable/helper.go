@@ -343,6 +343,30 @@ func DurationVar(ctx map[string]any, args map[string]any, key string) (time.Dura
 	return time.ParseDuration(stringVar)
 }
 
+// AnyVar get data from input args and keys,unmarshal data into dest
+func AnyVar(args map[string]any, dest any, keys ...string) error {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if !found {
+		return errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
+	}
+	valBytes, err := json.Marshal(val)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal variable %q", strings.Join(keys, "."))
+	}
+	valBytes, err = tmpl.Parse(args, string(valBytes))
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(valBytes, dest)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshal variable %q to dest", strings.Join(keys, "."))
+	}
+	return nil
+}
+
 // Extension2Variables convert runtime.RawExtension to variables
 func Extension2Variables(ext runtime.RawExtension) map[string]any {
 	if len(ext.Raw) == 0 {
