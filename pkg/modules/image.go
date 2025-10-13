@@ -176,11 +176,8 @@ func (i imagePullArgs) pullAuthFunc() func(ctx context.Context, hostport string)
 	var creds = make(map[string]auth.Credential)
 	for _, inputAuth := range i.auths {
 		var rp = inputAuth.Repo
-		if rp == "docker.io" {
+		if rp == "docker.io" || rp == "" {
 			rp = "registry-1.docker.io"
-		}
-		if rp == "" {
-			continue
 		}
 		creds[rp] = auth.Credential{
 			Username: inputAuth.Username,
@@ -297,11 +294,15 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ipl := &imagePullArgs{}
 		ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
 		ipl.auths = make([]imagePullAuth, 0)
-		_ = variable.AnyVar(vars, &ipl.auths, "cri", "registry", "auths")
-		for _, a := range ipl.auths {
+		varAuths := make([]imagePullAuth, 0)
+		_ = variable.AnyVar(vars, vars, &varAuths, "cri", "registry", "auths")
+		pullAuths := make([]imagePullAuth, 0)
+		_ = variable.AnyVar(vars, pull, &pullAuths, "auths")
+		for _, a := range append(varAuths, pullAuths...) {
 			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
 			a.Username, _ = tmpl.ParseFunc(vars, a.Username, func(b []byte) string { return string(b) })
 			a.Password, _ = tmpl.ParseFunc(vars, a.Password, func(b []byte) string { return string(b) })
+			ipl.auths = append(ipl.auths, a)
 		}
 		ipl.imagesDir, _ = variable.StringVar(vars, pull, "images_dir")
 		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skip_tls_verify")

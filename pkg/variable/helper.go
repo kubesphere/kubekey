@@ -344,7 +344,7 @@ func DurationVar(ctx map[string]any, args map[string]any, key string) (time.Dura
 }
 
 // AnyVar get data from input args and keys,unmarshal data into dest
-func AnyVar(args map[string]any, dest any, keys ...string) error {
+func AnyVar(ctx, args map[string]any, dest any, keys ...string) error {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
 	if err != nil {
 		return errors.WithStack(err)
@@ -356,7 +356,7 @@ func AnyVar(args map[string]any, dest any, keys ...string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal variable %q", strings.Join(keys, "."))
 	}
-	valBytes, err = tmpl.Parse(args, string(valBytes))
+	valBytes, err = tmpl.Parse(ctx, string(valBytes))
 	if err != nil {
 		return err
 	}
