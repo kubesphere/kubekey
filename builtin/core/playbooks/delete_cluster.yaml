@@ -13,7 +13,7 @@
     - uninstall/kubernetes
     - role: uninstall/cri
       when: 
-        - .deleteCRI
+        - .delete.cri
         - .groups.image_registry | default list | has .inventory_hostname | not
   post_tasks:
     - name: delete localDNS file
@@ -23,17 +23,17 @@
         sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
         sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
         sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
-      when: .deleteDNS
+      when: .delete.dns
 
 - hosts:
     - etcd
   roles:
     - role: uninstall/etcd
-      when: .deleteETCD
+      when: .delete.etcd
 
 - hosts:
    - image_registry
   roles:
     - role: uninstall/image-registry
       when:
-       - .deleteImageRegistry
+       - .delete.image_registry

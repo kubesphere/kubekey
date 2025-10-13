@@ -41,7 +41,7 @@
 
 - name: Network | Restart container runtime to rebuild iptables rules
   ignore_errors: true
-  when: or (.deleteCRI | not) (.groups.image_registry | default list | has .inventory_hostname)
+  when: or (.delete.cri | not) (.groups.image_registry | default list | has .inventory_hostname)
   command: |
     {{- if .cri.container_manager | eq "docker" }}
     systemctl restart containerd
