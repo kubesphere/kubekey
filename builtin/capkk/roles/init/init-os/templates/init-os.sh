@@ -198,10 +198,10 @@ EOF
 
 modprobe nf_conntrack_ipv4 1>/dev/null 2>/dev/null
 if [ $? -eq 0 ]; then
-   echo 'nf_conntrack_ipv4' > /etc/modules-load.d/kube_proxy-ipvs.conf
+   echo 'nf_conntrack_ipv4' >> /etc/modules-load.d/kube_proxy-ipvs.conf
 else
    modprobe nf_conntrack
-   echo 'nf_conntrack' > /etc/modules-load.d/kube_proxy-ipvs.conf
+   echo 'nf_conntrack' >> /etc/modules-load.d/kube_proxy-ipvs.conf
 fi
 sysctl -p
 
