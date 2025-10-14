@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/kubesphere/kubekey/workflows/GolangCILint/badge.svg?branch=main&event=push)](https://github.com/kubesphere/kubekey/actions/workflows/golangci-lint.yaml?query=event%3Apush+branch%3Amain+workflow%3ACI)
 
-> [English](README.md) | 中文
+> English | [中文](README_zh-CN.md)
 
 **👋 Welcome to KubeKey!**
 
