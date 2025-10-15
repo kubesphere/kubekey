@@ -3,12 +3,13 @@ name: Release
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
 
 jobs:
   build:
     name: create draft release
     runs-on: ubuntu-latest
+    if: ${GITHUB_REF#refs/*/} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$
     steps:
       - name: Set env
         run:  echo "RELEASE_TAG=${GITHUB_REF:10}" >> $GITHUB_ENV
