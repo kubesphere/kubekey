@@ -221,4 +221,4 @@ download:
     kubeovn: https://kubeovn.github.io/kube-ovn/kube-ovn-{{ .cni.kubeovn_version }}.tgz
     hybridnet: https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
     nfs_provisioner: https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
-  download_image: true
+  download_image: false

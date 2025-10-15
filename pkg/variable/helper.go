@@ -352,15 +352,22 @@ func AnyVar(ctx, args map[string]any, dest any, keys ...string) error {
 	if !found {
 		return errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
-	valBytes, err := json.Marshal(val)
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal variable %q", strings.Join(keys, "."))
+	var valBytes []byte
+	switch valv := val.(type) {
+	case string:
+		valBytes = []byte(valv)
+	case []any:
+		valBytes, err = json.Marshal(valv)
+		if err != nil {
+			return errors.Wrapf(err, "failed to marshal variable %q", strings.Join(keys, "."))
+		}
 	}
-	valBytes, err = tmpl.Parse(ctx, string(valBytes))
+
+	valBytesAfterTmpl, err := tmpl.Parse(ctx, string(valBytes))
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(valBytes, dest)
+	err = json.Unmarshal(valBytesAfterTmpl, dest)
 	if err != nil {
 		return errors.Wrapf(err, "failed to unmarshal variable %q to dest", strings.Join(keys, "."))
 	}

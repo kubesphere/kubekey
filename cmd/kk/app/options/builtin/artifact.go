@@ -21,6 +21,7 @@ package builtin
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -82,6 +83,9 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		Playbook: o.Playbook,
 		SkipTags: []string{"certs"},
 	}
+
+	o.CommonOptions.Set = setDefaultDownload(o.CommonOptions.Set)
+
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err
 	}
@@ -152,9 +156,19 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		Tags:     tags,
 	}
 
+	o.CommonOptions.Set = setDefaultDownload(o.CommonOptions.Set)
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	return playbook, nil
+}
+
+func setDefaultDownload(set []string) []string {
+	for _, s := range set {
+		if strings.Contains(s, "download.download_image=") {
+			return set
+		}
+	}
+	return append(set, "download.download_image=true")
 }

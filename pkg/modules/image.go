@@ -21,6 +21,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -109,6 +110,8 @@ Return Values:
 - On failure: Returns error message in stderr
 */
 
+const defaultRegistry = "docker.io"
+
 // imageArgs holds the configuration for image operations
 type imageArgs struct {
 	pull *imagePullArgs
@@ -133,9 +136,9 @@ type imagePullAuth struct {
 // pull retrieves images from a remote registry and stores them locally
 func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	for _, img := range i.manifests {
-		src, err := remote.NewRepository(img)
+		src, err := remote.NewRepository(normalizeImageNameSimple(img))
 		if err != nil {
-			return errors.Wrapf(err, "failed to get remote image %p", img)
+			return errors.Wrapf(err, "failed to get remote image %s", img)
 		}
 		src.Client = &auth.Client{
 			Client: &http.Client{
@@ -294,11 +297,9 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ipl := &imagePullArgs{}
 		ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
 		ipl.auths = make([]imagePullAuth, 0)
-		varAuths := make([]imagePullAuth, 0)
-		_ = variable.AnyVar(vars, vars, &varAuths, "cri", "registry", "auths")
 		pullAuths := make([]imagePullAuth, 0)
 		_ = variable.AnyVar(vars, pull, &pullAuths, "auths")
-		for _, a := range append(varAuths, pullAuths...) {
+		for _, a := range pullAuths {
 			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
 			a.Username, _ = tmpl.ParseFunc(vars, a.Username, func(b []byte) string { return string(b) })
 			a.Password, _ = tmpl.ParseFunc(vars, a.Password, func(b []byte) string { return string(b) })
@@ -685,6 +686,30 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 	}
 
 	return responseNotAllowed
+}
+
+func normalizeImageNameSimple(image string) string {
+	parts := strings.Split(image, "/")
+
+	switch len(parts) {
+	case 1:
+		// image like: ubuntu -> docker.io/library/ubuntu
+		return fmt.Sprintf("%s/library/%s", defaultRegistry, image)
+	case 2:
+		// image like: project/xx or registry/project
+		firstPart := parts[0]
+		if firstPart == "localhost" || (strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":")) {
+			return image
+		}
+		return fmt.Sprintf("%s/%s", defaultRegistry, image)
+	default:
+		// image like: registry/project/xx/sub
+		firstPart := parts[0]
+		if firstPart == "localhost" || (strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":")) {
+			return image
+		}
+		return fmt.Sprintf("%s/%s", defaultRegistry, image)
+	}
 }
 
 func init() {

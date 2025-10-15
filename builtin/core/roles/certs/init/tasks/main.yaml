@@ -84,6 +84,9 @@
       {{- if .image_registry.ha_vip | empty | not -}}
         {{- $ips = append $ips .image_registry.ha_vip -}}
       {{- end -}}
+      {{- if .image_registry.auth.registry | empty | not -}}
+        {{- $ips = append $ips .image_registry.auth.registry -}}
+      {{- end -}}
       {{- range .groups.image_registry | default list -}}
         {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
         {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}

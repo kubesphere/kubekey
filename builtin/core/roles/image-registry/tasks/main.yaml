@@ -1,8 +1,8 @@
 ---
 - name: ImageRegistry | Synchronize images to remote host
+  run_once: true
   when:
-    - .image_manifests | default list | empty | not
-    - .download.download_image
+    - printf "%s/images/" .binary_dir | fileExist
   copy:
     src: >-
       {{ .binary_dir }}/images/
