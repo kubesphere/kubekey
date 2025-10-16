@@ -86,6 +86,7 @@ spec:
   - docker.io/calico/pod2daemon-flexvol:v3.28.2
   - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
   - docker.io/openebs/provisioner-localpv:4.2.0
+  - docker.io/openebs/linux-utils:4.2.0
   - docker.io/kubesphere/coredns:v1.12.1
   - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
   - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
