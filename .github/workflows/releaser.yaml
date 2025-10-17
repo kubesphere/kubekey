@@ -49,5 +49,26 @@ jobs:
             REGISTRY=docker.io/kubespheredev TAG=$tag make generate
           fi
           gh release upload "$TAG" config/capkk/release/* --clobber
+          gh release upload "$TAG" hack/downloadKubekey.sh --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Synchronize artifacts to OSS
+        run: |
+          # Check if the current Git reference is a valid semantic version tag (e.g., v1.2.3)
+          if [[ ! ${GITHUB_REF#refs/*/} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Skipping artifact synchronization: not a release tag."
+              return 0
+          fi
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
+          tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
+          echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > qsctl-config.yaml
+          echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml
+          
+          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-linux-amd64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-linux-amd64.tar.gz
+          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-linux-arm64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-linux-arm64.tar.gz
+
+          rm -rf qsctl-config.yaml
