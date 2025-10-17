@@ -28,6 +28,16 @@ helm upgrade --install --create-namespace -n kubekey-system kubekey config/kubek
 ## 二进制
 在 [release](https://github.com/kubesphere/kubekey/releases) 页面获取对应的二进制文件。
 
+## 包含UI页面的kubekey
+
+**UI 页面仅在 v4.0.0 及以上版本提供支持**
+
+```shell
+VERSION=v4.0.0 WITH_WEB_INSTALLER=true hack/downloadKubekey.sh
+# run with UI
+kk web --schema-path schema -ui-path dist
+```
+
 # 部署kubernetes
 
 - 支持部署环境：Linux发行版

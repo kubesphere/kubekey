@@ -28,6 +28,16 @@ helm upgrade --install --create-namespace -n kubekey-system kubekey config/kubek
 ## Binary
 Get the corresponding binary files from the [release](https://github.com/kubesphere/kubekey/releases) page.
 
+## Download Binary with UI
+
+**UI only support after v4.0.0**
+
+```shell
+VERSION=v4.0.0 WITH_WEB_INSTALLER=true hack/downloadKubekey.sh
+# run with UI
+kk web --schema-path schema -ui-path dist
+```
+
 # Deploy Kubernetes
 
 - Supported deployment environments: Linux distributions
