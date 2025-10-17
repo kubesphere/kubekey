@@ -22,12 +22,28 @@ import (
 	"github.com/kubesphere/kubekey/v4/version"
 )
 
+// VersionOptions holds the flags for the version command.
+type VersionOptions struct {
+	Short bool // Short determines if only the version number is printed.
+}
+
+// newVersionCommand creates the cobra command for printing KubeSphere's version information.
 func newVersionCommand() *cobra.Command {
-	return &cobra.Command{
+	o := &VersionOptions{}
+	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print the version of KubeSphere controller-manager",
 		Run: func(cmd *cobra.Command, _ []string) {
-			cmd.Println(version.Get())
+			// Print the short or full version info based on the --short flag.
+			if o.Short {
+				cmd.Println(version.Get().GitVersion)
+			} else {
+				cmd.Println(version.Get())
+			}
 		},
 	}
+
+	cmd.Flags().BoolVarP(&o.Short, "short", "s", false, "Print just the version number")
+
+	return cmd
 }
