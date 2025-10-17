@@ -474,7 +474,7 @@ func newLocalRepository(reference, localDir string) (*remote.Repository, error) 
 var responseNotFound = &http.Response{Proto: "Local", StatusCode: http.StatusNotFound}
 var responseNotAllowed = &http.Response{Proto: "Local", StatusCode: http.StatusMethodNotAllowed}
 var responseServerError = &http.Response{Proto: "Local", StatusCode: http.StatusInternalServerError}
-var responseCreated = &http.Response{Proto: "Local", StatusCode: http.StatusCreated}
+var responseCreated = &http.Response{Proto: "Local", StatusCode: http.StatusAccepted}
 var responseOK = &http.Response{Proto: "Local", StatusCode: http.StatusOK}
 
 // const domain = "internal"
@@ -486,18 +486,26 @@ type imageTransport struct {
 
 // RoundTrip deal http.Request in local dir images.
 func (i imageTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	var resp *http.Response
+
 	switch request.Method {
-	case http.MethodHead: // check if file exist
-		return i.head(request), nil
+	case http.MethodHead:
+		resp = i.head(request)
 	case http.MethodPost:
-		return i.post(request), nil
+		resp = i.post(request)
 	case http.MethodPut:
-		return i.put(request), nil
+		resp = i.put(request)
 	case http.MethodGet:
-		return i.get(request), nil
+		resp = i.get(request)
 	default:
-		return responseNotAllowed, nil
+		resp = responseNotAllowed
 	}
+
+	if resp != nil {
+		resp.Request = request
+	}
+
+	return resp, nil
 }
 
 // head method for http.MethodHead. check if file is exist in blobs dir or manifests dir
