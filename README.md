@@ -35,7 +35,7 @@ Get the corresponding binary files from the [release](https://github.com/kubesph
 ```shell
 VERSION=v4.0.0 WEB_INSTALLER_VERSION=v1.0.0 hack/downloadKubekey.sh
 # run with UI
-kk web --schema-path schema -ui-path dist
+kk web --schema-path schema --ui-path dist
 ```
 > If there is a config.yaml file in the current directory, running hack/downloadKubekey.sh will use config.yaml to build an offline package.
 
