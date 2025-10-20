@@ -35,7 +35,7 @@ helm upgrade --install --create-namespace -n kubekey-system kubekey config/kubek
 ```shell
 VERSION=v4.0.0 WEB_INSTALLER_VERSION=v1.0.0 hack/downloadKubekey.sh
 # run with UI
-kk web --schema-path schema -ui-path dist
+kk web --schema-path schema --ui-path dist
 ```
 > 如果当前目录有config.yaml文件。执行`./package.sh config.yaml`来构建离线包
 
