@@ -144,7 +144,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 echo "Exporting artifact with kk..."
-./kk artifact export -c "$CONFIG_FILE" --workdir prepare -a artifact.tgz
+./kk artifact export -c "$CONFIG_FILE" --workdir prepare -a $(pwd)/artifact.tgz
 if [ $? -ne 0 ]; then
   echo "Failed to export artifact with kk. Please check the command output above."
   exit 1
