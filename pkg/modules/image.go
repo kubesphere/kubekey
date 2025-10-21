@@ -474,7 +474,7 @@ func newLocalRepository(reference, localDir string) (*remote.Repository, error) 
 var responseNotFound = &http.Response{Proto: "Local", StatusCode: http.StatusNotFound}
 var responseNotAllowed = &http.Response{Proto: "Local", StatusCode: http.StatusMethodNotAllowed}
 var responseServerError = &http.Response{Proto: "Local", StatusCode: http.StatusInternalServerError}
-var responseCreated = &http.Response{Proto: "Local", StatusCode: http.StatusAccepted}
+var responseCreated = &http.Response{Proto: "Local", StatusCode: http.StatusCreated}
 var responseOK = &http.Response{Proto: "Local", StatusCode: http.StatusOK}
 
 // const domain = "internal"
