@@ -165,10 +165,20 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 }
 
 func setDefaultDownload(set []string) []string {
+	var changeDownloadImage, changeDownloadISO = true, true
 	for _, s := range set {
 		if strings.Contains(s, "download.download_image=") {
-			return set
+			changeDownloadImage = false
+		}
+		if strings.Contains(s, "download.download_iso=") {
+			changeDownloadISO = false
 		}
 	}
-	return append(set, "download.download_image=true")
+	if changeDownloadImage {
+		set = append(set, "download.download_image=true")
+	}
+	if changeDownloadISO {
+		set = append(set, "download.download_iso=true")
+	}
+	return set
 }

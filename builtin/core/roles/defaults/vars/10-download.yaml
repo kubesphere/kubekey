@@ -224,3 +224,30 @@ download:
     hybridnet: https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
     nfs_provisioner: https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
   download_image: false
+  download_iso: false
+  iso_url:
+    base_path: >-
+      {{- if .download.zone | eq "cn" -}}
+      https://kubekey.pek3b.qingstor.com
+      {{- else -}}
+      https://github.com
+      {{- end -}}
+    urls:
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/almalinux-9.0-rpms-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/almalinux-9.0-rpms-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/centos-8-rpms-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/centos-8-rpms-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/debian-10-debs-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/debian-10-debs-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/debian-11-debs-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/debian-11-debs-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/kylin-v10SP3-rpms-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/kylin-v10SP3-rpms-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-18.04-debs-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-18.04-debs-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-20.04-debs-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-20.04-debs-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-22.04-debs-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-22.04-debs-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-24.04-debs-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/ISO-20250915/ubuntu-24.04-debs-arm64.iso"

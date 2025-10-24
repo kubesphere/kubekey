@@ -20,6 +20,11 @@
     - include_tasks: images.yaml
       tags: ["kubernetes", "image_registry"]
 
+- name: Artifact | Download iso file
+  when: .download.download_iso
+  block:
+    - include_tasks: iso.yaml
+
 - name: Artifact | Set ownership of working directory to sudo user
   tags: ["always"]
   ignore_errors: true
