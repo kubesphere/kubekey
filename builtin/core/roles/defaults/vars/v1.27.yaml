@@ -35,6 +35,8 @@ cri:
   # runc binary
   runc_version: v1.1.7
 cni:
+  type: calico
+  ipv6_support: false
   multus:
     image:
       tag: v4.0.2
@@ -70,29 +72,22 @@ dns:
   dns_cache_image:
     tag: 1.22.20
 image_manifests:
-- docker.io/calico/apiserver:v3.26.1
-- docker.io/calico/cni:v3.26.1
-- docker.io/calico/csi:v3.26.1
-- docker.io/calico/kube-controllers:v3.26.1
-- docker.io/calico/node-driver-registrar:v3.26.1
-- docker.io/calico/node:v3.26.1
-- docker.io/calico/pod2daemon-flexvol:v3.26.1
-- docker.io/kubesphere/k8s-dns-node-cache:1.22.20
-- docker.io/openebs/provisioner-localpv:3.4.0
-- docker.io/openebs/linux-utils:3.4.0
-- docker.io/kubesphere/coredns:v1.10.1
-- docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
-- docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
-- docker.io/kubesphere/kube-proxy:{{ .kube_version }}
-- docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
-- docker.io/kubesphere/pause:3.7
-- quay.io/tigera/operator:v1.30.4
-- docker.io/calico/ctl:v3.26.1
-- docker.io/calico/typha:v3.26.1
-- docker.io/calico/apiserver:v3.26.1
-- docker.io/calico/kube-controllers:v3.26.1
-- docker.io/calico/node:v3.26.1
-- docker.io/calico/pod2daemon-flexvol:v3.26.1
-- docker.io/calico/cni:v3.26.1
-- docker.io/calico/node-driver-registrar:v3.26.1
-- docker.io/calico/csi:v3.26.1
+  - docker.io/calico/apiserver:v3.26.1
+  - docker.io/calico/cni:v3.26.1
+  - docker.io/calico/csi:v3.26.1
+  - docker.io/calico/kube-controllers:v3.26.1
+  - docker.io/calico/node-driver-registrar:v3.26.1
+  - docker.io/calico/node:v3.26.1
+  - docker.io/calico/pod2daemon-flexvol:v3.26.1
+  - docker.io/kubesphere/k8s-dns-node-cache:1.22.20
+  - docker.io/openebs/provisioner-localpv:3.4.0
+  - docker.io/openebs/linux-utils:3.4.0
+  - docker.io/kubesphere/coredns:v1.10.1
+  - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
+  - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
+  - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
+  - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
+  - docker.io/kubesphere/pause:3.7
+  - quay.io/tigera/operator:v1.30.4
+  - docker.io/calico/ctl:v3.26.1
+  - docker.io/calico/typha:v3.26.1
