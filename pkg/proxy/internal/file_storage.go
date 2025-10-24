@@ -103,8 +103,10 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 	if err != nil {
 		return errors.Wrapf(err, "failed to encode object %q", key)
 	}
-	if err := decode(s.codec, data, out); err != nil {
-		return err
+	if out != nil {
+		if err := runtime.DecodeInto(s.codec, data, out); err != nil {
+			return errors.Wrapf(err, "unable to decode the created object data for %q", key)
+		}
 	}
 	// render to file
 	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
@@ -156,7 +158,7 @@ func (s fileStorage) Get(_ context.Context, key string, _ apistorage.GetOptions,
 		return err
 	}
 
-	return decode(s.codec, data, out)
+	return runtime.DecodeInto(s.codec, data, out)
 }
 
 // GetList local resource files.
@@ -416,9 +418,8 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	}
 	// render to destination
 	if destination != nil {
-		err = decode(s.codec, data, destination)
-		if err != nil {
-			return err
+		if err := runtime.DecodeInto(s.codec, data, destination); err != nil {
+			return errors.Wrapf(err, "unable to decode the updated object data for %q", key)
 		}
 	}
 	// render to file
@@ -478,20 +479,6 @@ func (s fileStorage) Count(key string) (int64, error) {
 
 // RequestWatchProgress do nothing.
 func (s fileStorage) RequestWatchProgress(context.Context) error {
-	return nil
-}
-
-// decode decodes value of bytes into object. It will also set the object resource version to rev.
-// On success, objPtr would be set to the object.
-func decode(codec runtime.Codec, value []byte, objPtr runtime.Object) error {
-	if _, err := conversion.EnforcePtr(objPtr); err != nil {
-		return errors.Wrap(err, "failed to convert output object to pointer")
-	}
-	_, _, err := codec.Decode(value, nil, objPtr)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode output object")
-	}
-
 	return nil
 }
 
