@@ -27,7 +27,7 @@
 - name: Harbor | Synchronize self signed ca cert to remote host
   copy:
     src: >-
-      {{ .binary_dir }}/pki/ca.crt
+      {{ .binary_dir }}/pki/root.crt
     dest: >-
       /opt/harbor/{{ .image_registry.harbor_version }}/ssl/ca.crt
 
