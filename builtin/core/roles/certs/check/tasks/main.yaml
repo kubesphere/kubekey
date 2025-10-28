@@ -1,0 +1,57 @@
+
+- name: Cert | Copy check shell
+  template:
+    src: check.sh
+    dest: /etc/kubekey/scripts/check.sh
+    mode: 0755
+
+- name: Cert | Set cert check command
+  set_fact:
+    cri:
+      cert:
+        check:
+          cmd: >-
+            /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry }} 
+                {{- if .image_registry.auth.insecure -}}
+                {{ printf " --insecure  " }} 
+                {{- end -}}
+                {{- if .image_registry.auth.ca_file | empty | not -}}
+                {{ printf " --ca-file %s " .image_registry.auth.ca_file }}
+                {{- end -}}
+                {{- if .image_registry.auth.cert_file | empty | not -}}
+                {{ printf " --cert-file %s .image_registry.auth.cert_file " }}
+                {{- end -}}
+                {{- if .image_registry.auth.key_file | empty | not -}}
+                {{ printf " --key-file %s " .image_registry.auth.key_file }}
+                {{- end -}}
+
+- name: Cert | Exec check shell with input certs
+  register: cert_check_input_cert_result
+  command: |
+    if {{ .cri.cert.check.cmd }} ; then
+        echo "true"
+    else
+        echo "false"
+    fi
+
+- name: Cert | Exec check shell with local certs
+  when: .cert_check_input_cert_result.stdout | eq "false"
+  register: cert_check_self_cert_result
+  command: |
+    if /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry }} --ca-file {{ .binary_dir }}/pki/root.crt --cert-file {{ .binary_dir }}/pki/image_registry.crt --key-file {{ .binary_dir }}/pki/image_registry.key ; then
+        echo "true"
+    else
+        echo "false"
+    fi
+
+- name: Cert | Set auth ca
+  ignore_error: true
+  when: .cert_check_self_cert_result.stdout | eq "true"
+  add_hostvars:
+    hosts: all
+    vars:
+      image_registry:
+        auth:
+          ca_file: "{{ .binary_dir }}/pki/root.crt"
+          cert_file: "{{ .binary_dir }}/pki/image_registry.crt"
+          key_file: "{{ .binary_dir }}/pki/image_registry.key"

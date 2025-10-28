@@ -47,7 +47,6 @@ state = "/run/containerd"
       max_conf_num = 1
       conf_template = ""
     [plugins."io.containerd.grpc.v1.cri".registry]
-      config_path = "/etc/containerd/certs.d"
       [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
 {{- if .cri.registry.mirrors | empty | not }}
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -64,6 +63,15 @@ state = "/run/containerd"
             username = "{{ .image_registry.auth.username }}"
             password = "{{ .image_registry.auth.password }}"
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .image_registry.auth.registry }}".tls]
+{{- if .image_registry.auth.ca_file | empty | not }}
+            ca_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/ca.crt"
+{{- end }}
+{{- if .image_registry.auth.cert_file | empty | not }}
+            cert_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.crt"
+{{- end }}
+{{- if .image_registry.auth.key_file | empty | not }}
+            key_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.key"
+{{- end }}
             insecure_skip_verify = {{ .image_registry.auth.insecure | default true }}
 {{- if .cri.registry.auths | empty | not }}
   {{- range .cri.registry.auths }}

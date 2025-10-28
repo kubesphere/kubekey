@@ -1,11 +1,14 @@
 ---
+- hosts:
+    - all
+  roles:
+    - native/root
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
   gather_facts: true
   roles:
     - defaults
-    - native/root
 
 - hosts: 
     - k8s_cluster

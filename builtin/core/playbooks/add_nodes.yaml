@@ -1,4 +1,8 @@
 ---
+- hosts:
+    - all
+  roles:
+    - native/root
 - import_playbook: hook/pre_install.yaml
 
 # Load default variables and perform prechecks on all hosts
@@ -8,7 +12,6 @@
   roles:
     - defaults
     - precheck
-    - native/root
 
 # Download all required software and generate certificates on the localhost
 - hosts:
@@ -17,6 +20,7 @@
   roles:
     - certs/init
     - download
+    - certs/check
 
 # Initialize all nodes and install necessary software packages
 - hosts:
