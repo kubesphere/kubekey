@@ -41,7 +41,7 @@
       when:
         - .iso_name | empty
       set_fact:
-        iso_name: "{{ .system_string | unquote | trim | lower }}-{{ .iso_type | trim }}-{{ .binary_type }}.iso"
+        iso_name: "{{ .system_string | replace \"\\\"\" \"\" | unquote | trim | lower }}-{{ .iso_type | trim }}-{{ .binary_type }}.iso"
 
     - name: Repository | Copy local repository ISO file
       ignore_errors: true
