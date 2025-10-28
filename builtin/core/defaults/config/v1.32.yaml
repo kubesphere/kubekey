@@ -5,7 +5,7 @@ spec:
     # if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
     zone: ""
   kubernetes:
-    kube_version: { { .kube_version } }
+    kube_version: {{ .kube_version }}
     # helm binary
     helm_version: v3.14.3
   etcd:
@@ -53,7 +53,7 @@ spec:
     calico_version: v3.28.2
     # ========== cni: cilium ==========
     # cilium helm
-    cilium_version: 1.18.2
+    cilium_version: 1.18.3
     # ========== cni: kubeovn ==========
     # kubeovn helm
     kubeovn_version: 1.13.0
@@ -79,20 +79,20 @@ spec:
   image_manifests:
     - docker.io/calico/apiserver:v3.28.2
     - docker.io/calico/cni:v3.28.2
+    - docker.io/calico/ctl:v3.28.2
     - docker.io/calico/csi:v3.28.2
     - docker.io/calico/kube-controllers:v3.28.2
     - docker.io/calico/node-driver-registrar:v3.28.2
     - docker.io/calico/node:v3.28.2
     - docker.io/calico/pod2daemon-flexvol:v3.28.2
-    - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
-    - docker.io/openebs/provisioner-localpv:4.2.0
-    - docker.io/openebs/linux-utils:4.2.0
+    - docker.io/calico/typha:v3.28.2
     - docker.io/kubesphere/coredns:v1.11.1
+    - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
     - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
     - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
     - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
     - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
     - docker.io/kubesphere/pause:3.8
+    - docker.io/openebs/linux-utils:4.2.0
+    - docker.io/openebs/provisioner-localpv:4.2.0
     - quay.io/tigera/operator:v1.34.5
-    - docker.io/calico/ctl:v3.28.2
-    - docker.io/calico/typha:v3.28.2

@@ -34,8 +34,6 @@ cri:
   # runc binary
   runc_version: v1.1.4
 cni:
-  type: calico
-  ipv6_support: false
   multus:
     image:
       tag: v3.9.3
@@ -47,7 +45,7 @@ cni:
   calico_version: v3.24.5
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.12.6
+  cilium_version: 1.14.19
   # ========== cni: kubeovn ==========
   # kubeovn helm
   kubeovn_version: 1.10.0
@@ -73,20 +71,20 @@ dns:
 image_manifests:
   - docker.io/calico/apiserver:v3.24.5
   - docker.io/calico/cni:v3.24.5
+  - docker.io/calico/ctl:v3.24.5
   - docker.io/calico/csi:v3.24.5
   - docker.io/calico/kube-controllers:v3.24.5
   - docker.io/calico/node-driver-registrar:v3.24.5
   - docker.io/calico/node:v3.24.5
   - docker.io/calico/pod2daemon-flexvol:v3.24.5
-  - docker.io/kubesphere/k8s-dns-node-cache:1.21.1
-  - docker.io/openebs/provisioner-localpv:3.3.0
-  - docker.io/openebs/linux-utils:3.3.0
+  - docker.io/calico/typha:v3.24.5
   - docker.io/kubesphere/coredns:v1.8.6
+  - docker.io/kubesphere/k8s-dns-node-cache:1.21.1
   - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
   - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
   - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
   - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
   - docker.io/kubesphere/pause:3.6
+  - docker.io/openebs/linux-utils:3.3.0
+  - docker.io/openebs/provisioner-localpv:3.3.0
   - quay.io/tigera/operator:v1.28.5
-  - docker.io/calico/ctl:v3.24.5
-  - docker.io/calico/typha:v3.24.5
