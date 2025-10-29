@@ -1,13 +1,4 @@
 ---
-- name: ImageRegistry | Synchronize images to remote host
-  run_once: true
-  when:
-    - printf "%s/images/" .binary_dir | fileExist
-  copy:
-    src: >-
-      {{ .binary_dir }}/images/
-    dest: >-
-      {{ .image_registry.images_dir }}
 
 - name: ImageRegistry | Ensure Harbor project exists for each image
   when: .image_registry.type | eq "harbor"
@@ -38,10 +29,11 @@
     done
 
 - name: ImageRegistry | Push images package to image registry
+  run_once: true
   image:
     push:
       images_dir: >-
-        {{ .image_registry.images_dir }}
+        {{ .binary_dir }}/images/
       dest: >-
         {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
       username: >-
