@@ -32,7 +32,7 @@ cni:
   calico_version: v3.28.2
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.15.4
+  cilium_version: 1.18.3
   # ========== cni: kubeovn ==========
   # kubeovn helm
   kubeovn_version: 1.13.0
