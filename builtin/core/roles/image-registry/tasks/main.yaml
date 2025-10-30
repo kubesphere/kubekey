@@ -4,7 +4,7 @@
   when: .image_registry.type | eq "harbor"
   command: |
     # Traverse first-level subdirectories in images_dir, skipping 'blobs'
-    for registry_dir in {{ .image_registry.images_dir }}*; do
+    for registry_dir in {{ .binary_dir }}/images/*; do
       if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
         continue
       fi
