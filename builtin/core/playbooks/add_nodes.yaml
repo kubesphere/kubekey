@@ -43,14 +43,16 @@
   roles:
     - role: cri
       when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
+    - role: kubernetes/pre-kubernetes
+      when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
     - role: kubernetes/init-kubernetes
       when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
-    - role: kubernetes/pre-kubernetes
-      when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname) 
     - role: kubernetes/join-kubernetes
-      when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
+      when:
+        - or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
+        - .kubernetes_install_LoadState.stdout | eq "not-found"
     - role: kubernetes/certs
       when: 
         - or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
         - .groups.kube_control_plane | default list | has .inventory_hostname
-        - .kubernetes.certs.renew  
+        - .kubernetes.certs.renew
