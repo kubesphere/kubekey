@@ -11,7 +11,61 @@
 
 - name: Join | Execute kubeadm join to add node to the Kubernetes cluster
   command: |
-    /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
+    set -e
+    # set kubeadm config file path
+    CONFIG_FILE="/etc/kubernetes/kubeadm-config.yaml"
+    
+    # check is node in cluster
+    check_node_in_cluster() {
+      # check kubelet config file
+      if [[ -f "/etc/kubernetes/kubelet.conf" ]]; then
+        return 0
+      fi
+    
+      # check kubelet service status
+      if systemctl is-active kubelet &>/dev/null; then
+        # check is cluster accessible
+        if kubectl get nodes &>/dev/null 2>&1; then
+         return 0
+        fi
+      fi
+    
+      # check is node registered in cluster
+      if kubectl cluster-info &>/dev/null 2>&1; then
+        CURRENT_NODE=$(hostname)
+        if kubectl get node "$CURRENT_NODE" &>/dev/null 2>&1; then
+          return 0
+        fi
+      fi
+      return 1
+    }
+    
+    # exec kubeadm join
+    execute_kubeadm_join() {
+      local join_command="/usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull"
+    
+      if $join_command >/dev/null 2>&1; then
+        sleep 10
+        return 0
+      else
+        return 1
+      fi
+    }
+    
+    main() {
+      if check_node_in_cluster; then
+        exit 0
+      fi
+    
+      if execute_kubeadm_join; then
+        exit 0
+      else
+        echo "exec kubeadm join failed"
+        exit 1
+      fi
+    }
+    main "$@" >/dev/null 2>&1
+
 
 - name: Join | Synchronize kubeconfig to remote node
   copy:
