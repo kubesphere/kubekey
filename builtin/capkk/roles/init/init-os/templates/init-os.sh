@@ -256,13 +256,3 @@ EOF
 
 sync
 # echo 3 > /proc/sys/vm/drop_caches
-
-# Make sure the iptables utility doesn't use the nftables backend.
-{{- if .internal_ipv4 | empty | not }}
-update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || true
-{{- end }}
-{{- if .internal_ipv6 | empty | not }}
-update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 || true
-{{- end }}
-update-alternatives --set arptables /usr/sbin/arptables-legacy >/dev/null 2>&1 || true
-update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || true
