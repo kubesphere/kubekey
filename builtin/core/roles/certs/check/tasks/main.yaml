@@ -5,6 +5,36 @@
     dest: /etc/kubekey/scripts/check.sh
     mode: 0755
 
+- name: Cert | Copy certs to remote
+  block:
+    - name: Cert | Copy auth ca file to remote
+      when:
+      - .image_registry.auth.ca_file | empty | not
+      - .image_registry.auth.ca_file | fileExist
+      copy:
+        src: >-
+          {{ .image_registry.auth.ca_file }}
+        dest: >-
+          /etc/kubekey/certs/{{ .image_registry.auth.registry }}/{{ .image_registry.auth.ca_file }}
+    - name: Cert | Copy auth cert file to remote
+      when:
+        - .image_registry.auth.cert_file | empty | not
+        - .image_registry.auth.cert_file | fileExist
+      copy:
+        src: >-
+          {{ .image_registry.auth.cert_file }}
+        dest: >-
+          /etc/kubekey/certs/{{ .image_registry.auth.registry }}/{{ .image_registry.auth.cert_file }}
+    - name: Cert | Copy auth key file to remote
+      when:
+        - .image_registry.auth.key_file | empty | not
+        - .image_registry.auth.key_file | fileExist
+      copy:
+        src: >-
+          {{ .image_registry.auth.key_file }}
+        dest: >-
+          /etc/kubekey/certs/{{ .image_registry.auth.registry }}/{{ .image_registry.auth.key_file }}
+
 - name: Cert | Set cert check command
   set_fact:
     cri:
@@ -16,13 +46,13 @@
                 {{ printf " --insecure  " }} 
                 {{- end -}}
                 {{- if .image_registry.auth.ca_file | empty | not -}}
-                {{ printf " --ca-file %s " .image_registry.auth.ca_file }}
+                {{ printf " --ca-file /etc/kubekey/certs/%s/%s " .image_registry.auth.registry .image_registry.auth.ca_file }}
                 {{- end -}}
                 {{- if .image_registry.auth.cert_file | empty | not -}}
-                {{ printf " --cert-file %s .image_registry.auth.cert_file " }}
+                {{ printf " --cert-file /etc/kubekey/certs/%s/%s " .image_registry.auth.registry .image_registry.auth.cert_file }}
                 {{- end -}}
                 {{- if .image_registry.auth.key_file | empty | not -}}
-                {{ printf " --key-file %s " .image_registry.auth.key_file }}
+                {{ printf " --key-file /etc/kubekey/certs/%s/%s " .image_registry.auth.registry .image_registry.auth.key_file }}
                 {{- end -}}
 
 - name: Cert | Exec check shell with input certs
@@ -34,24 +64,43 @@
         echo "false"
     fi
 
-- name: Cert | Exec check shell with local certs
+- name: Cert | Check self signed certs
   when: .cert_check_input_cert_result.stdout | eq "false"
-  register: cert_check_self_cert_result
-  command: |
-    if /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry }} --ca-file {{ .binary_dir }}/pki/root.crt --cert-file {{ .binary_dir }}/pki/image_registry.crt --key-file {{ .binary_dir }}/pki/image_registry.key ; then
-        echo "true"
-    else
-        echo "false"
-    fi
-
-- name: Cert | Set auth ca
-  ignore_error: true
-  when: .cert_check_self_cert_result.stdout | eq "true"
-  add_hostvars:
-    hosts: all
-    vars:
-      image_registry:
-        auth:
-          ca_file: "{{ .binary_dir }}/pki/root.crt"
-          cert_file: "{{ .binary_dir }}/pki/image_registry.crt"
-          key_file: "{{ .binary_dir }}/pki/image_registry.key"
+  block:
+    - name: Cert | Copy self signed ca to remote
+      copy:
+        src: >-
+          {{ .binary_dir }}/pki/root.crt
+        dest: >-
+          /etc/kubekey/certs/self/ca.crt
+    - name: Cert | Copy self signed cert to remote
+      copy:
+        src: >-
+          {{ .binary_dir }}/pki/image_registry.crt
+        dest: >-
+          /etc/kubekey/certs/self/image_registry.crt
+    - name: Cert | Copy self signed key to remote
+      copy:
+        src: >-
+          {{ .binary_dir }}/pki/image_registry.key
+        dest: >-
+          /etc/kubekey/certs/self/image_registry.key
+    - name:  Cert | Exec check shell with local certs
+      register: cert_check_self_cert_result
+      command: |
+        if /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry }} --ca-file /etc/kubekey/certs/self/ca.crt --cert-file /etc/kubekey/certs/self/image_registry.crt --key-file /etc/kubekey/certs/self/image_registry.key ; then
+            echo "true"
+        else
+            echo "false"
+        fi
+    - name: Cert | Set auth ca to self signed certs
+      ignore_error: true
+      when: .cert_check_self_cert_result.stdout | eq "true"
+      add_hostvars:
+        hosts: all
+        vars:
+          image_registry:
+            auth:
+              ca_file: "{{ .binary_dir }}/pki/root.crt"
+              cert_file: "{{ .binary_dir }}/pki/image_registry.crt"
+              key_file: "{{ .binary_dir }}/pki/image_registry.key"
