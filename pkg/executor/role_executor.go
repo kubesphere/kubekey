@@ -53,7 +53,7 @@ func (e roleExecutor) Exec(ctx context.Context) error {
 		ignoreErrors: e.ignoreErrors,
 		blocks:       e.role.Block,
 		role:         e.role.Role,
-		when:         e.role.When.Data,
+		when:         e.dealWhen(e.role.When),
 		tags:         e.tags,
 	}.Exec(ctx))
 }
