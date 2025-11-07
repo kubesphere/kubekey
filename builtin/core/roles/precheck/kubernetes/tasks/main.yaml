@@ -23,7 +23,7 @@
       - .kubernetes.kube_version | empty | not
       - .kubernetes.kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
     fail_msg: >-
-      This version of KubeKey only supports Kubernetes versions greater than or equal to {{ .cluster_require.kube_version_min_required }}. You are attempting to use version {{ .kube_version }}.
+      This version of KubeKey only supports Kubernetes versions greater than or equal to {{ .cluster_require.kube_version_min_required }}. You are attempting to use version {{ .kubernetes.kube_version }}.
 
 - name: Kubernetes | Check if Kubernetes is installed
   block:

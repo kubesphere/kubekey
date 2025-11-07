@@ -80,10 +80,10 @@ image_manifests:
   - docker.io/calico/typha:v3.26.1
   - docker.io/kubesphere/coredns:v1.10.1
   - docker.io/kubesphere/k8s-dns-node-cache:1.22.20
-  - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
-  - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
-  - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
-  - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
+  - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
   - docker.io/kubesphere/pause:3.7
   - docker.io/openebs/linux-utils:3.4.0
   - docker.io/openebs/provisioner-localpv:3.4.0
