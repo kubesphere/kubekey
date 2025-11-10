@@ -45,7 +45,6 @@
   when:
     - .image_registry.auth.registry | empty | not
     - .image_registry.type | empty
-  run_once: true
   command: |
     HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" "https://{{ .image_registry.auth.registry }}/v2/" -o /dev/null)
     if [[ "$HTTP_CODE" == "200" ]]; then
