@@ -5,6 +5,7 @@ etcd:
   # etcd binary
   etcd_version: v3.5.4
 image_registry:
+  type: harbor
   # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
   keepalived_version: 2.0.20
   # ========== image registry: harbor ==========
