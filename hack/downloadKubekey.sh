@@ -15,6 +15,7 @@
 # limitations under the License.
 
 ISLINUX=true
+LATEST_VERSION=
 
 OSTYPE="linux"
 
@@ -64,6 +65,10 @@ if [ "x${VERSION}" = "x" ]; then
   echo "Unable to get latest Kubekey version. Set VERSION env var and re-run. For example: export VERSION=v1.0.0"
   echo ""
   exit
+fi
+
+if ["x${VERSION}" = "xlatest"]; then
+  VERSION=${LATEST_VERSION}
 fi
 
 DOWNLOAD_URL="https://github.com/kubesphere/kubekey/releases/download/${VERSION}/kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
