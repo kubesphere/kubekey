@@ -48,6 +48,8 @@ jobs:
           else
             REGISTRY=docker.io/kubespheredev TAG=$tag make generate
           fi
+          sed -i "s/^LATEST_VERSION=.*/LATEST_VERSION=${TAG}/" hack/downloadKubekey.sh
+
           gh release upload "$TAG" config/capkk/release/* --clobber
           gh release upload "$TAG" hack/downloadKubekey.sh --clobber
         env:

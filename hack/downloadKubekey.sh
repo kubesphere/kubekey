@@ -15,6 +15,7 @@
 # limitations under the License.
 
 ISLINUX=true
+LATEST_VERSION=
 
 OSTYPE="linux"
 
@@ -31,6 +32,10 @@ if [ "x$(uname)" != "xLinux" ]; then
   echo ""
   echo 'Warning: Non-Linux operating systems are not supported! After downloading, please copy the tar.gz file to linux.'  
   ISLINUX=false
+fi
+
+if [ "x${VERSION}" = "xlatest" ]; then
+  VERSION=${LATEST_VERSION}
 fi
 
 # Fetch latest version of 3.x
