@@ -16,6 +16,7 @@
 
 ISLINUX=true
 LATEST_VERSION=
+LATEST_WEB_INSTALLER_VERSION=
 
 OSTYPE="linux"
 
@@ -36,6 +37,7 @@ fi
 
 if [ "x${VERSION}" = "xlatest" ]; then
   VERSION=${LATEST_VERSION}
+  WEB_INSTALLER_VERSION=${LATEST_WEB_INSTALLER_VERSION}
 fi
 
 # Fetch latest version of 3.x
@@ -114,7 +116,7 @@ fi
 if check_version "${WEB_INSTALLER_VERSION}"; then
   WEB_DOWNLOAD_URL=https://kubekey.pek3b.qingstor.com/github.com/kubesphere/web-installer/releases/download/${WEB_INSTALLER_VERSION}/web-installer.tgz
   echo ""
-  echo "Downloading kubekey web_installer ${VERSION} from ${DOWNLOAD_URL} ..."
+  echo "Downloading kubekey web_installer ${WEB_INSTALLER_VERSION} from ${WEB_DOWNLOAD_URL} ..."
   echo ""
 
   curl -fsLO "$WEB_DOWNLOAD_URL"
@@ -131,7 +133,8 @@ if check_version "${WEB_INSTALLER_VERSION}"; then
   fi
 fi
 
-# generate package.sh
+if ! echo "$VERSION" | grep -E '^v3\.[0-9]+\.[0-9]+$' >/dev/null; then
+  # generate package.sh
 cat > package.sh << 'EOF'
 #!/bin/sh
 
@@ -174,8 +177,8 @@ tar -czf offline.tgz offline
 echo "Offline package offline.tgz has been created successfully."
 EOF
 
-chmod +x package.sh
-
+  chmod +x package.sh
+fi
 
 echo ""
 echo "Kubekey ${VERSION} Download Complete!"

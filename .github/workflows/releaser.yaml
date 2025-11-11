@@ -49,11 +49,16 @@ jobs:
             REGISTRY=docker.io/kubespheredev TAG=$tag make generate
           fi
           sed -i "s/^LATEST_VERSION=.*/LATEST_VERSION=${TAG}/" hack/downloadKubekey.sh
+          
+          json_data=$(gh release list --limit 1 --repo kubesphere/web-installer --json name)
+          tag_name=$(echo $json_data | jq -r '.[0].name')
+          
+          sed -i "s/^LATEST_WEB_INSTALLER_VERSION=.*/LATEST_WEB_INSTALLER_VERSION=${tag_name}/" hack/downloadKubekey.sh
 
           gh release upload "$TAG" config/capkk/release/* --clobber
           gh release upload "$TAG" hack/downloadKubekey.sh --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ADMIN_GH_TOKEN }}
 
       - name: Synchronize artifacts to OSS
         run: |
