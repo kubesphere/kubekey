@@ -165,19 +165,11 @@ download:
         {{- else -}}
         https://github.com/docker/compose/releases/download/{{ .cri.dockercompose_version }}/docker-compose-linux-aarch64
         {{- end -}}
-#    docker_registry:
-#      amd64: >-
-#        {{- if .download.zone | eq "cn" -}}
-#        https://kubernetes-release.pek3b.qingstor.com/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-amd64.tgz
-#        {{- else -}}
-#        https://github.com/kubesphere/kubekey/releases/download/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-amd64.tgz
-#        {{- end -}}
-#      arm64: >-
-#        {{- if .download.zone | eq "cn" -}}
-#        https://kubernetes-release.pek3b.qingstor.com/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-arm64.tgz
-#        {{- else -}}
-#        https://github.com/kubesphere/kubekey/releases/download/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-arm64.tgz
-#        {{- end -}}
+    docker_registry:
+      amd64: >-
+        https://kubekey.pek3b.qingstor.com/docker.io/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-amd64.tgz
+      arm64: >-
+        https://kubekey.pek3b.qingstor.com/docker.io/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-arm64.tgz
     harbor:
       amd64: >-
         {{- if .download.zone | eq "cn" -}}
