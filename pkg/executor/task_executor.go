@@ -178,6 +178,9 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 		// if loop is empty. execute once, and the item is null
 		for _, item := range e.dealLoop(had) {
 			resErr = e.executeModule(ctx, e.task, item, h, &stdout, &stderr)
+			if resErr != nil {
+				break
+			}
 		}
 	}
 }
