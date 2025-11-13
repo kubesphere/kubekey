@@ -51,6 +51,10 @@ var getInventory options.InventoryFunc = func() (*kkcorev1.Inventory, error) {
 	return inventory, errors.Wrap(yaml.Unmarshal(data, inventory), "failed to unmarshal local inventory file: %q.")
 }
 
+func getInventoryData() ([]byte, error) {
+	return core.Defaults.ReadFile("defaults/inventory/localhost.yaml")
+}
+
 func getConfig(kubeVersion string) ([]byte, error) {
 	t, err := template.ParseFS(core.Defaults, fmt.Sprintf("defaults/config/%s.yaml", kubeVersion[:5]))
 	if err != nil {

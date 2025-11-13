@@ -5,7 +5,7 @@ spec:
     # if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
     zone: ""
   kubernetes:
-    kube_version: { { .kube_version } }
+    kube_version: {{ .kube_version }}
     # helm binary
     helm_version: v3.18.5
   etcd:
@@ -42,7 +42,6 @@ spec:
     # runc binary
     runc_version: v1.1.7
   cni:
-    type: cilium
     ipv6_support: false
     multus:
       image:

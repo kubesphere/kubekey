@@ -157,3 +157,50 @@ func (o *CreateConfigOptions) Run() error {
 
 	return nil
 }
+
+// ======================================================================================
+//                                  create inventory
+// ======================================================================================
+
+// NewCreateInventoryOptions for newCreateInventoryCommand
+func NewCreateInventoryOptions() *CreateInventoryOptions {
+	// set default value
+	return &CreateInventoryOptions{}
+}
+
+// CreateInventoryOptions for NewCreateInventoryOptions
+type CreateInventoryOptions struct {
+	// OutputDir for inventory file. if set will generate file in this dir
+	OutputDir string
+}
+
+// Flags add to newCreateInventoryCommand
+func (o *CreateInventoryOptions) Flags() cliflag.NamedFlagSets {
+	fss := cliflag.NamedFlagSets{}
+	kfs := fss.FlagSet("inventory")
+	kfs.StringVarP(&o.OutputDir, "output", "o", o.OutputDir, "Output dir for inventory. if not set will output to stdout")
+
+	return fss
+}
+
+func (o *CreateInventoryOptions) Run() error {
+
+	data, err := getInventoryData()
+	if err != nil {
+		return err
+	}
+
+	if o.OutputDir != "" {
+		// Write inventory to file if output directory is specified
+		filename := filepath.Join(o.OutputDir, fmt.Sprintf("inventory.yaml"))
+		if err := os.WriteFile(filename, data, os.ModePerm); err != nil {
+			return errors.Wrapf(err, "failed to write inventory file to %s", filename)
+		}
+		fmt.Printf("write inventory file to %s success.\n", filename)
+	} else {
+		// Print inventory to stdout if no output directory specified
+		fmt.Println(string(data))
+	}
+
+	return nil
+}
