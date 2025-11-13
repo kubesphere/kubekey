@@ -29,5 +29,6 @@
     rm -rf /usr/local/bin/kubeadm && rm -rf /usr/local/bin/kubelet && rm -rf /usr/local/bin/kubectl
     rm -rf /var/lib/kubelet/
     rm -rf /etc/kubernetes/
-    rm -rf .kube/config
+    rm -rf ~/.kube/config
+    rm -rf /root/.kube/config
     rm -rf /var/lib/etcd

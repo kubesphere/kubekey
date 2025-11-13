@@ -13,7 +13,13 @@
   command: |
     /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
 
-- name: Join | Synchronize kubeconfig to remote node
+- name: Join | Synchronize kubeconfig to remote node for current user
+  copy:
+    src: >-
+      {{ .work_dir }}/kubekey/kubeconfig
+    dest: ~/.kube/config
+
+- name: Join | Synchronize kubeconfig to remote node for root
   copy:
     src: >-
       {{ .work_dir }}/kubekey/kubeconfig

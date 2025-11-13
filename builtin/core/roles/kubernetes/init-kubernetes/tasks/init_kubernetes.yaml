@@ -45,9 +45,13 @@
     
 - name: Init | Copy kubeconfig to default directory
   command: |
+    if [ ! -d ~/.kube ]; then
+      mkdir -p ~/.kube
+    fi
     if [ ! -d /root/.kube ]; then
       mkdir -p /root/.kube
     fi
+    cp -f /etc/kubernetes/admin.conf ~/.kube/config
     cp -f /etc/kubernetes/admin.conf /root/.kube/config
   when: .kubernetes_install_LoadState.stdout | eq "not-found"
 
