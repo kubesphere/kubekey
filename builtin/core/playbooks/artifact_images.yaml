@@ -21,6 +21,7 @@
           images_dir: >-
             {{ .binary_dir }}/images/
           manifests: "{{ .image_manifests | toJson }}"
+          skip_tls_verify: "{{ .cri.skip_tls_verify | default false }}"
       when:
         - .image_manifests | default list | empty | not
         - .download.download_image
