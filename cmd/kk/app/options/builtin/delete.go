@@ -64,7 +64,7 @@ func (o *DeleteClusterOptions) Flags() cliflag.NamedFlagSets {
 	kfs := fss.FlagSet("config")
 	// Add a flag for specifying the Kubernetes version
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.BoolVar(&o.DeleteAllComponents, "all-components", o.DeleteAllComponents, "Delete all cluster components, including cri, etcd, dns, and the image registry.")
+	kfs.BoolVar(&o.DeleteAllComponents, "all", o.DeleteAllComponents, "Delete all cluster components, including cri, etcd, dns, and the image registry.")
 
 	return fss
 }
@@ -159,7 +159,7 @@ func (o *DeleteNodesOptions) Flags() cliflag.NamedFlagSets {
 	kfs := fss.FlagSet("config")
 	// Add a flag for specifying the Kubernetes version
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.BoolVar(&o.DeleteAllComponents, "all-components", o.DeleteAllComponents, "Delete all cluster components, including cri, etcd, dns, and the image registry.")
+	kfs.BoolVar(&o.DeleteAllComponents, "all", o.DeleteAllComponents, "Delete all cluster components, including cri, etcd, dns, and the image registry.")
 
 	return fss
 }
