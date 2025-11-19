@@ -1,0 +1,44 @@
+FROM hxsoong/kylin:v10-sp2 as kylinv10
+
+ARG TARGETARCH
+ARG DIR=kylin-v10-${TARGETARCH}-rpms
+ARG PKGS=".common[],.rpms[]"
+ARG BUILD_TOOLS="createrepo_c genisoimage"
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+       BASEURL="https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/x86_64/"; \
+    else \
+       BASEURL="https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/aarch64/"; \
+    fi \
+    && echo "[kylin-base]" > /etc/yum.repos.d/kylin.repo \
+    && echo "name=Kylin Base" >> /etc/yum.repos.d/kylin.repo \
+    && echo "baseurl=$BASEURL" >> /etc/yum.repos.d/kylin.repo \
+    && echo "enabled=1" >> /etc/yum.repos.d/kylin.repo \
+    && echo "gpgcheck=0" >> /etc/yum.repos.d/kylin.repo \
+    && yum clean all \
+    && yum makecache --disablerepo="*" --enablerepo="kylin-base"
+
+RUN yum install -y --disablerepo="*" --enablerepo="kylin-base" $BUILD_TOOLS \
+    && yum clean all
+
+WORKDIR /package
+
+COPY packages.yaml .
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+
+RUN mkdir -p ${DIR} \
+    && yq eval "${PKGS}" packages.yaml | while read pkg; do \
+         if [ -n "$pkg" ]; then \
+             echo "Downloading $pkg..."; \
+             yum install -y --downloadonly --downloaddir=${DIR} --disablerepo="*" --enablerepo="kylin-base" $pkg || echo "not found: $pkg"; \
+         fi; \
+    done
+
+RUN createrepo_c ${DIR} \
+    && genisoimage -r -o ${DIR}.iso ${DIR}
+
+FROM scratch
+COPY --from=kylinv10 /package/*.iso /
