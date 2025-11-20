@@ -24,6 +24,10 @@ jobs:
             dockerfile: dockerfile.debian11
           - name: kylin-v10SP3-rpms
             dockerfile: dockerfile.kylinv10sp3
+          - name: kylin-v10SP2-rpms
+            dockerfile: dockerfile.kylinv10sp2
+          - name: kylin-v10SP1-rpms
+            dockerfile: dockerfile.kylinv10sp1
           - name: ubuntu-18.04-debs
             dockerfile: dockerfile.ubuntu1804
           - name: ubuntu-20.04-debs
@@ -67,3 +71,20 @@ jobs:
             ${{ matrix.name }}.iso.sha256sum.txt
             ${{ matrix.name }}-amd64.iso
             ${{ matrix.name }}-arm64.iso
+
+      - name: Synchronize artifacts to OSS
+        run: |
+          
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
+          tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
+          echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > qsctl-config.yaml
+          echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml
+          
+          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}.iso.sha256sum.txt qs://kubekey/kubesphere/kubekey/releases/download/iso-latest/${{ steps.prepare.outputs.version }}/${{ matrix.name }}.iso.sha256sum.txt
+          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-amd64.iso qs://kubekey/kubesphere/kubekey/releases/download/iso-latest/${{ steps.prepare.outputs.version }}/${{ matrix.name }}-amd64.iso
+          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-arm64.iso qs://kubekey/kubesphere/kubekey/releases/download/iso-latest/${{ steps.prepare.outputs.version }}/${{ matrix.name }}-arm64.iso
+
+          rm -rf qsctl-config.yaml
