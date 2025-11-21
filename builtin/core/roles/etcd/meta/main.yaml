@@ -1,0 +1,23 @@
+---
+dependencies:
+  - role: etcd/prepare
+
+  - role: etcd/upgrade
+    when: 
+      - .etcd_install_LoadState.stdout | eq "loaded"
+      - .etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version"))
+
+  - role: etcd/scaling_up
+    when:
+      - .installed_etcd | empty | not
+      - .need_installed_etcd | fromJson | empty | not
+
+  - role: etcd/scaling_down
+    when:
+      - .need_uninstall_etcd | fromJson | empty | not
+
+  - role: etcd/install
+    when: 
+      - .etcd_install_LoadState.stdout | eq "not-found"
+      - .need_uninstall_etcd | fromJson | has .inventory_hostname | not
+
