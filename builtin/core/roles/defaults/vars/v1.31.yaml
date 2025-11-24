@@ -89,4 +89,5 @@ image_manifests:
   - docker.io/openebs/linux-utils:4.1.0
   - docker.io/openebs/provisioner-localpv:4.1.0
   - quay.io/tigera/operator:v1.34.5
+  - docker.io/library/haproxy:2.9.6-alpine
 
