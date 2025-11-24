@@ -143,12 +143,15 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 	}
 	o.Playbook = args[0]
 
-	var tags = []string{"image_registry"}
+	var tags = make([]string, 0)
 	if o.Push {
 		tags = append(tags, "push")
 	}
 	if o.Pull {
 		tags = append(tags, "pull")
+	}
+	if !o.Pull && !o.Push {
+		tags = append(tags, "image_registry")
 	}
 
 	playbook.Spec = kkcorev1.PlaybookSpec{

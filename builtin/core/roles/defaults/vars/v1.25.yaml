@@ -34,6 +34,8 @@ cri:
   containerd_version: v1.6.19
   # runc binary
   runc_version: v1.1.4
+  # skip tls verify when pulling images
+  skip_tls_verify: false
 cni:
   type: calico
   ipv6_support: false
@@ -91,3 +93,4 @@ image_manifests:
   - docker.io/openebs/linux-utils:3.4.0
   - docker.io/openebs/provisioner-localpv:3.4.0
   - quay.io/tigera/operator:v1.29.3
+  - docker.io/library/haproxy:2.9.6-alpine

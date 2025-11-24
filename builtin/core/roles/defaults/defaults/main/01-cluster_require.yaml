@@ -10,6 +10,8 @@ cluster_require:
     - '"ubuntu"'
     - centos
     - '"centos"'
+    - kylin
+    - '"kylin"'
   # Required network plugins
   require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
   # Minimum supported Kubernetes version

@@ -26,7 +26,7 @@
           register_type: json
         - name: ETCD | Assert disk fsync latency meets requirements
           assert:
-            that: (index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000") | le .cluster_require.etcd_disk_wal_fysnc_duration_seconds
+            that: (index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000") | ge .cluster_require.etcd_disk_wal_fysnc_duration_seconds
             fail_msg: >-
               The 90th percentile fsync latency is {{ index (.fio_result.stdout.jobs | first) "sync" "lat_ns" "percentile" "90.000000" }}ns, which exceeds the maximum allowed: {{ .cluster_require.etcd_disk_wal_fysnc_duration_seconds }}ns.
       always:

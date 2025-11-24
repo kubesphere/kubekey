@@ -34,6 +34,8 @@ cri:
   containerd_version: v1.7.6
   # runc binary
   runc_version: v1.1.7
+  # skip tls verify when pulling images
+  skip_tls_verify: false
 cni:
   multus:
     image:
@@ -89,3 +91,4 @@ image_manifests:
   - docker.io/openebs/linux-utils:3.5.0
   - docker.io/openebs/provisioner-localpv:3.5.0
   - quay.io/tigera/operator:v1.34.5
+  - docker.io/library/haproxy:2.9.6-alpine
