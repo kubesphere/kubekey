@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
@@ -120,17 +119,18 @@ type imageArgs struct {
 
 // imagePullArgs contains parameters for pulling images
 type imagePullArgs struct {
-	imagesDir     string
-	manifests     []string
-	skipTLSVerify *bool
-	platform      string
-	auths         []imagePullAuth
+	imagesDir string
+	manifests []string
+	//skipTLSVerify *bool
+	platform string
+	auths    []imageAuth
 }
 
-type imagePullAuth struct {
-	Repo     string `json:"repo"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+type imageAuth struct {
+	Repo          string `json:"repo"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	SkipTlsVerify bool   `json:"skip_tls_verify"`
 }
 
 // pull retrieves images from a remote registry and stores them locally
@@ -144,12 +144,12 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: *i.skipTLSVerify,
+						InsecureSkipVerify: skipTlsVerifyFunc(img, i.auths),
 					},
 				},
 			},
 			Cache:      auth.NewCache(),
-			Credential: i.pullAuthFunc(),
+			Credential: authFunc(i.auths),
 		}
 
 		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
@@ -175,9 +175,9 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	return nil
 }
 
-func (i imagePullArgs) pullAuthFunc() func(ctx context.Context, hostport string) (auth.Credential, error) {
+func authFunc(auths []imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
 	var creds = make(map[string]auth.Credential)
-	for _, inputAuth := range i.auths {
+	for _, inputAuth := range auths {
 		var rp = inputAuth.Repo
 		if rp == "docker.io" || rp == "" {
 			rp = "registry-1.docker.io"
@@ -194,6 +194,18 @@ func (i imagePullArgs) pullAuthFunc() func(ctx context.Context, hostport string)
 		}
 		return cred, nil
 	}
+}
+
+func skipTlsVerifyFunc(img string, auths []imageAuth) bool {
+	imgHost := strings.Split(img, "/")[0]
+	for _, a := range auths {
+		if imgHost == a.Repo {
+			fmt.Println("skip tls host=", imgHost, "skip value = ", a.SkipTlsVerify)
+			return a.SkipTlsVerify
+		}
+	}
+	fmt.Println("not found host img = ", img, " host = ", imgHost)
+	return false
 }
 
 // parse platform string to ocispec.Platform
@@ -218,12 +230,11 @@ func parsePlatform(platformStr string) (imagev1.Platform, error) {
 
 // imagePushArgs contains parameters for pushing images
 type imagePushArgs struct {
-	imagesDir     string
-	skipTLSVerify *bool
-	srcPattern    *regexp.Regexp
-	destTmpl      string
-	username      string
-	password      string
+	imagesDir string
+	//skipTLSVerify *bool
+	srcPattern *regexp.Regexp
+	destTmpl   string
+	auths      []imageAuth
 }
 
 // push uploads local images to a remote registry
@@ -263,15 +274,12 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: *i.skipTLSVerify,
+						InsecureSkipVerify: skipTlsVerifyFunc(dest, i.auths),
 					},
 				},
 			},
-			Cache: auth.NewCache(),
-			Credential: auth.StaticCredential(dst.Reference.Registry, auth.Credential{
-				Username: i.username,
-				Password: i.password,
-			}),
+			Cache:      auth.NewCache(),
+			Credential: authFunc(i.auths),
 		}
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
@@ -296,8 +304,8 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		}
 		ipl := &imagePullArgs{}
 		ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
-		ipl.auths = make([]imagePullAuth, 0)
-		pullAuths := make([]imagePullAuth, 0)
+		ipl.auths = make([]imageAuth, 0)
+		pullAuths := make([]imageAuth, 0)
 		_ = variable.AnyVar(vars, pull, &pullAuths, "auths")
 		for _, a := range pullAuths {
 			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
@@ -306,10 +314,10 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 			ipl.auths = append(ipl.auths, a)
 		}
 		ipl.imagesDir, _ = variable.StringVar(vars, pull, "images_dir")
-		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skip_tls_verify")
-		if ipl.skipTLSVerify == nil {
-			ipl.skipTLSVerify = ptr.To(false)
-		}
+		//ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skip_tls_verify")
+		//if ipl.skipTLSVerify == nil {
+		//	ipl.skipTLSVerify = ptr.To(false)
+		//}
 		ipl.platform, _ = variable.StringVar(vars, pull, "platform")
 		// check args
 		if len(ipl.manifests) == 0 {
@@ -332,15 +340,22 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		}
 
 		ips := &imagePushArgs{}
-		ips.username, _ = variable.StringVar(vars, push, "username")
-		ips.password, _ = variable.StringVar(vars, push, "password")
+		ips.auths = make([]imageAuth, 0)
+		pullAuths := make([]imageAuth, 0)
+		_ = variable.AnyVar(vars, push, &pullAuths, "auths")
+		for _, a := range pullAuths {
+			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
+			a.Username, _ = tmpl.ParseFunc(vars, a.Username, func(b []byte) string { return string(b) })
+			a.Password, _ = tmpl.ParseFunc(vars, a.Password, func(b []byte) string { return string(b) })
+			ips.auths = append(ips.auths, a)
+		}
 		ips.imagesDir, _ = variable.StringVar(vars, push, "images_dir")
 		srcPattern, _ := variable.StringVar(vars, push, "src_pattern")
 		destTmpl, _ := variable.PrintVar(push, "dest")
-		ips.skipTLSVerify, _ = variable.BoolVar(vars, push, "skip_tls_verify")
-		if ips.skipTLSVerify == nil {
-			ips.skipTLSVerify = ptr.To(false)
-		}
+		//ips.skipTLSVerify, _ = variable.BoolVar(vars, push, "skip_tls_verify")
+		//if ips.skipTLSVerify == nil {
+		//	ips.skipTLSVerify = ptr.To(false)
+		//}
 		// check args
 		if ips.imagesDir == "" {
 			if binaryDir == "" {
