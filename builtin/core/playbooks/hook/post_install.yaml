@@ -32,7 +32,7 @@
       register: post_install_config_copy_result
 
     - name: Post | Execute post-installation scripts on remote hosts
-      when: or (.post_install_copy_result.error | empty) (.post_install_config_copy_result.error | empty)
+      when: or (.post_install_copy_result.error | empty) (and .post_install_config_copy_result (.post_install_config_copy_result.error | empty))
       command: |
         for file in /etc/kubekey/scripts/post_install_*.sh; do
           if [ -f "$file" ]; then

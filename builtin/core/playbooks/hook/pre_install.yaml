@@ -25,7 +25,7 @@
       register: pre_install_config_copy_result
 
     - name: Pre | Execute pre-installation scripts on remote hosts
-      when: or (.pre_install_copy_result.error | empty) (.pre_install_config_copy_result.error | empty)
+      when: or (.pre_install_copy_result.error | empty) (and .pre_install_config_copy_result (.pre_install_config_copy_result.error | empty))
       command: |
         for file in /etc/kubekey/scripts/pre_install_*.sh; do
           if [ -f "$file" ]; then
