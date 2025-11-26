@@ -30,6 +30,7 @@ func funcMap() template.FuncMap {
 	f["subtractList"] = subtractList
 	f["fileExist"] = fileExist
 	f["unquote"] = unquote
+	f["getStringSlice"] = getStringSlice
 
 	return f
 }
@@ -130,4 +131,11 @@ func unquote(input any) string {
 		return inputStr
 	}
 	return output
+}
+
+func getStringSlice(d map[string][]string, key string) []string {
+	if val, ok := d[key]; ok {
+		return val
+	}
+	return nil
 }

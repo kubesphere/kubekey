@@ -166,14 +166,6 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 			resErr = errors.Errorf("host: %s variable is not a map", h)
 			return
 		}
-		// check when condition
-		if skip, err := e.dealWhen(had); err != nil {
-			resErr = err
-			return
-		} else if skip {
-			stdout = modules.StdoutSkip
-			return
-		}
 		// execute module in loop with loop item.
 		// if loop is empty. execute once, and the item is null
 		for _, item := range e.dealLoop(had) {
@@ -302,6 +294,15 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 	had, ok := ha.(map[string]any)
 	if !ok {
 		return errors.Wrapf(err, "host %s variable is not a map", host)
+	}
+
+	// check when condition
+	if skip, err := e.dealWhen(had); err != nil {
+		resErr = err
+		return
+	} else if skip {
+		*stdout = modules.StdoutSkip
+		return
 	}
 
 	// Execute the actual module with the prepared context

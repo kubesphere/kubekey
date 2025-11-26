@@ -2,7 +2,7 @@ work_dir: /root/kubekey
 binary_dir: >-
   {{ .work_dir }}/kubekey
 scripts_dir: >-
-  {{ .binary_dir }}/scripts
+  {{ .work_dir }}/scripts
 tmp_dir: /tmp/kubekey
 
 # Mapping of common machine architecture names to their standard forms

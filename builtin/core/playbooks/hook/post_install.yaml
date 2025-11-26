@@ -20,8 +20,19 @@
         mode: 0755
       register: post_install_copy_result
 
+    - name: Post | Copy post-installation config scripts to remote hosts
+      copy:
+        src: >-
+          {{ .scripts_dir }}/{{ .item.script }}
+        dest: >-
+          /etc/kubekey/scripts/post_install_{{ .item.script }}
+        mode: 0755
+      loop: "{{ .post_install | toJson }}"
+      when: "{{ getStringSlice .groups .item.group | default list | has .inventory_hostname }}"
+      register: post_install_config_copy_result
+
     - name: Post | Execute post-installation scripts on remote hosts
-      when: .post_install_copy_result.error | empty
+      when: or (.post_install_copy_result.error | empty) (.post_install_config_copy_result.error | empty)
       command: |
         for file in /etc/kubekey/scripts/post_install_*.sh; do
           if [ -f "$file" ]; then

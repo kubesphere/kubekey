@@ -253,6 +253,16 @@ func TestParseValue(t *testing.T) {
 			excepted: []byte("bar"),
 		},
 		{
+			name:  "get string slice from dictionary",
+			input: "{{ getStringSlice .foo \"foo\" }}",
+			variable: map[string]any{
+				"foo": map[string][]string{
+					"foo": []string{"bar1", "bar2"},
+				},
+			},
+			excepted: []byte("[bar1 bar2]"),
+		},
+		{
 			name:  "multi level 2",
 			input: "{{ index .foo \"foo\" }}",
 			variable: map[string]any{
