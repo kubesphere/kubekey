@@ -33,6 +33,8 @@ cri:
   containerd_version: v1.6.8
   # runc binary
   runc_version: v1.1.4
+  # skip tls verify when pulling images
+  skip_tls_verify: false
 cni:
   multus:
     image:

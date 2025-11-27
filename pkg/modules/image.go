@@ -59,16 +59,20 @@ image:
   pull:                    # optional: pull configuration
     manifests: []string    # required: list of image manifests to pull
     images_dir: string     # required: directory to store pulled images
-    skipTLSVerify: bool    # optional: skip TLS verification
+    skipTLSVerify: bool    # optional: default skip TLS verification
     autus:                 # optional: target image repo access information, slice type
       - repo: string       # optional: target image repo
         username: string   # optional: target image repo access username
         password: string   # optional: target image repo access password
+        insecure: bool    # optional: skip TLS verification for current repo
   push:                    # optional: push configuration
-    username: string       # optional: registry username
-    password: string       # optional: registry password
+    autus:                 # optional: target image repo access information, slice type
+      - repo: string       # optional: target image repo
+        username: string   # optional: target image repo access username
+        password: string   # optional: target image repo access password
+        insecure: bool    # optional: skip TLS verification for current repo
     images_dir: string     # required: directory containing images to push
-    skipTLSVerify: bool    # optional: skip TLS verification
+    skipTLSVerify: bool    # optional: default skip TLS verification
     src_pattern: string            # optional: source image pattern to push (regex supported). If not specified, all images in images_dir will be pushed
     dest: string           # required: destination registry and image name. Supports template syntax for dynamic values
 
@@ -97,8 +101,13 @@ Usage Examples in Playbook Tasks:
    - name: Push images to private registry
      image:
        push:
-         username: admin
-         password: secret
+         auths:
+           - repo: docker.io
+             username: MyDockerAccount
+             password: my_password
+           - repo: registry.example.com
+             username: admin
+             password: secret
          namespace_override: custom-ns
          images_dir: /path/to/images
 		 dest: registry.example.com/{{ . }}
@@ -124,19 +133,21 @@ type imagePullArgs struct {
 	manifests     []string
 	skipTLSVerify *bool
 	platform      string
-	auths         []imagePullAuth
+	auths         []imageAuth
 }
 
-type imagePullAuth struct {
+type imageAuth struct {
 	Repo     string `json:"repo"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Insecure *bool  `json:"insecure"`
 }
 
 // pull retrieves images from a remote registry and stores them locally
 func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	for _, img := range i.manifests {
-		src, err := remote.NewRepository(normalizeImageNameSimple(img))
+		img = normalizeImageNameSimple(img)
+		src, err := remote.NewRepository(img)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get remote image %s", img)
 		}
@@ -144,12 +155,12 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: *i.skipTLSVerify,
+						InsecureSkipVerify: skipTlsVerifyFunc(img, i.auths, *i.skipTLSVerify),
 					},
 				},
 			},
 			Cache:      auth.NewCache(),
-			Credential: i.pullAuthFunc(),
+			Credential: authFunc(i.auths),
 		}
 
 		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
@@ -175,9 +186,9 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	return nil
 }
 
-func (i imagePullArgs) pullAuthFunc() func(ctx context.Context, hostport string) (auth.Credential, error) {
+func authFunc(auths []imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
 	var creds = make(map[string]auth.Credential)
-	for _, inputAuth := range i.auths {
+	for _, inputAuth := range auths {
 		var rp = inputAuth.Repo
 		if rp == "docker.io" || rp == "" {
 			rp = "registry-1.docker.io"
@@ -194,6 +205,20 @@ func (i imagePullArgs) pullAuthFunc() func(ctx context.Context, hostport string)
 		}
 		return cred, nil
 	}
+}
+
+func skipTlsVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
+	imgHost := strings.Split(img, "/")[0]
+	for _, a := range auths {
+		if imgHost == a.Repo {
+			if a.Insecure != nil {
+				return *a.Insecure
+			} else {
+				return defaults
+			}
+		}
+	}
+	return defaults
 }
 
 // parse platform string to ocispec.Platform
@@ -222,8 +247,7 @@ type imagePushArgs struct {
 	skipTLSVerify *bool
 	srcPattern    *regexp.Regexp
 	destTmpl      string
-	username      string
-	password      string
+	auths         []imageAuth
 }
 
 // push uploads local images to a remote registry
@@ -263,15 +287,12 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: *i.skipTLSVerify,
+						InsecureSkipVerify: skipTlsVerifyFunc(dest, i.auths, *i.skipTLSVerify),
 					},
 				},
 			},
-			Cache: auth.NewCache(),
-			Credential: auth.StaticCredential(dst.Reference.Registry, auth.Credential{
-				Username: i.username,
-				Password: i.password,
-			}),
+			Cache:      auth.NewCache(),
+			Credential: authFunc(i.auths),
 		}
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
@@ -296,8 +317,8 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		}
 		ipl := &imagePullArgs{}
 		ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
-		ipl.auths = make([]imagePullAuth, 0)
-		pullAuths := make([]imagePullAuth, 0)
+		ipl.auths = make([]imageAuth, 0)
+		pullAuths := make([]imageAuth, 0)
 		_ = variable.AnyVar(vars, pull, &pullAuths, "auths")
 		for _, a := range pullAuths {
 			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
@@ -332,8 +353,15 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		}
 
 		ips := &imagePushArgs{}
-		ips.username, _ = variable.StringVar(vars, push, "username")
-		ips.password, _ = variable.StringVar(vars, push, "password")
+		ips.auths = make([]imageAuth, 0)
+		pullAuths := make([]imageAuth, 0)
+		_ = variable.AnyVar(vars, push, &pullAuths, "auths")
+		for _, a := range pullAuths {
+			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
+			a.Username, _ = tmpl.ParseFunc(vars, a.Username, func(b []byte) string { return string(b) })
+			a.Password, _ = tmpl.ParseFunc(vars, a.Password, func(b []byte) string { return string(b) })
+			ips.auths = append(ips.auths, a)
+		}
 		ips.imagesDir, _ = variable.StringVar(vars, push, "images_dir")
 		srcPattern, _ := variable.StringVar(vars, push, "src_pattern")
 		destTmpl, _ := variable.PrintVar(push, "dest")
