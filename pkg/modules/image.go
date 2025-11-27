@@ -129,13 +129,13 @@ Usage Examples in Playbook Tasks:
    - name: file to file
      image:
        copy:
-       from:
-         path: "/path/from/images"
-         manifests:
-          - nginx:latest
-          - prometheus:v2.45.0
-       to:
-         path: /path/to/images
+         from:
+           path: "/path/from/images"
+           manifests:
+            - nginx:latest
+            - prometheus:v2.45.0
+         to:
+           path: /path/to/images
    ```
 
 Return Values:
@@ -209,6 +209,20 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	}
 
 	return nil
+}
+
+func dockerHostParser(img string) string {
+	// if image is like docker.io/xxx/xxx:tag, then download by pull func will store it to registry-1.docker.io
+	// so we should change host from docker.io to registry-1.docker.io
+	splitedImg := strings.Split(img, "/")
+	if len(splitedImg) == 1 {
+		return img
+	}
+	if splitedImg[0] != "docker.io" {
+		return img
+	}
+	splitedImg[0] = "registry-1.docker.io"
+	return strings.Join(splitedImg, "/")
 }
 
 func authFunc(auths []imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
@@ -340,14 +354,9 @@ type imageCopyTargetArgs struct {
 
 func (i *imageCopyArgs) parseFromVars(vars, cp map[string]any) error {
 	i.From.manifests, _ = variable.StringSliceVar(vars, cp, "from", "manifests")
-	fromPath, _ := variable.PrintVar(cp, "from", "path")
-	if fromStr, ok := fromPath.(string); !ok {
-		return errors.New("\"copy.to.path\" must be a string")
-	} else if fromStr == "" {
-		return errors.New("\"copy.to.path\" should not be empty")
-	} else {
-		i.From.Path = fromStr
-	}
+
+	i.From.Path, _ = variable.StringVar(vars, cp, "from", "path")
+
 	toPath, _ := variable.PrintVar(cp, "to", "path")
 	if destStr, ok := toPath.(string); !ok {
 		return errors.New("\"copy.to.path\" must be a string")
@@ -367,20 +376,32 @@ func (i *imageCopyArgs) parseFromVars(vars, cp map[string]any) error {
 	return nil
 }
 
-func (i *imageCopyArgs) copy(ctx context.Context, _ map[string]any) error {
+func (i *imageCopyArgs) copy(ctx context.Context, hostVars map[string]any) error {
 	if sts, err := os.Stat(i.From.Path); err != nil || !sts.IsDir() {
 		return errors.New("\"copy.from.path\" must be a exist directory")
 	}
 	for _, img := range i.From.manifests {
+		img = normalizeImageNameSimple(img)
 		if i.To.Pattern != nil && !i.To.Pattern.MatchString(img) {
 			// skip
 			continue
 		}
-		src, err := newLocalRepository(img, i.From.Path)
+		src, err := newLocalRepository(dockerHostParser(img), i.From.Path)
 		if err != nil {
 			return err
 		}
-		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.To.Path)
+		dest := i.To.Path
+		if kkprojectv1.IsTmplSyntax(dest) {
+			// add temporary variable
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Registry, "module", "image", "src", "reference", "registry")
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Repository, "module", "image", "src", "reference", "repository")
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Reference, "module", "image", "src", "reference", "reference")
+			dest, err = tmpl.ParseFunc(hostVars, dest, func(b []byte) string { return string(b) })
+			if err != nil {
+				return err
+			}
+		}
+		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, dest)
 		if err != nil {
 			return err
 		}
