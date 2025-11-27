@@ -59,20 +59,16 @@ image:
   pull:                    # optional: pull configuration
     manifests: []string    # required: list of image manifests to pull
     images_dir: string     # required: directory to store pulled images
-    skipTLSVerify: bool    # optional: default skip TLS verification
+    skipTLSVerify: bool    # optional: skip TLS verification
     autus:                 # optional: target image repo access information, slice type
       - repo: string       # optional: target image repo
         username: string   # optional: target image repo access username
         password: string   # optional: target image repo access password
-        insecure: bool    # optional: skip TLS verification for current repo
   push:                    # optional: push configuration
-    autus:                 # optional: target image repo access information, slice type
-      - repo: string       # optional: target image repo
-        username: string   # optional: target image repo access username
-        password: string   # optional: target image repo access password
-        insecure: bool    # optional: skip TLS verification for current repo
+    username: string       # optional: registry username
+    password: string       # optional: registry password
     images_dir: string     # required: directory containing images to push
-    skipTLSVerify: bool    # optional: default skip TLS verification
+    skipTLSVerify: bool    # optional: skip TLS verification
     src_pattern: string            # optional: source image pattern to push (regex supported). If not specified, all images in images_dir will be pushed
     dest: string           # required: destination registry and image name. Supports template syntax for dynamic values
   copy:
@@ -120,13 +116,8 @@ Usage Examples in Playbook Tasks:
    - name: Push images to private registry
      image:
        push:
-         auths:
-           - repo: docker.io
-             username: MyDockerAccount
-             password: my_password
-           - repo: registry.example.com
-             username: admin
-             password: secret
+         username: admin
+         password: secret
          namespace_override: custom-ns
          images_dir: /path/to/images
 		 dest: registry.example.com/{{ . }}
@@ -397,6 +388,7 @@ func (i *imageCopyArgs) copy(ctx context.Context, _ map[string]any) error {
 			return errors.Wrapf(err, "failed to push image %q to remote", img)
 		}
 	}
+
 	return nil
 }
 
