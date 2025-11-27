@@ -64,13 +64,13 @@ image:
       - repo: string       # optional: target image repo
         username: string   # optional: target image repo access username
         password: string   # optional: target image repo access password
-        skipTLSVerify: bool    # optional: skip TLS verification for current repo
+        insecure: bool    # optional: skip TLS verification for current repo
   push:                    # optional: push configuration
     autus:                 # optional: target image repo access information, slice type
       - repo: string       # optional: target image repo
         username: string   # optional: target image repo access username
         password: string   # optional: target image repo access password
-        skipTLSVerify: bool    # optional: skip TLS verification for current repo
+        insecure: bool    # optional: skip TLS verification for current repo
     images_dir: string     # required: directory containing images to push
     skipTLSVerify: bool    # optional: default skip TLS verification
     src_pattern: string            # optional: source image pattern to push (regex supported). If not specified, all images in images_dir will be pushed
@@ -137,10 +137,10 @@ type imagePullArgs struct {
 }
 
 type imageAuth struct {
-	Repo          string `json:"repo"`
-	Username      string `json:"username"`
-	Password      string `json:"password"`
-	SkipTlsVerify *bool  `json:"skip_tls_verify"`
+	Repo     string `json:"repo"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Insecure *bool  `json:"insecure"`
 }
 
 // pull retrieves images from a remote registry and stores them locally
@@ -211,8 +211,8 @@ func skipTlsVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
 	imgHost := strings.Split(img, "/")[0]
 	for _, a := range auths {
 		if imgHost == a.Repo {
-			if a.SkipTlsVerify != nil {
-				return *a.SkipTlsVerify
+			if a.Insecure != nil {
+				return *a.Insecure
 			} else {
 				return defaults
 			}
