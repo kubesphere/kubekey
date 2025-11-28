@@ -159,10 +159,10 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Preparing offline package directory..."
-mkdir -p offline/kubekey/kubekey
+mkdir -p offline/
 
 echo "Extracting artifact.tgz to offline/ ..."
-tar -xzf artifact.tgz -C offline/kubekey/kubekey --no-same-owner
+tar -xzf artifact.tgz -C offline/ --no-same-owner
 
 echo "Extracting web-installer.tgz to offline/ ..."
 tar -xzf web-installer.tgz -C offline/ --no-same-owner
