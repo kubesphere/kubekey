@@ -257,7 +257,7 @@ func TestParseValue(t *testing.T) {
 			input: "{{ getStringSlice .foo \"foo\" }}",
 			variable: map[string]any{
 				"foo": map[string][]string{
-					"foo": []string{"bar1", "bar2"},
+					"foo": {"bar1", "bar2"},
 				},
 			},
 			excepted: []byte("[bar1 bar2]"),
