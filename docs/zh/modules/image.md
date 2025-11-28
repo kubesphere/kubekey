@@ -26,6 +26,14 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
 | push.skip_tls_verify | 默认的是否跳过远程仓库的tls认证 | bool | 否 | - |
 | push.src_pattern | 正则表达式，过滤本地目录中存放的镜像 | map | 否 | - |
 | push.dest | 模版语法，从本地目录镜像推送到的远程仓库镜像 | map | 否 | - |
+| copy | 模版语法，将镜像在文件系统和镜像仓库内相互复制 | map | 否 | - |
+| copy.from | 模版语法，源镜像信息 | map | 否 | - |
+| copy.from.path | 镜像源文件路径 | 字符串 | 否 | - |
+| copy.from.manifests | 源镜像列表 | 字符串数组 | 否 | - |
+| copy.to | 模版语法，从本地目录镜像推送到的远程仓库镜像 | map | 否 | - |
+| copy.to.path | 镜像目标文件路径 | 字符串 | 否 | - |
+| copy.to.pattern | 正则表达式，过滤复制至目标的镜像 | 字符串 | 否 | - |
+
 
 每个本地目录存放的镜像对应一个dest镜像。
 ```txt
@@ -73,3 +81,16 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
 docker.io/kubesphere/ks-apiserver:v4.1.3 => hub.kubekey/kubesphere/ks-apiserver:v4.1.3
 docker.io/kubesphere/ks-controller-manager:v4.1.3 => hub.kubekey/kubesphere/ks-controller-manager:v4.1.3
 docker.io/kubesphere/ks-console:3.19 => hub.kubekey/kubesphere/ks-console:v4.1.3
+
+3. 将镜像从文件系统复制至其他文件系统
+```yaml
+- name: file to file
+  image:
+    copy:
+      from:
+        path: "/tmp/images/"
+        manifests:
+          - docker.io/calico/apiserver:v3.28.2
+      to:
+        path: "/tmp/others/images/"
+```

@@ -59,22 +59,37 @@ image:
   pull:                    # optional: pull configuration
     manifests: []string    # required: list of image manifests to pull
     images_dir: string     # required: directory to store pulled images
-    skipTLSVerify: bool    # optional: default skip TLS verification
+    skipTLSVerify: bool    # optional: skip TLS verification
     autus:                 # optional: target image repo access information, slice type
       - repo: string       # optional: target image repo
         username: string   # optional: target image repo access username
         password: string   # optional: target image repo access password
-        insecure: bool    # optional: skip TLS verification for current repo
   push:                    # optional: push configuration
-    autus:                 # optional: target image repo access information, slice type
-      - repo: string       # optional: target image repo
-        username: string   # optional: target image repo access username
-        password: string   # optional: target image repo access password
-        insecure: bool    # optional: skip TLS verification for current repo
+    username: string       # optional: registry username
+    password: string       # optional: registry password
     images_dir: string     # required: directory containing images to push
-    skipTLSVerify: bool    # optional: default skip TLS verification
+    skipTLSVerify: bool    # optional: skip TLS verification
     src_pattern: string            # optional: source image pattern to push (regex supported). If not specified, all images in images_dir will be pushed
     dest: string           # required: destination registry and image name. Supports template syntax for dynamic values
+  copy:
+    from:
+      type: string           # required: image source type, file or hub
+      path: string           # optional: when image source type is file, then required, means image file path
+      manifests: []string    # required: list of image manifests to pull
+      skipTLSVerify: bool    # optional: skip TLS verification
+      autus:                 # optional: target image repo access information, slice type
+        - repo: string       # optional: target image repo
+          username: string   # optional: target image repo access username
+          password: string   # optional: target image repo access password
+    to:
+      type: string           # required: image target type, file or hub
+      path: string           # required: image target path
+      skipTLSVerify: bool    # optional: skip TLS verification
+      pattern: string        # optional: source image pattern to push (regex supported). If not specified, all images in images_dir will be pushed
+      autus:                 # optional: target image repo access information, slice type
+        - repo: string       # optional: target image repo
+          username: string   # optional: target image repo access username
+          password: string   # optional: target image repo access password
 
 Usage Examples in Playbook Tasks:
 1. Pull images from registry:
@@ -101,17 +116,26 @@ Usage Examples in Playbook Tasks:
    - name: Push images to private registry
      image:
        push:
-         auths:
-           - repo: docker.io
-             username: MyDockerAccount
-             password: my_password
-           - repo: registry.example.com
-             username: admin
-             password: secret
+         username: admin
+         password: secret
          namespace_override: custom-ns
          images_dir: /path/to/images
 		 dest: registry.example.com/{{ . }}
      register: push_result
+   ```
+
+3. Copy image from file to file
+   ```yaml
+   - name: file to file
+     image:
+       copy:
+         from:
+           path: "/path/from/images"
+           manifests:
+            - nginx:latest
+            - prometheus:v2.45.0
+         to:
+           path: /path/to/images
    ```
 
 Return Values:
@@ -125,6 +149,7 @@ const defaultRegistry = "docker.io"
 type imageArgs struct {
 	pull *imagePullArgs
 	push *imagePushArgs
+	copy *imageCopyArgs
 }
 
 // imagePullArgs contains parameters for pulling images
@@ -155,7 +180,7 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: skipTlsVerifyFunc(img, i.auths, *i.skipTLSVerify),
+						InsecureSkipVerify: skipTLSVerifyFunc(img, i.auths, *i.skipTLSVerify),
 					},
 				},
 			},
@@ -186,6 +211,20 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	return nil
 }
 
+func dockerHostParser(img string) string {
+	// if image is like docker.io/xxx/xxx:tag, then download by pull func will store it to registry-1.docker.io
+	// so we should change host from docker.io to registry-1.docker.io
+	splitedImg := strings.Split(img, "/")
+	if len(splitedImg) == 1 {
+		return img
+	}
+	if splitedImg[0] != "docker.io" {
+		return img
+	}
+	splitedImg[0] = "registry-1.docker.io"
+	return strings.Join(splitedImg, "/")
+}
+
 func authFunc(auths []imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
 	var creds = make(map[string]auth.Credential)
 	for _, inputAuth := range auths {
@@ -207,15 +246,14 @@ func authFunc(auths []imageAuth) func(ctx context.Context, hostport string) (aut
 	}
 }
 
-func skipTlsVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
+func skipTLSVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
 	imgHost := strings.Split(img, "/")[0]
 	for _, a := range auths {
 		if imgHost == a.Repo {
 			if a.Insecure != nil {
 				return *a.Insecure
-			} else {
-				return defaults
 			}
+			return defaults
 		}
 	}
 	return defaults
@@ -287,7 +325,7 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: skipTlsVerifyFunc(dest, i.auths, *i.skipTLSVerify),
+						InsecureSkipVerify: skipTLSVerifyFunc(dest, i.auths, *i.skipTLSVerify),
 					},
 				},
 			},
@@ -295,6 +333,78 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 			Credential: authFunc(i.auths),
 		}
 
+		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
+			return errors.Wrapf(err, "failed to push image %q to remote", img)
+		}
+	}
+
+	return nil
+}
+
+type imageCopyArgs struct {
+	From imageCopyTargetArgs `json:"from"`
+	To   imageCopyTargetArgs `json:"to"`
+}
+
+type imageCopyTargetArgs struct {
+	Path      string `json:"path"`
+	manifests []string
+	Pattern   *regexp.Regexp
+}
+
+func (i *imageCopyArgs) parseFromVars(vars, cp map[string]any) error {
+	i.From.manifests, _ = variable.StringSliceVar(vars, cp, "from", "manifests")
+
+	i.From.Path, _ = variable.StringVar(vars, cp, "from", "path")
+
+	toPath, _ := variable.PrintVar(cp, "to", "path")
+	if destStr, ok := toPath.(string); !ok {
+		return errors.New("\"copy.to.path\" must be a string")
+	} else if destStr == "" {
+		return errors.New("\"copy.to.path\" should not be empty")
+	} else {
+		i.To.Path = destStr
+	}
+	srcPattern, _ := variable.StringVar(vars, cp, "to", "src_pattern")
+	if srcPattern != "" {
+		pattern, err := regexp.Compile(srcPattern)
+		if err != nil {
+			return errors.Wrap(err, "\"to.pattern\" should be a valid regular expression. ")
+		}
+		i.To.Pattern = pattern
+	}
+	return nil
+}
+
+func (i *imageCopyArgs) copy(ctx context.Context, hostVars map[string]any) error {
+	if sts, err := os.Stat(i.From.Path); err != nil || !sts.IsDir() {
+		return errors.New("\"copy.from.path\" must be a exist directory")
+	}
+	for _, img := range i.From.manifests {
+		img = normalizeImageNameSimple(img)
+		if i.To.Pattern != nil && !i.To.Pattern.MatchString(img) {
+			// skip
+			continue
+		}
+		src, err := newLocalRepository(dockerHostParser(img), i.From.Path)
+		if err != nil {
+			return err
+		}
+		dest := i.To.Path
+		if kkprojectv1.IsTmplSyntax(dest) {
+			// add temporary variable
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Registry, "module", "image", "src", "reference", "registry")
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Repository, "module", "image", "src", "reference", "repository")
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Reference, "module", "image", "src", "reference", "reference")
+			dest, err = tmpl.ParseFunc(hostVars, dest, func(b []byte) string { return string(b) })
+			if err != nil {
+				return err
+			}
+		}
+		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, dest)
+		if err != nil {
+			return err
+		}
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
 			return errors.Wrapf(err, "failed to push image %q to remote", img)
 		}
@@ -393,6 +503,22 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ia.push = ips
 	}
 
+	if cpArgs, ok := args["copy"]; ok {
+		cp, ok := cpArgs.(map[string]any)
+		if !ok {
+			return nil, errors.New("\"copy\" should be map")
+		}
+
+		cps := &imageCopyArgs{}
+
+		err := cps.parseFromVars(vars, cp)
+		if err != nil {
+			return nil, err
+		}
+
+		ia.copy = cps
+	}
+
 	return ia, nil
 }
 
@@ -418,6 +544,12 @@ func ModuleImage(ctx context.Context, options ExecOptions) (string, string, erro
 	// push image to private registry
 	if ia.push != nil {
 		if err := ia.push.push(ctx, ha); err != nil {
+			return StdoutFailed, "failed to push image", err
+		}
+	}
+
+	if ia.copy != nil {
+		if err := ia.copy.copy(ctx, ha); err != nil {
 			return StdoutFailed, "failed to push image", err
 		}
 	}
