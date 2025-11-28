@@ -1,0 +1,28 @@
+---
+- name: Copy | Set artifact file dir
+  when:
+    - .artifact_file | empty | not
+  set_fact:
+    artifact_file_dir: >-
+      {{ .artifact_file | dir }}/artifact
+
+- name: Copy | Create artifact file dir
+  command: >-
+    mkdir -p {{ .artifact_file_dir }}/kubekey/kubekey/
+
+- name: Artifact | Copy required binaries and images
+  when: .artifact_file_dir | empty | not
+  block:
+    # Download core binaries
+    - include_tasks: binary.yaml
+    # Download Helm and CNI binaries
+    - include_tasks: helm.yaml
+      tags: ["kubernetes"]
+    # Download remote images to the local images directory
+    - include_tasks: images.yaml
+      tags: ["kubernetes", "image_registry"]
+    - include_tasks: iso.yaml
+
+- name: Export artifact
+  command: |
+    tar -czvf {{ .artifact_file }} {{ .artifact_file_dir }}

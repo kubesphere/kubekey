@@ -1,0 +1,176 @@
+- name: Binary | Ensure etcd binary is present
+  tags: ["etcd"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .etcd.deployment_type | eq "external"
+    - .etcd.etcd_version | empty | not
+  command: |
+    artifact_name={{ get .download.artifact_url.etcd .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/etcd/{{ .etcd.etcd_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure Kubernetes binaries are present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: .kubernetes.kube_version | empty | not
+  command: |
+    kube_path={{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/kube/{{ .kubernetes.kube_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $kube_path/kubelet $target_path/
+    cp $kube_path/kubeadm $target_path/
+    cp $kube_path/kubectl $target_path/
+
+- name: Binary | Ensure CNI plugins are present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: .cni.cni_plugins_version | empty | not
+  command: |
+    artifact_name={{ get .download.artifact_url.cni_plugins .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/plugins/{{ .cni.cni_plugins_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/plugins/{{ .cni.cni_plugins_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure Helm binary is present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: .kubernetes.helm_version | empty | not
+  command: |
+    artifact_name={{ get .download.artifact_url.helm .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/helm/{{ .kubernetes.helm_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/helm/{{ .kubernetes.helm_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure crictl binary is present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: .cri.crictl_version | empty | not
+  command: |
+    artifact_name={{ get .download.artifact_url.crictl .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/crictl/{{ .cri.crictl_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/crictl/{{ .cri.crictl_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure Docker binary is present
+  tags: ["kubernetes","image_registry"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .cri.docker_version | empty | not
+    - or (.image_registry.type | empty | not) (.cri.container_manager | eq "docker")
+  command: |
+    artifact_name={{ get .download.artifact_url.docker .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/docker/{{ .cri.docker_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/docker/{{ .cri.docker_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure cri-dockerd binary is present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .cri.cridockerd_version | empty | not
+    - .cri.container_manager | eq "docker"
+    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+  command: |
+    artifact_name={{ get .download.artifact_url.cridockerd .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cri-dockerd/{{ .cri.cridockerd_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cri-dockerd/{{ .cri.cridockerd_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure containerd binary is present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .cri.containerd_version | empty | not
+    - .cri.container_manager | eq "containerd"
+  command: |
+    artifact_name={{ get .download.artifact_url.containerd .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/containerd/{{ .cri.containerd_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure runc binary is present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .cri.runc_version | empty | not
+    - .cri.container_manager | eq "containerd"
+  command: |
+    artifact_name={{ get .download.artifact_url.runc .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/runc/{{ .cri.runc_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/runc/{{ .cri.runc_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure calicoctl binary is present
+  tags: ["kubernetes"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .cni.calico_version | empty | not
+    - .cni.type | eq "calico"
+  command: |
+    artifact_name=calicoctl
+    artifact_path={{ .binary_dir }}/cni/calico/{{ .cni.calico_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/calico/{{ .cni.calico_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure Docker Registry binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .image_registry.docker_registry_version | empty | not
+    - .image_registry.type | eq "docker-registry"
+  command: |
+    artifact_name={{ get .download.artifact_url.docker_registry .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/image-registry/docker-registry/{{ .image_registry.docker_registry_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/image-registry/docker-registry/{{ .image_registry.docker_registry_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/
+
+- name: Binary | Ensure docker-compose binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .cri.dockercompose_version | empty | not
+    - .image_registry.type | eq "harbor"
+  command: |
+    compose_name=docker-compose
+    compose_path={{ .binary_dir }}/image-registry/docker-compose/{{ .cri.dockercompose_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/image-registry/docker-compose/{{ .cri.dockercompose_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $compose_path/$compose_name $target_path/
+
+- name: Binary | Ensure Harbor binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .image_registry.harbor_version | empty | not
+    - .image_registry.type | eq "harbor"
+  command: |
+    harbor_name={{ get .download.artifact_url.harbor .item | splitList "/" | last }}
+    harbor_path={{ .binary_dir }}/image-registry/harbor/{{ .image_registry.harbor_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/image-registry/harbor/{{ .image_registry.harbor_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $harbor_path/$harbor_name $target_path/
+
+- name: Binary | Ensure keepalived binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.arch | toJson }}"
+  when: 
+    - .image_registry.keepalived_version | empty | not
+    - .image_registry.ha_vip | empty | not
+    - .groups.image_registry | len | lt 1
+  command: |
+    artifact_name={{ get .download.artifact_url.keepalived .item | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/image-registry/keepalived/{{ .keepalived_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/image-registry/keepalived/{{ .keepalived_version }}/{{ .item }}
+    mkdir -p $target_path
+    cp $artifact_path/$artifact_name $target_path/

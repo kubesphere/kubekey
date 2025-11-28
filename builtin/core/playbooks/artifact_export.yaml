@@ -15,7 +15,5 @@
     - localhost
   roles:
     - download
-  tasks:
-    - name: Export artifact
-      command: |
-        cd {{ .binary_dir }} && tar -czvf {{ .artifact_file }} *
+    - copy
+
