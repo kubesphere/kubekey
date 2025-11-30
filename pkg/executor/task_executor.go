@@ -166,20 +166,18 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 			resErr = errors.Errorf("host: %s variable is not a map", h)
 			return
 		}
-		// check when condition
-		if skip, err := e.dealWhen(had); err != nil {
-			resErr = err
-			return
-		} else if skip {
-			stdout = modules.StdoutSkip
-			return
-		}
 		// execute module in loop with loop item.
 		// if loop is empty. execute once, and the item is null
 		for _, item := range e.dealLoop(had) {
-			resErr = e.executeModule(ctx, e.task, item, h, &stdout, &stderr)
-			if resErr != nil {
+			resSkip, exeErr := e.executeModule(ctx, e.task, item, h, &stdout, &stderr)
+			if exeErr != nil {
+				resErr = exeErr
 				break
+			}
+			// loop execute once, skip task
+			if item == nil && resSkip {
+				stdout = modules.StdoutSkip
+				return
 			}
 		}
 	}
@@ -260,18 +258,18 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, stdout, _
 }
 
 // executeModule executes a single module task on a specific host.
-func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, item any, host string, stdout, stderr *string) (resErr error) {
+func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.Task, item any, host string, stdout, stderr *string) (resSkip bool, resErr error) {
 	// Set loop item variable if one was provided
 	if item != nil {
 		// Convert item to runtime variable
 		node, err := converter.ConvertMap2Node(map[string]any{_const.VariableItem: item})
 		if err != nil {
-			return errors.Wrap(err, "failed to convert loop item")
+			return false, errors.Wrap(err, "failed to convert loop item")
 		}
 
 		// Merge item into host's runtime variables
 		if err := e.variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, host)); err != nil {
-			return errors.Wrap(err, "failed to set loop item to variable")
+			return false, errors.Wrap(err, "failed to set loop item to variable")
 		}
 
 		// Clean up loop item variable after execution
@@ -295,13 +293,20 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 	// Get all variables for this host, including any loop item
 	ha, err := e.variable.Get(variable.GetAllVariable(host))
 	if err != nil {
-		return errors.Wrapf(err, "failed to get host %s variable", host)
+		return false, errors.Wrapf(err, "failed to get host %s variable", host)
 	}
 
 	// Convert host variables to map type
 	had, ok := ha.(map[string]any)
 	if !ok {
-		return errors.Wrapf(err, "host %s variable is not a map", host)
+		return false, errors.Wrapf(err, "host %s variable is not a map", host)
+	}
+
+	// check when condition
+	if skip, err := e.dealWhen(had); err != nil {
+		return false, err
+	} else if skip {
+		return true, nil
 	}
 
 	// Execute the actual module with the prepared context
@@ -313,7 +318,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		Playbook:  *e.playbook,
 		LogOutput: e.logOutput,
 	})
-	return e.dealFailedWhen(had, resErr)
+	return false, e.dealFailedWhen(had, resErr)
 }
 
 // dealLoop parses the loop specification into a slice of items to iterate over.
