@@ -31,7 +31,7 @@
 - name: Check if kubectl is installed
   ignore_errors: true
   command: |
-    {{- if .kubernetes.kube_version | semverCompare ">=v1.28.0" -}}
+    {{- if .kube_version | semverCompare ">=v1.28.0" -}}
     kubectl version --client
     {{- else -}}
     kubectl version --client --short
