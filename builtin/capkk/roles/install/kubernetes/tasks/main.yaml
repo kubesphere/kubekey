@@ -1,7 +1,7 @@
 ---
 - name: Check if helm is installed
   ignore_errors: true
-  command: helm version --template "{{ .Version }}"
+  command: helm version --template "{{ "{{" }} .Version {{ "}}" }}"
   register: helm_install_version
 - name: Install helm
   when: or (.helm_install_version.error | empty | not) (.helm_install_version.stdout | ne .helm_version)
