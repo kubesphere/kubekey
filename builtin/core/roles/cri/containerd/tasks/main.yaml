@@ -5,7 +5,7 @@
   register: runc_install_version
 
 - name: Containerd | Ensure the runc binary is present on the remote node
-  when: or (.runc_install_version.error | empty | not) (.runc_install_version.stdout | contains (printf "runc version %s\n" (.cri.runc_version | default "" | trimPrefix "v" )) | not)
+  when: or (.runc_install_version.error | empty | not) (.runc_install_version.stdout | regexMatch (printf "runc version %s\\s+" (.cri.runc_version | default "" | trimPrefix "v" )) | not)
   copy:
     src: >-
       {{ .binary_dir }}/runc/{{ .cri.runc_version }}/{{ .binary_type }}/runc.{{ .binary_type }}
