@@ -59,13 +59,10 @@
         - name: PushImage | Push images package to image registry
           image:
             push:
+              auths: "{{ .cri.registry.auths | toJson }}"
               images_dir: >-
                 {{ .binary_dir }}/images/
               dest: >-
                 {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-              username: >-
-                {{ .image_registry.auth.username }}
-              password: >-
-                {{ .image_registry.auth.password }}
               skip_tls_verify: true
 
