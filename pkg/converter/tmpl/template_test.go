@@ -294,6 +294,14 @@ func TestParseValue(t *testing.T) {
 			},
 			excepted: []byte("bar"),
 		},
+		{
+			name:  "{{ & }} character translation",
+			input: "helm version --template \"{{ \"{{\" }} .Version {{ \"}}\" }}\"",
+			variable: map[string]any{
+				"foo": "bar",
+			},
+			excepted: []byte("helm version --template \"{{ .Version }}\""),
+		},
 	}
 
 	for _, tc := range testcases {
