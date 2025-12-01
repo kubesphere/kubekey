@@ -93,9 +93,9 @@ func (o *InitOSOptions) completeConfig() error {
 	} else {
 		// set binary dir if not set
 		if _, _, err := unstructured.NestedString(o.CommonOptions.Config.Value(), _const.BinaryDir); err != nil {
-			// workdir should set by CommonOptions
+			// binary should set by CommonOptions
 			if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), filepath.Join(wd, "kubekey"), _const.BinaryDir); err != nil {
-				return errors.Wrapf(err, "failed to set %q in config", _const.Workdir)
+				return errors.Wrapf(err, "failed to set %q in config", _const.BinaryDir)
 			}
 		}
 	}
