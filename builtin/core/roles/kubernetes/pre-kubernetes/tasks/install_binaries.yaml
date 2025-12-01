@@ -1,7 +1,7 @@
 ---
 - name: Binary | Verify if Helm is already installed
   ignore_errors: true
-  command: helm version --template "{{ .Version }}"
+  command: helm version --template "{{ "{{" }} .Version {{ "}}" }}"
   register: helm_install_version
 
 - name: Binary | Install Helm if not present or version mismatch
