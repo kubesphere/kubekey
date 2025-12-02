@@ -32,12 +32,12 @@
   run_once: true
   image:
     push:
+      auths:
+        - repo: "{{ .image_registry.auth.registry }}"
+          username: "{{ .image_registry.auth.username }}"
+          password: "{{ .image_registry.auth.password }}"
+          insecure: true
       images_dir: >-
         {{ .binary_dir }}/images/
       dest: >-
         {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-      username: >-
-        {{ .image_registry.auth.username }}
-      password: >-
-        {{ .image_registry.auth.password }}
-      skip_tls_verify: true
