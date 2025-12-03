@@ -168,17 +168,21 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 		}
 		// execute module in loop with loop item.
 		// if loop is empty. execute once, and the item is null
+		allLoopSkipped := true
 		for _, item := range e.dealLoop(had) {
 			resSkip, exeErr := e.executeModule(ctx, e.task, item, h, &stdout, &stderr)
+			if exeErr != nil || !resSkip {
+				allLoopSkipped = false
+			}
 			if exeErr != nil {
 				resErr = exeErr
 				break
 			}
-			// loop execute once, skip task
-			if item == nil && resSkip {
-				stdout = modules.StdoutSkip
-				return
-			}
+		}
+		// when all loop skipped, skip task
+		if allLoopSkipped {
+			stdout = modules.StdoutSkip
+			return
 		}
 	}
 }
