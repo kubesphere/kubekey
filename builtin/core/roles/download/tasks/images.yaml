@@ -1,6 +1,7 @@
 - name: Image | Download container images
   image:
     pull:
+      platform: "{{ .download.arch | toJson }}"
       auths: "{{ .cri.registry.auths | toJson }}"
       images_dir: >-
         {{ .binary_dir }}/images/

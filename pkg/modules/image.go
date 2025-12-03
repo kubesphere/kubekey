@@ -29,10 +29,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/images"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+	"github.com/opencontainers/go-digest"
+	"github.com/opencontainers/image-spec/specs-go"
 	imagev1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -157,7 +160,7 @@ type imagePullArgs struct {
 	imagesDir     string
 	manifests     []string
 	skipTLSVerify *bool
-	platform      string
+	platform      []string
 	auths         []imageAuth
 }
 
@@ -168,8 +171,22 @@ type imageAuth struct {
 	Insecure *bool  `json:"insecure"`
 }
 
+type fetchResult struct {
+	IsIndex   bool
+	IndexDesc *imagev1.Descriptor
+	Index     *imagev1.Index
+	Manifests []*manifestInfo
+}
+
+type manifestInfo struct {
+	Desc       imagev1.Descriptor
+	Content    []byte
+	Platform   *imagev1.Platform
+	SourceRepo *remote.Repository
+}
+
 // pull retrieves images from a remote registry and stores them locally
-func (i imagePullArgs) pull(ctx context.Context, platform string) error {
+func (i imagePullArgs) pull(ctx context.Context, platform []string) error {
 	for _, img := range i.manifests {
 		img = normalizeImageNameSimple(img)
 		src, err := remote.NewRepository(img)
@@ -187,25 +204,267 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 			Cache:      auth.NewCache(),
 			Credential: authFunc(i.auths),
 		}
-
 		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
 		if err != nil {
 			return err
 		}
 
-		copyOption := oras.DefaultCopyOptions
-		if platform != "" {
-			plat, err := parsePlatform(platform)
-			// only work when input a correct platform like "linux/amd64" or "linux/arm64"
-			// if input a wrong platform,all platform of this image will be pulled
-			if err == nil {
-				copyOption.WithTargetPlatform(&plat)
+		err = imageSrcToDst(ctx, src, dst, img, platform)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func imageSrcToDst(ctx context.Context, src, dst *remote.Repository, img string, platform []string) error {
+	var err error
+	if platform == nil || len(platform) == 0 {
+		_, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to pull image %q to local dir", img)
+		}
+		return err
+	}
+	fetchResult, defaultMediaType, err := fetchManifestsFromMultiArch(ctx, src, src.Reference.Reference)
+	if err != nil {
+		return errors.Wrapf(err, "failed to fetch manifests")
+	}
+	if !fetchResult.IsIndex {
+		_, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to pull image %q to local dir", img)
+		}
+		return nil
+	}
+	// filter target platform
+	var filteredManifests []*manifestInfo
+	for _, manifest := range fetchResult.Manifests {
+		if manifest.Platform == nil {
+			continue
+		}
+		// some arm architecture is arm64/v7 or arm68/v8 , support all of then
+		for _, arch := range platform {
+			if strings.Contains(manifest.Platform.Architecture, arch) {
+				manifest.SourceRepo = src
+				filteredManifests = append(filteredManifests, manifest)
+				break
 			}
 		}
-
-		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", copyOption); err != nil {
-			return errors.Wrapf(err, "failed to pull image %q to local dir", img)
+	}
+	if len(filteredManifests) == 0 {
+		return nil
+	}
+	// push all filtered manifests and layers
+	for _, manifest := range filteredManifests {
+		if err = pushManifestWithLayers(ctx, src, dst, manifest); err != nil {
+			return errors.Wrapf(err, "failed to push manifest for %s/%s",
+				manifest.Platform.OS, manifest.Platform.Architecture)
 		}
+	}
+	err = createAndPushIndex(ctx, dst, filteredManifests, dst.Reference.Reference, defaultMediaType)
+	if err != nil {
+		return errors.Wrapf(err, "failed to pull image %q to local dir", img)
+	}
+	return nil
+}
+
+func fetchManifestsFromMultiArch(ctx context.Context, repo *remote.Repository, ref string) (*fetchResult, string, error) {
+	desc, rc, err := repo.FetchReference(ctx, ref)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch reference %s: %w", ref, err)
+	}
+	defer rc.Close()
+
+	content, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read content: %w", err)
+	}
+
+	result := &fetchResult{}
+
+	if desc.MediaType == imagev1.MediaTypeImageIndex ||
+		desc.MediaType == "application/vnd.docker.distribution.manifest.list.v2+json" {
+		// multi arch image
+		result.IsIndex = true
+		result.IndexDesc = &desc
+
+		var index imagev1.Index
+		if err := json.Unmarshal(content, &index); err != nil {
+			return nil, "", fmt.Errorf("failed to unmarshal index: %w", err)
+		}
+		result.Index = &index
+
+		for _, manifestDesc := range index.Manifests {
+			if manifestDesc.MediaType != imagev1.MediaTypeImageManifest &&
+				manifestDesc.MediaType != "application/vnd.docker.distribution.manifest.v2+json" {
+				continue
+			}
+
+			manifestInfo, err := fetchSingleManifest(ctx, repo, manifestDesc)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to fetch manifest %s: %w", manifestDesc.Digest, err)
+			}
+
+			result.Manifests = append(result.Manifests, manifestInfo)
+		}
+	} else if desc.MediaType == imagev1.MediaTypeImageManifest ||
+		desc.MediaType == "application/vnd.docker.distribution.manifest.v2+json" {
+		// single arch image
+		result.IsIndex = false
+		info, err := fetchSingleManifestFromContent(content, &desc)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to parse manifest: %w", err)
+		}
+		result.Manifests = []*manifestInfo{info}
+	} else {
+		return nil, "", fmt.Errorf("unsupported media type: %s", desc.MediaType)
+	}
+
+	return result, desc.MediaType, nil
+}
+
+func fetchSingleManifest(ctx context.Context, repo *remote.Repository, desc imagev1.Descriptor) (*manifestInfo, error) {
+	rc, err := repo.Fetch(ctx, desc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch manifest: %w", err)
+	}
+	defer rc.Close()
+
+	content, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read manifest content: %w", err)
+	}
+
+	return fetchSingleManifestFromContent(content, &desc)
+}
+
+func fetchSingleManifestFromContent(content []byte, desc *imagev1.Descriptor) (*manifestInfo, error) {
+	var manifest imagev1.Manifest
+	if err := json.Unmarshal(content, &manifest); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal manifest: %w", err)
+	}
+
+	platform := desc.Platform
+	if platform == nil {
+		// read platform from config
+		// but if config has no platform info ,then use default unknown
+		if manifest.Config.Platform != nil {
+			platform = manifest.Config.Platform
+		} else {
+			platform = &imagev1.Platform{
+				Architecture: "unknown",
+				OS:           "unknown",
+			}
+		}
+	}
+
+	return &manifestInfo{
+		Desc:     *desc,
+		Content:  content,
+		Platform: platform,
+	}, nil
+}
+
+func pushManifestWithLayers(ctx context.Context, srcRepo, dstRepo *remote.Repository, manifestInfo *manifestInfo) error {
+	var manifest imagev1.Manifest
+	if err := json.Unmarshal(manifestInfo.Content, &manifest); err != nil {
+		return fmt.Errorf("failed to unmarshal manifest: %w", err)
+	}
+
+	// push config layer
+	if err := copyBlob(ctx, srcRepo, dstRepo, manifest.Config); err != nil {
+		return fmt.Errorf("failed to copy config: %w", err)
+	}
+
+	// push all layers
+	for _, layer := range manifest.Layers {
+		if err := copyBlob(ctx, srcRepo, dstRepo, layer); err != nil {
+			return fmt.Errorf("failed to copy layer %s: %w", layer.Digest, err)
+		}
+	}
+
+	// push manifests
+	manifestDesc := imagev1.Descriptor{
+		MediaType: manifest.MediaType,
+		Digest:    digest.FromBytes(manifestInfo.Content),
+		Size:      int64(len(manifestInfo.Content)),
+		Platform:  manifestInfo.Platform,
+	}
+
+	exists, err := dstRepo.Exists(ctx, manifestDesc)
+	if err == nil && exists {
+		return nil
+	}
+
+	err = dstRepo.Push(ctx, manifestDesc, bytes.NewReader(manifestInfo.Content))
+	if err != nil {
+		return fmt.Errorf("failed to push manifest: %w", err)
+	}
+
+	return nil
+}
+
+func copyBlob(ctx context.Context, srcRepo, dstRepo *remote.Repository, desc imagev1.Descriptor) error {
+	exists, err := dstRepo.Exists(ctx, desc)
+	if err == nil && exists {
+		return nil
+	}
+
+	rc, err := srcRepo.Fetch(ctx, desc)
+	if err != nil {
+		return fmt.Errorf("failed to fetch blob %s: %w", desc.Digest, err)
+	}
+	defer rc.Close()
+
+	err = dstRepo.Push(ctx, desc, rc)
+	if err != nil {
+		return fmt.Errorf("failed to push blob %s: %w", desc.Digest, err)
+	}
+
+	return nil
+}
+
+func createAndPushIndex(ctx context.Context, dstRepo *remote.Repository, manifests []*manifestInfo, targetTag, defaultMediaType string) error {
+	var descList = make([]imagev1.Descriptor, 0)
+	for _, info := range manifests {
+		var manifest imagev1.Manifest
+		if err := json.Unmarshal(info.Content, &manifest); err != nil {
+			return fmt.Errorf("failed to unmarshal manifest: %w", err)
+		}
+		desc := imagev1.Descriptor{
+			MediaType: manifest.MediaType,
+			Digest:    digest.FromBytes(info.Content),
+			Size:      int64(len(info.Content)),
+			Platform:  info.Platform,
+		}
+		descList = append(descList, desc)
+	}
+
+	index := imagev1.Index{
+		Versioned: specs.Versioned{SchemaVersion: 2},
+		MediaType: defaultMediaType,
+		Manifests: descList,
+		Annotations: map[string]string{
+			"org.opencontainers.image.created":  time.Now().UTC().Format(time.RFC3339),
+			"org.opencontainers.image.ref.name": targetTag,
+		},
+	}
+
+	indexJSON, err := json.MarshalIndent(index, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal index: %w", err)
+	}
+
+	indexDesc := imagev1.Descriptor{
+		MediaType: defaultMediaType,
+		Digest:    digest.FromBytes(indexJSON),
+		Size:      int64(len(indexJSON)),
+	}
+
+	err = dstRepo.PushReference(ctx, indexDesc, bytes.NewReader(indexJSON), targetTag)
+	if err != nil {
+		return fmt.Errorf("failed to push index: %w", err)
 	}
 
 	return nil
@@ -257,26 +516,6 @@ func skipTLSVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
 		}
 	}
 	return defaults
-}
-
-// parse platform string to ocispec.Platform
-func parsePlatform(platformStr string) (imagev1.Platform, error) {
-	parts := strings.Split(platformStr, "/")
-	if len(parts) < 2 {
-		return imagev1.Platform{}, errors.New("invalid platform input: " + platformStr)
-	}
-
-	plat := imagev1.Platform{
-		OS:           parts[0],
-		Architecture: parts[1],
-	}
-
-	// handle platform like "arm/v7"
-	if len(parts) > 2 {
-		plat.Variant = strings.Join(parts[2:], "/")
-	}
-
-	return plat, nil
 }
 
 // imagePushArgs contains parameters for pushing images
@@ -342,8 +581,9 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 }
 
 type imageCopyArgs struct {
-	From imageCopyTargetArgs `json:"from"`
-	To   imageCopyTargetArgs `json:"to"`
+	Platform []string            `json:"platform"`
+	From     imageCopyTargetArgs `json:"from"`
+	To       imageCopyTargetArgs `json:"to"`
 }
 
 type imageCopyTargetArgs struct {
@@ -353,6 +593,8 @@ type imageCopyTargetArgs struct {
 }
 
 func (i *imageCopyArgs) parseFromVars(vars, cp map[string]any) error {
+	i.Platform, _ = variable.StringSliceVar(vars, cp, "platform")
+
 	i.From.manifests, _ = variable.StringSliceVar(vars, cp, "from", "manifests")
 
 	i.From.Path, _ = variable.StringVar(vars, cp, "from", "path")
@@ -405,8 +647,10 @@ func (i *imageCopyArgs) copy(ctx context.Context, hostVars map[string]any) error
 		if err != nil {
 			return err
 		}
-		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
-			return errors.Wrapf(err, "failed to push image %q to remote", img)
+
+		err = imageSrcToDst(ctx, src, dst, img, i.Platform)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -441,7 +685,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		if ipl.skipTLSVerify == nil {
 			ipl.skipTLSVerify = ptr.To(false)
 		}
-		ipl.platform, _ = variable.StringVar(vars, pull, "platform")
+		ipl.platform, _ = variable.StringSliceVar(vars, pull, "platform")
 		// check args
 		if len(ipl.manifests) == 0 {
 			return nil, errors.New("\"pull.manifests\" is required")

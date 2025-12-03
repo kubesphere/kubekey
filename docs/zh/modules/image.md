@@ -14,7 +14,7 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
 | pull.auths.username | 用于认证远程仓库的用户名 | 字符串 | 否 | - |
 | pull.auths.password | 用于认证远程仓库的密码 | 字符串 | 否 | - |
 | pull.auths.insecure | 是否跳过当前远程仓库的tls认证 | bool | 否 | - |
-| pull.platform | 镜像的架构信息 | 字符串 | 否 | - |
+| pull.platform | 镜像的架构信息 | 字符串数组 | 否 | - |
 | pull.skip_tls_verify | 默认的是否跳过远程仓库的tls认证 | bool | 否 | - |
 | push | 从本地目录中推送镜像到远程仓库 | map | 否 | - |
 | push.images_dir | 镜像存放的本地目录 | 字符串 | 否 | - |
@@ -27,6 +27,7 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
 | push.src_pattern | 正则表达式，过滤本地目录中存放的镜像 | map | 否 | - |
 | push.dest | 模版语法，从本地目录镜像推送到的远程仓库镜像 | map | 否 | - |
 | copy | 模版语法，将镜像在文件系统和镜像仓库内相互复制 | map | 否 | - |
+| copy.platform | 镜像的架构信息 | 字符串数组 | 否 | - |
 | copy.from | 模版语法，源镜像信息 | map | 否 | - |
 | copy.from.path | 镜像源文件路径 | 字符串 | 否 | - |
 | copy.from.manifests | 源镜像列表 | 字符串数组 | 否 | - |
@@ -63,7 +64,9 @@ image模块允许用户下载镜像到本地目录或上传镜像到远程目录
   image:
     pull:
       images_dir: /tmp/images/
-      platform: linux/amd64
+      platform:
+        - amd64
+        - arm64
       manifests:
        - "docker.io/kubesphere/ks-apiserver:v4.1.3"
        - "docker.io/kubesphere/ks-controller-manager:v4.1.3"
