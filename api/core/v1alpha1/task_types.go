@@ -74,10 +74,16 @@ type TaskStatus struct {
 
 // TaskHostResult each host result for task
 type TaskHostResult struct {
-	Host   string `json:"host,omitempty"`
-	Stdout string `json:"stdout,omitempty"`
-	StdErr string `json:"stdErr,omitempty"`
-	Error  string `json:"error,omitempty"`
+	Host        string       `json:"host,omitempty"`
+	Error       string       `json:"error,omitempty"`
+	LoopResults []LoopResult `json:"loopResults,omitempty"`
+}
+
+type LoopResult struct {
+	Item   runtime.RawExtension `json:"item,omitempty"`
+	Stdout string               `json:"stdout,omitempty"`
+	Stderr string               `json:"stdErr,omitempty"`
+	Error  string               `json:"error,omitempty"`
 }
 
 // +genclient
