@@ -93,3 +93,4 @@ image_manifests:
   - quay.io/tigera/operator:v1.34.5
   - docker.io/library/haproxy:2.9.6-alpine
 
+
