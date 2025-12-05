@@ -2,13 +2,13 @@
 - name: OS | Assert valid system hostname format
   block:
     - name: OS | Validate inventory hostname is RFC-compliant
-      when: .set_hostname
+      when: .native.set_hostname
       assert:
         that: .inventory_hostname | regexMatch "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"
         fail_msg: >-
           The hostname "{{ .inventory_hostname }}" is invalid. Hostnames must use only lowercase alphanumeric characters, '.', or '-', and must start and end with an alphanumeric character.
     - name: OS | Validate current host system hostname is RFC-compliant
-      when: .set_hostname | not
+      when: .native.set_hostname | not
       assert:
         that: .hostname | regexMatch "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"
         fail_msg: >-
