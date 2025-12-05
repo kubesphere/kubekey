@@ -740,12 +740,6 @@ func (i imageTransport) post(request *http.Request) *http.Response {
 // put method for http.MethodPut, create file in blobs dir or manifests dir
 func (i imageTransport) put(request *http.Request) *http.Response {
 	if strings.HasSuffix(request.URL.Path, "/uploads") { // blobs
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to read request")
-
-			return responseServerError
-		}
 		defer request.Body.Close()
 
 		filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
@@ -755,7 +749,22 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 			return responseServerError
 		}
 
-		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to create file", "filename", filename)
+			return responseServerError
+		}
+
+		defer func() {
+			if err = file.Sync(); err != nil {
+				klog.V(4).ErrorS(err, "failed to sync file", "filename", filename)
+			}
+			if err = file.Close(); err != nil {
+				klog.V(4).ErrorS(err, "failed to close file", "filename", filename)
+			}
+		}()
+
+		if _, err = io.Copy(file, request.Body); err != nil {
 			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
 
 			return responseServerError
@@ -800,7 +809,14 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 			return responseNotFound
 		}
 
-		file, err := os.ReadFile(filename)
+		file, err := os.Open(filename)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
+
+			return responseServerError
+		}
+
+		fStat, err := file.Stat()
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
 
@@ -810,8 +826,8 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 		return &http.Response{
 			Proto:         "Local",
 			StatusCode:    http.StatusOK,
-			ContentLength: int64(len(file)),
-			Body:          io.NopCloser(bytes.NewReader(file)),
+			ContentLength: fStat.Size(),
+			Body:          file,
 		}
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
