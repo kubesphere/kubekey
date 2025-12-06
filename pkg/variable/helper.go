@@ -150,7 +150,7 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 	groups[_const.VariableGroupsAll] = all
 
 	for gn := range inv.Spec.Groups {
-		groups[gn] = hostsInGroup(inv, gn)
+		groups[gn] = hostsInGroup(inv, gn, 0)
 		if hosts, ok := groups[gn]; ok {
 			for _, v := range hosts {
 				if slices.Contains(ungrouped, v) {
@@ -167,16 +167,17 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 
 // hostsInGroup get a host_name slice in a given group
 // if the given group contains other group. convert other group to host_name slice.
-func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
-	if v, ok := inv.Spec.Groups[groupName]; ok {
-		var hosts []string
-		for _, cg := range v.Groups {
-			hosts = CombineSlice(hostsInGroup(inv, cg), hosts)
+func hostsInGroup(inv kkcorev1.Inventory, groupName string, depth int) []string {
+	if depth < 5 {
+		if v, ok := inv.Spec.Groups[groupName]; ok {
+			var hosts []string
+			for _, cg := range v.Groups {
+				hosts = CombineSlice(hostsInGroup(inv, cg, depth+1), hosts)
+			}
+
+			return CombineSlice(hosts, v.Hosts)
 		}
-
-		return CombineSlice(hosts, v.Hosts)
 	}
-
 	return make([]string, 0)
 }
 
