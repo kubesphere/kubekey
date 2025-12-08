@@ -162,10 +162,11 @@ type imagePullArgs struct {
 }
 
 type imageAuth struct {
-	Repo     string `json:"repo"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Insecure *bool  `json:"insecure"`
+	Repo      string `json:"repo"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Insecure  *bool  `json:"insecure"`
+	PlainHTTP *bool  `json:"plain_http"`
 }
 
 // pull retrieves images from a remote registry and stores them locally
@@ -202,6 +203,8 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 				copyOption.WithTargetPlatform(&plat)
 			}
 		}
+
+		src.PlainHTTP = plainHTTPFunc(img, i.auths, false)
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", copyOption); err != nil {
 			return errors.Wrapf(err, "failed to pull image %q to local dir", img)
@@ -252,6 +255,19 @@ func skipTLSVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
 		if imgHost == a.Repo {
 			if a.Insecure != nil {
 				return *a.Insecure
+			}
+			return defaults
+		}
+	}
+	return defaults
+}
+
+func plainHTTPFunc(img string, auths []imageAuth, defaults bool) bool {
+	imgHost := strings.Split(img, "/")[0]
+	for _, a := range auths {
+		if imgHost == a.Repo {
+			if a.PlainHTTP != nil {
+				return *a.PlainHTTP
 			}
 			return defaults
 		}
@@ -332,6 +348,8 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 			Cache:      auth.NewCache(),
 			Credential: authFunc(i.auths),
 		}
+
+		dst.PlainHTTP = plainHTTPFunc(dest, i.auths, false)
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
 			return errors.Wrapf(err, "failed to push image %q to remote", img)
