@@ -25,6 +25,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -149,8 +150,10 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 
 	groups[_const.VariableGroupsAll] = all
 
+	groupsGraph := utils.NewKahnGraph()
+
 	for gn := range inv.Spec.Groups {
-		groups[gn] = hostsInGroup(inv, gn)
+		groups[gn] = hostsInGroup(inv, gn, groupsGraph)
 		if hosts, ok := groups[gn]; ok {
 			for _, v := range hosts {
 				if slices.Contains(ungrouped, v) {
@@ -167,16 +170,20 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 
 // hostsInGroup get a host_name slice in a given group
 // if the given group contains other group. convert other group to host_name slice.
-func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
+func hostsInGroup(inv kkcorev1.Inventory, groupName string, groupsGraph *utils.KahnGraph) []string {
 	if v, ok := inv.Spec.Groups[groupName]; ok {
 		var hosts []string
 		for _, cg := range v.Groups {
-			hosts = CombineSlice(hostsInGroup(inv, cg), hosts)
+			if groupsGraph != nil {
+				if groupsGraph.AddEdgeAndCheckCycle(groupName, cg) {
+					continue
+				}
+			}
+			hosts = CombineSlice(hostsInGroup(inv, cg, groupsGraph), hosts)
 		}
 
 		return CombineSlice(hosts, v.Hosts)
 	}
-
 	return make([]string, 0)
 }
 
