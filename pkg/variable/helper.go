@@ -25,7 +25,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
-	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -34,6 +33,7 @@ import (
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 // CombineVariables merge multiple variables into one variable.
@@ -176,7 +176,8 @@ func hostsInGroup(inv kkcorev1.Inventory, groupName string, groupsGraph *utils.K
 		for _, cg := range v.Groups {
 			if groupsGraph != nil {
 				if groupsGraph.AddEdgeAndCheckCycle(groupName, cg) {
-					continue
+					klog.Warningf("group host found cycle by %s -> %s", groupName, cg)
+					return []string{}
 				}
 			}
 			hosts = CombineSlice(hostsInGroup(inv, cg, groupsGraph), hosts)
