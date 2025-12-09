@@ -113,7 +113,7 @@ func (c *kubernetesConnector) PutFile(_ context.Context, src []byte, dst string,
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "failed to stat local dir %q for cluster %q", dst, c.clusterName)
 		}
-		if err := os.MkdirAll(filepath.Dir(dst), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(dst), _const.PermDirPublic); err != nil {
 			return errors.Wrapf(err, "failed to create local dir of path %q for cluster %q", dst, c.clusterName)
 		}
 	}

@@ -16,6 +16,8 @@ limitations under the License.
 
 package _const
 
+import "os"
+
 // variable specific key in system
 const ( // === From Global Parameter ===
 	// VariableLocalHost is the default local host name in inventory.
@@ -122,4 +124,8 @@ const (
 	SSHVerifyStatusSSHIncomplete = "ssh_incomplete"
 	// SSHVerifyStatusUnreachable means host server cannot connect to target ssh
 	SSHVerifyStatusUnreachable = "unreachable"
+)
+
+const (
+	PermDirPublic = os.FileMode(0755)
 )
