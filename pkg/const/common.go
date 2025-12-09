@@ -127,5 +127,6 @@ const (
 )
 
 const (
-	PermDirPublic = os.FileMode(0755)
+	// PermDirPublic means public permission of directory, something like os.ModePerm
+	PermDirPublic os.FileMode = 0755
 )

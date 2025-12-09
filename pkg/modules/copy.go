@@ -217,8 +217,10 @@ func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, 
 }
 
 // copyAbsoluteDir copies all files from an absolute directory to the remote host.
-func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector) error {
-	defer ca.ensureDestDirMode(ctx, conn)
+func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector) (resRrr error) {
+	defer func() {
+		resRrr = ca.ensureDestDirMode(ctx, conn)
+	}()
 	return filepath.WalkDir(ca.src, func(path string, d fs.DirEntry, err error) error {
 		// Only copy files, skip directories
 		if d.IsDir() {
@@ -261,8 +263,10 @@ func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector
 }
 
 // copyRelativeDir copies all files from a relative directory (in the project) to the remote host.
-func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) error {
-	defer ca.ensureDestDirMode(ctx, conn)
+func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) (resRrr error) {
+	defer func() {
+		resRrr = ca.ensureDestDirMode(ctx, conn)
+	}()
 	return pj.WalkDir(relPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
