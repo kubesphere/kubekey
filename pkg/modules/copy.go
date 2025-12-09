@@ -218,7 +218,7 @@ func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, 
 
 // copyAbsoluteDir copies all files from an absolute directory to the remote host.
 func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector) error {
-	defer ca.ensureDestMode(ctx, conn)
+	defer ca.ensureDestDirMode(ctx, conn)
 	return filepath.WalkDir(ca.src, func(path string, d fs.DirEntry, err error) error {
 		// Only copy files, skip directories
 		if d.IsDir() {
@@ -262,7 +262,7 @@ func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector
 
 // copyRelativeDir copies all files from a relative directory (in the project) to the remote host.
 func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) error {
-	defer ca.ensureDestMode(ctx, conn)
+	defer ca.ensureDestDirMode(ctx, conn)
 	return pj.WalkDir(relPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -303,8 +303,8 @@ func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relP
 	})
 }
 
-// ensureDestMode if mode args exists, ensure dest dir mode after all files copied
-func (ca copyArgs) ensureDestMode(ctx context.Context, conn connector.Connector) error {
+// ensureDestDirMode if mode args exists, ensure dest dir mode after all files copied
+func (ca copyArgs) ensureDestDirMode(ctx context.Context, conn connector.Connector) error {
 	if ca.mode != nil {
 		_, _, err := conn.ExecuteCommand(ctx, fmt.Sprintf("chmod %04o %s", *ca.mode, ca.dest))
 		if err != nil {
