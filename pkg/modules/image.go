@@ -221,7 +221,7 @@ func (i imagePullArgs) pull(ctx context.Context, platform []string) error {
 
 func imageSrcToDst(ctx context.Context, src, dst *remote.Repository, img string, platform []string) error {
 	var err error
-	if platform == nil || len(platform) == 0 {
+	if len(platform) == 0 || (len(platform) == 1 && strings.TrimSpace(platform[0]) == "*") {
 		_, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to pull image %q to local dir", img)
@@ -237,14 +237,11 @@ func imageSrcToDst(ctx context.Context, src, dst *remote.Repository, img string,
 		if err != nil {
 			err = errors.Wrapf(err, "failed to pull image %q to local dir", img)
 		}
-		return nil
+		return err
 	}
 	// filter target platform
 	var filteredManifests []*manifestInfo
 	for _, manifest := range fetchResult.Manifests {
-		if manifest.Platform == nil {
-			continue
-		}
 		// some arm architecture is arm64/v7 or arm68/v8 , support all of then
 		for _, arch := range platform {
 			if strings.Contains(manifest.Platform.Architecture, arch) {
@@ -255,6 +252,7 @@ func imageSrcToDst(ctx context.Context, src, dst *remote.Repository, img string,
 		}
 	}
 	if len(filteredManifests) == 0 {
+		klog.Warningf("Image %s has no manifests matched for platform: %s", img, platform)
 		return nil
 	}
 	// push all filtered manifests and layers
@@ -531,26 +529,6 @@ func plainHTTPFunc(img string, auths []imageAuth, defaults bool) bool {
 		}
 	}
 	return defaults
-}
-
-// parse platform string to ocispec.Platform
-func parsePlatform(platformStr string) (imagev1.Platform, error) {
-	parts := strings.Split(platformStr, "/")
-	if len(parts) < 2 {
-		return imagev1.Platform{}, errors.New("invalid platform input: " + platformStr)
-	}
-
-	plat := imagev1.Platform{
-		OS:           parts[0],
-		Architecture: parts[1],
-	}
-
-	// handle platform like "arm/v7"
-	if len(parts) > 2 {
-		plat.Variant = strings.Join(parts[2:], "/")
-	}
-
-	return plat, nil
 }
 
 // imagePushArgs contains parameters for pushing images
