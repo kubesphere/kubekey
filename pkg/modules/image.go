@@ -165,10 +165,11 @@ type imagePullArgs struct {
 }
 
 type imageAuth struct {
-	Repo     string `json:"repo"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Insecure *bool  `json:"insecure"`
+	Repo      string `json:"repo"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Insecure  *bool  `json:"insecure"`
+	PlainHTTP *bool  `json:"plain_http"`
 }
 
 type fetchResult struct {
@@ -208,6 +209,7 @@ func (i imagePullArgs) pull(ctx context.Context, platform []string) error {
 		if err != nil {
 			return err
 		}
+		src.PlainHTTP = plainHTTPFunc(img, i.auths, false)
 
 		err = imageSrcToDst(ctx, src, dst, img, platform)
 		if err != nil {
@@ -518,6 +520,39 @@ func skipTLSVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
 	return defaults
 }
 
+func plainHTTPFunc(img string, auths []imageAuth, defaults bool) bool {
+	imgHost := strings.Split(img, "/")[0]
+	for _, a := range auths {
+		if imgHost == a.Repo {
+			if a.PlainHTTP != nil {
+				return *a.PlainHTTP
+			}
+			return defaults
+		}
+	}
+	return defaults
+}
+
+// parse platform string to ocispec.Platform
+func parsePlatform(platformStr string) (imagev1.Platform, error) {
+	parts := strings.Split(platformStr, "/")
+	if len(parts) < 2 {
+		return imagev1.Platform{}, errors.New("invalid platform input: " + platformStr)
+	}
+
+	plat := imagev1.Platform{
+		OS:           parts[0],
+		Architecture: parts[1],
+	}
+
+	// handle platform like "arm/v7"
+	if len(parts) > 2 {
+		plat.Variant = strings.Join(parts[2:], "/")
+	}
+
+	return plat, nil
+}
+
 // imagePushArgs contains parameters for pushing images
 type imagePushArgs struct {
 	imagesDir     string
@@ -571,6 +606,8 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 			Cache:      auth.NewCache(),
 			Credential: authFunc(i.auths),
 		}
+
+		dst.PlainHTTP = plainHTTPFunc(dest, i.auths, false)
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
 			return errors.Wrapf(err, "failed to push image %q to remote", img)
@@ -984,12 +1021,6 @@ func (i imageTransport) post(request *http.Request) *http.Response {
 // put method for http.MethodPut, create file in blobs dir or manifests dir
 func (i imageTransport) put(request *http.Request) *http.Response {
 	if strings.HasSuffix(request.URL.Path, "/uploads") { // blobs
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to read request")
-
-			return responseServerError
-		}
 		defer request.Body.Close()
 
 		filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
@@ -999,7 +1030,22 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 			return responseServerError
 		}
 
-		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to create file", "filename", filename)
+			return responseServerError
+		}
+
+		defer func() {
+			if err = file.Sync(); err != nil {
+				klog.V(4).ErrorS(err, "failed to sync file", "filename", filename)
+			}
+			if err = file.Close(); err != nil {
+				klog.V(4).ErrorS(err, "failed to close file", "filename", filename)
+			}
+		}()
+
+		if _, err = io.Copy(file, request.Body); err != nil {
 			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
 
 			return responseServerError
@@ -1044,7 +1090,14 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 			return responseNotFound
 		}
 
-		file, err := os.ReadFile(filename)
+		file, err := os.Open(filename)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
+
+			return responseServerError
+		}
+
+		fStat, err := file.Stat()
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
 
@@ -1054,8 +1107,8 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 		return &http.Response{
 			Proto:         "Local",
 			StatusCode:    http.StatusOK,
-			ContentLength: int64(len(file)),
-			Body:          io.NopCloser(bytes.NewReader(file)),
+			ContentLength: fStat.Size(),
+			Body:          file,
 		}
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
