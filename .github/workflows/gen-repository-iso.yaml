@@ -3,13 +3,13 @@ name: GenRepositoryISO
 on:
   push:
     tags:
-      - 'ISO-*'
+      - 'iso-*'
   workflow_dispatch:
 
 jobs:
-  build:
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-20.04
+  build-iso:
+    runs-on: ubuntu-latest
+    if: github.repository == 'kubesphere/kubekey'
     strategy:
       fail-fast: false
       matrix:
@@ -73,3 +73,15 @@ jobs:
             ${{ matrix.name }}.iso.sha256sum.txt
             ${{ matrix.name }}-amd64.iso
             ${{ matrix.name }}-arm64.iso
+
+  build-harbor:
+    runs-on: ubuntu-latest
+    if: github.repository == 'kubesphere/kubekey'
+    steps:
+      - run: |
+          for d in $(ls config/harbor); do
+            if [ -d "config/harbor/$d" ]; then
+              cd "config/harbor/$d" && make build
+            fi
+          done
+ 
