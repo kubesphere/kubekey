@@ -167,9 +167,9 @@ download:
         {{- end -}}
     docker_registry:
       amd64: >-
-        https://kubekey.pek3b.qingstor.com/docker.io/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-amd64.tgz
+        https://{{ .download.cn_host }}/docker.io/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-amd64.tgz
       arm64: >-
-        https://kubekey.pek3b.qingstor.com/docker.io/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-arm64.tgz
+        https://{{ .download.cn_host }}/docker.io/registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-arm64.tgz
     harbor:
       amd64: >-
         {{- if .download.zone | eq "cn" -}}
@@ -177,12 +177,12 @@ download:
         {{- else -}}
         https://github.com/goharbor/harbor/releases/download/{{ .image_registry.harbor_version }}/harbor-offline-installer-{{ .image_registry.harbor_version }}.tgz
         {{- end -}}
-#      arm64: >-
-#        {{- if .download.zone | eq "cn" -}}
-#        https://github.com/goharbor/harbor/releases/download/{{ .image_registry.harbor_version }}/harbor-{{ .image_registry.harbor_version }}-linux-arm64.tgz
-#        {{- else -}}
-#        https://github.com/goharbor/harbor/releases/download/{{ .image_registry.harbor_version }}/harbor-{{ .image_registry.harbor_version }}-linux-arm64.tgz
-#        {{- end -}}
+      arm64: >-
+        {{- if .download.zone | eq "cn" -}}
+        https://{{ .download.cn_host }}/github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-{{ .image_registry.harbor_version }}.tgz
+        {{- else -}}
+        https://github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-{{ .image_registry.harbor_version }}.tgz
+        {{- end -}}
 #    keepalived:
 #      amd64: >-
 #        {{- if .download.zone | eq "cn" -}}
