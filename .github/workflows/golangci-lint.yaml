@@ -34,7 +34,7 @@ jobs:
         run: make generate-modules
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           version: v1.63.3
 
