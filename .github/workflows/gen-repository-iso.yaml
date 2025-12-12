@@ -78,10 +78,31 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'kubesphere/kubekey'
     steps:
-      - run: |
+      - name: Checkout
+        uses: actions/checkout@v4
+      - shell: bash
+        name: build arm harbor
+        run: |
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
+          tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
+          echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > /usr/local/bin/qsctl-config.yaml
+          echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> /usr/local/bin/qsctl-config.yaml
+          
           for d in $(ls config/harbor); do
             if [ -d "config/harbor/$d" ]; then
               cd "config/harbor/$d" && make build
+              qsctl -c /usr/local/bin/qsctl-config.yaml cp harbor-offline-installer-"$d"-linux-arm64.tgz qs://kubekey/github.com/goharbor/harbor/releases/download/"$d"/harbor-offline-installer-"$d"-linux-arm64.tgz
             fi
           done
- 
+
+      - name: Create GitHub Release & Upload Assets
+        uses: ncipollo/release-action@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          artifacts: config/harbor/*/*harbor-offline-installer*-linux-arm64.tgz
+          allowUpdates: true
+          replaceArtifacts: true
