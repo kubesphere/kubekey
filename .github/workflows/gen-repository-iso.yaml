@@ -94,7 +94,8 @@ jobs:
           for d in $(ls config/harbor); do
             if [ -d "config/harbor/$d" ]; then
               cd "config/harbor/$d" && make build
-              qsctl -c /usr/local/bin/qsctl-config.yaml cp harbor-offline-installer-"$d"-linux-arm64.tgz qs://kubekey/github.com/goharbor/harbor/releases/download/"$d"/harbor-offline-installer-"$d"-linux-arm64.tgz
+              mv harbor-offline-installer-"$d"-linux-arm64.tgz harbor-offline-installer-"$d".tgz
+              qsctl -c /usr/local/bin/qsctl-config.yaml cp harbor-offline-installer-"$d".tgz qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-"$d".tgz
             fi
           done
 
@@ -103,6 +104,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          artifacts: config/harbor/*/*harbor-offline-installer*-linux-arm64.tgz
+          artifacts: config/harbor/*/*harbor-offline-installer*.tgz
           allowUpdates: true
           replaceArtifacts: true
