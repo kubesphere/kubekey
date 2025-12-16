@@ -266,7 +266,7 @@ func TestParseValue(t *testing.T) {
 			name:  "make kubeadm extra args from map",
 			input: "{{ kubeExtraArgs .foo | toYaml }}",
 			variable: map[string]any{
-				"foo": map[string]string{
+				"foo": map[string]any{
 					"foo": "bar1",
 				},
 			},
@@ -276,7 +276,7 @@ func TestParseValue(t *testing.T) {
 			name:  "make kubeadm extra args from slice",
 			input: "{{ kubeExtraArgs .foo | toYaml }}",
 			variable: map[string]any{
-				"foo": []map[string]string{
+				"foo": []map[string]any{
 					{"name": "foo", "value": "bar2"},
 				},
 			},

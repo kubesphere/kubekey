@@ -1,6 +1,7 @@
 package tmpl
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"os"
@@ -153,8 +154,14 @@ func kubeExtraArgs(input interface{}) []map[string]string {
 		iter := v.MapRange()
 		for iter.Next() {
 			key := iter.Key().String()
-			value := iter.Value().String()
-			result = append(result, map[string]string{"name": key, "value": value})
+			value := iter.Value()
+			var valueStr string
+			if value.CanInterface() {
+				valueStr = fmt.Sprintf("%v", value.Interface())
+			} else {
+				valueStr = value.String()
+			}
+			result = append(result, map[string]string{"name": key, "value": valueStr})
 		}
 	case reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
@@ -164,8 +171,14 @@ func kubeExtraArgs(input interface{}) []map[string]string {
 				iter := elem.MapRange()
 				for iter.Next() {
 					key := iter.Key().String()
-					value := iter.Value().String()
-					tempMap[key] = value
+					value := iter.Value()
+					var valueStr string
+					if value.CanInterface() {
+						valueStr = fmt.Sprintf("%v", value.Interface())
+					} else {
+						valueStr = value.String()
+					}
+					tempMap[key] = valueStr
 				}
 				result = append(result, tempMap)
 			}
