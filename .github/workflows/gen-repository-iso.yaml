@@ -22,6 +22,8 @@ jobs:
             dockerfile: dockerfile.debian10
           - name: debian-11-debs
             dockerfile: dockerfile.debian11
+          - name: kylin-v10SP3-2403-rpms
+            dockerfile: dockerfile.kylinv10sp3-2403
           - name: kylin-v10SP3-rpms
             dockerfile: dockerfile.kylinv10sp3
           - name: kylin-v10SP2-rpms
