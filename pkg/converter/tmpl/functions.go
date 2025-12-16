@@ -4,6 +4,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"text/template"
@@ -31,6 +32,7 @@ func funcMap() template.FuncMap {
 	f["fileExist"] = fileExist
 	f["unquote"] = unquote
 	f["getStringSlice"] = getStringSlice
+	f["kubeExtraArgs"] = kubeExtraArgs
 
 	return f
 }
@@ -138,4 +140,36 @@ func getStringSlice(d map[string][]string, key string) []string {
 		return val
 	}
 	return nil
+}
+
+// kubeExtraArgs make kubeadm extra args of v1/beta4
+// for string/string extra argument maps, convert to structured extra arguments
+// for structured extra arguments, keep what it is
+func kubeExtraArgs(input interface{}) []map[string]string {
+	result := []map[string]string{}
+	v := reflect.ValueOf(input)
+	switch v.Kind() {
+	case reflect.Map:
+		iter := v.MapRange()
+		for iter.Next() {
+			key := iter.Key().String()
+			value := iter.Value().String()
+			result = append(result, map[string]string{"name": key, "value": value})
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			elem := v.Index(i)
+			if elem.Kind() == reflect.Map {
+				tempMap := make(map[string]string)
+				iter := elem.MapRange()
+				for iter.Next() {
+					key := iter.Key().String()
+					value := iter.Value().String()
+					tempMap[key] = value
+				}
+				result = append(result, tempMap)
+			}
+		}
+	}
+	return result
 }

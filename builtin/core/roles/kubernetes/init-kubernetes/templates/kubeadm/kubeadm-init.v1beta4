@@ -1,0 +1,247 @@
+{{/* see: https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/ */}}
+{{- $internalIPv4 := .internal_ipv4 | default "" -}}
+{{- $internalIPv6 := .internal_ipv6 | default "" -}}
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+etcd:
+{{- if .etcd.deployment_type | eq "internal" }}
+  local:
+    imageRepository: {{ .etcd.image.registry }}
+    imageTag: {{ .etcd.image.tag }}
+    serverCertSANs:
+    {{- range .groups.etcd | default list }}
+      - {{ index $.hostvars . "internal_ipv4" }}
+    {{- end }}
+{{- else }}
+  external:
+    endpoints:
+    {{- range .groups.etcd | default list }}
+      - https://{{ index $.hostvars . "internal_ipv4" }}:2379
+    {{- end }}
+    caFile: /etc/kubernetes/pki/etcd/ca.crt
+    certFile: /etc/kubernetes/pki/etcd/client.crt
+    keyFile: /etc/kubernetes/pki/etcd/client.key
+{{- end }}
+dns:
+  imageRepository: {{ .dns.dns_image.registry }}/{{ .dns.dns_image.repository }}
+  imageTag: {{ .dns.dns_image.tag }}
+imageRepository: {{ .kubernetes.image_repository }}
+kubernetesVersion: {{ .kubernetes.kube_version }}
+certificatesDir: /etc/kubernetes/pki
+clusterName: {{ .kubernetes.cluster_name }}
+controlPlaneEndpoint: {{ .kubernetes.control_plane_endpoint.host }}
+networking:
+  dnsDomain: {{ .dns.dns_domain }}
+  podSubnet: {{ .cni.pod_cidr }}
+  serviceSubnet: {{ .cni.service_cidr }}
+apiServer:
+  extraArgs:
+{{- if $internalIPv4 | empty | not }}
+    - name: bind-address
+      value: 0.0.0.0
+{{- else if $internalIPv6 | empty | not }}
+    - name: bind-address
+      value: ::
+{{- end }}
+{{- if .security_enhancement }}
+    - name: authorization-mode
+      value: Node,RBAC
+    - name: enable-admission-plugins
+      value: AlwaysPullImages,ServiceAccount,NamespaceLifecycle,NodeRestriction,LimitRanger,ResourceQuota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodNodeSelector,PodSecurity
+    - name: profiling
+      value: false
+    - name: request-timeout
+      value: 120s
+    - name: service-account-lookup
+      value: true
+    - name: tls-min-version
+      value: VersionTLS12
+    - name: tls-cipher-suites
+      value: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+{{- end }}
+{{- if .audit }}
+    - name: audit-log-format
+      value: json
+    - name: audit-log-maxbackup
+      value: 2
+    - name: audit-log-maxsize
+      value: 200
+    - name: audit-policy-file
+      value: /etc/kubernetes/audit/policy.yaml
+    - name: audit-webhook-config-file
+      value: /etc/kubernetes/audit/webhook.yaml
+{{- end }}
+{{- if .kubernetes.apiserver.extra_args | empty | not }}
+{{ kubeExtraArgs .kubernetes.apiserver.extra_args | toYaml | indent 4 }}
+{{- end }}
+  certSANs:
+    - localhost
+    - 127.0.0.1
+    - ::1
+    - kubernetes
+    - kubernetes.default
+    - kubernetes.default.svc
+    - kubernetes.default.svc.{{ .kubernetes.cluster_name }}
+    - kubernetes.default.svc.{{ .kubernetes.cluster_name }}.{{ .dns.dns_domain }}
+    - {{ index (.cni.service_cidr | ipInCIDR) 0 }}
+    - {{ .kubernetes.control_plane_endpoint.host }}
+  {{- range .groups.k8s_cluster | default list }}
+    - {{ index $.hostvars . "hostname" }}
+    - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}
+    - {{ index $.hostvars . "hostname" }}.{{ $.kubernetes.cluster_name }}.{{ $.dns.dns_domain }}
+    {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
+    {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
+    {{- if $internalIPv4 | empty | not }}
+    - {{ $internalIPv4 }}
+    {{- end }}
+    {{- if $internalIPv6 | empty | not }}
+    - {{ $internalIPv6 }}
+    {{- end }}
+  {{- end }}
+  {{- range .kubernetes.apiserver.certSANs }}
+    - {{ . }}
+  {{- end }}
+{{- if .audit }}
+  extraVolumes:
+    - name: k8s-audit
+      hostPath: /etc/kubernetes/audit
+      mountPath: /etc/kubernetes/audit
+      pathType: DirectoryOrCreate
+{{- end }}
+controllerManager:
+  extraArgs:
+{{- if eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" }}
+    - name: node-cidr-mask-size-ipv4
+      value: "{{ .cni.ipv4_mask_size }}"
+{{- end }}
+{{- if eq (.cni.pod_cidr | splitList "," | last | ipFamily) "IPv6" }}
+    - name: node-cidr-mask-size-ipv6
+      value: "{{ .cni.ipv6_mask_size }}"
+{{- end }}
+{{- if .security_enhancement }}
+  {{- if $internalIPv4 | empty | not }}
+    - name: bind-address
+      value: 127.0.0.1
+  {{- else if $internalIPv6 | empty | not }}
+    - name: bind-address
+      value: ::1
+  {{- end }}
+    - name: profiling
+      value: false
+    - name: terminated-pod-gc-threshold
+      value: 50
+    - name: use-service-account-credentials
+      value: true
+{{- else }}
+  {{- if $internalIPv4 | empty | not }}
+    - name: bind-address
+      value: 0.0.0.0
+  {{- else if $internalIPv6 | empty | not }}
+    - name: bind-address
+      value: ::
+  {{- end }}
+{{- end }}
+{{- if .kubernetes.controller_manager.extra_args }}
+{{ kubeExtraArgs .kubernetes.controller_manager.extra_args | toYaml | indent 4 }}
+{{- end }}
+  extraVolumes:
+    - name: host-time
+      hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      readOnly: true
+scheduler:
+  extraArgs:
+{{- if .security_enhancement }}
+  {{- if $internalIPv4 | empty | not }}
+    - name: bind-address
+      value: 127.0.0.1
+  {{- else if $internalIPv6 | empty | not }}
+    - name: bind-address
+      value: ::1
+  {{- end }}
+    - name: profiling
+      value: false
+{{- else }}
+  {{- if $internalIPv4 | empty | not }}
+    - name: bind-address
+      value: 0.0.0.0
+  {{- else if $internalIPv6 | empty | not }}
+    - name: bind-address
+      value: ::
+  {{- end }}
+{{- end }}
+{{- if .kubernetes.scheduler.extra_args }}
+{{ kubeExtraArgs .kubernetes.scheduler.extra_args | toYaml | indent 4 }}
+{{- end }}
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+localAPIEndpoint:
+{{- if $internalIPv4 | empty | not }}
+  advertiseAddress: {{ $internalIPv4 }}
+{{- else if $internalIPv6 | empty | not }}
+  advertiseAddress: {{ $internalIPv6 }}
+{{- end }}
+  bindPort: {{ .kubernetes.apiserver.port }}
+nodeRegistration:
+  criSocket: {{ .cri.cri_socket }}
+  kubeletExtraArgs:
+    - name: cgroup-driver
+      value: {{ .cri.cgroup_driver }}
+    - name: pod-infra-container-image
+      value: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
+
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+clusterCIDR: {{ .cni.pod_cidr }}
+mode: {{ .kubernetes.kube_proxy.mode }}
+{{- if .kubernetes.kube_proxy.config | empty | not }}
+{{ .kubernetes.kube_proxy.config | toYaml }}
+{{- end }}
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+clusterDomain: {{ .dns.dns_domain }}
+clusterDNS:
+  - {{ .dns.dns_cache_ip }}
+maxPods: {{ .cni.max_pods }}
+podPidsLimit: {{ .kubernetes.kubelet.pod_pids_limit }}
+rotateCertificates: true
+kubeReserved:
+  cpu: 200m
+  memory: 250Mi
+systemReserved:
+  cpu: 200m
+  memory: 250Mi
+evictionHard:
+  memory.available: 5%
+  pid.available: 10%
+evictionSoft:
+  memory.available: 10%
+evictionSoftGracePeriod:
+  memory.available: 2m
+evictionMaxPodGracePeriod: 120
+evictionPressureTransitionPeriod: 30s
+{{- if .security_enhancement }}
+readOnlyPort: 0
+protectKernelDefaults: true
+eventRecordQPS: 1
+streamingConnectionIdleTimeout: 5m
+makeIPTablesUtilChains: true
+tlsCipherSuites:
+  - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+  - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+  - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+{{- end }}
+{{- if .kubernetes.kubelet.feature_gates | empty | not }} 
+featureGates:
+{{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
+{{- end }}
+cgroupDriver: {{ .cri.cgroup_driver }}
+containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
+containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
+{{- if .kubernetes.kubelet.extra_args | empty | not }}
+{{ .kubernetes.kubelet.extra_args | toYaml }}
+{{- end }}
