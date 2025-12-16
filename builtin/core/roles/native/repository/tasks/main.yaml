@@ -14,6 +14,8 @@
           SP2
           {{- else if .os.release.VERSION | contains "Lance" }}
           SP3
+          {{- else if .os.release.VERSION | contains "Halberd" }}
+          SP3-2403
           {{- end -}}
       when: .os.release.ID | unquote | eq "kylin"
 
