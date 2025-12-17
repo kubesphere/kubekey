@@ -233,6 +233,8 @@ download:
       - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/debian-10-debs-arm64.iso"
       - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/debian-11-debs-amd64.iso"
       - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/debian-11-debs-arm64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/kylin-v10SP3-2403-rpms-amd64.iso"
+      - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/kylin-v10SP3-2403-rpms-arm64.iso"
       - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/kylin-v10SP3-rpms-amd64.iso"
       - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/kylin-v10SP3-rpms-arm64.iso"
       - "{{ .download.iso_url.base_path }}/kubesphere/kubekey/releases/download/iso-latest/kylin-v10SP2-rpms-amd64.iso"
