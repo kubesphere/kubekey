@@ -25,6 +25,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -177,16 +178,17 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to get remote image %s", img)
 		}
+		selectedAuth := selectAuth(img, i.auths)
 		src.Client = &auth.Client{
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: skipTLSVerifyFunc(img, i.auths, *i.skipTLSVerify),
+						InsecureSkipVerify: skipTLSVerifyFunc(selectedAuth, *i.skipTLSVerify),
 					},
 				},
 			},
 			Cache:      auth.NewCache(),
-			Credential: authFunc(i.auths),
+			Credential: authFunc(selectedAuth),
 		}
 
 		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
@@ -228,36 +230,159 @@ func dockerHostParser(img string) string {
 	return strings.Join(splitedImg, "/")
 }
 
-func authFunc(auths []imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
-	var creds = make(map[string]auth.Credential)
-	for _, inputAuth := range auths {
-		var rp = inputAuth.Repo
-		if rp == "docker.io" || rp == "" {
-			rp = "registry-1.docker.io"
+func authFunc(selectedAuth *imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
+	return func(_ context.Context, _ string) (auth.Credential, error) {
+		if selectedAuth == nil {
+			return auth.Credential{
+				Username: "",
+				Password: "",
+			}, nil
 		}
-		creds[rp] = auth.Credential{
-			Username: inputAuth.Username,
-			Password: inputAuth.Password,
-		}
-	}
-	return func(_ context.Context, hostport string) (auth.Credential, error) {
-		cred, ok := creds[hostport]
-		if !ok {
-			cred = auth.EmptyCredential
-		}
-		return cred, nil
+		return auth.Credential{
+			Username: selectedAuth.Username,
+			Password: selectedAuth.Password,
+		}, nil
 	}
 }
 
-func skipTLSVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
-	imgHost := strings.Split(img, "/")[0]
-	for _, a := range auths {
-		if imgHost == a.Repo {
-			if a.Insecure != nil {
-				return *a.Insecure
-			}
-			return defaults
+func selectAuth(image string, authList []imageAuth) *imageAuth {
+	// remove tag and hash
+	repoPart, err := extractRepoFromImage(image)
+	if err != nil {
+		return nil
+	}
+
+	// parse image to url
+	imageURL, err := normalizeImageToURL(repoPart)
+	if err != nil {
+		return nil
+	}
+
+	imageHost := imageURL.Host
+	imagePath := strings.TrimPrefix(imageURL.Path, "/")
+
+	// split port
+	imageHostWithoutPort := imageHost
+	if colonIdx := strings.Index(imageHost, ":"); colonIdx != -1 {
+		imageHostWithoutPort = imageHost[:colonIdx]
+	}
+
+	var bestMatch *imageAuth
+	var bestMatchScore int = -1
+
+	// find biggest match point auth
+	for i := range authList {
+		authRepo := authList[i].Repo
+
+		authURL, err := normalizeImageToURL(authRepo)
+		if err != nil {
+			continue
 		}
+
+		authHost := authURL.Host
+		authPath := strings.TrimPrefix(authURL.Path, "/")
+
+		authHostWithoutPort := authHost
+		if colonIdx := strings.Index(authHost, ":"); colonIdx != -1 {
+			authHostWithoutPort = authHost[:colonIdx]
+		}
+
+		score := calculateMatchScore(imageHost, imageHostWithoutPort, imagePath,
+			authHost, authHostWithoutPort, authPath)
+
+		if score > bestMatchScore {
+			bestMatchScore = score
+			bestMatch = &authList[i]
+		}
+	}
+
+	return bestMatch
+}
+
+func normalizeImageToURL(image string) (*url.URL, error) {
+	if strings.HasPrefix(image, "http://") || strings.HasPrefix(image, "https://") {
+		return url.Parse(image)
+	}
+	return url.Parse("http://" + image)
+}
+
+// extractRepoFromImage handle image ,ignore tag and hash
+// like xxx/xxx:tag@sha256:xxx to xxx/xxx
+// like xxx/xxx:tag to xxx/xxx
+func extractRepoFromImage(image string) (string, error) {
+	repoPart := image
+
+	if atIdx := strings.LastIndex(image, "@"); atIdx != -1 {
+		repoPart = image[:atIdx]
+	} else {
+		colonIdx := strings.LastIndex(image, ":")
+		if colonIdx != -1 {
+			// check if : used for port
+			// if port , string after : must contain /
+			substr := image[:colonIdx]
+			lastSlashIdx := strings.LastIndex(substr, "/")
+			if lastSlashIdx != -1 {
+				repoPart = substr
+			} else {
+				if strings.Contains(substr, ".") || strings.Contains(substr, ":") {
+				} else {
+					repoPart = substr
+				}
+			}
+		}
+	}
+
+	return repoPart, nil
+}
+
+// calculateMatchScore calculate image and path match point
+// 0 for not matched
+// 1 for host matched
+// 2 for host:port matched
+// 3 for host:port and prefix path matched
+// 4 for host:port and full path matched
+func calculateMatchScore(imgHost, imgHostNoPort, imgPath,
+	authHost, authHostNoPort, authPath string) int {
+
+	if imgHostNoPort != authHostNoPort {
+		return 0
+	}
+
+	score := 1
+
+	imgHasPort := strings.Contains(imgHost, ":")
+	authHasPort := strings.Contains(authHost, ":")
+
+	if imgHasPort && authHasPort {
+		if imgHost == authHost {
+			score = 2
+		} else {
+			return 1
+		}
+	} else if !imgHasPort && !authHasPort {
+		score = 2
+	}
+
+	if authPath == "" {
+		return score
+	}
+
+	if imgPath == authPath {
+		return score + 2
+	}
+
+	if strings.HasPrefix(imgPath, authPath) {
+		if len(imgPath) == len(authPath) ||
+			(len(imgPath) > len(authPath) && imgPath[len(authPath)] == '/') {
+			return score + 1
+		}
+	}
+	return 0
+}
+
+func skipTLSVerifyFunc(selectedAuth *imageAuth, defaults bool) bool {
+	if selectedAuth != nil && selectedAuth.Insecure != nil {
+		return *selectedAuth.Insecure
 	}
 	return defaults
 }
@@ -337,16 +462,17 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 		if err != nil {
 			return errors.Wrapf(err, "failed to get remote repository %q", dest)
 		}
+		selectedAuth := selectAuth(dest, i.auths)
 		dst.Client = &auth.Client{
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: skipTLSVerifyFunc(dest, i.auths, *i.skipTLSVerify),
+						InsecureSkipVerify: skipTLSVerifyFunc(selectedAuth, *i.skipTLSVerify),
 					},
 				},
 			},
 			Cache:      auth.NewCache(),
-			Credential: authFunc(i.auths),
+			Credential: authFunc(selectedAuth),
 		}
 
 		dst.PlainHTTP = plainHTTPFunc(dest, i.auths, false)
