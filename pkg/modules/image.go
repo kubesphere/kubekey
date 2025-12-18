@@ -206,7 +206,7 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 			}
 		}
 
-		src.PlainHTTP = plainHTTPFunc(img, i.auths, false)
+		src.PlainHTTP = plainHTTPFunc(selectedAuth, false)
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", copyOption); err != nil {
 			return errors.Wrapf(err, "failed to pull image %q to local dir", img)
@@ -247,10 +247,7 @@ func authFunc(selectedAuth *imageAuth) func(ctx context.Context, hostport string
 
 func selectAuth(image string, authList []imageAuth) *imageAuth {
 	// remove tag and hash
-	repoPart, err := extractRepoFromImage(image)
-	if err != nil {
-		return nil
-	}
+	repoPart := extractRepoFromImage(image)
 
 	// parse image to url
 	imageURL, err := normalizeImageToURL(repoPart)
@@ -268,7 +265,7 @@ func selectAuth(image string, authList []imageAuth) *imageAuth {
 	}
 
 	var bestMatch *imageAuth
-	var bestMatchScore int = -1
+	var bestMatchScore = -1
 
 	// find biggest match point auth
 	for i := range authList {
@@ -309,30 +306,61 @@ func normalizeImageToURL(image string) (*url.URL, error) {
 // extractRepoFromImage handle image ,ignore tag and hash
 // like xxx/xxx:tag@sha256:xxx to xxx/xxx
 // like xxx/xxx:tag to xxx/xxx
-func extractRepoFromImage(image string) (string, error) {
+func extractRepoFromImage(image string) string {
+	if image == "" {
+		return ""
+	}
+
 	repoPart := image
 
-	if atIdx := strings.LastIndex(image, "@"); atIdx != -1 {
-		repoPart = image[:atIdx]
-	} else {
-		colonIdx := strings.LastIndex(image, ":")
-		if colonIdx != -1 {
-			// check if : used for port
-			// if port , string after : must contain /
-			substr := image[:colonIdx]
-			lastSlashIdx := strings.LastIndex(substr, "/")
-			if lastSlashIdx != -1 {
-				repoPart = substr
-			} else {
-				if strings.Contains(substr, ".") || strings.Contains(substr, ":") {
-				} else {
-					repoPart = substr
-				}
-			}
+	// handle image with hash
+	atIdx := strings.LastIndex(repoPart, "@")
+	if atIdx != -1 && atIdx > 0 {
+		afterAt := repoPart[atIdx+1:]
+		if isLikelyDigest(afterAt) {
+			repoPart = repoPart[:atIdx]
 		}
 	}
 
-	return repoPart, nil
+	// search /
+	firstSlashIdx := strings.Index(repoPart, "/")
+
+	if firstSlashIdx == -1 {
+		return repoPart
+	}
+
+	// search : for tag or port
+	lastColonIdx := strings.LastIndex(repoPart, ":")
+	if lastColonIdx == -1 {
+		return repoPart
+	}
+
+	if lastColonIdx < firstSlashIdx {
+		return repoPart
+	}
+
+	if lastColonIdx+1 < len(repoPart) {
+		afterColon := repoPart[lastColonIdx+1:]
+		if strings.Contains(afterColon, "/") {
+			return repoPart
+		}
+	}
+	return repoPart[:lastColonIdx]
+}
+
+func isLikelyDigest(s string) bool {
+	colonIdx := strings.Index(s, ":")
+	if colonIdx == -1 {
+		return false
+	}
+	algorithm := s[:colonIdx]
+	knownAlgorithms := []string{"sha256", "sha512", "sha384", "sha1", "md5"}
+	for _, algo := range knownAlgorithms {
+		if algorithm == algo {
+			return true
+		}
+	}
+	return false
 }
 
 // calculateMatchScore calculate image and path match point
@@ -343,34 +371,26 @@ func extractRepoFromImage(image string) (string, error) {
 // 4 for host:port and full path matched
 func calculateMatchScore(imgHost, imgHostNoPort, imgPath,
 	authHost, authHostNoPort, authPath string) int {
-
 	if imgHostNoPort != authHostNoPort {
 		return 0
 	}
-
 	score := 1
-
 	imgHasPort := strings.Contains(imgHost, ":")
 	authHasPort := strings.Contains(authHost, ":")
-
 	if imgHasPort && authHasPort {
-		if imgHost == authHost {
-			score = 2
-		} else {
+		if imgHost != authHost {
 			return 1
 		}
+		score = 2
 	} else if !imgHasPort && !authHasPort {
 		score = 2
 	}
-
 	if authPath == "" {
 		return score
 	}
-
 	if imgPath == authPath {
 		return score + 2
 	}
-
 	if strings.HasPrefix(imgPath, authPath) {
 		if len(imgPath) == len(authPath) ||
 			(len(imgPath) > len(authPath) && imgPath[len(authPath)] == '/') {
@@ -387,15 +407,9 @@ func skipTLSVerifyFunc(selectedAuth *imageAuth, defaults bool) bool {
 	return defaults
 }
 
-func plainHTTPFunc(img string, auths []imageAuth, defaults bool) bool {
-	imgHost := strings.Split(img, "/")[0]
-	for _, a := range auths {
-		if imgHost == a.Repo {
-			if a.PlainHTTP != nil {
-				return *a.PlainHTTP
-			}
-			return defaults
-		}
+func plainHTTPFunc(selectedAuth *imageAuth, defaults bool) bool {
+	if selectedAuth != nil && selectedAuth.PlainHTTP != nil {
+		return *selectedAuth.PlainHTTP
 	}
 	return defaults
 }
@@ -475,7 +489,7 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 			Credential: authFunc(selectedAuth),
 		}
 
-		dst.PlainHTTP = plainHTTPFunc(dest, i.auths, false)
+		dst.PlainHTTP = plainHTTPFunc(selectedAuth, false)
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
 			return errors.Wrapf(err, "failed to push image %q to remote", img)
