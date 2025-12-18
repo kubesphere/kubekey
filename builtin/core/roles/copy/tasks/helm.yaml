@@ -8,7 +8,9 @@
     artifact_path={{ .binary_dir }}/cni/calico
     target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/calico
     mkdir -p $target_path
-    cp $artifact_path/$artifact_name $target_path/
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
 
 - name: Helm | Ensure the Cilium binary is available
   when: 
@@ -19,7 +21,9 @@
     artifact_path={{ .binary_dir }}/cni/cilium
     target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/cilium
     mkdir -p $target_path
-    cp $artifact_path/$artifact_name $target_path/
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
 
 - name: Helm | Ensure the Flannel binary is available
   when: 
@@ -30,7 +34,9 @@
     artifact_path={{ .binary_dir }}/cni/flannel
     target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/flannel
     mkdir -p $target_path
-    cp $artifact_path/$artifact_name $target_path/
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
 
 - name: Helm | Ensure the Kube-OVN binary is available
   when: 
@@ -41,7 +47,9 @@
     artifact_path={{ .binary_dir }}/cni/kubeovn
     target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/kubeovn
     mkdir -p $target_path
-    cp $artifact_path/$artifact_name $target_path/
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
 
 - name: Helm | Ensure the Hybridnet binary is available
   when: 
@@ -52,7 +60,9 @@
     artifact_path={{ .binary_dir }}/cni/hybridnet
     target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/hybridnet
     mkdir -p $target_path
-    cp $artifact_path/$artifact_name $target_path/
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
 
 - name: Helm | Ensure the NFS Provisioner binary is available
   when: 
@@ -63,4 +73,6 @@
     artifact_path={{ .binary_dir }}/sc
     target_path={{ .artifact_file_dir }}/kubekey/kubekey/sc
     mkdir -p $target_path
-    cp $artifact_path/$artifact_name $target_path/
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
