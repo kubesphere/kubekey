@@ -8,6 +8,11 @@
   command: |
     artifact_name={{ get .download.artifact_url.etcd .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .item }}
+    url={{ get .download.artifact_url.etcd .item | trim }}
+    if [ "$url" = "" ] ; then
+      echo "url for etcd ({{ .item }}) not set"
+      exit 0
+    fi
     if [ ! -f $artifact_path/$artifact_name ]; then
       mkdir -p $artifact_path
       # Attempt to download etcd binary
@@ -26,6 +31,11 @@
   command: |
     kube_path={{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .item }}
     if [ ! -f $kube_path/kubelet ]; then
+      url={{ get .download.artifact_url.kubelet .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for kubelet ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $kube_path
       # Download kubelet if missing
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubelet .item }})
@@ -36,6 +46,11 @@
       curl -L -o $kube_path/kubelet {{ get .download.artifact_url.kubelet .item }}
     fi
     if [ ! -f $kube_path/kubeadm ]; then
+      url={{ get .download.artifact_url.kubeadm .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for kubeadm ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $kube_path
       # Download kubeadm if missing
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubeadm .item }})
@@ -46,6 +61,11 @@
       curl -L -o $kube_path/kubeadm {{ get .download.artifact_url.kubeadm .item }}
     fi
     if [ ! -f $kube_path/kubectl ]; then
+      url={{ get .download.artifact_url.kubectl .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for kubectl ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $kube_path
       # Download kubectl if missing
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubectl .item }})
@@ -59,11 +79,17 @@
 - name: Binary | Ensure CNI plugins are present
   tags: ["kubernetes"]
   loop: "{{ .download.arch | toJson }}"
-  when: .cni.cni_plugins_version | empty | not
+  when:
+  - .cni.cni_plugins_version | empty | not
   command: |
     artifact_name={{ get .download.artifact_url.cni_plugins .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/cni/plugins/{{ .cni.cni_plugins_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.cni_plugins .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for cni_plugins ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download CNI plugins
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.cni_plugins .item }})
@@ -77,11 +103,17 @@
 - name: Binary | Ensure Helm binary is present
   tags: ["kubernetes"]
   loop: "{{ .download.arch | toJson }}"
-  when: .kubernetes.helm_version | empty | not
+  when:
+  - .kubernetes.helm_version | empty | not
   command: |
     artifact_name={{ get .download.artifact_url.helm .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/helm/{{ .kubernetes.helm_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.helm .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for helm ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download Helm binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.helm .item }})
@@ -95,11 +127,17 @@
 - name: Binary | Ensure crictl binary is present
   tags: ["kubernetes"]
   loop: "{{ .download.arch | toJson }}"
-  when: .cri.crictl_version | empty | not
+  when:
+  - .cri.crictl_version | empty | not
   command: |
     artifact_name={{ get .download.artifact_url.crictl .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/crictl/{{ .cri.crictl_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.crictl .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for crictl ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download crictl binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.crictl .item }})
@@ -120,6 +158,11 @@
     artifact_name={{ get .download.artifact_url.docker .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/docker/{{ .cri.docker_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.docker .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for docker ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download Docker binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.docker .item }})
@@ -141,6 +184,11 @@
     artifact_name={{ get .download.artifact_url.cridockerd .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/cri-dockerd/{{ .cri.cridockerd_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.cridockerd .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for cridockerd ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download cri-dockerd binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.cridockerd .item }})
@@ -161,6 +209,11 @@
     artifact_name={{ get .download.artifact_url.containerd .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.containerd .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for containerd ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download containerd binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.containerd .item }})
@@ -181,6 +234,11 @@
     artifact_name={{ get .download.artifact_url.runc .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/runc/{{ .cri.runc_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.runc .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for runc ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download runc binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.runc .item }})
@@ -201,6 +259,11 @@
     artifact_name=calicoctl
     artifact_path={{ .binary_dir }}/cni/calico/{{ .cni.calico_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.calicoctl .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for calicoctl ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download calicoctl binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.calicoctl .item }})
@@ -221,6 +284,11 @@
     artifact_name={{ get .download.artifact_url.docker_registry .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/image-registry/docker-registry/{{ .image_registry.docker_registry_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.docker_registry .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for docker_registry ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download Docker Registry binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.docker_registry .item }})
@@ -241,6 +309,11 @@
     compose_name=docker-compose
     compose_path={{ .binary_dir }}/image-registry/docker-compose/{{ .cri.dockercompose_version }}/{{ .item }}
     if [ ! -f $compose_path/$compose_name ]; then
+      url={{ get .download.artifact_url.dockercompose .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for dockercompose ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $compose_path
       # Attempt to download docker-compose binary
       curl -L -o $compose_path/$compose_name {{ get .download.artifact_url.dockercompose .item }}
@@ -256,6 +329,11 @@
     harbor_name={{ get .download.artifact_url.harbor .item | splitList "/" | last }}
     harbor_path={{ .binary_dir }}/image-registry/harbor/{{ .image_registry.harbor_version }}/{{ .item }}
     if [ ! -f $harbor_path/$harbor_name ]; then
+      url={{ get .download.artifact_url.harbor .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for harbor ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $harbor_path
       # Attempt to download Harbor binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.harbor .item }})
@@ -277,6 +355,11 @@
     artifact_name={{ get .download.artifact_url.keepalived .item | splitList "/" | last }}
     artifact_path={{ .binary_dir }}/image-registry/keepalived/{{ .keepalived_version }}/{{ .item }}
     if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ get .download.artifact_url.keepalived .item | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for keepalived ({{ .item }}) not set"
+        exit 0
+      fi
       mkdir -p $artifact_path
       # Attempt to download keepalived binary
       http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.keepalived .item }})
