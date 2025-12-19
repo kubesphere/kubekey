@@ -80,8 +80,8 @@ func (c *localConnector) PutFile(_ context.Context, src []byte, dst string, mode
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "failed to stat local dir %q", dst)
 		}
-		if err := os.MkdirAll(filepath.Dir(dst), mode); err != nil {
-			return errors.Wrapf(err, "failed to create local dir %q", dst)
+		if err := os.MkdirAll(filepath.Dir(dst), _const.PermDirPublic); err != nil {
+			return errors.Wrapf(err, "failed to create local dir of path %q", dst)
 		}
 	}
 	if err := os.WriteFile(dst, src, mode); err != nil {

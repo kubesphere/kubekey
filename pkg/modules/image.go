@@ -26,6 +26,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -521,49 +522,186 @@ func dockerHostParser(img string) string {
 	return strings.Join(splitedImg, "/")
 }
 
-func authFunc(auths []imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
-	var creds = make(map[string]auth.Credential)
-	for _, inputAuth := range auths {
-		var rp = inputAuth.Repo
-		if rp == "docker.io" || rp == "" {
-			rp = "registry-1.docker.io"
+func authFunc(selectedAuth *imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
+	return func(_ context.Context, _ string) (auth.Credential, error) {
+		if selectedAuth == nil {
+			return auth.Credential{
+				Username: "",
+				Password: "",
+			}, nil
 		}
-		creds[rp] = auth.Credential{
-			Username: inputAuth.Username,
-			Password: inputAuth.Password,
-		}
-	}
-	return func(_ context.Context, hostport string) (auth.Credential, error) {
-		cred, ok := creds[hostport]
-		if !ok {
-			cred = auth.EmptyCredential
-		}
-		return cred, nil
+		return auth.Credential{
+			Username: selectedAuth.Username,
+			Password: selectedAuth.Password,
+		}, nil
 	}
 }
 
-func skipTLSVerifyFunc(img string, auths []imageAuth, defaults bool) bool {
-	imgHost := strings.Split(img, "/")[0]
-	for _, a := range auths {
-		if imgHost == a.Repo {
-			if a.Insecure != nil {
-				return *a.Insecure
-			}
-			return defaults
+func selectAuth(image string, authList []imageAuth) *imageAuth {
+	// remove tag and hash
+	repoPart := extractRepoFromImage(image)
+
+	// parse image to url
+	imageURL, err := normalizeImageToURL(repoPart)
+	if err != nil {
+		return nil
+	}
+
+	imageHost := imageURL.Host
+	imagePath := strings.TrimPrefix(imageURL.Path, "/")
+
+	// split port
+	imageHostWithoutPort := imageHost
+	if colonIdx := strings.Index(imageHost, ":"); colonIdx != -1 {
+		imageHostWithoutPort = imageHost[:colonIdx]
+	}
+
+	var bestMatch *imageAuth
+	var bestMatchScore = -1
+
+	// find biggest match point auth
+	for i := range authList {
+		authRepo := authList[i].Repo
+
+		authURL, err := normalizeImageToURL(authRepo)
+		if err != nil {
+			continue
 		}
+
+		authHost := authURL.Host
+		authPath := strings.TrimPrefix(authURL.Path, "/")
+
+		authHostWithoutPort := authHost
+		if colonIdx := strings.Index(authHost, ":"); colonIdx != -1 {
+			authHostWithoutPort = authHost[:colonIdx]
+		}
+
+		score := calculateMatchScore(imageHost, imageHostWithoutPort, imagePath,
+			authHost, authHostWithoutPort, authPath)
+
+		if score > bestMatchScore {
+			bestMatchScore = score
+			bestMatch = &authList[i]
+		}
+	}
+
+	return bestMatch
+}
+
+func normalizeImageToURL(image string) (*url.URL, error) {
+	if strings.HasPrefix(image, "http://") || strings.HasPrefix(image, "https://") {
+		return url.Parse(image)
+	}
+	return url.Parse("http://" + image)
+}
+
+// extractRepoFromImage handle image ,ignore tag and hash
+// like xxx/xxx:tag@sha256:xxx to xxx/xxx
+// like xxx/xxx:tag to xxx/xxx
+func extractRepoFromImage(image string) string {
+	if image == "" {
+		return ""
+	}
+
+	repoPart := image
+
+	// handle image with hash
+	atIdx := strings.LastIndex(repoPart, "@")
+	if atIdx != -1 && atIdx > 0 {
+		afterAt := repoPart[atIdx+1:]
+		if isLikelyDigest(afterAt) {
+			repoPart = repoPart[:atIdx]
+		}
+	}
+
+	// search /
+	firstSlashIdx := strings.Index(repoPart, "/")
+
+	if firstSlashIdx == -1 {
+		return repoPart
+	}
+
+	// search : for tag or port
+	lastColonIdx := strings.LastIndex(repoPart, ":")
+	if lastColonIdx == -1 {
+		return repoPart
+	}
+
+	if lastColonIdx < firstSlashIdx {
+		return repoPart
+	}
+
+	if lastColonIdx+1 < len(repoPart) {
+		afterColon := repoPart[lastColonIdx+1:]
+		if strings.Contains(afterColon, "/") {
+			return repoPart
+		}
+	}
+	return repoPart[:lastColonIdx]
+}
+
+func isLikelyDigest(s string) bool {
+	colonIdx := strings.Index(s, ":")
+	if colonIdx == -1 {
+		return false
+	}
+	algorithm := s[:colonIdx]
+	knownAlgorithms := []string{"sha256", "sha512", "sha384", "sha1", "md5"}
+	for _, algo := range knownAlgorithms {
+		if algorithm == algo {
+			return true
+		}
+	}
+	return false
+}
+
+// calculateMatchScore calculate image and path match point
+// 0 for not matched
+// 1 for host matched
+// 2 for host:port matched
+// 3 for host:port and prefix path matched
+// 4 for host:port and full path matched
+func calculateMatchScore(imgHost, imgHostNoPort, imgPath,
+	authHost, authHostNoPort, authPath string) int {
+	if imgHostNoPort != authHostNoPort {
+		return 0
+	}
+	score := 1
+	imgHasPort := strings.Contains(imgHost, ":")
+	authHasPort := strings.Contains(authHost, ":")
+	if imgHasPort && authHasPort {
+		if imgHost != authHost {
+			return 1
+		}
+		score = 2
+	} else if !imgHasPort && !authHasPort {
+		score = 2
+	}
+	if authPath == "" {
+		return score
+	}
+	if imgPath == authPath {
+		return score + 2
+	}
+	if strings.HasPrefix(imgPath, authPath) {
+		if len(imgPath) == len(authPath) ||
+			(len(imgPath) > len(authPath) && imgPath[len(authPath)] == '/') {
+			return score + 1
+		}
+	}
+	return 0
+}
+
+func skipTLSVerifyFunc(selectedAuth *imageAuth, defaults bool) bool {
+	if selectedAuth != nil && selectedAuth.Insecure != nil {
+		return *selectedAuth.Insecure
 	}
 	return defaults
 }
 
-func plainHTTPFunc(img string, auths []imageAuth, defaults bool) bool {
-	imgHost := strings.Split(img, "/")[0]
-	for _, a := range auths {
-		if imgHost == a.Repo {
-			if a.PlainHTTP != nil {
-				return *a.PlainHTTP
-			}
-			return defaults
-		}
+func plainHTTPFunc(selectedAuth *imageAuth, defaults bool) bool {
+	if selectedAuth != nil && selectedAuth.PlainHTTP != nil {
+		return *selectedAuth.PlainHTTP
 	}
 	return defaults
 }
@@ -610,19 +748,20 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 		if err != nil {
 			return errors.Wrapf(err, "failed to get remote repository %q", dest)
 		}
+		selectedAuth := selectAuth(dest, i.auths)
 		dst.Client = &auth.Client{
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: skipTLSVerifyFunc(dest, i.auths, *i.skipTLSVerify),
+						InsecureSkipVerify: skipTLSVerifyFunc(selectedAuth, *i.skipTLSVerify),
 					},
 				},
 			},
 			Cache:      auth.NewCache(),
-			Credential: authFunc(i.auths),
+			Credential: authFunc(selectedAuth),
 		}
 
-		dst.PlainHTTP = plainHTTPFunc(dest, i.auths, false)
+		dst.PlainHTTP = plainHTTPFunc(selectedAuth, false)
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
 			return errors.Wrapf(err, "failed to push image %q to remote", img)
@@ -1040,28 +1179,28 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 
 		filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			fmt.Println(err, "failed to create dir", "dir", filepath.Dir(filename))
+			klog.V(4).ErrorS(err, "failed to create dir", "dir", filepath.Dir(filename))
 
 			return responseServerError
 		}
 
 		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 		if err != nil {
-			fmt.Println(err, "failed to create file", "filename", filename)
+			klog.V(4).ErrorS(err, "failed to create file", "filename", filename)
 			return responseServerError
 		}
 
 		defer func() {
 			if err = file.Sync(); err != nil {
-				fmt.Println(err, "failed to sync file", "filename", filename)
+				klog.V(4).ErrorS(err, "failed to sync file", "filename", filename)
 			}
 			if err = file.Close(); err != nil {
-				fmt.Println(err, "failed to close file", "filename", filename)
+				klog.V(4).ErrorS(err, "failed to close file", "filename", filename)
 			}
 		}()
 
 		if _, err = io.Copy(file, request.Body); err != nil {
-			fmt.Println(err, "failed to write file", "filename", filename)
+			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
 
 			return responseServerError
 		}
@@ -1070,7 +1209,7 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "/manifests") { // manifests
 		body, err := io.ReadAll(request.Body)
 		if err != nil {
-			fmt.Println(err, "failed to read request")
+			klog.V(4).ErrorS(err, "failed to read request")
 
 			return responseServerError
 		}
@@ -1078,13 +1217,13 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			fmt.Println(err, "failed to create dir", "dir", filepath.Dir(filename))
+			klog.V(4).ErrorS(err, "failed to create dir", "dir", filepath.Dir(filename))
 
 			return responseServerError
 		}
 
 		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
-			fmt.Println(err, "failed to write file", "filename", filename)
+			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
 
 			return responseServerError
 		}

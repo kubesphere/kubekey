@@ -217,7 +217,10 @@ func (ca copyArgs) handleRelativePath(ctx context.Context, options ExecOptions, 
 }
 
 // copyAbsoluteDir copies all files from an absolute directory to the remote host.
-func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector) error {
+func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector) (resRrr error) {
+	defer func() {
+		resRrr = ca.ensureDestDirMode(ctx, conn)
+	}()
 	return filepath.WalkDir(ca.src, func(path string, d fs.DirEntry, err error) error {
 		// Only copy files, skip directories
 		if d.IsDir() {
@@ -234,25 +237,20 @@ func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector
 		}
 
 		mode := info.Mode()
-		if ca.mode != nil {
-			mode = os.FileMode(*ca.mode)
-		}
+
 		// read file
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read file %q", path)
 		}
 		// copy file to remote
-		dest := ca.dest
-		if strings.HasSuffix(ca.dest, "/") {
-			rel, err := filepath.Rel(ca.src, path)
-			if err != nil {
-				return errors.Wrap(err, "failed to get relative filepath")
-			}
-			dest = filepath.Join(ca.dest, rel)
+		rel, err := filepath.Rel(ca.src, path)
+		if err != nil {
+			return errors.Wrap(err, "failed to get relative filepath")
 		}
+		dest := filepath.Join(ca.dest, rel)
 
-		tmpDest := filepath.Join("/tmp", ca.dest)
+		tmpDest := filepath.Join("/tmp", dest)
 
 		if err = conn.PutFile(ctx, data, tmpDest, mode); err != nil {
 			return err
@@ -265,7 +263,10 @@ func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector
 }
 
 // copyRelativeDir copies all files from a relative directory (in the project) to the remote host.
-func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) error {
+func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relPath string, conn connector.Connector) (resRrr error) {
+	defer func() {
+		resRrr = ca.ensureDestDirMode(ctx, conn)
+	}()
 	return pj.WalkDir(relPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -281,24 +282,19 @@ func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relP
 		}
 
 		mode := info.Mode()
-		if ca.mode != nil {
-			mode = os.FileMode(*ca.mode)
-		}
 
 		data, err := pj.ReadFile(path)
 		if err != nil {
 			return errors.Wrap(err, "failed to read file")
 		}
 
-		dest := ca.dest
-		if strings.HasSuffix(ca.dest, "/") {
-			rel, err := pj.Rel(relPath, path)
-			if err != nil {
-				return errors.Wrap(err, "failed to get relative file path")
-			}
-			dest = filepath.Join(ca.dest, rel)
+		rel, err := pj.Rel(relPath, path)
+		if err != nil {
+			return errors.Wrap(err, "failed to get relative file path")
 		}
-		tmpDest := filepath.Join("/tmp", ca.dest)
+		dest := filepath.Join(ca.dest, rel)
+
+		tmpDest := filepath.Join("/tmp", dest)
 
 		err = conn.PutFile(ctx, data, tmpDest, mode)
 		if err != nil {
@@ -309,6 +305,17 @@ func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relP
 
 		return err
 	})
+}
+
+// ensureDestDirMode if mode args exists, ensure dest dir mode after all files copied
+func (ca copyArgs) ensureDestDirMode(ctx context.Context, conn connector.Connector) error {
+	if ca.mode != nil {
+		_, _, err := conn.ExecuteCommand(ctx, fmt.Sprintf("chmod %04o %s", *ca.mode, ca.dest))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // copyContent converts the content param and copies it to the destination file on the remote host.

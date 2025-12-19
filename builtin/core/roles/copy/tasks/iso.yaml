@@ -7,4 +7,6 @@
     if [ ! -f {{ .artifact_file_dir }}/kubekey/kubekey/repository/ ];then
       mkdir -p {{ .artifact_file_dir }}/kubekey/kubekey/repository/
     fi
-    cp $iso_path {{ .artifact_file_dir }}/kubekey/kubekey/repository/
+    if [ -f $iso_path ];then
+      cp $iso_path {{ .artifact_file_dir }}/kubekey/kubekey/repository/
+    fi
