@@ -22,7 +22,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"io"
 	"io/fs"
 	"net/http"
@@ -190,71 +189,36 @@ type manifestInfo struct {
 
 // pull retrieves images from a remote registry and stores them locally
 func (i imagePullArgs) pull(ctx context.Context, platform []string) error {
-
-	manifests := i.manifests
-	if len(manifests) == 0 {
-		return nil
-	}
-
-	maxWorkers := 10
-
-	// 创建任务队列
-	tasks := make(chan string, len(manifests))
-
-	worker := utils.Worker[string]{
-		MaxWorkerCount: maxWorkers,
-		TaskChan:       tasks,
-		ExecFunc: func(img string) error {
-			return i.downloadSingleImage(ctx, img, platform)
-		},
-	}
-
-	worker.Do(ctx)
-
-	// 发送任务
-	for _, img := range manifests {
-		tasks <- img
-	}
-	close(tasks)
-
-	// 等待所有 worker 完成
-	go func() {
-		worker.Wait()
-	}()
-
-	// 收集结果
-	var collectedErrors = worker.CollectedErrors()
-
-	if len(collectedErrors) > 0 {
-		return fmt.Errorf("download errors: %v", strings.Join(collectedErrors, "; "))
-	}
-	return nil
-}
-
-func (i imagePullArgs) downloadSingleImage(ctx context.Context, img string, platform []string) error {
-	img = normalizeImageNameSimple(img)
-	src, err := remote.NewRepository(img)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get remote image %s", img)
-	}
-	src.Client = &auth.Client{
-		Client: &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: skipTLSVerifyFunc(img, i.auths, *i.skipTLSVerify),
+	for _, img := range i.manifests {
+		img = normalizeImageNameSimple(img)
+		src, err := remote.NewRepository(img)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get remote image %s", img)
+		}
+		selectedAuth := selectAuth(img, i.auths)
+		src.Client = &auth.Client{
+			Client: &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: skipTLSVerifyFunc(selectedAuth, *i.skipTLSVerify),
+					},
 				},
 			},
-		},
-		Cache:      auth.NewCache(),
-		Credential: authFunc(i.auths),
-	}
-	dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
-	if err != nil {
-		return err
-	}
-	src.PlainHTTP = plainHTTPFunc(img, i.auths, false)
+			Cache:      auth.NewCache(),
+			Credential: authFunc(selectedAuth),
+		}
+		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
+		if err != nil {
+			return err
+		}
+		src.PlainHTTP = plainHTTPFunc(selectedAuth, false)
 
-	return imageSrcToDst(ctx, src, dst, img, platform)
+		if err = imageSrcToDst(ctx, src, dst, img, platform); err != nil {
+			return errors.Wrapf(err, "failed to pull image %q to local dir", img)
+		}
+	}
+
+	return nil
 }
 
 func imageSrcToDst(ctx context.Context, src, dst *remote.Repository, img string, platform []string) error {
@@ -523,17 +487,13 @@ func dockerHostParser(img string) string {
 }
 
 func authFunc(selectedAuth *imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
+	cred := auth.Credential{}
+	if selectedAuth != nil {
+		cred.Username = selectedAuth.Username
+		cred.Password = selectedAuth.Password
+	}
 	return func(_ context.Context, _ string) (auth.Credential, error) {
-		if selectedAuth == nil {
-			return auth.Credential{
-				Username: "",
-				Password: "",
-			}, nil
-		}
-		return auth.Credential{
-			Username: selectedAuth.Username,
-			Password: selectedAuth.Password,
-		}, nil
+		return cred, nil
 	}
 }
 
