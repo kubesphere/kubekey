@@ -60,27 +60,29 @@ state = "/run/containerd"
         [plugins."io.containerd.grpc.v1.cri".registry.configs]
 {{- end }}
 {{- if .image_registry.auth.registry | empty | not }}
-          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .image_registry.auth.registry }}".auth]
+  {{- $registry_parts := .image_registry.auth.registry | splitList "/" | first }}
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $registry_parts }}".auth]
             username = "{{ .image_registry.auth.username }}"
             password = "{{ .image_registry.auth.password }}"
-          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .image_registry.auth.registry }}".tls]
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $registry_parts }}".tls]
   {{- if .image_registry.auth.ca_file | empty | not }}
-            ca_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/ca.crt"
+            ca_file = "/etc/containerd/certs.d/{{ $registry_parts }}/ca.crt"
   {{- end }}
   {{- if .image_registry.auth.cert_file | empty | not }}
-            cert_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.crt"
+            cert_file = "/etc/containerd/certs.d/{{ $registry_parts }}/server.crt"
   {{- end }}
   {{- if .image_registry.auth.key_file | empty | not }}
-            key_file = "/etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.key"
+            key_file = "/etc/containerd/certs.d/{{ $registry_parts }}/server.key"
   {{- end }}
             insecure_skip_verify = {{ .image_registry.auth.insecure | default true }}
 {{- end }}
 {{- if .cri.registry.auths | empty | not }}
   {{- range .cri.registry.auths }}
-          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .repo }}".auth]
+    {{- $parts := .repo | splitList "/" | first }}
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $parts }}".auth]
             username = "{{ .username }}"
             password = "{{ .password }}"
-          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ .repo }}".tls]
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $parts  }}".tls]
     {{- if .ca_file }}
             ca_file = {{ .ca_file }}
     {{- end }}
