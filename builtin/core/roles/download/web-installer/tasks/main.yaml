@@ -1,0 +1,29 @@
+---
+- name: WebInstaller | Download web installer
+  when:
+    - .download.web_installer.download_web_installer
+    - .download.web_installer.url | empty | not
+    - .artifact_file_dir | empty | not
+  command: |
+    curl -L -o {{ .artifact_file_dir }}/web-installer.tgz {{ .download.web_installer.url }}
+    tar -xzf "{{ .artifact_file_dir }}/web-installer.tgz" --no-same-owner -C {{ .artifact_file_dir }}
+
+- name: WebInstaller | Set Ks Core
+  when:
+    - .download.kse_chart_version | empty | not
+  block:
+    - name: WebInstaller | Download ks core chart
+      command: |
+        helm pull oci://hub.kubesphere.com.cn/kse/ks-core --version {{ .download.kse_chart_version }} -d {{ .artifact_file_dir }}/kubesphere/playbooks/files/
+        mv {{ .artifact_file_dir }}/kubesphere/playbooks/files/ks-core-{{ .download.kse_chart_version }}.tgz {{ .artifact_file_dir }}/kubesphere/playbooks/files/ks-core.tgz
+    - name: WebInstaller | Set ks core install task
+      copy:
+        src: "install-{{ .download.kse_chart_version }}.yaml"
+        dest: "{{ .artifact_file_dir }}/kubesphere/playbooks/install.yaml"
+
+- name: WebInstaller | Init config json
+  when:
+    - .artifact_file_dir | empty | not
+  template:
+    src: config.json
+    dest: "{{ .artifact_file_dir }}/schema/config.json"
