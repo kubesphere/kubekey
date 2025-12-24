@@ -145,23 +145,19 @@ func getStringSlice(d map[string][]string, key string) []string {
 
 // kubeExtraArgs make kubeadm extra args of v1/beta4
 // for string/string extra argument maps, convert to structured extra arguments
-func kubeExtraArgs(input interface{}) []map[string]string {
-	result := []map[string]string{}
+func kubeExtraArgs(input any) []map[string]string {
 	v := reflect.ValueOf(input)
-	switch v.Kind() {
-	case reflect.Map:
-		iter := v.MapRange()
-		for iter.Next() {
-			key := iter.Key().String()
-			value := iter.Value()
-			var valueStr string
-			if value.CanInterface() {
-				valueStr = fmt.Sprintf("%v", value.Interface())
-			} else {
-				valueStr = value.String()
-			}
-			result = append(result, map[string]string{"name": key, "value": valueStr})
-		}
+	if v.Kind() != reflect.Map {
+		return []map[string]string{}
+	}
+
+	result := make([]map[string]string, 0, v.Len())
+	iter := v.MapRange()
+	for iter.Next() {
+		key := iter.Key().String()
+		value := iter.Value()
+		valueStr := fmt.Sprintf("%v", value.Interface())
+		result = append(result, map[string]string{"name": key, "value": valueStr})
 	}
 	return result
 }

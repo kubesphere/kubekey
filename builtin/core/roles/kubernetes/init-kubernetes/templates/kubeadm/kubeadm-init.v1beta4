@@ -235,7 +235,7 @@ tlsCipherSuites:
   - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
   - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
 {{- end }}
-{{- if .kubernetes.kubelet.feature_gates | empty | not }} 
+{{- if .kubernetes.kubelet.feature_gates | empty | not }}
 featureGates:
 {{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
 {{- end }}
