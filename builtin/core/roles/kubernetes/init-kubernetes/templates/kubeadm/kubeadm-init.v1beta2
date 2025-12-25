@@ -158,9 +158,6 @@ localAPIEndpoint:
   bindPort: {{ .kubernetes.apiserver.port }}
 nodeRegistration:
   criSocket: {{ .cri.cri_socket }}
-  kubeletExtraArgs:
-    cgroup-driver: {{ .cri.cgroup_driver }}
-    pod-infra-container-image: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
 
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
@@ -210,6 +207,7 @@ featureGates:
 {{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
 {{- end }}
 cgroupDriver: {{ .cri.cgroup_driver }}
+podSandboxImage: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
 containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
 {{- if .kubernetes.kubelet.extra_args | empty | not }}
