@@ -21,3 +21,6 @@ controlPlane:
 {{- end }}
 nodeRegistration:
   criSocket: {{ .cri.cri_socket }}
+  kubeletExtraArgs:
+    cgroup-driver: {{ .cri.cgroup_driver }}
+    pod-infra-container-image: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
