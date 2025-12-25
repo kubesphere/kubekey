@@ -1,6 +1,10 @@
 kubernetes:
   # helm binary
   helm_version: v3.12.1
+  control_plane_endpoint:
+    kube_vip:
+      image:
+        tag: v0.7.2
 etcd:
   # etcd binary
   etcd_version: v3.5.9
@@ -72,23 +76,24 @@ dns:
   dns_cache_image:
     tag: 1.22.20
 image_manifests:
-  - docker.io/calico/apiserver:v3.28.2
-  - docker.io/calico/cni:v3.28.2
-  - docker.io/calico/ctl:v3.28.2
-  - docker.io/calico/csi:v3.28.2
-  - docker.io/calico/kube-controllers:v3.28.2
-  - docker.io/calico/node-driver-registrar:v3.28.2
-  - docker.io/calico/node:v3.28.2
-  - docker.io/calico/pod2daemon-flexvol:v3.28.2
-  - docker.io/calico/typha:v3.28.2
-  - docker.io/kubesphere/coredns:v1.10.1
-  - docker.io/kubesphere/k8s-dns-node-cache:1.22.20
+  - docker.io/calico/apiserver:{{ .cni.calico_version }}
+  - docker.io/calico/cni:{{ .cni.calico_version }}
+  - docker.io/calico/ctl:{{ .cni.calico_version }}
+  - docker.io/calico/csi:{{ .cni.calico_version }}
+  - docker.io/calico/kube-controllers:{{ .cni.calico_version }}
+  - docker.io/calico/node-driver-registrar:{{ .cni.calico_version }}
+  - docker.io/calico/node:{{ .cni.calico_version }}
+  - docker.io/calico/pod2daemon-flexvol:{{ .cni.calico_version }}
+  - docker.io/calico/typha:{{ .cni.calico_version }}
+  - docker.io/kubesphere/coredns:{{ .dns.dns_image.tag }}
+  - docker.io/kubesphere/k8s-dns-node-cache:{{ .dns.dns_cache_image.tag }}
   - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
   - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
   - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
   - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/pause:3.8
-  - docker.io/openebs/linux-utils:3.4.0
-  - docker.io/openebs/provisioner-localpv:3.4.0
+  - docker.io/kubesphere/pause:{{ .cri.sandbox_image.tag }}
+  - docker.io/openebs/linux-utils:{{ .storage_class.local.linux_utils_image.tag }}
+  - docker.io/openebs/provisioner-localpv:{{ .storage_class.local.provisioner_image.tag }}
   - quay.io/tigera/operator:v1.34.5
   - docker.io/library/haproxy:2.9.6-alpine
+  - docker.io/plndr/kube-vip:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}
