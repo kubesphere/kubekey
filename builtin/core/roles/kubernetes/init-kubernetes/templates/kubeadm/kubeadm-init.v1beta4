@@ -73,7 +73,7 @@ apiServer:
       value: /etc/kubernetes/audit/webhook.yaml
 {{- end }}
 {{- if .kubernetes.apiserver.extra_args | empty | not }}
-{{ kubeExtraArgs .kubernetes.apiserver.extra_args | toYaml | indent 4 }}
+{{ mapToNamedStringArgs .kubernetes.apiserver.extra_args | toYaml | indent 4 }}
 {{- end }}
   certSANs:
     - localhost
@@ -143,7 +143,7 @@ controllerManager:
   {{- end }}
 {{- end }}
 {{- if .kubernetes.controller_manager.extra_args }}
-{{ kubeExtraArgs .kubernetes.controller_manager.extra_args | toYaml | indent 4 }}
+{{ mapToNamedStringArgs .kubernetes.controller_manager.extra_args | toYaml | indent 4 }}
 {{- end }}
   extraVolumes:
     - name: host-time
@@ -172,7 +172,7 @@ scheduler:
   {{- end }}
 {{- end }}
 {{- if .kubernetes.scheduler.extra_args }}
-{{ kubeExtraArgs .kubernetes.scheduler.extra_args | toYaml | indent 4 }}
+{{ mapToNamedStringArgs .kubernetes.scheduler.extra_args | toYaml | indent 4 }}
 {{- end }}
 ---
 apiVersion: kubeadm.k8s.io/v1beta4

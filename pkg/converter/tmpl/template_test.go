@@ -264,7 +264,7 @@ func TestParseValue(t *testing.T) {
 		},
 		{
 			name:  "make kubeadm extra args from map",
-			input: "{{ kubeExtraArgs .foo | toYaml }}",
+			input: "{{ mapToNamedStringArgs .foo | toYaml }}",
 			variable: map[string]any{
 				"foo": map[string]any{
 					"foo": "bar1",

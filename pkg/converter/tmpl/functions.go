@@ -33,7 +33,7 @@ func funcMap() template.FuncMap {
 	f["fileExist"] = fileExist
 	f["unquote"] = unquote
 	f["getStringSlice"] = getStringSlice
-	f["kubeExtraArgs"] = kubeExtraArgs
+	f["mapToNamedStringArgs"] = mapToNamedStringArgs
 
 	return f
 }
@@ -143,9 +143,9 @@ func getStringSlice(d map[string][]string, key string) []string {
 	return nil
 }
 
-// kubeExtraArgs make kubeadm extra args of v1/beta4
+// mapToNamedStringArgs make kubeadm extra args of v1/beta4
 // for string/string extra argument maps, convert to structured extra arguments
-func kubeExtraArgs(input any) []map[string]string {
+func mapToNamedStringArgs(input any) []map[string]string {
 	v := reflect.ValueOf(input)
 	if v.Kind() != reflect.Map {
 		return []map[string]string{}
