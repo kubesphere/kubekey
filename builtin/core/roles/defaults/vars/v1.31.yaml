@@ -101,3 +101,4 @@ image_manifests:
   - docker.io/library/haproxy:{{ .kubernetes.control_plane_endpoint.haproxy.image.tag }}
   - docker.io/plndr/kube-vip:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}
 
+

@@ -1,0 +1,165 @@
+---
+- name: ScalingDown | Execute actions on etcd nodes scheduled for removal
+  block:
+    - name: ScalingDown | Remove etcd member from cluster
+      run_once: true
+      delegate_to: "{{ .installed_etcd }}"
+      when:
+        - .need_uninstall_etcd | default "[]" | fromJson | empty | not
+      command: |
+        {{- $need_uninstall_etcd_hosts := list -}}
+        {{- range (.need_uninstall_etcd | default "[]" | fromJson) -}}
+          {{- $need_uninstall_etcd_hosts = append $need_uninstall_etcd_hosts (index $.hostvars . "hostname") -}}
+        {{- end -}}
+        for hostname in {{ $need_uninstall_etcd_hosts | join " " }};do
+          # Get the member ID of the node to be removed
+          MEMBER_ID=$(ETCDCTL_API=3 etcdctl \
+            --endpoints=https://localhost:2379 \
+            --cacert=/etc/ssl/etcd/ssl/ca.crt \
+            --cert=/etc/ssl/etcd/ssl/server.crt \
+            --key=/etc/ssl/etcd/ssl/server.key \
+            member list | grep $hostname | awk -F',' '{print $1}')
+
+          if [ -z "$MEMBER_ID" ]; then
+            echo "Member does not exist, skipping removal."
+            exit 0
+          fi
+          echo "Removing member $MEMBER_ID"
+
+          # Remove the member from the etcd cluster
+          ETCDCTL_API=3 etcdctl \
+            --endpoints=https://localhost:2379 \
+            --cacert=/etc/ssl/etcd/ssl/ca.crt \
+            --cert=/etc/ssl/etcd/ssl/server.crt \
+            --key=/etc/ssl/etcd/ssl/server.key \
+            member remove "$MEMBER_ID"
+
+          ############################################
+          # Wait for the member ID to disappear from the list (ensure removal has been committed)
+          ############################################
+          echo "Waiting for member $MEMBER_ID to disappear from the cluster..."
+
+          for i in $(seq 1 60); do
+            STILL_PRESENT=$(ETCDCTL_API=3 etcdctl \
+              --endpoints=https://localhost:2379 \
+              --cacert=/etc/ssl/etcd/ssl/ca.crt \
+              --cert=/etc/ssl/etcd/ssl/server.crt \
+              --key=/etc/ssl/etcd/ssl/server.key \
+              member list | awk -F',' '{print $1}' | grep -w "$MEMBER_ID" || true)
+
+            if [ -z "$STILL_PRESENT" ]; then
+              echo "Member $MEMBER_ID successfully removed from the cluster."
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ -n "$STILL_PRESENT" ]; then
+            echo "ERROR: Timeout waiting for member $MEMBER_ID to be removed."
+            exit 1
+          fi
+
+          ############################################
+          # Wait for an etcd leader to exist (ensure quorum has recovered)
+          ############################################
+          echo "Waiting for etcd leader to be present..."
+          ALL_ENDPOINTS=$(ETCDCTL_API=3 etcdctl \
+            --endpoints=https://localhost:2379 \
+            --cacert=/etc/ssl/etcd/ssl/ca.crt \
+            --cert=/etc/ssl/etcd/ssl/server.crt \
+            --key=/etc/ssl/etcd/ssl/server.key \
+            member list | awk -F',' '{gsub(/^ +| +$/,"",$5); print $5}' | tr '\n' ',' | sed 's/,$//')
+
+          if [ -z "$ALL_ENDPOINTS" ]; then
+            echo "ERROR: Cannot get endpoints from etcd member list"
+            exit 1
+          fi
+
+          for i in $(seq 1 60); do
+            # endpoint status text format fields:
+            # endpoint, ID, DB SIZE, IS LEADER, LEADER ID
+            LEADER_LINE=$(ETCDCTL_API=3 etcdctl \
+              --endpoints="$ALL_ENDPOINTS" \
+              --cacert=/etc/ssl/etcd/ssl/ca.crt \
+              --cert=/etc/ssl/etcd/ssl/server.crt \
+              --key=/etc/ssl/etcd/ssl/server.key \
+              endpoint status | awk -F',' '{print $8}' | grep -v "^$" | head -n1)
+
+            if [ -n "$LEADER" ] && [ "$LEADER" != "0" ]; then
+              echo "Leader is present: $LEADER"
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ -z "$LEADER" ] || [ "$LEADER" = "0" ]; then
+            echo "ERROR: No leader found after member removal."
+            exit 1
+          fi
+
+          echo "ETCD member $MEMBER_ID removed and quorum is stable."
+        done
+    - name: ScalingDown | delete etcd
+      # If need_uninstall_etcd is empty, remove the entire cluster.
+      # If need_uninstall_etcd is not empty, remove only the specified node.
+      when: >-
+        or 
+          (.need_uninstall_etcd | default "[]" | fromJson | empty)
+          (.need_uninstall_etcd | default "[]" | fromJson | has .inventory_hostname)
+      block: 
+        - name: ScalingDown | Stop and disable the etcd systemd service
+          ignore_errors: true
+          command: |
+            systemctl stop etcd.service
+            systemctl disable etcd.service
+            rm -rf /etc/systemd/system/etcd.service*
+            systemctl daemon-reload
+            systemctl reset-failed etcd.service
+        - name: ScalingDown | Remove traffic prioritization rules for etcd ports
+          when: .etcd.traffic_priority
+          command: |
+            tc filter del dev eth0 parent 1: protocol ip prio 1 u32 match ip sport 2379 0xffff
+            tc filter del dev eth0 parent 1: protocol ip prio 1 u32 match ip sport 2380 0xffff
+        - name: ScalingDown | Delete all etcd data, configuration, and binaries
+          command: |
+            rm -rf {{ .etcd.env.data_dir }}
+            rm -rf /etc/ssl/etcd/
+            rm -rf /etc/etcd.env
+            rm -rf /usr/local/bin/etcd*
+            rm -rf /var/lib/etcd*
+        - name: ScalingDown | Remove backup-etcd timer, service, and backup scripts
+          ignore_errors: true
+          command: |
+            systemctl disable --now backup-etcd.timer
+            rm /etc/systemd/system/backup-etcd.timer
+            rm -rf /etc/systemd/system/backup-etcd.service*
+            rm /usr/local/bin/kube-scripts/backup_etcd.sh
+            systemctl daemon-reexec && systemctl daemon-reload
+
+- name: ScalingDown | Restart etcd cluster on remaining members
+  when:
+    - .need_uninstall_etcd | default "[]" | fromJson | empty | not
+    - .etcd_install_LoadState.stdout | eq "loaded"
+    - .need_uninstall_etcd | default "[]" | fromJson | has .inventory_hostname | not
+  block:
+    - name: ScalingDown | Restart the etcd service
+      command: |
+        systemctl restart etcd.service
+    - name: ScalingDown | Wait for etcd service to become healthy
+      command: |
+        for ((i=1; i<=12; i++)); do
+          if ETCDCTL_API=3 etcdctl \
+            --endpoints=https://localhost:2379 \
+            --cacert=/etc/ssl/etcd/ssl/ca.crt \
+            --cert=/etc/ssl/etcd/ssl/server.crt \
+            --key=/etc/ssl/etcd/ssl/server.key \
+            endpoint health >/dev/null 2>&1; then
+            echo "✅ etcd is healthy"
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "❌ etcd did not become healthy within 1 minute"
+        exit 1
