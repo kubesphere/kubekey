@@ -5,6 +5,9 @@ kubernetes:
     kube_vip:
       image:
         tag: v0.7.2
+    haproxy:
+      image:
+        tag: 2.9.6-alpine
 etcd:
   # etcd binary
   etcd_version: v3.5.11
@@ -95,6 +98,6 @@ image_manifests:
   - docker.io/openebs/linux-utils:{{ .storage_class.local.linux_utils_image.tag }}
   - docker.io/openebs/provisioner-localpv:{{ .storage_class.local.provisioner_image.tag }}
   - quay.io/tigera/operator:v1.34.5
-  - docker.io/library/haproxy:2.9.6-alpine
+  - docker.io/library/haproxy:{{ .kubernetes.control_plane_endpoint.haproxy.image.tag }}
   - docker.io/plndr/kube-vip:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}
 
