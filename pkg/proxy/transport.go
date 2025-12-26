@@ -18,6 +18,7 @@ package proxy
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"sort"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/managedfields"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	apiendpoints "k8s.io/apiserver/pkg/endpoints"
@@ -42,7 +44,6 @@ import (
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/internal"
@@ -90,6 +91,7 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		lt.restClient = clientFor
 	}
 
+	var apiGroups []metav1.APIGroup
 	// register kkcorev1alpha1 resources
 	kkv1alpha1 := newAPIIResources(kkcorev1alpha1.SchemeGroupVersion)
 	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion))
@@ -111,6 +113,19 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	if err := lt.registerResources(kkv1alpha1); err != nil {
 		return nil, err
 	}
+	apiGroups = append(apiGroups, metav1.APIGroup{
+		Name: kkv1alpha1.gv.Group,
+		Versions: []metav1.GroupVersionForDiscovery{
+			{
+				GroupVersion: kkv1alpha1.gv.String(),
+				Version:      kkv1alpha1.gv.Version,
+			},
+		},
+		PreferredVersion: metav1.GroupVersionForDiscovery{
+			GroupVersion: kkv1alpha1.gv.String(),
+			Version:      kkv1alpha1.gv.Version,
+		},
+	})
 
 	// when restConfig is null. should store all resource local
 	if restConfig.Host == "" {
@@ -148,7 +163,51 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		if err := lt.registerResources(kkv1); err != nil {
 			return nil, err
 		}
+		apiGroups = append(apiGroups, metav1.APIGroup{
+			Name: kkv1.gv.Group,
+			Versions: []metav1.GroupVersionForDiscovery{
+				{
+					GroupVersion: kkv1.gv.String(),
+					Version:      kkv1.gv.Version,
+				},
+			},
+			PreferredVersion: metav1.GroupVersionForDiscovery{
+				GroupVersion: kkv1.gv.String(),
+				Version:      kkv1.gv.Version,
+			},
+		})
 	}
+
+	lt.registerRouter(http.MethodGet, "/api", func(w http.ResponseWriter, r *http.Request) {
+		obj := &metav1.APIVersions{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "APIVersions",
+				APIVersion: "v1",
+			},
+			Versions: []string{"v1"},
+		}
+		if err := json.NewEncoder(w).Encode(obj); err != nil {
+			klog.ErrorS(err, "failed to encode /api")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}, true)
+	lt.registerRouter(http.MethodGet, "/apis", func(w http.ResponseWriter, r *http.Request) {
+		obj := &metav1.APIGroupList{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "APIGroupList",
+				APIVersion: "v1",
+			},
+			Groups: apiGroups,
+		}
+		if err := json.NewEncoder(w).Encode(obj); err != nil {
+			klog.ErrorS(err, "failed to encode /api")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}, true)
 
 	return lt, nil
 }
@@ -196,7 +255,7 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 		Proto:  "local",
 		Header: make(http.Header),
 	}
-	// dispatch request
+	request = request.WithContext(audit.WithAuditContext(request.Context()))
 	handler, err := l.detectDispatcher(request)
 	if err != nil {
 		return response, err
@@ -307,10 +366,6 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 		MetaGroupVersion:            metav1.SchemeGroupVersion,
 		MaxRequestBodyBytes:         0,
 	}
-	var resetFields map[fieldpath.APIVersion]*fieldpath.Set
-	if resetFieldsStrategy, isResetFieldsStrategy := o.storage.(apirest.ResetFieldsStrategy); isResetFieldsStrategy {
-		resetFields = resetFieldsStrategy.GetResetFields()
-	}
 	reqScope.FieldManager, err = managedfields.NewDefaultFieldManager(
 		managedfields.NewDeducedTypeConverter(),
 		_const.Scheme,
@@ -319,7 +374,7 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 		fqKindToRegister,
 		reqScope.HubGroupVersion,
 		o.subresource,
-		resetFields,
+		nil,
 	)
 	if err != nil {
 		return apihandlers.RequestScope{}, errors.Wrap(err, "failed to create default fieldManager")
