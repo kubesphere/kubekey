@@ -2,7 +2,9 @@
 - name: Join | Generate kubeadm join configuration file
   template:
     src: >-
-      {{- if .kubernetes.kube_version | semverCompare ">=v1.24.0" -}}
+      {{- if .kubernetes.kube_version | semverCompare ">=v1.31.0" -}}
+      kubeadm/kubeadm-join.v1beta4
+      {{- else if .kubernetes.kube_version | semverCompare ">=v1.24.0" -}}
       kubeadm/kubeadm-join.v1beta3
       {{- else -}}
       kubeadm/kubeadm-join.v1beta2

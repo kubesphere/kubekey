@@ -263,6 +263,16 @@ func TestParseValue(t *testing.T) {
 			excepted: []byte("[bar1 bar2]"),
 		},
 		{
+			name:  "make kubeadm extra args from map",
+			input: "{{ mapToNamedStringArgs .foo | toYaml }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": "bar1",
+				},
+			},
+			excepted: []byte("- name: foo\n  value: bar1"),
+		},
+		{
 			name:  "multi level 2",
 			input: "{{ index .foo \"foo\" }}",
 			variable: map[string]any{

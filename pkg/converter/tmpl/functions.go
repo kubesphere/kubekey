@@ -1,9 +1,11 @@
 package tmpl
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"text/template"
@@ -31,6 +33,7 @@ func funcMap() template.FuncMap {
 	f["fileExist"] = fileExist
 	f["unquote"] = unquote
 	f["getStringSlice"] = getStringSlice
+	f["mapToNamedStringArgs"] = mapToNamedStringArgs
 
 	return f
 }
@@ -138,4 +141,23 @@ func getStringSlice(d map[string][]string, key string) []string {
 		return val
 	}
 	return nil
+}
+
+// mapToNamedStringArgs make kubeadm extra args of v1/beta4
+// for string/string extra argument maps, convert to structured extra arguments
+func mapToNamedStringArgs(input any) []map[string]string {
+	v := reflect.ValueOf(input)
+	if v.Kind() != reflect.Map {
+		return []map[string]string{}
+	}
+
+	result := make([]map[string]string, 0, v.Len())
+	iter := v.MapRange()
+	for iter.Next() {
+		key := iter.Key().String()
+		value := iter.Value()
+		valueStr := fmt.Sprintf("%v", value.Interface())
+		result = append(result, map[string]string{"name": key, "value": valueStr})
+	}
+	return result
 }
