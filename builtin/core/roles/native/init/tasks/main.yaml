@@ -3,7 +3,7 @@
     hostnamectl set-hostname {{ .inventory_hostname }} \
       && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' {{ .item }}
   when: 
-    - .set_hostname
+    - .native.set_hostname
     - .inventory_hostname | ne "localhost"
   loop: "{{ .native.localDNS | toJson }}"
 - name: OS | Synchronize initialization script to remote node
