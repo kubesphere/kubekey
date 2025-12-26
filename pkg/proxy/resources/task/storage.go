@@ -27,7 +27,6 @@ import (
 	apiregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	apistorage "k8s.io/apiserver/pkg/storage"
-	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 )
 
 // TaskStorage storage for Task
@@ -72,11 +71,6 @@ func (r *StatusREST) Update(ctx context.Context, name string, objInfo apirest.Up
 	// We are explicitly setting forceAllowCreate to false in the call to the underlying storage because
 	// subresources should never allow create on update.
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation, false, options)
-}
-
-// GetResetFields implements rest.ResetFieldsStrategy
-func (r *StatusREST) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
-	return r.store.GetResetFields()
 }
 
 // ConvertToTable print table view

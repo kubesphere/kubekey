@@ -68,12 +68,6 @@ type fileStorage struct {
 	newFunc func() runtime.Object
 }
 
-// ReadinessCheck implements storage.Interface.
-func (s *fileStorage) ReadinessCheck() error {
-	// only need filesystem is ok. nothing to check.
-	return nil
-}
-
 var _ apistorage.Interface = &fileStorage{}
 
 // Versioner of local resource files.
@@ -117,7 +111,7 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 }
 
 // Delete local resource files.
-func (s fileStorage) Delete(ctx context.Context, key string, out runtime.Object, preconditions *apistorage.Preconditions, validateDeletion apistorage.ValidateObjectFunc, cachedExistingObject runtime.Object) error {
+func (s *fileStorage) Delete(ctx context.Context, key string, out runtime.Object, preconditions *apistorage.Preconditions, validateDeletion apistorage.ValidateObjectFunc, cachedExistingObject runtime.Object, opts apistorage.DeleteOptions) error {
 	if cachedExistingObject != nil {
 		out = cachedExistingObject
 	} else {
@@ -430,56 +424,49 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	return nil
 }
 
-// Count local resource file
-func (s fileStorage) Count(key string) (int64, error) {
-	// countByNSDir count the crd files by namespace dir.
-	countByNSDir := func(dir string) (int64, error) {
-		var count int64
-		entries, err := os.ReadDir(dir)
-		if err != nil { // cannot read namespace dir
-			return 0, errors.Wrapf(err, "failed to read namespaces dir %q", dir)
-		}
-		// count the file
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), yamlSuffix) {
-				count++
-			}
-		}
+// Stats implements storage.Interface.
+func (s *fileStorage) Stats(ctx context.Context) (apistorage.Stats, error) {
+	return apistorage.Stats{}, nil
+}
 
-		return count, nil
+// ReadinessCheck implements storage.Interface.
+func (s *fileStorage) ReadinessCheck() error {
+	// Ensure the storage root exists and is accessible.
+	if s.prefix == "" {
+		return errors.New("storage prefix is empty")
 	}
 
-	switch len(filepath.SplitList(strings.TrimPrefix(key, s.prefix))) {
-	case 0: // count all namespace's resources
-		var count int64
-		rootEntries, err := os.ReadDir(key)
-		if err != nil && !os.IsNotExist(err) {
-			return 0, errors.Wrapf(err, "failed to read runtime dir %q", key)
-		}
-		for _, ns := range rootEntries {
-			if !ns.IsDir() {
-				continue
-			}
-			// the next dir is namespace.
-			c, err := countByNSDir(filepath.Join(key, ns.Name()))
-			if err != nil {
-				return 0, err
-			}
-			count += c
-		}
-
-		return count, nil
-	case 1: // count a namespace's resources
-		return countByNSDir(key)
-	default:
-		// not support key
-		return 0, errors.Errorf("key is invalid: %s", key)
+	info, err := os.Stat(s.prefix)
+	if err != nil {
+		return errors.Wrapf(err, "storage prefix %q is not accessible", s.prefix)
 	}
+
+	if !info.IsDir() {
+		return errors.Errorf("storage prefix %q is not a directory", s.prefix)
+	}
+
+	return nil
 }
 
 // RequestWatchProgress do nothing.
 func (s fileStorage) RequestWatchProgress(context.Context) error {
 	return nil
+}
+
+// GetCurrentResourceVersion implements storage.Interface.
+func (s *fileStorage) GetCurrentResourceVersion(ctx context.Context) (uint64, error) {
+	return 0, nil
+}
+
+// SetKeysFunc implements storage.Interface.
+func (s *fileStorage) SetKeysFunc(apistorage.KeysFunc) {
+	// no-op: file storage does not support key override
+}
+
+// CompactRevision returns the compacted revision number for fileStorage.
+// Since fileStorage does not manage revisions, this always returns 0.
+func (s fileStorage) CompactRevision() int64 {
+	return 0
 }
 
 func getNewItem(listObj runtime.Object, v reflect.Value) runtime.Object {

@@ -20,14 +20,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/versioning"
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
 	apistorage "k8s.io/apiserver/pkg/storage"
-	cacherstorage "k8s.io/apiserver/pkg/storage/cacher"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	cgtoolscache "k8s.io/client-go/tools/cache"
@@ -84,32 +82,14 @@ func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, ex
 			indexers *cgtoolscache.Indexers) (apistorage.Interface, factory.DestroyFunc, error) {
 			s, d := newFileStorage(prefix, resource, storageConfig.Codec, newFunc)
 
-			cacherConfig := cacherstorage.Config{
-				Storage:        s,
-				Versioner:      apistorage.APIObjectVersioner{},
-				GroupResource:  storageConfig.GroupResource,
-				ResourcePrefix: resourcePrefix,
-				KeyFunc:        keyFunc,
-				NewFunc:        newFunc,
-				NewListFunc:    newListFunc,
-				GetAttrsFunc:   getAttrsFunc,
-				IndexerFuncs:   triggerFuncs,
-				Indexers:       indexers,
-				Codec:          storageConfig.Codec,
-			}
-			cacher, err := cacherstorage.NewCacherFromConfig(cacherConfig)
-			if err != nil {
-				return nil, func() {}, errors.Wrap(err, "failed to new cache")
-			}
 			var once sync.Once
 			destroyFunc := func() {
 				once.Do(func() {
-					cacher.Stop()
 					d()
 				})
 			}
 
-			return cacher, destroyFunc, nil
+			return s, destroyFunc, nil
 		},
 		EnableGarbageCollection:   false,
 		DeleteCollectionWorkers:   0,
