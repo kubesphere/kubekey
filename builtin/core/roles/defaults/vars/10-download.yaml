@@ -217,6 +217,10 @@ download:
     nfs_provisioner: https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
   download_image: false
   download_iso: false
+  web_installer:
+    download_web_installer: false
+    url: >-
+      https://kubekey.pek3b.qingstor.com/github.com/kubesphere/web-installer/releases/latest/download/web-installer.tgz
   iso_url:
     base_path: >-
       {{- if .download.zone | eq "cn" -}}
