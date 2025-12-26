@@ -60,20 +60,20 @@ Harbor is the default image registry.
 
 1. Precheck before installation
 ```shell
-kk precheck image_registry -i inventory.yaml --set harbor_version=v2.10.1,docker_version=24.0.7,dockercompose_version=v2.20.3
+kk precheck image_registry -i inventory.yaml --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3
 ```
 
 2. Installation
 - Standalone installation
 `image_registry` can be installed independently of the cluster.
 ```shell
-kk init registry -i inventory.yaml --set harbor_version=v2.10.1,docker_version=24.0.7,dockercompose_version=v2.20.3
+kk init registry -i inventory.yaml --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3
 ```
 
 - Automatic installation during cluster creation
 When creating a cluster, KubeKey will detect if `harbor` is installed on `image_registry` nodes; if not, it will install `harbor` based on configuration.
 ```shell
-kk create cluster -i inventory.yaml --set harbor_version=v2.10.1,docker_version=24.0.7,dockercompose_version=v2.20.3
+kk create cluster -i inventory.yaml --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3
 ```
 
 ### Harbor High Availability
@@ -93,7 +93,7 @@ KubeKey method, suitable for server deployment.
 
 Installation example:
 ```shell
-./kk init registry -i inventory.yaml --set image_registry.ha_vip=xx.xx.xx.xx --set harbor_version=v2.10.1,docker_version=24.0.7,dockercompose_version=v2.20.3 --set keepalived_version=2.0.20,artifact.artifact_url.keepalived.amd64=keepalived-2.0.20-linux-amd64.tgz
+./kk init registry -i inventory.yaml --set image_registry.ha_vip=xx.xx.xx.xx --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3 --set keepalived_version=2.0.20,artifact.artifact_url.keepalived.amd64=keepalived-2.0.20-linux-amd64.tgz
 ```
 
 Steps:

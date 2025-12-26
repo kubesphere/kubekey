@@ -22,6 +22,8 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 func TestCombineSlice(t *testing.T) {
@@ -126,7 +128,7 @@ func TestHostsInGroup(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(t, tc.except, hostsInGroup(tc.inventory, tc.groupName))
+			assert.ElementsMatch(t, tc.except, hostsInGroup(tc.inventory, tc.groupName, utils.NewKahnGraph()))
 		})
 	}
 }

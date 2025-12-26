@@ -212,25 +212,37 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	return lt, nil
 }
 
+// responseWriter implements http.ResponseWriter for capturing HTTP responses locally.
+// It writes response body to an internal buffer but directly sets headers/status on the *http.Response.
 type responseWriter struct {
-	*http.Response
+	resp *http.Response // The response object to write headers and status to.
+	buf  bytes.Buffer   // Buffer to capture the response body.
 }
 
-// Header get header for responseWriter
+// Header returns the header map that will be sent by WriteHeader.
 func (r *responseWriter) Header() http.Header {
-	return r.Response.Header
+	return r.resp.Header
 }
 
-// Write body for responseWriter
+// Write writes the data to the buffer as part of the HTTP response body.
 func (r *responseWriter) Write(bs []byte) (int, error) {
-	r.Response.Body = io.NopCloser(bytes.NewBuffer(bs))
-
-	return 0, nil
+	return r.buf.Write(bs)
 }
 
-// WriteHeader writer header for responseWriter
+// WriteHeader sets the HTTP status code in the response.
 func (r *responseWriter) WriteHeader(statusCode int) {
-	r.Response.StatusCode = statusCode
+	r.resp.StatusCode = statusCode
+}
+
+// finalize prepares the http.Response by setting its Body to the contents of the buffer.
+// If the status code has not been set, it defaults to http.StatusOK (200).
+func (r *responseWriter) finalize() {
+	// Set the HTTP response body to the buffered data.
+	r.resp.Body = io.NopCloser(bytes.NewReader(r.buf.Bytes()))
+	// Default status code to 200 OK if it was not set by the handler.
+	if r.resp.StatusCode == 0 {
+		r.resp.StatusCode = http.StatusOK
+	}
 }
 
 type transport struct {
@@ -260,8 +272,10 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 	if err != nil {
 		return response, err
 	}
-	// call handler
-	l.handlerChainFunc(handler).ServeHTTP(&responseWriter{response}, request)
+	// Use a buffered responseWriter to collect the complete response
+	rw := &responseWriter{resp: response}
+	l.handlerChainFunc(handler).ServeHTTP(rw, request)
+	rw.finalize()
 
 	return response, nil
 }

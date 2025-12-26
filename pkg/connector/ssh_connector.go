@@ -17,6 +17,7 @@ limitations under the License.
 package connector
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -120,6 +122,8 @@ type sshConnector struct {
 	shell string
 
 	gatherFacts *cacheGatherFact
+
+	mu sync.Mutex
 }
 
 // Init connector, get ssh.Client
@@ -188,6 +192,33 @@ func (c *sshConnector) Close(context.Context) error {
 	return c.client.Close()
 }
 
+func (c *sshConnector) session() (*ssh.Session, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.client == nil {
+		return nil, errors.New("connection closed")
+	}
+
+	sess, err := c.client.NewSession()
+	if err != nil {
+		return nil, err
+	}
+
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          0,     // disable echoing
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
+
+	err = sess.RequestPty("xterm", 100, 50, modes)
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
+}
+
 // PutFile to remote node. src is the file bytes. dst is the remote filename
 func (c *sshConnector) PutFile(_ context.Context, src []byte, dst string, mode fs.FileMode) error {
 	// create sftp client
@@ -243,72 +274,78 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 	return nil
 }
 
-// ExecuteCommand in remote host
+// ExecuteCommand exec cmd with sudo
 func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []byte, error) {
-	cmd = fmt.Sprintf("sudo -SE %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n", c.shell, cmd)
-	klog.V(5).InfoS("exec ssh command", "cmd", cmd, "host", c.Host)
-	// create ssh session
-	session, err := c.client.NewSession()
+	session, err := c.session()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to create ssh session")
+		return nil, nil, err
 	}
 	defer session.Close()
 
-	// get pipe from session
-	stdin, err := session.StdinPipe()
+	cmd = SudoPrefix(c.shell, cmd)
+
+	in, err := session.StdinPipe()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to get stdin pipe")
 	}
-	stdout, err := session.StdoutPipe()
+
+	out, err := session.StdoutPipe()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to get stdout pipe")
 	}
+
 	stderr, err := session.StderrPipe()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to get stderr pipe")
 	}
-	// Start the remote command
-	if err := session.Start(cmd); err != nil {
+
+	if err = session.Start(cmd); err != nil {
 		return nil, nil, errors.Wrap(err, "failed to start session")
 	}
-	if c.Password != "" {
-		if _, err := stdin.Write([]byte(c.Password + "\n")); err != nil {
-			return nil, nil, errors.Wrap(err, "failed to write password")
+	var (
+		output []byte
+		line   = ""
+		r      = bufio.NewReader(out)
+	)
+
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			break
+		}
+
+		output = append(output, b)
+
+		if b == byte('\n') {
+			line = ""
+			continue
+		}
+
+		line += string(b)
+
+		if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
+			_, err = in.Write([]byte(c.Password + "\n"))
+			if err != nil {
+				break
+			}
 		}
 	}
-	if err := stdin.Close(); err != nil {
-		return nil, nil, errors.Wrap(err, "failed to close stdin pipe")
-	}
 
-	// Create buffers to store stdout and stderr output
-	var stdoutBuf, stderrBuf bytes.Buffer
-
-	// When reading large amounts of data from stdout/stderr, the pipe buffer can fill up
-	// and block the remote command from completing if we don't read from it continuously.
-	// To prevent this deadlock scenario, we need to read stdout/stderr asynchronously
-	// in separate goroutines while the command is running.
-	// Create channels to signal when copying is complete
-	stdoutDone := make(chan error, 1)
-	stderrDone := make(chan error, 1)
-
-	// Copy stdout and stderr concurrently to prevent pipe buffer from filling
-	go func() {
-		_, err := io.Copy(&stdoutBuf, stdout)
-		stdoutDone <- err
-	}()
-	go func() {
-		_, err := io.Copy(&stderrBuf, stderr)
-		stderrDone <- err
-	}()
-
-	// Wait for command to complete
+	outStr := strings.TrimPrefix(string(output), fmt.Sprintf("[sudo] password for %s:", c.User))
 	err = session.Wait()
+	var stderrBuffer bytes.Buffer
+	_, _ = io.Copy(&stderrBuffer, stderr)
+	outStr = strings.TrimSpace(outStr)
+	stderrData := stderrBuffer.Bytes()
+	if err != nil {
+		return []byte(outStr), nil, errors.Wrap(err, strings.TrimSpace(string(stderrData)))
+	}
+	return []byte(outStr), stderrData, nil
+}
 
-	// Wait for stdout and stderr copying to finish to ensure we've captured all output
-	<-stdoutDone
-	<-stderrDone
-
-	return stdoutBuf.Bytes(), stderrBuf.Bytes(), errors.Wrap(err, "failed to execute ssh command")
+// SudoPrefix returns the prefix for sudo commands.
+func SudoPrefix(shell, cmd string) string {
+	return fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8;sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", shell, cmd)
 }
 
 // HostInfo from gatherFacts cache
@@ -329,26 +366,17 @@ func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(kernelStderr))
 	}
-	if len(kernelStderr) > 0 {
-		return nil, errors.Errorf("failed to get kernel, stderr: %q", string(kernelStderr))
-	}
 	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
 
 	hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
 	}
-	if len(hnStderr) > 0 {
-		return nil, errors.Errorf("failed to get hostname, stderr: %q", string(hnStderr))
-	}
 	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
 
 	arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
-	}
-	if len(archStderr) > 0 {
-		return nil, errors.Errorf("failed to get arch, stderr: %q", string(archStderr))
 	}
 	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 

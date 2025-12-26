@@ -11,4 +11,4 @@ dependencies:
      - .groups.image_registry | len | lt 1
 
   - role: uninstall/image-registry/docker-compose
-    when: .deleteCRI
+    when: .delete.cri

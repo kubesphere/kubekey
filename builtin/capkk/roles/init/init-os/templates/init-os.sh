@@ -198,10 +198,10 @@ EOF
 
 modprobe nf_conntrack_ipv4 1>/dev/null 2>/dev/null
 if [ $? -eq 0 ]; then
-   echo 'nf_conntrack_ipv4' > /etc/modules-load.d/kube_proxy-ipvs.conf
+   echo 'nf_conntrack_ipv4' >> /etc/modules-load.d/kube_proxy-ipvs.conf
 else
    modprobe nf_conntrack
-   echo 'nf_conntrack' > /etc/modules-load.d/kube_proxy-ipvs.conf
+   echo 'nf_conntrack' >> /etc/modules-load.d/kube_proxy-ipvs.conf
 fi
 sysctl -p
 
@@ -256,13 +256,3 @@ EOF
 
 sync
 # echo 3 > /proc/sys/vm/drop_caches
-
-# Make sure the iptables utility doesn't use the nftables backend.
-{{- if .internal_ipv4 | empty | not }}
-update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || true
-{{- end }}
-{{- if .internal_ipv6 | empty | not }}
-update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 || true
-{{- end }}
-update-alternatives --set arptables /usr/sbin/arptables-legacy >/dev/null 2>&1 || true
-update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || true

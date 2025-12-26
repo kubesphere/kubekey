@@ -2,18 +2,14 @@ FROM ubuntu:22.04 as ubuntu2204
 ARG TARGETARCH
 ARG OS_RELEASE=jammy
 ARG DIR=ubuntu-22.04-${TARGETARCH}-debs
-ARG PKGS=.common[],.debs[],.ubuntu[],.ubuntu2204[]
+ARG PKGS=".common[],.debs[]"
 ARG BUILD_TOOLS="apt-transport-https software-properties-common ca-certificates curl wget gnupg dpkg-dev genisoimage"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # dump system package list
 RUN dpkg --get-selections | grep -v deinstall | cut -f1 | cut -d ':' -f1 > packages.list
 RUN apt update -qq \
-    && apt install -y --no-install-recommends $BUILD_TOOLS \
-    #&& add-apt-repository ppa:gluster/glusterfs-7 -y \
-    && curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add -qq - \
-    && echo "deb [arch=$TARGETARCH] https://download.docker.com/linux/ubuntu ${OS_RELEASE} stable" > /etc/apt/sources.list.d/docker.list\
-    && apt update -qq
+    && apt install -y --no-install-recommends $BUILD_TOOLS
 
 WORKDIR /package
 COPY packages.yaml .

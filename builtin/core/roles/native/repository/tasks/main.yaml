@@ -14,6 +14,8 @@
           SP2
           {{- else if .os.release.VERSION | contains "Lance" }}
           SP3
+          {{- else if .os.release.VERSION | contains "Halberd" }}
+          SP3-2403
           {{- end -}}
       when: .os.release.ID | unquote | eq "kylin"
 
@@ -21,11 +23,11 @@
       set_fact:
         system_string: >-
           {{- if .os.release.ID | unquote | eq "kylin" }}
-          kylin-{{ .os.release.VERSION_ID }}-{{ .sp_version }}
+          kylin-{{ .os.release.VERSION_ID | replace "\"" "" | unquote | trim | lower }}{{ .sp_version | trim }}
           {{- else if .os.release.ID_LIKE | unquote | eq "rhel fedora" }}
-          {{ .os.release.ID }}{{ .os.release.VERSION_ID }}
+          {{ .os.release.ID | replace "\"" "" | unquote | trim | lower  }}{{ .os.release.VERSION_ID | trim }}
           {{- else }}
-          {{ .os.release.ID }}-{{ .os.release.VERSION_ID }}
+          {{ .os.release.ID | replace "\"" "" | unquote | trim | lower  }}-{{ .os.release.VERSION_ID | trim }}
           {{- end -}}
 
     - name: Repository | Define the package file type by system info
@@ -41,7 +43,7 @@
       when:
         - .iso_name | empty
       set_fact:
-        iso_name: "{{ .system_string | unquote | trim | lower }}-{{ .iso_type | trim }}-{{ .binary_type }}.iso"
+        iso_name: "{{ .system_string | trim  }}-{{ .iso_type | trim }}-{{ .binary_type }}.iso"
 
     - name: Repository | Copy local repository ISO file
       ignore_errors: true

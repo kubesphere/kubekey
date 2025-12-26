@@ -18,9 +18,11 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/util/rand"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -78,6 +80,10 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string, erro
 	if err != nil {
 		return StdoutFailed, "\"dest\" in args should be string", err
 	}
+	tmpDir, err := variable.StringVar(ha, ha, "tmp_dir")
+	if err != nil || tmpDir == "" {
+		tmpDir = "/tmp/kubekey/"
+	}
 
 	// get connector
 	conn, err := options.getConnector(ctx)
@@ -99,7 +105,15 @@ func ModuleFetch(ctx context.Context, options ExecOptions) (string, string, erro
 	}
 	defer destFile.Close()
 
-	if err := conn.FetchFile(ctx, srcParam, destFile); err != nil {
+	tmpFetchFileName := filepath.Join(tmpDir, fmt.Sprintf("fetch-%s-%s", options.Task.GetUID(), rand.String(5)))
+
+	_, _, err = conn.ExecuteCommand(ctx, fmt.Sprintf("cp %s %s\nchmod 755 %s", srcParam, tmpFetchFileName, tmpFetchFileName))
+
+	if err != nil {
+		return StdoutFailed, "failed to fetch file", err
+	}
+
+	if err = conn.FetchFile(ctx, tmpFetchFileName, destFile); err != nil {
 		return StdoutFailed, "failed to fetch file", err
 	}
 

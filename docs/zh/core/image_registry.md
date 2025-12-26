@@ -60,19 +60,19 @@ spec:
 harbor是默认安装的镜像仓库
 1. 安装前检查
     ```shell
-    kk precheck image_registry -i inventory.yaml --set harbor_version=v2.10.1,docker_version=24.0.7,dockercompose_version=v2.20.3
+    kk precheck image_registry -i inventory.yaml --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3
     ```
 2. 安装
 - 单独安装
 `image_registry` 可以脱离集群单独进行安装。
     ```shell
-    kk init registry -i inventory.yaml --set harbor_version=v2.10.1,docker_version=24.0.7,dockercompose_version=v2.20.3
+    kk init registry -i inventory.yaml --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3
     ```
 
 - 在创建集群时，自动安装
 在创建集群时，会检测 `image_registry` 节点是否安装了`harbor`, 没有安装时会自动根据配置安装`harbor`。
     ```shell
-    kk create cluster -i inventory.yaml --set harbor_version=v2.10.1,docker_version=24.0.7,   dockercompose_version=v2.20.3
+    kk create cluster -i inventory.yaml --set harbor_version=v2.10.2,docker_version=24.0.7,   dockercompose_version=v2.20.3
     ```
 
 ### harbor高可用
@@ -92,7 +92,7 @@ kubekey的做法，适用于在服务器上安装。
 
 安装示例:
 ```shell
-./kk init registry -i inventory.yaml --set image_registry.ha_vip=xx.xx.xx.xx --set harbor_version=v2.10.1,docker_version=24.0.7,dockercompose_version=v2.20.3 --set keepalived_version=2.0.20,artifact.artifact_url.keepalived.amd64=keepalived-2.0.20-linux-amd64.tgz
+./kk init registry -i inventory.yaml --set image_registry.ha_vip=xx.xx.xx.xx --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3 --set keepalived_version=2.0.20,artifact.artifact_url.keepalived.amd64=keepalived-2.0.20-linux-amd64.tgz
 ```
 1. 在inventory中的image_registry 组中设置多个节点
    

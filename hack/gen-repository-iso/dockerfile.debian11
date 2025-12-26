@@ -3,7 +3,7 @@ ARG TARGETARCH
 ARG OS_RELEASE=bullseye
 ARG OS_VERSION=11
 ARG DIR=debian-11-${TARGETARCH}-debs
-ARG PKGS=.common[],.debs[],.debian[],.debian11[]
+ARG PKGS=".common[],.debs[]"
 ARG BUILD_TOOLS="apt-transport-https software-properties-common ca-certificates curl wget gnupg dpkg-dev genisoimage dirmngr"
 ENV DEBIAN_FRONTEND=noninteractive
 

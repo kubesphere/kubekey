@@ -150,6 +150,7 @@ linters-settings:
           - github.com/go-openapi/spec
           - github.com/google/go-cmp/cmp
           - github.com/google/gops
+          - github.com/opencontainers/go-digest
           - github.com/kubesphere/kubekey
           - github.com/opencontainers/image-spec
           - github.com/pkg/sftp

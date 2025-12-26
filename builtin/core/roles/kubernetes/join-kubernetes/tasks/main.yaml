@@ -2,7 +2,9 @@
 - name: Join | Generate kubeadm join configuration file
   template:
     src: >-
-      {{- if .kubernetes.kube_version | semverCompare ">=v1.24.0" -}}
+      {{- if .kubernetes.kube_version | semverCompare ">=v1.31.0" -}}
+      kubeadm/kubeadm-join.v1beta4
+      {{- else if .kubernetes.kube_version | semverCompare ">=v1.24.0" -}}
       kubeadm/kubeadm-join.v1beta3
       {{- else -}}
       kubeadm/kubeadm-join.v1beta2
@@ -13,7 +15,15 @@
   command: |
     /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
 
-- name: Join | Synchronize kubeconfig to remote node
+- name: Join | Synchronize kubeconfig to remote node for current user
+  when: .groups.kube_control_plane | default list | has .inventory_hostname
+  copy:
+    src: >-
+      {{ .work_dir }}/kubekey/kubeconfig
+    dest: ~/.kube/config
+
+- name: Join | Synchronize kubeconfig to remote node for root
+  when: .groups.kube_control_plane | default list | has .inventory_hostname
   copy:
     src: >-
       {{ .work_dir }}/kubekey/kubeconfig
@@ -24,15 +34,18 @@
   block:
     - name: Join | Remove master and control-plane taints from node
       ignore_errors: true
+      delegate_to: "{{ .init_kubernetes_node }}"
       command: |
         /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/master=:NoSchedule-
         /usr/local/bin/kubectl taint nodes {{ .hostname }} node-role.kubernetes.io/control-plane=:NoSchedule-
     - name: Join | Add worker label to node
+      delegate_to: "{{ .init_kubernetes_node }}"
       command: |
         /usr/local/bin/kubectl label --overwrite node {{ .hostname }} node-role.kubernetes.io/worker=
 
 - name: Join | Add custom annotations to node
   when: .annotations | empty | not
+  delegate_to: "{{ .init_kubernetes_node }}"
   command: |
     kubectl annotate {{ .hostname }} {{- range $k,$v := .annotations }}{{ printf "%s=%s" $k $v}} {{- end }}
 

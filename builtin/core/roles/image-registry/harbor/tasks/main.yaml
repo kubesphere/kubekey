@@ -24,6 +24,13 @@
     dest: >-
       /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.key
 
+- name: Harbor | Synchronize self signed ca cert to remote host
+  copy:
+    src: >-
+      {{ .binary_dir }}/pki/root.crt
+    dest: >-
+      /opt/harbor/{{ .image_registry.harbor_version }}/ssl/ca.crt
+
 - name: Harbor | Generate Harbor configuration file
   template:
     src: harbor.yml
@@ -41,6 +48,31 @@
 
 - name: Harbor | Start and enable Harbor service
   command: systemctl daemon-reload && systemctl start harbor.service && systemctl enable harbor.service
+
+- name : Harbor | Check harbor api health
+  command: |
+    HARBOR_URL="https://{{ .image_registry.auth.registry }}"
+    MAX_WAIT_SECONDS=300
+    CHECK_INTERVAL=2
+    MAX_RETRIES=$((MAX_WAIT_SECONDS / CHECK_INTERVAL))
+    for ((i=1; i<=MAX_RETRIES; i++)); do
+      # Check health endpoint
+      response=$(curl -k -s -w "%{http_code}" -o /tmp/harbor_health_response.json "$HARBOR_URL/api/v2.0/health")
+      http_code=${response: -3}
+      # Check if healthy
+      if [ "$http_code" -eq 200 ] && grep -q "\"status\":\"healthy\"" /tmp/harbor_health_response.json 2>/dev/null; then
+        rm -f /tmp/harbor_health_response.json
+        exit 0
+      fi
+      # Wait before next check if not max retries reached
+      if [ $i -lt $MAX_RETRIES ]; then
+        sleep $CHECK_INTERVAL
+      fi
+    done
+    # Timeout reached
+    rm -f /tmp/harbor_health_response.json
+    echo "ERROR: Harbor service did not became health within 5 minutes!"
+    exit 1
 
 - name: Harbor | Configure HA and synchronize Harbor images
   when:
@@ -88,10 +120,28 @@
         systemctl restart harbor.service
     - name: Harbor | Wait for Harbor service to become ready
       command: |
-        if ! timeout 300 bash -c 'while ! nc -zv localhost 443; do sleep 2; done'; then
-            echo "ERROR: Harbor did not start within 5 minutes!"
-            exit 1
-        fi
+        HARBOR_URL="https://{{ .image_registry.auth.registry }}"
+        MAX_WAIT_SECONDS=300
+        CHECK_INTERVAL=2
+        MAX_RETRIES=$((MAX_WAIT_SECONDS / CHECK_INTERVAL))
+        for ((i=1; i<=MAX_RETRIES; i++)); do
+          # Check health endpoint
+          response=$(curl -k -s -w "%{http_code}" -o /tmp/harbor_health_response.json "$HARBOR_URL/api/v2.0/health")
+          http_code=${response: -3}
+          # Check if healthy
+          if [ "$http_code" -eq 200 ] && grep -q "\"status\":\"healthy\"" /tmp/harbor_health_response.json 2>/dev/null; then
+            rm -f /tmp/harbor_health_response.json
+            exit 0
+          fi
+          # Wait before next check if not max retries reached
+          if [ $i -lt $MAX_RETRIES ]; then
+            sleep $CHECK_INTERVAL
+          fi
+        done
+        # Timeout reached
+        rm -f /tmp/harbor_health_response.json
+        echo "ERROR: Harbor service did not became health within 5 minutes!"
+        exit 1
     - name: Harbor | Synchronize harbor-replications script to remote host
       template:
         src: harbor-replications.sh

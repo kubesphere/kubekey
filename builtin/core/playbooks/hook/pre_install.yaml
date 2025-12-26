@@ -4,17 +4,27 @@
     - all
   tasks:
     - name: Pre | Copy pre-installation scripts to remote hosts
-      ignore_errors: true
+      when: (print "%s/scripts/pre_install_%s.sh" .work_dir .inventory_hostname) | fileExist
       copy:
         src: >-
-          {{ .work_dir }}/scripts/pre_install_{{ .inventory_hostname }}.sh
+          {{ .scripts_dir }}/pre_install_{{ .inventory_hostname }}.sh
         dest: >-
           /etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh
         mode: 0755
-      register: pre_install_copy_result
+
+    - name: Pre | Copy pre-installation config scripts to remote hosts
+      copy:
+        src: >-
+          {{ .scripts_dir }}/{{ .item.script }}
+        dest: >-
+          /etc/kubekey/scripts/pre_install_{{ .item.script }}
+        mode: 0755
+      loop: "{{ .pre_install | toJson }}"
+      when: 
+        - (getStringSlice .groups .item.group) | default list | has .inventory_hostname
+        - (print "%s/%s" .scripts_dir .item.script) | fileExist
 
     - name: Pre | Execute pre-installation scripts on remote hosts
-      when: .pre_install_copy_result.error | empty
       command: |
         for file in /etc/kubekey/scripts/pre_install_*.sh; do
           if [ -f "$file" ]; then

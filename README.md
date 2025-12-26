@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/kubesphere/kubekey/workflows/GolangCILint/badge.svg?branch=main&event=push)](https://github.com/kubesphere/kubekey/actions/workflows/golangci-lint.yaml?query=event%3Apush+branch%3Amain+workflow%3ACI)
 
-> [English](README.md) | 中文
+> English | [中文](README_zh-CN.md)
 
 **👋 Welcome to KubeKey!**
 
@@ -27,6 +27,17 @@ helm upgrade --install --create-namespace -n kubekey-system kubekey config/kubek
 
 ## Binary
 Get the corresponding binary files from the [release](https://github.com/kubesphere/kubekey/releases) page.
+
+## Download Binary with UI
+
+**UI only support after v4.0.0**
+
+```shell
+VERSION=v4.0.0 WEB_INSTALLER_VERSION=v1.0.0 hack/downloadKubekey.sh
+# run with UI
+kk web --schema-path schema --ui-path dist
+```
+> If there is a config.yaml file in the current directory, running `./package.sh config.yaml` to build an offline package.
 
 # Deploy Kubernetes
 

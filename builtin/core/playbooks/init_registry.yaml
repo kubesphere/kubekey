@@ -1,4 +1,8 @@
 ---
+- hosts:
+    - all
+  roles:
+    - native/root
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
@@ -6,7 +10,6 @@
   gather_facts: true
   roles:
     - defaults
-    - native/root
 
 
 # Download all required software and generate certificates on the localhost
@@ -16,6 +19,7 @@
   roles:
     - role: certs/init
     - role: download
+    - role: certs/check
 
 # Initialize all nodes and install necessary software packages
 - hosts:

@@ -82,7 +82,7 @@ kubernetes:
       mode: ARP
       image: 
         registry: >-
-          {{ .dockerio_registry }}
+          {{ .image_registry.dockerio_registry }}
         repository: plndr/kube-vip
         tag: v0.7.2
     haproxy:
@@ -91,7 +91,7 @@ kubernetes:
       health_port: 8081
       image: 
         registry: >-
-          {{ .dockerio_registry }}
+          {{ .image_registry.dockerio_registry }}
         repository: library/haproxy
         tag: 2.9.6-alpine
 

@@ -1,6 +1,13 @@
 kubernetes:
   # helm binary
   helm_version: v3.13.3
+  control_plane_endpoint:
+    kube_vip:
+      image:
+        tag: v0.7.2
+    haproxy:
+      image:
+        tag: 2.9.6-alpine
 etcd:
   # etcd binary
   etcd_version: v3.5.10
@@ -10,7 +17,7 @@ image_registry:
   keepalived_version: 2.0.20
   # ========== image registry: harbor ==========
   # harbor image tag
-  harbor_version: v2.10.1
+  harbor_version: v2.10.2
   # docker-compose binary
   dockercompose_version: v2.20.3
   # ========== image registry: docker-registry ==========
@@ -34,6 +41,8 @@ cri:
   containerd_version: v1.7.6
   # runc binary
   runc_version: v1.1.7
+  # skip tls verify when pulling images
+  skip_tls_verify: false
 cni:
   multus:
     image:
@@ -46,7 +55,7 @@ cni:
   calico_version: v3.28.2
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.15.4
+  cilium_version: 1.18.3
   # ========== cni: kubeovn ==========
   # kubeovn helm
   kubeovn_version: 1.13.0
@@ -69,29 +78,25 @@ dns:
     tag: v1.11.1
   dns_cache_image:
     tag: 1.23.1
-  image_manifests:
-  - docker.io/calico/apiserver:v3.28.2
-  - docker.io/calico/cni:v3.28.2
-  - docker.io/calico/csi:v3.28.2
-  - docker.io/calico/kube-controllers:v3.28.2
-  - docker.io/calico/node-driver-registrar:v3.28.2
-  - docker.io/calico/node:v3.28.2
-  - docker.io/calico/pod2daemon-flexvol:v3.28.2
-  - docker.io/kubesphere/k8s-dns-node-cache:1.23.1
-  - docker.io/openebs/provisioner-localpv:4.0.0
-  - docker.io/kubesphere/coredns:v1.11.1
-  - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
-  - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
-  - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
-  - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
-  - docker.io/kubesphere/pause:3.8
+image_manifests:
+  - docker.io/calico/apiserver:{{ .cni.calico_version }}
+  - docker.io/calico/cni:{{ .cni.calico_version }}
+  - docker.io/calico/ctl:{{ .cni.calico_version }}
+  - docker.io/calico/csi:{{ .cni.calico_version }}
+  - docker.io/calico/kube-controllers:{{ .cni.calico_version }}
+  - docker.io/calico/node-driver-registrar:{{ .cni.calico_version }}
+  - docker.io/calico/node:{{ .cni.calico_version }}
+  - docker.io/calico/pod2daemon-flexvol:{{ .cni.calico_version }}
+  - docker.io/calico/typha:{{ .cni.calico_version }}
+  - docker.io/kubesphere/coredns:{{ .dns.dns_image.tag }}
+  - docker.io/kubesphere/k8s-dns-node-cache:{{ .dns.dns_cache_image.tag }}
+  - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/pause:{{ .cri.sandbox_image.tag }}
+  - docker.io/openebs/linux-utils:{{ .storage_class.local.linux_utils_image.tag }}
+  - docker.io/openebs/provisioner-localpv:{{ .storage_class.local.provisioner_image.tag }}
   - quay.io/tigera/operator:v1.34.5
-  - docker.io/calico/ctl:v3.28.2
-  - docker.io/calico/typha:v3.28.2
-  - docker.io/calico/apiserver:v3.28.2
-  - docker.io/calico/kube-controllers:v3.28.2
-  - docker.io/calico/node:v3.28.2
-  - docker.io/calico/pod2daemon-flexvol:v3.28.2
-  - docker.io/calico/cni:v3.28.2
-  - docker.io/calico/node-driver-registrar:v3.28.2
-  - docker.io/calico/csi:v3.28.2
+  - docker.io/library/haproxy:{{ .kubernetes.control_plane_endpoint.haproxy.image.tag }}
+  - docker.io/plndr/kube-vip:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}

@@ -21,17 +21,22 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/images"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
+	"github.com/opencontainers/go-digest"
+	"github.com/opencontainers/image-spec/specs-go"
 	imagev1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -70,6 +75,25 @@ image:
     skipTLSVerify: bool    # optional: skip TLS verification
     src_pattern: string            # optional: source image pattern to push (regex supported). If not specified, all images in images_dir will be pushed
     dest: string           # required: destination registry and image name. Supports template syntax for dynamic values
+  copy:
+    from:
+      type: string           # required: image source type, file or hub
+      path: string           # optional: when image source type is file, then required, means image file path
+      manifests: []string    # required: list of image manifests to pull
+      skipTLSVerify: bool    # optional: skip TLS verification
+      autus:                 # optional: target image repo access information, slice type
+        - repo: string       # optional: target image repo
+          username: string   # optional: target image repo access username
+          password: string   # optional: target image repo access password
+    to:
+      type: string           # required: image target type, file or hub
+      path: string           # required: image target path
+      skipTLSVerify: bool    # optional: skip TLS verification
+      pattern: string        # optional: source image pattern to push (regex supported). If not specified, all images in images_dir will be pushed
+      autus:                 # optional: target image repo access information, slice type
+        - repo: string       # optional: target image repo
+          username: string   # optional: target image repo access username
+          password: string   # optional: target image repo access password
 
 Usage Examples in Playbook Tasks:
 1. Pull images from registry:
@@ -104,15 +128,32 @@ Usage Examples in Playbook Tasks:
      register: push_result
    ```
 
+3. Copy image from file to file
+   ```yaml
+   - name: file to file
+     image:
+       copy:
+         from:
+           path: "/path/from/images"
+           manifests:
+            - nginx:latest
+            - prometheus:v2.45.0
+         to:
+           path: /path/to/images
+   ```
+
 Return Values:
 - On success: Returns "Success" in stdout
 - On failure: Returns error message in stderr
 */
 
+const defaultRegistry = "docker.io"
+
 // imageArgs holds the configuration for image operations
 type imageArgs struct {
 	pull *imagePullArgs
 	push *imagePushArgs
+	copy *imageCopyArgs
 }
 
 // imagePullArgs contains parameters for pulling images
@@ -120,51 +161,59 @@ type imagePullArgs struct {
 	imagesDir     string
 	manifests     []string
 	skipTLSVerify *bool
-	platform      string
-	auths         []imagePullAuth
+	platform      []string
+	auths         []imageAuth
 }
 
-type imagePullAuth struct {
-	Repo     string `json:"repo"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+type imageAuth struct {
+	Repo      string `json:"repo"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Insecure  *bool  `json:"insecure"`
+	PlainHTTP *bool  `json:"plain_http"`
+}
+
+type fetchResult struct {
+	IsIndex   bool
+	IndexDesc *imagev1.Descriptor
+	Index     *imagev1.Index
+	Manifests []*manifestInfo
+}
+
+type manifestInfo struct {
+	Desc       imagev1.Descriptor
+	Content    []byte
+	Platform   *imagev1.Platform
+	SourceRepo *remote.Repository
 }
 
 // pull retrieves images from a remote registry and stores them locally
-func (i imagePullArgs) pull(ctx context.Context, platform string) error {
+func (i imagePullArgs) pull(ctx context.Context, platform []string) error {
 	for _, img := range i.manifests {
+		img = normalizeImageNameSimple(img)
 		src, err := remote.NewRepository(img)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get remote image %p", img)
+			return errors.Wrapf(err, "failed to get remote image %s", img)
 		}
+		selectedAuth := selectAuth(img, i.auths)
 		src.Client = &auth.Client{
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: *i.skipTLSVerify,
+						InsecureSkipVerify: skipTLSVerifyFunc(selectedAuth, *i.skipTLSVerify),
 					},
 				},
 			},
 			Cache:      auth.NewCache(),
-			Credential: i.pullAuthFunc(),
+			Credential: authFunc(selectedAuth),
 		}
-
 		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, i.imagesDir)
 		if err != nil {
 			return err
 		}
+		src.PlainHTTP = plainHTTPFunc(selectedAuth, false)
 
-		copyOption := oras.DefaultCopyOptions
-		if platform != "" {
-			plat, err := parsePlatform(platform)
-			// only work when input a correct platform like "linux/amd64" or "linux/arm64"
-			// if input a wrong platform,all platform of this image will be pulled
-			if err == nil {
-				copyOption.WithTargetPlatform(&plat)
-			}
-		}
-
-		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", copyOption); err != nil {
+		if err = imageSrcToDst(ctx, src, dst, img, platform); err != nil {
 			return errors.Wrapf(err, "failed to pull image %q to local dir", img)
 		}
 	}
@@ -172,48 +221,449 @@ func (i imagePullArgs) pull(ctx context.Context, platform string) error {
 	return nil
 }
 
-func (i imagePullArgs) pullAuthFunc() func(ctx context.Context, hostport string) (auth.Credential, error) {
-	var creds = make(map[string]auth.Credential)
-	for _, inputAuth := range i.auths {
-		var rp = inputAuth.Repo
-		if rp == "docker.io" {
-			rp = "registry-1.docker.io"
+func imageSrcToDst(ctx context.Context, src, dst *remote.Repository, img string, platform []string) error {
+	var err error
+	if len(platform) == 0 || (len(platform) == 1 && strings.TrimSpace(platform[0]) == "*") {
+		_, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to pull image %q to local dir", img)
 		}
-		if rp == "" {
-			continue
+		return err
+	}
+	fetchResult, defaultMediaType, err := fetchManifestsFromMultiArch(ctx, src, src.Reference.Reference)
+	if err != nil {
+		return errors.Wrapf(err, "failed to fetch manifests")
+	}
+	if !fetchResult.IsIndex {
+		_, err = oras.Copy(ctx, src, src.Reference.Reference, dst, "", oras.DefaultCopyOptions)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to pull image %q to local dir", img)
 		}
-		creds[rp] = auth.Credential{
-			Username: inputAuth.Username,
-			Password: inputAuth.Password,
+		return err
+	}
+	// filter target platform
+	var filteredManifests []*manifestInfo
+	for _, manifest := range fetchResult.Manifests {
+		// some arm architecture is arm64/v7 or arm68/v8 , support all of then
+		for _, arch := range platform {
+			if strings.Contains(manifest.Platform.Architecture, arch) {
+				manifest.SourceRepo = src
+				filteredManifests = append(filteredManifests, manifest)
+				break
+			}
 		}
 	}
-	return func(_ context.Context, hostport string) (auth.Credential, error) {
-		cred, ok := creds[hostport]
-		if !ok {
-			cred = auth.EmptyCredential
+	if len(filteredManifests) == 0 {
+		klog.Warningf("Image %s has no manifests matched for platform: %s", img, platform)
+		return nil
+	}
+	// push all filtered manifests and layers
+	for _, manifest := range filteredManifests {
+		if err = pushManifestWithLayers(ctx, src, dst, manifest); err != nil {
+			return errors.Wrapf(err, "failed to push manifest for %s/%s",
+				manifest.Platform.OS, manifest.Platform.Architecture)
 		}
+	}
+	err = createAndPushIndex(ctx, dst, filteredManifests, dst.Reference.Reference, defaultMediaType)
+	if err != nil {
+		return errors.Wrapf(err, "failed to pull image %q to local dir", img)
+	}
+	return nil
+}
+
+func fetchManifestsFromMultiArch(ctx context.Context, repo *remote.Repository, ref string) (*fetchResult, string, error) {
+	desc, rc, err := repo.FetchReference(ctx, ref)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch reference %s: %w", ref, err)
+	}
+	defer rc.Close()
+
+	content, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read content: %w", err)
+	}
+
+	result := &fetchResult{}
+
+	if desc.MediaType == imagev1.MediaTypeImageIndex ||
+		desc.MediaType == "application/vnd.docker.distribution.manifest.list.v2+json" {
+		// multi arch image
+		result.IsIndex = true
+		result.IndexDesc = &desc
+
+		var index imagev1.Index
+		if err := json.Unmarshal(content, &index); err != nil {
+			return nil, "", fmt.Errorf("failed to unmarshal index: %w", err)
+		}
+		result.Index = &index
+
+		for _, manifestDesc := range index.Manifests {
+			if manifestDesc.MediaType != imagev1.MediaTypeImageManifest &&
+				manifestDesc.MediaType != "application/vnd.docker.distribution.manifest.v2+json" {
+				continue
+			}
+
+			manifestInfo, err := fetchSingleManifest(ctx, repo, manifestDesc)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to fetch manifest %s: %w", manifestDesc.Digest, err)
+			}
+
+			result.Manifests = append(result.Manifests, manifestInfo)
+		}
+	} else if desc.MediaType == imagev1.MediaTypeImageManifest ||
+		desc.MediaType == "application/vnd.docker.distribution.manifest.v2+json" {
+		// single arch image
+		result.IsIndex = false
+		info, err := fetchSingleManifestFromContent(content, &desc)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to parse manifest: %w", err)
+		}
+		result.Manifests = []*manifestInfo{info}
+	} else {
+		return nil, "", fmt.Errorf("unsupported media type: %s", desc.MediaType)
+	}
+
+	return result, desc.MediaType, nil
+}
+
+func fetchSingleManifest(ctx context.Context, repo *remote.Repository, desc imagev1.Descriptor) (*manifestInfo, error) {
+	rc, err := repo.Fetch(ctx, desc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch manifest: %w", err)
+	}
+	defer rc.Close()
+
+	content, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read manifest content: %w", err)
+	}
+
+	return fetchSingleManifestFromContent(content, &desc)
+}
+
+func fetchSingleManifestFromContent(content []byte, desc *imagev1.Descriptor) (*manifestInfo, error) {
+	var manifest imagev1.Manifest
+	if err := json.Unmarshal(content, &manifest); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal manifest: %w", err)
+	}
+
+	platform := desc.Platform
+	if platform == nil {
+		// read platform from config
+		// but if config has no platform info ,then use default unknown
+		if manifest.Config.Platform != nil {
+			platform = manifest.Config.Platform
+		} else {
+			platform = &imagev1.Platform{
+				Architecture: "unknown",
+				OS:           "unknown",
+			}
+		}
+	}
+
+	return &manifestInfo{
+		Desc:     *desc,
+		Content:  content,
+		Platform: platform,
+	}, nil
+}
+
+func pushManifestWithLayers(ctx context.Context, srcRepo, dstRepo *remote.Repository, manifestInfo *manifestInfo) error {
+	var manifest imagev1.Manifest
+	if err := json.Unmarshal(manifestInfo.Content, &manifest); err != nil {
+		return fmt.Errorf("failed to unmarshal manifest: %w", err)
+	}
+
+	// push config layer
+	if err := copyBlob(ctx, srcRepo, dstRepo, manifest.Config); err != nil {
+		return fmt.Errorf("failed to copy config: %w", err)
+	}
+
+	// push all layers
+	for _, layer := range manifest.Layers {
+		if err := copyBlob(ctx, srcRepo, dstRepo, layer); err != nil {
+			return fmt.Errorf("failed to copy layer %s: %w", layer.Digest, err)
+		}
+	}
+
+	// push manifests
+	manifestDesc := imagev1.Descriptor{
+		MediaType: manifest.MediaType,
+		Digest:    digest.FromBytes(manifestInfo.Content),
+		Size:      int64(len(manifestInfo.Content)),
+		Platform:  manifestInfo.Platform,
+	}
+
+	exists, err := dstRepo.Exists(ctx, manifestDesc)
+	if err == nil && exists {
+		return nil
+	}
+
+	err = dstRepo.Push(ctx, manifestDesc, bytes.NewReader(manifestInfo.Content))
+	if err != nil {
+		return fmt.Errorf("failed to push manifest: %w", err)
+	}
+
+	return nil
+}
+
+func copyBlob(ctx context.Context, srcRepo, dstRepo *remote.Repository, desc imagev1.Descriptor) error {
+	exists, err := dstRepo.Exists(ctx, desc)
+	if err == nil && exists {
+		return nil
+	}
+
+	rc, err := srcRepo.Fetch(ctx, desc)
+	if err != nil {
+		return fmt.Errorf("failed to fetch blob %s: %w", desc.Digest, err)
+	}
+	defer rc.Close()
+
+	err = dstRepo.Push(ctx, desc, rc)
+	if err != nil {
+		return fmt.Errorf("failed to push blob %s: %w", desc.Digest, err)
+	}
+
+	return nil
+}
+
+func createAndPushIndex(ctx context.Context, dstRepo *remote.Repository, manifests []*manifestInfo, targetTag, defaultMediaType string) error {
+	var descList = make([]imagev1.Descriptor, 0)
+	for _, info := range manifests {
+		var manifest imagev1.Manifest
+		if err := json.Unmarshal(info.Content, &manifest); err != nil {
+			return fmt.Errorf("failed to unmarshal manifest: %w", err)
+		}
+		desc := imagev1.Descriptor{
+			MediaType: manifest.MediaType,
+			Digest:    digest.FromBytes(info.Content),
+			Size:      int64(len(info.Content)),
+			Platform:  info.Platform,
+		}
+		descList = append(descList, desc)
+	}
+
+	index := imagev1.Index{
+		Versioned: specs.Versioned{SchemaVersion: 2},
+		MediaType: defaultMediaType,
+		Manifests: descList,
+		Annotations: map[string]string{
+			"org.opencontainers.image.created":  time.Now().UTC().Format(time.RFC3339),
+			"org.opencontainers.image.ref.name": targetTag,
+		},
+	}
+
+	indexJSON, err := json.MarshalIndent(index, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal index: %w", err)
+	}
+
+	indexDesc := imagev1.Descriptor{
+		MediaType: defaultMediaType,
+		Digest:    digest.FromBytes(indexJSON),
+		Size:      int64(len(indexJSON)),
+	}
+
+	err = dstRepo.PushReference(ctx, indexDesc, bytes.NewReader(indexJSON), targetTag)
+	if err != nil {
+		return fmt.Errorf("failed to push index: %w", err)
+	}
+
+	return nil
+}
+
+func dockerHostParser(img string) string {
+	// if image is like docker.io/xxx/xxx:tag, then download by pull func will store it to registry-1.docker.io
+	// so we should change host from docker.io to registry-1.docker.io
+	splitedImg := strings.Split(img, "/")
+	if len(splitedImg) == 1 {
+		return img
+	}
+	if splitedImg[0] != "docker.io" {
+		return img
+	}
+	splitedImg[0] = "registry-1.docker.io"
+	return strings.Join(splitedImg, "/")
+}
+
+func authFunc(selectedAuth *imageAuth) func(ctx context.Context, hostport string) (auth.Credential, error) {
+	cred := auth.Credential{}
+	if selectedAuth != nil {
+		cred.Username = selectedAuth.Username
+		cred.Password = selectedAuth.Password
+	}
+	return func(_ context.Context, _ string) (auth.Credential, error) {
 		return cred, nil
 	}
 }
 
-// parse platform string to ocispec.Platform
-func parsePlatform(platformStr string) (imagev1.Platform, error) {
-	parts := strings.Split(platformStr, "/")
-	if len(parts) < 2 {
-		return imagev1.Platform{}, errors.New("invalid platform input: " + platformStr)
+func selectAuth(image string, authList []imageAuth) *imageAuth {
+	// remove tag and hash
+	repoPart := extractRepoFromImage(image)
+
+	// parse image to url
+	imageURL, err := normalizeImageToURL(repoPart)
+	if err != nil {
+		return nil
 	}
 
-	plat := imagev1.Platform{
-		OS:           parts[0],
-		Architecture: parts[1],
+	imageHost := imageURL.Host
+	imagePath := strings.TrimPrefix(imageURL.Path, "/")
+
+	// split port
+	imageHostWithoutPort := imageHost
+	if colonIdx := strings.Index(imageHost, ":"); colonIdx != -1 {
+		imageHostWithoutPort = imageHost[:colonIdx]
 	}
 
-	// handle platform like "arm/v7"
-	if len(parts) > 2 {
-		plat.Variant = strings.Join(parts[2:], "/")
+	var bestMatch *imageAuth
+	var bestMatchScore = -1
+
+	// find biggest match point auth
+	for i := range authList {
+		authRepo := authList[i].Repo
+
+		authURL, err := normalizeImageToURL(authRepo)
+		if err != nil {
+			continue
+		}
+
+		authHost := authURL.Host
+		authPath := strings.TrimPrefix(authURL.Path, "/")
+
+		authHostWithoutPort := authHost
+		if colonIdx := strings.Index(authHost, ":"); colonIdx != -1 {
+			authHostWithoutPort = authHost[:colonIdx]
+		}
+
+		score := calculateMatchScore(imageHost, imageHostWithoutPort, imagePath,
+			authHost, authHostWithoutPort, authPath)
+
+		if score > bestMatchScore {
+			bestMatchScore = score
+			bestMatch = &authList[i]
+		}
 	}
 
-	return plat, nil
+	return bestMatch
+}
+
+func normalizeImageToURL(image string) (*url.URL, error) {
+	if strings.HasPrefix(image, "http://") || strings.HasPrefix(image, "https://") {
+		return url.Parse(image)
+	}
+	return url.Parse("http://" + image)
+}
+
+// extractRepoFromImage handle image ,ignore tag and hash
+// like xxx/xxx:tag@sha256:xxx to xxx/xxx
+// like xxx/xxx:tag to xxx/xxx
+func extractRepoFromImage(image string) string {
+	if image == "" {
+		return ""
+	}
+
+	repoPart := image
+
+	// handle image with hash
+	atIdx := strings.LastIndex(repoPart, "@")
+	if atIdx != -1 && atIdx > 0 {
+		afterAt := repoPart[atIdx+1:]
+		if isLikelyDigest(afterAt) {
+			repoPart = repoPart[:atIdx]
+		}
+	}
+
+	// search /
+	firstSlashIdx := strings.Index(repoPart, "/")
+
+	if firstSlashIdx == -1 {
+		return repoPart
+	}
+
+	// search : for tag or port
+	lastColonIdx := strings.LastIndex(repoPart, ":")
+	if lastColonIdx == -1 {
+		return repoPart
+	}
+
+	if lastColonIdx < firstSlashIdx {
+		return repoPart
+	}
+
+	if lastColonIdx+1 < len(repoPart) {
+		afterColon := repoPart[lastColonIdx+1:]
+		if strings.Contains(afterColon, "/") {
+			return repoPart
+		}
+	}
+	return repoPart[:lastColonIdx]
+}
+
+func isLikelyDigest(s string) bool {
+	colonIdx := strings.Index(s, ":")
+	if colonIdx == -1 {
+		return false
+	}
+	algorithm := s[:colonIdx]
+	knownAlgorithms := []string{"sha256", "sha512", "sha384", "sha1", "md5"}
+	for _, algo := range knownAlgorithms {
+		if algorithm == algo {
+			return true
+		}
+	}
+	return false
+}
+
+// calculateMatchScore calculate image and path match point
+// 0 for not matched
+// 1 for host matched
+// 2 for host:port matched
+// 3 for host:port and prefix path matched
+// 4 for host:port and full path matched
+func calculateMatchScore(imgHost, imgHostNoPort, imgPath,
+	authHost, authHostNoPort, authPath string) int {
+	if imgHostNoPort != authHostNoPort {
+		return 0
+	}
+	score := 1
+	imgHasPort := strings.Contains(imgHost, ":")
+	authHasPort := strings.Contains(authHost, ":")
+	if imgHasPort && authHasPort {
+		if imgHost != authHost {
+			return 1
+		}
+		score = 2
+	} else if !imgHasPort && !authHasPort {
+		score = 2
+	}
+	if authPath == "" {
+		return score
+	}
+	if imgPath == authPath {
+		return score + 2
+	}
+	if strings.HasPrefix(imgPath, authPath) {
+		if len(imgPath) == len(authPath) ||
+			(len(imgPath) > len(authPath) && imgPath[len(authPath)] == '/') {
+			return score + 1
+		}
+	}
+	return 0
+}
+
+func skipTLSVerifyFunc(selectedAuth *imageAuth, defaults bool) bool {
+	if selectedAuth != nil && selectedAuth.Insecure != nil {
+		return *selectedAuth.Insecure
+	}
+	return defaults
+}
+
+func plainHTTPFunc(selectedAuth *imageAuth, defaults bool) bool {
+	if selectedAuth != nil && selectedAuth.PlainHTTP != nil {
+		return *selectedAuth.PlainHTTP
+	}
+	return defaults
 }
 
 // imagePushArgs contains parameters for pushing images
@@ -222,8 +672,7 @@ type imagePushArgs struct {
 	skipTLSVerify *bool
 	srcPattern    *regexp.Regexp
 	destTmpl      string
-	username      string
-	password      string
+	auths         []imageAuth
 }
 
 // push uploads local images to a remote registry
@@ -259,23 +708,100 @@ func (i imagePushArgs) push(ctx context.Context, hostVars map[string]any) error 
 		if err != nil {
 			return errors.Wrapf(err, "failed to get remote repository %q", dest)
 		}
+		selectedAuth := selectAuth(dest, i.auths)
 		dst.Client = &auth.Client{
 			Client: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: *i.skipTLSVerify,
+						InsecureSkipVerify: skipTLSVerifyFunc(selectedAuth, *i.skipTLSVerify),
 					},
 				},
 			},
-			Cache: auth.NewCache(),
-			Credential: auth.StaticCredential(dst.Reference.Registry, auth.Credential{
-				Username: i.username,
-				Password: i.password,
-			}),
+			Cache:      auth.NewCache(),
+			Credential: authFunc(selectedAuth),
 		}
+
+		dst.PlainHTTP = plainHTTPFunc(selectedAuth, false)
 
 		if _, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions); err != nil {
 			return errors.Wrapf(err, "failed to push image %q to remote", img)
+		}
+	}
+
+	return nil
+}
+
+type imageCopyArgs struct {
+	Platform []string            `json:"platform"`
+	From     imageCopyTargetArgs `json:"from"`
+	To       imageCopyTargetArgs `json:"to"`
+}
+
+type imageCopyTargetArgs struct {
+	Path      string `json:"path"`
+	manifests []string
+	Pattern   *regexp.Regexp
+}
+
+func (i *imageCopyArgs) parseFromVars(vars, cp map[string]any) error {
+	i.Platform, _ = variable.StringSliceVar(vars, cp, "platform")
+
+	i.From.manifests, _ = variable.StringSliceVar(vars, cp, "from", "manifests")
+
+	i.From.Path, _ = variable.StringVar(vars, cp, "from", "path")
+
+	toPath, _ := variable.PrintVar(cp, "to", "path")
+	if destStr, ok := toPath.(string); !ok {
+		return errors.New("\"copy.to.path\" must be a string")
+	} else if destStr == "" {
+		return errors.New("\"copy.to.path\" should not be empty")
+	} else {
+		i.To.Path = destStr
+	}
+	srcPattern, _ := variable.StringVar(vars, cp, "to", "src_pattern")
+	if srcPattern != "" {
+		pattern, err := regexp.Compile(srcPattern)
+		if err != nil {
+			return errors.Wrap(err, "\"to.pattern\" should be a valid regular expression. ")
+		}
+		i.To.Pattern = pattern
+	}
+	return nil
+}
+
+func (i *imageCopyArgs) copy(ctx context.Context, hostVars map[string]any) error {
+	if sts, err := os.Stat(i.From.Path); err != nil || !sts.IsDir() {
+		return errors.New("\"copy.from.path\" must be a exist directory")
+	}
+	for _, img := range i.From.manifests {
+		img = normalizeImageNameSimple(img)
+		if i.To.Pattern != nil && !i.To.Pattern.MatchString(img) {
+			// skip
+			continue
+		}
+		src, err := newLocalRepository(dockerHostParser(img), i.From.Path)
+		if err != nil {
+			return err
+		}
+		dest := i.To.Path
+		if kkprojectv1.IsTmplSyntax(dest) {
+			// add temporary variable
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Registry, "module", "image", "src", "reference", "registry")
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Repository, "module", "image", "src", "reference", "repository")
+			_ = unstructured.SetNestedField(hostVars, src.Reference.Reference, "module", "image", "src", "reference", "reference")
+			dest, err = tmpl.ParseFunc(hostVars, dest, func(b []byte) string { return string(b) })
+			if err != nil {
+				return err
+			}
+		}
+		dst, err := newLocalRepository(filepath.Join(src.Reference.Registry, src.Reference.Repository)+":"+src.Reference.Reference, dest)
+		if err != nil {
+			return err
+		}
+
+		err = imageSrcToDst(ctx, src, dst, img, i.Platform)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -296,19 +822,21 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		}
 		ipl := &imagePullArgs{}
 		ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
-		ipl.auths = make([]imagePullAuth, 0)
-		_ = variable.AnyVar(vars, &ipl.auths, "cri", "registry", "auths")
-		for _, a := range ipl.auths {
+		ipl.auths = make([]imageAuth, 0)
+		pullAuths := make([]imageAuth, 0)
+		_ = variable.AnyVar(vars, pull, &pullAuths, "auths")
+		for _, a := range pullAuths {
 			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
 			a.Username, _ = tmpl.ParseFunc(vars, a.Username, func(b []byte) string { return string(b) })
 			a.Password, _ = tmpl.ParseFunc(vars, a.Password, func(b []byte) string { return string(b) })
+			ipl.auths = append(ipl.auths, a)
 		}
 		ipl.imagesDir, _ = variable.StringVar(vars, pull, "images_dir")
 		ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skip_tls_verify")
 		if ipl.skipTLSVerify == nil {
 			ipl.skipTLSVerify = ptr.To(false)
 		}
-		ipl.platform, _ = variable.StringVar(vars, pull, "platform")
+		ipl.platform, _ = variable.StringSliceVar(vars, pull, "platform")
 		// check args
 		if len(ipl.manifests) == 0 {
 			return nil, errors.New("\"pull.manifests\" is required")
@@ -330,8 +858,15 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		}
 
 		ips := &imagePushArgs{}
-		ips.username, _ = variable.StringVar(vars, push, "username")
-		ips.password, _ = variable.StringVar(vars, push, "password")
+		ips.auths = make([]imageAuth, 0)
+		pullAuths := make([]imageAuth, 0)
+		_ = variable.AnyVar(vars, push, &pullAuths, "auths")
+		for _, a := range pullAuths {
+			a.Repo, _ = tmpl.ParseFunc(vars, a.Repo, func(b []byte) string { return string(b) })
+			a.Username, _ = tmpl.ParseFunc(vars, a.Username, func(b []byte) string { return string(b) })
+			a.Password, _ = tmpl.ParseFunc(vars, a.Password, func(b []byte) string { return string(b) })
+			ips.auths = append(ips.auths, a)
+		}
 		ips.imagesDir, _ = variable.StringVar(vars, push, "images_dir")
 		srcPattern, _ := variable.StringVar(vars, push, "src_pattern")
 		destTmpl, _ := variable.PrintVar(push, "dest")
@@ -363,6 +898,22 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 		ia.push = ips
 	}
 
+	if cpArgs, ok := args["copy"]; ok {
+		cp, ok := cpArgs.(map[string]any)
+		if !ok {
+			return nil, errors.New("\"copy\" should be map")
+		}
+
+		cps := &imageCopyArgs{}
+
+		err := cps.parseFromVars(vars, cp)
+		if err != nil {
+			return nil, err
+		}
+
+		ia.copy = cps
+	}
+
 	return ia, nil
 }
 
@@ -388,6 +939,12 @@ func ModuleImage(ctx context.Context, options ExecOptions) (string, string, erro
 	// push image to private registry
 	if ia.push != nil {
 		if err := ia.push.push(ctx, ha); err != nil {
+			return StdoutFailed, "failed to push image", err
+		}
+	}
+
+	if ia.copy != nil {
+		if err := ia.copy.copy(ctx, ha); err != nil {
 			return StdoutFailed, "failed to push image", err
 		}
 	}
@@ -484,18 +1041,26 @@ type imageTransport struct {
 
 // RoundTrip deal http.Request in local dir images.
 func (i imageTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	var resp *http.Response
+
 	switch request.Method {
-	case http.MethodHead: // check if file exist
-		return i.head(request), nil
+	case http.MethodHead:
+		resp = i.head(request)
 	case http.MethodPost:
-		return i.post(request), nil
+		resp = i.post(request)
 	case http.MethodPut:
-		return i.put(request), nil
+		resp = i.put(request)
 	case http.MethodGet:
-		return i.get(request), nil
+		resp = i.get(request)
 	default:
-		return responseNotAllowed, nil
+		resp = responseNotAllowed
 	}
+
+	if resp != nil {
+		resp.Request = request
+	}
+
+	return resp, nil
 }
 
 // head method for http.MethodHead. check if file is exist in blobs dir or manifests dir
@@ -570,12 +1135,6 @@ func (i imageTransport) post(request *http.Request) *http.Response {
 // put method for http.MethodPut, create file in blobs dir or manifests dir
 func (i imageTransport) put(request *http.Request) *http.Response {
 	if strings.HasSuffix(request.URL.Path, "/uploads") { // blobs
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to read request")
-
-			return responseServerError
-		}
 		defer request.Body.Close()
 
 		filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
@@ -585,7 +1144,22 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 			return responseServerError
 		}
 
-		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to create file", "filename", filename)
+			return responseServerError
+		}
+
+		defer func() {
+			if err = file.Sync(); err != nil {
+				klog.V(4).ErrorS(err, "failed to sync file", "filename", filename)
+			}
+			if err = file.Close(); err != nil {
+				klog.V(4).ErrorS(err, "failed to close file", "filename", filename)
+			}
+		}()
+
+		if _, err = io.Copy(file, request.Body); err != nil {
 			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
 
 			return responseServerError
@@ -630,7 +1204,14 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 			return responseNotFound
 		}
 
-		file, err := os.ReadFile(filename)
+		file, err := os.Open(filename)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
+
+			return responseServerError
+		}
+
+		fStat, err := file.Stat()
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
 
@@ -640,8 +1221,8 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 		return &http.Response{
 			Proto:         "Local",
 			StatusCode:    http.StatusOK,
-			ContentLength: int64(len(file)),
-			Body:          io.NopCloser(bytes.NewReader(file)),
+			ContentLength: fStat.Size(),
+			Body:          file,
 		}
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
@@ -684,6 +1265,30 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 	}
 
 	return responseNotAllowed
+}
+
+func normalizeImageNameSimple(image string) string {
+	parts := strings.Split(image, "/")
+
+	switch len(parts) {
+	case 1:
+		// image like: ubuntu -> docker.io/library/ubuntu
+		return fmt.Sprintf("%s/library/%s", defaultRegistry, image)
+	case 2:
+		// image like: project/xx or registry/project
+		firstPart := parts[0]
+		if firstPart == "localhost" || (strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":")) {
+			return image
+		}
+		return fmt.Sprintf("%s/%s", defaultRegistry, image)
+	default:
+		// image like: registry/project/xx/sub
+		firstPart := parts[0]
+		if firstPart == "localhost" || (strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":")) {
+			return image
+		}
+		return fmt.Sprintf("%s/%s", defaultRegistry, image)
+	}
 }
 
 func init() {
