@@ -118,10 +118,7 @@ func (e *taskExecutor) runTaskLoop(ctx context.Context) error {
 	}
 	fmt.Fprintf(e.logOutput, "%s %s%s\n", time.Now().Format(time.TimeOnly+" MST"), roleLog, e.task.Spec.Name)
 
-	for {
-		if e.task.IsComplete() {
-			break
-		}
+	for !e.task.IsComplete() {
 		task := e.task.DeepCopy()
 		if e.task.Status.Phase == kkcorev1alpha1.TaskPhaseFailed {
 			e.task.Status.RestartCount++
@@ -390,11 +387,10 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 // specification from JSON into a slice of values.
 func (e *taskExecutor) dealLoop(ha map[string]any) []any {
 	var items []any
-	switch {
-	case e.task.Spec.Loop.Raw == nil:
+	if e.task.Spec.Loop.Raw == nil {
 		// loop is not set. add one element to execute once module.
 		items = []any{nil}
-	default:
+	} else {
 		items = variable.Extension2Slice(ha, e.task.Spec.Loop)
 	}
 

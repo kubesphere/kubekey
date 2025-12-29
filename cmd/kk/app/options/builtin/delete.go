@@ -45,7 +45,7 @@ func NewDeleteClusterOptions() *DeleteClusterOptions {
 	}
 	// Set the function to get the config for the specified Kubernetes version
 	// Set the function to get the inventory
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
@@ -105,22 +105,22 @@ func (o *DeleteClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 // completeConfig updates the configuration with container manager settings
 func (o *DeleteClusterOptions) completeConfig() error {
 	// If kube_version is not set in config, set it to the specified Kubernetes version
-	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kubernetes", "kube_version"); !ok {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 		}
 	}
 	if o.DeleteAllComponents {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "cri"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "cri"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_cri")
 		}
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "etcd"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "etcd"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_etcd")
 		}
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "dns"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "dns"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_dns")
 		}
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "image_registry"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "image_registry"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_image_registry")
 		}
 	}
@@ -140,7 +140,7 @@ func NewDeleteNodesOptions() *DeleteNodesOptions {
 		Kubernetes:    defaultKubeVersion,
 	}
 	// Set the function to get the inventory
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
@@ -202,26 +202,26 @@ func (o *DeleteNodesOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 // completeConfig updates the configuration with container manager settings
 func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
 	// If kube_version is not set in config, set it to the specified Kubernetes version
-	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kubernetes", "kube_version"); !ok {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 		}
 	}
 	// Set the list of nodes to be deleted in the config
-	if err := unstructured.SetNestedStringSlice(o.CommonOptions.Config.Value(), nodes, "delete_nodes"); err != nil {
+	if err := unstructured.SetNestedStringSlice(o.Config.Value(), nodes, "delete_nodes"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "delete_nodes")
 	}
 	if o.DeleteAllComponents {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "cri"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "cri"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_cri")
 		}
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "etcd"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "etcd"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_etcd")
 		}
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "dns"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "dns"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_dns")
 		}
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), true, "delete", "image_registry"); err != nil {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "image_registry"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_image_registry")
 		}
 	}
@@ -240,7 +240,7 @@ func NewDeleteRegistryOptions() *DeleteRegistryOptions {
 		CommonOptions: options.NewCommonOptions(),
 	}
 	// Set the function to get the inventory
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }

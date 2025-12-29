@@ -121,8 +121,8 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 	stderr := stderrBuf.Bytes()
 	if c.Password != "" {
 		// Filter out the "Password:" prompt from the output
-		stdout = bytes.Replace(stdout, []byte("Password:"), []byte(""), -1)
-		stderr = bytes.Replace(stderr, []byte("Password:"), []byte(""), -1)
+		stdout = bytes.ReplaceAll(stdout, []byte("Password:"), []byte(""))
+		stderr = bytes.ReplaceAll(stderr, []byte("Password:"), []byte(""))
 	}
 
 	return stdout, stderr, err

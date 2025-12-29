@@ -164,7 +164,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 		return nil, nil, errors.New("not task")
 	}
 
-	return task.ObjectMeta.Labels, ToSelectableFields(task), nil
+	return task.Labels, ToSelectableFields(task), nil
 }
 
 // ToSelectableFields returns a field set that represents the object
@@ -189,7 +189,7 @@ func ToSelectableFields(task *kkcorev1alpha1.Task) fields.Set {
 func NameTriggerFunc(obj runtime.Object) string {
 	task, ok := obj.(*kkcorev1alpha1.Task)
 	if ok {
-		return task.ObjectMeta.Name
+		return task.Name
 	}
 
 	return ""

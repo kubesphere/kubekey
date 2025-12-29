@@ -94,7 +94,7 @@ func ModuleAddHostvars(ctx context.Context, options ExecOptions) (string, string
 	if err != nil {
 		return StdoutFailed, StderrParseArgument, err
 	}
-	ahn, err := options.Variable.Get(variable.GetHostnames(args.hosts))
+	ahn, err := options.Get(variable.GetHostnames(args.hosts))
 	if err != nil {
 		return StdoutFailed, "failed to get hostnames", err
 	}
@@ -104,7 +104,7 @@ func ModuleAddHostvars(ctx context.Context, options ExecOptions) (string, string
 	}
 
 	// Merge the provided variables into the specified hosts.
-	if err := options.Variable.Merge(variable.MergeHostsRuntimeVariable(args.vars, options.Host, hosts...)); err != nil {
+	if err := options.Merge(variable.MergeHostsRuntimeVariable(args.vars, options.Host, hosts...)); err != nil {
 		return StdoutFailed, "failed to add_hostvars", errors.Wrap(err, "failed to add_hostvars")
 	}
 

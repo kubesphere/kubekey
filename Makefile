@@ -82,7 +82,7 @@ HADOLINT_FAILURE_THRESHOLD = warning
 GOLANGCI_LINT_VER := $(shell cat .github/workflows/golangci-lint.yaml | grep [[:space:]]version | sed 's/.*version: //')
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(abspath $(OUTPUT_TOOLS_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
-GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 GORELEASER_VER := v2.5.1
 GORELEASER_BIN := goreleaser

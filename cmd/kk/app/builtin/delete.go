@@ -61,7 +61,7 @@ func newDeleteClusterCommand() *cobra.Command {
 			}
 
 			// Execute the playbook to delete the cluster
-			return o.CommonOptions.Run(cmd.Context(), playbook)
+			return o.Run(cmd.Context(), playbook)
 		},
 	}
 	// Add all relevant flag sets to the command
@@ -96,7 +96,7 @@ func newDeleteNodesCommand() *cobra.Command {
 			}
 
 			// Execute the playbook to delete the specified nodes
-			return o.CommonOptions.Run(cmd.Context(), playbook)
+			return o.Run(cmd.Context(), playbook)
 		},
 	}
 	// Add all relevant flag sets to the command
@@ -125,7 +125,7 @@ func newDeleteRegistryCommand() *cobra.Command {
 			}
 
 			// Execute the playbook to delete the image registry
-			return o.CommonOptions.Run(cmd.Context(), playbook)
+			return o.Run(cmd.Context(), playbook)
 		},
 	}
 	// Add all relevant flag sets to the command

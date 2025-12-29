@@ -158,7 +158,7 @@ func AddKlogFlags(fs *pflag.FlagSet) {
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(local)
 	local.VisitAll(func(fl *flag.Flag) {
-		fl.Name = strings.Replace(fl.Name, "_", "-", -1)
+		fl.Name = strings.ReplaceAll(fl.Name, "_", "-")
 		fs.AddGoFlag(fl)
 	})
 }

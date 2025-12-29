@@ -83,7 +83,7 @@ func ModuleIncludeVars(ctx context.Context, options ExecOptions) (string, string
 		return StdoutFailed, StderrParseArgument, errors.Wrap(err, "failed to failed to unmarshal YAML")
 	}
 
-	if err := options.Variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, options.Host)); err != nil {
+	if err := options.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, options.Host)); err != nil {
 		return StdoutFailed, StderrParseArgument, errors.Wrap(err, "failed to merge runtime variables")
 	}
 

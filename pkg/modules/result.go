@@ -61,7 +61,7 @@ func ModuleResult(ctx context.Context, options ExecOptions) (string, string, err
 		return StdoutFailed, "failed to unmarshal YAML", err
 	}
 
-	if err := options.Variable.Merge(variable.MergeResultVariable(result)); err != nil {
+	if err := options.Merge(variable.MergeResultVariable(result)); err != nil {
 		return StdoutFailed, "failed to merge result variable", err
 	}
 

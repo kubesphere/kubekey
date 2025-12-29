@@ -91,7 +91,7 @@ func (r *PlaybookReconciler) SetupWithManager(mgr manager.Manager, o options.Con
 func (r PlaybookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	// get playbook
 	playbook := &kkcorev1.Playbook{}
-	if err := r.Client.Get(ctx, req.NamespacedName, playbook); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, playbook); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get playbook %q", req.String())
 		}
@@ -120,7 +120,7 @@ func (r PlaybookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if playbook.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(playbook, kkcorev1.PlaybookCompletedFinalizer) {
+	if playbook.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(playbook, kkcorev1.PlaybookCompletedFinalizer) {
 		controllerutil.AddFinalizer(playbook, kkcorev1.PlaybookCompletedFinalizer)
 
 		return ctrl.Result{}, nil
@@ -174,7 +174,7 @@ func (r *PlaybookReconciler) reconcileDelete(ctx context.Context, playbook *kkco
 	if playbook.Status.Phase == kkcorev1.PlaybookPhaseFailed || playbook.Status.Phase == kkcorev1.PlaybookPhaseSucceeded {
 		// playbook has completed. delete the owner pods.
 		for _, obj := range podList.Items {
-			if err := r.Client.Delete(ctx, &obj); err != nil {
+			if err := r.Delete(ctx, &obj); err != nil {
 				return errors.Wrapf(err, "failed to delete pod for %q", ctrlclient.ObjectKeyFromObject(playbook))
 			}
 		}
@@ -203,7 +203,7 @@ func (r *PlaybookReconciler) reconcileNormal(ctx context.Context, playbook *kkco
 func (r *PlaybookReconciler) dealRunningPlaybook(ctx context.Context, playbook *kkcorev1.Playbook) error {
 	// check if pod is exist
 	podList := &corev1.PodList{}
-	if err := r.Client.List(ctx, podList, ctrlclient.InNamespace(playbook.Namespace), ctrlclient.MatchingLabels{
+	if err := r.List(ctx, podList, ctrlclient.InNamespace(playbook.Namespace), ctrlclient.MatchingLabels{
 		podPlaybookLabel: playbook.Name,
 	}); err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "failed to list pod with label %s=%s", podPlaybookLabel, playbook.Name)
@@ -249,10 +249,10 @@ func (r *PlaybookReconciler) dealRunningPlaybook(ctx context.Context, playbook *
 	if imagePullPolicy := _const.Getenv(_const.ExecutorImagePullPolicy); imagePullPolicy != "" {
 		pod.Spec.Containers[0].ImagePullPolicy = corev1.PullPolicy(imagePullPolicy)
 	}
-	if err := ctrl.SetControllerReference(playbook, pod, r.Client.Scheme()); err != nil {
+	if err := ctrl.SetControllerReference(playbook, pod, r.Scheme()); err != nil {
 		return errors.Wrapf(err, "failed to set ownerReference to playbook pod %q", pod.GenerateName)
 	}
 
-	return errors.Wrapf(r.Client.Create(ctx, pod),
+	return errors.Wrapf(r.Create(ctx, pod),
 		"failed to create pod of playbook %q", ctrlclient.ObjectKeyFromObject(playbook))
 }

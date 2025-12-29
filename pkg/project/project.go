@@ -110,7 +110,7 @@ func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
 		return nil, err
 	}
 	// validate playbook
-	if err := f.Playbook.Validate(); err != nil {
+	if err := f.Validate(); err != nil {
 		return nil, err
 	}
 
@@ -166,7 +166,7 @@ func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 			}
 		}
 
-		f.Playbook.Play = append(f.Playbook.Play, p)
+		f.Play = append(f.Play, p)
 	}
 
 	return nil

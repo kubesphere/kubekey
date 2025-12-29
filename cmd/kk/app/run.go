@@ -34,7 +34,7 @@ func newRunCommand() *cobra.Command {
 				return err
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), playbook)
+			return o.Run(cmd.Context(), playbook)
 		},
 	}
 	for _, f := range o.Flags().FlagSets {
