@@ -16,7 +16,31 @@
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
       if [ -n "$pkg" ]; then
-        dpkg -s $pkg >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
+        case "$pkg" in
+          socat)
+            command -v socat >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL socat"
+            ;;
+          conntrack)
+            command -v conntrack >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL conntrack"
+            ;;
+          ipset)
+            ipset list >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipset"
+            ;;
+          ebtables)
+            ebtables -L >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ebtables"
+            ;;
+          chrony)
+            [ "$(systemctl show -p LoadState --value chrony.service 2>/dev/null)" = "loaded" ] \
+              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL chrony"
+            ;;
+          ipvsadm)
+            ipvsadm -Ln >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipvsadm"
+            ;;
+          nfs-kernel-server)
+            [ "$(systemctl show -p LoadState --value nfs-server.service 2>/dev/null)" = "loaded" ] \
+              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nfs-kernel-server"
+            ;;
+        esac
       fi
     done
     if [ -f "{{ .tmp_dir }}/iso" ]; then
@@ -53,7 +77,31 @@
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
       if [ -n "$pkg" ]; then
-        rpm -q $pkg >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
+        case "$pkg" in
+          socat)
+            command -v socat >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL socat"
+            ;;
+          conntrack)
+            command -v conntrack >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL conntrack"
+            ;;
+          ipset)
+            ipset list >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipset"
+            ;;
+          ebtables)
+            ebtables -L >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ebtables"
+            ;;
+          chrony)
+            [ "$(systemctl show -p LoadState --value chronyd.service 2>/dev/null)" = "loaded" ] \
+              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL chrony"
+            ;;
+          ipvsadm)
+            ipvsadm -Ln >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipvsadm"
+            ;;
+          nfs-kernel-server)
+            [ "$(systemctl show -p LoadState --value nfs-server.service 2>/dev/null)" = "loaded" ] \
+              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nfs-kernel-server"
+            ;;
+        esac      
       fi
     done
     if [ -f "{{ .tmp_dir }}/iso" ]; then
