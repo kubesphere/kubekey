@@ -15,6 +15,69 @@
         dest: /usr/local/bin/calicoctl
         mode: 0755
 
+- name: Calico | Create CNI configuration for k3s compatibility
+  when: .kubernetes.is_k3s | default false
+  block:
+    - name: Calico | Create CNI configuration directory
+      file:
+        path: /etc/cni/net.d
+        state: directory
+        mode: 0755
+
+    - name: Calico | Create Calico CNI configuration file
+      copy:
+        content: |
+          {
+            "name": "k8s-pod-network",
+            "cniVersion": "0.3.1",
+            "plugins": [
+              {
+                "type": "calico",
+                "log_level": "info",
+                "datastore_type": "kubernetes",
+                "mtu": 0,
+                "ipam": {
+                  "type": "calico-ipam"
+                },
+                "policy": {
+                  "type": "k8s"
+                },
+                "kubernetes": {
+                  "kubeconfig": "/etc/cni/net.d/calico-kubeconfig"
+                }
+              },
+              {
+                "type": "portmap",
+                "snat": true,
+                "capabilities": {"portMappings": true}
+              }
+            ]
+          }
+        dest: /etc/cni/net.d/10-calico.conflist
+        mode: 0644
+
+    - name: Calico | Create kubeconfig for Calico CNI
+      copy:
+        content: |
+          apiVersion: v1
+          kind: Config
+          current-context: calico-cni
+          contexts:
+          - context:
+              cluster: local
+              user: calico-cni
+            name: calico-cni
+          clusters:
+          - cluster:
+              server: https://127.0.0.1:6443
+            name: local
+          users:
+          - name: calico-cni
+            user:
+              token: ""  # Will be updated by Calico
+        dest: /etc/cni/net.d/calico-kubeconfig
+        mode: 0600
+
 - name: Calico | Copy Calico Helm package to remote node
   copy:
     src: >-
@@ -31,3 +94,30 @@
 - name: Calico | Deploy Calico using Helm
   command: |
     helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz -f /etc/kubernetes/cni/calico-values.yaml
+
+- name: Calico | Wait for Calico to be ready (k3s compatibility)
+  when: .kubernetes.is_k3s | default false
+  block:
+    - name: Calico | Wait for calico-node daemonset to be ready
+      command: |
+        for i in {1..60}; do
+          if kubectl get daemonset calico-node -n calico-system &>/dev/null; then
+            READY=$(kubectl get daemonset calico-node -n calico-system -o jsonpath='{.status.numberReady}')
+            DESIRED=$(kubectl get daemonset calico-node -n calico-system -o jsonpath='{.status.desiredNumberScheduled}')
+            if [ "$READY" = "$DESIRED" ] && [ "$DESIRED" -gt 0 ]; then
+              echo "Calico daemonset is ready ($READY/$DESIRED)"
+              break
+            fi
+          fi
+          echo "Waiting for Calico daemonset to be ready... ($i/60)"
+          sleep 10
+        done
+      register: calico_ready_check
+      failed_when: calico_ready_check.rc != 0
+
+    - name: Calico | Update CNI kubeconfig with proper token
+      when: .kubernetes.is_k3s | default false
+      command: |
+        # Get service account token for calico-cni
+        TOKEN=$(kubectl get secret -n calico-system $(kubectl get serviceaccount -n calico-system calico-cni -o jsonpath='{.secrets[0].name}') -o jsonpath='{.data.token}' | base64 -d)
+        sed -i "s/token: \"\"/token: \"$TOKEN\"/" /etc/cni/net.d/calico-kubeconfig

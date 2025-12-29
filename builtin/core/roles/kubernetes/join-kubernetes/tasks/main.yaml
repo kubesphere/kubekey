@@ -1,5 +1,10 @@
 ---
+- name: Join | k3s worker node join
+  when: .kubernetes.is_k3s | default false
+  include_tasks: join_k3s.yaml
+
 - name: Join | Generate kubeadm join configuration file
+  when: .kubernetes.is_k3s | default false | not
   template:
     src: >-
       {{- if .kubernetes.kube_version | semverCompare ">=v1.31.0" -}}
@@ -12,6 +17,7 @@
     dest: /etc/kubernetes/kubeadm-config.yaml
 
 - name: Join | Execute kubeadm join to add node to the Kubernetes cluster
+  when: .kubernetes.is_k3s | default false | not
   command: |
     /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
 

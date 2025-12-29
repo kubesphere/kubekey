@@ -1,0 +1,81 @@
+---
+- name: InitK3s | Install k3s binary
+  when: .kubernetes.is_k3s | default false
+  block:
+    - name: InitK3s | Download k3s binary
+      get_url:
+        url: >-
+          {{- if .download.cn_host | empty | not -}}
+          https://{{ .download.cn_host }}/github.com/kubesphere/kubekey/releases/download/{{ .kubernetes.kube_version }}/k3s
+          {{- else -}}
+          https://github.com/kubesphere/kubekey/releases/download/{{ .kubernetes.kube_version }}/k3s
+          {{- end -}}
+        dest: /usr/local/bin/k3s
+        mode: 0755
+
+    - name: InitK3s | Create k3s configuration directory
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: 0755
+
+    - name: InitK3s | Generate k3s configuration
+      template:
+        src: k3s/config.yaml
+        dest: /etc/rancher/k3s/config.yaml
+
+- name: InitK3s | Start k3s service
+  when: .kubernetes.is_k3s | default false
+  block:
+    - name: InitK3s | Enable and start k3s service
+      systemd:
+        name: k3s
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: InitK3s | Wait for k3s to be ready
+      command: |
+        for i in {1..60}; do
+          if /usr/local/bin/k3s kubectl get nodes &>/dev/null; then
+            echo "k3s is ready"
+            break
+          fi
+          echo "Waiting for k3s to be ready... ($i/60)"
+          sleep 5
+        done
+      register: k3s_ready_check
+      failed_when: k3s_ready_check.rc != 0
+
+- name: InitK3s | Configure kubectl for k3s
+  when: .kubernetes.is_k3s | default false
+  block:
+    - name: InitK3s | Copy k3s kubeconfig to default location
+      command: |
+        if [ ! -d ~/.kube ]; then
+          mkdir -p ~/.kube
+        fi
+        if [ ! -d /root/.kube ]; then
+          mkdir -p /root/.kube
+        fi
+        cp -f /etc/rancher/k3s/k3s.yaml ~/.kube/config
+        cp -f /etc/rancher/k3s/k3s.yaml /root/.kube/config
+        chmod 600 ~/.kube/config /root/.kube/config
+
+    - name: InitK3s | Test kubectl connectivity
+      command: /usr/local/bin/k3s kubectl get nodes
+      register: kubectl_test
+      failed_when: kubectl_test.rc != 0
+
+- name: InitK3s | Generate and distribute k3s token for worker nodes
+  block:
+    - name: InitK3s | Generate k3s token
+      command: /usr/local/bin/k3s token create
+      register: k3s_token_result
+
+    - name: InitK3s | Distribute k3s token to all cluster hosts
+      add_hostvars:
+        hosts: k8s_cluster
+        vars:
+          k3s_token: >-
+            {{ .k3s_token_result.stdout }}

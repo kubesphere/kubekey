@@ -8,6 +8,17 @@
     - name: Defaults | Load architecture-specific download URLs for each artifact version
       include_vars: 10-download.yaml
 
+- name: Defaults | Detect and configure k3s-specific settings
+  when: .kubernetes.kube_version | regex_search('k3s', ignorecase=true)
+  set_fact:
+    kubernetes:
+      is_k3s: true
+      k3s_version: >-
+        {{- .kubernetes.kube_version | regex_replace('\+.*', '') | regex_replace('-k3s', '') -}}
+      use_kubeadm: false
+    cni:
+      k3s_compatible: true
+
 - name: Defaults | Reset temporary directory
   command: |
     if [ -d {{ .tmp_dir }} ]; then

@@ -1,0 +1,41 @@
+---
+# Test configuration for k3s + Calico installation
+# This reproduces the original issue reported in GitHub issue #1908
+
+apiVersion: kubekey.kubesphere.io/v1alpha2
+kind: Cluster
+metadata:
+  name: k3s-calico-test
+spec:
+  hosts:
+  - {name: master1, address: 192.168.1.100, internalAddress: 192.168.1.100, user: root, password: "test123"}
+  roleGroups:
+    etcd:
+    - master1
+    control-plane:
+    - master1
+    worker:
+    - master1
+  controlPlaneEndpoint:
+    domain: lb.kubesphere.local
+    address: ""
+    port: 6443
+  kubernetes:
+    version: v1.21.4-k3s
+    clusterName: cluster.local
+    autoRenewCerts: true
+    containerManager: docker
+  etcd:
+    type: kubekey
+  network:
+    plugin: calico
+    kubePodsCIDR: 10.233.64.0/18
+    kubeServiceCIDR: 10.233.0.0/18
+    multusCNI:
+      enabled: false
+  registry:
+    privateRegistry: ""
+    namespaceOverride: ""
+    registryMirrors: []
+    insecureRegistries: []
+  addons: []

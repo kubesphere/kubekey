@@ -1,0 +1,55 @@
+---
+- name: JoinK3s | Install k3s binary on worker nodes
+  when:
+    - .kubernetes.is_k3s | default false
+    - .groups.kube_worker | default list | has .inventory_hostname
+  block:
+    - name: JoinK3s | Download k3s binary
+      get_url:
+        url: >-
+          {{- if .download.cn_host | empty | not -}}
+          https://{{ .download.cn_host }}/github.com/kubesphere/kubekey/releases/download/{{ .kubernetes.kube_version }}/k3s
+          {{- else -}}
+          https://github.com/kubesphere/kubekey/releases/download/{{ .kubernetes.kube_version }}/k3s
+          {{- end -}}
+        dest: /usr/local/bin/k3s
+        mode: 0755
+
+    - name: JoinK3s | Create k3s configuration directory
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: 0755
+
+    - name: JoinK3s | Generate k3s worker configuration
+      template:
+        src: k3s/config-worker.yaml
+        dest: /etc/rancher/k3s/config.yaml
+
+- name: JoinK3s | Join k3s worker to cluster
+  when:
+    - .kubernetes.is_k3s | default false
+    - .groups.kube_worker | default list | has .inventory_hostname
+  block:
+    - name: JoinK3s | Start k3s agent service
+      systemd:
+        name: k3s-agent
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: JoinK3s | Wait for node to be ready
+      command: |
+        for i in {1..60}; do
+          if /usr/local/bin/k3s kubectl get nodes {{ .hostname }} &>/dev/null; then
+            STATUS=$(/usr/local/bin/k3s kubectl get nodes {{ .hostname }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+            if [ "$STATUS" = "True" ]; then
+              echo "Node {{ .hostname }} is ready"
+              break
+            fi
+          fi
+          echo "Waiting for node {{ .hostname }} to be ready... ($i/60)"
+          sleep 5
+        done
+      register: node_ready_check
+      failed_when: node_ready_check.rc != 0
