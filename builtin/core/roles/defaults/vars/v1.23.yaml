@@ -74,6 +74,101 @@ dns:
     tag: v1.8.6
   dns_cache_image:
     tag: 1.21.1
+
+download:
+  kubernetes:
+    kube_version: 
+      - "{{ .kubernetes.kube_version }}"
+    helm_version: 
+      - "{{ .kubernetes.helm_version }}"
+  image_registry:
+    type:
+      - "{{ .image_registry.type }}"
+    # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
+    keepalived_version: 
+    - "{{ .image_registry.keepalived_version }}"
+    # ========== image registry: harbor ==========
+    # harbor image tag
+    harbor_version: 
+    - "{{ .image_registry.harbor_version }}"
+    # ========== image registry: docker-registry ==========
+    # docker-registry image tag
+    # docker_registry_version: 
+    # - "{{ .image_registry.docker_registry_version }}"
+  cni:
+    type: 
+    - "{{ .cni.type }}"
+    # ========== cni ==========
+    # cni_plugins binary
+    cni_plugins_version: 
+    - "{{ .cni.cni_plugins_version }}"
+    # ========== cni: calico ==========
+    # calicoctl binary
+    calico_version: 
+    - "{{ .cni.calico_version }}"
+    # ========== cni: cilium ==========
+    # cilium helm
+    cilium_version: 
+    - "{{ .cni.cilium_version }}"
+    # ========== cni: kubeovn ==========
+    # kubeovn helm
+    kubeovn_version:
+    - "{{ .cni.kubeovn_version }}"
+    # ========== cni: hybridnet ==========
+    # hybridnet helm
+    hybridnet_version:
+    - "{{ .cni.hybridnet_version }}"
+  cri:
+    # support: containerd,docker
+    container_manager: 
+    - "{{ .cri.container_manager }}"
+    # ========== cri ==========
+    # crictl binary
+    crictl_version:
+    - "{{ .cri.crictl_version }}"
+    # ========== cri: docker ==========
+    # docker binary
+    docker_version:
+    - "{{ .cri.docker_version }}"
+    # docker-compose binary
+    dockercompose_version:
+    - "{{ .cri.dockercompose_version }}"
+    # cridockerd. Required when kube_version is greater than 1.24
+    cridockerd_version:
+    - "{{ .cri.cridockerd_version }}"
+    # ========== cri: containerd ==========
+    # containerd binary
+    containerd_version:
+    - "{{ .cri.containerd_version }}"
+    # runc binary
+    runc_version:
+    - "{{ .cri.runc_version }}"
+  etcd:
+    etcd_version:
+    - "{{ .etcd.etcd_version }}"
+  image_manifests:
+    - docker.io/calico/apiserver:{{ .cni.calico_version }}
+    - docker.io/calico/cni:{{ .cni.calico_version }}
+    - docker.io/calico/ctl:{{ .cni.calico_version }}
+    - docker.io/calico/csi:{{ .cni.calico_version }}
+    - docker.io/calico/kube-controllers:{{ .cni.calico_version }}
+    - docker.io/calico/node-driver-registrar:{{ .cni.calico_version }}
+    - docker.io/calico/node:{{ .cni.calico_version }}
+    - docker.io/calico/pod2daemon-flexvol:{{ .cni.calico_version }}
+    - docker.io/calico/typha:{{ .cni.calico_version }}
+    - docker.io/kubesphere/coredns:{{ .dns.dns_image.tag }}
+    - docker.io/kubesphere/k8s-dns-node-cache:{{ .dns.dns_cache_image.tag }}
+    - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
+    - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
+    - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
+    - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
+    - docker.io/kubesphere/pause:{{ .cri.sandbox_image.tag }}
+    - docker.io/openebs/linux-utils:{{ .storage_class.local.linux_utils_image.tag }}
+    - docker.io/openebs/provisioner-localpv:{{ .storage_class.local.provisioner_image.tag }}
+    - quay.io/tigera/operator:v1.28.5
+    - docker.io/library/haproxy:{{ .kubernetes.control_plane_endpoint.haproxy.image.tag }}
+    - docker.io/plndr/kube-vip:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}
+
 image_manifests:
   # calico
   - quay.io/tigera/operator:v1.28.5
