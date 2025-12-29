@@ -6,6 +6,7 @@ updates:
       interval: "daily"
     pull-request-branch-name:
       separator: "-"
+      
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
