@@ -40,7 +40,7 @@ import (
 type ArtifactExportOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
-	Kubernetes string
+	Kubernetes []string
 }
 
 // NewArtifactExportOptions for newArtifactExportCommand
@@ -56,7 +56,7 @@ func NewArtifactExportOptions() *ArtifactExportOptions {
 func (o *ArtifactExportOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
-	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+	kfs.StringSliceVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
 
 	return fss
 }
@@ -82,6 +82,7 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		SkipTags: []string{"certs"},
+		Tags:     []string{"package"},
 	}
 
 	o.Set = setDefaultDownload(o.Set)
