@@ -45,7 +45,7 @@ func NewCreateClusterOptions() *CreateClusterOptions {
 		CommonOptions: options.NewCommonOptions(),
 		Kubernetes:    defaultKubeVersion,
 	}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
@@ -95,8 +95,8 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 }
 
 func (o *CreateClusterOptions) completeConfig() error {
-	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kubernetes", "kube_version"); !ok {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 		}
 	}
@@ -192,7 +192,7 @@ func (o *CreateInventoryOptions) Run() error {
 
 	if o.OutputDir != "" {
 		// Write inventory to file if output directory is specified
-		filename := filepath.Join(o.OutputDir, fmt.Sprintf("inventory.yaml"))
+		filename := filepath.Join(o.OutputDir, "inventory.yaml")
 		if err := os.WriteFile(filename, data, os.ModePerm); err != nil {
 			return errors.Wrapf(err, "failed to write inventory file to %s", filename)
 		}

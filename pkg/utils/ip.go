@@ -199,9 +199,10 @@ func networkRange(network *net.IPNet) (net.IP, net.IP) {
 		return nil, nil
 	}
 	ipLen := len(netIP)
-	if ipLen == net.IPv4len {
+	switch ipLen {
+	case net.IPv4len:
 		netIP = netIP.To4()
-	} else if ipLen == net.IPv6len {
+	case net.IPv6len:
 		netIP = netIP.To16()
 	}
 	if netIP == nil {

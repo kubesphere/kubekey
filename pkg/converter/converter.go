@@ -59,7 +59,7 @@ func MarshalBlock(hosts []string, when []string, block kkprojectv1.Block) *kkcor
 		},
 	}
 	if annotation, ok := block.UnknownField["annotations"].(map[string]string); ok {
-		task.ObjectMeta.Annotations = annotation
+		task.Annotations = annotation
 	}
 
 	if block.Loop != nil {

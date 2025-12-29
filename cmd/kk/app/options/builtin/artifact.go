@@ -47,7 +47,7 @@ type ArtifactExportOptions struct {
 func NewArtifactExportOptions() *ArtifactExportOptions {
 	// set default value
 	o := &ArtifactExportOptions{CommonOptions: options.NewCommonOptions()}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
@@ -84,7 +84,7 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		SkipTags: []string{"certs"},
 	}
 
-	o.CommonOptions.Set = setDefaultDownload(o.CommonOptions.Set)
+	o.Set = setDefaultDownload(o.Set)
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ type ArtifactImagesOptions struct {
 // NewArtifactImagesOptions for newArtifactImagesCommand
 func NewArtifactImagesOptions() *ArtifactImagesOptions {
 	o := &ArtifactImagesOptions{CommonOptions: options.NewCommonOptions()}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
@@ -159,7 +159,7 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		Tags:     tags,
 	}
 
-	o.CommonOptions.Set = setDefaultDownload(o.CommonOptions.Set)
+	o.Set = setDefaultDownload(o.Set)
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, errors.WithStack(err)
 	}

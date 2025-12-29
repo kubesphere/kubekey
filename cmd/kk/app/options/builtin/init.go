@@ -47,7 +47,7 @@ type InitOSOptions struct {
 func NewInitOSOptions() *InitOSOptions {
 	// set default value
 	o := &InitOSOptions{CommonOptions: options.NewCommonOptions()}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
@@ -87,14 +87,14 @@ func (o *InitOSOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.P
 }
 
 func (o *InitOSOptions) completeConfig() error {
-	if wd, _, err := unstructured.NestedString(o.CommonOptions.Config.Value(), _const.Workdir); err != nil {
+	if wd, _, err := unstructured.NestedString(o.Config.Value(), _const.Workdir); err != nil {
 		// workdir should set by CommonOptions
 		return errors.Wrapf(err, "failed to get %q in config", _const.Workdir)
 	} else {
 		// set binary dir if not set
-		if _, _, err := unstructured.NestedString(o.CommonOptions.Config.Value(), _const.BinaryDir); err != nil {
+		if _, _, err := unstructured.NestedString(o.Config.Value(), _const.BinaryDir); err != nil {
 			// binary should set by CommonOptions
-			if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), filepath.Join(wd, "kubekey"), _const.BinaryDir); err != nil {
+			if err := unstructured.SetNestedField(o.Config.Value(), filepath.Join(wd, "kubekey"), _const.BinaryDir); err != nil {
 				return errors.Wrapf(err, "failed to set %q in config", _const.BinaryDir)
 			}
 		}
@@ -118,7 +118,7 @@ type InitRegistryOptions struct {
 func NewInitRegistryOptions() *InitRegistryOptions {
 	// set default value
 	o := &InitRegistryOptions{CommonOptions: options.NewCommonOptions()}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }

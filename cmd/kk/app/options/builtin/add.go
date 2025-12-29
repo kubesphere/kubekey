@@ -43,7 +43,7 @@ func NewAddNodeOptions() *AddNodeOptions {
 		CommonOptions: options.NewCommonOptions(),
 		Kubernetes:    defaultKubeVersion,
 	}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
@@ -102,8 +102,8 @@ func (o *AddNodeOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.
 
 // complete updates the configuration with container manager and kubernetes version settings
 func (o *AddNodeOptions) complete() error {
-	if _, ok, _ := unstructured.NestedFieldNoCopy(o.CommonOptions.Config.Value(), "kubernetes", "kube_version"); !ok {
-		if err := unstructured.SetNestedField(o.CommonOptions.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 		}
 	}
@@ -138,7 +138,7 @@ func (o *AddNodeOptions) complete() error {
 			addNodes = append(addNodes, node)
 		}
 	}
-	if err := unstructured.SetNestedStringSlice(o.CommonOptions.Config.Value(), addNodes, "add_nodes"); err != nil {
+	if err := unstructured.SetNestedStringSlice(o.Config.Value(), addNodes, "add_nodes"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "add_nodes")
 	}
 

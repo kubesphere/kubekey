@@ -40,7 +40,7 @@ func ModuleSetup(ctx context.Context, options ExecOptions) (string, string, erro
 		if err != nil {
 			return StdoutFailed, "failed to get host info", err
 		}
-		if err := options.Variable.Merge(variable.MergeRemoteVariable(remoteInfo, options.Host)); err != nil {
+		if err := options.Merge(variable.MergeRemoteVariable(remoteInfo, options.Host)); err != nil {
 			return StdoutFailed, "failed to merge setup variable", err
 		}
 	}

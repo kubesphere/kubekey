@@ -35,7 +35,7 @@ import (
 func NewCertsRenewOptions() *CertsRenewOptions {
 	// set default value
 	o := &CertsRenewOptions{CommonOptions: options.NewCommonOptions()}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }

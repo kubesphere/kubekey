@@ -38,7 +38,7 @@ func NewPreCheckOptions() *PreCheckOptions {
 		CommonOptions: options.NewCommonOptions(),
 		Kubernetes:    defaultKubeVersion,
 	}
-	o.CommonOptions.GetInventoryFunc = getInventory
+	o.GetInventoryFunc = getInventory
 
 	return o
 }
