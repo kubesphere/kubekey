@@ -15,5 +15,5 @@
     - localhost
   roles:
     - download
-    - copy
+    - download/copy
 

@@ -4,9 +4,9 @@
       from:
         path: >-
           {{ .binary_dir }}/images/
-        manifests: "{{ .image_manifests | toJson }}"
+        manifests: "{{ .download.image.manifests | toJson }}"
       to:
         path: >-
           {{ .artifact_file_dir }}/kubekey/kubekey/images/
   when:
-    - .image_manifests | default list | empty | not
+    - .download.image.manifests | default list | empty | not

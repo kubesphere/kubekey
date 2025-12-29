@@ -1,0 +1,18 @@
+download:
+  # if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
+  zone: ""
+  # default cn zone file storage host
+  cn_host: kubekey.pek3b.qingstor.com
+  arch: [ "amd64" ]
+  # offline artifact package for kk.
+  artifact_file: ""
+  # the md5_file of artifact_file.
+  artifact_md5: ""
+  download_iso: false
+
+  image:
+    # Determines whether to pull images from remote repositories.
+    # Set to false if images are already present locally and remote validation is unnecessary.
+    fetch: true
+    # Architectures for which images should be downloaded.
+    arch: "{{ .download.arch | toJson }}"
