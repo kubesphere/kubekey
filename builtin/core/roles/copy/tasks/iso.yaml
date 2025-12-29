@@ -1,0 +1,12 @@
+---
+- name: ISO | Ensure ISO files is available
+  when: .download.iso_url.urls | empty | not
+  loop: "{{ .download.iso_url.urls | toJson }}"
+  command: |
+    iso_path={{ .binary_dir }}/repository/{{ .item | splitList "/" | last }}
+    if [ ! -f {{ .artifact_file_dir }}/kubekey/kubekey/repository/ ];then
+      mkdir -p {{ .artifact_file_dir }}/kubekey/kubekey/repository/
+    fi
+    if [ -f $iso_path ];then
+      cp $iso_path {{ .artifact_file_dir }}/kubekey/kubekey/repository/
+    fi

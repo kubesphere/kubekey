@@ -68,12 +68,6 @@ type fileStorage struct {
 	newFunc func() runtime.Object
 }
 
-// ReadinessCheck implements storage.Interface.
-func (s *fileStorage) ReadinessCheck() error {
-	// only need filesystem is ok. nothing to check.
-	return nil
-}
-
 var _ apistorage.Interface = &fileStorage{}
 
 // Versioner of local resource files.
@@ -103,8 +97,10 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 	if err != nil {
 		return errors.Wrapf(err, "failed to encode object %q", key)
 	}
-	if err := decode(s.codec, data, out); err != nil {
-		return err
+	if out != nil {
+		if err := runtime.DecodeInto(s.codec, data, out); err != nil {
+			return errors.Wrapf(err, "unable to decode the created object data for %q", key)
+		}
 	}
 	// render to file
 	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
@@ -115,7 +111,7 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 }
 
 // Delete local resource files.
-func (s fileStorage) Delete(ctx context.Context, key string, out runtime.Object, preconditions *apistorage.Preconditions, validateDeletion apistorage.ValidateObjectFunc, cachedExistingObject runtime.Object) error {
+func (s *fileStorage) Delete(ctx context.Context, key string, out runtime.Object, preconditions *apistorage.Preconditions, validateDeletion apistorage.ValidateObjectFunc, cachedExistingObject runtime.Object, opts apistorage.DeleteOptions) error {
 	if cachedExistingObject != nil {
 		out = cachedExistingObject
 	} else {
@@ -156,7 +152,7 @@ func (s fileStorage) Get(_ context.Context, key string, _ apistorage.GetOptions,
 		return err
 	}
 
-	return decode(s.codec, data, out)
+	return runtime.DecodeInto(s.codec, data, out)
 }
 
 // GetList local resource files.
@@ -416,9 +412,8 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	}
 	// render to destination
 	if destination != nil {
-		err = decode(s.codec, data, destination)
-		if err != nil {
-			return err
+		if err := runtime.DecodeInto(s.codec, data, destination); err != nil {
+			return errors.Wrapf(err, "unable to decode the updated object data for %q", key)
 		}
 	}
 	// render to file
@@ -429,51 +424,28 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 	return nil
 }
 
-// Count local resource file
-func (s fileStorage) Count(key string) (int64, error) {
-	// countByNSDir count the crd files by namespace dir.
-	countByNSDir := func(dir string) (int64, error) {
-		var count int64
-		entries, err := os.ReadDir(dir)
-		if err != nil { // cannot read namespace dir
-			return 0, errors.Wrapf(err, "failed to read namespaces dir %q", dir)
-		}
-		// count the file
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), yamlSuffix) {
-				count++
-			}
-		}
+// Stats implements storage.Interface.
+func (s *fileStorage) Stats(ctx context.Context) (apistorage.Stats, error) {
+	return apistorage.Stats{}, nil
+}
 
-		return count, nil
+// ReadinessCheck implements storage.Interface.
+func (s *fileStorage) ReadinessCheck() error {
+	// Ensure the storage root exists and is accessible.
+	if s.prefix == "" {
+		return errors.New("storage prefix is empty")
 	}
 
-	switch len(filepath.SplitList(strings.TrimPrefix(key, s.prefix))) {
-	case 0: // count all namespace's resources
-		var count int64
-		rootEntries, err := os.ReadDir(key)
-		if err != nil && !os.IsNotExist(err) {
-			return 0, errors.Wrapf(err, "failed to read runtime dir %q", key)
-		}
-		for _, ns := range rootEntries {
-			if !ns.IsDir() {
-				continue
-			}
-			// the next dir is namespace.
-			c, err := countByNSDir(filepath.Join(key, ns.Name()))
-			if err != nil {
-				return 0, err
-			}
-			count += c
-		}
-
-		return count, nil
-	case 1: // count a namespace's resources
-		return countByNSDir(key)
-	default:
-		// not support key
-		return 0, errors.Errorf("key is invalid: %s", key)
+	info, err := os.Stat(s.prefix)
+	if err != nil {
+		return errors.Wrapf(err, "storage prefix %q is not accessible", s.prefix)
 	}
+
+	if !info.IsDir() {
+		return errors.Errorf("storage prefix %q is not a directory", s.prefix)
+	}
+
+	return nil
 }
 
 // RequestWatchProgress do nothing.
@@ -481,18 +453,20 @@ func (s fileStorage) RequestWatchProgress(context.Context) error {
 	return nil
 }
 
-// decode decodes value of bytes into object. It will also set the object resource version to rev.
-// On success, objPtr would be set to the object.
-func decode(codec runtime.Codec, value []byte, objPtr runtime.Object) error {
-	if _, err := conversion.EnforcePtr(objPtr); err != nil {
-		return errors.Wrap(err, "failed to convert output object to pointer")
-	}
-	_, _, err := codec.Decode(value, nil, objPtr)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode output object")
-	}
+// GetCurrentResourceVersion implements storage.Interface.
+func (s *fileStorage) GetCurrentResourceVersion(ctx context.Context) (uint64, error) {
+	return 0, nil
+}
 
-	return nil
+// SetKeysFunc implements storage.Interface.
+func (s *fileStorage) SetKeysFunc(apistorage.KeysFunc) {
+	// no-op: file storage does not support key override
+}
+
+// CompactRevision returns the compacted revision number for fileStorage.
+// Since fileStorage does not manage revisions, this always returns 0.
+func (s fileStorage) CompactRevision() int64 {
+	return 0
 }
 
 func getNewItem(listObj runtime.Object, v reflect.Value) runtime.Object {

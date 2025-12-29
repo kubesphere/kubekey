@@ -86,7 +86,7 @@ func (r *KKMachineReconciler) SetupWithManager(mgr ctrl.Manager, o options.Contr
 // Reconcile implements controllers.controller.
 func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, retErr error) {
 	kkmachine := &capkkinfrav1beta1.KKMachine{}
-	if err := r.Client.Get(ctx, req.NamespacedName, kkmachine); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, kkmachine); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get kkmachine %q", req.String())
 		}
@@ -110,7 +110,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return ctrl.Result{}, err
 	}
 	defer func() {
-		if err := scope.PatchHelper.Patch(ctx, kkmachine); err != nil {
+		if err := scope.Patch(ctx, kkmachine); err != nil {
 			retErr = errors.Join(retErr, err)
 		}
 	}()
@@ -124,7 +124,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if kkmachine.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(kkmachine, capkkinfrav1beta1.KKMachineFinalizer) {
+	if kkmachine.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(kkmachine, capkkinfrav1beta1.KKMachineFinalizer) {
 		controllerutil.AddFinalizer(kkmachine, capkkinfrav1beta1.KKMachineFinalizer)
 
 		return ctrl.Result{}, nil
@@ -178,11 +178,11 @@ func (r *KKMachineReconciler) reconcileDelete(ctx context.Context, scope *cluste
 		return nil
 	case addNodePlaybookName != "" && delNodePlaybookName != "":
 		if addNodePlaybook != nil && addNodePlaybook.DeletionTimestamp.IsZero() {
-			return errors.Wrapf(r.Client.Delete(ctx, addNodePlaybook), "failed to delete addNodePlaybook for kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
+			return errors.Wrapf(r.Delete(ctx, addNodePlaybook), "failed to delete addNodePlaybook for kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
 		}
 		if delNodePlaybook != nil && delNodePlaybook.DeletionTimestamp.IsZero() {
 			if delNodePlaybook.Status.Phase == kkcorev1.PlaybookPhaseSucceeded {
-				return errors.Wrapf(r.Client.Delete(ctx, delNodePlaybook), "failed to delete delNodePlaybook for kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
+				return errors.Wrapf(r.Delete(ctx, delNodePlaybook), "failed to delete delNodePlaybook for kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
 			}
 			// should waiting delNodePlaybook completed
 			return nil
@@ -202,7 +202,7 @@ func (r *KKMachineReconciler) getPlaybook(ctx context.Context, scope *clusterSco
 	var addNodePlaybook, delNodePlaybook *kkcorev1.Playbook
 	if name, ok := kkmachine.Annotations[capkkinfrav1beta1.AddNodePlaybookAnnotation]; ok && name != "" {
 		addNodePlaybook = &kkcorev1.Playbook{}
-		if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: scope.Namespace, Name: name}, addNodePlaybook); err != nil {
+		if err := r.Get(ctx, ctrlclient.ObjectKey{Namespace: scope.Namespace, Name: name}, addNodePlaybook); err != nil {
 			if !apierrors.IsNotFound(err) {
 				// maybe delete by user. skip
 				return nil, nil, errors.Wrapf(err, "failed to get addNode playbook from kkmachine %q with annotation %q", ctrlclient.ObjectKeyFromObject(kkmachine), capkkinfrav1beta1.AddNodePlaybookAnnotation)
@@ -212,7 +212,7 @@ func (r *KKMachineReconciler) getPlaybook(ctx context.Context, scope *clusterSco
 	}
 	if name, ok := kkmachine.Annotations[capkkinfrav1beta1.DeleteNodePlaybookAnnotation]; ok && name != "" {
 		delNodePlaybook = &kkcorev1.Playbook{}
-		if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: scope.Namespace, Name: name}, delNodePlaybook); err != nil {
+		if err := r.Get(ctx, ctrlclient.ObjectKey{Namespace: scope.Namespace, Name: name}, delNodePlaybook); err != nil {
 			if !apierrors.IsNotFound(err) {
 				// maybe delete by user. skip
 				return nil, nil, errors.Wrapf(err, "failed to get delNode playbook from kkmachine %q with annotation %q", ctrlclient.ObjectKeyFromObject(kkmachine), capkkinfrav1beta1.DeleteNodePlaybookAnnotation)
@@ -238,12 +238,12 @@ func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, scope *cluste
 	}
 	// check playbook status
 	playbook := &kkcorev1.Playbook{}
-	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: scope.Namespace, Name: playbookName}, playbook); err != nil {
+	if err := r.Get(ctx, ctrlclient.ObjectKey{Namespace: scope.Namespace, Name: playbookName}, playbook); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get playbook %s/%s", scope.Namespace, playbookName)
 		}
 		// the playbook has not found.
-		r.EventRecorder.Eventf(kkmachine, corev1.EventTypeWarning, "AddNodeFailed", "add node playbook: %q not found", playbookName)
+		r.Eventf(kkmachine, corev1.EventTypeWarning, "AddNodeFailed", "add node playbook: %q not found", playbookName)
 
 		return nil
 	}
@@ -307,10 +307,10 @@ func (r *KKMachineReconciler) createAddNodePlaybook(ctx context.Context, scope *
 			Volumes:      volumes,
 		},
 	}
-	if err := ctrl.SetControllerReference(kkmachine, playbook, r.Client.Scheme()); err != nil {
+	if err := ctrl.SetControllerReference(kkmachine, playbook, r.Scheme()); err != nil {
 		return errors.Wrapf(err, "failed to set ownerReference from kkmachine %q to addNode playbook", ctrlclient.ObjectKeyFromObject(kkmachine))
 	}
-	if err := r.Client.Create(ctx, playbook); err != nil {
+	if err := r.Create(ctx, playbook); err != nil {
 		return errors.Wrapf(err, "failed to create addNode playbook from kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
 	}
 	// add playbook name to kkmachine
@@ -347,10 +347,10 @@ func (r *KKMachineReconciler) createDeleteNodePlaybook(ctx context.Context, scop
 			Volumes:      volumes,
 		},
 	}
-	if err := ctrl.SetControllerReference(kkmachine, playbook, r.Client.Scheme()); err != nil {
+	if err := ctrl.SetControllerReference(kkmachine, playbook, r.Scheme()); err != nil {
 		return errors.Wrapf(err, "failed to set ownerReference from kkmachine %q to delNode playbook", ctrlclient.ObjectKeyFromObject(kkmachine))
 	}
-	if err := r.Client.Create(ctx, playbook); err != nil {
+	if err := r.Create(ctx, playbook); err != nil {
 		return errors.Wrapf(err, "failed to create delNode playbook from kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
 	}
 	kkmachine.Annotations[capkkinfrav1beta1.DeleteNodePlaybookAnnotation] = playbook.Name

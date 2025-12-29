@@ -76,12 +76,12 @@ func (w *PlaybookWebhook) Default(ctx context.Context, obj runtime.Object) error
 func (w *PlaybookWebhook) syncServiceAccount(ctx context.Context, playbook *kkcorev1.Playbook, clusterrole string) error {
 	// check if clusterrole is exist
 	cr := &rbacv1.ClusterRole{}
-	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: clusterrole}, cr); err != nil {
+	if err := w.Get(ctx, ctrlclient.ObjectKey{Name: clusterrole}, cr); err != nil {
 		return errors.Wrapf(err, "failed to get clusterrole %q for playbook %q", clusterrole, ctrlclient.ObjectKeyFromObject(playbook))
 	}
 	// check if the default service account is exist
 	sa := &corev1.ServiceAccount{}
-	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Namespace: playbook.Namespace, Name: defaultServiceAccountName}, sa); err != nil {
+	if err := w.Get(ctx, ctrlclient.ObjectKey{Namespace: playbook.Namespace, Name: defaultServiceAccountName}, sa); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get serviceaccount %q for playbook %q", defaultServiceAccountName, ctrlclient.ObjectKeyFromObject(playbook))
 		}
@@ -92,18 +92,18 @@ func (w *PlaybookWebhook) syncServiceAccount(ctx context.Context, playbook *kkco
 				Name:      defaultServiceAccountName,
 			},
 		}
-		if err := w.Client.Create(ctx, sa); err != nil {
+		if err := w.Create(ctx, sa); err != nil {
 			return errors.WithStack(err)
 		}
 	}
 	// check if the service account is bound to the default cluster role
 	crb := &rbacv1.ClusterRoleBinding{}
-	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: defaultClusterRoleBindingName}, crb); err != nil {
+	if err := w.Get(ctx, ctrlclient.ObjectKey{Name: defaultClusterRoleBindingName}, crb); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get clusterrolebinding %q for playbook %q", defaultClusterRoleBindingName, ctrlclient.ObjectKeyFromObject(playbook))
 		}
 		// create clusterrolebinding if not exist
-		return w.Client.Create(ctx, &rbacv1.ClusterRoleBinding{
+		return w.Create(ctx, &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: defaultClusterRoleBindingName,
 			},
@@ -133,6 +133,6 @@ func (w *PlaybookWebhook) syncServiceAccount(ctx context.Context, playbook *kkco
 		Namespace: playbook.Namespace,
 	})
 
-	return errors.Wrapf(w.Client.Patch(ctx, ncrb, ctrlclient.MergeFrom(crb)),
+	return errors.Wrapf(w.Patch(ctx, ncrb, ctrlclient.MergeFrom(crb)),
 		"fail to update clusterrolebinding %q for playbook %q", defaultClusterRoleBindingName, ctrlclient.ObjectKeyFromObject(playbook))
 }

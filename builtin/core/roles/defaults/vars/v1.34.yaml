@@ -1,0 +1,104 @@
+kubernetes:
+  # helm binary
+  helm_version: v3.18.5
+  control_plane_endpoint:
+    kube_vip:
+      image:
+        tag: v0.7.2
+    haproxy:
+      image:
+        tag: 2.9.6-alpine
+etcd:
+  # etcd binary
+  etcd_version: v3.5.25
+image_registry:
+  # ========== image registry ==========
+  # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
+  keepalived_version: 2.0.20
+  # ========== image registry: harbor ==========
+  # harbor image tag
+  harbor_version: v2.10.2
+  # docker-compose binary
+  dockercompose_version: v2.20.3
+  # ========== image registry: docker-registry ==========
+  # docker-registry image tag
+  docker_registry_version: 2.8.3
+cri:
+  # support: containerd,docker
+  container_manager: containerd
+  sandbox_image:
+    tag: "3.9"
+  # ========== cri ==========
+  # crictl binary
+  crictl_version: v1.33.0
+  # ========== cri: docker ==========
+  # docker binary
+  docker_version: 24.0.7
+  # cridockerd. Required when kube_version is greater than 1.24
+  cridockerd_version: v0.3.1
+  # ========== cri: containerd ==========
+  # containerd binary
+  containerd_version: v1.7.6
+  # runc binary
+  runc_version: v1.1.7
+  # skip tls verify when pulling images
+  skip_tls_verify: false
+cni:
+  type: calico
+  ipv6_support: false
+  multus:
+    image:
+      tag: v4.3.0
+  # ========== cni ==========
+  # cni_plugins binary (optional)
+  # cni_plugins_version: v1.2.0
+  # ========== cni: calico ==========
+  # calicoctl binary
+  calico_version: v3.28.2
+  # ========== cni: cilium ==========
+  # cilium helm
+  cilium_version: 1.18.3
+  # ========== cni: kubeovn ==========
+  # kubeovn helm
+  kubeovn_version: 1.13.0
+  # ========== cni: hybridnet ==========
+  # hybridnet helm
+  hybridnet_version: 0.6.8
+storage_class:
+  # ========== storageclass ==========
+  # ========== storageclass: local ==========
+  local:
+    provisioner_image:
+      tag: 4.2.0
+    linux_utils_image:
+      tag: 4.2.0
+  # ========== storageclass: nfs ==========
+  # nfs provisioner helm version
+  nfs_provisioner_version: 4.3.0
+dns:
+  dns_image:
+    tag: v1.12.1
+  dns_cache_image:
+    tag: 1.24.0
+image_manifests:
+  - docker.io/calico/apiserver:{{ .cni.calico_version }}
+  - docker.io/calico/cni:{{ .cni.calico_version }}
+  - docker.io/calico/ctl:{{ .cni.calico_version }}
+  - docker.io/calico/csi:{{ .cni.calico_version }}
+  - docker.io/calico/kube-controllers:{{ .cni.calico_version }}
+  - docker.io/calico/node-driver-registrar:{{ .cni.calico_version }}
+  - docker.io/calico/node:{{ .cni.calico_version }}
+  - docker.io/calico/pod2daemon-flexvol:{{ .cni.calico_version }}
+  - docker.io/calico/typha:{{ .cni.calico_version }}
+  - docker.io/kubesphere/coredns:{{ .dns.dns_image.tag }}
+  - docker.io/kubesphere/k8s-dns-node-cache:{{ .dns.dns_cache_image.tag }}
+  - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
+  - docker.io/kubesphere/pause:{{ .cri.sandbox_image.tag }}
+  - docker.io/openebs/linux-utils:{{ .storage_class.local.linux_utils_image.tag }}
+  - docker.io/openebs/provisioner-localpv:{{ .storage_class.local.provisioner_image.tag }}
+  - quay.io/tigera/operator:v1.34.5
+  - docker.io/library/haproxy:{{ .kubernetes.control_plane_endpoint.haproxy.image.tag }}
+  - docker.io/plndr/kube-vip:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}

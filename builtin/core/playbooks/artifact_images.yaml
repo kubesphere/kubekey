@@ -1,11 +1,14 @@
 ---
+- hosts:
+    - all
+  roles:
+    - native/root
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - localhost
   tags: ["always"]
   roles:
     - defaults
-    - native/root
 
 - hosts:
     - localhost
@@ -18,6 +21,7 @@
           images_dir: >-
             {{ .binary_dir }}/images/
           manifests: "{{ .image_manifests | toJson }}"
+          skip_tls_verify: "{{ .cri.skip_tls_verify | default false }}"
       when:
         - .image_manifests | default list | empty | not
         - .download.download_image
@@ -55,13 +59,12 @@
         - name: PushImage | Push images package to image registry
           image:
             push:
+              auths:
+                - repo: "{{ .image_registry.auth.registry }}"
+                  username: "{{ .image_registry.auth.username }}"
+                  password: "{{ .image_registry.auth.password }}"
+                  insecure: true
               images_dir: >-
                 {{ .binary_dir }}/images/
               dest: >-
                 {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-              username: >-
-                {{ .image_registry.auth.username }}
-              password: >-
-                {{ .image_registry.auth.password }}
-              skip_tls_verify: true
-

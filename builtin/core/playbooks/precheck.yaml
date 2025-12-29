@@ -1,4 +1,8 @@
 ---
+- hosts:
+    - all
+  roles:
+    - native/root
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
@@ -6,4 +10,3 @@
   roles:
     - defaults
     - precheck
-    - native/root

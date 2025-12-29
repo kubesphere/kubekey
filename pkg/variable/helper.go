@@ -33,6 +33,7 @@ import (
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 // CombineVariables merge multiple variables into one variable.
@@ -149,8 +150,10 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 
 	groups[_const.VariableGroupsAll] = all
 
+	groupsGraph := utils.NewKahnGraph()
+
 	for gn := range inv.Spec.Groups {
-		groups[gn] = hostsInGroup(inv, gn)
+		groups[gn] = hostsInGroup(inv, gn, groupsGraph)
 		if hosts, ok := groups[gn]; ok {
 			for _, v := range hosts {
 				if slices.Contains(ungrouped, v) {
@@ -167,16 +170,21 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 
 // hostsInGroup get a host_name slice in a given group
 // if the given group contains other group. convert other group to host_name slice.
-func hostsInGroup(inv kkcorev1.Inventory, groupName string) []string {
+func hostsInGroup(inv kkcorev1.Inventory, groupName string, groupsGraph *utils.KahnGraph) []string {
 	if v, ok := inv.Spec.Groups[groupName]; ok {
 		var hosts []string
 		for _, cg := range v.Groups {
-			hosts = CombineSlice(hostsInGroup(inv, cg), hosts)
+			if groupsGraph != nil {
+				if groupsGraph.AddEdgeAndCheckCycle(groupName, cg) {
+					klog.Warningf("group host found cycle by %s -> %s", groupName, cg)
+					return []string{}
+				}
+			}
+			hosts = CombineSlice(hostsInGroup(inv, cg, groupsGraph), hosts)
 		}
 
 		return CombineSlice(hosts, v.Hosts)
 	}
-
 	return make([]string, 0)
 }
 
@@ -344,7 +352,7 @@ func DurationVar(ctx map[string]any, args map[string]any, key string) (time.Dura
 }
 
 // AnyVar get data from input args and keys,unmarshal data into dest
-func AnyVar(args map[string]any, dest any, keys ...string) error {
+func AnyVar(ctx, args map[string]any, dest any, keys ...string) error {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
 	if err != nil {
 		return errors.WithStack(err)
@@ -352,15 +360,22 @@ func AnyVar(args map[string]any, dest any, keys ...string) error {
 	if !found {
 		return errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
-	valBytes, err := json.Marshal(val)
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal variable %q", strings.Join(keys, "."))
+	var valBytes []byte
+	switch valv := val.(type) {
+	case string:
+		valBytes = []byte(valv)
+	case []any:
+		valBytes, err = json.Marshal(valv)
+		if err != nil {
+			return errors.Wrapf(err, "failed to marshal variable %q", strings.Join(keys, "."))
+		}
 	}
-	valBytes, err = tmpl.Parse(args, string(valBytes))
+
+	valBytesAfterTmpl, err := tmpl.Parse(ctx, string(valBytes))
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(valBytes, dest)
+	err = json.Unmarshal(valBytesAfterTmpl, dest)
 	if err != nil {
 		return errors.Wrapf(err, "failed to unmarshal variable %q to dest", strings.Join(keys, "."))
 	}

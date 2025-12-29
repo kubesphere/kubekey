@@ -84,7 +84,7 @@ func (r *KKClusterReconciler) ownerToKKClusterMapFunc(ctx context.Context, obj c
 func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	// Get KKCluster.
 	kkcluster := &capkkinfrav1beta1.KKCluster{}
-	err := r.Client.Get(ctx, req.NamespacedName, kkcluster)
+	err := r.Get(ctx, req.NamespacedName, kkcluster)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get kkcluster %q", req.String())
@@ -118,7 +118,7 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.reconcileStatus(ctx, scope); err != nil {
 			retErr = errors.Join(retErr, err)
 		}
-		if err := scope.PatchHelper.Patch(ctx, scope.KKCluster, scope.Inventory); err != nil {
+		if err := scope.Patch(ctx, scope.KKCluster, scope.Inventory); err != nil {
 			retErr = errors.Join(retErr, err)
 		}
 	}()
@@ -132,7 +132,7 @@ func (r *KKClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if scope.KKCluster.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(scope.KKCluster, capkkinfrav1beta1.KKClusterFinalizer) {
+	if scope.KKCluster.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(scope.KKCluster, capkkinfrav1beta1.KKClusterFinalizer) {
 		controllerutil.AddFinalizer(scope.KKCluster, capkkinfrav1beta1.KKClusterFinalizer)
 
 		return ctrl.Result{}, nil
@@ -155,7 +155,7 @@ func (r *KKClusterReconciler) reconcileDelete(ctx context.Context, scope *cluste
 		return err
 	}
 	for _, obj := range inventoryList.Items {
-		if err := r.Client.Delete(ctx, &obj); err != nil {
+		if err := r.Delete(ctx, &obj); err != nil {
 			return errors.Wrapf(err, "failed to delete inventory %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
@@ -194,7 +194,7 @@ func (r *KKClusterReconciler) reconcileNormal(ctx context.Context, scope *cluste
 			return errors.Wrapf(err, "failed to set ownerReference from kkcluster %q to inventory", ctrlclient.ObjectKeyFromObject(scope.KKCluster))
 		}
 
-		return errors.Wrapf(r.Client.Create(ctx, scope.Inventory), "failed to create inventory for kkcluster %q", ctrlclient.ObjectKeyFromObject(scope.KKCluster))
+		return errors.Wrapf(r.Create(ctx, scope.Inventory), "failed to create inventory for kkcluster %q", ctrlclient.ObjectKeyFromObject(scope.KKCluster))
 	}
 
 	// if inventory's host is match kkcluster.inventoryHosts. skip
@@ -249,7 +249,7 @@ func (r *KKClusterReconciler) reconcileStatus(ctx context.Context, scope *cluste
 
 	// sync KKClusterKKMachineConditionReady.
 	kkmachineList := &capkkinfrav1beta1.KKMachineList{}
-	if err := r.Client.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
+	if err := r.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.ClusterNameLabel: scope.Name,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to get kkMachineList with label %s=%s", clusterv1beta1.ClusterNameLabel, scope.Name)

@@ -80,8 +80,8 @@ func (c *localConnector) PutFile(_ context.Context, src []byte, dst string, mode
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "failed to stat local dir %q", dst)
 		}
-		if err := os.MkdirAll(filepath.Dir(dst), mode); err != nil {
-			return errors.Wrapf(err, "failed to create local dir %q", dst)
+		if err := os.MkdirAll(filepath.Dir(dst), _const.PermDirPublic); err != nil {
+			return errors.Wrapf(err, "failed to create local dir of path %q", dst)
 		}
 	}
 	if err := os.WriteFile(dst, src, mode); err != nil {
@@ -121,8 +121,8 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 	stderr := stderrBuf.Bytes()
 	if c.Password != "" {
 		// Filter out the "Password:" prompt from the output
-		stdout = bytes.Replace(stdout, []byte("Password:"), []byte(""), -1)
-		stderr = bytes.Replace(stderr, []byte("Password:"), []byte(""), -1)
+		stdout = bytes.ReplaceAll(stdout, []byte("Password:"), []byte(""))
+		stderr = bytes.ReplaceAll(stderr, []byte("Password:"), []byte(""))
 	}
 
 	return stdout, stderr, err
@@ -148,26 +148,17 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(stderr))
 		}
-		if len(stderr) > 0 {
-			return nil, errors.Errorf("failed to get kernel, stderr: %q", string(stderr))
-		}
 		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
 
 		hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
 		}
-		if len(hnStderr) > 0 {
-			return nil, errors.Errorf("failed to get hostname, stderr: %q", string(hnStderr))
-		}
 		osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
 
 		arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
-		}
-		if len(archStderr) > 0 {
-			return nil, errors.Errorf("failed to get arch, stderr: %q", string(archStderr))
 		}
 		osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
 

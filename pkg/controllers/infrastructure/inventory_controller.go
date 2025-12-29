@@ -92,7 +92,7 @@ func (r *InventoryReconciler) objectToInventoryMapFunc(ctx context.Context, obj 
 
 	// inventory
 	invlist := &kkcorev1.InventoryList{}
-	if err := r.Client.List(ctx, invlist, ctrlclient.MatchingLabels{
+	if err := r.List(ctx, invlist, ctrlclient.MatchingLabels{
 		clusterv1beta1.ClusterNameLabel: clusterName,
 	}); err != nil {
 		return nil
@@ -108,7 +108,7 @@ func (r *InventoryReconciler) objectToInventoryMapFunc(ctx context.Context, obj 
 // Reconcile implements controllers.typeController.
 func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, retErr error) {
 	inventory := &kkcorev1.Inventory{}
-	if err := r.Client.Get(ctx, req.NamespacedName, inventory); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, inventory); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get inventory %q", req.String())
 		}
@@ -132,7 +132,7 @@ func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return ctrl.Result{}, err
 	}
 	defer func() {
-		if err := scope.PatchHelper.Patch(ctx, scope.Inventory); err != nil {
+		if err := scope.Patch(ctx, scope.Inventory); err != nil {
 			retErr = errors.Join(retErr, err)
 		}
 	}()
@@ -146,7 +146,7 @@ func (r *InventoryReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if scope.Inventory.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(scope.Inventory, kkcorev1.InventoryCAPKKFinalizer) {
+	if scope.Inventory.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(scope.Inventory, kkcorev1.InventoryCAPKKFinalizer) {
 		controllerutil.AddFinalizer(scope.Inventory, kkcorev1.InventoryCAPKKFinalizer)
 
 		return ctrl.Result{}, nil
@@ -167,19 +167,19 @@ func (r *InventoryReconciler) reconcileDelete(ctx context.Context, scope *cluste
 		return err
 	}
 	for _, obj := range playbookList.Items {
-		if err := r.Client.Delete(ctx, &obj); err != nil {
+		if err := r.Delete(ctx, &obj); err != nil {
 			return errors.Wrapf(err, "failed to delete playbook %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
 	// delete kkmachine for machine deployment
 	mdList := &capkkinfrav1beta1.KKMachineList{}
-	if err := r.Client.List(ctx, mdList, ctrlclient.MatchingLabels{
+	if err := r.List(ctx, mdList, ctrlclient.MatchingLabels{
 		clusterv1beta1.ClusterNameLabel: scope.Name,
 	}, ctrlclient.HasLabels{clusterv1beta1.MachineDeploymentNameLabel}); err != nil {
 		return errors.Wrapf(err, "failed to list machineDeployment with label %s=%s", clusterv1beta1.ClusterNameLabel, scope.Name)
 	}
 	for _, obj := range mdList.Items {
-		if err := r.Client.Delete(ctx, &obj); err != nil {
+		if err := r.Delete(ctx, &obj); err != nil {
 			return errors.Wrapf(err, "failed to delete machineDeployment %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
@@ -189,13 +189,13 @@ func (r *InventoryReconciler) reconcileDelete(ctx context.Context, scope *cluste
 	}
 	// delete kkmachine for control-plane
 	cpList := &capkkinfrav1beta1.KKMachineList{}
-	if err := r.Client.List(ctx, cpList, ctrlclient.MatchingLabels{
+	if err := r.List(ctx, cpList, ctrlclient.MatchingLabels{
 		clusterv1beta1.ClusterNameLabel: scope.Name,
 	}, ctrlclient.HasLabels{clusterv1beta1.MachineControlPlaneNameLabel}); err != nil {
 		return errors.Wrapf(err, "failed to list machineControlPlane with label %q", clusterv1beta1.ClusterNameLabel, scope.Name)
 	}
 	for _, obj := range cpList.Items {
-		if err := r.Client.Delete(ctx, &obj); err != nil {
+		if err := r.Delete(ctx, &obj); err != nil {
 			return errors.Wrapf(err, "failed to delete machineControlPlane %q", ctrlclient.ObjectKeyFromObject(&obj))
 		}
 	}
@@ -266,7 +266,7 @@ func (r *InventoryReconciler) reconcileInventoryPlaybook(ctx context.Context, sc
 		return r.createHostCheckPlaybook(ctx, scope)
 	}
 	playbook := &kkcorev1.Playbook{}
-	if err := r.Client.Get(ctx, ctrlclient.ObjectKey{Name: scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation], Namespace: scope.Namespace}, playbook); err != nil {
+	if err := r.Get(ctx, ctrlclient.ObjectKey{Name: scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation], Namespace: scope.Namespace}, playbook); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get playbook with inventory %q annotation %q", ctrlclient.ObjectKeyFromObject(scope.Inventory), kkcorev1.HostCheckPlaybookAnnotation)
 		}
@@ -313,7 +313,7 @@ func (r *InventoryReconciler) createHostCheckPlaybook(ctx context.Context, scope
 			Volumes:      volumes,
 		},
 	}
-	if err := ctrl.SetControllerReference(scope.Inventory, playbook, r.Client.Scheme()); err != nil {
+	if err := ctrl.SetControllerReference(scope.Inventory, playbook, r.Scheme()); err != nil {
 		return errors.Wrapf(err, "failed to set ownerReference of inventory %q to playbook", ctrlclient.ObjectKeyFromObject(scope.Inventory))
 	}
 	if err := r.Create(ctx, playbook); err != nil {
@@ -353,7 +353,7 @@ func (r *InventoryReconciler) syncInventoryControlPlaneGroups(ctx context.Contex
 	// get exist controlPlane hosts form kkmachine
 	existControlPlaneHosts := make([]string, 0)
 	kkmachineList := &capkkinfrav1beta1.KKMachineList{}
-	if err := r.Client.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
+	if err := r.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.MachineControlPlaneNameLabel: scope.ControlPlane.GetName(),
 	}); err != nil {
 		return errors.Wrapf(err, "failed to get kkMachineList with label %s=%s", clusterv1beta1.MachineControlPlaneNameLabel, scope.ControlPlane.GetName())
@@ -382,7 +382,7 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 	groupNum := ptr.Deref(scope.MachineDeployment.Spec.Replicas, 0)
 	// get machineList from machinedeployment
 	machineList := &clusterv1beta1.MachineList{}
-	if err := r.Client.List(ctx, machineList, ctrlclient.MatchingLabels{
+	if err := r.List(ctx, machineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.MachineDeploymentNameLabel: scope.MachineDeployment.Name,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to get machineList with label %s=%s", clusterv1beta1.MachineDeploymentNameLabel, scope.MachineDeployment.Name)
@@ -395,7 +395,7 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 	// get exist worker hosts form kkmachine
 	existWorkerHosts := make([]string, 0)
 	kkmachineList := &capkkinfrav1beta1.KKMachineList{}
-	if err := r.Client.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
+	if err := r.List(ctx, kkmachineList, ctrlclient.MatchingLabels{
 		clusterv1beta1.MachineDeploymentNameLabel: scope.MachineDeployment.Name,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to get kkmachineList with label %s=%s", clusterv1beta1.MachineDeploymentNameLabel, scope.MachineDeployment.Name)
@@ -429,7 +429,7 @@ func (r *InventoryReconciler) setProviderID(ctx context.Context, clusterName str
 				continue
 			}
 			kkmachine.Spec.ProviderID = _const.Host2ProviderID(clusterName, host)
-			if err := r.Client.Update(ctx, &kkmachine); err != nil {
+			if err := r.Update(ctx, &kkmachine); err != nil {
 				return errors.Wrapf(err, "failed to set provider to kkmachine %q", ctrlclient.ObjectKeyFromObject(&kkmachine))
 			}
 		}

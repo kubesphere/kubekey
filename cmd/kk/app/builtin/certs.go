@@ -50,7 +50,7 @@ func newCertsRenewCommand() *cobra.Command {
 				return err
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), playbook)
+			return o.Run(cmd.Context(), playbook)
 		},
 	}
 	flags := cmd.Flags()

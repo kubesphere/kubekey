@@ -1,0 +1,78 @@
+---
+- name: Helm | Ensure the Calico binary is available
+  when: 
+    - .cni.calico_version | empty | not
+    - .cni.type | eq "calico"
+  command: |
+    artifact_name={{ .download.artifact_url.calico | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/calico
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/calico
+    mkdir -p $target_path
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
+
+- name: Helm | Ensure the Cilium binary is available
+  when: 
+    - .cni.cilium_version | empty | not
+    - .cni.type | eq "cilium"
+  command: |
+    artifact_name={{ .download.artifact_url.cilium | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/cilium
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/cilium
+    mkdir -p $target_path
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
+
+- name: Helm | Ensure the Flannel binary is available
+  when: 
+    - .cni.flannel_version | empty | not
+    - .cni.type | eq "flannel"
+  command: |
+    artifact_name={{ .download.artifact_url.flannel | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/flannel
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/flannel
+    mkdir -p $target_path
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
+
+- name: Helm | Ensure the Kube-OVN binary is available
+  when: 
+    - .kubeovn_version | empty | not
+    - .cni.type | eq "kubeovn"
+  command: |
+    artifact_name={{ .download.artifact_url.kubeovn | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/kubeovn
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/kubeovn
+    mkdir -p $target_path
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
+
+- name: Helm | Ensure the Hybridnet binary is available
+  when: 
+    - .cni.hybridnet_version | empty | not
+    - .cni.type | eq "hybridnet"
+  command: |
+    artifact_name={{ .download.artifact_url.hybridnet | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/cni/hybridnet
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/cni/hybridnet
+    mkdir -p $target_path
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi
+
+- name: Helm | Ensure the NFS Provisioner binary is available
+  when: 
+    - .storage_class.nfs_provisioner_version | empty | not
+    - .storage_class.nfs.enabled
+  command: |
+    artifact_name={{ .download.artifact_url.nfs_provisioner | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/sc
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/sc
+    mkdir -p $target_path
+    if [ -f $artifact_path/$artifact_name ];then
+      cp $artifact_path/$artifact_name $target_path/
+    fi

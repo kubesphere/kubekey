@@ -1,19 +1,10 @@
 ---
-- name: ImageRegistry | Synchronize images to remote host
-  when:
-    - .image_manifests | default list | empty | not
-    - .download.download_image
-  copy:
-    src: >-
-      {{ .binary_dir }}/images/
-    dest: >-
-      {{ .image_registry.images_dir }}
 
 - name: ImageRegistry | Ensure Harbor project exists for each image
   when: .image_registry.type | eq "harbor"
   command: |
     # Traverse first-level subdirectories in images_dir, skipping 'blobs'
-    for registry_dir in {{ .image_registry.images_dir }}*; do
+    for registry_dir in {{ .binary_dir }}/images/*; do
       if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
         continue
       fi
@@ -38,14 +29,15 @@
     done
 
 - name: ImageRegistry | Push images package to image registry
+  run_once: true
   image:
     push:
+      auths:
+        - repo: "{{ .image_registry.auth.registry }}"
+          username: "{{ .image_registry.auth.username }}"
+          password: "{{ .image_registry.auth.password }}"
+          insecure: true
       images_dir: >-
-        {{ .image_registry.images_dir }}
+        {{ .binary_dir }}/images/
       dest: >-
         {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-      username: >-
-        {{ .image_registry.auth.username }}
-      password: >-
-        {{ .image_registry.auth.password }}
-      skip_tls_verify: true

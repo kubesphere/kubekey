@@ -34,6 +34,7 @@ func NewCreateCommand() *cobra.Command {
 	}
 	cmd.AddCommand(newCreateClusterCommand())
 	cmd.AddCommand(newCreateConfigCommand())
+	cmd.AddCommand(newCreateInventoryCommand())
 
 	return cmd
 }
@@ -50,7 +51,7 @@ func newCreateClusterCommand() *cobra.Command {
 				return err
 			}
 
-			return o.CommonOptions.Run(cmd.Context(), playbook)
+			return o.Run(cmd.Context(), playbook)
 		},
 	}
 	flags := cmd.Flags()
@@ -67,6 +68,24 @@ func newCreateConfigCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Create a Kubernetes or KubeSphere cluster",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return o.Run()
+		},
+	}
+	flags := cmd.Flags()
+	for _, f := range o.Flags().FlagSets {
+		flags.AddFlagSet(f)
+	}
+
+	return cmd
+}
+
+func newCreateInventoryCommand() *cobra.Command {
+	o := builtin.NewCreateInventoryOptions()
+
+	cmd := &cobra.Command{
+		Use:   "inventory",
+		Short: "Create a default inventory",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return o.Run()
 		},

@@ -130,7 +130,14 @@
   loop: "{{ .cloud_config.runcmd | toJson }}"
   command: "{{ .item }}"
 
-- name: Sync kubeconfig
+- name: Sync kubeconfig to current user
+  copy:
+    src: >-
+      {{ .cloud_config_dir }}/kubeconfig/value
+    dest: ~/.kube/config
+    mode: 0600
+
+- name: Sync kubeconfig to root
   copy:
     src: >-
       {{ .cloud_config_dir }}/kubeconfig/value

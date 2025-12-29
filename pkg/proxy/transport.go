@@ -18,6 +18,7 @@ package proxy
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"sort"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/managedfields"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	apiendpoints "k8s.io/apiserver/pkg/endpoints"
@@ -42,7 +44,6 @@ import (
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/internal"
@@ -90,6 +91,7 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		lt.restClient = clientFor
 	}
 
+	var apiGroups []metav1.APIGroup
 	// register kkcorev1alpha1 resources
 	kkv1alpha1 := newAPIIResources(kkcorev1alpha1.SchemeGroupVersion)
 	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion))
@@ -111,6 +113,19 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	if err := lt.registerResources(kkv1alpha1); err != nil {
 		return nil, err
 	}
+	apiGroups = append(apiGroups, metav1.APIGroup{
+		Name: kkv1alpha1.gv.Group,
+		Versions: []metav1.GroupVersionForDiscovery{
+			{
+				GroupVersion: kkv1alpha1.gv.String(),
+				Version:      kkv1alpha1.gv.Version,
+			},
+		},
+		PreferredVersion: metav1.GroupVersionForDiscovery{
+			GroupVersion: kkv1alpha1.gv.String(),
+			Version:      kkv1alpha1.gv.Version,
+		},
+	})
 
 	// when restConfig is null. should store all resource local
 	if restConfig.Host == "" {
@@ -148,30 +163,86 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		if err := lt.registerResources(kkv1); err != nil {
 			return nil, err
 		}
+		apiGroups = append(apiGroups, metav1.APIGroup{
+			Name: kkv1.gv.Group,
+			Versions: []metav1.GroupVersionForDiscovery{
+				{
+					GroupVersion: kkv1.gv.String(),
+					Version:      kkv1.gv.Version,
+				},
+			},
+			PreferredVersion: metav1.GroupVersionForDiscovery{
+				GroupVersion: kkv1.gv.String(),
+				Version:      kkv1.gv.Version,
+			},
+		})
 	}
+
+	lt.registerRouter(http.MethodGet, "/api", func(w http.ResponseWriter, r *http.Request) {
+		obj := &metav1.APIVersions{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "APIVersions",
+				APIVersion: "v1",
+			},
+			Versions: []string{"v1"},
+		}
+		if err := json.NewEncoder(w).Encode(obj); err != nil {
+			klog.ErrorS(err, "failed to encode /api")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}, true)
+	lt.registerRouter(http.MethodGet, "/apis", func(w http.ResponseWriter, r *http.Request) {
+		obj := &metav1.APIGroupList{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "APIGroupList",
+				APIVersion: "v1",
+			},
+			Groups: apiGroups,
+		}
+		if err := json.NewEncoder(w).Encode(obj); err != nil {
+			klog.ErrorS(err, "failed to encode /api")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}, true)
 
 	return lt, nil
 }
 
+// responseWriter implements http.ResponseWriter for capturing HTTP responses locally.
+// It writes response body to an internal buffer but directly sets headers/status on the *http.Response.
 type responseWriter struct {
-	*http.Response
+	resp *http.Response // The response object to write headers and status to.
+	buf  bytes.Buffer   // Buffer to capture the response body.
 }
 
-// Header get header for responseWriter
+// Header returns the header map that will be sent by WriteHeader.
 func (r *responseWriter) Header() http.Header {
-	return r.Response.Header
+	return r.resp.Header
 }
 
-// Write body for responseWriter
+// Write writes the data to the buffer as part of the HTTP response body.
 func (r *responseWriter) Write(bs []byte) (int, error) {
-	r.Response.Body = io.NopCloser(bytes.NewBuffer(bs))
-
-	return 0, nil
+	return r.buf.Write(bs)
 }
 
-// WriteHeader writer header for responseWriter
+// WriteHeader sets the HTTP status code in the response.
 func (r *responseWriter) WriteHeader(statusCode int) {
-	r.Response.StatusCode = statusCode
+	r.resp.StatusCode = statusCode
+}
+
+// finalize prepares the http.Response by setting its Body to the contents of the buffer.
+// If the status code has not been set, it defaults to http.StatusOK (200).
+func (r *responseWriter) finalize() {
+	// Set the HTTP response body to the buffered data.
+	r.resp.Body = io.NopCloser(bytes.NewReader(r.buf.Bytes()))
+	// Default status code to 200 OK if it was not set by the handler.
+	if r.resp.StatusCode == 0 {
+		r.resp.StatusCode = http.StatusOK
+	}
 }
 
 type transport struct {
@@ -196,13 +267,15 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 		Proto:  "local",
 		Header: make(http.Header),
 	}
-	// dispatch request
+	request = request.WithContext(audit.WithAuditContext(request.Context()))
 	handler, err := l.detectDispatcher(request)
 	if err != nil {
 		return response, err
 	}
-	// call handler
-	l.handlerChainFunc(handler).ServeHTTP(&responseWriter{response}, request)
+	// Use a buffered responseWriter to collect the complete response
+	rw := &responseWriter{resp: response}
+	l.handlerChainFunc(handler).ServeHTTP(rw, request)
+	rw.finalize()
 
 	return response, nil
 }
@@ -307,10 +380,6 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 		MetaGroupVersion:            metav1.SchemeGroupVersion,
 		MaxRequestBodyBytes:         0,
 	}
-	var resetFields map[fieldpath.APIVersion]*fieldpath.Set
-	if resetFieldsStrategy, isResetFieldsStrategy := o.storage.(apirest.ResetFieldsStrategy); isResetFieldsStrategy {
-		resetFields = resetFieldsStrategy.GetResetFields()
-	}
 	reqScope.FieldManager, err = managedfields.NewDefaultFieldManager(
 		managedfields.NewDeducedTypeConverter(),
 		_const.Scheme,
@@ -319,7 +388,7 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 		fqKindToRegister,
 		reqScope.HubGroupVersion,
 		o.subresource,
-		resetFields,
+		nil,
 	)
 	if err != nil {
 		return apihandlers.RequestScope{}, errors.Wrap(err, "failed to create default fieldManager")

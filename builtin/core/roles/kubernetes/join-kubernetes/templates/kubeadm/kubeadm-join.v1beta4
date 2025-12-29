@@ -1,0 +1,28 @@
+{{- $internalIPv4 := .internal_ipv4 | default "" -}}
+{{- $internalIPv6 := .internal_ipv6 | default "" -}}
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: {{ .kubernetes.control_plane_endpoint.host }}:{{ .kubernetes.control_plane_endpoint.port }}
+    token: "{{ .kubeadm_token }}"
+    unsafeSkipCAVerification: true
+{{- if .groups.kube_control_plane | default list | has .inventory_hostname }}
+controlPlane:
+  localAPIEndpoint:
+  {{- if $internalIPv4 | empty | not }}
+    advertiseAddress: {{ $internalIPv4 }}
+  {{- else if $internalIPv6 | empty | not }}
+    advertiseAddress: {{ $internalIPv6 }}
+  {{- end }}
+    bindPort: {{ .kubernetes.apiserver.port }}
+  certificateKey: {{ .kubeadm_cert }}
+{{- end }}
+nodeRegistration:
+  criSocket: {{ .cri.cri_socket }}
+  kubeletExtraArgs:
+    - name: cgroup-driver
+      value: {{ .cri.cgroup_driver }}
+    - name: pod-infra-container-image
+      value: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"

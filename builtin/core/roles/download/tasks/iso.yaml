@@ -1,0 +1,12 @@
+---
+- name: ISO | Download ISO files
+  when: .download.iso_url.urls | empty | not
+  loop: "{{ .download.iso_url.urls | toJson }}"
+  command: |
+    iso_path={{ .binary_dir }}/repository/{{ .item | splitList "/" | last }}
+    if [ ! -f {{ .binary_dir }}/repository/ ];then
+      mkdir -p {{ .binary_dir }}/repository/
+    fi
+    if [ ! -f $iso_path ]; then
+      curl -L -o $iso_path  {{ .item }}
+    fi

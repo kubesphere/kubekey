@@ -73,7 +73,7 @@ type ExecOptions struct {
 // getAllVariables retrieves all variables for the specified host in ExecOptions.
 // Returns a map of variables or an error if retrieval fails.
 func (o ExecOptions) getAllVariables() (map[string]any, error) {
-	ha, err := o.Variable.Get(variable.GetAllVariable(o.Host))
+	ha, err := o.Get(variable.GetAllVariable(o.Host))
 	if err != nil {
 		return nil, err
 	}

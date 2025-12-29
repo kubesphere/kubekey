@@ -23,7 +23,7 @@
       - .kubernetes.kube_version | empty | not
       - .kubernetes.kube_version | semverCompare (printf ">=%s" .cluster_require.kube_version_min_required)
     fail_msg: >-
-      This version of KubeKey only supports Kubernetes versions greater than or equal to {{ .cluster_require.kube_version_min_required }}. You are attempting to use version {{ .kube_version }}.
+      This version of KubeKey only supports Kubernetes versions greater than or equal to {{ .cluster_require.kube_version_min_required }}. You are attempting to use version {{ .kubernetes.kube_version }}.
 
 - name: Kubernetes | Check if Kubernetes is installed
   block:
@@ -37,15 +37,14 @@
               The kubelet service must be running and active when it is loaded.
         - name: Kubernetes | Ensure installed Kubernetes version matches expected version
           assert:
-            that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kube_version
+            that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kubernetes.kube_version
             fail_msg: >-
-              The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kube_version }}).
+              The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kubernetes.kube_version }}).
 
 - name: ImageRegistry | Verify successful authentication to image registry
   when:
     - .image_registry.auth.registry | empty | not
     - .image_registry.type | empty
-  run_once: true
   command: |
     HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" "https://{{ .image_registry.auth.registry }}/v2/" -o /dev/null)
     if [[ "$HTTP_CODE" == "200" ]]; then

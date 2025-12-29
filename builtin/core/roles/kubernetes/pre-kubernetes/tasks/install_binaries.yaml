@@ -1,7 +1,7 @@
 ---
 - name: Binary | Verify if Helm is already installed
   ignore_errors: true
-  command: helm version --template "{{ .Version }}"
+  command: helm version --template "{{ "{{" }} .Version {{ "}}" }}"
   register: helm_install_version
 
 - name: Binary | Install Helm if not present or version mismatch
@@ -32,13 +32,18 @@
 
 - name: Binary | Check if kubectl is installed
   ignore_errors: true
-  command: kubectl version --short
+  command: |
+    {{- if .kubernetes.kube_version | semverCompare ">=v1.28.0" -}}
+    kubectl version --client
+    {{- else -}}
+    kubectl version --client --short
+    {{- end -}}
   register: kubectl_install_version
   register_type: yaml
 
 - name: Binary | Install kubectl if not present or version mismatch
   when: |
-    or (.kubectl_install_version.error | empty | not) ((get .kubectl_install_version.stdout "Server Version") | ne  .kubernetes.kube_version)
+    or (.kubectl_install_version.error | empty | not) ((get .kubectl_install_version.stdout "Client Version") | ne  .kubernetes.kube_version)
   copy:
     src: >-
       {{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .binary_type }}/kubectl

@@ -1,18 +1,19 @@
 ---
+- hosts:
+    - all
+  roles:
+    - native/root
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
   gather_facts: true
   roles:
     - defaults
-    - native/root
 
 # Download all required software and generate certificates on the localhost
 - hosts:
     - localhost
   roles:
     - download
-  tasks:
-    - name: Export artifact
-      command: |
-        cd {{ .binary_dir }} && tar -czvf {{ .artifact_file }} *
+    - copy
+

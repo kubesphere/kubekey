@@ -42,7 +42,13 @@
     dest: >-
       {{ .binary_dir }}/kubeconfig
 
-- name: Kubernetes | Distribute kubeconfig to remote host
+- name: Kubernetes | Distribute kubeconfig to remote host of current user
+  copy:
+    src: >-
+      {{ .binary_dir }}/kubeconfig
+    dest: ~/.kube/config
+
+- name: Kubernetes | Distribute kubeconfig to remote host of root user
   copy:
     src: >-
       {{ .binary_dir }}/kubeconfig

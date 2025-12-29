@@ -253,6 +253,26 @@ func TestParseValue(t *testing.T) {
 			excepted: []byte("bar"),
 		},
 		{
+			name:  "get string slice from dictionary",
+			input: "{{ getStringSlice .foo \"foo\" }}",
+			variable: map[string]any{
+				"foo": map[string][]string{
+					"foo": {"bar1", "bar2"},
+				},
+			},
+			excepted: []byte("[bar1 bar2]"),
+		},
+		{
+			name:  "make kubeadm extra args from map",
+			input: "{{ mapToNamedStringArgs .foo | toYaml }}",
+			variable: map[string]any{
+				"foo": map[string]any{
+					"foo": "bar1",
+				},
+			},
+			excepted: []byte("- name: foo\n  value: bar1"),
+		},
+		{
 			name:  "multi level 2",
 			input: "{{ index .foo \"foo\" }}",
 			variable: map[string]any{
@@ -283,6 +303,14 @@ func TestParseValue(t *testing.T) {
 				"foo": "bar",
 			},
 			excepted: []byte("bar"),
+		},
+		{
+			name:  "{{ & }} character translation",
+			input: "helm version --template \"{{ \"{{\" }} .Version {{ \"}}\" }}\"",
+			variable: map[string]any{
+				"foo": "bar",
+			},
+			excepted: []byte("helm version --template \"{{ .Version }}\""),
 		},
 	}
 

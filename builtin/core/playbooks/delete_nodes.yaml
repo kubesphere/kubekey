@@ -1,4 +1,8 @@
 ---
+- hosts:
+    - all
+  roles:
+    - native/root
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
@@ -6,7 +10,6 @@
   roles:
     - defaults
     - precheck
-    - native/root
 
 - hosts:
     - kube_control_plane
@@ -49,7 +52,7 @@
       when: .delete_nodes | default list | has .inventory_hostname
     - role: uninstall/cri
       when: 
-        - .deleteCRI
+        - .delete.cri
         - .groups.image_registry | default list | has .inventory_hostname | not
         - .delete_nodes | default list | has .inventory_hostname
   post_tasks:
@@ -61,7 +64,7 @@
         sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
         sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
       when: 
-        - .deleteDNS
+        - .delete.dns
         - .delete_nodes | default list | has .inventory_hostname
 
 - hosts:
@@ -69,7 +72,7 @@
   roles:
     - role: uninstall/etcd
       when: 
-        - .deleteETCD
+        - .delete.etcd
         - .delete_nodes | default list | has .inventory_hostname
 
 - hosts:
@@ -77,5 +80,5 @@
   roles:
     - role: uninstall/image-registry
       when:
-       - .deleteImageRegistry
+       - .delete.image_registry
        - .delete_nodes | default list | has .inventory_hostname
