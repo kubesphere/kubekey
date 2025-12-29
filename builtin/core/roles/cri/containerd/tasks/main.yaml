@@ -53,7 +53,7 @@
     - name: Containerd | Copy image registry server certificate to the remote node
       when:
       - .image_registry.auth.cert_file | empty | not
-      - .image_registry.auth.cert_file | fileExist
+      - .image_registry.auth.cert_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.cert_file }}
@@ -62,7 +62,7 @@
     - name: Containerd | Copy image registry server key to the remote node
       when:
       - .image_registry.auth.key_file | empty | not
-      - .image_registry.auth.key_file | fileExist
+      - .image_registry.auth.key_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.key_file }}

@@ -44,7 +44,7 @@ cri:
 cni:
   multus:
     image:
-      tag: v4.1.0
+      tag: v4.2.4
   # ========== cni ==========
   # cni_plugins binary (optional)
   # cni_plugins_version: v1.2.0

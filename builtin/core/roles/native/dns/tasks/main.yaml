@@ -38,13 +38,13 @@
       {{- end }}
     {{- end }}{{- if and (.image_registry.auth.registry | empty | not) (.groups.image_registry | empty | not) }}
       {{- if .image_registry.ha_vip | empty | not }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry }}
+    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
       {{- else }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
         {{- end }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
         {{- end }}
       {{- end }}
     {{- end }}
@@ -71,13 +71,13 @@
     # kubekey image_registry control_plane_endpoint BEGIN
     {{- if and (.image_registry.auth.registry | empty | not) (.groups.image_registry | empty | not) }}
       {{- if .image_registry.ha_vip | empty | not }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry }}
+    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
       {{- else }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
         {{- end }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
         {{- end }}
       {{- end }}
     {{- end }}

@@ -58,5 +58,5 @@
 判断路径对应的文件是否存在。
 
 ```yaml
-{{ .file_path | fileExist }}
+{{ .file_path | fileExists }}
 ```

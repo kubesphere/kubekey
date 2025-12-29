@@ -17,6 +17,7 @@ limitations under the License.
 package image
 
 import (
+	"io"
 	"regexp"
 
 	"github.com/cockroachdb/errors"
@@ -68,7 +69,7 @@ type oldImageCopyTargetArgs struct {
 // transferPull parses deprecated "pull" configuration arguments and converts them to the new imageArgs format.
 // Old format: pull images from remote registry to local directory
 // New format: src = remote reference (oci://), dest = local directory (local://)
-func transferPull(pullArgs any, vars map[string]any) (*imageArgs, error) {
+func transferPull(pullArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	pull, ok := pullArgs.(map[string]any)
 	if !ok {
 		return nil, errors.New("\"pull\" should be map")
@@ -100,6 +101,7 @@ func transferPull(pullArgs any, vars map[string]any) (*imageArgs, error) {
 		auths:     ipl.auths,
 		src:       "oci://{{ .module.image.reference }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}",
 		dest:      "local://" + ipl.imagesDir,
+		logOutput: logOutput,
 	}
 
 	return ia, nil
@@ -108,7 +110,7 @@ func transferPull(pullArgs any, vars map[string]any) (*imageArgs, error) {
 // transferPush parses deprecated "push" configuration arguments and converts them to the new imageArgs format.
 // Old format: push images from local directory to remote registry
 // New format: src = local directory (local://), dest = remote reference (oci://)
-func transferPush(pushArgs any, vars map[string]any) (*imageArgs, error) {
+func transferPush(pushArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	push, ok := pushArgs.(map[string]any)
 	if !ok {
 		return nil, errors.New("\"push\" should be map")
@@ -146,10 +148,11 @@ func transferPush(pushArgs any, vars map[string]any) (*imageArgs, error) {
 
 	// Convert to new format
 	ia := &imageArgs{
-		src:     "local://" + ips.imagesDir,
-		dest:    "oci://" + ips.destTmpl,
-		pattern: ips.srcPattern,
-		auths:   ips.auths,
+		src:       "local://" + ips.imagesDir,
+		dest:      "oci://" + ips.destTmpl,
+		pattern:   ips.srcPattern,
+		auths:     ips.auths,
+		logOutput: logOutput,
 	}
 	if ips.skipTLSVerify != nil {
 		for i := range ia.auths {
@@ -163,7 +166,7 @@ func transferPush(pushArgs any, vars map[string]any) (*imageArgs, error) {
 // transferCopy parses deprecated "copy" configuration arguments and converts them to the new imageArgs format.
 // Old format: copy images from local directory to local directory
 // New format: src = local directory (local://), dest = local directory (local://)
-func transferCopy(copyArgs any, vars map[string]any) (*imageArgs, error) {
+func transferCopy(copyArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	cp, ok := copyArgs.(map[string]any)
 	if !ok {
 		return nil, errors.New("\"copy\" should be map")
@@ -201,6 +204,7 @@ func transferCopy(copyArgs any, vars map[string]any) (*imageArgs, error) {
 		platform:  cps.Platform,
 		manifests: cps.From.manifests,
 		pattern:   cps.From.Pattern,
+		logOutput: logOutput,
 	}
 
 	return ia, nil

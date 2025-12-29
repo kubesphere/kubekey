@@ -11,7 +11,9 @@ package image
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -40,7 +42,7 @@ func newRepository(url, img string, auths []imageAuth) (*remote.Repository, erro
 		return newLocalRepository(img, strings.TrimPrefix(url, "local://"))
 	} else if strings.HasPrefix(url, "oci://") {
 		// Source is remote registry
-		return newRemoteRepository(img, auths)
+		return newRemoteRepository(strings.TrimPrefix(url, "oci://"), auths)
 	} else {
 		return nil, errors.New("invalid source image reference")
 	}
@@ -58,7 +60,7 @@ func newRemoteRepository(reference string, auths []imageAuth) (*remote.Repositor
 	// Find matching auth for this host
 	var matchedAuth *imageAuth
 	for i := range auths {
-		if strings.Split(auths[i].Registry, "/")[0] == reference {
+		if strings.Split(auths[i].Registry, "/")[0] == repository.Reference.Registry {
 			matchedAuth = &auths[i]
 			break
 		}
@@ -211,11 +213,16 @@ func (i imageTransport) head(request *http.Request) *http.Response {
 			return responseServerError
 		}
 
+		// Compute digest (SHA256) of the manifest content
+		hash := sha256.Sum256(file)
+		digest := "sha256:" + hex.EncodeToString(hash[:])
+
 		return &http.Response{
 			Proto:      "Local",
 			StatusCode: http.StatusOK,
 			Header: http.Header{
-				"Content-Type": []string{mediaType},
+				"Content-Type":          []string{mediaType},
+				"Docker-Content-Digest": []string{digest},
 			},
 			ContentLength: int64(len(file)),
 		}

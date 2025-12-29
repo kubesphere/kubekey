@@ -72,7 +72,7 @@ spec:
     # Image tag for Multus (configure if needed).
     # multus:
     #   image:
-    #    tag: v4.1.1
+    #    tag: v4.2.4
     # ========== Calico CNI ==========
     # Calico version (effective only when type is calico).
     calico_version: v3.29.7

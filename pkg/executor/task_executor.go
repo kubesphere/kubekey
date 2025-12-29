@@ -199,7 +199,13 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 			return
 		}
 
-		for _, item := range e.dealLoop(had) {
+		items, err := e.dealLoop(had)
+		if err != nil {
+			resErr = err
+			return
+		}
+
+		for _, item := range items {
 			stdout, stderr, rendered, exeErr := e.executeModule(ctx, e.task, item, h)
 
 			var rawItem runtime.RawExtension
@@ -387,16 +393,20 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 // dealLoop parses the loop specification into a slice of items to iterate over.
 // If no loop is specified, returns a single nil item. Otherwise converts the loop
 // specification from JSON into a slice of values.
-func (e *taskExecutor) dealLoop(ha map[string]any) []any {
+func (e *taskExecutor) dealLoop(ha map[string]any) ([]any, error) {
 	var items []any
 	if e.task.Spec.Loop.Raw == nil {
 		// loop is not set. add one element to execute once module.
 		items = []any{nil}
 	} else {
-		items = variable.Extension2Slice(ha, e.task.Spec.Loop)
+		var err error
+		items, err = variable.SliceVar(ha, variable.Extension2Variables(e.task.Spec.Loop), "raw")
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse loop items")
+		}
 	}
 
-	return items
+	return items, nil
 }
 
 // dealWhen evaluates the "when" conditions for a task to determine if it should be skipped.

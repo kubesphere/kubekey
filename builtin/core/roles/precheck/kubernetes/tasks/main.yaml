@@ -46,10 +46,10 @@
     - .image_registry.auth.registry | empty | not
     - .image_registry.type | empty
   command: |
-    HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" "https://{{ .image_registry.auth.registry }}/v2/" -o /dev/null)
+    HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" "https://{{ .image_registry.auth.registry | splitList "/" | first }}/v2/" -o /dev/null)
     if [[ "$HTTP_CODE" == "200" ]]; then
       echo "Successfully authenticated to the image registry."
     else
-      echo "Failed to authenticate to the image registry at {{ .image_registry.auth.registry }}." >&2
+      echo "Failed to authenticate to the image registry at {{ .image_registry.auth.registry | splitList "/" | first }}." >&2
       exit 1
     fi
