@@ -2,7 +2,8 @@
 - hosts:
     - all
   roles:
-    - native/root
+    - role: native/root
+      tags: ["package"]
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
@@ -14,6 +15,8 @@
 - hosts:
     - localhost
   roles:
-    - download
-    - copy
+    - role: download
+      tags: ["package"]
+    - role: download/copy
+      tags: ["package"]
 

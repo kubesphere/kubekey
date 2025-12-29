@@ -1,39 +1,18 @@
 ---
 - name: ISO | Download ISO files
-  when: >-
-    {{- if .download.system | empty | not -}}
-    {{- if .download.system | eq "AlmaLinux" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "almalinux" .item) }}
-    {{- else if .download.system | eq "CentOS" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "centos" .item) }}
-    {{- else if .download.system | eq "Debian" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "debian" .item) }}
-    {{- else if .download.system | eq "Kylin" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "kylin" .item) }}
-    {{- else if .download.system | eq "Ubuntu" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "ubuntu" .item) }}
-    {{- else if contains "almalinux" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "centos" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "debian" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "kylin" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "ubuntu" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else -}}
-    {{ .download.iso_url.urls | empty | not }}
-    {{- end -}}
-    {{- else -}}
-    {{ .download.iso_url.urls | empty | not }}
-    {{- end -}}
   loop: "{{ .download.iso_url.urls | toJson }}"
+  when: 
+    - .download.iso_url.urls | empty | not
   command: |
-    iso_path={{ .binary_dir }}/repository/{{ .item | splitList "/" | last }}
-    if [ ! -f {{ .binary_dir }}/repository/ ];then
-      mkdir -p {{ .binary_dir }}/repository/
-    fi
-    if [ ! -f $iso_path ]; then
-      curl -L -o $iso_path  {{ .item }}
-    fi
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" -}}
+      url=https://{{ .download.cn_host }}/github.com/kubesphere/kubekey/releases/download/iso-latest/{{ .item }}-$arch.iso
+      {{- else }}
+      url=https://github.com/kubesphere/kubekey/releases/download/iso-latest/{{ .item }}-$arch.iso
+      {{- end }}
+      iso_path={{ .binary_dir }}/repository/{{ .item }}-$arch.iso
+      if [ ! -f $iso_path ];then
+        mkdir -p $iso_path
+        curl -Lo $iso_path $url
+      fi
+    done

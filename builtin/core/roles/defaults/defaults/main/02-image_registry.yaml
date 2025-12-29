@@ -71,7 +71,7 @@ image_registry:
   # Registry endpoint for images from ghcr.io
   k8sio_registry: >-
     {{- if .image_registry.auth.registry | empty | not -}}
-    {{ .image_registry.auth.registry }}/registry.k8s.io
+    {{ .image_registry.auth.registry }}
     {{- else -}}
     registry.k8s.io
     {{- end -}}

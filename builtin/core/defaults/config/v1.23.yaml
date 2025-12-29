@@ -70,9 +70,6 @@ spec:
       # Image tag for Multus (configure if needed).
       #image:
       #  tag: v3.9.3
-    # ========== CNI Tools ==========
-    # Version for cni-plugins (optional).
-    # cni_plugins_version: v1.1.1
     # ========== Calico CNI ==========
     # Calico version (effective only when type is calico).
     calico_version: v3.25.2

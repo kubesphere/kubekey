@@ -38,6 +38,7 @@ import (
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -154,7 +155,7 @@ type imageArgs struct {
 	auths     []imageAuth    // optional: image registry authentication information
 	src       string         // optional: source image reference (remote or local)
 	dest      string         // optional: destination image reference (local or remote)
-	policy    string         // optional: policy for image copy
+	policy    string         // optional: policy for image copy, default is strict
 }
 
 // newImageArgs creates a new imageArgs instance from raw configuration.
@@ -180,6 +181,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	ia := &imageArgs{
 		manifests: make([]string, 0),
 		auths:     make([]imageAuth, 0),
+		policy:    PolicyStrict,
 	}
 
 	// Parse manifests
@@ -204,39 +206,26 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	ia.auths = append(ia.auths, auths...)
 
 	// Parse src
-	ia.src, _ = variable.StringVar(vars, args, "src")
+	src, _ := variable.PrintVar(args, "src")
+	if src, ok := src.(string); !ok {
+		return nil, errors.New("\"src\" must be a string")
+	} else if src == "" {
+		return nil, errors.New("\"src\" should not be empty")
+	} else {
+		ia.src = src
+	}
 
 	// Parse dest
-	ia.dest, _ = variable.StringVar(vars, args, "dest")
+	dest, _ := variable.PrintVar(args, "dest")
+	if dest, ok := dest.(string); !ok {
+		return nil, errors.New("\"dest\" must be a string")
+	} else if dest == "" {
+		return nil, errors.New("\"dest\" should not be empty")
+	} else {
+		ia.dest = dest
+	}
 
 	return ia, nil
-}
-
-// complete validates and finalizes the imageArgs instance.
-// This includes converting local paths to absolute paths and validating required fields.
-func (ia *imageArgs) complete() error {
-	// Validate and convert local paths to absolute paths
-	if ia.src != "" && strings.HasPrefix(ia.src, "local://") {
-		localPath := strings.TrimPrefix(ia.src, "local://")
-		if !filepath.IsAbs(localPath) {
-			return errors.New("local path must be an absolute path (e.g., local:///var/lib/kubekey/images)")
-		}
-		ia.src = "local://" + localPath
-	}
-	if ia.dest != "" && strings.HasPrefix(ia.dest, "local://") {
-		localPath := strings.TrimPrefix(ia.dest, "local://")
-		if !filepath.IsAbs(localPath) {
-			return errors.New("local path must be an absolute path (e.g., local:///var/lib/kubekey/images)")
-		}
-		ia.dest = "local://" + localPath
-	}
-
-	// Validate required fields
-	if len(ia.manifests) == 0 && ia.src == "" && ia.dest == "" {
-		return errors.New("either \"manifests\" or \"src\"/\"dest\" must be specified")
-	}
-
-	return nil
 }
 
 func (i *imageArgs) copy(ctx context.Context, hostVars map[string]any) error {
@@ -269,24 +258,33 @@ func (i *imageArgs) copy(ctx context.Context, hostVars map[string]any) error {
 		_ = unstructured.SetNestedField(hostVars, reference.Repository, "module", "image", "reference", "repository")
 		_ = unstructured.SetNestedField(hostVars, reference.Reference, "module", "image", "reference", "reference")
 
+		src, err := tmpl.ParseFunc(hostVars, i.src, tmpl.StringFunc)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse src %q", i.src)
+		}
+		dest, err := tmpl.ParseFunc(hostVars, i.dest, tmpl.StringFunc)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse dest %q", i.dest)
+		}
 		// Create source repository
-		src, err := newRepository(i.src, img, i.auths)
+		srcRepo, err := newRepository(src, img, i.auths)
 		if err != nil {
 			return err
 		}
-		dst, err := newRepository(i.dest, img, i.auths)
+		dstRepo, err := newRepository(dest, img, i.auths)
 		if err != nil {
 			return err
 		}
+		klog.V(4).InfoS("copy image", "src", src, "dst", dest, "source", srcRepo.Reference.String(), "destination", dstRepo.Reference.String())
 
 		// Handle multi-platform copy with filtering
 		if len(i.platform) > 0 && !slices.Contains(i.platform, "all") {
-			if err := i.copyWithPlatformFilter(ctx, src, dst, img, i.platform); err != nil {
+			if err := i.copyWithPlatformFilter(ctx, srcRepo, dstRepo, img, i.platform); err != nil {
 				return err
 			}
 		} else {
 			// Original copy (all platforms)
-			if _, err := oras.Copy(ctx, src, img, dst, "", oras.DefaultCopyOptions); err != nil {
+			if _, err := oras.Copy(ctx, srcRepo, srcRepo.Reference.Reference, dstRepo, "", oras.DefaultCopyOptions); err != nil {
 				return errors.Wrapf(err, "failed to copy image %q", img)
 			}
 		}
@@ -374,16 +372,11 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 			}
 		case PolicyWarn:
 			if len(filteredManifests) == 0 {
-				klog.V(2).InfoS("no matching platforms found for image, skipping",
-					"image", ref,
-					"requestedPlatforms", platform)
+				klog.Warningf("no matching platforms found for image, skipping: image=%s, requestedPlatforms=%v", ref, platform)
 				return nil
 			}
 			if len(missingPlatforms) > 0 {
-				klog.V(2).InfoS("image missing some requested platforms, proceeding with available ones",
-					"image", ref,
-					"requestedPlatforms", platform,
-					"missingPlatforms", missingPlatforms)
+				klog.Warningf("image %s missing some requested platforms, proceeding with available ones: requestedPlatforms=%v, missingPlatforms=%v", ref, platform, missingPlatforms)
 			}
 		default:
 			// Default to strict behavior
@@ -532,14 +525,9 @@ func ModuleImage(ctx context.Context, opts internal.ExecOptions) (string, string
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}
 
-	// Validate and finalize imageArgs
-	if err := ia.complete(); err != nil {
-		return internal.StdoutFailed, internal.StderrParseArgument, err
-	}
-
 	if err := ia.copy(ctx, ha); err != nil {
 		if errors.Is(err, filepath.SkipDir) {
-			return internal.StdoutSkip, "", nil
+			return internal.StdoutSkip, "image manifest is empty", nil
 		}
 		return internal.StdoutFailed, "failed to transfer image", err
 	}

@@ -1,7 +1,0 @@
-- name: Image | Ensure container images is available
-  image:
-    manifests: "{{ .image_manifests | toJson }}"
-    src: "local://{{ .binary_dir }}/images/"
-    dest: "local://{{ .artifact_file_dir }}/kubekey/kubekey/images/"
-  when:
-    - .image_manifests | default list | empty | not

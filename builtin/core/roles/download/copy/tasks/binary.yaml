@@ -1,0 +1,211 @@
+---
+- name: Binary | Ensure etcd binary is present
+  loop: "{{ .download.etcd.etcd_version | toJson }}"
+  when: .download.etcd.etcd_version | empty | not
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/etcd/{{ .item }}/$arch/etcd-{{ .item }}-linux-$arch.tar.gz
+      target_path={{ .artifact_dir }}/etcd/{{ .item }}/$arch/etcd-{{ .item }}-linux-$arch.tar.gz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure Kubernetes binaries are present
+  loop: "{{ .download.kubernetes.kube_version | toJson }}"
+  when: .download.kubernetes.kube_version | empty | not
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      kube_path={{ .binary_dir }}/kube/{{ .item }}/$arch
+      target_path={{ .artifact_dir }}/kube/{{ .item }}/$arch
+      mkdir -p $target_path
+      if [ ! -f $kube_path/kubelet ]; then
+        cp $kube_path/kubelet $target_path/kubelet
+      fi
+      if [ ! -f $kube_path/kubeadm ]; then
+        cp $kube_path/kubeadm $target_path/kubeadm
+      fi
+      if [ ! -f $kube_path/kubectl ]; then
+        cp $kube_path/kubectl $target_path/kubectl
+      fi
+    done
+
+- name: Binary | Ensure CNI plugins are present
+  loop: "{{ .download.cni.cni_plugins_version | toJson }}"
+  when: .download.cni.cni_plugins_version | empty | not
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/cni/plugins/{{ .item }}/$arch/cni-plugins-linux-$arch-{{ .item }}.tgz
+      target_path={{ .artifact_dir }}/cni/plugins/{{ .item }}/$arch/cni-plugins-linux-$arch-{{ .item }}.tgz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure Helm binary is present
+  loop: "{{ .download.kubernetes.helm_version | toJson }}"
+  when: .download.kubernetes.helm_version | empty | not
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/cni/plugins/{{ .item }}/$arch/cni-plugins-linux-$arch-{{ .item }}.tgz
+      target_path={{ .artifact_dir }}/cni/plugins/{{ .item }}/$arch/cni-plugins-linux-$arch-{{ .item }}.tgz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure crictl binary is present
+  loop: "{{ .download.cri.crictl_version | toJson }}"
+  when: .download.cri.crictl_version | empty | not
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/crictl/{{ .item }}/$arch/crictl-{{ .item }}-linux-$arch.tar.gz
+      target_path={{ .artifact_dir }}/crictl/{{ .item }}/$arch/crictl-{{ .item }}-linux-$arch.tar.gz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure Docker binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.cri.docker_version | toJson }}"
+  when: 
+    - .download.cri.docker_version | empty | not
+    - or (.download.image_registry.type | empty | not) (.download.cri.container_manager | has "docker")
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/docker/{{ .item }}/$arch/docker-{{ .item }}.tgz
+      target_path={{ .artifact_dir }}/docker/{{ .item }}/$arch/docker-{{ .item }}.tgz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure cri-dockerd binary is present
+  loop: "{{ .download.cri.cridockerd_version | toJson }}"
+  when: 
+    - .download.cri.cridockerd_version | empty | not
+    - .download.cri.container_manager | has "docker"
+    # - .download.kubernetes.kube_version | semverCompare ">=v1.24.0"
+  command: |
+    for arch in {{ .download.arch | join " " }}; do    
+      src_path={{ .binary_dir }}/cri-dockerd/{{ .item }}/$arch/cri-dockerd-{{ .item | default "" | trimPrefix "v" }}.$arch.tgz
+      target_path={{ .artifact_dir }}/cri-dockerd/{{ .item }}/$arch/cri-dockerd-{{ .item | default "" | trimPrefix "v" }}.$arch.tgz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure containerd binary is present
+  loop: "{{ .download.cri.containerd_version | toJson }}"
+  when: 
+    - .download.cri.containerd_version | empty | not
+    - .download.cri.container_manager | has "containerd"
+  command: |
+    for arch in {{ .download.arch | join " " }}; do    
+      src_path={{ .binary_dir }}/containerd/{{ .item }}/$arch/containerd-{{ .item | default "" | trimPrefix "v" }}-linux-$arch.tar.gz
+      target_path={{ .artifact_dir }}/containerd/{{ .item }}/$arch/containerd-{{ .item | default "" | trimPrefix "v" }}-linux-$arch.tar.gz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure runc binary is present
+  loop: "{{ .download.cri.runc_version | toJson }}"
+  when: 
+    - .download.cri.runc_version | empty | not
+    - .download.cri.container_manager | has "containerd"
+  command: |
+    for arch in {{ .download.arch | join " " }}; do    
+      src_path={{ .binary_dir }}/runc/{{ .item }}/$arch/runc.$arch
+      target_path={{ .artifact_dir }}/runc/{{ .item }}/$arch/runc.$arch
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure calicoctl binary is present
+  loop: "{{ .download.cni.calico_version | toJson }}"
+  when: 
+    - .download.cni.calico_version | empty | not
+    - .download.cni.type | has "calico"
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/cni/calico/{{ .item }}/$arch/calicoctl-linux-$arch
+      target_path={{ .artifact_dir }}/cni/calico/{{ .item }}/$arch/calicoctl-linux-$arch
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure Docker Registry binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.image_registry.docker_registry_version | toJson }}"
+  when: 
+    - .download.image_registry.docker_registry_version | empty | not
+    - .download.image_registry.type | has "docker-registry"
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/image-registry/docker-registry/{{ .item }}/$arch/docker-registry-{{ .item }}-linux-$arch.tgz
+      target_path={{ .artifact_dir }}/image-registry/docker-registry/{{ .item }}/$arch/docker-registry-{{ .item }}-linux-$arch.tgz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure docker-compose binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.image_registry.dockercompose_version | toJson }}"
+  when: 
+    - .download.image_registry.dockercompose_version | empty | not
+    - .download.image_registry.type | empty | not
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/image-registry/docker-compose/{{ .item }}/$arch/docker-compose
+      target_path={{ .artifact_dir }}/image-registry/docker-compose/{{ .item }}/$arch/docker-compose
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure Harbor binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.image_registry.harbor_version | toJson }}"
+  when: 
+    - .download.image_registry.harbor_version | empty | not
+    - .download.image_registry.type | has "harbor"
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/image-registry/harbor/{{ .item }}/$arch/harbor-offline-installer-{{ .item }}.tgz
+      target_path={{ .artifact_dir }}/image-registry/harbor/{{ .item }}/$arch/harbor-offline-installer-{{ .item }}.tgz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done
+
+- name: Binary | Ensure keepalived binary is present
+  tags: ["image_registry"]
+  loop: "{{ .download.image_registry.keepalived_version | toJson }}"
+  when: 
+    - .download.image_registry.keepalived_version | empty | not
+  command: |
+    for arch in {{ .download.arch | join " " }}; do
+      src_path={{ .binary_dir }}/image-registry/keepalived/{{ .item }}/$arch/keepalived-{{ .item }}-linux-$arch.tgz
+      target_path={{ .artifact_dir }}/image-registry/keepalived/{{ .item }}/$arch/keepalived-{{ .item }}-linux-$arch.tgz
+      mkdir -p $target_path
+      if [ -f $target_path ];then
+        cp $src_path $target_path
+      fi
+    done

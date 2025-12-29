@@ -1,21 +1,28 @@
-- name: Defaults | Load defaults based on Kubernetes version
-  block:
-    - name: Defaults | Load version-specific settings for Kubernetes
-      tags: ["image_registry"]
-      when: .kubernetes.kube_version | empty | not
-      include_vars: >-
-        {{ slice (.kubernetes.kube_version | splitList ".") 0 2 | join "." }}.yaml
-    - name: Defaults | Load architecture-specific download URLs for each artifact version
-      include_vars: 10-download.yaml
-
 - name: Defaults | Reset temporary directory
+  tags: ["always"]
   command: |
     if [ -d {{ .tmp_dir }} ]; then
       rm -rf {{ .tmp_dir }}
     fi
     mkdir -m 777 -p {{ .tmp_dir }}
 
+- name: Defaults | Load defaults based on Kubernetes version
+  tags: ["package", "image_registry"]
+  block:
+    - name: Defaults | Load version-specific settings for Kubernetes
+      when: .kubernetes.kube_version | empty | not
+      include_vars: >-
+        {{ slice (.kubernetes.kube_version | splitList ".") 0 2 | join "." }}.yaml
+    - name: Defaults | Load default templates download
+      template:
+        src: download.yaml
+        dest: >-
+          {{ .work_dir }}/download.yaml
+    - name: Defaults | Load architecture-specific download URLs for each artifact version
+      include_vars: "{{ .work_dir }}/download.yaml"
+
 - name: Defaults | Determine operating system architecture for each node
+  tags: ["always"]
   set_fact:
     binary_type: >-
       {{- if .transform_architectures.amd64 | has .os.architecture -}}

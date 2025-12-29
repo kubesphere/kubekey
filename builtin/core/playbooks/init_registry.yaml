@@ -6,7 +6,6 @@
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - all
-  tags: ["always"]
   gather_facts: true
   roles:
     - defaults
@@ -26,5 +25,6 @@
     - image_registry
   tags: ["always"]
   roles:
-    - role: native
+    - role: native/dns
+    - role: native/init
     - role: image-registry

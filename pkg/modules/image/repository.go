@@ -40,7 +40,7 @@ func newRepository(url, img string, auths []imageAuth) (*remote.Repository, erro
 		return newLocalRepository(img, strings.TrimPrefix(url, "local://"))
 	} else if strings.HasPrefix(url, "oci://") {
 		// Source is remote registry
-		return newRemoteRepository(img, auths)
+		return newRemoteRepository(strings.TrimPrefix(url, "oci://"), auths)
 	} else {
 		return nil, errors.New("invalid source image reference")
 	}
@@ -58,7 +58,7 @@ func newRemoteRepository(reference string, auths []imageAuth) (*remote.Repositor
 	// Find matching auth for this host
 	var matchedAuth *imageAuth
 	for i := range auths {
-		if strings.Split(auths[i].Registry, "/")[0] == reference {
+		if strings.Split(auths[i].Registry, "/")[0] == repository.Reference.Registry {
 			matchedAuth = &auths[i]
 			break
 		}

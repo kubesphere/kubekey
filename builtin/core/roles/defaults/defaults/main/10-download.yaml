@@ -1,0 +1,250 @@
+download:
+  # if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
+  zone: ""
+  # default cn zone file storage host
+  cn_host: kubekey.pek3b.qingstor.com
+  os: linux
+  arch: [ "amd64" ]
+  # offline artifact package for kk.
+  artifact_file: ""
+  # the md5_file of artifact_file.
+  artifact_md5: ""
+  iso: 
+    - "almalinux-9.0-rpms" 
+    - "centos-8-rpms" 
+    - "debian-10-debs" 
+    - "debian-11-debs" 
+    - "kylin-v10SP3-2403-rpms" 
+    - "kylin-v10SP3-rpms" 
+    - "kylin-v10SP2-rpms" 
+    - "kylin-v10SP1-rpms" 
+    - "ubuntu-18.04-debs" 
+    - "ubuntu-20.04-debs" 
+    - "ubuntu-22.04-debs" 
+    - "ubuntu-24.04-debs"
+  cni:
+    type: [ "calico" ]
+  cri:
+    container_manager: >
+      {{- $container_manager := list }}
+      {{- range .download.kubernetes.kube_version }}
+        {{- if and (. | semverCompare "<v1.24.0") ($container_manager | has "docker" | not) }}
+          {{- $container_manager = append $container_manager "docker" }}
+        {{- else if and (. | semverCompare ">=v1.24.0") ($container_manager | has "containerd" | not) }}
+          {{- $container_manager = append $container_manager "containerd" }}
+        {{- end }}
+      {{- end }}
+      {{- $container_manager | toJson }}
+
+  images:
+    # Determines whether to pull images from remote repositories.
+    # Set to false if images are already present locally and remote validation is unnecessary.
+    fetch: true
+    # Architectures for which images should be downloaded.
+    registry: ""
+    
+    # kubernetes images list
+    openebs-localpv/localpv-provisioner:
+      "4.4.0":
+        - docker.io/openebs/linux-utils:4.3.0
+        - docker.io/openebs/provisioner-localpv:4.4.0
+    nfs-subdir-external-provisioner/nfs-subdir-external-provisioner:
+      "4.0.18":
+        - registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+    projectcalico/tigera-operator:
+      v3.25.2:
+        - quay.io/tigera/operator:v1.29.6
+        - docker.io/calico/apiserver:v3.25.2
+        - docker.io/calico/cni:v3.25.2
+        - docker.io/calico/csi:v3.25.2
+        - docker.io/calico/ctl:v3.25.2
+        - docker.io/calico/kube-controllers:v3.25.2
+        - docker.io/calico/node-driver-registrar:v3.25.2
+        - docker.io/calico/typha:v3.25.2
+        - docker.io/calico/node:v3.25.2
+        - docker.io/calico/pod2daemon-flexvol:v3.25.2
+        - docker.io/flannel/flannel:v0.24.4
+      v3.26.5:
+        - quay.io/tigera/operator:v1.30.11
+        - docker.io/calico/ctl:v3.26.5
+        - docker.io/calico/typha:v3.26.5
+        - quay.io/calico/node:v3.26.5
+        - docker.io/calico/node-windows:v3.26.5
+        - docker.io/calico/cni:v3.26.5
+        - docker.io/calico/cni-windows:v3.26.5
+        - docker.io/calico/apiserver:v3.26.5
+        - docker.io/calico/kube-controllers:v3.26.5
+        - docker.io/calico/flannel-migration-controller:v3.26.5
+        - docker.io/calico/networking-calico:v3.26.5
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.26.5
+        - quay.io/calico/pod2daemon-flexvol:v3.26.5
+        - docker.io/calico/csi-driver:v3.26.5
+        - docker.io/calico/csi-node-driver-registrar:v3.26.5
+      v3.28.5:
+        - quay.io/tigera/operator:v1.34.13
+        - docker.io/calico/ctl:v3.28.5
+        - docker.io/calico/typha:v3.28.5
+        - quay.io/calico/node:v3.28.5
+        - docker.io/calico/node-windows:v3.28.5
+        - docker.io/calico/cni:v3.28.5
+        - docker.io/calico/cni-windows:v3.28.5
+        - docker.io/calico/apiserver:v3.28.5
+        - docker.io/calico/kube-controllers:v3.28.5
+        - docker.io/calico/flannel-migration-controller:v3.28.5
+        - docker.io/calico/networking-calico:v3.28.5
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.28.5
+        - quay.io/calico/pod2daemon-flexvol:v3.28.5
+        - docker.io/calico/csi-driver:v3.28.5
+        - docker.io/calico/csi-node-driver-registrar:v3.28.5
+      v3.29.7: # refer https://docs.tigera.io/calico/3.29/reference/component-versions
+        - quay.io/tigera/operator:v1.36.16
+        - docker.io/calico/ctl:v3.29.7
+        - docker.io/calico/typha:v3.29.7
+        - quay.io/calico/node:v3.29.7
+        - docker.io/calico/node-windows:v3.29.7
+        - docker.io/calico/cni:v3.29.7
+        - docker.io/calico/cni-windows:v3.29.7
+        - docker.io/calico/apiserver:v3.29.7
+        - docker.io/calico/kube-controllers:v3.29.7
+        - docker.io/calico/flannel-migration-controller:v3.29.7
+        - docker.io/calico/windows:v3.29.7
+        - docker.io/calico/networking-calico:v3.29.7
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.29.7
+        - quay.io/calico/pod2daemon-flexvol:v3.29.7
+        - docker.io/calico/csi-driver:v3.29.7
+        - docker.io/calico/csi-node-driver-registrar:v3.29.7
+      v3.30.5:
+        - quay.io/tigera/operator:v1.38.9
+        - docker.io/calico/ctl:v3.30.5
+        - docker.io/calico/typha:v3.30.5
+        - quay.io/calico/node:v3.30.5
+        - docker.io/calico/node-windows:v3.30.5
+        - docker.io/calico/cni:v3.30.5
+        - docker.io/calico/cni-windows:v3.30.5
+        - docker.io/calico/apiserver:v3.30.5
+        - docker.io/calico/kube-controllers:v3.30.5
+        - docker.io/calico/envoy-gateway:v3.30.5
+        - docker.io/calico/envoy-proxy:v3.30.5
+        - docker.io/calico/envoy-ratelimit:v3.30.5
+        - docker.io/calico/flannel-migration-controller:v3.30.5
+        - docker.io/calico/networking-calico:v3.30.5
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.30.5
+        - quay.io/calico/pod2daemon-flexvol:v3.30.5
+        - docker.io/calico/csi:v3.30.5
+        - docker.io/calico/csi-node-driver-registrar:v3.30.5
+        - docker.io/calico/key-cert-provisioner:v3.30.5
+        - docker.io/calico/goldmane:v3.30.5
+        - docker.io/calico/whisker:v3.30.5
+        - docker.io/calico/whisker-backend:v3.30.5
+      v3.31.3:
+        - quay.io/tigera/operator:v1.40.3
+        - quay.io/calico/ctl:v3.31.3
+        - docker.io/calico/typha:v3.31.3
+        - quay.io/calico/node:v3.31.3
+        - docker.io/calico/node-windows:v3.31.3
+        - docker.io/calico/cni:v3.31.3
+        - docker.io/calico/cni-windows:v3.31.3
+        - docker.io/calico/apiserver:v3.31.3
+        - docker.io/calico/kube-controllers:v3.31.3
+        - docker.io/calico/envoy-gateway:v3.31.3
+        - docker.io/calico/envoy-proxy:v3.31.3
+        - docker.io/calico/envoy-ratelimit:v3.31.3
+        - docker.io/calico/flannel-migration-controller:v3.31.3
+        - docker.io/calico/networking-calico:v3.31.3
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.31.3
+        - quay.io/calico/pod2daemon-flexvol:v3.31.3
+        - docker.io/calico/csi:v3.31.3
+        - docker.io/calico/csi-node-driver-registrar:v3.31.3
+        - docker.io/calico/key-cert-provisioner:v3.31.3
+        - docker.io/calico/goldmane:v3.31.3
+        - docker.io/calico/whisker:v3.31.3
+        - docker.io/calico/whisker-backend:v3.31.3
+    cilium/cilium:
+      "1.14.19":
+        - quay.io/cilium/cilium:v1.14.19
+        - quay.io/cilium/certgen:v0.1.16
+        - quay.io/cilium/hubble-relay:v1.14.19
+        - quay.io/cilium/hubble-ui-backend:v0.13.1
+        - quay.io/cilium/hubble-ui:v0.13.1
+        - quay.io/cilium/cilium-envoy:v1.30.9-1734953328-6db0e437ba7ed2169f032ceec25922dd06e0b12b
+        - quay.io/cilium/cilium-etcd-operator:v2.0.7
+        - quay.io/cilium/operator:v1.14.19
+        - quay.io/cilium/startup-script:c54c7edeab7fde4da68e59acd319ab24af242c3f
+        - quay.io/cilium/clustermesh-apiserver:v1.14.19
+        - quay.io/cilium/kvstoremesh:v1.14.19
+        - quay.io/coreos/etcd:v3.5.4
+        - ghcr.io/spiffe/spire-agent:1.6.3
+        - ghcr.io/spiffe/spire-server:1.6.3
+      "1.15.19":
+        - quay.io/cilium/cilium:v1.15.19
+        - quay.io/cilium/certgen:v0.1.19
+        - quay.io/cilium/hubble-relay:v1.15.19
+        - quay.io/cilium/hubble-ui-backend:v0.13.2
+        - quay.io/cilium/hubble-ui:v0.13.2
+        - quay.io/cilium/cilium-envoy:v1.33.4-1752151664-7c2edb0b44cf95f326d628b837fcdd845102ba68
+        - quay.io/cilium/cilium-etcd-operator:v2.0.7
+        - quay.io/cilium/operator:v1.15.19
+        - quay.io/cilium/startup-script:c54c7edeab7fde4da68e59acd319ab24af242c3f
+        - quay.io/cilium/clustermesh-apiserver:v1.15.19
+        - docker.io/library/busybox:1.36.1
+        - ghcr.io/spiffe/spire-agent:1.8.5
+        - ghcr.io/spiffe/spire-server:1.8.5
+      "1.16.18":
+        - quay.io/cilium/cilium:v1.16.18
+        - quay.io/cilium/certgen:v0.3.1
+        - quay.io/cilium/hubble-relay:v1.16.18
+        - quay.io/cilium/hubble-ui-backend:v0.13.3
+        - quay.io/cilium/hubble-ui:v0.13.3
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716
+        - quay.io/cilium/operator:v1.16.18
+        - quay.io/cilium/startup-script:1755531540-60ee83e
+        - quay.io/cilium/clustermesh-apiserver:v1.16.18
+        - docker.io/library/busybox:1.36.1
+        - ghcr.io/spiffe/spire-agent:1.9.6
+        - ghcr.io/spiffe/spire-server:1.9.6
+      "1.17.11":
+        - quay.io/cilium/cilium:v1.17.11
+        - quay.io/cilium/certgen:v0.3.1
+        - quay.io/cilium/hubble-relay:v1.17.11
+        - quay.io/cilium/hubble-ui-backend:v0.13.3
+        - quay.io/cilium/hubble-ui:v0.13.3
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716
+        - quay.io/cilium/operator:v1.17.11
+        - quay.io/cilium/startup-script:1755531540-60ee83e
+        - quay.io/cilium/clustermesh-apiserver:v1.17.11
+        - docker.io/library/busybox:1.37.0
+        - ghcr.io/spiffe/spire-agent:1.9.6
+        - ghcr.io/spiffe/spire-server:1.9.6
+      "1.18.5":
+        - quay.io/cilium/cilium:v1.18.5
+        - quay.io/cilium/certgen:v0.3.1
+        - quay.io/cilium/hubble-relay:v1.18.5
+        - quay.io/cilium/hubble-ui-backend:v0.13.3
+        - quay.io/cilium/hubble-ui:v0.13.3
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716
+        - quay.io/cilium/operator:v1.18.5
+        - quay.io/cilium/startup-script:1755531540-60ee83e
+        - quay.io/cilium/clustermesh-apiserver:v1.18.5
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716
+        - docker.io/library/busybox:1.37.0
+        - ghcr.io/spiffe/spire-agent:1.12.4
+        - ghcr.io/spiffe/spire-server:1.12.4
+    flannel/flannel:
+      v0.27.4:
+        - ghcr.io/flannel-io/flannel-cni-plugin:v1.8.0-flannel1
+        - ghcr.io/flannel-io/flannel:v0.27.4
+    hybridnet/hybridnet:
+      0.6.8:
+        - docker.io/hybridnetdev/hybridnet:v0.8.8
+    kubeovn/kube-ovn:
+      v1.13.15:
+        - docker.io/kubeovn/kube-ovn:v1.13.15
+        - docker.io/kubeovn/vpc-nat-gateway:v1.13.15
+      v1.15.0:
+        - docker.io/kubeovn/kube-ovn:v1.15.0
+        - docker.io/kubeovn/vpc-nat-gateway:v1.15.0
