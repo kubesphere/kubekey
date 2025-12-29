@@ -32,7 +32,7 @@ cri:
   crictl_version: v1.23.0
   # ========== cri: docker ==========
   # docker binary
-  docker_version: 20.10.24
+  docker_version: 20.10.23
   # cridockerd. Required when kube_version is greater than 1.24
   cridockerd_version: v0.3.2
   # ========== cri: containerd ==========
@@ -43,7 +43,7 @@ cri:
 cni:
   multus:
     image:
-      tag: v3.9.3
+      tag: v4.2.4
   # ========== cni ==========
   # cni_plugins binary (optional)
   # cni_plugins_version: v1.1.1

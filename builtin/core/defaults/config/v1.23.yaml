@@ -54,7 +54,7 @@ spec:
     crictl_version: v1.23.0
     # ========== Docker Runtime ==========
     # Docker binary version.
-    docker_version: 20.10.24
+    docker_version: 20.10.23
     # ========== Containerd Runtime ==========
     # containerd binary version (active only when container_manager is containerd).
     # containerd_version: v1.6.20
@@ -70,7 +70,7 @@ spec:
     # Image tag for Multus (configure if needed).
     # multus:
     #   image:
-    #    tag: v3.9.3
+    #    tag: v4.2.4
     # ========== Calico CNI ==========
     # Calico version (effective only when type is calico).
     calico_version: v3.25.2

@@ -9,21 +9,17 @@
   when: .download.artifact_file | empty | not
 
 - name: Artifact | Download required binaries and images
-  when: .download.artifact_file | empty
+  when: .download.fetch
   block:
     # Download core binaries
     - include_tasks: binary.yaml
     # Download Helm and CNI binaries
     - include_tasks: helm.yaml
-      tags: ["kubernetes"]
     # Download remote images to the local images directory
     - include_tasks: images.yaml
-      tags: ["kubernetes", "image_registry"]
-
-- name: Artifact | Download iso file
-  when: .download.download_iso
-  block:
+      tags: ["image_registry"]
     - include_tasks: iso.yaml
+    
 
 - name: Artifact | Set ownership of working directory to sudo user
   tags: ["always"]

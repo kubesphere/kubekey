@@ -42,7 +42,7 @@
         src: >-
           {{ .image_registry.auth.ca_file }}
         dest: >-
-          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/ca.crt
+          /etc/docker/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/ca.crt
     - name: Docker | Copy image registry server certificate to the remote node
       when:
       - .image_registry.auth.cert_file | empty | not
@@ -51,7 +51,7 @@
         src: >-
           {{ .image_registry.auth.cert_file }}
         dest: >-
-          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.cert
+          /etc/docker/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.cert
     - name: Docker | Copy image registry server key to the remote node
       when:
       - .image_registry.auth.key_file | empty | not
@@ -60,7 +60,7 @@
         src: >-
           {{ .image_registry.auth.key_file }}
         dest: >-
-          /etc/docker/certs.d/{{ .image_registry.auth.registry }}/client.key
+          /etc/docker/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.key
 
 # Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
 - include_tasks: cridockerd.yaml
