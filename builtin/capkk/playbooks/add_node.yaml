@@ -48,7 +48,7 @@
             hosts: all
             vars:
               cloud_config: >-
-                {{ .hostVars.localhost.cloud_config_out.stdout }}
+                {{ .cloud_config_out.stdout | toJson }}
   roles:
     - role: init/init-artifacts
       when: .kubernetes_installed | default false | eq false

@@ -2,6 +2,7 @@
 package variable
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 // YAML tag constants used for parsing different types of nodes
@@ -106,13 +108,29 @@ func parseScalarValue(ctx map[string]any, node *yaml.Node) (any, error) {
 		return v, nil
 	case strTag, "":
 		if kkprojectv1.IsTmplSyntax(node.Value) {
-			pv, err := tmpl.ParseFunc(ctx, node.Value, func(b []byte) string { return string(b) })
+			pv, err := tmpl.ParseFunc(ctx, node.Value, func(b []byte) any {
+				var a any
+				err := json.Unmarshal(b, &a)
+				if err != nil {
+					return string(b)
+				}
+				return a
+			})
 			if err != nil {
 				return nil, err
 			}
-			// change node value
-			node.Value = pv
 
+			newNode, err := utils.CreateValueNode(pv)
+			if err != nil {
+				return pv, err
+			}
+			if node.Tag != newNode.Tag {
+				node.Tag = newNode.Tag
+				node.Kind = newNode.Kind
+				node.Content = newNode.Content
+			}
+			node.Value = newNode.Value
+			// change node value
 			return pv, nil
 		}
 

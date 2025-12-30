@@ -5,7 +5,7 @@
     fail_msg: >-
       the container manager:{{ .cri.container_manager }}, must be {{ .cluster_require.require_container_manager | toJson }}
   run_once: true
-  when: cri.container_manager | empty | not
+  when: .cri.container_manager | empty | not
 
 - name: Ensure minimum containerd version
   assert:

@@ -12,7 +12,7 @@
     echo "allow ::/0" >> $chronyConfigFile
     echo "local stratum 10" >> $chronyConfigFile
     # add server config
-    {{- range $server := (.ntp.servers | fromJson) }}
+    {{- range $server := (.ntp.servers) }}
       {{- $internalIPv4 := "" }}
       {{- $internalIPv6 := "" }}
       {{- range $.hostvars }}
@@ -34,13 +34,13 @@
     {{- end }}
   when:
     - .ntp.enabled
-    - .ntp.servers | fromJson | empty | not
+    - .ntp.servers | empty | not
 
 - name: Set timezone
   command: |
     timedatectl set-timezone {{ .timezone }}
-    timedatectl set-ntp {{ and .ntp.enabled (.ntp.servers | fromJson empty | not) }}
-  when: or (and .ntp.enabled (.ntp.servers | fromJson | empty | not)) (.timezone | empty | not)
+    timedatectl set-ntp {{ and .ntp.enabled (.ntp.servers | empty | not) }}
+  when: or (and .ntp.enabled (.ntp.servers | empty | not)) (.timezone | empty | not)
 
 - name: Restart ntp server
   command: |
@@ -48,4 +48,4 @@
     systemctl restart chrony.service
     {{- end }}
     systemctl restart chronyd.service
-  when: or (and .ntp.enabled (.ntp.servers | fromJson | empty | not)) (.timezone | empty | not)
+  when: or (and .ntp.enabled (.ntp.servers | empty | not)) (.timezone | empty | not)
