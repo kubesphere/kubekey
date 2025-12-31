@@ -16,4 +16,26 @@
   roles:
     - download
     - copy
-
+    - role: download/web-installer
+      when:
+        - .download.web_installer.download_web_installer
+  pre_tasks:
+    - name: Artifact | Set artifact file dir
+      when:
+        - .artifact_file | empty | not
+      set_fact:
+        artifact_file_dir: >-
+          {{ .artifact_file | dir }}/artifact
+    - name: Artifact | Create artifact dir
+      when:
+        - .artifact_file_dir | empty | not
+      command: >-
+        mkdir -p {{ .artifact_file_dir }}/kubekey/kubekey/
+  post_tasks:
+    - name: Artifact | Export artifact
+      when:
+        - .pack_artifact
+        - .artifact_file_dir | empty | not
+      command: |
+        cp kk  {{ .artifact_file_dir }}/
+        cd {{ .artifact_file_dir }} && tar -czvf {{ .artifact_file }} *

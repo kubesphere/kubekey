@@ -1,0 +1,26 @@
+- hosts:
+    - kube_control_plane[0]
+  vars_files:
+    - vars/kubesphere.yaml
+  tasks:
+    - name: Copy KubeSphere Helm package to remote host
+      copy:
+        src: ks-core.tgz
+        dest: /etc/kubesphere/ks-core.tgz
+    - name: Generate values file from schema
+      run_once: true
+      copy:
+        content: >-
+          {{ index . "ks-core" | toYaml }}
+        dest: >-
+          /etc/kubesphere/value.yaml
+    - name: Deploy or upgrade KubeSphere using Helm
+      command: |
+        helm upgrade --install --wait --create-namespace --namespace kubesphere-system -f /etc/kubesphere/value.yaml \
+          ks-core /etc/kubesphere/ks-core.tgz --reset-values \
+          --set telemetry.posthog.storage.type=pvc,telemetry.posthog.storage.pvc.resources.requests.storage=10Gi
+    - name: Output KubeSphere console access information
+      result:
+        address: http://{{ .internal_ipv4 }}:30880
+        user: admin
+        password: P@88w0rd
