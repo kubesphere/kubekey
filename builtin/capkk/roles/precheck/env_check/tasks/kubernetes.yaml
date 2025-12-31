@@ -1,6 +1,6 @@
 - name: Should defined internal_ipv4 or internal_ipv6
   assert:
-    that: or (.internal_ipv4 | empty | not) (.internal_ipv6 | empty | not))
+    that: or (.internal_ipv4 | empty | not) (.internal_ipv6 | empty | not)
     fail_msg: >-
       "internal_ipv4" and "internal_ipv6" cannot both be empty
 

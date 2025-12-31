@@ -16,3 +16,6 @@ spec:
   crictl_version: v1.23.0
   # docker binary
   docker_version: "24.0.6"
+  kubernetes:
+    kubelet:
+      max_pods: 110

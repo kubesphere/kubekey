@@ -1,7 +1,7 @@
 ntp:
   servers: >-
     {{- with .cloud_config.ntp.servers }}
-    {{ . | toJson }}
+    {{ . }}
     {{- else }}
     [ "cn.pool.ntp.org" ]
     {{- end }}

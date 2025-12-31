@@ -6,7 +6,7 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.23.3
+GO_VERSION ?= 1.25.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 GOARCH ?= $(shell go env GOARCH)
 GOOS ?= $(shell go env GOOS)

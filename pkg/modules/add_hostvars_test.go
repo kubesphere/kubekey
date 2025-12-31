@@ -78,12 +78,12 @@ vars:
 			name: "string var value",
 			opt: ExecOptions{
 				Host:     "node1",
-				Variable: newTestVariable([]string{"node1"}, map[string]any{"a": "b"}),
+				Variable: newTestVariable([]string{"node1"}, map[string]any{"b": map[string]any{"c": "d"}}),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts: node1
 vars:
-  a: "{{ .a }}"		
+  a: "{{ .b | toJson }}"		
 `),
 				},
 			},
