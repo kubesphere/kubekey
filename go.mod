@@ -17,7 +17,7 @@ require (
 	github.com/kubesphere/kubekey/api v0.0.0-00010101000000-000000000000
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
-	github.com/pkg/sftp v1.13.6
+	github.com/pkg/sftp v1.13.10
 	github.com/schollz/progressbar/v3 v3.19.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.9
