@@ -32,9 +32,15 @@ var GetHostnames = func(name []string) GetFunc {
 			return nil, errors.New("variable type error")
 		}
 		var hs []string
+		groupsMap := ConvertGroup(vv.value.Inventory)
+		groupsMapAnyValue := make(map[string]any)
+		for k, v := range groupsMap {
+			groupsMapAnyValue[k] = v
+		}
+		tmpVariablesWithGroups := CombineVariables(Extension2Variables(vv.value.Config.Spec), groupsMapAnyValue)
 		for _, n := range name {
 			// Try to parse hostname using configuration variables as template context
-			if pn, err := tmpl.ParseFunc(Extension2Variables(vv.value.Config.Spec), n, func(b []byte) string { return string(b) }); err == nil {
+			if pn, err := tmpl.ParseFunc(tmpVariablesWithGroups, n, func(b []byte) string { return string(b) }); err == nil {
 				n = pn
 			}
 			// Add direct hostname if it exists in the hosts map
@@ -42,7 +48,7 @@ var GetHostnames = func(name []string) GetFunc {
 				hs = append(hs, n)
 			}
 			// Add all hosts from matching groups
-			for gn, gv := range ConvertGroup(vv.value.Inventory) {
+			for gn, gv := range groupsMap {
 				if gn == n {
 					hs = CombineSlice(hs, gv)
 					break
