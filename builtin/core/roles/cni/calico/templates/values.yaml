@@ -1,0 +1,9 @@
+# calico helm values
+tigeraOperator:
+  registry: {{ .image_registry.quayio_registry }}
+calicoctl:
+  image: {{ .image_registry.dockerio_registry }}/calico/ctl
+installation:
+  registry: {{ .image_registry.dockerio_registry }}
+  calicoNetwork:
+    bgp: Enabled

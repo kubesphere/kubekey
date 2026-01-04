@@ -23,11 +23,17 @@
       /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz
 
 - name: Calico | Generate custom values file for Calico
+  when: .cni.calico.values | empty | not
   copy:
     content: |
       {{ .cni.calico.values }}
-    dest: /etc/kubernetes/cni/calico-values.yaml
+    dest: /etc/kubernetes/cni/calico-custom-values.yaml
+
+- name: Calico | Generate default values file for Calico
+  template:
+    src: values.yaml
+    dest: /etc/kubernetes/cni/calico-default-values.yaml
 
 - name: Calico | Deploy Calico using Helm
   command: |
-    helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz -f /etc/kubernetes/cni/calico-values.yaml
+    helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz -f /etc/kubernetes/cni/calico-default-values.yaml -f /etc/kubernetes/cni/calico-custom-values.yaml 

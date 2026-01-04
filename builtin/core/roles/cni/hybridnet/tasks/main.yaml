@@ -10,9 +10,14 @@
   copy:
     content: |
       {{ .cni.hybridnet.values }}
-    dest: /etc/kubernetes/cni/hybridnet-values.yaml
+    dest: /etc/kubernetes/cni/hybridnet-custom-values.yaml
+
+- name: Hybridnet | Generate default values file for Hybridnet
+  template:
+    src: values.yaml
+    dest: /etc/kubernetes/cni/hybridnet-default-values.yaml
 
 # Reference: https://artifacthub.io/packages/helm/hybridnet/hybridnet
 - name: Hybridnet | Install Hybridnet using Helm
   command: |
-    helm upgrade --install --namespace kube-system hybridnet /etc/kubernetes/cni/hybridnet-{{ .cni.hybridnet_version }}.tgz -f /etc/kubernetes/cni/hybridnet-values.yaml
+    helm upgrade --install --namespace kube-system hybridnet /etc/kubernetes/cni/hybridnet-{{ .cni.hybridnet_version }}.tgz -f /etc/kubernetes/cni/hybridnet-default-values.yaml -f /etc/kubernetes/cni/hybridnet-custom-values.yaml
