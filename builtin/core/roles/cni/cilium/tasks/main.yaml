@@ -10,9 +10,14 @@
   copy:
     content: |
       {{ .cni.cilium.values }}
-    dest: /etc/kubernetes/cni/cilium-values.yaml
+    dest: /etc/kubernetes/cni/cilium-custom-values.yaml
+
+- name: Cilium | Generate default values file for Cilium
+  template:
+    src: values.yaml
+    dest: /etc/kubernetes/cni/cilium-default-values.yaml
 
 # See: https://docs.cilium.io/en/stable/installation/k8s-install-helm/
 - name: Cilium | Deploy cilium with Helm
   command: |
-    helm upgrade --install --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cni.cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-values.yaml
+    helm upgrade --install --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cni.cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-default-values.yaml -f /etc/kubernetes/cni/cilium-custom-values.yaml

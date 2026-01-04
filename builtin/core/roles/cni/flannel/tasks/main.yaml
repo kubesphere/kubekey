@@ -11,8 +11,16 @@
   copy:
     content: |
       {{ .cni.flannel.values }}
-    dest: /etc/kubernetes/cni/flannel-values.yaml
+    dest: /etc/kubernetes/cni/flannel-custom-values.yaml
+
+- name: Flannel | Generate default values file for Flannel
+  template:
+    src: values.yaml
+    dest: /etc/kubernetes/cni/flannel-default-values.yaml
 
 - name: Flannel | Install flannel using Helm
   command: |
-    helm upgrade --install --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel.tgz -f /etc/kubernetes/cni/flannel-values.yaml
+    # Needs manual creation of namespace to avoid Helm error
+    kubectl create ns kube-flannel
+    kubectl label --overwrite ns kube-flannel pod-security.kubernetes.io/enforce=privileged
+    helm upgrade --install --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel.tgz -f /etc/kubernetes/cni/flannel-default-values.yaml -f /etc/kubernetes/cni/flannel-custom-values.yaml

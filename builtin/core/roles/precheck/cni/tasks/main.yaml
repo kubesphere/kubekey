@@ -1,0 +1,20 @@
+- name: CNI | Validate calico version is allowed for the selected Kubernetes version
+  when: .cni.type | eq "calico"
+  assert:
+    that: index .cluster_require.calico_allowed_versions (slice (.cni.calico_version | splitList ".") 0 2 | join ".") | has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")
+    fail_msg: >-
+      The selected Calico version ({{ .cni.calico_version }}) is not allowed for the selected Kubernetes version ({{ .kubernetes.kube_version }}). 
+
+- name: CNI | Validate cilium version is allowed for the selected Kubernetes version
+  when: .cni.type | eq "cilium"
+  assert:
+    that: index .cluster_require.cilium_allowed_versions (slice (.cni.cilium_version | splitList ".") 0 2 | join ".") | has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")
+    fail_msg: >-
+      The selected Cilium version ({{ .cni.cilium_version }}) is not allowed for the selected Kubernetes version ({{ .kubernetes.kube_version }}).
+
+- name: CNI | Validate kubeovn version is allowed for the selected Kubernetes version
+  when: .cni.type | eq "kubeovn"
+  assert:
+    that: index .cluster_require.kubeovn_allowed_versions (slice (.cni.kubeovn_version | splitList ".") 0 2 | join ".") | has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")
+    fail_msg: >-
+      The selected Cilium version ({{ .cni.kubeovn_version }}) is not allowed for the selected Kubernetes version ({{ .kubernetes.kube_version }}).

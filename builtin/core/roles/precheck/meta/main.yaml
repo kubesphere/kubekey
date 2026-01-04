@@ -6,13 +6,13 @@ dependencies:
     tags: ["artifact"]
     when: .inventory_hostname | eq "localhost"
 
-  - role: precheck/kubernetes
-    tags: ["kubernetes"]
-    when: .groups.k8s_cluster | default list | has .inventory_hostname
+  - role: precheck/cri
+    tags: ["cri"]
+    when: .inventory_hostname | eq "localhost"
 
-  - role: precheck/etcd
-    tags: ["etcd"]
-    when: .groups.etcd | default list | has .inventory_hostname
+  - role: precheck/cni
+    tags: ["cni"]
+    when: .inventory_hostname | eq "localhost"
 
   - role: precheck/os
     tags: ["os"]
@@ -22,9 +22,13 @@ dependencies:
     tags: ["network"]
     when: .inventory_hostname | ne "localhost"
 
-  - role: precheck/cri
-    tags: ["cri"]
+  - role: precheck/kubernetes
+    tags: ["kubernetes"]
     when: .groups.k8s_cluster | default list | has .inventory_hostname
+
+  - role: precheck/etcd
+    tags: ["etcd"]
+    when: .groups.etcd | default list | has .inventory_hostname
 
   - role: precheck/nfs
     tags: ["nfs"]
