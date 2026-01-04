@@ -94,7 +94,7 @@ func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
 	for _, play := range pb.Play {
 		// hosts should contain all host's name. hosts should not be empty.
 		var hosts []string
-		if err := e.dealHosts(play.PlayHost, &hosts); err != nil {
+		if err := e.dealHosts(play.PlayHost, play.ExcludeHosts, &hosts); err != nil {
 			klog.V(4).ErrorS(err, "deal hosts error, skip this playbook", "hosts", play.PlayHost)
 
 			continue
@@ -218,14 +218,33 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 }
 
 // dealHosts "hosts" argument in playbook. get hostname from kkprojectv1.PlayHost
-func (e playbookExecutor) dealHosts(host kkprojectv1.PlayHost, i *[]string) error {
+func (e playbookExecutor) dealHosts(host, excludeHosts kkprojectv1.PlayHost, i *[]string) error {
 	ahn, err := e.variable.Get(variable.GetHostnames(host.Hosts))
 	if err != nil {
 		return err
 	}
 
+	var excludeMap = make(map[string]struct{})
+	if len(excludeHosts.Hosts) > 0 {
+		ehn, err := e.variable.Get(variable.GetHostnames(excludeHosts.Hosts))
+		if err != nil {
+			return err
+		}
+		if h, ok := ehn.([]string); ok {
+			for _, excludeHost := range h {
+				excludeMap[excludeHost] = struct{}{}
+			}
+		}
+	}
+
 	if h, ok := ahn.([]string); ok {
-		*i = h
+		var h1 = make([]string, 0)
+		for _, currentHost := range h {
+			if _, ok := excludeMap[currentHost]; !ok {
+				h1 = append(h1, currentHost)
+			}
+		}
+		*i = h1
 	}
 	if len(*i) == 0 { // if hosts is empty skip this playbook
 		return errors.New("hosts is empty")

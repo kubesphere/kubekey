@@ -29,7 +29,8 @@ type Play struct {
 	Taggable         `yaml:",inline"`
 	CollectionSearch `yaml:",inline"`
 
-	PlayHost PlayHost `yaml:"hosts,omitempty"`
+	PlayHost     PlayHost `yaml:"hosts,omitempty"`
+	ExcludeHosts PlayHost `yaml:"exclude_hosts,omitempty"`
 
 	// Facts
 	GatherFacts bool `yaml:"gather_facts,omitempty"`
