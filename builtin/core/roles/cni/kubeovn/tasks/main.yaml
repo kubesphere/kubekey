@@ -7,6 +7,7 @@
       /etc/kubernetes/cni/kubeovn-{{ .cni.kubeovn_version }}.tgz
 
 - name: Kubeovn | Generate Kube-OVN custom values file
+  when: .cni.kubeovn.values | empty | not
   copy:
     content: |
       {{ .cni.kubeovn.values }}
@@ -25,4 +26,4 @@
 
 - name: Kubeovn | Install Kube-OVN using Helm with custom values
   command: |
-    helm upgrade --install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .cni.kubeovn_version }}.tgz -f /etc/kubernetes/cni/kubeovn-default-values.yaml -f /etc/kubernetes/cni/kubeovn-custom-values.yaml
+    helm upgrade --install --namespace kubeovn-system kubeovn /etc/kubernetes/cni/kubeovn-{{ .cni.kubeovn_version }}.tgz -f /etc/kubernetes/cni/kubeovn-default-values.yaml {{ if .cni.kubeovn.values | empty | not }}-f /etc/kubernetes/cni/kubeovn-custom-values.yaml{{ end }}

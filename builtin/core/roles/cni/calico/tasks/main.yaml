@@ -36,4 +36,4 @@
 
 - name: Calico | Deploy Calico using Helm
   command: |
-    helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz -f /etc/kubernetes/cni/calico-default-values.yaml -f /etc/kubernetes/cni/calico-custom-values.yaml 
+    helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz -f /etc/kubernetes/cni/calico-default-values.yaml {{ if .cni.calico.values | empty | not }}-f /etc/kubernetes/cni/calico-custom-values.yaml{{ end }} 
