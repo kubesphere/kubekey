@@ -1,0 +1,67 @@
+# cilium helm values 
+image:
+  repository: {{ .image_registry.quayio_registry }}/cilium/cilium
+certgen:
+  image:
+    repository: {{ .image_registry.quayio_registry }}/cilium/certgen
+hubble:
+  relay:
+    image:
+      repository: {{ .image_registry.quayio_registry }}/cilium/hubble-relay-ci
+  ui:
+    backend:
+      image:
+        repository: {{ .image_registry.quayio_registry }}/cilium/hubble-ui-backend
+    frontend:
+      image:
+        repository: {{ .image_registry.quayio_registry }}/cilium/hubble-ui
+envoy:
+  image:
+    repository: {{ .image_registry.quayio_registry }}/cilium/cilium-envoy
+operator:
+  replicas: 2
+  image:
+    repository: {{ .image_registry.quayio_registry }}/cilium/operator
+nodeinit:
+  image:
+    repository: {{ .image_registry.quayio_registry }}/cilium/startup-script
+preflight:
+  image:
+    repository: {{ .image_registry.quayio_registry }}/cilium/cilium
+clustermesh:
+  apiserver:
+    image:
+      repository: {{ .image_registry.quayio_registry }}/cilium/clustermesh-apiserver-ci
+authentication:
+  mutual:
+    spire:
+      install:
+        initImage:
+          repository: {{ .image_registry.dockerio_registry }}/library/busybox
+      agent:
+        image:
+          repository: {{ .image_registry.ghcrio_registry }}/spiffe/spire-agent
+      server:
+        image:
+          repository: {{ .ghcrio_registry }}/spiffe/spire-server
+ipv4:
+  enabled: {{ .cni.ipv4_support }}
+ipv6:
+  enabled: {{ .cni.ipv6_support }}
+ipam:
+  operator:
+{{- if .cni.ipv4_support }}
+    clusterPoolIPv4PodCIDRList:
+      - {{ .cni.ipv4_pods_cidr }}
+    clusterPoolIPv4MaskSize: {{ .cni.ipv4_mask_size }}
+{{- end }}
+{{- if .cni.ipv6_support }}
+    clusterPoolIPv6PodCIDRList:
+      - {{ .cni.ipv6_pods_cidr }}
+    clusterPoolIPv6MaskSize: {{ .cni.ipv6_mask_size }}
+{{- end }}
+{{- if not (.kubernetes.kube_proxy.enabled | default true) }}
+kubeProxyReplacement: "true"
+k8sServiceHost: {{ .kubernetes.control_plane_endpoint.host }}
+k8sServicePort: {{ .kubernetes.control_plane_endpoint.port }}
+{{- end }}

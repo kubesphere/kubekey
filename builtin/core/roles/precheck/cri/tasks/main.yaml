@@ -1,13 +1,11 @@
 ---
 - name: CRI | Fail if container manager is not docker or containerd
-  run_once: true
   assert:
     that: .cluster_require.require_container_manager | has .cri.container_manager
     fail_msg: >-
       The specified container manager "{{ .cri.container_manager }}" is not supported. Please use one of the following: {{ .cluster_require.require_container_manager | toJson }}.
 
 - name: CRI | Validate minimum required containerd version
-  run_once: true
   when:
     - .cri.containerd_version | empty | not
     - .cri.container_manager | eq "containerd"
