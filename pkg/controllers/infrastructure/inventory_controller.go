@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
@@ -374,7 +374,7 @@ func (r *InventoryReconciler) syncInventoryControlPlaneGroups(ctx context.Contex
 	// sync inventory's control_plane group.
 
 	return r.setProviderID(ctx, scope.Name, kkmachineList,
-		RandomSelector(ctx, getControlPlaneGroupName(), len(machineList.Items)-len(existControlPlaneHosts), scope.Inventory))
+		SelectHostByRole(ctx, getControlPlaneGroupName(), len(machineList.Items)-len(existControlPlaneHosts), scope.Inventory))
 }
 
 // syncInventoryWorkerGroups sync inventory's worker groups from machinedeployment.
@@ -416,23 +416,37 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 	scope.Inventory.Spec.Groups[getWorkerGroupName()] = group
 
 	return r.setProviderID(ctx, scope.Name, kkmachineList,
-		RandomSelector(ctx, getWorkerGroupName(), len(machineList.Items)-len(existWorkerHosts), scope.Inventory))
+		SelectHostByRole(ctx, getWorkerGroupName(), len(machineList.Items)-len(existWorkerHosts), scope.Inventory))
 }
 
 // setProviderID set providerID to kkmachine from inventory.groups[groupName].
 // if machine already has providerID, skip.
 func (r *InventoryReconciler) setProviderID(ctx context.Context, clusterName string, kkmachineList *capkkinfrav1beta1.KKMachineList, availableHosts []string) error {
 	// kkmachine belong to different inventory's group
+	var m = make(map[int]string)
+	var i = 0
 	for _, host := range availableHosts {
-		for _, kkmachine := range kkmachineList.Items {
-			if kkmachine.Spec.ProviderID != nil {
-				continue
-			}
-			kkmachine.Spec.ProviderID = _const.Host2ProviderID(clusterName, host)
-			if err := r.Update(ctx, &kkmachine); err != nil {
-				return errors.Wrapf(err, "failed to set provider to kkmachine %q", ctrlclient.ObjectKeyFromObject(&kkmachine))
-			}
+		m[i] = host
+		i++
+	}
+
+	hostIndex := 0
+	for i := range kkmachineList.Items {
+		kkmachine := &kkmachineList.Items[i]
+		if kkmachine.Spec.ProviderID != nil {
+			continue
 		}
+
+		if hostIndex >= len(availableHosts) {
+			break
+		}
+
+		host := availableHosts[hostIndex]
+		kkmachine.Spec.ProviderID = _const.Host2ProviderID(clusterName, host)
+		if err := r.Update(ctx, kkmachine); err != nil {
+			return errors.Wrapf(err, "failed to set provider to kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
+		}
+		hostIndex++
 	}
 
 	return nil

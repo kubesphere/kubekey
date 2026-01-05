@@ -19,7 +19,6 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -35,7 +34,7 @@ const (
 const (
 	// KKClusterNodeReachedCondition represents the condition type indicating whether the hosts
 	// defined in the inventory are reachable.
-	KKClusterNodeReachedCondition clusterv1beta1.ConditionType = "NodeReached"
+	KKClusterNodeReachedCondition string = "NodeReached"
 	// KKClusterNodeReachedConditionReasonWaiting indicates that the node reachability check is pending.
 	// This check is triggered when the corresponding inventory host's configuration changes.
 	KKClusterNodeReachedConditionReasonWaiting = "waiting for node status check"
@@ -45,7 +44,7 @@ const (
 
 	// KKClusterKKMachineConditionReady represents the condition type indicating whether the associated inventory
 	// has been successfully marked as ready.
-	KKClusterKKMachineConditionReady clusterv1beta1.ConditionType = "KKClusterMachineReady"
+	KKClusterKKMachineConditionReady string = "KKClusterMachineReady"
 	// KKClusterKKMachineConditionReadyReasonWaiting indicates that the associated inventory is still being synchronized.
 	KKClusterKKMachineConditionReadyReasonWaiting = "waiting for kkmachine sync"
 	// KKMachineKKMachineConditionReasonSyncing indicates that the associated inventory has been successfully synchronized.
@@ -137,7 +136,7 @@ type KKClusterStatus struct {
 
 	// Conditions defines current service state of the KKCluster.
 	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +genclient
@@ -173,11 +172,11 @@ func init() {
 }
 
 // GetConditions returns the observations of the operational state of the KKCluster resource.
-func (k *KKCluster) GetConditions() clusterv1beta1.Conditions {
+func (k *KKCluster) GetConditions() []metav1.Condition {
 	return k.Status.Conditions
 }
 
 // SetConditions sets the underlying service state of the KKCluster to the predescribed clusterv1beta1.Conditions.
-func (k *KKCluster) SetConditions(conditions clusterv1beta1.Conditions) {
+func (k *KKCluster) SetConditions(conditions []metav1.Condition) {
 	k.Status.Conditions = conditions
 }
