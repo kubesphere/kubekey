@@ -22,6 +22,9 @@ cri:
     mirrors: ["https://registry-1.docker.io"]
     insecure_registries: []
     auths: []
+    
+  # skip tls verify when pulling images
+  skip_tls_verify: false
 
   # ========== cri ==========
   # crictl binary
