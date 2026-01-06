@@ -8,13 +8,13 @@ dns:
       {{ .image_registry.dockerio_registry }}
     repository: >-
       kubesphere
-    tag: v1.11.1
+    # tag: v1.11.1
   # NodeLocalDNS image settings
   dns_cache_image: 
     registry: >-
       {{ .image_registry.dockerio_registry }}
     repository: kubesphere/k8s-dns-node-cache
-    tag: 1.24.0
+    # tag: 1.24.0
   # The IP address assigned to the cluster DNS service
   dns_service_ip: >-
     {{ index (.cni.service_cidr | ipInCIDR) 2 }}

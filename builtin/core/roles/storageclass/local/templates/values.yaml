@@ -1,0 +1,15 @@
+localpv:
+  image:
+    # Make sure that registry name end with a '/'.
+    # For example : quay.io/ is a correct value here and quay.io is incorrect
+    registry: "{{ .image_registry.dockerio_registry }}"
+  basePath: {{ .storage_class.local.path }}
+
+helperPod:
+  image:
+    registry: "{{ .image_registry.dockerio_registry }}"
+
+hostpathClass:
+  # If true, sets the openebs-hostpath StorageClass as the default StorageClass
+  isDefaultClass: {{ .storage_class.local.default }}
+  

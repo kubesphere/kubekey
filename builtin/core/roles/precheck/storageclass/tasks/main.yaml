@@ -1,0 +1,8 @@
+- name: StorageClass | Fail if localpv provisioner version is unsupported
+  when: .storage_class.nfs.enabled
+  assert:
+    that:
+      - .storage_class.localpv_provisioner_version | empty | not
+      - .storage_class.localpv_provisioner_version | semverCompare ">=4.0.0"
+    fail_msg: >-
+      The specified localpv_provisioner_version "{{ .storage_class.localpv_provisioner_version }}" is not supported. Please use version 4.1.0 or newer.

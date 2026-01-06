@@ -7,7 +7,7 @@ certgen:
 hubble:
   relay:
     image:
-      repository: {{ .image_registry.quayio_registry }}/cilium/hubble-relay-ci
+      repository: {{ .image_registry.quayio_registry }}/cilium/hubble-relay
   ui:
     backend:
       image:
@@ -28,10 +28,13 @@ nodeinit:
 preflight:
   image:
     repository: {{ .image_registry.quayio_registry }}/cilium/cilium
+  envoy:
+    image:
+      repository: {{ .image_registry.quayio_registry }}/cilium/cilium-envoy
 clustermesh:
   apiserver:
     image:
-      repository: {{ .image_registry.quayio_registry }}/cilium/clustermesh-apiserver-ci
+      repository: {{ .image_registry.quayio_registry }}/cilium/clustermesh-apiserver
 authentication:
   mutual:
     spire:

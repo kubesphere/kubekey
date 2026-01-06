@@ -72,6 +72,6 @@
     - kube_control_plane|random
   roles:
     - cni
-    - storage-class
+    - storageclass
 
 - import_playbook: hook/post_install.yaml

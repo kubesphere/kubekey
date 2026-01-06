@@ -4,7 +4,6 @@ etcd:
   # - external: Use an external etcd cluster.
   # - internal: Deploy etcd as static Pods within the cluster.
   deployment_type: external
-  etcd_version: v3.5.11
   image: 
     registry: >-
       {{ .image_registry.dockerio_registry }}

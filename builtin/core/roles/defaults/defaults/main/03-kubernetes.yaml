@@ -2,11 +2,6 @@ kubernetes:
   # Name of the cluster to be installed
   cluster_name: kubekey
 
-  # Kubernetes version to deploy
-  kube_version: v1.33.1
-  # helm binary
-  helm_version: v3.18.5
-
   # Image repository for built-in Kubernetes images
   image_repository: >- 
     {{ .image_registry.dockerio_registry }}/kubesphere

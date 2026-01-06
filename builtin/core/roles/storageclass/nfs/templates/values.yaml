@@ -1,0 +1,12 @@
+image:
+  repository: {{ .image_registry.k8sio_registry }}/sig-storage/nfs-subdir-external-provisioner
+
+nfs:
+  server: {{ .storage_class.nfs.server }}
+  path: {{ .storage_class.nfs.path }}
+
+# For creating the StorageClass automatically:
+storageClass:
+  # Set StorageClass as the default StorageClass
+  # Ignored if storageClass.create is false
+  defaultClass: {{ .storage_class.local.default }}
