@@ -31,8 +31,10 @@
 - hosts:
     - etcd
   roles:
-    - role: uninstall/etcd
-      when: .delete.etcd
+    - role: etcd/scaling_down
+      when:
+        - .delete.etcd
+        - .etcd.deployment_type | eq "external"
 
 - hosts:
    - image_registry

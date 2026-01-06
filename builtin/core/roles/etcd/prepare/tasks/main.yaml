@@ -6,31 +6,39 @@
     fail_msg: >-
       etcd service is installed but not running
 
-- name: Prepare | Set etcd node parameters
+- name: Prepare | Gather etcd node state and membership
   block:
-    - name: Prepare | Identify nodes with installed or missing etcd
+    - name: Prepare | Detect installed, to-install, and to-remove etcd nodes
       run_once: true
       add_hostvars:
         hosts: etcd
         vars:
           installed_etcd: >-
-            {{- $needInstalled := list -}}
+            {{- $installed := list -}}
             {{- range .groups.etcd -}}
-              {{- if (index $.hostvars . "etcd_install_LoadState" "stdout") | eq "loaded" -}}
-                {{- $needInstalled = append $needInstalled . -}}
+              {{- if and ((index $.hostvars . "etcd_install_LoadState" "stdout") | eq "loaded") ($.delete_nodes | default list | has . | not) -}}
+                {{- $installed = append $installed . -}}
               {{- end -}}
             {{- end -}}
-            {{ $needInstalled | first | default "" }}
+            {{ $installed | first | default "" }}
           need_installed_etcd: >-
             {{- $needInstalled := list -}}
             {{- range .groups.etcd -}}
-              {{- if (index $.hostvars . "etcd_install_LoadState" "stdout") | eq "not-found" -}}
+              {{- if and ((index $.hostvars . "etcd_install_LoadState" "stdout") | eq "not-found") ($.delete_nodes | default list | has . | not) -}}
                 {{- $needInstalled = append $needInstalled . -}}
               {{- end -}}
             {{- end -}}
             {{ $needInstalled | toJson }}
+          need_uninstall_etcd: >-
+            {{- $needUnInstalled := list -}}
+            {{- range .groups.etcd -}}
+              {{- if $.delete_nodes | default list | has . -}}
+                {{- $needUnInstalled = append $needUnInstalled . -}}
+              {{- end -}}
+            {{- end -}}
+            {{ $needUnInstalled | toJson }}            
 
-- name: Prepare | Check installed etcd version
+- name: Prepare | Validate installed etcd version
   when: .etcd_install_LoadState.stdout | eq "loaded"
   block:
     - name: Prepare | Ensure target etcd version is not lower than installed version
@@ -40,29 +48,32 @@
         fail_msg: >-
           Installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }} is lower than target etcd version: {{ .etcd.etcd_version }}
 
-- name: Prepare | Synchronize etcd package to node if new install or upgrade
-  when:
-    - or (.etcd_install_version.error | empty | not) (.etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version")))
+- name: Prepare | Distribute etcd package for install or upgrade
+  when: >-
+    or 
+      (.etcd_install_version.error | empty | not)
+      (.etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version")))
   block:
-    - name: Prepare | Copy etcd binary package to remote node
+    - name: Prepare | Copy etcd binary package to node
       copy:
         src: >-
           {{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .binary_type }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
         dest: >-
           {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz
-    - name: Prepare | Extract etcd binary package to /usr/local/bin/
+    - name: Prepare | Extract etcd binaries to /usr/local/bin/
       command: |
         tar --strip-components=1 -C /usr/local/bin/ -xvf {{ .tmp_dir }}/etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}.tar.gz \
           --wildcards 'etcd-{{ .etcd.etcd_version }}-linux-{{ .binary_type }}/etcd*'
 
-- name: Prepare | Synchronize certificates to node for new install or expansion
+- name: Prepare | Synchronize certificates and etcd.env when changed
   when: >-
     or
-      (.etcd_install_version.error | empty | not)
+      (.etcd_install_LoadState.stdout | eq "not-found")
       (and
         (.installed_etcd | empty | not)
         (.need_installed_etcd | fromJson | empty | not)
       )
+      (.need_uninstall_etcd | fromJson | empty | not)
   block:
     - name: Prepare | Copy CA certificate to etcd node
       copy:
@@ -79,3 +90,7 @@
         src: >-
           {{ .etcd.key_file }}
         dest: /etc/ssl/etcd/ssl/server.key
+    - name: Prepare | Render /etc/etcd.env configuration file
+      template:
+        src: etcd.env
+        dest: /etc/etcd.env

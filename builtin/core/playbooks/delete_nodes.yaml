@@ -9,12 +9,18 @@
   gather_facts: true
   roles:
     - defaults
-    - precheck
+
+- hosts:
+    - etcd
+  roles:
+    - role: etcd
+      when: 
+        - .delete.etcd
+        - .etcd.deployment_type | eq "external"
 
 - hosts:
     - kube_control_plane
-  gather_facts: true
-  tasks:
+  pre_tasks:
     - name: DeleteNode | Ensure at least one control plane node remains in the cluster
       run_once: true
       command: |
@@ -28,6 +34,86 @@
         echo "At least one control plane node must be retained in the cluster." >&2
         exit 1
         {{- end }}
+  tasks:
+    - name: DeleteNode | Update etcd certificate for kube_control_plane
+      when: 
+        - .delete.etcd
+        - .etcd.deployment_type | eq "external"
+      block:
+        - name: DeleteNode | Check if should update apiserver certificates
+          run_once: true
+          add_hostvars:
+            hosts: kube_control_plane
+            vars:
+              need_uninstall_etcd: >-
+                {{- $needUnInstalled := list -}}
+                {{- range .groups.etcd -}}
+                  {{- if $.delete_nodes | default list | has . -}}
+                    {{- $needUnInstalled = append $needUnInstalled . -}}
+                  {{- end -}}
+                {{- end -}}
+                {{ $needUnInstalled | toJson }}  
+        - name: DeleteNode | Update apiserver etcd certificates
+          when:
+            - .need_uninstall_etcd | fromJson | empty | not
+          block:
+            - name: DeleteNode | Copy etcd CA certificate to control plane node
+              copy:
+                src: >-
+                  {{ .etcd.ca_file }}
+                dest: /etc/kubernetes/pki/etcd/ca.crt
+            - name: DeleteNode | Copy etcd client certificate to control plane node
+              copy:
+                src: >-
+                  {{ .etcd.cert_file }}
+                dest: /etc/kubernetes/pki/etcd/client.crt
+            - name: DeleteNode | Copy etcd client key to control plane node
+              copy:
+                src: >-
+                  {{ .etcd.key_file }}
+                dest: /etc/kubernetes/pki/etcd/client.key
+            - name: DeleteNode | update ks-apiserver
+              command: |
+                {{- $endpoints := list -}}
+                {{- range .groups.etcd | default list -}}
+                  {{- if $.need_uninstall_etcd | fromJson | has . | not -}}
+                    {{- $endpoints = append $endpoints (printf "https://%s:2379" (index $.hostvars . "internal_ipv4")) -}}
+                  {{- end -}}
+                {{- end -}}
+                ETCD_ENDPOINTS="{{ join "," $endpoints }}"
+
+                if ! grep -q 'ClusterConfiguration' /etc/kubernetes/kubeadm-config.yaml 2>/dev/null; then
+                  kubectl get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
+                fi
+
+                awk -v ep="$ETCD_ENDPOINTS" '
+                  BEGIN {
+                    n = split(ep, arr, ",")
+                    for (i = 1; i <= n; i++) {
+                      print "      - " arr[i]
+                    }
+                  }
+                ' > /etc/kubernetes/kubeadm_new_endpoints.yaml
+                # delete old endpoint
+                sed -i '/^[[:space:]]*endpoints:/{
+                  :loop
+                  N
+                  s/\n[[:space:]]\+-.*//; t loop
+                  s/\n[[:space:]]*\n/\n/g
+                  P
+                  D
+                }' /etc/kubernetes/kubeadm-config.yaml
+                # insert new endpoint
+                sed -i "/^[[:space:]]*endpoints:/r /etc/kubernetes/kubeadm_new_endpoints.yaml" /etc/kubernetes/kubeadm-config.yaml        
+                rm /etc/kubernetes/kubeadm_new_endpoints.yaml
+                # update kubeadm-config
+                {{- if .kubernetes.kube_version | semverCompare "<v1.27.0" }}
+                kubeadm config upload from-file --config /etc/kubernetes/kubeadm-config.yaml
+                {{- else }}
+                kubeadm init phase upload-config kubeadm --config /etc/kubernetes/kubeadm-config.yaml
+                {{- end }}
+                # regenerate kube-apiserver
+                kubeadm init phase control-plane apiserver --config /etc/kubernetes/kubeadm-config.yaml
 
 - hosts: 
     - k8s_cluster
@@ -65,14 +151,6 @@
         sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
       when: 
         - .delete.dns
-        - .delete_nodes | default list | has .inventory_hostname
-
-- hosts:
-    - etcd
-  roles:
-    - role: uninstall/etcd
-      when: 
-        - .delete.etcd
         - .delete_nodes | default list | has .inventory_hostname
 
 - hosts:

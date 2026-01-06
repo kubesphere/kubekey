@@ -1,0 +1,4 @@
+---
+- include_tasks: install.yaml
+
+- include_tasks: backup_service.yaml
