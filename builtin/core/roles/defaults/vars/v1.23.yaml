@@ -49,7 +49,7 @@ cni:
   # cni_plugins_version: v1.1.1
   # ========== cni: calico ==========
   # calicoctl binary
-  calico_version: v3.25.2
+  calico_version: v3.24.5
   # ========== cni: cilium ==========
   # cilium helm
   cilium_version: 1.14.19
