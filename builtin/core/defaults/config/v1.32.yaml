@@ -2,105 +2,144 @@ apiVersion: kubekey.kubesphere.io/v1
 kind: Config
 spec:
   download:
-    # if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
+    # If set to "cn", online downloads will prioritize domestic sources when available.
     zone: ""
   kubernetes:
+    # Specify the Kubernetes version to be installed.
     kube_version: {{ .kube_version }}
-    # helm binary
+    # Specify the Helm version to be installed.
     helm_version: v3.14.3
     control_plane_endpoint:
+      # Supported HA types: local, kube_vip, haproxy.
+      # If set to local, configure local hostname resolution as follows:
+      #   - Control-plane nodes: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+      #   - Worker nodes: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+      type: local
+      # Kube-vip image tag used for static pod deployment (when type is kube_vip).
       kube_vip:
         image:
           tag: v0.7.2
+      # HAProxy image tag used for static pod deployment (when type is haproxy).
       haproxy:
         image:
           tag: 2.9.6-alpine
   etcd:
-    # etcd binary
+    # Specify the etcd version to be installed.
     etcd_version: v3.5.11
   image_registry:
-    # ========== image registry ==========
-    # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
-    keepalived_version: 2.0.20
-    # ========== image registry: harbor ==========
-    # harbor image tag
-    harbor_version: v2.10.2
+    # Image registry type to install. Supported: harbor, docker-registry.
+    # Leave empty to skip installation (assuming an existing registry is available).
+    type: ""
+    # Specify a VIP for image registry high availability. If set, enables HA.
+    ha_vip: ""
+    # ========== Image Registry - High Availability ==========
+    # keepalived image tag for load balancing when multiple registry nodes exist.
+    # keepalived_version: 2.0.20
+    # ========== Image Registry - Harbor ==========
+    # Harbor image tag (only valid if type is harbor).
+    #harbor_version: v2.10.2
     # docker-compose binary
-    dockercompose_version: v2.20.3
-    # ========== image registry: docker-registry ==========
-    # docker-registry image tag
-    docker_registry_version: 2.8.3
+    #dockercompose_version: v2.20.3
+    # ========== Image Registry - Docker Registry ==========
+    # Docker Registry image tag (only valid if type is docker-registry).
+    # docker_registry_version: 2.8.3
   cri:
-    # support: containerd,docker
+    # Container runtime type. Supported: containerd, docker.
     container_manager: containerd
+    # Tag for the sandbox (pause) image used by pods.
     sandbox_image:
       tag: "3.8"
-    # ========== cri ==========
-    # crictl binary
+    # ========== CRI Tool ==========
+    # crictl binary version.
     crictl_version: v1.32.0
-    # ========== cri: docker ==========
-    # docker binary
-    docker_version: 24.0.7
-    # cridockerd. Required when kube_version is greater than 1.24
-    cridockerd_version: v0.3.1
-    # ========== cri: containerd ==========
-    # containerd binary
-    containerd_version: v1.7.6
-    # runc binary
-    runc_version: v1.1.7
+    # ========== Docker Runtime ==========
+    # Docker binary version.
+    #docker_version: 25.0.5
+    # cridockerd version (required for Kubernetes 1.24+).
+    # cridockerd_version: v0.3.21
+    # ========== Containerd Runtime ==========
+    # containerd binary version (active only when container_manager is containerd).
+    # containerd_version: v1.7.13
+    # runc binary version (active only when container_manager is containerd).
+    # runc_version: v1.1.12
   cni:
+    # CNI plugin type (equivalent to kube_network_plugin). Supported: calico, cilium, flannel, hybridnet, kubeovn, other
+    # kube_network_plugin: calico
+    type: calico
+    # ========== Multus ==========
+    # Configuration for Multus plugin for multiple pod network interfaces.
     multus:
-      image:
-        tag: v4.3.0
-    # ========== cni ==========
-    # cni_plugins binary (optional)
+      enabled: false
+      # Image tag for Multus (configure if needed).
+      #image:
+      #  tag: v4.3.0
+    # ========== CNI Tools ==========
+    # Version for cni-plugins (optional).
     # cni_plugins_version: v1.2.0
-    # ========== cni: calico ==========
-    # calicoctl binary
-    calico_version: v3.28.2
-    # ========== cni: cilium ==========
-    # cilium helm
-    cilium_version: 1.18.3
-    # ========== cni: kubeovn ==========
-    # kubeovn helm
-    kubeovn_version: 1.13.0
-    # ========== cni: hybridnet ==========
-    # hybridnet helm
-    hybridnet_version: 0.6.8
+    # ========== Calico CNI ==========
+    # Calico version (effective only when type is calico).
+    calico_version: v3.31.3
+    # ========== Cilium CNI ==========
+    # Cilium version (effective only when type is cilium).
+    #cilium_version: 1.18.5
+    # ========== Flannel CNI ==========
+    # Flannel version (effective only when type is flannel).
+    #flannel_version: v0.27.4
+    # ========== Kube-OVN CNI ==========
+    # Kube-OVN version (effective only when type is kubeovn).
+    #kubeovn_version: v1.15.0
+    # ========== Hybridnet CNI ==========
+    # Hybridnet version (effective only when type is hybridnet).
+    #hybridnet_version: 0.6.8
   storage_class:
-    # ========== storageclass ==========
-    # ========== storageclass: local ==========
+    # ========== Storage Class Configuration ==========
+    # ========== Local/OpenEBS Storage Class ==========
+    # Local storage class settings.
     local:
+      enabled: true   # Enable the local storage class.
+      default: true   # Set as the default storage class.
+      # provisioner-localpv image tag.
       provisioner_image:
         tag: 4.2.0
+      # linux-utils image tag.
       linux_utils_image:
         tag: 4.2.0
-    # ========== storageclass: nfs ==========
-    # nfs provisioner helm version
-    nfs_provisioner_version: 4.2.0
+    # ========== NFS Storage Class ==========
+    nfs:
+      enabled: false  # Enable the NFS storage class.
+    # nfs-provisioner Helm chart version.
+    #nfs_provisioner_version: 4.2.0
   dns:
+    # CoreDNS image tag.
     dns_image:
       tag: v1.11.1
+    # NodeLocalDNS image tag.
     dns_cache_image:
       tag: 1.24.0
   image_manifests:
-    - docker.io/calico/apiserver:v3.28.2
-    - docker.io/calico/cni:v3.28.2
-    - docker.io/calico/ctl:v3.28.2
-    - docker.io/calico/csi:v3.28.2
-    - docker.io/calico/kube-controllers:v3.28.2
-    - docker.io/calico/node-driver-registrar:v3.28.2
-    - docker.io/calico/node:v3.28.2
-    - docker.io/calico/pod2daemon-flexvol:v3.28.2
-    - docker.io/calico/typha:v3.28.2
+    # calico for v3.31.3
+    - quay.io/tigera/operator:v1.40.3
+    - docker.io/calico/apiserver:v3.31.3
+    - docker.io/calico/cni:v3.31.3
+    - docker.io/calico/ctl:v3.31.3
+    - docker.io/calico/csi:v3.31.3
+    - docker.io/calico/kube-controllers:v3.31.3
+    - docker.io/calico/node-driver-registrar:v3.31.3
+    - docker.io/calico/node:v3.31.3
+    - docker.io/calico/pod2daemon-flexvol:v3.31.3
+    - docker.io/calico/typha:v3.31.3
+    # dns
     - docker.io/kubesphere/coredns:v1.11.1
     - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
+    # kubernetes
     - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
     - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
     - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
     - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
     - docker.io/kubesphere/pause:3.8
+    # openebs/local
     - docker.io/openebs/linux-utils:4.2.0
     - docker.io/openebs/provisioner-localpv:4.2.0
-    - quay.io/tigera/operator:v1.34.5
+    # control_plane_endpoint ha
     - docker.io/library/haproxy:2.9.6-alpine
+    - docker.io/plndr/kube-vip:v0.7.2

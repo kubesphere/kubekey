@@ -33,16 +33,14 @@ cri:
   crictl_version: v1.31.0
   # ========== cri: docker ==========
   # docker binary
-  docker_version: 24.0.7
+  docker_version: 25.0.5
   # cridockerd. Required when kube_version is greater than 1.24
-  cridockerd_version: v0.3.1
+  cridockerd_version: v0.3.21
   # ========== cri: containerd ==========
   # containerd binary
-  containerd_version: v1.7.6
+  containerd_version: v1.7.13
   # runc binary
-  runc_version: v1.1.7
-  # skip tls verify when pulling images
-  skip_tls_verify: false
+  runc_version: v1.1.12
 cni:
   multus:
     image:
@@ -52,13 +50,15 @@ cni:
   # cni_plugins_version: v1.2.0
   # ========== cni: calico ==========
   # calicoctl binary
-  calico_version: v3.28.2
+  calico_version: v3.30.5
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.18.3
+  cilium_version: 1.18.5
+  # ========== cni: flannel ==========
+  flannel_version: v0.27.4
   # ========== cni: kubeovn ==========
   # kubeovn helm
-  kubeovn_version: 1.13.0
+  kubeovn_version: v1.15.0
   # ========== cni: hybridnet ==========
   # hybridnet helm
   hybridnet_version: 0.6.8
