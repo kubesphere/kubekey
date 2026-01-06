@@ -98,17 +98,13 @@ spec:
     local:
       enabled: true   # Enable the local storage class.
       default: true   # Set as the default storage class.
-      # provisioner-localpv image tag.
-      provisioner_image:
-        tag: 4.2.0
-      # linux-utils image tag.
-      linux_utils_image:
-        tag: 4.2.0
+    # openebs/dynamic-localpv-provisioner helm chart version.
+    localpv_provisioner_version: 4.4.0
     # ========== NFS Storage Class ==========
     nfs:
       enabled: false  # Enable the NFS storage class.
     # nfs-provisioner Helm chart version.
-    #nfs_provisioner_version: 4.3.0
+    #nfs_provisioner_version: 4.0.18
   dns:
     # CoreDNS image tag.
     dns_image:
@@ -137,9 +133,9 @@ spec:
     - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
     - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
     - docker.io/kubesphere/pause:3.9
-    # openebs/local
-    - docker.io/openebs/linux-utils:4.2.0
-    - docker.io/openebs/provisioner-localpv:4.2.0
+    # openebs/local for 4.4.0
+    - docker.io/openebs/linux-utils:4.3.0
+    - docker.io/openebs/provisioner-localpv:4.3.0
     # control_plane_endpoint ha
     - docker.io/library/haproxy:2.9.6-alpine
     - docker.io/plndr/kube-vip:v0.7.2

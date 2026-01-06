@@ -4,13 +4,13 @@ podCidr: {{ .cni.ipv4_pod_cidr }}
 podCidrv6: {{ .cni.ipv6_pod_cidr }}
 flannel:
   image:
-    repository: {{ .image_registry.dockerio_registry }}/flannel/flannel
+    repository: {{ .image_registry.ghcrio_registry }}/flannel-io/flannel
   image_cni:
-    repository: {{ .image_registry.dockerio_registry }}/flannel/flannel-cni-plugin
+    repository: {{ .image_registry.ghcrio_registry }}/flannel-io/flannel-cni-plugin
   # support "vxlan" and "host-gw"
   #backend: vxlan
 
 netpol:
   enabled: false
   image:
-    repository: {{ .image_registry.dockerio_registry }}/networking/kube-network-policies
+    repository: {{ .image_registry.k8sio_registry }}/networking/kube-network-policies

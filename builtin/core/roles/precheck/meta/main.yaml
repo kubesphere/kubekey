@@ -14,6 +14,10 @@ dependencies:
     tags: ["cni"]
     when: .inventory_hostname | eq "localhost"
 
+  - role: precheck/storageclass
+    tags: ["storageclass"]
+    when: .inventory_hostname | eq "localhost"
+
   - role: precheck/os
     tags: ["os"]
     when: .inventory_hostname | ne "localhost"

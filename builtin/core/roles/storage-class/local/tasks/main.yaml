@@ -1,9 +1,0 @@
----
-- name: Local | Generate the local storage manifest
-  template:
-    src: local-volume.yaml
-    dest: /etc/kubernetes/addons/local-volume.yaml
-
-- name: Local | Deploy the local storage manifest
-  command: |
-    kubectl apply -f /etc/kubernetes/addons/local-volume.yaml

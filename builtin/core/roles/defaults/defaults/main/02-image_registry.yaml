@@ -68,12 +68,10 @@ image_registry:
     ghcr.io
     {{- end -}}
 
-  # ========== image registry ==========
-  # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
-  keepalived_version: 2.0.20
-  # ========== image registry: harbor ==========
-  # harbor image tag
-  harbor_version: v2.10.2
-  # ========== image registry: docker-registry ==========
-  # docker-registry image tag
-  docker_registry_version: 2.8.3
+  # Registry endpoint for images from ghcr.io
+  k8sio_registry: >-
+    {{- if .image_registry.auth.registry | empty | not -}}
+    {{ .image_registry.auth.registry }}
+    {{- else -}}
+    registry.k8s.io
+    {{- end -}}

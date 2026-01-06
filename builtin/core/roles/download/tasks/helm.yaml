@@ -89,13 +89,31 @@
       curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.hybridnet }}
     fi
 
+- name: Helm | Ensure the localpv Provisioner binary is available
+  when: 
+    - .storage_class.localpv_provisioner_version | empty | not
+    - .storage_class.local.enabled
+  command: |
+    artifact_name={{ .download.artifact_url.localpv_provisioner | splitList "/" | last }}
+    artifact_path={{ .binary_dir }}/storageclass
+    if [ ! -f $artifact_path/$artifact_name ]; then
+      url={{ .download.artifact_url.localpv_provisioner | trim }}
+      if [ "$url" = "" ] ; then
+        echo "url for localpv_provisioner not set"
+        exit 0
+      fi
+      mkdir -p $artifact_path
+      # Download the localpv Provisioner binary if it does not exist
+      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.localpv_provisioner }}
+    fi
+
 - name: Helm | Ensure the NFS Provisioner binary is available
   when: 
     - .storage_class.nfs_provisioner_version | empty | not
     - .storage_class.nfs.enabled
   command: |
     artifact_name={{ .download.artifact_url.nfs_provisioner | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/sc
+    artifact_path={{ .binary_dir }}/storageclass
     if [ ! -f $artifact_path/$artifact_name ]; then
       url={{ .download.artifact_url.nfs_provisioner | trim }}
       if [ "$url" = "" ] ; then

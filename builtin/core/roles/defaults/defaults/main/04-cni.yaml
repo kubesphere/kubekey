@@ -22,20 +22,5 @@ cni:
       registry: >-
         {{ .image_registry.ghcrio_registry }}
       repository: k8snetworkplumbingwg/multus-cni
-      tag: v4.3.0
+      # tag: v4.3.0
 
-  # ========== cni ==========
-  # cni_plugins binary
-  # cni_plugins_version: v1.2.0
-  # ========== cni: calico ==========
-  # calicoctl binary
-  calico_version: v3.28.2
-  # ========== cni: cilium ==========
-  # cilium helm
-  cilium_version: 1.18.3
-  # ========== cni: kubeovn ==========
-  # kubeovn helm
-  kubeovn_version: 1.13.0
-  # ========== cni: hybridnet ==========
-  # hybridnet helm
-  hybridnet_version: 0.6.8

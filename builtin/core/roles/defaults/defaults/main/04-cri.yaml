@@ -8,7 +8,7 @@ cri:
     registry: >-
       {{ .image_registry.dockerio_registry }}
     repository: kubesphere/pause
-    tag: "3.9"
+    # tag: "3.9"
   # CRI socket endpoint for the selected container runtime
   cri_socket: >-
     {{- if .cri.container_manager | eq "containerd" -}}
@@ -25,19 +25,3 @@ cri:
     
   # skip tls verify when pulling images
   skip_tls_verify: false
-
-  # ========== cri ==========
-  # crictl binary
-  crictl_version: v1.33.0
-  # ========== cri: docker ==========
-  # docker binary
-  docker_version: 24.0.7
-  # docker-compose binary
-  dockercompose_version: v2.20.3
-  # cridockerd. Required when kube_version is greater than 1.24
-  cridockerd_version: v0.3.1
-  # ========== cri: containerd ==========
-  # containerd binary
-  containerd_version: v1.7.6
-  # runc binary
-  runc_version: v1.1.7
