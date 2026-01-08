@@ -200,7 +200,7 @@ func NewKubeBinary(name, arch, version, prePath string, getCmd func(path, url st
 		component.BaseDir = filepath.Join(prePath, component.Type, component.ID, component.Version, component.Arch)
 	case compose:
 		component.Type = REGISTRY
-		component.FileName = "docker-compose-linux-x86_64"
+		component.FileName = fmt.Sprintf("docker-compose-linux-%s", util.ArchAlias(arch))
 		component.Url = fmt.Sprintf("https://github.com/docker/compose/releases/download/%s/docker-compose-linux-%s", version, util.ArchAlias(arch))
 		if component.Zone == "cn" {
 			component.Url = fmt.Sprintf("https://kubernetes-release.pek3b.qingstor.com/docker/compose/releases/download/%s/docker-compose-linux-%s", version, util.ArchAlias(arch))

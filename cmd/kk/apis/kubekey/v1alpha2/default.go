@@ -59,7 +59,7 @@ const (
 	DefaultHelmVersion             = "v3.18.5"
 	DefaultDockerComposeVersion    = "v2.26.1"
 	DefaultRegistryVersion         = "2"
-	DefaultHarborVersion           = "v2.10.1"
+	DefaultHarborVersion           = "v2.10.2"
 	DefaultMaxPods                 = 110
 	DefaultPodPidsLimit            = 10000
 	DefaultNodeCidrMaskSize        = 24
