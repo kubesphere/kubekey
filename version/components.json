@@ -1428,7 +1428,11 @@
     "harbor": {
         "amd64": {
             "v2.5.3": "c536eaf5dcb35a1f2a5b1c4278380bde254a288700aa2ba59c1fd464bf2fcbf1",
-            "v2.10.1": "aed3fe341e563e11286fb243b2bfe4162d0c5816d548df049df07fabceea038f"
+            "v2.10.1": "aed3fe341e563e11286fb243b2bfe4162d0c5816d548df049df07fabceea038f",
+            "v2.10.2": "908cf3ea4a18b3ea286a61be4cebc3ed6e96bc1e4a3052043e8f8a39564c7f3b"
+        },
+        "arm64": {
+            "v2.10.2": "e42206b3834b2f187e6c3f1c2b4348d143680f26c23faf6e6515e43b12353a0d"
         }
     },
     "calicoctl": {
