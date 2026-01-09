@@ -32,30 +32,42 @@
           when: .image_registry.type | eq "harbor"
           command: |
             # Traverse first-level subdirectories in images_dir, skipping 'blobs'
-            
-            for registry_dir in {{ .binary_dir }}/images/*; do
-              if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
-                continue
+            registry_url="{{ .image_registry.auth.registry }}"
+            host_part=$(echo "$registry_url" | cut -d'/' -f1)
+            base_project=$(echo "$registry_url" | cut -s -d'/' -f2-)
+            if [ -n "$base_project" ]; then
+              resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://${host_part}/api/v2.0/projects/${base_project}")
+              if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
+                curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
+                  -H "Content-Type: application/json" \
+                  "https://${host_part}/api/v2.0/projects" \
+                  -d "{ \"project_name\": \"${base_project}\", \"public\": true}"
               fi
-
-              # Traverse second-level subdirectories in each registry_dir
-              for project_dir in "$registry_dir"/*; do
-                if [ ! -d "$project_dir" ]; then
+            else
+              for registry_dir in {{ .binary_dir }}/images/*; do
+                if [ ! -d "$registry_dir" ] || [ "$(basename "$registry_dir")" = "blobs" ]; then
                   continue
                 fi
-
-                project=$(basename "$project_dir")
-
-                # Check if the Harbor project exists; create it if it does not
-                resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://{{ .image_registry.auth.registry }}/api/v2.0/projects/${project}")
-                if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
-                  curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
-                    -H "Content-Type: application/json" \
-                    "https://{{ .image_registry.auth.registry }}/api/v2.0/projects" \
-                    -d "{ \"project_name\": \"${project}\", \"public\": true}"
-                fi
+  
+                # Traverse second-level subdirectories in each registry_dir
+                for project_dir in "$registry_dir"/*; do
+                  if [ ! -d "$project_dir" ]; then
+                    continue
+                  fi
+  
+                  project=$(basename "$project_dir")
+  
+                  # Check if the Harbor project exists; create it if it does not
+                  resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://${host_part}/api/v2.0/projects/${project}")
+                  if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
+                    curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
+                      -H "Content-Type: application/json" \
+                      "https://${host_part}/api/v2.0/projects" \
+                      -d "{ \"project_name\": \"${project}\", \"public\": true}"
+                  fi
+                done
               done
-            done
+            fi
         - name: PushImage | Push images package to image registry
           image:
             push:
