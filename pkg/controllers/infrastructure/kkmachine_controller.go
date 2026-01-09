@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
@@ -32,6 +33,7 @@ import (
 	"github.com/kubesphere/kubekey/v4/cmd/controller-manager/app/options"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/controllers/util"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 // KKMachineReconciler reconciles a KKMachine object.
@@ -138,7 +140,7 @@ func (r *KKMachineReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	if err := util.GetOwnerFromObject(ctx, r.Client, kkmachine, machine); err != nil {
 		return reconcile.Result{}, err
 	}
-	kkmachine.Spec.Version = machine.Spec.Version
+	kkmachine.Spec.Version = ptr.To(machine.Spec.Version)
 
 	if kkmachine.Spec.ProviderID == nil {
 		klog.InfoS("kkmachine has not providerID, waiting for inventory to set", "kkmachine", kkmachine.Name)
@@ -361,22 +363,27 @@ func (r *KKMachineReconciler) createDeleteNodePlaybook(ctx context.Context, scop
 // getConfig get default config for kkmachine.
 func (r *KKMachineReconciler) getConfig(scope *clusterScope, kkmachine *capkkinfrav1beta1.KKMachine) (*kkcorev1.Config, error) {
 	var config = &kkcorev1.Config{}
-	if kkmachine.Spec.Config.Raw != nil {
-		config = &kkcorev1.Config{
-			Spec: kkmachine.Spec.Config,
-		}
-	} else {
-		if kkmachine.Spec.Version == nil {
-			return config, errors.New("kubeVersion or config is empty")
-		}
-		data, err := kubeVersionConfigs.ReadFile(fmt.Sprintf("versions/%s.yaml", *kkmachine.Spec.Version))
-		if err != nil {
-			return config, err
-		}
-		if err := yaml.Unmarshal(data, config); err != nil {
-			return config, errors.Wrap(err, "failed to unmarshal config file")
-		}
-		klog.InfoS("get default config", "config", config)
+
+	rawConfig := variable.Extension2Variables(kkmachine.Spec.Config)
+	if kkmachine.Spec.Version == nil {
+		return config, errors.New("kubeVersion or config is empty")
+	}
+	data, err := kubeVersionConfigs.ReadFile(fmt.Sprintf("versions/%s.yaml", *kkmachine.Spec.Version))
+	if err != nil {
+		return config, err
+	}
+	if err = yaml.Unmarshal(data, config); err != nil {
+		return config, errors.Wrap(err, "failed to unmarshal config file")
+	}
+
+	combinedValue := variable.CombineVariables(config.Value(), rawConfig)
+	cbb, _ := json.Marshal(combinedValue)
+
+	config.Spec = runtime.RawExtension{
+		Raw: cbb,
+		Object: &unstructured.Unstructured{
+			Object: combinedValue,
+		},
 	}
 
 	if err := unstructured.SetNestedField(config.Value(), _const.CAPKKWorkdir, _const.Workdir); err != nil {
@@ -394,7 +401,7 @@ func (r *KKMachineReconciler) getConfig(scope *clusterScope, kkmachine *capkkinf
 	if err := unstructured.SetNestedStringSlice(config.Value(), kkmachine.Spec.Roles, "kubernetes", "roles"); err != nil {
 		return config, errors.Wrapf(err, "failed to set %q in config", "kubernetes.roles")
 	}
-	converted, err := runtime.DefaultUnstructuredConverter.ToUnstructured(scope.Cluster.Spec.ClusterNetwork)
+	converted, err := runtime.DefaultUnstructuredConverter.ToUnstructured(scope.Cluster.Spec.ClusterNetwork.DeepCopy())
 	if err != nil {
 		return config, errors.Wrap(err, "failed to convert scope.Cluster.Spec.ClusterNetwork")
 	}

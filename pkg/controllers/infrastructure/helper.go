@@ -11,7 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kubeadmv1beta2 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -67,23 +68,19 @@ func newClusterScope(ctx context.Context, client ctrlclient.Client, clusterReq r
 	}
 	// KKCluster
 	if err := client.Get(ctx, ctrlclient.ObjectKey{
-		Namespace: scope.Cluster.Spec.InfrastructureRef.Namespace,
+		Namespace: scope.Cluster.GetNamespace(),
 		Name:      scope.Cluster.Spec.InfrastructureRef.Name,
 	}, scope.KKCluster); err != nil {
 		return scope, errors.Wrapf(err, "failed to get kkcluster with scope %q", scope.String())
 	}
 	// ControlPlane
-	gv, err := schema.ParseGroupVersion(scope.Cluster.Spec.ControlPlaneRef.APIVersion)
-	if err != nil {
-		return scope, errors.Wrapf(err, "failed to get group version with scope %q", scope.String())
-	}
 	scope.ControlPlane.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   gv.Group,
-		Version: gv.Version,
+		Group:   scope.Cluster.Spec.ControlPlaneRef.APIGroup,
+		Version: kubeadmv1beta2.GroupVersion.Version,
 		Kind:    scope.Cluster.Spec.ControlPlaneRef.Kind,
 	})
 	if err := client.Get(ctx, ctrlclient.ObjectKey{
-		Namespace: scope.Cluster.Spec.ControlPlaneRef.Namespace,
+		Namespace: scope.Cluster.GetNamespace(),
 		Name:      scope.Cluster.Spec.ControlPlaneRef.Name,
 	}, scope.ControlPlane); err != nil && !apierrors.IsNotFound(err) {
 		return scope, errors.Wrapf(err, "failed to get control-plane with scope %q", scope.String())
