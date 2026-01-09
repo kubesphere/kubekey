@@ -1,8 +1,16 @@
 diff --git a/Makefile b/Makefile
-index 609c4004f..e53d79833 100644
+index 609c4004f..356e03b84 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -124,6 +124,8 @@ endef
+@@ -94,6 +94,7 @@ BASEIMAGETAG=dev
+ BUILDBASETARGET=trivy-adapter core db jobservice log nginx portal prepare redis registry registryctl exporter
+ IMAGENAMESPACE=goharbor
+ BASEIMAGENAMESPACE=goharbor
++SAVEIMAGENAMESPACE=goharbor
+ # #input true/false only
+ PULL_BASE_FROM_DOCKERHUB=true
+ 
+@@ -124,6 +125,8 @@ endef
  
  # docker parameters
  DOCKERCMD=$(shell which docker)
@@ -11,16 +19,59 @@ index 609c4004f..e53d79833 100644
  DOCKERBUILD=$(DOCKERCMD) build
  DOCKERRMIMAGE=$(DOCKERCMD) rmi
  DOCKERPULL=$(DOCKERCMD) pull
-@@ -248,7 +250,7 @@ DOCKERSAVE_PARA=$(DOCKER_IMAGE_NAME_PREPARE):$(VERSIONTAG) \
+@@ -213,6 +216,30 @@ DOCKERIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db
+ DOCKERIMAGENAME_REGCTL=$(IMAGENAMESPACE)/harbor-registryctl
+ DOCKERIMAGENAME_EXPORTER=$(IMAGENAMESPACE)/harbor-exporter
+ 
++DOCKER_NORMAL_IMAGE_NAME_PREPARE=$(IMAGENAMESPACE)/prepare:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_PORTAL=$(IMAGENAMESPACE)/harbor-portal:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_CORE=$(IMAGENAMESPACE)/harbor-core:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_JOBSERVICE=$(IMAGENAMESPACE)/harbor-jobservice:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_LOG=$(IMAGENAMESPACE)/harbor-log:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_REGCTL=$(IMAGENAMESPACE)/harbor-registryctl:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_EXPORTER=$(IMAGENAMESPACE)/harbor-exporter:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_REDIS_PHOTON=$(IMAGENAMESPACE)/redis-photon:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_NGINX_PHOTON=$(IMAGENAMESPACE)/nginx-photon:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_REGISTRY_PHOTON=$(IMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
++
++DOCKER_SAVE_IMAGE_NAME_PREPARE=$(SAVEIMAGENAMESPACE)/prepare:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_PORTAL=$(SAVEIMAGENAMESPACE)/harbor-portal:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_CORE=$(SAVEIMAGENAMESPACE)/harbor-core:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_JOBSERVICE=$(SAVEIMAGENAMESPACE)/harbor-jobservice:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_LOG=$(SAVEIMAGENAMESPACE)/harbor-log:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_DB=$(SAVEIMAGENAMESPACE)/harbor-db:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_REGCTL=$(SAVEIMAGENAMESPACE)/harbor-registryctl:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_EXPORTER=$(SAVEIMAGENAMESPACE)/harbor-exporter:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_REDIS_PHOTON=$(SAVEIMAGENAMESPACE)/redis-photon:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_NGINX_PHOTON=$(SAVEIMAGENAMESPACE)/nginx-photon:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_REGISTRY_PHOTON=$(SAVEIMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
++
+ # docker-compose files
+ DOCKERCOMPOSEFILEPATH=$(MAKEPATH)
+ DOCKERCOMPOSEFILENAME=docker-compose.yml
+@@ -248,7 +275,19 @@ DOCKERSAVE_PARA=$(DOCKER_IMAGE_NAME_PREPARE):$(VERSIONTAG) \
  		$(IMAGENAMESPACE)/nginx-photon:$(VERSIONTAG) \
  		$(IMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
  
 -PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
++DOCKERSAVETAG_PARA=$(DOCKER_SAVE_IMAGE_NAME_PREPARE) \
++		$(DOCKERSAVEIMAGENAME_PORTAL) \
++		$(DOCKERSAVEIMAGENAME_CORE) \
++		$(DOCKERSAVEIMAGENAME_LOG) \
++		$(DOCKERSAVEIMAGENAME_DB) \
++		$(DOCKERSAVEIMAGENAME_JOBSERVICE) \
++		$(DOCKERSAVEIMAGENAME_REGCTL) \
++		$(DOCKERSAVEIMAGENAME_EXPORTER) \
++		$(DOCKERSAVEIMAGENAME_REDIS_PHOTON) \
++		$(DOCKERSAVEIMAGENAME_NGINX_PHOTON) \
++		$(DOCKERSAVEIMAGENAME_REGISTRY_PHOTON)
++
 +PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG)-$(subst /,-,$(DOCKER_PLATFORM)).tgz \
  					$(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar.gz \
  					$(HARBORPKG)/prepare \
  					$(HARBORPKG)/LICENSE $(HARBORPKG)/install.sh \
-@@ -361,7 +363,7 @@ compile: check_environment versions_prepare compile_core compile_jobservice comp
+@@ -361,7 +400,7 @@ compile: check_environment versions_prepare compile_core compile_jobservice comp
  
  update_prepare_version:
  	@echo "substitute the prepare version tag in prepare file..."
@@ -29,13 +80,22 @@ index 609c4004f..e53d79833 100644
  
  gen_tls:
  	@$(DOCKERCMD) run --rm -v /:/hostfs:z $(IMAGENAMESPACE)/prepare:$(VERSIONTAG) gencert -p /etc/harbor/tls/internal
-@@ -374,30 +376,15 @@ prepare: update_prepare_version
+@@ -374,30 +413,15 @@ prepare: update_prepare_version
  	@$(MAKEPATH)/$(PREPARECMD) $(PREPARECMD_PARA)
  
  build:
 -# PUSHBASEIMAGE should not be true if BUILD_BASE is not true
 -	@if [ "$(PULL_BASE_FROM_DOCKERHUB)" != "true" ] && [ "$(PULL_BASE_FROM_DOCKERHUB)" != "false" ] ; then \
 -		echo set PULL_BASE_FROM_DOCKERHUB to true or false.; exit 1; \
+-	fi
+-	@if [ "$(BUILD_BASE)" != "true" ]  && [ "$(PUSHBASEIMAGE)" = "true" ] ; then \
+-		echo Do not push base images since no base images built. ; \
+-		exit 1; \
+-	fi
+-# PULL_BASE_FROM_DOCKERHUB should be true if BUILD_BASE is not true
+-	@if [ "$(BUILD_BASE)" != "true" ]  && [ "$(PULL_BASE_FROM_DOCKERHUB)" = "false" ] ; then \
+-		echo Should pull base images from registry in docker configuration since no base images built. ; \
+-		exit 1; \
 +	@if [ "$(DOCKER_BUILD_IMAGES)" == "true" ] ; then \
 +	        make -f $(MAKEFILEPATH_PHOTON)/Makefile $(BUILDTARGET) -e BUILD_BASE=$(BUILD_BASE) -e GOBUILDIMAGE=$(GOBUILDIMAGE) \
 +	         -e REGISTRYVERSION=$(REGISTRYVERSION) -e REGISTRY_SRC_TAG=$(REGISTRY_SRC_TAG) \
@@ -45,15 +105,6 @@ index 609c4004f..e53d79833 100644
 +	         -e NPM_REGISTRY=$(NPM_REGISTRY) -e BASEIMAGETAG=$(BASEIMAGETAG) -e IMAGENAMESPACE=$(IMAGENAMESPACE) -e BASEIMAGENAMESPACE=$(BASEIMAGENAMESPACE) \
 +	         -e BUILD_BASE=$(BUILD_BASE); \
  	fi
--	@if [ "$(BUILD_BASE)" != "true" ]  && [ "$(PUSHBASEIMAGE)" = "true" ] ; then \
--		echo Do not push base images since no base images built. ; \
--		exit 1; \
--	fi
--# PULL_BASE_FROM_DOCKERHUB should be true if BUILD_BASE is not true
--	@if [ "$(BUILD_BASE)" != "true" ]  && [ "$(PULL_BASE_FROM_DOCKERHUB)" = "false" ] ; then \
--		echo Should pull base images from registry in docker configuration since no base images built. ; \
--		exit 1; \
--	fi
 -	make -f $(MAKEFILEPATH_PHOTON)/Makefile $(BUILDTARGET) -e DEVFLAG=$(DEVFLAG) -e GOBUILDIMAGE=$(GOBUILDIMAGE) \
 -	 -e REGISTRYVERSION=$(REGISTRYVERSION) -e REGISTRY_SRC_TAG=$(REGISTRY_SRC_TAG) \
 -	 -e TRIVYVERSION=$(TRIVYVERSION) -e TRIVYADAPTERVERSION=$(TRIVYADAPTERVERSION) \
@@ -68,7 +119,7 @@ index 609c4004f..e53d79833 100644
  
  build_standalone_db_migrator: compile_standalone_db_migrator
  	make -f $(MAKEFILEPATH_PHOTON)/Makefile _build_standalone_db_migrator -e BASEIMAGETAG=$(BASEIMAGETAG) -e VERSIONTAG=$(VERSIONTAG)
-@@ -438,12 +425,18 @@ package_online: update_prepare_version
+@@ -438,14 +462,32 @@ package_online: update_prepare_version
  	@rm -rf $(HARBORPKG)
  	@echo "Done."
  
@@ -85,11 +136,31 @@ index 609c4004f..e53d79833 100644
 +	  $(DOCKERPULL) --platform=$(DOCKER_PLATFORM) $$image; \
 +	done
 +
++	@$(DOCKERTAG) $(DOCKER_NORMAL_IMAGE_NAME_PREPARE) $(DOCKER_SAVE_IMAGE_NAME_PREPARE)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_PORTAL) $(DOCKERSAVEIMAGENAME_PORTAL)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_CORE) $(DOCKERSAVEIMAGENAME_CORE)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_LOG) $(DOCKERSAVEIMAGENAME_LOG)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_DB) $(DOCKERSAVEIMAGENAME_DB)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_JOBSERVICE) $(DOCKERSAVEIMAGENAME_JOBSERVICE)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_REGCTL) $(DOCKERSAVEIMAGENAME_REGCTL)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_EXPORTER) $(DOCKERSAVEIMAGENAME_EXPORTER)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_REDIS_PHOTON) $(DOCKERSAVEIMAGENAME_REDIS_PHOTON)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_NGINX_PHOTON) $(DOCKERSAVEIMAGENAME_NGINX_PHOTON)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_REGISTRY_PHOTON) $(DOCKERSAVEIMAGENAME_REGISTRY_PHOTON)
++
  	@echo "saving harbor docker image"
- 	@$(DOCKERSAVE) $(DOCKERSAVE_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
+-	@$(DOCKERSAVE) $(DOCKERSAVE_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
++	@$(DOCKERSAVE) $(DOCKERSAVETAG_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
  	@gzip $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
+ 
+ 	@$(TARCMD) $(PACKAGE_OFFLINE_PARA)
+@@ -608,3 +650,4 @@ clean:
+ 	@echo "  make cleanpackage:		remove online and offline install package"
+ 
+ all: install
++
 diff --git a/make/photon/Makefile b/make/photon/Makefile
-index c6de67da3..0b6a4b014 100644
+index c6de67da3..fa7699234 100644
 --- a/make/photon/Makefile
 +++ b/make/photon/Makefile
 @@ -18,8 +18,8 @@ TIMESTAMP=$(shell date +"%Y%m%d")
@@ -355,3 +426,16 @@ index 5379c96aa..8c8c5e93c 100644
  
  
  RUN chown -R scanner:scanner /etc/pki/tls/certs \
+diff --git a/make/prepare b/make/prepare
+index c0ef48262..528d321d9 100755
+--- a/make/prepare
++++ b/make/prepare
+@@ -57,7 +57,7 @@ docker run --rm -v $input_dir:/input \
+                     -v $config_dir:/config \
+                     -v /:/hostfs \
+                     --privileged \
+-                    goharbor/prepare:dev prepare $@
++                    hub.kubesphere.com.cn/harbor/prepare:v2.10.2 prepare $@
+ 
+ echo "Clean up the input dir"
+ # Clean up input dir
