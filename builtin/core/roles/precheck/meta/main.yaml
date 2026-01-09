@@ -2,6 +2,9 @@ dependencies:
   - role: precheck/inventory
     when: .inventory_hostname | eq "localhost"
 
+  - role: precheck/image-registry/network
+    when: .inventory_hostname | eq "localhost"
+
   - role: precheck/artifact
     tags: ["artifact"]
     when: .inventory_hostname | eq "localhost"
@@ -38,3 +41,6 @@ dependencies:
     tags: ["nfs"]
     when: .groups.nfs | default list | has .inventory_hostname
 
+  - role: precheck/image-registry
+    tags: ["nfs"]
+    when: .groups.image_registry | default list | has .inventory_hostname
