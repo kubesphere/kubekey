@@ -42,24 +42,24 @@
 - name: Keepalived | Synchronize keepalived image to remote host
   copy:
     src: >-
-      {{ .binary_dir }}/image-registry/keepalived/{{ .keepalived_version }}/{{ .binary_type }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type }}.tgz
+      {{ .binary_dir }}/image-registry/keepalived/{{ .image_registry.keepalived_version }}/{{ .binary_type }}/keepalived-{{ .image_registry.keepalived_version }}-linux-{{ .binary_type }}.tgz
     dest: >-
-      /opt/keepalived/{{ .keepalived_version }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type }}.tgz
+      /opt/keepalived/{{ .image_registry.keepalived_version }}/keepalived-{{ .image_registry.keepalived_version }}-linux-{{ .binary_type }}.tgz
 
 - name: Keepalived | Load keepalived image into Docker
   command: |
-    docker load -i /opt/keepalived/{{ .keepalived_version }}/keepalived-{{ .keepalived_version }}-linux-{{ .binary_type }}.tgz
+    docker load -i /opt/keepalived/{{ .image_registry.keepalived_version }}/keepalived-{{ .image_registry.keepalived_version }}-linux-{{ .binary_type }}.tgz
 
 - name: Keepalived | Synchronize keepalived configuration file to remote host
   template:
     src: keepalived.conf
     dest: >-
-      /opt/keepalived/{{ .keepalived_version }}/keepalived.conf
+      /opt/keepalived/{{ .image_registry.keepalived_version }}/keepalived.conf
     mode: 0664
 
 - name: Keepalived | Synchronize healthcheck script to remote host
   copy:
     src: healthcheck.sh
     dest: >-
-      /opt/keepalived/{{ .keepalived_version }}/healthcheck.sh
+      /opt/keepalived/{{ .image_registry.keepalived_version }}/healthcheck.sh
     mode: 0755

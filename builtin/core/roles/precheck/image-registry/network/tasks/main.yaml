@@ -19,7 +19,7 @@
                 {{ printf " --ca-file %s " .image_registry.auth.ca_file }}
                 {{- end -}}
                 {{- if .image_registry.auth.cert_file | empty | not -}}
-                {{ printf " --cert-file %s .image_registry.auth.cert_file " }}
+                {{ printf " --cert-file %s " .image_registry.auth.cert_file }}
                 {{- end -}}
                 {{- if .image_registry.auth.key_file | empty | not -}}
                 {{ printf " --key-file %s " .image_registry.auth.key_file }}

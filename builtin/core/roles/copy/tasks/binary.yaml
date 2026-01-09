@@ -200,8 +200,8 @@
     - .groups.image_registry | len | lt 1
   command: |
     artifact_name={{ get .download.artifact_url.keepalived .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/image-registry/keepalived/{{ .keepalived_version }}/{{ .item }}
-    target_path={{ .artifact_file_dir }}/kubekey/kubekey/image-registry/keepalived/{{ .keepalived_version }}/{{ .item }}
+    artifact_path={{ .binary_dir }}/image-registry/keepalived/{{ .image_registry.keepalived_version }}/{{ .item }}
+    target_path={{ .artifact_file_dir }}/kubekey/kubekey/image-registry/keepalived/{{ .image_registry.keepalived_version }}/{{ .item }}
     mkdir -p $target_path
     if [ -f $artifact_path/$artifact_name ];then
       cp $artifact_path/$artifact_name $target_path/
