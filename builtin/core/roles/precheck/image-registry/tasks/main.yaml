@@ -1,0 +1,34 @@
+- name: Image Registry | Verify image registry default values
+  assert:
+    that:
+      - .cri.dockercompose_version | empty | not
+      - .cri.docker_version | empty | not
+    fail_msg: >-
+      cri.dockercompose_version and cri.docker_version must be set when install image registry
+
+- name: Image Registry | Verify values before harbor install
+  when:
+    - .image_registry.type | eq "harbor"
+  assert:
+    that:
+      - .image_registry.harbor_version | empty | not
+    fail_msg: >-
+      image_registry.harbor_version must be set when install harbor
+
+- name: Image Registry | Verify values before docker registry install
+  when:
+    - .image_registry.type | eq "docker-registry"
+  assert:
+    that:
+      - .image_registry.docker_registry_version | empty | not
+    fail_msg: >-
+      image_registry.docker_registry_version must be set when install harbor
+
+- name: Image Registry | Verify ha_vip values before image registry install
+  when:
+    - .image_registry.ha_vip | empty | not
+  assert:
+    that:
+      - .image_registry.keepalived_version | empty | not
+    fail_msg: >-
+      image_registry.keepalived_version must be set when using HA for image registry
