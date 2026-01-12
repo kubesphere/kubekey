@@ -211,11 +211,36 @@ download:
         {{- else -}}
         https://github.com/projectcalico/calico/releases/download/{{ .cni.calico_version }}/calicoctl-linux-arm64
         {{- end -}}
-    cilium: https://helm.cilium.io/cilium-{{ .cni.cilium_version }}.tgz
-    kubeovn: https://kubeovn.github.io/kube-ovn/kube-ovn-{{ .cni.kubeovn_version }}.tgz
-    hybridnet: https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
-    localpv_provisioner: https://openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
-    nfs_provisioner: https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
+    cilium: >-
+      {{- if .download.zone | eq "cn" -}}
+      https://kubekey.pek3b.qingstor.com/helm.cilium.io/cilium-{{ .cni.cilium_version }}.tgz
+      {{- else -}}
+      https://helm.cilium.io/cilium-{{ .cni.cilium_version }}.tgz
+      {{- end -}}
+    kubeovn: >-
+      {{- if .download.zone | eq "cn" -}}
+      https://kubekey.pek3b.qingstor.com/kubeovn.github.io/kube-ovn/kube-ovn-{{ .cni.kubeovn_version }}.tgz
+      {{- else -}}
+      https://kubeovn.github.io/kube-ovn/kube-ovn-{{ .cni.kubeovn_version }}.tgz
+      {{- end -}}
+    hybridnet: >-
+      {{- if .download.zone | eq "cn" -}}
+      https://kubekey.pek3b.qingstor.com/github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
+      {{- else -}}
+      https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
+      {{- end -}}
+    localpv_provisioner: >-
+      {{- if .download.zone | eq "cn" -}}
+      https://kubekey.pek3b.qingstor.com/openebs.github.io/dynamic-loficalpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
+      {{- else -}}
+      https://openebs.github.io/dynamic-loficalpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
+      {{- end -}}
+    nfs_provisioner: >-
+      {{- if .download.zone | eq "cn" -}}
+      https://kubekey.pek3b.qingstor.com/github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
+      {{- else -}}
+      https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
+      {{- end -}}
   download_image: false
   download_iso: false
   iso_url:
