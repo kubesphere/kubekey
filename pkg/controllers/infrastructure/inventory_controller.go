@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
@@ -423,16 +423,30 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 // if machine already has providerID, skip.
 func (r *InventoryReconciler) setProviderID(ctx context.Context, clusterName string, kkmachineList *capkkinfrav1beta1.KKMachineList, availableHosts []string) error {
 	// kkmachine belong to different inventory's group
+	var m = make(map[int]string)
+	var i = 0
 	for _, host := range availableHosts {
-		for _, kkmachine := range kkmachineList.Items {
-			if kkmachine.Spec.ProviderID != nil {
-				continue
-			}
-			kkmachine.Spec.ProviderID = _const.Host2ProviderID(clusterName, host)
-			if err := r.Update(ctx, &kkmachine); err != nil {
-				return errors.Wrapf(err, "failed to set provider to kkmachine %q", ctrlclient.ObjectKeyFromObject(&kkmachine))
-			}
+		m[i] = host
+		i++
+	}
+
+	hostIndex := 0
+	for i := range kkmachineList.Items {
+		kkmachine := &kkmachineList.Items[i]
+		if kkmachine.Spec.ProviderID != nil {
+			continue
 		}
+
+		if hostIndex >= len(availableHosts) {
+			break
+		}
+
+		host := availableHosts[hostIndex]
+		kkmachine.Spec.ProviderID = _const.Host2ProviderID(clusterName, host)
+		if err := r.Update(ctx, kkmachine); err != nil {
+			return errors.Wrapf(err, "failed to set provider to kkmachine %q", ctrlclient.ObjectKeyFromObject(kkmachine))
+		}
+		hostIndex++
 	}
 
 	return nil

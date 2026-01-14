@@ -75,7 +75,6 @@ func GetObjectListFromOwner(ctx context.Context, client ctrlclient.Client, owner
 	if err := client.List(ctx, objList, opts...); err != nil {
 		return errors.Wrap(err, "failed to list object %q")
 	}
-
 	// Access the Items field of objList using reflection
 	objListValue := reflect.ValueOf(objList).Elem()
 	itemsField := objListValue.FieldByName("Items")

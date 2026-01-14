@@ -19,6 +19,10 @@ package proxy
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/capkk/kkcluster"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/capkk/kkmachine"
+	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/capkk/kkmachinetemplate"
 	"io"
 	"net/http"
 	"sort"
@@ -136,7 +140,7 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		if err != nil {
 			return nil, err
 		}
-		if err := kkv1.AddResource(resourceOptions{
+		if err = kkv1.AddResource(resourceOptions{
 			path:    "inventories",
 			storage: inventoryStorage.Inventory,
 		}); err != nil {
@@ -147,13 +151,13 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		if err != nil {
 			return nil, err
 		}
-		if err := kkv1.AddResource(resourceOptions{
+		if err = kkv1.AddResource(resourceOptions{
 			path:    "playbooks",
 			storage: playbookStorage.Playbook,
 		}); err != nil {
 			return nil, err
 		}
-		if err := kkv1.AddResource(resourceOptions{
+		if err = kkv1.AddResource(resourceOptions{
 			path:    "playbooks/status",
 			storage: playbookStorage.PlaybookStatus,
 		}); err != nil {
@@ -161,6 +165,14 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		}
 
 		if err := lt.registerResources(kkv1); err != nil {
+			return nil, err
+		}
+
+		capkkv1 := newAPIIResources(v1beta1.SchemeGroupVersion)
+		if err = addCapkkStorage(capkkv1, runtimedir); err != nil {
+			return nil, err
+		}
+		if err := lt.registerResources(capkkv1); err != nil {
 			return nil, err
 		}
 		apiGroups = append(apiGroups, metav1.APIGroup{
@@ -174,6 +186,18 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 			PreferredVersion: metav1.GroupVersionForDiscovery{
 				GroupVersion: kkv1.gv.String(),
 				Version:      kkv1.gv.Version,
+			},
+		}, metav1.APIGroup{
+			Name: capkkv1.gv.Group,
+			Versions: []metav1.GroupVersionForDiscovery{
+				{
+					GroupVersion: capkkv1.gv.String(),
+					Version:      capkkv1.gv.Version,
+				},
+			},
+			PreferredVersion: metav1.GroupVersionForDiscovery{
+				GroupVersion: capkkv1.gv.String(),
+				Version:      capkkv1.gv.Version,
 			},
 		})
 	}
@@ -210,6 +234,58 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	}, true)
 
 	return lt, nil
+}
+
+func addCapkkStorage(kkv1 *apiResources, runtimedir string) error {
+	kkclusterStorage, err := kkcluster.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, v1beta1.SchemeGroupVersion))
+	if err != nil {
+		return err
+	}
+	kkmachineStorage, err := kkmachine.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, v1beta1.SchemeGroupVersion))
+	if err != nil {
+		return err
+	}
+	kkmachinetemplateStorage, err := kkmachinetemplate.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, v1beta1.SchemeGroupVersion))
+	if err != nil {
+		return err
+	}
+	if err = kkv1.AddResource(resourceOptions{
+		path:    "kkclusters",
+		storage: kkclusterStorage.KKCluster,
+	}); err != nil {
+		return err
+	}
+	if err = kkv1.AddResource(resourceOptions{
+		path:    "kkclusters/status",
+		storage: kkclusterStorage.KKClusterStatus,
+	}); err != nil {
+		return err
+	}
+	if err = kkv1.AddResource(resourceOptions{
+		path:    "kkmachines",
+		storage: kkmachineStorage.KKMachine,
+	}); err != nil {
+		return err
+	}
+	if err = kkv1.AddResource(resourceOptions{
+		path:    "kkmachines/status",
+		storage: kkmachineStorage.KKMachineStatus,
+	}); err != nil {
+		return err
+	}
+	if err = kkv1.AddResource(resourceOptions{
+		path:    "kkmachinetemplates",
+		storage: kkmachinetemplateStorage.KKMachineTemplate,
+	}); err != nil {
+		return err
+	}
+	if err = kkv1.AddResource(resourceOptions{
+		path:    "kkmachinetemplates/status",
+		storage: kkmachinetemplateStorage.KKMachineTemplateStatus,
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // responseWriter implements http.ResponseWriter for capturing HTTP responses locally.

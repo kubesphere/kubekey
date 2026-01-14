@@ -810,3 +810,7 @@ func (h ResourceHandler) PreCheckHost(request *restful.Request, response *restfu
 	wg.Wait()
 	_ = response.WriteEntity(result)
 }
+
+func (h ResourceHandler) ResourceSummary(request *restful.Request, response *restful.Response) {
+
+}

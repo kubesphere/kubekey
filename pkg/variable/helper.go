@@ -136,9 +136,13 @@ func CombineSlice(g1, g2 []string) []string {
 func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 	groups := make(map[string][]string)
 	all := make([]string, 0)
+	remote := make([]string, 0)
 
 	for hn := range inv.Spec.Hosts {
 		all = append(all, hn)
+		if hn != _const.VariableLocalHost {
+			remote = append(remote, hn)
+		}
 	}
 
 	ungrouped := make([]string, len(all))
@@ -164,6 +168,7 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 	}
 
 	groups[_const.VariableUnGrouped] = ungrouped
+	groups[_const.VariableRemote] = remote
 
 	return groups
 }

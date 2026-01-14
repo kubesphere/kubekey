@@ -18,6 +18,8 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 )
 
@@ -245,4 +247,34 @@ func SchemaFile2Table(schemaFile SchemaFile, configFile string, filename string)
 	}
 
 	return table
+}
+
+type KKClusterConfigResult struct {
+	v1beta1.KKCluster
+	Config runtime.RawExtension `json:"config,omitempty"`
+}
+
+type ResourcesSummaryResult struct {
+	Clusters ResourcesSummaryClusterResult `json:"clusters"`
+	Nodes    ResourcesSummaryNodeResult    `json:"nodes"`
+}
+
+type ResourcesSummaryClusterResult struct {
+	NotInstall   int64 `json:"notInstall"`
+	Running      int64 `json:"running"`
+	Initializing int64 `json:"initializing"`
+	Upgrading    int64 `json:"upgrading"`
+	Scaling      int64 `json:"scaling"`
+	UpgradeError int64 `json:"upgradeError"`
+	NodeError    int64 `json:"nodeError"`
+	Failed       int64 `json:"failed"`
+}
+
+type ResourcesSummaryNodeResult struct {
+	Creating      int64 `json:"creating"`
+	Warning       int64 `json:"warning"`
+	Ready         int64 `json:"ready"`
+	Running       int64 `json:"running"`
+	Fault         int64 `json:"fault"`
+	Unschedulable int64 `json:"unschedulable"`
 }
