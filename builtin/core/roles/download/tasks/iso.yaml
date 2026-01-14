@@ -1,12 +1,18 @@
 ---
 - name: ISO | Download ISO files
-  when: .download.iso_url.urls | empty | not
   loop: "{{ .download.iso_url.urls | toJson }}"
+  when: 
+    - .download.iso_url.urls | empty | not
   command: |
-    iso_path={{ .binary_dir }}/repository/{{ .item | splitList "/" | last }}
-    if [ ! -f {{ .binary_dir }}/repository/ ];then
-      mkdir -p {{ .binary_dir }}/repository/
-    fi
-    if [ ! -f $iso_path ]; then
-      curl -L -o $iso_path  {{ .item }}
-    fi
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" -}}
+      url=https://{{ .download.cn_host }}/github.com/kubesphere/kubekey/releases/download/iso-latest/{{ .item }}-$arch.iso
+      {{- else }}
+      url=https://github.com/kubesphere/kubekey/releases/download/iso-latest/{{ .item }}-$arch.iso
+      {{- end }}
+      iso_path={{ .binary_dir }}/repository/{{ .item }}-$arch.iso
+      if [ ! -f $iso_path ];then
+        mkdir -p $iso_path
+        curl -Lo $iso_path $url
+      fi
+    done
