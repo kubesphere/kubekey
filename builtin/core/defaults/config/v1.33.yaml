@@ -25,7 +25,7 @@ spec:
           tag: 2.9.6-alpine
   etcd:
     # Specify the etcd version to be installed.
-    etcd_version: v3.5.25
+    etcd_version: v3.5.24
   image_registry:
     # Image registry type to install. Supported: harbor, docker-registry.
     # Leave empty to skip installation (assuming an existing registry is available).
