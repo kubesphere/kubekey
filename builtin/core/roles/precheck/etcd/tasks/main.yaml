@@ -6,6 +6,24 @@
     fail_msg: >-
       Invalid etcd deployment type: "{{ .etcd.deployment_type }}". Expected "internal" or "external".
 
+- name: ETCD | Validate that the etcd version is sufficient
+  run_once: true
+  block:
+    - name: ETCD | Verify etcd minimum version for exact Kubernetes release
+      when: hasKey .cluster_require.etcd_min_versions .kubernetes.kube_version
+      assert:
+        that: .etcd.etcd_version | semverCompare (printf ">=%s" (index .cluster_require.etcd_min_versions .kubernetes.kube_version))
+        fail_msg: >-
+          The specified etcd version is too old. For Kubernetes {{ .kubernetes.kube_version }}, the minimum required etcd version is {{ index .cluster_require.etcd_min_versions .kubernetes.kube_version }}.
+    - name: ETCD | Verify etcd minimum version for Kubernetes minor release
+      when:
+        - hasKey .cluster_require.etcd_min_versions .kubernetes.kube_version | not
+        - hasKey .cluster_require.etcd_min_versions (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")
+      assert:
+        that: .etcd.etcd_version | semverCompare (printf ">=%s" (index .cluster_require.etcd_min_versions (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")))
+        fail_msg: >-
+          The specified etcd version is too old. For Kubernetes {{ .kubernetes.kube_version }}, the minimum required etcd version is {{ index .cluster_require.etcd_min_versions (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".") }}.
+
 ## https://cwiki.yunify.com/pages/viewpage.action?pageId=145920824
 - name: ETCD | Validate disk I/O performance for etcd
   when:
