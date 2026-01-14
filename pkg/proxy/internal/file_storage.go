@@ -88,7 +88,7 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "failed to check dir %q", filepath.Dir(key))
 		}
-		if err := os.MkdirAll(filepath.Dir(key), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(key), 0755); err != nil {
 			return errors.Wrapf(err, "failed to create dir %q", filepath.Dir(key))
 		}
 	}
@@ -103,7 +103,7 @@ func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Obje
 		}
 	}
 	// render to file
-	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
+	if err := os.WriteFile(key+yamlSuffix, data, 0644); err != nil {
 		return errors.Wrapf(err, "failed to create object %q", key)
 	}
 
@@ -272,7 +272,7 @@ func (s fileStorage) getRootEntries(key string) ([]os.DirEntry, bool, error) {
 		if !os.IsNotExist(err) {
 			return nil, allNamespace, errors.Wrapf(err, "failed to stat path %q", key)
 		}
-		if err := os.MkdirAll(key, os.ModePerm); err != nil {
+		if err := os.MkdirAll(key, 0755); err != nil {
 			return nil, allNamespace, errors.Wrapf(err, "failed to create dir %q", key)
 		}
 	}
@@ -417,7 +417,7 @@ func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destinati
 		}
 	}
 	// render to file
-	if err := os.WriteFile(key+yamlSuffix, data, os.ModePerm); err != nil {
+	if err := os.WriteFile(key+yamlSuffix, data, 0644); err != nil {
 		return errors.Wrapf(err, "failed to create resource file %q", key)
 	}
 

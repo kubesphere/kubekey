@@ -146,7 +146,7 @@ func (o *CreateConfigOptions) Run() error {
 	if o.OutputDir != "" {
 		// Write config to file if output directory is specified
 		filename := filepath.Join(o.OutputDir, fmt.Sprintf("config-%s.yaml", o.Kubernetes))
-		if err := os.WriteFile(filename, data, os.ModePerm); err != nil {
+		if err := os.WriteFile(filename, data, 0644); err != nil {
 			return errors.Wrapf(err, "failed to write config file to %s", filename)
 		}
 		fmt.Printf("write config file to %s success.\n", filename)
@@ -193,7 +193,7 @@ func (o *CreateInventoryOptions) Run() error {
 	if o.OutputDir != "" {
 		// Write inventory to file if output directory is specified
 		filename := filepath.Join(o.OutputDir, "inventory.yaml")
-		if err := os.WriteFile(filename, data, os.ModePerm); err != nil {
+		if err := os.WriteFile(filename, data, 0644); err != nil {
 			return errors.Wrapf(err, "failed to write inventory file to %s", filename)
 		}
 		fmt.Printf("write inventory file to %s success.\n", filename)
