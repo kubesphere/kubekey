@@ -2,9 +2,9 @@
 - name: DockerRegistry | Synchronize registry image archive to remote host
   copy:
     src: >-
-      {{ .binary_dir }}/image-registry/docker-registry/{{ .docker_registry_version }}/{{ .binary_type }}/docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz
+      {{ .binary_dir }}/image-registry/docker-registry/{{ .image_registry.docker_registry_version }}/{{ .binary_type }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-{{ .binary_type }}.tgz
     dest: >-
-      /opt/docker-registry/{{ .docker_registry_version }}/docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz
+      /opt/docker-registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-{{ .binary_type }}.tgz
 
 - name: DockerRegistry | Ensure NFS directory is mounted for registry storage
   command: |
@@ -28,33 +28,33 @@
 
 - name: DockerRegistry | Load registry image into Docker
   command: |
-    docker load -i /opt/docker-registry/{{ .docker_registry_version }}/docker-registry-{{ .docker_registry_version }}-linux-{{ .binary_type }}.tgz
+    docker load -i /opt/docker-registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-{{ .binary_type }}.tgz
 
 - name: DockerRegistry | Synchronize registry certificate to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.crt
     dest: >-
-      /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.crt
+      /opt/docker-registry/{{ .image_registry.docker_registry_version }}/ssl/server.crt
 
 - name: DockerRegistry | Synchronize registry private key to remote host
   copy:
     src: >-
       {{ .binary_dir }}/pki/image_registry.key
     dest: >-
-      /opt/docker-registry/{{ .docker_registry_version }}/ssl/server.key
+      /opt/docker-registry/{{ .image_registry.docker_registry_version }}/ssl/server.key
 
 - name: DockerRegistry | Generate Docker Compose file for registry
   template:
     src: docker-compose.yaml
     dest: >-
-      /opt/docker-registry/{{ .docker_registry_version }}/docker-compose.yml
+      /opt/docker-registry/{{ .image_registry.docker_registry_version }}/docker-compose.yml
 
 - name: DockerRegistry | Generate registry configuration file
   template:
     src: config.yaml
     dest: >-
-      /opt/docker-registry/{{ .docker_registry_version }}/config.yml
+      /opt/docker-registry/{{ .image_registry.docker_registry_version }}/config.yml
 
 - name: DockerRegistry | Register registry as a systemd service
   template:
