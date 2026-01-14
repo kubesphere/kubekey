@@ -20,7 +20,6 @@
   roles:
     - certs/init
     - download
-    - certs/check
 
 # Initialize all nodes and install necessary software packages
 - hosts:
