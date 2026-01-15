@@ -135,7 +135,7 @@ spec:
     - docker.io/kubesphere/pause:3.7
     # openebs/local for 4.4.0
     - docker.io/openebs/linux-utils:4.3.0
-    - docker.io/openebs/provisioner-localpv:4.3.0
+    - docker.io/openebs/provisioner-localpv:4.4.0
     # control_plane_endpoint ha
     - docker.io/library/haproxy:2.9.6-alpine
     - docker.io/plndr/kube-vip:v0.7.2

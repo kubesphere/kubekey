@@ -231,9 +231,9 @@ download:
       {{- end -}}
     localpv_provisioner: >-
       {{- if .download.zone | eq "cn" -}}
-      https://kubekey.pek3b.qingstor.com/openebs.github.io/dynamic-loficalpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
+      https://kubekey.pek3b.qingstor.com/openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
       {{- else -}}
-      https://openebs.github.io/dynamic-loficalpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
+      https://openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
       {{- end -}}
     nfs_provisioner: >-
       {{- if .download.zone | eq "cn" -}}
