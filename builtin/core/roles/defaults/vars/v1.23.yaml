@@ -1,6 +1,8 @@
 kubernetes:
   # helm binary
   helm_version: v3.8.2
+  sandbox_image:
+    tag: "3.6"
   control_plane_endpoint:
     kube_vip:
       image:
@@ -25,8 +27,6 @@ image_registry:
 cri:
   # support: containerd,docker
   container_manager: docker
-  sandbox_image:
-    tag: "3.6"
   # ========== cri ==========
   # crictl binary
   crictl_version: v1.23.0
@@ -49,7 +49,7 @@ cni:
   # cni_plugins_version: v1.1.1
   # ========== cni: calico ==========
   # calicoctl binary
-  calico_version: v3.24.5
+  calico_version: v3.25.2
   # ========== cni: cilium ==========
   # cilium helm
   cilium_version: 1.14.19
@@ -75,26 +75,26 @@ dns:
   dns_cache_image:
     tag: 1.21.1
 image_manifests:
-  # calico
-  - quay.io/tigera/operator:v1.28.5
-  - docker.io/calico/apiserver:v3.24.5
-  - docker.io/calico/cni:v3.24.5
-  - docker.io/calico/ctl:v3.24.5
-  - docker.io/calico/csi:v3.24.5
-  - docker.io/calico/kube-controllers:v3.24.5
-  - docker.io/calico/node-driver-registrar:v3.24.5
-  - docker.io/calico/node:v3.24.5
-  - docker.io/calico/pod2daemon-flexvol:v3.24.5
-  - docker.io/calico/typha:v3.24.5
+  # calico for v3.25.2
+  - quay.io/tigera/operator:v1.29.6
+  - docker.io/calico/apiserver:v3.25.2
+  - docker.io/calico/cni:v3.25.2
+  - docker.io/calico/ctl:v3.25.2
+  - docker.io/calico/csi:v3.25.2
+  - docker.io/calico/kube-controllers:v3.25.2
+  - docker.io/calico/node-driver-registrar:v3.25.2
+  - docker.io/calico/node:v3.25.2
+  - docker.io/calico/pod2daemon-flexvol:v3.25.2
+  - docker.io/calico/typha:v3.25.2
   # dns
-  - docker.io/kubesphere/coredns:v1.8.6
-  - docker.io/kubesphere/k8s-dns-node-cache:1.21.1
+  - registry.k8s.io/coredns/coredns:v1.8.6
+  - registry.k8s.io/dns/k8s-dns-node-cache:1.21.1
   # kubernetes
-  - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/pause:3.6
+  - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/pause:3.6
   # openebs/local for 4.4.0
   - docker.io/openebs/linux-utils:4.3.0
   - docker.io/openebs/provisioner-localpv:4.4.0

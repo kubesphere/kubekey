@@ -5,15 +5,15 @@ dns:
   # CoreDNS image settings
   dns_image: 
     registry: >-
-      {{ .image_registry.dockerio_registry }}
+      {{ .image_registry.k8sio_registry }}
     repository: >-
-      kubesphere
+      coredns
     # tag: v1.11.1
   # NodeLocalDNS image settings
   dns_cache_image: 
     registry: >-
-      {{ .image_registry.dockerio_registry }}
-    repository: kubesphere/k8s-dns-node-cache
+      {{ .image_registry.k8sio_registry }}
+    repository: dns/k8s-dns-node-cache
     # tag: 1.24.0
   # The IP address assigned to the cluster DNS service
   dns_service_ip: >-

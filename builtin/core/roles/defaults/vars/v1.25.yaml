@@ -1,6 +1,8 @@
 kubernetes:
   # helm binary
   helm_version: v3.10.3
+  sandbox_image:
+    tag: "3.8"
   control_plane_endpoint:
     kube_vip:
       image:
@@ -26,8 +28,6 @@ image_registry:
 cri:
   # support: containerd,docker
   container_manager: containerd
-  sandbox_image:
-    tag: "3.6"
   # ========== cri ==========
   # crictl binary
   crictl_version: v1.25.0
@@ -76,7 +76,7 @@ dns:
   dns_image:
     tag: v1.9.3
   dns_cache_image:
-    tag: 1.22.20
+    tag: 1.22.8
 image_manifests:
   # calico for v3.26.5
   - quay.io/tigera/operator:v1.30.11
@@ -90,14 +90,14 @@ image_manifests:
   - docker.io/calico/pod2daemon-flexvol:v3.26.5
   - docker.io/calico/typha:v3.26.5
   # dns
-  - docker.io/kubesphere/coredns:v1.9.3
-  - docker.io/kubesphere/k8s-dns-node-cache:1.22.20
+  - registry.k8s.io/coredns/coredns:v1.9.3
+  - registry.k8s.io/dns/k8s-dns-node-cache:1.22.8
   # kubernetes
-  - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/pause:3.6
+  - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/pause:3.8
   # openebs/local for 4.4.0
   - docker.io/openebs/linux-utils:4.3.0
   - docker.io/openebs/provisioner-localpv:4.4.0

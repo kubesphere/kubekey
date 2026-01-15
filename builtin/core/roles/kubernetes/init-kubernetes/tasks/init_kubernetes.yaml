@@ -20,9 +20,11 @@
       command: |
         sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' \
           /etc/kubernetes/manifests/kube-vip.yaml
-    - name: Init | Run kubeadm init
-      command: |
-        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
+    - name: Init | Run kubeadm init 
+      command: | 
+        # In Kubernetes, the ImagePullCheck for the pause image uses a hardcoded tag.
+        # Adding --ignore-preflight-errors=ImagePull allows customization of the pause image reference.
+        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
     - name: Init | Post-initialization for kube-vip
       when: 
         - .kubernetes.kube_version | semverCompare ">=v1.29.0"
