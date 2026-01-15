@@ -124,6 +124,8 @@ spec:
     - docker.io/calico/node:v3.31.3
     - docker.io/calico/pod2daemon-flexvol:v3.31.3
     - docker.io/calico/typha:v3.31.3
+    - docker.io/calico/goldmane:v3.31.3
+    - docker.io/calico/whisker-backend:v3.31.3
     # dns
     - docker.io/kubesphere/coredns:v1.12.1
     - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
@@ -135,7 +137,7 @@ spec:
     - docker.io/kubesphere/pause:3.9
     # openebs/local for 4.4.0
     - docker.io/openebs/linux-utils:4.3.0
-    - docker.io/openebs/provisioner-localpv:4.3.0
+    - docker.io/openebs/provisioner-localpv:4.4.0
     # control_plane_endpoint ha
     - docker.io/library/haproxy:2.9.6-alpine
     - docker.io/plndr/kube-vip:v0.7.2
