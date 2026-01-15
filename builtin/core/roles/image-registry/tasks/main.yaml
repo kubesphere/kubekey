@@ -53,4 +53,8 @@
       images_dir: >-
         {{ .binary_dir }}/images/
       dest: >-
+        {{- if eq .module.image.src.reference.registry "registry.k8s.io" -}}
+        {{ .image_registry.auth.registry }}/registry.k8s.io/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
+        {{- else -}}
         {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
+        {{- end -}}

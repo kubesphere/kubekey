@@ -36,7 +36,9 @@ state = "/run/containerd"
 
 [plugins]
   [plugins."io.containerd.grpc.v1.cri"]
-    sandbox_image = "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
+    {{- if .kubernetes.sandbox_image.tag | empty | not }}
+    sandbox_image = "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+    {{- end }}
     [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
       runtime_type = "io.containerd.runc.v2"
       [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
