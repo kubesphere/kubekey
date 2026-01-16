@@ -1,0 +1,17 @@
+{
+  "kubernetes.json": {
+    "kubernetes": {
+      "kube_version": "{{ .kubernetes.kube_version }}",
+      "control_plane_endpoint": {
+        "host": "lb.kubesphere.local",
+        "port": 6443,
+        "type": "local"
+      }
+    },
+    "cri": {
+{{- if .cri.container_manager | empty | not }}
+      "container_manager": "{{ .cri.container_manager  }}"
+{{- end }}
+    }
+  }
+}
