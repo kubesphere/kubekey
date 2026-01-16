@@ -9,6 +9,9 @@ spec:
     kube_version: {{ .kube_version }}
     # Specify the Helm version to be installed.
     helm_version: v3.8.2
+    # Tag for the sandbox (pause) image used by pods.
+    sandbox_image:
+      tag: "3.6"
     control_plane_endpoint:
       # Supported HA types: local, kube_vip, haproxy.
       # If set to local, configure local hostname resolution as follows:
@@ -46,9 +49,6 @@ spec:
   cri:
     # Container runtime type. Supported: containerd, docker.
     container_manager: docker
-    # Tag for the sandbox (pause) image used by pods.
-    sandbox_image:
-      tag: "3.6"
     # ========== CRI Tool ==========
     # crictl binary version.
     crictl_version: v1.23.0
@@ -61,8 +61,7 @@ spec:
     # runc binary version (active only when container_manager is containerd).
     # runc_version: v1.1.5
   cni:
-    # CNI plugin type (equivalent to kube_network_plugin). Supported: calico, cilium, flannel, hybridnet, kubeovn, other
-    # kube_network_plugin: calico
+    # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
     type: calico
     # ========== Multus ==========
     # Configuration for Multus plugin for multiple pod network interfaces.
@@ -76,7 +75,7 @@ spec:
     # cni_plugins_version: v1.1.1
     # ========== Calico CNI ==========
     # Calico version (effective only when type is calico).
-    calico_version: v3.24.5
+    calico_version: v3.25.2
     # ========== Cilium CNI ==========
     # Cilium version (effective only when type is cilium).
     #cilium_version: 1.14.19
@@ -111,26 +110,26 @@ spec:
     dns_cache_image:
       tag: 1.21.1
   image_manifests:
-    # calico
-    - quay.io/tigera/operator:v1.28.5
-    - docker.io/calico/apiserver:v3.24.5
-    - docker.io/calico/cni:v3.24.5
-    - docker.io/calico/ctl:v3.24.5
-    - docker.io/calico/csi:v3.24.5
-    - docker.io/calico/kube-controllers:v3.24.5
-    - docker.io/calico/node-driver-registrar:v3.24.5
-    - docker.io/calico/node:v3.24.5
-    - docker.io/calico/pod2daemon-flexvol:v3.24.5
-    - docker.io/calico/typha:v3.24.5
+    # calico for v3.25.2
+    - quay.io/tigera/operator:v1.29.6
+    - docker.io/calico/apiserver:v3.25.2
+    - docker.io/calico/cni:v3.25.2
+    - docker.io/calico/ctl:v3.25.2
+    - docker.io/calico/csi:v3.25.2
+    - docker.io/calico/kube-controllers:v3.25.2
+    - docker.io/calico/node-driver-registrar:v3.25.2
+    - docker.io/calico/node:v3.25.2
+    - docker.io/calico/pod2daemon-flexvol:v3.25.2
+    - docker.io/calico/typha:v3.25.2
     # dns
-    - docker.io/kubesphere/coredns:v1.8.6
-    - docker.io/kubesphere/k8s-dns-node-cache:1.21.1
+    - registry.k8s.io/coredns/coredns:v1.8.6
+    - registry.k8s.io/dns/k8s-dns-node-cache:1.21.1
     # kubernetes
-    - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
-    - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
-    - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
-    - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
-    - docker.io/kubesphere/pause:3.6
+    - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/pause:3.6
     # openebs/local for 4.4.0
     - docker.io/openebs/linux-utils:4.3.0
     - docker.io/openebs/provisioner-localpv:4.4.0

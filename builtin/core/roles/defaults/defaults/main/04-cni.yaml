@@ -1,7 +1,6 @@
 cni:
-  # CNI plugin to use (equivalent to kubernetes.kube_network_plugin)
+  # CNI plugin to use
   # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
-  # kube_network_plugin: calico
   type: calico
   # Maximum number of pods supported per node
   max_pods: 110
