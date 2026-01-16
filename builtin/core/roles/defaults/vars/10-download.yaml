@@ -211,6 +211,7 @@ download:
         {{- else -}}
         https://github.com/projectcalico/calico/releases/download/{{ .cni.calico_version }}/calicoctl-linux-arm64
         {{- end -}}
+    flannel: https://github.com/flannel-io/flannel/releases/download/{{ .cni.flannel_version }}/flannel.tgz
     cilium: >-
       {{- if .download.zone | eq "cn" -}}
       https://kubekey.pek3b.qingstor.com/helm.cilium.io/cilium-{{ .cni.cilium_version }}.tgz
