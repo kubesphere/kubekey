@@ -25,4 +25,4 @@ nodeRegistration:
     - name: cgroup-driver
       value: {{ .cri.cgroup_driver }}
     - name: pod-infra-container-image
-      value: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
+      value: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"

@@ -1,6 +1,8 @@
 kubernetes:
   # helm binary
   helm_version: v3.18.5
+  sandbox_image:
+    tag: "3.10.1"
   control_plane_endpoint:
     kube_vip:
       image:
@@ -26,8 +28,6 @@ image_registry:
 cri:
   # support: containerd,docker
   container_manager: containerd
-  sandbox_image:
-    tag: "3.9"
   # ========== cri ==========
   # crictl binary
   crictl_version: v1.34.0
@@ -76,7 +76,7 @@ dns:
   dns_image:
     tag: v1.12.1
   dns_cache_image:
-    tag: 1.24.0
+    tag: 1.26.4
 image_manifests:
   # calico for v3.31.3
   - quay.io/tigera/operator:v1.40.3
@@ -84,22 +84,23 @@ image_manifests:
   - docker.io/calico/cni:v3.31.3
   - docker.io/calico/ctl:v3.31.3
   - docker.io/calico/csi:v3.31.3
+  - docker.io/calico/goldmane:v3.31.3
   - docker.io/calico/kube-controllers:v3.31.3
   - docker.io/calico/node-driver-registrar:v3.31.3
   - docker.io/calico/node:v3.31.3
   - docker.io/calico/pod2daemon-flexvol:v3.31.3
   - docker.io/calico/typha:v3.31.3
-  - docker.io/calico/goldmane:v3.31.3
   - docker.io/calico/whisker-backend:v3.31.3
+  - docker.io/calico/whisker:v3.31.3
   # dns
-  - docker.io/kubesphere/coredns:v1.12.1
-  - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
+  - registry.k8s.io/coredns/coredns:v1.12.1
+  - registry.k8s.io/dns/k8s-dns-node-cache:1.26.4
   # kubernetes
-  - docker.io/kubesphere/kube-apiserver:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-controller-manager:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-proxy:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/kube-scheduler:{{ .kubernetes.kube_version }}
-  - docker.io/kubesphere/pause:3.9
+  - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/pause:3.10.1
   # openebs/local for 4.4.0
   - docker.io/openebs/linux-utils:4.3.0
   - docker.io/openebs/provisioner-localpv:4.4.0
