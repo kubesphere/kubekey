@@ -9,6 +9,9 @@ spec:
     kube_version: {{ .kube_version }}
     # Specify the Helm version to be installed.
     helm_version: v3.14.3
+    # Tag for the sandbox (pause) image used by pods.
+    sandbox_image:
+      tag: "3.10"
     control_plane_endpoint:
       # Supported HA types: local, kube_vip, haproxy.
       # If set to local, configure local hostname resolution as follows:
@@ -46,9 +49,6 @@ spec:
   cri:
     # Container runtime type. Supported: containerd, docker.
     container_manager: containerd
-    # Tag for the sandbox (pause) image used by pods.
-    sandbox_image:
-      tag: "3.8"
     # ========== CRI Tool ==========
     # crictl binary version.
     crictl_version: v1.32.0
@@ -63,8 +63,7 @@ spec:
     # runc binary version (active only when container_manager is containerd).
     # runc_version: v1.1.12
   cni:
-    # CNI plugin type (equivalent to kube_network_plugin). Supported: calico, cilium, flannel, hybridnet, kubeovn, other
-    # kube_network_plugin: calico
+    # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
     type: calico
     # ========== Multus ==========
     # Configuration for Multus plugin for multiple pod network interfaces.
@@ -108,10 +107,10 @@ spec:
   dns:
     # CoreDNS image tag.
     dns_image:
-      tag: v1.11.1
+      tag: v1.11.3
     # NodeLocalDNS image tag.
     dns_cache_image:
-      tag: 1.24.0
+      tag: 1.23.1
   image_manifests:
     # calico for v3.31.3
     - quay.io/tigera/operator:v1.40.3
@@ -119,22 +118,23 @@ spec:
     - docker.io/calico/cni:v3.31.3
     - docker.io/calico/ctl:v3.31.3
     - docker.io/calico/csi:v3.31.3
+    - docker.io/calico/goldmane:v3.31.3
     - docker.io/calico/kube-controllers:v3.31.3
     - docker.io/calico/node-driver-registrar:v3.31.3
     - docker.io/calico/node:v3.31.3
     - docker.io/calico/pod2daemon-flexvol:v3.31.3
     - docker.io/calico/typha:v3.31.3
-    - docker.io/calico/goldmane:v3.31.3
     - docker.io/calico/whisker-backend:v3.31.3
+    - docker.io/calico/whisker:v3.31.3
     # dns
-    - docker.io/kubesphere/coredns:v1.11.1
-    - docker.io/kubesphere/k8s-dns-node-cache:1.24.0
+    - registry.k8s.io/coredns/coredns:v1.11.3
+    - registry.k8s.io/dns/k8s-dns-node-cache:1.23.1
     # kubernetes
-    - docker.io/kubesphere/kube-apiserver:{{ .kube_version }}
-    - docker.io/kubesphere/kube-controller-manager:{{ .kube_version }}
-    - docker.io/kubesphere/kube-proxy:{{ .kube_version }}
-    - docker.io/kubesphere/kube-scheduler:{{ .kube_version }}
-    - docker.io/kubesphere/pause:3.8
+    - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
+    - registry.k8s.io/pause:3.10
     # openebs/local for 4.4.0
     - docker.io/openebs/linux-utils:4.3.0
     - docker.io/openebs/provisioner-localpv:4.4.0

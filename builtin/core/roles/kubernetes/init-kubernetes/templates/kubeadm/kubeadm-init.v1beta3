@@ -159,7 +159,7 @@ nodeRegistration:
   criSocket: {{ .cri.cri_socket }}
   kubeletExtraArgs:
     cgroup-driver: {{ .cri.cgroup_driver }}
-    pod-infra-container-image: "{{ .cri.sandbox_image.registry }}/{{ .cri.sandbox_image.repository }}:{{ .cri.sandbox_image.tag }}"
+    pod-infra-container-image: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
 
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1

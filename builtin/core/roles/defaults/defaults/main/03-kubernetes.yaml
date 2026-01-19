@@ -3,8 +3,14 @@ kubernetes:
   cluster_name: kubekey
 
   # Image repository for built-in Kubernetes images
-  image_repository: >- 
-    {{ .image_registry.dockerio_registry }}/kubesphere
+  image_repository: >-
+    {{ .image_registry.k8sio_registry }}
+
+  # Pause/sandbox image configuration
+  sandbox_image: 
+    registry: >-
+      {{ .image_registry.k8sio_registry }}
+    repository: pause
 
   # Kubernetes network configuration
   # kube-apiserver pod parameters

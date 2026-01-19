@@ -19,7 +19,7 @@
         - .delete.cri
         - .groups.image_registry | default list | has .inventory_hostname | not
   post_tasks:
-    - name: delete localDNS file
+    - name: DeleteCluster | Clean up local DNS configuration files
       ignore_errors: true
       loop: "{{ .native.localDNS | toJson }}"
       command: |
