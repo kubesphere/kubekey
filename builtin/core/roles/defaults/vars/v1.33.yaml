@@ -96,10 +96,10 @@ image_manifests:
   - registry.k8s.io/coredns/coredns:v1.12.0
   - registry.k8s.io/dns/k8s-dns-node-cache:1.25.0
   # kubernetes
-  - registry.k8s.io/kube-apiserver:{{ .kube_version }}
-  - registry.k8s.io/kube-controller-manager:{{ .kube_version }}
-  - registry.k8s.io/kube-proxy:{{ .kube_version }}
-  - registry.k8s.io/kube-scheduler:{{ .kube_version }}
+  - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
+  - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
   - registry.k8s.io/pause:3.10
   # openebs/local for 4.4.0
   - docker.io/openebs/linux-utils:4.3.0
