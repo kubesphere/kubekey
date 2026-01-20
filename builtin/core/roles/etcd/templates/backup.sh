@@ -34,4 +34,4 @@ export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ENDPOINTS" snapshot save $BACKU
 
 sleep 3
 
-cd $BACKUP_DIR/../ && ls -1 |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$9}}'|sh
+cd $BACKUP_DIR/../ && ls -1r |awk '{if(NR > '$KEEPBACKUPNUMBER'){print "rm -rf "$1}}'|sh
