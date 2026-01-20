@@ -96,6 +96,14 @@ const (
 	StatusFailed       KKClusterStatusType = "Failed"
 )
 
+type KKClusterKseInstallType string
+
+const (
+	KseStatusNotInstall KKClusterKseInstallType = "NotInstall"
+	KseStatusInstalling KKClusterKseInstallType = "Installing"
+	KseStatusRunning    KKClusterKseInstallType = "Running"
+)
+
 type InventoryHostConnector struct {
 	// Type to connector the host.
 	Type string `json:"type,omitempty"`
@@ -129,6 +137,8 @@ type InventoryHost struct {
 type KKClusterSpec struct {
 	// InventoryHosts contains all hosts of the cluster.
 	InventoryHosts []InventoryHost `json:"inventory,omitempty"`
+	//InventoryCount shows node count of current cluster
+	InventoryCount int `json:"inventoryCount,omitempty"`
 	// which Group defined in Inventory will be checked. there is some default group by system:
 	// - all: contains all hosts
 	// - ungrouped: contains hosts which do not belong to any groups.
@@ -154,6 +164,9 @@ type KKClusterStatus struct {
 
 	// Status
 	Status KKClusterStatusType `json:"status,omitempty"`
+
+	// KseStatus kse install type of current cluster
+	KseStatus KKClusterKseInstallType `json:"kseStatus,omitempty"`
 
 	// FailureReason
 	FailureReason KKClusterFailedReason `json:"failureReason,omitempty"`

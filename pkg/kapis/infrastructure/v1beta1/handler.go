@@ -480,7 +480,6 @@ func (h *Handler) GetKKClusterList(req *restful.Request, resp *restful.Response)
 		if err != nil {
 			return false
 		}
-
 		return query.DefaultObjectMetaCompare(leftMeta, rightMeta, sortBy)
 	}, func(o v1beta1.KKCluster, filter query.Filter) bool {
 		// Skip fieldselector filter.
@@ -491,9 +490,9 @@ func (h *Handler) GetKKClusterList(req *restful.Request, resp *restful.Response)
 		if err != nil {
 			return false
 		}
-
 		return query.DefaultObjectMetaFilter(objectMeta, filter)
 	}, func(cluster v1beta1.KKCluster) v1beta1.KKCluster {
+		cluster.Spec.InventoryCount = len(cluster.Spec.InventoryHosts)
 		cluster.Spec.InventoryHosts = nil
 		return cluster
 	})
