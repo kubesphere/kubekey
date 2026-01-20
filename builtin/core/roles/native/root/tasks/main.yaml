@@ -25,9 +25,11 @@
                     NEW_PATH="$NEW_PATH:$path"
                 fi
             done
-            echo "new secure_path: $NEW_PATH"
-            sed -i "s/^Defaults.*secure_path/# &/" "$TMP_FILE"
-            echo "Defaults secure_path=\"$NEW_PATH\"" >> "$TMP_FILE"
+            if [ "$NEW_PATH" != "$EXISTING_PATH" ]; then
+                echo "new secure_path: $NEW_PATH"
+                sed -i "s/^Defaults.*secure_path/# &/" "$TMP_FILE"
+                echo "Defaults secure_path=\"$NEW_PATH\"" >> "$TMP_FILE"
+            fi
         else
             echo "warning: can not get current secure_path"
             echo "Defaults secure_path=\"$ADD_PATHS\"" >> "$TMP_FILE"
