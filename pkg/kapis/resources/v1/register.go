@@ -8,6 +8,7 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
 	"github.com/kubesphere/kubekey/v4/pkg/web/handler"
+	"github.com/kubesphere/kubekey/v4/pkg/web/query"
 	"k8s.io/client-go/rest"
 	"net/http"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,6 +29,17 @@ func AddToContainer(c *restful.Container, client ctrlclient.Client, cfg *rest.Co
 		Doc("pre check host ssh connect information").
 		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.IPHostCheckResult]{}))
+
+	webService.Route(webService.GET("/ip").To(resourceHandler.ListIP).
+		Doc("list available ip from ip cidr").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}).
+		Param(webService.QueryParameter("cidr", "the cidr for ip").Required(true)).
+		Param(webService.QueryParameter("sshPort", "the ssh port for ip").Required(false)).
+		Param(webService.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
+		Param(webService.QueryParameter(query.ParameterLimit, "limit").Required(false)).
+		Param(webService.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
+		Param(webService.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=ip").Required(false).DefaultValue("ip")).
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.IPTable]{}))
 
 	webService.Route(webService.GET("/schema/summary").
 		To(h.GetSchemaSummary).
