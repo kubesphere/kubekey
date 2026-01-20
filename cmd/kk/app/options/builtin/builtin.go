@@ -61,7 +61,7 @@ func getConfig(kubeVersion string) ([]byte, error) {
 		return nil, errors.Wrapf(err, "failed to get local configFile template for kube_version: %q. Please set it by \"--config\"", kubeVersion)
 	}
 	data := bytes.NewBuffer(nil)
-	if err := t.Execute(data, map[string]string{"kube_version": kubeVersion}); err != nil {
+	if err := t.Execute(data, map[string]any{"kubernetes": map[string]any{"kube_version": kubeVersion}}); err != nil {
 		return nil, errors.Wrapf(err, "failed to parse local configFile template for kube_version: %q. Please set it by \"--config\"", kubeVersion)
 	}
 
