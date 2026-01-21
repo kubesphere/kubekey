@@ -99,6 +99,7 @@ const (
 type KKClusterKseInstallType string
 
 const (
+	KseStatusPending    KKClusterKseInstallType = "Pending"
 	KseStatusNotInstall KKClusterKseInstallType = "NotInstall"
 	KseStatusInstalling KKClusterKseInstallType = "Installing"
 	KseStatusRunning    KKClusterKseInstallType = "Running"

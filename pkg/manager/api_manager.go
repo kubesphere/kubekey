@@ -13,8 +13,9 @@ import (
 )
 
 type ApiManager struct {
-	port    int
-	workdir string
+	port       int
+	workdir    string
+	schemaPath string
 
 	// webservice container, where all webservice defines
 	container *restful.Container
@@ -25,19 +26,21 @@ type ApiManager struct {
 }
 
 type ApiManagerOptions struct {
-	Port    int
-	Workdir string
-	Client  ctrlclient.Client
-	Config  *rest.Config
+	Port       int
+	Workdir    string
+	SchemaPath string
+	Client     ctrlclient.Client
+	Config     *rest.Config
 }
 
 func NewApiManager(opts ApiManagerOptions) *ApiManager {
 
 	return &ApiManager{
-		port:    opts.Port,
-		workdir: opts.Workdir,
-		client:  opts.Client,
-		config:  opts.Config,
+		port:       opts.Port,
+		workdir:    opts.Workdir,
+		schemaPath: opts.SchemaPath,
+		client:     opts.Client,
+		config:     opts.Config,
 		server: &http.Server{
 			Addr: fmt.Sprintf(":%d", opts.Port),
 		},
@@ -65,5 +68,5 @@ func (a *ApiManager) PrepareRun(stopCh <-chan struct{}) error {
 
 func (a *ApiManager) installWebInstallerApi(stopCh <-chan struct{}) {
 	urlruntime.Must(v1beta1.AddToContainer(a.container, a.client, a.config, a.workdir))
-	urlruntime.Must(resourcesv1.AddToContainer(a.container, a.client, a.config, a.workdir))
+	urlruntime.Must(resourcesv1.AddToContainer(a.container, a.client, a.config, a.workdir, a.schemaPath))
 }

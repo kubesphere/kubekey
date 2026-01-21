@@ -418,11 +418,11 @@ func (h *Handler) GetKKMachineList(req *restful.Request, resp *restful.Response)
 	}
 
 	result := query.DefaultList(items.Items, queryParam, func(left, right v1beta1.KKMachine, sortBy string) bool {
-		leftMeta, err := meta.Accessor(left)
+		leftMeta, err := meta.Accessor(&left)
 		if err != nil {
 			return false
 		}
-		rightMeta, err := meta.Accessor(right)
+		rightMeta, err := meta.Accessor(&right)
 		if err != nil {
 			return false
 		}
@@ -433,7 +433,7 @@ func (h *Handler) GetKKMachineList(req *restful.Request, resp *restful.Response)
 		if filter.Field == query.ParameterFieldSelector {
 			return true
 		}
-		objectMeta, err := meta.Accessor(o)
+		objectMeta, err := meta.Accessor(&o)
 		if err != nil {
 			return false
 		}
@@ -472,11 +472,11 @@ func (h *Handler) GetKKClusterList(req *restful.Request, resp *restful.Response)
 	}
 
 	result := query.DefaultList(items.Items, queryParam, func(left, right v1beta1.KKCluster, sortBy string) bool {
-		leftMeta, err := meta.Accessor(left)
+		leftMeta, err := meta.Accessor(&left)
 		if err != nil {
 			return false
 		}
-		rightMeta, err := meta.Accessor(right)
+		rightMeta, err := meta.Accessor(&right)
 		if err != nil {
 			return false
 		}
@@ -486,7 +486,7 @@ func (h *Handler) GetKKClusterList(req *restful.Request, resp *restful.Response)
 		if filter.Field == query.ParameterFieldSelector {
 			return true
 		}
-		objectMeta, err := meta.Accessor(o)
+		objectMeta, err := meta.Accessor(&o)
 		if err != nil {
 			return false
 		}

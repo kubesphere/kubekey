@@ -15,15 +15,15 @@ import (
 	"strings"
 )
 
-func AddToContainer(c *restful.Container, client ctrlclient.Client, cfg *rest.Config, workDir string) error {
+func AddToContainer(c *restful.Container, client ctrlclient.Client, cfg *rest.Config, workDir, schemaPath string) error {
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
-	h := NewHandler(client, cfg, workDir)
+	h := NewHandler(client, cfg, workDir, schemaPath)
 	webService := new(restful.WebService)
 	webService.Path(strings.TrimRight(api.ResourcesAPIPath, "/")).
 		Produces(mimePatch...)
 
 	// only used for pre check host ,root path not needed
-	resourceHandler := handler.NewResourceHandler("", workDir, client)
+	resourceHandler := handler.NewResourceHandler(schemaPath, workDir, client)
 
 	webService.Route(webService.POST("/ip").To(resourceHandler.PreCheckHost).
 		Doc("pre check host ssh connect information").
@@ -48,6 +48,16 @@ func AddToContainer(c *restful.Container, client ctrlclient.Client, cfg *rest.Co
 		Param(webService.QueryParameter("kk-cluster-name", "kk cluster name")).
 		Doc("describe kk machine list").
 		Metadata(restfulspec.KeyOpenAPITags, []string{_const.CapkkTag}))
+
+	webService.Route(webService.GET("/schema").To(h.ListSchema).
+		Doc("list all schema as table").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}).
+		Param(webService.QueryParameter("cluster", "The namespace where the cluster resides").Required(false).DefaultValue("default")).
+		Param(webService.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d")).
+		Param(webService.QueryParameter(query.ParameterLimit, "limit").Required(false)).
+		Param(webService.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
+		Param(webService.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=priority")).
+		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.SchemaTable]{}))
 
 	c.Add(webService)
 	return nil

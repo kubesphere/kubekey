@@ -38,10 +38,11 @@ func ApiServerCommand() *cobra.Command {
 			ctx := cmd.Context()
 
 			mgr := manager.NewApiManager(manager.ApiManagerOptions{
-				Workdir: o.Workdir,
-				Port:    o.Port,
-				Client:  client,
-				Config:  restconfig,
+				Workdir:    o.Workdir,
+				SchemaPath: o.SchemaPath,
+				Port:       o.Port,
+				Client:     client,
+				Config:     restconfig,
 			})
 
 			if err = mgr.PrepareRun(ctx.Done()); err != nil {
