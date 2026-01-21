@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -120,8 +121,8 @@ func NewCreateConfigOptions() *CreateConfigOptions {
 type CreateConfigOptions struct {
 	// kubernetes version which the config will install.
 	Kubernetes string
-	// OutputDir for config file. if set will generate file in this dir
-	OutputDir string
+	// OutputPath for config file (can be file or directory path)
+	OutputPath string
 }
 
 // Flags add to newCreateConfigCommand
@@ -129,7 +130,7 @@ func (o *CreateConfigOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
-	kfs.StringVarP(&o.OutputDir, "output", "o", o.OutputDir, "Output dir for config. if not set will output to stdout")
+	kfs.StringVarP(&o.OutputPath, "output", "o", o.OutputPath, "Output path for config file (file or directory). if not set will output to stdout")
 
 	return fss
 }
@@ -143,9 +144,12 @@ func (o *CreateConfigOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	if o.OutputDir != "" {
-		// Write config to file if output directory is specified
-		filename := filepath.Join(o.OutputDir, fmt.Sprintf("config-%s.yaml", o.Kubernetes))
+	if o.OutputPath != "" {
+		// Resolve output path (file or directory)
+		filename, err := resolveOutputPath(o.OutputPath, fmt.Sprintf("config-%s.yaml", o.Kubernetes))
+		if err != nil {
+			return err
+		}
 		if err := os.WriteFile(filename, data, 0644); err != nil {
 			return errors.Wrapf(err, "failed to write config file to %s", filename)
 		}
@@ -170,15 +174,15 @@ func NewCreateInventoryOptions() *CreateInventoryOptions {
 
 // CreateInventoryOptions for NewCreateInventoryOptions
 type CreateInventoryOptions struct {
-	// OutputDir for inventory file. if set will generate file in this dir
-	OutputDir string
+	// OutputPath for inventory file (can be file or directory path)
+	OutputPath string
 }
 
 // Flags add to newCreateInventoryCommand
 func (o *CreateInventoryOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	kfs := fss.FlagSet("inventory")
-	kfs.StringVarP(&o.OutputDir, "output", "o", o.OutputDir, "Output dir for inventory. if not set will output to stdout")
+	kfs.StringVarP(&o.OutputPath, "output", "o", o.OutputPath, "Output path for inventory file (file or directory). if not set will output to stdout")
 
 	return fss
 }
@@ -190,9 +194,12 @@ func (o *CreateInventoryOptions) Run() error {
 		return err
 	}
 
-	if o.OutputDir != "" {
-		// Write inventory to file if output directory is specified
-		filename := filepath.Join(o.OutputDir, "inventory.yaml")
+	if o.OutputPath != "" {
+		// Resolve output path (file or directory)
+		filename, err := resolveOutputPath(o.OutputPath, "inventory.yaml")
+		if err != nil {
+			return err
+		}
 		if err := os.WriteFile(filename, data, 0644); err != nil {
 			return errors.Wrapf(err, "failed to write inventory file to %s", filename)
 		}
@@ -203,4 +210,47 @@ func (o *CreateInventoryOptions) Run() error {
 	}
 
 	return nil
+}
+
+// resolveOutputPath determines if the output path is a file or directory.
+// If it's a directory (or looks like one), it returns directory/defaultFilename.
+// If it's a file (or looks like one), it returns the path directly.
+func resolveOutputPath(output, defaultFilename string) (string, error) {
+	// If output is empty, return empty (will use stdout)
+	if output == "" {
+		return "", nil
+	}
+
+	// Check if path exists
+	info, err := os.Stat(output)
+	if err == nil {
+		// Path exists
+		if info.IsDir() {
+			// It's a directory, append default filename
+			return filepath.Join(output, defaultFilename), nil
+		}
+		// It's a file, use it directly
+		return output, nil
+	}
+
+	// Explicitly check if error is "not exist"
+	if !os.IsNotExist(err) {
+		// An error other than "not exist" occurred, e.g. permission denied
+		return "", errors.Wrapf(err, "failed to stat output path %q", output)
+	}
+
+	// Path doesn't exist, use heuristics
+	// If it has a file extension, treat as file
+	ext := filepath.Ext(output)
+	if ext != "" {
+		return output, nil
+	}
+
+	// If it ends with separator, treat as directory
+	if strings.HasSuffix(output, string(filepath.Separator)) {
+		return filepath.Join(output, defaultFilename), nil
+	}
+
+	// Default: treat as directory (backward compatible)
+	return filepath.Join(output, defaultFilename), nil
 }
