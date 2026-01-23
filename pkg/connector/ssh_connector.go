@@ -129,9 +129,9 @@ type sshConnector struct {
 // Init establishes SSH connection with the following authentication priority:
 // - Password: Always included if set (independent)
 // - Key auth (exclusive priority):
-//   1. PrivateKeyContent - if set, use ONLY this
-//   2. PrivateKey path - if set and content not set, use ONLY this
-//   3. Default ~/.ssh/id_rsa - fallback if neither is set
+//  1. PrivateKeyContent - if set, use ONLY this
+//  2. PrivateKey path - if set and content not set, use ONLY this
+//  3. Default ~/.ssh/id_rsa - fallback if neither is set
 func (c *sshConnector) Init(context.Context) error {
 	if c.Host == "" {
 		return errors.New("host is not set")

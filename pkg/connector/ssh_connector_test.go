@@ -17,6 +17,7 @@ limitations under the License.
 package connector
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -200,7 +201,7 @@ func TestSSHConnector_InitValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.connector.Init(nil)
+			err := tc.connector.Init(context.TODO())
 
 			if tc.shouldError {
 				if err == nil {
