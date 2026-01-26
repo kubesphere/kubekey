@@ -1214,11 +1214,15 @@
     "etcd": {
         "amd64": {
             "v3.4.13": "2ac029e47bab752dacdb7b30032f230f49e2f457cbc32e8f555c2210bb5ff107",
-            "v3.5.13": "31e6fcbee0e8c3df27cf1ba69b522e338377f5ed6447f5d05700aee367f3b7e7"
+            "v3.5.13": "31e6fcbee0e8c3df27cf1ba69b522e338377f5ed6447f5d05700aee367f3b7e7",
+            "v3.5.22": "20174ab70a6f3df94da13ecac4610f42c47d25af82426f21c112c2c841ec499a",
+            "v3.5.24": "042497e2ddcee06f22e5d486d81f58affa26b53ee423e2a6aaca3d3ea98c8191"
         },
         "arm64": {
             "v3.4.13": "1934ebb9f9f6501f706111b78e5e321a7ff8d7792d3d96a76e2d01874e42a300",
-            "v3.5.13": "2854993bf622764ccdeb7a146fae2965cb0fcba93c5c8f391e0d5f153c8a7a02"
+            "v3.5.13": "2854993bf622764ccdeb7a146fae2965cb0fcba93c5c8f391e0d5f153c8a7a02",
+            "v3.5.22": "22aca5a253c4a9f2850300b0a1dd209587586ff0e985f5cb1c34e9e5edc07848",
+            "v3.5.24": "efc01f6b3fbef0f000cb53bcad4845c116d7fdd8769ca39d9c40d2fe4d2e509f"
         }
     },
     "helm": {
