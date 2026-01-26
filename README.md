@@ -136,5 +136,5 @@ If `-i inventory.yaml` is not provided, the default inventory.yaml is used. Kube
 If `-c config.yaml` is not provided, the default config.yaml is used. Installs Kubernetes version v1.33.1.
 
 # Documentation
-**[Custom Playbook](docs/en/custom/README.md)**
+**[Custom Playbook](docs/en/custom/README.md)**    
 **[Kubernetes Playbook](docs/en/core/README.md)**
