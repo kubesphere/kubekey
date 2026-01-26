@@ -136,5 +136,5 @@ kk create cluster -i inventory.yaml -c config.yaml
 `-c config.yaml`不传时，使用默认的config.yaml. 安装 v1.33.1 版本的kubernetes
 
 # 文档
-**[自定义 任务](docs/zh/custom/README.md)**
+**[自定义 任务](docs/zh/custom/README.md)**    
 **[Kubernetes 任务](docs/zh/core/README.md)**
