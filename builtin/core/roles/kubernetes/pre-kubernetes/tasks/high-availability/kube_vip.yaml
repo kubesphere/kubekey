@@ -36,7 +36,7 @@
           {{ $interface }}
     - name: Kubevip | Ensure matching network interface exists
       assert:
-        that: .kube_vip_interface | empty
+        that: .kube_vip_interface | empty | not
         fail_msg: "Kubevip: Unable to find a network interface matching the kube-vip address."    
 
 - name: Kubevip | Generate kube-vip manifest file
