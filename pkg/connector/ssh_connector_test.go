@@ -197,6 +197,19 @@ func TestSSHConnector_InitValidation(t *testing.T) {
 			shouldError: true,
 			errorMsg:    "no authentication method available",
 		},
+		{
+			name: "explicit private key path that doesn't exist (should fail)",
+			connector: &sshConnector{
+				Host:              "test-host",
+				Port:              22,
+				User:              "root",
+				Password:          "test-password",
+				PrivateKey:        "/tmp/custom/nonexistent/key.pem", // Explicit custom path (not default)
+				PrivateKeyContent: "",
+			},
+			shouldError: true,
+			errorMsg:    "private key file not found",
+		},
 	}
 
 	for _, tc := range testCases {

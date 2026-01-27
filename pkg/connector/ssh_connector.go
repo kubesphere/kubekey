@@ -130,8 +130,8 @@ type sshConnector struct {
 // - Password: Always included if set (independent)
 // - Key auth (exclusive priority):
 //  1. PrivateKeyContent - if set, use ONLY this
-//  2. PrivateKey path - if set and content not set, use ONLY this
-//  3. Default ~/.ssh/id_rsa - fallback if neither is set
+//  2. PrivateKey path - if explicitly set and content not set, use ONLY this
+//  3. Default ~/.ssh/id_rsa - use if exists, skip silently if missing (allows password-only)
 func (c *sshConnector) Init(context.Context) error {
 	if c.Host == "" {
 		return errors.New("host is not set")
@@ -155,19 +155,38 @@ func (c *sshConnector) Init(context.Context) error {
 		klog.V(4).InfoS("using private key content for authentication")
 	} else if c.PrivateKey != "" {
 		// Priority 2: Use ONLY PrivateKey path (if content not set)
-		if _, err := os.Stat(c.PrivateKey); err != nil {
-			return errors.Wrapf(err, "private key file not found: %s", c.PrivateKey)
+
+		// Check if this is the default key path
+		isDefaultKey := c.PrivateKey == defaultSSHPrivateKey
+		_, statErr := os.Stat(c.PrivateKey)
+
+		if statErr != nil {
+			// If the file doesn't exist, we have special handling.
+			if os.IsNotExist(statErr) {
+				if isDefaultKey {
+					// For the default key, non-existence is not an error. We just skip it.
+					klog.V(4).InfoS("default private key file not found, skipping key auth", "path", c.PrivateKey)
+				} else {
+					// For an explicitly provided key, non-existence is a configuration error.
+					return errors.Wrapf(statErr, "private key file not found: %s", c.PrivateKey)
+				}
+			} else {
+				// For any other error (e.g., permissions), it's always a failure.
+				return errors.Wrapf(statErr, "failed to stat private key file: %s", c.PrivateKey)
+			}
+		} else {
+			// File exists, proceed with key auth
+			key, err := os.ReadFile(c.PrivateKey)
+			if err != nil {
+				return errors.Wrapf(err, "failed to read private key %q", c.PrivateKey)
+			}
+			privateKey, err := ssh.ParsePrivateKey(key)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
+			}
+			auth = append(auth, ssh.PublicKeys(privateKey))
+			klog.V(4).InfoS("using private key file for authentication", "path", c.PrivateKey)
 		}
-		key, err := os.ReadFile(c.PrivateKey)
-		if err != nil {
-			return errors.Wrapf(err, "failed to read private key %q", c.PrivateKey)
-		}
-		privateKey, err := ssh.ParsePrivateKey(key)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
-		}
-		auth = append(auth, ssh.PublicKeys(privateKey))
-		klog.V(4).InfoS("using private key file for authentication", "path", c.PrivateKey)
 	}
 	// Note: If neither content nor path is set, c.PrivateKey already has default from newSSHConnector line 89
 
