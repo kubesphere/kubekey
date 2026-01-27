@@ -67,7 +67,7 @@ Recommended etcd versions for each Kubernetes version:
 | 1.29.11\~1.29.15 | 3.5.16 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.11/cmd/kubeadm/app/constants/constants.go |
 | 1.30.0\~1.30.4 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.30.0/cmd/kubeadm/app/constants/constants.go |
 | 1.30.5\~1.30.14 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.30.5/cmd/kubeadm/app/constants/constants.go |
-| 1.31.0\~1.30.13 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cmd/kubeadm/app/constants/constants.go |
+| 1.31.0\~1.31.13 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cmd/kubeadm/app/constants/constants.go |
 | 1.31.14 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.31.14/cmd/kubeadm/app/constants/constants.go |
 | 1.32.0\~1.32.9 | 3.5.16 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.32.0/cmd/kubeadm/app/constants/constants.go |
 | 1.32.10\~1.32.11 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.32.10/cmd/kubeadm/app/constants/constants.go |
