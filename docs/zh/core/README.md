@@ -52,7 +52,6 @@
 | 1.26.0\~1.26.9 | 3.5.6 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.26.0/cmd/kubeadm/app/constants/constants.go |
 | 1.26.10\~1.26.12 | 3.5.9 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.26.10/cmd/kubeadm/app/constants/constants.go |
 | 1.26.13\~1.26.15 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.26.13/cmd/kubeadm/app/constants/constants.go |
-
 | 1.27.0\~1.27.6 | 3.5.7 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.0/cmd/kubeadm/app/constants/constants.go |
 | 1.27.7\~1.27.9 | 3.5.9 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.7/cmd/kubeadm/app/constants/constants.go |
 | 1.27.10\~1.27.11 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.10/cmd/kubeadm/app/constants/constants.go |
