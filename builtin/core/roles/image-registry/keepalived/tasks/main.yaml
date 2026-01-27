@@ -36,7 +36,7 @@
           {{ $interface }}
     - name: Keepalived | Ensure matching network interface exists
       assert:
-        that: .kube_vip_interface | empty
+        that: .ha_vip_interface | empty
         fail_msg: "Cannot find a network interface that matches the HA VIP."
 
 - name: Keepalived | Synchronize keepalived image to remote host
