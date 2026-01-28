@@ -28,7 +28,7 @@
                 {{- $needInstalled = append $needInstalled . -}}
               {{- end -}}
             {{- end -}}
-            {{ $needInstalled | toJson }}
+            {{ $needInstalled | toJson | quote }}
 
 - name: Prepare | Check installed etcd version
   when: .etcd_install_LoadState.stdout | eq "loaded"
