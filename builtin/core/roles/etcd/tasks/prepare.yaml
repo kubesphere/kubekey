@@ -28,6 +28,7 @@
                 {{- $needInstalled = append $needInstalled . -}}
               {{- end -}}
             {{- end -}}
+            {{/* Ensure value is a string to prevent YAML type coercion */}}
             {{ $needInstalled | toJson | quote }}
 
 - name: Prepare | Check installed etcd version
