@@ -1,0 +1,67 @@
+download:
+  # if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
+  zone: ""
+  # default cn zone file storage host
+  cn_host: kubekey.pek3b.qingstor.com
+  arch: [ "amd64" ]
+  # offline artifact package for kk.
+  artifact_file: ""
+  # the md5_file of artifact_file.
+  artifact_md5: ""
+  download_iso: false
+
+  images:
+    # Determines whether to pull images from remote repositories.
+    # Set to false if images are already present locally and remote validation is unnecessary.
+    fetch: true
+    # Architectures for which images should be downloaded.
+    arch: "{{ .download.arch | toJson }}"
+    
+    # kubernetes images list
+    openebs-localpv/localpv-provisioner:
+      "4.4.0":
+        - docker.io/openebs/linux-utils:4.3.0
+        - docker.io/openebs/provisioner-localpv:4.4.0
+    nfs-subdir-external-provisioner/nfs-subdir-external-provisioner:
+      "4.0.18":
+        - registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+    projectcalico/tigera-operator:
+      v3.24.5:
+        - quay.io/tigera/operator:v1.28.5
+        - docker.io/calico/ctl:v3.24.5
+
+      v3.26.5:
+      v3.28.5:
+      v3.29.7: # refer https://docs.tigera.io/calico/3.29/reference/component-versions
+        - quay.io/tigera/operator:v1.36.16
+        - docker.io/calico/ctl:v3.29.7
+        - docker.io/calico/typha:v3.29.7
+        - quay.io/calico/node:v3.29.7
+        #- docker.io/calico/node-windows:v3.29.7
+        - docker.io/calico/cni:v3.29.7
+        #- docker.io/calico/cni-windows:v3.29.7
+        - docker.io/calico/apiserver:v3.29.7
+        - docker.io/calico/kube-controllers:v3.29.7
+        - docker.io/calico/flannel-migration-controller:v3.29.7
+        # - docker.io/calico/cni-windows:v3.29.7
+        - docker.io/calico/networking-calico:v3.29.7
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.29.7
+        - quay.io/calico/pod2daemon-flexvol:v3.29.7
+        - docker.io/calico/csi-driver:v3.29.7
+        - docker.io/calico/csi-node-driver-registrar:v3.29.7
+      v3.30.5:
+      v3.31.3:
+    cilium/cilium:
+      "1.14.19":
+      "1.15.19":
+      "1.16.18":
+      "1.17.11":
+      "1.18.5":
+    flannel/flannel:
+      v0.27.4:
+    kubeovn/kube-ovn:
+      v1.13.15:
+      v1.15.0:
+    hybridnet/hybridnet:
+      0.6.8:
