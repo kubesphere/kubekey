@@ -127,6 +127,7 @@ Default config configurations are provided as references for different Kubernete
 - [Config for installing Kubernetes v1.31.x](builtin/core/defaults/config/v1.31.yaml)
 - [Config for installing Kubernetes v1.32.x](builtin/core/defaults/config/v1.32.yaml)
 - [Config for installing Kubernetes v1.33.x](builtin/core/defaults/config/v1.33.yaml)
+- [Config for installing Kubernetes v1.34.x](builtin/core/defaults/config/v1.34.yaml)
 
 ## Install cluster
 ```shell
