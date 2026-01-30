@@ -41,6 +41,9 @@ func AddToContainer(c *restful.Container, client ctrlclient.Client, cfg *rest.Co
 		Param(webService.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=ip").Required(false).DefaultValue("ip")).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.IPTable]{}))
 
+	webService.Route(webService.GET("/schema/{subpath:*}").To(resourceHandler.SchemaInfo).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
+
 	webService.Route(webService.GET("/schema/summary").
 		To(h.GetSchemaSummary).
 		Returns(http.StatusOK, api.StatusOK, v1beta1.KKClusterList{}).
@@ -58,6 +61,10 @@ func AddToContainer(c *restful.Container, client ctrlclient.Client, cfg *rest.Co
 		Param(webService.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("false")).
 		Param(webService.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=priority")).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult[api.SchemaTable]{}))
+
+	webService.Route(webService.GET("/schema/config").To(resourceHandler.ConfigInfo).
+		Doc("get user-defined configuration information").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
 
 	c.Add(webService)
 	return nil

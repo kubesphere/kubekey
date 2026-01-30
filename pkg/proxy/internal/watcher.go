@@ -17,29 +17,34 @@ limitations under the License.
 package internal
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
-
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/fsnotify/fsnotify"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/klog/v2"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // fileWatcher watcher local dir resource files.
 type fileWatcher struct {
-	prefix      string
-	codec       runtime.Codec
-	newFunc     func() runtime.Object
-	watcher     *fsnotify.Watcher
-	watchEvents chan watch.Event
+	prefix       string
+	codec        runtime.Codec
+	newFunc      func() runtime.Object
+	watcher      *fsnotify.Watcher
+	watchEvents  chan watch.Event
+	cachedObject map[string]runtime.Object
 }
 
 // newFileWatcher get fileWatcher
-func newFileWatcher(prefix, path string, codec runtime.Codec, newFunc func() runtime.Object) (watch.Interface, error) {
+func newFileWatcher(prefix, path string, codec runtime.Codec, newFunc func() runtime.Object, newList runtime.Object) (watch.Interface, error) {
 	if _, err := os.Stat(path); err != nil {
 		if !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "failed to stat path %q", path)
@@ -64,28 +69,111 @@ func newFileWatcher(prefix, path string, codec runtime.Codec, newFunc func() run
 		}
 		for _, e := range entry {
 			if e.IsDir() {
-				if err := watcher.Add(filepath.Join(prefix, e.Name())); err != nil {
+				p := filepath.Join(prefix, e.Name())
+				if err := watcher.Add(p); err != nil {
 					return nil, errors.Wrapf(err, "failed to add namespace dir to file watcher %q", e.Name())
 				}
 			}
 		}
 	}
 
+	var newObject = make(map[string]runtime.Object)
+	items, _ := meta.ExtractList(newList)
+	var gvk schema.GroupVersionKind
+	for _, item := range items {
+		if itemGvk := item.GetObjectKind().GroupVersionKind(); !itemGvk.Empty() && gvk.Empty() {
+			gvk = itemGvk
+		}
+		metaObj, err := meta.Accessor(item)
+		if err != nil {
+			continue
+		}
+		newObject[fmt.Sprintf("%s/%s", metaObj.GetNamespace(), metaObj.GetName())] = item
+	}
+
 	w := &fileWatcher{
-		prefix:      prefix,
-		codec:       codec,
-		watcher:     watcher,
-		newFunc:     newFunc,
-		watchEvents: make(chan watch.Event),
+		prefix:       prefix,
+		codec:        codec,
+		watcher:      watcher,
+		newFunc:      newFunc,
+		watchEvents:  make(chan watch.Event, 10),
+		cachedObject: newObject,
 	}
 
 	go w.watch()
 
+	w.handleBookMark(newList, items, gvk)
+
 	return w, nil
+}
+
+func (w *fileWatcher) handleBookMark(listObj runtime.Object, items []runtime.Object, gvk schema.GroupVersionKind) {
+	evt, err := handleBookmark(listObj, gvk)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	w.watchEvents <- *evt
+}
+
+func handleBookmark(obj runtime.Object, gvk schema.GroupVersionKind) (*watch.Event, error) {
+
+	// 创建Bookmark对象
+	bookmarkObj, err := createInitialEventsEndBookmark(gvk)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bookmark object: %w", err)
+	}
+
+	// 创建watch事件
+	event := &watch.Event{
+		Type:   watch.Bookmark,
+		Object: bookmarkObj,
+	}
+
+	return event, nil
+}
+
+// createInitialEventsEndBookmark 创建带initial-events-end注解的Bookmark对象
+func createInitialEventsEndBookmark(gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
+	// 创建Bookmark对象
+	bookmarkObj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": gvk.GroupVersion().String(),
+			"kind":       gvk.Kind,
+			"metadata": map[string]interface{}{
+				"resourceVersion": "1",
+				"annotations": map[string]interface{}{
+					"k8s.io/initial-events-end": "true",
+				},
+				// 添加必要的元数据字段
+				"creationTimestamp": metav1.Now(),
+			},
+		},
+	}
+
+	// 设置GVK
+	bookmarkObj.SetGroupVersionKind(gvk)
+
+	// 为Bookmark对象生成一个合理的UID
+	bookmarkObj.SetUID(generateBookmarkUID(gvk, gvk.Version))
+
+	return bookmarkObj, nil
+}
+
+// generateBookmarkUID 为Bookmark生成UID
+func generateBookmarkUID(gvk schema.GroupVersionKind, resourceVersion string) types.UID {
+	// 使用GVK和resourceVersion生成一个确定的UID
+	uidStr := fmt.Sprintf("bookmark-%s-%s-%s-%s",
+		gvk.Group,
+		gvk.Version,
+		gvk.Kind,
+		resourceVersion)
+	return types.UID(uidStr)
 }
 
 // Stop watch
 func (w *fileWatcher) Stop() {
+	close(w.watchEvents)
 	if err := w.watcher.Close(); err != nil {
 		klog.ErrorS(err, "failed to close file watcher")
 	}
@@ -133,6 +221,7 @@ func (w *fileWatcher) watch() {
 
 		case err := <-w.watcher.Errors:
 			klog.V(6).ErrorS(err, "file watcher error")
+			fmt.Println(err, "file watcher error")
 
 			return
 		}

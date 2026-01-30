@@ -80,8 +80,15 @@ func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, 
 // NewStorage for KKCluster storage
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (kkClusterStorage, error) {
 	store := &apiregistry.Store{
-		NewFunc:                   func() runtime.Object { return &v1beta1.KKCluster{} },
-		NewListFunc:               func() runtime.Object { return &v1beta1.KKClusterList{} },
+		NewFunc: func() runtime.Object { return &v1beta1.KKCluster{} },
+		NewListFunc: func() runtime.Object {
+			return &v1beta1.KKClusterList{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KKClusterList",
+					APIVersion: v1beta1.SchemeGroupVersion.String(),
+				},
+			}
+		},
 		DefaultQualifiedResource:  kkcorev1.SchemeGroupVersion.WithResource("kkclusters").GroupResource(),
 		SingularQualifiedResource: kkcorev1.SchemeGroupVersion.WithResource("kkcluster").GroupResource(),
 

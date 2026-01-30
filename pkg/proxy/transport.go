@@ -17,16 +17,24 @@ limitations under the License.
 package proxy
 
 import (
+	"bufio"
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/capkk/kkcluster"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/capkk/kkmachine"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/capkk/kkmachinetemplate"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -86,11 +94,25 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 				APIPrefixes: sets.NewString("apis"),
 			})
 		},
+		watchers: make(map[string]*watchStream),
 	}
 	if restConfig.Host != "" {
 		clientFor, err := rest.HTTPClientFor(restConfig)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create http client")
+		}
+		if tpr, ok := clientFor.Transport.(*http.Transport); ok {
+			keyLogFilePath := "/path/to/sslkeys.log"
+			keyLogFile, err := os.OpenFile(keyLogFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if tpr.TLSClientConfig == nil {
+				tpr.TLSClientConfig = &tls.Config{}
+			}
+			tpr.TLSClientConfig.KeyLogWriter = keyLogFile
+			// 添加更多调试信息
+			fmt.Println("已配置 TLS KeyLogWriter")
 		}
 		lt.restClient = clientFor
 	}
@@ -291,8 +313,15 @@ func addCapkkStorage(kkv1 *apiResources, runtimedir string) error {
 // responseWriter implements http.ResponseWriter for capturing HTTP responses locally.
 // It writes response body to an internal buffer but directly sets headers/status on the *http.Response.
 type responseWriter struct {
-	resp *http.Response // The response object to write headers and status to.
-	buf  bytes.Buffer   // Buffer to capture the response body.
+	resp    *http.Response // The response object to write headers and status to.
+	buf     bytes.Buffer   // Buffer to capture the response body.
+	flusher http.Flusher
+}
+
+func (r *responseWriter) Flush() {
+	if r.flusher != nil {
+		r.flusher.Flush()
+	}
 }
 
 // Header returns the header map that will be sent by WriteHeader.
@@ -331,13 +360,28 @@ type transport struct {
 
 	// handlerChain will be called after each request.
 	handlerChainFunc func(handler http.Handler) http.Handler
+
+	watchers map[string]*watchStream
+	mu       sync.RWMutex
+}
+
+// watchStream 表示一个watch流
+type watchStream struct {
+	events     chan []byte
+	closeChan  chan struct{}
+	cancelFunc context.CancelFunc
+	closed     bool
 }
 
 // RoundTrip deal proxy transport http.Request.
 func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
-	if l.restClient != nil && !strings.HasPrefix(request.URL.Path, "/apis/"+kkcorev1alpha1.SchemeGroupVersion.String()) {
+	if l.restClient != nil &&
+		(strings.HasPrefix(request.URL.Path, "/apis/"+kkcorev1alpha1.SchemeGroupVersion.String()) ||
+			strings.HasPrefix(request.URL.Path, "/apis/"+v1beta1.SchemeGroupVersion.String())) {
 		return l.restClient.Transport.RoundTrip(request)
 	}
+
+	isWatch := isWatchRequest(request) || isWatchListRequest(request)
 
 	response := &http.Response{
 		Proto:  "local",
@@ -348,12 +392,249 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 	if err != nil {
 		return response, err
 	}
+	if isWatch {
+		return l.handleWatchRequest(request, response, handler)
+	}
 	// Use a buffered responseWriter to collect the complete response
 	rw := &responseWriter{resp: response}
 	l.handlerChainFunc(handler).ServeHTTP(rw, request)
 	rw.finalize()
 
 	return response, nil
+}
+
+func (l *transport) handleWatchRequest(request *http.Request, response *http.Response, handler http.Handler) (*http.Response, error) {
+	// 创建pipe用于流式传输
+	pr, pw := io.Pipe()
+
+	// 设置响应
+	response.Status = "200 OK"
+	response.StatusCode = http.StatusOK
+	response.Header.Set("Content-Type", "application/json")
+	response.Header.Set("Transfer-Encoding", "chunked")
+	response.Body = pr
+
+	// 创建stream ID
+	streamID := generateStreamID(request)
+	stream := &watchStream{
+		events:    make(chan []byte, 100),
+		closeChan: make(chan struct{}),
+	}
+
+	l.mu.Lock()
+	l.watchers[streamID] = stream
+	l.mu.Unlock()
+
+	// 创建流式ResponseWriter，直接写入pipe
+	streamWriter := &streamingResponseWriter{
+		writer:  pw,
+		header:  make(http.Header),
+		flusher: &pipeFlusher{writer: pw},
+	}
+
+	// 设置响应头
+	streamWriter.header.Set("Content-Type", "application/json")
+	streamWriter.header.Set("Transfer-Encoding", "chunked")
+
+	// 在goroutine中执行handler
+	go func() {
+		defer func() {
+			pw.Close()
+			l.removeStream(streamID)
+		}()
+
+		// 创建context以便可以取消
+		ctx, cancel := context.WithCancel(request.Context())
+		defer cancel()
+
+		// 将取消函数与stream关联
+		stream.cancelFunc = cancel
+
+		// 使用新的context执行handler
+		watchRequest := setReceivedTimestamp(request.WithContext(ctx))
+		l.handlerChainFunc(handler).ServeHTTP(streamWriter, watchRequest)
+	}()
+
+	// 立即返回响应，不等待handler完成
+	return response, nil
+}
+
+func setReceivedTimestamp(req *http.Request) *http.Request {
+
+	// 使用链式调用确保不丢失现有的上下文值
+	ctx := req.Context()
+
+	ctx = apirequest.WithReceivedTimestamp(ctx, time.Now())
+
+	return req.WithContext(ctx)
+}
+
+func (l *transport) isWatchEventStream(data []byte) bool {
+	// 检查是否包含多行JSON或特定的watch事件类型
+	lines := bytes.Split(data, []byte("\n"))
+	for _, line := range lines {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+
+		var obj map[string]interface{}
+		if err := json.Unmarshal(line, &obj); err != nil {
+			return false
+		}
+
+		// 检查是否有watch事件类型
+		if eventType, ok := obj["type"].(string); ok {
+			switch eventType {
+			case "ADDED", "MODIFIED", "DELETED", "BOOKMARK", "ERROR":
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (l *transport) streamWatchEvents(data []byte, writer io.Writer, stream *watchStream) {
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	scanner.Buffer(make([]byte, 1024*1024), 10*1024*1024) // 1MB初始，10MB最大
+
+	for scanner.Scan() {
+		select {
+		case <-stream.closeChan:
+			return
+		default:
+			line := scanner.Bytes()
+			if len(line) == 0 {
+				continue
+			}
+
+			// 写入事件
+			writer.Write(line)
+			writer.Write([]byte("\n"))
+
+			// 确保立即刷新
+			if flusher, ok := writer.(interface{ Flush() error }); ok {
+				flusher.Flush()
+			}
+		}
+	}
+}
+
+func (l *transport) removeStream(streamID string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if stream, exists := l.watchers[streamID]; exists {
+		if !stream.closed {
+			close(stream.closeChan)
+			stream.closed = true
+			if stream.cancelFunc != nil {
+				stream.cancelFunc()
+			}
+		}
+		delete(l.watchers, streamID)
+	}
+}
+
+// streamingResponseWriter 流式ResponseWriter，直接写入pipe
+type streamingResponseWriter struct {
+	writer      io.Writer
+	header      http.Header
+	statusCode  int
+	wroteHeader bool
+	flusher     interface{ Flush() error }
+}
+
+func (w *streamingResponseWriter) Header() http.Header {
+	return w.header
+}
+
+func (w *streamingResponseWriter) Write(data []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	// 直接写入pipe
+	n, err := w.writer.Write(data)
+	if err != nil {
+		return n, err
+	}
+
+	// 尝试刷新
+	if w.flusher != nil {
+		w.flusher.Flush()
+	}
+
+	return n, nil
+}
+
+func (w *streamingResponseWriter) Flush() {
+	w.flusher.Flush()
+}
+
+func (w *streamingResponseWriter) WriteHeader(statusCode int) {
+	if w.wroteHeader {
+		return
+	}
+	w.statusCode = statusCode
+	w.wroteHeader = true
+
+	// 对于流式响应，我们不写入HTTP状态行到body
+	// 状态已经在response对象中设置了
+}
+
+// pipeFlusher 包装io.PipeWriter以支持Flush
+type pipeFlusher struct {
+	writer io.Writer
+	buffer bytes.Buffer
+}
+
+func (pf *pipeFlusher) Write(p []byte) (int, error) {
+	return pf.buffer.Write(p)
+}
+
+func (pf *pipeFlusher) Flush() error {
+	if pf.buffer.Len() == 0 {
+		return nil
+	}
+
+	// 写入数据
+	_, err := pf.writer.Write(pf.buffer.Bytes())
+	if err != nil {
+		return err
+	}
+
+	// 清空缓冲区
+	pf.buffer.Reset()
+	return nil
+}
+
+func generateStreamID(request *http.Request) string {
+	return fmt.Sprintf("%s-%s-%d", request.Method, request.URL.Path, time.Now().UnixNano())
+}
+
+func isWatchRequest(req *http.Request) bool {
+	// 检查 URL 参数
+	if req.URL.Query().Get("watch") == "true" {
+		return true
+	}
+
+	// 检查路径模式（Kubernetes Watch API 的常见模式）
+	if strings.Contains(req.URL.Path, "/watch") {
+		return true
+	}
+
+	// 检查 Accept 头部
+	if strings.Contains(req.Header.Get("Accept"), "application/json") &&
+		strings.Contains(req.Header.Get("Accept"), "watch") {
+		return true
+	}
+
+	return false
+}
+
+func isWatchListRequest(r *http.Request) bool {
+	acceptHeader := r.Header.Get("Accept")
+	return strings.Contains(acceptHeader, "application/json;as=WatchList")
 }
 
 // http://jsr311.java.net/nonav/releases/1.1/spec/spec3.html#x3-360003.7.2 (step 1)

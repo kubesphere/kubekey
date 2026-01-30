@@ -24,6 +24,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/executor"
 	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
@@ -192,7 +193,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	}
 
 	// Execute the playbook asynchronously if "promise" is true (default)
-	if err := playbookManager.executor(hostCheckPlaybook, h.client, query.DefaultString(request.QueryParameter("promise"), "true")); err != nil {
+	if err := executor.PlaybookManager.Executor(hostCheckPlaybook, h.client, query.DefaultString(request.QueryParameter("promise"), "true")); err != nil {
 		api.HandleError(response, request, errors.Wrap(err, "failed to execute host-check playbook"))
 		return
 	}

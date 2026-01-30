@@ -112,6 +112,14 @@ func AddToContainer(c *restful.Container, client ctrlclient.Client, cfg *rest.Co
 		Reads(kkcorev1.Playbook{}).
 		Returns(http.StatusOK, api.StatusOK, kkcorev1.Playbook{}))
 
+	webservice.Route(webservice.GET("/namespaces/{namespace}/playbooks/{playbook}/log").To(playbookHandler.Log).
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
+		Doc("get a playbook execute log.").Operation("getPlaybookLog").
+		Produces("text/plain").
+		Param(webservice.PathParameter("namespace", "the namespace of the playbook")).
+		Param(webservice.PathParameter("playbook", "the name of the playbook")).
+		Returns(http.StatusOK, api.StatusOK, ""))
+
 	c.Add(webservice)
 	return nil
 }

@@ -80,8 +80,15 @@ func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, 
 // NewStorage for KKMachine storage
 func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (KKMachineStorage, error) {
 	store := &apiregistry.Store{
-		NewFunc:                   func() runtime.Object { return &v1beta1.KKMachine{} },
-		NewListFunc:               func() runtime.Object { return &v1beta1.KKMachineList{} },
+		NewFunc: func() runtime.Object { return &v1beta1.KKMachine{} },
+		NewListFunc: func() runtime.Object {
+			return &v1beta1.KKMachineList{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KKMachineList",
+					APIVersion: v1beta1.SchemeGroupVersion.String(),
+				},
+			}
+		},
 		DefaultQualifiedResource:  kkcorev1.SchemeGroupVersion.WithResource("kkmachines").GroupResource(),
 		SingularQualifiedResource: kkcorev1.SchemeGroupVersion.WithResource("kkmachine").GroupResource(),
 
