@@ -1,10 +1,10 @@
 - name: Image Registry | Verify image registry default values
   assert:
     that:
-      - .cri.dockercompose_version | empty | not
+      - .image-registry.dockercompose_version | empty | not
       - .cri.docker_version | empty | not
     fail_msg: >-
-      cri.dockercompose_version and cri.docker_version must be set when install image registry
+      image-registry.dockercompose_version and cri.docker_version must be set when install image registry
 
 - name: Image Registry | Verify values before harbor install
   when:
