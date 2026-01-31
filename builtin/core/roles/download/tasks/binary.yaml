@@ -303,7 +303,7 @@
   tags: ["image_registry"]
   loop: "{{ .download.arch | toJson }}"
   when: 
-    - .cri.dockercompose_version | empty | not
+    - .image_registry.dockercompose_version | empty | not
     - .image_registry.type | eq "harbor"
   command: |
     compose_name=docker-compose
