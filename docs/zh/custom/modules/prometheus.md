@@ -10,7 +10,7 @@
 prometheus:
   connector:
     type: prometheus
-    host: http://prometheus-server:9090   # Prometheus 地址
+    url: http://prometheus-server:9090    # Prometheus 地址
     username: admin                       # 可选：Basic 认证用户名
     password: password                    # 可选：Basic 认证密码
     token: my-token                       # 可选：Bearer Token
