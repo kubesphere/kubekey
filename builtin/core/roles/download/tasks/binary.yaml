@@ -303,11 +303,11 @@
   tags: ["image_registry"]
   loop: "{{ .download.arch | toJson }}"
   when: 
-    - .cri.dockercompose_version | empty | not
+    - .image_registry.dockercompose_version | empty | not
     - .image_registry.type | eq "harbor"
   command: |
     compose_name=docker-compose
-    compose_path={{ .binary_dir }}/image-registry/docker-compose/{{ .cri.dockercompose_version }}/{{ .item }}
+    compose_path={{ .binary_dir }}/image-registry/docker-compose/{{ .image_registry.dockercompose_version }}/{{ .item }}
     if [ ! -f $compose_path/$compose_name ]; then
       url={{ get .download.artifact_url.dockercompose .item | trim }}
       if [ "$url" = "" ] ; then
