@@ -58,8 +58,9 @@ func (k *KKClusterController) handleKKCluster(ctx context.Context, item capkkinf
 	case capkkinfrav1beta1.StatusNotInstall:
 		// 需等待手动执行安装
 	case capkkinfrav1beta1.StatusInitializing:
-		// 安装中，
+		// 安装中，需要等待结果
 	case capkkinfrav1beta1.StatusRunning:
+		// 运行中，集群进行了修改，不应该处理
 	case capkkinfrav1beta1.StatusUpgrading:
 	case capkkinfrav1beta1.StatusScaling:
 	case capkkinfrav1beta1.StatusNodeError:

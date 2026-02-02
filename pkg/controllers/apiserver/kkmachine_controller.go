@@ -69,6 +69,7 @@ func (k *KKMachineController) handleKKMachine(ctx context.Context, machine capkk
 	case capkkinfrav1beta1.KKMachineStatusWarning:
 	case capkkinfrav1beta1.KKMachineStatusReady:
 	case capkkinfrav1beta1.KKMachineStatusRunning:
+		// 只有在安装了集群后，节点才会进入此状态
 	case capkkinfrav1beta1.KKMachineStatusFault:
 	case capkkinfrav1beta1.KKMachineStatusUnschedulable:
 
