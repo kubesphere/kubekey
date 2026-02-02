@@ -155,15 +155,15 @@ download:
     dockercompose:
       amd64: >-
         {{- if .download.zone | eq "cn" -}}
-        https://{{ .download.cn_host }}/github.com/docker/compose/releases/download/{{ .image-registry.dockercompose_version }}/docker-compose-linux-x86_64
+        https://{{ .download.cn_host }}/github.com/docker/compose/releases/download/{{ .image_registry.dockercompose_version }}/docker-compose-linux-x86_64
         {{- else -}}
-        https://github.com/docker/compose/releases/download/{{ .image-registry.dockercompose_version }}/docker-compose-linux-x86_64
+        https://github.com/docker/compose/releases/download/{{ .image_registry.dockercompose_version }}/docker-compose-linux-x86_64
         {{- end -}}
       arm64: >-
         {{- if .download.zone | eq "cn" -}}
-        https://{{ .download.cn_host }}/github.com/docker/compose/releases/download/{{ .image-registry.dockercompose_version }}/docker-compose-linux-aarch64
+        https://{{ .download.cn_host }}/github.com/docker/compose/releases/download/{{ .image_registry.dockercompose_version }}/docker-compose-linux-aarch64
         {{- else -}}
-        https://github.com/docker/compose/releases/download/{{ .image-registry.dockercompose_version }}/docker-compose-linux-aarch64
+        https://github.com/docker/compose/releases/download/{{ .image_registry.dockercompose_version }}/docker-compose-linux-aarch64
         {{- end -}}
     docker_registry:
       amd64: >-
