@@ -68,6 +68,8 @@ const ( // === From system generate ===
 	VariableGroupsAll = "all"
 	// VariableUnGrouped the value is a all host_name slice of VariableGroups.
 	VariableUnGrouped = "ungrouped"
+	// VariableRemote the value is a all host_name slice of VariableGroups.
+	VariableRemote = "remote"
 )
 
 const ( // === From GatherFact ===

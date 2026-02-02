@@ -80,7 +80,7 @@ func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, ex
 			getAttrsFunc apistorage.AttrFunc,
 			triggerFuncs apistorage.IndexerFuncs,
 			indexers *cgtoolscache.Indexers) (apistorage.Interface, factory.DestroyFunc, error) {
-			s, d := newFileStorage(prefix, resource, storageConfig.Codec, newFunc)
+			s, d := newFileStorage(prefix, resource, storageConfig.Codec, newFunc, newListFunc)
 
 			var once sync.Once
 			destroyFunc := func() {

@@ -47,13 +47,14 @@ const (
 	yamlSuffix = ".yaml"
 )
 
-func newFileStorage(prefix string, resource schema.GroupResource, codec runtime.Codec, newFunc func() runtime.Object) (apistorage.Interface, factory.DestroyFunc) {
+func newFileStorage(prefix string, resource schema.GroupResource, codec runtime.Codec, newFunc, newListFunc func() runtime.Object) (apistorage.Interface, factory.DestroyFunc) {
 	return &fileStorage{
-			prefix:    prefix,
-			versioner: apistorage.APIObjectVersioner{},
-			resource:  resource,
-			codec:     codec,
-			newFunc:   newFunc,
+			prefix:      prefix,
+			versioner:   apistorage.APIObjectVersioner{},
+			resource:    resource,
+			codec:       codec,
+			newFunc:     newFunc,
+			newListFunc: newListFunc,
 		}, func() {
 			// do nothing
 		}
@@ -65,7 +66,8 @@ type fileStorage struct {
 	codec     runtime.Codec
 	resource  schema.GroupResource
 
-	newFunc func() runtime.Object
+	newFunc     func() runtime.Object
+	newListFunc func() runtime.Object
 }
 
 var _ apistorage.Interface = &fileStorage{}
@@ -137,8 +139,13 @@ func (s *fileStorage) Delete(ctx context.Context, key string, out runtime.Object
 }
 
 // Watch local resource files.
-func (s fileStorage) Watch(_ context.Context, key string, _ apistorage.ListOptions) (watch.Interface, error) {
-	return newFileWatcher(s.prefix, key, s.codec, s.newFunc)
+func (s fileStorage) Watch(ctx context.Context, key string, ops apistorage.ListOptions) (watch.Interface, error) {
+	newList := s.newListFunc()
+	err := s.GetList(ctx, key, ops, newList)
+	if err != nil {
+		return nil, err
+	}
+	return newFileWatcher(s.prefix, key, s.codec, s.newFunc, newList)
 }
 
 // Get local resource files.

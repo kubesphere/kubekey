@@ -1,4 +1,4 @@
-package handler
+package executor
 
 import (
 	"context"
@@ -14,21 +14,20 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
-	"github.com/kubesphere/kubekey/v4/pkg/executor"
 )
 
-var playbookManager = &manager{
+var PlaybookManager = &manager{
 	manager: make(map[string]context.CancelFunc),
 }
 
-// playbookManager is responsible for managing playbook execution contexts and their cancellation.
+// PlaybookManager is responsible for managing playbook execution contexts and their cancellation.
 // It uses a mutex to ensure thread-safe access to the manager map.
 type manager struct {
 	sync.Mutex
 	manager map[string]context.CancelFunc // Map of playbook key to its cancel function
 }
 
-func (m *manager) executor(playbook *kkcorev1.Playbook, client ctrlclient.Client, promise string) error {
+func (m *manager) Executor(playbook *kkcorev1.Playbook, client ctrlclient.Client, promise string) error {
 	f := func() error {
 		// Build the log file path for the playbook execution
 		filename := filepath.Join(
@@ -60,15 +59,15 @@ func (m *manager) executor(playbook *kkcorev1.Playbook, client ctrlclient.Client
 
 		// Create a cancellable context for playbook execution
 		ctx, cancel := context.WithCancel(context.Background())
-		// Register the playbook and its cancel function in the playbookManager
-		m.addPlaybook(playbook, cancel)
+		// Register the playbook and its cancel function in the PlaybookManager
+		m.AddPlaybook(playbook, cancel)
 		// Execute the playbook and write output to the log file
-		if err := executor.NewPlaybookExecutor(ctx, client, playbook, file).Exec(ctx); err != nil {
+		if err := NewPlaybookExecutor(ctx, client, playbook, file).Exec(ctx); err != nil {
 			// recode to log file
 			fmt.Fprintf(file, "%s [Playbook %s] ERROR: %v\n", time.Now().Format(time.TimeOnly+" MST"), ctrlclient.ObjectKeyFromObject(playbook), err)
 		}
-		// Remove the playbook from the playbookManager after execution
-		m.deletePlaybook(playbook)
+		// Remove the playbook from the PlaybookManager after execution
+		m.DeletePlaybook(playbook)
 		return nil
 	}
 	if promise == "true" {
@@ -82,24 +81,24 @@ func (m *manager) executor(playbook *kkcorev1.Playbook, client ctrlclient.Client
 	return f()
 }
 
-// addPlaybook adds a playbook and its cancel function to the manager map.
-func (m *manager) addPlaybook(playbook *kkcorev1.Playbook, cancel context.CancelFunc) {
+// AddPlaybook adds a playbook and its cancel function to the manager map.
+func (m *manager) AddPlaybook(playbook *kkcorev1.Playbook, cancel context.CancelFunc) {
 	m.Lock()
 	defer m.Unlock()
 
 	m.manager[ctrlclient.ObjectKeyFromObject(playbook).String()] = cancel
 }
 
-// deletePlaybook removes a playbook from the manager map.
-func (m *manager) deletePlaybook(playbook *kkcorev1.Playbook) {
+// DeletePlaybook removes a playbook from the manager map.
+func (m *manager) DeletePlaybook(playbook *kkcorev1.Playbook) {
 	m.Lock()
 	defer m.Unlock()
 
 	delete(m.manager, ctrlclient.ObjectKeyFromObject(playbook).String())
 }
 
-// stopPlaybook cancels the context for a running playbook, if it exists.
-func (m *manager) stopPlaybook(playbook *kkcorev1.Playbook) {
+// StopPlaybook cancels the context for a running playbook, if it exists.
+func (m *manager) StopPlaybook(playbook *kkcorev1.Playbook) {
 	// Attempt to cancel the playbook's context if it exists in the manager
 	if cancel, ok := m.manager[ctrlclient.ObjectKeyFromObject(playbook).String()]; ok {
 		cancel()

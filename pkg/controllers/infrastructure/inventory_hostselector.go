@@ -77,6 +77,33 @@ var RandomSelector = func(ctx context.Context, groupName string, remain int, inv
 	return availableHosts
 }
 
+// SelectHostByRole is a HostSelectorFunc that select hosts which set roles same with a given group.
+//
+//	HostSelectorFunc: A function that selects hosts for a group based on the specified criteria.
+var SelectHostByRole = func(ctx context.Context, groupName string, remain int, inventory *kkcorev1.Inventory) []string {
+	existGroups := make(map[string][]string)
+	for hostName, hostVars := range inventory.Spec.Hosts {
+		hostData := variable.Extension2Variables(hostVars)
+		roles, err := variable.StringSliceVar(map[string]any{}, hostData, "roles")
+		if err != nil {
+			continue
+		}
+		for _, role := range roles {
+			hs, ok := existGroups[role]
+			if !ok {
+				hs = make([]string, 0)
+			}
+			hs = append(hs, hostName)
+			existGroups[role] = hs
+		}
+	}
+	selectedGroup := existGroups[groupName]
+	if len(selectedGroup) <= remain {
+		return selectedGroup
+	}
+	return selectedGroup[:remain]
+}
+
 // shuffleHosts securely shuffles a slice of hosts using crypto/rand.
 func shuffleHosts(hosts []string) {
 	for i := len(hosts) - 1; i > 0; i-- {

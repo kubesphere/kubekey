@@ -17,9 +17,9 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -35,7 +35,7 @@ const (
 const (
 	// KKClusterNodeReachedCondition represents the condition type indicating whether the hosts
 	// defined in the inventory are reachable.
-	KKClusterNodeReachedCondition clusterv1beta1.ConditionType = "NodeReached"
+	KKClusterNodeReachedCondition string = "NodeReached"
 	// KKClusterNodeReachedConditionReasonWaiting indicates that the node reachability check is pending.
 	// This check is triggered when the corresponding inventory host's configuration changes.
 	KKClusterNodeReachedConditionReasonWaiting = "waiting for node status check"
@@ -45,7 +45,7 @@ const (
 
 	// KKClusterKKMachineConditionReady represents the condition type indicating whether the associated inventory
 	// has been successfully marked as ready.
-	KKClusterKKMachineConditionReady clusterv1beta1.ConditionType = "KKClusterMachineReady"
+	KKClusterKKMachineConditionReady string = "KKClusterMachineReady"
 	// KKClusterKKMachineConditionReadyReasonWaiting indicates that the associated inventory is still being synchronized.
 	KKClusterKKMachineConditionReadyReasonWaiting = "waiting for kkmachine sync"
 	// KKMachineKKMachineConditionReasonSyncing indicates that the associated inventory has been successfully synchronized.
@@ -83,6 +83,28 @@ const (
 	ControlPlaneEndpointTypeVIP ControlPlaneEndpointType = "kube_vip"
 )
 
+type KKClusterStatusType string
+
+const (
+	StatusNotInstall   KKClusterStatusType = "NotInstall"
+	StatusInitializing KKClusterStatusType = "Initializing"
+	StatusRunning      KKClusterStatusType = "Running"
+	StatusUpgrading    KKClusterStatusType = "Upgrading"
+	StatusScaling      KKClusterStatusType = "Scaling"
+	StatusNodeError    KKClusterStatusType = "NodeError"
+	StatusUpgradeError KKClusterStatusType = "UpgradeError"
+	StatusFailed       KKClusterStatusType = "Failed"
+)
+
+type KKClusterKseInstallType string
+
+const (
+	KseStatusPending    KKClusterKseInstallType = "Pending"
+	KseStatusNotInstall KKClusterKseInstallType = "NotInstall"
+	KseStatusInstalling KKClusterKseInstallType = "Installing"
+	KseStatusRunning    KKClusterKseInstallType = "Running"
+)
+
 type InventoryHostConnector struct {
 	// Type to connector the host.
 	Type string `json:"type,omitempty"`
@@ -107,12 +129,17 @@ type InventoryHost struct {
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Vars runtime.RawExtension `json:"vars,omitempty"`
+	// Taints for node
+	// + optional
+	Taints []corev1.Taint `json:"taints,omitempty"`
 }
 
 // KKClusterSpec defines the desired state of KKCluster.
 type KKClusterSpec struct {
 	// InventoryHosts contains all hosts of the cluster.
 	InventoryHosts []InventoryHost `json:"inventory,omitempty"`
+	//InventoryCount shows node count of current cluster
+	InventoryCount int `json:"inventoryCount,omitempty"`
 	// which Group defined in Inventory will be checked. there is some default group by system:
 	// - all: contains all hosts
 	// - ungrouped: contains hosts which do not belong to any groups.
@@ -123,12 +150,24 @@ type KKClusterSpec struct {
 	// ControlPlaneEndpointType defines the type of control plane endpoint. such as dns, vip.
 	// when use vip, it will deploy kube-vip in each control_plane node. the default value is vip.
 	ControlPlaneEndpointType ControlPlaneEndpointType `json:"controlPlaneEndpointType,omitempty"`
+	// Config
+	Config runtime.RawExtension `json:"config,omitempty"`
+	// certificatesExpiryDate is the expiry date of the machine certificates.
+	// This value is only set for control plane machines.
+	// +optional
+	CertificatesExpiryDate *metav1.Time `json:"certificatesExpiryDate,omitempty"`
 }
 
 // KKClusterStatus defines the observed state of KKCluster.
 type KKClusterStatus struct {
 	// if Ready to create cluster. usage after inventory is ready.
 	Ready bool `json:"ready,omitempty"`
+
+	// Status
+	Status KKClusterStatusType `json:"status,omitempty"`
+
+	// KseStatus kse install type of current cluster
+	KseStatus KKClusterKseInstallType `json:"kseStatus,omitempty"`
 
 	// FailureReason
 	FailureReason KKClusterFailedReason `json:"failureReason,omitempty"`
@@ -137,7 +176,7 @@ type KKClusterStatus struct {
 
 	// Conditions defines current service state of the KKCluster.
 	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +genclient
@@ -173,11 +212,11 @@ func init() {
 }
 
 // GetConditions returns the observations of the operational state of the KKCluster resource.
-func (k *KKCluster) GetConditions() clusterv1beta1.Conditions {
+func (k *KKCluster) GetConditions() []metav1.Condition {
 	return k.Status.Conditions
 }
 
 // SetConditions sets the underlying service state of the KKCluster to the predescribed clusterv1beta1.Conditions.
-func (k *KKCluster) SetConditions(conditions clusterv1beta1.Conditions) {
+func (k *KKCluster) SetConditions(conditions []metav1.Condition) {
 	k.Status.Conditions = conditions
 }

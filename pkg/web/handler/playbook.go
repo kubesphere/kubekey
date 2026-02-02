@@ -24,6 +24,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/executor"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
 	"github.com/kubesphere/kubekey/v4/pkg/web/query"
 )
@@ -95,7 +96,7 @@ func (h *PlaybookHandler) Post(request *restful.Request, response *restful.Respo
 		return
 	}
 	// Start playbook execution in a separate goroutine
-	if err := playbookManager.executor(playbook, h.client, query.DefaultString(request.QueryParameter("promise"), "true")); err != nil {
+	if err := executor.PlaybookManager.Executor(playbook, h.client, query.DefaultString(request.QueryParameter("promise"), "true")); err != nil {
 		api.HandleError(response, request, errors.Wrap(err, "failed to execute playbook"))
 		return
 	}
@@ -270,7 +271,7 @@ func (h *PlaybookHandler) Delete(request *restful.Request, response *restful.Res
 		return
 	}
 	// Stop the playbook execution if it is running.
-	playbookManager.stopPlaybook(playbook)
+	executor.PlaybookManager.StopPlaybook(playbook)
 	// Delete the playbook resource.
 	if err := h.client.Delete(request.Request.Context(), playbook); err != nil {
 		if apierrors.IsNotFound(err) {

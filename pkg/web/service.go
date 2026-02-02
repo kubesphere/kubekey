@@ -193,6 +193,10 @@ func NewSchemaService(rootPath string, workdir string, client ctrlclient.Client)
 		Doc("get user-defined configuration information").
 		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
 
+	ws.Route(ws.GET("/schema/summary").To(resourceHandler.ResourceSummary).
+		Doc("get cluster resource summary data").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}))
+
 	ws.Route(ws.POST("/ip").To(resourceHandler.PreCheckHost).
 		Doc("pre check host ssh connect information").
 		Metadata(restfulspec.KeyOpenAPITags, []string{api.ResourceTag}).

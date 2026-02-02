@@ -17,9 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -43,6 +44,17 @@ const (
 	KKMachineFailedReasonAddNodeFailed KKMachineFailedReason = "add node failed"
 	// KKMachineFailedReasonDeleteNodeFailed delete node failed.
 	KKMachineFailedReasonDeleteNodeFailed clusterv1beta1.ConditionType = "delete failed failed"
+)
+
+type KKMachineStatusType string
+
+const (
+	KKMachineStatusCreating      KKMachineStatusType = "creating"
+	KKMachineStatusWarning       KKMachineStatusType = "warning"
+	KKMachineStatusReady         KKMachineStatusType = "ready"
+	KKMachineStatusRunning       KKMachineStatusType = "running"
+	KKMachineStatusFault         KKMachineStatusType = "fault"
+	KKMachineStatusUnschedulable KKMachineStatusType = "unschedulable"
 )
 
 // KKMachineSpec defines the desired state of KKMachine.
@@ -79,6 +91,15 @@ type KKMachineSpec struct {
 	// Config for machine. contains cluster version, binary version, etc.
 	// + optional
 	Config runtime.RawExtension `json:"config,omitempty"`
+
+	// Taints for node
+	// + optional
+	Taints []corev1.Taint `json:"taints,omitempty"`
+
+	// certificatesExpiryDate is the expiry date of the machine certificates.
+	// This value is only set for control plane machines.
+	// +optional
+	CertificatesExpiryDate *metav1.Time `json:"certificatesExpiryDate,omitempty"`
 }
 
 // KKMachineStatus defines the observed state of KKMachine.
@@ -87,6 +108,10 @@ type KKMachineStatus struct {
 	// +optional
 	Ready bool `json:"ready,omitempty"`
 
+	// Status
+	// +optional
+	Status KKMachineStatusType `json:"status,omitempty"`
+
 	// FailureReason will be set in the event that there is a terminal problem
 	// +optional
 	FailureReason KKMachineFailedReason `json:"failureReason,omitempty"`
@@ -94,11 +119,6 @@ type KKMachineStatus struct {
 	// FailureMessage will be set in the event that there is a terminal problem
 	// +optional
 	FailureMessage string `json:"failureMessage,omitempty"`
-
-	// certificatesExpiryDate is the expiry date of the machine certificates.
-	// This value is only set for control plane machines.
-	// +optional
-	CertificatesExpiryDate *metav1.Time `json:"certificatesExpiryDate,omitempty"`
 
 	// Conditions defines current service state of the KKMachine.
 	// +optional

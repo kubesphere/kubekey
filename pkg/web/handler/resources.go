@@ -33,6 +33,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/executor"
 	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
 	"github.com/kubesphere/kubekey/v4/pkg/web/query"
@@ -153,7 +154,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 			playbooks[fileName] = playbook
 			wg.Start(func() {
 				// Execute the playbook asynchronously.
-				if err := playbookManager.executor(playbook, h.client, "false"); err != nil {
+				if err := executor.PlaybookManager.Executor(playbook, h.client, "false"); err != nil {
 					klog.ErrorS(err, "failed to executor precheck playbook", "schema", fileName)
 				}
 			})
@@ -809,4 +810,8 @@ func (h ResourceHandler) PreCheckHost(request *restful.Request, response *restfu
 	}
 	wg.Wait()
 	_ = response.WriteEntity(result)
+}
+
+func (h ResourceHandler) ResourceSummary(request *restful.Request, response *restful.Response) {
+
 }

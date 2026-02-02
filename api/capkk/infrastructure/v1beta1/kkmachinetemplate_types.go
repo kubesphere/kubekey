@@ -18,12 +18,15 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // KKMachineTemplateSpec defines the desired state of KKMachineTemplate.
 type KKMachineTemplateSpec struct {
 	Template KKMachineTemplateResource `json:"template"`
+}
+
+type KKMachineTemplateStatus struct {
 }
 
 // KKMachineTemplateResource describes the data needed to create a KKMachine from a template.

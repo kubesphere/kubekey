@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -16,7 +17,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -235,12 +236,24 @@ func (r *KKClusterReconciler) reconcileStatus(ctx context.Context, scope *cluste
 	// sync KKClusterNodeReachedCondition.
 	switch scope.Inventory.Status.Phase {
 	case kkcorev1.InventoryPhasePending:
-		conditions.MarkUnknown(scope.KKCluster, capkkinfrav1beta1.KKClusterNodeReachedCondition, capkkinfrav1beta1.KKClusterNodeReachedConditionReasonWaiting, "waiting for inventory host check playbook.")
+		conditions.Set(scope.KKCluster, metav1.Condition{
+			Type:    capkkinfrav1beta1.KKClusterNodeReachedCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  capkkinfrav1beta1.KKClusterNodeReachedConditionReasonWaiting,
+			Message: "waiting for inventory host check playbook.",
+		})
 	case kkcorev1.InventoryPhaseSucceeded:
-		conditions.MarkTrue(scope.KKCluster, capkkinfrav1beta1.KKClusterNodeReachedCondition)
+		conditions.Set(scope.KKCluster, metav1.Condition{
+			Type:   capkkinfrav1beta1.KKClusterNodeReachedCondition,
+			Status: metav1.ConditionTrue,
+		})
 	case kkcorev1.InventoryPhaseFailed:
-		conditions.MarkFalse(scope.KKCluster, capkkinfrav1beta1.KKClusterNodeReachedCondition, capkkinfrav1beta1.KKClusterNodeReachedConditionReasonUnreached, clusterv1beta1.ConditionSeverityError,
-			"inventory host check playbook %q run failed", scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation])
+		conditions.Set(scope.KKCluster, metav1.Condition{
+			Type:    capkkinfrav1beta1.KKClusterNodeReachedCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  capkkinfrav1beta1.KKClusterNodeReachedConditionReasonUnreached,
+			Message: fmt.Sprintf("inventory host check playbook %q run failed", scope.Inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation]),
+		})
 	}
 
 	// after inventory is ready. continue create cluster
@@ -263,8 +276,12 @@ func (r *KKClusterReconciler) reconcileStatus(ctx context.Context, scope *cluste
 		}
 	}
 	if len(failedKKMachine) != 0 {
-		conditions.MarkFalse(scope.KKCluster, capkkinfrav1beta1.KKClusterKKMachineConditionReady, capkkinfrav1beta1.KKMachineKKMachineConditionReasonFailed, clusterv1beta1.ConditionSeverityError,
-			"failed kkmachine %s", strings.Join(failedKKMachine, ","))
+		conditions.Set(scope.KKCluster, metav1.Condition{
+			Type:    capkkinfrav1beta1.KKClusterKKMachineConditionReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  capkkinfrav1beta1.KKMachineKKMachineConditionReasonFailed,
+			Message: fmt.Sprintf("failed kkmachine %s", strings.Join(failedKKMachine, ",")),
+		})
 		scope.KKCluster.Status.FailureReason = capkkinfrav1beta1.KKMachineKKMachineConditionReasonFailed
 		scope.KKCluster.Status.FailureMessage = "[" + strings.Join(failedKKMachine, ",") + "]"
 	}
@@ -276,7 +293,10 @@ func (r *KKClusterReconciler) reconcileStatus(ctx context.Context, scope *cluste
 	mdn := int(ptr.Deref(scope.MachineDeployment.Spec.Replicas, 0))
 	if scope.KKCluster.Status.Ready && scope.KKCluster.Status.FailureReason == "" &&
 		len(kkmachineList.Items) == int(cpn)+mdn {
-		conditions.MarkTrue(scope.KKCluster, capkkinfrav1beta1.KKClusterKKMachineConditionReady)
+		conditions.Set(scope.KKCluster, metav1.Condition{
+			Type:   capkkinfrav1beta1.KKClusterKKMachineConditionReady,
+			Status: metav1.ConditionTrue,
+		})
 	}
 
 	return nil
