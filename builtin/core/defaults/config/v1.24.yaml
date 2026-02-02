@@ -6,7 +6,7 @@ spec:
     zone: ""
   kubernetes:
     # Specify the Kubernetes version to be installed.
-    kube_version: {{ .kube_version }}
+    kube_version: {{ .kubernetes.kube_version }}
     # Specify the Helm version to be installed.
     helm_version: v3.10.3
     # Tag for the sandbox (pause) image used by pods.
@@ -15,8 +15,8 @@ spec:
     control_plane_endpoint:
       # Supported HA types: local, kube_vip, haproxy.
       # If set to local, configure local hostname resolution as follows:
-      #   - Control-plane nodes: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
-      #   - Worker nodes: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
+      #   - Control-plane nodes: 127.0.0.1  .kubernetes.control_plane_endpoint.host
+      #   - Worker nodes:  .init_kubernetes_node  .kubernetes.control_plane_endpoint.host
       type: local
       # Kube-vip image tag used for static pod deployment (when type is kube_vip).
       kube_vip:

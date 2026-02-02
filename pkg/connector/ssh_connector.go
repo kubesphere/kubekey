@@ -85,13 +85,13 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
 	keyParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
 	if err != nil {
-		klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
+		klog.V(4).InfoS("ssh private key path is empty, using default", "path", defaultSSHPrivateKey)
 		keyParam = defaultSSHPrivateKey
 	}
 	keycontentParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
 	if err != nil {
-		klog.V(4).Infof("ssh public key is empty, use: %s", defaultSSHPrivateKey)
-		keyParam = defaultSSHPrivateKey
+		klog.V(4).InfoS("ssh private key content is empty")
+		// Leave keycontentParam as empty string - no default needed
 	}
 	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &sshConnector{
@@ -126,33 +126,73 @@ type sshConnector struct {
 	mu sync.Mutex
 }
 
-// Init connector, get ssh.Client
+// Init establishes SSH connection with the following authentication priority:
+// - Password: Always included if set (independent)
+// - Key auth (exclusive priority):
+//  1. PrivateKeyContent - if set, use ONLY this
+//  2. PrivateKey path - if explicitly set and content not set, use ONLY this
+//  3. Default ~/.ssh/id_rsa - use if exists, skip silently if missing (allows password-only)
 func (c *sshConnector) Init(context.Context) error {
 	if c.Host == "" {
 		return errors.New("host is not set")
 	}
 
 	var auth []ssh.AuthMethod
+
+	// Password: Independent, always add if provided
 	if c.Password != "" {
 		auth = append(auth, ssh.Password(c.Password))
 	}
+
+	// Key auth: EXCLUSIVE priority
 	if c.PrivateKeyContent != "" {
+		// Priority 1: Use ONLY PrivateKeyContent
 		privateKey, err := ssh.ParsePrivateKey([]byte(c.PrivateKeyContent))
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
+			return errors.Wrapf(err, "failed to parse private key content")
 		}
 		auth = append(auth, ssh.PublicKeys(privateKey))
+		klog.V(4).InfoS("using private key content for authentication")
+	} else if c.PrivateKey != "" {
+		// Priority 2: Use ONLY PrivateKey path (if content not set)
+
+		// Check if this is the default key path
+		isDefaultKey := c.PrivateKey == defaultSSHPrivateKey
+		_, statErr := os.Stat(c.PrivateKey)
+
+		if statErr != nil {
+			// If the file doesn't exist, we have special handling.
+			if os.IsNotExist(statErr) {
+				if isDefaultKey {
+					// For the default key, non-existence is not an error. We just skip it.
+					klog.V(4).InfoS("default private key file not found, skipping key auth", "path", c.PrivateKey)
+				} else {
+					// For an explicitly provided key, non-existence is a configuration error.
+					return errors.Wrapf(statErr, "private key file not found: %s", c.PrivateKey)
+				}
+			} else {
+				// For any other error (e.g., permissions), it's always a failure.
+				return errors.Wrapf(statErr, "failed to stat private key file: %s", c.PrivateKey)
+			}
+		} else {
+			// File exists, proceed with key auth
+			key, err := os.ReadFile(c.PrivateKey)
+			if err != nil {
+				return errors.Wrapf(err, "failed to read private key %q", c.PrivateKey)
+			}
+			privateKey, err := ssh.ParsePrivateKey(key)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
+			}
+			auth = append(auth, ssh.PublicKeys(privateKey))
+			klog.V(4).InfoS("using private key file for authentication", "path", c.PrivateKey)
+		}
 	}
-	if _, err := os.Stat(c.PrivateKey); err == nil {
-		key, err := os.ReadFile(c.PrivateKey)
-		if err != nil {
-			return errors.Wrapf(err, "failed to read private key %q", c.PrivateKey)
-		}
-		privateKey, err := ssh.ParsePrivateKey(key)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
-		}
-		auth = append(auth, ssh.PublicKeys(privateKey))
+	// Note: If neither content nor path is set, c.PrivateKey already has default from newSSHConnector line 89
+
+	// Validate we have at least one auth method
+	if len(auth) == 0 {
+		return errors.New("no authentication method available: provide password, private_key_content, or private_key")
 	}
 
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", c.Host, c.Port), &ssh.ClientConfig{

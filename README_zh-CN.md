@@ -127,6 +127,7 @@ kubekey使用 `config` 资源来定义节点的连接信息。
 - [安装 v1.31.x 版本的kubernetes 配置](builtin/core/defaults/config/v1.31.yaml)
 - [安装 v1.32.x 版本的kubernetes 配置](builtin/core/defaults/config/v1.32.yaml)
 - [安装 v1.33.x 版本的kubernetes 配置](builtin/core/defaults/config/v1.33.yaml)
+- [安装 v1.34.x 版本的kubernetes 配置](builtin/core/defaults/config/v1.34.yaml)
 
 ## 安装集群
 ```shell
@@ -136,8 +137,5 @@ kk create cluster -i inventory.yaml -c config.yaml
 `-c config.yaml`不传时，使用默认的config.yaml. 安装 v1.33.1 版本的kubernetes
 
 # 文档
-**[项目模版编写规范](docs/zh/001-project.md)**  
-**[模板语法](docs/zh/101-syntax.md)**  
-**[参数定义](docs/zh/201-variable.md)**    
-**[集群管理](docs/zh/core/README.md)**    
-
+**[自定义 任务](docs/zh/custom/README.md)**    
+**[Kubernetes 任务](docs/zh/core/README.md)**

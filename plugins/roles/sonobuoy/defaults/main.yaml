@@ -20,7 +20,7 @@ plugins:
     enabled: false
   e2e_ks:
     enabled: false
-    image: registry.cn-beijing.aliyuncs.com/kubesphereio/conformance:{{ .kube_version }}
+    image: registry.cn-beijing.aliyuncs.com/kubesphereio/conformance:{{ .kubernetes.kube_version }}
   kube_bench:
     enabled: false
     image: sonobuoy/kube-bench:v0.6.17

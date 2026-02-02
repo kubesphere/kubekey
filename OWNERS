@@ -1,8 +1,8 @@
 approvers:
-    - pixiake
     - liangzai006
     - redscholar
     - zuoxuesong-worker
+    - yongchuanzhou
 
 reviewers:
     - pixiake
@@ -17,3 +17,6 @@ reviewers:
     - 24sama
     - liangzai006
     - redscholar
+    - zuoxuesong-worker
+    - will4j
+    - yongchuanzhou
