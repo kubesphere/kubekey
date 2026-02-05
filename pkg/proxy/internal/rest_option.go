@@ -18,7 +18,6 @@ package internal
 
 import (
 	"path/filepath"
-	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,42 +33,39 @@ import (
 )
 
 // NewFileRESTOptionsGetter return fileRESTOptionsGetter
-func NewFileRESTOptionsGetter(runtimedir string, gv schema.GroupVersion) apigeneric.RESTOptionsGetter {
+func NewFileRESTOptionsGetter(runtimedir string, gv schema.GroupVersion, isClusterScoped bool) apigeneric.RESTOptionsGetter {
+	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, _const.Scheme, _const.Scheme, json.SerializerOptions{Yaml: true})
 	return &fileRESTOptionsGetter{
-		runtimedir: runtimedir,
-		gv:         gv,
+		isClusterScoped: isClusterScoped,
+		runtimedir:      runtimedir,
+		gv:              gv,
 		storageConfig: &storagebackend.Config{
-			Type:            "",
-			Prefix:          "/",
-			Transport:       storagebackend.TransportConfig{},
-			Codec:           newYamlCodec(gv),
+			Type:      "",
+			Prefix:    "/",
+			Transport: storagebackend.TransportConfig{},
+			Codec: versioning.NewDefaultingCodecForScheme(
+				_const.Scheme,
+				serializer,
+				serializer,
+				gv,
+				gv,
+			),
 			EncodeVersioner: runtime.NewMultiGroupVersioner(gv),
 		},
 	}
 }
 
-func newYamlCodec(gv schema.GroupVersion) runtime.Codec {
-	yamlSerializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, _const.Scheme, _const.Scheme, json.SerializerOptions{Yaml: true})
-
-	return versioning.NewDefaultingCodecForScheme(
-		_const.Scheme,
-		yamlSerializer,
-		yamlSerializer,
-		gv,
-		gv,
-	)
-}
-
 // fileRESTOptionsGetter local rest info
 type fileRESTOptionsGetter struct {
-	runtimedir    string
-	gv            schema.GroupVersion
-	storageConfig *storagebackend.Config
+	runtimedir      string
+	gv              schema.GroupVersion
+	storageConfig   *storagebackend.Config
+	isClusterScoped bool
 }
 
 // GetRESTOptions implements generic.RESTOptionsGetter.
 func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, example runtime.Object) (apigeneric.RESTOptions, error) {
-	prefix := filepath.Join(f.runtimedir, f.gv.Group, f.gv.Version, resource.Resource)
+	resourcePrefix := filepath.Join("/", f.gv.Group, f.gv.Version, resource.Resource)
 
 	return apigeneric.RESTOptions{
 		StorageConfig: f.storageConfig.ForResource(resource),
@@ -80,20 +76,11 @@ func (f *fileRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource, ex
 			getAttrsFunc apistorage.AttrFunc,
 			triggerFuncs apistorage.IndexerFuncs,
 			indexers *cgtoolscache.Indexers) (apistorage.Interface, factory.DestroyFunc, error) {
-			s, d := newFileStorage(prefix, resource, storageConfig.Codec, newFunc)
-
-			var once sync.Once
-			destroyFunc := func() {
-				once.Do(func() {
-					d()
-				})
-			}
-
-			return s, destroyFunc, nil
+			return newFileStorage(f.runtimedir, resourcePrefix, resource, storageConfig.Codec, newFunc, f.isClusterScoped)
 		},
 		EnableGarbageCollection:   false,
 		DeleteCollectionWorkers:   0,
-		ResourcePrefix:            prefix,
+		ResourcePrefix:            resourcePrefix,
 		CountMetricPollPeriod:     0,
 		StorageObjectCountTracker: nil,
 	}, nil

@@ -37,31 +37,36 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
+// Default request timeout (30 minutes)
 const defaultMinRequestTimeout = 1800 * time.Second
 
+// apiResources represents a collection of resources in an API group.
+// It manages resource registration information and route handlers.
 type apiResources struct {
-	gv                schema.GroupVersion
-	prefix            string
-	minRequestTimeout time.Duration
+	gv                schema.GroupVersion // API group version
+	prefix            string              // API path prefix (e.g., /apis/kubekey.kubesphere.io/v1alpha1)
+	minRequestTimeout time.Duration       // Request timeout duration
 
-	resourceOptions []resourceOptions
-	list            []metav1.APIResource
-	typer           runtime.ObjectTyper
-	serializer      runtime.NegotiatedSerializer
+	resourceOptions []resourceOptions            // Resource options list
+	list            []metav1.APIResource         // API resource list (for discovery)
+	typer           runtime.ObjectTyper          // Type resolver
+	serializer      runtime.NegotiatedSerializer // Serializer
 }
 
+// resourceOptions defines registration options for a single resource
 type resourceOptions struct {
-	path         string
-	resource     string // generate by path
-	subresource  string // generate by path
-	resourcePath string // generate by path
-	itemPath     string // generate by path
-	storage      apirest.Storage
-	admit        admission.Interface
+	path         string              // Resource path (e.g., "tasks" or "tasks/status")
+	resource     string              // Resource name (parsed from path)
+	subresource  string              // Subresource name (parsed from path)
+	resourcePath string              // Resource path template (e.g., /namespaces/{namespace}/tasks/{name})
+	itemPath     string              // Resource item path template (e.g., /namespaces/{namespace}/tasks/{name})
+	storage      apirest.Storage     // REST storage
+	admit        admission.Interface // Admission control
 }
 
+// init initializes resource options and calculates path-related fields
 func (o *resourceOptions) init() error {
-	// prefix for resourcePath.
+	// Determine path prefix (namespace-scoped or cluster-scoped)
 	var prefix string
 	scoper, ok := o.storage.(apirest.Scoper)
 	if !ok {
@@ -73,13 +78,15 @@ func (o *resourceOptions) init() error {
 		prefix = "/"
 	}
 
-	// checks if the given storage path is the path of a subresource
+	// Parse path (supports main resource and subresource)
 	switch parts := strings.Split(o.path, "/"); len(parts) {
 	case 2:
+		// Subresource (e.g., tasks/status)
 		o.resource, o.subresource = parts[0], parts[1]
 		o.resourcePath = prefix + o.resource + "/{name}/" + o.subresource
 		o.itemPath = prefix + o.resource + "/{name}/" + o.subresource
 	case 1:
+		// Main resource (e.g., tasks)
 		o.resource = parts[0]
 		o.resourcePath = prefix + o.resource
 		o.itemPath = prefix + o.resource + "/{name}"
@@ -87,15 +94,16 @@ func (o *resourceOptions) init() error {
 		return errors.New("api_installer allows only one or two segment paths (resource or resource/subresource)")
 	}
 
+	// Set default admission control
 	if o.admit == nil {
-		// set default admit
 		o.admit = newAlwaysAdmit()
 	}
 
 	return nil
 }
 
-func newAPIIResources(gv schema.GroupVersion) *apiResources {
+// newAPIResources creates a new API resources collection
+func newAPIResources(gv schema.GroupVersion) *apiResources {
 	return &apiResources{
 		gv:                gv,
 		prefix:            "/apis/" + gv.String(),
@@ -106,12 +114,14 @@ func newAPIIResources(gv schema.GroupVersion) *apiResources {
 	}
 }
 
-// AddResource add a api-resources
+// AddResource adds a resource to the API resources collection
 func (r *apiResources) AddResource(o resourceOptions) error {
 	if err := o.init(); err != nil {
 		return err
 	}
 	r.resourceOptions = append(r.resourceOptions, o)
+
+	// Get storage version information (for StorageVersionHash)
 	storageVersionProvider, isStorageVersionProvider := o.storage.(apirest.StorageVersionProvider)
 	var apiResource metav1.APIResource
 	if isStorageVersionProvider &&
@@ -127,9 +137,13 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 		apiResource.Kind = gvk.Kind
 		apiResource.StorageVersionHash = discovery.StorageVersionHash(gvk.Group, gvk.Version, gvk.Kind)
 	}
+
+	// Set basic resource information
 	apiResource.Name = o.path
 	apiResource.Namespaced = true
-	apiResource.Verbs = []string{"*"}
+	apiResource.Verbs = []string{"*"} // Supports all REST operations
+
+	// Get short names and categories
 	if shortNamesProvider, ok := o.storage.(apirest.ShortNamesProvider); ok {
 		apiResource.ShortNames = shortNamesProvider.ShortNames()
 	}
@@ -137,6 +151,7 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 		apiResource.Categories = categoriesProvider.Categories()
 	}
 
+	// Main resource must provide singular name
 	if o.subresource == "" {
 		singularNameProvider, ok := o.storage.(apirest.SingularNameProvider)
 		if !ok {
@@ -149,6 +164,7 @@ func (r *apiResources) AddResource(o resourceOptions) error {
 	return nil
 }
 
+// handlerAPIResources returns the Handler for /apis/{group}/{version} requests
 func (r *apiResources) handlerAPIResources() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		responsewriters.WriteObjectNegotiated(r.serializer, negotiation.DefaultEndpointRestrictions, schema.GroupVersion{}, writer, request, http.StatusOK,
@@ -156,7 +172,8 @@ func (r *apiResources) handlerAPIResources() http.HandlerFunc {
 	}
 }
 
-// calculate the storage gvk, the gvk objects are converted to before persisted to the etcd.
+// getStorageVersionKind calculates the storage GVK
+// Objects in storage are converted before being persisted to etcd
 func getStorageVersionKind(storageVersioner runtime.GroupVersioner, storage apirest.Storage, typer runtime.ObjectTyper) (schema.GroupVersionKind, error) {
 	object := storage.New()
 	fqKinds, _, err := typer.ObjectKinds(object)

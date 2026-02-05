@@ -22,62 +22,98 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
 	apiregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
+
+	proxy "github.com/kubesphere/kubekey/v4/pkg/proxy/resources"
 )
 
-// PlaybookStorage storage for Playbook
-type PlaybookStorage struct {
-	Playbook       *REST
-	PlaybookStatus *StatusREST
+// playbookStorage implements the storage interface for Playbook resource
+type playbookStorage struct {
+	Playbook       *REST       // Main resource storage
+	PlaybookStatus *StatusREST // Status subresource storage
 }
 
-// REST resource for Playbook
+// GVK returns the GroupVersionKind of the Playbook resource
+func (s *playbookStorage) GVK() schema.GroupVersionKind {
+	return kkcorev1.SchemeGroupVersion.WithKind("Playbook")
+}
+
+// GVRs returns all GroupVersionResources of the Playbook resource
+// Contains main resource and status subresource
+func (s *playbookStorage) GVRs() []schema.GroupVersionResource {
+	return []schema.GroupVersionResource{
+		kkcorev1.SchemeGroupVersion.WithResource("playbooks"),        // Main resource
+		kkcorev1.SchemeGroupVersion.WithResource("playbooks/status"), // Status subresource
+	}
+}
+
+// Storage returns the corresponding REST storage based on GVR
+func (s *playbookStorage) Storage(gvr schema.GroupVersionResource) apirest.Storage {
+	if gvr.Resource == "playbooks/status" {
+		return s.PlaybookStatus
+	}
+	return s.Playbook
+}
+
+// IsAlwaysLocal returns false
+// Playbook can be stored in remote Kubernetes cluster or local filesystem
+func (s *playbookStorage) IsAlwaysLocal() bool {
+	return false
+}
+
+// REST is the REST storage wrapper for Playbook main resource
 type REST struct {
 	*apiregistry.Store
 }
 
-// StatusREST status subresource for Playbook
+// StatusREST is the REST storage implementation for Playbook status subresource
 type StatusREST struct {
 	store *apiregistry.Store
 }
 
-// NamespaceScoped is true for Playbook
+// NamespaceScoped returns true, Playbook is a namespace-scoped resource
 func (r *StatusREST) NamespaceScoped() bool {
 	return true
 }
 
-// New creates a new Node object.
+// New creates a new Playbook object
 func (r *StatusREST) New() runtime.Object {
 	return &kkcorev1.Playbook{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *StatusREST) Destroy() {
-	// Given that underlying store is shared with REST,
-	// we don't destroy it here explicitly.
-}
+// Destroy cleans up resources
+// Since the underlying store is shared with REST, it is not explicitly destroyed here
+func (r *StatusREST) Destroy() {}
 
-// Get retrieves the object from the storage. It is required to support Patch.
+// Get retrieves the object (used to support Patch operation)
 func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	return r.store.Get(ctx, name, options)
 }
 
-// Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx context.Context, name string, objInfo apirest.UpdatedObjectInfo, createValidation apirest.ValidateObjectFunc, updateValidation apirest.ValidateObjectUpdateFunc, _ bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
-	// We are explicitly setting forceAllowCreate to false in the call to the underlying storage because
-	// subresources should never allow create on update.
+// Update updates the status subresource of an object
+func (r *StatusREST) Update(
+	ctx context.Context,
+	name string,
+	objInfo apirest.UpdatedObjectInfo,
+	createValidation apirest.ValidateObjectFunc,
+	updateValidation apirest.ValidateObjectUpdateFunc,
+	_ bool,
+	options *metav1.UpdateOptions,
+) (runtime.Object, bool, error) {
+	// Subresources should never allow create on update, forceAllowCreate is set to false
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation, false, options)
 }
 
-// ConvertToTable print table view
+// ConvertToTable converts the object to table format
 func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
-// NewStorage for Playbook storage
-func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (PlaybookStorage, error) {
+// NewStorage creates the storage for Playbook resource
+func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (proxy.ResourceStorage, error) {
 	store := &apiregistry.Store{
 		NewFunc:                   func() runtime.Object { return &kkcorev1.Playbook{} },
 		NewListFunc:               func() runtime.Object { return &kkcorev1.PlaybookList{} },
@@ -91,14 +127,16 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (PlaybookStorage, error
 
 		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("playbooks").GroupResource()),
 	}
+
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 	}
+
 	if err := store.CompleteWithOptions(options); err != nil {
-		return PlaybookStorage{}, err
+		return nil, err
 	}
 
-	return PlaybookStorage{
+	return &playbookStorage{
 		Playbook:       &REST{store},
 		PlaybookStatus: &StatusREST{store},
 	}, nil
