@@ -26,6 +26,7 @@ import (
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -134,9 +135,19 @@ func (o *CommonOptions) Run(ctx context.Context, playbook *kkcorev1.Playbook) er
 	if err != nil {
 		return errors.Wrap(err, "failed to runtime-client")
 	}
-	// create inventory
-	if err := client.Create(ctx, o.Inventory); err != nil {
-		return errors.Wrap(err, "failed to create inventory")
+	// create or update inventory
+	if err := client.Get(ctx, ctrlclient.ObjectKeyFromObject(o.Inventory), o.Inventory); err != nil {
+		if apierrors.IsNotFound(err) {
+			if err := client.Create(ctx, o.Inventory); err != nil {
+				return errors.Wrap(err, "failed to create inventory")
+			}
+		} else {
+			return errors.Wrap(err, "failed to get inventory")
+		}
+	} else {
+		if err := client.Update(ctx, o.Inventory); err != nil {
+			return errors.Wrap(err, "failed to update inventory")
+		}
 	}
 	// create playbook
 	if err := client.Create(ctx, playbook); err != nil {

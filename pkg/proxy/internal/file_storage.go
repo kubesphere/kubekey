@@ -1,324 +1,449 @@
-/*
-Copyright 2024 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package internal
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/cockroachdb/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	apistorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
-	"k8s.io/klog/v2"
 )
 
 const (
-	// when delete resource, add suffix deleteTagSuffix to the file name.
-	// after delete event is handled, the file will be deleted from disk.
+	// dataFileSuffix is the suffix for data files
+	dataFileSuffix = ".yaml"
+	// revisionFile is the file name for global revision number
+	revisionFile = "_revision"
+	// deleteTagSuffix is the suffix for deletion marker files
 	deleteTagSuffix = "-deleted"
-	// the file type of resource will store local.
-	// NOTE: the variable will store in playbook dir, add file-suffix to distinct it.
-	yamlSuffix = ".yaml"
 )
 
-func newFileStorage(prefix string, resource schema.GroupResource, codec runtime.Codec, newFunc func() runtime.Object) (apistorage.Interface, factory.DestroyFunc) {
-	return &fileStorage{
-			prefix:    prefix,
-			versioner: apistorage.APIObjectVersioner{},
-			resource:  resource,
-			codec:     codec,
-			newFunc:   newFunc,
-		}, func() {
-			// do nothing
-		}
-}
-
-type fileStorage struct {
-	prefix    string
+// fileStore implements the apistorage.Interface interface for local file storage
+type fileStore struct {
+	// rootDir is the root directory for storage
+	rootDir string
+	// resourcePrefix is the resource prefix (group/version/resource)
+	resourcePrefix string
+	// clusterScoped indicates if the resource is cluster-scoped
+	clusterScoped bool
+	// codec is the encoder/decoder
+	codec runtime.Codec
+	// versioner manages resource versions
 	versioner apistorage.Versioner
-	codec     runtime.Codec
-	resource  schema.GroupResource
-
+	// currentRev is the current revision number (globally incrementing)
+	revisionMux sync.RWMutex
+	currentRev  uint64
+	// newFunc is the function to create new objects
 	newFunc func() runtime.Object
 }
 
-var _ apistorage.Interface = &fileStorage{}
+// Ensure fileStore implements apistorage.Interface
+var _ apistorage.Interface = &fileStore{}
 
-// Versioner of local resource files.
-func (s fileStorage) Versioner() apistorage.Versioner {
-	return s.versioner
+// newFileStorage creates a new local file storage
+func newFileStorage(rootDir string, resourcePrefix string, groupResource schema.GroupResource, codec runtime.Codec, newFunc func() runtime.Object, isClusterScoped bool) (*fileStore, factory.DestroyFunc, error) {
+	s := &fileStore{
+		rootDir:        rootDir,
+		resourcePrefix: resourcePrefix,
+		clusterScoped:  isClusterScoped,
+		codec:          codec,
+		versioner:      apistorage.APIObjectVersioner{},
+		currentRev:     1, // Start from 1 to avoid "illegal resource version from storage: 0"
+		newFunc:        newFunc,
+	}
+
+	if err := s.loadRevision(); err != nil {
+		return nil, nil, err
+	}
+
+	return s, func() {}, nil
 }
 
-// Create local resource files.
-func (s fileStorage) Create(_ context.Context, key string, obj, out runtime.Object, _ uint64) error {
-	// set resourceVersion to obj
-	metaObj, err := meta.Accessor(obj)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get meta from object %q", key)
-	}
-	metaObj.SetResourceVersion("1")
-	// create file to local disk
-	if _, err := os.Stat(filepath.Dir(key)); err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "failed to check dir %q", filepath.Dir(key))
-		}
-		if err := os.MkdirAll(filepath.Dir(key), 0755); err != nil {
-			return errors.Wrapf(err, "failed to create dir %q", filepath.Dir(key))
-		}
-	}
+// ================================================
+// Version Management
+// ================================================
 
-	data, err := runtime.Encode(s.codec, obj)
+// loadRevision loads the revision number from file
+func (s *fileStore) loadRevision() error {
+	data, err := os.ReadFile(filepath.Join(s.rootDir, s.resourcePrefix, revisionFile))
 	if err != nil {
-		return errors.Wrapf(err, "failed to encode object %q", key)
-	}
-	if out != nil {
-		if err := runtime.DecodeInto(s.codec, data, out); err != nil {
-			return errors.Wrapf(err, "unable to decode the created object data for %q", key)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
 		}
+		return errors.Wrap(err, "failed to read revision file")
 	}
-	// render to file
-	if err := os.WriteFile(key+yamlSuffix, data, 0644); err != nil {
-		return errors.Wrapf(err, "failed to create object %q", key)
+	s.currentRev, err = strconv.ParseUint(string(data), 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse revision")
 	}
-
 	return nil
 }
 
-// Delete local resource files.
-func (s *fileStorage) Delete(ctx context.Context, key string, out runtime.Object, preconditions *apistorage.Preconditions, validateDeletion apistorage.ValidateObjectFunc, cachedExistingObject runtime.Object, opts apistorage.DeleteOptions) error {
-	if cachedExistingObject != nil {
-		out = cachedExistingObject
-	} else {
-		if err := s.Get(ctx, key, apistorage.GetOptions{}, out); err != nil {
+// updateRevision writes the global revision number to file, incrementing it atomically
+func (s *fileStore) updateRevision() error {
+	s.revisionMux.Lock()
+	s.currentRev++
+	rev := s.currentRev
+	s.revisionMux.Unlock()
+
+	revisionPath := filepath.Join(s.rootDir, s.resourcePrefix, revisionFile)
+	return os.WriteFile(revisionPath, []byte(strconv.FormatUint(rev, 10)), 0644)
+}
+
+// ================================================
+// Key Preparation
+// ================================================
+
+// prepareKey returns the storage key as a full path based on rootDir
+func (s *fileStore) prepareKey(key string) string {
+	// Remove leading separator from path
+	return filepath.Join(s.rootDir, key)
+}
+
+// getKeyFromPath extracts the storage key from an absolute path (used for Watch)
+func (s *fileStore) getKeyFromPath(absPath string) string {
+	relPath := strings.TrimPrefix(absPath, s.rootDir)
+	// Ensure path starts with separator
+	if !strings.HasPrefix(relPath, string(filepath.Separator)) {
+		relPath = string(filepath.Separator) + relPath
+	}
+	return s.resourcePrefix + relPath
+}
+
+// ================================================
+// File Operations
+// ================================================
+
+// writeObject writes an object to file
+func (s *fileStore) writeObject(key string, obj runtime.Object) error {
+	filePath := key + dataFileSuffix
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return errors.Wrap(err, "failed to create directory")
+	}
+	data, err := runtime.Encode(s.codec, obj)
+	if err != nil {
+		return errors.Wrap(err, "failed to encode object")
+	}
+	return os.WriteFile(filePath, data, 0644)
+}
+
+// readObject reads an object from a file
+func (s *fileStore) readObject(key string, obj runtime.Object) error {
+	data, err := os.ReadFile(key + dataFileSuffix)
+	if err != nil {
+		return err
+	}
+	return runtime.DecodeInto(s.codec, data, obj)
+}
+
+// walkDirectory recursively traverses a directory, invoking fn for each valid object
+func (s *fileStore) walkDirectory(prefix string, fn func(path string, obj runtime.Object) error) error {
+	return filepath.WalkDir(prefix, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		// Only process .yaml files
+		if !strings.HasSuffix(path, dataFileSuffix) {
+			return nil
+		}
+		// Skip deleted marker files
+		if strings.HasSuffix(path, deleteTagSuffix) {
+			return nil
+		}
+		// Skip revision files
+		if strings.HasSuffix(path, revisionFile) {
+			return nil
+		}
+
+		// Infer object type from path and read
+		key := strings.TrimSuffix(path, dataFileSuffix)
+		obj := s.newFunc()
+		if err := s.readObject(key, obj); err != nil {
+			return fn(path, nil)
+		}
+		return fn(path, obj)
+	})
+}
+
+// ================================================
+// CRUD Operations
+// ================================================
+
+// Create stores a new object at the given key. Fails if key already exists.
+func (s *fileStore) Create(ctx context.Context, key string, obj, out runtime.Object, ttl uint64) error {
+	preparedKey := s.prepareKey(key)
+
+	// Check for resource version; must not be set on create
+	if version, err := s.versioner.ObjectResourceVersion(obj); err == nil && version != 0 {
+		return apistorage.ErrResourceVersionSetOnCreate
+	}
+
+	// Set initial resource version
+	metaObj, err := meta.Accessor(obj)
+	if err != nil {
+		return errors.Wrap(err, "failed to get accessor")
+	}
+	metaObj.SetResourceVersion("1")
+
+	// Check if file already exists
+	filePath := preparedKey + dataFileSuffix
+	if _, err := os.Stat(filePath); err == nil {
+		return apistorage.NewKeyExistsError(preparedKey, 0)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	// Write object to file
+	if err := s.writeObject(preparedKey, obj); err != nil {
+		return err
+	}
+
+	// Update global revision number
+	if err := s.updateRevision(); err != nil {
+		return err
+	}
+
+	// Optionally, read out the created resource into 'out'
+	if out != nil {
+		if err := s.readObject(preparedKey, out); err != nil {
 			return err
 		}
 	}
 
-	if err := preconditions.Check(key, out); err != nil {
-		return errors.Wrapf(err, "failed to check preconditions for object %q", key)
-	}
+	return nil
+}
 
-	if err := validateDeletion(ctx, out); err != nil {
+// Get fetches an object from storage by key
+func (s *fileStore) Get(ctx context.Context, key string, opts apistorage.GetOptions, out runtime.Object) error {
+	preparedKey := s.prepareKey(key)
+
+	// Read object data
+	if err := s.readObject(preparedKey, out); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			if opts.IgnoreNotFound {
+				return runtime.SetZeroValue(out)
+			}
+			return apistorage.NewKeyNotFoundError(preparedKey, 0)
+		}
 		return err
 	}
 
-	// delete object: rename file to trigger watcher, it will actual delete by watcher.
-	if err := os.Rename(key+yamlSuffix, key+yamlSuffix+deleteTagSuffix); err != nil {
-		return errors.Wrapf(err, "failed to rename object %q to del-object %q", key+yamlSuffix, key+yamlSuffix+deleteTagSuffix)
+	// Validate resource version if provided
+	if opts.ResourceVersion != "" {
+		rv, err := s.versioner.ParseResourceVersion(opts.ResourceVersion)
+		if err != nil {
+			return apistorage.NewInvalidObjError(preparedKey, err.Error())
+		}
+		currentRV, _ := s.versioner.ObjectResourceVersion(out)
+		if uint64(currentRV) < rv {
+			return apistorage.NewInvalidObjError(preparedKey, "resource version too old")
+		}
 	}
 
 	return nil
 }
 
-// Watch local resource files.
-func (s fileStorage) Watch(_ context.Context, key string, _ apistorage.ListOptions) (watch.Interface, error) {
-	return newFileWatcher(s.prefix, key, s.codec, s.newFunc)
-}
-
-// Get local resource files.
-func (s fileStorage) Get(_ context.Context, key string, _ apistorage.GetOptions, out runtime.Object) error {
-	data, err := os.ReadFile(key + yamlSuffix)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Return a NotFound error with dummy GroupResource and key as name.
-			return apierrors.NewNotFound(s.resource, key)
-		}
-		return err
-	}
-
-	return runtime.DecodeInto(s.codec, data, out)
-}
-
-// GetList local resource files.
-func (s fileStorage) GetList(_ context.Context, key string, opts apistorage.ListOptions, listObj runtime.Object) error {
+// GetList fetches all objects under a storage key, supporting pagination and filtering
+func (s *fileStore) GetList(ctx context.Context, key string, opts apistorage.ListOptions, listObj runtime.Object) error {
 	listPtr, err := meta.GetItemsPtr(listObj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get object list items of %q", key)
+		return errors.Wrap(err, "failed to get items ptr")
 	}
+
 	v, err := conversion.EnforcePtr(listPtr)
 	if err != nil || v.Kind() != reflect.Slice {
-		return errors.Wrapf(err, "need ptr to slice of %q", key)
+		return errors.New("need ptr to slice")
 	}
 
-	// Build matching rules for resource version and continue key.
-	resourceVersionMatchRule, continueKeyMatchRule, err := s.buildMatchRules(key, opts, &sync.Once{})
+	// Build matching rules for resource version and continue key
+	resourceVersionMatchRule, continueKeyMatchRule, err := s.buildMatchRules(key, opts)
 	if err != nil {
 		return err
 	}
 
-	// Get the root entries in the directory corresponding to 'key'.
+	// Get root directory entries (note: key is relative and needs to be translated)
 	rootEntries, isAllNamespace, err := s.getRootEntries(key)
 	if err != nil {
-		if os.IsNotExist(err) {
-			// Return a NotFound error with dummy GroupResource and key as name.
-			return apierrors.NewNotFound(s.resource, key)
-		}
-		return err
+		return errors.Wrap(err, "failed to get root entries")
 	}
+
+	// Convert key to absolute path for file operations
+	preparedKey := s.prepareKey(key)
 
 	var lastKey string
 	var hasMore bool
-	// Iterate over root entries, processing either directories or files.
+
+	// Iterate entries
 	for i, entry := range rootEntries {
 		if isAllNamespace {
-			// Process namespace directory.
-			err = s.processNamespaceDirectory(key, entry, v, continueKeyMatchRule, resourceVersionMatchRule, &lastKey, &hasMore, opts, listObj)
+			err = s.processNamespaceDirectory(preparedKey, entry, v, continueKeyMatchRule, resourceVersionMatchRule, &lastKey, &hasMore, opts, listObj)
 		} else {
-			// Process individual resource file.
-			err = s.processResourceFile(key, entry, v, continueKeyMatchRule, resourceVersionMatchRule, &lastKey, opts, listObj)
+			err = s.processResourceFile(preparedKey, entry, v, continueKeyMatchRule, resourceVersionMatchRule, &lastKey, opts, listObj)
 		}
 		if err != nil {
-			if os.IsNotExist(err) {
-				// Return a NotFound error with dummy GroupResource and key as name.
-				return apierrors.NewNotFound(s.resource, key)
-			}
 			return err
 		}
-		// Check if we have reached the limit of results requested by the client.
+
+		// Check if limit is reached
 		if opts.Predicate.Limit != 0 && int64(v.Len()) >= opts.Predicate.Limit {
 			hasMore = i != len(rootEntries)-1
-
 			break
 		}
 	}
-	// Handle the final result after all entries have been processed.
+
 	return s.handleResult(listObj, v, lastKey, hasMore)
 }
 
-// buildMatchRules creates the match rules for resource version and continue key based on the given options.
-func (s fileStorage) buildMatchRules(key string, opts apistorage.ListOptions, startReadOnce *sync.Once) (func(uint64) bool, func(string) bool, error) {
+// buildMatchRules returns filter functions for resource version and for continue key
+func (s *fileStore) buildMatchRules(key string, opts apistorage.ListOptions) (func(uint64) bool, func(string) bool, error) {
 	resourceVersionMatchRule := func(uint64) bool { return true }
-	continueKeyMatchRule := func(key string) bool { return strings.HasSuffix(key, yamlSuffix) }
+	continueKeyMatchRule := func(path string) bool {
+		// Accept only YAML data files, not delete or revision files
+		return strings.HasSuffix(path, dataFileSuffix) &&
+			!strings.HasSuffix(path, deleteTagSuffix) &&
+			!strings.HasSuffix(path, revisionFile)
+	}
 
 	switch {
 	case opts.Recursive && opts.Predicate.Continue != "":
-		// If continue token is present, set up a rule to start reading after the continueKey.
+		// Handle continue token
 		continueKey, _, err := apistorage.DecodeContinue(opts.Predicate.Continue, key)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "invalid continue token of %q", key)
+			return nil, nil, errors.Wrap(err, "invalid continue token")
 		}
 
-		continueKeyMatchRule = func(key string) bool {
-			startRead := false
-			if key == continueKey {
-				startReadOnce.Do(func() { startRead = true })
+		var startRead bool
+		continueKeyMatchRule = func(path string) bool {
+			if path == continueKey {
+				startRead = true
 			}
-
-			return startRead && key != continueKey
+			return startRead && path != continueKey
 		}
+
 	case opts.ResourceVersion != "":
-		// Handle resource version matching based on the provided match rule.
+		// Handle resource version matching
 		parsedRV, err := s.versioner.ParseResourceVersion(opts.ResourceVersion)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "invalid resource version of %q", key)
+			return nil, nil, errors.Wrap(err, "invalid resource version")
 		}
+
 		switch opts.ResourceVersionMatch {
 		case metav1.ResourceVersionMatchNotOlderThan:
 			resourceVersionMatchRule = func(u uint64) bool { return u >= parsedRV }
 		case metav1.ResourceVersionMatchExact:
 			resourceVersionMatchRule = func(u uint64) bool { return u == parsedRV }
 		case "":
-			// Legacy case: match all resource versions.
+			// Compatible with older versions, match all
 		default:
-			return nil, nil, errors.Errorf("unknown ResourceVersionMatch value %q of %q", opts.ResourceVersionMatch, key)
+			return nil, nil, errors.New("unknown ResourceVersionMatch")
 		}
 	}
 
 	return resourceVersionMatchRule, continueKeyMatchRule, nil
 }
 
-// getRootEntries reads the directory entries at the given key path.
-func (s fileStorage) getRootEntries(key string) ([]os.DirEntry, bool, error) {
+// getRootEntries gets root directory entries
+// key can be in one of two forms:
+//   - "apis/apps/deployments" (with resourcePrefix prefix)
+//   - "" or "/deployments" (when listing all resources in GetList)
+func (s *fileStore) getRootEntries(key string) ([]os.DirEntry, bool, error) {
 	var allNamespace bool
-	switch len(filepath.SplitList(strings.TrimPrefix(key, s.prefix))) {
-	case 0: // read all namespace's resources
-		// Traverse the resource storage directory. startRead after continueKey.
-		// get all resources from key. key is runtimeDir
-		allNamespace = true
-	case 1: // read a namespace's resources
-		// Traverse the resource storage directory. startRead after continueKey.
-		// get all resources from key. key is runtimeDir
-		allNamespace = false
-	default:
-		return nil, false, errors.Errorf("key is invalid: %s", key)
-	}
-	if _, err := os.Stat(key); err != nil {
-		if !os.IsNotExist(err) {
-			return nil, allNamespace, errors.Wrapf(err, "failed to stat path %q", key)
-		}
-		if err := os.MkdirAll(key, 0755); err != nil {
-			return nil, allNamespace, errors.Wrapf(err, "failed to create dir %q", key)
-		}
-	}
-	rootEntries, err := os.ReadDir(key)
 
-	return rootEntries, allNamespace, err
+	// Extract relative path (remove resourcePrefix prefix)
+	relKey := strings.TrimPrefix(key, s.resourcePrefix)
+	relKey = strings.TrimPrefix(relKey, string(filepath.Separator))
+
+	// Determine if listing all namespaces based on relative path and resource scope
+	// For cluster-scoped resources, allNamespace is always false (no namespace directories)
+	// For namespace-scoped resources, if relative path is empty or only separator, list all namespaces
+	if !s.clusterScoped {
+		switch relKey {
+		case "", string(filepath.Separator):
+			allNamespace = true
+		default:
+			allNamespace = false
+		}
+	}
+	// For cluster-scoped resources, allNamespace remains false
+
+	// Actual path
+	preparedKey := s.prepareKey(key)
+	if _, err := os.Stat(preparedKey); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			if err := os.MkdirAll(preparedKey, 0755); err != nil {
+				return nil, allNamespace, errors.Wrap(err, "failed to create directory")
+			}
+		} else {
+			return nil, allNamespace, errors.Wrap(err, "failed to stat directory")
+		}
+	}
+
+	entries, err := os.ReadDir(preparedKey)
+	return entries, allNamespace, err
 }
 
-// processNamespaceDirectory handles the traversal and processing of a namespace directory.
-func (s fileStorage) processNamespaceDirectory(key string, ns os.DirEntry, v reflect.Value, continueKeyMatchRule func(string) bool, resourceVersionMatchRule func(uint64) bool, lastKey *string, hasMore *bool, opts apistorage.ListOptions, listObj runtime.Object) error {
-	if !ns.IsDir() {
-		// only need dir. skip
-		return nil
-	}
-	nsDir := filepath.Join(key, ns.Name())
-	entries, err := os.ReadDir(nsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
+// processNamespaceDirectory processes namespace directories or cluster-scoped resources
+func (s *fileStore) processNamespaceDirectory(key string, entry os.DirEntry, v reflect.Value, continueKeyMatchRule func(string) bool, resourceVersionMatchRule func(uint64) bool, lastKey *string, hasMore *bool, opts apistorage.ListOptions, listObj runtime.Object) error {
+	entryPath := filepath.Join(key, entry.Name())
+
+	if entry.IsDir() {
+		// Namespace-scoped resources: key/<namespace>/
+		nsDir := entryPath
+		entries, err := os.ReadDir(nsDir)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil
+			}
+			return errors.Wrap(err, "failed to read namespace directory")
 		}
 
-		return errors.Wrapf(err, "failed to read dir %q", nsDir)
-	}
+		for _, e := range entries {
+			err := s.processResourceFile(nsDir, e, v, continueKeyMatchRule, resourceVersionMatchRule, lastKey, opts, listObj)
+			if err != nil {
+				return err
+			}
 
-	for _, entry := range entries {
-		err := s.processResourceFile(nsDir, entry, v, continueKeyMatchRule, resourceVersionMatchRule, lastKey, opts, listObj)
+			if opts.Predicate.Limit != 0 && int64(v.Len()) >= opts.Predicate.Limit {
+				*hasMore = true
+				return nil
+			}
+		}
+	} else {
+		// Cluster-scoped resources: key/<resource>.yaml (directly under key)
+		err := s.processResourceFile(key, entry, v, continueKeyMatchRule, resourceVersionMatchRule, lastKey, opts, listObj)
 		if err != nil {
 			return err
 		}
-		// Check if we have reached the limit of results requested by the client.
+
 		if opts.Predicate.Limit != 0 && int64(v.Len()) >= opts.Predicate.Limit {
 			*hasMore = true
-
-			return nil
 		}
 	}
 
 	return nil
 }
 
-// processResourceFile handles reading, decoding, and processing a single resource file.
-func (s fileStorage) processResourceFile(parentDir string, entry os.DirEntry, v reflect.Value, continueKeyMatchRule func(string) bool, resourceVersionMatchRule func(uint64) bool, lastKey *string, opts apistorage.ListOptions, listObj runtime.Object) error {
+// processResourceFile processes a single resource file
+func (s *fileStore) processResourceFile(parentDir string, entry os.DirEntry, v reflect.Value, continueKeyMatchRule func(string) bool, resourceVersionMatchRule func(uint64) bool, lastKey *string, opts apistorage.ListOptions, listObj runtime.Object) error {
 	if entry.IsDir() {
-		// only need file. skip
 		return nil
 	}
+
 	currentKey := filepath.Join(parentDir, entry.Name())
 	if !continueKeyMatchRule(currentKey) {
 		return nil
@@ -326,162 +451,243 @@ func (s fileStorage) processResourceFile(parentDir string, entry os.DirEntry, v 
 
 	data, err := os.ReadFile(currentKey)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read object %q", currentKey)
+		return errors.Wrap(err, "failed to read file")
 	}
 
-	obj, _, err := s.codec.Decode(data, nil, getNewItem(listObj, v))
-	if err != nil {
-		return errors.Wrapf(err, "failed to decode object %q", currentKey)
+	obj := s.newFunc()
+	if err := runtime.DecodeInto(s.codec, data, obj); err != nil {
+		return errors.Wrap(err, "failed to decode object")
 	}
 
 	metaObj, err := meta.Accessor(obj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get object %q meta", currentKey)
+		return errors.Wrap(err, "failed to get accessor")
 	}
 
 	rv, err := s.versioner.ParseResourceVersion(metaObj.GetResourceVersion())
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse resource version %q", metaObj.GetResourceVersion())
+		return errors.Wrap(err, "failed to parse resource version")
 	}
 
-	// Apply the resource version match rule.
+	// Resource version matching
 	if !resourceVersionMatchRule(rv) {
 		return nil
 	}
 
-	// Check if the object matches the given predicate.
-	if matched, err := opts.Predicate.Matches(obj); err == nil && matched {
+	// Filter condition matching
+	if matched, err := opts.Predicate.Matches(obj); err != nil {
+		return err
+	} else if matched {
 		v.Set(reflect.Append(v, reflect.ValueOf(obj).Elem()))
-		*lastKey = currentKey
+		// lastKey needs to be converted to format with resourcePrefix for continue token
+		*lastKey = s.getKeyFromPath(currentKey)
 	}
 
 	return nil
 }
 
-// handleResult processes and finalizes the result before returning it.
-func (s fileStorage) handleResult(listObj runtime.Object, v reflect.Value, lastKey string, hasMore bool) error {
+// handleResult handles the final result
+func (s *fileStore) handleResult(listObj runtime.Object, v reflect.Value, lastKey string, hasMore bool) error {
 	if v.IsNil() {
 		v.Set(reflect.MakeSlice(v.Type(), 0, 0))
 	}
 
 	if hasMore {
-		// If there are more results, set the continuation token for the next query.
+		// Generate continue token
 		next, err := apistorage.EncodeContinue(lastKey+"\x00", "", 0)
 		if err != nil {
-			return errors.Wrapf(err, "failed to encode continue %q", lastKey)
+			return errors.Wrap(err, "failed to encode continue")
 		}
-
-		return s.versioner.UpdateList(listObj, 1, next, nil)
+		return s.versioner.UpdateList(listObj, s.currentRev, next, nil)
 	}
 
-	// If no more results, return the final list without continuation.
-	return s.versioner.UpdateList(listObj, 1, "", nil)
+	return s.versioner.UpdateList(listObj, s.currentRev, "", nil)
 }
 
-// GuaranteedUpdate local resource file.
-func (s fileStorage) GuaranteedUpdate(ctx context.Context, key string, destination runtime.Object, ignoreNotFound bool, preconditions *apistorage.Preconditions, tryUpdate apistorage.UpdateFunc, cachedExistingObject runtime.Object) error {
-	var oldObj runtime.Object
+// GuaranteedUpdate implements guaranteed update
+func (s *fileStore) GuaranteedUpdate(
+	ctx context.Context, key string, destination runtime.Object, ignoreNotFound bool,
+	preconditions *apistorage.Preconditions, tryUpdate apistorage.UpdateFunc, cachedExistingObject runtime.Object) error {
+	preparedKey := s.prepareKey(key)
+
+	_, err := conversion.EnforcePtr(destination)
+	if err != nil {
+		return errors.Wrap(err, "unable to convert output object to pointer")
+	}
+
+	// Get current object
+	var currentObj runtime.Object
 	if cachedExistingObject != nil {
-		oldObj = cachedExistingObject
+		currentObj = cachedExistingObject
 	} else {
-		oldObj = s.newFunc()
-		if err := s.Get(ctx, key, apistorage.GetOptions{IgnoreNotFound: ignoreNotFound}, oldObj); err != nil {
+		currentObj = s.newFunc()
+		if err := s.readObject(preparedKey, currentObj); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				if ignoreNotFound {
+					return runtime.SetZeroValue(destination)
+				}
+				return apistorage.NewKeyNotFoundError(preparedKey, 0)
+			}
 			return err
 		}
 	}
-	if err := preconditions.Check(key, oldObj); err != nil {
-		return errors.Wrapf(err, "failed to check preconditions %q", key)
+
+	// Check preconditions
+	if preconditions != nil {
+		if err := preconditions.Check(preparedKey, currentObj); err != nil {
+			return err
+		}
 	}
-	// set resourceVersion to obj
-	metaObj, err := meta.Accessor(oldObj)
+
+	// Get current version
+	metaObj, err := meta.Accessor(currentObj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get object %q meta", filepath.Dir(key))
+		return errors.Wrap(err, "failed to get accessor")
 	}
-	oldVersion, err := s.versioner.ParseResourceVersion(metaObj.GetResourceVersion())
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse resource version %q", metaObj.GetResourceVersion())
-	}
-	out, _, err := tryUpdate(oldObj, apistorage.ResponseMeta{ResourceVersion: oldVersion + 1})
+	oldVersion, _ := s.versioner.ParseResourceVersion(metaObj.GetResourceVersion())
+
+	// Perform update
+	ret, _, err := tryUpdate(currentObj, apistorage.ResponseMeta{ResourceVersion: oldVersion + 1})
 	if err != nil {
 		return err
 	}
 
-	data, err := runtime.Encode(s.codec, out)
-	if err != nil {
-		return errors.Wrapf(err, "failed to encode resource file %q", key)
-	}
-	// render to destination
-	if destination != nil {
-		if err := runtime.DecodeInto(s.codec, data, destination); err != nil {
-			return errors.Wrapf(err, "unable to decode the updated object data for %q", key)
+	// Update resource version
+	metaObj, _ = meta.Accessor(ret)
+	metaObj.SetResourceVersion(strconv.FormatUint(oldVersion+1, 10))
+
+	// Check if there are changes
+	currentData, _ := runtime.Encode(s.codec, currentObj)
+	newData, _ := runtime.Encode(s.codec, ret)
+	if string(currentData) != string(newData) {
+		if err := s.writeObject(preparedKey, ret); err != nil {
+			return err
+		}
+		// Update global revision number
+		if err := s.updateRevision(); err != nil {
+			return err
 		}
 	}
-	// render to file
-	if err := os.WriteFile(key+yamlSuffix, data, 0644); err != nil {
-		return errors.Wrapf(err, "failed to create resource file %q", key)
+
+	return s.readObject(preparedKey, destination)
+}
+
+// Delete implements the delete operation
+func (s *fileStore) Delete(
+	ctx context.Context, key string, out runtime.Object, preconditions *apistorage.Preconditions,
+	validateDeletion apistorage.ValidateObjectFunc, cachedExistingObject runtime.Object, opts apistorage.DeleteOptions) error {
+	preparedKey := s.prepareKey(key)
+
+	// Get current object
+	var currentObj runtime.Object
+	if cachedExistingObject != nil {
+		currentObj = cachedExistingObject
+	} else {
+		currentObj = s.newFunc()
+		if err := s.readObject(preparedKey, currentObj); err != nil {
+			return err
+		}
+	}
+
+	// Check preconditions
+	if preconditions != nil {
+		if err := preconditions.Check(preparedKey, currentObj); err != nil {
+			return err
+		}
+	}
+
+	// Validate deletion
+	if validateDeletion != nil {
+		if err := validateDeletion(ctx, currentObj); err != nil {
+			return err
+		}
+	}
+
+	// Rename file to trigger watcher deletion mechanism
+	deletedFilePath := preparedKey + dataFileSuffix + deleteTagSuffix
+	if err := os.Rename(preparedKey+dataFileSuffix, deletedFilePath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return apistorage.NewKeyNotFoundError(preparedKey, 0)
+		}
+		return errors.Wrap(err, "failed to rename to deleted file")
+	}
+
+	// Update global revision number
+	if err := s.updateRevision(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-// Stats implements storage.Interface.
-func (s *fileStorage) Stats(ctx context.Context) (apistorage.Stats, error) {
-	return apistorage.Stats{}, nil
+// ================================================
+// Watch Implementation
+// ================================================
+
+// Watch implements the watch operation
+func (s *fileStore) Watch(ctx context.Context, key string, opts apistorage.ListOptions) (watch.Interface, error) {
+	preparedKey := s.prepareKey(key)
+	return newFileWatcher(s.rootDir, preparedKey, s.codec, s.newFunc, opts, s.clusterScoped)
 }
 
-// ReadinessCheck implements storage.Interface.
-func (s *fileStorage) ReadinessCheck() error {
-	// Ensure the storage root exists and is accessible.
-	if s.prefix == "" {
-		return errors.New("storage prefix is empty")
-	}
+// ================================================
+// Other Interface Methods
+// ================================================
 
-	info, err := os.Stat(s.prefix)
-	if err != nil {
-		return errors.Wrapf(err, "storage prefix %q is not accessible", s.prefix)
-	}
-
-	if !info.IsDir() {
-		return errors.Errorf("storage prefix %q is not a directory", s.prefix)
-	}
-
-	return nil
+// Versioner returns the versioner
+func (s *fileStore) Versioner() apistorage.Versioner {
+	return s.versioner
 }
 
-// RequestWatchProgress do nothing.
-func (s fileStorage) RequestWatchProgress(context.Context) error {
-	return nil
-}
-
-// GetCurrentResourceVersion implements storage.Interface.
-func (s *fileStorage) GetCurrentResourceVersion(ctx context.Context) (uint64, error) {
-	return 0, nil
-}
-
-// SetKeysFunc implements storage.Interface.
-func (s *fileStorage) SetKeysFunc(apistorage.KeysFunc) {
-	// no-op: file storage does not support key override
-}
-
-// CompactRevision returns the compacted revision number for fileStorage.
-// Since fileStorage does not manage revisions, this always returns 0.
-func (s fileStorage) CompactRevision() int64 {
+// CompactRevision returns the compact revision
+func (s *fileStore) CompactRevision() int64 {
 	return 0
 }
 
-func getNewItem(listObj runtime.Object, v reflect.Value) runtime.Object {
-	// For unstructured lists with a target group/version, preserve the group/version in the instantiated list items
-	if unstructuredList, isUnstructured := listObj.(*unstructured.UnstructuredList); isUnstructured {
-		if apiVersion := unstructuredList.GetAPIVersion(); apiVersion != "" {
-			return &unstructured.Unstructured{Object: map[string]any{"apiVersion": apiVersion}}
-		}
-	}
-	// Otherwise just instantiate an empty item
-	elem := v.Type().Elem()
-	if obj, ok := reflect.New(elem).Interface().(runtime.Object); ok {
-		return obj
-	}
-	klog.V(6).Info("elem is not runtime.Object")
+// Stats returns storage statistics
+func (s *fileStore) Stats(ctx context.Context) (apistorage.Stats, error) {
+	count := int64(0)
 
+	if err := s.walkDirectory(s.rootDir, func(path string, obj runtime.Object) error {
+		if obj == nil {
+			return nil
+		}
+		count++
+		return nil
+	}); err != nil {
+		return apistorage.Stats{}, errors.Wrap(err, "failed to walk directory")
+	}
+
+	return apistorage.Stats{
+		ObjectCount: count,
+	}, nil
+}
+
+// ReadinessCheck checks if storage is ready
+func (s *fileStore) ReadinessCheck() error {
+	_, err := os.Stat(s.rootDir)
+	return err
+}
+
+// RequestWatchProgress requests watch progress
+func (s *fileStore) RequestWatchProgress(ctx context.Context) error {
 	return nil
+}
+
+// EnableResourceSizeEstimation enables resource size estimation
+func (s *fileStore) EnableResourceSizeEstimation(keysFunc apistorage.KeysFunc) error {
+	return nil
+}
+
+// GetCurrentResourceVersion returns the current resource version
+func (s *fileStore) GetCurrentResourceVersion(ctx context.Context) (uint64, error) {
+	s.revisionMux.RLock()
+	defer s.revisionMux.RUnlock()
+	// currentRev is already uint64 and always starts from 1
+	return s.currentRev, nil
+}
+
+// Close closes the storage
+func (s *fileStore) Close() {
+	// fileStore does not need close operation
 }
