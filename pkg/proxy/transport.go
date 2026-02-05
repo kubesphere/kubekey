@@ -17,9 +17,8 @@ limitations under the License.
 package proxy
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -27,6 +26,7 @@ import (
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,6 +47,7 @@ import (
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/internal"
+	resource "github.com/kubesphere/kubekey/v4/pkg/proxy/resources"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/inventory"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/playbook"
 	"github.com/kubesphere/kubekey/v4/pkg/proxy/resources/task"
@@ -91,93 +92,12 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 		lt.restClient = clientFor
 	}
 
-	var apiGroups []metav1.APIGroup
-	// register kkcorev1alpha1 resources
-	kkv1alpha1 := newAPIIResources(kkcorev1alpha1.SchemeGroupVersion)
-	storage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion))
-	if err != nil {
+	// Register all resources
+	if err := lt.registerAll(runtimedir, restConfig.Host); err != nil {
 		return nil, err
-	}
-	if err := kkv1alpha1.AddResource(resourceOptions{
-		path:    "tasks",
-		storage: storage.Task,
-	}); err != nil {
-		return nil, err
-	}
-	if err := kkv1alpha1.AddResource(resourceOptions{
-		path:    "tasks/status",
-		storage: storage.TaskStatus,
-	}); err != nil {
-		return nil, err
-	}
-	if err := lt.registerResources(kkv1alpha1); err != nil {
-		return nil, err
-	}
-	apiGroups = append(apiGroups, metav1.APIGroup{
-		Name: kkv1alpha1.gv.Group,
-		Versions: []metav1.GroupVersionForDiscovery{
-			{
-				GroupVersion: kkv1alpha1.gv.String(),
-				Version:      kkv1alpha1.gv.Version,
-			},
-		},
-		PreferredVersion: metav1.GroupVersionForDiscovery{
-			GroupVersion: kkv1alpha1.gv.String(),
-			Version:      kkv1alpha1.gv.Version,
-		},
-	})
-
-	// when restConfig is null. should store all resource local
-	if restConfig.Host == "" {
-		// register kkcorev1 resources
-		kkv1 := newAPIIResources(kkcorev1.SchemeGroupVersion)
-		// add inventory
-		inventoryStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
-		if err != nil {
-			return nil, err
-		}
-		if err := kkv1.AddResource(resourceOptions{
-			path:    "inventories",
-			storage: inventoryStorage.Inventory,
-		}); err != nil {
-			return nil, err
-		}
-		// add playbook
-		playbookStorage, err := playbook.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion))
-		if err != nil {
-			return nil, err
-		}
-		if err := kkv1.AddResource(resourceOptions{
-			path:    "playbooks",
-			storage: playbookStorage.Playbook,
-		}); err != nil {
-			return nil, err
-		}
-		if err := kkv1.AddResource(resourceOptions{
-			path:    "playbooks/status",
-			storage: playbookStorage.PlaybookStatus,
-		}); err != nil {
-			return nil, err
-		}
-
-		if err := lt.registerResources(kkv1); err != nil {
-			return nil, err
-		}
-		apiGroups = append(apiGroups, metav1.APIGroup{
-			Name: kkv1.gv.Group,
-			Versions: []metav1.GroupVersionForDiscovery{
-				{
-					GroupVersion: kkv1.gv.String(),
-					Version:      kkv1.gv.Version,
-				},
-			},
-			PreferredVersion: metav1.GroupVersionForDiscovery{
-				GroupVersion: kkv1.gv.String(),
-				Version:      kkv1.gv.Version,
-			},
-		})
 	}
 
+	// Register /api and /apis discovery handlers
 	lt.registerRouter(http.MethodGet, "/api", func(w http.ResponseWriter, r *http.Request) {
 		obj := &metav1.APIVersions{
 			TypeMeta: metav1.TypeMeta{
@@ -199,10 +119,10 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 				Kind:       "APIGroupList",
 				APIVersion: "v1",
 			},
-			Groups: apiGroups,
+			Groups: lt.apiGroups,
 		}
 		if err := json.NewEncoder(w).Encode(obj); err != nil {
-			klog.ErrorS(err, "failed to encode /api")
+			klog.ErrorS(err, "failed to encode /apis")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -210,39 +130,6 @@ func newProxyTransport(runtimedir string, restConfig *rest.Config) (http.RoundTr
 	}, true)
 
 	return lt, nil
-}
-
-// responseWriter implements http.ResponseWriter for capturing HTTP responses locally.
-// It writes response body to an internal buffer but directly sets headers/status on the *http.Response.
-type responseWriter struct {
-	resp *http.Response // The response object to write headers and status to.
-	buf  bytes.Buffer   // Buffer to capture the response body.
-}
-
-// Header returns the header map that will be sent by WriteHeader.
-func (r *responseWriter) Header() http.Header {
-	return r.resp.Header
-}
-
-// Write writes the data to the buffer as part of the HTTP response body.
-func (r *responseWriter) Write(bs []byte) (int, error) {
-	return r.buf.Write(bs)
-}
-
-// WriteHeader sets the HTTP status code in the response.
-func (r *responseWriter) WriteHeader(statusCode int) {
-	r.resp.StatusCode = statusCode
-}
-
-// finalize prepares the http.Response by setting its Body to the contents of the buffer.
-// If the status code has not been set, it defaults to http.StatusOK (200).
-func (r *responseWriter) finalize() {
-	// Set the HTTP response body to the buffered data.
-	r.resp.Body = io.NopCloser(bytes.NewReader(r.buf.Bytes()))
-	// Default status code to 200 OK if it was not set by the handler.
-	if r.resp.StatusCode == 0 {
-		r.resp.StatusCode = http.StatusOK
-	}
 }
 
 type transport struct {
@@ -255,6 +142,9 @@ type transport struct {
 
 	// handlerChain will be called after each request.
 	handlerChainFunc func(handler http.Handler) http.Handler
+
+	// apiGroups stores the list of registered API Groups for discovery
+	apiGroups []metav1.APIGroup
 }
 
 // RoundTrip deal proxy transport http.Request.
@@ -263,21 +153,17 @@ func (l *transport) RoundTrip(request *http.Request) (*http.Response, error) {
 		return l.restClient.Transport.RoundTrip(request)
 	}
 
-	response := &http.Response{
-		Proto:  "local",
-		Header: make(http.Header),
-	}
 	request = request.WithContext(audit.WithAuditContext(request.Context()))
 	handler, err := l.detectDispatcher(request)
 	if err != nil {
-		return response, err
+		return nil, err
 	}
-	// Use a buffered responseWriter to collect the complete response
-	rw := &responseWriter{resp: response}
-	l.handlerChainFunc(handler).ServeHTTP(rw, request)
-	rw.finalize()
 
-	return response, nil
+	// Use factory to create appropriate response writer and execute handler
+	rw := NewResponseWriter(request, handler, l.handlerChainFunc)
+	rw.ServeHTTP(rw, request)
+
+	return rw.Response(), nil
 }
 
 // http://jsr311.java.net/nonav/releases/1.1/spec/spec3.html#x3-360003.7.2 (step 1)
@@ -291,19 +177,19 @@ func (l transport) detectDispatcher(request *http.Request) (http.HandlerFunc, er
 		}
 	}
 	if len(filtered.candidates) == 0 {
-		return nil, errors.New("not found")
+		return nil, apierrors.NewNotFound(schema.GroupResource{Group: kkcorev1alpha1.SchemeGroupVersion.Group, Resource: "routes"}, request.URL.Path)
 	}
 	sort.Sort(sort.Reverse(filtered))
 
 	handler, ok := filtered.candidates[0].router.handlers[request.Method]
 	if !ok {
-		return nil, errors.New("not found")
+		return nil, apierrors.NewNotFound(schema.GroupResource{Group: kkcorev1alpha1.SchemeGroupVersion.Group, Resource: "routes"}, fmt.Sprintf("%s %s", request.Method, request.URL.Path))
 	}
 
 	return handler, nil
 }
 
-func (l *transport) registerResources(resources *apiResources) error {
+func (l *transport) RegisterResources(resources *apiResources) error {
 	// register apiResources router
 	l.registerRouter(http.MethodGet, resources.prefix, resources.handlerAPIResources(), true)
 	// register resources router
@@ -352,6 +238,9 @@ func (l *transport) registerResources(resources *apiResources) error {
 func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Authorizer) (apihandlers.RequestScope, error) {
 	tableProvider, _ := o.storage.(apirest.TableConvertor)
 	gvAcceptor, _ := o.storage.(apirest.GroupVersionAcceptor)
+	// Determine if resource is cluster-scoped
+	scoper, _ := o.storage.(apirest.Scoper)
+
 	// request scope
 	fqKindToRegister, err := apiendpoints.GetResourceKind(resources.gv, o.storage, _const.Scheme)
 	if err != nil {
@@ -360,7 +249,7 @@ func newReqScope(resources *apiResources, o resourceOptions, authz authorizer.Au
 	reqScope := apihandlers.RequestScope{
 		Namer: apihandlers.ContextBasedNaming{
 			Namer:         meta.NewAccessor(),
-			ClusterScoped: false,
+			ClusterScoped: !scoper.NamespaceScoped(),
 		},
 		Serializer:                  _const.CodecFactory,
 		ParameterCodec:              _const.ParameterCodec,
@@ -514,4 +403,88 @@ func (l *transport) registerConnect(resources *apiResources, reqScope apihandler
 	}
 	l.registerRouter(http.MethodConnect, resources.prefix+o.itemPath, apihandlers.ConnectResource(connecter, &reqScope, o.admit, o.path, o.subresource != ""), isConnecter)
 	l.registerRouter(http.MethodConnect, resources.prefix+o.itemPath+"/{path:*}", apihandlers.ConnectResource(connecter, &reqScope, o.admit, o.path, o.subresource != ""), isConnecter && connectSubpath)
+}
+
+// registerAll registers all API resources based on configuration.
+//
+// Storage Strategy:
+// - Task: Always local storage (running data, large volume and requires reentrancy)
+// - Inventory/Playbook:
+//   - When restConfigHost is empty: local storage
+//   - When restConfigHost is non-empty: remote Kubernetes cluster storage
+func (l *transport) registerAll(runtimedir, restConfigHost string) error {
+	l.apiGroups = make([]metav1.APIGroup, 0)
+
+	// Create Task storage (always local)
+	taskStorage, err := task.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1alpha1.SchemeGroupVersion, false))
+	if err != nil {
+		return err
+	}
+
+	// Create Inventory/Playbook storage (storage location determined by configuration)
+	invStorage, err := inventory.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion, false))
+	if err != nil {
+		return err
+	}
+
+	pbStorage, err := playbook.NewStorage(internal.NewFileRESTOptionsGetter(runtimedir, kkcorev1.SchemeGroupVersion, false))
+	if err != nil {
+		return err
+	}
+
+	storages := []resource.ResourceStorage{taskStorage, invStorage, pbStorage}
+
+	// GroupVersion -> APIResources mapping
+	// Multiple GVRs can share the same GroupVersion (e.g., tasks and inventories both use v1alpha1)
+	gvToAPIResources := make(map[schema.GroupVersion]*apiResources)
+
+	for _, storage := range storages {
+		// In remote mode, skip non-local storage resources
+		if restConfigHost != "" && !storage.IsAlwaysLocal() {
+			continue
+		}
+
+		gv := storage.GVK().GroupVersion()
+
+		// Get or create APIResources for this GroupVersion
+		apiRes := gvToAPIResources[gv]
+		if apiRes == nil {
+			apiRes = newAPIResources(gv)
+			gvToAPIResources[gv] = apiRes
+		}
+
+		// Register all GVRs (main resource and subresources)
+		for _, gvr := range storage.GVRs() {
+			if err := apiRes.AddResource(resourceOptions{
+				path:    gvr.Resource,
+				storage: storage.Storage(gvr),
+			}); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Register all APIResources to router and add to API Groups list
+	for gv, apiRes := range gvToAPIResources {
+		if err := l.RegisterResources(apiRes); err != nil {
+			return err
+		}
+
+		// Add to API Groups list (used for /apis discovery)
+		l.apiGroups = append(l.apiGroups, metav1.APIGroup{
+			Name: gv.Group,
+			Versions: []metav1.GroupVersionForDiscovery{
+				{
+					GroupVersion: gv.String(),
+					Version:      gv.Version,
+				},
+			},
+			PreferredVersion: metav1.GroupVersionForDiscovery{
+				GroupVersion: gv.String(),
+				Version:      gv.Version,
+			},
+		})
+	}
+
+	return nil
 }
