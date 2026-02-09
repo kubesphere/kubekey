@@ -19,23 +19,49 @@ package inventory
 import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
 	apiregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
+
+	proxy "github.com/kubesphere/kubekey/v4/pkg/proxy/resources"
 )
 
-// InventoryStorage storage for Inventory
-type InventoryStorage struct {
-	Inventory *REST
+// inventoryStorage implements the storage interface for Inventory resource
+type inventoryStorage struct {
+	Inventory *REST // Main resource storage
 }
 
-// REST resource for Inventory
+// GVK returns the GroupVersionKind of the Inventory resource
+func (s *inventoryStorage) GVK() schema.GroupVersionKind {
+	return kkcorev1.SchemeGroupVersion.WithKind("Inventory")
+}
+
+// GVRs returns all GroupVersionResources of the Inventory resource
+func (s *inventoryStorage) GVRs() []schema.GroupVersionResource {
+	return []schema.GroupVersionResource{
+		kkcorev1.SchemeGroupVersion.WithResource("inventories"),
+	}
+}
+
+// Storage returns the REST storage for Inventory
+func (s *inventoryStorage) Storage(gvr schema.GroupVersionResource) apirest.Storage {
+	return s.Inventory
+}
+
+// IsAlwaysLocal returns false
+// Inventory can be stored in remote Kubernetes cluster or local filesystem
+func (s *inventoryStorage) IsAlwaysLocal() bool {
+	return false
+}
+
+// REST is the REST storage wrapper for Inventory main resource
 type REST struct {
 	*apiregistry.Store
 }
 
-// NewStorage for Inventory
-func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (InventoryStorage, error) {
+// NewStorage creates the storage for Inventory resource
+func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (proxy.ResourceStorage, error) {
 	store := &apiregistry.Store{
 		NewFunc:                   func() runtime.Object { return &kkcorev1.Inventory{} },
 		NewListFunc:               func() runtime.Object { return &kkcorev1.InventoryList{} },
@@ -49,14 +75,16 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (InventoryStorage, erro
 
 		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1.SchemeGroupVersion.WithResource("inventories").GroupResource()),
 	}
+
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 	}
+
 	if err := store.CompleteWithOptions(options); err != nil {
-		return InventoryStorage{}, err
+		return nil, err
 	}
 
-	return InventoryStorage{
+	return &inventoryStorage{
 		Inventory: &REST{store},
 	}, nil
 }

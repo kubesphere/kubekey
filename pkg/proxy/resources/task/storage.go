@@ -23,63 +23,99 @@ import (
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apigeneric "k8s.io/apiserver/pkg/registry/generic"
 	apiregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	apirest "k8s.io/apiserver/pkg/registry/rest"
 	apistorage "k8s.io/apiserver/pkg/storage"
+
+	proxy "github.com/kubesphere/kubekey/v4/pkg/proxy/resources"
 )
 
-// TaskStorage storage for Task
-type TaskStorage struct {
-	Task       *REST
-	TaskStatus *StatusREST
+// taskStorage implements the storage interface for Task resource
+type taskStorage struct {
+	Task       *REST       // Main resource storage
+	TaskStatus *StatusREST // Status subresource storage
 }
 
-// REST resource for Task
+// GVK returns the GroupVersionKind of the Task resource
+func (s *taskStorage) GVK() schema.GroupVersionKind {
+	return kkcorev1alpha1.SchemeGroupVersion.WithKind("Task")
+}
+
+// GVRs returns all GroupVersionResources of the Task resource
+// Contains main resource and status subresource
+func (s *taskStorage) GVRs() []schema.GroupVersionResource {
+	return []schema.GroupVersionResource{
+		kkcorev1alpha1.SchemeGroupVersion.WithResource("tasks"),        // Main resource
+		kkcorev1alpha1.SchemeGroupVersion.WithResource("tasks/status"), // Status subresource
+	}
+}
+
+// Storage returns the corresponding REST storage based on GVR
+func (s *taskStorage) Storage(gvr schema.GroupVersionResource) apirest.Storage {
+	if gvr.Resource == "tasks/status" {
+		return s.TaskStatus
+	}
+	return s.Task
+}
+
+// IsAlwaysLocal returns true
+// Task is running data, large volume and requires reentrancy, always uses local file storage
+func (s *taskStorage) IsAlwaysLocal() bool {
+	return true
+}
+
+// REST is the REST storage wrapper for Task main resource
 type REST struct {
 	*apiregistry.Store
 }
 
-// StatusREST status subresource for Task
+// StatusREST is the REST storage implementation for Task status subresource
 type StatusREST struct {
 	store *apiregistry.Store
 }
 
-// NamespaceScoped is true for Task
+// NamespaceScoped returns true, Task is a namespace-scoped resource
 func (r *StatusREST) NamespaceScoped() bool {
 	return true
 }
 
-// New creates a new Node object.
+// New creates a new Task object
 func (r *StatusREST) New() runtime.Object {
 	return &kkcorev1alpha1.Task{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *StatusREST) Destroy() {
-	// Given that underlying store is shared with REST,
-	// we don't destroy it here explicitly.
-}
+// Destroy cleans up resources
+// Since the underlying store is shared with REST, it is not explicitly destroyed here
+func (r *StatusREST) Destroy() {}
 
-// Get retrieves the object from the storage. It is required to support Patch.
+// Get retrieves the object (used to support Patch operation)
 func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	return r.store.Get(ctx, name, options)
 }
 
-// Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx context.Context, name string, objInfo apirest.UpdatedObjectInfo, createValidation apirest.ValidateObjectFunc, updateValidation apirest.ValidateObjectUpdateFunc, _ bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
-	// We are explicitly setting forceAllowCreate to false in the call to the underlying storage because
-	// subresources should never allow create on update.
+// Update updates the status subresource of an object
+func (r *StatusREST) Update(
+	ctx context.Context,
+	name string,
+	objInfo apirest.UpdatedObjectInfo,
+	createValidation apirest.ValidateObjectFunc,
+	updateValidation apirest.ValidateObjectUpdateFunc,
+	_ bool,
+	options *metav1.UpdateOptions,
+) (runtime.Object, bool, error) {
+	// Subresources should never allow create on update, forceAllowCreate is set to false
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation, false, options)
 }
 
-// ConvertToTable print table view
+// ConvertToTable converts the object to table format
 func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
-// NewStorage for Task storage
-func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
+// NewStorage creates the storage for Task resource
+func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (proxy.ResourceStorage, error) {
 	store := &apiregistry.Store{
 		NewFunc:                   func() runtime.Object { return &kkcorev1alpha1.Task{} },
 		NewListFunc:               func() runtime.Object { return &kkcorev1alpha1.TaskList{} },
@@ -94,16 +130,18 @@ func NewStorage(optsGetter apigeneric.RESTOptionsGetter) (TaskStorage, error) {
 
 		TableConvertor: apirest.NewDefaultTableConvertor(kkcorev1alpha1.SchemeGroupVersion.WithResource("tasks").GroupResource()),
 	}
+
 	options := &apigeneric.StoreOptions{
 		RESTOptions: optsGetter,
 		AttrFunc:    GetAttrs,
 		TriggerFunc: map[string]apistorage.IndexerFunc{"metadata.name": NameTriggerFunc},
 	}
+
 	if err := store.CompleteWithOptions(options); err != nil {
-		return TaskStorage{}, errors.Wrap(err, "failed to complete store")
+		return nil, errors.Wrap(err, "failed to complete store")
 	}
 
-	return TaskStorage{
+	return &taskStorage{
 		Task:       &REST{store},
 		TaskStatus: &StatusREST{store},
 	}, nil
