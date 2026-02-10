@@ -35,7 +35,8 @@
     - etcd
   gather_facts: true
   roles:
-    - etcd
+    - role: etcd
+      when: .etcd.deployment_type | eq "external"
 
 - hosts:
     - k8s_cluster
