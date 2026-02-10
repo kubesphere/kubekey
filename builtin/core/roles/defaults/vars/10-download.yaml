@@ -8,6 +8,12 @@ download:
   artifact_file: ""
   # the md5_file of artifact_file.
   artifact_md5: ""
+  # system: specify operating system type to download ISO packages only for the specified system.
+  # Supported values:
+  #   - Operating system level: "AlmaLinux", "CentOS", "Debian", "Kylin", "Ubuntu" (downloads all versions)
+  #   - Specific version: "almalinux-9.0", "centos-8", "debian-10", "debian-11", "kylin-v10SP1", "kylin-v10SP2", "kylin-v10SP3", "kylin-v10SP3-2403", "ubuntu-18.04", "ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04" (downloads only the specified version)
+  # If not set or empty, all ISO packages will be downloaded.
+  system: ""
   artifact_url:
     etcd:
       amd64: >-
