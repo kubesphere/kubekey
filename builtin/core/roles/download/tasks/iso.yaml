@@ -1,6 +1,33 @@
 ---
 - name: ISO | Download ISO files
-  when: .download.iso_url.urls | empty | not
+  when: >-
+    {{- if .download.system | empty | not -}}
+    {{- if .download.system | eq "AlmaLinux" -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains "almalinux" .item) }}
+    {{- else if .download.system | eq "CentOS" -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains "centos" .item) }}
+    {{- else if .download.system | eq "Debian" -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains "debian" .item) }}
+    {{- else if .download.system | eq "Kylin" -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains "kylin" .item) }}
+    {{- else if .download.system | eq "Ubuntu" -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains "ubuntu" .item) }}
+    {{- else if contains "almalinux" (.download.system | lower) -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
+    {{- else if contains "centos" (.download.system | lower) -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
+    {{- else if contains "debian" (.download.system | lower) -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
+    {{- else if contains "kylin" (.download.system | lower) -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
+    {{- else if contains "ubuntu" (.download.system | lower) -}}
+    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
+    {{- else -}}
+    {{ .download.iso_url.urls | empty | not }}
+    {{- end -}}
+    {{- else -}}
+    {{ .download.iso_url.urls | empty | not }}
+    {{- end -}}
   loop: "{{ .download.iso_url.urls | toJson }}"
   command: |
     iso_path={{ .binary_dir }}/repository/{{ .item | splitList "/" | last }}
