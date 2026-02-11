@@ -79,7 +79,8 @@
 
 > **说明**：KubeKey 为每个 Kubernetes 中版本（如 1.23、1.24）选择该版本范围内最大的 etcd 版本作为默认值，以确保最佳兼容性和稳定性。
 
-> **自定义版本**：可通过 `--set etcd.etcd_version="v3.6.5"` 指定安装的 etcd 版本，但需确保该版本与您的 Kubernetes 版本兼容（参考上表）。
+> **自定义版本**：可通过 `--set etcd.etcd_version="v3.6.5"` 指定安装的 etcd 版本，但需确保该版本与您的 Kubernetes 版本兼容（参考上表）。  
+
 | kubernetes 版本 | etcd 默认版本 |
 |---|---|
 | 1.23 | v3.5.6 |
