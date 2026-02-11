@@ -73,6 +73,7 @@
     - role: uninstall/etcd
       when: 
         - .delete.etcd
+        - .etcd.deployment_type | eq "external"
         - .delete_nodes | default list | has .inventory_hostname
 
 - hosts:

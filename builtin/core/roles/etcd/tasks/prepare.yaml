@@ -62,7 +62,7 @@
       (.etcd_install_version.error | empty | not)
       (and
         (.installed_etcd | empty | not)
-        (.need_installed_etcd | fromJson | empty | not)
+        (.need_installed_etcd | empty | not)
       )
   block:
     - name: Prepare | Copy CA certificate to etcd node
