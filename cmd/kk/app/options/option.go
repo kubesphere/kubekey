@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -251,12 +252,8 @@ func (o *CommonOptions) completeConfig() error {
 		}
 	}
 	for _, s := range o.Set {
-		for _, setVal := range strings.Split(unescapeString(s), ",") {
-			i := strings.Index(setVal, "=")
-			if i == 0 || i == -1 {
-				return errors.New("--set value should be k=v")
-			}
-			if err := setValue(o.Config, setVal[:i], setVal[i+1:]); err != nil {
+		for _, setVal := range strings.Split(s, ",") {
+			if err := parseAndSetValue(o.Config, setVal); err != nil {
 				return err
 			}
 		}
@@ -275,49 +272,293 @@ func (o *CommonOptions) completeInventory(inventory *kkcorev1.Inventory) error {
 	return nil
 }
 
-// setValue sets a value in the config based on a key-value pair.
+// parseAndSetValue parses a key=value pair and sets the value in the config.
+// It supports Helm-style --set syntax:
+// - Simple values: key=value
+// - Nested objects: outer.inner=value
+// - Array indexing: array[0]=value
+// - Array element nesting: array[0].field=value
+// - Multiple values: key1=value1,key2=value2
+func parseAndSetValue(config *kkcorev1.Config, setVal string) error {
+	i := strings.Index(setVal, "=")
+	if i == 0 || i == -1 {
+		return errors.New("--set value should be k=v")
+	}
+
+	key := setVal[:i]
+	val := unescapeString(setVal[i+1:])
+
+	// Parse the key to extract field path with array indices
+	fieldPath := parseKey(key)
+
+	return setNestedValue(config, fieldPath, val)
+}
+
+// parseKey parses a key string into a field path, handling array indices.
+// Examples:
+// - "a.b.c" -> ["a", "b", "c"]
+// - "a[0].b" -> ["a", "0", "b"]
+// - "a[0][1].b" -> ["a", "0", "1", "b"]
+func parseKey(key string) []string {
+	var result []string
+	var current strings.Builder
+
+	for i := 0; i < len(key); i++ {
+		switch key[i] {
+		case '[':
+			if current.Len() > 0 {
+				result = append(result, current.String())
+				current.Reset()
+			}
+		case ']':
+			// Skip
+		case '.':
+			if current.Len() > 0 {
+				result = append(result, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteByte(key[i])
+		}
+	}
+
+	if current.Len() > 0 {
+		result = append(result, current.String())
+	}
+
+	return result
+}
+
+// setNestedValue sets a value in the config based on a field path and string value.
 // It supports different value types:
 // - JSON objects (starting with '{' and ending with '}')
 // - JSON arrays (starting with '[' and ending with ']')
 // - Boolean values (true/false, yes/no, y/n - case insensitive)
+// - Numeric values (integers and floats)
 // - String values (default case)
-// The key can contain dots to indicate nested fields.
-func setValue(config *kkcorev1.Config, key, val string) error {
+// It also supports array indexing in the field path (e.g., items[0].field)
+func setNestedValue(config *kkcorev1.Config, fieldPath []string, val string) error {
+	var value any
+	var err error
+
 	switch {
-	case strings.HasPrefix(val, "{") && strings.HasSuffix(val, "{"):
-		var value map[string]any
-		err := json.Unmarshal([]byte(val), &value)
+	case strings.HasPrefix(val, "{") && strings.HasSuffix(val, "}"):
+		err = json.Unmarshal([]byte(val), &value)
 		if err != nil {
-			return errors.Wrapf(err, "failed to unmarshal json object value for \"--set %s\"", key)
+			return errors.Wrapf(err, "failed to unmarshal json object value for \"--set %s\"", strings.Join(fieldPath, "."))
 		}
-
-		return errors.Wrapf(unstructured.SetNestedMap(config.Value(), value, strings.Split(key, ".")...),
-			"failed to set \"--set %s\" to config", key)
 	case strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]"):
-		var value []any
-		err := json.Unmarshal([]byte(val), &value)
+		err = json.Unmarshal([]byte(val), &value)
 		if err != nil {
-			return errors.Wrapf(err, "failed to unmarshal json array value for \"--set %s\"", key)
+			return errors.Wrapf(err, "failed to unmarshal json array value for \"--set %s\"", strings.Join(fieldPath, "."))
+		}
+	case strings.EqualFold(val, "TRUE") || strings.EqualFold(val, "YES") || strings.EqualFold(val, "Y"):
+		value = true
+	case strings.EqualFold(val, "FALSE") || strings.EqualFold(val, "NO") || strings.EqualFold(val, "N"):
+		value = false
+	case isNumeric(val):
+		// Try to parse as integer first, then float
+		if intVal, err := strconv.ParseInt(val, 10, 64); err == nil {
+			value = intVal
+		} else if floatVal, err := strconv.ParseFloat(val, 64); err == nil {
+			value = floatVal
+		} else {
+			value = val
+		}
+	default:
+		value = val
+	}
+
+	// Navigate through the field path and set the value
+	// Handle array indices properly
+	if err := setValueByPath(config.Value(), fieldPath, value); err != nil {
+		return errors.Wrapf(err, "failed to set \"--set %s=%s\" to config", strings.Join(fieldPath, "."), val)
+	}
+
+	return nil
+}
+
+// setValueByPath sets a value at the specified field path, handling array indices.
+// fieldPath can contain numeric strings like "0", "1", etc. which are treated as array indices.
+func setValueByPath(root map[string]interface{}, fieldPath []string, value any) error {
+	if len(fieldPath) == 0 {
+		return nil
+	}
+
+	return setValueAtPath(root, fieldPath, 0, value)
+}
+
+// setValueAtPath recursively navigates to the correct position and sets the value.
+func setValueAtPath(current map[string]interface{}, fieldPath []string, index int, value any) error {
+	if index >= len(fieldPath) {
+		return nil
+	}
+
+	field := fieldPath[index]
+
+	// Check if this field is an array index
+	arrayIndex, isArrayIndex := parseArrayIndex(field)
+
+	if isArrayIndex {
+		// This is an array index, but we need to look at the previous field to get the array
+		// This case should be handled by setArrayElement
+		return errors.Errorf("invalid field path: array index %d found without parent field", arrayIndex)
+	}
+
+	// This is a regular field name
+	nextIndex := index + 1
+	if nextIndex >= len(fieldPath) {
+		// We're setting this field directly
+		current[field] = value
+		return nil
+	}
+
+	// Check if the next part is an array index
+	nextField := fieldPath[nextIndex]
+	nextArrayIndex, isNextArrayIndex := parseArrayIndex(nextField)
+
+	if isNextArrayIndex {
+		// The next field is an array index, navigate to the array element
+		return setArrayElementWithNestedValue(current, field, nextArrayIndex, fieldPath[nextIndex+1:], value)
+	}
+
+	// The next field is a regular field, navigate to nested object
+	if current[field] == nil {
+		current[field] = make(map[string]interface{})
+	}
+
+	nested, ok := current[field].(map[string]interface{})
+	if !ok {
+		return errors.Errorf("field %q is not a nested object", field)
+	}
+
+	return setValueAtPath(nested, fieldPath, nextIndex, value)
+}
+
+// parseArrayIndex checks if a string is a valid array index (non-negative integer).
+// Returns the integer index and true if it's an array index, otherwise 0 and false.
+func parseArrayIndex(s string) (int, bool) {
+	// Empty string is not a valid index
+	if s == "" {
+		return 0, false
+	}
+
+	idx, err := strconv.Atoi(s)
+	if err != nil || idx < 0 {
+		return 0, false
+	}
+
+	return idx, true
+}
+
+// setArrayElementWithNestedValue sets a nested value inside an array element.
+func setArrayElementWithNestedValue(current map[string]interface{}, field string, index int, remainingPath []string, value any) error {
+	arr, exists := current[field]
+	if !exists {
+		// Create the array with the appropriate size
+		arr = make([]any, index+1)
+		current[field] = arr
+	}
+
+	arrSlice, ok := arr.([]any)
+	if !ok {
+		return errors.Errorf("field %q is not an array", field)
+	}
+
+	// Expand the array if necessary
+	for len(arrSlice) <= index {
+		arrSlice = append(arrSlice, nil)
+	}
+
+	// If there are no remaining path elements, set the value directly
+	if len(remainingPath) == 0 {
+		arrSlice[index] = value
+		current[field] = arrSlice
+		return nil
+	}
+
+	// Ensure the element at index is a map for nested access
+	if arrSlice[index] == nil {
+		arrSlice[index] = make(map[string]interface{})
+	}
+
+	elem, ok := arrSlice[index].(map[string]interface{})
+	if !ok {
+		return errors.Errorf("array element at index %d is not a map", index)
+	}
+
+	// Navigate to the nested field and set the value
+	return setNestedField(elem, remainingPath[0], remainingPath[1:], value)
+}
+
+// setNestedField sets a nested value in a map.
+func setNestedField(current map[string]interface{}, field string, remainingPath []string, value any) error {
+	if len(remainingPath) == 0 {
+		current[field] = value
+		return nil
+	}
+
+	// Check if the next field is an array index
+	nextField := remainingPath[0]
+	nextIndex, isArrayIndex := parseArrayIndex(nextField)
+
+	if isArrayIndex {
+		// The next field is an array index
+		arr, exists := current[field]
+		if !exists {
+			// Create the array with empty objects
+			arr = make([]any, nextIndex+1)
+			current[field] = arr
 		}
 
-		return errors.Wrapf(unstructured.SetNestedSlice(config.Value(), value, strings.Split(key, ".")...),
-			"failed to set \"--set %s\" to config", key)
-	case strings.EqualFold(val, "TRUE") || strings.EqualFold(val, "YES") || strings.EqualFold(val, "Y"):
-		return errors.Wrapf(unstructured.SetNestedField(config.Value(), true, strings.Split(key, ".")...),
-			"failed to set \"--set %s\" to config", key)
-	case strings.EqualFold(val, "FALSE") || strings.EqualFold(val, "NO") || strings.EqualFold(val, "N"):
-		return errors.Wrapf(unstructured.SetNestedField(config.Value(), false, strings.Split(key, ".")...),
-			"failed to set \"--set %s\" to config", key)
-	default:
-		return errors.Wrapf(unstructured.SetNestedField(config.Value(), val, strings.Split(key, ".")...),
-			"failed to set \"--set %s\" to config", key)
+		arrSlice, ok := arr.([]any)
+		if !ok {
+			return errors.Errorf("field %q is not an array", field)
+		}
+
+		// Expand the array if necessary
+		for len(arrSlice) <= nextIndex {
+			arrSlice = append(arrSlice, nil)
+		}
+
+		// Ensure the element at index is a map
+		if arrSlice[nextIndex] == nil {
+			arrSlice[nextIndex] = make(map[string]interface{})
+		}
+
+		elem, ok := arrSlice[nextIndex].(map[string]interface{})
+		if !ok {
+			return errors.Errorf("array element at index %d is not a map", nextIndex)
+		}
+
+		// Continue navigating
+		return setNestedField(elem, remainingPath[1], remainingPath[2:], value)
+	} else {
+		// The next field is a regular field
+		if current[field] == nil {
+			current[field] = make(map[string]interface{})
+		}
+
+		nested, ok := current[field].(map[string]interface{})
+		if !ok {
+			return errors.Errorf("field %q is not a nested object", field)
+		}
+
+		return setNestedField(nested, nextField, remainingPath[1:], value)
 	}
+}
+
+// isNumeric checks if a string represents a numeric value
+func isNumeric(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err == nil
 }
 
 // unescapeString handles common escape sequences
 func unescapeString(s string) string {
 	replacements := map[string]string{
 		`\\`: `\`,
+		`\,`: `,`,
 		`\"`: `"`,
 		`\'`: `'`,
 		`\n`: "\n",
