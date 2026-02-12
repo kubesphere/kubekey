@@ -194,7 +194,7 @@ func (h ResourceHandler) ListIP(request *restful.Request, response *restful.Resp
 	err := h.client.List(request.Request.Context(), &existsInventoryList)
 
 	if err != nil && ctrlclient.IgnoreNotFound(err) != nil {
-		klog.Errorf("failed to list inventory objects: %v", err)
+		klog.ErrorS(err, "failed to list inventory objects")
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -469,7 +469,7 @@ func isIPOnline(ipStr string) bool {
 	// Listen for ICMP packets on the specified network.
 	conn, err := icmp.ListenPacket(network, listenAddr)
 	if err != nil {
-		klog.V(6).Infof("connect to %q use icmp failed, error: %v", ip, err)
+		klog.V(4).InfoS("connect to target failed", "ip", ip, "error", err)
 		return false
 	}
 	defer conn.Close()
@@ -477,7 +477,7 @@ func isIPOnline(ipStr string) bool {
 	// Set a deadline for the entire operation (write + read).
 	err = conn.SetDeadline(deadline)
 	if err != nil {
-		klog.V(6).Infof("set deadline for %q use icmp failed, error: %v", ip, err)
+		klog.V(4).InfoS("set deadline failed", "ip", ip, "error", err)
 		return false
 	}
 
@@ -495,14 +495,14 @@ func isIPOnline(ipStr string) bool {
 	}
 	msgBytes, err := msg.Marshal(nil)
 	if err != nil {
-		klog.V(6).Infof("marshal msg to %q use icmp failed, error: %v", ip, err)
+		klog.V(4).InfoS("marshal msg failed", "ip", ip, "error", err)
 		return false
 	}
 
 	// Send the ICMP Echo Request to the target IP address.
 	_, err = conn.WriteTo(msgBytes, &net.IPAddr{IP: ip})
 	if err != nil {
-		klog.V(6).Infof("write msg to %q use icmp failed, error: %v", ip, err)
+		klog.V(4).InfoS("write msg failed", "ip", ip, "error", err)
 		return false
 	}
 
@@ -513,7 +513,7 @@ func isIPOnline(ipStr string) bool {
 		}
 
 		if err := conn.SetDeadline(time.Now().Add(100 * time.Millisecond)); err != nil {
-			klog.V(6).Infof("set reply deadline for %q use icmp failed, error: %v", ip, err)
+			klog.V(4).InfoS("set reply deadline failed", "ip", ip, "error", err)
 			continue
 		}
 
@@ -523,7 +523,7 @@ func isIPOnline(ipStr string) bool {
 			if errors.As(err, &netErr) && netErr.Timeout() {
 				continue
 			}
-			klog.V(6).Infof("read msg from %q use icmp timeout, error: %v", ip, err)
+			klog.V(4).InfoS("read msg timeout", "ip", ip, "error", err)
 			return false
 		}
 
@@ -547,18 +547,18 @@ func isIPOnline(ipStr string) bool {
 func isValidICMPReply(n int, reply []byte, src net.Addr, expectedIP net.IP, protocol int, pid, seq int, replyFilter func(icmp.Type) bool) bool {
 	srcIP, ok := src.(*net.IPAddr)
 	if !ok || !srcIP.IP.Equal(expectedIP) {
-		klog.V(6).Infof("Ignore response from non-target IP: %s (expected: %s)", srcIP, expectedIP)
+		klog.V(4).InfoS("ignore response from non-target IP", "srcIP", srcIP.String(), "expectedIP", expectedIP.String())
 		return false
 	}
 
 	recvMsg, err := icmp.ParseMessage(protocol, reply[:n])
 	if err != nil {
-		klog.V(6).Infof("parse msg from %q failed, error: %v", expectedIP, err)
+		klog.V(4).InfoS("parse msg failed", "ip", expectedIP, "error", err)
 		return false
 	}
 
 	if !replyFilter(recvMsg.Type) {
-		klog.V(6).Infof("Ignore unrelated ICMP type: %v", recvMsg.Type)
+		klog.V(4).InfoS("ignore unrelated ICMP type", "type", fmt.Sprintf("%v", recvMsg.Type))
 		return false
 	}
 
@@ -585,7 +585,7 @@ func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 	// First check if port 22 is reachable on the target IP address.
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ipStr, sshPort), time.Second)
 	if err != nil {
-		klog.V(6).Infof("port 22 not reachable on ip %q, error %v", ipStr, err)
+		klog.V(4).InfoS("port not reachable", "port", "22", "ip", ipStr, "error", err)
 		return false, false
 	}
 	defer conn.Close()
@@ -602,7 +602,7 @@ func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 	// Check if the private key file exists.
 	if _, err := os.Stat(sshPrivateKey); err != nil {
 		// Port 22 is reachable, but private key is not found.
-		klog.V(6).Infof("cannot found private key %q local in ip %q, error %v", sshPrivateKey, ipStr, err)
+		klog.V(4).InfoS("private key file not found", "keyPath", sshPrivateKey, "ip", ipStr, "error", err)
 		return true, false
 	}
 
@@ -610,7 +610,7 @@ func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 	key, err := os.ReadFile(sshPrivateKey)
 	if err != nil {
 		// Port 22 is reachable, but private key cannot be read.
-		klog.V(6).Infof("cannot read private key %q local in ip %q, error %v", sshPrivateKey, ipStr, err)
+		klog.V(4).InfoS("cannot read private key", "keyPath", sshPrivateKey, "ip", ipStr, "error", err)
 		return true, false
 	}
 
@@ -618,7 +618,7 @@ func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 	privateKey, err := ssh.ParsePrivateKey(key)
 	if err != nil {
 		// Port 22 is reachable, but private key cannot be parsed.
-		klog.V(6).Infof("cannot parse private key %q local in ip %q, error %v", sshPrivateKey, ipStr, err)
+		klog.V(4).InfoS("cannot parse private key", "keyPath", sshPrivateKey, "ip", ipStr, "error", err)
 		return true, false
 	}
 
@@ -634,7 +634,7 @@ func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 	})
 	if err != nil {
 		// Port 22 is reachable, but SSH authentication failed.
-		klog.V(6).Infof("failed to connect ip %q by ssh, error %v", ipStr, err)
+		klog.V(4).InfoS("SSH connection failed", "ip", ipStr, "error", err)
 		return true, false
 	}
 	defer sshClient.Close()
@@ -646,7 +646,7 @@ func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
 func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent string) (bool, bool) {
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ipStr, sshPort), time.Second)
 	if err != nil {
-		klog.V(6).Infof("port %s not reachable on ip %q, error %v", sshPort, ipStr, err)
+		klog.V(4).InfoS("port not reachable", "port", sshPort, "ip", ipStr, "error", err)
 		return false, false
 	}
 	defer conn.Close()
@@ -655,31 +655,31 @@ func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent strin
 
 	if sshPwd != "" {
 		authMethods = append(authMethods, ssh.Password(sshPwd))
-		klog.V(6).Infof("Added password authentication for user %s", sshUser)
+		klog.V(4).InfoS("added password authentication", "user", sshUser)
 	}
 
 	if sshPrivateKeyContent != "" {
 		signer, err := ssh.ParsePrivateKey([]byte(sshPrivateKeyContent))
 		if err != nil {
-			klog.V(6).Infof("Failed to parse provided private key: %v", err)
+			klog.V(4).InfoS("failed to parse provided private key", "error", err)
 		} else {
 			authMethods = append(authMethods, ssh.PublicKeys(signer))
-			klog.V(6).Infof("Added public key authentication from provided content for user %s", sshUser)
+			klog.V(4).InfoS("added public key authentication from provided content", "user", sshUser)
 		}
 	} else {
-		klog.V(6).Infof("No private key content provided, checking for default private keys")
+		klog.V(4).InfoS("no private key content provided, checking for default private keys")
 		foundKeys := findSSHPrivateKeys()
 		var signers = make([]ssh.Signer, 0)
 		for _, keyPath := range foundKeys {
 			keyBytes, err := os.ReadFile(keyPath)
 			if err != nil {
-				klog.V(6).Infof("Failed to read private key file %s: %v", keyPath, err)
+				klog.V(4).InfoS("failed to read private key file", "keyPath", keyPath, "error", err)
 				continue
 			}
 
 			signer, err := ssh.ParsePrivateKey(keyBytes)
 			if err != nil {
-				klog.V(6).Infof("Failed to parse private key from %s: %v", keyPath, err)
+				klog.V(4).InfoS("failed to parse private key", "keyPath", keyPath, "error", err)
 				continue
 			}
 			signers = append(signers, signer)
@@ -689,7 +689,7 @@ func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent strin
 		}
 	}
 
-	klog.V(6).Infof("Using %d authentication methods for SSH connection", len(authMethods))
+	klog.V(4).InfoS("using authentication methods for SSH connection", "count", len(authMethods))
 
 	config := &ssh.ClientConfig{
 		User:            sshUser,
@@ -700,25 +700,25 @@ func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent strin
 
 	sshClient, err := ssh.Dial("tcp", net.JoinHostPort(ipStr, sshPort), config)
 	if err != nil {
-		klog.V(6).Infof("SSH connection failed: %v", err)
+		klog.V(4).InfoS("SSH connection failed", "error", err)
 		return true, false
 	}
 	defer sshClient.Close()
 
 	session, err := sshClient.NewSession()
 	if err != nil {
-		klog.V(6).Infof("SSH session creation failed: %v", err)
+		klog.V(4).InfoS("SSH session creation failed", "error", err)
 		return true, false
 	}
 	defer session.Close()
 
 	err = session.Run("echo 'SSH connection test'")
 	if err != nil {
-		klog.V(6).Infof("SSH command execution failed: %v", err)
+		klog.V(4).InfoS("SSH command execution failed", "error", err)
 		return true, false
 	}
 
-	klog.V(6).Infof("SSH connection successful for user %s", sshUser)
+	klog.V(4).InfoS("SSH connection successful", "user", sshUser)
 	return true, true
 }
 
@@ -727,7 +727,7 @@ func findSSHPrivateKeys() []string {
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		klog.V(6).Infof("Failed to get user home directory: %v", err)
+		klog.V(4).InfoS("failed to get user home directory", "error", err)
 		homeDir = "/root"
 	}
 
@@ -735,7 +735,7 @@ func findSSHPrivateKeys() []string {
 	var sshDirInfo os.FileInfo
 
 	if sshDirInfo, err = os.Stat(sshDir); os.IsNotExist(err) {
-		klog.V(6).Infof("SSH directory %s does not exist", sshDir)
+		klog.V(4).InfoS("SSH directory does not exist", "dir", sshDir)
 		return keyFiles
 	}
 
@@ -780,8 +780,7 @@ func (h ResourceHandler) PreCheckHost(request *restful.Request, response *restfu
 			if status == "" {
 				reachable, authorized := checkSSHConnect(currentHost.IP, currentHost.SSHPort,
 					currentHost.SSHUser, currentHost.SSHPwd, currentHost.SSHPrivateKeyContent)
-				klog.V(6).Infof("check ssh connect for %s:%s with result:%v,%v",
-					currentHost.IP, currentHost.SSHPort, reachable, authorized)
+				klog.V(4).InfoS("check ssh connect result", "ip", currentHost.IP, "port", currentHost.SSHPort, "reachable", reachable, "authorized", authorized)
 				switch {
 				case authorized && reachable:
 					status = _const.SSHVerifyStatusSuccess
@@ -790,8 +789,7 @@ func (h ResourceHandler) PreCheckHost(request *restful.Request, response *restfu
 				case !reachable && !authorized:
 					status = _const.SSHVerifyStatusUnreachable
 				default:
-					klog.Warningf("check ssh connect show authorized but unreachable! ip:%s,port=%s",
-						currentHost.IP, currentHost.SSHPort)
+					klog.V(2).InfoS("check ssh connect shows authorized but unreachable", "ip", currentHost.IP, "port", currentHost.SSHPort)
 					status = _const.SSHVerifyStatusFailed
 				}
 			}

@@ -69,16 +69,16 @@ func (t testConnector) ExecuteCommand(context.Context, string) ([]byte, []byte, 
 func newTestVariable(hosts []string, vars map[string]any) variable.Variable {
 	client, playbook, err := _const.NewTestPlaybook(hosts)
 	if err != nil {
-		klog.Error(err)
+		klog.ErrorS(err, "failed to create test playbook")
 	}
 	// Create a new variable in memory using the test client and playbook
 	v, err := variable.New(context.TODO(), client, *playbook, source.MemorySource)
 	if err != nil {
-		klog.Error(err)
+		klog.ErrorS(err, "failed to create variable")
 	}
 	// Set default values by merging the provided vars as remote variables for the hosts
 	if err := v.Merge(variable.MergeRemoteVariable(vars, hosts...)); err != nil {
-		klog.Error(err)
+		klog.ErrorS(err, "failed to merge variable")
 	}
 
 	return v

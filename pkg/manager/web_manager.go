@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/emicklei/go-restful/v3"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -71,7 +72,7 @@ func logStackOnRecover(panicReason any, w http.ResponseWriter) {
 		}
 		buf.WriteString(fmt.Sprintf("    %s:%d\n", file, line))
 	}
-	klog.Errorln(buf.String())
+	klog.ErrorS(errors.New(buf.String()), "recovered from panic")
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusInternalServerError)

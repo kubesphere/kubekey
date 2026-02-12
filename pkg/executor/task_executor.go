@@ -85,10 +85,12 @@ func (e *taskExecutor) Exec(ctx context.Context) error {
 				}
 
 				failedMsg += fmt.Sprintf(
-					"[%s][%s][%d]: %s\n",
+					"[%s][%s][%d]: \nstdout: %s\nstderr: %s\nerror: %s\n",
 					result.Host,
 					itemInfo,
 					idx,
+					r.Stdout,
+					r.Stderr,
 					r.Error,
 				)
 			}
