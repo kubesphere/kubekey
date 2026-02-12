@@ -68,13 +68,13 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 	// get port in connector variable. if empty, set default port: 22.
 	portParam, err := variable.IntVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPort)
 	if err != nil {
-		klog.V(4).Infof("connector port is empty use: %v", defaultSSHPort)
+		klog.V(4).InfoS("connector port is empty, using default", "port", defaultSSHPort)
 		portParam = ptr.To(defaultSSHPort)
 	}
 	// get user in connector variable. if empty, set default user: root.
 	userParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
 	if err != nil {
-		klog.V(4).Infof("connector user is empty use: %s", defaultSSHUser)
+		klog.V(4).InfoS("connector user is empty, using default", "user", defaultSSHUser)
 		userParam = defaultSSHUser
 	}
 	// get password in connector variable. if empty, should connector by private key.
@@ -322,7 +322,8 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []
 	}
 	defer session.Close()
 
-	cmd = SudoPrefix(c.shell, cmd)
+	cmd = fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8;sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", c.shell, cmd)
+	klog.V(5).InfoS("exec ssh command", "cmd", cmd)
 
 	in, err := session.StdinPipe()
 	if err != nil {
@@ -381,11 +382,6 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []
 		return []byte(outStr), nil, errors.Wrap(err, strings.TrimSpace(string(stderrData)))
 	}
 	return []byte(outStr), stderrData, nil
-}
-
-// SudoPrefix returns the prefix for sudo commands.
-func SudoPrefix(shell, cmd string) string {
-	return fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8;sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", shell, cmd)
 }
 
 // HostInfo from gatherFacts cache

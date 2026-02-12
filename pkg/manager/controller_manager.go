@@ -70,8 +70,7 @@ func (m controllerManager) register(mgr ctrl.Manager) error {
 	}
 	for _, c := range m.Controllers {
 		if !m.IsControllerEnabled(c.Name()) {
-			klog.Infof("controller %q is disabled", c.Name())
-
+			klog.V(3).InfoS("controller is disabled", "controller", c.Name())
 			continue
 		}
 		if err := c.SetupWithManager(mgr, *m.ControllerManagerServerOptions); err != nil {

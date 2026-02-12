@@ -169,7 +169,7 @@ func DefaultObjectMetaFilter(item metav1.Object, filter Filter) bool {
 func labelMatch(m map[string]string, filter string) bool {
 	labelSelector, err := labels.Parse(filter)
 	if err != nil {
-		klog.Warningf("invalid labelSelector %s: %s", filter, err)
+		klog.V(2).InfoS("invalid labelSelector", "filter", filter, "error", err)
 		return false
 	}
 	return labelSelector.Matches(labels.Set(m))

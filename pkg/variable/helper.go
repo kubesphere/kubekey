@@ -176,7 +176,7 @@ func hostsInGroup(inv kkcorev1.Inventory, groupName string, groupsGraph *utils.K
 		for _, cg := range v.Groups {
 			if groupsGraph != nil {
 				if groupsGraph.AddEdgeAndCheckCycle(groupName, cg) {
-					klog.Warningf("group host found cycle by %s -> %s", groupName, cg)
+					klog.V(2).InfoS("group host found cycle", "group", groupName, "cycleGroup", cg)
 					return []string{}
 				}
 			}
@@ -243,8 +243,7 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 		for _, a := range valv {
 			av, ok := a.(string)
 			if !ok {
-				klog.V(6).InfoS("variable is not string", "key", keys)
-
+				klog.V(5).InfoS("variable is not string", "key", keys)
 				return nil, nil
 			}
 
@@ -411,7 +410,7 @@ func Extension2Slice(ctx map[string]any, ext runtime.RawExtension) []any {
 	// try converter template string
 	val, err := Extension2String(ctx, ext)
 	if err != nil {
-		klog.ErrorS(err, "extension2string error", "input", string(ext.Raw))
+		klog.ErrorS(err, "failed to parse extension to string", "input", string(ext.Raw))
 	}
 
 	if err := json.Unmarshal(val, &data); err == nil {

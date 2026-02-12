@@ -96,7 +96,7 @@ func NewConnector(host string, v variable.Variable) (Connector, error) {
 		// get host in connector variable. if empty, set default host: host_name.
 		hostParam, err := variable.StringVar(nil, vd, _const.VariableConnector, _const.VariableConnectorHost)
 		if err != nil {
-			klog.V(4).Infof("connector host is empty use: %s", host)
+			klog.V(4).InfoS("connector host is empty, using provided host", "host", host)
 			hostParam = host
 		}
 		if host == _const.VariableLocalHost || host == localHost || isLocalIP(hostParam) {
@@ -112,7 +112,6 @@ func isLocalIP(ipAddr string) bool {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		klog.ErrorS(err, "get network address error")
-
 		return false
 	}
 
@@ -125,7 +124,6 @@ func isLocalIP(ipAddr string) bool {
 			ip = v.IP
 		default:
 			klog.V(4).InfoS("unknown address type", "address", addr.String())
-
 			continue
 		}
 
