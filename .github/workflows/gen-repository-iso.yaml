@@ -3,12 +3,37 @@ name: GenRepositoryISO
 on:
   push:
     tags:
-      - 'iso-*'
+      - 'iso-latest'
   workflow_dispatch:
 
 jobs:
+  update-tag:
+    name: Update iso-latest Tag
+    runs-on: ubuntu-latest
+    if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check or update iso-latest tag
+        shell: bash
+        run: |
+          CURRENT_TAG_SHA=$(git rev-parse iso-latest 2>/dev/null || echo "")
+          LATEST_MAIN_SHA=$(git rev-parse origin/main)
+
+          if [ "$CURRENT_TAG_SHA" = "$LATEST_MAIN_SHA" ]; then
+            echo "Tag is already up-to-date, skipping update"
+          else
+            echo "Updating iso-latest tag to latest main commit ($LATEST_MAIN_SHA)"
+            git tag -d iso-latest 2>/dev/null || true
+            git tag -f iso-latest origin/main
+            git push origin :refs/tags/iso-latest 2>/dev/null || true
+            git push origin --tags
+          fi
+
   build-iso:
     runs-on: ubuntu-latest
+    needs: update-tag
     if: github.repository == 'kubesphere/kubekey'
     strategy:
       fail-fast: false
@@ -41,6 +66,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: iso-latest
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -63,16 +91,18 @@ jobs:
           mv ./output/linux_arm64/*.iso ${{ matrix.name }}-arm64.iso
           sha256sum *.iso >  ${{ matrix.name }}.iso.sha256sum.txt
 
-      - name: Release and upload packages
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Release and upload ISO packages
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: iso-latest
+          name: iso-latest
           files: |
             ${{ matrix.name }}.iso.sha256sum.txt
             ${{ matrix.name }}-amd64.iso
             ${{ matrix.name }}-arm64.iso
+          overwrite: true
 
       - name: Synchronize artifacts to OSS
         run: |
@@ -85,19 +115,23 @@ jobs:
           echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > qsctl-config.yaml
           echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml
           
-          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}.iso.sha256sum.txt qs://kubekey/kubesphere/kubekey/releases/download/iso-latest/${{ steps.prepare.outputs.version }}/${{ matrix.name }}.iso.sha256sum.txt
-          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-amd64.iso qs://kubekey/kubesphere/kubekey/releases/download/iso-latest/${{ steps.prepare.outputs.version }}/${{ matrix.name }}-amd64.iso
-          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-arm64.iso qs://kubekey/kubesphere/kubekey/releases/download/iso-latest/${{ steps.prepare.outputs.version }}/${{ matrix.name }}-arm64.iso
+          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}.iso.sha256sum.txt qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/${{ matrix.name }}.iso.sha256sum.txt
+          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-amd64.iso qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/${{ matrix.name }}-amd64.iso
+          qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-arm64.iso qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/${{ matrix.name }}-arm64.iso
 
           rm -rf qsctl-config.yaml
 
 
   build-harbor:
     runs-on: ubuntu-latest
+    needs: update-tag
     if: github.repository == 'kubesphere/kubekey'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: iso-latest
+          fetch-depth: 0
       - shell: bash
         name: build arm harbor
         run: |
@@ -117,11 +151,12 @@ jobs:
             fi
           done
 
-      - name: Create GitHub Release & Upload Assets
-        uses: ncipollo/release-action@v1
+      - name: Release and upload harbor packages
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          artifacts: config/harbor/*/*harbor-offline-installer*.tgz
-          allowUpdates: true
-          replaceArtifacts: true
+          tag_name: iso-latest
+          name: iso-latest
+          files: config/harbor/*/*harbor-offline-installer*.tgz
+          overwrite: true
