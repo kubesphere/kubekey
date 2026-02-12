@@ -346,8 +346,7 @@ func (r *InventoryReconciler) syncInventoryControlPlaneGroups(ctx context.Contex
 		return err
 	}
 	if len(machineList.Items) != int(groupNum) {
-		klog.Info("waiting machine synced.")
-
+		klog.V(2).Info("waiting machine synced")
 		return nil
 	}
 	// get exist controlPlane hosts form kkmachine
@@ -364,7 +363,7 @@ func (r *InventoryReconciler) syncInventoryControlPlaneGroups(ctx context.Contex
 		}
 	}
 	if len(existControlPlaneHosts) > len(machineList.Items) {
-		klog.Info("waiting kkmachine synced.")
+		klog.V(2).Info("waiting kkmachine synced")
 
 		return nil
 	}
@@ -389,7 +388,6 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 	}
 	if len(machineList.Items) != int(groupNum) {
 		klog.Info("waiting machine synced.")
-
 		return nil
 	}
 	// get exist worker hosts form kkmachine
@@ -407,7 +405,6 @@ func (r *InventoryReconciler) syncInventoryWorkerGroups(ctx context.Context, sco
 	}
 	if len(existWorkerHosts) > len(machineList.Items) {
 		klog.Info("waiting kkmachine synced.")
-
 		return nil
 	}
 

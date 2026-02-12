@@ -52,11 +52,8 @@ func ModuleIncludeVars(ctx context.Context, options ExecOptions) (string, string
 	arg := includeVarsArgs{
 		includeVars: string(includeVarsByte),
 	}
-	if !filepath.IsLocal(arg.includeVars) {
-		return StdoutFailed, "can not read remote file", errors.New("can not read remote file")
-	}
 	if filepath.Ext(arg.includeVars) != ".yaml" && filepath.Ext(arg.includeVars) != ".yml" {
-		return StdoutFailed, "input file type wrong", errors.New("input file type wrong")
+		return StdoutFailed, "invalid file type", errors.Errorf("unsupported file extension %q: only .yaml and .yml files are allowed", arg.includeVars)
 	}
 
 	var includeVarsFileContent []byte

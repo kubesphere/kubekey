@@ -88,6 +88,6 @@ func HandleError(response *restful.Response, req *restful.Request, err error) {
 // with the sanitized error message and specified status code
 func handle(statusCode int, response *restful.Response, _ *restful.Request, err error) {
 	_, fn, line, _ := runtime.Caller(2)
-	klog.Errorf("%s:%d %v", fn, line, err)
+	klog.ErrorS(err, "HTTP request failed", "function", fn, "line", line)
 	http.Error(response, sanitizer.Replace(err.Error()), statusCode)
 }

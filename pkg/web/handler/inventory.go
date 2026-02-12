@@ -318,7 +318,7 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 	playbook := &kkcorev1.Playbook{}
 	if playbookName, ok := inventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation]; ok {
 		if err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Name: playbookName, Namespace: inventory.Namespace}, playbook); err != nil {
-			klog.Warningf("cannot found host-check playbook for inventory %q", ctrlclient.ObjectKeyFromObject(inventory))
+			klog.V(2).InfoS("cannot find host-check playbook", "inventory", ctrlclient.ObjectKeyFromObject(inventory), "playbook", playbookName)
 		}
 	}
 

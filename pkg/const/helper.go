@@ -44,11 +44,10 @@ func GetWorkdirFromConfig(config kkcorev1.Config) string {
 	if wd, _, err := unstructured.NestedString(config.Value(), Workdir); err == nil {
 		return wd
 	}
-	klog.Info("work_dir is not set use current dir.")
+	klog.V(2).Info("work_dir is not set, using current directory")
 	wd, err := os.Getwd()
 	if err != nil {
-		klog.Info("failed to get current dir. use default: /root/kubekey")
-
+		klog.V(2).Info("failed to get current dir, using default", "default", "/opt/kubekey")
 		return "/opt/kubekey"
 	}
 

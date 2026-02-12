@@ -308,7 +308,7 @@ func NewAPIService(webservice []*restful.WebService) *restful.WebService {
 			}
 		}}
 	for _, ws := range webservice {
-		klog.V(2).Infof("%s", ws.RootPath())
+		klog.V(2).InfoS("registered web service", "path", ws.RootPath())
 	}
 
 	return restfulspec.NewOpenAPIService(restconfig)

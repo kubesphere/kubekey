@@ -177,7 +177,7 @@ func (w *fileWatcher) sendInitialEvents(rootPath string) error {
 
 			obj, err := w.readFileObject(path)
 			if err != nil {
-				klog.V(6).ErrorS(err, "failed to read object for initial event", "path", path)
+				klog.V(4).ErrorS(err, "failed to read object for initial event", "path", path)
 				continue
 			}
 			if obj == nil {
@@ -193,7 +193,7 @@ func (w *fileWatcher) sendInitialEvents(rootPath string) error {
 
 			nsEntries, err := os.ReadDir(entryPath)
 			if err != nil {
-				klog.V(6).ErrorS(err, "failed to read namespace dir", "path", entryPath)
+				klog.V(4).ErrorS(err, "failed to read namespace dir", "path", entryPath)
 				continue
 			}
 
@@ -209,7 +209,7 @@ func (w *fileWatcher) sendInitialEvents(rootPath string) error {
 
 				obj, err := w.readFileObject(path)
 				if err != nil {
-					klog.V(6).ErrorS(err, "failed to read object for initial event", "path", path)
+					klog.V(4).ErrorS(err, "failed to read object for initial event", "path", path)
 					continue
 				}
 				if obj == nil {
@@ -299,14 +299,14 @@ func (w *fileWatcher) watchEvents() {
 			w.handleFileEvent(event)
 		case err := <-w.watcher.Errors:
 			// Log error but continue watching (similar to etcd3 watcher handling transient errors)
-			klog.V(6).ErrorS(err, "file watcher error")
+			klog.V(4).ErrorS(err, "file watcher error")
 		}
 	}
 }
 
 // handleFileEvent processes a single file system event and queues it for transformation.
 func (w *fileWatcher) handleFileEvent(event fsnotify.Event) {
-	klog.V(6).InfoS("received watcher event", "event", event)
+	klog.V(4).InfoS("received watcher event", "event", event)
 
 	// Skip events for non-resource files
 	if !w.isRelevantFile(event.Name) {
@@ -323,7 +323,7 @@ func (w *fileWatcher) handleFileEvent(event fsnotify.Event) {
 	obj, err := w.readFileObject(event.Name)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			klog.V(6).ErrorS(err, "failed to read file for watch event", "event", event)
+			klog.V(4).ErrorS(err, "failed to read file for watch event", "event", event)
 		}
 		// If file doesn't exist, it was deleted
 		if os.IsNotExist(err) {
@@ -390,7 +390,7 @@ func (w *fileWatcher) processEvents() {
 			if res.Type == watch.Deleted && strings.HasSuffix(filepath.Base(e.event.Name), deleteTagSuffix) {
 				go func() {
 					if err := os.Remove(e.event.Name); err != nil && !os.IsNotExist(err) {
-						klog.V(6).ErrorS(err, "failed to remove deletion marker file after event sent", "event", e.event)
+						klog.V(4).ErrorS(err, "failed to remove deletion marker file after event sent", "event", e.event)
 					}
 				}()
 			}
@@ -521,17 +521,17 @@ func (w *fileWatcher) handleNamespaceEvent(event fsnotify.Event) {
 	switch event.Op {
 	case fsnotify.Create:
 		if err := w.watcher.Add(event.Name); err != nil {
-			klog.V(6).ErrorS(err, "failed to add namespace dir to file watcher", "event", event)
+			klog.V(4).ErrorS(err, "failed to add namespace dir to file watcher", "event", event)
 		}
 	case fsnotify.Remove:
 		if err := w.watcher.Remove(event.Name); err != nil {
-			klog.V(6).ErrorS(err, "failed to remove namespace dir from file watcher", "event", event)
+			klog.V(4).ErrorS(err, "failed to remove namespace dir from file watcher", "event", event)
 		}
 	case fsnotify.Rename:
 		// Handle rename by removing the old path and adding the new one if it exists
 		if _, err := os.Stat(event.Name); err == nil {
 			if err := w.watcher.Add(event.Name); err != nil {
-				klog.V(6).ErrorS(err, "failed to add renamed dir to file watcher", "event", event)
+				klog.V(4).ErrorS(err, "failed to add renamed dir to file watcher", "event", event)
 			}
 		}
 	}

@@ -254,7 +254,7 @@ func imageSrcToDst(ctx context.Context, src, dst *remote.Repository, img string,
 		}
 	}
 	if len(filteredManifests) == 0 {
-		klog.Warningf("Image %s has no manifests matched for platform: %s", img, platform)
+		klog.V(2).InfoS("image has no manifests matched for platform", "image", img, "platform", platform)
 		return nil
 	}
 	// push all filtered manifests and layers

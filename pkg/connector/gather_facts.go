@@ -121,7 +121,7 @@ func (c *cacheGatherFact) handleJSONCache(ctx context.Context) (map[string]any, 
 	filename := filepath.Join(c.cacheDir, c.inventoryName+".json")
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		klog.V(4).Infof("JSON cache miss for %q. Fetching remotely.", filename)
+		klog.V(4).InfoS("json cache miss. fetching remotely.", "filename", filename)
 		return c.fetchAndCache(ctx, filename, json.Marshal)
 	}
 	var result map[string]any
@@ -137,7 +137,7 @@ func (c *cacheGatherFact) handleYAMLCache(ctx context.Context) (map[string]any, 
 	filename := filepath.Join(c.cacheDir, c.inventoryName+".yaml")
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		klog.V(4).Infof("YAML cache miss for %q. Fetching remotely.", filename)
+		klog.V(4).InfoS("yaml cache miss. fetching remotely.", "filename", filename)
 		return c.fetchAndCache(ctx, filename, yaml.Marshal)
 	}
 	var result map[string]any

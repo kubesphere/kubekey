@@ -298,8 +298,7 @@ func (l *transport) registerRouter(verb, path string, handler http.HandlerFunc, 
 		// add handler to router
 		if _, ok := r.handlers[verb]; ok {
 			// if handler is exists. throw error
-			klog.V(6).ErrorS(errors.New("handler has already register"), "failed to register router", "path", path, "verb", verb)
-
+			klog.V(4).ErrorS(errors.New("handler has already registered"), "failed to register router", "path", path, "verb", verb)
 			return
 		}
 		l.routers[i].handlers[verb] = handler
@@ -310,7 +309,7 @@ func (l *transport) registerRouter(verb, path string, handler http.HandlerFunc, 
 	// add new router
 	expression, err := newPathExpression(path)
 	if err != nil {
-		klog.V(6).ErrorS(err, "failed to register router", "path", path, "verb", verb)
+		klog.V(4).ErrorS(err, "failed to register router", "path", path, "verb", verb)
 
 		return
 	}
