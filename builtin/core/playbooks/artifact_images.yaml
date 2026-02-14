@@ -16,12 +16,10 @@
     - name: PullImage | Download container images
       tags: ["pull","image_registry"]
       image:
-        pull:
-          auths: "{{ .cri.registry.auths | toJson }}"
-          images_dir: >-
-            {{ .binary_dir }}/images/
-          manifests: "{{ .image_manifests | toJson }}"
-          skip_tls_verify: "{{ .cri.skip_tls_verify | default false }}"
+        src: "oci://{{ .module.image.reference.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}"
+        dest: "local://{{ .binary_dir }}/images/"
+        auths: "{{ .cri.registry.auths | toJson }}"
+        manifests: "{{ .image_manifests | toJson }}"
       when:
         - .image_manifests | default list | empty | not
         - .download.download_image
@@ -70,17 +68,15 @@
             fi
         - name: PushImage | Push images package to image registry
           image:
-            push:
-              auths:
-                - repo: "{{ .image_registry.auth.registry }}"
-                  username: "{{ .image_registry.auth.username }}"
-                  password: "{{ .image_registry.auth.password }}"
-                  insecure: true
-              images_dir: >-
-                {{ .binary_dir }}/images/
-              dest: >-
-                {{- if eq .module.image.src.reference.registry "registry.k8s.io" -}}
-                {{ .image_registry.auth.registry }}/registry.k8s.io/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-                {{- else -}}
-                {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-                {{- end -}}
+            auths:
+              - registry: "{{ .image_registry.auth.registry }}"
+                username: "{{ .image_registry.auth.username }}"
+                password: "{{ .image_registry.auth.password }}"
+                skip_tls_verify: true
+            src: "local://{{ .binary_dir }}/images/"
+            dest: >-
+              {{- if and (eq .module.image.reference.registry "registry.k8s.io") (.module.image.reference.repository | contains "/" | not) -}}
+              oci://{{ .image_registry.auth.registry }}/kubernetes/{{ .module.image.reference.repository }}:{{ .module.image.src.reference.reference }}
+              {{- else -}}
+              oci://{{ .image_registry.auth.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}
+              {{- end -}}

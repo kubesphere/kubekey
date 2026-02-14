@@ -6,40 +6,36 @@
 
 | 参数 | 说明 | 类型 | 必填 | 默认值 |
 |------|------|------|------|--------|
-| pull | 从远程仓库拉取到本地目录 | map | 否 | - |
-| pull.images_dir | 镜像存放的本地目录 | 字符串 | 否 | - |
-| pull.manifests | 要拉取的镜像列表 | 字符串数组 | 是 | - |
-| pull.auths | 远程仓库认证 | Object 数组 | 否 | - |
-| pull.auths.repo | 仓库地址 | 字符串 | 否 | - |
-| pull.auths.username | 用户名 | 字符串 | 否 | - |
-| pull.auths.password | 密码 | 字符串 | 否 | - |
-| pull.auths.insecure | 是否跳过 TLS 校验 | bool | 否 | - |
-| pull.auths.plain_http | 是否使用 HTTP | bool | 否 | - |
-| pull.platform | 架构列表（如 amd64、arm64） | 字符串数组 | 否 | - |
-| pull.skip_tls_verify | 默认是否跳过 TLS 校验 | bool | 否 | - |
-| push | 从本地目录推送到远程仓库 | map | 否 | - |
-| push.images_dir | 镜像存放的本地目录 | 字符串 | 否 | - |
-| push.auths | 远程仓库认证 | Object 数组 | 否 | - |
-| push.auths.repo / .username / .password / .insecure / .plain_http | 同上 | - | - | - |
-| push.skip_tls_verify | 默认是否跳过 TLS 校验 | bool | 否 | - |
-| push.src_pattern | 正则，过滤要推送的镜像 | 字符串 | 否 | - |
-| push.dest | 目标镜像，支持 [模板语法](../101-syntax.md) | 字符串 | 否 | - |
-| copy | 在文件系统 / 镜像仓库间复制 | map | 否 | - |
-| copy.platform | 架构列表 | 字符串数组 | 否 | - |
-| copy.from | 源 | map | 否 | - |
-| copy.from.path | 源目录路径 | 字符串 | 否 | - |
-| copy.from.manifests | 源镜像列表 | 字符串数组 | 否 | - |
-| copy.to | 目标 | map | 否 | - |
-| copy.to.path | 目标路径 | 字符串 | 否 | - |
-| copy.to.pattern | 正则，过滤复制目标 | 字符串 | 否 | - |
+| manifests | 要操作的镜像列表 | 字符串数组 | 是 | - |
+| platform | 架构列表（如 ["linux/amd64", "linux/arm64"]） | 字符串数组 | 否 | - |
+| policy | 平台过滤策略：`strict`（所有平台必须存在，否则报错），`warn`（缺失时记录警告但继续执行） | 字符串 | 否 | strict |
+| pattern | 正则匹配镜像 | 字符串 | 否 | - |
+| auths | 仓库认证信息 | Object 数组 | 否 | - |
+| auths.repo | 仓库地址 | 字符串 | 否 | - |
+| auths.username | 用户名 | 字符串 | 否 | - |
+| auths.password | 密码 | 字符串 | 否 | - |
+| auths.insecure | 是否跳过 TLS 校验 | bool | 否 | - |
+| auths.plain_http | 是否使用 HTTP | bool | 否 | - |
+| src | 源镜像引用（远程仓库或本地目录，如 `docker.io/library/alpine:3.19` 或 `local:///var/lib/kubekey/images`） | 字符串 | 否 | - |
+| dest | 目标位置（本地目录或远程仓库，如 `local:///tmp/images/` 或 `hub.kubekey/library/alpine:3.19`） | 字符串 | 否 | - |
+| skip_tls_verify | 默认是否跳过 TLS 校验 | bool | 否 | - |
 
-**push.dest** 可用变量：
+**src/dest 格式：**
+- 远程仓库：`registry/repository:tag`（如 `docker.io/library/alpine:3.19`）
+- 本地目录：`local:///绝对路径`（如 `local:///var/lib/kubekey/images`）
+
+**操作类型（由 src 和 dest 决定）：**
+- **pull**：从远程仓库拉取到本地目录（`src` = 远程仓库，`dest` = 本地目录）
+- **push**：从本地目录推送到远程仓库（`src` = 本地目录，`dest` = 远程仓库）
+- **copy**：本地目录间复制（`src` = 本地目录，`dest` = 本地目录）
+
+**dest 可用变量：**
 
 - `{{ .module.image.src.reference.registry }}`：registry
 - `{{ .module.image.src.reference.repository }}`：repository
 - `{{ .module.image.src.reference.reference }}`：reference（如 tag）
 
-**本地目录结构示例**：
+**本地目录结构示例：**
 
 ```text
 images_dir/
@@ -52,18 +48,18 @@ images_dir/
 
 ## 示例
 
-**1. 拉取镜像**
+**1. 从远程仓库拉取镜像**
 
 ```yaml
 - name: pull images
   image:
-    pull:
-      images_dir: /tmp/images/
-      platform: [amd64, arm64]
-      manifests:
-        - "docker.io/kubesphere/ks-apiserver:v4.1.3"
-        - "docker.io/kubesphere/ks-controller-manager:v4.1.3"
-        - "docker.io/kubesphere/ks-console:3.19"
+    manifests:
+      - "docker.io/kubesphere/ks-apiserver:v4.1.3"
+      - "docker.io/kubesphere/ks-controller-manager:v4.1.3"
+    platform: [linux/amd64, linux/arm64]
+    policy: strict
+    src: "docker.io"
+    dest: "local:///tmp/images/"
 ```
 
 **2. 推送镜像到远程仓库**
@@ -71,26 +67,33 @@ images_dir/
 ```yaml
 - name: push images
   image:
-    push:
-      images_dir: /tmp/images/
-      dest: "hub.kubekey/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}"
+    manifests:
+      - "library/alpine:3.19"
+    src: "local:///tmp/images/"
+    dest: "hub.kubekey/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}"
 ```
 
 例如：
 
-- `docker.io/kubesphere/ks-apiserver:v4.1.3` → `hub.kubekey/kubesphere/ks-apiserver:v4.1.3`
-- `docker.io/kubesphere/ks-console:3.19` → `hub.kubekey/kubesphere/ks-console:3.19`
+- `library/alpine:3.19` → `hub.kubekey/library/alpine:3.19`
 
-**3. 文件系统间复制镜像**
+**3. 本地目录间复制镜像**
 
 ```yaml
-- name: file to file
+- name: copy images
   image:
-    copy:
-      from:
-        path: /tmp/images/
-        manifests:
-          - docker.io/calico/apiserver:v3.28.2
-      to:
-        path: /tmp/others/images/
+    manifests:
+      - "docker.io/calico/apiserver:v3.28.2"
+    src: "local:///tmp/images/"
+    dest: "local:///tmp/others/images/"
+```
+
+**4. 使用正则模式复制镜像**
+
+```yaml
+- name: copy images with pattern
+  image:
+    pattern: ".*calico.*"
+    src: "local:///tmp/images/"
+    dest: "local:///tmp/others/images/"
 ```

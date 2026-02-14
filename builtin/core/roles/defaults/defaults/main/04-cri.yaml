@@ -17,6 +17,16 @@ cri:
     mirrors: ["https://registry-1.docker.io"]
     insecure_registries: []
     auths: []
+    # such as:
+    # auths:
+    #   - registry: docker.io
+    #     username: MyDockerAccount
+    #     password: my_password
+    #     skip_tls_verify: true
+    #     ca_cert: /etc/docker/certs.d/docker.io/ca.crt
+    #     cert_file: /etc/docker/certs.d/docker.io/cert.crt
+    #     key_file: /etc/docker/certs.d/docker.io/key.crt
+
     
-  # skip tls verify when pulling images
+  # skip tls verify when pulling images to all auths
   skip_tls_verify: false
