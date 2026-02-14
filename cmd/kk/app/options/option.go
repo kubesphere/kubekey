@@ -169,8 +169,8 @@ func (o *CommonOptions) Run(ctx context.Context, playbook *kkcorev1.Playbook) er
 func (o *CommonOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	gfs := fss.FlagSet("generic")
-	gfs.StringVar(&o.Workdir, "workdir", o.Workdir, "the base Dir for kubekey. Default current dir. ")
-	gfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
+	gfs.StringVar(&o.Workdir, "workdir", o.Workdir, "the base Dir for KubeKey. Default current dir. ")
+	gfs.StringVarP(&o.Artifact, "artifact", "a", "", "Path of a KubeKey artifact")
 	gfs.StringVarP(&o.ConfigFile, "config", "c", o.ConfigFile, "the config file path. support *.yaml ")
 	gfs.StringArrayVar(&o.Set, "set", o.Set, "set value in config. format --set key=val or --set k1=v1,k2=v2")
 	gfs.StringVarP(&o.InventoryFile, "inventory", "i", o.InventoryFile, "the host list file path. support *.yaml")

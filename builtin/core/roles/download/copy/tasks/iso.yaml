@@ -31,9 +31,9 @@
   loop: "{{ .download.iso_url.urls | toJson }}"
   command: |
     iso_path={{ .binary_dir }}/repository/{{ .item | splitList "/" | last }}
-    if [ ! -f {{ .artifact_file_dir }}/kubekey/kubekey/repository/ ];then
-      mkdir -p {{ .artifact_file_dir }}/kubekey/kubekey/repository/
+    if [ ! -f {{ .artifact_dir }}/repository/ ];then
+      mkdir -p {{ .artifact_dir }}/repository/
     fi
     if [ -f $iso_path ];then
-      cp $iso_path {{ .artifact_file_dir }}/kubekey/kubekey/repository/
+      cp $iso_path {{ .artifact_dir }}/repository/
     fi

@@ -1,0 +1,91 @@
+---
+- name: Helm | Ensure the Calico binary is available
+  loop: "{{ .download.cni.calico_version | toJson }}"
+  when: 
+    - .download.cni.calico_version | empty | not
+    - .download.cni.type | has "calico"
+  command: |
+    src_path={{ .binary_dir }}/cni/calico/tigera-operator-{{ .item }}.tgz
+    target_path={{ .artifact_dir }}/cni/calico/tigera-operator-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
+      cp $src_path $target_path
+    fi
+
+- name: Helm | Ensure the Cilium binary is available
+  loop: "{{ .download.cni.cilium_version | toJson }}"
+  when: 
+    - .download.cni.cilium_version | empty | not
+    - .download.cni.type | eq "cilium"
+  command: |
+    src_path={{ .binary_dir }}/cni/cilium/cilium-{{ .item }}.tgz
+    target_path={{ .artifact_dir }}/cni/cilium/cilium-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
+      cp $src_path $target_path
+    fi
+
+- name: Helm | Ensure the Flannel binary is available
+  loop: "{{ .download.cni.flannel_version | toJson }}"
+  when: 
+    - .download.cni.flannel_version | empty | not
+    - .download.cni.type | eq "flannel"
+  command: |
+    src_path={{ .binary_dir }}/cni/flannel/flannel-{{ .item }}.tgz
+    target_path={{ .artifact_dir }}/cni/flannel/flannel-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
+      cp $src_path $target_path
+    fi
+
+- name: Helm | Ensure the Kube-OVN binary is available
+  loop: "{{ .download.cni.kubeovn_version | toJson }}"
+  when: 
+    - .download.cni.kubeovn_version | empty | not
+    - .download.cni.type | eq "kubeovn"
+  command: |
+    src_path={{ .binary_dir }}/cni/kubeovn/kube-ovn-{{ .item }}.tgz
+    target_path={{ .artifact_dir }}/cni/kubeovn/kube-ovn-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
+      cp $src_path $target_path
+    fi
+
+- name: Helm | Ensure the Hybridnet binary is available
+  loop: "{{ .download.cni.hybridnet_version | toJson }}"
+  when: 
+    - .download.cni.hybridnet_version | empty | not
+    - .download.cni.type | eq "hybridnet"
+  command: |
+    src_path={{ .binary_dir }}/cni/hybridnet/hybridnet-{{ .item }}.tgz
+    target_path={{ .artifact_dir }}/cni/hybridnet/hybridnet-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
+      cp $src_path $target_path
+    fi
+
+- name: Helm | Ensure the localpv Provisioner binary is available
+  loop: "{{ .download.storage_class.localpv_provisioner_version | toJson }}"
+  when: 
+    - .download.storage_class.localpv_provisioner_version | empty | not
+    - .download.storage_class.local.enabled
+  command: |
+    src_path={{ .binary_dir }}/storageclass/local/localpv-provisioner-{{ .item }}.tgz
+    target_path={{ .artifact_dir }}/storageclass/local/localpv-provisioner-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
+      cp $src_path $target_path
+    fi
+
+- name: Helm | Ensure the NFS Provisioner binary is available
+  loop: "{{ .download.storage_class.nfs_provisioner_version | toJson }}"
+  when: 
+    - .download.storage_class.nfs_provisioner_version | empty | not
+    - .download.storage_class.nfs.enabled
+  command: |
+    src_path={{ .binary_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz
+    target_path={{ .artifact_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
+      cp $src_path $target_path
+    fi
