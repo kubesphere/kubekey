@@ -43,10 +43,10 @@ jobs:
       - name: Upload Extra File
         run: |
           TAG=${{ steps.prepare.outputs.version }}
-          if [[ $tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            REGISTRY=docker.io/kubesphere TAG=$tag make generate
+          if [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            REGISTRY=docker.io/kubesphere TAG=$TAG make generate
           else
-            REGISTRY=docker.io/kubespheredev TAG=$tag make generate
+            REGISTRY=docker.io/kubespheredev TAG=$TAG make generate
           fi
           sed -i "s/^LATEST_VERSION=.*/LATEST_VERSION=${TAG}/" hack/downloadKubekey.sh
           
