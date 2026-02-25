@@ -117,7 +117,10 @@ type InitRegistryOptions struct {
 // NewInitRegistryOptions for newInitRegistryCommand
 func NewInitRegistryOptions() *InitRegistryOptions {
 	// set default value
-	o := &InitRegistryOptions{CommonOptions: options.NewCommonOptions()}
+	o := &InitRegistryOptions{
+		CommonOptions: options.NewCommonOptions(),
+		Kubernetes:    defaultKubeVersion,
+	}
 	o.GetInventoryFunc = getInventory
 
 	return o
@@ -155,5 +158,19 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 		Tags:     []string{"image_registry"},
 	}
 
-	return playbook, o.CommonOptions.Complete(playbook)
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, err
+	}
+
+	return playbook, o.completeConfig()
+}
+
+func (o *InitRegistryOptions) completeConfig() error {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+		}
+	}
+
+	return nil
 }
