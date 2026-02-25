@@ -130,7 +130,8 @@ func NewInitRegistryOptions() *InitRegistryOptions {
 func (o *InitRegistryOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
-	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. It is used to determine the compatible Docker version when the registry and cluster nodes share the same Docker installation (registry is deployed via docker-compose). Default is %s", o.Kubernetes))
 
 	return fss
 }
