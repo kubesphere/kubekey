@@ -117,7 +117,10 @@ type InitRegistryOptions struct {
 // NewInitRegistryOptions for newInitRegistryCommand
 func NewInitRegistryOptions() *InitRegistryOptions {
 	// set default value
-	o := &InitRegistryOptions{CommonOptions: options.NewCommonOptions()}
+	o := &InitRegistryOptions{
+		CommonOptions: options.NewCommonOptions(),
+		Kubernetes:    defaultKubeVersion,
+	}
 	o.GetInventoryFunc = getInventory
 
 	return o
@@ -127,7 +130,8 @@ func NewInitRegistryOptions() *InitRegistryOptions {
 func (o *InitRegistryOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
-	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+
+	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. It is used to determine the compatible Docker version when the registry and cluster nodes share the same Docker installation (registry is deployed via docker-compose). Default is %s", o.Kubernetes))
 
 	return fss
 }
@@ -155,5 +159,19 @@ func (o *InitRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kkco
 		Tags:     []string{"image_registry"},
 	}
 
-	return playbook, o.CommonOptions.Complete(playbook)
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, err
+	}
+
+	return playbook, o.completeConfig()
+}
+
+func (o *InitRegistryOptions) completeConfig() error {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+		}
+	}
+
+	return nil
 }

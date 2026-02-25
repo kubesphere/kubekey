@@ -9,8 +9,8 @@
   tags: ["always"]
   gather_facts: true
   roles:
-    - precheck/image-registry
     - defaults
+    - precheck/image-registry
 
 
 # Download all required software and generate certificates on the localhost
