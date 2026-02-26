@@ -295,7 +295,6 @@ func GetKubeletConfiguration(runtime connector.Runtime, kubeConf *common.KubeCon
 		"clusterDomain":      kubeConf.Cluster.Kubernetes.DNSDomain,
 		"clusterDNS":         []string{kubeConf.Cluster.ClusterDNS()},
 		"maxPods":            kubeConf.Cluster.Kubernetes.MaxPods,
-		"podPidsLimit":       kubeConf.Cluster.Kubernetes.PodPidsLimit,
 		"rotateCertificates": true,
 		"kubeReserved": map[string]string{
 			"cpu":    "200m",

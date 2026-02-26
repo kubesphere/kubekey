@@ -82,6 +82,7 @@ const (
 	DefaultEtcdBackupPeriod        = 1440
 	DefaultKeepBackNumber          = 5
 	DefaultEtcdBackupScriptDir     = "/usr/local/bin/kube-scripts"
+	DefaultEtcdQuotaBackendBytes   = 8589934592
 	DefaultPodGateway              = "10.233.64.1"
 	DefaultJoinCIDR                = "100.64.0.0/16"
 	DefaultNetworkType             = "geneve"
@@ -356,6 +357,10 @@ func SetDefaultEtcdCfg(cfg *ClusterSpec) EtcdCluster {
 	}
 	if cfg.Etcd.BackupScriptDir == "" {
 		cfg.Etcd.BackupScriptDir = DefaultEtcdBackupScriptDir
+	}
+	if cfg.Etcd.QuotaBackendBytes == nil {
+		quotaBackendBytes := int64(DefaultEtcdQuotaBackendBytes)
+		cfg.Etcd.QuotaBackendBytes = &quotaBackendBytes
 	}
 
 	return cfg.Etcd

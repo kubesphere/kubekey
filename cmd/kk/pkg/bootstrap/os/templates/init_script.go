@@ -86,13 +86,13 @@ echo 'net.ipv4.conf.default.arp_accept = 1' >> /etc/sysctl.conf
 echo 'net.ipv4.conf.all.arp_ignore = 1' >> /etc/sysctl.conf
 echo 'net.ipv4.conf.default.arp_ignore = 1' >> /etc/sysctl.conf
 echo 'vm.max_map_count = 262144' >> /etc/sysctl.conf
-echo 'vm.swappiness = 0' >> /etc/sysctl.conf
+echo 'vm.swappiness = 1' >> /etc/sysctl.conf
 echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
 echo 'fs.inotify.max_user_instances = 524288' >> /etc/sysctl.conf
 echo 'fs.inotify.max_user_watches = 10240001' >> /etc/sysctl.conf
 echo 'fs.pipe-max-size = 4194304' >> /etc/sysctl.conf
 echo 'fs.aio-max-nr = 262144' >> /etc/sysctl.conf
-echo 'kernel.pid_max = 100000' >> /etc/sysctl.conf
+echo 'kernel.pid_max = 4194304' >> /etc/sysctl.conf
 echo 'kernel.watchdog_thresh = 5' >> /etc/sysctl.conf
 echo 'kernel.hung_task_timeout_secs = 5' >> /etc/sysctl.conf
 
@@ -118,10 +118,10 @@ sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-ip6tables ?= ?(0|1)@net.bridge.bri
 sed -r -i  "s@#{0,}?net.bridge.bridge-nf-call-iptables ?= ?(0|1)@net.bridge.bridge-nf-call-iptables = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.ipv4.ip_local_reserved_ports ?= ?([0-9]{1,}-{0,1},{0,1}){1,}@net.ipv4.ip_local_reserved_ports = 30000-32767@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?vm.max_map_count ?= ?([0-9]{1,})@vm.max_map_count = 262144@g" /etc/sysctl.conf
-sed -r -i  "s@#{0,}?vm.swappiness ?= ?([0-9]{1,})@vm.swappiness = 0@g" /etc/sysctl.conf
+sed -r -i  "s@#{0,}?vm.swappiness ?= ?([0-9]{1,})@vm.swappiness = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?fs.inotify.max_user_instances ?= ?([0-9]{1,})@fs.inotify.max_user_instances = 524288@g" /etc/sysctl.conf
-sed -r -i  "s@#{0,}?kernel.pid_max ?= ?([0-9]{1,})@kernel.pid_max = 100000@g" /etc/sysctl.conf
-sed -r -i "s@#{0,}?vm.overcommit_memory ?= ?(0|1|2)@vm.overcommit_memory = 0@g" /etc/sysctl.conf
+sed -r -i  "s@#{0,}?kernel.pid_max ?= ?([0-9]{1,})@kernel.pid_max = 4194304@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?vm.overcommit_memory ?= ?(0|1|2)@vm.overcommit_memory = 1@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?fs.inotify.max_user_watches ?= ?([0-9]{1,})@fs.inotify.max_user_watches = 524288@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?fs.pipe-max-size ?= ?([0-9]{1,})@fs.pipe-max-size = 4194304@g" /etc/sysctl.conf
 sed -r -i  "s@#{0,}?net.core.netdev_max_backlog ?= ?([0-9]{1,})@net.core.netdev_max_backlog = 65535@g" /etc/sysctl.conf
