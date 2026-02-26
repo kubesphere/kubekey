@@ -47,6 +47,6 @@ if [ "${output}" != "" ]; then
     echo "The following files are not import formatted"
     printf '%s\n' "${output[@]}"
     echo "Please run the following command:"
-    echo "make goimports"
+    echo "make generate-goimports"
     exit 1
 fi

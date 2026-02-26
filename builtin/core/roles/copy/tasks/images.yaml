@@ -1,12 +1,7 @@
 - name: Image | Ensure container images is available
   image:
-    copy:
-      from:
-        path: >-
-          {{ .binary_dir }}/images/
-        manifests: "{{ .image_manifests | toJson }}"
-      to:
-        path: >-
-          {{ .artifact_file_dir }}/kubekey/kubekey/images/
+    manifests: "{{ .image_manifests | toJson }}"
+    src: "local://{{ .binary_dir }}/images/"
+    dest: "local://{{ .artifact_file_dir }}/kubekey/kubekey/images/"
   when:
     - .image_manifests | default list | empty | not

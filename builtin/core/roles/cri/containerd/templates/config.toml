@@ -76,24 +76,24 @@ state = "/run/containerd"
   {{- if .image_registry.auth.key_file | empty | not }}
             key_file = "/etc/containerd/certs.d/{{ $registry_parts }}/server.key"
   {{- end }}
-            insecure_skip_verify = {{ .image_registry.auth.insecure | default true }}
+            insecure_skip_verify = {{ .image_registry.auth.skip_tls_verify | default true }}
 {{- end }}
 {{- if .cri.registry.auths | empty | not }}
   {{- range .cri.registry.auths }}
-    {{- $parts := .repo | splitList "/" | first }}
+    {{- $parts := .registry | splitList "/" | first }}
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $parts }}".auth]
             username = "{{ .username }}"
             password = "{{ .password }}"
-          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $parts  }}".tls]
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $parts }}".tls]
     {{- if .ca_file }}
             ca_file = {{ .ca_file }}
     {{- end }}
-    {{- if .crt_file }}
-            cert_file = {{ .crt_file }}
+    {{- if .cert_file }}
+            cert_file = {{ .cert_file }}
     {{- end }}
     {{- if .key_file }}
             key_file = {{ .key_file }}
     {{- end }}
-            insecure_skip_verify = {{ .insecure | default true }}
+            insecure_skip_verify = {{ .skip_tls_verify | default true }}
   {{- end }}
 {{- end }}
