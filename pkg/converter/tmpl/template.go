@@ -37,8 +37,15 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 	if !kkprojectv1.IsTmplSyntax(input) {
 		return f([]byte(input)), nil
 	}
+
+	funcMap := funcMap()
+	includedNames := make(map[string]int)
+	tl := template.New("kubekey")
+	// Add the template-rendering functions here so we can close over t.
+	funcMap["include"] = includeFun(tl, includedNames)
+	funcMap["tpl"] = tplFun(tl, includedNames, false)
 	// Parse the template string
-	tl, err := template.New("kubekey").Funcs(funcMap()).Parse(input)
+	_, err := tl.Funcs(funcMap).Parse(input)
 	if err != nil {
 		return f(nil), errors.Wrapf(err, "failed to parse template '%s'", input)
 	}
