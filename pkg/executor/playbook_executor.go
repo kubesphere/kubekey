@@ -100,11 +100,8 @@ func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
 			continue
 		}
 		// check tags
-		if play.IsEnabled(e.playbook.Spec.Tags, e.playbook.Spec.SkipTags) {
-			// when gather_fact is set. get host's information from remote.
-			if err := e.dealGatherFacts(ctx, play.GatherFacts, hosts); err != nil {
-				return err
-			}
+		if err := e.dealGatherFacts(ctx, play.GatherFacts, hosts); err != nil {
+			return err
 		}
 
 		// Batch execution, with each batch being a group of hosts run in serial.
