@@ -220,31 +220,31 @@ download:
     flannel: https://github.com/flannel-io/flannel/releases/download/{{ .cni.flannel_version }}/flannel.tgz
     cilium: >-
       {{- if .download.zone | eq "cn" -}}
-      https://kubekey.pek3b.qingstor.com/helm.cilium.io/cilium-{{ .cni.cilium_version }}.tgz
+      https://{{ .download.cn_host }}/helm.cilium.io/cilium-{{ .cni.cilium_version }}.tgz
       {{- else -}}
       https://helm.cilium.io/cilium-{{ .cni.cilium_version }}.tgz
       {{- end -}}
     kubeovn: >-
       {{- if .download.zone | eq "cn" -}}
-      https://kubekey.pek3b.qingstor.com/kubeovn.github.io/kube-ovn/kube-ovn-{{ .cni.kubeovn_version }}.tgz
+      https://{{ .download.cn_host }}/kubeovn.github.io/kube-ovn/kube-ovn-{{ .cni.kubeovn_version }}.tgz
       {{- else -}}
       https://kubeovn.github.io/kube-ovn/kube-ovn-{{ .cni.kubeovn_version }}.tgz
       {{- end -}}
     hybridnet: >-
       {{- if .download.zone | eq "cn" -}}
-      https://kubekey.pek3b.qingstor.com/github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
+      https://{{ .download.cn_host }}/github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
       {{- else -}}
       https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .cni.hybridnet_version }}/hybridnet-{{ .cni.hybridnet_version }}.tgz
       {{- end -}}
     localpv_provisioner: >-
       {{- if .download.zone | eq "cn" -}}
-      https://kubekey.pek3b.qingstor.com/openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
+      https://{{ .download.cn_host }}/openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
       {{- else -}}
       https://openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
       {{- end -}}
     nfs_provisioner: >-
       {{- if .download.zone | eq "cn" -}}
-      https://kubekey.pek3b.qingstor.com/github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
+      https://{{ .download.cn_host }}/github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
       {{- else -}}
       https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
       {{- end -}}
@@ -253,7 +253,7 @@ download:
   iso_url:
     base_path: >-
       {{- if .download.zone | eq "cn" -}}
-      https://kubekey.pek3b.qingstor.com
+      https://{{ .download.cn_host }}
       {{- else -}}
       https://github.com
       {{- end -}}
