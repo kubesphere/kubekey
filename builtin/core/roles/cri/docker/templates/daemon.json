@@ -10,12 +10,12 @@
   "registry-mirrors": {{ .cri.registry.mirrors | toJson }},
 {{- end }}
 {{- $insecure_registries := .cri.registry.insecure_registries | default list }} 
-{{- if and .image_registry.auth.insecure (.image_registry.auth.registry | empty | not) }}
+{{- if and .image_registry.auth.skip_tls_verify (.image_registry.auth.registry | empty | not) }}
   {{- $insecure_registries = append $insecure_registries .image_registry.auth.registry }}
 {{- end }}
 {{- range .cri.registry.auths | default list }}
-  {{- if and .insecure (.repo | empty | not) }}
-    {{- $insecure_registries = append $insecure_registries .repo }}
+  {{- if and .skip_tls_verify (.registry | empty | not) }}
+    {{- $insecure_registries = append $insecure_registries .registry }}
   {{- end }}
 {{- end }}
   "insecure-registries": {{ $insecure_registries | toJson }},

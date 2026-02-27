@@ -135,7 +135,7 @@ linters:
       alias:
         # oci
         - pkg: github.com/opencontainers/image-spec/specs-go/v1
-          alias: imagev1
+          alias: ocispec
         # kubekey
         - pkg: "github.com/kubesphere/kubekey/v4/pkg/const"
           alias: _const

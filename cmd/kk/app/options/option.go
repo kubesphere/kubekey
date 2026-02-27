@@ -137,7 +137,7 @@ func (o *CommonOptions) Run(ctx context.Context, playbook *kkcorev1.Playbook) er
 		return errors.Wrap(err, "failed to runtime-client")
 	}
 	// create or update inventory
-	if err := client.Get(ctx, ctrlclient.ObjectKeyFromObject(o.Inventory), o.Inventory); err != nil {
+	if err := client.Get(ctx, ctrlclient.ObjectKeyFromObject(o.Inventory), &kkcorev1.Inventory{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			if err := client.Create(ctx, o.Inventory); err != nil {
 				return errors.Wrap(err, "failed to create inventory")

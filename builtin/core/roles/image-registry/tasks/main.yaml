@@ -44,17 +44,15 @@
 - name: ImageRegistry | Push images package to image registry
   run_once: true
   image:
-    push:
-      auths:
-        - repo: "{{ .image_registry.auth.registry }}"
-          username: "{{ .image_registry.auth.username }}"
-          password: "{{ .image_registry.auth.password }}"
-          insecure: true
-      images_dir: >-
-        {{ .binary_dir }}/images/
-      dest: >-
-        {{- if eq .module.image.src.reference.registry "registry.k8s.io" -}}
-        {{ .image_registry.auth.registry }}/registry.k8s.io/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-        {{- else -}}
-        {{ .image_registry.auth.registry }}/{{ .module.image.src.reference.repository }}:{{ .module.image.src.reference.reference }}
-        {{- end -}}
+    auths:
+      - registry: "{{ .image_registry.auth.registry }}"
+        username: "{{ .image_registry.auth.username }}"
+        password: "{{ .image_registry.auth.password }}"
+        skip_tls_verify: true
+    src: "local://{{ .binary_dir }}/images/"
+    dest: >-
+      {{- if and (eq .module.image.reference.registry "registry.k8s.io") (.module.image.reference.repository | contains "/" | not) -}}
+      oci://{{ .image_registry.auth.registry }}/kubernetes/{{ .module.image.reference.repository }}:{{ .module.image.src.reference.reference }}
+      {{- else -}}
+      oci://{{ .image_registry.auth.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}
+      {{- end -}}

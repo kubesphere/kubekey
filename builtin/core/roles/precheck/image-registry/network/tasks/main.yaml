@@ -12,7 +12,7 @@
         check:
           cmd: >-
             /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry }} 
-                {{- if .image_registry.auth.insecure -}}
+                {{- if .image_registry.auth.skip_tls_verify -}}
                 {{ printf " --insecure  " }} 
                 {{- end -}}
                 {{- if .image_registry.auth.ca_file | empty | not -}}

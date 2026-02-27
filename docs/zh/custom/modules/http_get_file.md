@@ -20,14 +20,18 @@
 
 ```yaml
 - name: http fetch file
-  when: '{{ "/tmp/test.tar.gz" | fileExist | not }}'
+  when: '{{ fileExist .dest | not }}'
   http_get_file:
-    url: http://localhost/test.tar.gz     # http文件服务上的文件路径
-    dest: /tmp/test.tar.gz                # 本地保存路径
+    url: "{{ tpl .artifact_url . }}"     # http文件服务上的文件路径
+    dest: "{{ .dest }}"                   # 本地保存路径
     username: admin                       # 可选：Basic 认证用户名
     password: password                    # 可选：Basic 认证密码
     token: my-token                       # 可选：Bearer Token
     timeout: 10s                          # 可选：请求超时，默认 10s
     headers:                              # 可选：自定义 HTTP 头
       X-Custom-Header: custom-value
+  vars:
+    version: v4.0.3
+    artifact_url: "http://localhost/{{\"{{\"}} .version {{\"}}\"}}/test.tar.gz"
+    dest: /tmp/{{base .artifact_url}}
 ```

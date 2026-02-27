@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/cockroachdb/errors v1.12.0
 	github.com/containerd/containerd v1.7.30
 	github.com/emicklei/go-restful-openapi/v2 v2.11.0
