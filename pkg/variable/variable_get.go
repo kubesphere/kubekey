@@ -34,7 +34,7 @@ var GetHostnames = func(name []string) GetFunc {
 		var hs []string
 		for _, n := range name {
 			// Try to parse hostname using configuration variables as template context
-			if pn, err := tmpl.ParseFunc(Extension2Variables(vv.value.Config.Spec), n, func(b []byte) string { return string(b) }); err == nil {
+			if pn, err := tmpl.ParseFunc(Extension2Variables(vv.value.Config.Spec), n, tmpl.StringFunc); err == nil {
 				n = pn
 			}
 			// Add direct hostname if it exists in the hosts map

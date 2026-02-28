@@ -212,7 +212,7 @@ func StringVar(ctx map[string]any, args map[string]any, keys ...string) (string,
 		return "", errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 
-	return tmpl.ParseFunc(ctx, sv, func(b []byte) string { return string(b) })
+	return tmpl.ParseFunc(ctx, sv, tmpl.StringFunc)
 }
 
 // StringSliceVar get string slice value by key
@@ -229,7 +229,7 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 	case []string:
 		var ss []string
 		for _, a := range valv {
-			as, err := tmpl.ParseFunc(ctx, a, func(b []byte) string { return string(b) })
+			as, err := tmpl.ParseFunc(ctx, a, tmpl.StringFunc)
 			if err != nil {
 				return nil, err
 			}
@@ -247,7 +247,7 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 				return nil, nil
 			}
 
-			as, err := tmpl.ParseFunc(ctx, av, func(b []byte) string { return string(b) })
+			as, err := tmpl.ParseFunc(ctx, av, tmpl.StringFunc)
 			if err != nil {
 				return nil, err
 			}
@@ -298,7 +298,7 @@ func IntVar(ctx map[string]any, args map[string]any, keys ...string) (*int, erro
 	case reflect.Float32, reflect.Float64:
 		return ptr.To(int(v.Float())), nil
 	case reflect.String:
-		vs, err := tmpl.ParseFunc(ctx, v.String(), func(b []byte) string { return string(b) })
+		vs, err := tmpl.ParseFunc(ctx, v.String(), tmpl.StringFunc)
 		if err != nil {
 			return nil, err
 		}

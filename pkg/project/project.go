@@ -195,7 +195,7 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error {
 	for _, varsFileStr := range p.VarsFiles {
 		// load vars from vars_files
-		varsFile, err := tmpl.ParseFunc(f.config, varsFileStr, func(b []byte) string { return string(b) })
+		varsFile, err := tmpl.ParseFunc(f.config, varsFileStr, tmpl.StringFunc)
 		if err != nil {
 			return errors.Errorf("failed to parse varFile %q", varsFileStr)
 		}
