@@ -25,6 +25,10 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var (
+	StringFunc = func(b []byte) string { return string(b) }
+)
+
 // ParseFunc parses a template string using the provided context and parse function.
 // It takes a context map C, an input string that may contain template syntax,
 // and a parse function that converts the template result to the desired Output type.

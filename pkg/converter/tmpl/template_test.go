@@ -750,7 +750,7 @@ a2:
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := ParseFunc(tc.variable, tc.input, func(b []byte) string { return string(b) })
+			output, err := ParseFunc(tc.variable, tc.input, StringFunc)
 			if err != nil {
 				t.Fatal(err)
 			}
