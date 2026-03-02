@@ -50,7 +50,7 @@ var GetHostnames = func(name []string) GetFunc {
 			}
 
 			// Handle indexed group access (e.g., "group[0]")
-			regexForIndex := regexp.MustCompile(`^(.*?)\[(\d+)\]$`)
+			regexForIndex := regexp.MustCompile(`^(.*?)\[(\d+)]$`)
 			if match := regexForIndex.FindStringSubmatch(strings.TrimSpace(n)); match != nil {
 				index, err := strconv.Atoi(match[2])
 				if err != nil {
@@ -136,7 +136,9 @@ var GetAllVariable = func(hostname string) GetFunc {
 		globalHosts := make(map[string]any)
 		for hostname := range v.value.Hosts {
 			hostVars := make(map[string]any)
-			// Set group variables for hosts that belong to groups
+			// Merge inventory-level variables first (lower priority than group vars)
+			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Inventory.Spec.Vars))
+			// Set group variables for hosts that belong to groups (override spec.vars)
 			for _, gv := range v.value.Inventory.Spec.Groups {
 				if slices.Contains(gv.Hosts, hostname) {
 					hostVars = CombineVariables(hostVars, Extension2Variables(gv.Vars))
@@ -147,9 +149,7 @@ var GetAllVariable = func(hostname string) GetFunc {
 			// Merge runtime variables (variables set during playbook execution)
 			hostVars = CombineVariables(hostVars, v.value.Hosts[hostname].RuntimeVars)
 
-			// Merge inventory-level variables
-			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Inventory.Spec.Vars))
-			// Merge host-specific variables from inventory
+			// Merge host-specific variables from inventory (override group vars)
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Inventory.Spec.Hosts[hostname]))
 			// Merge configuration variables
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Config.Spec))
