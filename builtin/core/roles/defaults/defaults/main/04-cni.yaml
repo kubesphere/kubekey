@@ -13,10 +13,10 @@ cni:
   # The complete Service IP pool for the cluster. Supports IPv4, IPv6, and dual-stack.
   service_cidr: 10.233.0.0/18
 
+  # Multi-CNI type. Supported: multus, none.
+  multi_cni: "none"
   # Network enhancement plugin for multiple pod network interfaces (Multus)
   multus:
-    # Enable or disable the network enhancement plugin
-    enabled: false
     image:
       registry: >-
         {{ .image_registry.ghcrio_registry }}

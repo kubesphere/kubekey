@@ -1,8 +1,5 @@
 ---
 dependencies:
-  - role: cni/multus
-    when: .cni.multus.enabled
-
   - role: cni/calico
     when: .cni.type | eq "calico"
 
@@ -17,3 +14,6 @@ dependencies:
 
   - role: cni/hybridnet
     when: .cni.type | eq "hybridnet"
+
+  - role: cni/multus
+    when: .cni.multi_cni | eq "multus"
