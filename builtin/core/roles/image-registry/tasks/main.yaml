@@ -44,11 +44,18 @@
 - name: ImageRegistry | Push images package to image registry
   run_once: true
   image:
+    platform: >
+      {{- $platform := list }}
+      {{- range .download.arch }}
+        {{- $platform = append $platform (printf "linux/%s" .) }}
+      {{- end }}
+      {{- $platform | toJson }}
     auths:
       - registry: "{{ .image_registry.auth.registry }}"
         username: "{{ .image_registry.auth.username }}"
         password: "{{ .image_registry.auth.password }}"
         skip_tls_verify: true
+    manifests: "{{ .image_manifests | toJson }}"
     src: "local://{{ .binary_dir }}/images/"
     dest: >-
       {{- if and (eq .module.image.reference.registry "registry.k8s.io") (.module.image.reference.repository | contains "/" | not) -}}

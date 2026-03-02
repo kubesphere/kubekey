@@ -2,7 +2,7 @@
 - name: NFS | Copy the NFS Subdir External Provisioner Helm chart to the remote host
   copy:
     src: >-
-      {{ .work_dir }}/kubekey/storageclass/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
+      {{ .binary_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
     dest: >-
       /etc/kubernetes/storageclass/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz
 
@@ -20,5 +20,5 @@
 
 - name: NFS | Install or upgrade the NFS Subdir External Provisioner with Helm
   command: |
-    helm upgrade --install nfs-subdir-external-provisioner /etc/kubernetes/storageclass/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz --namespace kube-system \
+    helm upgrade --install nfs-subdir-external-provisioner /etc/kubernetes/storageclass/nfs/nfs-subdir-external-provisioner-{{ .storage_class.nfs_provisioner_version }}.tgz --namespace kube-system \
       -f /etc/kubernetes/storageclass/nfs-default-values.yaml {{ if .storage_class.nfs.values | empty | not }}-f /etc/kubernetes/storageclass/nfs-custom-values.yaml{{ end }}

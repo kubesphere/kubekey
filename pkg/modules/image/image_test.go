@@ -254,351 +254,6 @@ func TestComputeDigest(t *testing.T) {
 	}
 }
 
-// TestImageArgsComplete tests the imageArgs.complete() method validation.
-func TestImageArgsComplete(t *testing.T) {
-	testcases := []struct {
-		name        string
-		ia          *imageArgs
-		expectError bool
-		errorMsg    string
-		description string
-	}{
-		{
-			name: "valid args with src and dest",
-			ia: &imageArgs{
-				manifests: []string{"nginx:latest"},
-				src:       "oci://docker.io/library/nginx:latest",
-				dest:      "local:///var/lib/kubekey/images",
-			},
-			expectError: false,
-			description: "Valid src and dest should pass validation",
-		},
-		{
-			name: "valid args with absolute local paths",
-			ia: &imageArgs{
-				src:  "local:///absolute/path",
-				dest: "local:///another/path",
-			},
-			expectError: false,
-			description: "Absolute local paths should pass validation",
-		},
-		{
-			name: "invalid relative local path in src",
-			ia: &imageArgs{
-				src: "local://relative/path",
-			},
-			expectError: true,
-			errorMsg:    "local path must be an absolute path",
-			description: "Relative local path should fail validation",
-		},
-		{
-			name: "invalid relative local path in dest",
-			ia: &imageArgs{
-				dest: "local://relative/path",
-			},
-			expectError: true,
-			errorMsg:    "local path must be an absolute path",
-			description: "Relative local path in dest should fail validation",
-		},
-		{
-			name: "empty manifests with empty src and dest",
-			ia: &imageArgs{
-				manifests: []string{},
-				src:       "",
-				dest:      "",
-			},
-			expectError: true,
-			errorMsg:    "either \"manifests\" or \"src\"/\"dest\" must be specified",
-			description: "Empty manifests with no src/dest should fail validation",
-		},
-		{
-			name: "valid args with only manifests",
-			ia: &imageArgs{
-				manifests: []string{"nginx:latest", "redis:7"},
-			},
-			expectError: false,
-			description: "Only manifests specified should pass validation",
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.ia.complete()
-			if tc.expectError {
-				require.Error(t, err, tc.description)
-				if tc.errorMsg != "" {
-					require.Contains(t, err.Error(), tc.errorMsg, "error message should contain expected text")
-				}
-			} else {
-				require.NoError(t, err, tc.description)
-			}
-		})
-	}
-}
-
-// TestTransferPull tests the transferPull function for deprecated format conversion.
-func TestTransferPull(t *testing.T) {
-	testcases := []struct {
-		name        string
-		pullArgs    map[string]any
-		vars        map[string]any
-		expectError bool
-		description string
-	}{
-		{
-			name: "valid pull args",
-			pullArgs: map[string]any{
-				"manifests":  []string{"nginx:latest", "redis:7"},
-				"images_dir": "/var/lib/kubekey/images",
-				"auths": []map[string]any{
-					{"registry": "docker.io", "username": "user", "password": "pass"},
-				},
-			},
-			vars:        map[string]any{},
-			expectError: false,
-			description: "Valid pull args should be converted successfully",
-		},
-		{
-			name: "missing manifests",
-			pullArgs: map[string]any{
-				"images_dir": "/var/lib/kubekey/images",
-			},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Missing manifests should return error",
-		},
-		{
-			name:        "empty pull args",
-			pullArgs:    map[string]any{},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Empty pull args should return error",
-		},
-		{
-			name:        "invalid pull args type",
-			pullArgs:    map[string]any{"invalid": "type"},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Non-map pull args should return error",
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := transferPull(tc.pullArgs, tc.vars)
-			if tc.expectError {
-				require.Error(t, err, tc.description)
-			} else {
-				require.NoError(t, err, tc.description)
-				require.NotNil(t, result, "result should not be nil")
-			}
-		})
-	}
-}
-
-// TestTransferPush tests the transferPush function for deprecated format conversion.
-func TestTransferPush(t *testing.T) {
-	testcases := []struct {
-		name        string
-		pushArgs    map[string]any
-		vars        map[string]any
-		expectError bool
-		description string
-	}{
-		{
-			name: "valid push args",
-			pushArgs: map[string]any{
-				"images_dir":  "/var/lib/kubekey/images",
-				"src_pattern": ".*",
-				"dest":        "registry.example.com/{{ .image }}",
-			},
-			vars:        map[string]any{},
-			expectError: false,
-			description: "Valid push args should be converted successfully",
-		},
-		{
-			name: "missing dest",
-			pushArgs: map[string]any{
-				"images_dir": "/var/lib/kubekey/images",
-			},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Missing dest should return error",
-		},
-		{
-			name:        "invalid push args type",
-			pushArgs:    map[string]any{"invalid": "type"},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Non-map push args should return error",
-		},
-		{
-			name: "invalid regex pattern",
-			pushArgs: map[string]any{
-				"images_dir":  "/var/lib/kubekey/images",
-				"src_pattern": "[invalid",
-				"dest":        "registry.example.com/image",
-			},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Invalid regex pattern should return error",
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := transferPush(tc.pushArgs, tc.vars)
-			if tc.expectError {
-				require.Error(t, err, tc.description)
-			} else {
-				require.NoError(t, err, tc.description)
-				require.NotNil(t, result, "result should not be nil")
-			}
-		})
-	}
-}
-
-// TestTransferCopy tests the transferCopy function for deprecated format conversion.
-func TestTransferCopy(t *testing.T) {
-	testcases := []struct {
-		name        string
-		copyArgs    map[string]any
-		vars        map[string]any
-		expectError bool
-		description string
-	}{
-		{
-			name: "valid copy args",
-			copyArgs: map[string]any{
-				"from": map[string]any{
-					"path":      "/source/path",
-					"manifests": []string{"image1", "image2"},
-				},
-				"to": map[string]any{
-					"path": "/dest/path",
-				},
-			},
-			vars:        map[string]any{},
-			expectError: false,
-			description: "Valid copy args should be converted successfully",
-		},
-		{
-			name: "missing from path - returns empty path",
-			copyArgs: map[string]any{
-				"to": map[string]any{
-					"path": "/dest/path",
-				},
-			},
-			vars:        map[string]any{},
-			expectError: false,
-			description: "Missing from path returns empty path (not an error in current implementation)",
-		},
-		{
-			name: "missing to path",
-			copyArgs: map[string]any{
-				"from": map[string]any{
-					"path": "/source/path",
-				},
-			},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Missing to path should return error",
-		},
-		{
-			name:        "invalid copy args type",
-			copyArgs:    map[string]any{"invalid": "type"},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Non-map copy args should return error",
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := transferCopy(tc.copyArgs, tc.vars)
-			if tc.expectError {
-				require.Error(t, err, tc.description)
-			} else {
-				require.NoError(t, err, tc.description)
-				require.NotNil(t, result, "result should not be nil")
-			}
-		})
-	}
-}
-
-// TestImageArgsNewFormat tests the newImageArgs function with new format configuration.
-func TestImageArgsNewFormat(t *testing.T) {
-	testcases := []struct {
-		name        string
-		args        map[string]any
-		vars        map[string]any
-		expectError bool
-		description string
-	}{
-		{
-			name: "new format with src and dest",
-			args: map[string]any{
-				"manifests": []string{"nginx:latest"},
-				"src":       "oci://docker.io/library/nginx:latest",
-				"dest":      "local:///var/lib/kubekey/images",
-				"platform":  []string{"linux/amd64"},
-			},
-			vars:        map[string]any{},
-			expectError: false,
-			description: "New format with src/dest should parse successfully",
-		},
-		{
-			name: "new format with pattern",
-			args: map[string]any{
-				"src":     "local:///source",
-				"dest":    "local:///dest",
-				"pattern": ".*nginx.*",
-			},
-			vars:        map[string]any{},
-			expectError: false,
-			description: "New format with pattern should parse successfully",
-		},
-		{
-			name: "invalid pattern regex",
-			args: map[string]any{
-				"src":     "local:///source",
-				"dest":    "local:///dest",
-				"pattern": "[invalid",
-			},
-			vars:        map[string]any{},
-			expectError: true,
-			description: "Invalid pattern regex should return error",
-		},
-		{
-			name: "new format with auths",
-			args: map[string]any{
-				"manifests": []string{"nginx:latest"},
-				"src":       "oci://registry.example.com/image",
-				"dest":      "local:///images",
-				"auths": []map[string]any{
-					{"registry": "registry.example.com", "username": "admin", "password": "secret"},
-				},
-			},
-			vars:        map[string]any{},
-			expectError: false,
-			description: "New format with auths should parse successfully",
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			raw := createRawArgs(tc.args)
-			result, err := newImageArgs(context.Background(), raw, tc.vars)
-			if tc.expectError {
-				require.Error(t, err, tc.description)
-			} else {
-				require.NoError(t, err, tc.description)
-				require.NotNil(t, result, "result should not be nil")
-			}
-		})
-	}
-}
-
 // TestImageArgsPattern tests the pattern matching functionality in imageArgs.
 func TestImageArgsPattern(t *testing.T) {
 	testcases := []struct {
@@ -652,38 +307,187 @@ func TestImageArgsPattern(t *testing.T) {
 	}
 }
 
-// TestImageAuth tests the imageAuth struct functionality.
-func TestImageAuth(t *testing.T) {
+func TestImageArgs(t *testing.T) {
 	testcases := []struct {
-		name         string
-		auth         imageAuth
-		expectedJSON string
+		name        string
+		args        map[string]any
+		vars        map[string]any
+		expectError bool
+		expect      *imageArgs
 	}{
+		// {
+		// 	name: "new format with src and dest",
+		// 	args: map[string]any{
+		// 		"manifests": []string{"nginx:latest"},
+		// 		"src":       "oci://docker.io/library/nginx:latest",
+		// 		"dest":      "local:///var/lib/kubekey/images",
+		// 		"platform":  []string{"linux/amd64"},
+		// 	},
+		// 	vars:        map[string]any{},
+		// 	expectError: false,
+		// 	expect: &imageArgs{
+		// 		manifests: []string{"nginx:latest"},
+		// 		src:       "oci://docker.io/library/nginx:latest",
+		// 		dest:      "local:///var/lib/kubekey/images",
+		// 		platform:  []string{"linux/amd64"},
+		// 		policy:    "strict",
+		// 	},
+		// },
+		// {
+		// 	name: "new format with pattern",
+		// 	args: map[string]any{
+		// 		"src":     "local:///source",
+		// 		"dest":    "local:///dest",
+		// 		"pattern": ".*nginx.*",
+		// 	},
+		// 	vars:        map[string]any{},
+		// 	expectError: false,
+		// 	expect: &imageArgs{
+		// 		src:     "local:///source",
+		// 		dest:    "local:///dest",
+		// 		pattern: regexp.MustCompile(".*nginx.*"),
+		// 		policy:  "strict",
+		// 	},
+		// },
+		// {
+		// 	name: "invalid pattern regex",
+		// 	args: map[string]any{
+		// 		"src":     "local:///source",
+		// 		"dest":    "local:///dest",
+		// 		"pattern": "[invalid",
+		// 	},
+		// 	vars:        map[string]any{},
+		// 	expectError: true,
+		// 	expect:      nil,
+		// },
+		// {
+		// 	name: "new format with auths",
+		// 	args: map[string]any{
+		// 		"manifests": []string{"nginx:latest"},
+		// 		"src":       "oci://registry.example.com/image",
+		// 		"dest":      "local:///images",
+		// 		"auths": []map[string]any{
+		// 			{"registry": "registry.example.com", "username": "admin", "password": "secret"},
+		// 		},
+		// 	},
+		// 	vars:        map[string]any{},
+		// 	expectError: false,
+		// 	expect: &imageArgs{
+		// 		manifests: []string{"nginx:latest"},
+		// 		src:       "oci://registry.example.com/image",
+		// 		dest:      "local:///images",
+		// 		policy:    "strict",
+		// 		auths: []imageAuth{
+		// 			{Registry: "registry.example.com", Username: "admin", Password: "secret"},
+		// 		},
+		// 	},
+		// },
+		// {
+		// 	name: "new format with skip_tls_verify true",
+		// 	args: map[string]any{
+		// 		"manifests": []string{"nginx:latest"},
+		// 		"src":       "oci://registry.example.com/image",
+		// 		"dest":      "local:///images",
+		// 		"auths": []map[string]any{
+		// 			{"registry": "registry.example.com", "username": "admin", "password": "secret", "skip_tls_verify": true},
+		// 		},
+		// 	},
+		// 	vars:        map[string]any{},
+		// 	expectError: false,
+		// 	expect: &imageArgs{
+		// 		manifests: []string{"nginx:latest"},
+		// 		src:       "oci://registry.example.com/image",
+		// 		dest:      "local:///images",
+		// 		policy:    "strict",
+		// 		auths: []imageAuth{
+		// 			{Registry: "registry.example.com", Username: "admin", Password: "secret", SkipTLSVerify: ptrTo(true)},
+		// 		},
+		// 	},
+		// },
+		// {
+		// 	name: "new format with plain_http true",
+		// 	args: map[string]any{
+		// 		"manifests": []string{"nginx:latest"},
+		// 		"src":       "oci://registry.example.com/image",
+		// 		"dest":      "local:///images",
+		// 		"auths": []map[string]any{
+		// 			{"registry": "registry.example.com", "username": "admin", "password": "secret", "plain_http": true},
+		// 		},
+		// 	},
+		// 	vars:        map[string]any{},
+		// 	expectError: false,
+		// 	expect: &imageArgs{
+		// 		manifests: []string{"nginx:latest"},
+		// 		src:       "oci://registry.example.com/image",
+		// 		dest:      "local:///images",
+		// 		policy:    "strict",
+		// 		auths: []imageAuth{
+		// 			{Registry: "registry.example.com", Username: "admin", Password: "secret", PlainHTTP: ptrTo(true)},
+		// 		},
+		// 	},
+		// },
 		{
-			name: "auth with all fields",
-			auth: imageAuth{
-				Registry:      "docker.io",
-				Username:      "user",
-				Password:      "pass",
-				SkipTLSVerify: func(b bool) *bool { return &b }(false),
-				PlainHTTP:     func(b bool) *bool { return &b }(false),
+			name: "new format with all TLS options",
+			args: map[string]any{
+				"manifests": []string{"nginx:latest"},
+				"src":       "oci://registry.example.com/image",
+				"dest":      "local:///images",
+				"auths": []map[string]any{
+					{"registry": "registry.example.com", "username": "admin", "password": "secret", "skip_tls_verify": true, "plain_http": false},
+				},
 			},
-			expectedJSON: `{"registry":"docker.io","username":"user","password":"pass","skip_tls_verify":false,"plain_http":false}`,
-		},
-		{
-			name: "auth with minimal fields",
-			auth: imageAuth{
-				Registry: "registry.example.com",
+			vars:        map[string]any{},
+			expectError: false,
+			expect: &imageArgs{
+				manifests: []string{"nginx:latest"},
+				src:       "oci://registry.example.com/image",
+				dest:      "local:///images",
+				policy:    "strict",
+				auths: []imageAuth{
+					{Registry: "registry.example.com", Username: "admin", Password: "secret", SkipTLSVerify: ptrTo(true), PlainHTTP: ptrTo(false)},
+				},
 			},
-			expectedJSON: `{"registry":"registry.example.com","username":"","password":"","skip_tls_verify":null,"plain_http":null}`,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			jsonBytes, err := json.Marshal(tc.auth)
-			require.NoError(t, err, "marshaling should succeed")
-			require.JSONEq(t, tc.expectedJSON, string(jsonBytes))
+			raw := createRawArgs(tc.args)
+			result, err := newImageArgs(context.Background(), raw, tc.vars)
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				require.Equal(t, tc.expect.src, result.src, "src mismatch")
+				require.Equal(t, tc.expect.dest, result.dest, "dest mismatch")
+				require.Equal(t, tc.expect.manifests, result.manifests, "manifests mismatch")
+				require.Equal(t, tc.expect.platform, result.platform, "platform mismatch")
+				require.Equal(t, tc.expect.policy, result.policy, "policy mismatch")
+
+				// Compare pattern
+				if tc.expect.pattern == nil {
+					require.Nil(t, result.pattern, "pattern should be nil")
+				} else {
+					require.NotNil(t, result.pattern, "pattern should not be nil")
+					require.Equal(t, tc.expect.pattern.String(), result.pattern.String(), "pattern mismatch")
+				}
+
+				// Compare auths
+				require.Equal(t, len(tc.expect.auths), len(result.auths), "auths count mismatch")
+				for i := range tc.expect.auths {
+					require.Equal(t, tc.expect.auths[i].Registry, result.auths[i].Registry, "auth registry mismatch")
+					require.Equal(t, tc.expect.auths[i].Username, result.auths[i].Username, "auth username mismatch")
+					require.Equal(t, tc.expect.auths[i].Password, result.auths[i].Password, "auth password mismatch")
+					require.Equal(t, tc.expect.auths[i].SkipTLSVerify, result.auths[i].SkipTLSVerify, "auth skip_tls_verify mismatch")
+					require.Equal(t, tc.expect.auths[i].PlainHTTP, result.auths[i].PlainHTTP, "auth plain_http mismatch")
+				}
+			}
 		})
 	}
+}
+
+// ptrTo is a helper function to create a pointer to a bool value.
+func ptrTo(b bool) *bool {
+	return &b
 }

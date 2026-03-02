@@ -1,7 +1,7 @@
 - name: LocalPV | Copy the LocalPV provisioner Helm chart to the remote host
   copy:
     src: >-
-      {{ .work_dir }}/kubekey/storageclass/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
+      {{ .binary_dir }}/storageclass/local/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
     dest: >-
       /etc/kubernetes/storageclass/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz
 
@@ -19,5 +19,5 @@
 
 - name: LocalPV | Deploy the LocalPV provisioner with Helm
   command: |
-    helm upgrade --install localpv-provisioner /etc/kubernetes/storageclass/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz --namespace kube-system \
+    helm upgrade --install localpv-provisioner /etc/kubernetes/storageclass/local/localpv-provisioner-{{ .storage_class.localpv_provisioner_version }}.tgz --namespace kube-system \
       -f /etc/kubernetes/storageclass/localpv-default-values.yaml {{ if .storage_class.local.values | empty | not }}-f /etc/kubernetes/storageclass/localpv-custom-values.yaml{{ end }}

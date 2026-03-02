@@ -1,0 +1,25 @@
+---
+- name: Copy | Reset artifact directory
+  command: >-
+    rm -rf {{ .artifact_dir }}
+    mkdir -p {{ .artifact_dir }}
+
+- name: Artifact | Copy required binaries and images
+  block:
+    # Download core binaries
+    - include_tasks: binary.yaml
+    # Download Helm and CNI binaries
+    - include_tasks: helm.yaml
+    # Download remote images to the local images directory
+    - include_tasks: images.yaml
+      tags: ["image_registry"]
+    - include_tasks: iso.yaml
+
+- name: Export artifact
+  command: |
+    {{- if .download.artifact_file | empty }}
+    artifact_file={{ .work_dir }}/artifact.tgz
+    {{- else }}
+    artifact_file={{ .download.artifact_file }}
+    {{- end }}
+    cd {{ .artifact_dir }} && tar -czvf $artifact_file .

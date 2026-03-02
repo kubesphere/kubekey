@@ -19,14 +19,14 @@
   when: .groups.kube_control_plane | default list | has .inventory_hostname
   copy:
     src: >-
-      {{ .work_dir }}/kubekey/kubeconfig
+      {{ .binary_dir }}/kubeconfig
     dest: ~/.kube/config
 
 - name: Join | Synchronize kubeconfig to remote node for root
   when: .groups.kube_control_plane | default list | has .inventory_hostname
   copy:
     src: >-
-      {{ .work_dir }}/kubekey/kubeconfig
+      {{ .binary_dir }}/kubeconfig
     dest: /root/.kube/config
 
 - name: Join | Configure node as worker

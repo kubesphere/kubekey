@@ -1,126 +1,126 @@
 ---
 - name: Helm | Ensure the Calico binary is available
+  loop: "{{ .download.cni.calico_version | default (list .cni.calico_version) | toJson }}"
   when: 
-    - .cni.calico_version | empty | not
-    - .cni.type | eq "calico"
+    - .download.cni.calico_version | default (list .cni.calico_version) | empty | not
+    - (.download.cni.type | default .cni.type) | has "calico"
   command: |
-    artifact_name={{ .download.artifact_url.calico | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cni/calico
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ .download.artifact_url.calico | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for calico not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
+    {{- if .download.zone | eq "cn" -}}
+    url=https://{{ .download.cn_host }}/github.com/projectcalico/calico/releases/download/{{ .item }}/tigera-operator-{{ .item }}.tgz
+    {{- else -}}
+    url=https://github.com/projectcalico/calico/releases/download/{{ .item }}/tigera-operator-{{ .item }}.tgz
+    {{- end -}}
+    target_path={{ .binary_dir }}/cni/calico/tigera-operator-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
       # Download the Calico binary if it does not exist
-      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.calico }}
+      curl -Lo $target_path $url
     fi
 
 - name: Helm | Ensure the Cilium binary is available
+  loop: "{{ .download.cni.cilium_version | default (list .cni.cilium_version) | toJson }}"
   when: 
-    - .cni.cilium_version | empty | not
-    - .cni.type | eq "cilium"
+    - .download.cni.cilium_version | default (list .cni.cilium_version) | empty | not
+    - (.download.cni.type | default .cni.type) | eq "cilium"
   command: |
-    artifact_name={{ .download.artifact_url.cilium | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cni/cilium
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ .download.artifact_url.cilium | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for cilium not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
+    {{- if .download.zone | eq "cn" -}}
+    url=https://{{ .download.cn_host }}/helm.cilium.io/cilium-{{ .item }}.tgz
+    {{- else -}}
+    url=https://helm.cilium.io/cilium-{{ .item }}.tgz
+    {{- end -}}
+    target_path={{ .binary_dir }}/cni/cilium/cilium-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
       # Download the Cilium binary if it does not exist
-      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.cilium }}
+      curl -Lo $target_path $url
     fi
 
 - name: Helm | Ensure the Flannel binary is available
+  loop: "{{ .download.cni.flannel_version | default (list .cni.flannel_version) | toJson }}"
   when: 
-    - .cni.flannel_version | empty | not
-    - .cni.type | eq "flannel"
+    - .download.cni.flannel_version | default (list .cni.flannel_version) | empty | not
+    - (.download.cni.type | default .cni.type) | eq "flannel"
   command: |
-    artifact_name={{ .download.artifact_url.flannel | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cni/flannel
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ .download.artifact_url.flannel | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for flannel not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
+    {{- if .download.zone | eq "cn" -}}
+    url=https://{{ .download.cn_host }}/github.com/flannel-io/flannel/releases/download/{{ .item }}/flannel.tgz
+    {{- else -}}
+    url=https://github.com/flannel-io/flannel/releases/download/{{ .item }}/flannel.tgz
+    {{- end -}}
+    target_path={{ .binary_dir }}/cni/flannel/flannel-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
       # Download the Flannel binary if it does not exist
-      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.flannel }}
+      curl -Lo $target_path $url
     fi
 
 - name: Helm | Ensure the Kube-OVN binary is available
+  loop: "{{ .download.cni.kubeovn_version | default (list .cni.kubeovn_version) | toJson }}"
   when: 
-    - .kubeovn_version | empty | not
-    - .cni.type | eq "kubeovn"
+    - .download.cni.kubeovn_version | default (list .cni.kubeovn_version) | empty | not
+    - (.download.cni.type | default .cni.type) | eq "kubeovn"
   command: |
-    artifact_name={{ .download.artifact_url.kubeovn | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cni/kubeovn
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ .download.artifact_url.kubeovn | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for kubeovn not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
+    {{- if .download.zone | eq "cn" -}}
+    url=https://{{ .download.cn_host }}/kubeovn.github.io/kube-ovn/kube-ovn-{{ .item }}.tgz
+    {{- else -}}
+    url=https://kubeovn.github.io/kube-ovn/kube-ovn-{{ .item }}.tgz
+    {{- end -}}
+    target_path={{ .binary_dir }}/cni/kubeovn/kube-ovn-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
       # Download the Kube-OVN binary if it does not exist
-      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.kubeovn }}
+      curl -Lo $target_path $url
     fi
 
 - name: Helm | Ensure the Hybridnet binary is available
+  loop: "{{ .download.cni.hybridnet_version | default (list .cni.hybridnet_version) | toJson }}"
   when: 
-    - .cni.hybridnet_version | empty | not
-    - .cni.type | eq "hybridnet"
+    - .download.cni.hybridnet_version | default (list .cni.hybridnet_version) | empty | not
+    - (.download.cni.type | default .cni.type) | eq "hybridnet"
   command: |
-    artifact_name={{ .download.artifact_url.hybridnet | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cni/hybridnet
+    {{- if .download.zone | eq "cn" -}}
+    url=https://{{ .download.cn_host }}/github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .item }}/hybridnet-{{ .item }}.tgz
+    {{- else -}}
+    url=https://github.com/alibaba/hybridnet/releases/download/helm-chart-{{ .item }}/hybridnet-{{ .item }}.tgz
+    {{- end -}}
+    target_path={{ .binary_dir }}/cni/hybridnet/hybridnet-{{ .item }}.tgz
     if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ .download.artifact_url.hybridnet | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for hybridnet not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
+      mkdir -p $target_path
       # Download the Hybridnet binary if it does not exist
-      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.hybridnet }}
+      curl -Lo $target_path $url
     fi
 
 - name: Helm | Ensure the localpv Provisioner binary is available
+  loop: "{{ .download.storage_class.localpv_provisioner_version | default (list .storage_class.localpv_provisioner_version) | toJson }}"
   when: 
-    - .storage_class.localpv_provisioner_version | empty | not
-    - .storage_class.local.enabled
+    - .download.storage_class.localpv_provisioner_version | default (list .storage_class.localpv_provisioner_version) | empty | not
+    - .download.storage_class.local.enabled | default true
   command: |
-    artifact_name={{ .download.artifact_url.localpv_provisioner | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/storageclass
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ .download.artifact_url.localpv_provisioner | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for localpv_provisioner not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
+    {{- if .download.zone | eq "cn" -}}
+    url=https://{{ .download.cn_host }}/openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .item }}.tgz
+    {{- else -}}
+    url=https://openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ .item }}.tgz
+    {{- end -}}
+    target_path={{ .binary_dir }}/storageclass/local/localpv-provisioner-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
       # Download the localpv Provisioner binary if it does not exist
-      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.localpv_provisioner }}
+      curl -Lo $target_path $url
     fi
 
 - name: Helm | Ensure the NFS Provisioner binary is available
+  loop: "{{ .download.storage_class.nfs_provisioner_version | default (list .storage_class.nfs_provisioner_version) | toJson }}"
   when: 
-    - .storage_class.nfs_provisioner_version | empty | not
-    - .storage_class.nfs.enabled
+    - .download.storage_class.nfs_provisioner_version | default (list .storage_class.nfs_provisioner_version) | empty | not
+    - .download.storage_class.nfs.enabled | default false
   command: |
-    artifact_name={{ .download.artifact_url.nfs_provisioner | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/storageclass
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ .download.artifact_url.nfs_provisioner | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for nfs_provisioner not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
+    {{- if .download.zone | eq "cn" -}}
+    url=https://{{ .download.cn_host }}/github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .item }}.tgz
+    {{- else -}}
+    url=https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-{{ .item }}.tgz
+    {{- end -}}
+    target_path={{ .binary_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz
+    if [ ! -f $target_path ]; then
+      mkdir -p $target_path
       # Download the NFS Provisioner binary if it does not exist
-      curl -Lo $artifact_path/$artifact_name {{ .download.artifact_url.nfs_provisioner }}
+      curl -Lo $target_path $url
     fi

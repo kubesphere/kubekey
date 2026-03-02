@@ -16,13 +16,19 @@
     - name: PullImage | Download container images
       tags: ["pull","image_registry"]
       image:
-        src: "oci://{{ .module.image.reference.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}"
-        dest: "local://{{ .binary_dir }}/images/"
+        platform: >
+          {{- $platform := list }}
+          {{- range .download.arch }}
+            {{- $platform = append $platform (printf "linux/%s" .) }}
+          {{- end }}
+          {{- $platform | toJson }}
         auths: "{{ .cri.registry.auths | toJson }}"
         manifests: "{{ .image_manifests | toJson }}"
+        src: "oci://{{ .module.image.reference.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}"
+        dest: "local://{{ .binary_dir }}/images/"
       when:
-        - .image_manifests | default list | empty | not
-        - .download.download_image
+        - .download.images.manifests | default .image_manifests | empty | not
+        - .download.images.fetch
     - name: PushImage | Push images to registry
       tags: ["push","image_registry"]
       block:
@@ -68,11 +74,18 @@
             fi
         - name: PushImage | Push images package to image registry
           image:
+            platform: >
+              {{- $platform := list }}
+              {{- range .download.arch }}
+                {{- $platform = append $platform (printf "linux/%s" .) }}
+              {{- end }}
+              {{- $platform | toJson }}
             auths:
               - registry: "{{ .image_registry.auth.registry }}"
                 username: "{{ .image_registry.auth.username }}"
                 password: "{{ .image_registry.auth.password }}"
                 skip_tls_verify: true
+            manifests: "{{ .image_manifests | toJson }}"
             src: "local://{{ .binary_dir }}/images/"
             dest: >-
               {{- if and (eq .module.image.reference.registry "registry.k8s.io") (.module.image.reference.repository | contains "/" | not) -}}

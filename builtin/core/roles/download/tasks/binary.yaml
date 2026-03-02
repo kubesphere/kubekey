@@ -1,371 +1,367 @@
 ---
 - name: Binary | Ensure etcd binary is present
-  tags: ["etcd"]
-  loop: "{{ .download.arch | toJson }}"
-  when: 
-    - .etcd.deployment_type | eq "external"
-    - .etcd.etcd_version | empty | not
+  loop: "{{ .download.etcd.etcd_version | default (list .etcd.etcd_version) | toJson }}"
+  when: .download.etcd.etcd_version | default (list .etcd.etcd_version) | empty | not
   command: |
-    artifact_name={{ get .download.artifact_url.etcd .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .item }}
-    url={{ get .download.artifact_url.etcd .item | trim }}
-    if [ "$url" = "" ] ; then
-      echo "url for etcd ({{ .item }}) not set"
-      exit 0
-    fi
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      mkdir -p $artifact_path
-      # Attempt to download etcd binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.etcd .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download etcd binary. HTTP status code: $http_code"
-        exit 1
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/etcd-io/etcd/releases/download/{{ .item }}/etcd-{{ .item }}-linux-$arch.tar.gz
+      {{- else }}
+      url=https://github.com/etcd-io/etcd/releases/download/{{ .item }}/etcd-{{ .item }}-linux-$arch.tar.gz
+      {{- end }}
+      target_path={{ .binary_dir }}/etcd/{{ .item }}/$arch/etcd-{{ .item }}-linux-$arch.tar.gz
+      mkdir -p $(dirname $target_path)
+      if [ ! -f $target_path ];then
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download etcd binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.etcd .item }}
-    fi
+    done
 
 - name: Binary | Ensure Kubernetes binaries are present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
-  when: .kubernetes.kube_version | empty | not
+  loop: "{{ .download.kubernetes.kube_version | default (list .kubernetes.kube_version) | toJson }}"
+  when: .download.kubernetes.kube_version | default (list .kubernetes.kube_version) | empty | not
   command: |
-    kube_path={{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .item }}
-    if [ ! -f $kube_path/kubelet ]; then
-      url={{ get .download.artifact_url.kubelet .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for kubelet ({{ .item }}) not set"
-        exit 0
-      fi
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" }}
+      kube_url=https://{{ .download.cn_host }}/dl.k8s.io/release/{{ .item }}/bin/linux/$arch
+      {{- else }}
+      kube_url=https://dl.k8s.io/release/{{ .item }}/bin/linux/$arch
+      {{- end }}
+      kube_path={{ .binary_dir }}/kube/{{ .item }}/$arch
       mkdir -p $kube_path
-      # Download kubelet if missing
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubelet .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download kubelet. HTTP status code: $http_code"
-        exit 1
+      if [ ! -f $kube_path/kubelet ]; then
+        # Download kubelet if missing
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $kube_url/kubelet)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download kubelet. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $kube_path/kubelet $kube_url/kubelet
       fi
-      curl -L -o $kube_path/kubelet {{ get .download.artifact_url.kubelet .item }}
-    fi
-    if [ ! -f $kube_path/kubeadm ]; then
-      url={{ get .download.artifact_url.kubeadm .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for kubeadm ({{ .item }}) not set"
-        exit 0
+      if [ ! -f $kube_path/kubeadm ]; then
+        # Download kubeadm if missing
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $kube_url/kubeadm)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download kubeadm. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $kube_path/kubeadm $kube_url/kubeadm
       fi
-      mkdir -p $kube_path
-      # Download kubeadm if missing
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubeadm .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download kubeadm. HTTP status code: $http_code"
-        exit 1
+      if [ ! -f $kube_path/kubectl ]; then
+        # Download kubectl if missing
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $kube_url/kubectl)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download kubectl. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $kube_path/kubectl $kube_url/kubectl
       fi
-      curl -L -o $kube_path/kubeadm {{ get .download.artifact_url.kubeadm .item }}
-    fi
-    if [ ! -f $kube_path/kubectl ]; then
-      url={{ get .download.artifact_url.kubectl .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for kubectl ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $kube_path
-      # Download kubectl if missing
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubectl .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download kubectl. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $kube_path/kubectl {{ get .download.artifact_url.kubectl .item }}
-    fi
+    done
 
 - name: Binary | Ensure CNI plugins are present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
-  when:
-  - .cni.cni_plugins_version | empty | not
+  loop: "{{ .download.cni.cni_plugins_version | default (list .cni.cni_plugins_version) | toJson }}"
+  when: .download.cni.cni_plugins_version | default (list .cni.cni_plugins_version) | empty | not
   command: |
-    artifact_name={{ get .download.artifact_url.cni_plugins .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cni/plugins/{{ .cni.cni_plugins_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.cni_plugins .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for cni_plugins ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/containernetworking/plugins/releases/download/{{ .item }}/cni-plugins-linux-$arch-{{ .item }}.tgz
+      {{- else }}
+      url=https://github.com/containernetworking/plugins/releases/download/{{ .item }}/cni-plugins-linux-$arch-{{ .item }}.tgz
+      {{- end }}
+      target_path={{ .binary_dir }}/cni/plugins/{{ .item }}/$arch/cni-plugins-linux-$arch-{{ .item }}.tgz
+      mkdir -p $(dirname $target_path)
+      if [ ! -f $target_path ];then
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download CNI plugins. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download CNI plugins
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.cni_plugins .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download CNI plugins. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.cni_plugins .item }}
-    fi
+    done
 
 - name: Binary | Ensure Helm binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
-  when:
-  - .kubernetes.helm_version | empty | not
+  loop: "{{ .download.kubernetes.helm_version | default (list .kubernetes.helm_version) | toJson }}"
+  when: .download.kubernetes.helm_version | default (list .kubernetes.helm_version) | empty | not
   command: |
-    artifact_name={{ get .download.artifact_url.helm .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/helm/{{ .kubernetes.helm_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.helm .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for helm ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/get.helm.sh/helm-{{ .item }}-linux-$arch.tar.gz
+      {{- else }}
+      url=https://get.helm.sh/helm-{{ .item }}-linux-$arch.tar.gz
+      {{- end }}
+      target_path={{ .binary_dir }}/helm/{{ .item }}/$arch/helm-{{ .item }}-linux-$arch.tar.gz
+      mkdir -p $(dirname $target_path)
+      if [ ! -f $target_path ];then
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download Helm binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download Helm binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.helm .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Helm binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.helm .item }}
-    fi
+    done
 
 - name: Binary | Ensure crictl binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
-  when:
-  - .cri.crictl_version | empty | not
+  loop: "{{ .download.cri.crictl_version | default (list .cri.crictl_version) | toJson }}"
+  when: .download.cri.crictl_version | default (list .cri.crictl_version) | empty | not
   command: |
-    artifact_name={{ get .download.artifact_url.crictl .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/crictl/{{ .cri.crictl_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.crictl .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for crictl ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/kubernetes-sigs/cri-tools/releases/download/{{ .item }}/crictl-{{ .item }}-linux-$arch.tar.gz
+      {{- else }}
+      url=https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ .item }}/crictl-{{ .item }}-linux-$arch.tar.gz
+      {{- end }}
+      target_path={{ .binary_dir }}/crictl/{{ .item }}/$arch/crictl-{{ .item }}-linux-$arch.tar.gz
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download crictl binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download crictl binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.crictl .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download crictl binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.crictl .item }}
-    fi
+    done
 
 - name: Binary | Ensure Docker binary is present
-  tags: ["kubernetes","image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  tags: ["image_registry"]
+  loop: "{{ .download.cri.docker_version | default (list .cri.docker_version) | toJson }}"
   when: 
-    - .cri.docker_version | empty | not
-    - or (.image_registry.type | empty | not) (.cri.container_manager | eq "docker")
+    - .download.cri.docker_version | default (list .cri.docker_version) | empty | not
+    - or ((.download.image_registry.type | default (list .image_registry.type)) | empty | not) ((.download.cri.container_manager | default .cri.container_manager) | has "docker")
   command: |
-    artifact_name={{ get .download.artifact_url.docker .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/docker/{{ .cri.docker_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.docker .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for docker ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      if [ "$arch" = "amd64" ]; then
+        mapped_arch="x86_64"
+      elif [ "$arch" = "arm64" ]; then
+        mapped_arch="aarch64"
+      else
+        mapped_arch="$arch"
       fi
-      mkdir -p $artifact_path
-      # Attempt to download Docker binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.docker .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Docker binary. HTTP status code: $http_code"
-        exit 1
+    
+      {{- if .download.zone | eq "cn" }}
+      url=https://mirrors.aliyun.com/docker-ce/linux/static/stable/$mapped_arch/docker-{{ .item }}.tgz
+      {{- else }}
+      url=https://download.docker.com/linux/static/stable/$mapped_arch/docker-{{ .item }}.tgz
+      {{- end }}
+      target_path={{ .binary_dir }}/docker/{{ .item }}/$arch/docker-{{ .item }}.tgz
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download Docker binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.docker .item }}
-    fi
+    done
 
 - name: Binary | Ensure cri-dockerd binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.cri.cridockerd_version | default (list .cri.cridockerd_version) | toJson }}"
   when: 
-    - .cri.cridockerd_version | empty | not
-    - .cri.container_manager | eq "docker"
-    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+    - .download.cri.cridockerd_version | default (list .cri.cridockerd_version) | empty | not
+    - (.download.cri.container_manager | default .cri.container_manager) | has "docker"
+    # - .download.kubernetes.kube_version | semverCompare ">=v1.24.0"
   command: |
-    artifact_name={{ get .download.artifact_url.cridockerd .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cri-dockerd/{{ .cri.cridockerd_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.cridockerd .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for cridockerd ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do    
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/Mirantis/cri-dockerd/releases/download/{{ .item }}/cri-dockerd-{{ .item | default "" | trimPrefix "v" }}.$arch.tgz
+      {{- else }}
+      url=https://github.com/Mirantis/cri-dockerd/releases/download/{{ .item }}/cri-dockerd-{{ .item | default "" | trimPrefix "v" }}.$arch.tgz
+      {{- end }}
+      target_path={{ .binary_dir }}/cri-dockerd/{{ .item }}/$arch/cri-dockerd-{{ .item | default "" | trimPrefix "v" }}.$arch.tgz
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download cri-dockerd binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download cri-dockerd binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.cridockerd .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download cri-dockerd binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.cridockerd .item }}
-    fi
+    done
 
 - name: Binary | Ensure containerd binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.cri.containerd_version | default (list .cri.containerd_version) | toJson }}"
   when: 
-    - .cri.containerd_version | empty | not
-    - .cri.container_manager | eq "containerd"
+    - .download.cri.containerd_version | default (list .cri.containerd_version) | empty | not
+    - (.download.cri.container_manager | default .cri.container_manager) | has "containerd"
   command: |
-    artifact_name={{ get .download.artifact_url.containerd .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.containerd .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for containerd ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do    
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/containerd/containerd/releases/download/{{ .item }}/containerd-{{ .item | default "" | trimPrefix "v" }}-linux-$arch.tar.gz
+      {{- else }}
+      url=https://github.com/containerd/containerd/releases/download/{{ .item }}/containerd-{{ .item | default "" | trimPrefix "v" }}-linux-$arch.tar.gz
+      {{- end }}
+      target_path={{ .binary_dir }}/containerd/{{ .item }}/$arch/containerd-{{ .item | default "" | trimPrefix "v" }}-linux-$arch.tar.gz
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download containerd binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download containerd binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.containerd .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download containerd binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.containerd .item }}
-    fi
+    done
 
 - name: Binary | Ensure runc binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.cri.runc_version | default (list .cri.runc_version) | toJson }}"
   when: 
-    - .cri.runc_version | empty | not
-    - .cri.container_manager | eq "containerd"
+    - .download.cri.runc_version | default (list .cri.runc_version) | empty | not
+    - (.download.cri.container_manager | default .cri.container_manager) | has "containerd"
   command: |
-    artifact_name={{ get .download.artifact_url.runc .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/runc/{{ .cri.runc_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.runc .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for runc ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do    
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/opencontainers/runc/releases/download/{{ .item }}/runc.$arch
+      {{- else }}
+      url=https://github.com/opencontainers/runc/releases/download/{{ .item }}/runc.$arch
+      {{- end }}
+      target_path={{ .binary_dir }}/runc/{{ .item }}/$arch/runc.$arch
+      if [ !-f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download runc binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download runc binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.runc .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download runc binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.runc .item }}
-    fi
+    done
 
 - name: Binary | Ensure calicoctl binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.cni.calico_version | default (list .cni.calico_version) | toJson }}"
   when: 
-    - .cni.calico_version | empty | not
-    - .cni.type | eq "calico"
+    - .download.cni.calico_version | default (list .cni.calico_version) | empty | not
+    - (.download.cni.type | default (list .cni.type)) | has "calico"
   command: |
-    artifact_name=calicoctl
-    artifact_path={{ .binary_dir }}/cni/calico/{{ .cni.calico_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.calicoctl .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for calicoctl ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/projectcalico/calico/releases/download/{{ .item }}/calicoctl-linux-$arch
+      {{- else }}
+      url=https://github.com/projectcalico/calico/releases/download/{{ .item }}/calicoctl-linux-$arch
+      {{- end }}
+      target_path={{ .binary_dir }}/cni/calico/{{ .item }}/$arch/calicoctl-linux-$arch
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download calicoctl binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download calicoctl binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.calicoctl .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download calicoctl binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.calicoctl .item }}
-    fi
+    done
 
 - name: Binary | Ensure Docker Registry binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.image_registry.docker_registry_version | default (list .image_registry.docker_registry_version) | toJson }}"
   when: 
-    - .image_registry.docker_registry_version | empty | not
-    - .image_registry.type | eq "docker-registry"
+    - .download.image_registry.docker_registry_version | default (list .image_registry.docker_registry_version) | empty | not
+    - (.download.image_registry.type | default (list .image_registry.type)) | has "docker-registry"
   command: |
-    artifact_name={{ get .download.artifact_url.docker_registry .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/image-registry/docker-registry/{{ .image_registry.docker_registry_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.docker_registry .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for docker_registry ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      url=https://{{ .download.cn_host }}/docker.io/registry/{{ .item }}/docker-registry-{{ .item }}-linux-$arch.tgz
+      target_path={{ .binary_dir }}/image-registry/docker-registry/{{ .item }}/$arch/docker-registry-{{ .item }}-linux-$arch.tgz
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download Docker Registry binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download Docker Registry binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.docker_registry .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Docker Registry binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.docker_registry .item }}
-    fi
+    done
 
 - name: Binary | Ensure docker-compose binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.image_registry.dockercompose_version | default (list .image_registry.dockercompose_version) | toJson }}"
   when: 
-    - .image_registry.dockercompose_version | empty | not
-    - .image_registry.type | eq "harbor"
+    - .download.image_registry.dockercompose_version | default (list .image_registry.dockercompose_version) | empty | not
+    - or (.download.image_registry.type | empty | not) (.image_registry.type | empty | not)
   command: |
-    compose_name=docker-compose
-    compose_path={{ .binary_dir }}/image-registry/docker-compose/{{ .image_registry.dockercompose_version }}/{{ .item }}
-    if [ ! -f $compose_path/$compose_name ]; then
-      url={{ get .download.artifact_url.dockercompose .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for dockercompose ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      if [ "$arch" = "amd64" ]; then
+        mapped_arch="x86_64"
+      elif [ "$arch" = "arm64" ]; then
+        mapped_arch="aarch64"
+      else
+        mapped_arch="$arch"
       fi
-      mkdir -p $compose_path
-      # Attempt to download docker-compose binary
-      curl -L -o $compose_path/$compose_name {{ get .download.artifact_url.dockercompose .item }}
-    fi
+
+      {{- if .download.zone | eq "cn" }}
+      url=https://{{ .download.cn_host }}/github.com/docker/compose/releases/download/{{ .item }}/docker-compose-linux-$mapped_arch
+      {{- else }}
+      url=https://github.com/docker/compose/releases/download/{{ .item }}/docker-compose-linux-$mapped_arch
+      {{- end }}
+      target_path={{ .binary_dir }}/image-registry/docker-compose/{{ .item }}/$arch/docker-compose
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download Docker compose binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
+      fi
+    done
 
 - name: Binary | Ensure Harbor binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.image_registry.harbor_version | default (list .image_registry.harbor_version) | toJson }}"
   when: 
-    - .image_registry.harbor_version | empty | not
-    - .image_registry.type | eq "harbor"
+    - .download.image_registry.harbor_version | default (list .image_registry.harbor_version) | empty | not
+    - (.download.image_registry.type | default (list .image_registry.type)) | has "harbor"
   command: |
-    harbor_name={{ get .download.artifact_url.harbor .item | splitList "/" | last }}
-    harbor_path={{ .binary_dir }}/image-registry/harbor/{{ .image_registry.harbor_version }}/{{ .item }}
-    if [ ! -f $harbor_path/$harbor_name ]; then
-      url={{ get .download.artifact_url.harbor .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for harbor ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      if [ "$arch" = "amd64" ]; then
+      {{- if .download.zone | eq "cn" }}
+        url=https://{{ .download.cn_host }}/github.com/goharbor/harbor/releases/download/{{ .item }}/harbor-offline-installer-{{ .item }}.tgz
+      {{- else }}
+        url=https://github.com/goharbor/harbor/releases/download/{{ .item }}/harbor-offline-installer-{{ .item }}.tgz
+      {{- end }}
+      elif [ "$arch" = "arm64" ]; then
+      {{- if .download.zone | eq "cn" }}
+        url=https://{{ .download.cn_host }}/github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-{{ .item }}.tgz
+      {{- else }}
+        url=https://github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-{{ .item }}.tgz
+      {{- end }}
       fi
-      mkdir -p $harbor_path
-      # Attempt to download Harbor binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.harbor .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Harbor binary. HTTP status code: $http_code"
-        exit 1
+
+      target_path={{ .binary_dir }}/image-registry/harbor/{{ .item }}/$arch/harbor-offline-installer-{{ .item }}.tgz
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download Harbor binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      curl -L -o $harbor_path/$harbor_name {{ get .download.artifact_url.harbor .item }}
-    fi
+    done
 
 - name: Binary | Ensure keepalived binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: "{{ .download.image_registry.keepalived_version | default (list .image_registry.keepalived_version) | toJson }}"
   when: 
-    - .image_registry.keepalived_version | empty | not
-    - .image_registry.ha_vip | empty | not
-    - .groups.image_registry | len | lt 1
+    - .download.image_registry.keepalived_version | default (list .image_registry.keepalived_version) | empty | not
   command: |
-    artifact_name={{ get .download.artifact_url.keepalived .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/image-registry/keepalived/{{ .image_registry.keepalived_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.keepalived .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for keepalived ({{ .item }}) not set"
-        exit 0
+    for arch in {{ .download.arch | join " " }}; do
+      url=https://{{ .download.cn_host }}/osixia/keepalived/{{ .item }}/keepalived-{{ .item }}-linux-$arch.tgz
+      target_path={{ .binary_dir }}/image-registry/keepalived/{{ .item }}/$arch/keepalived-{{ .item }}-linux-$arch.tgz
+      if [ ! -f $target_path ];then
+        mkdir -p $(dirname $target_path)
+        http_code=$(curl -Lo /dev/null -s -w "%{http_code}" $url)
+        if [ $http_code != 200 ]; then
+          echo "Failed to download keepalived binary. HTTP status code: $http_code"
+          exit 1
+        fi
+        curl -L -o $target_path $url
       fi
-      mkdir -p $artifact_path
-      # Attempt to download keepalived binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.keepalived .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download keepalived binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.keepalived .item }}
-    fi
+    done

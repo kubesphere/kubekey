@@ -1,0 +1,722 @@
+{{- $default_helm_version := list }}
+{{- $default_etcd_version := list }}
+{{- $default_pause_version := list }}
+{{- $default_crictl_version := list }}
+{{- $default_docker_version := list }}
+{{- $default_cridockerd_version := list }}
+{{- $default_containerd_version := list }}
+{{- $default_runc_version := list }}
+{{- $default_multus_version := list }}
+{{- $default_calico_version := list }}
+{{- $default_cilium_version := list }}
+{{- $default_flannel_version := list }}
+{{- $default_hybridnet_version := list }}
+{{- $default_kubeovn_version := list }}
+
+{{- range .download.kubernetes.kube_version }}
+  {{- if slice (. | splitList ".") 0 2 | join "." | eq "v1.23" }}
+    {{- if $default_helm_version | has "v3.8.2" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.8.2" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.6" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.6" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.6" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.6" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.23.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.23.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "20.10.24" | not }}
+    {{- $default_docker_version = append $default_docker_version "20.10.24" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.6.20" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.6.20" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.5" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v3.9.3" | not }}
+    {{- $default_multus_version = append $default_multus_version "v3.9.3" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.25.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.25.2" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.14.19" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.14.19" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.13.15" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.24" }}
+    {{- if $default_helm_version | has "v3.10.3" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.10.3" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.6" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.6" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.6" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.6" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.24.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.24.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "20.10.24" | not }}
+    {{- $default_docker_version = append $default_docker_version "20.10.24" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.2" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.2" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.6.20" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.6.20" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.5" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v3.9.3" | not }}
+    {{- $default_multus_version = append $default_multus_version "v3.9.3" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.26.5" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.14.19" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.14.19" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.13.15" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.25" }}
+    {{- if $default_helm_version | has "v3.10.3" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.10.3" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.7" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.7" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.6" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.6" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.25.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.25.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "20.10.24" | not }}
+    {{- $default_docker_version = append $default_docker_version "20.10.24" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.2" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.2" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.6.20" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.6.20" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.5" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v3.9.3" | not }}
+    {{- $default_multus_version = append $default_multus_version "v3.9.3" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.26.5" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.14.19" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.14.19" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.13.15" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.26" }}
+    {{- if $default_helm_version | has "v3.12.1" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.12.1" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.8" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.8" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.7" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.7" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.26.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.26.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "23.0.6" | not }}
+    {{- $default_docker_version = append $default_docker_version "23.0.6" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.7" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.6.21" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.6.21" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.7" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.7" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.0.2" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.0.2" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.26.5" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.15.19" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.15.19" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.13.15" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.27" }}
+    {{- if $default_helm_version | has "v3.12.1" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.12.1" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.9" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.9" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.7" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.7" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.27.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.27.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "24.0.9" | not }}
+    {{- $default_docker_version = append $default_docker_version "24.0.9" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.15" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.0.2" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.0.2" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.28.5" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.28.5" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.16.18" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.16.18" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.13.15" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.28" }}
+    {{- if $default_helm_version | has "v3.12.1" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.12.1" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.9" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.9" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.8" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.8" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.28.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.28.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "24.0.9" | not }}
+    {{- $default_docker_version = append $default_docker_version "24.0.9" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.15" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.1.0" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.1.0" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.28.5" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.28.5" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.16.18" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.16.18" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.13.15" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.29" }}
+    {{- if $default_helm_version | has "v3.13.3" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.13.3" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.10" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.10" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.8" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.8" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.29.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.29.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.1.1" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.1.1" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.29.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.29.7" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.17.11" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.17.11" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.15.0" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.30" }}
+    {{- if $default_helm_version | has "v3.13.3" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.13.3" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.10" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.10" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.8" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.8" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.30.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.30.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.2.1" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.2.1" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.29.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.29.7" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.18.5" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.18.5" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.15.0" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.31" }}
+    {{- if $default_helm_version | has "v3.13.3" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.13.3" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.11" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.11" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.8" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.8" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.31.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.31.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.2.1" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.2.1" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.30.5" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.30.5" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.18.5" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.18.5" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.15.0" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.32" }}
+    {{- if $default_helm_version | has "v3.14.3" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.14.3" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.11" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.11" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.8" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.8" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.32.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.32.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.3.0" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.3.0" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.31.3" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.18.5" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.18.5" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.15.0" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.33" }}
+    {{- if $default_helm_version | has "v3.18.5" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.18.5" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.25" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.24" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.9" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.9" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.33.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.33.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.3.0" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.3.0" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.31.3" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.18.5" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.18.5" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.15.0" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.34" }}
+    {{- if $default_helm_version | has "v3.18.5" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.18.5" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.5.25" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.6.5" }}
+    {{- end }}
+    {{- if $default_pause_version | has "3.9" | not }}
+    {{- $default_pause_version = append $default_pause_version "v3.9" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.34.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.34.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_multus_version | has "v4.3.0" | not }}
+    {{- $default_multus_version = append $default_multus_version "v4.3.0" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.31.3" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.18.5" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.18.5" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.27.4" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.15.0" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
+    {{- end }}
+  {{- end }}    
+{{- end }}
+download:
+  kubernetes:
+    kube_version: {{ .download.kubernetes.kube_version | default list | toJson }}
+    helm_version: {{ .download.kubernetes.helm_version | default $default_helm_version | toJson }}
+  etcd:
+    etcd_version: {{ .download.etcd.etcd_version | default $default_etcd_version | toJson }}
+  image_registry:
+    type: {{ .download.image_registry.type | default list | toJson }}
+    # ========== image registry ==========
+    # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
+{{- if .download.image_registry.type | empty | not }}
+    keepalived_version: ["2.0.20"]
+{{- else }}
+    keepalived_version: []
+{{- end }}
+# docker-compose binary
+{{- if .download.image_registry.type | empty | not }}
+    dockercompose_version: {{ .download.image_registry.dockercompose_version | default (list "2.0.20") | toJson }}
+{{- else }}
+    dockercompose_version: []
+{{- end }}
+    # ========== image registry: harbor ==========
+    # harbor image tag
+{{- if .download.image_registry.type | has "harbor" }}
+    harbor_version: ["v2.10.2"]
+{{- else }}
+    harbor_version: []
+{{- end }}
+    # ========== image registry: docker-registry ==========
+    # docker-registry image tag
+{{- if .download.image_registry.type | has "docker-registry" }}
+    docker_registry_version: ["2.8.3"]
+{{- else }}
+    docker_registry_version: []
+{{- end }}
+  cri:
+    # Container runtime type.
+    container_manager: {{ .download.cri.container_manager | toJson }}
+    # ========== cri ==========
+    # crictl binary
+    crictl_version: {{ .download.cri.crictl_version | default $default_crictl_version | toJson }}
+    # ========== cri: docker ==========
+    # docker binary
+{{- if or (.download.cri.container_manager | has "docker") (.download.image_registry.type | empty | not) }}
+    docker_version: {{ .download.cri.docker_version | default $default_docker_version | toJson }}
+{{- else }}
+    docker_version: []
+{{- end }}
+    # cridockerd. Required when kube_version is greater than 1.24
+    cridockerd_version: {{ .download.cri.cridockerd_version | default $default_cridockerd_version | toJson }}
+    # ========== cri: containerd ==========
+{{- if .download.cri.container_manager | has "containerd" }}
+    # containerd binary
+    containerd_version: {{ .download.cri.containerd_version | default $default_containerd_version | toJson }}
+    # runc binary
+    runc_version: {{ .download.cri.runc_versioin | default $default_runc_version | toJson }}
+{{- else }}
+    # containerd binary
+    containerd_version: []
+    # runc binary
+    runc_version: []
+{{- end }}
+  cni:
+    type: {{ .download.cni.type | toJson }}
+    # ========== cni ==========
+    # cni_plugins binary
+    cni_plugins_version: {{ .download.cni.cni_plugins_version| default list | toJson }}
+    # ========== cni: calico ==========
+    # calicoctl binary
+{{- if .download.cni.type | has "calico" }}
+    calico_version: {{ .download.cni.calico_version | default $default_calico_version | toJson }}
+{{- else }}
+    calico_version: []
+{{- end }}
+    # ========== cni: cilium ==========
+    # cilium helm
+{{- if .download.cni.type | has "cilium" }}
+    cilium_version: {{ .download.cni.cilium_version | default $default_cilium_version | toJson }}
+{{- else }}
+    cilium_version: []
+{{- end }}
+    # ========== cni: flannel ==========
+    # flannel helm
+{{- if .download.cni.type | has "flannel" }}
+    flannel_version: {{ .download.cni.flannel_version | default (list "v0.27.4") | toJson }}
+{{- else }}
+    flannel_version: []
+{{- end }}   
+    # ========== cni: hybridnet ==========
+    # hybridnet helm
+{{- if .download.cni.type | has "hybridnet" }}
+    hybridnet_version: {{ .download.cni.hybridnet_version | default (list "0.6.8") | toJson }}
+{{- else }}
+    hybridnet_version: []
+{{- end }}
+    # ========== cni: kubeovn ==========
+    # kubeovn helm
+{{- if .download.cni.type | has "kubeovn" }}
+    kubeovn_version: {{ .download.cni.kubeovn_version | default $default_kubeovn_version | toJson }}
+{{- else }}
+    kubeovn_version: []
+{{- end }}
+  storage_class:
+    # Local storage class settings.
+    local:
+      enabled: {{ .download.storage_class.local.enabled | default true }}   # Enable the local storage class.
+  # openebs/dynamic-localpv-provisioner helm chart version.
+  localpv_provisioner_version: {{ .download.storage_class.localpv_provisioner_version | default (list "4.4.0") | toJson }}
+  nfs:
+    enabled: {{ .download.storage_class.nfs.enabled | default false }}   # Enable the nfs storage class.
+  # nfs-provisioner Helm chart version.
+  nfs_provisioner_version: {{ .download.storage_class.nfs_provisioner_version | default (list "4.0.18") | toJson }}
+  iso: {{ .download.iso | default list | toJson }}
+  manifests:
+    # kubernetes
+    ## kubernetes/dns
+    - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/coredns/coredns:v1.8.6{{ else }}registry.k8s.io/coredns/coredns:v1.8.6{{ end }}
+    - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/dns/k8s-dns-node-cache:1.21.1{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.21.1{{ end }}
+    ## kubernetes/high-availability
+    - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/library/haproxy:2.9.6-alpine{{ else }}docker.io/library/haproxy:2.9.6-alpine{{ end }}
+    - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/plndr/kube-vip:v0.7.2{{ else }}docker.io/plndr/kube-vip:v0.7.2{{ end }}
+{{- range .download.kubernetes.kube_version }}
+    ## kubernetes/{{ . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/kube-apiserver:{{ . }}{{ else }}registry.k8s.io/kube-apiserver:{{ . }}{{ end }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/kube-controller-manager:{{ . }}{{ else }}registry.k8s.io/kube-controller-manager:{{ . }}{{ end }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/kube-proxy:{{ . }}{{ else }}registry.k8s.io/kube-proxy:{{ . }}{{ end }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/kube-scheduler:{{ . }}{{ else }}registry.k8s.io/kube-scheduler:{{ . }}{{ end }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.6{{ else }}registry.k8s.io/pause:3.6{{ end }}
+{{- end }}
+    ## kubernetes/etcd
+{{- range .download.etcd.etcd_version | default $default_etcd_version }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/etcd:{{ . }}{{ else }}registry.k8s.io/etcd:{{ . }}{{ end }}
+{{- end }}
+    # StorageClass
+{{- if .download.storage_class.local.enabled | default true }}
+  {{- range .download.storage_class.localpv_provisioner_version | default (list "4.4.0") }}
+    ## StorageClass/local-{{ . }}
+    {{- range index $.download.images "openebs-localpv/localpv-provisioner" . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if .download.storage_class.nfs.enabled }}
+  {{- range .download.storage_class.nfs_provisioner_version | default (list "4.0.18") }}
+    ## StorageClass/nfs-{{ . }}
+    {{- range index $.download.images "nfs-subdir-external-provisioner/nfs-subdir-external-provisioner" . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}    
+  {{- end }}
+{{- end }}
+    # ContainerNetworkInterface
+{{- if .download.cni.type | has "calico" }}
+  {{- range .download.cni.calico_version | default $default_calico_version }}
+    ##  ContainerNetworkInterface/calico-{{ . }}
+    {{- range index $.download.images "projectcalico/tigera-operator" . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if .download.cni.type | has "cilium" }}
+  {{- range .download.cni.cilium_version | default $default_cilium_version }}
+    ##  ContainerNetworkInterface/cilium-{{ . }}
+    {{- range index $.download.images "cilium/cilium" . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if .download.cni.type | has "flannel" }}
+  {{- range .download.cni.flannel_version | default $default_flannel_version }}
+    ##  ContainerNetworkInterface/flannel-{{ . }}
+    {{- range index $.download.images "flannel/flannel" . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if .download.cni.type | has "hybridnet" }}
+  {{- range .download.cni.hybridnet_version | default $default_hybridnet_version }}
+    ##  ContainerNetworkInterface/hybridnet-{{ . }}
+    {{- range index $.download.images "hybridnet/hybridnet" . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if .download.cni.type | has "kubeovn" }}
+  {{- range .download.cni.kubeovn_version | default $default_kubeovn_version }}
+    ##  ContainerNetworkInterface/kubeovn-{{ . }}
+    {{- range index $.download.images "kubeovn/kube-ovn" . }}
+    - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}

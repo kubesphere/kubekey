@@ -51,7 +51,7 @@
 
 - name : Harbor | Check harbor api health
   command: |
-    HARBOR_URL="https://{{ .image_registry.auth.registry }}"
+    HARBOR_URL="https://{{ .image_registry.auth.registry | splitList "/" | first }}"
     MAX_WAIT_SECONDS=300
     CHECK_INTERVAL=2
     MAX_RETRIES=$((MAX_WAIT_SECONDS / CHECK_INTERVAL))
@@ -120,7 +120,7 @@
         systemctl restart harbor.service
     - name: Harbor | Wait for Harbor service to become ready
       command: |
-        HARBOR_URL="https://{{ .image_registry.auth.registry }}"
+        HARBOR_URL="https://{{ .image_registry.auth.registry | splitList "/" | first }}"
         MAX_WAIT_SECONDS=300
         CHECK_INTERVAL=2
         MAX_RETRIES=$((MAX_WAIT_SECONDS / CHECK_INTERVAL))
