@@ -1,0 +1,253 @@
+download:
+  # if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
+  zone: ""
+  # default cn zone file storage host
+  cn_host: kubekey.pek3b.qingstor.com
+  os: linux
+  arch: [ "amd64" ]
+  # offline artifact package for kk.
+  artifact_file: ""
+  # the md5_file of artifact_file.
+  artifact_md5: ""
+  # Whether to download software packages, Helm charts, container images, etc. online.
+  # Set this to false if all required images and packages are already available locally and you do not need to validate against remote repositories.
+  fetch: true
+  iso: 
+    - "almalinux-9.0-rpms" 
+    - "centos-8-rpms" 
+    - "debian-10-debs" 
+    - "debian-11-debs" 
+    - "kylin-v10SP3-2403-rpms" 
+    - "kylin-v10SP3-rpms" 
+    - "kylin-v10SP2-rpms" 
+    - "kylin-v10SP1-rpms" 
+    - "ubuntu-18.04-debs" 
+    - "ubuntu-20.04-debs" 
+    - "ubuntu-22.04-debs" 
+    - "ubuntu-24.04-debs"
+  cni:
+    type: [ "calico" ]
+  cri:
+    container_manager: >
+      {{- $container_manager := list }}
+      {{- range .download.kubernetes.kube_version }}
+        {{- if and (. | semverCompare "<v1.24.0") ($container_manager | has "docker" | not) }}
+          {{- $container_manager = append $container_manager "docker" }}
+        {{- else if and (. | semverCompare ">=v1.24.0") ($container_manager | has "containerd" | not) }}
+          {{- $container_manager = append $container_manager "containerd" }}
+        {{- end }}
+      {{- end }}
+      {{- $container_manager | toJson }}
+  tools:
+    oras:
+      amd64: >
+        {{- if .download.zone | eq "cn" }}
+        https://{{ .download.cn_host }}/github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_amd64.tar.gz
+        {{- else }}
+        https://github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_amd64.tar.gz
+        {{- end }}
+      arm64: >
+        {{- if .download.zone | eq "cn" }}
+        https://{{ .download.cn_host }}/github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_arm64.tar.gz
+        {{- else }}
+        https://github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_arm64.tar.gz
+        {{- end }}
+    nerdctl:
+      amd64: >
+        {{- if .download.zone | eq "cn" }}
+        https://{{ .download.cn_host }}/github.com/containerd/nerdctl/releases/download/v2.2.1/nerdctl-2.2.1-linux-amd64.tar.gz
+        {{- else }}
+        https://github.com/containerd/nerdctl/releases/download/v2.2.1/nerdctl-2.2.1-linux-amd64.tar.gz
+        {{- end }}
+      arm64: >
+        {{- if .download.zone | eq "cn" }}
+        https://{{ .download.cn_host }}/github.com/containerd/nerdctl/releases/download/v2.2.1/nerdctl-2.2.1-linux-arm64.tar.gz
+        {{- else }}
+        https://github.com/containerd/nerdctl/releases/download/v2.2.1/nerdctl-2.2.1-linux-arm64.tar.gz
+        {{- end }}
+  images:
+    # Architectures for which images should be downloaded.
+    registry: ""
+    # Determines the image pull policy. support strict, warn
+    policy: "strict"
+    # kubernetes images list
+    openebs-localpv/localpv-provisioner:
+      "4.4.0":
+        - docker.io/openebs/linux-utils:4.3.0
+        - docker.io/openebs/provisioner-localpv:4.4.0
+    nfs-subdir-external-provisioner/nfs-subdir-external-provisioner:
+      "4.0.18":
+        - registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+    projectcalico/tigera-operator:
+      v3.25.2:
+        - quay.io/tigera/operator:v1.29.6
+        - docker.io/calico/apiserver:v3.25.2
+        - docker.io/calico/cni:v3.25.2
+        - docker.io/calico/csi:v3.25.2
+        - docker.io/calico/ctl:v3.25.2
+        - docker.io/calico/kube-controllers:v3.25.2
+        - docker.io/calico/node-driver-registrar:v3.25.2
+        - docker.io/calico/typha:v3.25.2
+        - docker.io/calico/node:v3.25.2
+        - docker.io/calico/pod2daemon-flexvol:v3.25.2
+        - docker.io/flannel/flannel:v0.24.4
+      v3.26.5:
+        - quay.io/tigera/operator:v1.30.11
+        - docker.io/calico/ctl:v3.26.5
+        - docker.io/calico/typha:v3.26.5
+        - quay.io/calico/node:v3.26.5
+        - docker.io/calico/cni:v3.26.5
+        - docker.io/calico/apiserver:v3.26.5
+        - docker.io/calico/kube-controllers:v3.26.5
+        - docker.io/calico/flannel-migration-controller:v3.26.5
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.26.5
+        - quay.io/calico/pod2daemon-flexvol:v3.26.5
+      v3.28.5:
+        - quay.io/tigera/operator:v1.34.13
+        - docker.io/calico/ctl:v3.28.5
+        - docker.io/calico/typha:v3.28.5
+        - quay.io/calico/node:v3.28.5
+        # - docker.io/calico/node-windows:v3.28.5
+        - docker.io/calico/cni:v3.28.5
+        # - docker.io/calico/cni-windows:v3.28.5
+        - docker.io/calico/apiserver:v3.28.5
+        - docker.io/calico/kube-controllers:v3.28.5
+        - docker.io/calico/flannel-migration-controller:v3.28.5
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.28.5
+        - quay.io/calico/pod2daemon-flexvol:v3.28.5
+      v3.29.7: # refer https://docs.tigera.io/calico/3.29/reference/component-versions
+        - quay.io/tigera/operator:v1.36.16
+        - docker.io/calico/ctl:v3.29.7
+        - docker.io/calico/typha:v3.29.7
+        - quay.io/calico/node:v3.29.7
+        # - docker.io/calico/node-windows:v3.29.7
+        - docker.io/calico/cni:v3.29.7
+        # - docker.io/calico/cni-windows:v3.29.7
+        - docker.io/calico/apiserver:v3.29.7
+        - docker.io/calico/kube-controllers:v3.29.7
+        - docker.io/calico/flannel-migration-controller:v3.29.7
+        # - docker.io/calico/windows:v3.29.7
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.29.7
+        - quay.io/calico/pod2daemon-flexvol:v3.29.7
+      v3.30.5:
+        - quay.io/tigera/operator:v1.38.9
+        - docker.io/calico/ctl:v3.30.5
+        - docker.io/calico/typha:v3.30.5
+        - quay.io/calico/node:v3.30.5
+        # - docker.io/calico/node-windows:v3.30.5
+        - docker.io/calico/cni:v3.30.5
+        # - docker.io/calico/cni-windows:v3.30.5
+        - docker.io/calico/apiserver:v3.30.5
+        - docker.io/calico/kube-controllers:v3.30.5
+        - docker.io/calico/envoy-gateway:v3.30.5
+        - docker.io/calico/envoy-proxy:v3.30.5
+        - docker.io/calico/envoy-ratelimit:v3.30.5
+        - docker.io/calico/flannel-migration-controller:v3.30.5
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.30.5
+        - quay.io/calico/pod2daemon-flexvol:v3.30.5
+        - docker.io/calico/csi:v3.30.5
+        - docker.io/calico/key-cert-provisioner:v3.30.5
+        - docker.io/calico/goldmane:v3.30.5
+        - docker.io/calico/whisker:v3.30.5
+        - docker.io/calico/whisker-backend:v3.30.5
+      v3.31.3:
+        - quay.io/tigera/operator:v1.40.3
+        - quay.io/calico/ctl:v3.31.3
+        - docker.io/calico/typha:v3.31.3
+        - quay.io/calico/node:v3.31.3
+        # - docker.io/calico/node-windows:v3.31.3
+        - docker.io/calico/cni:v3.31.3
+        # - docker.io/calico/cni-windows:v3.31.3
+        - docker.io/calico/apiserver:v3.31.3
+        - docker.io/calico/kube-controllers:v3.31.3
+        - docker.io/calico/envoy-gateway:v3.31.3
+        - docker.io/calico/envoy-proxy:v3.31.3
+        - docker.io/calico/envoy-ratelimit:v3.31.3
+        - docker.io/calico/flannel-migration-controller:v3.31.3
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.31.3
+        - quay.io/calico/pod2daemon-flexvol:v3.31.3
+        - docker.io/calico/csi:v3.31.3
+        - docker.io/calico/key-cert-provisioner:v3.31.3
+        - docker.io/calico/goldmane:v3.31.3
+        - docker.io/calico/whisker:v3.31.3
+        - docker.io/calico/whisker-backend:v3.31.3
+    cilium/cilium:
+      "1.14.19":
+        - quay.io/cilium/cilium:v1.14.19
+        - quay.io/cilium/clustermesh-apiserver:v1.14.19
+        - quay.io/cilium/docker-plugin:v1.14.19
+        - quay.io/cilium/hubble-relay:v1.14.19
+        - quay.io/cilium/kvstoremesh:v1.14.19
+        # - quay.io/cilium/operator-alibabacloud:v1.14.19
+        # - quay.io/cilium/operator-aws:v1.14.19
+        # - quay.io/cilium/operator-azure:v1.14.19
+        - quay.io/cilium/operator-generic:v1.14.19
+        - quay.io/cilium/operator:v1.14.19
+      "1.15.19":
+        - quay.io/cilium/cilium:v1.15.19
+        - quay.io/cilium/clustermesh-apiserver:v1.15.19
+        - quay.io/cilium/docker-plugin:v1.15.19
+        - quay.io/cilium/hubble-relay:v1.15.19
+        # - quay.io/cilium/operator-alibabacloud:v1.15.19
+        # - quay.io/cilium/operator-aws:v1.15.19
+        # - quay.io/cilium/operator-azure:v1.15.19
+        - quay.io/cilium/operator:v1.15.19
+      "1.16.18":
+        - quay.io/cilium/cilium:v1.16.18
+        - quay.io/cilium/clustermesh-apiserver:v1.16.18
+        - quay.io/cilium/docker-plugin:v1.16.18
+        - quay.io/cilium/hubble-relay:v1.16.18
+        # - quay.io/cilium/operator-alibabacloud:v1.16.18
+        # - quay.io/cilium/operator-aws:v1.16.18
+        # - quay.io/cilium/operator-azure:v1.16.18
+        - quay.io/cilium/operator-generic:v1.16.18
+        - quay.io/cilium/operator:v1.16.18
+      "1.17.11":
+        - quay.io/cilium/cilium:v1.17.11
+        - quay.io/cilium/clustermesh-apiserver:v1.17.11
+        - quay.io/cilium/docker-plugin:v1.17.11
+        - quay.io/cilium/hubble-relay:v1.17.11
+        # - quay.io/cilium/operator-alibabacloud:v1.17.11
+        # - quay.io/cilium/operator-aws:v1.17.11
+        # - quay.io/cilium/operator-azure:v1.17.11
+        - quay.io/cilium/operator-generic:v1.17.11
+        - quay.io/cilium/operator:v1.17.11
+      "1.18.7":
+        - quay.io/cilium/cilium:v1.18.7
+        - quay.io/cilium/clustermesh-apiserver:v1.18.7
+        - quay.io/cilium/docker-plugin:v1.18.7
+        - quay.io/cilium/hubble-relay:v1.18.7
+        # - quay.io/cilium/operator-alibabacloud:v1.18.7
+        # - quay.io/cilium/operator-aws:v1.18.7
+        # - quay.io/cilium/operator-azure:v1.18.7
+        - quay.io/cilium/operator-generic:v1.18.7
+        - quay.io/cilium/operator:v1.18.7
+      "1.19.1":
+        - quay.io/cilium/cilium:v1.19.1
+        - quay.io/cilium/clustermesh-apiserver:v1.19.1
+        - quay.io/cilium/docker-plugin:v1.19.1
+        - quay.io/cilium/hubble-relay:v1.19.1
+        # - quay.io/cilium/operator-alibabacloud:v1.19.1
+        # - quay.io/cilium/operator-aws:v1.19.1
+        # - quay.io/cilium/operator-azure:v1.19.1
+        - quay.io/cilium/operator-generic:v1.19.1
+        - quay.io/cilium/operator:v1.19.1
+    flannel/flannel:
+      v0.27.4:
+        - ghcr.io/flannel-io/flannel-cni-plugin:v1.8.0-flannel1
+        - ghcr.io/flannel-io/flannel:v0.27.4
+    hybridnet/hybridnet:
+      0.6.8:
+        - docker.io/hybridnetdev/hybridnet:v0.8.8
+    kubeovn/kube-ovn:
+      v1.13.15:
+        - docker.io/kubeovn/kube-ovn:v1.13.15
+        - docker.io/kubeovn/vpc-nat-gateway:v1.13.15
+      v1.15.0:
+        - docker.io/kubeovn/kube-ovn:v1.15.0
+        - docker.io/kubeovn/vpc-nat-gateway:v1.15.0

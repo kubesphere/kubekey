@@ -21,7 +21,6 @@ package builtin
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -40,7 +39,7 @@ import (
 type ArtifactExportOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
-	Kubernetes string
+	Kubernetes []string
 }
 
 // NewArtifactExportOptions for newArtifactExportCommand
@@ -56,7 +55,7 @@ func NewArtifactExportOptions() *ArtifactExportOptions {
 func (o *ArtifactExportOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
-	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+	kfs.StringSliceVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
 
 	return fss
 }
@@ -82,9 +81,8 @@ func (o *ArtifactExportOptions) Complete(cmd *cobra.Command, args []string) (*kk
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
 		SkipTags: []string{"certs"},
+		Tags:     []string{"package"},
 	}
-
-	o.Set = setDefaultDownload(o.Set)
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err
@@ -159,29 +157,9 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		Tags:     tags,
 	}
 
-	o.Set = setDefaultDownload(o.Set)
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	return playbook, nil
-}
-
-func setDefaultDownload(set []string) []string {
-	var changeDownloadImage, changeDownloadISO = true, true
-	for _, s := range set {
-		if strings.Contains(s, "download.download_image=") {
-			changeDownloadImage = false
-		}
-		if strings.Contains(s, "download.download_iso=") {
-			changeDownloadISO = false
-		}
-	}
-	if changeDownloadImage {
-		set = append(set, "download.download_image=true")
-	}
-	if changeDownloadISO {
-		set = append(set, "download.download_iso=true")
-	}
-	return set
 }

@@ -11,7 +11,7 @@
       cert:
         check:
           cmd: >-
-            /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry }} 
+            /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry | splitList "/" | first }} 
                 {{- if .image_registry.auth.skip_tls_verify -}}
                 {{ printf " --insecure  " }} 
                 {{- end -}}
@@ -38,7 +38,7 @@
   when: .cert_check_input_cert_result.stdout | eq "false"
   register: cert_check_self_cert_result
   command: |
-    if /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry }} --ca-file {{ .binary_dir }}/pki/root.crt --cert-file {{ .binary_dir }}/pki/image_registry.crt --key-file {{ .binary_dir }}/pki/image_registry.key ; then
+    if /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry | splitList "/" | first }} --ca-file {{ .binary_dir }}/pki/root.crt --cert-file {{ .binary_dir }}/pki/image_registry.crt --key-file {{ .binary_dir }}/pki/image_registry.key ; then
         echo "true"
     else
         echo "false"

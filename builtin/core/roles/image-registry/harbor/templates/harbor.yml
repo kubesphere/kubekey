@@ -2,7 +2,7 @@
 
 # The IP address or hostname to access admin UI and registry service.
 # DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
-hostname: {{ .image_registry.auth.registry }}
+hostname: {{ .image_registry.auth.registry | splitList "/" | first }}
 
 # http related config
 http:
