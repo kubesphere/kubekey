@@ -36,7 +36,8 @@
       {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
-    {{- end }}{{- if and (.image_registry.auth.registry | empty | not) (.groups.image_registry | empty | not) }}
+    {{- end }}
+    {{- if and (.image_registry.auth.registry | empty | not) (.groups.image_registry | empty | not) }}
       {{- if .image_registry.ha_vip | empty | not }}
     {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry }}
       {{- else }}

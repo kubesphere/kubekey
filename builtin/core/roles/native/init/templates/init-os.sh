@@ -141,27 +141,25 @@ mv $tmpfile /etc/sysctl.conf
 # ------------------------ 4. Security Limit ------------------------------------
 
 # ulimit
-echo "* soft nofile 1048576" >> /etc/security/limits.conf
-echo "* hard nofile 1048576" >> /etc/security/limits.conf
-echo "* soft nproc 65536" >> /etc/security/limits.conf
-echo "* hard nproc 65536" >> /etc/security/limits.conf
-echo "* soft memlock unlimited" >> /etc/security/limits.conf
-echo "* hard memlock unlimited" >> /etc/security/limits.conf
-echo "* soft core unlimited" >> /etc/security/limits.conf
-echo "* hard core unlimited" >> /etc/security/limits.conf
+cat << 'EOF' | tee /etc/security/limits.d/99-kube.conf
+* soft nofile 1048576
+* hard nofile 1048576
+* soft nproc 65536
+* hard nproc 65536
+* soft memlock unlimited
+* hard memlock unlimited
+* soft core unlimited
+* hard core unlimited
 
-sed -r -i "s@#{0,}?\* soft nofile ?([0-9]{1,})@\* soft nofile 1048576@g" /etc/security/limits.conf
-sed -r -i "s@#{0,}?\* hard nofile ?([0-9]{1,})@\* hard nofile 1048576@g" /etc/security/limits.conf
-sed -r -i "s@#{0,}?\* soft nproc ?([0-9]{1,})@\* soft nproc 65536@g" /etc/security/limits.conf
-sed -r -i "s@#{0,}?\* hard nproc ?([0-9]{1,})@\* hard nproc 65536@g" /etc/security/limits.conf
-sed -r -i "s@#{0,}?\* soft memlock ?([0-9]{1,}([TGKM]B){0,1}|unlimited)@\* soft memlock unlimited@g" /etc/security/limits.conf
-sed -r -i "s@#{0,}?\* hard memlock ?([0-9]{1,}([TGKM]B){0,1}|unlimited)@\* hard memlock unlimited@g" /etc/security/limits.conf
-sed -r -i "s@#{0,}?\* soft core ?([0-9]{1,}([TGKM]B){0,1}|unlimited)@\* soft core unlimited@g" /etc/security/limits.conf
-sed -r -i "s@#{0,}?\* hard core ?([0-9]{1,}([TGKM]B){0,1}|unlimited)@\* hard core unlimited@g" /etc/security/limits.conf
-
-tmpfile="$$.tmp"
-awk ' !x[$0]++{print > "'$tmpfile'"}' /etc/security/limits.conf
-mv $tmpfile /etc/security/limits.conf
+root soft nofile 1048576
+root hard nofile 1048576
+root soft nproc 65536
+root hard nproc 65536
+root soft memlock unlimited
+root hard memlock unlimited
+root soft core unlimited
+root hard core unlimited
+EOF
 
 # ------------------------ 5. Firewall Configurations ---------------------------
 
