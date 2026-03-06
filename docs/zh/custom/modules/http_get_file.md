@@ -20,10 +20,10 @@
 
 ```yaml
 - name: http fetch file
-  when: '{{ fileExist .dest | not }}'
+  when: '{{ fileExist (join "/" (list (tpl .binary_dir .) (base (tpl .artifact_url .)))) | not }}'
   http_get_file:
     url: "{{ tpl .artifact_url . }}"     # http文件服务上的文件路径
-    dest: "{{ .dest }}"                   # 本地保存路径
+    dest: "{{ tpl .binary_dir . }}/{{ base (tpl .artifact_url .)}}"                   # 本地保存路径
     username: admin                       # 可选：Basic 认证用户名
     password: password                    # 可选：Basic 认证密码
     token: my-token                       # 可选：Bearer Token
@@ -31,7 +31,11 @@
     headers:                              # 可选：自定义 HTTP 头
       X-Custom-Header: custom-value
   vars:
-    version: v4.0.3
-    artifact_url: "http://localhost/{{\"{{\"}} .version {{\"}}\"}}/test.tar.gz"
-    dest: /tmp/{{base .artifact_url}}
+    arch: amd64
+    containerd_version: v1.7.13
+    artifact_url: >-
+      https://github.com/containerd/containerd/releases/download/
+      {{- .containerd_version -}}
+      /containerd-{{ .containerd_version | default "" | trimPrefix "v" }}-linux-{{"{{.arch}}"}}.tar.gz
+    binary_dir: /tmp/containerd/{{"{{.arch}}"}}
 ```
