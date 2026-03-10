@@ -11,7 +11,7 @@
 {{- end }}
 {{- $insecure_registries := .cri.registry.insecure_registries | default list }} 
 {{- if and .image_registry.auth.skip_tls_verify (.image_registry.auth.registry | empty | not) }}
-  {{- $insecure_registries = append $insecure_registries .image_registry.auth.registry }}
+  {{- $insecure_registries = append $insecure_registries .image_registry.auth.registry | splitList "/" | first }}
 {{- end }}
 {{- range .cri.registry.auths | default list }}
   {{- if and .skip_tls_verify (.registry | empty | not) }}

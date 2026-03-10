@@ -1,371 +1,300 @@
 ---
 - name: Binary | Ensure etcd binary is present
-  tags: ["etcd"]
-  loop: "{{ .download.arch | toJson }}"
-  when: 
-    - .etcd.deployment_type | eq "external"
-    - .etcd.etcd_version | empty | not
-  command: |
-    artifact_name={{ get .download.artifact_url.etcd .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/etcd/{{ .etcd.etcd_version }}/{{ .item }}
-    url={{ get .download.artifact_url.etcd .item | trim }}
-    if [ "$url" = "" ] ; then
-      echo "url for etcd ({{ .item }}) not set"
-      exit 0
-    fi
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      mkdir -p $artifact_path
-      # Attempt to download etcd binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.etcd .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download etcd binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.etcd .item }}
-    fi
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.etcd.etcd_version | default (list $.etcd.etcd_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when:
+    - or (.download.etcd.etcd_version | empty | not) (.etcd.etcd_version | empty | not)
+    - printf "%s/etcd/%s/%s/etcd-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.etcd .item }}"
+    dest: "{{ .binary_dir }}/etcd/{{ .item.version }}/{{ .item.arch }}/etcd-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
+    timeout: "{{ .download.timeout }}"
 
-- name: Binary | Ensure Kubernetes binaries are present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
-  when: .kubernetes.kube_version | empty | not
-  command: |
-    kube_path={{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .item }}
-    if [ ! -f $kube_path/kubelet ]; then
-      url={{ get .download.artifact_url.kubelet .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for kubelet ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $kube_path
-      # Download kubelet if missing
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubelet .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download kubelet. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $kube_path/kubelet {{ get .download.artifact_url.kubelet .item }}
-    fi
-    if [ ! -f $kube_path/kubeadm ]; then
-      url={{ get .download.artifact_url.kubeadm .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for kubeadm ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $kube_path
-      # Download kubeadm if missing
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubeadm .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download kubeadm. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $kube_path/kubeadm {{ get .download.artifact_url.kubeadm .item }}
-    fi
-    if [ ! -f $kube_path/kubectl ]; then
-      url={{ get .download.artifact_url.kubectl .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for kubectl ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $kube_path
-      # Download kubectl if missing
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.kubectl .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download kubectl. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $kube_path/kubectl {{ get .download.artifact_url.kubectl .item }}
-    fi
+- name: Binary | Ensure Kubernetes kubelet binaries are present
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.kubernetes.kube_version | default (list $.kubernetes.kube_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: 
+    - or (.download.kubernetes.kube_version | empty | not) (.kubernetes.kube_version | empty | not)
+    - printf "%s/kube/%s/%s/kubelet" .binary_dir .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.kubelet .item }}"
+    dest: "{{ .binary_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubelet"
+    timeout: "{{ .download.timeout }}"
+
+- name: Binary | Ensure Kubernetes kubeadm binaries are present
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.kubernetes.kube_version | default (list $.kubernetes.kube_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: 
+    - or (.download.kubernetes.kube_version | empty | not) (.kubernetes.kube_version | empty | not)
+    - printf "%s/kube/%s/%s/kubeadm" .binary_dir .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.kubeadm .item }}"
+    dest: "{{ .binary_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubeadm"
+    timeout: "{{ .download.timeout }}"
+
+- name: Binary | Ensure Kubernetes kubectl binaries are present
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.kubernetes.kube_version | default (list $.kubernetes.kube_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: 
+    - or (.download.kubernetes.kube_version | empty | not) (.kubernetes.kube_version | empty | not)
+    - printf "%s/kube/%s/%s/kubectl" .binary_dir .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.kubectl .item }}"
+    dest: "{{ .binary_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubectl"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure CNI plugins are present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.cni.cni_plugins_version | default (list $.cni.cni_plugins_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when:
-  - .cni.cni_plugins_version | empty | not
-  command: |
-    artifact_name={{ get .download.artifact_url.cni_plugins .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cni/plugins/{{ .cni.cni_plugins_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.cni_plugins .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for cni_plugins ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download CNI plugins
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.cni_plugins .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download CNI plugins. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.cni_plugins .item }}
-    fi
+    - or (.download.cni.cni_plugins_version | empty | not) (.cni.cni_plugins_version | empty | not)
+    - printf "%s/cni/plugins/%s/%s/cni-plugins-linux-%s-%s.tgz" .binary_dir .item.version .item.arch .item.arch .item.version | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.cni_plugins .item }}"
+    dest: "{{ .binary_dir }}/cni/plugins/{{ .item.version }}/{{ .item.arch }}/cni-plugins-linux-{{ .item.arch }}-{{ .item.version }}.tgz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure Helm binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.kubernetes.helm_version | default (list $.kubernetes.helm_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when:
-  - .kubernetes.helm_version | empty | not
-  command: |
-    artifact_name={{ get .download.artifact_url.helm .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/helm/{{ .kubernetes.helm_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.helm .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for helm ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download Helm binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.helm .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Helm binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.helm .item }}
-    fi
+    - or (.download.kubernetes.helm_version | empty | not) (.kubernetes.helm_version | empty | not)
+    - printf "%s/helm/%s/%s/helm-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.helm .item }}"
+    dest: "{{ .binary_dir }}/helm/{{ .item.version }}/{{ .item.arch }}/helm-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure crictl binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.cri.crictl_version | default (list $.cri.crictl_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when:
-  - .cri.crictl_version | empty | not
-  command: |
-    artifact_name={{ get .download.artifact_url.crictl .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/crictl/{{ .cri.crictl_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.crictl .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for crictl ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download crictl binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.crictl .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download crictl binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.crictl .item }}
-    fi
+    - or (.download.cri.crictl_version | empty | not) (.cri.crictl_version | empty | not)
+    - printf "%s/crictl/%s/%s/crictl-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.crictl .item }}"
+    dest: "{{ .binary_dir }}/crictl/{{ .item.version }}/{{ .item.arch }}/crictl-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure Docker binary is present
-  tags: ["kubernetes","image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  tags: ["image_registry"]
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.cri.docker_version | default (list $.cri.docker_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .cri.docker_version | empty | not
-    - or (.image_registry.type | empty | not) (.cri.container_manager | eq "docker")
-  command: |
-    artifact_name={{ get .download.artifact_url.docker .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/docker/{{ .cri.docker_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.docker .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for docker ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download Docker binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.docker .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Docker binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.docker .item }}
-    fi
+    - or (.download.cri.docker_version | empty | not) (.cri.docker_version | empty | not)
+    - or ((.download.image_registry.type | default (list .image_registry.type)) | empty | not) ((.download.cri.container_manager | default (list .cri.container_manager)) | has "docker")
+    - printf "%s/docker/%s/%s/docker-%s.tgz" .binary_dir .item.version .item.arch .item.version | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.docker .item }}"
+    dest: "{{ .binary_dir }}/docker/{{ .item.version }}/{{ .item.arch }}/docker-{{ .item.version }}.tgz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure cri-dockerd binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.cri.cridockerd_version | default (list $.cri.cridockerd_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .cri.cridockerd_version | empty | not
-    - .cri.container_manager | eq "docker"
-    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
-  command: |
-    artifact_name={{ get .download.artifact_url.cridockerd .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/cri-dockerd/{{ .cri.cridockerd_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.cridockerd .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for cridockerd ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download cri-dockerd binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.cridockerd .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download cri-dockerd binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.cridockerd .item }}
-    fi
+    - or (.download.cri.cridockerd_version | empty | not) (.cri.cridockerd_version | empty | not)
+    - (.download.cri.container_manager | default (list .cri.container_manager)) | has "docker"
+    - printf "%s/cri-dockerd/%s/%s/cri-dockerd-%s-%s.tgz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.cridockerd .item }}"
+    dest: "{{ .binary_dir }}/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}-{{ .item.arch }}.tgz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure containerd binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.cri.containerd_version | default (list $.cri.containerd_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .cri.containerd_version | empty | not
-    - .cri.container_manager | eq "containerd"
-  command: |
-    artifact_name={{ get .download.artifact_url.containerd .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.containerd .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for containerd ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download containerd binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.containerd .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download containerd binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.containerd .item }}
-    fi
+    - or (.download.cri.containerd_version | empty | not) (.cri.containerd_version | empty | not)
+    - (.download.cri.container_manager | default (list .cri.container_manager)) | has "containerd"
+    - printf "%s/containerd/%s/%s/containerd-%s-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.containerd .item }}"
+    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-{{ .item.arch }}.tar.gz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure runc binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.cri.runc_version | default (list $.cri.runc_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .cri.runc_version | empty | not
-    - .cri.container_manager | eq "containerd"
-  command: |
-    artifact_name={{ get .download.artifact_url.runc .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/runc/{{ .cri.runc_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.runc .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for runc ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download runc binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.runc .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download runc binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.runc .item }}
-    fi
+    - or (.download.cri.runc_version | empty | not) (.cri.runc_version | empty | not)
+    - (.download.cri.container_manager | default (list .cri.container_manager)) | has "containerd"
+    - printf "%s/runc/%s/%s/runc.%s" .binary_dir .item.version .item.arch .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.runc .item }}"
+    dest: "{{ .binary_dir }}/runc/{{ .item.version }}/{{ .item.arch }}/runc.{{ .item.arch }}"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure calicoctl binary is present
-  tags: ["kubernetes"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.cni.calico_version | default (list $.cni.calico_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .cni.calico_version | empty | not
-    - .cni.type | eq "calico"
-  command: |
-    artifact_name=calicoctl
-    artifact_path={{ .binary_dir }}/cni/calico/{{ .cni.calico_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.calicoctl .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for calicoctl ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download calicoctl binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.calicoctl .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download calicoctl binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.calicoctl .item }}
-    fi
+    - or (.download.cni.calico_version | empty | not) (.cni.calico_version | empty | not)
+    - (.download.cni.type | default (list .cni.type)) | has "calico"
+    - printf "%s/cni/calico/%s/%s/calicoctl-linux-%s" .binary_dir .item.version .item.arch .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.calicoctl .item }}"
+    dest: "{{ .binary_dir }}/cni/calico/{{ .item.version }}/{{ .item.arch }}/calicoctl-linux-{{ .item.arch }}"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure Docker Registry binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.image_registry.docker_registry_version | default (list $.image_registry.docker_registry_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .image_registry.docker_registry_version | empty | not
-    - .image_registry.type | eq "docker-registry"
-  command: |
-    artifact_name={{ get .download.artifact_url.docker_registry .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/image-registry/docker-registry/{{ .image_registry.docker_registry_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.docker_registry .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for docker_registry ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download Docker Registry binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.docker_registry .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Docker Registry binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.docker_registry .item }}
-    fi
+    - or (.download.image_registry.docker_registry_version | empty | not) (.image_registry.docker_registry_version | empty | not)
+    - (.download.image_registry.type | default (list .image_registry.type)) | has "docker-registry"
+    - printf "%s/image-registry/docker-registry/%s/%s/docker-registry-%s-linux-%s.tgz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.docker_registry .item }}"
+    dest: "{{ .binary_dir }}/image-registry/docker-registry/{{ .item.version }}/{{ .item.arch }}/docker-registry-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure docker-compose binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.image_registry.dockercompose_version | default (list $.image_registry.dockercompose_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .image_registry.dockercompose_version | empty | not
-    - .image_registry.type | eq "harbor"
-  command: |
-    compose_name=docker-compose
-    compose_path={{ .binary_dir }}/image-registry/docker-compose/{{ .image_registry.dockercompose_version }}/{{ .item }}
-    if [ ! -f $compose_path/$compose_name ]; then
-      url={{ get .download.artifact_url.dockercompose .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for dockercompose ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $compose_path
-      # Attempt to download docker-compose binary
-      curl -L -o $compose_path/$compose_name {{ get .download.artifact_url.dockercompose .item }}
-    fi
+    - or (.download.image_registry.dockercompose_version | empty | not) (.image_registry.dockercompose_version | empty | not)
+    - or (.download.image_registry.type | empty | not) (.image_registry.type | empty | not)
+    - printf "%s/image-registry/docker-compose/%s/%s/docker-compose" .binary_dir .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.docker_compose .item }}"
+    dest: "{{ .binary_dir }}/image-registry/docker-compose/{{ .item.version }}/{{ .item.arch }}/docker-compose"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure Harbor binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.image_registry.harbor_version | default (list $.image_registry.harbor_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .image_registry.harbor_version | empty | not
-    - .image_registry.type | eq "harbor"
-  command: |
-    harbor_name={{ get .download.artifact_url.harbor .item | splitList "/" | last }}
-    harbor_path={{ .binary_dir }}/image-registry/harbor/{{ .image_registry.harbor_version }}/{{ .item }}
-    if [ ! -f $harbor_path/$harbor_name ]; then
-      url={{ get .download.artifact_url.harbor .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for harbor ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $harbor_path
-      # Attempt to download Harbor binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.harbor .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download Harbor binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $harbor_path/$harbor_name {{ get .download.artifact_url.harbor .item }}
-    fi
+    - or (.download.image_registry.harbor_version | empty | not) (.image_registry.harbor_version | empty | not)
+    - (.download.image_registry.type | default (list .image_registry.type)) | has "harbor"
+    - printf "%s/image-registry/harbor/%s/%s/harbor-offline-installer-%s.tgz" .binary_dir .item.version .item.arch .item.version | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.harbor .item }}"
+    dest: "{{ .binary_dir }}/image-registry/harbor/{{ .item.version }}/{{ .item.arch }}/harbor-offline-installer-{{ .item.version }}.tgz"
+    timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure keepalived binary is present
   tags: ["image_registry"]
-  loop: "{{ .download.arch | toJson }}"
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $version := $.download.image_registry.keepalived_version | default (list $.image_registry.keepalived_version) }}
+        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
   when: 
-    - .image_registry.keepalived_version | empty | not
-    - .image_registry.ha_vip | empty | not
-    - .groups.image_registry | len | lt 1
-  command: |
-    artifact_name={{ get .download.artifact_url.keepalived .item | splitList "/" | last }}
-    artifact_path={{ .binary_dir }}/image-registry/keepalived/{{ .image_registry.keepalived_version }}/{{ .item }}
-    if [ ! -f $artifact_path/$artifact_name ]; then
-      url={{ get .download.artifact_url.keepalived .item | trim }}
-      if [ "$url" = "" ] ; then
-        echo "url for keepalived ({{ .item }}) not set"
-        exit 0
-      fi
-      mkdir -p $artifact_path
-      # Attempt to download keepalived binary
-      http_code=$(curl -Lo /dev/null -s -w "%{http_code}" {{ get .download.artifact_url.keepalived .item }})
-      if [ $http_code != 200 ]; then
-        echo "Failed to download keepalived binary. HTTP status code: $http_code"
-        exit 1
-      fi
-      curl -L -o $artifact_path/$artifact_name {{ get .download.artifact_url.keepalived .item }}
-    fi
+    - or (.download.image_registry.keepalived_version | empty | not) (.image_registry.keepalived_version | empty | not)
+    - printf "%s/image-registry/keepalived/%s/%s/keepalived-%s-linux-%s.tgz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.keepalived .item }}"
+    dest: "{{ .binary_dir }}/image-registry/keepalived/{{ .item.version }}/{{ .item.arch }}/keepalived-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
+    timeout: "{{ .download.timeout }}"
+
+- name: Binary | Download tools to binary directory
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $tool,$url := $.download.tools }}
+        {{- $result = append $result (dict "arch" $arch "tool" $tool "url" $url) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: printf "%s/tools/%s/%s" .binary_dir .item.arch (base (tpl .item.url .item)) | fileExists | not
+  http_get_file:
+    url: "{{ tpl .item.url .item }}"
+    dest: "{{ .binary_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
+    timeout: "{{ .download.timeout }}"

@@ -1,0 +1,14 @@
+- name: Image | Ensure container images is available
+  image:
+    platform: >
+      {{- $platform := list }}
+      {{- range .download.arch }}
+        {{- $platform = append $platform (printf "linux/%s" .) }}
+      {{- end }}
+      {{- $platform | toJson }}
+    policy: "{{ .download.images.policy }}"
+    manifests: "{{ .download.images.manifests | toJson }}"
+    src: "local://{{ .binary_dir }}/images/"
+    dest: "local://{{ .artifact_dir }}/images/"
+  when:
+    - .download.images.manifests | empty | not

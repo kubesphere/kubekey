@@ -4,13 +4,15 @@ kubernetes:
 
   # Image repository for built-in Kubernetes images
   image_repository: >-
-    {{ .image_registry.k8sio_registry }}
+    {{ .image_registry.k8sio_registry }}{{ if .image_registry.auth.registry | empty | not }}/kubernetes{{ end }}
 
   # Pause/sandbox image configuration
   sandbox_image: 
     registry: >-
       {{ .image_registry.k8sio_registry }}
-    repository: pause
+    repository: >
+      {{ if .image_registry.auth.registry | empty | not }}kubernetes/{{ end }}pause
+      
 
   # Kubernetes network configuration
   # kube-apiserver pod parameters
@@ -114,4 +116,4 @@ kubernetes:
     front_proxy_cert: ""
     front_proxy_key: ""
     # Automatically renew service certificates (Note: CA certificates cannot be renewed automatically)
-    renew: false
+    renew: true
