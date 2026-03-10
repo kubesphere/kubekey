@@ -40,5 +40,10 @@ delete:
 # deleteImageRegistry: false
   image_registry: false
 
+# When removing a node, also delete data directories (harbor data, registry data, etc.)
+# This is typically used with --with-data flag or delete.data: true
+# deleteData: false
+  data: false
+
 # image_manifests: List of container images to be synchronized to the private registry
 image_manifests: []

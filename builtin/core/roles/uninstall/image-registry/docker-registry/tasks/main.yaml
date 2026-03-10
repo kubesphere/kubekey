@@ -17,3 +17,8 @@
 - name: DockerRegistry | Remove all residual Docker Registry files and directories
   command: |
     rm -rf /opt/docker-registry/
+
+- name: DockerRegistry | Remove Docker Registry data directory
+  when: .delete.data | default false
+  command: |
+    rm -rf {{ .image_registry.docker_registry.storage.filesystem.rootdir | default "/var/lib/docker-registry/data" }}
