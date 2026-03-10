@@ -14,4 +14,4 @@
 - name: Harbor | Remove Harbor data directory
   when: .delete.data | default false
   command: |
-    rm -rf {{ .image_registry.harbor.data_dir | default "/var/lib/harbor/data" }}
+    rm -rf {{ .image_registry.harbor.data_dir }}
