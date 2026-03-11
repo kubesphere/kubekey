@@ -56,6 +56,7 @@
   block:
     - name: Join | Reset local DNS on control plane nodes
       when:
+        - or (.kubernetes.control_plane_endpoint.type | ne "local") (.kubernetes.control_plane_endpoint.local.address | empty)
         - .groups.kube_control_plane | default list | has .inventory_hostname
       loop: "{{ .native.localDNS | toJson }}"
       command: |
@@ -68,6 +69,7 @@
         EOF
     - name: Join | Reset local DNS on worker nodes (for haproxy endpoint)
       when:
+        - or (.kubernetes.control_plane_endpoint.type | ne "local") (.kubernetes.control_plane_endpoint.local.address | empty)
         - .groups.kube_worker | default list | has .inventory_hostname
         - .kubernetes.control_plane_endpoint.type | eq "haproxy"
       loop: "{{ .native.localDNS | toJson }}"

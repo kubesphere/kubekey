@@ -78,6 +78,10 @@ kubernetes:
     #   - On control-plane nodes: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     #   - On worker nodes: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
     type: local
+    local:
+      # When using 'local' as load balancing, you can specify an external load balancer address here.
+      # Note: You must set up the actual load balancing yourself; this setting is only for DNS resolution.
+      address: ""
     kube_vip:
       # The IP address of the node's network interface (e.g., "eth0").
       address: ""
