@@ -626,7 +626,7 @@ download:
   {{- range .download.storage_class.localpv_provisioner_version | default (list "4.4.0") }}
       ## StorageClass/local-{{ . }}
     {{- range index $.download.images "openebs-localpv/localpv-provisioner" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1  | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -634,7 +634,7 @@ download:
   {{- range .download.storage_class.nfs_provisioner_version | default (list "4.0.18") }}
       ## StorageClass/nfs-{{ . }}
     {{- range index $.download.images "nfs-subdir-external-provisioner/nfs-subdir-external-provisioner" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}    
   {{- end }}
 {{- end }}
@@ -643,7 +643,7 @@ download:
   {{- range .download.cni.calico_version | default $default_calico_version }}
       ##  CNI/calico-{{ . }}
     {{- range index $.download.images "projectcalico/tigera-operator" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -651,7 +651,7 @@ download:
   {{- range .download.cni.cilium_version | default $default_cilium_version }}
       ##  CNI/cilium-{{ . }}
     {{- range index $.download.images "cilium/cilium" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -659,7 +659,7 @@ download:
   {{- range .download.cni.flannel_version | default $default_flannel_version }}
       ##  CNI/flannel-{{ . }}
     {{- range index $.download.images "flannel/flannel" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -667,7 +667,7 @@ download:
   {{- range .download.cni.hybridnet_version | default $default_hybridnet_version }}
       ##  CNI/hybridnet-{{ . }}
     {{- range index $.download.images "hybridnet/hybridnet" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -675,7 +675,7 @@ download:
   {{- range .download.cni.kubeovn_version | default $default_kubeovn_version }}
       ##  CNI/kubeovn-{{ . }}
     {{- range index $.download.images "kubeovn/kube-ovn" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ . | splitList "/" | slice 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}
   {{- end }}
 {{- end }}
