@@ -271,14 +271,14 @@
 
 - name: Binary | Download tools to binary directory
   loop: >
-    {- $result := list -}}
+    {{- $result := list -}}
     {{- range $arch := .download.arch }}
       {{- range $tool,$url := $.download.tools }}
         {{- $result = append $result (dict "arch" $arch "tool" $tool "url" $url) -}}
       {{- end }}
     {{- end }}
     {{- $result | toJson }}
-  when: printf "%s/tools/%s/%s" .artifact_dir .item.arch (base .item.url) | fileExists | not
+  when: printf "%s/tools/%s/%s" .artifact_dir .item.arch (base (tpl .item.url .item)) | fileExists | not
   copy:
-    src: "{{ .binary_dir }}/tools/{{ .item.arch }}/{{ base .item.url }}"
-    dest: "{{ .artifact_dir }}/tools/{{ .item.arch }}/{{ base .item.url }}"
+    src: "{{ .binary_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
+    dest: "{{ .artifact_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
