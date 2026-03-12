@@ -121,3 +121,15 @@ kubernetes:
     front_proxy_key: ""
     # Automatically renew service certificates (Note: CA certificates cannot be renewed automatically)
     renew: true
+
+  # patches for kubeadm init and join
+  # 'name' is the file name that kubeadm will patch (it will be saved to /etc/kubernetes/{{ .name }})
+  # 'path' is the source file path for the patch (if provided)
+  # 'content' is the YAML content of the patch file (either 'path' or 'content' can be specified)
+  patches: []
+    # - name: kubeadm-init.yaml
+    #   path: /etc/kubernetes/kubeadm-init.yaml
+    #   content: |
+    #     apiVersion: kubeadm.k8s.io/v1beta3
+    #     kind: ClusterConfiguration
+    #     controlPlaneEndpoint: {{ .kubernetes.control_plane_endpoint.host }}:{{ .kubernetes.control_plane_endpoint.port }}
