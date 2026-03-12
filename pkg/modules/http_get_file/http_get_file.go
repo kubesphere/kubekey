@@ -144,7 +144,7 @@ func newHttpArgs(ctx context.Context, args map[string]any, vars map[string]any) 
 	if err != nil {
 		klog.V(4).InfoS("Failed to get http url, using current url", "error", err)
 	}
-	httpArg.url = strings.TrimSpace(httpURL)
+	httpArg.url = httpURL
 	klog.V(4).InfoS("http url", "url", httpArg.url)
 
 	// Retrieve username
@@ -178,7 +178,7 @@ func newHttpArgs(ctx context.Context, args map[string]any, vars map[string]any) 
 	if timeoutStr, err := variable.StringVar(vars, args, "timeout"); err != nil {
 		klog.V(4).InfoS("Failed to get http timeout, using default timeout", "error", err)
 	} else {
-		timeout, err := time.ParseDuration(timeoutStr)
+		timeout, err := time.ParseDuration(strings.TrimSpace(timeoutStr))
 		if err != nil {
 			klog.V(4).InfoS("Failed to parse http timeout, using default timeout", "error", err)
 		} else {
@@ -210,7 +210,7 @@ func ModuleHttpGetFile(ctx context.Context, opts internal.ExecOptions) (string, 
 	}
 
 	// fetch file
-	parentDir := filepath.Dir(destParam)
+	parentDir := filepath.Dir(strings.TrimSpace(destParam))
 	if _, err := os.Stat(parentDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(parentDir, os.ModePerm); err != nil {
 			return internal.StdoutFailed, "failed to create dest dir", err
