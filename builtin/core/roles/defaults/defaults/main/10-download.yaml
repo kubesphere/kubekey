@@ -17,57 +17,57 @@ download:
   artifact_url:
     # binary package
     etcd: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/etcd-io/etcd/releases/download/{{ "{{ .version }}" }}/etcd-{{ "{{ .version }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     kubelet: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       dl.k8s.io/release/{{ "{{ .version }}" }}/bin/linux/{{ "{{ .arch }}" }}/kubelet
     kubeadm: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       dl.k8s.io/release/{{ "{{ .version }}" }}/bin/linux/{{ "{{ .arch }}" }}/kubeadm
     kubectl: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       dl.k8s.io/release/{{ "{{ .version }}" }}/bin/linux/{{ "{{ .arch }}" }}/kubectl
     cni_plugins: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containernetworking/plugins/releases/download/{{ "{{ .version }}" }}/cni-plugins-linux-{{ "{{ .arch }}" }}-{{ "{{ .version }}" }}.tgz
     helm: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       get.helm.sh/helm-{{ "{{ .version }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     crictl: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/kubernetes-sigs/cri-tools/releases/download/{{ "{{ .version }}" }}/crictl-{{ "{{ .version }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     docker: >-
-      {{- if .download.zone | eq "cn" }}
+      {{- if .download.zone | eq "cn" -}}
       https://mirrors.aliyun.com/docker-ce/linux/static/stable/
       {{- "{{ if eq .arch \"amd64\" }}x86_64{{ else if eq .arch \"arm64\" }}aarch64{{ end }}" -}}
       /docker-{{ "{{ .version }}" }}.tgz
-      {{- else }}
+      {{- else -}}
       https://download.docker.com/linux/static/stable/
       {{- "{{ if eq .arch \"amd64\" }}x86_64{{ else if eq .arch \"arm64\" }}aarch64{{ end }}" -}}
       /docker-{{ "{{ .version }}" }}.tgz
       {{- end }}
     cridockerd: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/Mirantis/cri-dockerd/releases/download/{{ "{{ .version }}" }}/cri-dockerd-{{ "{{ .version | trimPrefix \"v\" }}" }}.{{ "{{ .arch }}" }}.tgz
     containerd: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-{{ "{{ .version | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     runc: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/opencontainers/runc/releases/download/{{ "{{ .version }}" }}/runc.{{ "{{ .arch }}" }}
     calicoctl: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/projectcalico/calico/releases/download/{{ "{{ .version }}" }}/calicoctl-linux-{{ "{{ .arch }}" }}
     docker_registry: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       docker.io/registry/{{ "{{ .version }}" }}/docker-registry-{{ "{{ .version }}" }}-linux-{{ "{{ .arch }}" }}.tgz
     docker_compose: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/docker/compose/releases/download/{{ "{{ .version }}" }}/docker-compose-linux-
       {{- "{{ if eq .arch \"amd64\" }}x86_64{{ else if eq .arch \"arm64\" }}aarch64{{ end }}" -}}
     harbor: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/
       {{- "{{ if eq .arch \"amd64\" }}goharbor/harbor{{ else if eq .arch \"arm64\" }}kubesphere/kubekey{{ end }}" -}}
       /releases/download/
@@ -77,33 +77,33 @@ download:
       https://{{ .download.cn_host}}/osixia/keepalived/{{ "{{ .version }}" }}/keepalived-{{ "{{ .version }}" }}-linux-{{ "{{ .arch }}" }}.tgz
     # helm package
     calico: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/projectcalico/calico/releases/download/{{ "{{ .version }}" }}/tigera-operator-{{ "{{ .version }}" }}.tgz
     cilium: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       helm.cilium.io/cilium-{{ "{{ .version }}" }}.tgz
     flannel: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/flannel-io/flannel/releases/download/{{ "{{ .version }}" }}/flannel.tgz
     kubeovn: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       kubeovn.github.io/kube-ovn/kube-ovn-{{ "{{ .version }}" }}.tgz
     hybridnet: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/alibaba/hybridnet/releases/download/helm-chart-{{ "{{ .version }}" }}/hybridnet-{{ "{{ .version }}" }}.tgz
     localpv_provisioner: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ "{{ .version }}" }}.tgz
     nfs_subdir_external_provisioner: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-{{ "{{ .version }}" }}/nfs-subdir-external-provisioner-{{ "{{ .version }}" }}.tgz
   # tools will add to package
   tools:
     oras: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_{{ "{{ \"{{ .arch }}\" }}" }}.tar.gz
     nerdctl: >-
-      {{ .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/nerdctl/releases/download/v2.2.1/nerdctl-2.2.1-linux-{{ "{{ \"{{ .arch }}\" }}" }}.tar.gz
   iso: 
     - "almalinux-9.0-rpms" 
