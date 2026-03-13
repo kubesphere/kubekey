@@ -177,52 +177,82 @@ func (i imageTransport) RoundTrip(request *http.Request) (*http.Response, error)
 func (i imageTransport) head(request *http.Request) *http.Response {
 	if strings.HasSuffix(filepath.Dir(request.URL.Path), "blobs") { // blobs
 		filename := filepath.Join(i.baseDir, "blobs", filepath.Base(request.URL.Path))
-		if _, err := os.Stat(filename); err != nil {
+		fStat, err := os.Stat(filename)
+		if err != nil {
 			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
-
 			return responseNotFound
 		}
-
-		return responseOK
+		return &http.Response{
+			Proto:         "Local",
+			StatusCode:    http.StatusOK,
+			ContentLength: fStat.Size(),
+			Header:        http.Header{},
+		}
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
-		if _, err := os.Stat(filename); err != nil {
-			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
 
-			return responseNotFound
+		pathBase := filepath.Base(filename)
+		digestParts := strings.Split(pathBase, "@")
+		var requestDigest string
+
+		if len(digestParts) > 1 {
+			// Format: tag@digest
+			requestDigest = digestParts[1]
+		} else {
+			requestDigest = pathBase
 		}
 
-		file, err := os.ReadFile(filename)
-		if err != nil {
-			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
+		var actualDigest string
+		var actualFilename string
 
-			return responseServerError
+		if strings.HasPrefix(requestDigest, "sha256:") {
+			// Direct digest request
+			actualDigest = requestDigest
+		} else {
+			// Tag request: Read layout file
+			layoutFilePath := filepath.Join(filepath.Dir(filename), "layout")
+			tagDigest := make(map[string]string)
+			layoutData, err := os.ReadFile(layoutFilePath)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					klog.V(4).ErrorS(err, "failed to read layout file", "file", layoutFilePath)
+					return responseServerError
+				}
+			} else {
+				if err := json.Unmarshal(layoutData, &tagDigest); err != nil {
+					klog.V(4).ErrorS(err, "failed to unmarshal layout file", "file", layoutFilePath)
+					return responseServerError
+				}
+			}
+			actualDigest = tagDigest[requestDigest]
+		}
+
+		actualFilename = filepath.Join(filepath.Dir(filename), actualDigest)
+		// Read the manifest file
+		file, err := os.ReadFile(actualFilename)
+		if err != nil {
+			klog.V(4).ErrorS(err, "failed to read manifest file", "filename", actualFilename)
+			return responseNotFound
 		}
 
 		var data map[string]any
 		if err := json.Unmarshal(file, &data); err != nil {
-			klog.V(4).ErrorS(err, "failed to unmarshal file", "filename", filename)
-
+			klog.V(4).ErrorS(err, "failed to unmarshal manifest file", "filename", actualFilename)
 			return responseServerError
 		}
 
 		mediaType, ok := data["mediaType"].(string)
 		if !ok {
-			klog.V(4).ErrorS(nil, "unknown mediaType", "filename", filename)
-
+			klog.V(4).ErrorS(nil, "unknown mediaType in manifest", "filename", actualFilename)
 			return responseServerError
 		}
-
-		// Compute digest (SHA256) of the manifest content
-		hash := sha256.Sum256(file)
-		digest := "sha256:" + hex.EncodeToString(hash[:])
 
 		return &http.Response{
 			Proto:      "Local",
 			StatusCode: http.StatusOK,
 			Header: http.Header{
 				"Content-Type":          []string{mediaType},
-				"Docker-Content-Digest": []string{digest},
+				"Docker-Content-Digest": []string{actualDigest},
 			},
 			ContentLength: int64(len(file)),
 		}
@@ -255,13 +285,16 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 		defer request.Body.Close()
 
 		filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
-		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "failed to create dir", "dir", filepath.Dir(filename))
+		dir := filepath.Dir(filename)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				klog.V(4).ErrorS(err, "failed to create dir", "dir", dir)
 
-			return responseServerError
+				return responseServerError
+			}
 		}
 
-		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to create file", "filename", filename)
 			return responseServerError
@@ -293,16 +326,51 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 		defer request.Body.Close()
 
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
-		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "failed to create dir", "dir", filepath.Dir(filename))
+		dir := filepath.Dir(filename)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				klog.V(4).ErrorS(err, "failed to create dir", "dir", dir)
 
-			return responseServerError
+				return responseServerError
+			}
 		}
 
-		if err := os.WriteFile(filename, body, os.ModePerm); err != nil {
-			klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
+		if !strings.HasPrefix(filepath.Base(filename), "sha256:") {
+			// Compute digest if not provided in URL
+			hash := sha256.Sum256(body)
+			digest := "sha256:" + hex.EncodeToString(hash[:])
 
-			return responseServerError
+			// Read existing layout file or create a new list
+			layoutFilePath := filepath.Join(dir, "layout")
+			tagDigest := make(map[string]string)
+			if layoutData, err := os.ReadFile(layoutFilePath); err == nil {
+				if err := json.Unmarshal(layoutData, &tagDigest); err != nil {
+					klog.V(4).ErrorS(err, "failed to unmarshal layout file", "file", layoutFilePath)
+				}
+			}
+			// Add the tag and digest to the layout file
+			tagDigest[filepath.Base(filename)] = digest
+			// Write the updated list back to the layout file
+			data, err := json.MarshalIndent(tagDigest, "", "  ")
+			if err != nil {
+				klog.V(4).ErrorS(err, "failed to marshal layout data")
+				return responseServerError
+			}
+			if err := os.WriteFile(layoutFilePath, data, 0644); err != nil {
+				klog.V(4).ErrorS(err, "failed to write layout file", "file", layoutFilePath)
+				return responseServerError
+			}
+			// Write the manifest file
+			if err := os.WriteFile(filepath.Join(dir, digest), body, 0644); err != nil {
+				klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
+				return responseServerError
+			}
+		} else {
+			// Write the manifest file
+			if err := os.WriteFile(filename, body, 0644); err != nil {
+				klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
+				return responseServerError
+			}
 		}
 
 		return responseCreated
