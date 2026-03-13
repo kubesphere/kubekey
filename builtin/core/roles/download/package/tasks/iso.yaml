@@ -1,39 +1,16 @@
 ---
-- name: ISO | Ensure ISO files is available
-  when: >-
-    {{- if .download.system | empty | not -}}
-    {{- if .download.system | eq "AlmaLinux" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "almalinux" .item) }}
-    {{- else if .download.system | eq "CentOS" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "centos" .item) }}
-    {{- else if .download.system | eq "Debian" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "debian" .item) }}
-    {{- else if .download.system | eq "Kylin" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "kylin" .item) }}
-    {{- else if .download.system | eq "Ubuntu" -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains "ubuntu" .item) }}
-    {{- else if contains "almalinux" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "centos" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "debian" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "kylin" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else if contains "ubuntu" (.download.system | lower) -}}
-    {{ and (.download.iso_url.urls | empty | not) (contains (.download.system | lower) .item) }}
-    {{- else -}}
-    {{ .download.iso_url.urls | empty | not }}
-    {{- end -}}
-    {{- else -}}
-    {{ .download.iso_url.urls | empty | not }}
-    {{- end -}}
-  loop: "{{ .download.iso_url.urls | toJson }}"
-  command: |
-    iso_path={{ .binary_dir }}/repository/{{ .item | splitList "/" | last }}
-    if [ ! -f {{ .artifact_dir }}/repository/ ];then
-      mkdir -p {{ .artifact_dir }}/repository/
-    fi
-    if [ -f $iso_path ];then
-      cp $iso_path {{ .artifact_dir }}/repository/
-    fi
+- name: ISO | Copy ISO files for packaging
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $iso := $.download.iso }}
+        {{- $result = append $result (dict "arch" $arch "iso" $iso) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: 
+    - .download.iso | empty | not
+    - printf "%s/repository/%s-%s.iso" .artifact_dir .item.iso .item.arch | fileExists | not
+  copy:
+    src: "{{ .binary_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"
+    dest: "{{ .artifact_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"
