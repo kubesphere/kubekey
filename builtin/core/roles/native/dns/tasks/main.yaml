@@ -85,6 +85,10 @@
 # High Availability: Local DNS configuration for each .kubernetes.control_plane_endpoint.type
 #
 # For 'local' endpoint type:
+#   When local.address is not empty (external load balancer address):
+#     - Control plane: {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#
 #   Before cluster initialization:
 #     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 #     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
@@ -125,6 +129,7 @@
 #   After joining cluster:
 #     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 #     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#
 
 - name: DNS | Set local DNS for kubernetes control plane endpoint
   loop: "{{ .native.localDNS | toJson }}"
@@ -141,6 +146,9 @@
     {{- else }}
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
+    {{- if and (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.local.address | empty | not) }}
+    {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
     # kubekey kubernetes control_plane_endpoint END
     EOF

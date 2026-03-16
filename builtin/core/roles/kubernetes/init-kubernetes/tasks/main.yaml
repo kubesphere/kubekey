@@ -1,6 +1,7 @@
 ---
 - name: InitKubernetes | Configure control_plane_endpoint in local DNS files
   when: 
+    - or (.kubernetes.control_plane_endpoint.type | ne "local") (.kubernetes.control_plane_endpoint.local.address | empty)
     - or (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.type | eq "haproxy")
     - .inventory_hostname | eq .init_kubernetes_node | not
   loop: "{{ .native.localDNS | toJson }}"
