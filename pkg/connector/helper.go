@@ -19,8 +19,11 @@ package connector
 import (
 	"bufio"
 	"bytes"
+	"regexp"
 	"strings"
 )
+
+var archRegex = regexp.MustCompile(`(x86_64|aarch64|arm64|amd64)`)
 
 // convertBytesToMap parses the given byte slice into a map[string]string using the provided split string.
 // Only lines containing the split string are processed. Each such line is split into key and value at the first occurrence of the split string.

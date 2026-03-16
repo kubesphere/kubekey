@@ -393,41 +393,43 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) {
 	// os information
 	osVars := make(map[string]any)
-	var osRelease bytes.Buffer
-	if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
+	var buf bytes.Buffer
+	if err := c.FetchFile(ctx, "/etc/os-release", &buf); err != nil {
 		return nil, err
 	}
-	osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
-	kernel, kernelStderr, err := c.ExecuteCommand(ctx, "uname -r")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(kernelStderr))
+	osVars[_const.VariableOSRelease] = convertBytesToMap(buf.Bytes(), "=")
+	buf.Reset()
+	if err := c.FetchFile(ctx, "/proc/sys/kernel/hostname", &buf); err != nil {
+		return nil, errors.Wrap(err, "failed to get hostname")
 	}
-	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
-
-	hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
+	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(buf.Bytes()))
+	buf.Reset()
+	if err := c.FetchFile(ctx, "/proc/version", &buf); err != nil {
+		return nil, err
 	}
-	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
-
-	arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
+	versionParts := bytes.Split(buf.Bytes(), []byte(" "))
+	if len(versionParts) < 3 {
+		return nil, errors.New("failed to parse kernel version from /proc/version")
 	}
-	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
+	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(versionParts[2]))
+	matches := archRegex.FindStringSubmatch(buf.String())
+	if len(matches) == 0 {
+		return nil, errors.New("failed to get arch")
+	}
+	osVars[_const.VariableOSArchitecture] = strings.TrimSpace(matches[0])
 
 	// process information
 	procVars := make(map[string]any)
-	var cpu bytes.Buffer
-	if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
+	buf.Reset()
+	if err := c.FetchFile(ctx, "/proc/cpuinfo", &buf); err != nil {
 		return nil, err
 	}
-	procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
-	var mem bytes.Buffer
-	if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
+	procVars[_const.VariableProcessCPU] = convertBytesToSlice(buf.Bytes(), ":")
+	buf.Reset()
+	if err := c.FetchFile(ctx, "/proc/meminfo", &buf); err != nil {
 		return nil, err
 	}
-	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
+	procVars[_const.VariableProcessMemory] = convertBytesToMap(buf.Bytes(), ":")
 
 	// persistence the hostInfo
 

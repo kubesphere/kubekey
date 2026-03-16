@@ -139,41 +139,35 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 	case "linux":
 		// os information
 		osVars := make(map[string]any)
-		var osRelease bytes.Buffer
-		if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
+		var buf bytes.Buffer
+		if err := c.FetchFile(ctx, "/etc/os-release", &buf); err != nil {
 			return nil, err
 		}
-		osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
-		kernel, stderr, err := c.ExecuteCommand(ctx, "uname -r")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(stderr))
+		osVars[_const.VariableOSRelease] = convertBytesToMap(buf.Bytes(), "=")
+		buf.Reset()
+		if err := c.FetchFile(ctx, "/proc/sys/kernel/hostname", &buf); err != nil {
+			return nil, errors.Wrap(err, "failed to get hostname")
 		}
-		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
-
-		hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
+		osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(buf.Bytes()))
+		buf.Reset()
+		if err := c.FetchFile(ctx, "/proc/sys/kernel/osrelease", &buf); err != nil {
+			return nil, err
 		}
-		osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
-
-		arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
-		}
-		osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
+		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(buf.Bytes()))
+		osVars[_const.VariableOSArchitecture] = runtime.GOARCH
 
 		// process information
 		procVars := make(map[string]any)
-		var cpu bytes.Buffer
-		if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
+		buf.Reset()
+		if err := c.FetchFile(ctx, "/proc/cpuinfo", &buf); err != nil {
 			return nil, err
 		}
-		procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
-		var mem bytes.Buffer
-		if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
+		procVars[_const.VariableProcessCPU] = convertBytesToSlice(buf.Bytes(), ":")
+		buf.Reset()
+		if err := c.FetchFile(ctx, "/proc/meminfo", &buf); err != nil {
 			return nil, err
 		}
-		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
+		procVars[_const.VariableProcessMemory] = convertBytesToMap(buf.Bytes(), ":")
 
 		return map[string]any{
 			_const.VariableOS:      osVars,
