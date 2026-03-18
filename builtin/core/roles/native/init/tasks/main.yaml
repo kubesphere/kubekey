@@ -1,11 +1,17 @@
 - name: OS | Set system hostname
-  command: |
-    hostnamectl set-hostname {{ .inventory_hostname }} \
-      && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' {{ .item }}
+  loop: "{{ .native.localDNS | toJson }}"
   when: 
     - .native.set_hostname
     - .inventory_hostname | ne "localhost"
-  loop: "{{ .native.localDNS | toJson }}"
+  command: |
+    hostnamectl set-hostname {{ .inventory_hostname }} \
+      && sed -i '/^127.0.1.1/s/.*/127.0.1.1 {{ .inventory_hostname }}/g' {{ .item }}
+
+- name: OS | Reset gather_fact
+  when: .native.set_hostname
+  setup:
+    force: true
+
 - name: OS | Synchronize initialization script to remote node
   template:
     src: init-os.sh

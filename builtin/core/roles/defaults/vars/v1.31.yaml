@@ -75,33 +75,3 @@ dns:
     tag: v1.11.3
   dns_cache_image:
     tag: 1.23.1
-image_manifests:
-  # calico for v3.30.5
-  - quay.io/tigera/operator:v1.38.9
-  - docker.io/calico/apiserver:v3.30.5
-  - docker.io/calico/cni:v3.30.5
-  - docker.io/calico/ctl:v3.30.5
-  - docker.io/calico/csi:v3.30.5
-  - docker.io/calico/goldmane:v3.30.5
-  - docker.io/calico/kube-controllers:v3.30.5
-  - docker.io/calico/node-driver-registrar:v3.30.5
-  - docker.io/calico/node:v3.30.5
-  - docker.io/calico/pod2daemon-flexvol:v3.30.5
-  - docker.io/calico/typha:v3.30.5
-  - docker.io/calico/whisker-backend:v3.30.5
-  - docker.io/calico/whisker:v3.30.5
-  # dns
-  - registry.k8s.io/coredns/coredns:v1.11.3
-  - registry.k8s.io/dns/k8s-dns-node-cache:1.23.1
-  # kubernetes
-  - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/pause:3.10
-  # openebs/local for 4.4.0
-  - docker.io/openebs/linux-utils:4.3.0
-  - docker.io/openebs/provisioner-localpv:4.4.0
-  # control_plane_endpoint ha
-  - docker.io/library/haproxy:2.9.6-alpine
-  - docker.io/plndr/kube-vip:v0.7.2

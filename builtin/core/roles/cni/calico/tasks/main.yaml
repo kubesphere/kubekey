@@ -11,7 +11,7 @@
     - name: Calico | Copy calicoctl binary to remote node
       copy:
         src: >-
-          {{ .binary_dir }}/cni/calico/{{ .cni.calico_version }}/{{ .binary_type }}/calicoctl
+          {{ .binary_dir }}/cni/calico/{{ .cni.calico_version }}/{{ .binary_type }}/calicoctl-linux-{{ .binary_type }}
         dest: /usr/local/bin/calicoctl
         mode: 0755
 

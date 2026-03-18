@@ -62,7 +62,7 @@ var MergeRuntimeVariable = func(nodes []yaml.Node, hosts ...string) MergeFunc {
 				if node.IsZero() {
 					continue
 				}
-				data, err := parseYamlNode(ctx, node)
+				data, err := parseYamlNode(ctx, copyNode(node))
 				if err != nil {
 					return err
 				}

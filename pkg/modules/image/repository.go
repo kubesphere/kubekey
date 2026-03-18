@@ -27,6 +27,8 @@ import (
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // repoCache caches *remote.Repository instances per local directory path.
@@ -138,7 +140,6 @@ var responseNotFound = &http.Response{Proto: "Local", StatusCode: http.StatusNot
 var responseNotAllowed = &http.Response{Proto: "Local", StatusCode: http.StatusMethodNotAllowed}
 var responseServerError = &http.Response{Proto: "Local", StatusCode: http.StatusInternalServerError}
 var responseCreated = &http.Response{Proto: "Local", StatusCode: http.StatusCreated}
-var responseOK = &http.Response{Proto: "Local", StatusCode: http.StatusOK}
 
 // const domain = "internal"
 const apiPrefix = "/v2/"
@@ -287,14 +288,14 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 		filename := filepath.Join(i.baseDir, "blobs", request.URL.Query().Get("digest"))
 		dir := filepath.Dir(filename)
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, _const.PermDirPublic); err != nil {
 				klog.V(4).ErrorS(err, "failed to create dir", "dir", dir)
 
 				return responseServerError
 			}
 		}
 
-		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, _const.PermFilePublic)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to create file", "filename", filename)
 			return responseServerError
@@ -328,7 +329,7 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
 		dir := filepath.Dir(filename)
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, _const.PermDirPublic); err != nil {
 				klog.V(4).ErrorS(err, "failed to create dir", "dir", dir)
 
 				return responseServerError
@@ -356,18 +357,18 @@ func (i imageTransport) put(request *http.Request) *http.Response {
 				klog.V(4).ErrorS(err, "failed to marshal layout data")
 				return responseServerError
 			}
-			if err := os.WriteFile(layoutFilePath, data, 0644); err != nil {
+			if err := os.WriteFile(layoutFilePath, data, _const.PermFilePublic); err != nil {
 				klog.V(4).ErrorS(err, "failed to write layout file", "file", layoutFilePath)
 				return responseServerError
 			}
 			// Write the manifest file
-			if err := os.WriteFile(filepath.Join(dir, digest), body, 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, digest), body, _const.PermFilePublic); err != nil {
 				klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
 				return responseServerError
 			}
 		} else {
 			// Write the manifest file
-			if err := os.WriteFile(filename, body, 0644); err != nil {
+			if err := os.WriteFile(filename, body, _const.PermFilePublic); err != nil {
 				klog.V(4).ErrorS(err, "failed to write file", "filename", filename)
 				return responseServerError
 			}

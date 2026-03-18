@@ -12,7 +12,7 @@ dependencies:
     when:
       - .groups.k8s_cluster | default list | has .inventory_hostname
       - .kubernetes_install_LoadState.stdout | eq "not-found"
-  - role: native/dns
   - role: native/init
+  - role: native/dns
 
 

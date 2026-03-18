@@ -9,7 +9,7 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - or (.download.etcd.etcd_version | empty | not) (.etcd.etcd_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/etcd/%s/%s/etcd-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.etcd .item }}"
@@ -26,7 +26,7 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.kubernetes.kube_version | empty | not) (.kubernetes.kube_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/kube/%s/%s/kubelet" .binary_dir .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.kubelet .item }}"
@@ -43,7 +43,7 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.kubernetes.kube_version | empty | not) (.kubernetes.kube_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/kube/%s/%s/kubeadm" .binary_dir .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.kubeadm .item }}"
@@ -60,7 +60,7 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.kubernetes.kube_version | empty | not) (.kubernetes.kube_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/kube/%s/%s/kubectl" .binary_dir .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.kubectl .item }}"
@@ -77,7 +77,7 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - or (.download.cni.cni_plugins_version | empty | not) (.cni.cni_plugins_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/cni/plugins/%s/%s/cni-plugins-linux-%s-%s.tgz" .binary_dir .item.version .item.arch .item.arch .item.version | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.cni_plugins .item }}"
@@ -94,7 +94,7 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - or (.download.kubernetes.helm_version | empty | not) (.kubernetes.helm_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/helm/%s/%s/helm-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.helm .item }}"
@@ -111,7 +111,7 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - or (.download.cri.crictl_version | empty | not) (.cri.crictl_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/crictl/%s/%s/crictl-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.crictl .item }}"
@@ -129,8 +129,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.cri.docker_version | empty | not) (.cri.docker_version | empty | not)
-    - or ((.download.image_registry.type | default (list .image_registry.type)) | empty | not) ((.download.cri.container_manager | default (list .cri.container_manager)) | has "docker")
+    - index (.item | default dict) "version" | empty | not
+    - >-
+      or 
+        (index (.download.image_registry | default dict) "type" | empty | not)
+        (index (.image_registry | default dict) "type" | empty | not)
+        ((index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "docker")
     - printf "%s/docker/%s/%s/docker-%s.tgz" .binary_dir .item.version .item.arch .item.version | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.docker .item }}"
@@ -147,8 +151,8 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.cri.cridockerd_version | empty | not) (.cri.cridockerd_version | empty | not)
-    - (.download.cri.container_manager | default (list .cri.container_manager)) | has "docker"
+    - index (.item | default dict) "version" | empty | not
+    - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "docker"
     - printf "%s/cri-dockerd/%s/%s/cri-dockerd-%s-%s.tgz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.cridockerd .item }}"
@@ -165,12 +169,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.cri.containerd_version | empty | not) (.cri.containerd_version | empty | not)
-    - (.download.cri.container_manager | default (list .cri.container_manager)) | has "containerd"
-    - printf "%s/containerd/%s/%s/containerd-%s-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+    - index (.item | default dict) "version" | empty | not
+    - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "containerd"
+    - printf "%s/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.containerd .item }}"
-    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-{{ .item.arch }}.tar.gz"
+    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure runc binary is present
@@ -183,8 +187,8 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.cri.runc_version | empty | not) (.cri.runc_version | empty | not)
-    - (.download.cri.container_manager | default (list .cri.container_manager)) | has "containerd"
+    - index (.item | default dict) "version" | empty | not
+    - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "containerd"
     - printf "%s/runc/%s/%s/runc.%s" .binary_dir .item.version .item.arch .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.runc .item }}"
@@ -201,8 +205,8 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.cni.calico_version | empty | not) (.cni.calico_version | empty | not)
-    - (.download.cni.type | default (list .cni.type)) | has "calico"
+    - index (.item | default dict) "version" | empty | not
+    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "calico"
     - printf "%s/cni/calico/%s/%s/calicoctl-linux-%s" .binary_dir .item.version .item.arch .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.calicoctl .item }}"
@@ -220,8 +224,8 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.image_registry.docker_registry_version | empty | not) (.image_registry.docker_registry_version | empty | not)
-    - (.download.image_registry.type | default (list .image_registry.type)) | has "docker-registry"
+    - index (.item | default dict) "version" | empty | not
+    - (index (.download.image_registry | default dict) "type" | default (list .image_registry.type)) | has "docker-registry"
     - printf "%s/image-registry/docker-registry/%s/%s/docker-registry-%s-linux-%s.tgz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.docker_registry .item }}"
@@ -239,8 +243,8 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.image_registry.dockercompose_version | empty | not) (.image_registry.dockercompose_version | empty | not)
-    - or (.download.image_registry.type | empty | not) (.image_registry.type | empty | not)
+    - index (.item | default dict) "version" | empty | not
+    - or (index (.download.image_registry | default dict) "type" | empty | not) (.image_registry.type | empty | not)
     - printf "%s/image-registry/docker-compose/%s/%s/docker-compose" .binary_dir .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.docker_compose .item }}"
@@ -258,8 +262,8 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.image_registry.harbor_version | empty | not) (.image_registry.harbor_version | empty | not)
-    - (.download.image_registry.type | default (list .image_registry.type)) | has "harbor"
+    - index (.item | default dict) "version" | empty | not
+    - (index (.download.image_registry | default dict) "type" | default (list .image_registry.type)) | has "harbor"
     - printf "%s/image-registry/harbor/%s/%s/harbor-offline-installer-%s.tgz" .binary_dir .item.version .item.arch .item.version | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.harbor .item }}"
@@ -277,24 +281,9 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - or (.download.image_registry.keepalived_version | empty | not) (.image_registry.keepalived_version | empty | not)
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/image-registry/keepalived/%s/%s/keepalived-%s-linux-%s.tgz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.keepalived .item }}"
     dest: "{{ .binary_dir }}/image-registry/keepalived/{{ .item.version }}/{{ .item.arch }}/keepalived-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
-    timeout: "{{ .download.timeout }}"
-
-- name: Binary | Download tools to binary directory
-  loop: >
-    {{- $result := list -}}
-    {{- range $arch := .download.arch }}
-      {{- range $tool,$url := $.download.tools }}
-        {{- $result = append $result (dict "arch" $arch "tool" $tool "url" $url) -}}
-      {{- end }}
-    {{- end }}
-    {{- $result | toJson }}
-  when: printf "%s/tools/%s/%s" .binary_dir .item.arch (base (tpl .item.url .item)) | fileExists | not
-  http_get_file:
-    url: "{{ tpl .item.url .item }}"
-    dest: "{{ .binary_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
     timeout: "{{ .download.timeout }}"

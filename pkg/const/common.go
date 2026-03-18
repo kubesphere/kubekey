@@ -129,4 +129,14 @@ const (
 const (
 	// PermDirPublic means public permission of directory, something like os.ModePerm
 	PermDirPublic os.FileMode = 0755
+	// PermFilePublic means public permission of file, something like os.ModePerm
+	PermFilePublic os.FileMode = 0644
+)
+
+// contextKey is a custom type to avoid collisions in context values
+type contextKey string
+
+const (
+	// CTXSetupForceKey is the context key for force flag in setup module
+	CTXSetupForceKey contextKey = "force"
 )

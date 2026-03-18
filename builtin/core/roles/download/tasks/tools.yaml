@@ -1,0 +1,22 @@
+- name: Tools | Download tools to artifact directory
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $tool,$url := $.download.tools }}
+        {{- $result = append $result (dict "arch" $arch "tool" $tool "url" $url) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: printf "%s/tools/%s/%s" .work_dir .item.arch (base (tpl .item.url .item)) | fileExists | not
+  http_get_file:
+    url: "{{ tpl .item.url .item }}"
+    dest: "{{ .work_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
+    timeout: "{{ .download.timeout }}"
+
+- name: Tools | Download charts to artifact directory
+  loop: "{{ .download.charts | toJson }}"
+  when: printf "%s/charts/%s" .work_dir (base .item) | fileExists | not
+  http_get_file:
+    url: "{{ .item }}"
+    dest: "{{ .work_dir }}/charts/{{ base .item }}"
+    timeout: "{{ .download.timeout }}"

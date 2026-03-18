@@ -52,7 +52,7 @@ func (m *manager) executor(playbook *kkcorev1.Playbook, client ctrlclient.Client
 			}
 		}
 		// Open the log file for writing
-		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, _const.PermFilePublic)
 		if err != nil {
 			return errors.Wrapf(err, "failed to open log file", "file", filename)
 		}

@@ -10,8 +10,8 @@ kubernetes:
   sandbox_image: 
     registry: >-
       {{ .image_registry.k8sio_registry }}
-    repository: >
-      {{ if .image_registry.auth.registry | empty | not }}kubernetes/{{ end }}pause
+    repository: >-
+      {{- .image_registry.auth.registry | empty | ternary "pause" "kubernetes/pause" -}}
       
 
   # Kubernetes network configuration

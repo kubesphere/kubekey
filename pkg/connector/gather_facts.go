@@ -85,6 +85,12 @@ func newCacheGatherFact(inventoryName, cacheType, workdir string, getHostInfoFn 
 // HostInfo returns host information from cache or fetches it remotely if not cached.
 // The caching behavior depends on the configured cache type (JSON, YAML, or memory).
 func (c *cacheGatherFact) HostInfo(ctx context.Context) (map[string]any, error) {
+	if ctx.Value(_const.CTXSetupForceKey) != nil && ctx.Value(_const.CTXSetupForceKey).(bool) {
+		_ = os.Remove(filepath.Join(c.cacheDir, c.inventoryName+".json"))
+		_ = os.Remove(filepath.Join(c.cacheDir, c.inventoryName+".yaml"))
+		cache.Delete(c.inventoryName)
+		return c.getHostInfoFn(ctx)
+	}
 	switch c.cacheType {
 	case gatherFactsCacheJSON:
 		return c.handleJSONCache(ctx)
